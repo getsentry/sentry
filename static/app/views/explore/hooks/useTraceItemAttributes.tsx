@@ -1,9 +1,10 @@
 import {useMemo} from 'react';
-import {keepPreviousData, useQuery} from '@tanstack/react-query';
+import {hashKey, useQuery} from '@tanstack/react-query';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {TagCollection} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {FieldKind} from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -29,6 +30,8 @@ import {
 } from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
 
 type TypedTraceItemAttributes = {
+  array: TagCollection;
+  arraySecondaryAliases: TagCollection;
   boolean: TagCollection;
   booleanSecondaryAliases: TagCollection;
   number: TagCollection;
@@ -38,6 +41,7 @@ type TypedTraceItemAttributes = {
 };
 
 type TypedTraceItemAttributesStatus = {
+  arrayAttributesLoading: boolean;
   booleanAttributesLoading: boolean;
   numberAttributesLoading: boolean;
   stringAttributesLoading: boolean;
@@ -46,7 +50,7 @@ type TypedTraceItemAttributesStatus = {
 type TypedTraceItemAttributesResult = TypedTraceItemAttributes &
   TypedTraceItemAttributesStatus;
 
-type TraceItemAttributeType = 'number' | 'string' | 'boolean';
+type TraceItemAttributeType = 'number' | 'string' | 'boolean' | 'array';
 
 type TraceItemAttributeResult = {
   attributes: TagCollection;
@@ -71,6 +75,16 @@ function isProjectArray(
   return projects.length > 0 && typeof projects[0] === 'object';
 }
 
+function getAttributeScopeHash([url, options]: ApiQueryKey) {
+  return hashKey([
+    url,
+    {
+      ...options,
+      query: {...options?.query, substringMatch: undefined},
+    },
+  ]);
+}
+
 function useTraceItemAttributeConfig({
   traceItemType,
   enabled,
@@ -85,73 +99,55 @@ function useTraceItemAttributeConfig({
   const projectIds =
     rawProjects && !isProjectArray(rawProjects) ? rawProjects : undefined;
 
+  const queryOptions = traceItemAttributeKeysOptions({
+    organization,
+    selection,
+    traceItemType,
+    projectIds,
+    projects,
+    search,
+    query,
+    staleTime,
+  });
+  const scopeHash = getAttributeScopeHash(queryOptions.queryKey);
   const {data, isFetching: attributesLoading} = useQuery({
-    ...traceItemAttributeKeysOptions({
-      organization,
-      selection,
-      traceItemType,
-      projectIds,
-      projects,
-      search,
-      query,
-      staleTime,
-    }),
+    ...queryOptions,
     enabled,
+    // Retain search results, but never register previous-scope attributes in a new scope.
+    placeholderData: (previousData, previousQuery) =>
+      previousQuery && getAttributeScopeHash(previousQuery.queryKey) === scopeHash
+        ? previousData
+        : undefined,
     select: selectTraceItemTagCollection(),
-    placeholderData: keepPreviousData,
   });
 
-  const booleanBaseKeys = useMemo(() => {
-    const keys = new Set(getDefaultBooleanAttributes(traceItemType));
-    for (const key of Object.keys(data?.booleanAttributes ?? {})) {
-      keys.add(extractBaseKey(key));
-    }
-
-    return keys;
-  }, [data?.booleanAttributes, traceItemType]);
-
   const allNumberAttributes = useMemo(() => {
-    const shouldRemove = booleanBaseKeys.size > 0;
-    const attributes: TagCollection = {};
-    const secondaryAliases: TagCollection = {};
-
-    for (const [key, value] of Object.entries(data?.numberAttributes ?? {})) {
-      if (!shouldRemove || !shouldRemoveAttributeKey(key, booleanBaseKeys)) {
-        attributes[key] = value;
-      }
-
-      for (const alias of value.secondaryAliases ?? []) {
-        if (shouldRemove && shouldRemoveAttributeKey(alias, booleanBaseKeys)) {
-          continue;
-        }
-
-        secondaryAliases[alias] = {
-          key: alias,
-          name: alias,
-          kind: FieldKind.MEASUREMENT,
-        };
-      }
-    }
-
-    for (const measurement of getDefaultNumberAttributes(traceItemType)) {
-      if (shouldRemove && shouldRemoveAttributeKey(measurement, booleanBaseKeys)) {
-        continue;
-      }
-
-      attributes[measurement] = {
+    const measurements = getDefaultNumberAttributes(traceItemType).map(measurement => [
+      measurement,
+      {
         key: measurement,
         name: measurement,
         kind: FieldKind.MEASUREMENT,
-      };
-    }
+        attributeSource: 'sentry',
+      },
+    ]);
 
-    return {attributes, secondaryAliases};
-  }, [data?.numberAttributes, traceItemType, booleanBaseKeys]);
+    const secondaryAliases: TagCollection = Object.fromEntries(
+      Object.values(data?.numberAttributes ?? {})
+        .flatMap(value => value.secondaryAliases ?? [])
+        .map(alias => [alias, {key: alias, name: alias, kind: FieldKind.MEASUREMENT}])
+    );
+
+    return {
+      attributes: {...data?.numberAttributes, ...Object.fromEntries(measurements)},
+      secondaryAliases,
+    };
+  }, [data?.numberAttributes, traceItemType]);
 
   const allStringAttributes = useMemo(() => {
     const tags = getDefaultStringAttributes(traceItemType).map(tag => [
       tag,
-      {key: tag, name: tag, kind: FieldKind.TAG},
+      {key: tag, name: tag, kind: FieldKind.TAG, attributeSource: 'sentry'},
     ]);
     const secondaryAliases: TagCollection = Object.fromEntries(
       Object.values(data?.stringAttributes ?? {})
@@ -168,7 +164,7 @@ function useTraceItemAttributeConfig({
   const allBooleanAttributes = useMemo(() => {
     const tags = getDefaultBooleanAttributes(traceItemType).map(tag => [
       tag,
-      {key: tag, name: tag, kind: FieldKind.BOOLEAN},
+      {key: tag, name: tag, kind: FieldKind.BOOLEAN, attributeSource: 'sentry'},
     ]);
     const secondaryAliases: TagCollection = Object.fromEntries(
       Object.values(data?.booleanAttributes ?? {})
@@ -182,17 +178,33 @@ function useTraceItemAttributeConfig({
     };
   }, [data?.booleanAttributes, traceItemType]);
 
+  const allArrayAttributes = useMemo(() => {
+    const secondaryAliases: TagCollection = Object.fromEntries(
+      Object.values(data?.arrayAttributes ?? {})
+        .flatMap(value => value.secondaryAliases ?? [])
+        .map(alias => [alias, {key: alias, name: alias, kind: FieldKind.ARRAY}])
+    );
+
+    return {
+      attributes: {...data?.arrayAttributes},
+      secondaryAliases,
+    };
+  }, [data?.arrayAttributes]);
+
   return useMemo(
     () => ({
       boolean: allBooleanAttributes.attributes,
       number: allNumberAttributes.attributes,
       string: allStringAttributes.attributes,
+      array: allArrayAttributes.attributes,
       booleanSecondaryAliases: allBooleanAttributes.secondaryAliases,
       numberSecondaryAliases: allNumberAttributes.secondaryAliases,
       stringSecondaryAliases: allStringAttributes.secondaryAliases,
+      arraySecondaryAliases: allArrayAttributes.secondaryAliases,
       booleanAttributesLoading: attributesLoading,
       numberAttributesLoading: attributesLoading,
       stringAttributesLoading: attributesLoading,
+      arrayAttributesLoading: attributesLoading,
     }),
     [
       allBooleanAttributes.attributes,
@@ -201,6 +213,8 @@ function useTraceItemAttributeConfig({
       allNumberAttributes.secondaryAliases,
       allStringAttributes.attributes,
       allStringAttributes.secondaryAliases,
+      allArrayAttributes.attributes,
+      allArrayAttributes.secondaryAliases,
       attributesLoading,
     ]
   );
@@ -211,34 +225,48 @@ function processTraceItemAttributes(
   type?: TraceItemAttributeType,
   hiddenKeys?: string[]
 ) {
+  const hiddenKeySet = hiddenKeys ? new Set(hiddenKeys) : undefined;
   if (type === 'boolean') {
     return {
-      attributes: hiddenKeys
-        ? removeHiddenKeys(typedAttributesResult.boolean, hiddenKeys)
+      attributes: hiddenKeySet
+        ? removeHiddenKeys(typedAttributesResult.boolean, hiddenKeySet)
         : typedAttributesResult.boolean,
-      secondaryAliases: hiddenKeys
-        ? removeHiddenKeys(typedAttributesResult.booleanSecondaryAliases, hiddenKeys)
+      secondaryAliases: hiddenKeySet
+        ? removeHiddenKeys(typedAttributesResult.booleanSecondaryAliases, hiddenKeySet)
         : typedAttributesResult.booleanSecondaryAliases,
       isLoading: typedAttributesResult.booleanAttributesLoading,
     };
   }
   if (type === 'number') {
     return {
-      attributes: hiddenKeys
-        ? removeHiddenKeys(typedAttributesResult.number, hiddenKeys)
+      attributes: hiddenKeySet
+        ? removeHiddenKeys(typedAttributesResult.number, hiddenKeySet)
         : typedAttributesResult.number,
-      secondaryAliases: hiddenKeys
-        ? removeHiddenKeys(typedAttributesResult.numberSecondaryAliases, hiddenKeys)
+      secondaryAliases: hiddenKeySet
+        ? removeHiddenKeys(typedAttributesResult.numberSecondaryAliases, hiddenKeySet)
         : typedAttributesResult.numberSecondaryAliases,
       isLoading: typedAttributesResult.numberAttributesLoading,
     };
   }
+
+  if (type === 'array') {
+    return {
+      attributes: hiddenKeySet
+        ? removeHiddenKeys(typedAttributesResult.array, hiddenKeySet)
+        : typedAttributesResult.array,
+      secondaryAliases: hiddenKeySet
+        ? removeHiddenKeys(typedAttributesResult.arraySecondaryAliases, hiddenKeySet)
+        : typedAttributesResult.arraySecondaryAliases,
+      isLoading: typedAttributesResult.arrayAttributesLoading,
+    };
+  }
+
   return {
-    attributes: hiddenKeys
-      ? removeHiddenKeys(typedAttributesResult.string, hiddenKeys)
+    attributes: hiddenKeySet
+      ? removeHiddenKeys(typedAttributesResult.string, hiddenKeySet)
       : typedAttributesResult.string,
-    secondaryAliases: hiddenKeys
-      ? removeHiddenKeys(typedAttributesResult.stringSecondaryAliases, hiddenKeys)
+    secondaryAliases: hiddenKeySet
+      ? removeHiddenKeys(typedAttributesResult.stringSecondaryAliases, hiddenKeySet)
       : typedAttributesResult.stringSecondaryAliases,
     isLoading: typedAttributesResult.stringAttributesLoading,
   };
@@ -272,21 +300,13 @@ export function useTraceItemDatasetAttributes(
 
 export function useSpanItemAttributes(
   options?: TraceItemAttributeOptions,
-  type?: TraceItemAttributeType,
-  hiddenKeys?: string[]
+  type?: TraceItemAttributeType
 ): TraceItemAttributeResult {
-  const mergedHiddenKeys = useMemo(() => {
-    if (!hiddenKeys?.length) {
-      return DASHBOARD_ONLY_SPAN_ATTRIBUTES;
-    }
-    return [...hiddenKeys, ...DASHBOARD_ONLY_SPAN_ATTRIBUTES];
-  }, [hiddenKeys]);
-
   return useTraceItemDatasetAttributes(
     TraceItemDataset.SPANS,
     options,
     type,
-    mergedHiddenKeys
+    DASHBOARD_ONLY_SPAN_ATTRIBUTES
   );
 }
 
@@ -322,33 +342,6 @@ export function usePreprodItemAttributes(
     type,
     hiddenKeys
   );
-}
-
-const TAGS_REGEX =
-  /^tags\[(?<tagKey>[\w.:@-]+),(?<attributeType>boolean|number|string)\]$/;
-
-/**
- * Extracts the base key from a tag key, handling both plain keys and
- * explicit format like `tags[key,type]`.
- */
-export function extractBaseKey(key: string): string {
-  const match = TAGS_REGEX.exec(key);
-  if (!match?.groups) {
-    return key;
-  }
-
-  return match.groups.tagKey ?? key;
-}
-
-/**
- * Returns true if an attribute key should be removed because an attribute with the same
- * base key exists.
- */
-export function shouldRemoveAttributeKey(
-  key: string,
-  booleanBaseKeys: Set<string>
-): boolean {
-  return booleanBaseKeys.has(extractBaseKey(key));
 }
 
 function getDefaultStringAttributes(itemType: TraceItemDataset) {

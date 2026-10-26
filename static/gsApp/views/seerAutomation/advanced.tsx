@@ -10,6 +10,7 @@ import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useCanWriteSettings} from 'sentry/utils/seer/useCanWriteSettings';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -25,7 +26,9 @@ export default function SeerAutomationAdvancedSettings() {
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
 
-  const orgEndpoint = `/organizations/${organization.slug}/`;
+  const orgEndpoint = getApiUrl('/organizations/$organizationIdOrSlug/', {
+    path: {organizationIdOrSlug: organization.slug},
+  });
   const orgMutationOpts = mutationOptions({
     mutationFn: (data: Partial<Organization>) =>
       fetchMutation<Organization>({method: 'PUT', url: orgEndpoint, data}),
@@ -76,11 +79,7 @@ export default function SeerAutomationAdvancedSettings() {
                 <field.Switch
                   checked={field.state.value}
                   onChange={field.handleChange}
-                  disabled={
-                    organization.features.includes('seer-disable-coding-setting')
-                      ? t('Code generation is managed by your organization.')
-                      : !canWrite
-                  }
+                  disabled={!canWrite}
                 />
               </field.Layout.Row>
             )}

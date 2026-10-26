@@ -66,13 +66,11 @@ export function useErrorFilters({errorFrames}: Options): Return {
       Array.from(new Set(errorFrames.map(crumb => crumb.data.level).concat(level)))
         .filter(Boolean)
         .sort()
-        .map(
-          (value): ErrorSelectOption => ({
-            value: value.toLowerCase(),
-            label: toTitleCase(value),
-            qs: 'f_e_level',
-          })
-        ),
+        .map((value): ErrorSelectOption => ({
+          value: value.toLowerCase(),
+          label: toTitleCase(value),
+          qs: 'f_e_level',
+        })),
     [errorFrames, level]
   );
 
@@ -83,13 +81,11 @@ export function useErrorFilters({errorFrames}: Options): Return {
       )
         .filter(Boolean)
         .sort()
-        .map(
-          (value): ErrorSelectOption => ({
-            value,
-            label: value,
-            qs: 'f_e_project',
-          })
-        ),
+        .map((value): ErrorSelectOption => ({
+          value,
+          label: value,
+          qs: 'f_e_project',
+        })),
     [errorFrames, project]
   );
 

@@ -1,3 +1,6 @@
+import re
+import textwrap
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -7,10 +10,17 @@ from rest_framework.serializers import ValidationError
 from sentry.auth.access import SystemAccess
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import TestCase
+from sentry.utils import json
 from sentry.workflow_engine.endpoints.serializers.workflow_serializer import (
     TriggerSerializerResponse,
     WorkflowSerializer,
     WorkflowSerializerResponse,
+)
+from sentry.workflow_engine.endpoints.validators.api_docs_help_text import (
+    DATA_SOURCES_HELP_TEXT,
+    DETECTOR_CONFIG_HELP_TEXT,
+    WORKFLOW_CONFIG_HELP_TEXT,
+    WORKFLOW_TRIGGERS_HELP_TEXT,
 )
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
 from sentry.workflow_engine.models import (
@@ -25,6 +35,26 @@ from sentry.workflow_engine.models import (
 from tests.sentry.workflow_engine.test_base import MockActionHandler, MockActionValidatorTranslator
 
 
+def _parse_json_examples(help_text: str) -> list[dict[str, Any] | list[Any]]:
+    examples = re.findall(r"```json\s*(.*?)\s*```", help_text, re.DOTALL)
+    return [json.loads(textwrap.dedent(example)) for example in examples]
+
+
+@pytest.mark.parametrize(
+    "help_text",
+    [
+        WORKFLOW_CONFIG_HELP_TEXT,
+        WORKFLOW_TRIGGERS_HELP_TEXT,
+        DATA_SOURCES_HELP_TEXT,
+        DETECTOR_CONFIG_HELP_TEXT,
+    ],
+)
+def test_documented_request_examples_are_valid_json(help_text: str) -> None:
+    examples = _parse_json_examples(help_text)
+
+    assert examples
+
+
 class TestWorkflowValidator(TestCase):
     def setUp(self) -> None:
         self.context = {
@@ -37,7 +67,7 @@ class TestWorkflowValidator(TestCase):
             "enabled": True,
             "actionFilters": [],
             "config": {
-                "frequency": 30,
+                "frequency": 60,
             },
             "triggers": {
                 "logicType": "any",
@@ -48,6 +78,19 @@ class TestWorkflowValidator(TestCase):
     def test_valid_data(self) -> None:
         validator = WorkflowValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid() is True
+
+    def test_documented_workflow_request_is_valid(self) -> None:
+        config = _parse_json_examples(WORKFLOW_CONFIG_HELP_TEXT)[0]
+        triggers = _parse_json_examples(WORKFLOW_TRIGGERS_HELP_TEXT)[0]
+        assert isinstance(config, dict)
+        assert isinstance(triggers, dict)
+
+        validator = WorkflowValidator(
+            data={"name": "Documented workflow", "config": config, **triggers},
+            context=self.context,
+        )
+
+        assert validator.is_valid(), validator.errors
 
     @mock.patch(
         "sentry.workflow_engine.registry.action_handler_registry.get",
@@ -139,7 +182,7 @@ class TestWorkflowValidatorActivityTrigger(TestCase):
                 "conditions": [
                     {
                         "type": Condition.SEER_ACTIVITY_TRIGGER,
-                        "comparison": ["rca_started"],
+                        "comparison": ["rca_completed"],
                         "conditionResult": True,
                     }
                 ],
@@ -253,7 +296,7 @@ class TestWorkflowValidatorActivityTrigger(TestCase):
         self.create_data_condition(
             condition_group=when_condition_group,
             type=Condition.SEER_ACTIVITY_TRIGGER,
-            comparison=["rca_started"],
+            comparison=["rca_completed"],
             condition_result=True,
         )
         workflow = self.create_workflow(
@@ -301,7 +344,7 @@ class TestWorkflowValidatorActivityTrigger(TestCase):
         self.create_data_condition(
             condition_group=when_condition_group,
             type=Condition.SEER_ACTIVITY_TRIGGER,
-            comparison=["rca_started"],
+            comparison=["rca_completed"],
             condition_result=True,
         )
         workflow = self.create_workflow(
@@ -337,6 +380,7 @@ class TestWorkflowValidatorCreate(TestCase):
         self.context = {
             "organization": self.organization,
             "request": self.make_request(user=self.user),
+            "access": SystemAccess(),
         }
 
         self.integration, self.org_integration = self.create_provider_integration_for(
@@ -378,6 +422,15 @@ class TestWorkflowValidatorCreate(TestCase):
         assert workflow.id is not None
         assert workflow.name == "test"
         assert workflow.config == {}
+
+    def test_create__without_triggers(self) -> None:
+        del self.valid_data["triggers"]
+        validator = WorkflowValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid() is True
+        workflow = validator.create(validator.validated_data)
+
+        assert workflow.when_condition_group is not None
+        assert workflow.when_condition_group.conditions.count() == 0
 
     def test_create__without_action_filters(self) -> None:
         data_without_action_filters = {
@@ -696,9 +749,11 @@ class TestWorkflowValidatorCreate(TestCase):
 )
 class TestWorkflowValidatorUpdate(TestCase):
     def setUp(self) -> None:
+        request = self.make_request()
+        request.access = SystemAccess()
         self.context = {
             "organization": self.organization,
-            "request": self.make_request(),
+            "request": request,
         }
 
         self.integration, self.org_integration = self.create_provider_integration_for(
@@ -809,10 +864,24 @@ class TestWorkflowValidatorUpdate(TestCase):
         }
 
         validator = WorkflowValidator(data=self.valid_saved_data, context=self.context)
-        assert validator.is_valid() is True
 
-        with pytest.raises(ValidationError):
-            validator.update(self.workflow, validator.validated_data)
+        with pytest.raises(ValidationError) as excinfo:
+            validator.is_valid(raise_exception=True)
+
+        assert excinfo.value.detail == {
+            "triggers": [
+                ErrorDetail(
+                    string=f"Invalid Condition Group ID {fake_dcg.id}",
+                    code="invalid",
+                )
+            ]
+        }
+
+        # The workflow keeps its own trigger group, and the other group is untouched
+        self.workflow.refresh_from_db()
+
+        assert self.workflow.when_condition_group_id != fake_dcg.id
+        assert fake_dcg.conditions.count() == 0
 
     def test_update__remove_action_filter(self, mock_action_validator: mock.MagicMock) -> None:
         self.valid_saved_data["actionFilters"] = []
@@ -955,10 +1024,14 @@ class TestWorkflowValidatorUpdate(TestCase):
         assert self.workflow.when_condition_group.conditions.count() == 1
         assert self.workflow.when_condition_group.conditions.first() == dc
 
-    def test_update__add_new_action(self, mock_action_validator: mock.MagicMock) -> None:
-        assert self.valid_saved_data["actionFilters"]
-        self.valid_saved_data["actionFilters"][0]["actions"].append(
+    def test_update__add_new_action_ignores_client_primary_key(
+        self, mock_action_validator: mock.MagicMock
+    ) -> None:
+        data: dict[str, Any] = dict(self.valid_saved_data)
+        assert data["actionFilters"]
+        data["actionFilters"][0]["actions"].append(
             {
+                "pk": 2**62,
                 "type": Action.Type.SLACK,
                 "config": {
                     "targetIdentifier": "foo",
@@ -970,9 +1043,12 @@ class TestWorkflowValidatorUpdate(TestCase):
             }
         )
 
-        validator = WorkflowValidator(data=self.valid_saved_data, context=self.context)
+        validator = WorkflowValidator(data=data, context=self.context)
         assert validator.is_valid() is True
         validator.update(self.workflow, validator.validated_data)
+
+        assert Action.objects.count() == 2
+        assert not Action.objects.filter(id=2**62).exists()
 
     def test_update__modify_action(self, mock_action_validator: mock.MagicMock) -> None:
         workflow_condition_group = self.workflow.workflowdataconditiongroup_set.first()

@@ -39,7 +39,8 @@ class DualWriteMetricsBackend(MetricsBackend):
 
     Additionally, an `experimental_backend` can be configured with `experimental_args`.
     Metrics will always be sent to the experimental backend (in addition to primary/secondary)
-    unless they match the `deny_list` prefixes in `experimental_args`.
+    unless `allow_list` is set in `experimental_args`, in which case only metrics matching its
+    prefixes are sent.
 
     """
 
@@ -158,6 +159,22 @@ class DualWriteMetricsBackend(MetricsBackend):
         self._experimental_backend.distribution(
             key, value, instance, tags, sample_rate, unit, stacklevel + 1
         )
+
+    def set(
+        self,
+        key: str,
+        value: str | int,
+        instance: str | None = None,
+        tags: Tags | None = None,
+        sample_rate: float = 1,
+        stacklevel: int = 0,
+    ) -> None:
+        use_primary, use_secondary = self._other_choice(key)
+        if use_primary:
+            self._primary_backend.set(key, value, instance, tags, sample_rate, stacklevel + 1)
+        if use_secondary:
+            self._secondary_backend.set(key, value, instance, tags, sample_rate, stacklevel + 1)
+        self._experimental_backend.set(key, value, instance, tags, sample_rate, stacklevel + 1)
 
     def event(
         self,

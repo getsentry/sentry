@@ -1,12 +1,9 @@
 from typing import Any, TypedDict
 
 import sentry.options
+from sentry.ingest.inbound_filters import get_global_generic_filters
 from sentry.relay.config.ai_model_costs import AIModelMetadataConfig, ai_model_metadata_config
 from sentry.relay.config.measurements import MeasurementsConfig, get_measurements_config
-from sentry.relay.config.metric_extraction import (
-    MetricExtractionGroups,
-    global_metric_extraction_groups,
-)
 from sentry.relay.types import GenericFiltersConfig, RuleCondition
 from sentry.utils import metrics
 
@@ -24,6 +21,8 @@ RELAY_OPTIONS: list[str] = [
     "relay.objectstore-attachments.sample-rate",
     "relay.endpoint-fetch-config.enabled",
     "relay.attachment-inline.limit",
+    "relay.generic-metrics.disabled",
+    "relay.upload-max-chunk.size",
 ]
 
 
@@ -39,17 +38,9 @@ class SpanOpDefaults(TypedDict):
 class GlobalConfig(TypedDict, total=False):
     measurements: MeasurementsConfig
     aiModelMetadata: AIModelMetadataConfig | None
-    metricExtraction: MetricExtractionGroups
     filters: GenericFiltersConfig | None
     spanOpDefaults: SpanOpDefaults
     options: dict[str, Any]
-
-
-def get_global_generic_filters() -> GenericFiltersConfig:
-    return {
-        "version": 1,
-        "filters": [],
-    }
 
 
 def span_op_defaults() -> SpanOpDefaults:
@@ -78,7 +69,6 @@ def get_global_config() -> GlobalConfig:
     global_config: GlobalConfig = {
         "measurements": get_measurements_config(),
         "aiModelMetadata": ai_model_metadata_config(),
-        "metricExtraction": global_metric_extraction_groups(),
         "spanOpDefaults": span_op_defaults(),
     }
 

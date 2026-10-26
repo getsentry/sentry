@@ -25,48 +25,50 @@ const unknownUser: AvatarUser = {
   ip_address: '',
 };
 
-export function LastCommit({commit}: Props) {
-  function renderMessage(message: Commit['message']) {
-    if (!message) {
-      return (
-        <StyledCommitLink
-          inline
-          commitId={commit.id}
-          repository={commit.repository}
-          showIcon={false}
-        />
-      );
-    }
-
-    let finalMessage = message.split(/\n/)[0]!;
-    if (finalMessage.length > 100) {
-      let truncated = finalMessage.substring(0, 90);
-      const words = truncated.split(/ /);
-      // try to not have ellipsis mid-word
-      if (words.length > 1) {
-        words.pop();
-        truncated = words.join(' ');
-      }
-      finalMessage = `${truncated}\u2026`;
-    }
-
+function CommitMessage({commit, message}: {commit: Commit; message: Commit['message']}) {
+  if (!message) {
     return (
       <StyledCommitLink
         inline
         commitId={commit.id}
         repository={commit.repository}
-        commitTitle={finalMessage}
         showIcon={false}
       />
     );
   }
 
+  let finalMessage = message.split(/\n/)[0]!;
+  if (finalMessage.length > 100) {
+    let truncated = finalMessage.substring(0, 90);
+    const words = truncated.split(/ /);
+    // try to not have ellipsis mid-word
+    if (words.length > 1) {
+      words.pop();
+      truncated = words.join(' ');
+    }
+    finalMessage = `${truncated}\u2026`;
+  }
+
+  return (
+    <StyledCommitLink
+      inline
+      commitId={commit.id}
+      repository={commit.repository}
+      commitTitle={finalMessage}
+      showIcon={false}
+    />
+  );
+}
+
+export function LastCommit({commit}: Props) {
   const commitAuthor = commit?.author;
   return (
     <div>
       <h6>Last commit</h6>
       <div>
-        <Message>{renderMessage(commit.message)}</Message>
+        <Message>
+          <CommitMessage commit={commit} message={commit.message} />
+        </Message>
         <Meta>
           <UserAvatar user={commitAuthor || unknownUser} size={14} />
           <strong>{commitAuthor?.name || t('Unknown Author')}</strong>

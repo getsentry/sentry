@@ -11,6 +11,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
   render,
+  renderGlobalModal,
   screen,
   userEvent,
   waitFor,
@@ -21,13 +22,15 @@ import * as dashboardActions from 'sentry/actionCreators/dashboards';
 import {addLoadingMessage} from 'sentry/actionCreators/indicator';
 import * as modals from 'sentry/actionCreators/modal';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {registerOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
+import {UNSAVED_FILTERS_MESSAGE} from 'sentry/views/dashboards/constants';
 import CreateDashboard from 'sentry/views/dashboards/create';
 import {DashboardDetailWithInjectedProps as DashboardDetail} from 'sentry/views/dashboards/detail';
-import {EditAccessSelector} from 'sentry/views/dashboards/editAccessSelector';
+import {useGetStarredDashboards} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import * as types from 'sentry/views/dashboards/types';
 import {DashboardState} from 'sentry/views/dashboards/types';
 import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
@@ -37,6 +40,11 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 
 jest.mock('sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState');
 jest.mock('sentry/actionCreators/indicator');
+
+function StarredDashboardTitle() {
+  const {data: dashboards = []} = useGetStarredDashboards();
+  return <span aria-label="Starred dashboard title">{dashboards[0]?.title}</span>;
+}
 
 class MockIntersectionObserver {
   constructor(callback: IntersectionObserverCallback) {
@@ -73,6 +81,12 @@ class MockIntersectionObserver {
       this.callback(entries, this as any);
     }
   }
+}
+
+async function openPermissionsModal() {
+  await userEvent.click(await screen.findByRole('button', {name: 'Dashboard actions'}));
+  await userEvent.click(screen.getByRole('menuitemradio', {name: 'View Permissions'}));
+  await screen.findByRole('heading', {name: 'View Permissions'});
 }
 
 describe('Dashboards > Detail', () => {
@@ -114,15 +128,8 @@ describe('Dashboards > Detail', () => {
     };
   }
 
-  /**
-   * Clicks the edit dashboard button and waits for a known button to be visible.
-   * Note that this bypasses hover state to avoid overlays intercepting clicks.
-   */
   async function activateDashboardEditMode() {
-    const button = await screen.findByRole('button', {name: 'edit-dashboard'});
-    act(() => {
-      button.click();
-    });
+    await userEvent.click(await screen.findByRole('button', {name: 'Edit'}));
     await screen.findByRole('button', {name: 'Save and Finish'});
   }
 
@@ -156,7 +163,10 @@ describe('Dashboards > Detail', () => {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/default-overview/',
-        body: DashboardFixture([], {id: 'default-overview', title: 'Default'}),
+        body: DashboardFixture([], {
+          id: 'default-overview',
+          title: 'Default',
+        }),
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/visit/',
@@ -185,6 +195,10 @@ describe('Dashboards > Detail', () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-stats/',
         body: {data: []},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-timeseries/',
+        body: {timeSeries: []},
       });
       MockApiClient.addMockResponse({
         method: 'GET',
@@ -219,6 +233,10 @@ describe('Dashboards > Detail', () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-stats/',
         body: {data: []},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-timeseries/',
+        body: {timeSeries: []},
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/default-overview/',
@@ -286,7 +304,25 @@ describe('Dashboards > Detail', () => {
     let mockScrollIntoView!: jest.Mock;
 
     beforeEach(() => {
+      registerOverride(
+        'component:dashboards-limit-provider',
+        () =>
+          function DashboardLimitProvider({children}) {
+            return typeof children === 'function'
+              ? children({
+                  dashboardsLimit: 0,
+                  hasReachedDashboardLimit: false,
+                  isLoading: false,
+                  limitMessage: null,
+                })
+              : children;
+          }
+      );
       window.confirm = jest.fn();
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/teams/',
+        body: [],
+      });
       initialData = initializeOrg({
         organization,
         router: {
@@ -317,7 +353,7 @@ describe('Dashboards > Detail', () => {
           ],
           title: 'Errors',
           interval: '1d',
-          widgetType: types.WidgetType.DISCOVER,
+          widgetType: types.WidgetType.ERRORS,
           id: '1',
         }),
         WidgetFixture({
@@ -333,7 +369,7 @@ describe('Dashboards > Detail', () => {
           ],
           title: 'Transactions',
           interval: '1d',
-          widgetType: types.WidgetType.DISCOVER,
+          widgetType: types.WidgetType.TRANSACTIONS,
           id: '2',
         }),
         WidgetFixture({
@@ -404,6 +440,10 @@ describe('Dashboards > Detail', () => {
         body: {data: []},
       });
       MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-timeseries/',
+        body: {timeSeries: []},
+      });
+      MockApiClient.addMockResponse({
         method: 'POST',
         url: '/organizations/org-slug/dashboards/widgets/',
         body: [],
@@ -466,7 +506,10 @@ describe('Dashboards > Detail', () => {
       const updateMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         method: 'PUT',
-        body: DashboardFixture([widgets[0]!], {id: '1', title: 'Custom Errors'}),
+        body: DashboardFixture([widgets[0]!], {
+          id: '1',
+          title: 'Custom Errors',
+        }),
       });
       render(
         <OrganizationContext value={initialData.organization}>
@@ -509,6 +552,68 @@ describe('Dashboards > Detail', () => {
       expect(mockVisit).toHaveBeenCalledTimes(1);
     });
 
+    it('renames from the actions menu without touching widgets', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/',
+        body: [DashboardFixture([], {id: '1', title: 'Custom Errors'})],
+        match: [MockApiClient.matchQuery({filter: 'onlyFavorites'})],
+      });
+
+      render(
+        <OrganizationContext value={initialData.organization}>
+          <StarredDashboardTitle />
+          <ViewEditDashboard />
+        </OrganizationContext>,
+        makeDashboardRouterConfig({
+          pathname: '/organizations/org-slug/dashboard/1/',
+          route: DASHBOARD_ROUTE,
+          query: {},
+        })
+      );
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Starred dashboard title')).toHaveTextContent(
+          'Custom Errors'
+        );
+      });
+
+      renderGlobalModal({organization: initialData.organization});
+
+      const renameMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        method: 'PUT',
+        body: DashboardFixture(widgets, {id: '1', title: 'Renamed Dashboard'}),
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/',
+        body: [DashboardFixture([], {id: '1', title: 'Renamed Dashboard'})],
+        match: [MockApiClient.matchQuery({filter: 'onlyFavorites'})],
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Dashboard actions'}));
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Rename'}));
+
+      const dialog = await screen.findByRole('dialog');
+      await userEvent.clear(within(dialog).getByRole('textbox'));
+      await userEvent.type(within(dialog).getByRole('textbox'), 'Renamed Dashboard');
+      await userEvent.click(within(dialog).getByRole('button', {name: 'Save Changes'}));
+
+      await waitFor(() => expect(renameMock).toHaveBeenCalled());
+
+      // Renaming never enters an edit session, so it must not carry widgets.
+      expect(renameMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/dashboards/1/',
+        expect.objectContaining({
+          method: 'PUT',
+          data: {title: 'Renamed Dashboard'},
+        })
+      );
+
+      // `onRename` feeds the new title back through `onDashboardUpdate`, so the
+      // header reflects it without a refetch.
+      expect(await screen.findByText('Renamed Dashboard')).toBeInTheDocument();
+    });
+
     it('appends dashboard-level filters to series request', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
@@ -518,9 +623,13 @@ describe('Dashboards > Detail', () => {
           filters: {release: ['abc@1.2.0']},
         }),
       });
-      const mock = MockApiClient.addMockResponse({
+      MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-stats/',
         body: [],
+      });
+      const mock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-timeseries/',
+        body: {timeSeries: []},
       });
 
       render(
@@ -536,7 +645,7 @@ describe('Dashboards > Detail', () => {
 
       await waitFor(() =>
         expect(mock).toHaveBeenLastCalledWith(
-          '/organizations/org-slug/events-stats/',
+          '/organizations/org-slug/events-timeseries/',
           expect.objectContaining({
             query: expect.objectContaining({
               query:
@@ -592,10 +701,10 @@ describe('Dashboards > Detail', () => {
       expect(mockReleases).toHaveBeenCalledTimes(1);
     });
 
-    it('renders the linked dashboard breadcrumb in the top bar', async () => {
+    it('renders the redesigned dashboard breadcrumb in the top bar', async () => {
       const pageFrameOrganization = OrganizationFixture({
         slug: 'org-slug',
-        features: organization.features,
+        features: [...organization.features, 'dashboards-import'],
       });
 
       render(
@@ -603,7 +712,10 @@ describe('Dashboards > Detail', () => {
           <TopBar />
           <DashboardDetail
             initialState={DashboardState.VIEW}
-            dashboard={DashboardFixture([], {id: '1', title: 'Custom Errors'})}
+            dashboard={DashboardFixture([], {
+              id: '1',
+              title: 'Custom Errors',
+            })}
             onDashboardUpdate={jest.fn()}
           />
         </TopBar.Slot.Provider>,
@@ -612,16 +724,255 @@ describe('Dashboards > Detail', () => {
         }
       );
 
-      const breadcrumbs = await screen.findByTestId('breadcrumb-list');
+      const breadcrumbs = await screen.findByRole('list');
       expect(within(breadcrumbs).getByRole('link', {name: 'Dashboards'})).toHaveAttribute(
         'href',
         '/organizations/org-slug/dashboards/'
       );
-      expect(within(breadcrumbs).getByText('Custom Errors')).toBeInTheDocument();
-      expect(within(breadcrumbs).getAllByRole('img')).toHaveLength(1);
       expect(
-        screen.queryByRole('heading', {name: 'Custom Errors'})
+        screen.getByRole('heading', {name: 'Custom Errors', level: 1})
+      ).toBeInTheDocument();
+      expect(within(breadcrumbs).queryByText('Custom Errors')).not.toBeInTheDocument();
+
+      // Starring trails the actions menu as its own button, rather than hiding
+      // a click deep inside it.
+      expect(screen.getByRole('button', {name: 'Star'})).toBeVisible();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Dashboard actions'}));
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'View Permissions'})
+      ).toBeVisible();
+      expect(screen.queryByRole('menuitemradio', {name: 'Edit'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('menuitemradio', {name: 'Star'})).not.toBeInTheDocument();
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Show version history'})
+      ).toBeVisible();
+      expect(screen.getByRole('menuitemradio', {name: 'Export'})).toBeVisible();
+      expect(screen.getByRole('menuitemradio', {name: 'Duplicate'})).toBeVisible();
+
+      // The redesigned BreadcrumbList hides its slash dividers from the a11y tree
+      // (unlike the legacy breadcrumbs, whose divider surfaced as a visible img),
+      // so there are no visible imgs in this view-only crumb.
+      expect(within(breadcrumbs).queryAllByRole('img')).toHaveLength(0);
+    });
+
+    it('keeps supported breadcrumb actions on prebuilt dashboards', async () => {
+      const pageFrameOrganization = OrganizationFixture({
+        slug: 'org-slug',
+        features: ['dashboards-edit'],
+      });
+
+      render(
+        <TopBar.Slot.Provider>
+          <TopBar />
+          <DashboardDetail
+            initialState={DashboardState.VIEW}
+            dashboard={DashboardFixture([], {
+              id: '1',
+              prebuiltId: PrebuiltDashboardId.FRONTEND_SESSION_HEALTH,
+              title: 'Prebuilt Dashboard',
+            })}
+            onDashboardUpdate={jest.fn()}
+          />
+        </TopBar.Slot.Provider>,
+        {
+          organization: pageFrameOrganization,
+        }
+      );
+
+      expect(await screen.findByRole('button', {name: 'Star'})).toBeVisible();
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Dashboard actions'})
+      );
+
+      expect(await screen.findByRole('menuitemradio', {name: 'Duplicate'})).toBeVisible();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'View Permissions'})
       ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Show version history'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('explains why breadcrumb duplicate is disabled at the dashboard limit', async () => {
+      registerOverride(
+        'component:dashboards-limit-provider',
+        () =>
+          function DashboardLimitProvider({children}) {
+            return typeof children === 'function'
+              ? children({
+                  dashboardsLimit: 1,
+                  hasReachedDashboardLimit: true,
+                  isLoading: false,
+                  limitMessage: 'You have reached your dashboard limit.',
+                })
+              : children;
+          }
+      );
+      const pageFrameOrganization = OrganizationFixture({
+        slug: 'org-slug',
+        features: ['dashboards-edit'],
+      });
+
+      render(
+        <TopBar.Slot.Provider>
+          <TopBar />
+          <DashboardDetail
+            initialState={DashboardState.VIEW}
+            dashboard={DashboardFixture([], {
+              id: '1',
+              prebuiltId: PrebuiltDashboardId.FRONTEND_SESSION_HEALTH,
+              title: 'Prebuilt Dashboard',
+            })}
+            onDashboardUpdate={jest.fn()}
+          />
+        </TopBar.Slot.Provider>,
+        {organization: pageFrameOrganization}
+      );
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Dashboard actions'})
+      );
+      const duplicate = await screen.findByRole('menuitemradio', {name: 'Duplicate'});
+      expect(duplicate).toHaveAttribute('aria-disabled', 'true');
+
+      await userEvent.hover(duplicate);
+      expect(
+        await screen.findByText('You have reached your dashboard limit.')
+      ).toBeVisible();
+    });
+
+    it('shows access controls to org managers without dashboard edit access', async () => {
+      const pageFrameOrganization = OrganizationFixture({
+        slug: 'org-slug',
+        features: ['dashboards-edit'],
+        access: ['org:read', 'org:write'],
+      });
+
+      render(
+        <TopBar.Slot.Provider>
+          <TopBar />
+          <DashboardDetail
+            initialState={DashboardState.VIEW}
+            dashboard={DashboardFixture([], {
+              id: '1',
+              createdBy: UserFixture({id: 'another-user'}),
+              permissions: {
+                isEditableByEveryone: false,
+                teamsWithEditAccess: [],
+              },
+              title: 'Restricted Dashboard',
+            })}
+            onDashboardUpdate={jest.fn()}
+          />
+        </TopBar.Slot.Provider>,
+        {organization: pageFrameOrganization}
+      );
+      renderGlobalModal({organization: pageFrameOrganization});
+
+      await openPermissionsModal();
+
+      expect(screen.getByRole('checkbox', {name: 'Select All'})).toBeEnabled();
+      expect(screen.getByRole('button', {name: 'Apply'})).toBeInTheDocument();
+    });
+
+    it('disables the edit action with unsaved filters', async () => {
+      const pageFrameOrganization = OrganizationFixture({
+        slug: 'org-slug',
+        features: ['dashboards-edit'],
+      });
+
+      render(
+        <TopBar.Slot.Provider>
+          <TopBar />
+          <DashboardDetail
+            initialState={DashboardState.VIEW}
+            dashboard={DashboardFixture([], {
+              id: '1',
+              projects: [1],
+              title: 'Custom Errors',
+            })}
+            onDashboardUpdate={jest.fn()}
+          />
+        </TopBar.Slot.Provider>,
+        {
+          initialRouterConfig: {
+            location: {
+              pathname: '/organizations/org-slug/dashboard/1/',
+              query: {project: '2'},
+            },
+          },
+          organization: pageFrameOrganization,
+        }
+      );
+
+      const edit = await screen.findByRole('button', {name: 'Edit'});
+      expect(edit).toHaveAttribute('aria-disabled', 'true');
+      await userEvent.hover(edit);
+      expect(await screen.findByText(UNSAVED_FILTERS_MESSAGE)).toBeVisible();
+    });
+
+    it('does not show breadcrumb actions in dashboard preview', async () => {
+      const pageFrameOrganization = OrganizationFixture({
+        slug: 'org-slug',
+        features: ['dashboards-edit'],
+      });
+
+      render(
+        <TopBar.Slot.Provider>
+          <TopBar />
+          <DashboardDetail
+            initialState={DashboardState.PREVIEW}
+            dashboard={DashboardFixture([], {
+              id: '1',
+              title: 'Preview Dashboard',
+            })}
+            onDashboardUpdate={jest.fn()}
+          />
+        </TopBar.Slot.Provider>,
+        {organization: pageFrameOrganization}
+      );
+
+      expect(
+        await screen.findByRole('heading', {name: 'Preview Dashboard', level: 1})
+      ).toBeVisible();
+      expect(screen.getByRole('button', {name: 'Go Back'})).toBeVisible();
+      expect(screen.getByRole('button', {name: 'Save and Finish'})).toBeVisible();
+      expect(
+        screen.queryByRole('button', {name: 'Dashboard actions'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('renders the dashboard breadcrumb in the top bar', async () => {
+      const pageFrameOrganization = OrganizationFixture({
+        slug: 'org-slug',
+        features: ['dashboards-edit'],
+      });
+
+      render(
+        <TopBar.Slot.Provider>
+          <TopBar />
+          <DashboardDetail
+            initialState={DashboardState.VIEW}
+            dashboard={DashboardFixture([], {
+              id: '1',
+              title: 'Custom Errors',
+            })}
+            onDashboardUpdate={jest.fn()}
+          />
+        </TopBar.Slot.Provider>,
+        {
+          organization: pageFrameOrganization,
+        }
+      );
+
+      // The Dashboards link and view-only title are both present.
+      expect(await screen.findByRole('link', {name: 'Dashboards'})).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/dashboards/'
+      );
+      expect(await screen.findByText('Custom Errors')).toBeInTheDocument();
     });
 
     it('hides add widget option', async () => {
@@ -735,7 +1086,7 @@ describe('Dashboards > Detail', () => {
       await activateDashboardEditMode();
       await userEvent.click(await screen.findByText('Save and Finish'));
 
-      expect(screen.getByRole('button', {name: 'edit-dashboard'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Dashboard actions'})).toBeInTheDocument();
       expect(mockPut).not.toHaveBeenCalled();
     });
 
@@ -1257,13 +1608,24 @@ describe('Dashboards > Detail', () => {
 
       expect(await screen.findByText('Save')).toBeInTheDocument();
       expect(screen.getByTestId('filter-bar-cancel')).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'edit-dashboard'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Edit'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
     });
 
     it('ignores the order of selection of page filters to render unsaved filters', async () => {
       const testProjects = [
-        ProjectFixture({id: '1', name: 'first', environments: ['alpha', 'beta']}),
-        ProjectFixture({id: '2', name: 'second', environments: ['alpha', 'beta']}),
+        ProjectFixture({
+          id: '1',
+          name: 'first',
+          environments: ['alpha', 'beta'],
+        }),
+        ProjectFixture({
+          id: '2',
+          name: 'second',
+          environments: ['alpha', 'beta'],
+        }),
       ];
 
       act(() => ProjectsStore.loadInitialData(testProjects));
@@ -1503,25 +1865,21 @@ describe('Dashboards > Detail', () => {
       expect(screen.getByRole('option', {name: 'search-result'})).toBeInTheDocument();
     });
 
-    it('renders edit access selector', async () => {
-      render(
-        <EditAccessSelector
-          dashboard={DashboardFixture([], {id: '1', title: 'Custom Errors'})}
-          onChangeEditAccess={jest.fn()}
-        />,
-        {
-          ...makeDashboardRouterConfig({
-            pathname: '/organizations/org-slug/dashboard/1/',
-            route: DASHBOARD_ROUTE,
-            query: {},
-          }),
-          organization: initialData.organization,
-        }
-      );
+    it('opens the permissions modal from the dashboard actions menu', async () => {
+      render(<ViewEditDashboard />, {
+        ...makeDashboardRouterConfig({
+          pathname: '/organizations/org-slug/dashboard/1/',
+          route: DASHBOARD_ROUTE,
+          query: {},
+        }),
+        organization: initialData.organization,
+      });
+      renderGlobalModal({organization: initialData.organization});
 
-      await userEvent.click(await screen.findByText('Editors:'));
-      expect(screen.getByText('Creator')).toBeInTheDocument();
-      expect(screen.getByText('Select All')).toBeInTheDocument();
+      await openPermissionsModal();
+
+      expect(screen.getByText('Owner')).toBeInTheDocument();
+      expect(screen.getByRole('checkbox', {name: 'Select All'})).toBeInTheDocument();
     });
 
     it('creates and updates new permissions for dashboard with no edit perms initialized', async () => {
@@ -1539,21 +1897,15 @@ describe('Dashboards > Detail', () => {
         }),
         organization: initialData.organization,
       });
-      await userEvent.click(await screen.findByText('Editors:'));
+      renderGlobalModal({organization: initialData.organization});
+      await openPermissionsModal();
 
-      // deselects 'Select All' so only creator has edit access
-      expect(await screen.findByText('Select All')).toBeEnabled();
-      expect(await screen.findByRole('option', {name: 'Select All'})).toHaveAttribute(
-        'aria-selected',
-        'true'
-      );
-      await userEvent.click(screen.getByRole('option', {name: 'Select All'}));
-      expect(await screen.findByRole('option', {name: 'Select All'})).toHaveAttribute(
-        'aria-selected',
-        'false'
-      );
+      // unchecks 'Select All' so only the creator has edit access
+      expect(screen.getByRole('checkbox', {name: 'Select All'})).toBeChecked();
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Select All'}));
+      expect(screen.getByRole('checkbox', {name: 'Select All'})).not.toBeChecked();
 
-      await userEvent.click(await screen.findByText('Apply'));
+      await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
 
       await waitFor(() => {
         expect(mockPUT).toHaveBeenCalledTimes(1);
@@ -1562,7 +1914,10 @@ describe('Dashboards > Detail', () => {
         '/organizations/org-slug/dashboards/1/',
         expect.objectContaining({
           data: expect.objectContaining({
-            permissions: {isEditableByEveryone: false, teamsWithEditAccess: []},
+            permissions: {
+              isEditableByEveryone: false,
+              teamsWithEditAccess: [],
+            },
           }),
         })
       );
@@ -1595,21 +1950,15 @@ describe('Dashboards > Detail', () => {
         }),
         organization: initialData.organization,
       });
-      await userEvent.click(await screen.findByText('Editors:'));
+      renderGlobalModal({organization: initialData.organization});
+      await openPermissionsModal();
 
-      // selects 'Select All' so everyone has edit access
-      expect(await screen.findByRole('option', {name: 'Select All'})).toBeEnabled();
-      expect(await screen.findByRole('option', {name: 'Select All'})).toHaveAttribute(
-        'aria-selected',
-        'false'
-      );
-      await userEvent.click(screen.getByRole('option', {name: 'Select All'}));
-      expect(await screen.findByRole('option', {name: 'Select All'})).toHaveAttribute(
-        'aria-selected',
-        'true'
-      );
+      // checks 'Select All' so everyone has edit access
+      expect(screen.getByRole('checkbox', {name: 'Select All'})).not.toBeChecked();
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Select All'}));
+      expect(screen.getByRole('checkbox', {name: 'Select All'})).toBeChecked();
 
-      await userEvent.click(await screen.findByText('Apply'));
+      await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
 
       await waitFor(() => {
         expect(mockPUT).toHaveBeenCalledTimes(1);
@@ -1618,7 +1967,10 @@ describe('Dashboards > Detail', () => {
         '/organizations/org-slug/dashboards/1/',
         expect.objectContaining({
           data: expect.objectContaining({
-            permissions: {isEditableByEveryone: true, teamsWithEditAccess: []},
+            permissions: {
+              isEditableByEveryone: true,
+              teamsWithEditAccess: [],
+            },
           }),
         })
       );
@@ -1663,6 +2015,10 @@ describe('Dashboards > Detail', () => {
       const teams = teamData.map(data => TeamFixture(data));
 
       TeamStore.loadInitialData(teams);
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/teams/',
+        body: teams,
+      });
 
       render(<ViewEditDashboard />, {
         ...makeDashboardRouterConfig({
@@ -1672,16 +2028,13 @@ describe('Dashboards > Detail', () => {
         }),
         organization: initialData.organization,
       });
-      await userEvent.click(await screen.findByText('Editors:'));
+      renderGlobalModal({organization: initialData.organization});
+      await openPermissionsModal();
 
-      expect(await screen.findByRole('option', {name: 'Select All'})).toBeEnabled();
-      expect(await screen.findByRole('option', {name: 'Select All'})).toHaveAttribute(
-        'aria-selected',
-        'false'
-      );
-      await userEvent.click(screen.getByRole('option', {name: '#team1'}));
-      await userEvent.click(screen.getByRole('option', {name: '#team2'}));
-      await userEvent.click(await screen.findByText('Apply'));
+      expect(screen.getByRole('checkbox', {name: 'Select All'})).not.toBeChecked();
+      await userEvent.click(await screen.findByRole('checkbox', {name: 'team1'}));
+      await userEvent.click(screen.getByRole('checkbox', {name: 'team2'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
 
       await waitFor(() => {
         expect(mockPUT).toHaveBeenCalledTimes(1);
@@ -1690,7 +2043,10 @@ describe('Dashboards > Detail', () => {
         '/organizations/org-slug/dashboards/1/',
         expect.objectContaining({
           data: expect.objectContaining({
-            permissions: {isEditableByEveryone: false, teamsWithEditAccess: [1, 2]},
+            permissions: {
+              isEditableByEveryone: false,
+              teamsWithEditAccess: [1, 2],
+            },
           }),
         })
       );
@@ -1733,9 +2089,14 @@ describe('Dashboards > Detail', () => {
         },
       });
 
-      await screen.findByText('Editors:');
-      expect(screen.getByRole('button', {name: 'edit-dashboard'})).toBeDisabled();
-      expect(screen.getByRole('button', {name: 'Add Widget'})).toBeDisabled();
+      expect(
+        await screen.findByRole('button', {name: 'Dashboard actions'})
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Edit'})).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Add Widget'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
     });
 
     it('disables widget edit, duplicate, and delete button when user does not have edit perms', async () => {
@@ -1754,7 +2115,7 @@ describe('Dashboards > Detail', () => {
         ],
         title: 'Transactions',
         id: '1',
-        widgetType: types.WidgetType.DISCOVER,
+        widgetType: types.WidgetType.TRANSACTIONS,
       };
       const mockDashboard = DashboardFixture([widget], {
         id: '1',
@@ -1786,9 +2147,14 @@ describe('Dashboards > Detail', () => {
         },
       });
 
-      await screen.findByText('Editors:');
-      expect(screen.getByRole('button', {name: 'edit-dashboard'})).toBeDisabled();
-      expect(screen.getByRole('button', {name: 'Add Widget'})).toBeDisabled();
+      expect(
+        await screen.findByRole('button', {name: 'Dashboard actions'})
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Edit'})).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Add Widget'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
       await userEvent.click(await screen.findByLabelText('Widget actions'));
       expect(
         screen.getByRole('menuitemradio', {name: 'Duplicate Widget'})
@@ -1806,7 +2172,11 @@ describe('Dashboards > Detail', () => {
     it('renders favorite button in unstarred state', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
-        body: DashboardFixture([], {id: '1', title: 'Custom Errors', isFavorited: false}),
+        body: DashboardFixture([], {
+          id: '1',
+          title: 'Custom Errors',
+          isFavorited: false,
+        }),
       });
       render(<ViewEditDashboard />, {
         ...makeDashboardRouterConfig({
@@ -1819,15 +2189,17 @@ describe('Dashboards > Detail', () => {
         },
       });
 
-      const favoriteButton = await screen.findByLabelText('star-dashboard');
-      expect(favoriteButton).toBeInTheDocument();
-      expect(await screen.findByLabelText('Star')).toBeInTheDocument();
+      expect(await screen.findByRole('button', {name: 'Star'})).toBeVisible();
     });
 
     it('renders favorite button in favorited state', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
-        body: DashboardFixture([], {id: '1', title: 'Custom Errors', isFavorited: true}),
+        body: DashboardFixture([], {
+          id: '1',
+          title: 'Custom Errors',
+          isFavorited: true,
+        }),
       });
       render(<ViewEditDashboard />, {
         ...makeDashboardRouterConfig({
@@ -1840,15 +2212,17 @@ describe('Dashboards > Detail', () => {
         },
       });
 
-      const favoriteButton = await screen.findByLabelText('star-dashboard');
-      expect(favoriteButton).toBeInTheDocument();
-      expect(await screen.findByLabelText('Unstar')).toBeInTheDocument();
+      expect(await screen.findByRole('button', {name: 'Unstar'})).toBeVisible();
     });
 
     it('toggles favorite button', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
-        body: DashboardFixture([], {id: '1', title: 'Custom Errors', isFavorited: true}),
+        body: DashboardFixture([], {
+          id: '1',
+          title: 'Custom Errors',
+          isFavorited: true,
+        }),
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/favorite/',
@@ -1866,12 +2240,46 @@ describe('Dashboards > Detail', () => {
         },
       });
 
-      const favoriteButton = await screen.findByLabelText('star-dashboard');
-      expect(favoriteButton).toBeInTheDocument();
+      await userEvent.click(await screen.findByRole('button', {name: 'Unstar'}));
 
-      expect(await screen.findByLabelText('Unstar')).toBeInTheDocument();
-      await userEvent.click(favoriteButton);
-      expect(await screen.findByLabelText('Star')).toBeInTheDocument();
+      expect(await screen.findByRole('button', {name: 'Star'})).toBeVisible();
+    });
+
+    it('keeps the starred state after entering and leaving edit mode', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: DashboardFixture([], {
+          id: '1',
+          title: 'Custom Errors',
+          isFavorited: false,
+        }),
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/favorite/',
+        method: 'PUT',
+        body: {isFavorited: true},
+      });
+      render(<ViewEditDashboard />, {
+        ...makeDashboardRouterConfig({
+          pathname: '/organizations/org-slug/dashboard/1/',
+          route: DASHBOARD_ROUTE,
+          query: {},
+        }),
+        organization: {
+          features: initialData.organization.features,
+        },
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Star'}));
+      expect(await screen.findByRole('button', {name: 'Unstar'})).toBeVisible();
+
+      // Editing swaps the page title for an editable field, so the star is
+      // unmounted and back again. Starring never refetches the dashboard, so
+      // the state has to survive that or the star silently reverts.
+      await activateDashboardEditMode();
+      await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+
+      expect(await screen.findByRole('button', {name: 'Unstar'})).toBeVisible();
     });
 
     it('does not render save or edit features on prebuilt insights dashboards', async () => {
@@ -1891,7 +2299,7 @@ describe('Dashboards > Detail', () => {
 
       expect(screen.queryByTestId('filter-bar-cancel')).not.toBeInTheDocument();
       expect(screen.queryByText('Save')).not.toBeInTheDocument();
-      expect(screen.queryByText('Editors:')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Edit'})).not.toBeInTheDocument();
       expect(screen.queryByText('Add Widget')).not.toBeInTheDocument();
     });
 
@@ -1934,7 +2342,9 @@ describe('Dashboards > Detail', () => {
         );
         await userEvent.click(await screen.findByRole('button', {name: 'Add Widget'}));
         await userEvent.click(
-          await screen.findByRole('menuitemradio', {name: 'Create Custom Widget'})
+          await screen.findByRole('menuitemradio', {
+            name: 'Create Custom Widget',
+          })
         );
         expect(await screen.findByText('Custom Widget Builder')).toBeInTheDocument();
       });
@@ -1952,7 +2362,9 @@ describe('Dashboards > Detail', () => {
         );
         await userEvent.click(await screen.findByRole('button', {name: 'Add Widget'}));
         await userEvent.click(
-          await screen.findByRole('menuitemradio', {name: 'From Widget Library'})
+          await screen.findByRole('menuitemradio', {
+            name: 'From Widget Library',
+          })
         );
         expect(await screen.findByText('Widget Library')).toBeInTheDocument();
       });
@@ -1970,7 +2382,9 @@ describe('Dashboards > Detail', () => {
         );
         await userEvent.click(await screen.findByLabelText('Add Widget'));
         await userEvent.click(
-          await screen.findByRole('menuitemradio', {name: 'Create Custom Widget'})
+          await screen.findByRole('menuitemradio', {
+            name: 'Create Custom Widget',
+          })
         );
         expect(await screen.findByText('Custom Widget Builder')).toBeInTheDocument();
       });
@@ -1988,7 +2402,9 @@ describe('Dashboards > Detail', () => {
         );
         await userEvent.click(await screen.findByLabelText('Add Widget'));
         await userEvent.click(
-          await screen.findByRole('menuitemradio', {name: 'From Widget Library'})
+          await screen.findByRole('menuitemradio', {
+            name: 'From Widget Library',
+          })
         );
         expect(await screen.findByText('Widget Library')).toBeInTheDocument();
       });
@@ -2074,7 +2490,9 @@ describe('Dashboards > Detail', () => {
 
         await userEvent.click(await screen.findByLabelText('Add Widget'));
         await userEvent.click(
-          await screen.findByRole('menuitemradio', {name: 'Create Custom Widget'})
+          await screen.findByRole('menuitemradio', {
+            name: 'Create Custom Widget',
+          })
         );
 
         expect(await screen.findByText('Custom Widget Builder')).toBeInTheDocument();
@@ -2142,11 +2560,11 @@ describe('Dashboards > Detail', () => {
 
         // The update action is called with the updated widget
         expect(mockUpdateDashboard).toHaveBeenCalledWith(
-          expect.anything(),
-          expect.anything(),
+          'org-slug',
           expect.objectContaining({
             widgets: [expect.objectContaining({title: 'Updated Widget Title'})],
-          })
+          }),
+          {revisionSource: undefined}
         );
         expect(mockScrollIntoView).toHaveBeenCalled();
       });
@@ -2184,7 +2602,9 @@ describe('Dashboards > Detail', () => {
 
         await userEvent.click(await screen.findByRole('button', {name: 'Add Widget'}));
         await userEvent.click(
-          await screen.findByRole('menuitemradio', {name: 'Create Custom Widget'})
+          await screen.findByRole('menuitemradio', {
+            name: 'Create Custom Widget',
+          })
         );
 
         expect(await screen.findByText('Custom Widget Builder')).toBeInTheDocument();
@@ -2195,11 +2615,11 @@ describe('Dashboards > Detail', () => {
 
         // The update action is called with the new widget
         expect(mockUpdateDashboard).toHaveBeenCalledWith(
-          expect.anything(),
-          expect.anything(),
+          'org-slug',
           expect.objectContaining({
             widgets: [expect.objectContaining({title: 'Totally new widget'})],
-          })
+          }),
+          {revisionSource: undefined}
         );
         await waitFor(() => {
           expect(addLoadingMessage).toHaveBeenCalledWith('Saving widget');

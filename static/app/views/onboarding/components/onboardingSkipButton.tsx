@@ -1,11 +1,17 @@
-import {LinkButton} from '@sentry/scraps/button';
+import {IconNext} from '@sentry/icons/next';
 
+import {Button} from '@sentry/scraps/button';
+
+import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
+import {useOnboardingSidebar} from 'sentry/components/onboarding/useOnboardingSidebar';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {QuickStartEventParameters} from 'sentry/utils/analytics/quickStartAnalyticsEvents';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {OnboardingStepId} from 'sentry/views/onboarding/types';
-import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
+
+import {openOnboardingSkipModal} from './onboardingSkipModal';
 
 type SidebarSource = QuickStartEventParameters['quick_start.opened']['source'];
 
@@ -14,7 +20,7 @@ interface SkipAnalyticsConfig {
   sidebarSource: SidebarSource;
 }
 
-const SKIP_CONFIG_BY_STEP: Partial<Record<OnboardingStepId, SkipAnalyticsConfig>> = {
+const SKIP_CONFIG_BY_STEP: Record<OnboardingStepId, SkipAnalyticsConfig> = {
   [OnboardingStepId.WELCOME]: {
     sidebarSource: 'targeted_onboarding_welcome_skip',
     referrer: 'onboarding-welcome-skip',
@@ -27,9 +33,10 @@ const SKIP_CONFIG_BY_STEP: Partial<Record<OnboardingStepId, SkipAnalyticsConfig>
     sidebarSource: 'targeted_onboarding_scm_platform_features_skip',
     referrer: 'onboarding-scm-platform-features-skip',
   },
-  [OnboardingStepId.SCM_PROJECT_DETAILS]: {
-    sidebarSource: 'targeted_onboarding_scm_project_details_skip',
-    referrer: 'onboarding-scm-project-details-skip',
+  [OnboardingStepId.SCM_MESSAGING]: {
+    // VDY-146 will add treatment-specific interaction analytics.
+    sidebarSource: 'onboarding_sidebar',
+    referrer: 'onboarding-scm-messaging-skip',
   },
   [OnboardingStepId.SETUP_DOCS]: {
     sidebarSource: 'targeted_onboarding_first_event_footer_skip',
@@ -43,28 +50,40 @@ interface OnboardingSkipButtonProps {
 
 export function OnboardingSkipButton({stepId}: OnboardingSkipButtonProps) {
   const organization = useOrganization();
+  const navigate = useNavigate();
+  const {discardOnboardingSession} = useOnboardingContext();
   const {activateSidebar} = useOnboardingSidebar();
 
   const config = SKIP_CONFIG_BY_STEP[stepId];
-  if (!config) {
-    return null;
-  }
 
   const handleClick = () => {
     trackAnalytics('onboarding.scm_header_skip_clicked', {
       organization,
+      opens_modal: true,
       step: stepId,
     });
-    activateSidebar({userClicked: false, source: config.sidebarSource});
+    openOnboardingSkipModal({
+      organization,
+      step: stepId,
+      onSkip: () => {
+        // Clear the staged session so the next onboarding visit starts fresh.
+        discardOnboardingSession();
+        activateSidebar({userClicked: false, source: config.sidebarSource});
+        navigate(
+          `/organizations/${organization.slug}/issues/?referrer=${config.referrer}`
+        );
+      },
+    });
   };
 
   return (
-    <LinkButton
+    <Button
       variant="transparent"
+      size="xs"
+      icon={<IconNext size="xs" />}
       onClick={handleClick}
-      to={`/organizations/${organization.slug}/issues/?referrer=${config.referrer}`}
     >
       {t('Skip setup')}
-    </LinkButton>
+    </Button>
   );
 }

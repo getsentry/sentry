@@ -9,6 +9,7 @@ import {TeamStore} from 'sentry/stores/teamStore';
 import type {ApiResult} from 'sentry/types/api';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {FeatureFlagOverrides} from 'sentry/utils/featureFlagOverrides';
 import {
   addOrganizationFeaturesHandler,
@@ -18,10 +19,15 @@ import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 async function fetchOrg(api: Client, slug: string): Promise<Organization> {
-  const [org] = await api.requestPromise(`/organizations/${slug}/`, {
-    includeAllArgs: true,
-    query: {detailed: 0, include_feature_flags: 1},
-  });
+  const [org] = await api.requestPromise(
+    getApiUrl('/organizations/$organizationIdOrSlug/', {
+      path: {organizationIdOrSlug: slug},
+    }),
+    {
+      includeAllArgs: true,
+      query: {detailed: 0, include_feature_flags: 1},
+    }
+  );
 
   if (!org) {
     throw new Error('retrieved organization is falsey');
@@ -53,7 +59,9 @@ async function fetchProjectsAndTeams(
   const uncancelableApi = new Client();
 
   const projectsPromise = uncancelableApi.requestPromise(
-    `/organizations/${slug}/projects/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/projects/', {
+      path: {organizationIdOrSlug: slug},
+    }),
     {
       includeAllArgs: true,
       query: {
@@ -63,9 +71,12 @@ async function fetchProjectsAndTeams(
     }
   );
 
-  const teamsPromise = uncancelableApi.requestPromise(`/organizations/${slug}/teams/`, {
-    includeAllArgs: true,
-  });
+  const teamsPromise = uncancelableApi.requestPromise(
+    getApiUrl('/organizations/$organizationIdOrSlug/teams/', {
+      path: {organizationIdOrSlug: slug},
+    }),
+    {includeAllArgs: true}
+  );
 
   try {
     return await Promise.all([projectsPromise, teamsPromise]);

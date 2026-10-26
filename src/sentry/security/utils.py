@@ -12,7 +12,7 @@ from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.sentry_apps.services.app.model import RpcSentryApp
 from sentry.users.services.user.model import RpcUser
 
-from .emails import generate_security_email
+from .emails import SecurityEmailAccount, generate_security_email
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
@@ -24,7 +24,7 @@ logger = logging.getLogger("sentry.security")
 
 
 def capture_security_activity(
-    account: User | RpcUser | AnonymousUser,
+    account: User | RpcUser | AnonymousUser | SecurityEmailAccount,
     type: str,  # FIXME: "type" is a built-in function, so this isn't a great name
     actor: User | RpcUser | AnonymousUser,
     ip_address: str,

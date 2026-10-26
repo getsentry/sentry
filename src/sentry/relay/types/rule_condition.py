@@ -72,6 +72,33 @@ class GlobCondition(TypedDict):
     value: list[str]
 
 
+class CidrCondition(TypedDict):
+    """IP address matching condition
+
+    Matches a field holding an IP address against a list of single addresses and
+    CIDR ranges. Relay ignores entries that are neither.
+    """
+
+    op: Literal["cidr"]
+    name: str
+    value: list[str]
+
+
+class ReleaseCondition(TypedDict):
+    """Release version comparison condition
+
+    Compares the version of the release in a field against `value`, a release such
+    as `1.2.0` or `myapp@1.2.0`. A value with a package only matches releases of that
+    package. A field or value without a version, such as a commit hash, never matches.
+    A Relay without the operation reads the condition as unsupported and never matches it.
+    """
+
+    op: Literal["release"]
+    name: str
+    comparator: Literal["eq", "gt", "gte", "lt", "lte"]
+    value: str
+
+
 class IterableCondition(TypedDict):
     """Condition for iterating over a list and applying a nested condition"""
 
@@ -104,4 +131,6 @@ RuleCondition = Union[
     LteCondition,
     LtCondition,
     GlobCondition,
+    CidrCondition,
+    ReleaseCondition,
 ]

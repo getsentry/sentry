@@ -1,7 +1,14 @@
 from datetime import datetime
-from typing import Any
+from typing import Any, TypedDict
 
+from sentry.utils.query import TaskBulkQueryState
 from sentry.utils.services import Service
+
+
+class ReprocessingInfo(TypedDict):
+    dateCreated: str
+    syncCount: int
+    totalEvents: int
 
 
 class ReprocessingStore(Service):
@@ -18,6 +25,7 @@ class ReprocessingStore(Service):
         "start_reprocessing",
         "get_pending",
         "get_progress",
+        "try_claim_page",
     )
 
     def __init__(self, **options: Any) -> None:
@@ -66,12 +74,22 @@ class ReprocessingStore(Service):
         raise NotImplementedError()
 
     def start_reprocessing(
-        self, group_id: int, date_created: Any, sync_count: int, event_count: int
+        self, group_id: int, date_created: datetime, sync_count: int, event_count: int
     ) -> None:
         raise NotImplementedError()
 
     def get_pending(self, group_id: int) -> Any:
         raise NotImplementedError()
 
-    def get_progress(self, group_id: int) -> dict[str, Any] | None:
+    def get_progress(self, group_id: int) -> ReprocessingInfo | None:
+        raise NotImplementedError()
+
+    def try_claim_page(
+        self,
+        project_id: int,
+        group_id: int,
+        new_group_id: int,
+        state: TaskBulkQueryState | None,
+        claimant: str,
+    ) -> bool:
         raise NotImplementedError()

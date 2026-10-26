@@ -15,7 +15,7 @@ import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette
 export function CommandPaletteDemo() {
   return (
     <CommandPaletteProvider>
-      <CMDKAction display={{label: 'Go to Flex story'}} to="/stories/layout/flex/" />
+      <CMDKAction display={{label: 'Go to Flex story'}} to="/scraps/layout/flex/" />
       <CMDKAction
         display={{label: 'Execute an action'}}
         onAction={() => addSuccessMessage('Action executed')}

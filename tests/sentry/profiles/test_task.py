@@ -6,6 +6,7 @@ from os.path import join
 from typing import Any
 from unittest import mock
 from unittest.mock import patch
+from uuid import UUID
 
 import msgpack
 import pytest
@@ -31,10 +32,11 @@ from sentry.profiles.task import (
     _set_frames_platform,
     _symbolicate_profile,
     determine_profile_type,
+    get_debug_file_id,
     process_profile_from_kafka,
     process_profile_task,
 )
-from sentry.profiles.utils import Profile
+from sentry.profiles.utils import Profile, apply_stack_trace_rules_to_profile
 from sentry.signals import first_profile_received
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import Factories, get_fixture_path
@@ -431,6 +433,129 @@ def test_process_symbolicator_results_for_sample() -> None:
     assert profile["profile"]["stacks"] == [[0, 1, 2, 3, 4, 5]]
 
 
+@pytest.mark.parametrize("sdk_frame", [{"in_app": True}, {"in_app": False}, {}])
+@pytest.mark.parametrize("frames_sent", [set(), {0}])
+def test_cocoa_profile_preserves_in_app(sdk_frame: dict[str, Any], frames_sent: set[int]) -> None:
+    profile: Profile = {
+        "version": "2",
+        "platform": "cocoa",
+        "profile": {
+            "frames": [{"instruction_addr": "0x1000", **sdk_frame}],
+            "stacks": [[0]],
+        },
+    }
+    stacktraces = [
+        {
+            "frames": [
+                {
+                    "instruction_addr": "0x1000",
+                    "function": "inline_function",
+                    "original_index": 0,
+                },
+                {
+                    "instruction_addr": "0x1000",
+                    "function": "caller",
+                    "original_index": 0,
+                },
+            ]
+        }
+    ]
+
+    _process_symbolicator_results_for_sample(profile, stacktraces, frames_sent, "cocoa")
+
+    frames = profile["profile"]["frames"]
+    assert [frame.get("in_app") for frame in frames] == [
+        sdk_frame.get("in_app"),
+        sdk_frame.get("in_app"),
+    ]
+    assert [frame["function"] for frame in frames] == ["inline_function", "caller"]
+    assert profile["profile"]["stacks"] == [[0, 1]]
+
+
+def test_cocoa_profile_preserves_in_app_for_selected_frames() -> None:
+    profile: Profile = {
+        "version": "2",
+        "platform": "javascript",
+        "profile": {
+            "frames": [
+                {"function": "javascript_function", "platform": "javascript", "in_app": False},
+                {"instruction_addr": "0x1000", "platform": "cocoa", "in_app": True},
+            ],
+            "stacks": [[1]],
+        },
+    }
+    stacktraces = [
+        {
+            "frames": [
+                {
+                    "instruction_addr": "0x1000",
+                    "function": "inline_function",
+                    "original_index": 0,
+                },
+                {
+                    "instruction_addr": "0x1000",
+                    "function": "caller",
+                    "original_index": 0,
+                },
+            ]
+        }
+    ]
+
+    _process_symbolicator_results_for_sample(profile, stacktraces, {1}, "cocoa")
+
+    frames = profile["profile"]["frames"]
+    assert [frame.get("in_app") for frame in frames] == [False, True, True]
+    assert [frame["function"] for frame in frames] == [
+        "javascript_function",
+        "inline_function",
+        "caller",
+    ]
+
+
+@pytest.mark.parametrize(
+    ("rules", "expected_in_app"),
+    [("", [True, False, True, True]), ("stack.package:app* -app", [False, False, False, False])],
+)
+def test_cocoa_profile_preserves_in_app_for_duplicated_leaf(
+    rules: str, expected_in_app: list[bool]
+) -> None:
+    profile: Profile = {
+        "version": "2",
+        "platform": "cocoa",
+        "debug_meta": {"images": []},
+        "profile": {
+            "frames": [
+                {"instruction_addr": "0x1000", "in_app": True},
+                {"instruction_addr": "0x2000", "in_app": False},
+            ],
+            "stacks": [[0, 1]],
+        },
+    }
+    _, _, frames_sent = _prepare_frames_from_profile(profile, "cocoa")
+    stacktraces = [
+        {
+            "frames": [
+                {"function": "caller", "package": "app", "original_index": 0},
+                {"function": "system", "package": "system", "original_index": 1},
+                {"function": "inline_function", "package": "app", "original_index": 2},
+                {"function": "caller", "package": "app", "original_index": 2},
+            ]
+        }
+    ]
+
+    _process_symbolicator_results_for_sample(profile, stacktraces, frames_sent, "cocoa")
+    apply_stack_trace_rules_to_profile(profile, rules)
+
+    frames = profile["profile"]["frames"]
+    assert [frame.get("in_app") for frame in frames] == expected_in_app
+    assert profile["profile"]["stacks"] == [[2, 3, 1]]
+    assert [frames[index]["function"] for index in profile["profile"]["stacks"][0]] == [
+        "inline_function",
+        "caller",
+        "system",
+    ]
+
+
 def test_process_symbolicator_results_for_sample_js() -> None:
     profile: dict[str, Any] = {
         "version": 1,
@@ -534,6 +659,79 @@ def test_decode_signature(project, android_profile) -> None:
 
     assert frames[0]["signature"] == "()"
     assert frames[1]["signature"] == "(): boolean"
+
+
+def test_get_debug_file_id() -> None:
+    # android trace formats (legacy and android-trace chunks) carry a
+    # top-level build_id
+    assert (
+        get_debug_file_id(
+            {
+                "platform": "android",
+                "build_id": PROGUARD_UUID,
+                "profile": {"methods": []},
+            }
+        )
+        == UUID(PROGUARD_UUID).hex
+    )
+    assert (
+        get_debug_file_id({"platform": "android", "profile": {"methods": []}, "build_id": ""})
+        is None
+    )
+    assert (
+        get_debug_file_id(
+            {"platform": "android", "profile": {"methods": []}, "build_id": "not-a-uuid"}
+        )
+        is None
+    )
+
+    # sample v2 chunks reference the proguard mapping via debug_meta instead
+    sample_v2: dict[str, Any] = {
+        "version": "2",
+        "platform": "android",
+        "profile": {"frames": [], "stacks": [], "samples": []},
+        "debug_meta": {
+            "images": [
+                {"type": "jvm", "debug_id": "2bc44057-58ce-496b-a2fe-dd63254c921a"},
+                {"type": "proguard", "uuid": PROGUARD_UUID},
+            ]
+        },
+    }
+    assert get_debug_file_id(sample_v2) == UUID(PROGUARD_UUID).hex
+
+    # a top-level build_id is not part of the sample v2 schema and is ignored
+    assert (
+        get_debug_file_id(
+            {
+                "version": "2",
+                "platform": "android",
+                "profile": {"frames": [], "stacks": [], "samples": []},
+                "build_id": PROGUARD_UUID,
+            }
+        )
+        is None
+    )
+    assert (
+        get_debug_file_id(
+            {
+                "version": "2",
+                "platform": "android",
+                "profile": {"frames": [], "stacks": [], "samples": []},
+                "debug_meta": {"images": [{"type": "proguard"}]},
+            }
+        )
+        is None
+    )
+    assert (
+        get_debug_file_id(
+            {
+                "version": "2",
+                "platform": "android",
+                "profile": {"frames": [], "stacks": [], "samples": []},
+            }
+        )
+        is None
+    )
 
 
 def test_determine_profile_type() -> None:
@@ -907,7 +1105,7 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
             "organization_id": self.project.organization_id,
             "project_id": self.project.id,
             "event_id": "a" * 32,
-            "build_id": PROGUARD_UUID,
+            "debug_meta": {"images": [{"type": "proguard", "uuid": PROGUARD_UUID}]},
             "client_sdk": {"name": "sentry.java.android", "version": "8.0.0"},
             "profile": {
                 "frames": [

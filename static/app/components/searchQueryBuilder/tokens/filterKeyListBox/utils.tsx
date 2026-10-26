@@ -2,11 +2,11 @@ import styled from '@emotion/styled';
 
 import {getEscapedKey, HighlightText} from '@sentry/scraps/compactSelect';
 
-import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
+import {getKeyLabel} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/getKeyLabel';
 import {KeyDescription} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/keyDescription';
 import type {
-  AskSeerItem,
+  ConvertHumanizedItem,
   FilterValueItem,
   KeyItem,
   KeySectionItem,
@@ -31,7 +31,7 @@ import {
 import {t} from 'sentry/locale';
 import type {RecentSearch, Tag, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
-import {FieldKind, prettifyTagKey, type FieldDefinition} from 'sentry/utils/fields';
+import {type FieldDefinition} from 'sentry/utils/fields';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 
@@ -59,26 +59,6 @@ export function createRecentFilterOptionKey(filter: string) {
 
 function createRecentQueryOptionKey(filter: string) {
   return getEscapedKey(`${RECENT_QUERY_KEY_PREFIX}${filter}`);
-}
-
-export function getKeyLabel(
-  tag: Tag,
-  fieldDefinition: FieldDefinition | null,
-  {includeAggregateArgs = false} = {}
-) {
-  if (fieldDefinition?.kind === FieldKind.FUNCTION) {
-    if (fieldDefinition.parameters?.length) {
-      if (includeAggregateArgs) {
-        return `${tag.key}(${fieldDefinition.parameters.map(p => p.name).join(', ')})`;
-      }
-      return `${tag.key}(...)`;
-    }
-    return `${tag.key}()`;
-  }
-
-  // Some columns in explore can be formatted as an explicity number tag.
-  // We want to strip the explicit tag syntax before displaying where possible.
-  return prettifyTagKey(tag.key);
 }
 
 export function createSection(
@@ -147,6 +127,20 @@ export function createRawSearchItem(value: string): RawSearchItem {
     details: null,
     type: 'raw-search',
     trailingItems: () => <SearchItemLabel>{t('Raw Search')}</SearchItemLabel>,
+  };
+}
+
+export function createConvertHumanizedItem(esq: string): ConvertHumanizedItem {
+  return {
+    key: getEscapedKey(`convert-humanized:${esq}`),
+    label: <FormattedQuery query={esq} />,
+    value: esq,
+    textValue: esq,
+    hideCheck: true,
+    showDetailsInOverlay: true,
+    details: null,
+    type: 'convert-humanized',
+    trailingItems: () => <SearchItemLabel>{t('Convert')}</SearchItemLabel>,
   };
 }
 
@@ -256,17 +250,6 @@ export function createRecentQueryItem({
         fieldDefinitionGetter={getFieldDefinition}
       />
     ),
-    hideCheck: true,
-  };
-}
-
-export function createAskSeerItem(): AskSeerItem {
-  return {
-    key: getEscapedKey(ASK_SEER_ITEM_KEY),
-    value: ASK_SEER_ITEM_KEY,
-    textValue: 'Ask AI to build your query',
-    type: 'ask-seer' as const,
-    label: t('Ask AI to build your query'),
     hideCheck: true,
   };
 }

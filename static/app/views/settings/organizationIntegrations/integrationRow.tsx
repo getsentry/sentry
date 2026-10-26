@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {IconWarning} from '@sentry/icons/warning';
 import startCase from 'lodash/startCase';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -7,7 +8,6 @@ import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {PanelItem} from 'sentry/components/panels/panelItem';
-import {IconWarning} from 'sentry/icons';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t, tct, tn} from 'sentry/locale';
 import type {
@@ -45,6 +45,55 @@ const urlMap = {
   sentryApp: 'sentry-apps',
   docIntegration: 'document-integrations',
 };
+
+function IntegrationStatusContent({
+  baseUrl,
+  status,
+}: {
+  baseUrl: string;
+  status?: IntegrationInstallationStatus;
+}) {
+  if (status) {
+    return <IntegrationStatus status={status} />;
+  }
+  return <LearnMore to={baseUrl}>{t('Learn More')}</LearnMore>;
+}
+
+function IntegrationDetailsContent({
+  baseUrl,
+  configurations,
+  disabledConfigurations,
+  publishStatus,
+  type,
+}: {
+  baseUrl: string;
+  configurations: number;
+  publishStatus: SentryAppStatus;
+  type: Props['type'];
+  disabledConfigurations?: number;
+}) {
+  if (type === 'sentryApp') {
+    if (publishStatus === 'published') {
+      return null;
+    }
+    return <PublishStatus status={publishStatus} />;
+  }
+  if (configurations <= 0) {
+    return null;
+  }
+  return (
+    <Flex align="center" gap="xs">
+      <StyledLink to={`${baseUrl}?tab=configurations`}>
+        {tn('%s Configuration', '%s Configurations', configurations)}
+      </StyledLink>
+      {disabledConfigurations ? (
+        <Tag variant="warning">
+          {tn('%s disabled', '%s disabled', disabledConfigurations)}
+        </Tag>
+      ) : null}
+    </Flex>
+  );
+}
 
 export function IntegrationRow(props: Props) {
   const {
@@ -92,35 +141,6 @@ export function IntegrationRow(props: Props) {
   };
   const resolveNowHref = `${baseUrl}?tab=configurations&referrer=directory_resolve_now${getAutoOpenParam()}`;
 
-  const renderDetails = () => {
-    if (type === 'sentryApp') {
-      return publishStatus !== 'published' && <PublishStatus status={publishStatus} />;
-    }
-    if (configurations <= 0) {
-      return null;
-    }
-    return (
-      <Flex align="center" gap="xs">
-        <StyledLink to={`${baseUrl}?tab=configurations`}>
-          {tn('%s Configuration', '%s Configurations', configurations)}
-        </StyledLink>
-        {disabledConfigurations ? (
-          <Tag variant="warning">
-            {tn('%s disabled', '%s disabled', disabledConfigurations)}
-          </Tag>
-        ) : null}
-      </Flex>
-    );
-  };
-
-  const renderStatus = () => {
-    // status should be undefined for document integrations
-    if (status) {
-      return <IntegrationStatus status={status} />;
-    }
-    return <LearnMore to={baseUrl}>{t('Learn More')}</LearnMore>;
-  };
-
   const getUpgradeTooltipTitle = () => {
     if (!hasIntegrationAccess) {
       return tct(
@@ -157,18 +177,20 @@ export function IntegrationRow(props: Props) {
           <Flex gap="xs" align="center">
             <IntegrationName to={baseUrl}>{displayName}</IntegrationName>
             {outdatedConfigurations > 0 && (
-              <Tooltip
-                isHoverable
-                containerDisplayMode="flex"
-                title={getUpgradeTooltipTitle()}
-              >
+              <Tooltip containerDisplayMode="flex" title={getUpgradeTooltipTitle()}>
                 <IconWarning variant="warning" aria-label={t('Integration alert')} />
               </Tooltip>
             )}
           </Flex>
           <IntegrationDetails>
-            {renderStatus()}
-            {renderDetails()}
+            <IntegrationStatusContent baseUrl={baseUrl} status={status} />
+            <IntegrationDetailsContent
+              baseUrl={baseUrl}
+              configurations={configurations}
+              disabledConfigurations={disabledConfigurations}
+              publishStatus={publishStatus}
+              type={type}
+            />
           </IntegrationDetails>
         </TitleContainer>
         <Flex justify="end" wrap="wrap" flex={3} padding="0 xl" gap="md">

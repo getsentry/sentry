@@ -98,3 +98,13 @@ class InvalidParams(ParseError):
     when this exception is unhandled in a view."""
 
     pass
+
+
+class MissingTTL(Exception):
+    def __init__(self, key: str) -> None:
+        super().__init__(
+            f"Refusing to write {key!r} with no expiry. Every new Redis key sets a TTL, or is "
+            "registered with Infrastructure Engineering as accepted durable data. There is no "
+            "opt-out at the callsite: "
+            "https://develop.sentry.dev/backend/application-domains/redis/"
+        )

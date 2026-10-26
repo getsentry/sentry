@@ -3,12 +3,15 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
 
+import responses
+
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationFeatures
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.integrations.services.integration import (
+    RpcAccessToken,
     RpcIntegration,
     RpcOrganizationIntegration,
     integration_service,
@@ -19,6 +22,7 @@ from sentry.integrations.services.integration.serial import (
 )
 from sentry.integrations.types import EventLifecycleOutcome, ExternalProviders
 from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_count_of_metric, assert_failure_metric
 from sentry.testutils.cases import TestCase
@@ -156,6 +160,12 @@ class IntegrationServiceTest(BaseIntegrationServiceTest):
         result = integration_service.get_integration(provider="example", external_id="example:1")
         self.verify_integration_result(result=result, expected=self.integration1)
 
+        # With replica usage
+        result = integration_service.get_integration(
+            provider="example", external_id="example:1", using_replica=True
+        )
+        self.verify_integration_result(result=result, expected=self.integration1)
+
         # no results
         result = integration_service.get_integration(provider="🚀")
         assert result is None
@@ -164,6 +174,19 @@ class IntegrationServiceTest(BaseIntegrationServiceTest):
 
         # non-unique result
         assert integration_service.get_integration(organization_id=self.organization.id) is None
+
+    def test_get_gcp_service_account_email(self) -> None:
+        service_account_email = "sentry-test@sentry-connectors.iam.gserviceaccount.com"
+        self.create_gcp_service_account(
+            organization=self.organization,
+            service_account_email=service_account_email,
+        )
+
+        assert (
+            integration_service.get_gcp_service_account_email(organization_id=self.organization.id)
+            == service_account_email
+        )
+        assert integration_service.get_gcp_service_account_email(organization_id=-1) is None
 
     def test_update_integrations(self) -> None:
         new_metadata = {"new": "data"}
@@ -193,6 +216,29 @@ class IntegrationServiceTest(BaseIntegrationServiceTest):
             api_integration_has_feature = api_integration2.has_feature(feature=feature)
             assert integration_has_feature == api_integration_has_feature
 
+    @patch("sentry.integrations.services.integration.impl.record_lifecycle_termination_level")
+    @patch("sentry.integrations.services.integration.impl.MsTeamsClient")
+    @patch("sentry.integrations.services.integration.impl.Integration.objects.get")
+    def test_msteams_incident_configuration_error_records_termination_level(
+        self,
+        mock_get_integration: MagicMock,
+        mock_client: MagicMock,
+        mock_record_termination: MagicMock,
+    ) -> None:
+        error = IntegrationConfigurationError("Invalid Teams configuration")
+        mock_get_integration.return_value = self.integration1
+        mock_client.return_value.send_card.side_effect = error
+
+        result = integration_service.send_msteams_incident_alert_notification(
+            integration_id=self.integration1.id,
+            channel="channel-id",
+            attachment={},
+        )
+
+        assert result is False
+        assert mock_record_termination.call_count == 1
+        assert mock_record_termination.call_args.args[1] is error
+
 
 @all_silo_test
 class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
@@ -212,6 +258,13 @@ class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
         # by integration_id
         result = integration_service.get_organization_integrations(
             org_integration_ids=[self.org_integration1.id]
+        )
+        self.verify_result(result=result, expected=[self.org_integration1])
+
+        # by integration_id with replica
+        result = integration_service.get_organization_integrations(
+            integration_id=self.org_integration1.integration_id,
+            using_replica=True,
         )
         self.verify_result(result=result, expected=[self.org_integration1])
 
@@ -614,3 +667,162 @@ class StartGracePeriodForProviderTest(TestCase):
         assert self.org1_github_oi_2.grace_period_end is None
         assert self.org1_github_oi_3.id not in lof_grace_perioded_ois
         assert self.org1_github_oi_3.grace_period_end is None
+
+
+@all_silo_test
+@freeze_time("2025-01-01T05:22:00Z")
+class GetAccessTokenTest(TestCase):
+    def create_github(self, expires_at: str = "2025-01-01T06:22:00") -> Integration:
+        return self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="1",
+            metadata={"access_token": "gh-token", "expires_at": expires_at},
+        )
+
+    def create_github_enterprise(self, expires_at: str = "2025-01-01T06:22:00") -> Integration:
+        return self.create_integration(
+            organization=self.organization,
+            provider="github_enterprise",
+            external_id="ghe.example.com:2",
+            metadata={
+                "access_token": "ghe-token",
+                "expires_at": expires_at,
+                "domain_name": "ghe.example.com/org",
+                "installation_id": "2",
+                "installation": {"private_key": "key", "id": "3", "verify_ssl": True},
+            },
+        )
+
+    def get_token(
+        self, integration: Integration, organization_id: int | None = None
+    ) -> RpcAccessToken | None:
+        return integration_service.get_access_token(
+            integration_id=integration.id,
+            organization_id=organization_id or self.organization.id,
+        )
+
+    @responses.activate
+    def test_github_returns_the_stored_token(self) -> None:
+        token = self.get_token(self.create_github())
+
+        assert token == RpcAccessToken(
+            token="gh-token", expires_at=datetime(2025, 1, 1, 6, 22, tzinfo=timezone.utc)
+        )
+        assert "gh-token" not in repr(token)
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    @patch("sentry.integrations.github.client.get_jwt", return_value="app-jwt")
+    def test_github_mints_a_token_about_to_expire(self, mock_jwt: MagicMock) -> None:
+        integration = self.create_github(expires_at="2025-01-01T05:25:00")
+        responses.add(
+            responses.POST,
+            "https://api.github.com/app/installations/1/access_tokens",
+            json={"token": "gh-token-2", "expires_at": "2025-01-01T06:22:00Z", "permissions": {}},
+        )
+
+        assert self.get_token(integration) == RpcAccessToken(
+            token="gh-token-2", expires_at=datetime(2025, 1, 1, 6, 22, tzinfo=timezone.utc)
+        )
+
+    @responses.activate
+    def test_github_enterprise_returns_the_stored_token(self) -> None:
+        assert self.get_token(self.create_github_enterprise()) == RpcAccessToken(
+            token="ghe-token", expires_at=datetime(2025, 1, 1, 6, 22, tzinfo=timezone.utc)
+        )
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="app-jwt")
+    def test_github_enterprise_mints_a_token_about_to_expire(self, mock_jwt: MagicMock) -> None:
+        integration = self.create_github_enterprise(expires_at="2025-01-01T05:25:00")
+        responses.add(
+            responses.POST,
+            "https://ghe.example.com/api/v3/app/installations/2/access_tokens",
+            json={"token": "ghe-token-2", "expires_at": "2025-01-01T06:22:00Z", "permissions": {}},
+        )
+
+        assert self.get_token(integration) == RpcAccessToken(
+            token="ghe-token-2", expires_at=datetime(2025, 1, 1, 6, 22, tzinfo=timezone.utc)
+        )
+        mock_jwt.assert_called_once_with(github_id="3", github_private_key="key")
+
+    @responses.activate
+    def test_cursor_origin_returns_the_stored_token(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="cursor_origin",
+            external_id="i_01example",
+            metadata={"access_token": "oit_stored", "expires_at": "2025-01-01T05:36:00+00:00"},
+        )
+
+        assert self.get_token(integration) == RpcAccessToken(
+            token="oit_stored", expires_at=datetime(2025, 1, 1, 5, 36, tzinfo=timezone.utc)
+        )
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    @patch("sentry.integrations.github.client.get_jwt", return_value="app-jwt")
+    @patch("sentry.integrations.services.integration.impl.logger")
+    def test_none_when_the_provider_fails(
+        self, mock_logger: MagicMock, mock_jwt: MagicMock
+    ) -> None:
+        integration = self.create_github(expires_at="2025-01-01T05:25:00")
+        responses.add(
+            responses.POST, "https://api.github.com/app/installations/1/access_tokens", status=503
+        )
+
+        assert self.get_token(integration) is None
+        mock_logger.warning.assert_called_once_with(
+            "integration_service.access_token.unavailable",
+            extra={
+                "integration_id": integration.id,
+                "organization_id": self.organization.id,
+                "provider": "github",
+                "error": "ApiError",
+                "status_code": 503,
+            },
+        )
+
+    def test_none_for_another_provider(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization, provider="bitbucket", external_id="bitbucket:1"
+        )
+
+        assert self.get_token(integration) is None
+
+    def test_none_for_an_unknown_integration(self) -> None:
+        integration = self.create_github()
+
+        assert (
+            integration_service.get_access_token(
+                integration_id=integration.id + 1000, organization_id=self.organization.id
+            )
+            is None
+        )
+
+    def test_none_for_a_disabled_integration(self) -> None:
+        integration = self.create_github()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            Integration.objects.filter(id=integration.id).update(status=ObjectStatus.DISABLED)
+
+        assert self.get_token(integration) is None
+
+    def test_none_for_an_organization_without_the_install(self) -> None:
+        integration = self.create_github()
+
+        assert self.get_token(integration, organization_id=self.create_organization().id) is None
+
+    def test_none_for_an_install_being_removed(self) -> None:
+        integration = self.create_github()
+        # Another organization's active install of the same integration doesn't count.
+        self.create_organization_integration(
+            integration=integration, organization_id=self.create_organization().id
+        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration_id=integration.id
+            ).update(status=ObjectStatus.PENDING_DELETION)
+
+        assert self.get_token(integration) is None

@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
 import type {PlatformKey} from 'sentry/types/platform';
 
-const popularPlatformCategories = new Set<PlatformKey>([
+export const popularPlatformCategories = new Set<PlatformKey>([
   'javascript-nextjs',
   'javascript-react',
   'react-native',
@@ -80,15 +80,17 @@ const server = new Set<PlatformKey>([
   'kotlin',
   'native',
   'node',
-  'node-cloudflare-pages',
   'node-cloudflare-workers',
-  'node-connect',
+  'node-eve',
   'node-express',
   'node-fastify',
+  'node-flue',
   'node-hapi',
   'node-hono',
   'node-koa',
+  'node-mastra',
   'node-nestjs',
+  'node-pi-durable',
   'php',
   'php-laravel',
   'php-symfony',
@@ -158,7 +160,6 @@ const serverless = new Set<PlatformKey>([
   'node-awslambda',
   'node-azurefunctions',
   'node-gcpfunctions',
-  'node-cloudflare-pages',
   'node-cloudflare-workers',
   'python-awslambda',
   'python-gcpfunctions',

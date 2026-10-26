@@ -27,7 +27,7 @@ def _wrap_test(func: Callable[..., Any], enabled: bool) -> Callable[..., Any]:
         with Feature(
             {
                 "organizations:objectstore-debugfiles-write": enabled,
-                "organizations:objectstore-debugfiles-direct-read": enabled,
+                "organizations:objectstore-debugfiles-read": enabled,
             }
         ):
             func(self, *args, **kwargs)

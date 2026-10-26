@@ -25,9 +25,9 @@ from sentry.workflow_engine.handlers.detector.stateful import (
     StatefulDetectorHandler,
 )
 from sentry.workflow_engine.models import DataPacket, Detector
-from sentry.workflow_engine.processors.data_condition_group import ProcessedDataConditionGroup
+from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
+from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
-    DetectorEvaluationResult,
     DetectorGroupKey,
     DetectorPriorityLevel,
     DetectorSettings,
@@ -129,10 +129,10 @@ class UptimeDetectorHandler(StatefulDetectorHandler[UptimePacketValue, CheckStat
         return int(data_packet.packet.check_result["scheduled_check_time_ms"])
 
     @override
-    def evaluate(
+    def _evaluate(
         self, data_packet: DataPacket[UptimePacketValue]
-    ) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
-        result = super().evaluate(data_packet)
+    ) -> dict[DetectorGroupKey, DetectorEvaluation]:
+        result = super()._evaluate(data_packet)
 
         if not result:
             return result
@@ -207,7 +207,7 @@ class UptimeDetectorHandler(StatefulDetectorHandler[UptimePacketValue, CheckStat
     @override
     def create_occurrence(
         self,
-        evaluation_result: ProcessedDataConditionGroup,
+        _group_evaluation: DataConditionGroupEvaluation,
         data_packet: DataPacket[UptimePacketValue],
         priority: DetectorPriorityLevel,
     ) -> tuple[DetectorOccurrence, EventData]:
@@ -271,32 +271,34 @@ class UptimeDomainCheckFailure(GroupType):
     default_priority = PriorityLevel.HIGH
     enable_auto_resolve = False
     enable_escalation_detection = False
-    detector_settings = DetectorSettings(
-        handler=UptimeDetectorHandler,
-        validator=UptimeDomainCheckFailureValidator,
-        config_schema={
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "description": "A representation of an uptime alert",
-            "type": "object",
-            "required": ["mode", "environment", "recovery_threshold", "downtime_threshold"],
-            "properties": {
-                "mode": {
-                    "type": ["integer"],
-                    "enum": [mode.value for mode in UptimeMonitorMode],
-                },
-                "environment": {"type": ["string", "null"]},
-                "recovery_threshold": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "description": "Number of consecutive successful checks required to mark monitor as recovered",
-                },
-                "downtime_threshold": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "description": "Number of consecutive failed checks required to mark monitor as down",
-                },
+
+
+@detector_settings_registry.register(UptimeDomainCheckFailure.slug)
+class UptimeDomainCheckFailureDetectorSettings(DetectorSettings):
+    handler = UptimeDetectorHandler
+    validator = UptimeDomainCheckFailureValidator
+    config_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "description": "A representation of an uptime alert",
+        "type": "object",
+        "required": ["mode", "environment", "recovery_threshold", "downtime_threshold"],
+        "properties": {
+            "mode": {
+                "type": ["integer"],
+                "enum": [mode.value for mode in UptimeMonitorMode],
             },
-            "additionalProperties": False,
+            "environment": {"type": ["string", "null"]},
+            "recovery_threshold": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Number of consecutive successful checks required to mark monitor as recovered",
+            },
+            "downtime_threshold": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Number of consecutive failed checks required to mark monitor as down",
+            },
         },
-        filter=~Q(config__mode=UptimeMonitorMode.AUTO_DETECTED_ONBOARDING),
-    )
+        "additionalProperties": False,
+    }
+    filter = ~Q(config__mode=UptimeMonitorMode.AUTO_DETECTED_ONBOARDING)

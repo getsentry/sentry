@@ -106,10 +106,10 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
 
     def send_notification(
         self, target: IntegrationNotificationTarget, payload: SlackRenderable
-    ) -> None:
+    ) -> dict[str, Any]:
         client = self.get_client()
         try:
-            client.chat_postMessage(
+            response = client.chat_postMessage(
                 channel=target.resource_id,
                 blocks=payload["blocks"] if len(payload["blocks"]) > 0 else None,
                 text=payload["text"],
@@ -117,10 +117,12 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
                 unfurl_links=False,
                 unfurl_media=False,
             )
+            return dict(response.data) if isinstance(response.data, dict) else {}
         except SlackApiError as e:
             translate_slack_api_error(e)
+            return {}
 
-    def send_notification_with_threading(
+    def send_notification_with_response(
         self,
         target: IntegrationNotificationTarget,
         payload: SlackRenderable,
@@ -180,8 +182,8 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         channel_id: str,
         renderable: SlackRenderable,
         thread_ts: str,
-    ) -> None:
-        workspace.send_threaded_ephemeral_message(
+    ) -> SlackResponse | None:
+        return workspace.send_threaded_ephemeral_message(
             integration_id=self.model.id,
             channel_id=channel_id,
             renderable=renderable,

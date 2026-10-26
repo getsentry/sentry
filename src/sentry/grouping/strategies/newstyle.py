@@ -580,7 +580,7 @@ def single_exception(
 
     if exception.stacktrace is not None:
         with context:
-            context["exception_data"] = exception.to_json()
+            context["exception_data"] = exception.get_raw_data()
             stacktrace_components_by_variant: dict[str, StacktraceGroupingComponent] = (
                 get_grouping_components_by_variant(exception.stacktrace, event, context, **kwargs)
             )

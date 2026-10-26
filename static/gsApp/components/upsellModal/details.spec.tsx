@@ -3,9 +3,15 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {PlanTier} from 'getsentry-test/planTier';
-import {act, render, screen} from 'sentry-test/reactTestingLibrary';
+import {act, render, renderHook, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Details} from 'getsentry/components/upsellModal/details';
+import {
+  Details,
+  useUpsellLandingAnalytics,
+} from 'getsentry/components/upsellModal/details';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
+
+jest.mock('getsentry/utils/trackGetsentryAnalytics');
 
 describe('Upsell Modal Details', () => {
   const organization = OrganizationFixture({access: ['org:billing']});
@@ -31,7 +37,6 @@ describe('Upsell Modal Details', () => {
       organization,
       plan: 'am1_f',
       canTrial: true,
-      isTrial: false,
       isFree: true,
     });
 
@@ -56,7 +61,7 @@ describe('Upsell Modal Details', () => {
       organization,
       plan: 'am1_t',
       canTrial: false,
-      isTrial: true,
+      trialPlan: 'am1_t',
       isFree: false,
     });
 
@@ -83,7 +88,6 @@ describe('Upsell Modal Details', () => {
       organization,
       plan: 'am1_f',
       canTrial: true,
-      isTrial: false,
       isFree: true,
     });
 
@@ -110,7 +114,6 @@ describe('Upsell Modal Details', () => {
       organization,
       plan: 'am1_team',
       canTrial: true,
-      isTrial: false,
       isFree: false,
     });
 
@@ -134,7 +137,6 @@ describe('Upsell Modal Details', () => {
       organization,
       plan: 'mm2_a_100k',
       canTrial: true,
-      isTrial: false,
       isFree: false,
     });
 
@@ -158,7 +160,6 @@ describe('Upsell Modal Details', () => {
       organization,
       plan: 'mm2_a_100k',
       canTrial: true,
-      isTrial: false,
       isFree: false,
     });
 
@@ -194,7 +195,6 @@ describe('Upsell Modal Details', () => {
       organization,
       plan: 'am3_f',
       canTrial: true,
-      isTrial: false,
       isFree: true,
     });
 
@@ -210,5 +210,54 @@ describe('Upsell Modal Details', () => {
     expect(await screen.findByText('Features Include')).toBeInTheDocument();
     expect(screen.getByText('Unlimited Custom Dashboards')).toBeInTheDocument();
     expect(screen.getByTestId('custom-dashboards')).toHaveAttribute('aria-selected');
+  });
+});
+
+describe('useUpsellLandingAnalytics', () => {
+  const organization = OrganizationFixture({access: ['org:billing']});
+  const subscription = SubscriptionFixture({organization});
+
+  const options: Parameters<typeof useUpsellLandingAnalytics>[0] = {
+    highlightedFeatureId: null,
+    organization,
+    source: 'test',
+    subscription,
+  };
+
+  beforeEach(() => {
+    jest.mocked(trackGetsentryAnalytics).mockClear();
+  });
+
+  it('tracks viewed on mount with the initial feature', () => {
+    renderHook(useUpsellLandingAnalytics, {
+      initialProps: {...options, highlightedFeatureId: 'sso'},
+    });
+
+    expect(trackGetsentryAnalytics).toHaveBeenCalledTimes(1);
+    expect(trackGetsentryAnalytics).toHaveBeenCalledWith('business_landing.viewed', {
+      organization,
+      subscription,
+      source: 'test',
+      initial_feature: 'sso',
+      has_permissions: true,
+    });
+  });
+
+  it('tracks closed on unmount with the feature highlighted at that time', () => {
+    const {rerender, unmount} = renderHook(useUpsellLandingAnalytics, {
+      initialProps: options,
+    });
+
+    rerender({...options, highlightedFeatureId: 'event-volume'});
+    expect(trackGetsentryAnalytics).toHaveBeenCalledTimes(1);
+
+    unmount();
+    expect(trackGetsentryAnalytics).toHaveBeenCalledTimes(2);
+    expect(trackGetsentryAnalytics).toHaveBeenLastCalledWith('business_landing.closed', {
+      organization,
+      subscription,
+      source: 'test',
+      closing_feature: 'event-volume',
+    });
   });
 });

@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useEffect, useEffectEvent, useMemo} from 'react';
-import styled from '@emotion/styled';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
+import {Container} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 
 import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
@@ -9,24 +9,29 @@ import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
-import {Placeholder} from 'sentry/components/placeholder';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {treeResultLocator} from 'sentry/components/searchSyntax/utils';
 import {
   DEFAULT_STREAM_GROUP_STATS_PERIOD,
+  LoadingStreamGroup,
   StreamGroup,
 } from 'sentry/components/stream/group';
+import {
+  StreamGroupTable,
+  useStreamGroupColumns,
+  type StreamGroupTableBorder,
+} from 'sentry/components/stream/groupColumns';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {Group, PriorityLevel} from 'sentry/types/group';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
 import {indexMembersByProject} from 'sentry/utils/members/shared';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {isRetryableRequestError} from 'sentry/utils/queryClientConfig';
+import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
-import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'sentry/views/alerts/rules/metric/details/relatedIssuesNotAvailable';
 
 import {GroupListHeader} from './groupListHeader';
 
@@ -35,20 +40,19 @@ export type GroupListColumn =
   | 'event'
   | 'users'
   | 'priority'
-  | 'progress'
   | 'assignee'
-  | 'lastTriggered'
+  | 'assigneeAvatar'
   | 'firstSeen'
   | 'lastSeen';
 
-type Props = {
+export type GroupListProps = {
   /**
    * Number of placeholder rows to show during loading
    */
   numPlaceholderRows: number;
   queryParams: Record<string, number | string | string[] | undefined | null>;
+  border?: StreamGroupTableBorder;
   canSelectGroups?: boolean;
-  customStatsPeriod?: TimePeriodType;
   /**
    * Defaults to path '/organizations/$organizationIdOrSlug/issues/'
    */
@@ -75,13 +79,14 @@ type Props = {
   query?: string;
   queryFilterDescription?: string;
   renderEmptyMessage?: () => React.ReactNode;
-  renderErrorMessage?: (props: {detail: string}, retry: () => void) => React.ReactNode;
   // where the group list is rendered
   source?: string;
+  staleTime?: number;
   useFilteredStats?: boolean;
   useTintRow?: boolean;
   withChart?: boolean;
   withColumns?: GroupListColumn[];
+  withHeader?: boolean;
   withPagination?: boolean;
 };
 
@@ -94,17 +99,24 @@ type State = {
   memberList?: ReturnType<typeof indexMembersByProject>;
 };
 
-const DEFAULT_COLUMNS: GroupListColumn[] = ['graph', 'event', 'users', 'assignee'];
+const DEFAULT_COLUMNS: GroupListColumn[] = [
+  'firstSeen',
+  'lastSeen',
+  'graph',
+  'event',
+  'users',
+  'assignee',
+];
 
 export function GroupList({
   queryParams,
   endpoint = {path: '/organizations/$organizationIdOrSlug/issues/'},
   onFetchSuccess,
+  border = 'full',
   renderEmptyMessage,
-  renderErrorMessage,
-  customStatsPeriod,
   queryFilterDescription,
   source,
+  staleTime = 0,
   query,
   numPlaceholderRows,
   withColumns = DEFAULT_COLUMNS,
@@ -113,7 +125,8 @@ export function GroupList({
   canSelectGroups = true,
   useFilteredStats = true,
   useTintRow = true,
-}: Props) {
+  withHeader = true,
+}: GroupListProps) {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
@@ -170,7 +183,8 @@ export function GroupList({
     [computedQueryParams.query]
   );
 
-  // Issues API does not support AND/OR statements
+  // Issues API does not support AND/OR statements. The endpoint rejects them
+  // with a 400, so skipping the request spares a round trip we know will fail.
   const hasLogicBoolean = useMemo(
     () =>
       parsedQuery
@@ -187,25 +201,32 @@ export function GroupList({
 
   const queryClient = useQueryClient();
 
+  const {columns} = useStreamGroupColumns({
+    canSelect: canSelectGroups,
+    displayReprocessingLayout: false,
+    withChart,
+    withColumns,
+  });
+
   const issuesQueryOptions =
     endpoint.path === '/organizations/$organizationIdOrSlug/issues/'
       ? apiOptions.as<Group[]>()(endpoint.path, {
           path: {organizationIdOrSlug: organization.slug},
           query: computedQueryParams,
-          staleTime: 0,
+          staleTime,
         })
       : apiOptions.as<Group[]>()(endpoint.path, {
           path: {organizationIdOrSlug: organization.slug, version: endpoint.version},
           query: computedQueryParams,
-          staleTime: 0,
+          staleTime,
         });
   const {
     data,
     dataUpdatedAt,
+    error,
     isPending,
     isError: isQueryError,
     isSuccess: isQuerySuccess,
-    error: queryError,
     refetch,
   } = useQuery({
     ...issuesQueryOptions,
@@ -263,19 +284,6 @@ export function GroupList({
 
   const pageLinks = data?.headers.Link ?? null;
   const groups = groupsData ?? [];
-  const errorDetail = hasLogicBoolean
-    ? RELATED_ISSUES_BOOLEAN_QUERY_ERROR
-    : (() => {
-        const detail = (queryError as RequestError | undefined)?.responseJSON?.detail;
-        if (typeof detail === 'string') {
-          return detail;
-        }
-        if (detail?.message) {
-          return detail.message;
-        }
-        return (queryError as RequestError | undefined)?.message ?? null;
-      })();
-  const errorData = errorDetail ? {detail: errorDetail} : null;
   const hasError = hasLogicBoolean || isQueryError;
   const loading = !hasLogicBoolean && isPending;
 
@@ -301,34 +309,42 @@ export function GroupList({
     isQuerySuccess,
     // Sometimes data is already cached, so we need to include this in order to
     // trigger onFetchSuccess when new data is shown
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     dataUpdatedAt,
   ]);
 
-  const columns = useMemo(
-    () => [...withColumns, 'firstSeen' as const, 'lastSeen' as const],
-    [withColumns]
-  );
-
   if (hasError) {
-    if (typeof renderErrorMessage === 'function' && errorData) {
-      return renderErrorMessage(errorData, refetch);
-    }
-
-    return <LoadingError onRetry={refetch} />;
+    // A retry only helps a failure that could land differently next time. The
+    // query here is fixed, so a boolean one the endpoint never accepts and a
+    // client error it already rejected both fail the same way on every press.
+    return hasLogicBoolean ? (
+      <LoadingError message={t('Search queries with AND or OR are not supported.')} />
+    ) : (
+      <LoadingError
+        message={getRequestErrorUserMessage(error, t('There was an error loading data.'))}
+        onRetry={isRetryableRequestError(error) ? refetch : undefined}
+      />
+    );
   }
 
   if (!loading && groups.length === 0) {
     if (typeof renderEmptyMessage === 'function') {
       return renderEmptyMessage();
     }
-    return (
+    const emptyStateWarning = (
+      <EmptyStateWarning>
+        <p>{t("There don't seem to be any events fitting the query.")}</p>
+      </EmptyStateWarning>
+    );
+
+    return border === 'full' ? (
       <Panel>
-        <PanelBody>
-          <EmptyStateWarning>
-            <p>{t("There don't seem to be any events fitting the query.")}</p>
-          </EmptyStateWarning>
-        </PanelBody>
+        <PanelBody>{emptyStateWarning}</PanelBody>
       </Panel>
+    ) : (
+      <Container borderTop={border === 'top' ? 'primary' : undefined}>
+        {emptyStateWarning}
+      </Container>
     );
   }
 
@@ -339,14 +355,17 @@ export function GroupList({
 
   return (
     <Fragment>
-      <PanelContainer>
-        <GroupListHeader withChart={!!withChart} withColumns={columns} />
-        <PanelBody>
+      <StreamGroupTable border={border} columns={columns}>
+        {withHeader && <GroupListHeader columns={columns} square={border !== 'full'} />}
+        <SimpleTable.Body>
           {loading
-            ? [...Array.from({length: numPlaceholderRows})].map((_, i) => (
-                <GroupPlaceholder key={i}>
-                  <Placeholder height="50px" />
-                </GroupPlaceholder>
+            ? Array.from({length: numPlaceholderRows}, (_, i) => (
+                <LoadingStreamGroup
+                  key={i}
+                  canSelect={canSelectGroups}
+                  withChart={withChart}
+                  withColumns={withColumns}
+                />
               ))
             : groups.map(group => {
                 const members = memberList?.get(group.project.slug);
@@ -357,11 +376,10 @@ export function GroupList({
                     group={group}
                     canSelect={canSelectGroups}
                     withChart={withChart}
-                    withColumns={columns}
+                    withColumns={withColumns}
                     memberList={members}
                     useFilteredStats={useFilteredStats}
                     useTintRow={useTintRow}
-                    customStatsPeriod={customStatsPeriod}
                     statsPeriod={statsPeriod}
                     queryFilterDescription={queryFilterDescription}
                     source={source}
@@ -375,23 +393,11 @@ export function GroupList({
                   />
                 );
               })}
-        </PanelBody>
-      </PanelContainer>
+        </SimpleTable.Body>
+      </StreamGroupTable>
       {withPagination && (
         <Pagination pageLinks={pageLinks} onCursor={handleCursorChange} />
       )}
     </Fragment>
   );
 }
-
-const GroupPlaceholder = styled('div')`
-  padding: ${p => p.theme.space.md};
-
-  &:not(:last-child) {
-    border-bottom: solid 1px ${p => p.theme.tokens.border.secondary};
-  }
-`;
-
-const PanelContainer = styled(Panel)`
-  container-type: inline-size;
-`;

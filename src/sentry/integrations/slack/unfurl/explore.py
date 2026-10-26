@@ -10,8 +10,8 @@ from urllib.parse import urlparse
 
 from django.http.request import QueryDict
 
-from sentry import analytics, features
-from sentry.api import client
+from sentry import analytics, features, options
+from sentry.api.client import client
 from sentry.charts import backend as charts
 from sentry.charts.types import ChartSize, ChartType
 from sentry.integrations.messaging.metrics import (
@@ -542,7 +542,8 @@ def _unfurl_explore(
     user: User | RpcUser | None = None,
 ) -> UnfurledUrl:
     org_integrations = integration_service.get_organization_integrations(
-        integration_id=integration.id
+        integration_id=integration.id,
+        using_replica=options.get("integration_service.get_integration.using_replica"),
     )
     organizations = Organization.objects.filter(
         id__in=[oi.organization_id for oi in org_integrations]
@@ -553,12 +554,6 @@ def _unfurl_explore(
         slug: org
         for slug, org in orgs_by_slug.items()
         if features.has("organizations:visibility-explore-view", org, actor=user)
-    }
-
-    heatmap_enabled_orgs = {
-        slug: org
-        for slug, org in orgs_by_slug.items()
-        if features.has("organizations:data-browsing-heat-map-widget", org, actor=user)
     }
 
     if not enabled_orgs:
@@ -593,12 +588,10 @@ def _unfurl_explore(
             continue
 
         if display_type == "heatmap":
-            # Heat maps are a metrics-only visualization, so chartType 3 only ever
-            # comes from metrics URLs — traces/logs never offer it. This branch
-            # therefore assumes the trace metrics dataset (events-heatmap with
-            # metric-style axes); it is not reached for other Explore datasets.
-            heatmap_org = heatmap_enabled_orgs.get(org_slug)
-            if not heatmap_org:
+            # Heat maps are a metrics-only visualization (events-heatmap with
+            # metric-style axes). Traces/logs never offer chartType 3 in the UI,
+            # but guard against hand-built URLs by skipping any non-metrics dataset.
+            if explore_dataset != SupportedTraceItemType.TRACEMETRICS:
                 continue
 
             style = ChartType.SLACK_HEATMAP

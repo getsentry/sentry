@@ -19,7 +19,10 @@ from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.events import get_direct_hit_response, run_group_events_query
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, SimpleEventSerializer, serialize
-from sentry.api.serializers.models.event import SimpleEventSerializerResponse
+from sentry.api.serializers.models.event import (
+    FULL_PAYLOAD_MAX_PER_PAGE,
+    SimpleEventSerializerResponse,
+)
 from sentry.api.utils import get_date_range_from_params, handle_query_errors
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
@@ -65,6 +68,14 @@ class GroupEventsEndpoint(GroupEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.ISSUES
+
+    def get_per_page(
+        self, request: Request, default_per_page: int | None = None, max_per_page: int | None = None
+    ) -> int:
+        per_page = super().get_per_page(request, default_per_page, max_per_page)
+        if request.GET.get("full") in ("1", "true"):
+            return min(per_page, FULL_PAYLOAD_MAX_PER_PAGE)
+        return per_page
 
     @extend_schema(
         operation_id="listOrganizationIssueEvents",

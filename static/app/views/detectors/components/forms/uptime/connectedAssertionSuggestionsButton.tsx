@@ -4,9 +4,9 @@ import type {ButtonProps} from '@sentry/scraps/button';
 
 import {FormContext} from 'sentry/components/forms/formContext';
 import {defined} from 'sentry/utils/defined';
-import {AssertionSuggestionsButton} from 'sentry/views/alerts/rules/uptime/assertionSuggestionsButton';
-import type {UptimeAssertion} from 'sentry/views/alerts/rules/uptime/types';
 import {DEFAULT_UPTIME_DETECTOR_FORM_DATA_MAP} from 'sentry/views/detectors/components/forms/uptime/fields';
+import {AssertionSuggestionsButton} from 'sentry/views/detectors/components/uptime/assertionSuggestionsButton';
+import type {UptimeAssertion} from 'sentry/views/detectors/components/uptime/types';
 
 const HTTP_METHODS_NO_BODY = ['GET', 'HEAD', 'OPTIONS'];
 
@@ -19,6 +19,7 @@ export function ConnectedAssertionSuggestionsButton({
 }: ConnectedAssertionSuggestionsButtonProps) {
   const {form} = useContext(FormContext);
   const formRef = useRef(form);
+  // oxlint-disable-next-line react/refs
   formRef.current = form;
 
   const getFormData = () => {

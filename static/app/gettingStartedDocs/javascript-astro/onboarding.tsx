@@ -7,17 +7,12 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {getDataCollectionStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {t, tct} from 'sentry/locale';
 
 import {installSnippetBlock} from './utils';
 
 function getServerConfigSnippet(params: DocsParams) {
-  const logsConfig = params.isLogsSelected
-    ? `
-  // Enable logs to be sent to Sentry
-  enableLogs: true,`
-    : '';
-
   const performanceConfig = params.isPerformanceSelected
     ? `
   // Define how likely traces are sampled. Adjust this value in production,
@@ -29,24 +24,12 @@ function getServerConfigSnippet(params: DocsParams) {
 import * as Sentry from "@sentry/astro";
 
 Sentry.init({
-  dsn: "${params.dsn.public}",
-  dataCollection: {
-    // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
-    // https://docs.sentry.io/platforms/javascript/guides/astro/configuration/options/#dataCollection
-    // userInfo: false,
-    // httpBodies: [],
-  },${logsConfig}${performanceConfig}
+  dsn: "${params.dsn.public}",${performanceConfig}
 });
 `;
 }
 
 function getClientConfigSnippet(params: DocsParams) {
-  const logsConfig = params.isLogsSelected
-    ? `
-  // Enable logs to be sent to Sentry
-  enableLogs: true,`
-    : '';
-
   // Build integrations array based on selected features
   const integrations = [];
   if (params.isPerformanceSelected) {
@@ -83,13 +66,7 @@ ${integrations.join('\n')}
 import * as Sentry from "@sentry/astro";
 
 Sentry.init({
-  dsn: "${params.dsn.public}",
-  dataCollection: {
-    // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
-    // https://docs.sentry.io/platforms/javascript/guides/astro/configuration/options/#dataCollection
-    // userInfo: false,
-    // httpBodies: [],
-  },${integrationsConfig}${logsConfig}${performanceConfig}${replaySampleRates}
+  dsn: "${params.dsn.public}",${integrationsConfig}${performanceConfig}${replaySampleRates}
 });
 `;
 }
@@ -150,7 +127,7 @@ export const onboarding: OnboardingConfig = {
     <Fragment>
       <p>
         {tct(
-          "Sentry's integration with [astroLink:Astro] supports Astro 3.0.0 and above.",
+          "Sentry's integration with [astroLink:Astro] supports Astro 4.0.0 and above.",
           {
             astroLink: <ExternalLink href="https://astro.build/" />,
           }
@@ -265,6 +242,10 @@ export const onboarding: OnboardingConfig = {
         },
       ],
     },
+    getDataCollectionStep({
+      docsLink:
+        'https://docs.sentry.io/platforms/javascript/guides/astro/configuration/options/#dataCollection',
+    }),
   ],
   verify: params => [
     {

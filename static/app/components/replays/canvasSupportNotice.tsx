@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/close';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';

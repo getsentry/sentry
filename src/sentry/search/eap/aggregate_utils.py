@@ -1,4 +1,4 @@
-from typing import cast
+from typing import Callable, cast
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
@@ -10,6 +10,8 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
+    AggregateDefinition,
+    ConditionalAggregateDefinition,
     ResolvedArguments,
 )
 from sentry.search.eap.normalizer import unquote_literal
@@ -125,3 +127,23 @@ def resolve_key_eq_value_filter(args: ResolvedArguments) -> tuple[AttributeKey, 
             )
         )
     return aggregate_key, trace_filter
+
+
+def if_query_validator(term: str) -> bool:
+    if not term.startswith("`") or not term.endswith("`"):
+        return False
+    return True
+
+
+def apply_combinators(
+    combinators: dict[str, Callable[[AggregateDefinition], AggregateDefinition]],
+    definitions: dict[str, AggregateDefinition],
+) -> None:
+    combinator_aggregate_definitions: dict[str, AggregateDefinition] = {}
+    for combinator, apply_combinator in combinators.items():
+        for function, definition in definitions.items():
+            if not isinstance(definition, ConditionalAggregateDefinition):
+                function_label = f"{function}_{combinator}"
+                if function_label not in definitions:
+                    combinator_aggregate_definitions[function_label] = apply_combinator(definition)
+    definitions.update(combinator_aggregate_definitions)

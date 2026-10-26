@@ -31,11 +31,15 @@ class OrganizationDashboardWidgetDetailsEndpoint(OrganizationEndpoint):
         if not features.has("organizations:dashboards-edit", organization, actor=request.user):
             return Response(status=404)
 
+        projects = self.get_projects(request, organization)
         serializer = DashboardWidgetSerializer(
             data=request.data,
             context={
                 "organization": organization,
-                "projects": self.get_projects(request, organization),
+                "projects": projects,
+                # allow_joinleave grants project access without team membership.
+                "validation_projects": projects
+                or self.get_projects(request, organization, include_all_accessible=True),
                 "displayType": request.data.get("displayType"),
                 "environment": request.GET.getlist("environment"),
                 "request": request,

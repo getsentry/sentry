@@ -8,20 +8,23 @@ type MenuMode = 'slash-commands-keyboard' | 'pr-widget' | 'hidden';
 interface SlashCommandHandlers {
   onFeedback: (() => void) | undefined;
   onNew: () => void;
+  onBashMode?: (value: boolean) => void;
   onCodeMode?: (value: 'off' | 'on' | 'only') => void;
   onConversations?: () => void;
-  onLangfuse?: () => void;
   onMaxSize?: () => void;
   onMedSize?: () => void;
 }
 
 interface ExplorerMenuProps {
   clearInput: () => void;
+  // Only used for `.style.height` resets and anchor positioning, both of
+  // which work against any element, so this stays valid if the input is
+  // ever backed by something other than a <textarea>.
+  composerRef: React.RefObject<HTMLElement | null>;
   focusInput: () => void;
   inputValue: string;
   panelSize: 'max' | 'med';
   slashCommandHandlers: SlashCommandHandlers;
-  textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
   inputAnchorRef?: React.RefObject<HTMLElement | null>;
   prWidgetAnchorRef?: React.RefObject<HTMLElement | null>;
   prWidgetFooter?: React.ReactNode;
@@ -42,7 +45,7 @@ export function useExplorerMenu({
   clearInput,
   inputValue,
   focusInput,
-  textAreaRef,
+  composerRef,
   panelSize,
   slashCommandHandlers,
   inputAnchorRef,
@@ -86,11 +89,11 @@ export function useExplorerMenu({
     if (menuMode === 'slash-commands-keyboard') {
       // Clear input and reset textarea height.
       clearInput();
-      if (textAreaRef.current) {
-        textAreaRef.current.style.height = 'auto';
+      if (composerRef.current) {
+        composerRef.current.style.height = 'auto';
       }
     }
-  }, [menuMode, setMenuMode, clearInput, textAreaRef]);
+  }, [menuMode, setMenuMode, clearInput, composerRef]);
 
   const closeAndFocusInput = useCallback(() => {
     close();
@@ -105,21 +108,22 @@ export function useExplorerMenu({
       if (menuMode === 'slash-commands-keyboard') {
         // Clear input and reset textarea height.
         clearInput();
-        if (textAreaRef.current) {
-          textAreaRef.current.style.height = 'auto';
+        if (composerRef.current) {
+          composerRef.current.style.height = 'auto';
         }
       }
 
       // Default to closing the menu after an item is selected and handled.
       closeAndFocusInput();
     },
-    // clearInput and textAreaRef are both expected to be stable.
-    [menuMode, clearInput, textAreaRef, closeAndFocusInput]
+    // clearInput and composerRef are both expected to be stable.
+    [menuMode, clearInput, composerRef, closeAndFocusInput]
   );
 
   // Toggle between slash-commands-keyboard and hidden modes based on filteredSlashCommands.
   useEffect(() => {
     if (menuMode === 'slash-commands-keyboard' && filteredSlashCommands.length === 0) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setMenuMode('hidden');
     } else if (menuMode === 'hidden' && filteredSlashCommands.length > 0) {
       setMenuMode('slash-commands-keyboard');
@@ -133,7 +137,9 @@ export function useExplorerMenu({
 
   // Reset selected index when items change
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setSelectedIndex(0);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [menuItems]);
 
   // Scroll selected item into view when selection changes
@@ -193,16 +199,18 @@ export function useExplorerMenu({
 
   useEffect(() => {
     if (isVisible) {
+      const ownerDocument = composerRef.current?.ownerDocument ?? document;
       // Use capture phase to intercept events before they reach other handlers
-      document.addEventListener('keydown', handleKeyDown, true);
-      return () => document.removeEventListener('keydown', handleKeyDown, true);
+      ownerDocument.addEventListener('keydown', handleKeyDown, true);
+      return () => ownerDocument.removeEventListener('keydown', handleKeyDown, true);
     }
     return;
-  }, [handleKeyDown, isVisible]);
+  }, [composerRef, handleKeyDown, isVisible]);
 
   // Calculate menu position based on anchor element
   useEffect(() => {
     if (!isVisible) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setMenuPosition({});
       return;
     }
@@ -231,12 +239,14 @@ export function useExplorerMenu({
     const relativeLeft = rect.left - panelRect.left;
 
     if (menuMode === 'slash-commands-keyboard') {
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       setMenuPosition({
         bottom: `${panelRect.height - relativeTop + spacing}px`,
         left: `${relativeLeft}px`,
       });
     } else {
       // Position above anchor (since button is at bottom of panel)
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       setMenuPosition({
         bottom: `${panelRect.height - relativeTop + spacing}px`,
         right: `${panelRect.width - relativeLeft - rect.width}px`,
@@ -284,11 +294,11 @@ export function useExplorerMenu({
 }
 
 function useSlashCommands({
+  onBashMode,
   onMaxSize,
   onMedSize,
   onNew,
   onFeedback,
-  onLangfuse,
   onConversations,
   onCodeMode,
 }: SlashCommandHandlers): MenuItemProps[] {
@@ -354,13 +364,19 @@ function useSlashCommands({
             },
           ]
         : []),
-      ...(isSentryEmployee && onLangfuse
+      ...(isSentryEmployee && onBashMode
         ? [
             {
-              title: '/langfuse',
-              key: '/langfuse',
-              description: 'Open Langfuse to view session details',
-              handler: onLangfuse,
+              title: '/bash-mode-off',
+              key: '/bash-mode-off',
+              description: 'Disable bash mode tools',
+              handler: () => onBashMode(false),
+            },
+            {
+              title: '/bash-mode-on',
+              key: '/bash-mode-on',
+              description: 'Enable bash mode tools',
+              handler: () => onBashMode(true),
             },
           ]
         : []),
@@ -380,8 +396,8 @@ function useSlashCommands({
       onMaxSize,
       onMedSize,
       onFeedback,
+      onBashMode,
       onCodeMode,
-      onLangfuse,
       onConversations,
       isSentryEmployee,
     ]

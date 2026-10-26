@@ -34,7 +34,10 @@ def maybe_renew_debug_files(debug_files: Sequence[ProjectDebugFile]) -> None:
         bump_db = True
         if dif.storage_path is not None and dif.date_accessed <= threshold_date:
             try:
-                dif._get_objectstore_session().head(dif.storage_path)
+                metadata = dif.get_objectstore_session().head(dif.storage_path)
+                if metadata is None:
+                    dif.delete()
+                    bump_db = False
             except Exception:
                 logger.exception("Failed to bump TTI for Debug File")
                 # Don't bump in the DB, so that we try bumping again on next access

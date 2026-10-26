@@ -8,6 +8,8 @@ import {TagsFixture} from 'sentry-fixture/tags';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {mockTour} from 'sentry/components/tours/testUtils';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
@@ -93,14 +95,18 @@ describe('GroupDetailsLayout', () => {
       body: TagsFixture(),
     });
     MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/events/1/committers/',
-      body: {committers: []},
-    });
-    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
       body: AutofixSetupFixture({
         integration: {ok: true, reason: null},
       }),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+      body: {autofix: null},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/onboarding-check/`,
+      body: {isSeerConfigured: false},
     });
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/',
@@ -108,24 +114,40 @@ describe('GroupDetailsLayout', () => {
     });
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('renders children, can collapse sidebar', async () => {
+    // Sidebar placement resolves against the query container's width (the sidebar
+    // sits beside the content at `4xl`+, and can be collapsed there; below that it
+    // drops to the bottom and stays visible). jsdom reports a 0px container, so
+    // fake a desktop width to exercise the collapsible side layout.
+    jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(1400);
+
     render(
-      <GroupDataContextProvider group={group} project={group.project}>
-        <GroupDetailsLayout group={group} event={event} project={project}>
-          <div data-test-id="children" />
-        </GroupDetailsLayout>
-      </GroupDataContextProvider>
+      <Container containerType="inline-size">
+        <GroupDataContextProvider group={group} project={group.project}>
+          <GroupDetailsLayout group={group} event={event} project={project}>
+            <div data-test-id="children" />
+          </GroupDetailsLayout>
+        </GroupDataContextProvider>
+      </Container>
     );
 
     expect(await screen.findByTestId('children')).toBeInTheDocument();
     expect(
-      await screen.findByText('Track this issue in Jira, GitHub, etc.')
+      await screen.findByRole('link', {
+        name: 'Track this issue in Jira, GitHub, etc.',
+      })
     ).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Close sidebar'}));
     expect(await screen.findByTestId('children')).toBeInTheDocument();
     expect(
-      screen.queryByText('Track this issue in Jira, GitHub, etc.')
+      screen.queryByRole('link', {
+        name: 'Track this issue in Jira, GitHub, etc.',
+      })
     ).not.toBeInTheDocument();
   });
 });

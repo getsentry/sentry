@@ -6,7 +6,6 @@ from uuid import uuid4
 
 import pytest
 import responses
-from django.conf import settings
 
 from sentry.models.artifactbundle import (
     ArtifactBundle,
@@ -262,7 +261,6 @@ class TestJavascriptIntegration(RelayStoreHelper):
         event = self.post_and_retrieve_event(data)
 
         exception = event.interfaces["exception"]
-
         frame_list = exception.values[0].stacktrace.frames
         assert not frame_list[0].in_app  # should be overwritten due to `native` abs_path
         assert not frame_list[1].in_app  # should be overwritten due to `[native code]` abs_path
@@ -1337,9 +1335,6 @@ class TestJavascriptIntegration(RelayStoreHelper):
             body=load_fixture("node_app.min.js.map"),
             content_type="application/javascript; charset=utf-8",
         )
-        responses.add_passthru(
-            settings.SENTRY_SNUBA + "/tests/entities/generic_metrics_counters/insert",
-        )
 
         data = {
             "timestamp": self.min_ago,
@@ -1414,9 +1409,6 @@ class TestJavascriptIntegration(RelayStoreHelper):
             body=(
                 "<!doctype html><html><head></head><body><script>/*legit case*/</script></body></html>"
             ),
-        )
-        responses.add_passthru(
-            settings.SENTRY_SNUBA + "/tests/entities/generic_metrics_counters/insert",
         )
 
         data = {

@@ -9,6 +9,7 @@ import {
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {
+  AllProjectsDetector,
   CronDetector,
   CronMonitorDataSource,
   ErrorDetector,
@@ -16,6 +17,7 @@ import type {
   MetricCondition,
   MetricConditionGroup,
   MetricDetector,
+  PreprodDetector,
   SnubaQueryDataSource,
   UptimeDetector,
   UptimeSubscriptionDataSource,
@@ -127,12 +129,43 @@ export function ErrorDetectorFixture(params: Partial<ErrorDetector> = {}): Error
   };
 }
 
+export function PreprodDetectorFixture(
+  params: Partial<PreprodDetector> = {}
+): PreprodDetector {
+  return {
+    ...BASE_DETECTOR,
+    id: '5',
+    name: 'Mobile Build Detector',
+    type: 'preprod_size_analysis',
+    config: {
+      measurement: 'install_size',
+      thresholdType: 'absolute',
+    },
+    conditionGroup: params.conditionGroup ?? DataConditionGroupFixture(),
+    ...params,
+  };
+}
+
 export function IssueStreamDetectorFixture(
   params: Partial<IssueStreamDetector> = {}
 ): IssueStreamDetector {
   return {
     ...BASE_DETECTOR,
     name: 'Issue Stream Detector',
+    id: '4',
+    type: 'issue_stream',
+    ...params,
+  };
+}
+
+export function AllProjectsDetectorFixture(
+  params: Partial<AllProjectsDetector> = {}
+): AllProjectsDetector {
+  return {
+    ...BASE_DETECTOR,
+    projectId: null,
+    config: {organizationId: 1},
+    name: 'All Projects Detector',
     id: '4',
     type: 'issue_stream',
     ...params,

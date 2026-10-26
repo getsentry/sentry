@@ -3,7 +3,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 import {type SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
-import {AddFilter, DATASET_CHOICES} from 'sentry/views/dashboards/globalFilter/addFilter';
+import {AddFilter} from 'sentry/views/dashboards/globalFilter/addFilter';
+import {DATASET_CHOICES} from 'sentry/views/dashboards/globalFilter/datasetLabels';
 import {WidgetType} from 'sentry/views/dashboards/types';
 
 describe('AddFilter', () => {
@@ -68,6 +69,25 @@ describe('AddFilter', () => {
 
     // Return to dataset selection
     await userEvent.click(screen.getByText('Back'));
+  });
+
+  it('shows a loading indicator while filter keys are being fetched', async () => {
+    render(
+      <AddFilter
+        globalFilters={[]}
+        getSearchBarData={widgetType => ({
+          ...getSearchBarData(widgetType),
+          isFetchingFilterKeys: true,
+        })}
+        onAddFilter={() => {}}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add Global Filter'}));
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByText('Logs'));
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
   });
 
   it('does not render unsupported filter keys', async () => {

@@ -58,7 +58,11 @@ def process_event(
 
     This task is queued at most once per hour per project.
     """
-    project = Project.objects.get(id=project_id)
+    try:
+        project = Project.objects.get(id=project_id)
+    except Project.DoesNotExist:
+        logger.warning("Project %s not found, skipping auto_source_code_config.", project_id)
+        return [], []
     org = Organization.objects.get(id=project.organization_id)
     set_tag("organization.slug", org.slug)
     sentry_sdk.set_attribute("organization.slug", org.slug)
@@ -219,7 +223,11 @@ def create_configurations(
     with metrics.timer(f"{METRIC_PREFIX}.create_configurations.duration", tags=tags):
         for code_mapping in code_mappings:
             repository = create_repository(
-                code_mapping.repo.name, org_integration, tags, code_mapping.repo.external_id
+                code_mapping.repo.name,
+                org_integration,
+                installation.model.provider,
+                tags,
+                code_mapping.repo.external_id,
             )
             create_code_mapping(code_mapping, repository, project, org_integration, tags)
 

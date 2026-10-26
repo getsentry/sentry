@@ -1,9 +1,10 @@
-import type {DashboardsLayout} from 'sentry/views/dashboards/manage/types';
-
 export enum WidgetBuilderVersion {
   PAGE = 'page',
   SLIDEOUT = 'slideout',
 }
+
+/** Where a rename was started from. Mirrors the vocabulary `useDuplicateDashboard` already uses. */
+export type DashboardRenameSurface = 'details' | 'table';
 
 // Used in the full-page widget builder
 type DashboardsEventParametersWidgetBuilder = {
@@ -83,6 +84,8 @@ export type DashboardsEventParameters = {
   'dashboards2.filter.save': Record<string, unknown>;
   'dashboards2.global_filter.add': Record<string, unknown>;
   'dashboards2.global_filter.remove': Record<string, unknown>;
+  'dashboards2.rename.save': {surface: DashboardRenameSurface};
+  'dashboards2.rename.start': {surface: DashboardRenameSurface};
   'dashboards2.span_migration.results_check': {
     error_message: string;
     dashboard_id?: string;
@@ -91,12 +94,12 @@ export type DashboardsEventParameters = {
   'dashboards_manage.change_sort': {
     sort: string;
   };
-  'dashboards_manage.change_view_type': {
-    view_type: DashboardsLayout;
-  };
   'dashboards_manage.create.start': Record<string, unknown>;
-  'dashboards_manage.delete': {dashboard_id: number; view_type: DashboardsLayout};
-  'dashboards_manage.duplicate': {dashboard_id: number; view_type: DashboardsLayout};
+  'dashboards_manage.delete': {dashboard_id: number; view_type: 'table'};
+  'dashboards_manage.duplicate': {
+    dashboard_id: number;
+    view_type: 'details' | 'table';
+  };
   'dashboards_manage.generate.start': Record<string, unknown>;
   'dashboards_manage.paginate': Record<string, unknown>;
   'dashboards_manage.search': Record<string, unknown>;
@@ -190,7 +193,6 @@ export const dashboardsEventMap: Record<DashboardsEventKey, string | null> = {
   'dashboards_views.widget_library.opened': 'Dashboards2: Add Widget Library opened',
   'dashboards_manage.search': 'Dashboards Manager: Search',
   'dashboards_manage.change_sort': 'Dashboards Manager: Sort By Changed',
-  'dashboards_manage.change_view_type': 'Dashboards Manager: View Type Toggled',
   'dashboards_manage.create.start': 'Dashboards Manager: Dashboard Create Started',
   'dashboards_manage.generate.start':
     'Dashboards Manager: Dashboard Seer Generate Started',
@@ -207,8 +209,10 @@ export const dashboardsEventMap: Record<DashboardsEventKey, string | null> = {
   'dashboards_views.widget_viewer.sort': 'Widget Viewer: Table Sorted',
   'dashboards_views.widget_viewer.toggle_legend': 'Widget Viewer: Legend Toggled',
   'dashboards_views.widget_viewer.zoom': 'Widget Viewer: Chart zoomed',
-  'dashboards2.edit_access.start': 'Dashboards2: Edit Access Dropdown Opened',
-  'dashboards2.edit_access.save': 'Dashboards2: Edit Access Dropdown Selection Saved',
+  'dashboards2.edit_access.start': 'Dashboards2: Edit Access Modal Opened',
+  'dashboards2.edit_access.save': 'Dashboards2: Edit Access Modal Selection Saved',
+  'dashboards2.rename.start': 'Dashboards2: Rename Modal Opened',
+  'dashboards2.rename.save': 'Dashboards2: Rename Modal Saved',
   'dashboards2.span_migration.results_check':
     'Dashboards2: Check Widget Results From Span Migration',
   'dashboards_views.insights_redirect': 'Insights: Redirected to Dashboard',

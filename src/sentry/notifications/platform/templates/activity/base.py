@@ -1,0 +1,392 @@
+from typing import Any
+from urllib.parse import urlencode
+
+import orjson
+from django.conf import settings
+from django.core.mail.message import make_msgid
+
+from sentry import features
+from sentry.models.activity import Activity
+from sentry.models.commit import Commit
+from sentry.models.group import Group
+from sentry.models.groupemailthread import GroupEmailThread
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.notifications.platform.types import (
+    CodeSection,
+    CodeTextBlock,
+    LinkTextBlock,
+    NotificationData,
+    NotificationProviderKey,
+    NotificationSection,
+    NotificationSource,
+    NotificationTarget,
+    NotificationTargetResourceType,
+    NotificationTextBlock,
+    ParagraphSection,
+    PlainTextBlock,
+)
+from sentry.types.activity import SEER_ACTIVITY_TYPES, ActivityType
+from sentry.users.services.user.service import user_service
+from sentry.utils.email import group_id_to_email
+from sentry.utils.email.address import get_from_email_domain
+from sentry.utils.http import absolute_uri
+from sentry.utils.strings import is_valid_dot_atom
+from sentry.workflow_engine.models import Workflow
+
+ACTIVITY_TYPE_TO_SOURCE: dict[int, NotificationSource] = {
+    ActivityType.SEER_RCA_STARTED.value: NotificationSource.ACTIVITY_SEER_RCA_STARTED,
+    ActivityType.SEER_RCA_COMPLETED.value: NotificationSource.ACTIVITY_SEER_RCA_COMPLETED,
+    ActivityType.SEER_SOLUTION_STARTED.value: NotificationSource.ACTIVITY_SEER_SOLUTION_STARTED,
+    ActivityType.SEER_SOLUTION_COMPLETED.value: NotificationSource.ACTIVITY_SEER_SOLUTION_COMPLETED,
+    ActivityType.SEER_CODING_STARTED.value: NotificationSource.ACTIVITY_SEER_CODING_STARTED,
+    ActivityType.SEER_CODING_COMPLETED.value: NotificationSource.ACTIVITY_SEER_CODING_COMPLETED,
+    ActivityType.SEER_PR_CREATED.value: NotificationSource.ACTIVITY_SEER_PR_CREATED,
+    ActivityType.SEER_PR_READY_FOR_REVIEW.value: NotificationSource.ACTIVITY_SEER_PR_READY_FOR_REVIEW,
+    ActivityType.SEER_ITERATION_STARTED.value: NotificationSource.ACTIVITY_SEER_ITERATION_STARTED,
+    ActivityType.SEER_ITERATION_COMPLETED.value: NotificationSource.ACTIVITY_SEER_ITERATION_COMPLETED,
+    ActivityType.SET_RESOLVED.value: NotificationSource.ACTIVITY_SET_RESOLVED,
+    ActivityType.SET_RESOLVED_IN_RELEASE.value: NotificationSource.ACTIVITY_SET_RESOLVED_IN_RELEASE,
+    ActivityType.SET_RESOLVED_BY_AGE.value: NotificationSource.ACTIVITY_SET_RESOLVED_BY_AGE,
+    ActivityType.SET_RESOLVED_IN_COMMIT.value: NotificationSource.ACTIVITY_SET_RESOLVED_IN_COMMIT,
+    ActivityType.SET_REGRESSION.value: NotificationSource.ACTIVITY_SET_REGRESSION,
+    ActivityType.SET_ESCALATING.value: NotificationSource.ACTIVITY_SET_ESCALATING,
+    ActivityType.SET_IGNORED.value: NotificationSource.ACTIVITY_SET_IGNORED,
+    ActivityType.SET_UNRESOLVED.value: NotificationSource.ACTIVITY_SET_UNRESOLVED,
+    ActivityType.NOTE.value: NotificationSource.ACTIVITY_NOTE,
+    ActivityType.ASSIGNED.value: NotificationSource.ACTIVITY_ASSIGNED,
+    ActivityType.UNASSIGNED.value: NotificationSource.ACTIVITY_UNASSIGNED,
+}
+
+ACTIVITY_TYPE_TO_LEGACY_EMAIL_CATEGORY: dict[int, str] = {
+    ActivityType.SET_RESOLVED.value: "resolved_activity",
+    ActivityType.SET_REGRESSION.value: "regression_activity",
+    ActivityType.NOTE.value: "note_activity",
+    ActivityType.ASSIGNED.value: "assigned_activity",
+    ActivityType.UNASSIGNED.value: "unassigned_activity",
+    ActivityType.SET_RESOLVED_IN_RELEASE.value: "resolved_in_release_activity",
+    ActivityType.SET_ESCALATING.value: "escalating_activity",
+}
+
+ACTIVITY_NOTIFICATION_REFERRER = "activity_notification"
+EXAMPLE_PROJECT_URL = "https://sentry.io/organizations/acme/issues/?project=123"
+EXAMPLE_ISSUE_URL = "https://sentry.io/organizations/acme/issues/1/"
+EXAMPLE_ALERT_URL = "https://sentry.io/organizations/acme/monitors/alerts/1/"
+EXAMPLE_USER_SETTINGS_URL = "https://sentry.io/settings/account/notifications/alerts/"
+FOOTER_DELIMITER = " · "
+
+
+class ActivityNotificationData(NotificationData):
+    source: NotificationSource
+    activity_type: int
+    activity_data: dict[str, Any] | None = None
+    # The name of the user who is associated with an activity (Activity.user_id)
+    activity_user_name: str | None = None
+    issue_short_id: str | None = None
+    issue_url: str
+    issue_title: str
+    issue_culprit: str | None = None
+    issue_description: str | None = None
+    project_slug: str
+    project_url: str
+    # If this notification was triggered by an alert (Workflow)...
+    alert_name: str | None = None
+    alert_url: str | None = None
+    # If the target recipient is a user, this link will direct them to their notification preferences.
+    user_settings_url: str | None = None
+    email_headers: dict[str, str] | None = None
+    email_subject_prefix: str | None = None
+    enhanced_privacy: bool = False
+
+
+def create_activity_notification_example(
+    activity_type: ActivityType,
+    activity_data: dict[str, Any] | None = None,
+) -> ActivityNotificationData:
+    return ActivityNotificationData(
+        organization_id=1,
+        activity_user_name="Jane Doe",
+        issue_short_id="JAVASCRIPT-1",
+        issue_url=EXAMPLE_ISSUE_URL,
+        issue_title="ExampleError: something went wrong",
+        issue_description="Cannot read properties of null (reading 'example_property')",
+        issue_culprit="/api/v1/users/list/",
+        project_slug="javascript",
+        project_url=EXAMPLE_PROJECT_URL,
+        alert_name="Notify #feed-issues via Slack",
+        alert_url=EXAMPLE_ALERT_URL,
+        source=ACTIVITY_TYPE_TO_SOURCE[activity_type.value],
+        activity_type=activity_type.value,
+        activity_data=activity_data,
+        user_settings_url=EXAMPLE_USER_SETTINGS_URL,
+    )
+
+
+class SetResolvedInCommitNotificationData(ActivityNotificationData):
+    commit_sha: str | None = None
+    commit_message: str | None = None
+
+
+class SetResolvedInReleaseNotificationData(ActivityNotificationData):
+    release_url: str | None = None
+
+
+class AssignedNotificationData(ActivityNotificationData):
+    assignee_label: str
+    assignee_url: str | None = None
+    is_automated: bool = False
+
+
+def build_subject_prefix(data: ActivityNotificationData) -> NotificationTextBlock:
+    if data.issue_title and data.issue_short_id and not data.enhanced_privacy:
+        return PlainTextBlock(text=f"{data.issue_short_id} - {data.issue_title}")
+    elif data.issue_short_id:
+        return PlainTextBlock(text=data.issue_short_id)
+    else:
+        return PlainTextBlock(text="An Issue")
+
+
+def build_footer(data: ActivityNotificationData) -> list[NotificationTextBlock]:
+    blocks: list[NotificationTextBlock] = [
+        PlainTextBlock(text="Project:"),
+        LinkTextBlock(text=data.project_slug, url=data.project_url),
+    ]
+    if data.alert_name and data.alert_url:
+        blocks.append(PlainTextBlock(text=FOOTER_DELIMITER))
+        blocks.append(PlainTextBlock(text="Alert:"))
+        blocks.append(LinkTextBlock(text=data.alert_name, url=data.alert_url))
+    if data.user_settings_url:
+        blocks.append(PlainTextBlock(text=FOOTER_DELIMITER))
+        blocks.append(LinkTextBlock(text="Manage Preferences", url=data.user_settings_url))
+    return blocks
+
+
+def build_issue_link(issue_short_id: str | None, issue_url: str) -> LinkTextBlock:
+    label = issue_short_id or "This issue"
+    return LinkTextBlock(text=label, url=issue_url)
+
+
+def get_issue_description(data: ActivityNotificationData) -> list[NotificationSection]:
+    blocks: list[NotificationTextBlock] = [LinkTextBlock(text=data.issue_title, url=data.issue_url)]
+    if data.issue_culprit:
+        blocks.extend([PlainTextBlock(text="—"), CodeTextBlock(text=data.issue_culprit)])
+    sections: list[NotificationSection] = [ParagraphSection(blocks=blocks)]
+    if data.issue_description:
+        sections.append(CodeSection(blocks=[PlainTextBlock(text=data.issue_description)]))
+    return sections
+
+
+def extract_notification_models_by_activity(
+    activity: Activity,
+) -> tuple[Group, Project, Organization]:
+    try:
+        group = Group.objects.get_from_cache(id=activity.group_id)
+    except Group.DoesNotExist:
+        raise ValueError(f"Group not found: {activity.group_id}")
+    try:
+        project = Project.objects.get_from_cache(id=activity.project_id)
+    except Project.DoesNotExist:
+        raise ValueError(f"Project not found: {activity.project_id}")
+    try:
+        organization = Organization.objects.get_from_cache(id=project.organization_id)
+    except Organization.DoesNotExist:
+        raise ValueError(f"Organization not found: {project.organization_id}")
+
+    return group, project, organization
+
+
+def build_activity_email_headers(
+    *,
+    activity_type: int,
+    group: Group,
+    project: Project,
+    organization: Organization,
+    target: NotificationTarget,
+) -> dict[str, str] | None:
+    legacy_category = ACTIVITY_TYPE_TO_LEGACY_EMAIL_CATEGORY.get(activity_type)
+    if legacy_category is None or target.provider_key != NotificationProviderKey.EMAIL:
+        return None
+
+    message_id = make_msgid(domain=get_from_email_domain())
+    headers = {
+        "X-SMTPAPI": orjson.dumps({"category": legacy_category}).decode(),
+        "X-Sentry-Project": project.slug,
+        "X-Sentry-Logger": group.logger,
+        "X-Sentry-Logger-Level": group.get_level_display(),
+        "X-Sentry-Reply-To": group_id_to_email(group.id, organization.id),
+        "Message-Id": message_id,
+    }
+    list_id_label = f"{project.slug}.{organization.slug}"
+    if is_valid_dot_atom(list_id_label):
+        headers["List-Id"] = f"<{list_id_label}.{settings.SENTRY_MAIL_LIST_NAMESPACE}>"
+
+    thread, created = GroupEmailThread.objects.get_or_create(
+        email=target.resource_id,
+        group=group,
+        defaults={"project": project, "msgid": message_id},
+    )
+    if not created:
+        headers["In-Reply-To"] = thread.msgid
+        headers["References"] = thread.msgid
+    return headers
+
+
+def build_activity_notification_data(
+    activity: Activity, *, target: NotificationTarget, workflow_id: int | None = None
+) -> ActivityNotificationData:
+    from sentry.integrations.messaging.message_builder import (
+        build_attachment_text,
+        build_attachment_title,
+    )
+    from sentry.mail.notifications import build_subject_prefix
+    from sentry.notifications.notifications.activity.assigned import get_assignee_str
+
+    source = ACTIVITY_TYPE_TO_SOURCE.get(activity.type)
+    if source is None:
+        raise ValueError(f"No notification source for activity type: {activity.type}")
+
+    group, project, organization = extract_notification_models_by_activity(activity)
+
+    email_headers = build_activity_email_headers(
+        activity_type=activity.type,
+        group=group,
+        project=project,
+        organization=organization,
+        target=target,
+    )
+    email_subject_prefix = (
+        f"{build_subject_prefix(project).rstrip()} "
+        if target.provider_key == NotificationProviderKey.EMAIL
+        else None
+    )
+
+    workflow: Workflow | None = None
+    if workflow_id:
+        try:
+            workflow = Workflow.objects.get(id=workflow_id, organization_id=organization.id)
+        except Workflow.DoesNotExist:
+            raise ValueError(f"Workflow not found: {workflow_id}")
+
+    issue_url = group.get_absolute_url(params={"referrer": ACTIVITY_NOTIFICATION_REFERRER})
+    if ActivityType(activity.type) in SEER_ACTIVITY_TYPES:
+        issue_url = group.get_absolute_url(
+            params={"seerDrawer": "true", "referrer": ACTIVITY_NOTIFICATION_REFERRER}
+        )
+        if features.has("organizations:issue-inbox", organization):
+            issue_url = organization.absolute_url(
+                f"organizations/{organization.slug}/issues/inbox/",
+                query=urlencode(
+                    {
+                        "project": project.id,
+                        "preview": group.id,
+                        "referrer": ACTIVITY_NOTIFICATION_REFERRER,
+                    }
+                ),
+            )
+
+    action_data = dict(
+        source=source,
+        organization_id=organization.id,
+        activity_type=activity.type,
+        issue_short_id=group.qualified_short_id,
+        issue_url=absolute_uri(issue_url),
+        issue_title=build_attachment_title(group) or "",
+        enhanced_privacy=bool(organization.flags.enhanced_privacy),
+        issue_culprit=group.culprit,
+        issue_description=build_attachment_text(group),
+        project_slug=project.slug,
+        project_url=organization.absolute_url(
+            f"organizations/{organization.slug}/issues/",
+            query=urlencode({"project": project.id, "referrer": ACTIVITY_NOTIFICATION_REFERRER}),
+        ),
+        activity_data=activity.data,
+        activity_user_name=None,
+        email_headers=email_headers,
+        email_subject_prefix=email_subject_prefix,
+    )
+
+    if workflow:
+        action_data.update(
+            {
+                "alert_name": workflow.name,
+                "alert_url": organization.absolute_url(
+                    f"organizations/{organization.slug}/monitors/alerts/{workflow_id}/",
+                    query=urlencode({"referrer": ACTIVITY_NOTIFICATION_REFERRER}),
+                ),
+            }
+        )
+
+    if target.resource_type in {
+        NotificationTargetResourceType.DIRECT_MESSAGE,
+        NotificationTargetResourceType.EMAIL,
+    }:
+        # Note: This is NOT backwards, a Workflow model comes from the workflow engine, powering alerts
+        # The category of 'workflow' refers to subscribers to issues, which don't come from alerts.
+        notification_category = "alerts" if workflow else "workflow"
+        action_data.update(
+            {
+                "user_settings_url": organization.absolute_url(
+                    f"settings/account/notifications/{notification_category}/",
+                    query=urlencode({"referrer": ACTIVITY_NOTIFICATION_REFERRER}),
+                )
+            }
+        )
+
+    if activity.user_id:
+        user = user_service.get_user(user_id=activity.user_id)
+        if user:
+            action_data["activity_user_name"] = user.get_display_name()
+
+    match activity.type:
+        case ActivityType.SET_RESOLVED_IN_COMMIT.value:
+            commit_sha = None
+            commit_message = None
+            if activity.data and "commit" in activity.data:
+                try:
+                    commit = Commit.objects.get(id=activity.data["commit"])
+                    commit_sha = commit.short_id
+                    commit_message = commit.message
+                except Commit.DoesNotExist:
+                    pass
+            return SetResolvedInCommitNotificationData(
+                **action_data, commit_sha=commit_sha, commit_message=commit_message
+            )
+        case ActivityType.SET_RESOLVED_IN_RELEASE.value:
+            release_url = None
+            # If version is missing, None or "" -> it was resolved in an upcoming release
+            if activity.data and activity.data.get("version"):
+                raw_version = activity.data["version"]
+                release_url = organization.absolute_url(
+                    f"organizations/{organization.slug}/releases/{raw_version}/",
+                    query=urlencode(
+                        {"project": project.id, "referrer": ACTIVITY_NOTIFICATION_REFERRER}
+                    ),
+                )
+            return SetResolvedInReleaseNotificationData(**action_data, release_url=release_url)
+
+        case ActivityType.ASSIGNED.value:
+            assignee_label = get_assignee_str(activity=activity, organization=organization)
+            assignee_email = activity.data.get("assigneeEmail") if activity.data else None
+            assignee_url = None
+            # TODO(Leander): If a team is assigned, maybe link to the team page?
+            if assignee_email:
+                assignee_url = f"mailto:{assignee_email}"
+
+            # Check if this is an automated assignment from a Sentry App
+            if activity.user_id:
+                user = user_service.get_user(user_id=activity.user_id)
+                if user and user.is_sentry_app:
+                    return AssignedNotificationData(
+                        **action_data,
+                        assignee_label=assignee_label,
+                        assignee_url=assignee_url,
+                        is_automated=True,
+                    )
+
+            return AssignedNotificationData(
+                **action_data,
+                assignee_label=assignee_label,
+                assignee_url=assignee_url,
+            )
+        case _:
+            return ActivityNotificationData(**action_data)

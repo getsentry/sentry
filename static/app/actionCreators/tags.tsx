@@ -52,41 +52,19 @@ export function loadOrganizationTags(
   }
 
   return api
-    .requestPromise(`/organizations/${orgSlug}/tags/`, {
-      method: 'GET',
-      query,
-    })
+    .requestPromise(
+      getApiUrl('/organizations/$organizationIdOrSlug/tags/', {
+        path: {organizationIdOrSlug: orgSlug},
+      }),
+      {
+        method: 'GET',
+        query,
+      }
+    )
     .then(tags => tagFetchSuccess(tags, addAlert))
     .catch(() => {
       addErrorMessage(t('Unable to load tags'));
     });
-}
-
-/**
- * Fetch tags for an organization or a subset or projects.
- */
-export function fetchOrganizationTags(
-  api: Client,
-  orgId: string,
-  projectIds: string[] | null,
-  addAlert: AddAlert
-) {
-  TagStore.reset();
-
-  const url = `/organizations/${orgId}/tags/`;
-  const query: Query = {use_cache: '1'};
-  if (projectIds) {
-    query.project = projectIds;
-  }
-
-  const promise = api.requestPromise(url, {
-    method: 'GET',
-    query,
-  });
-
-  promise.then(tags => tagFetchSuccess(tags, addAlert));
-
-  return promise;
 }
 
 /**

@@ -20,7 +20,7 @@ import {usePrevious} from 'sentry/utils/usePrevious';
 import {
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
-} from 'sentry/views/detectors/components/forms/metric/metricFormData';
+} from 'sentry/views/detectors/components/forms/metric/metricFormFields';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {NONE_UNIT, OPTIONS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
@@ -112,7 +112,7 @@ export function MetricsVisualize() {
         label: option[TraceMetricKnownFieldKey.METRIC_NAME],
         value: makeMetricSelectValue({
           name: option[TraceMetricKnownFieldKey.METRIC_NAME],
-          type: option[TraceMetricKnownFieldKey.METRIC_TYPE] as TraceMetricTypeValue,
+          type: option[TraceMetricKnownFieldKey.METRIC_TYPE],
           unit: hasMetricUnitsUI
             ? (option[TraceMetricKnownFieldKey.METRIC_UNIT] ?? NONE_UNIT)
             : undefined,
@@ -139,11 +139,11 @@ export function MetricsVisualize() {
     ];
   }, [metricOptionsData, optionFromTraceMetric, traceMetric.name, hasMetricUnitsUI]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const debouncedSetSearch = useCallback(
-    debounce((newSearch: string) => {
-      setSearch(newSearch);
-    }, DEFAULT_DEBOUNCE_DURATION),
+  const debouncedSetSearch = useMemo(
+    () =>
+      debounce((newSearch: string) => {
+        setSearch(newSearch);
+      }, DEFAULT_DEBOUNCE_DURATION),
     [setSearch]
   );
 

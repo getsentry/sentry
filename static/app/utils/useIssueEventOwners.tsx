@@ -1,6 +1,5 @@
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import type {UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {EventOwners} from 'sentry/views/issueDetails/header/getOwnerList';
@@ -24,10 +23,7 @@ const makeCommittersQueryKey = (
   }),
 ];
 
-export function useIssueEventOwners(
-  {eventId, projectSlug}: UseIssueEventOwnersProps,
-  options: Partial<UseApiQueryOptions<EventOwners>> = {}
-) {
+export function useIssueEventOwners({eventId, projectSlug}: UseIssueEventOwnersProps) {
   const org = useOrganization();
   return useApiQuery<EventOwners>(
     makeCommittersQueryKey(org.slug, projectSlug, eventId),
@@ -35,7 +31,6 @@ export function useIssueEventOwners(
       staleTime: Infinity,
       retry: false,
       enabled: !!eventId,
-      ...options,
     }
   );
 }

@@ -58,10 +58,21 @@ from sentry.models.relay import Relay, RelayUsage
 from sentry.models.team import Team
 from sentry.monitors.models import Monitor
 from sentry.receivers import create_default_projects
+from sentry.seer.models.workflow import (
+    SeerWorkflowConfig,
+    SeerWorkflowConfigProject,
+    SeerWorkflowStrategy,
+)
+from sentry.seer.workflows.workflow import SeerWorkflow
+from sentry.service_accounts.models import (
+    ServiceAccount,
+    ServiceAccountProjectReplica,
+    ServiceAccountReplica,
+)
 from sentry.silo.base import SiloMode
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.cases import TestCase
-from sentry.testutils.factories import get_fixture_path
+from sentry.testutils.factories import Factories, get_fixture_path
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.backups import (
     NOOP_PRINTER,
@@ -72,6 +83,7 @@ from sentry.testutils.helpers.backups import (
     is_control_model,
 )
 from sentry.testutils.hybrid_cloud import use_split_dbs
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.lostpasswordhash import LostPasswordHash
@@ -87,6 +99,8 @@ from tests.sentry.backup import (
     get_matching_exportable_models,
     verify_models_in_output,
 )
+
+pytestmark = pytest.mark.usefixtures("skip_group_attributes_snapshots")
 
 
 class ImportTestCase(BackupTransactionTestCase):
@@ -367,6 +381,7 @@ class SanitizationTests(ImportTestCase):
                 import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
 
             with assume_test_silo_mode(SiloMode.CONTROL):
+                assert User.objects.count() == 2
                 assert User.objects.filter(username__iexact="min_user").count() == 0
                 assert User.objects.filter(username__icontains="min_user-").count() == 1
                 assert User.objects.filter(username="existing_sso").count() == 1
@@ -728,7 +743,14 @@ class SignalingTests(ImportTestCase):
         owner = self.create_exhaustive_user("owner")
         invited = self.create_exhaustive_user("invited")
         member = self.create_exhaustive_user("member")
-        self.create_exhaustive_organization("some-org", owner, invited, [member])
+        organization = self.create_exhaustive_organization("some-org", owner, invited, [member])
+        project = Project.objects.get(organization=organization)
+        self.create_project_key(
+            project=project,
+            label="Secondary",
+            public_key="a" * 32,
+            secret_key="b" * 32,
+        )
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
@@ -741,11 +763,17 @@ class SignalingTests(ImportTestCase):
 
         assert OrganizationMember.objects.count() == 3
 
-        # The exhaustive org has 1 project which automatically gets 1 key and 3 options.
+        # The exhaustive org has 1 project with 2 keys and 3 options.
         assert Project.objects.count() == 1
         assert Project.objects.filter(name="project-some-org").exists()
 
-        assert ProjectKey.objects.count() == 1
+        assert ProjectKey.objects.count() == 2
+        assert ProjectKey.objects.filter(
+            project=imported_organization.project_set.get(),
+            label="Secondary",
+            public_key="a" * 32,
+            secret_key="b" * 32,
+        ).exists()
         assert ProjectOption.objects.count() == 1
         assert ProjectOption.objects.filter(key="sentry:option-epoch").exists()
 
@@ -2236,7 +2264,58 @@ class CollisionTests(ImportTestCase):
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
             with open(tmp_path, "rb") as tmp_file:
                 # Create a user with a colliding username & email address,
-                # and set email_unique again.
+                # and set email_unique to trigger a conflict.
+                colliding_owner = self.create_exhaustive_user(
+                    username="owner", email="importing@example.com"
+                )
+                colliding_owner.email_unique = colliding_owner.email
+                with assume_test_silo_mode(SiloMode.CONTROL):
+                    colliding_owner.save()
+
+                org = self.create_organization("other-org", owner=colliding_owner)
+
+                import_in_organization_scope(
+                    tmp_file,
+                    flags=ImportFlags(merge_users=False),
+                    printer=NOOP_PRINTER,
+                )
+
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                colliding_owner.refresh_from_db()
+                imported_user = User.objects.get(username__icontains="owner-")
+
+                # The colliding_owner should retain its original attributes.
+                assert colliding_owner.email == "importing@example.com"
+                assert colliding_owner.email_unique == "importing@example.com"
+
+                # The imported user should not have email_unique defined as it would conflict
+                assert imported_user.email == "importing@example.com"
+                assert imported_user.email_unique is None
+
+                assert User.objects.count() == 2
+                assert UserEmail.objects.count() == 2
+
+            with open(tmp_path, "rb") as tmp_file:
+                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
+
+    @expect_models(COLLISION_TESTED, Organization, OrganizationMember, User, UserEmail)
+    def test_colliding_user_email_unique_existing_user_no_merge(
+        self, expected_models: list[type[Model]]
+    ):
+        # Create an owner, and ensure that email_unique is None
+        owner = self.create_exhaustive_user(username="owner", email="importing@example.com")
+        assert owner.email_unique is None
+
+        org = self.create_organization("some-org", owner=owner)
+        old_org_membership = OrganizationMember.objects.get(organization=org)
+        old_org_membership.regenerate_token()
+        old_org_membership.save()
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+            with open(tmp_path, "rb") as tmp_file:
+                # Create a user with a colliding username & email address,
+                # and set email_unique to trigger a conflict.
                 colliding_owner = self.create_exhaustive_user(
                     username="owner", email="importing@example.com"
                 )
@@ -2444,6 +2523,100 @@ class CustomImportBehaviorTests(ImportTestCase):
 
             with open(tmp_path, "rb") as tmp_file:
                 verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
+
+
+class SeerWorkflowServiceAccountTests(ImportTestCase):
+    def create_workflows(self) -> SeerWorkflowConfig:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        with outbox_runner():
+            account = Factories.create_service_account(org, id=910001, project_ids=[project.id])
+            inactive = Factories.create_service_account(org, name="inactive", is_active=False)
+        assert ServiceAccountReplica.objects.get(service_account_id=account.id).id != account.id
+        config = Factories.create_seer_workflow_config(
+            org,
+            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+            service_account_id=account.id,
+            enabled=True,
+            filters={"environments": ["production"]},
+            output_policy={"notify": True},
+            version=7,
+        )
+        Factories.create_seer_workflow_config_project(config, project)
+        Factories.create_seer_workflow_config(
+            org,
+            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+            service_account_id=inactive.id,
+        )
+        Factories.create_seer_workflow_config(org, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2)
+        return config
+
+    def test_account_identity_remapped_before_replication(self) -> None:
+        original = self.create_workflows()
+        original_project_id = SeerWorkflowConfigProject.objects.get(config=original).project_id
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+            with open(tmp_path, "rb") as tmp_file:
+                import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
+
+        config = SeerWorkflowConfig.objects.get(enabled=True)
+        project = Project.objects.get(organization_id=config.organization_id)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            account = ServiceAccount.objects.get(name="seer-autofix")
+            inactive = ServiceAccount.objects.get(name="inactive")
+        assert config.id != original.id
+        assert config.organization_id != original.organization_id
+        assert project.id != original_project_id
+        assert account.id != original.service_account_id
+        assert config.service_account_id == account.id
+        assert account.organization_id == config.organization_id
+        assert config.filters == original.filters
+        assert config.output_policy == original.output_policy
+        assert config.version == original.version
+        assert SeerWorkflowConfig.objects.filter(service_account_id=None).count() == 1
+        inactive_config = SeerWorkflowConfig.objects.get(service_account_id=inactive.id)
+        workflow = SeerWorkflow(config)
+        assert workflow.get_project_ids() == [project.id]
+        # Shared databases may replicate during import; explicitly simulate delayed delivery.
+        ServiceAccountReplica.objects.filter(
+            service_account_id__in=[account.id, inactive.id]
+        ).delete()
+        assert not ServiceAccountReplica.objects.filter(service_account_id=account.id).exists()
+        with pytest.raises(ValueError, match="unavailable"):
+            workflow.resolve_service_account()
+        config.refresh_from_db()
+        assert config.service_account_id == account.id
+
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            # Re-deliver account state after destination organization routing is available.
+            account.save()
+            inactive.save()
+
+        replica = workflow.resolve_service_account()
+        assert replica.service_account_id == account.id
+        assert list(
+            ServiceAccountProjectReplica.objects.filter(service_account=replica).values_list(
+                "project_id", flat=True
+            )
+        ) == [project.id]
+        with pytest.raises(ValueError, match="inactive"):
+            SeerWorkflow(inactive_config).resolve_service_account()
+        config.refresh_from_db()
+        assert config.version == original.version
+
+    def test_backup_without_account_field_imports_unset(self) -> None:
+        self.create_workflows()
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+            data = orjson.loads(tmp_path.read_bytes())
+            configs = [item for item in data if item["model"] == "seer.seerworkflowconfig"]
+            for item in configs:
+                del item["fields"]["service_account_id"]
+            import_in_organization_scope(io.BytesIO(orjson.dumps(data)), printer=NOOP_PRINTER)
+
+        assert SeerWorkflowConfig.objects.count() == 3
+        assert SeerWorkflowConfig.objects.filter(service_account_id__isnull=True).count() == 3
+        assert SeerWorkflowConfigProject.objects.count() == 1
 
 
 class BatchingTests(TestCase):

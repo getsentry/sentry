@@ -6,7 +6,7 @@ import pytest
 from django.urls import reverse
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.utils.snuba_rpc import _make_rpc_requests
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 from tests.snuba.api.endpoints.test_organization_events_span_indexed import KNOWN_PREFLIGHT_ID
@@ -87,7 +87,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             features = {"organizations:discover-basic": True}
         features.update(self.features)
         with self.feature(features):
-            return self.client.get(self.url if url is None else url, data=data, format="json")
+            return self.client_get(data=data, url=self.url if url is None else url)
 
     def test_count(self) -> None:
         event_counts = [6, 0, 6, 3, 0, 3]
@@ -218,21 +218,27 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         )
         seven_days_ago = self.two_days_ago - timedelta(days=5)
 
-        response = self._do_request(
-            data={
-                "groupBy": ["span.description", "p50(measurements.lcp)", "avg(measurements.lcp)"],
-                "yAxis": ["p50(measurements.lcp)", "avg(measurements.lcp)"],
-                "project": self.project.id,
-                "dataset": "spans",
-                "excludeOther": 0,
-                "topEvents": 1,
-                "per_page": 50,
-                "interval": "1d",
-                "start": seven_days_ago,
-                "end": self.end,
-                "orderby": "-avg(measurements.lcp)",
-            },
-        )
+        # The last 1d bucket ends at today's midnight; just after it, the bucket is incomplete.
+        with freeze_time(self.day_ago + timedelta(days=1, hours=2)):
+            response = self._do_request(
+                data={
+                    "groupBy": [
+                        "span.description",
+                        "p50(measurements.lcp)",
+                        "avg(measurements.lcp)",
+                    ],
+                    "yAxis": ["p50(measurements.lcp)", "avg(measurements.lcp)"],
+                    "project": self.project.id,
+                    "dataset": "spans",
+                    "excludeOther": 0,
+                    "topEvents": 1,
+                    "per_page": 50,
+                    "interval": "1d",
+                    "start": seven_days_ago,
+                    "end": self.end,
+                    "orderby": "-avg(measurements.lcp)",
+                },
+            )
         interval = 24 * 60 * 60 * 1000
         assert response.status_code == 200, response.content
 
@@ -607,6 +613,42 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         )
         assert response.status_code == 400, response.content
         assert "orderby must also be in the selected columns or groupby" == response.data["detail"]
+
+    def test_top_events_empty_orderby(self) -> None:
+        """An empty orderby means "no sort", not "sort by the column named ''"."""
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"transaction": "foo", "op": "http.client"}},
+                    start_ts=self.start + timedelta(minutes=1),
+                    duration=2001,
+                ),
+                self.create_span(
+                    {"sentry_tags": {"transaction": "bar", "op": "http.client"}},
+                    start_ts=self.start + timedelta(minutes=1),
+                    duration=2000,
+                ),
+            ],
+        )
+
+        self.end = self.start + timedelta(minutes=6)
+        for orderby in ([""], ["-"]):
+            response = self._do_request(
+                data={
+                    "start": self.start,
+                    "end": self.end,
+                    "interval": "1m",
+                    "yAxis": "count()",
+                    "groupBy": ["transaction"],
+                    "orderby": orderby,
+                    "project": self.project.id,
+                    "dataset": "spans",
+                    "excludeOther": 0,
+                    "topEvents": 2,
+                },
+            )
+            assert response.status_code == 200, response.content
+            assert len(response.data["timeSeries"]) > 0
 
     def test_top_events_orderby_is_timestamp(self) -> None:
         response = self._do_request(
@@ -2177,6 +2219,155 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             "interval": 60_000,
         }
 
+    def test_single_term_equation(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {"op": "queue.process", "sentry_tags": {"op": "queue.publish"}},
+                    start_ts=self.start + timedelta(minutes=1),
+                ),
+                self.create_span(
+                    {"op": "queue.process", "sentry_tags": {"op": "queue.publish"}},
+                    start_ts=self.start + timedelta(minutes=1),
+                ),
+                self.create_span(
+                    {"op": "queue.publish", "sentry_tags": {"op": "queue.publish"}},
+                    start_ts=self.start + timedelta(minutes=2),
+                ),
+            ],
+        )
+
+        self.end = self.start + timedelta(minutes=3)
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1m",
+                "yAxis": ["equation|3", "count()"],
+                "project": self.project.id,
+                "dataset": "spans",
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["meta"] == {
+            "dataset": "spans",
+            "start": self.start.timestamp() * 1000,
+            "end": self.end.timestamp() * 1000,
+        }
+        assert len(response.data["timeSeries"]) == 2
+
+        timeseries = response.data["timeSeries"][0]
+        assert len(timeseries["values"]) == 3
+        assert timeseries["yAxis"] == "equation|3"
+        assert timeseries["values"] == build_expected_timeseries(
+            self.start, 60_000, [3.0, 3.0, 3.0], ignore_accuracy=True
+        )
+        assert timeseries["meta"] == {
+            "dataScanned": "full",
+            "valueType": "number",
+            "valueUnit": None,
+            "interval": 60_000,
+        }
+
+    def test_literal_only_equation(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {"op": "queue.process", "sentry_tags": {"op": "queue.publish"}},
+                    start_ts=self.start + timedelta(minutes=1),
+                ),
+                self.create_span(
+                    {"op": "queue.process", "sentry_tags": {"op": "queue.publish"}},
+                    start_ts=self.start + timedelta(minutes=1),
+                ),
+                self.create_span(
+                    {"op": "queue.publish", "sentry_tags": {"op": "queue.publish"}},
+                    start_ts=self.start + timedelta(minutes=2),
+                ),
+            ],
+        )
+
+        self.end = self.start + timedelta(minutes=3)
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1m",
+                "yAxis": ["equation|3 + 3", "count()"],
+                "project": self.project.id,
+                "dataset": "spans",
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["meta"] == {
+            "dataset": "spans",
+            "start": self.start.timestamp() * 1000,
+            "end": self.end.timestamp() * 1000,
+        }
+        assert len(response.data["timeSeries"]) == 2
+
+        timeseries = response.data["timeSeries"][0]
+        assert len(timeseries["values"]) == 3
+        assert timeseries["yAxis"] == "equation|3 + 3"
+        assert timeseries["values"] == build_expected_timeseries(
+            self.start, 60_000, [6.0, 6.0, 6.0], ignore_accuracy=True
+        )
+        assert timeseries["meta"] == {
+            "dataScanned": "full",
+            "valueType": "number",
+            "valueUnit": None,
+            "interval": 60_000,
+        }
+
+    def test_nested_divide_by_zero_equation(self) -> None:
+        self.end = self.start + timedelta(minutes=3)
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1m",
+                "yAxis": "equation|1 / (1 - 1)",
+                "project": self.project.id,
+                "dataset": "spans",
+            },
+        )
+        assert response.status_code == 400, response.content
+        assert response.data["detail"] == "division by 0 is not allowed"
+
+    def test_top_events_literal_equation(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"transaction": "foo", "status": "success"}},
+                    start_ts=self.start + timedelta(minutes=1),
+                ),
+            ],
+        )
+
+        self.end = self.start + timedelta(minutes=3)
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1m",
+                "yAxis": ["count()", "equation|3 + 3"],
+                "groupBy": ["transaction", "count()"],
+                "orderby": ["-count()"],
+                "project": self.project.id,
+                "dataset": "spans",
+                "excludeOther": 1,
+                "topEvents": 1,
+            },
+        )
+        assert response.status_code == 200, response.content
+        equation_series = [
+            series for series in response.data["timeSeries"] if series["yAxis"] == "equation|3 + 3"
+        ]
+        assert len(equation_series) == 1
+        assert equation_series[0]["values"] == build_expected_timeseries(
+            self.start, 60_000, [6.0, 6.0, 6.0], ignore_accuracy=True
+        )
+
     def test_equation_all_symbols(self) -> None:
         self.store_spans(
             [
@@ -2405,6 +2596,63 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             "interval": 60_000,
             "isOther": True,
             "order": 2,
+        }
+
+    def test_user_formula(self) -> None:
+        event_counts = [6, 0, 6, 3, 0, 3]
+        spans = []
+        for hour, count in enumerate(event_counts):
+            spans.extend(
+                [
+                    self.create_span(
+                        {
+                            "description": "foo",
+                            "sentry_tags": {"status": "success"},
+                            "measurements": {"client_sample_rate": {"value": 0.1}},
+                        },
+                        start_ts=self.start + timedelta(hours=hour, minutes=minute),
+                    )
+                    for minute in range(count)
+                ],
+            )
+        self.store_spans(spans)
+        self.create_explore_saved_formula(
+            organization=self.organization,
+        )
+
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1h",
+                "yAxis": "formula.custom_apdex(span.duration,300)",
+                "project": self.project.id,
+                "dataset": "spans",
+            },
+            features={"organizations:explore-saved-formulas": True},
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["meta"] == {
+            "dataset": "spans",
+            "start": self.start.timestamp() * 1000,
+            "end": self.end.timestamp() * 1000,
+        }
+        assert len(response.data["timeSeries"]) == 1
+
+        timeseries = response.data["timeSeries"][0]
+        assert len(timeseries["values"]) == 6
+        assert timeseries["yAxis"] == "formula.custom_apdex(span.duration,300)"
+        assert timeseries["values"] == build_expected_timeseries(
+            self.start,
+            3_600_000,
+            [0.5 if count > 0 else 0 for count in event_counts],
+            ignore_accuracy=True,
+        )
+        assert timeseries["meta"] == {
+            "dataScanned": "full",
+            "valueType": "number",
+            "valueUnit": None,
+            "interval": 3_600_000,
         }
 
     def test_disable_extrapolation(self) -> None:

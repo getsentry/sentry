@@ -307,6 +307,21 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             ),
         }
 
+    def test_bad_params_too_many_queries(self) -> None:
+        query = {
+            "project": [self.project.id],
+            "field": ["id"],
+            "query": ["foo:bar", "baz:qux"],
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 400, response.data
+        assert response.data == {
+            "query": [
+                ErrorDetail(string="Only 1 query is supported.", code="invalid"),
+            ],
+        }
+
     def test_no_traces(self) -> None:
         query = {
             "project": [self.project.id],

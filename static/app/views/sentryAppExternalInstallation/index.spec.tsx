@@ -55,13 +55,6 @@ describe('SentryAppExternalInstallation', () => {
       url: `/sentry-apps/${sentryApp.slug}/features/`,
       body: [],
     });
-
-    MockApiClient.addMockResponse({
-      url: `/sentry-apps/${sentryApp.slug}/interaction/`,
-      method: 'POST',
-      statusCode: 200,
-      body: {},
-    });
   });
 
   describe('single organization', () => {
@@ -115,8 +108,8 @@ describe('SentryAppExternalInstallation', () => {
       ).toBeInTheDocument();
       expect(getAppMock).toHaveBeenCalled();
       expect(getOrgsMock).toHaveBeenCalled();
-      expect(getOrgMock).toHaveBeenCalled();
-      expect(getInstallationsMock).toHaveBeenCalled();
+      expect(getOrgMock).toHaveBeenCalledTimes(1);
+      expect(getInstallationsMock).toHaveBeenCalledTimes(1);
       expect(screen.queryByText('Select an organization')).not.toBeInTheDocument();
     });
 

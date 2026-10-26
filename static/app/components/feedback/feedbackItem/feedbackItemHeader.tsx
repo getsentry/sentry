@@ -1,15 +1,15 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/arrow';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {FeedbackActions} from 'sentry/components/feedback/feedbackItem/feedbackActions';
 import {FeedbackShortId} from 'sentry/components/feedback/feedbackItem/feedbackShortId';
 import {FeedbackViewers} from 'sentry/components/feedback/feedbackItem/feedbackViewers';
 import {ExternalIssueList} from 'sentry/components/group/externalIssuesList';
-import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -42,13 +42,15 @@ export function FeedbackItemHeader({eventData, feedbackItem, onBackToList}: Prop
       <Flex wrap="wrap" flex="1 1 auto" gap="md" justify="between">
         <Flex gap="md" align="center">
           {onBackToList && (
-            <Button
-              variant="primary"
-              icon={<IconArrow direction="left" size="xs" />}
-              onClick={onBackToList}
-              size="zero"
-              aria-label={t('Back to list')}
-            />
+            <Container display={{zero: 'block', '3xl': 'none'}}>
+              <Button
+                variant="primary"
+                icon={<IconArrow direction="left" size="xs" />}
+                onClick={onBackToList}
+                size="zero"
+                aria-label={t('Back to list')}
+              />
+            </Container>
           )}
           <FeedbackShortId feedbackItem={feedbackItem} />
         </Flex>
@@ -63,7 +65,7 @@ export function FeedbackItemHeader({eventData, feedbackItem, onBackToList}: Prop
       {eventData && feedbackItem.project ? (
         <ErrorBoundary mini>
           <Flex wrap="wrap" justify="between" align="center" gap="md">
-            <Flex direction="row" gap="md">
+            <Flex direction="row" gap="md" flex="1 1 auto">
               <ExternalIssueList
                 group={feedbackItem as unknown as Group}
                 event={eventData}

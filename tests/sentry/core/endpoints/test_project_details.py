@@ -20,6 +20,7 @@ from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.issues.highlights import get_highlight_preset_for_project
 from sentry.models.apitoken import ApiToken
 from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.custominboundfilter import CustomInboundFilter, LegacyFilter
 from sentry.models.deletedproject import DeletedProject
 from sentry.models.environment import EnvironmentProject
 from sentry.models.options.organization_option import OrganizationOption
@@ -269,6 +270,11 @@ class ProjectDetailsTest(APITestCase):
         )
         assert resp.data["options"]["filters:log_messages"] == "Updated*\n*.sentry.io"
         assert resp.data["options"]["filters:trace_metric_names"] == "counter.*\n*.duration"
+
+    def test_preprod_size_pr_comments_defaults(self) -> None:
+        resp = self.get_success_response(self.project.organization.slug, self.project.slug)
+        assert resp.data["options"]["sentry:preprod_size_pr_comments_enabled"] is False
+        assert resp.data["options"]["sentry:preprod_size_pr_comments_rules"] is None
 
 
 class ProjectUpdateTestTokenAuthenticated(APITestCase):
@@ -608,6 +614,61 @@ class ProjectUpdateTest(APITestCase):
     def test_platform_invalid(self) -> None:
         self.get_error_response(self.org_slug, self.proj_slug, platform="lol", status_code=400)
 
+    def test_filter_list_writes_its_row_and_reads_back_unchanged(self) -> None:
+        options = {
+            "filters:error_messages": "TypeError*\n# old\nValueError*",
+            "filters:releases": "1.*",
+        }
+        with self.feature("projects:custom-inbound-filters"):
+            self.get_success_response(self.org_slug, self.proj_slug, options=options)
+
+        project = Project.objects.get(id=self.project.id)
+        lines = ["TypeError*", "# old", "ValueError*"]
+        assert project.get_option("sentry:error_messages") == lines
+        assert project.get_option("sentry:releases") == ["1.*"]
+        rows = CustomInboundFilter.objects.filter(project_id=project.id).order_by("legacy_filter")
+        assert [(row.legacy_filter, row.data_type, row.conditions) for row in rows] == [
+            (
+                "error-message",
+                "error",
+                [{"type": "error_message", "operator": "glob", "value": lines}],
+            ),
+            ("release-version", "all", [{"type": "release", "operator": "glob", "value": ["1.*"]}]),
+        ]
+
+        with self.feature("projects:custom-inbound-filters"):
+            response = self.get_success_response(self.org_slug, self.proj_slug, method="get")
+        assert response.data["options"]["filters:error_messages"] == "\n".join(lines)
+        assert response.data["options"]["filters:releases"] == "1.*"
+
+    @with_feature("organizations:inbound-filters-v2")
+    def test_filter_list_at_v2_reads_its_row_and_writes_it_with_the_option(self) -> None:
+        self.create_project_custom_inbound_filter(
+            project=self.project,
+            data_type="error",
+            conditions=[{"type": "error_message", "value": ["Stored*"]}],
+            legacy_filter=LegacyFilter.ERROR_MESSAGE,
+        )
+        self.project.update_option("sentry:error_messages", ["stale"])
+
+        with self.feature("projects:custom-inbound-filters"):
+            response = self.get_success_response(self.org_slug, self.proj_slug, method="get")
+        assert response.data["options"]["filters:error_messages"] == "Stored*"
+
+        with self.feature("projects:custom-inbound-filters"):
+            self.get_success_response(
+                self.org_slug,
+                self.proj_slug,
+                options={"filters:error_messages": "TypeError*\n# old"},
+            )
+
+        project = Project.objects.get(id=self.project.id)
+        assert project.get_option("sentry:error_messages") == ["TypeError*", "# old"]
+        row = CustomInboundFilter.objects.get(project_id=project.id, legacy_filter="error-message")
+        assert row.conditions == [
+            {"type": "error_message", "operator": "glob", "value": ["TypeError*", "# old"]}
+        ]
+
     def test_options(self) -> None:
         options: dict[str, Any] = {
             "sentry:resolve_age": 1,
@@ -635,6 +696,7 @@ class ProjectUpdateTest(APITestCase):
             "sentry:replay_hydration_error_issues": True,
             "sentry:toolbar_allowed_origins": "*.sentry.io\nexample.net  \nnugettrends.com",
             "sentry:replay_rage_click_issues": True,
+            "sentry:relay_automatic_json_expansion": True,
             "sentry:feedback_user_report_notifications": True,
             "sentry:feedback_ai_spam_detection": True,
             "feedback:branding": False,
@@ -774,6 +836,7 @@ class ProjectUpdateTest(APITestCase):
             "nugettrends.com",
         ]
         assert project.get_option("sentry:replay_rage_click_issues") is True
+        assert project.get_option("sentry:relay_automatic_json_expansion") is True
         assert project.get_option("sentry:feedback_user_report_notifications") is True
         assert project.get_option("sentry:feedback_ai_spam_detection") is True
 
@@ -819,6 +882,26 @@ class ProjectUpdateTest(APITestCase):
         )
         project = Project.objects.get(id=self.project.id)
         assert project.get_option("sentry:preprod_snapshot_pr_comments_post_on_renamed") is True
+
+    def test_preprod_size_pr_comments_enabled_option(self) -> None:
+        self.get_success_response(self.org_slug, self.proj_slug, preprodSizePrCommentsEnabled=True)
+        project = Project.objects.get(id=self.project.id)
+        assert project.get_option("sentry:preprod_size_pr_comments_enabled") is True
+
+    def test_preprod_size_pr_comments_rules_option(self) -> None:
+        rules = [
+            {
+                "id": "r1",
+                "metric": "install_size",
+                "measurement": "absolute",
+                "value": 1000000,
+                "artifactType": "main_artifact",
+                "filterQuery": "",
+            }
+        ]
+        self.get_success_response(self.org_slug, self.proj_slug, preprodSizePrCommentsRules=rules)
+        project = Project.objects.get(id=self.project.id)
+        assert project.get_option("sentry:preprod_size_pr_comments_rules") == rules
 
     def test_bookmarks(self) -> None:
         self.get_success_response(self.org_slug, self.proj_slug, isBookmarked="false")
@@ -879,6 +962,19 @@ class ProjectUpdateTest(APITestCase):
         resp = self.get_success_response(self.org_slug, self.proj_slug, scrapeJavaScript=False)
         assert self.project.get_option("sentry:scrape_javascript") is False
         assert resp.data["scrapeJavaScript"] is False
+
+    def test_enable_auto_release_creation(self) -> None:
+        resp = self.get_success_response(
+            self.org_slug, self.proj_slug, enableAutoReleaseCreation=False
+        )
+        assert self.project.get_option("sentry:enable_auto_release_creation") is False
+        assert resp.data["enableAutoReleaseCreation"] is False
+
+        resp = self.get_success_response(
+            self.org_slug, self.proj_slug, enableAutoReleaseCreation=True
+        )
+        assert self.project.get_option("sentry:enable_auto_release_creation") is True
+        assert resp.data["enableAutoReleaseCreation"] is True
 
     def test_default_environment(self) -> None:
         resp = self.get_success_response(self.org_slug, self.proj_slug, defaultEnvironment="dev")
@@ -1430,7 +1526,6 @@ class CopyProjectSettingsTest(APITestCase):
         self.create_project_rule(project=self.other_project, name="rule1")
         self.create_project_rule(project=self.other_project, name="rule2")
         self.create_project_rule(project=self.other_project, name="rule3")
-        # there is a default rule added to project
         self.rules = Rule.objects.filter(project_id=self.other_project.id).order_by("label")
 
     def assert_other_project_settings_not_changed(self):
@@ -1469,10 +1564,8 @@ class CopyProjectSettingsTest(APITestCase):
 
         assert not ProjectOwnership.objects.filter(project_id=project.id).exists()
 
-        # default rule
-        rules = Rule.objects.filter(project_id=project.id)
-        assert len(rules) == 1
-        assert rules[0].label == "Send a notification for high priority issues"
+        # project creation creates a default workflow, not a rule
+        assert not Rule.objects.filter(project_id=project.id).exists()
 
     def test_simple(self) -> None:
         project = self.create_project()
@@ -1611,9 +1704,10 @@ class ProjectDeleteTest(APITestCase):
                 self.project.organization.slug, self.project.slug, status_code=204
             )
 
-        assert CellScheduledDeletion.objects.filter(
+        deletion = CellScheduledDeletion.objects.get(
             model_name="Project", object_id=self.project.id
-        ).exists()
+        )
+        assert deletion.actor_id is not None
 
         project = Project.objects.get(id=self.project.id)
         assert project.status == ObjectStatus.PENDING_DELETION

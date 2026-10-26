@@ -6,13 +6,26 @@ import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {PlanTier} from 'getsentry-test/planTier';
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {AddOnCategory, OnDemandBudgetMode} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout';
 import {getCheckoutAPIData} from 'getsentry/views/amCheckout/utils';
 import {hasOnDemandBudgetsFeature} from 'getsentry/views/spendLimits/utils';
+
+function getSeerOption() {
+  return within(screen.getByTestId(`product-option-${AddOnCategory.SEER}`)).getByRole(
+    'checkbox'
+  );
+}
 
 async function assertCheckoutSteps({
   tier,
@@ -23,7 +36,7 @@ async function assertCheckoutSteps({
   hasBillingCycleStep?: boolean;
   hasBillingInfoStep?: boolean;
 }) {
-  expect(await screen.findByTestId('checkout-steps')).toBeInTheDocument();
+  expect(await screen.findByText('Select a plan')).toBeInTheDocument();
   [
     'Select a plan',
     [PlanTier.AM1, PlanTier.AM2].includes(tier)
@@ -62,10 +75,6 @@ describe('Legacy Tier Checkout', () => {
       url: `/customers/${organization.slug}/billing-config/`,
       method: 'GET',
       body: BillingConfigFixture(PlanTier.AM2),
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/promotions/trigger-check/`,
-      method: 'POST',
     });
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
@@ -159,7 +168,7 @@ describe('Default Tier Checkout', () => {
   let mockBillingConfigResponse: any;
 
   beforeEach(() => {
-    organization.features = ['ondemand-budgets', 'am3-billing'];
+    organization.features = ['ondemand-budgets'];
     MockApiClient.clearMockResponses();
     mockBillingConfigResponse = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-config/`,
@@ -170,10 +179,6 @@ describe('Default Tier Checkout', () => {
       url: `/customers/${organization.slug}/`,
       method: 'GET',
       body: {},
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/promotions/trigger-check/`,
-      method: 'POST',
     });
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
@@ -487,7 +492,7 @@ describe('Default Tier Checkout', () => {
     // other categories use defaults
     expect(screen.getByTestId('replays-volume-item')).toHaveTextContent('50');
 
-    expect(screen.getByTestId('product-option-seer')).toBeChecked();
+    expect(getSeerOption()).toBeChecked();
   });
 
   it('prefills with existing subscription data with plan trial', async () => {
@@ -503,7 +508,7 @@ describe('Default Tier Checkout', () => {
       onDemandMaxSpend: 2000,
       supportsOnDemand: true,
       isFree: false,
-      isTrial: true, // isTrial is true for both subscription trials and plan trials
+      trialPlan: 'am3_business', // trialPlan is set for both subscription trials and plan trials
     });
     sub.categories = {
       ...sub.categories,
@@ -540,7 +545,7 @@ describe('Default Tier Checkout', () => {
     // other categories use defaults
     expect(screen.getByTestId('replays-volume-item')).toHaveTextContent('50');
 
-    expect(screen.getByTestId('product-option-seer')).not.toBeChecked();
+    expect(getSeerOption()).not.toBeChecked();
   });
 
   it('handles missing categories in subscription.categories', async () => {
@@ -690,14 +695,14 @@ describe('Default Tier Checkout', () => {
 
   it('does not use trial volumes for trial subscriptions', async () => {
     /**
-     * Test for the trial checkout slider fix in AM3 tier. When subscription.isTrial is true,
-     * the checkout should use default volumes instead of trial reserved volumes.
+     * Test for the trial checkout slider fix in AM3 tier. When the subscription is on a
+     * trial plan, the checkout should use default volumes instead of trial reserved volumes.
      */
 
     const trialSub = SubscriptionFixture({
       organization,
       plan: 'am3_t',
-      isTrial: true, // This is true for both subscription trials and plan trials
+      trialPlan: 'am3_t', // trialPlan is set for both subscription trials and plan trials
       categories: {
         // These are high trial volumes that should NOT be used in checkout
         errors: MetricHistoryFixture({reserved: 750_000}), // High trial volume

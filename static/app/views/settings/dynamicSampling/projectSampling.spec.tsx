@@ -65,10 +65,6 @@ describe('ProjectSampling', () => {
   }
 
   it('renders project rate inputs with initial values', async () => {
-    // The input briefly transitions from uncontrolled to controlled as form
-    // state initializes with the fetched project rates.
-    jest.spyOn(console, 'error').mockImplementation();
-
     render(<ProjectSampling />, {organization});
 
     const input = await waitForProjectRateInput();

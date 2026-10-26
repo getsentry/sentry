@@ -5,6 +5,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 from uuid import uuid4
 
+from sentry.event_manager import EventManager, resolve_project
 from sentry.issues.grouptype import GroupCategory
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.utils import metrics
@@ -12,15 +13,53 @@ from sentry.utils.safe import get_path, set_path
 from sentry.utils.sdk_crashes.event_stripper import strip_event_data
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import SDKCrashDetectionConfig
 from sentry.utils.sdk_crashes.sdk_crash_detector import SDKCrashDetector
+from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
+
+
+def get_hybrid_sdk(
+    sdk_name: str,
+    packages: Any,
+    hybrid_sdk_packages: Mapping[str, tuple[str, str]],
+) -> tuple[str, str] | None:
+    if not hybrid_sdk_packages:
+        return None
+
+    hybrid_sdk = hybrid_sdk_packages.get(sdk_name)
+    if hybrid_sdk is None:
+        return None
+
+    hybrid_sdk_name, hybrid_package_name = hybrid_sdk
+    if not isinstance(packages, Sequence) or isinstance(packages, str | bytes):
+        return None
+
+    versions: set[str] = set()
+    for package in packages:
+        if not isinstance(package, Mapping) or package.get("name") != hybrid_package_name:
+            continue
+
+        version = package.get("version")
+        if isinstance(version, str):
+            versions.add(version)
+
+    if len(versions) != 1:
+        return None
+
+    return hybrid_sdk_name, versions.pop()
 
 
 class SDKCrashReporter:
     def report(self, event_data: Mapping[str, Any], event_project_id: int) -> Event:
-        from sentry.event_manager import EventManager
-
-        manager = EventManager(dict(event_data))
-        manager.normalize()
-        return manager.save(project_id=event_project_id)
+        project = resolve_project(event_project_id)
+        with viewer_context_scope(
+            ViewerContext(
+                actor=Actor(type=ActorType.SYSTEM),
+                organization_id=project.organization_id,
+                project_id=project.id,
+            )
+        ):
+            manager = EventManager(dict(event_data))
+            manager.normalize()
+            return manager.save(project=project)
 
 
 class SDKCrashDetection:
@@ -72,6 +111,25 @@ class SDKCrashDetection:
             "sdk_version": sdk_version,
             "is_anr_or_apphang": "true" if mechanism in ("ANR", "AppExitInfo") else "false",
         }
+        hybrid_sdk_packages = next(
+            (
+                config.hybrid_sdk_packages
+                for config in configs
+                if sdk_name in config.hybrid_sdk_packages
+            ),
+            {},
+        )
+        hybrid_sdk = get_hybrid_sdk(
+            sdk_name,
+            get_path(event.data, "sdk", "packages"),
+            hybrid_sdk_packages,
+        )
+        if hybrid_sdk is not None:
+            hybrid_sdk_name, hybrid_sdk_version = hybrid_sdk
+            metric_tags.update(
+                hybrid_sdk_name=hybrid_sdk_name,
+                hybrid_sdk_version=hybrid_sdk_version,
+            )
         sdk_detectors = list(map(lambda config: SDKCrashDetector(config=config), configs))
 
         num_supported_detectors = sum(
@@ -155,6 +213,17 @@ class SDKCrashDetection:
 
             sdk_version = get_path(sdk_crash_event_data, "sdk", "version")
             set_path(sdk_crash_event_data, "release", value=sdk_version)
+
+            if hybrid_sdk is not None:
+                hybrid_sdk_name, hybrid_sdk_version = hybrid_sdk
+                set_path(
+                    sdk_crash_event_data,
+                    "tags",
+                    value=[
+                        ("hybrid_sdk_name", hybrid_sdk_name),
+                        ("hybrid_sdk_version", hybrid_sdk_version),
+                    ],
+                )
 
             # So Sentry can tell how many projects are impacted by this SDK crash
             set_path(sdk_crash_event_data, "user", "id", value=event.project.id)

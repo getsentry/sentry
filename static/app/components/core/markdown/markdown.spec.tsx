@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
+import {expectTypeOf} from 'expect-type';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {Markdown} from '@sentry/scraps/markdown';
 
@@ -66,14 +67,6 @@ describe('Markdown', () => {
       expect(screen.getByRole('separator')).toBeInTheDocument();
     });
 
-    it('renders tables', () => {
-      const md = '| A | B |\n| --- | --- |\n| 1 | 2 |';
-      render(<Markdown raw={md} />);
-      expect(screen.getByRole('table')).toBeInTheDocument();
-      expect(screen.getByText('A')).toBeInTheDocument();
-      expect(screen.getByText('1')).toBeInTheDocument();
-    });
-
     it('renders strikethrough', () => {
       render(<Markdown raw="~~deleted~~" />);
       expect(screen.getByText('deleted')).toBeInTheDocument();
@@ -83,6 +76,73 @@ describe('Markdown', () => {
       render(<Markdown raw={'line 1  \nline 2'} />);
       expect(screen.getByText(/line 1/)).toBeInTheDocument();
       expect(screen.getByText(/line 2/)).toBeInTheDocument();
+    });
+  });
+
+  describe('tables', () => {
+    function getCellTexts(row: HTMLElement) {
+      return within(row)
+        .getAllByRole('cell')
+        .map(cell => cell.textContent);
+    }
+
+    it('renders the header and body rows', () => {
+      render(<Markdown raw={'| A | B |\n| --- | --- |\n| 1 | 2 |\n| 3 | 4 |'} />);
+
+      const table = screen.getByRole('table');
+      const [, firstRow, secondRow] = within(table).getAllByRole('row');
+
+      expect(
+        within(table)
+          .getAllByRole('columnheader')
+          .map(header => header.textContent)
+      ).toEqual(['A', 'B']);
+      expect(getCellTexts(firstRow!)).toEqual(['1', '2']);
+      expect(getCellTexts(secondRow!)).toEqual(['3', '4']);
+    });
+
+    it('renders inline Markdown inside cells', () => {
+      render(
+        <Markdown
+          raw={
+            '| **Name** | Details |\n| --- | --- |\n| `foo()` | *see* [docs](https://example.com) |'
+          }
+        />
+      );
+
+      const [, row] = screen.getAllByRole('row');
+
+      expect(screen.getByRole('columnheader', {name: 'Name'})).toContainHTML(
+        '<strong>Name</strong>'
+      );
+      expect(within(row!).getByText('foo()').tagName).toBe('CODE');
+      expect(within(row!).getByText('see').tagName).toBe('EM');
+      expect(within(row!).getByRole('link', {name: 'docs'})).toHaveAttribute(
+        'href',
+        'https://example.com'
+      );
+    });
+
+    it('renders empty cells in place', () => {
+      render(<Markdown raw={'| A | B | C |\n| --- | --- | --- |\n| 1 |  | 3 |'} />);
+
+      const [, row] = screen.getAllByRole('row');
+
+      expect(getCellTexts(row!)).toEqual(['1', '', '3']);
+    });
+
+    it('renders a table with only a header row', () => {
+      render(<Markdown raw={'| A | B |\n| --- | --- |'} />);
+
+      const table = screen.getByRole('table');
+
+      expect(
+        within(table)
+          .getAllByRole('columnheader')
+          .map(header => header.textContent)
+      ).toEqual(['A', 'B']);
+      expect(within(table).getAllByRole('row')).toHaveLength(1);
+      expect(within(table).queryByRole('cell')).not.toBeInTheDocument();
     });
   });
 
@@ -177,6 +237,57 @@ describe('Markdown', () => {
   });
 
   describe('component overrides', () => {
+    it('hands a Table override the parsed columns, header, and rows', () => {
+      render(
+        <Markdown
+          raw={'| Name | Count |\n| --- | ---: |\n| **alpha** | 1 |\n| beta | 2 |'}
+          components={{
+            Table: ({columns, header, rows}) => (
+              <div
+                data-test-id="custom-table"
+                data-aligns={columns.map(column => column.align ?? 'none').join(',')}
+              >
+                <div role="row">
+                  {header.map((cell, index) => (
+                    <span key={index} role="columnheader">
+                      {cell}
+                    </span>
+                  ))}
+                </div>
+                {rows.map((row, rowIndex) => (
+                  <div key={rowIndex} role="row">
+                    {row.map((cell, cellIndex) => (
+                      <span key={cellIndex} role="cell">
+                        {cell}
+                      </span>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            ),
+          }}
+        />
+      );
+
+      expect(screen.getByTestId('custom-table')).toHaveAttribute(
+        'data-aligns',
+        'none,right'
+      );
+      expect(screen.getAllByRole('columnheader').map(cell => cell.textContent)).toEqual([
+        'Name',
+        'Count',
+      ]);
+
+      const [, firstRow, secondRow] = screen.getAllByRole('row');
+      // Cells arrive rendered, inline Markdown included.
+      expect(within(firstRow!).getByText('alpha').tagName).toBe('STRONG');
+      expect(
+        within(secondRow!)
+          .getAllByRole('cell')
+          .map(cell => cell.textContent)
+      ).toEqual(['beta', '2']);
+    });
+
     it('overrides Paragraph component', () => {
       render(
         <Markdown
@@ -330,18 +441,19 @@ describe('Markdown', () => {
     });
 
     it('custom Html receives sanitized content', () => {
-      let receivedHtml = '';
+      let receivedHtml: TrustedHTML | undefined;
       render(
         <Markdown
           raw="<script>alert(1)</script>"
           components={{
-            Html: ({html}: {html: string}) => {
+            Html: ({html}) => {
               receivedHtml = html;
               return <span data-test-id="custom-html" />;
             },
           }}
         />
       );
+      expectTypeOf(receivedHtml).toEqualTypeOf<TrustedHTML | undefined>();
       expect(receivedHtml).not.toContain('<script');
     });
 
@@ -352,11 +464,17 @@ describe('Markdown', () => {
   });
 
   describe('tags', () => {
-    it('renders nothing for tags by default', () => {
-      const {container} = render(
-        <Markdown raw='{% ref type="issue" id="PROJ-123" /%}' />
-      );
-      expect(container).toHaveTextContent('');
+    it('echoes the original tag source by default', () => {
+      const raw = '{% ref type="issue" id="PROJ-123" /%}';
+      const {container} = render(<Markdown raw={raw} />);
+      expect(container).toHaveTextContent(raw);
+    });
+
+    it('echoes block tag source including the body by default', () => {
+      const raw =
+        '{% artifact type="root-cause" %}{"description":"Race condition"}{% /artifact %}';
+      const {container} = render(<Markdown raw={raw} />);
+      expect(container).toHaveTextContent(raw);
     });
 
     it('renders custom Tag component with attrs', () => {
@@ -389,10 +507,104 @@ describe('Markdown', () => {
       );
     });
 
-    it('suppresses partial tag syntax in text', () => {
-      const {container} = render(<Markdown raw='Some text {% ref type="issue"' />);
+    it('suppresses partial tag syntax in text while streaming', () => {
+      const {container} = render(
+        <Markdown raw='Some text {% ref type="issue"' variant="streaming" />
+      );
       expect(container).toHaveTextContent(/Some text/);
       expect(container).not.toHaveTextContent(/\{%/);
+    });
+
+    it('renders unclosed tag syntax literally in static content', () => {
+      render(<Markdown raw="Seer chat emits {% autofix %} embeds." />);
+      expect(
+        screen.getByText('Seer chat emits {% autofix %} embeds.')
+      ).toBeInTheDocument();
+    });
+  });
+
+  describe('tag index', () => {
+    function IndexProbe({name, index}: {name: string; index?: number}) {
+      return <output role="log">{`${name}=${index}`}</output>;
+    }
+
+    const indexes = () => screen.getAllByRole('log').map(el => el.textContent);
+
+    it('numbers tags in document order across blocks', () => {
+      render(
+        <Markdown
+          raw={'{% a /%}\n\n## Heading\n\n{% b /%}\n\n{% c /%}'}
+          components={{Tag: IndexProbe}}
+        />
+      );
+      expect(indexes()).toEqual(['a=0', 'b=1', 'c=2']);
+    });
+
+    it('numbers two inline tags in the same paragraph separately', () => {
+      render(
+        <Markdown
+          raw="See {% a /%} and also {% b /%} here"
+          components={{Tag: IndexProbe}}
+        />
+      );
+      expect(indexes()).toEqual(['a=0', 'b=1']);
+    });
+
+    it('numbers identical tags separately', () => {
+      render(
+        <Markdown
+          raw={'{% a %}{"id":"1"}{% /a %}\n\n{% a %}{"id":"1"}{% /a %}'}
+          components={{Tag: IndexProbe}}
+        />
+      );
+      expect(indexes()).toEqual(['a=0', 'a=1']);
+    });
+
+    it('numbers tags nested in lists', () => {
+      render(
+        <Markdown
+          raw={'- first {% a /%}\n- second {% b /%}'}
+          components={{Tag: IndexProbe}}
+        />
+      );
+      expect(indexes()).toEqual(['a=0', 'b=1']);
+    });
+
+    it('numbers tags in table headers before table rows', () => {
+      render(
+        <Markdown
+          raw={'| {% a /%} |\n| --- |\n| {% b /%} |'}
+          components={{Tag: IndexProbe}}
+        />
+      );
+      expect(indexes()).toEqual(['a=0', 'b=1']);
+    });
+
+    it('keeps existing indexes when content is appended', () => {
+      const {rerender} = render(
+        <Markdown raw="Start {% a /%}" components={{Tag: IndexProbe}} />
+      );
+      expect(indexes()).toEqual(['a=0']);
+
+      rerender(
+        <Markdown raw="Start {% a /%} then {% b /%}" components={{Tag: IndexProbe}} />
+      );
+      expect(indexes()).toEqual(['a=0', 'b=1']);
+    });
+
+    it('does not count a tag whose closing marker has not arrived', () => {
+      const {rerender} = render(
+        <Markdown raw='{% a /%} then {% b %}{"id"' components={{Tag: IndexProbe}} />
+      );
+      expect(indexes()).toEqual(['a=0']);
+
+      rerender(
+        <Markdown
+          raw='{% a /%} then {% b %}{"id":"1"}{% /b %}'
+          components={{Tag: IndexProbe}}
+        />
+      );
+      expect(indexes()).toEqual(['a=0', 'b=1']);
     });
   });
 

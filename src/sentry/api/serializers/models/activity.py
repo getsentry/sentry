@@ -1,8 +1,13 @@
+from collections.abc import Sequence
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, TypeAlias, TypedDict
+
+from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.commit import CommitWithReleaseSerializer
+from sentry.issues.action_log.types import GroupActionType
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.group import Group
@@ -14,8 +19,13 @@ from sentry.sentry_apps.api.serializers.sentry_app_avatar import (
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.services.app.model import RpcSentryApp
 from sentry.types.activity import ActivityType
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
+from sentry.utils.action_log.activity_translator import activity_action_idempotency_key
+
+ActivityId: TypeAlias = int
 
 
 class _ActivitySentryAppEmbed(TypedDict):
@@ -25,9 +35,19 @@ class _ActivitySentryAppEmbed(TypedDict):
     avatars: list[SentryAppAvatarSerializerResponse]
 
 
+class ResolvedMention(TypedDict):
+    """A Sentry user @mentioned by an activity, resolved from the stored id ref."""
+
+    name: str
+    email: str
+    username: str
+
+
 class ActivitySerializerResponse(TypedDict):
-    # Byte-identical envelope of ActivitySerializer.serialize() — always these six keys.
+    # Matches the envelope of ActivitySerializer.serialize().
     id: str
+    # The reference accepted by the notes endpoints, or null for non-comments.
+    commentId: str | None
     # The serialized acting user (a user serializer response), or null for
     # system/integration activity. Left loose: the full user shape is out of scope.
     user: dict[str, Any] | None
@@ -38,6 +58,38 @@ class ActivitySerializerResponse(TypedDict):
     # variant is out of scope.
     data: dict[str, Any]
     dateCreated: datetime
+
+
+class GroupNoteSerializerResponse(ActivitySerializerResponse):
+    source: str | None
+
+
+def serialize_group_notes(
+    group: Group,
+    notes: Sequence[Activity],
+    user: User | RpcUser | AnonymousUser | None,
+) -> list[GroupNoteSerializerResponse]:
+    if not notes:
+        return []
+
+    # Activity owns current comment state. GAL only supplies source metadata.
+    # Merged entries can retain their original project_id, so scope by group.
+    sources = dict(
+        GroupActionLogEntry.objects.filter(
+            group_id=group.id,
+            type=GroupActionType.COMMENT.value,
+            idempotency_key__in=[activity_action_idempotency_key(note) for note in notes],
+        ).values_list("idempotency_key", "source")
+    )
+    serialized_notes: list[ActivitySerializerResponse] = serialize(list(notes), user)
+    return [
+        {
+            **item,
+            "data": {**item["data"], "comment_id": note.id},
+            "source": sources.get(activity_action_idempotency_key(note)),
+        }
+        for note, item in zip(notes, serialized_notes)
+    ]
 
 
 COMMIT_ACTIVITY_TYPES = {
@@ -59,10 +111,47 @@ PULL_REQUEST_ACTIVITY_TYPES = {
 }
 
 
+def _resolve_mentioned_users(
+    activities: list[Activity],
+) -> dict[ActivityId, list[ResolvedMention]]:
+    """The Sentry users each activity @mentions, keyed by activity id, resolved in one batch.
+
+    Returns shape:
+    { activity.id: [{ "name": "David Cramer", "email": "david@sentry.io", "username": "dcramer"}] }
+    """
+    activity_to_user_ids = {
+        activity.id: [
+            mention["id"]
+            for mention in (activity.data or {}).get("mentions") or []
+            if isinstance(mention, dict) and mention.get("actor_type") == "User"
+        ]
+        for activity in activities
+        if activity.type == ActivityType.NOTE.value
+    }
+    all_user_ids = {user_id for ids in activity_to_user_ids.values() for user_id in ids}
+    if not all_user_ids:
+        return {}
+
+    users = {u.id: u for u in user_service.get_many_by_id(ids=list(all_user_ids))}
+    return {
+        activity_id: [
+            {
+                "name": user.get_display_name(),
+                "email": user.email,
+                "username": user.username,
+            }
+            for user_id in user_ids
+            if (user := users.get(user_id))
+        ]
+        for activity_id, user_ids in activity_to_user_ids.items()
+    }
+
+
 @register(Activity)
 class ActivitySerializer(Serializer):
-    def __init__(self, environment_func=None):
+    def __init__(self, environment_func=None, resolve_mentions: bool = False):
         self.environment_func = environment_func
+        self.resolve_mentions = resolve_mentions
 
     def get_attrs(self, item_list, user, **kwargs):
         from sentry.api.serializers.models.group import GroupSerializer
@@ -146,10 +235,15 @@ class ActivitySerializer(Serializer):
             ).items()
         }
 
+        mentions: dict[ActivityId, list[ResolvedMention]] = (
+            _resolve_mentioned_users(item_list) if self.resolve_mentions else {}
+        )
+
         return {
             item: {
                 "user": users.get(str(item.user_id)) if item.user_id else None,
                 "sentry_app": sentry_apps.get(str(item.user_id)) if item.user_id else None,
+                "mentions": mentions.get(item.id) or [],
                 "source": (
                     groups.get(item.data["source_id"])
                     if item.type == ActivityType.UNMERGE_DESTINATION.value
@@ -181,16 +275,21 @@ class ActivitySerializer(Serializer):
             data = {"fingerprints": obj.data["fingerprints"], "source": attrs["source"]}
         elif obj.type == ActivityType.UNMERGE_SOURCE.value:
             data = {"fingerprints": obj.data["fingerprints"], "destination": attrs["destination"]}
-        else:
-            data = obj.data or {}
+        elif obj.type == ActivityType.NOTE.value:
+            data = dict(obj.data or {})
             # XXX: We had a problem where Users were embedded into the mentions
             # attribute of group notes which needs to be removed
             # While group_note update has been fixed there are still many skunky comments
             # in the database.
             data.pop("mentions", None)
+            if attrs["mentions"]:
+                data["mentions"] = attrs["mentions"]
+        else:
+            data = obj.data or {}
 
         return {
             "id": str(obj.id),
+            "commentId": str(obj.id) if obj.type == ActivityType.NOTE.value else None,
             "user": attrs["user"],
             "sentry_app": attrs["sentry_app"],
             "type": obj.get_type_display(),

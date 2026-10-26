@@ -12,11 +12,12 @@ from requests import PreparedRequest
 from sentry import options
 from sentry.integrations.client import ApiClient
 from sentry.integrations.models import Integration
+from sentry.integrations.msteams.metrics import translate_msteams_api_error
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient, infer_org_integration
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.silo.base import SiloMode, control_silo_function
 from sentry.utils import metrics
 
@@ -96,6 +97,14 @@ class MsTeamsPreInstallClient(MsTeamsClientABC):
 class MsTeamsClient(MsTeamsClientABC, IntegrationProxyClient):
     integration_name = IntegrationProviderSlug.MSTEAMS.value
 
+    def request(self, *args, **kwargs):
+        try:
+            return super().request(*args, **kwargs)
+        except ApiError as error:
+            if kwargs.get("raw_response"):
+                raise
+            translate_msteams_api_error(error)
+
     def __init__(self, integration: Integration | RpcIntegration):
         self.integration = integration
         self.metadata = self.integration.metadata
@@ -151,6 +160,11 @@ class OAuthMsTeamsClient(ApiClient):
         super().__init__()
         self.client_id = client_id
         self.client_secret = client_secret
+        # tenant_id is required for single-tenant bots to authenticate. The bot framework
+        # base_url is specific to multi-tenant bots which microsoft no longer provisions.
+        tenant_id = options.get("msteams.tenant-id")
+        if tenant_id:
+            self.base_url = f"https://login.microsoftonline.com/{tenant_id}"
 
     def exchange_token(self):
         headers = {"Content-Type": "application/x-www-form-urlencoded"}

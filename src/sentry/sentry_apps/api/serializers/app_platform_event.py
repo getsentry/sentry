@@ -84,8 +84,15 @@ class AppPlatformEvent[T: Mapping[str, Any]]:
 
     def get_text_summary(self) -> str:
         summary = f"Sentry {self.resource}.{self.action}"
-        if web_url := get_path(self.data, "issue", "web_url"):
-            summary += f": {web_url}"
+        # Comment and installation payloads carry no URL.
+        url = (
+            get_path(self.data, "issue", "permalink")  # issue.*
+            or get_path(self.data, "event", "web_url")  # event_alert.triggered
+            or get_path(self.data, "error", "web_url")  # error.created
+            or get_path(self.data, "web_url")  # metric_alert.*
+        )
+        if url:
+            summary += f": {url}"
         return summary
 
     @property

@@ -23,22 +23,18 @@ type Props = {
   enabled?: boolean;
   limit?: number;
   query?: string;
-  shouldEscapeFilters?: boolean;
   sortName?: string;
   subregions?: SubregionCode[];
-  transaction?: string | null;
   webVital?: WebVitals | 'total';
 };
 
 export const useTransactionWebVitalsScoresQuery = ({
   limit,
-  transaction,
   defaultSort,
   sortName = 'sort',
   webVital = 'total',
   enabled,
   query,
-  shouldEscapeFilters = true,
   browserTypes,
   subregions,
 }: Props) => {
@@ -49,6 +45,7 @@ export const useTransactionWebVitalsScoresQuery = ({
 
   if (sort !== undefined) {
     if (sort.field === 'avg(measurements.score.total)') {
+      // oxlint-disable-next-line react/immutability
       sort.field = 'performance_score(measurements.score.total)';
     }
   }
@@ -57,14 +54,11 @@ export const useTransactionWebVitalsScoresQuery = ({
     'avg(measurements.score.total):>=0',
     ...(query ? [query] : []),
   ]);
-  if (transaction) {
-    search.addFilterValue('transaction', transaction, shouldEscapeFilters);
+  if (browserTypes?.length) {
+    search.addFilterValueList(SpanFields.BROWSER_NAME, browserTypes);
   }
-  if (browserTypes) {
-    search.addDisjunctionFilterValues(SpanFields.BROWSER_NAME, browserTypes);
-  }
-  if (subregions) {
-    search.addDisjunctionFilterValues(SpanFields.USER_GEO_SUBREGION, subregions);
+  if (subregions?.length) {
+    search.addFilterValueList(SpanFields.USER_GEO_SUBREGION, subregions);
   }
 
   const {data, isPending, ...rest} = useSpans(

@@ -1,22 +1,22 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {
-  render,
-  screen,
-  waitFor,
-  type RouterConfig,
-} from 'sentry-test/reactTestingLibrary';
+import {render, waitFor, type RouterConfig} from 'sentry-test/reactTestingLibrary';
 
 import {
+  MonitorCreateRedirect,
+  UptimeMonitorCreateRedirect,
   withAutomationDetailsRedirect,
-  withDetectorCreateRedirect,
   withDetectorDetailsRedirect,
   withDetectorEditRedirect,
   withMetricIssueRedirect,
   withOpenPeriodRedirect,
 } from 'sentry/views/alerts/workflowEngineRedirects';
-import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
 import {
+  makeAutomationBasePathname,
+  makeAutomationDetailsPathname,
+} from 'sentry/views/automations/pathnames';
+import {
+  makeMonitorBasePathname,
   makeMonitorCreatePathname,
   makeMonitorDetailsPathname,
   makeMonitorEditPathname,
@@ -32,10 +32,9 @@ describe('workflowEngineRedirects', () => {
   });
 
   describe('withAutomationDetailsRedirect', () => {
-    it('redirects alert rules to automation details with workflow-engine-ui flag', async () => {
+    it('redirects alert rules to automation details', async () => {
       const organization = OrganizationFixture({
         slug: 'org-slug',
-        features: ['workflow-engine-ui'],
       });
 
       MockApiClient.addMockResponse({
@@ -58,13 +57,38 @@ describe('workflowEngineRedirects', () => {
         );
       });
     });
+
+    it('redirects to the automations list without looking up the workflow when redirects are disabled', async () => {
+      const organization = OrganizationFixture({
+        slug: 'org-slug',
+        features: ['workflow-engine-disable-legacy-alert-rule-redirects'],
+      });
+      const workflowRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/alert-rule-workflow/`,
+        body: {alertRuleId: '1', ruleId: '1', workflowId: 'workflow-1'},
+      });
+
+      const Wrapped = withAutomationDetailsRedirect(TestComponent);
+      const initialRouterConfig: RouterConfig = {
+        route: '/organizations/:orgId/alerts/rules/:ruleId/',
+        location: {pathname: `/organizations/${organization.slug}/alerts/rules/1/`},
+      };
+
+      const {router} = render(<Wrapped />, {organization, initialRouterConfig});
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe(
+          makeAutomationBasePathname(organization.slug)
+        );
+      });
+      expect(workflowRequest).not.toHaveBeenCalled();
+    });
   });
 
   describe('withDetectorEditRedirect', () => {
     it('redirects detector edit when detectorId is present', async () => {
       const organization = OrganizationFixture({
         slug: 'org-slug',
-        features: ['workflow-engine-ui'],
       });
 
       const Wrapped = withDetectorEditRedirect(TestComponent);
@@ -85,7 +109,6 @@ describe('workflowEngineRedirects', () => {
     it('fetches detector id and redirects to edit', async () => {
       const organization = OrganizationFixture({
         slug: 'org-slug',
-        features: ['workflow-engine-ui'],
       });
 
       MockApiClient.addMockResponse({
@@ -107,6 +130,30 @@ describe('workflowEngineRedirects', () => {
           makeMonitorEditPathname(organization.slug, 'det-2')
         );
       });
+    });
+
+    it('redirects to the monitors list without looking up the detector when redirects are disabled', async () => {
+      const organization = OrganizationFixture({
+        slug: 'org-slug',
+        features: ['workflow-engine-disable-legacy-alert-rule-redirects'],
+      });
+      const detectorRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/alert-rule-detector/`,
+        body: {alertRuleId: '1', detectorId: 'det-2', ruleId: '1'},
+      });
+
+      const Wrapped = withDetectorEditRedirect(TestComponent);
+      const initialRouterConfig: RouterConfig = {
+        route: '/organizations/:orgId/alerts/rules/:ruleId/',
+        location: {pathname: `/organizations/${organization.slug}/alerts/rules/1/`},
+      };
+
+      const {router} = render(<Wrapped />, {organization, initialRouterConfig});
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe(makeMonitorBasePathname(organization.slug));
+      });
+      expect(detectorRequest).not.toHaveBeenCalled();
     });
   });
 
@@ -150,10 +197,9 @@ describe('workflowEngineRedirects', () => {
   });
 
   describe('withDetectorDetailsRedirect', () => {
-    it('redirects to detector details page when workflow-engine-ui is enabled', async () => {
+    it('redirects to detector details page', async () => {
       const organization = OrganizationFixture({
         slug: 'org-slug',
-        features: ['workflow-engine-ui'],
       });
 
       MockApiClient.addMockResponse({
@@ -177,10 +223,30 @@ describe('workflowEngineRedirects', () => {
       });
     });
 
+    it('redirects to the monitors list when legacy redirects are disabled', async () => {
+      const organization = OrganizationFixture({
+        slug: 'org-slug',
+        features: ['workflow-engine-disable-legacy-alert-rule-redirects'],
+      });
+
+      const Wrapped = withDetectorDetailsRedirect(TestComponent);
+      const initialRouterConfig: RouterConfig = {
+        route: '/organizations/:orgId/alerts/:ruleId/:detectorId/',
+        location: {
+          pathname: `/organizations/${organization.slug}/alerts/1/detector-3/`,
+        },
+      };
+
+      const {router} = render(<Wrapped />, {organization, initialRouterConfig});
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe(makeMonitorBasePathname(organization.slug));
+      });
+    });
+
     it('redirects to issue details page when alert and notification UUID query params are present', async () => {
       const organization = OrganizationFixture({
         slug: 'org-slug',
-        features: ['workflow-engine-ui'],
       });
 
       MockApiClient.addMockResponse({
@@ -218,43 +284,23 @@ describe('workflowEngineRedirects', () => {
         notification_uuid: 'notification-uuid',
       });
     });
-
-    it('does not redirect without workflow-engine-ui flag', async () => {
-      const organization = OrganizationFixture({
-        slug: 'org-slug',
-        features: [],
-      });
-
-      const Wrapped = withDetectorDetailsRedirect(TestComponent);
-      const initialRouterConfig: RouterConfig = {
-        route: '/organizations/:orgId/alerts/:ruleId/',
-        location: {pathname: `/organizations/${organization.slug}/alerts/1/`},
-      };
-
-      const {router} = render(<Wrapped />, {organization, initialRouterConfig});
-
-      // Path stays the same and we render the wrapped component
-      await screen.findByText('Wrapped content');
-      expect(router.location.pathname).toBe(
-        `/organizations/${organization.slug}/alerts/1/`
-      );
-    });
   });
 
-  describe('withDetectorCreateRedirect', () => {
+  describe('MonitorCreateRedirect', () => {
     it('redirects detector create with a detector type', async () => {
       const organization = OrganizationFixture({
         slug: 'org-slug',
-        features: ['workflow-engine-ui'],
       });
 
-      const Wrapped = withDetectorCreateRedirect(TestComponent);
       const initialRouterConfig: RouterConfig = {
         route: '/organizations/:orgId/alerts/create/:alertType/',
         location: {pathname: `/organizations/${organization.slug}/alerts/create/crons/`},
       };
 
-      const {router} = render(<Wrapped />, {organization, initialRouterConfig});
+      const {router} = render(<MonitorCreateRedirect />, {
+        organization,
+        initialRouterConfig,
+      });
 
       await waitFor(() => {
         expect(router.location.pathname).toBe(
@@ -266,11 +312,38 @@ describe('workflowEngineRedirects', () => {
     });
   });
 
+  describe('UptimeMonitorCreateRedirect', () => {
+    it('redirects uptime existing-or-create to uptime monitor create', async () => {
+      const organization = OrganizationFixture({
+        slug: 'org-slug',
+      });
+
+      const initialRouterConfig: RouterConfig = {
+        route: '/organizations/:orgId/alerts/rules/uptime/existing-or-create/',
+        location: {
+          pathname: `/organizations/${organization.slug}/alerts/rules/uptime/existing-or-create/`,
+        },
+      };
+
+      const {router} = render(<UptimeMonitorCreateRedirect />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe(
+          makeMonitorCreatePathname(organization.slug)
+        );
+      });
+
+      expect(router.location.search).toBe('?detectorType=uptime_domain_failure');
+    });
+  });
+
   describe('withOpenPeriodRedirect', () => {
     it('redirects open period routes to issue details', async () => {
       const organization = OrganizationFixture({
         slug: 'org-slug',
-        features: ['workflow-engine-ui'],
       });
 
       MockApiClient.addMockResponse({

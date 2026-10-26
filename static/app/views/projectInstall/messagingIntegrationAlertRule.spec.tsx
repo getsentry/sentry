@@ -1,29 +1,21 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderHookWithProviders,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
-import type {IssueAlertNotificationProps} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
-import {MessagingIntegrationAlertRule} from 'sentry/views/projectInstall/messagingIntegrationAlertRule';
-import * as useValidateChannelModule from 'sentry/views/projectInstall/useValidateChannel';
-
-function setupValidateChannelSpy() {
-  const mockClear = jest.fn();
-  const originalUseValidateChannel = useValidateChannelModule.useValidateChannel;
-  const spy = jest.spyOn(useValidateChannelModule, 'useValidateChannel');
-
-  spy.mockImplementation((...args) => {
-    const result = originalUseValidateChannel(...args);
-    return {
-      ...result,
-      clear: mockClear,
-    };
-  });
-
-  return {mockClear, spy};
-}
-
+import * as analytics from 'sentry/utils/analytics';
+import {
+  MessagingIntegrationAlertRule,
+  useMessagingIntegrationAlertRule,
+} from 'sentry/views/projectInstall/messagingIntegrationAlertRule';
+import type {IssueAlertNotificationProps} from 'sentry/views/projectInstall/messagingIntegrationTypes';
 describe('MessagingIntegrationAlertRule', () => {
   const organization = OrganizationFixture();
   const slackIntegrations = [
@@ -64,6 +56,7 @@ describe('MessagingIntegrationAlertRule', () => {
     integration: slackIntegrations[0],
     provider: 'slack',
     providersToIntegrations,
+    queryError: false,
     querySuccess: true,
     shouldRenderSetupButton: false,
     setActions: jest.fn(),
@@ -82,10 +75,26 @@ describe('MessagingIntegrationAlertRule', () => {
   });
 
   const getComponent = () => <MessagingIntegrationAlertRule {...notificationProps} />;
+  const getChannelSelect = () => screen.getByRole('textbox', {name: 'channel'});
 
   it('renders', () => {
     render(getComponent());
     expect(screen.getAllByRole('textbox')).toHaveLength(3);
+  });
+
+  it('clears the channel select when channel prop becomes undefined', () => {
+    const {rerender} = render(getComponent(), {organization});
+
+    // The initial channel value label is visible.
+    expect(screen.getByText('channel')).toBeInTheDocument();
+
+    // Parent state clears channel (e.g. after provider or integration change).
+    rerender(
+      <MessagingIntegrationAlertRule {...notificationProps} channel={undefined} />
+    );
+
+    // The stale channel label must no longer be shown; the select is empty.
+    expect(screen.queryByText('channel')).not.toBeInTheDocument();
   });
 
   it('calls setter when new integration is selected', async () => {
@@ -148,18 +157,20 @@ describe('MessagingIntegrationAlertRule', () => {
         }}
       />
     );
-    await selectEvent.openMenu(screen.getByLabelText('channel'));
+    await selectEvent.openMenu(getChannelSelect());
     expect(await screen.findByText('#general (1)')).toBeInTheDocument();
     expect(screen.getByText('#alerts (2)')).toBeInTheDocument();
-    await selectEvent.select(screen.getByLabelText('channel'), /#alerts/);
+    await selectEvent.select(getChannelSelect(), /#alerts/);
     expect(mockSetChannel).toHaveBeenCalledWith({
       label: '#alerts (2)',
       value: '2',
       new: false,
+      channelId: '2',
+      channelName: '#alerts',
     });
   });
 
-  it('shows empty state when no channels are returned', async () => {
+  it('shows the selected channel when no channels are returned', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/${discordIntegrations[0]!.id}/channels/`,
       body: {
@@ -178,15 +189,17 @@ describe('MessagingIntegrationAlertRule', () => {
       />
     );
 
-    await selectEvent.openMenu(screen.getByLabelText('channel'));
-    expect(await screen.findByText('No options')).toBeInTheDocument();
+    await selectEvent.openMenu(getChannelSelect());
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'channel'})
+    ).toBeInTheDocument();
     expect(mockSetChannel).not.toHaveBeenCalled();
   });
 
   it('set custom channel as "new" when created', async () => {
     render(getComponent());
 
-    await selectEvent.create(screen.getByLabelText('channel'), '#custom-channel', {
+    await selectEvent.create(getChannelSelect(), '#custom-channel', {
       waitForElement: false,
       createOptionText: '#custom-channel',
     });
@@ -274,13 +287,11 @@ describe('MessagingIntegrationAlertRule', () => {
     ).toBeInTheDocument();
   });
 
-  it('clears validation error when channel is cleared', async () => {
+  it('clears the selected channel', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/${slackIntegrations[0]!.id}/channel-validate/`,
       body: {valid: false, detail: 'Channel not found'},
     });
-
-    const {mockClear, spy} = setupValidateChannelSpy();
 
     render(
       <MessagingIntegrationAlertRule
@@ -292,12 +303,9 @@ describe('MessagingIntegrationAlertRule', () => {
     expect(await screen.findByText('Channel not found')).toBeInTheDocument();
     await userEvent.click(screen.getByLabelText('Clear choices'));
     expect(mockSetChannel).toHaveBeenCalledWith(undefined);
-    expect(mockClear).toHaveBeenCalled();
-
-    spy.mockRestore();
   });
 
-  it('clears validation error when provider is changed', async () => {
+  it('changes provider after a validation error', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/${slackIntegrations[0]!.id}/channel-validate/`,
       body: {valid: false, detail: 'Channel not found'},
@@ -307,8 +315,6 @@ describe('MessagingIntegrationAlertRule', () => {
       url: `/organizations/${organization.slug}/integrations/${discordIntegrations[0]!.id}/channels/`,
       body: {results: []},
     });
-
-    const {mockClear, spy} = setupValidateChannelSpy();
 
     render(
       <MessagingIntegrationAlertRule
@@ -320,13 +326,10 @@ describe('MessagingIntegrationAlertRule', () => {
     expect(await screen.findByText('Channel not found')).toBeInTheDocument();
 
     await selectEvent.select(screen.getByText('Slack'), 'Discord');
-
-    expect(mockClear).toHaveBeenCalled();
-
-    spy.mockRestore();
+    expect(mockSetProvider).toHaveBeenCalledWith('discord');
   });
 
-  it('clears validation error when integration is changed', async () => {
+  it('changes integration after a validation error', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/${slackIntegrations[0]!.id}/channel-validate/`,
       body: {valid: false, detail: 'Channel not found'},
@@ -336,8 +339,6 @@ describe('MessagingIntegrationAlertRule', () => {
       url: `/organizations/${organization.slug}/integrations/${slackIntegrations[1]!.id}/channels/`,
       body: {results: []},
     });
-
-    const {mockClear, spy} = setupValidateChannelSpy();
 
     render(
       <MessagingIntegrationAlertRule
@@ -352,40 +353,106 @@ describe('MessagingIntegrationAlertRule', () => {
       screen.getByText("Moo Deng's Workspace"),
       "Moo Waan's Workspace"
     );
+    expect(mockSetIntegration).toHaveBeenCalledWith(slackIntegrations[1]);
+  });
+});
 
-    expect(mockClear).toHaveBeenCalled();
+describe('useMessagingIntegrationAlertRule change analytics', () => {
+  const organization = OrganizationFixture();
+  const slackA = OrganizationIntegrationsFixture({name: "Moo Deng's Workspace"});
+  const slackB = OrganizationIntegrationsFixture({name: "Moo Waan's Workspace"});
+  const discord = OrganizationIntegrationsFixture({name: "Moo Deng's Server"});
 
-    spy.mockRestore();
+  function renderRule(variant?: 'scm' | 'legacy') {
+    return renderHookWithProviders(
+      () =>
+        useMessagingIntegrationAlertRule(
+          {
+            actions: [],
+            integration: slackA,
+            provider: 'slack',
+            providersToIntegrations: {slack: [slackA, slackB], discord: [discord]},
+            queryError: false,
+            querySuccess: true,
+            shouldRenderSetupButton: false,
+            setActions: jest.fn(),
+            setChannel: jest.fn(),
+            setIntegration: jest.fn(),
+            setProvider: jest.fn(),
+          },
+          variant
+        ),
+      {organization}
+    );
+  }
+
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${slackA.id}/channels/`,
+      body: {results: []},
+    });
   });
 
-  it('displays and sends channel id for microsoft teams', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/integrations/${msteamsIntegrations[0]!.id}/channels/`,
-      body: {
-        nextCursor: null,
-        results: [
-          {id: '1', name: 'general', display: '#general', type: 'text'},
-          {id: '2', name: 'alerts', display: '#alerts', type: 'text'},
-        ],
-      },
-    });
-    render(
-      <MessagingIntegrationAlertRule
-        {...{
-          ...notificationProps,
-          integration: msteamsIntegrations[0],
-          provider: 'msteams',
-        }}
-      />
+  it('fires notify_*_changed with the variant when set', () => {
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    const {result} = renderRule('scm');
+
+    result.current.onProviderChange({value: 'discord'});
+    result.current.onIntegrationChange({value: slackB});
+    result.current.onChannelChange({label: '#general', value: '1'});
+
+    expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+      'project_creation.notify_provider_changed',
+      expect.objectContaining({provider: 'discord', variant: 'scm'})
     );
-    await selectEvent.openMenu(screen.getByLabelText('channel'));
-    expect(await screen.findByText('#general (1)')).toBeInTheDocument();
-    expect(screen.getByText('#alerts (2)')).toBeInTheDocument();
-    await selectEvent.select(screen.getByLabelText('channel'), /#alerts/);
-    expect(mockSetChannel).toHaveBeenCalledWith({
-      label: '#alerts (2)',
-      value: '2',
-      new: false,
-    });
+    expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+      'project_creation.notify_integration_changed',
+      expect.objectContaining({variant: 'scm'})
+    );
+    expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+      'project_creation.notify_channel_changed',
+      expect.objectContaining({variant: 'scm'})
+    );
+  });
+
+  it('tracks custom channel creation with the variant', () => {
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    const {result} = renderRule('legacy');
+
+    result.current.onCreateChannel('#custom-channel');
+
+    expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+      'project_creation.notify_channel_changed',
+      expect.objectContaining({variant: 'legacy'})
+    );
+  });
+
+  it('fires nothing when variant is undefined (shared alerts rule-creation caller)', () => {
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    const {result} = renderRule(undefined);
+
+    result.current.onProviderChange({value: 'discord'});
+    result.current.onChannelChange({label: '#general', value: '1'});
+
+    expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(
+      'project_creation.notify_provider_changed',
+      expect.anything()
+    );
+    expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(
+      'project_creation.notify_channel_changed',
+      expect.anything()
+    );
+  });
+
+  it('does not track custom channel creation without a variant', () => {
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    const {result} = renderRule(undefined);
+
+    result.current.onCreateChannel('#custom-channel');
+
+    expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(
+      'project_creation.notify_channel_changed',
+      expect.anything()
+    );
   });
 });

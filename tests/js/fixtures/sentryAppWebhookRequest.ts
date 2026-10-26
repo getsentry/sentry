@@ -10,10 +10,14 @@ export function SentryAppWebhookRequestFixture(
     date: '2019-09-25T23:54:54.440Z',
     organization: {
       slug: 'test-org',
-      id: '1',
+      id: 1,
       name: 'Test Org',
     },
     responseCode: 400,
+    durationMs: 150,
+    requestId: 'abc-123',
+    subjectType: 'group',
+    subjectId: '42',
 
     ...params,
   };

@@ -369,7 +369,7 @@ export function sortProfileSamples<S extends SortableProfileSample>(
     return acc;
   }, {});
 
-  return [...samples].sort((a, b) => {
+  return samples.toSorted((a, b) => {
     // same stack id, these are the same
     if (a.stack_id === b.stack_id) {
       return 0;

@@ -1,5 +1,8 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconClock} from '@sentry/icons/clock';
+import {IconFile} from '@sentry/icons/file';
+import {IconJson} from '@sentry/icons/json';
+import {IconMobile} from '@sentry/icons/mobile';
 import {PlatformIcon} from 'platformicons';
 
 import {CodeBlock} from '@sentry/scraps/code';
@@ -7,12 +10,9 @@ import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {Placeholder} from 'sentry/components/placeholder';
 import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
-import {Version} from 'sentry/components/version';
-import {IconClock, IconFile, IconJson, IconMobile} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getFormat, getFormattedDate, getUtcToSystem} from 'sentry/utils/dates';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
@@ -51,33 +51,22 @@ export function BuildInstallHeader(props: BuildInstallHeaderProps) {
     timeZone: true,
   });
 
-  const releasesCrumb: Crumb = {
+  const releasesCrumb = {
+    type: 'link' as const,
     to: makeReleasesUrl(organization.slug, projectId, {
       display: PreprodBuildsDisplay.DISTRIBUTION,
       query: 'installable:true',
-      tab: 'mobile-builds',
     }),
     label: t('Releases'),
   };
 
   if (isBuildDetailsPending) {
-    const crumbs: Crumb[] = [
-      releasesCrumb,
-      {
-        label: (
-          <Flex align="center" gap="sm" minHeight="1lh">
-            <Placeholder width="24px" height="24px" />
-            <Placeholder width="140px" height="1em" />
-            <Placeholder width="120px" height="1em" />
-          </Flex>
-        ),
-      },
-    ];
     return (
       <Layout.HeaderContent>
-        <TopBar.Slot name="title">
-          <StyledBreadcrumbs crumbs={crumbs} />
-        </TopBar.Slot>
+        <TopBar.Slot
+          name="breadcrumbs"
+          title={{type: 'page-title', label: t('Releases')}}
+        />
         <Flex gap="lg" wrap="wrap" align="center">
           <Placeholder width="120px" height="16px" />
           <Placeholder width="160px" height="16px" />
@@ -88,12 +77,12 @@ export function BuildInstallHeader(props: BuildInstallHeaderProps) {
   }
 
   if (isBuildDetailsError || !buildDetailsData) {
-    const crumbs: Crumb[] = [releasesCrumb, {label: t('Install')}];
     return (
       <Layout.HeaderContent>
-        <TopBar.Slot name="title">
-          <StyledBreadcrumbs crumbs={crumbs} />
-        </TopBar.Slot>
+        <TopBar.Slot
+          name="breadcrumbs"
+          title={{type: 'page-title', label: t('Releases')}}
+        />
       </Layout.HeaderContent>
     );
   }
@@ -106,45 +95,30 @@ export function BuildInstallHeader(props: BuildInstallHeaderProps) {
     ? `v${version}${buildNumber ? ` (${buildNumber})` : ''}`
     : undefined;
 
-  const crumbs: Crumb[] = [
-    releasesCrumb,
-    {
-      label: (
-        <Flex align="center" gap="xs" minHeight="1lh">
-          {appInfo.app_icon_id && appInfo.name ? (
+  return (
+    <Layout.HeaderContent>
+      <TopBar.Slot
+        name="breadcrumbs"
+        title={{
+          type: 'page-title',
+          label: [appInfo.name, versionTitle].filter(Boolean).join(' - ') || t('Install'),
+          leadingGraphic: appInfo.name && (
             <AppIcon
               appName={appInfo.name}
               appIconId={appInfo.app_icon_id}
               projectId={projectId}
+              size={16}
             />
-          ) : null}
-          {appInfo.name ? <span>{appInfo.name}</span> : null}
-          {versionTitle ? (
-            <Fragment>
-              <Text as="span" size="md" variant="muted">
-                -
-              </Text>
-              <Version version={versionTitle} anchor={false} truncate />
-            </Fragment>
-          ) : (
-            <Placeholder width="30ch" height="1em" />
-          )}
-        </Flex>
-      ),
-    },
-  ];
-
-  return (
-    <Layout.HeaderContent>
-      <TopBar.Slot name="title">
-        <StyledBreadcrumbs crumbs={crumbs} />
-      </TopBar.Slot>
+          ),
+        }}
+        items={[releasesCrumb]}
+      />
       <Flex gap="lg" wrap="wrap" align="center">
         {appInfo.platform ? (
           <Tooltip title={t('Platform')}>
             <Flex gap="2xs" align="center">
               <Flex align="center" justify="center" width="24px" height="24px">
-                <PlatformIcon platform={appInfo.platform} />
+                <PlatformIcon platform={appInfo.platform} alt="" />
               </Flex>
               <Text size="sm" variant="muted">
                 {getReadablePlatformLabel(appInfo.platform)}
@@ -213,8 +187,4 @@ export function BuildInstallHeader(props: BuildInstallHeaderProps) {
 
 const InlineCodeSnippet = styled(CodeBlock)`
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
-`;
-
-const StyledBreadcrumbs = styled(Breadcrumbs)`
-  padding: 0;
 `;

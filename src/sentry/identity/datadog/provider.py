@@ -3,7 +3,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import secrets
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
 
 import orjson
 import sentry_sdk
@@ -24,6 +24,7 @@ from sentry.identity.oauth2 import (
     record_event,
 )
 from sentry.identity.services.identity.model import RpcIdentity
+from sentry.integrations.datadog.client import DATADOG_VALID_SITES
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationPipelineViewType
 from sentry.pipeline.views.base import PipelineView
@@ -33,24 +34,13 @@ from sentry.utils.http import absolute_uri
 if TYPE_CHECKING:
     from sentry.identity.pipeline import IdentityPipeline
 
-DATADOG_VALID_SITES: dict[str, str] = {
-    "datadoghq.com": "US1",
-    "us3.datadoghq.com": "US3",
-    "us5.datadoghq.com": "US5",
-    "datadoghq.eu": "EU",
-    "ap1.datadoghq.com": "AP1",
-    "ap2.datadoghq.com": "AP2",
-    "ddog-gov.com": "US1-FED",
-    "us2.ddog-gov.com": "US2-FED",
-}
-
 MCP_REGISTER_PATH = "/api/unstable/mcp-server/register"
 MCP_AUTHORIZE_PATH = "/api/unstable/mcp-server/authorize"
 MCP_TOKEN_PATH = "/api/unstable/mcp-server/token"
 MCP_ENDPOINT_PATH = "/api/unstable/mcp-server/mcp"
 
 
-def _mcp_base_url_for_site(site: str | None) -> str | None:
+def mcp_base_url_for_site(site: str | None) -> str | None:
     """Validated Datadog MCP base URL for a site, or None if it's missing/invalid."""
     if not site or site not in DATADOG_VALID_SITES:
         return None
@@ -61,10 +51,17 @@ def _basic_auth_header(client_id: str, client_secret: str) -> str:
     return "Basic " + base64.b64encode(f"{client_id}:{client_secret}".encode()).decode("ascii")
 
 
-def get_user_info(access_token: str, mcp_base_url: str) -> dict[str, Any]:
+class DatadogWhoami(TypedDict):
+    user_uuid: str
+    org_uuid: str
+    user_email: NotRequired[str]
+    user_name: NotRequired[str]
+
+
+def mcp_whoami(mcp_base_url: str, auth_headers: dict[str, str]) -> DatadogWhoami:
     """Fetch the current Datadog user via the MCP ``datadog://mcp/whoami`` resource."""
     url = f"{mcp_base_url}{MCP_ENDPOINT_PATH}"
-    headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
+    headers = {**auth_headers, "Content-Type": "application/json"}
 
     init_resp = safe_urlopen(
         url,
@@ -97,6 +94,11 @@ def get_user_info(access_token: str, mcp_base_url: str) -> dict[str, Any]:
         return orjson.loads(body["result"]["contents"][0]["text"])
     except (KeyError, IndexError, orjson.JSONDecodeError) as e:
         raise IdentityNotValid("MCP whoami returned an unexpected response") from e
+
+
+def get_user_info(access_token: str, mcp_base_url: str) -> DatadogWhoami:
+    """Fetch the current Datadog user via MCP whoami, authenticating with a Bearer token."""
+    return mcp_whoami(mcp_base_url, {"Authorization": f"Bearer {access_token}"})
 
 
 def generate_pkce_code_verifier() -> str:
@@ -299,13 +301,13 @@ class DatadogIdentityProvider(McpIdentityProvider, OAuth2Provider):
     def _build_mcp_base_url(self) -> str:
         """MCP base URL for this provider's configured site. Raises if invalid."""
         site = self._get_oauth_parameter("site")
-        base = _mcp_base_url_for_site(site)
+        base = mcp_base_url_for_site(site)
         if base is None:
             raise ValueError(f"Invalid Datadog site: {site}")
         return base
 
     def build_mcp_urls(self, identity_data: dict[str, Any]) -> list[str]:
-        base = _mcp_base_url_for_site(identity_data.get("site"))
+        base = mcp_base_url_for_site(identity_data.get("site"))
         return [f"{base}{MCP_ENDPOINT_PATH}"] if base else []
 
     def get_oauth_authorize_url(self) -> str:
@@ -418,13 +420,16 @@ class DatadogPatIdentityProvider(McpIdentityProvider, Provider):
 
     key = IntegrationProviderSlug.DATADOG_PAT
     name = "Datadog (Personal Access Token)"
+    # A PAT connection is a variant of the datadog integration, so it shares its family
+    # and a personal PAT suppresses the org-level datadog fallback.
+    monitoring_family = IntegrationProviderSlug.DATADOG.value
     create_organization_identity = True
 
     def get_pipeline_views(self) -> list[PipelineView[IdentityPipeline]]:
         return []
 
     def build_mcp_urls(self, identity_data: dict[str, Any]) -> list[str]:
-        base = _mcp_base_url_for_site(identity_data.get("site"))
+        base = mcp_base_url_for_site(identity_data.get("site"))
         return [f"{base}{MCP_ENDPOINT_PATH}"] if base else []
 
     def build_identity(self, data: dict[str, Any]) -> dict[str, Any]:
@@ -433,7 +438,7 @@ class DatadogPatIdentityProvider(McpIdentityProvider, Provider):
             raise ValueError("Datadog requires an 'access_token' parameter.")
 
         site = data.get("site")
-        base = _mcp_base_url_for_site(site)
+        base = mcp_base_url_for_site(site)
         if not site:
             raise ValueError("Datadog requires a 'site' parameter (e.g. 'datadoghq.com').")
         elif base is None:

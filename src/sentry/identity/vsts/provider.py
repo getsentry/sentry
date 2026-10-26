@@ -47,6 +47,12 @@ def get_user_info(access_token):
 
 
 class VSTSIdentityProvider(OAuth2Provider):
+    """Legacy VSTS OAuth identity provider (pre-Azure AD v2.0).
+
+    Still used for token refresh on old identities. New logins and
+    integrations should use VSTSNewIdentityProvider.
+    """
+
     key = IntegrationProviderSlug.AZURE_DEVOPS.value
     name = "Azure DevOps"
 
@@ -143,11 +149,13 @@ class VSTSOAuth2CallbackView(OAuth2CallbackView):
         return safe_urlopen(self.access_token_url, data=data, headers=headers)
 
 
-# TODO(ecosystem): Make this the default provider
-# We created this new flow in order to quickly update the DevOps integration to use
-# the new Azure AD OAuth2 flow.
-# This is a temporary solution until we can fully migrate to the new flow once customers are migrated
 class VSTSNewIdentityProvider(OAuth2Provider):
+    """Active VSTS identity provider using Azure AD v2.0 OAuth.
+
+    Handles all new logins and integrations. Old identities created under
+    VSTSIdentityProvider are migrated via MigratingIdentityId.
+    """
+
     key = "vsts_new"
     name = "Azure DevOps"
 

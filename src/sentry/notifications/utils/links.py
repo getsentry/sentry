@@ -8,12 +8,7 @@ from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.models.rule import Rule
-from sentry.notifications.utils.rules import (
-    get_key_from_rule_data,
-    get_rule_or_workflow_id,
-    split_rules_by_rule_workflow_id,
-)
+from sentry.notifications.types import NotificationOrigin
 from sentry.types.rules import NotificationRuleDetails
 
 """
@@ -107,35 +102,30 @@ def get_issue_replay_link(group: Group, sentry_query_params: str = "") -> str:
 
 
 def get_rules(
-    rules: Sequence[Rule], organization: Organization, project: Project, type_id: int | None = None
+    rules: Sequence[NotificationOrigin],
+    organization: Organization,
+    project: Project,
+    type_id: int | None = None,
 ) -> list[NotificationRuleDetails]:
-    rules_and_workflows = split_rules_by_rule_workflow_id(rules)
+    legacy_rules = [rule for rule in rules if rule.legacy_rule_id is not None]
+    workflow_rules = [rule for rule in rules if rule.legacy_rule_id is None]
 
-    return get_workflow_links(
-        rules_and_workflows.workflow_rules, organization, project
-    ) + get_rules_with_legacy_ids(rules_and_workflows.rules, organization, project)
-
-
-def _fetch_rule_id(rule: Rule, type_id: int | None = None) -> int:
-    # Try to fetch the legacy rule id, if it fails, return the rule id
-    # This allows us to support both legacy and new rule ids
-    try:
-        return int(get_key_from_rule_data(rule, "legacy_rule_id"))
-    except AssertionError:
-        return rule.id
+    return get_workflow_links(workflow_rules, organization, project) + get_rules_with_legacy_ids(
+        legacy_rules, organization, project
+    )
 
 
 def get_rules_with_legacy_ids(
-    rules: Sequence[Rule], organization: Organization, project: Project
+    rules: Sequence[NotificationOrigin], organization: Organization, project: Project
 ) -> list[NotificationRuleDetails]:
     rules_with_legacy_ids = []
     for rule in rules:
-        rule_id = _fetch_rule_id(rule)
+        rule_id = rule.legacy_rule_id
+        assert rule_id is not None
         rules_with_legacy_ids.append(
             NotificationRuleDetails(
                 rule_id,
                 rule.label,
-                f"/organizations/{organization.slug}/issues/alerts/rules/{project.slug}/{rule_id}/",
                 f"/organizations/{organization.slug}/issues/alerts/rules/{project.slug}/{rule_id}/details/",
             )
         )
@@ -143,32 +133,17 @@ def get_rules_with_legacy_ids(
 
 
 def get_workflow_links(
-    rules: Sequence[Rule], organization: Organization, project: Project
+    rules: Sequence[NotificationOrigin], organization: Organization, project: Project
 ) -> list[NotificationRuleDetails]:
     workflow_links = []
     for rule in rules:
-        workflow_id = get_key_from_rule_data(rule, "workflow_id")
+        workflow_id = rule.workflow_id
+        assert workflow_id is not None
         workflow_links.append(
             NotificationRuleDetails(
-                int(workflow_id),
+                workflow_id,
                 rule.label,
-                create_link_to_workflow(organization.slug, workflow_id),
-                # TODO(iamrajjoshi): Add status url (whatever it is)
-                create_link_to_workflow(organization.slug, workflow_id),
+                create_link_to_workflow(organization.slug, str(workflow_id)),
             )
         )
     return workflow_links
-
-
-def get_snooze_url(
-    rule: Rule,
-    organization: Organization,
-    project: Project,
-    sentry_query_params: str,
-    type_id: int,
-) -> str:
-    key, rule_id = get_rule_or_workflow_id(rule)
-    # should only be using rule
-    if key == "workflow_id":
-        rule_id = str(rule.id)
-    return f"/organizations/{organization.slug}/issues/alerts/rules/{project.slug}/{rule_id}/details/{sentry_query_params}&{urlencode({'mute': '1'})}"

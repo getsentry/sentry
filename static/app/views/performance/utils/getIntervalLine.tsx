@@ -1,7 +1,7 @@
 import type {Theme} from '@emotion/react';
 
 import {MarkArea} from 'sentry/components/charts/components/markArea';
-import {MarkLine} from 'sentry/components/charts/components/markLine';
+import {markLine} from 'sentry/components/charts/components/markLine';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
@@ -210,7 +210,7 @@ export function getIntervalLine(
       seriesName: 'Baseline Axis Line',
       type: 'line',
       markLine:
-        MarkLine({
+        markLine({
           silent: true,
           label: {
             show: false,
@@ -232,7 +232,7 @@ export function getIntervalLine(
       seriesName: 'Regression Axis Line',
       type: 'line',
       markLine:
-        MarkLine({
+        markLine({
           silent: true,
           label: {
             show: false,

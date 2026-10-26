@@ -103,6 +103,14 @@ class PaginatorTest(TestCase):
         result3 = paginator.get_result(limit=1, cursor=result2.prev)
         assert len(result3) == 0, (result3, list(result3))
 
+    def test_negative_offset(self) -> None:
+        self.create_user("foo@example.com")
+        paginator = self.cls(User.objects.all(), "id")
+
+        for cursor in (Cursor(0, -1), Cursor(0, -1, True), Cursor(1, -5)):
+            with pytest.raises(BadPaginationError):
+                paginator.get_result(limit=1, cursor=cursor)
+
 
 @control_silo_test
 class OffsetPaginatorTest(TestCase):
@@ -152,9 +160,61 @@ class OffsetPaginatorTest(TestCase):
         with pytest.raises(BadPaginationError):
             paginator.get_result(cursor=cursor)
 
+        cursor = Cursor(0, -1)
+        with pytest.raises(BadPaginationError):
+            paginator.get_result(cursor=cursor)
+
+    def test_negative_limit(self) -> None:
+        self.create_user("baz@example.com")
+        queryset = User.objects.all()
+        paginator = OffsetPaginator(queryset)
         cursor = Cursor(-10, 1)
         with pytest.raises(BadPaginationError):
             paginator.get_result(cursor=cursor)
+
+        cursor = Cursor(-10, 0)
+        with pytest.raises(BadPaginationError):
+            paginator.get_result(cursor=cursor)
+
+    def test_non_integer_limit(self) -> None:
+        self.create_user("baz@example.com")
+        queryset = User.objects.all()
+        paginator = OffsetPaginator(queryset)
+        cursor = Cursor(1.5, 0)
+        with pytest.raises(BadPaginationError):
+            paginator.get_result(cursor=cursor)
+
+    def test_limit_too_large(self) -> None:
+        self.create_user("baz@example.com")
+        queryset = User.objects.all()
+        paginator = OffsetPaginator(queryset, max_limit=10)
+
+        result = paginator.get_result(limit=10, cursor=Cursor(10, 0))
+        assert len(result) == 1
+
+        cursor = Cursor(11, 0)
+        with pytest.raises(BadPaginationError):
+            paginator.get_result(limit=10, cursor=cursor)
+
+    def test_count_hits(self) -> None:
+        self.create_user("foo@example.com")
+        self.create_user("bar@example.com")
+        queryset = User.objects.all()
+        paginator = OffsetPaginator(queryset)
+
+        result = paginator.get_result(count_hits=True, max_hits=1)
+
+        assert result.hits == 1
+        assert result.max_hits == 1
+
+    def test_does_not_set_max_hits_without_counting_hits(self) -> None:
+        queryset = User.objects.all()
+        paginator = OffsetPaginator(queryset)
+
+        result = paginator.get_result()
+
+        assert result.hits is None
+        assert result.max_hits is None
 
     def test_order_by_multiple(self) -> None:
         res1 = self.create_user("foo@example.com")

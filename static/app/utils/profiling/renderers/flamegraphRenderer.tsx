@@ -58,7 +58,7 @@ export abstract class FlamegraphRenderer {
       this.colorMap = flamegraph.colors;
       this.isDifferentialFlamegraph = true;
     } else {
-      const {colorBuffer, colorMap} = this.theme.COLORS.STACK_TO_COLOR(
+      const {colorBuffer, colorMap} = this.theme.COLORS.stackToColor(
         this.frames,
         this.theme.COLORS.COLOR_MAPS[this.options.colorCoding],
         this.theme.COLORS.COLOR_BUCKET,

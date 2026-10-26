@@ -2,6 +2,7 @@ import {useMutation} from '@tanstack/react-query';
 
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import type {UpdatedTask} from 'sentry/types/onboarding';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 /**
@@ -15,10 +16,15 @@ export function useMutateOnboardingTasks() {
     mutationFn: async (tasksToUpdate: UpdatedTask[]) => {
       await Promise.all(
         tasksToUpdate.map(task =>
-          api.requestPromise(`/organizations/${organization.slug}/onboarding-tasks/`, {
-            method: 'POST',
-            data: task,
-          })
+          api.requestPromise(
+            getApiUrl('/organizations/$organizationIdOrSlug/onboarding-tasks/', {
+              path: {organizationIdOrSlug: organization.slug},
+            }),
+            {
+              method: 'POST',
+              data: task,
+            }
+          )
         )
       );
       return tasksToUpdate;

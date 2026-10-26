@@ -1,14 +1,10 @@
 import type React from 'react';
-import {createContext, useContext} from 'react';
 import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
-import {
-  DataConditionType,
-  type DataCondition,
-} from 'sentry/types/workflowEngine/dataConditions';
+import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import {
   AgeComparisonDetails,
   AgeComparisonNode,
@@ -96,31 +92,12 @@ import {
   validateTaggedEventCondition,
 } from 'sentry/views/automations/components/actionFilters/taggedEvent';
 import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
-
-interface DataConditionNodeProps {
-  condition: DataCondition;
-  condition_id: string;
-  onUpdate: (params: {comparison?: any; type?: DataConditionType}) => void;
-}
-
-export const DataConditionNodeContext = createContext<DataConditionNodeProps | null>(
-  null
-);
-
-export function useDataConditionNodeContext(): DataConditionNodeProps {
-  const context = useContext(DataConditionNodeContext);
-  if (!context) {
-    throw new Error(
-      'useDataConditionNodeContext was called outside of DataConditionNode'
-    );
-  }
-  return context;
-}
+import type {DataConditionNodeComponentProps} from 'sentry/views/automations/components/dataConditionNodeContext';
 
 type DataConditionNode = {
   label: string;
   validate: (({condition}: ValidateDataConditionProps) => string | undefined) | undefined;
-  dataCondition?: React.ComponentType<any>;
+  dataCondition?: React.ComponentType<DataConditionNodeComponentProps>;
   defaultComparison?: any;
   details?: React.ComponentType<any>;
   warningMessage?: React.ComponentType<any>;
@@ -142,9 +119,16 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     },
   ],
   [
+    DataConditionType.EVERY_EVENT,
+    {
+      label: t('An event or issue activity is captured'),
+      validate: undefined,
+    },
+  ],
+  [
     DataConditionType.REGRESSION_EVENT,
     {
-      label: t('A resolved issue becomes unresolved'),
+      label: t('A resolved issue regresses'),
       validate: undefined,
     },
   ],
@@ -175,7 +159,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       label: t('Seer runs on an issue and reaches the stage...'),
       dataCondition: SeerActivityTriggerNode,
       details: SeerActivityTriggerDetails,
-      defaultComparison: [],
+      defaultComparison: ['pr_ready_for_review'],
       validate: validateSeerActivityTriggerCondition,
     },
   ],
@@ -247,6 +231,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       label: t('De-escalation'),
       dataCondition: IssuePriorityDeescalating,
       details: IssuePriorityDeescalating,
+      defaultComparison: Priority.HIGH,
       validate: undefined,
     },
   ],

@@ -158,7 +158,7 @@ class UptimeDomainCheckFailureValidatorTest(UptimeTestCase):
         condition_group = detector.workflow_condition_group
         assert condition_group is not None
         assert condition_group.logic_type == "any"
-        assert condition_group.organization_id == detector.project.organization_id
+        assert condition_group.organization_id == detector.linked_project.organization_id
 
         conditions = sorted(condition_group.conditions.all(), key=lambda c: c.comparison)
         assert len(conditions) == 2

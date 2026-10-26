@@ -52,7 +52,7 @@ import {
   computeVisualizeSampleTotals,
 } from 'sentry/views/explore/utils';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
-import {usePerformanceSubscriptionDetails} from 'sentry/views/performance/newTraceDetails/traceTypeWarnings/usePerformanceSubscriptionDetails';
+import {usePerformanceSubscriptionDetails} from 'sentry/views/performance/traceDetails/traceTypeWarnings/usePerformanceSubscriptionDetails';
 
 const {info, fmt} = Sentry.logger;
 
@@ -170,8 +170,7 @@ function useTrackAnalytics({
       trackAiQueryOutcome({
         dataset: 'spans',
         mode: Mode.AGGREGATE,
-        orgSlug: organization.slug,
-        referrer: 'spans',
+        organization,
         resultCount: aggregatesTableResult.result.data?.length ?? 0,
         runId: aiQueryRunId,
         error: tableErrorBox.current || chartErrorBox.current || false,
@@ -234,6 +233,7 @@ function useTrackAnalytics({
     if (
       queryType !== 'samples' ||
       spansTableResult.result.isPending ||
+      spansTableResult.result.isPlaceholderData ||
       timeseriesResult.isPending ||
       isLoadingSubscriptionDetails ||
       isLoadingSeerSetup
@@ -305,8 +305,7 @@ function useTrackAnalytics({
       trackAiQueryOutcome({
         dataset: 'spans',
         mode: Mode.SAMPLES,
-        orgSlug: organization.slug,
-        referrer: 'spans',
+        organization,
         resultCount: spansTableResult.result.data?.length ?? 0,
         runId: aiQueryRunId,
         error: tableErrorBox.current || chartErrorBox.current || false,
@@ -332,6 +331,7 @@ function useTrackAnalytics({
     query_status,
     spansTableResult.result.data?.length,
     spansTableResult.result.isPending,
+    spansTableResult.result.isPlaceholderData,
     spansTableResult.result.meta?.dataScanned,
     tableErrorBox,
     chartErrorBox,
@@ -499,8 +499,7 @@ function useTrackAnalytics({
       trackAiQueryOutcome({
         dataset: 'spans',
         mode: Mode.SAMPLES,
-        orgSlug: organization.slug,
-        referrer: 'traces',
+        organization,
         resultCount: tracesTableResult.result.data?.json?.data?.length ?? 0,
         runId: aiQueryRunId,
         error: tableErrorBox.current || chartErrorBox.current || false,
@@ -765,8 +764,7 @@ export function useLogAnalytics({
       trackAiQueryOutcome({
         dataset: 'logs',
         mode,
-        orgSlug: organization.slug,
-        referrer: 'logs',
+        organization,
         resultCount: resultLengthBox.current,
         runId: aiQueryRunId,
         error: tableErrorBox.current || false,
@@ -857,8 +855,7 @@ export function useLogAnalytics({
       trackAiQueryOutcome({
         dataset: 'logs',
         mode,
-        orgSlug: organization.slug,
-        referrer: 'logs',
+        organization,
         resultCount: aggregatesResultLengthBox.current,
         runId: aiQueryRunId,
         error: tableErrorBox.current || false,
@@ -1039,8 +1036,7 @@ export function useMetricsPanelAnalytics({
       trackAiQueryOutcome({
         dataset: 'tracemetrics',
         mode,
-        orgSlug: organization.slug,
-        referrer: 'tracemetrics',
+        organization,
         resultCount: resultLengthBox.current,
         runId: aiQueryRunId,
         error: tableErrorBox.current || false,
@@ -1048,6 +1044,7 @@ export function useMetricsPanelAnalytics({
     }
   }, [
     organization,
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     dataset,
     mode,
     metricSamplesTableResult.result.isFetching,
@@ -1096,8 +1093,7 @@ export function useMetricsPanelAnalytics({
       trackAiQueryOutcome({
         dataset: 'tracemetrics',
         mode,
-        orgSlug: organization.slug,
-        referrer: 'tracemetrics',
+        organization,
         resultCount: aggregatesResultLengthBox.current,
         runId: aiQueryRunId,
         error: tableErrorBox.current || false,
@@ -1105,6 +1101,7 @@ export function useMetricsPanelAnalytics({
     }
   }, [
     organization,
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     dataset,
     mode,
     metricAggregatesTableResult.result.isPending,
@@ -1226,6 +1223,7 @@ export function useMetricsAnalytics({
 
 function useBox<T>(value: T): RefObject<T> {
   const box = useRef(value);
+  // oxlint-disable-next-line react/refs
   box.current = value;
   return box;
 }

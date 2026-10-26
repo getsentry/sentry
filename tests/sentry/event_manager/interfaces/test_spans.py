@@ -10,7 +10,7 @@ from tests.sentry.event_manager.interfaces import CustomSnapshotter as CustomSna
 START_TIME = 1562873192.624
 END_TIME = 1562873194.624
 
-SnapshotInput = list[dict[str, Any]]
+SnapshotInput = list[dict[str, Any] | None]
 CustomSnapshotter = CustomSnapshotterBase[SnapshotInput]
 
 
@@ -97,5 +97,20 @@ def test_multiple_full(make_spans_snapshot: CustomSnapshotter) -> None:
                 "description": "SELECT * FROM users",
                 "tags": {"service": "example"},
             },
+        ]
+    )
+
+
+def test_none_span_entries_are_skipped(make_spans_snapshot: CustomSnapshotter) -> None:
+    make_spans_snapshot(
+        [
+            None,
+            {
+                "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                "span_id": "8c931f4740435fb8",
+                "start_timestamp": START_TIME,
+                "timestamp": END_TIME,
+            },
+            None,
         ]
     )

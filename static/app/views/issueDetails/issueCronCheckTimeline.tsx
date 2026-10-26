@@ -1,5 +1,6 @@
 import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 import {useQuery} from '@tanstack/react-query';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -14,7 +15,6 @@ import {
 } from 'sentry/components/checkInTimeline/gridLines';
 import {tct} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -28,6 +28,7 @@ import {
 import {selectCheckInData} from 'sentry/views/insights/crons/utils/selectCheckInData';
 import {useMonitorStats} from 'sentry/views/insights/crons/utils/useMonitorStats';
 import {useIssueDetails} from 'sentry/views/issueDetails/context';
+import {useDispatchIssueEventCount} from 'sentry/views/issueDetails/hooks/useDispatchIssueEventCount';
 import {useIssueTimeWindowConfig} from 'sentry/views/issueDetails/useIssueTimeWindowConfig';
 import {groupEventApiOptions} from 'sentry/views/issueDetails/utils';
 
@@ -101,8 +102,10 @@ function useCronLegendStatuses({
 export function IssueCronCheckTimeline({group}: {group: Group}) {
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: containerWidth} = useDimensions({elementRef});
-  const timelineWidth = useDebouncedValue(containerWidth, 500);
+  const [timelineWidth] = useDebouncedValue(containerWidth, {wait: 500});
   const timeWindowConfig = useIssueTimeWindowConfig({timelineWidth, group});
+
+  useDispatchIssueEventCount(group);
 
   const cronAlertId = useCronIssueAlertId({groupId: group.id});
   const {data: stats, isPending} = useMonitorStats({

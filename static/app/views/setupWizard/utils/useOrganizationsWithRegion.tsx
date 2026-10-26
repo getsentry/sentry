@@ -39,7 +39,7 @@ export function useOrganizationsWithRegion() {
           });
           return [];
         }
-        return [{...org, region: locality} as OrganizationSummaryWithLocality];
+        return [{...org, region: locality}];
       });
     },
   });

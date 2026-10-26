@@ -4,6 +4,7 @@ import {
 } from 'sentry/components/arithmeticBuilder/token';
 import {tokenizeExpression} from 'sentry/components/arithmeticBuilder/tokenizer';
 import {EQUATION_PREFIX, isEquation} from 'sentry/utils/discover/fields';
+import {DEFAULT_EQUATION_LABEL} from 'sentry/views/explore/metrics/constants';
 import {
   defaultMetricQuery,
   type BaseMetricQuery,
@@ -13,12 +14,9 @@ import {
   VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
-import {
-  getFunctionLabel,
-  getVisualizeLabel,
-} from 'sentry/views/explore/toolbar/toolbarVisualize';
-
-export const EQUATION_LABEL = getVisualizeLabel(1, true);
+import {getFunctionLabel} from 'sentry/views/explore/utils/getFunctionLabel';
+import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
+import type {ChartType} from 'sentry/views/insights/common/components/chart';
 
 interface ParsedAggregateExpression {
   /**
@@ -33,8 +31,6 @@ interface ParsedAggregateExpression {
   equationRow: BaseMetricQuery | null;
   metricQueries: BaseMetricQuery[];
 }
-
-const IF_SUFFIX = '_if';
 
 interface ParsedEquationComponent {
   /**
@@ -55,22 +51,15 @@ interface ParsedEquationComponent {
  * applicable and extraction of the query from that combinator.
  */
 export function normalizeFunctionToken(token: TokenFunction): ParsedEquationComponent {
-  if (!token.function.endsWith(IF_SUFFIX) || token.attributes.length === 0) {
+  const parsed = parseConditionalAggregate(token.text);
+  if (!parsed?.filter) {
     return {plainAggregate: token.text, filterQuery: ''};
   }
 
-  const plainName = token.function.slice(0, -IF_SUFFIX.length);
-  const [filterAttr, ...restAttrs] = token.attributes;
-  const filterText = filterAttr?.text ?? '';
-
-  // Extract the query from the first argument, checking if it's wrapped in backticks.
-  const filterQuery =
-    filterText.startsWith('`') && filterText.endsWith('`')
-      ? filterText.slice(1, -1)
-      : filterText;
-
-  const plainAggregate = `${plainName}(${restAttrs.map(a => a.text).join(',')})`;
-  return {plainAggregate, filterQuery};
+  return {
+    plainAggregate: `${parsed.name}(${parsed.arguments.join(',')})`,
+    filterQuery: parsed.filter,
+  };
 }
 
 function makeMetricQuery(
@@ -86,20 +75,24 @@ function makeMetricQuery(
     label,
     queryParams: base.queryParams.replace({
       aggregateFields: [new VisualizeFunction(plainAggregate)],
-      query: token.function.endsWith(IF_SUFFIX) ? filterQuery : defaultFilter,
+      query: filterQuery || defaultFilter,
     }),
   };
 }
 
-function makeEquationRow(prefixedEquation: string, query?: string): BaseMetricQuery {
+function makeEquationRow(
+  prefixedEquation: string,
+  query?: string,
+  chartType?: ChartType
+): BaseMetricQuery {
   const base = defaultMetricQuery({type: 'equation'});
   return {
     metric: {name: '', type: ''},
     queryParams: base.queryParams.replace({
-      aggregateFields: [new VisualizeEquation(prefixedEquation)],
+      aggregateFields: [new VisualizeEquation(prefixedEquation, {chartType})],
       query: query ?? '',
     }),
-    label: EQUATION_LABEL,
+    label: DEFAULT_EQUATION_LABEL,
   };
 }
 
@@ -120,7 +113,8 @@ function defaultRow(label: string): BaseMetricQuery {
  */
 export function parseAggregateExpression(
   aggregate: string,
-  query?: string
+  query?: string,
+  chartType?: ChartType
 ): ParsedAggregateExpression {
   if (!isEquation(aggregate)) {
     const tokens = tokenizeExpression(aggregate);
@@ -164,6 +158,6 @@ export function parseAggregateExpression(
   return {
     metricQueries,
     compactExpression,
-    equationRow: makeEquationRow(aggregate, query),
+    equationRow: makeEquationRow(aggregate, query, chartType),
   };
 }

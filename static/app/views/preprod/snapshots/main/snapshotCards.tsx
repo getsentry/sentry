@@ -1,6 +1,12 @@
 import {memo, useCallback, useState} from 'react';
 import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconFile} from '@sentry/icons/file';
+import {IconInfo} from '@sentry/icons/info';
+import {IconLink} from '@sentry/icons/link';
+import {IconMoon} from '@sentry/icons/moon';
+import {IconSun} from '@sentry/icons/sun';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
@@ -8,15 +14,13 @@ import {Button} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import type {ContentVariant} from '@sentry/scraps/theme';
+import {darkTheme, lightTheme} from '@sentry/scraps/theme';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconFile, IconInfo, IconLink, IconMoon, IconSun, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
-// eslint-disable-next-line no-restricted-imports
-import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
-import type {ContentVariant} from 'sentry/utils/theme/types';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import type {
   SnapshotDiffPair,
@@ -106,7 +110,7 @@ export function ErroredBanner() {
   );
 }
 
-export const PairCard = memo(function PairCard({
+export const PairCard = memo(function PairCardImpl({
   pair,
   imageBaseUrl,
   headBranch,
@@ -221,7 +225,7 @@ export const PairCard = memo(function PairCard({
   );
 });
 
-export const ImageCard = memo(function ImageCard({
+export const ImageCard = memo(function ImageCardImpl({
   image,
   cardType,
   copyData,
@@ -307,7 +311,7 @@ export const ImageCard = memo(function ImageCard({
   );
 });
 
-export const CardHeader = memo(function CardHeader({
+export const CardHeader = memo(function CardHeaderImpl({
   displayName,
   fileName,
   tags,
@@ -392,7 +396,7 @@ function MetadataTooltip({json}: {json: string}) {
   );
 }
 
-const METADATA_BLOCKLIST = new Set(['key', 'diff_image_key']);
+const METADATA_BLOCKLIST = new Set(['diff_image_key']);
 
 function MetadataInfoButton({
   copyData,
@@ -414,7 +418,7 @@ function MetadataInfoButton({
       onDoubleClick={e => e.stopPropagation()}
       onClick={e => e.stopPropagation()}
     >
-      <Tooltip title={<MetadataTooltip json={json} />} maxWidth={480} isHoverable>
+      <Tooltip title={<MetadataTooltip json={json} />} maxWidth={480}>
         <InfoIconButton
           type="button"
           aria-label={t('Copy metadata as JSON')}
@@ -440,7 +444,7 @@ const STATUS_VARIANT: Record<DiffStatus, ContentVariant | 'muted' | 'secondary'>
   [DiffStatus.SKIPPED]: 'muted',
 };
 
-const StatusBadge = memo(function StatusBadge({
+const StatusBadge = memo(function StatusBadgeImpl({
   status,
   diffPercent,
 }: {
@@ -461,7 +465,12 @@ const StatusBadge = memo(function StatusBadge({
       label =
         diffPercent === null || diffPercent === undefined
           ? t('Changed')
-          : t('Changed - %s', formatPercentage(diffPercent, diffPercent >= 0.01 ? 1 : 3));
+          : t(
+              'Changed - %s',
+              formatPercentage(diffPercent, diffPercent >= 0.01 ? 1 : 3, {
+                minimumValue: 0.00001,
+              })
+            );
       break;
     case DiffStatus.ADDED:
       label = t('Added');

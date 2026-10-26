@@ -1,3 +1,4 @@
+import type {ComponentProps} from 'react';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
@@ -43,11 +44,6 @@ describe('ChooseYourBillingCycle', () => {
       body: {},
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/promotions/trigger-check/`,
-      method: 'POST',
-      body: {},
-    });
-    MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/subscription/preview/`,
       method: 'GET',
       body: {
@@ -76,43 +72,39 @@ describe('ChooseYourBillingCycle', () => {
       await screen.findByText('Pay monthly or yearly, your choice')
     ).toBeInTheDocument();
 
-    const monthlyOption = screen.getByTestId('billing-cycle-option-monthly');
-    expect(within(monthlyOption).getByText('Monthly')).toBeInTheDocument();
-    expect(within(monthlyOption).queryByText(/save 10%/)).not.toBeInTheDocument();
-    expect(within(monthlyOption).getByText(monthlyInfo)).toBeInTheDocument();
-    expect(within(monthlyOption).getByText(/Cancel anytime/)).toBeInTheDocument();
-
-    const yearlyOption = screen.getByTestId('billing-cycle-option-annual');
-    expect(within(yearlyOption).getByText('Yearly')).toBeInTheDocument();
-    expect(within(yearlyOption).getByText(/save 10%/)).toBeInTheDocument();
-    expect(within(yearlyOption).getByText(yearlyInfo)).toBeInTheDocument();
+    const monthlyCard = screen.getByTestId('billing-cycle-option-monthly');
     expect(
-      within(yearlyOption).getByText(/PAYG usage billed monthly, discount does not apply/)
+      screen.getByRole('radio', {name: 'Monthly billing cycle'})
+    ).toBeInTheDocument();
+    expect(within(monthlyCard).getByText('Monthly')).toBeInTheDocument();
+    expect(within(monthlyCard).queryByText(/save 10%/)).not.toBeInTheDocument();
+    expect(within(monthlyCard).getByText(monthlyInfo)).toBeInTheDocument();
+    expect(within(monthlyCard).getByText(/Cancel anytime/)).toBeInTheDocument();
+
+    const yearlyCard = screen.getByTestId('billing-cycle-option-annual');
+    expect(screen.getByRole('radio', {name: 'Yearly billing cycle'})).toBeInTheDocument();
+    expect(within(yearlyCard).getByText('Yearly')).toBeInTheDocument();
+    expect(within(yearlyCard).getByText(/save 10%/)).toBeInTheDocument();
+    expect(within(yearlyCard).getByText(yearlyInfo)).toBeInTheDocument();
+    expect(
+      within(yearlyCard).getByText(/PAYG usage billed monthly, discount does not apply/)
     ).toBeInTheDocument();
   }
 
-  function renderCheckout(referrer?: string) {
-    let location = LocationFixture();
-    if (referrer) {
-      location = LocationFixture({
-        query: {
-          referrer,
-        },
-      });
-    }
-    render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        api={api}
-        location={location}
-        navigate={jest.fn()}
-      />,
-      {organization}
+  const routeProps = RouteComponentPropsFixture();
+
+  function ExampleAMCheckout({
+    location,
+  }: {
+    location: ComponentProps<typeof AMCheckout>['location'];
+  }) {
+    return (
+      <AMCheckout {...routeProps} api={api} location={location} navigate={jest.fn()} />
     );
   }
 
   it('renders for upgrade from developer', async () => {
-    renderCheckout();
+    render(<ExampleAMCheckout location={LocationFixture()} />, {organization});
     await assertCycleText({
       // org is on monthly cycle, but is on developer plan, so upgrade should apply immediately and create a new period
       monthlyInfo: /Billed on the 13th of each month/,
@@ -127,7 +119,7 @@ describe('ChooseYourBillingCycle', () => {
       billingPeriodEnd: '2025-08-28',
     });
     SubscriptionStore.set(organization.slug, monthlySub);
-    renderCheckout();
+    render(<ExampleAMCheckout location={LocationFixture()} />, {organization});
     await assertCycleText({
       // org is on monthly cycle and is paid plan, so upgrade should apply immediately to the current period
       monthlyInfo: /Billed on the 29th of each month/,
@@ -143,7 +135,7 @@ describe('ChooseYourBillingCycle', () => {
       organization,
     });
     SubscriptionStore.set(organization.slug, annualSub);
-    renderCheckout();
+    render(<ExampleAMCheckout location={LocationFixture()} />, {organization});
     await assertCycleText({
       monthlyInfo: /Billed on the 16th of each month/,
       yearlyInfo: /Billed annually/,
@@ -167,7 +159,7 @@ describe('ChooseYourBillingCycle', () => {
       organization,
     });
     SubscriptionStore.set(organization.slug, partnerSub);
-    renderCheckout();
+    render(<ExampleAMCheckout location={LocationFixture()} />, {organization});
     await assertCycleText({
       monthlyInfo: /Billed monthly starting on your selected start date on submission/,
       yearlyInfo: /Billed annually from your selected start date on submission/,
@@ -175,7 +167,7 @@ describe('ChooseYourBillingCycle', () => {
   });
 
   it('can select billing cycle', async () => {
-    renderCheckout();
+    render(<ExampleAMCheckout location={LocationFixture()} />, {organization});
 
     const monthly = await screen.findByRole('radio', {name: 'Monthly billing cycle'});
     const annual = screen.getByRole('radio', {name: 'Yearly billing cycle'});

@@ -34,6 +34,41 @@ const MOCK_REDACTION = {
   },
 };
 
+const MOCK_SCRUBBED_REDACTION = {
+  id: {
+    '': {
+      rem: [['project:2', 'x']],
+    },
+  },
+  email: {
+    '': {
+      rem: [['project:2', 'x']],
+    },
+  },
+  username: {
+    '': {
+      rem: [['project:2', 'x']],
+    },
+  },
+  name: {
+    '': {
+      rem: [['project:2', 'x']],
+    },
+  },
+  geo: {
+    city: {
+      '': {
+        rem: [['project:2', 'x']],
+      },
+    },
+    country_code: {
+      '': {
+        rem: [['project:2', 'x']],
+      },
+    },
+  },
+};
+
 describe('UserContext', () => {
   it('returns values and according to the parameters', () => {
     expect(getUserContextData({data: MOCK_USER_CONTEXT})).toEqual([
@@ -89,5 +124,61 @@ describe('UserContext', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Name')).toBeInTheDocument();
     expect(screen.getByText(/redacted/)).toBeInTheDocument();
+  });
+
+  it('keeps scrubbed null fields that have direct meta annotations', () => {
+    const scrubbedUserContext = {
+      id: null,
+      email: null,
+      username: null,
+      name: null,
+      ip_address: null,
+      geo: {
+        country_code: null,
+        city: null,
+        subdivision: null,
+        region: null,
+      },
+    };
+
+    const result = getUserContextData({
+      data: scrubbedUserContext as unknown as UserContext,
+      meta: MOCK_SCRUBBED_REDACTION,
+    });
+
+    expect(result.map(item => item.key)).toEqual(['id', 'email', 'username', 'name']);
+    expect(result.every(item => item.value === null)).toBe(true);
+  });
+
+  it('renders scrubbed null fields as redacted', () => {
+    const event = EventFixture({
+      _meta: {user: MOCK_SCRUBBED_REDACTION},
+    });
+
+    render(
+      <ContextCard
+        event={event}
+        type="user"
+        alias="user"
+        value={{
+          id: null,
+          email: null,
+          username: null,
+          name: null,
+          ip_address: null,
+          geo: {
+            country_code: null,
+            city: null,
+            subdivision: null,
+            region: null,
+          },
+        }}
+      />
+    );
+
+    expect(screen.getByText('User')).toBeInTheDocument();
+    expect(screen.getAllByText(/redacted/)).toHaveLength(4);
+    expect(screen.queryByText('null')).not.toBeInTheDocument();
+    expect(screen.queryByText('Geography')).not.toBeInTheDocument();
   });
 });

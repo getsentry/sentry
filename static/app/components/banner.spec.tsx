@@ -12,9 +12,4 @@ describe('Banner', () => {
     expect(screen.queryByText('test')).not.toBeInTheDocument();
     expect(localStorage.getItem('test-banner-dismissed')).toBe('true');
   });
-
-  it('is not dismissable', () => {
-    render(<Banner isDismissable={false} />);
-    expect(screen.queryByLabelText('Close')).not.toBeInTheDocument();
-  });
 });

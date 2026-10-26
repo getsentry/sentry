@@ -58,6 +58,10 @@ from .public.project_preprod_build_distribution_latest import (
 from .public.project_preprod_size_analysis_status_check_rules import (
     ProjectPreprodSizeAnalysisStatusCheckRulesEndpoint,
 )
+from .public.project_preprod_skip_status_check import (
+    ProjectPreprodSizeAnalysisSkipStatusCheckEndpoint,
+    ProjectPreprodSnapshotSkipStatusCheckEndpoint,
+)
 from .public.project_preprod_snapshot_status_check_rules import (
     ProjectPreprodSnapshotStatusCheckRulesEndpoint,
 )
@@ -133,6 +137,16 @@ preprod_project_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprod/snapshots/status-check-rules/$",
         ProjectPreprodSnapshotStatusCheckRulesEndpoint.as_view(),
         name="sentry-api-0-project-preprod-snapshot-status-check-rules",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprod/size-analysis/status-checks/skip/$",
+        ProjectPreprodSizeAnalysisSkipStatusCheckEndpoint.as_view(),
+        name="sentry-api-0-project-preprod-size-analysis-skip-status-check",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprod/snapshots/status-checks/skip/$",
+        ProjectPreprodSnapshotSkipStatusCheckEndpoint.as_view(),
+        name="sentry-api-0-project-preprod-snapshot-skip-status-check",
     ),
 ]
 

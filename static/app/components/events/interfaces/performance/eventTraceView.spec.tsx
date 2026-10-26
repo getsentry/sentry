@@ -5,11 +5,10 @@ import {initializeData} from 'sentry-test/performance/initializePerformanceData'
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {EntryType} from 'sentry/types/event';
-import type {TraceEventResponse} from 'sentry/views/issueDetails/traceTimeline/useTraceTimelineEvents';
 import {
-  makeTraceError,
-  makeTransaction,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
+  makeEAPError,
+  makeEAPSpan,
+} from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
 
 import {EventTraceView} from './eventTraceView';
 
@@ -24,6 +23,8 @@ describe('EventTraceView', () => {
   });
   const group = GroupFixture();
   const event = EventFixture({
+    groupID: group.id,
+    projectID: group.project.id,
     contexts: {
       trace: {
         trace_id: traceId,
@@ -31,15 +32,19 @@ describe('EventTraceView', () => {
     },
     eventID: 'issue-5',
   });
-  const issuePlatformBody: TraceEventResponse = {
-    data: [],
-    meta: {fields: {}, units: {}},
-  };
-
   beforeEach(() => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      body: issuePlatformBody,
+      url: `/organizations/${organization.slug}/issues/`,
+      body: [],
+      headers: {'X-Hits': '0'},
+      match: [
+        MockApiClient.matchQuery({
+          limit: '20',
+          project: '-1',
+          query: `trace:${traceId} !issue.id:${group.id}`,
+          statsPeriod: '90d',
+        }),
+      ],
     });
   });
 
@@ -52,32 +57,34 @@ describe('EventTraceView', () => {
     });
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/${organization.slug}/events-trace-meta/${traceId}/`,
+      url: `/organizations/${organization.slug}/trace-meta/${traceId}/`,
       body: {
-        errors: 1,
-        performance_issues: 1,
-        projects: 1,
-        transactions: 1,
-        transaction_child_count_map: Array.from({length: size})
-          .fill(0)
-          .map((_, i) => [{'transaction.id': i.toString(), count: 1}]),
-        span_count: 0,
-        span_count_map: {},
+        errorsCount: 1,
+        logsCount: 0,
+        metricsCount: 0,
+        performanceIssuesCount: 1,
+        spansCount: 0,
+        spansCountMap: {},
+        uptimeCount: 0,
       },
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-trace/${traceId}/`,
-      body: {
-        transactions: Array.from({length: size}, (_, i) =>
-          makeTransaction({
-            'transaction.op': `transaction-op-${i + 1}`,
+      url: `/organizations/${organization.slug}/trace/${traceId}/`,
+      body: [
+        makeEAPError({
+          event_id: 'issue-5',
+          description: 'MaybeEncodingError: Error sending result',
+        }),
+        ...Array.from({length: size}, (_, i) =>
+          makeEAPSpan({
+            op: `transaction-op-${i + 1}`,
             project_slug: `project-slug-${i + 1}`,
             event_id: `event-id-${i + 1}`,
-            errors: i === 0 ? [makeTraceError({event_id: 'issue-5'})] : [],
+            transaction_id: `event-id-${i + 1}`,
+            is_transaction: true,
           })
         ),
-        orphan_errors: [makeTraceError()],
-      },
+      ],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/project-slug-1:event-id-1/`,
@@ -116,7 +123,7 @@ describe('EventTraceView', () => {
     ).toBeInTheDocument();
 
     // Only renders part of the trace. "x hidden spans" for some reason is cut off in jsdom
-    expect(document.querySelectorAll('.TraceRow')).toHaveLength(8);
+    expect(document.querySelectorAll('.TraceRow')).toHaveLength(7);
   });
 
   it('does not render the trace preview if it has no transactions', async () => {
@@ -127,23 +134,20 @@ describe('EventTraceView', () => {
     });
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/${organization.slug}/events-trace-meta/${traceId}/`,
+      url: `/organizations/${organization.slug}/trace-meta/${traceId}/`,
       body: {
-        errors: 0,
-        performance_issues: 0,
-        projects: 0,
-        transactions: 0,
-        transaction_child_count_map: [{'transaction.id': '1', count: 1}],
-        span_count: 0,
-        span_count_map: {},
+        errorsCount: 0,
+        logsCount: 0,
+        metricsCount: 0,
+        performanceIssuesCount: 0,
+        spansCount: 0,
+        spansCountMap: {},
+        uptimeCount: 0,
       },
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-trace/${traceId}/`,
-      body: {
-        transactions: [],
-        orphan_errors: [],
-      },
+      url: `/organizations/${organization.slug}/trace/${traceId}/`,
+      body: [],
     });
 
     render(<EventTraceView group={group} event={event} organization={organization} />);

@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import type {To} from 'react-router-dom';
+import type {To} from 'react-router';
 import {
   closestCenter,
   DndContext,
@@ -28,9 +28,11 @@ import {
 import {CSS} from '@dnd-kit/utilities';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {mergeProps, mergeRefs} from '@react-aria/utils';
+import {mergeProps, useObjectRef} from '@react-aria/utils';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconClose} from '@sentry/icons/close';
+import {IconGrabbable} from '@sentry/icons/grabbable';
 import {AnimatePresence, motion} from 'framer-motion';
-import PlatformIcon from 'platformicons/build/platformIcon';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -39,14 +41,8 @@ import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
+import {ProjectsBadge} from 'sentry/components/core/badge/projectsBadge';
 import {useHovercardContext} from 'sentry/components/hovercard';
-import {
-  IconAllProjects,
-  IconChevron,
-  IconClose,
-  IconGrabbable,
-  IconMyProjects,
-} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -55,7 +51,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useResizable} from 'sentry/utils/useResizable';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {
-  NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME,
   NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE,
   NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
   PRIMARY_HEADER_HEIGHT,
@@ -84,9 +79,41 @@ interface SecondarySidebarProps {
 function SecondarySidebar({children}: SecondarySidebarProps) {
   const {currentStepId} = useNavigationTour();
   const stepId = currentStepId ?? NavigationTour.ISSUES;
-  const resizableContainerRef = useRef<HTMLDivElement>(null);
+
+  return (
+    <SecondarySidebarWrapper
+      id={stepId}
+      description={NAVIGATION_TOUR_CONTENT[stepId].description}
+      title={NAVIGATION_TOUR_CONTENT[stepId].title}
+    >
+      {({ref, ...props}) => (
+        <SecondarySidebarPanel {...props} tourRef={ref}>
+          {children}
+        </SecondarySidebarPanel>
+      )}
+    </SecondarySidebarWrapper>
+  );
+}
+
+interface SecondarySidebarPanelProps {
+  children: ReactNode;
+  tourRef: React.Ref<HTMLDivElement>;
+  'aria-expanded'?: boolean;
+  className?: string;
+}
+
+function SecondarySidebarPanel({
+  children,
+  tourRef,
+  'aria-expanded': _ariaExpanded,
+  ...props
+}: SecondarySidebarPanelProps) {
+  // One stable ref for both the resizer and the tour. The tour keeps this element
+  // in state, so a new ref on every render would detach and reattach it, which
+  // re-renders the tour and can hit React's update depth limit.
+  const containerRef = useObjectRef(tourRef);
   const resizeHandleRef = useRef<HTMLDivElement>(null);
-  const {layout} = usePrimaryNavigation();
+  const {layout, activeGroup} = usePrimaryNavigation();
 
   const [secondarySidebarWidth, setSecondarySidebarWidth] = useSyncedLocalStorageState(
     NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
@@ -94,7 +121,7 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
   );
 
   const {onMouseDown: handleStartResize, size} = useResizable({
-    ref: resizableContainerRef,
+    ref: containerRef,
     initialSize: secondarySidebarWidth,
     minWidth: SECONDARY_SIDEBAR_MIN_WIDTH,
     maxWidth: SECONDARY_SIDEBAR_MAX_WIDTH,
@@ -103,76 +130,67 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
     },
   });
 
-  const {activeGroup} = usePrimaryNavigation();
-  const isMobilePageFrame = layout === 'mobile';
+  const isMobile = layout === 'mobile';
 
   return (
-    <SecondarySidebarWrapper
-      id={stepId}
-      description={NAVIGATION_TOUR_CONTENT[stepId].description}
-      title={NAVIGATION_TOUR_CONTENT[stepId].title}
+    // aria-expanded is omitted here because TourGuide passes it via useOverlay's
+    // triggerProps (designed for button/disclosure triggers), but this element is
+    // a plain container div with no role that supports aria-expanded. Spreading it
+    // would cause a Lighthouse a11y violation: aria-expanded is invalid on a div
+    // without a matching ARIA role.
+    <Container
+      height="100%"
+      right="0"
+      {...props}
+      width={isMobile ? '100%' : `${size}px`}
+      ref={isMobile ? undefined : containerRef}
+      {...{
+        [NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE]: true,
+      }}
     >
-      {({ref, 'aria-expanded': _ariaExpanded, ...props}) => (
-        // aria-expanded is omitted here because TourGuide passes it via useOverlay's
-        // triggerProps (designed for button/disclosure triggers), but this element is
-        // a plain container div with no role that supports aria-expanded. Spreading it
-        // would cause a Lighthouse a11y violation: aria-expanded is invalid on a div
-        // without a matching ARIA role.
-        <Container
+      <AnimatePresence mode="popLayout" initial={false}>
+        <MotionContainer
+          width="100%"
           height="100%"
-          right="0"
-          {...props}
-          width={isMobilePageFrame ? '100%' : `${size}px`}
-          ref={isMobilePageFrame ? undefined : mergeRefs(resizableContainerRef, ref)}
-          {...{
-            [NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE]: true,
-          }}
+          key={activeGroup}
+          initial={{x: -6, opacity: 0}}
+          animate={{x: 0, opacity: 1}}
+          exit={{x: 6, opacity: 0}}
+          transition={{duration: 0.06}}
         >
-          <AnimatePresence mode="popLayout" initial={false}>
-            <MotionContainer
-              width="100%"
-              height="100%"
-              key={activeGroup}
-              initial={{x: -6, opacity: 0}}
-              animate={{x: 0, opacity: 1}}
-              exit={{x: 6, opacity: 0}}
-              transition={{duration: 0.06}}
-            >
-              <Grid
-                rows="auto 1fr auto"
-                role="navigation"
-                aria-label="Secondary Navigation"
-                height="100%"
-              >
-                {children}
-              </Grid>
-              <Container
-                top="0"
-                right="0"
-                bottom="0"
-                width="8px"
-                radius="lg"
-                position="absolute"
-                display={isMobilePageFrame ? 'none' : undefined}
-              >
-                {p => (
-                  <ResizeHandle
-                    {...p}
-                    ref={resizeHandleRef}
-                    onMouseDown={handleStartResize}
-                    onDoubleClick={() => {
-                      setSecondarySidebarWidth(SECONDARY_SIDEBAR_WIDTH);
-                    }}
-                    atMinWidth={size === SECONDARY_SIDEBAR_MIN_WIDTH}
-                    atMaxWidth={size === SECONDARY_SIDEBAR_MAX_WIDTH}
-                  />
-                )}
-              </Container>
-            </MotionContainer>
-          </AnimatePresence>
-        </Container>
-      )}
-    </SecondarySidebarWrapper>
+          <Grid
+            rows="auto 1fr auto"
+            role="navigation"
+            aria-label="Secondary Navigation"
+            height="100%"
+          >
+            {children}
+          </Grid>
+          <Container
+            top="0"
+            right="0"
+            bottom="0"
+            width="8px"
+            radius="lg"
+            position="absolute"
+            display={isMobile ? 'none' : undefined}
+          >
+            {p => (
+              <ResizeHandle
+                {...p}
+                ref={resizeHandleRef}
+                onMouseDown={handleStartResize}
+                onDoubleClick={() => {
+                  setSecondarySidebarWidth(SECONDARY_SIDEBAR_WIDTH);
+                }}
+                atMinWidth={size === SECONDARY_SIDEBAR_MIN_WIDTH}
+                atMaxWidth={size === SECONDARY_SIDEBAR_MAX_WIDTH}
+              />
+            )}
+          </Container>
+        </MotionContainer>
+      </AnimatePresence>
+    </Container>
   );
 }
 
@@ -248,9 +266,10 @@ interface SecondaryNavigationItemProps extends Omit<LinkProps, 'ref' | 'to'> {
   children: ReactNode;
   to: To;
   /**
-   * Will display the link as active under the given path.
+   * Will display the link as active under the given path. Pass a list of paths
+   * to display the link as active when any of them match.
    */
-  activeTo?: To;
+  activeTo?: To | To[];
   analyticsItemName?: string;
   /**
    * When passed, will not show the link as active for descendant paths.
@@ -259,7 +278,6 @@ interface SecondaryNavigationItemProps extends Omit<LinkProps, 'ref' | 'to'> {
   end?: boolean;
   isActive?: boolean;
   leadingItems?: ReactNode;
-  showInteractionStateLayer?: boolean;
   trailingItems?: ReactNode;
 }
 
@@ -271,29 +289,23 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
   const {layout} = usePrimaryNavigation();
   const {view, setView} = useSecondaryNavigation();
   const isCollapsed = view !== 'expanded';
-  const isMobilePageFrame = layout === 'mobile';
+  const isMobile = layout === 'mobile';
 
   return (
     <Grid
       columns="1fr auto"
       align="center"
       borderBottom="primary"
-      height={
-        isMobilePageFrame
-          ? `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`
-          : `${PRIMARY_HEADER_HEIGHT}px`
-      }
-      padding={isMobilePageFrame ? 'md lg' : '0 md 0 xl'}
+      height={`${PRIMARY_HEADER_HEIGHT}px`}
+      padding={isMobile ? 'md lg' : '0 md 0 xl'}
     >
+      <Text size="md" bold>
+        {props.children}
+      </Text>
       <div>
-        <Text size="md" bold>
-          {props.children}
-        </Text>
-      </div>
-      <div>
-        {isMobilePageFrame ? (
+        {isMobile ? (
           <Button
-            size="xs"
+            size="sm"
             icon={<IconClose />}
             aria-label={isCollapsed ? t('Expand') : t('Collapse')}
             onClick={() => setView(view === 'expanded' ? 'collapsed' : 'expanded')}
@@ -301,7 +313,7 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
           />
         ) : (
           <Button
-            size="xs"
+            size="sm"
             icon={<IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />}
             aria-label={isCollapsed ? t('Expand') : t('Collapse')}
             onClick={() => setView(view === 'expanded' ? 'collapsed' : 'expanded')}
@@ -341,7 +353,6 @@ interface SectionTitleProps {
   children: ReactNode;
   isCollapsed: boolean;
   setIsCollapsed: (isCollapsed: boolean) => void;
-  trailingItems?: ReactNode;
 }
 
 function SectionTitle(props: SectionTitleProps) {
@@ -359,17 +370,11 @@ function SectionTitle(props: SectionTitleProps) {
               {props.children}
             </Text>
             <Flex align="center" flexShrink={0} aria-hidden="true">
-              {props.trailingItems ? (
-                <div onClick={e => e.stopPropagation()}>{props.trailingItems}</div>
-              ) : (
-                props.canCollapse && (
-                  <IconChevron
-                    direction={props.isCollapsed ? 'down' : 'up'}
-                    size="xs"
-                    variant="muted"
-                  />
-                )
-              )}
+              <IconChevron
+                direction={props.isCollapsed ? 'down' : 'up'}
+                size="xs"
+                variant="muted"
+              />
             </Flex>
           </Button>
         )}
@@ -382,9 +387,6 @@ function SectionTitle(props: SectionTitleProps) {
       <Text bold ellipsis align="left">
         {props.children}
       </Text>
-      <Flex justify="end" align="center" flexShrink={0}>
-        {props.trailingItems}
-      </Flex>
     </Grid>
   );
 }
@@ -392,26 +394,22 @@ function SectionTitle(props: SectionTitleProps) {
 interface SecondaryNavigationSectionProps {
   children: ReactNode;
   id: string;
-  collapsible?: boolean;
   title?: ReactNode;
-  trailingItems?: ReactNode;
 }
 
 function SecondaryNavigationSection(props: SecondaryNavigationSectionProps) {
-  const collapsible = props.collapsible ?? true;
   const {layout} = usePrimaryNavigation();
   const [isCollapsedState, setIsCollapsedState] = useLocalStorageState(
     `secondary-nav-section-${props.id}-collapsed`,
     false
   );
-  const canCollapse = collapsible && layout === 'sidebar';
+  const canCollapse = layout === 'sidebar';
   const isCollapsed = canCollapse ? isCollapsedState : false;
 
   return (
     <Container padding="md sm" data-nav-section>
       {props.title ? (
         <SectionTitle
-          trailingItems={props.trailingItems}
           canCollapse={canCollapse}
           isCollapsed={isCollapsed}
           setIsCollapsed={setIsCollapsedState}
@@ -438,15 +436,19 @@ function SecondaryNavigationLink({
   onClick,
   ...linkProps
 }: SecondaryNavigationItemProps) {
-  const organization = useOrganization();
+  const organization = useOrganization({allowNull: true});
   const location = useLocation();
+  const activeToList = Array.isArray(activeTo) ? activeTo : [activeTo];
   const isActive =
-    incomingIsActive ?? isPrimaryNavigationLinkActive(activeTo, location.pathname, {end});
+    incomingIsActive ??
+    activeToList.some(path =>
+      isPrimaryNavigationLinkActive(path, location.pathname, {end})
+    );
 
   const {layout, features} = usePrimaryNavigation();
   const {reset: closeCollapsedNavigationHovercard} = useHovercardContext();
   const {setView} = useSecondaryNavigation();
-  const isMobilePageFrame = layout === 'mobile';
+  const isMobile = layout === 'mobile';
 
   const sharedLinkProps = {
     ...linkProps,
@@ -465,9 +467,9 @@ function SecondaryNavigationLink({
       // this will dismiss it when clicking on a link.
       closeCollapsedNavigationHovercard();
 
-      // On touch devices with page frame, close the nav panel when navigating to a secondary item.
-      // MobilePageFrameNavigation watches for view === 'collapsed' and calls setIsOpen(false).
-      if (isMobilePageFrame && !features.hover) {
+      // On touch mobile devices, close the nav panel when navigating to a secondary item.
+      // MobileNavigation watches for view === 'collapsed' and calls setIsOpen(false).
+      if (isMobile && !features.hover) {
         setView('collapsed');
       }
 
@@ -476,13 +478,13 @@ function SecondaryNavigationLink({
   };
 
   return (
-    <PageFrameSidebarNavigationLink {...sharedLinkProps}>
+    <SidebarNavigationLink {...sharedLinkProps}>
       {leadingItems}
       <Text ellipsis variant="inherit">
         {children}
       </Text>
       {trailingItems}
-    </PageFrameSidebarNavigationLink>
+    </SidebarNavigationLink>
   );
 }
 
@@ -500,49 +502,8 @@ interface SecondaryNavigationProjectIconProps {
 }
 
 function SecondaryNavigationProjectIcon(props: SecondaryNavigationProjectIconProps) {
-  let icons: React.ReactNode;
-
-  switch (props.projectPlatforms.length) {
-    case 0:
-      icons = props.allProjects ? (
-        <IconAllProjects size="md" aria-hidden="true" />
-      ) : (
-        <IconMyProjects size="md" aria-hidden="true" />
-      );
-      break;
-    case 1:
-      icons = (
-        <PlatformIcon platform={props.projectPlatforms[0]!} size={16} aria-hidden />
-      );
-      break;
-    default:
-      icons = (
-        <Fragment>
-          <Container position="absolute" top="0" right="6px" width="12px" height="12px">
-            {p => (
-              <PlatformIcon
-                {...p}
-                platform={props.projectPlatforms[0]!}
-                size={12}
-                aria-hidden
-              />
-            )}
-          </Container>
-          <Container position="absolute" bottom="0" right="0" width="12px" height="12px">
-            {p => (
-              <PlatformIcon
-                {...p}
-                platform={props.projectPlatforms[1]!}
-                size={12}
-                aria-hidden
-              />
-            )}
-          </Container>
-        </Fragment>
-      );
-  }
-
   return (
+    // Keep the 18×18 nav-specific outer Stack; ProjectsBadge renders at 16×16 inside it.
     <Stack
       flexShrink={0}
       justify="center"
@@ -553,7 +514,10 @@ function SecondaryNavigationProjectIcon(props: SecondaryNavigationProjectIconPro
       data-project-icon
       aria-hidden="true"
     >
-      {icons}
+      <ProjectsBadge
+        projectPlatforms={props.projectPlatforms}
+        allProjects={props.allProjects}
+      />
     </Stack>
   );
 }
@@ -738,7 +702,7 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>(
   // See: https://github.com/clauderic/dnd-kit/issues/921
   const [items, setItems] = useState(props.items);
   useEffect(() => {
-    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state, react/set-state-in-effect
     setItems(props.items);
   }, [props.items]);
 
@@ -801,12 +765,16 @@ function SecondaryNavigationReorderableLink({
 }: SecondaryNavigationReorderableLinkProps) {
   const organization = useOrganization();
   const location = useLocation();
+  const activeToList = Array.isArray(activeTo) ? activeTo : [activeTo];
   const isActive =
-    incomingIsActive ?? isPrimaryNavigationLinkActive(activeTo, location.pathname, {end});
+    incomingIsActive ??
+    activeToList.some(path =>
+      isPrimaryNavigationLinkActive(path, location.pathname, {end})
+    );
   const {layout, features} = usePrimaryNavigation();
   const {reset: closeCollapsedNavigationHovercard} = useHovercardContext();
   const {setView} = useSecondaryNavigation();
-  const isMobilePageFrame = layout === 'mobile';
+  const isMobile = layout === 'mobile';
 
   function handleClick(e: React.MouseEvent<HTMLAnchorElement>) {
     // Let the browser handle modifier clicks so the view opens in a new tab/window.
@@ -821,9 +789,9 @@ function SecondaryNavigationReorderableLink({
     }
     closeCollapsedNavigationHovercard();
 
-    // On touch devices with page frame, close the nav panel when navigating to a secondary item.
-    // MobilePageFrameNavigation watches for view === 'collapsed' and calls setIsOpen(false).
-    if (isMobilePageFrame && !features.hover) {
+    // On touch mobile devices, close the nav panel when navigating to a secondary item.
+    // MobileNavigation watches for view === 'collapsed' and calls setIsOpen(false).
+    if (isMobile && !features.hover) {
       setView('collapsed');
     }
 
@@ -850,9 +818,9 @@ function SecondaryNavigationReorderableLink({
 
   return (
     <Fragment>
-      <StyledPageFrameReorderableLink {...sharedProps} layout="sidebar">
+      <StyledReorderableLink {...sharedProps} layout="sidebar">
         {content}
-      </StyledPageFrameReorderableLink>
+      </StyledReorderableLink>
       <GrabHandle />
     </Fragment>
   );
@@ -930,7 +898,7 @@ const DotIndicator = styled('div')<{variant: 'accent' | 'danger' | 'warning'}>`
   border: 2px solid ${p => p.theme.tokens.border[p.variant].muted};
 `;
 
-const StyledPageFrameReorderableLink = styled(Link, {
+const StyledReorderableLink = styled(Link, {
   shouldForwardProp: prop => prop !== 'layout',
 })<{
   layout: 'mobile' | 'sidebar';
@@ -981,7 +949,7 @@ const StyledPageFrameReorderableLink = styled(Link, {
   }
 `;
 
-const PageFrameSidebarNavigationLink = styled(Link)`
+const SidebarNavigationLink = styled(Link)`
   display: flex;
   gap: ${p => p.theme.space.sm};
   justify-content: center;

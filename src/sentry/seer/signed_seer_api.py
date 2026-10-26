@@ -1,19 +1,23 @@
 import hashlib
 import hmac
 import logging
+from dataclasses import replace
 from typing import Any, Literal, NotRequired, TypedDict
 from urllib.parse import urlparse
 
 import orjson
 from django.conf import settings
+from sentry_sdk import traces
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry
 
 from sentry.net.http import connection_from_url
 from sentry.utils import metrics
-from sentry.utils.tracing import trace
 from sentry.viewer_context import (
+    Actor,
+    ActorType,
     ViewerContext,
     encode_viewer_context,
+    get_acting_user_id,
     get_viewer_context,
     observe_viewer_context_propagation,
 )
@@ -55,12 +59,13 @@ seer_grouping_default_connection_pool = connection_from_url(
 
 def _resolve_viewer_context(
     explicit: SeerViewerContext | None = None,
+    endpoint: str | None = None,
 ) -> ViewerContext | None:
     """Merge explicit SeerViewerContext with the contextvar.
 
     Converts the legacy SeerViewerContext into a ViewerContext, then merges
     with the contextvar. Explicit non-None fields win. On disagreement,
-    logs a warning and strips the token for safety.
+    logs a warning and strips actor elevation for safety.
     """
     vc = get_viewer_context()
 
@@ -69,53 +74,89 @@ def _resolve_viewer_context(
     if explicit is None:
         return vc
 
-    explicit_vc = ViewerContext(
-        organization_id=explicit.get("organization_id"),
-        user_id=explicit.get("user_id"),
-    )
+    explicit_org_id = explicit.get("organization_id")
+    explicit_user_id = explicit.get("user_id")
 
     if vc is None:
-        return explicit_vc
+        logger.warning(
+            "seer.viewer_context_not_set",
+            extra={
+                "explicit_org_id": explicit_org_id,
+                "explicit_user_id": explicit_user_id,
+                "endpoint": endpoint,
+            },
+        )
+        metrics.incr(
+            "seer.viewer_context_resolution",
+            tags={"outcome": "contextvar_missing", "endpoint": endpoint or "unknown"},
+        )
+        return ViewerContext(
+            actor=Actor(type=ActorType.USER, actor_id=explicit_user_id)
+            if explicit_user_id is not None
+            else Actor(type=ActorType.UNKNOWN),
+            organization_id=explicit_org_id,
+        )
 
     has_mismatch = False
     org_id = vc.organization_id
-    user_id = vc.user_id
+    user_id = get_acting_user_id(vc)
+    actor = vc.actor
 
-    if explicit_vc.organization_id is not None:
-        if org_id is not None and org_id != explicit_vc.organization_id:
+    if explicit_org_id is not None:
+        if org_id is not None and org_id != explicit_org_id:
             logger.warning(
                 "seer.viewer_context_mismatch",
                 extra={
                     "field": "organization_id",
                     "contextvar": org_id,
-                    "explicit": explicit_vc.organization_id,
+                    "explicit": explicit_org_id,
+                    "endpoint": endpoint,
                 },
             )
             has_mismatch = True
-        org_id = explicit_vc.organization_id
+        org_id = explicit_org_id
 
-    if explicit_vc.user_id is not None:
-        if user_id is not None and user_id != explicit_vc.user_id:
+    if explicit_user_id is not None:
+        # A service account is its own principal; never re-attribute it to a human.
+        is_service_account = actor.type == ActorType.SERVICE_ACCOUNT
+        if (user_id is not None or is_service_account) and user_id != explicit_user_id:
             logger.warning(
                 "seer.viewer_context_mismatch",
                 extra={
                     "field": "user_id",
                     "contextvar": user_id,
-                    "explicit": explicit_vc.user_id,
+                    "explicit": explicit_user_id,
+                    "endpoint": endpoint,
                 },
             )
             has_mismatch = True
-        user_id = explicit_vc.user_id
+        if actor.type == ActorType.USER:
+            actor = replace(actor, actor_id=explicit_user_id)
+        elif actor.type == ActorType.AGENT:
+            actor = replace(actor, delegated_user_id=explicit_user_id)
+        elif not is_service_account:
+            actor = Actor(type=ActorType.USER, actor_id=explicit_user_id)
 
-    return ViewerContext(
-        organization_id=org_id,
-        user_id=user_id,
-        actor_type=vc.actor_type,
-        token=None if has_mismatch else vc.token,
+    metrics.incr(
+        "seer.viewer_context_resolution",
+        tags={
+            "outcome": "mismatch" if has_mismatch else "match",
+            "has_project": str(vc.project_id is not None).lower(),
+            "endpoint": endpoint or "unknown",
+        },
     )
 
+    if has_mismatch:
+        return replace(
+            vc,
+            organization_id=org_id,
+            actor=replace(actor, superuser=None),
+            project_id=None,
+        )
+    return replace(vc, organization_id=org_id, actor=actor)
 
-@trace
+
+@traces.trace
 def make_signed_seer_api_request(
     connection_pool: HTTPConnectionPool,
     path: str,
@@ -125,7 +166,14 @@ def make_signed_seer_api_request(
     metric_tags: dict[str, Any] | None = None,
     method: str = "POST",
     viewer_context: SeerViewerContext | None = None,
+    metrics_endpoint: str | None = None,
 ) -> BaseHTTPResponse:
+    """Send a signed request to Seer.
+
+    All outbound Sentry-to-Seer HTTP requests must go through this function so
+    ViewerContext propagation, signing, tracing, and metrics remain consistent.
+    Use metrics_endpoint as a low-cardinality endpoint tag when the request path varies.
+    """
     host = connection_pool.host
     if connection_pool.port:
         host += ":" + str(connection_pool.port)
@@ -140,7 +188,7 @@ def make_signed_seer_api_request(
         **auth_headers,
     }
 
-    resolved = _resolve_viewer_context(viewer_context)
+    resolved = _resolve_viewer_context(viewer_context, endpoint=metrics_endpoint or parsed.path)
     observe_viewer_context_propagation("seer_rpc_out", ctx=resolved)
     if resolved:
         try:
@@ -161,18 +209,25 @@ def make_signed_seer_api_request(
 
     request_target = f"{parsed.path}?{parsed.query}" if parsed.query else parsed.path
 
+    timer_tags = {"endpoint": parsed.path, **(metric_tags or {})}
+    if metrics_endpoint is not None:
+        timer_tags["endpoint"] = metrics_endpoint
+
     with metrics.timer(
         "seer.request_to_seer",
         sample_rate=1.0,
-        tags={"endpoint": parsed.path, **(metric_tags or {})},
-    ):
-        return connection_pool.urlopen(
+        tags=timer_tags,
+    ) as tags:
+        tags["status_class"] = "error"
+        response = connection_pool.urlopen(
             method,
             request_target,
             body=body,
             headers=headers,
             **options,
         )
+        tags["status_class"] = f"{response.status // 100}xx"
+        return response
 
 
 class OrgProjectKnowledgeProjectData(TypedDict):
@@ -240,6 +295,13 @@ class LlmGenerateRequest(TypedDict):
     response_schema: NotRequired[dict[str, Any]]
     timeout: NotRequired[float | None]
     reasoning: NotRequired[Literal["off", "low", "med", "high"] | None]
+    # Groups this call's gen_ai spans into a Sentry AI Monitoring conversation.
+    # Seer cannot infer identity for a proxied call, so omitting this (or passing
+    # None) means "not part of any conversation" and the spans carry no
+    # conversation id. Prefer a stable subject key (e.g. f"autofix_{run_id}");
+    # pass None for calls that are not conversations, such as classification,
+    # scoring, or telemetry processing.
+    conversation_id: NotRequired[str | None]
 
 
 class OneShotRunRequest(TypedDict):
@@ -486,13 +548,6 @@ class SearchAgentStateRequest(TypedDict):
     organization_id: int
 
 
-class TranslateQueryRequest(TypedDict):
-    org_id: int
-    org_slug: str
-    project_ids: list[int]
-    natural_language_query: str
-
-
 class SearchAgentStartRequest(TypedDict):
     org_id: int
     org_slug: str
@@ -511,12 +566,9 @@ class TranslateAgenticRequest(TypedDict):
     project_ids: list[int]
     natural_language_query: str
     strategy: str
+    user_email: NotRequired[str]
+    timezone: NotRequired[str]
     options: NotRequired[dict[str, Any]]
-
-
-class CreateCacheRequest(TypedDict):
-    org_id: int
-    project_ids: list[int]
 
 
 class CompareDistributionsRequest(TypedDict):
@@ -640,20 +692,6 @@ def make_search_agent_state_request(
     )
 
 
-def make_translate_query_request(
-    body: TranslateQueryRequest,
-    timeout: int | float | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        seer_autofix_default_connection_pool,
-        "/v1/assisted-query/translate",
-        body=orjson.dumps(body),
-        timeout=timeout,
-        viewer_context=viewer_context,
-    )
-
-
 def make_search_agent_start_request(
     body: SearchAgentStartRequest,
     timeout: int | float | None = None,
@@ -676,20 +714,6 @@ def make_translate_agentic_request(
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
         "/v1/assisted-query/translate-agentic",
-        body=orjson.dumps(body),
-        timeout=timeout,
-        viewer_context=viewer_context,
-    )
-
-
-def make_create_cache_request(
-    body: CreateCacheRequest,
-    timeout: int | float | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        seer_autofix_default_connection_pool,
-        "/v1/assisted-query/create-cache",
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,
@@ -724,6 +748,7 @@ def make_delete_grouping_records_by_project_request(
         seer_grouping_default_connection_pool,
         f"/v0/issues/similar-issues/grouping-record/delete/{project_id}",
         body=b"",
+        metrics_endpoint="/v0/issues/similar-issues/grouping-record/delete/:project_id",
         method="GET",
         timeout=timeout,
         viewer_context=viewer_context,

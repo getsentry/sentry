@@ -172,5 +172,6 @@ export function useViewKeyboardNavigation(
       document.removeEventListener('keyup', onKeyUp, KEYDOWN_LISTENER_OPTIONS);
       document.removeEventListener('keydown', onKeyDown, KEYDOWN_LISTENER_OPTIONS);
     };
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [view, canvasPoolManager, pixelInConfigSpace]);
 }

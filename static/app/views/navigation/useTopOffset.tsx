@@ -1,39 +1,40 @@
-import {useTheme} from '@emotion/react';
-
 import {getOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {useMedia} from 'sentry/utils/useMedia';
+import {useIsSeerExplorerSidebarEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
-  NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME,
   PRIMARY_HEADER_HEIGHT,
   SUPERUSER_MARQUEE_HEIGHT,
 } from 'sentry/views/navigation/constants';
 
-interface TopOffset {
-  /** The `top` CSS value for the sticky bar itself */
-  barTop: string;
-  /** The total offset where content below the bar should start */
-  contentTop: string;
-}
-
-export function useTopOffset(): TopOffset {
-  const theme = useTheme();
+export function useTopOffset() {
   const organization = useOrganization({allowNull: true});
-  const isMobile = !useMedia(`(min-width: ${theme.breakpoints.md})`);
   const showSuperuserWarning =
     isActiveSuperuser() &&
     !ConfigStore.get('isSelfHosted') &&
     !getOverride('component:superuser-warning-excluded')?.(organization);
 
   const superuserOffset = showSuperuserWarning ? SUPERUSER_MARQUEE_HEIGHT : 0;
-  const headerHeight = isMobile
-    ? NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME
-    : PRIMARY_HEADER_HEIGHT;
+  // In the Seer Explorer sidebar layout the content pane is its own scroll
+  // container and already sits below the marquee. Otherwise the window scrolls,
+  // so in-page stickies have to clear the fixed marquee themselves.
+  const isPaneScroller = useIsSeerExplorerSidebarEnabled();
+  const pageTopOffset = isPaneScroller ? 0 : superuserOffset;
+  const headerHeight = PRIMARY_HEADER_HEIGHT;
 
   return {
+    /** The `top` CSS value for the sticky nav sidebar itself (marquee only) */
     barTop: `${superuserOffset}px`,
+    /**
+     * Offset from the viewport top, past the marquee and the header. For
+     * viewport-fixed overlays (drawers, the widget builder) that anchor to the
+     * screen, not to the scrolling content pane.
+     */
     contentTop: `${superuserOffset + headerHeight}px`,
-  };
+    /** The `top` CSS value for the sticky TopBar inside the page content */
+    topBarTop: `${pageTopOffset}px`,
+    /** Offset for sticky content inside the page content, below the sticky TopBar */
+    pageContentTop: `${pageTopOffset + headerHeight}px`,
+  } as const;
 }

@@ -30,9 +30,9 @@ from sentry.notifications.platform.target import (
     PreparedIntegrationNotificationTarget,
 )
 from sentry.notifications.platform.threading import ThreadContext
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
     LinkTextBlock,
-    NotificationCategory,
     NotificationData,
     NotificationProviderKey,
     NotificationRenderedTemplate,
@@ -64,11 +64,13 @@ class SlackRenderable(TypedDict):
 
 
 class SlackRenderer(NotificationRenderer[SlackRenderable]):
-    provider_key = NotificationProviderKey.SLACK
-
     @classmethod
     def render[DataT: NotificationData](
-        cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
+        cls,
+        *,
+        data: DataT,
+        rendered_template: NotificationRenderedTemplate,
+        link_decorator: NotificationLinkDecorator,
     ) -> SlackRenderable:
         # Slack does not support rich text in the subject
         subject_block = HeaderBlock(text=PlainTextObject(text=rendered_template.subject_text))
@@ -144,26 +146,6 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
         return False
 
     @classmethod
-    def get_renderer(
-        cls, *, data: NotificationData, category: NotificationCategory
-    ) -> type[NotificationRenderer[SlackRenderable]]:
-        from sentry.notifications.platform.slack.renderers.issue import (
-            IssueSlackRenderer,
-        )
-        from sentry.notifications.platform.slack.renderers.metric_alert import (
-            SlackMetricAlertRenderer,
-        )
-        from sentry.notifications.platform.slack.renderers.seer import SeerSlackRenderer
-
-        if category == NotificationCategory.SEER:
-            return SeerSlackRenderer
-        if category == NotificationCategory.ISSUE:
-            return IssueSlackRenderer
-        if category == NotificationCategory.METRIC_ALERT:
-            return SlackMetricAlertRenderer
-        return cls.default_renderer
-
-    @classmethod
     def send(
         cls,
         *,
@@ -188,13 +170,13 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
             )
 
         try:
-            slack_target.integration_installation.send_notification(
+            response = slack_target.integration_installation.send_notification(
                 target=target, payload=renderable
             )
         except IntegrationError as e:
             return integration_error_result(e)
 
-        return SendSuccessResult()
+        return SendSuccessResult(provider_message_id=response.get("ts"))
 
     @classmethod
     def _send_with_threading(
@@ -209,12 +191,16 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
         )
 
         try:
-            response = slack_target.integration_installation.send_notification_with_threading(
+            response = slack_target.integration_installation.send_notification_with_response(
                 target=slack_target.target,
                 payload=renderable,
                 threading_context=provider_threading_ctx,
             )
-            return SendSuccessResult(provider_message_id=response.get("ts"), is_threaded=True)
+            return SendSuccessResult(
+                provider_message_id=response.get("ts"),
+                is_threaded=True,
+                thread_identifier=provider_threading_ctx.thread_ts,
+            )
         except IntegrationError as e:
             return integration_error_result(e, is_threaded=True)
 
@@ -222,3 +208,4 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
 @provider_registry.register(NotificationProviderKey.SLACK_STAGING)
 class SlackStagingNotificationProvider(SlackNotificationProvider):
     key = NotificationProviderKey.SLACK_STAGING
+    renderer_key = NotificationProviderKey.SLACK

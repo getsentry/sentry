@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 
-import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
-import {GridEditable} from 'sentry/components/tables/gridEditable';
+import {DataGrid, type GridColumnOrder} from 'sentry/components/tables/dataGrid';
 import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
 import {
@@ -136,10 +135,9 @@ export default Storybook.story('Grid Cell Components', story => {
 
   story('TitleCell', () => (
     <Fragment>
-      <GridEditable
+      <DataGrid
         data={data}
         columnOrder={TitleTable}
-        columnSortBy={[]}
         grid={{
           renderHeadCell,
           renderBodyCell,
@@ -150,10 +148,9 @@ export default Storybook.story('Grid Cell Components', story => {
 
   story('ActionCell', () => (
     <Fragment>
-      <GridEditable
+      <DataGrid
         data={data}
         columnOrder={actionTable}
-        columnSortBy={[]}
         grid={{
           renderHeadCell,
           renderBodyCell,
@@ -164,10 +161,9 @@ export default Storybook.story('Grid Cell Components', story => {
 
   story('TimeAgoCell', () => (
     <Fragment>
-      <GridEditable
+      <DataGrid
         data={data}
         columnOrder={timeAgoTable}
-        columnSortBy={[]}
         grid={{
           renderHeadCell,
           renderBodyCell,
@@ -178,10 +174,9 @@ export default Storybook.story('Grid Cell Components', story => {
 
   story('ConnectionCell', () => (
     <Fragment>
-      <GridEditable
+      <DataGrid
         data={data}
         columnOrder={linkedGroupsTable}
-        columnSortBy={[]}
         grid={{
           renderHeadCell,
           renderBodyCell,
@@ -192,10 +187,9 @@ export default Storybook.story('Grid Cell Components', story => {
 
   story('NumberCell', () => (
     <Fragment>
-      <GridEditable
+      <DataGrid
         data={data}
         columnOrder={openIssuesTable}
-        columnSortBy={[]}
         grid={{
           renderHeadCell,
           renderBodyCell,
@@ -206,10 +200,9 @@ export default Storybook.story('Grid Cell Components', story => {
 
   story('UserCell', () => (
     <Fragment>
-      <GridEditable
+      <DataGrid
         data={data}
         columnOrder={userTable}
-        columnSortBy={[]}
         grid={{
           renderHeadCell,
           renderBodyCell,

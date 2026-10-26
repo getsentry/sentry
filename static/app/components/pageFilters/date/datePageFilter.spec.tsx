@@ -48,6 +48,7 @@ describe('DatePageFilter', () => {
     expect(PageFiltersStore.getState()).toEqual({
       isReady: true,
       shouldPersist: true,
+      adjustments: {},
       pinnedFilters: new Set(['projects', 'environments', 'datetime']),
       selection: {
         datetime: {
@@ -96,6 +97,7 @@ describe('DatePageFilter', () => {
     expect(PageFiltersStore.getState()).toEqual({
       isReady: true,
       shouldPersist: true,
+      adjustments: {},
       pinnedFilters: new Set(['projects', 'environments', 'datetime']),
       selection: {
         datetime: {

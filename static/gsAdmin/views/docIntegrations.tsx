@@ -5,33 +5,34 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 
+import {ResultGrid} from 'sentry/components/resultGrid';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import type {DocIntegration} from 'sentry/types/integrations';
 
 import {DocIntegrationModal} from 'admin/components/docIntegrationModal';
 import {PageHeader} from 'admin/components/pageHeader';
-import {ResultGrid} from 'admin/components/resultGrid';
 
 const getRow = (doc: DocIntegration) => [
-  <td key="name" style={{textAlign: 'left'}}>
+  <SimpleTable.RowCell key="name">
     <Flex align="center" gap="md">
       <DocIntegrationAvatar size={16} docIntegration={doc} />
       <strong>
         <Link to={`/_admin/doc-integrations/${doc.slug}/`}>{doc.name}</Link>
       </strong>
     </Flex>
-  </td>,
+  </SimpleTable.RowCell>,
 
-  <td key="author" style={{textAlign: 'center'}}>
+  <SimpleTable.RowCell key="author" justify="center">
     {doc.author}
-  </td>,
-  <td key="popularity" style={{textAlign: 'center'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="popularity" justify="center">
     {doc.popularity}
-  </td>,
-  <td key="status" style={{textAlign: 'right'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="status" justify="end">
     <Tag variant={doc.isDraft ? 'warning' : 'success'}>
       {doc.isDraft ? 'draft' : 'published'}
     </Tag>
-  </td>,
+  </SimpleTable.RowCell>,
 ];
 
 export function DocIntegrations() {
@@ -53,20 +54,11 @@ export function DocIntegrations() {
         inPanel
         path="/_admin/doc-integrations/"
         endpoint="/doc-integrations/"
-        method="GET"
         columns={[
-          <th key="name" style={{width: 150, textAlign: 'left'}}>
-            Author
-          </th>,
-          <th key="author" style={{width: 150, textAlign: 'center'}}>
-            Author
-          </th>,
-          <th key="popularity" style={{width: 150, textAlign: 'center'}}>
-            Popularity ⭐
-          </th>,
-          <th key="status" style={{width: 150, textAlign: 'right'}}>
-            Status
-          </th>,
+          {key: 'name', label: 'Name', width: 150},
+          {key: 'author', label: 'Author', width: 150, align: 'center'},
+          {key: 'popularity', label: 'Popularity ⭐', width: 150, align: 'center'},
+          {key: 'status', label: 'Status', width: 150, align: 'right'},
         ]}
         columnsForRow={getRow}
       />

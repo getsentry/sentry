@@ -1,0 +1,32 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
+import {render, waitFor} from 'sentry-test/reactTestingLibrary';
+
+import DiscoverContainer from 'sentry/views/discover';
+
+describe('DiscoverContainer', () => {
+  const organization = OrganizationFixture({
+    slug: 'org-slug',
+    features: ['discover-basic'],
+  });
+
+  it('redirects /explore/discover/ to /explore/errors/', async () => {
+    const {router} = render(<DiscoverContainer />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/discover/queries/',
+          query: {foo: 'bar'},
+        },
+        route: '/organizations/:orgId/explore/discover/:tab/',
+      },
+    });
+
+    await waitFor(() => {
+      expect(router.location.pathname).toBe(
+        '/organizations/org-slug/explore/errors/queries/'
+      );
+    });
+    expect(router.location.query).toEqual({foo: 'bar'});
+  });
+});

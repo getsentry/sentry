@@ -1,6 +1,5 @@
 import {useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
-import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {Stack} from '@sentry/scraps/layout';
 
@@ -11,6 +10,7 @@ import {
   useJumpButtons,
   type VisibleRange,
 } from 'sentry/components/replays/useJumpButtons';
+import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {t} from 'sentry/locale';
 import {useCrumbHandlers} from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
@@ -54,7 +54,7 @@ export function Console() {
     [items]
   );
 
-  const virtualizer = useVirtualizer({
+  const {totalSize, virtualItems, virtualizer} = useVirtualRows({
     count: items.length,
     getScrollElement: () => scrollContainerRef.current,
     estimateSize: () => ESTIMATED_ROW_HEIGHT,
@@ -62,8 +62,6 @@ export function Console() {
     getItemKey,
     useAnimationFrameWithResizeObserver: true,
   });
-
-  const virtualItems = virtualizer.getVirtualItems();
 
   // Derive visible range from virtual items for jump buttons,
   // filtering out overscan items that are outside the viewport.
@@ -143,8 +141,9 @@ export function Console() {
                 {t('No console logs recorded')}
               </NoRowRenderer>
             ) : (
-              <VirtualizedContent style={{height: virtualizer.getTotalSize()}}>
+              <VirtualizedContent style={{height: totalSize}}>
                 <VirtualOffset offset={virtualItems[0]?.start ?? 0}>
+                  {/* oxlint-disable-next-line react/refs */}
                   {virtualItems.map(virtualItem => {
                     const item = items[virtualItem.index]!;
                     return (

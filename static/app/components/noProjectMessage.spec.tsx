@@ -12,6 +12,7 @@ import {TeamStore} from 'sentry/stores/teamStore';
 describe('NoProjectMessage', () => {
   beforeEach(() => {
     ProjectsStore.reset();
+    ConfigStore.set('user', {...ConfigStore.get('user'), isSuperuser: false});
   });
 
   const org = OrganizationFixture();
@@ -132,6 +133,50 @@ describe('NoProjectMessage', () => {
       'aria-disabled',
       'true'
     );
+  });
+
+  it('renders children when the user has access without project membership', () => {
+    ProjectsStore.loadInitialData([ProjectFixture({hasAccess: true, isMember: false})]);
+
+    render(
+      <NoProjectMessage organization={org}>
+        <div data-test-id="child">Test</div>
+      </NoProjectMessage>
+    );
+
+    expect(screen.getByTestId('child')).toBeInTheDocument();
+    expect(
+      screen.queryByText('You need at least one project to use this view')
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders children for non-superusers when superuserNeedsToBeProjectMember', () => {
+    ProjectsStore.loadInitialData([ProjectFixture({hasAccess: true, isMember: false})]);
+
+    render(
+      <NoProjectMessage organization={org} superuserNeedsToBeProjectMember>
+        <div data-test-id="child">Test</div>
+      </NoProjectMessage>
+    );
+
+    expect(screen.getByTestId('child')).toBeInTheDocument();
+    expect(
+      screen.queryByText('You need at least one project to use this view')
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows empty message to non-members when requireProjectMembership', () => {
+    ProjectsStore.loadInitialData([ProjectFixture({hasAccess: true, isMember: false})]);
+
+    render(
+      <NoProjectMessage organization={org} requireProjectMembership>
+        {null}
+      </NoProjectMessage>
+    );
+
+    expect(
+      screen.getByText('You need at least one project to use this view')
+    ).toBeInTheDocument();
   });
 
   it('shows empty message to superusers that are not members', () => {

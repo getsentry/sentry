@@ -1,11 +1,12 @@
-import {useEffect} from 'react';
+import {Fragment, useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import connectDotsImg from 'sentry-images/spot/performance-connect-dots.svg';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
@@ -13,10 +14,8 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
-import {
-  OnboardingCopyMarkdownButton,
-  useCopySetupInstructionsEnabled,
-} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
+import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {
   StepIndexProvider,
   TabSelectionScope,
@@ -40,27 +39,41 @@ import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeInteger} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
+import {useEventWaiter} from 'sentry/utils/useEventWaiter';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {ExploreQuotaExceededAlert} from 'sentry/views/explore/components/exploreQuotaExceededAlert';
 import {
   ExploreBodySearch,
   ExploreFilterSection,
 } from 'sentry/views/explore/components/styles';
 import {SetupLogsButton} from 'sentry/views/explore/logs/setupLogsButton';
 import {StyledPageFilterBar} from 'sentry/views/explore/logs/styles';
-
-// eslint-disable-next-line boundaries/dependencies
-import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+import {
+  toLLMContextProjectFields,
+  useSelectedProjectsForLLMContext,
+} from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
 type OnboardingProps = {
   organization: Organization;
   project: Project;
 };
+
+const AI_SETUP_PROMPT =
+  'Please instrument Sentry logging. Include some examples following best practices.';
+
+const INSTALL_PLUGIN_COMMAND = `npx @sentry/ai install "${AI_SETUP_PROMPT}"`;
+
+const AGENT_PLUGIN_DOCS_URL = 'https://docs.sentry.io/ai/agent-plugin/';
 
 const LOG_DRAIN_PLATFORM_DOCS: Record<string, {name: string; url: string}> = {
   'node-cloudflare-pages': {
@@ -79,9 +92,9 @@ function LogDrainsLink({project}: {project: Project}) {
     : undefined;
 
   return (
-    <LogDrainsLinkWrapper>
+    <Container paddingTop="xl">
       <BodyTitle>{t('Log Drains and Forwarders')}</BodyTitle>
-      <SubTitle>
+      <Container marginBottom="md">
         {platformDoc
           ? tct(
               'You can use [link:Log Drains] to send logs from platforms like [platformLink], or via the [otlpLink:OpenTelemetry Collector].',
@@ -107,8 +120,8 @@ function LogDrainsLink({project}: {project: Project}) {
                 ),
               }
             )}
-      </SubTitle>
-    </LogDrainsLinkWrapper>
+      </Container>
+    </Container>
   );
 }
 
@@ -119,48 +132,115 @@ function OnboardingPanel({
   children: React.ReactNode;
   project: Project;
 }) {
+  const organization = useOrganization();
+
+  const doesNotSupportLogging = project.platform
+    ? withoutLoggingSupport.has(project.platform)
+    : false;
+
+  const receivedFirstLog = !!useEventWaiter({
+    eventType: 'log',
+    organization,
+    project,
+    disabled: doesNotSupportLogging,
+  });
+
+  const trackPromptCopied = (source: 'install_command' | 'prompt') => {
+    trackAnalytics('onboarding.ai_prompt_copied', {
+      organization,
+      platform: project.platform ?? 'unknown',
+      product: 'logs',
+      source,
+    });
+  };
+
   return (
     <Panel>
       <PanelBody>
         <AuthTokenGeneratorProvider projectSlug={project?.slug}>
           <TabSelectionScope>
             <div>
-              <HeaderWrapper>
-                <HeaderText>
-                  <Title>{t('Your Source for Log-ical Data')}</Title>
-                  <SubTitle>
-                    {t(
-                      "It's about time we offered something a bit more robust than breadcrumbs. With logs, you'll be able to have a lot more control and context over all your data."
-                    )}
-                  </SubTitle>
+              <Flex justify="between" gap="2xl" radius="md" padding="3xl">
+                <Container flex={{zero: 1, xl: 0.65}}>
+                  <Title>{t('Logs in Sentry')}</Title>
+                  <Container marginBottom="md">
+                    {t('Search and visualize application logs at scale.')}
+                  </Container>
                   <BulletList>
-                    <li>
-                      {t('Access logs in real time and query them by any attribute')}
-                    </li>
-                    <li>
-                      {t('Correlate your logs with errors and traces for full context')}
-                    </li>
+                    <li>{t('View logs in context with errors and traces')}</li>
+                    <li>{t('Query, filter, and group logs by any attribute')}</li>
                     <li>
                       {t('Build alerts and dashboard widgets based on log queries')}
                     </li>
                   </BulletList>
-                </HeaderText>
-                <Image src={connectDotsImg} />
-              </HeaderWrapper>
+                </Container>
+                <Container display={{zero: 'none', xl: 'block'}}>
+                  {imageProps => <Image {...imageProps} src={connectDotsImg} />}
+                </Container>
+              </Flex>
               <Divider />
               <Body>
                 <Setup>
                   {children}
                   <LogDrainsLink project={project} />
                 </Setup>
-                <Preview>
-                  <BodyTitle>{t('Preview a Sentry Log')}</BodyTitle>
-                  <Arcade
-                    src="https://demo.arcade.software/dLjHGrPJITrt7JKpmX5V?embed"
-                    loading="lazy"
-                    allowFullScreen
-                  />
-                </Preview>
+                <Container padding="3xl">
+                  {doesNotSupportLogging ? (
+                    // Platforms without logging support can't run the AI-assisted
+                    // setup (and would never receive a first log), so show the
+                    // product preview instead of the setup prompts.
+                    <Fragment>
+                      <BodyTitle>{t('Preview a Sentry Log')}</BodyTitle>
+                      <Arcade
+                        src="https://demo.arcade.software/dLjHGrPJITrt7JKpmX5V?embed"
+                        loading="lazy"
+                        allowFullScreen
+                      />
+                    </Fragment>
+                  ) : (
+                    <Fragment>
+                      <BodyTitle>
+                        <Flex align="center" gap="sm">
+                          {t('AI-Assisted Setup')}
+                          <FeatureBadge type="experimental" />
+                        </Flex>
+                      </BodyTitle>
+                      <Container marginBottom="md">
+                        {tct(
+                          'First, run this command to install the [pluginLink:Sentry plugin]:',
+                          {pluginLink: <ExternalLink href={AGENT_PLUGIN_DOCS_URL} />}
+                        )}
+                      </Container>
+                      <Container marginTop="md" marginBottom="2xl">
+                        <OnboardingCodeSnippet
+                          language="bash"
+                          onCopy={() => trackPromptCopied('install_command')}
+                        >
+                          {INSTALL_PLUGIN_COMMAND}
+                        </OnboardingCodeSnippet>
+                      </Container>
+                      <Container marginBottom="md">
+                        {t('Then paste this in your agent of choice:')}
+                      </Container>
+                      <Container marginTop="md" marginBottom="2xl">
+                        <OnboardingCodeSnippet
+                          language="text"
+                          onCopy={() => trackPromptCopied('prompt')}
+                        >
+                          {AI_SETUP_PROMPT}
+                        </OnboardingCodeSnippet>
+                      </Container>
+                      {receivedFirstLog ? (
+                        <EventReceivedIndicator />
+                      ) : (
+                        <EventWaitingIndicator />
+                      )}
+                    </Fragment>
+                  )}
+                </Container>
+                {doesNotSupportLogging ? null : (
+                  <OrDivider aria-hidden>{t('OR')}</OrDivider>
+                )}
               </Body>
             </div>
           </TabSelectionScope>
@@ -182,7 +262,6 @@ function Onboarding({organization, project}: OnboardingProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
-  const copyEnabled = useCopySetupInstructionsEnabled();
   const currentPlatform = project.platform
     ? platforms.find(p => p.id === project.platform)
     : undefined;
@@ -305,7 +384,6 @@ function Onboarding({organization, project}: OnboardingProps) {
       data: registryData,
     },
     platformOptions: [ProductSolution.LOGS],
-    newOrg: false,
     feedbackOptions: {},
     urlPrefix,
     isSelfHosted,
@@ -340,7 +418,7 @@ function Onboarding({organization, project}: OnboardingProps) {
               stepKey={title}
               title={title}
               trailingItems={
-                index === 0 && copyEnabled ? (
+                index === 0 ? (
                   <OnboardingCopyMarkdownButton
                     borderless
                     steps={steps}
@@ -373,12 +451,40 @@ function Onboarding({organization, project}: OnboardingProps) {
   );
 }
 
-const SubTitle = styled('div')`
-  margin-bottom: ${p => p.theme.space.md};
+const PulsingIndicator = styled('div')`
+  ${pulsingIndicatorStyles};
+  flex-shrink: 0;
 `;
 
-const LogDrainsLinkWrapper = styled('div')`
-  padding-top: ${p => p.theme.space.xl};
+const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (
+  <div {...p}>
+    {t("Waiting for this project's first log")}
+    <PulsingIndicator />
+  </div>
+))`
+  display: flex;
+  align-items: center;
+  position: relative;
+  padding: 0 ${p => p.theme.space.md};
+  z-index: 10;
+  gap: ${p => p.theme.space.md};
+  flex-grow: 1;
+  font-size: ${p => p.theme.font.size.md};
+  color: ${p => p.theme.colors.pink500};
+  padding-right: ${p => p.theme.space['3xl']};
+`;
+
+const EventReceivedIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (
+  <div {...p}>
+    {'🎉 '}
+    {t("We've received this project's first log!")}
+  </div>
+))`
+  display: flex;
+  align-items: center;
+  flex-grow: 1;
+  font-size: ${p => p.theme.font.size.md};
+  color: ${p => p.theme.tokens.content.success};
 `;
 
 const Title = styled('div')`
@@ -396,22 +502,6 @@ const BulletList = styled('ul')`
   }
 `;
 
-const HeaderWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  gap: ${p => p.theme.space['2xl']};
-  border-radius: ${p => p.theme.radius.md};
-  padding: ${p => p.theme.space['3xl']};
-`;
-
-const HeaderText = styled('div')`
-  flex: 0.65;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    flex: 1;
-  }
-`;
-
 const Setup = styled('div')`
   padding: ${p => p.theme.space['3xl']};
 
@@ -425,8 +515,20 @@ const Setup = styled('div')`
   }
 `;
 
-const Preview = styled('div')`
-  padding: ${p => p.theme.space['3xl']};
+// Sits on top of the vertical divider (Setup's :after) at the horizontal center
+// of Body, with a panel-colored background to break the line.
+const OrDivider = styled('div')`
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  padding: ${p => p.theme.space.sm};
+  background: ${p => p.theme.tokens.background.primary};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  letter-spacing: 0.05em;
 `;
 
 const Body = styled('div')`
@@ -441,20 +543,15 @@ const Body = styled('div')`
 `;
 
 const Image = styled('img')`
-  display: block;
   pointer-events: none;
   height: 120px;
   overflow: hidden;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: none;
-  }
 `;
 
 const Divider = styled('hr')`
   height: 1px;
   width: 95%;
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   background: ${p => p.theme.tokens.border.primary};
   border: none;
   margin-top: 0;
@@ -469,21 +566,29 @@ const Arcade = styled('iframe')`
   border: 0;
 `;
 
-const OnboardingContainer = styled('div')`
-  margin-top: ${p => p.theme.space.md};
-`;
-
 type LogsTabOnboardingProps = {
   datePageFilterProps: DatePageFilterProps;
   organization: Organization;
   project: Project;
 };
 
-export function LogsTabOnboarding({
+function LogsTabOnboardingInner({
   organization,
   project,
   datePageFilterProps,
 }: LogsTabOnboardingProps) {
+  const selectedProjects = useSelectedProjectsForLLMContext();
+
+  useLLMContext({
+    contextHint:
+      'Sentry logs explorer page. Shows setup instructions because the selected projects have not sent any logs yet. ' +
+      'onboardingProject is the project the setup instructions are for. ' +
+      'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
+      'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction.',
+    onboardingProject: {slug: project.slug, platform: project.platform},
+    ...toLLMContextProjectFields(selectedProjects),
+  });
+
   return (
     <ExploreBodySearch>
       <Layout.Main width="full">
@@ -497,11 +602,16 @@ export function LogsTabOnboarding({
             <SetupLogsButton />
           </Flex>
         </ExploreFilterSection>
-        <OnboardingContainer>
-          <QuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
+        <Container marginTop="md">
+          <ExploreQuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
           <Onboarding project={project} organization={organization} />
-        </OnboardingContainer>
+        </Container>
       </Layout.Main>
     </ExploreBodySearch>
   );
 }
+
+export const LogsTabOnboarding = registerLLMContext(
+  'logs-explorer',
+  LogsTabOnboardingInner
+);

@@ -7,7 +7,6 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import control_silo_test, create_test_cells
-from sentry.utils import json
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 
@@ -77,11 +76,11 @@ class TestRegionApp(TestCase):
         assert requests and len(requests) == 1
         assert requests[0].error_id == "abc123"
         assert requests[0].project_id == 1
-        assert requests[0].request_body == json.dumps(mock_request.body)
+        assert requests[0].request_body == mock_request.body
         assert requests[0].request_headers == {
             "Content-Type": "application/json",
         }
-        assert requests[0].response_body == json.dumps(mock_response.content)
+        assert requests[0].response_body == mock_response.content
 
     def test_get_filtered_buffer_requests_for_cell(self) -> None:
         buffer = SentryAppWebhookRequestsBuffer(self.app)

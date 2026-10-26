@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {AvatarProject} from 'sentry/types/project';
+import {TopBar} from 'sentry/views/navigation/topBar';
 
 interface WorkflowEngineDetailLayoutProps {
   /**
@@ -22,15 +22,14 @@ function DetailLayoutComponent({children}: WorkflowEngineDetailLayoutProps) {
   return <Stack flex={1}>{children}</Stack>;
 }
 
-const StyledBody = styled(Layout.Body)`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space['2xl']};
-`;
-
 interface RequiredChildren {
   children: React.ReactNode;
 }
+
+function Body({children}: RequiredChildren) {
+  return <Layout.Body gap="2xl">{children}</Layout.Body>;
+}
+
 function Main({children}: RequiredChildren) {
   return (
     <Layout.Main>
@@ -49,7 +48,7 @@ function Sidebar({children}: RequiredChildren) {
 function Title({title, project}: {title: string; project?: AvatarProject}) {
   return (
     <Fragment>
-      <Layout.Title>{title}</Layout.Title>
+      <TopBar.Slot name="breadcrumbs" title={{type: 'page-title', label: title}} />
       {project && (
         <Flex align="center" padding="md 0">
           <ProjectBadge project={project} disableLink avatarSize={16} />
@@ -60,7 +59,7 @@ function Title({title, project}: {title: string; project?: AvatarProject}) {
 }
 
 export const DetailLayout = Object.assign(DetailLayoutComponent, {
-  Body: StyledBody,
+  Body,
   Main,
   Sidebar,
   Title,

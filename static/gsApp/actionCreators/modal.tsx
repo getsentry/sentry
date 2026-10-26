@@ -28,37 +28,14 @@ type TrialModalProps = {
   organization: Organization;
 };
 
-type PartnerPlanModalProps = {
-  organization: Organization;
-  subscription: Subscription;
-};
-
-function genTrialModalOnClose(
-  options: TrialModalProps,
-  type: 'trialEnd' | 'forcedTrial'
-) {
-  let feature: string, subField: string;
-  switch (type) {
-    case 'trialEnd':
-      feature = 'trial_ended_notice';
-      subField = 'hasDismissedTrialEndingNotice';
-      break;
-    case 'forcedTrial':
-      feature = 'forced_trial_notice';
-      subField = 'hasDismissedForcedTrialNotice';
-      break;
-    default:
-      throw new Error('Unexpected type');
-  }
+function genTrialEndingModalOnClose(options: TrialModalProps) {
   const api = new Client();
   const promptParams = {
     organization: options.organization,
-    feature,
+    feature: 'trial_ended_notice',
     status: 'dismissed',
   } as const;
-  const subUpdate = {
-    [subField]: true,
-  } as const;
+  const subUpdate = {hasDismissedTrialEndingNotice: true} as const;
 
   // Handle marking the feature prompt as seen when the modal is
   // closed
@@ -72,36 +49,7 @@ export async function openTrialEndingModal(options: TrialModalProps) {
   const {default: Modal, modalCss} =
     await import('getsentry/components/trialEndingModal');
 
-  const onClose = genTrialModalOnClose(options, 'trialEnd');
-
-  openModal(deps => <Modal {...deps} {...options} />, {modalCss, onClose});
-}
-
-export async function openForcedTrialModal(options: TrialModalProps) {
-  const {default: Modal, modalCss} =
-    await import('getsentry/components/forcedTrialModal');
-
-  const onClose = genTrialModalOnClose(options, 'forcedTrial');
-
-  openModal(deps => <Modal {...deps} {...options} />, {
-    modalCss,
-    onClose,
-  });
-}
-
-export async function openPartnerPlanEndingModal(options: PartnerPlanModalProps) {
-  const {default: Modal, modalCss} =
-    await import('getsentry/components/partnerPlanEndingModal');
-  const api = new Client();
-  const promptParams = {
-    organization: options.organization,
-    feature: 'partner_plan_ending_modal',
-    status: 'dismissed',
-  } as const;
-
-  const onClose = () => {
-    promptsUpdate(api, promptParams);
-  };
+  const onClose = genTrialEndingModalOnClose(options);
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss, onClose});
 }
@@ -115,7 +63,8 @@ interface OpenOnDemandBudgetEditModalProps {
 export async function openOnDemandBudgetEditModal(
   options: OpenOnDemandBudgetEditModalProps
 ) {
-  const {default: Modal} = await import('getsentry/views/spendLimits/editModal');
+  const {SpendLimitsEditModal: Modal} =
+    await import('getsentry/views/spendLimits/editModal');
   const {theme, organization, subscription} = options;
   const hasBillingPerms = hasBillingAccess(organization);
   const canUsePayg = supportsPayg(subscription);
@@ -136,7 +85,7 @@ export async function openOnDemandBudgetEditModal(
 
 const onDemandBudgetEditModalCss = (theme: Theme) => css`
   @media (min-width: ${theme.breakpoints.md}) {
-    width: 1000px;
+    width: 800px;
   }
 `;
 
@@ -159,7 +108,6 @@ type UpsellModalProps = {
   reservations: Reservations;
   subscription: Subscription;
   surface: AM2UpdateSurfaces;
-  isActionDisabled?: boolean;
   onComplete?: () => void;
 };
 
@@ -190,7 +138,6 @@ export async function openAM2UpsellModalSamePrice(options: UpsellModalSamePriceP
 type ProfilingUpsellModalProps = {
   organization: Organization;
   subscription: Subscription;
-  isActionDisabled?: boolean;
   onComplete?: () => void;
 };
 

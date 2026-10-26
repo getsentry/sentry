@@ -1,11 +1,13 @@
 import {useCallback, useEffect} from 'react';
 
 import {createStorage} from 'sentry/utils/createStorage';
-import type {WidgetType} from 'sentry/views/dashboards/types';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import {convertWidgetToBuilderState} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import {canUseMetricsDashboardTable} from 'sentry/views/explore/metrics/metricsFlags';
 
 const WIDGET_BUILDER_DATASET_STATE_KEY = 'dashboards:widget-builder:dataset';
 
@@ -26,6 +28,7 @@ function cleanUpDatasetState() {
  */
 export function useCacheBuilderState() {
   const {state, dispatch} = useWidgetBuilderContext();
+  const organization = useOrganization();
 
   useEffect(() => {
     // Remove all cached dataset states when the component mounts
@@ -53,9 +56,14 @@ export function useCacheBuilderState() {
         `${WIDGET_BUILDER_DATASET_STATE_KEY}:${nextDataset}`
       );
       if (previousDatasetState) {
-        const builderState = convertWidgetToBuilderState(
-          JSON.parse(previousDatasetState)
-        );
+        const cachedWidget = JSON.parse(previousDatasetState);
+        const displayType =
+          nextDataset === WidgetType.TRACEMETRICS &&
+          cachedWidget.displayType === DisplayType.TABLE &&
+          !canUseMetricsDashboardTable(organization)
+            ? DisplayType.LINE
+            : cachedWidget.displayType;
+        const builderState = convertWidgetToBuilderState({...cachedWidget, displayType});
         dispatch({
           type: BuilderStateAction.SET_STATE,
           payload: {...builderState, title: state.title, description: state.description},
@@ -67,7 +75,7 @@ export function useCacheBuilderState() {
         });
       }
     },
-    [dispatch, state.title, state.description]
+    [dispatch, organization, state.title, state.description]
   );
 
   return {

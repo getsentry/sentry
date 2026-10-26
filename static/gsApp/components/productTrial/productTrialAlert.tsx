@@ -1,12 +1,12 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/close';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
 import type {Client} from 'sentry/api';
-import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -112,7 +112,7 @@ export function ProductTrialAlert(props: ProductTrialAlertProps) {
         {t('Learn More')}
       </LinkButton>
     );
-  } else if (daysLeft > 0 && daysLeft <= 7 && trial.isStarted) {
+  } else if (daysLeft >= 0 && daysLeft <= 7 && trial.isStarted) {
     alertHeader = t('%s Trial', titleCase(getProductName(trial.category)));
     if (isPaid && categoryUsesOnDemand) {
       alertText = t(

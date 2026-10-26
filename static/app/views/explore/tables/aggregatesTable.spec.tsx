@@ -1,12 +1,14 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {TagCollection} from 'sentry/types/group';
 import {EventView} from 'sentry/utils/discover/eventView';
+import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
@@ -144,6 +146,100 @@ describe('AggregatesTable', () => {
     ProjectsStore.reset();
   });
 
+  it('shows the query timeout message instead of a generic loading error', () => {
+    render(
+      <AggregatesTableWithParamsProvider
+        aggregatesTableResult={createAggregatesTableResult({
+          result: {
+            error: new QueryError(
+              'Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects.'
+            ),
+            isError: true,
+            isFetched: false,
+            isPending: false,
+          },
+        })}
+      />,
+      {organization, initialRouterConfig}
+    );
+
+    expect(
+      screen.getByText(
+        'Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects.'
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('There was an error loading data.')
+    ).not.toBeInTheDocument();
+  });
+
+  it.each(['slug', 'id'] as const)(
+    'preserves project icons after sorting projects represented by %s',
+    async projectField => {
+      const projects = [
+        ProjectFixture({id: '1', slug: 'frontend', platform: 'javascript-react'}),
+        ProjectFixture({id: '2', slug: 'backend', platform: 'python-django'}),
+      ];
+      ProjectsStore.loadInitialData(projects);
+      const data = projects.map((item, index) => ({
+        project: projectField === 'slug' ? item.slug : Number(item.id),
+        'count()': 10 - index,
+      }));
+      const tableResult = createAggregatesTableResult({
+        eventView: EventView.fromLocation(
+          LocationFixture({query: {field: ['project', 'count()']}})
+        ),
+        result: {
+          data,
+          meta: {
+            fields: {project: 'string', 'count()': 'integer'},
+            units: {},
+          },
+        },
+      });
+
+      const {rerender, router} = render(
+        <AggregatesTableWithParamsProvider aggregatesTableResult={tableResult} />,
+        {
+          organization,
+          initialRouterConfig: {
+            ...initialRouterConfig,
+            location: {
+              ...initialRouterConfig.location,
+              query: {...initialRouterConfig.location.query, groupBy: 'project'},
+            },
+          },
+        }
+      );
+
+      function expectProjectIcons(expectedProjects = projects) {
+        const badges = screen.getAllByRole('link', {name: 'View Project Details'});
+        for (const [index, item] of expectedProjects.entries()) {
+          const badge = badges[index]!;
+          expect(within(badge).getByText(item.slug)).toBeInTheDocument();
+          expect(
+            within(badge).getByTestId(`platform-icon-${item.platform}`)
+          ).toBeInTheDocument();
+        }
+      }
+
+      expectProjectIcons();
+      await userEvent.click(screen.getByRole('button', {name: 'count()'}));
+      expect(router.location.query.aggregateSort).toBe('count()');
+
+      rerender(
+        <AggregatesTableWithParamsProvider
+          aggregatesTableResult={{
+            ...tableResult,
+            result: {...tableResult.result, data: data.toReversed()},
+          }}
+        />
+      );
+
+      expectProjectIcons(projects.toReversed());
+    }
+  );
+
   it('opens a view samples dropdown from the samples icon', async () => {
     render(
       <AggregatesTableWithParamsProvider
@@ -174,7 +270,7 @@ describe('AggregatesTable', () => {
       {initialRouterConfig, organization}
     );
 
-    await userEvent.click(screen.getAllByRole('button', {name: 'Actions'})[0]!);
+    await userEvent.click(screen.getByRole('button', {name: 'View Samples'}));
 
     const viewSamplesItem = await screen.findByRole('menuitemradio', {
       name: 'View Samples',
@@ -208,6 +304,49 @@ describe('AggregatesTable', () => {
     expect(
       screen.queryByRole('menuitemradio', {name: 'Add to filter'})
     ).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['id', 'span-id'],
+    ['trace', 'trace-id'],
+  ])('does not link aggregate %s values', (field, value) => {
+    const eventView = EventView.fromLocation(
+      LocationFixture({query: {field: [field, 'count()']}})
+    );
+
+    render(
+      <AggregatesTableWithParamsProvider
+        aggregatesTableResult={createAggregatesTableResult({
+          eventView,
+          result: {
+            data: [{[field]: value, 'count()': 1}],
+            meta: {
+              fields: {
+                [field]: FieldValueType.STRING,
+                'count()': FieldValueType.INTEGER,
+              },
+              units: {},
+            },
+          },
+        })}
+      />,
+      {
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              ...initialRouterConfig.location.query,
+              groupBy: field,
+            },
+          },
+        },
+        organization,
+      }
+    );
+
+    expect(screen.getByText(value)).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: value})).not.toBeInTheDocument();
   });
 
   it('uses validated field types when aggregate metadata is missing', async () => {
@@ -256,6 +395,13 @@ describe('AggregatesTable', () => {
     );
 
     await userEvent.click(screen.getByText('123'));
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+
+    await userEvent.click(
+      within(screen.getByRole('cell', {name: '123'})).getByRole('button', {
+        name: 'Actions',
+      })
+    );
 
     expect(
       await screen.findByRole('menuitemradio', {name: 'Show values greater than'})

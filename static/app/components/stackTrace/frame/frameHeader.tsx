@@ -1,6 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -102,11 +103,11 @@ export function FrameHeader({actions}: FrameHeaderProps) {
         <FrameContext frame={frame} platform={platform} />
       </MainContent>
 
-      <ActionArea>
+      <Flex align="center" gap="xs" minWidth="0">
         <TrailingActions data-test-id="core-stacktrace-frame-trailing">
           {resolvedActions}
         </TrailingActions>
-      </ActionArea>
+      </Flex>
     </HeaderGrid>
   );
 }
@@ -129,7 +130,10 @@ function FrameLocation({
   const frameLocationSuffix = formatFrameLocation('', frame.lineNo, frame.colNo);
 
   return (
-    <LocationWrapper>
+    <LocationWrapper
+      hasFunction={!!(frame.function ?? frame.rawFunction)}
+      isExpanded={isExpanded}
+    >
       {!isExpanded && leadsToApp ? (
         <LeadHint>
           {getLeadHint({event, hasNextFrame})}
@@ -169,20 +173,36 @@ function FrameContext({frame, platform}: {frame: Frame; platform: PlatformKey}) 
   return (
     <ContextWrapper>
       {hasFrameFunction ? (
-        <Fragment>
+        <Flex
+          as="span"
+          display="inline-flex"
+          align="baseline"
+          flex="0 1 auto"
+          gap="sm"
+          minWidth="0"
+          overflow="hidden"
+        >
           <Text as="span" size="xs" variant="muted" monospace>
             {t('in')}
           </Text>
           <FuncName>{frameFunctionName}</FuncName>
-        </Fragment>
+        </Flex>
       ) : null}
       {showPackage ? (
-        <Fragment>
+        <Flex
+          as="span"
+          display="inline-flex"
+          align="baseline"
+          flex="0 999 auto"
+          gap="sm"
+          minWidth="0"
+          overflow="hidden"
+        >
           <Text as="span" size="xs" variant="muted" monospace>
             {t('within')}
           </Text>
           <PkgName>{frame.package}</PkgName>
-        </Fragment>
+        </Flex>
       ) : null}
     </ContextWrapper>
   );
@@ -199,10 +219,7 @@ function FrameLocationTooltip({
 }) {
   const externalUrl =
     frame.absPath && isValidUrl(frame.absPath) ? frame.absPath : undefined;
-  const absPath =
-    frame.absPath && frame.absPath !== frameDisplayPath && !externalUrl
-      ? frame.absPath
-      : undefined;
+  const absPath = externalUrl ? undefined : frame.absPath || frameDisplayPath;
   const sourceMap = frame.mapUrl ?? frame.map;
   const showSourceMap = !!frame.origAbsPath && !!sourceMap;
 
@@ -214,7 +231,7 @@ function FrameLocationTooltip({
         <TooltipContent>
           {absPath ? (
             <Fragment>
-              <strong>{t('Absolute Path')}</strong>
+              <strong>{frame.absPath ? t('Absolute Path') : t('Path')}</strong>
               <span>{absPath}</span>
             </Fragment>
           ) : null}
@@ -245,7 +262,6 @@ function FrameLocationTooltip({
       maxWidth={475}
       skipWrapper
       delay={1000}
-      isHoverable
     >
       {children}
     </Tooltip>
@@ -254,6 +270,7 @@ function FrameLocationTooltip({
 
 const HeaderGrid = styled('div')<{isExpandable: boolean; hasLeadHint?: boolean}>`
   display: grid;
+  container-type: inline-size;
   grid-template-columns: minmax(0, 1fr) min-content;
   gap: ${p => p.theme.space.sm};
   align-items: center;
@@ -281,25 +298,21 @@ const MainContent = styled('div')<{isExpanded: boolean; isMuted: boolean}>`
   min-width: 0;
 `;
 
-const ActionArea = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  min-width: 0;
-`;
-
 const TrailingActions = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${p => p.theme.space.xs};
+  gap: ${p => p.theme.space['2xs']};
   margin-left: auto;
 `;
 
-const LocationWrapper = styled('span')`
+const LocationWrapper = styled('span')<{
+  hasFunction: boolean;
+  isExpanded: boolean;
+}>`
   display: inline-flex;
   align-items: baseline;
   min-width: 0;
-  max-width: 100%;
+  max-width: ${p => (!p.isExpanded && p.hasFunction ? '55%' : '100%')};
   flex: 0 1 auto;
   overflow: hidden;
 `;
@@ -333,7 +346,7 @@ const Path = styled('span')`
 const ContextWrapper = styled('span')`
   display: inline-flex;
   align-items: baseline;
-  flex: 0 999 auto;
+  flex: 0 1 auto;
   gap: ${p => p.theme.space.sm};
   max-width: 100%;
   min-width: 0;

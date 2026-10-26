@@ -1,16 +1,37 @@
 from __future__ import annotations
 
+from typing import Any, NotRequired, TypedDict
+
 from sentry.api.serializers import Serializer, register
 from sentry.api.serializers.base import serialize
+from sentry.sentry_apps.api.serializers.sentry_app_avatar import SentryAppAvatarSerializerResponse
 from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.sentry_apps.services.app import SentryAppEventDataInterface
+from sentry.sentry_apps.utils.errors import SentryAppPublicErrorBody
+
+
+class SentryAppComponentAppResponse(TypedDict):
+    uuid: str
+    slug: str
+    name: str
+    avatars: list[SentryAppAvatarSerializerResponse]
+
+
+class SentryAppComponentSerializerResponse(TypedDict):
+    uuid: str
+    type: str
+    schema: dict[str, Any]
+    error: str | SentryAppPublicErrorBody
+    sentryApp: SentryAppComponentAppResponse
+    installationUuid: NotRequired[str]
 
 
 @register(SentryAppComponent)
-class SentryAppComponentSerializer(Serializer):
-    def serialize(self, obj, attrs, user, **kwargs):
+class SentryAppComponentSerializer(Serializer[SentryAppComponentSerializerResponse]):
+    def serialize(self, obj, attrs, user, **kwargs) -> SentryAppComponentSerializerResponse:
         errors = kwargs["errors"]
-        return {
+        installation_uuids: dict[int, str] | None = kwargs.get("installation_uuids")
+        data: SentryAppComponentSerializerResponse = {
             "uuid": str(obj.uuid),
             "type": obj.type,
             "schema": obj.schema,
@@ -22,6 +43,9 @@ class SentryAppComponentSerializer(Serializer):
                 "avatars": [serialize(avatar) for avatar in obj.sentry_app.avatar.all()],
             },
         }
+        if installation_uuids is not None:
+            data["installationUuid"] = installation_uuids[obj.sentry_app_id]
+        return data
 
 
 class SentryAppAlertRuleActionSerializer(Serializer):

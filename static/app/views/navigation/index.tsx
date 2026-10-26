@@ -5,12 +5,12 @@ import {useHotkeys} from '@sentry/scraps/hotkey';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
+import {HoverOverlayGroupProvider} from '@sentry/scraps/useHoverOverlay';
 
 import {GlobalCommandPaletteActions} from 'sentry/components/commandPalette/ui/commandPaletteGlobalActions';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {CommandPaletteHotkeys} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import {t} from 'sentry/locale';
-import {HoverOverlayGroupProvider} from 'sentry/utils/useHoverOverlay';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {MobileNavigation} from 'sentry/views/navigation/mobileNavigation';
 import {Navigation as DesktopNavigation} from 'sentry/views/navigation/navigation';
@@ -18,8 +18,6 @@ import {
   NavigationTourProvider,
   useNavigationTour,
 } from 'sentry/views/navigation/navigationTour';
-import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
-import {UserDropdown} from 'sentry/views/navigation/primary/userDropdown';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {
   MobileSecondaryNavigationContextProvider,
@@ -51,7 +49,8 @@ function CommandPaletteSlotOutlets() {
   );
 }
 
-function UserAndOrganizationNavigation() {
+function UserAndOrganizationNavigation({pageBannerHeight}: NavigationProps) {
+  const organization = useOrganization({allowNull: true});
   const {layout} = usePrimaryNavigation();
   const {visible} = useModal();
   const {view, setView} = useSecondaryNavigation();
@@ -68,10 +67,10 @@ function UserAndOrganizationNavigation() {
   );
 
   return (
-    <NavigationLayout>
+    <NavigationLayout pageBannerHeight={pageBannerHeight}>
       <CommandPaletteHotkeys />
       <CommandPaletteSlotOutlets />
-      <GlobalCommandPaletteActions />
+      {organization && <GlobalCommandPaletteActions />}
       {layout === 'mobile' ? (
         <MobileSecondaryNavigationContextProvider>
           <MobileNavigation />
@@ -83,15 +82,14 @@ function UserAndOrganizationNavigation() {
   );
 }
 
-function UserOnlyNavigation() {
-  return (
-    <PrimaryNavigation.Sidebar data-test-id="no-organization-sidebar">
-      <UserDropdown />
-    </PrimaryNavigation.Sidebar>
-  );
+interface NavigationProps {
+  pageBannerHeight?: number;
 }
 
-function NavigationLayout({children}: {children: React.ReactNode}) {
+function NavigationLayout({
+  children,
+  pageBannerHeight = 0,
+}: NavigationProps & {children: React.ReactNode}) {
   const theme = useTheme();
   const {layout} = usePrimaryNavigation();
   const {currentStepId} = useNavigationTour();
@@ -100,11 +98,19 @@ function NavigationLayout({children}: {children: React.ReactNode}) {
 
   return (
     <Flex
+      data-navigation-component="navigation-layout"
       top={barTop}
       left={0}
       position={currentStepId ? undefined : 'sticky'}
       bottom={layout === 'mobile' ? undefined : 0}
-      height={layout === 'mobile' ? undefined : `calc(100dvh - ${barTop})`}
+      height={
+        layout === 'mobile'
+          ? undefined
+          : // barTop (marquee) and pageBannerHeight (marquee + alerts) overlap, so
+            // max not sum; barTop also floors the height while pageBannerHeight's
+            // ResizeObserver still reports 0 on first paint.
+            `calc(100dvh - max(${barTop}, ${pageBannerHeight}px))`
+      }
       style={{
         zIndex: currentStepId ? undefined : theme.zIndex.sidebarPanel,
         userSelect: 'none',
@@ -116,23 +122,12 @@ function NavigationLayout({children}: {children: React.ReactNode}) {
   );
 }
 
-export function Navigation() {
-  const organization = useOrganization({allowNull: true});
-
-  if (!organization) {
-    // @TODO(JonasBadalic): When this page gets any content, we should add the skip link back in.
-    return (
-      <HoverOverlayGroupProvider>
-        <UserOnlyNavigation />
-      </HoverOverlayGroupProvider>
-    );
-  }
-
+export function Navigation({pageBannerHeight = 0}: NavigationProps) {
   return (
     <HoverOverlayGroupProvider>
       <NavigationTourProvider>
         <SkipLink />
-        <UserAndOrganizationNavigation />
+        <UserAndOrganizationNavigation pageBannerHeight={pageBannerHeight} />
       </NavigationTourProvider>
     </HoverOverlayGroupProvider>
   );

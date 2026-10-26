@@ -9,8 +9,10 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import type {LogsQueryInfo} from 'sentry/components/exports/dataExport';
-import {LogsExportModalButton} from 'sentry/views/explore/logs/exports/logsExportModalButton';
+import {
+  LogsExportModalButton,
+  type LogsQueryInfo,
+} from 'sentry/views/explore/logs/exports/logsExportModalButton';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
 const mockTrackAnalytics = jest.fn();
@@ -35,6 +37,7 @@ describe('LogsExportModalButton', () => {
     field: ['message'],
     project: [1],
     query: '',
+    sampling: 'HIGHEST_ACCURACY',
     sort: ['-timestamp'],
   };
 
@@ -51,13 +54,14 @@ describe('LogsExportModalButton', () => {
         isLoading={false}
         queryInfo={queryInfo}
         supportsAllColumns
+        supportsLocalDownload={false}
         tableData={tableData}
         title="Logs Export"
       />,
       {organization}
     );
     renderGlobalModal();
-    await userEvent.click(screen.getByRole('button', {name: 'Export Data'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Export'}));
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
   }
 

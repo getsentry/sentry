@@ -1,6 +1,9 @@
 import {memo, useCallback, useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconClose} from '@sentry/icons/close';
+import {IconSeer} from '@sentry/icons/seer';
 
 import {Alert} from '@sentry/scraps/alert';
 import {FeatureBadge} from '@sentry/scraps/badge';
@@ -8,11 +11,9 @@ import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
-import {IconChevron, IconClose, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import type {PendingUserInput} from 'sentry/views/seerExplorer/types';
-import type {Block} from 'sentry/views/seerExplorer/types';
+import type {PendingUserInput, Block} from 'sentry/views/seerExplorer/types';
 
 import {DashboardChatBlock} from './dashboardChatBlock';
 
@@ -52,6 +53,7 @@ export function DashboardChatPanel({
   // Expand history automatically when updating triggered by user input
   useEffect(() => {
     if (isUpdating) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setIsHistoryExpanded(true);
     }
   }, [isUpdating]);
@@ -61,6 +63,7 @@ export function DashboardChatPanel({
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [blocks.length, pendingUserInput, widgetErrors?.length]);
 
   const handleSubmit = useCallback(() => {
@@ -106,7 +109,9 @@ export function DashboardChatPanel({
       width="100%"
       background="primary"
       margin="0 auto"
-      style={{zIndex: theme.zIndex.dropdown, marginBottom: '24px'}}
+      // Sit above dashboard widgets/tiles, but below dropdown menus (e.g. Add Widget)
+      // so they aren't hidden behind the chat panel when it overlaps them.
+      style={{zIndex: theme.zIndex.dropdown - 1, marginBottom: '24px'}}
     >
       <Flex justify="between">
         <ChatHistoryToggle

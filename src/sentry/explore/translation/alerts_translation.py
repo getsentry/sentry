@@ -238,7 +238,7 @@ def translate_detector_and_update_subscription_in_snuba(
                         data_source,
                         data_condition,
                         snuba_query,
-                        detector.project,
+                        detector.linked_project,
                         SeerMethod.UPDATE,
                         event_types=[SnubaQueryEventType.EventType.TRACE_ITEM_SPAN],
                     )
@@ -342,7 +342,7 @@ def rollback_detector_query_and_update_subscription_in_snuba(
                         data_source,
                         data_condition,
                         snuba_query,
-                        detector.project,
+                        detector.linked_project,
                         SeerMethod.UPDATE,
                         event_types=[SnubaQueryEventType.EventType.TRANSACTION],
                     )

@@ -3,9 +3,9 @@ import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ExplorerSession} from 'sentry/views/seerExplorer/types';
-import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 // Quote free-text search so the runs search grammar treats it as a title
 // filter rather than parsing filter-like input (`foo:bar`) and returning 400.
@@ -13,6 +13,7 @@ export function buildRunsSearchQuery(searchQuery?: string) {
   const trimmed = searchQuery?.trim();
   return [
     'is:mine',
+    'is:agent',
     'type:explorer',
     trimmed ? `"${escapeDoubleQuotes(trimmed)}"` : undefined,
   ]
@@ -21,12 +22,10 @@ export function buildRunsSearchQuery(searchQuery?: string) {
 }
 
 export function useSeerExplorerSessionsQuery({
-  limit = 20,
   enabled = true,
   query: searchQuery,
 }: {
   enabled?: boolean;
-  limit?: number;
   query?: string;
 }) {
   const organization = useOrganization({allowNull: true});
@@ -41,7 +40,7 @@ export function useSeerExplorerSessionsQuery({
             ? {organizationIdOrSlug: organization.slug}
             : skipToken,
         query: {
-          per_page: limit,
+          per_page: 20,
           query: buildRunsSearchQuery(searchQuery),
         },
         staleTime: 0,
@@ -63,7 +62,6 @@ export function SeerExplorerSessionsProvider(props: SeerExplorerSessionsProvider
   const organization = useOrganization({allowNull: true});
 
   const query = useSeerExplorerSessionsQuery({
-    limit: 20,
     enabled: isSeerExplorerEnabled(organization),
   });
 

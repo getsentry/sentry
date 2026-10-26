@@ -1,5 +1,9 @@
 import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconCode} from '@sentry/icons/code';
+import {IconFatal} from '@sentry/icons/fatal';
+import {IconOpen} from '@sentry/icons/open';
 import debounce from 'lodash/debounce';
 import {z} from 'zod';
 
@@ -18,11 +22,11 @@ import type {
   PipelineStepProps,
 } from 'sentry/components/pipeline/types';
 import {pipelineComplete} from 'sentry/components/pipeline/types';
-import {IconCheckmark, IconCode, IconFatal, IconOpen} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
@@ -40,7 +44,7 @@ function ProjectSelectStep({
 }: PipelineStepProps<Record<string, never>, ProjectSelectAdvanceData>) {
   const {projects} = useProjects();
   const sortedProjects = useMemo(
-    () => [...projects].sort((a, b) => a.slug.localeCompare(b.slug)),
+    () => projects.toSorted((a, b) => a.slug.localeCompare(b.slug)),
     [projects]
   );
 
@@ -64,7 +68,7 @@ function ProjectSelectStep({
 
   useEffect(() => {
     if (advanceError) {
-      setFieldErrors(form, advanceError);
+      setFieldErrors(form, requestErrorToFieldErrors(advanceError, form.state.values));
     }
   }, [advanceError, form]);
 
@@ -168,7 +172,7 @@ function CloudFormationStep({
 
   useEffect(() => {
     if (advanceError) {
-      setFieldErrors(form, advanceError);
+      setFieldErrors(form, requestErrorToFieldErrors(advanceError, form.state.values));
     }
   }, [advanceError, form]);
 

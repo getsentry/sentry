@@ -5,12 +5,15 @@ import type {
   PrebuiltDashboard,
   PrebuiltWidget,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {MCP_TOOLS_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/settings';
+import {
+  MCP_TOOLS_DASHBOARD_DESCRIPTION,
+  MCP_TOOLS_DASHBOARD_TITLE,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/settings';
 import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {SpanFields, SpanFunction} from 'sentry/views/insights/types';
 
-const MCP_TOOL_FILTER = `${SpanFields.SPAN_OP}:mcp.server has:${SpanFields.MCP_TOOL_NAME}`;
+const MCP_TOOL_FILTER = `${SpanFields.SPAN_OP}:mcp.server has:${SpanFields.GEN_AI_TOOL_NAME}`;
 
 const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [
@@ -25,9 +28,9 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
         {
           name: '',
           conditions: MCP_TOOL_FILTER,
-          fields: [SpanFields.MCP_TOOL_NAME, `count(${SpanFields.SPAN_DURATION})`],
+          fields: [SpanFields.GEN_AI_TOOL_NAME, `count(${SpanFields.SPAN_DURATION})`],
           aggregates: [`count(${SpanFields.SPAN_DURATION})`],
-          columns: [SpanFields.MCP_TOOL_NAME],
+          columns: [SpanFields.GEN_AI_TOOL_NAME],
           fieldAliases: [t('Tool'), t('Calls')],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
         },
@@ -45,9 +48,9 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
         {
           name: '',
           conditions: MCP_TOOL_FILTER,
-          fields: [SpanFields.MCP_TOOL_NAME, `avg(${SpanFields.SPAN_DURATION})`],
+          fields: [SpanFields.GEN_AI_TOOL_NAME, `avg(${SpanFields.SPAN_DURATION})`],
           aggregates: [`avg(${SpanFields.SPAN_DURATION})`],
-          columns: [SpanFields.MCP_TOOL_NAME],
+          columns: [SpanFields.GEN_AI_TOOL_NAME],
           fieldAliases: [t('Tool'), WIDGET_COLUMN_LABELS.avg],
           orderby: `-avg(${SpanFields.SPAN_DURATION})`,
         },
@@ -65,9 +68,9 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
         {
           name: '',
           conditions: MCP_TOOL_FILTER,
-          fields: [SpanFields.MCP_TOOL_NAME, `${SpanFunction.FAILURE_RATE}()`],
+          fields: [SpanFields.GEN_AI_TOOL_NAME, `${SpanFunction.FAILURE_RATE}()`],
           aggregates: [`${SpanFunction.FAILURE_RATE}()`],
-          columns: [SpanFields.MCP_TOOL_NAME],
+          columns: [SpanFields.GEN_AI_TOOL_NAME],
           fieldAliases: [t('Tool'), t('Error Rate')],
           orderby: `-${SpanFunction.FAILURE_RATE}()`,
         },
@@ -90,21 +93,21 @@ const TOOLS_TABLE: PrebuiltWidget = {
       name: '',
       conditions: MCP_TOOL_FILTER,
       fields: [
-        SpanFields.MCP_TOOL_NAME,
+        SpanFields.GEN_AI_TOOL_NAME,
         'count()',
         `${SpanFunction.FAILURE_RATE}()`,
-        `equation|count_if(${SpanFields.SPAN_STATUS},equals,internal_error) + count_if(${SpanFields.SPAN_STATUS},equals,error)`,
+        `equation|count_if(\`${SpanFields.SPAN_STATUS}:internal_error\`) + count_if(\`${SpanFields.SPAN_STATUS}:error\`)`,
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
       ],
       aggregates: [
         'count()',
         `${SpanFunction.FAILURE_RATE}()`,
-        `equation|count_if(${SpanFields.SPAN_STATUS},equals,internal_error) + count_if(${SpanFields.SPAN_STATUS},equals,error)`,
+        `equation|count_if(\`${SpanFields.SPAN_STATUS}:internal_error\`) + count_if(\`${SpanFields.SPAN_STATUS}:error\`)`,
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
       ],
-      columns: [SpanFields.MCP_TOOL_NAME],
+      columns: [SpanFields.GEN_AI_TOOL_NAME],
       fieldAliases: [
         t('Tool Name'),
         t('Requests'),
@@ -129,13 +132,14 @@ export const MCP_TOOLS_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
   title: MCP_TOOLS_DASHBOARD_TITLE,
+  description: MCP_TOOLS_DASHBOARD_DESCRIPTION,
   filters: {
     globalFilter: [
       {
         dataset: WidgetType.SPANS,
         tag: {
-          key: 'mcp.tool.name',
-          name: 'mcp.tool.name',
+          key: 'gen_ai.tool.name',
+          name: 'gen_ai.tool.name',
           kind: FieldKind.TAG,
         },
         value: '',

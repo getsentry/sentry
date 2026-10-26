@@ -1,7 +1,7 @@
 import pydantic
 import sentry_sdk
 from rest_framework import status
-from rest_framework.exceptions import NotFound, ParseError, PermissionDenied, ValidationError
+from rest_framework.exceptions import NotFound, ParseError, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -18,6 +18,8 @@ from sentry.hybridcloud.rpc.service import (
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.utils.env import in_test_environment
 from sentry.viewer_context import (
+    Actor,
+    ActorType,
     ViewerContext,
     observe_viewer_context_propagation,
     viewer_context_scope,
@@ -69,7 +71,7 @@ class InternalRpcServiceEndpoint(Endpoint):
 
         meta = request.data.get("meta") or {}
         vc_data = meta.get("viewer_context")
-        vc = ViewerContext()
+        vc = ViewerContext(actor=Actor(type=ActorType.UNKNOWN))
         if vc_data:
             try:
                 vc = ViewerContext.deserialize(vc_data)
@@ -78,7 +80,7 @@ class InternalRpcServiceEndpoint(Endpoint):
                 raise ParseError from e
 
         # Observe what the caller actually sent, not the empty default we fall back to.
-        # `vc` is always non-None (defaulted to ViewerContext()), so observing inside
+        # `vc` is always non-None (defaulted to ViewerContext(actor=Actor(type=ActorType.UNKNOWN))), so observing inside
         # the scope below would always see actor_type=unknown and never trigger the
         # missing-VC signal.
         observe_viewer_context_propagation(
@@ -106,6 +108,12 @@ class InternalRpcServiceEndpoint(Endpoint):
                 raise Exception(
                     f"Problem processing rpc service endpoint {service_name}/{method_name}"
                 ) from e
+            # Something failed internally when processing the RPC, so we return
+            # a 500 error to the caller.
+            sentry_sdk.set_tag("rpc_implementation_error", type(e).__name__)
             sentry_sdk.capture_exception()
-            raise ValidationError from e
+            return Response(
+                data={"detail": "Internal error in RPC service"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
         return Response(data=result)

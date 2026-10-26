@@ -2,16 +2,14 @@ from __future__ import annotations
 
 import re
 import time
+from base64 import b64decode
 from collections import defaultdict
 from concurrent.futures import as_completed
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import Any, Protocol, TypedDict
 
 import sentry_sdk
+from yaml import YAMLError
 
-from sentry.integrations.github.platform_detection import (
-    _get_repo_file_content,
-    _parse_package_manifest,
-)
 from sentry.integrations.github.platform_registry import (
     _FRAMEWORKS_BY_PLATFORM,
     _NON_SELECTABLE_PLATFORMS,
@@ -44,10 +42,97 @@ from sentry.integrations.github.platform_registry import (
 from sentry.integrations.github.platform_registry import (
     _PackageManifest as _PackageManifest,
 )
+from sentry.integrations.source_code_management.repo_trees import segments_are_ignored
+from sentry.shared_integrations.exceptions import ApiError
+from sentry.utils import json
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
+from sentry.utils.yaml import safe_load
 
-if TYPE_CHECKING:
-    from sentry.integrations.github.client import GitHubBaseClient
+
+class PlatformDetectionClient(Protocol):
+    """What platform detection needs from an SCM client."""
+
+    # Whether this client has an endpoint that provides language metadata
+    # about the repository
+    has_languages_endpoint: bool
+
+    def get(self, path: str, /, *args: Any, **kwargs: Any) -> Any: ...
+
+    # Asked for by name rather than URL: providers disagree on the shape of a contents
+    # route, and making them impersonate one another's is worse.
+    def get_contents(self, repo: str, /, path: str, ref: str | None = None) -> Any: ...
+
+    def get_languages(
+        self, repo: str, /, tree: list[dict[str, Any]] | None = None
+    ) -> dict[str, int]: ...
+
+
+# ---------------------------------------------------------------------------
+# File I/O and manifest parsing helpers
+# ---------------------------------------------------------------------------
+
+
+def _get_repo_file_content(
+    client: PlatformDetectionClient, repo: str, path: str, ref: str | None = None
+) -> str | None:
+    """Fetch a file's content from a repo. Returns None if not found."""
+    try:
+        response = client.get_contents(repo, path, ref)
+        return b64decode(response["content"]).decode("utf-8")
+    except (ApiError, KeyError, TypeError, UnicodeDecodeError, ValueError):
+        return None
+
+
+def _parse_package_manifest(content: str, manifest_file: str) -> _PackageManifest | None:
+    """Parse a package manifest into dependency sets."""
+    try:
+        if manifest_file == "package.json":
+            pkg = json.loads(content)
+            return _PackageManifest(
+                dependencies=set((pkg.get("dependencies") or {}).keys()),
+                dev_dependencies=set((pkg.get("devDependencies") or {}).keys()),
+            )
+        elif manifest_file == "composer.json":
+            composer = json.loads(content)
+            return _PackageManifest(
+                dependencies=set((composer.get("require") or {}).keys()),
+                dev_dependencies=set((composer.get("require-dev") or {}).keys()),
+            )
+        elif manifest_file == "pubspec.yaml":
+            return _parse_pubspec_yaml(content)
+        elif manifest_file == "Gemfile":
+            return _parse_gemfile(content)
+    except (json.JSONDecodeError, YAMLError, ValueError, KeyError, TypeError, AttributeError):
+        pass
+    return None
+
+
+def _parse_pubspec_yaml(content: str) -> _PackageManifest:
+    """Parse a pubspec.yaml file into dependency sets using PyYAML."""
+    data = safe_load(content)
+    if not isinstance(data, dict):
+        return _PackageManifest(dependencies=set(), dev_dependencies=set())
+    deps = set((data.get("dependencies") or {}).keys())
+    dev_deps = set((data.get("dev_dependencies") or {}).keys())
+    return _PackageManifest(dependencies=deps, dev_dependencies=dev_deps)
+
+
+def _parse_gemfile(content: str) -> _PackageManifest:
+    """Parse a Gemfile into dependency sets.
+
+    Extracts gem names from ``gem "name"`` or ``gem 'name'`` lines.
+    """
+    deps: set[str] = set()
+    gem_re = re.compile(r"""gem\s+['"]([^'"]+)['"]""")
+    for line in content.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("#"):
+            continue
+        match = gem_re.search(stripped)
+        if match:
+            deps.add(match.group(1))
+    return _PackageManifest(dependencies=deps, dev_dependencies=set())
+
 
 # ---------------------------------------------------------------------------
 # Multi-platform detection constants
@@ -115,91 +200,8 @@ def _select_active_platforms(
     return dict(active_platforms)
 
 
-# ---------------------------------------------------------------------------
-# Noise-scoping ignore-list for recursive tree traversal
-#
-# Based on GitHub Linguist's vendor.yml (https://github.com/github/linguist/
-# blob/master/lib/linguist/vendor.yml) — the list GitHub uses to exclude
-# third-party/generated paths from repository language statistics. Sentry has
-# no canonical equivalent; the closest is the JS stacktrace folder regex in
-# sentry/src/sentry/lang/javascript/utils.py.
-#
-# Matching is done on individual path segments (split on "/"), not substring,
-# so a file named "build.gradle" is never confused with a "build/" directory.
-#
-# Deliberately NOT ignored:
-#   packages/   — JS monorepo workspaces (the thing we want to detect)
-#   test/       — often contain real framework signals
-#   tests/      — same
-#   examples/   — borderline; revisit if Mode A shows false positives
-# ---------------------------------------------------------------------------
-
-_IGNORED_TREE_SEGMENTS = frozenset(
-    {
-        # JS / front-end dependency directories
-        "node_modules",
-        "bower_components",
-        "jspm_packages",
-        "web_modules",
-        # General vendored dependencies
-        "vendor",
-        "vendors",
-        "third_party",
-        "third-party",
-        "3rdparty",
-        "extern",
-        "external",
-        # iOS / macOS dependency managers
-        "Pods",
-        "Carthage",
-        # Dart / Flutter tooling
-        ".dart_tool",
-        ".pub-cache",
-        # Python virtual environments committed to repo
-        "site-packages",
-        ".venv",
-        "venv",
-        "virtualenv",
-        # Build / compiled output
-        "dist",
-        "build",
-        "out",
-        "target",
-        "bin",
-        "obj",
-        # Framework-specific build caches
-        ".next",
-        ".nuxt",
-        ".svelte-kit",
-        ".angular",
-        ".output",
-        "__pycache__",
-        "coverage",
-        # VCS internals
-        ".git",
-        ".svn",
-        ".hg",
-        # Tooling / IDE / cache
-        ".gradle",
-        ".idea",
-        ".vscode",
-        ".cache",
-        ".tox",
-        ".mypy_cache",
-        ".pytest_cache",
-        "tmp",
-        "temp",
-    }
-)
-
-
-def _segments_are_ignored(segments: list[str]) -> bool:
-    """Return True if any path segment is in the ignore-list."""
-    return any(segment in _IGNORED_TREE_SEGMENTS for segment in segments)
-
-
 def _get_tree(
-    client: GitHubBaseClient,
+    client: PlatformDetectionClient,
     repo: str,
     ref: str | None = None,
 ) -> tuple[list[dict[str, Any]], bool]:
@@ -266,7 +268,7 @@ def _build_tree_index(entries: list[dict[str, Any]]) -> _TreeIndex:
 
         # Split once; reuse segments for ignore check and basename.
         segments = path.split("/")
-        if _segments_are_ignored(segments):
+        if segments_are_ignored(segments):
             continue
 
         basename = segments[-1]
@@ -378,8 +380,8 @@ def _rule_parent_dirs(
                 continue
             if ext_filter and not basename.endswith(ext_filter):
                 continue
-            # Match case-sensitively to mirror the registry's _rule_matches;
-            # patterns that want case-insensitivity embed an inline (?i) flag.
+            # Match case-sensitively; patterns that want case-insensitivity
+            # embed an inline (?i) flag.
             if re.search(pattern, content):
                 result.add(_parent_dir(full_path))
         return result
@@ -466,11 +468,11 @@ def _framework_matches_scoped(
 
 
 def detect_platforms_multi(
-    client: GitHubBaseClient,
+    client: PlatformDetectionClient,
     repo: str,
     ref: str | None = None,
 ) -> MultiDetectionResult:
-    """Detect Sentry platforms for a GitHub repository.
+    """Detect Sentry platforms for a repository.
 
     Selects up to MAX_LANGUAGES base platforms by byte count, fetches the full
     recursive git tree once, then runs two high-confidence passes:
@@ -490,16 +492,16 @@ def detect_platforms_multi(
     """
     start_time = time.monotonic()
 
-    # Run get_languages and _get_tree concurrently — they are independent
-    # requests.  active_platforms only needs languages, so it is computed on
-    # the main thread while the tree fetch is in flight.
     tree_start = time.monotonic()
     with ContextPropagatingThreadPoolExecutor(max_workers=1) as ex:
         tree_future = ex.submit(_get_tree, client, repo, ref)
-        languages: dict[str, int] = client.get_languages(repo)
-        active_platforms = _select_active_platforms(languages)
+        languages = client.get_languages(repo) if client.has_languages_endpoint else None
         entries, is_truncated = tree_future.result()
     tree_duration_ms = (time.monotonic() - tree_start) * 1000
+
+    if languages is None:
+        languages = client.get_languages(repo, entries)
+    active_platforms = _select_active_platforms(languages)
     index = _build_tree_index(entries)
 
     results: list[DetectedPlatform] = []
@@ -650,8 +652,6 @@ def detect_platforms_multi(
         f"{_MULTI_METRICS_PREFIX}.k_reads_realized",
         k_reads_realized,
     )
-    # tree.duration: wall time of the concurrent (languages + tree) block —
-    # effectively the tree's wall time since it is the long pole.
     sentry_sdk.metrics.distribution(
         f"{_MULTI_METRICS_PREFIX}.tree.duration",
         tree_duration_ms,

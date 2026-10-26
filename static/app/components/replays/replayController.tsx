@@ -1,6 +1,8 @@
 import {useCallback, useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconRewind10} from '@sentry/icons/rewind10';
 
 import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
@@ -10,7 +12,6 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {ReplayFullscreenButton} from 'sentry/components/replays/replayFullscreenButton';
 import {ReplayPlayPauseButton} from 'sentry/components/replays/replayPlayPauseButton';
 import {TimeAndScrubberGrid} from 'sentry/components/replays/timeAndScrubberGrid';
-import {IconChevron, IconRewind10} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getNextReplayFrame} from 'sentry/utils/replays/getReplayEvent';
 import {TimelineScaleContextProvider} from 'sentry/utils/replays/hooks/useTimelineScale';
@@ -24,7 +25,6 @@ interface Props {
   toggleFullscreen: () => void;
   hideFastForward?: boolean;
   isLoading?: boolean;
-  speedOptions?: number[];
 }
 
 function ReplayPlayPauseBar({isLoading}: {isLoading?: boolean}) {
@@ -69,7 +69,6 @@ function ReplayPlayPauseBar({isLoading}: {isLoading?: boolean}) {
 export function ReplayController({
   toggleFullscreen,
   hideFastForward = false,
-  speedOptions = [0.1, 0.25, 0.5, 1, 2, 4, 8, 16],
   isLoading,
 }: Props) {
   const barRef = useRef<HTMLDivElement>(null);
@@ -99,7 +98,7 @@ export function ReplayController({
       <Grid flow="column" align="center" gap="md">
         <ReplayPreferenceDropdown
           isLoading={isLoading}
-          speedOptions={speedOptions}
+          speedOptions={[0.1, 0.25, 0.5, 1, 2, 4, 8, 16]}
           hideFastForward={hideFastForward}
         />
         <ReplayFullscreenButton toggleFullscreen={toggleFullscreen} />

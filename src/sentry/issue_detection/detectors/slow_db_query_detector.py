@@ -11,6 +11,7 @@ from ..base import DetectorType, PerformanceDetector
 from ..detectors.utils import (
     fingerprint_span,
     get_notification_attachment_body,
+    get_span_description,
     get_span_evidence_value,
 )
 from ..performance_problem import PerformanceProblem
@@ -53,7 +54,7 @@ class SlowDBQueryDetector(PerformanceDetector):
             )
             return
 
-        description = span["description"].strip()
+        description = get_span_description(span)
 
         if duration_threshold is not None and span_duration >= timedelta(
             milliseconds=duration_threshold
@@ -68,7 +69,7 @@ class SlowDBQueryDetector(PerformanceDetector):
                 "cause_span_ids": [],
                 "parent_span_ids": [],
                 "offender_span_ids": spans_involved,
-                "transaction_name": self._event.get("description", ""),
+                "transaction_name": self._event.get("transaction", ""),
                 "repeating_spans": get_span_evidence_value(span)[:MAX_EVIDENCE_VALUE_LENGTH],
                 "repeating_spans_compact": get_span_evidence_value(span, include_op=False)[
                     :MAX_EVIDENCE_VALUE_LENGTH
@@ -104,11 +105,10 @@ class SlowDBQueryDetector(PerformanceDetector):
         return self.settings["detection_enabled"]
 
     def _is_span_eligible(self, span: Span) -> bool:
-        description = span.get("description", None)
+        description = get_span_description(span)
         if not description:
             return False
 
-        description = description.strip()
         if description[:6].upper() != "SELECT":
             return False
 

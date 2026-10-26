@@ -1,13 +1,13 @@
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
+import {stackMarkerToHumanReadable} from 'sentry/utils/profiling/formatters/stackMarkerToHumanReadable';
 import {Frame} from 'sentry/utils/profiling/frame';
+import {resolveJSSelfProfilingStack} from 'sentry/utils/profiling/jsSelfProfiling';
 
-import {stackMarkerToHumanReadable} from './../formatters/stackMarkerToHumanReadable';
-import {resolveJSSelfProfilingStack} from './../jsSelfProfiling';
 import {Profile} from './profile';
 import type {createFrameIndex} from './utils';
 
 function sortJSSelfProfileSamples(samples: Readonly<JSSelfProfiling.Trace['samples']>) {
-  return [...samples].sort((a, b) => {
+  return samples.toSorted((a, b) => {
     return a.stackId - b.stackId;
   });
 }

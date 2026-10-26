@@ -61,6 +61,7 @@ export function useInviteModal({organization, initialData, source}: Props) {
    * Used for analytics tracking of the modals usage.
    */
   const sessionId = useRef(uniqueId());
+  // oxlint-disable-next-line react/refs
   useLogInviteModalOpened({organization, sessionId: sessionId.current, source});
 
   const memberResult = useApiQuery<Member>(
@@ -268,6 +269,7 @@ export function useInviteModal({organization, initialData, source}: Props) {
     removeInviteRow,
     reset,
     sendInvites,
+    // oxlint-disable-next-line react/refs
     sessionId: sessionId.current,
     setEmails,
     setRole,

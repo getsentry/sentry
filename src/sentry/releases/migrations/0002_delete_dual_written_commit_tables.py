@@ -26,7 +26,7 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("releases", "0001_release_models"),
-        ("sentry", "1001_prevent_grouphistory_infinte_recursion"),
+        ("sentry", "0001_squashed_1118_add_group_derived_data"),
     ]
 
     operations = [

@@ -32,10 +32,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
-import {
-  makeFetchOrgAuthTokensForOrgQueryKey,
-  tokenPreview,
-} from 'sentry/views/settings/organizationAuthTokens';
+import {makeFetchOrgAuthTokensForOrgQueryKey} from 'sentry/views/settings/organizationAuthTokens';
+import {tokenPreview} from 'sentry/views/settings/organizationAuthTokens/tokenUtils';
 
 type FetchOrgAuthTokenParameters = {
   orgSlug: string;
@@ -67,7 +65,9 @@ function AuthTokenDetailsForm({token}: {token: OrgAuthToken}) {
   const mutation = useMutation<unknown, RequestError, z.infer<typeof schema>>({
     mutationFn: data =>
       fetchMutation({
-        url: `/organizations/${organization.slug}/org-auth-tokens/${token.id}/`,
+        url: getApiUrl('/organizations/$organizationIdOrSlug/org-auth-tokens/$tokenId/', {
+          path: {organizationIdOrSlug: organization.slug, tokenId: token.id},
+        }),
         method: 'PUT',
         data,
       }),
@@ -160,7 +160,7 @@ function AuthTokenDetailsForm({token}: {token: OrgAuthToken}) {
           label={t('Scopes')}
           help={t('You cannot change the scopes of an existing token.')}
         >
-          <div>{token.scopes.slice().sort().join(', ')}</div>
+          <div>{token.scopes.toSorted().join(', ')}</div>
         </FieldGroup>
       </form.FieldGroup>
 

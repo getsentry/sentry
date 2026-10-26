@@ -3,7 +3,6 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -33,11 +32,6 @@ class OrganizationWeeklyReportProjectExclusionsEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization: Organization) -> Response:
         assert request.user and request.user.id
 
-        if not features.has(
-            "organizations:weekly-report-project-exclusions", organization, actor=request.user
-        ):
-            return Response(status=status.HTTP_404_NOT_FOUND)
-
         queryset = WeeklyReportProjectExclusion.objects.filter(
             user_id=request.user.id,
             project__organization_id=organization.id,
@@ -53,11 +47,6 @@ class OrganizationWeeklyReportProjectExclusionsEndpoint(OrganizationEndpoint):
 
     def put(self, request: Request, organization: Organization) -> Response:
         assert request.user and request.user.id
-
-        if not features.has(
-            "organizations:weekly-report-project-exclusions", organization, actor=request.user
-        ):
-            return Response(status=status.HTTP_404_NOT_FOUND)
 
         project_ids = request.data.get("projectIds", [])
         if not isinstance(project_ids, list) or not all(

@@ -3,12 +3,7 @@ import pickBy from 'lodash/pickBy';
 import {Link} from '@sentry/scraps/link';
 
 import type {TagCollection} from 'sentry/types/group';
-import type {
-  EventsStats,
-  GroupedMultiSeriesEventsStats,
-  MultiSeriesEventsStats,
-  Organization,
-} from 'sentry/types/organization';
+import type {Organization} from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {emptyStringValue} from 'sentry/utils/discover/emptyFieldValues';
@@ -19,8 +14,6 @@ import {
   AGGREGATIONS,
   stripEquationPrefix,
   type Aggregation,
-  type AggregationOutputType,
-  type DataUnit,
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
@@ -31,10 +24,11 @@ import {
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   NO_ARGUMENT_SPAN_AGGREGATES,
 } from 'sentry/utils/fields';
+import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {WIDGET_BUILDER_ATTRIBUTE_STALE_TIME} from 'sentry/views/dashboards/constants';
 import {
-  handleOrderByReset,
   type DatasetConfig,
   type SearchBarData,
   type SearchBarDataProviderProps,
@@ -43,9 +37,10 @@ import {
   getTableSortOptions,
   getTimeseriesSortOptions,
   renderTraceAsLinkable,
-  transformEventsResponseToTable,
-} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
+} from 'sentry/views/dashboards/datasetConfig/events';
 import {combineBaseFieldsWithTags} from 'sentry/views/dashboards/datasetConfig/utils/combineBaseFieldsWithEapTags';
+import {handleOrderByReset} from 'sentry/views/dashboards/datasetConfig/utils/handleOrderByReset';
+import {spansResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/spansResponseTransforms';
 import {
   DisplayType,
   type DashboardFilters,
@@ -53,15 +48,7 @@ import {
   type WidgetQuery,
 } from 'sentry/views/dashboards/types';
 import {getWidgetTableRowExploreUrlFunction} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
-import {
-  isEventsStats,
-  isGroupedMultiSeriesEventsStats,
-  isMultiSeriesEventsStats,
-} from 'sentry/views/dashboards/utils/isEventsStats';
-import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
 import {SpansSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/spansSearchBar';
-import {isPerformanceScoreBreakdownChart} from 'sentry/views/dashboards/widgetBuilder/utils/isPerformanceScoreBreakdownChart';
-import {transformPerformanceScoreBreakdownSeries} from 'sentry/views/dashboards/widgetBuilder/utils/transformPerformanceScoreBreakdownSeries';
 import {
   useSpansSeriesQuery,
   useSpansTableQuery,
@@ -71,8 +58,12 @@ import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {useTraceItemSearchQueryBuilderProps} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {
+  hasConditionalAggregateFilter,
+  withBaseConditionalAggregateField,
+} from 'sentry/views/explore/utils/conditionalAggregate';
 import {SpanFields} from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
@@ -149,27 +140,34 @@ const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce(
 );
 
 const INTERNAL_ERROR_COUNT_FIELD =
-  'count_if(span.status,equals,internal_error) + count_if(span.status,equals,error)';
+  'count_if(`span.status:internal_error`) + count_if(`span.status:error`)';
 
 function useSpansSearchBarDataProvider(props: SearchBarDataProviderProps): SearchBarData {
-  const {pageFilters, widgetQuery} = props;
+  const {filterKeySearch, pageFilters, widgetQuery} = props;
   const organization = useOrganization();
+  const attributeOptions = {
+    enabled: organization.features.includes('visibility-explore-view'),
+    search: filterKeySearch,
+    staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME,
+  };
 
-  const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useSpanItemAttributes(
-      {enabled: organization.features.includes('visibility-explore-view')},
-      'string'
-    );
-  const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useSpanItemAttributes(
-      {enabled: organization.features.includes('visibility-explore-view')},
-      'number'
-    );
-  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-    useSpanItemAttributes(
-      {enabled: organization.features.includes('visibility-explore-view')},
-      'boolean'
-    );
+  const {
+    attributes: stringAttributes,
+    isLoading: stringAttributesLoading,
+    secondaryAliases: stringSecondaryAliases,
+  } = useSpanItemAttributes(attributeOptions, 'string');
+  const {
+    attributes: numberAttributes,
+    isLoading: numberAttributesLoading,
+    secondaryAliases: numberSecondaryAliases,
+  } = useSpanItemAttributes(attributeOptions, 'number');
+  const {
+    attributes: booleanAttributes,
+    isLoading: booleanAttributesLoading,
+    secondaryAliases: booleanSecondaryAliases,
+  } = useSpanItemAttributes(attributeOptions, 'boolean');
+  const isFetchingFilterKeys =
+    stringAttributesLoading || numberAttributesLoading || booleanAttributesLoading;
 
   const {filterKeys, filterKeySections, getTagValues} =
     useTraceItemSearchQueryBuilderProps({
@@ -189,92 +187,12 @@ function useSpansSearchBarDataProvider(props: SearchBarDataProviderProps): Searc
     getFilterKeys: () => filterKeys,
     getFilterKeySections: () => filterKeySections,
     getTagValues,
+    isFetchingFilterKeys,
   };
 }
 
-/**
- * Generic helper to extract metadata (units or types) from events-stats series data.
- * Handles both MultiSeriesEventsStats and GroupedMultiSeriesEventsStats responses.
- */
-function extractSeriesMetadata<T>({
-  data,
-  getFieldMetaValue,
-  getMetaField,
-  widgetQuery,
-}: {
-  data: EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats;
-  getFieldMetaValue: (meta: NonNullable<WidgetQuery['fieldMeta']>[number] | null) => T;
-  getMetaField: (seriesMeta: EventsStats['meta'], aggregate: string) => T;
-  widgetQuery: WidgetQuery;
-}): Record<string, T> {
-  const result: Record<string, T> = {};
-
-  // Initialize from fieldMeta if available
-  widgetQuery.fieldMeta?.forEach((meta, index) => {
-    if (meta && widgetQuery.fields?.[index]) {
-      result[widgetQuery.fields[index]] = getFieldMetaValue(meta);
-    }
-  });
-
-  if (isEventsStats(data)) {
-    // Plain EventsStats: single aggregate, no grouping. Meta is at the top level.
-    if (data.meta) {
-      widgetQuery.aggregates?.forEach(aggregate => {
-        if (aggregate && !(aggregate in result)) {
-          result[aggregate] = getMetaField(data.meta, aggregate);
-        }
-      });
-    }
-  } else if (isMultiSeriesEventsStats(data)) {
-    // If there's only one aggregate and multiple groupings, series names are group names
-    // In this case, we can use the first meta value for all series
-    const firstMeta = widgetQuery.fieldMeta?.find(meta => meta !== null);
-    const isSingleAggregateMultiGroup =
-      firstMeta &&
-      widgetQuery.aggregates?.length === 1 &&
-      widgetQuery.columns?.length > 0;
-
-    if (isSingleAggregateMultiGroup) {
-      // Use hardcoded config for all series
-      Object.keys(data).forEach(seriesName => {
-        // Don't overwrite fieldMeta values
-        if (!(seriesName in result)) {
-          result[seriesName] = getFieldMetaValue(firstMeta);
-        }
-      });
-    } else {
-      Object.keys(data).forEach(seriesName => {
-        const seriesData = data[seriesName];
-        if (!seriesData?.meta) {
-          return;
-        }
-        widgetQuery.aggregates?.forEach(aggregate => {
-          // Multi-series can be keyed by aggregate or series name depending on aggregate count
-          const key = widgetQuery.aggregates?.length > 1 ? aggregate : seriesName;
-          // Don't overwrite fieldMeta values
-          if (seriesData.meta && !(key in result)) {
-            result[key] = getMetaField(seriesData.meta, aggregate);
-          }
-        });
-      });
-    }
-  } else if (isGroupedMultiSeriesEventsStats(data)) {
-    Object.keys(data).forEach(groupName => {
-      widgetQuery.aggregates?.forEach(aggregate => {
-        const seriesData = data[groupName]?.[aggregate] as EventsStats;
-        // Don't overwrite fieldMeta values
-        if (seriesData?.meta && aggregate && !(aggregate in result)) {
-          result[aggregate] = getMetaField(seriesData.meta, aggregate);
-        }
-      });
-    });
-  }
-
-  return result;
-}
-
 export const SpansConfig: DatasetConfig<
-  EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
+  EventsTimeSeriesResponse,
   TableData | EventsTableData
 > = {
   defaultCategoryField: 'transaction',
@@ -305,8 +223,7 @@ export const SpansConfig: DatasetConfig<
   ],
   useSeriesQuery: useSpansSeriesQuery,
   useTableQuery: useSpansTableQuery,
-  transformTable: transformEventsResponseToTable,
-  transformSeries,
+  ...spansResponseTransforms,
   filterAggregateParams,
   getCustomFieldRenderer: (field, meta, widget, _organization, dashboardFilters) => {
     if (field === 'id') {
@@ -332,22 +249,6 @@ export const SpansConfig: DatasetConfig<
     }
     return getFieldRenderer(field, meta, false, widget, dashboardFilters);
   },
-  getSeriesResultUnit: (data, widgetQuery) => {
-    return extractSeriesMetadata({
-      data,
-      widgetQuery,
-      getFieldMetaValue: meta => meta?.valueUnit as DataUnit,
-      getMetaField: (seriesMeta, aggregate) => seriesMeta?.units?.[aggregate] as DataUnit,
-    });
-  },
-  getSeriesResultType: (data, widgetQuery) => {
-    return extractSeriesMetadata({
-      data,
-      widgetQuery,
-      getFieldMetaValue: meta => meta?.valueType as AggregationOutputType,
-      getMetaField: (seriesMeta, aggregate) => seriesMeta?.fields?.[aggregate]!,
-    });
-  },
 };
 
 function getPrimaryFieldOptions(
@@ -366,16 +267,22 @@ function filterAggregateParams(option: FieldValueOption, fieldValue?: QueryField
     return true;
   }
 
+  // Explore-style `_if` fields explode as `count_unique_if` / `count_if`, but
+  // column filtering must use the base aggregate name.
+  const normalizedField = fieldValue
+    ? withBaseConditionalAggregateField(fieldValue)
+    : fieldValue;
+
   if (
-    fieldValue?.kind === 'function' &&
-    fieldValue?.function[0] === AggregationKey.COUNT
+    normalizedField?.kind === 'function' &&
+    normalizedField?.function[0] === AggregationKey.COUNT
   ) {
     return option.value.meta.name === 'span.duration';
   }
 
   const expectedDataType =
-    fieldValue?.kind === 'function' &&
-    fieldValue?.function[0] === AggregationKey.COUNT_UNIQUE
+    normalizedField?.kind === 'function' &&
+    normalizedField?.function[0] === AggregationKey.COUNT_UNIQUE
       ? 'string'
       : 'number';
 
@@ -391,16 +298,8 @@ function filterYAxisOptions() {
   };
 }
 
-function getGroupByFieldOptions(
-  organization: Organization,
-  tags?: TagCollection,
-  customMeasurements?: CustomMeasurementCollection
-) {
-  const primaryFieldOptions = getPrimaryFieldOptions(
-    organization,
-    tags,
-    customMeasurements
-  );
+function getGroupByFieldOptions(organization: Organization, tags?: TagCollection) {
+  const primaryFieldOptions = getPrimaryFieldOptions(organization, tags);
   const yAxisFilter = filterYAxisOptions();
 
   const filterGroupByOptions = (option: FieldValueOption) => !yAxisFilter(option);
@@ -413,7 +312,8 @@ function filterSeriesSortOptions(columns: Set<string>) {
   return (option: FieldValueOption) => {
     if (
       option.value.kind === FieldValueKind.FUNCTION ||
-      option.value.kind === FieldValueKind.EQUATION
+      option.value.kind === FieldValueKind.EQUATION ||
+      hasConditionalAggregateFilter(option.value.meta.name)
     ) {
       return true;
     }
@@ -535,25 +435,14 @@ function renderInternalErrorCount(widget?: Widget, dashboardFilters?: DashboardF
     );
     const target = getRowExploreUrl(data);
 
+    if (!target) {
+      return <NumberContainer>{count}</NumberContainer>;
+    }
+
     return (
       <NumberContainer>
         <Link to={target}>{count}</Link>
       </NumberContainer>
     );
   };
-}
-
-function transformSeries(
-  data: EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
-  widgetQuery: WidgetQuery
-) {
-  let eventsStats = data;
-  // Kind of a hack, but performance score breakdown charts need a special transformation to display correctly.
-  if (
-    isMultiSeriesEventsStats(eventsStats) &&
-    isPerformanceScoreBreakdownChart(widgetQuery)
-  ) {
-    eventsStats = transformPerformanceScoreBreakdownSeries(eventsStats);
-  }
-  return transformEventsResponseToSeries(eventsStats, widgetQuery);
 }

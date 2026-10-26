@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from django.db import models
-from django.db.models import DateTimeField, IntegerField
+from django.db.models import DateTimeField, IntegerField, Q
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -58,6 +58,14 @@ class NotificationMessage(Model):
                 name="idx_notifmsg_group_action_date",
             ),
             models.Index(fields=["date_added"]),
+            models.Index(
+                fields=["group", "action", "open_period_start", "-date_added"],
+                condition=Q(
+                    parent_notification_message__isnull=True,
+                    error_code__isnull=True,
+                ),
+                name="idx_notifmsg_parent_lookup",
+            ),
         ]
 
     __repr__ = sane_repr("id", "message_identifier", "error_code")

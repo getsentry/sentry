@@ -20,19 +20,13 @@ import {StatusPageComponent} from 'sentry/types/system';
 import CronDetectorsList from 'sentry/views/detectors/list/cron';
 
 describe('CronDetectorsList', () => {
-  const organization = OrganizationFixture({
-    features: ['workflow-engine-ui'],
-  });
+  const organization = OrganizationFixture();
 
   const initialRouterConfig: RouterConfig = {
     location: {
       pathname: `/organizations/${organization.slug}/detectors/crons/`,
     },
   };
-
-  afterEach(() => {
-    fetchMock.resetMocks();
-  });
 
   beforeEach(() => {
     ConfigStore.set('statuspage', {
@@ -62,11 +56,12 @@ describe('CronDetectorsList', () => {
     // Ensure a project is selected for queries
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}));
 
-    // Make elements report a non-zero size so timelines compute rollups and fetch
+    // Make elements report a non-zero size so timelines compute rollups and fetch,
+    // and so the table's container is wide enough for its detail columns.
     Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
       configurable: true,
       get() {
-        return 800;
+        return 1600;
       },
     });
     Object.defineProperty(HTMLElement.prototype, 'clientHeight', {
@@ -75,6 +70,10 @@ describe('CronDetectorsList', () => {
         return 50;
       },
     });
+  });
+
+  afterEach(() => {
+    fetchMock.resetMocks();
   });
 
   it('displays empty state when no cron monitors are found', async () => {
@@ -162,11 +161,16 @@ describe('CronDetectorsList', () => {
       incident_updates: [],
     });
 
-    fetchMock.mockResponse(req => {
-      return req.url.includes('status.sentry.io/api/v2/incidents.json')
-        ? Promise.resolve(JSON.stringify({incidents: [incident]}))
-        : Promise.reject(new Error('not found'));
-    });
+    fetchMock
+      .mockResponse(req =>
+        Promise.reject(new Error(`Unexpected fetch: ${req.method} ${req.url}`))
+      )
+      .routeOnce(
+        /\/api\/v2\/incidents\.json$/,
+        fetchMock.Response(JSON.stringify({incidents: [incident]}), {
+          headers: {'Content-Type': 'application/json'},
+        })
+      );
 
     const {router} = render(<CronDetectorsList />, {organization, initialRouterConfig});
 

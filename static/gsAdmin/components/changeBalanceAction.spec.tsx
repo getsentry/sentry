@@ -31,7 +31,7 @@ describe('BalanceChangeAction', () => {
     triggerChangeBalanceModal({subscription, ...modalProps});
 
     renderGlobalModal();
-    expect(await screen.findByTestId('balance')).toHaveTextContent('$0.00 owed');
+    expect(await screen.findByText('$0.00 owed')).toBeInTheDocument();
   });
 
   it('renders credit', async () => {
@@ -42,7 +42,7 @@ describe('BalanceChangeAction', () => {
     });
 
     renderGlobalModal();
-    expect(await screen.findByTestId('balance')).toHaveTextContent('$30.00 credit');
+    expect(await screen.findByText('$30.00 credit')).toBeInTheDocument();
   });
 
   it('renders amount owed', async () => {
@@ -52,7 +52,7 @@ describe('BalanceChangeAction', () => {
     });
 
     renderGlobalModal();
-    expect(await screen.findByTestId('balance')).toHaveTextContent('$30.00 owed');
+    expect(await screen.findByText('$30.00 owed')).toBeInTheDocument();
   });
 
   it('can submit balance change', async () => {
@@ -164,8 +164,7 @@ describe('BalanceChangeAction', () => {
     const submitButton = screen.getByRole('button', {name: 'Submit'});
     await userEvent.click(submitButton);
 
-    // During submission, button should show "Submitting...", be disabled, and fields should be disabled
-    expect(submitButton).toHaveTextContent('Submitting...');
+    expect(submitButton).toHaveAttribute('aria-busy', 'true');
     expect(submitButton).toBeDisabled();
     expect(creditInput).toBeDisabled();
     expect(screen.getByRole('textbox', {name: 'Ticket URL'})).toBeDisabled();

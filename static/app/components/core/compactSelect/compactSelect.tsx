@@ -4,7 +4,8 @@ import * as Sentry from '@sentry/react';
 import maxBy from 'lodash/maxBy';
 import type {DistributedOmit} from 'type-fest';
 
-import {t} from 'sentry/locale';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
+
 import {scheduleMicroTask} from 'sentry/utils/scheduleMicroTask';
 
 import {Control, type ControlProps} from './control';
@@ -81,7 +82,9 @@ export function CompactSelect<Value extends SelectKey>({
   menuWidth,
   ...controlProps
 }: SelectProps<Value>) {
-  const triggerId = useId();
+  const {t} = useTranslation();
+  const generatedTriggerId = useId();
+  const triggerId = controlProps.triggerId ?? generatedTriggerId;
 
   // Combine list props into an object with two clearly separated types, one where
   // `multiple` is true and the other where it's not. Necessary to avoid TS errors.
@@ -201,6 +204,7 @@ export function CompactSelect<Value extends SelectKey>({
       mode={mode}
       size={size}
       items={allItemsWithKey}
+      isOptionDisabled={isOptionDisabled}
       value={value}
       clearable={clearable}
       onOpenChange={newOpenState => {

@@ -10,7 +10,7 @@ describe('formatTooltipYAxisValue', () => {
   });
 
   it('applies the value type and unit to both bounds (size)', () => {
-    expect(formatTooltipYAxisValue(1024, 1024, 'size', 'byte')).toBe('1.02 KB – 2.05 KB');
+    expect(formatTooltipYAxisValue(1024, 1024, 'size', 'byte')).toBe('1.02 kB – 2.05 kB');
   });
 
   it('formats duration ranges with units', () => {

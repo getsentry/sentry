@@ -119,6 +119,27 @@ describe('SentryAppExternalIssueForm', () => {
         `Sentry Issue: [${group.shortId}](${url})`
       );
     });
+
+    it('renders without an event', async () => {
+      render(
+        <SentryAppExternalIssueForm
+          event={undefined}
+          onSubmitSuccess={jest.fn()}
+          group={group}
+          sentryAppInstallation={sentryAppInstallation}
+          appName={sentryApp.name}
+          config={component.schema.create}
+          action="create"
+        />
+      );
+
+      const url = addQueryParamsToExistingUrl(group.permalink, {
+        referrer: sentryApp.name,
+      });
+      expect(await screen.findByRole('textbox', {name: 'Description'})).toHaveValue(
+        `Sentry Issue: [${group.shortId}](${url})`
+      );
+    });
   });
 
   describe('link', () => {

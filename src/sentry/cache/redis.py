@@ -1,5 +1,6 @@
+from sentry.exceptions import MissingTTL
 from sentry.utils import json
-from sentry.utils.redis import get_cluster_from_options, get_cluster_routing_client, redis_clusters
+from sentry.utils.redis import redis_clusters
 
 from .base import BaseCache
 
@@ -25,13 +26,18 @@ class CommonRedisCache(BaseCache):
 
     def set(self, key, value, timeout, version=None, raw=False):
         key = self.make_key(key, version=version)
-        v = json.dumps(value) if not raw else value
+        if not timeout:
+            raise MissingTTL(key)
+
+        if raw:
+            v = value
+        else:
+            v = json.dumps(value)
+
         if len(v) > self.max_size:
             raise ValueTooLarge(f"Cache key too large: {key!r} {len(v)!r}")
-        if timeout:
-            self._client(raw=raw).setex(key, int(timeout), v)
-        else:
-            self._client(raw=raw).set(key, v)
+
+        self._client(raw=raw).setex(key, int(timeout), v)
 
         self._mark_transaction("set")
 
@@ -52,20 +58,12 @@ class CommonRedisCache(BaseCache):
         return result
 
 
-class RbCache(CommonRedisCache):
-    def __init__(self, **options: object) -> None:
-        cluster, options = get_cluster_from_options("SENTRY_CACHE_OPTIONS", options)
-        client = get_cluster_routing_client(cluster, False)
-        # XXX: rb does not have a "raw" client -- use the default client
-        super().__init__(client=client, raw_client=client, **options)
-
-
-# Confusing legacy name for RbCache.  We don't actually have a pure redis cache
-RedisCache = RbCache
-
-
 class RedisClusterCache(CommonRedisCache):
-    def __init__(self, cluster_id: str, **options: object) -> None:
+    def __init__(self, cluster_id: str = "default", **options: object) -> None:
         client = redis_clusters.get(cluster_id)
         raw_client = redis_clusters.get_binary(cluster_id)
         super().__init__(client=client, raw_client=raw_client, **options)
+
+
+# Deploy configs refer to both names by string.
+RedisCache = RedisClusterCache

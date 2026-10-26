@@ -1,11 +1,13 @@
 import {useTheme} from '@emotion/react';
 import {mergeProps} from '@react-aria/utils';
+import {IconDefaultsProvider} from '@sentry/icons/useIconDefaults';
 
 import {Container, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
-
+/**
+ * @deprecated Use `EmptyState` from `@sentry/scraps/emptyState` instead.
+ */
 interface Props extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title' | 'color'> {
   action?: React.ReactNode;
   icon?: React.ReactNode;
@@ -13,6 +15,9 @@ interface Props extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title' | 'co
   title?: React.ReactNode;
 }
 
+/**
+ * @deprecated Use `EmptyState` from `@sentry/scraps/emptyState` instead.
+ */
 export function EmptyMessage({title, icon, children, action, size, ...props}: Props) {
   const theme = useTheme();
 

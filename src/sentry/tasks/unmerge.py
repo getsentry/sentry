@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Collection, Mapping, Sequence
 from datetime import datetime
 from functools import reduce
 from typing import Any
@@ -11,9 +11,12 @@ from django.db import router, transaction
 from django.db.models.base import Model
 from taskbroker_client.state import current_task
 
-from sentry import similarity, tsdb
+from sentry import features, similarity, tsdb
 from sentry.constants import DEFAULT_LOGGER_NAME, parse_log_level
 from sentry.culprit import generate_culprit
+from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
+from sentry.issues.action_log.backfill import BackfillEntry, backfill_actions
+from sentry.issues.action_log.types import FirstSeenAction, first_seen_idempotency_key
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
@@ -30,7 +33,7 @@ from sentry.services import eventstore
 from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import issues_merge_tasks, issues_tasks
+from sentry.taskworker.namespaces import issues_merge_tasks
 from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
@@ -279,11 +282,6 @@ def truncate_denormalizations(project: Project, group: Group) -> None:
         [TSDBModel.users_affected_by_group], [group.id], environment_ids=environment_ids
     )
 
-    tsdb.backend.delete_frequencies(
-        [TSDBModel.frequent_releases_by_group, TSDBModel.frequent_environments_by_group],
-        [str(group.id)],
-    )
-
     # Don't do MinHash work if we use embeddings-based similarity.
     if not project.get_option("sentry:similarity_backfill_completed"):
         similarity.delete(project, group)
@@ -385,7 +383,6 @@ def collect_tsdb_data(
 ) -> tuple[
     dict[datetime, dict[TSDBModel, dict[tuple[int, int], int]]],
     dict[datetime, dict[TSDBModel, dict[tuple[int, int], set[str]]]],
-    dict[datetime, dict[TSDBModel, dict[str, dict[str, int | float]]]],
 ]:
     counters: dict[datetime, dict[TSDBModel, dict[tuple[int, int], int]]] = defaultdict(
         lambda: defaultdict(lambda: defaultdict(int))
@@ -393,10 +390,6 @@ def collect_tsdb_data(
 
     sets: dict[datetime, dict[TSDBModel, dict[tuple[int, int], set[str]]]] = defaultdict(
         lambda: defaultdict(lambda: defaultdict(set))
-    )
-
-    frequencies: dict[datetime, dict[TSDBModel, dict[str, dict[str, int | float]]]] = defaultdict(
-        lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
     )
 
     for event in events:
@@ -412,31 +405,13 @@ def collect_tsdb_data(
                     (event.group_id, environment.id)
                 ].add(tag_value)
 
-        frequencies[event.datetime][TSDBModel.frequent_environments_by_group][str(event.group_id)][
-            str(environment.id)
-        ] += 1
-
-        release = event.get_tag("sentry:release")
-        if release:
-            # TODO: I'm also not sure if "environment" here is correct, see
-            # similar comment above during creation.
-            grouprelease = caches["GroupRelease"](
-                event.group_id,
-                get_environment_name(event),
-                caches["Release"](project.organization_id, release).id,
-            )
-
-            frequencies[event.datetime][TSDBModel.frequent_releases_by_group][str(event.group_id)][
-                str(grouprelease.id)
-            ] += 1
-
-    return counters, sets, frequencies
+    return counters, sets
 
 
 def repair_tsdb_data(
     caches: Mapping[str, Any], project: Project, events: Sequence[GroupEvent]
 ) -> None:
-    counters, sets, frequencies = collect_tsdb_data(caches, project, events)
+    counters, sets = collect_tsdb_data(caches, project, events)
 
     for timestamp, data in counters.items():
         for model, keys in data.items():
@@ -451,18 +426,6 @@ def repair_tsdb_data(
                     model, key, list(sets_values), timestamp, environment_id=environment_id
                 )
 
-    for timestamp, frequencies_data in frequencies.items():
-        # Convert the frequency data to the format expected by record_frequency_multi
-        frequency_requests: list[tuple[TSDBModel, Mapping[str, Mapping[str, int | float]]]] = [
-            (freq_model, freq_model_data)
-            for freq_model, freq_model_data in frequencies_data.items()
-        ]
-        if frequency_requests:
-            tsdb.backend.record_frequency_multi(
-                frequency_requests,
-                timestamp,
-            )
-
 
 def repair_denormalizations(
     caches: Mapping[str, Any], project: Project, events: Sequence[GroupEvent]
@@ -475,6 +438,34 @@ def repair_denormalizations(
     if not project.get_option("sentry:similarity_backfill_completed"):
         for event in events:
             similarity.record(project, [event])
+
+
+def publish_destination_first_seen(project: Project, destination_ids: Collection[int]) -> None:
+    # Unmerge creates destinations without going through _create_group, so log their
+    # FIRST_SEEN here. Batches are scanned newest-first and each one can move first_seen
+    # earlier, so it's only final once the scan is complete. By then the destination
+    # already has log entries (e.g. UNMERGE_DESTINATION), so the entry is inserted
+    # directly with date_added=first_seen to keep it the oldest in the log; the outbox
+    # would date it at drain time. Destinations that already have the entry (e.g. one
+    # passed in that came from ingest) are deduped by the key.
+    if not features.has("projects:issue-action-log-write-to-db", project):
+        return
+    for group_id, first_seen in Group.objects.filter(
+        project_id=project.id, id__in=destination_ids
+    ).values_list("id", "first_seen"):
+        backfill_actions(
+            entries=[
+                BackfillEntry(
+                    action=FirstSeenAction(first_seen=first_seen),
+                    actor=SYSTEM_ACTOR,
+                    source=ActionSource.SYSTEM,
+                    date_added=first_seen,
+                    idempotency_key=first_seen_idempotency_key(group_id),
+                )
+            ],
+            group_id=group_id,
+            project_id=project.id,
+        )
 
 
 def lock_hashes(project_id: int, source_id: int, fingerprints: Sequence[str]) -> list[str]:
@@ -502,150 +493,205 @@ def unlock_hashes(project_id: int, locked_primary_hashes: Sequence[str]) -> None
     ).update(state=GroupHash.State.UNLOCKED)
 
 
+_START_TASK_KEY = "start_unmerge"
+
+
+@instrumented_task(
+    name="sentry.tasks.unmerge.start_unmerge",
+    namespace=issues_merge_tasks,
+    processing_deadline_duration=300,
+    silo_mode=SiloMode.CELL,
+)
+def start_unmerge(
+    project_id: int,
+    source_id: int,
+    destination_id: int | None,
+    fingerprints: Sequence[str],
+    actor_id: int | None,
+    batch_size: int = 500,
+) -> None:
+    task_state = current_task()
+    activation_id = task_state.id if task_state else None
+    if activation_id and already_spawned(_START_TASK_KEY, activation_id):
+        logger.info(
+            "unmerge.start.duplicate_redelivery.skipped",
+            extra={
+                "project_id": project_id,
+                "source_id": source_id,
+                "activation_id": activation_id,
+            },
+        )
+        metrics.incr("taskworker.selfchain.duplicate_skipped", tags={"task": _START_TASK_KEY})
+        return
+
+    logger.info(
+        "unmerge.start",
+        extra={
+            "project_id": project_id,
+            "source_id": source_id,
+            "num_fingerprints": len(fingerprints),
+            "actor_id": actor_id,
+        },
+    )
+    metrics.incr("unmerge.started")
+
+    unmerge.delay(
+        project_id, source_id, destination_id, fingerprints, actor_id, batch_size=batch_size
+    )
+    if activation_id:
+        mark_spawned(_START_TASK_KEY, activation_id)
+
+
 @instrumented_task(
     name="sentry.tasks.unmerge",
     namespace=issues_merge_tasks,
-    alias_namespace=issues_tasks,
     processing_deadline_duration=300,
     silo_mode=SiloMode.CELL,
 )
 def unmerge(*posargs: Any, **kwargs: Any) -> None:
-    args = UnmergeArgsBase.parse_arguments(*posargs, **kwargs)
-    extra = {"source_id": args.source_id, "project_id": args.project_id}
+    with action_context_scope(ActionSource.SYSTEM):
+        args = UnmergeArgsBase.parse_arguments(*posargs, **kwargs)
+        extra = {"source_id": args.source_id, "project_id": args.project_id}
 
-    # Self-chain idempotency guard. If this activation already produced its continuation in a
-    # prior delivery, this execution is a broker re-pend: no-op so we don't fork the chain (and
-    # skip the redundant re-processing). Only effective inside a worker (current_task() set).
-    task_state = current_task()
-    activation_id = task_state.id if task_state else None
-    if activation_id and already_spawned(_TASK_KEY, activation_id):
-        logger.info(
-            "unmerge.duplicate_redelivery.skipped", extra={**extra, "activation_id": activation_id}
+        # Self-chain idempotency guard. If this activation already produced its continuation in a
+        # prior delivery, this execution is a broker re-pend: no-op so we don't fork the chain (and
+        # skip the redundant re-processing). Only effective inside a worker (current_task() set).
+        task_state = current_task()
+        activation_id = task_state.id if task_state else None
+        if activation_id and already_spawned(_TASK_KEY, activation_id):
+            logger.info(
+                "unmerge.duplicate_redelivery.skipped",
+                extra={**extra, "activation_id": activation_id},
+            )
+            metrics.incr("taskworker.selfchain.duplicate_skipped", tags={"task": _TASK_KEY})
+            return
+
+        logger.info("unmerge.start.task", extra=extra)
+
+        if killswitch_matches_context(
+            "unmerge.killswitch-projects", {"project_id": args.project_id}
+        ):
+            logger.warning("unmerge.halted_by_killswitch", extra=extra)
+            if isinstance(args, SuccessiveUnmergeArgs):
+                unlock_hashes(args.project_id, list(args.locked_primary_hashes))
+                for _unmerge_key, (_destination_id, eventstream_state) in args.destinations.items():
+                    if eventstream_state:
+                        args.replacement.stop_snuba_replacement(eventstream_state)
+            return
+
+        source = Group.objects.get(project_id=args.project_id, id=args.source_id)
+
+        caches: Mapping[str, Any] = get_caches()
+
+        project = caches["Project"](args.project_id)
+
+        # On the first iteration of this loop, we clear out all of the
+        # denormalizations from the source group so that we can have a clean slate
+        # for the new, repaired data.
+        if isinstance(args, InitialUnmergeArgs):
+            locked_primary_hashes = lock_hashes(
+                args.project_id, args.source_id, list(args.replacement.primary_hashes_to_lock)
+            )
+            truncate_denormalizations(project, source)
+            last_event = None
+        else:
+            last_event = args.last_event
+            locked_primary_hashes = list(args.locked_primary_hashes)
+
+        last_event, raw_events = task_run_batch_query(
+            filter=eventstore.Filter(project_ids=[args.project_id], group_ids=[source.id]),
+            batch_size=args.batch_size,
+            state=last_event,
+            referrer="unmerge",
+            tenant_ids={"organization_id": source.project.organization_id},
+            eap_conditions=build_group_id_in_filter([source.id]),
         )
-        metrics.incr("taskworker.selfchain.duplicate_skipped", tags={"task": _TASK_KEY})
-        return
+        # Convert Event objects to GroupEvent objects
+        events: list[GroupEvent] = [event.for_group(source) for event in raw_events]
+        # Log info related to this unmerge
+        logger.info("unmerge.check", extra={**extra, "num_events": len(events)})
 
-    logger.info("unmerge.start.task", extra=extra)
-
-    if killswitch_matches_context("unmerge.killswitch-projects", {"project_id": args.project_id}):
-        logger.warning("unmerge.halted_by_killswitch", extra=extra)
-        if isinstance(args, SuccessiveUnmergeArgs):
-            unlock_hashes(args.project_id, list(args.locked_primary_hashes))
-            for _unmerge_key, (_destination_id, eventstream_state) in args.destinations.items():
+        # If there are no more events to process, we're done with the migration.
+        if not events:
+            publish_destination_first_seen(
+                project, [destination_id for destination_id, _ in args.destinations.values()]
+            )
+            unlock_hashes(args.project_id, locked_primary_hashes)
+            for unmerge_key, (_, eventstream_state) in args.destinations.items():
+                logger.warning(
+                    "Unmerge complete (eventstream state: %s)", eventstream_state, extra=extra
+                )
                 if eventstream_state:
                     args.replacement.stop_snuba_replacement(eventstream_state)
-        return
+            return
 
-    source = Group.objects.get(project_id=args.project_id, id=args.source_id)
+        source_events = []
+        destination_events: dict[str, list[GroupEvent]] = {}
 
-    caches: Mapping[str, Any] = get_caches()
+        for event in events:
+            key = args.replacement.get_unmerge_key(event, locked_primary_hashes)
+            if key is not None:
+                destination_events.setdefault(key, []).append(event)
+            else:
+                source_events.append(event)
 
-    project = caches["Project"](args.project_id)
+        source_fields_reset = isinstance(args, SuccessiveUnmergeArgs) and args.source_fields_reset
 
-    # On the first iteration of this loop, we clear out all of the
-    # denormalizations from the source group so that we can have a clean slate
-    # for the new, repaired data.
-    if isinstance(args, InitialUnmergeArgs):
-        locked_primary_hashes = lock_hashes(
-            args.project_id, args.source_id, list(args.replacement.primary_hashes_to_lock)
+        if source_events:
+            if not source_fields_reset:
+                source.update(**get_group_creation_attributes(caches, source, source_events))
+                source_fields_reset = True
+            else:
+                source.update(**get_group_backfill_attributes(caches, source, source_events))
+
+        destinations = dict(args.destinations)
+        # Log info related to this unmerge
+        logger.info(
+            "unmerge.destinations",
+            extra={
+                **extra,
+                "source_events": len(source_events),
+                "destination_events": len(destination_events),
+                "source_fields_reset": source_fields_reset,
+            },
         )
-        truncate_denormalizations(project, source)
-        last_event = None
-    else:
-        last_event = args.last_event
-        locked_primary_hashes = list(args.locked_primary_hashes)
 
-    last_event, raw_events = task_run_batch_query(
-        filter=eventstore.Filter(project_ids=[args.project_id], group_ids=[source.id]),
-        batch_size=args.batch_size,
-        state=last_event,
-        referrer="unmerge",
-        tenant_ids={"organization_id": source.project.organization_id},
-        eap_conditions=build_group_id_in_filter([source.id]),
-    )
-    # Convert Event objects to GroupEvent objects
-    events: list[GroupEvent] = [event.for_group(source) for event in raw_events]
-    # Log info related to this unmerge
-    logger.info("unmerge.check", extra={**extra, "num_events": len(events)})
+        # XXX: This is only actually able to create a destination group and migrate
+        # the group hashes if there are events that can be migrated. How do we
+        # handle this if there aren't any events? We can't create a group (there
+        # isn't any data to derive the aggregates from), so we'd have to mark the
+        # hash as in limbo somehow...?)
 
-    # If there are no more events to process, we're done with the migration.
-    if not events:
-        unlock_hashes(args.project_id, locked_primary_hashes)
-        for unmerge_key, (_, eventstream_state) in args.destinations.items():
-            logger.warning(
-                "Unmerge complete (eventstream state: %s)", eventstream_state, extra=extra
+        for unmerge_key, _destination_events in destination_events.items():
+            destination_id, eventstream_state = destinations.get(unmerge_key) or (None, None)
+            (destination_id, eventstream_state) = migrate_events(
+                source,
+                caches,
+                project,
+                args,
+                _destination_events,
+                locked_primary_hashes,
+                destination_id,
+                eventstream_state,
             )
-            if eventstream_state:
-                args.replacement.stop_snuba_replacement(eventstream_state)
-        return
+            destinations[unmerge_key] = destination_id, eventstream_state
 
-    source_events = []
-    destination_events: dict[str, list[GroupEvent]] = {}
+        repair_denormalizations(caches, project, events)
 
-    for event in events:
-        key = args.replacement.get_unmerge_key(event, locked_primary_hashes)
-        if key is not None:
-            destination_events.setdefault(key, []).append(event)
-        else:
-            source_events.append(event)
-
-    source_fields_reset = isinstance(args, SuccessiveUnmergeArgs) and args.source_fields_reset
-
-    if source_events:
-        if not source_fields_reset:
-            source.update(**get_group_creation_attributes(caches, source, source_events))
-            source_fields_reset = True
-        else:
-            source.update(**get_group_backfill_attributes(caches, source, source_events))
-
-    destinations = dict(args.destinations)
-    # Log info related to this unmerge
-    logger.info(
-        "unmerge.destinations",
-        extra={
-            **extra,
-            "source_events": len(source_events),
-            "destination_events": len(destination_events),
-            "source_fields_reset": source_fields_reset,
-        },
-    )
-
-    # XXX: This is only actually able to create a destination group and migrate
-    # the group hashes if there are events that can be migrated. How do we
-    # handle this if there aren't any events? We can't create a group (there
-    # isn't any data to derive the aggregates from), so we'd have to mark the
-    # hash as in limbo somehow...?)
-
-    for unmerge_key, _destination_events in destination_events.items():
-        destination_id, eventstream_state = destinations.get(unmerge_key) or (None, None)
-        (destination_id, eventstream_state) = migrate_events(
-            source,
-            caches,
-            project,
-            args,
-            _destination_events,
-            locked_primary_hashes,
-            destination_id,
-            eventstream_state,
+        new_args = SuccessiveUnmergeArgs(
+            project_id=args.project_id,
+            source_id=args.source_id,
+            replacement=args.replacement,
+            actor_id=args.actor_id,
+            batch_size=args.batch_size,
+            last_event=last_event,
+            destinations=destinations,
+            locked_primary_hashes=locked_primary_hashes,
+            source_fields_reset=source_fields_reset,
         )
-        destinations[unmerge_key] = destination_id, eventstream_state
 
-    repair_denormalizations(caches, project, events)
-
-    new_args = SuccessiveUnmergeArgs(
-        project_id=args.project_id,
-        source_id=args.source_id,
-        replacement=args.replacement,
-        actor_id=args.actor_id,
-        batch_size=args.batch_size,
-        last_event=last_event,
-        destinations=destinations,
-        locked_primary_hashes=locked_primary_hashes,
-        source_fields_reset=source_fields_reset,
-    )
-
-    unmerge.delay(**new_args.dump_arguments())
-    # Record that this activation has spawned its continuation. A subsequent re-pend of this same
-    # activation will short-circuit at the guard above instead of spawning again.
-    if activation_id:
-        mark_spawned(_TASK_KEY, activation_id)
+        unmerge.delay(**new_args.dump_arguments())
+        # Record that this activation has spawned its continuation. A subsequent re-pend of this same
+        # activation will short-circuit at the guard above instead of spawning again.
+        if activation_id:
+            mark_spawned(_TASK_KEY, activation_id)

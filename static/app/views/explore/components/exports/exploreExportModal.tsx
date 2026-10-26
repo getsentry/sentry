@@ -1,10 +1,8 @@
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {defaultFormOptions, useScrapsForm, useStore} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -76,19 +74,21 @@ export function ExploreExportModal({
     onSubmit: async ({value}) => {
       const isAllColumns =
         config.supportsAllColumns && value.columns === ModalColumnValue.ALL;
-      // The local download can only serve rows already loaded in the browser, so
-      // anything beyond that must go through the server export.
-      const exceedsLocalData = value.limit > localRowCount;
 
       const format = isAllColumns ? 'jsonl' : value.format;
 
-      const useServerExport = isAllColumns || exceedsLocalData;
-      const exportType = useServerExport ? 'export_download' : 'browser_sync';
+      // Areas cap what their browser download can serve with `localRowCount`, so
+      // anything beyond that must go through the server export.
+      const localDownloadForSubmit =
+        !isAllColumns && localDownload && value.limit <= (localRowCount ?? 0)
+          ? localDownload
+          : undefined;
+      const exportType = localDownloadForSubmit ? 'browser_sync' : 'export_download';
 
       trackExportSubmit({format, limit: value.limit, isAllColumns, exportType});
 
-      if (!useServerExport) {
-        localDownload({format, limit: value.limit});
+      if (localDownloadForSubmit) {
+        localDownloadForSubmit({format, limit: value.limit});
         addSuccessMessage(t('Downloading file to your browser.'));
         closeModal();
         return;
@@ -151,7 +151,7 @@ export function ExploreExportModal({
                   }
                   disabled={columnsValue === ModalColumnValue.ALL}
                 >
-                  <field.Layout.Stack label={t('Format')}>
+                  <field.Layout.Stack label={t('Format')} align="start">
                     <field.Radio.Item value="csv">{t('CSV')}</field.Radio.Item>
                     <field.Radio.Item value="jsonl">{t('JSONL')}</field.Radio.Item>
                   </field.Layout.Stack>
@@ -180,18 +180,12 @@ export function ExploreExportModal({
           )}
           <form.AppField name="limit">
             {field => (
-              <field.Layout.Stack label={t('Number of rows')}>
-                <CompactSelect
+              <field.Layout.Stack label={t('Number of rows')} align="start">
+                <field.CompactSelect
                   disabled={rowCountOptions.length === 1}
                   options={rowCountOptions}
                   value={field.state.value}
-                  onChange={option => field.handleChange(option.value)}
-                  trigger={triggerProps => (
-                    <OverlayTrigger.Button
-                      {...triggerProps}
-                      aria-label={t('Number of rows')}
-                    />
-                  )}
+                  onChange={field.handleChange}
                 />
               </field.Layout.Stack>
             )}

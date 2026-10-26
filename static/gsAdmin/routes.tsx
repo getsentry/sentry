@@ -1,5 +1,5 @@
+import {translateSentryRoute} from 'sentry/router/translateSentryRoute';
 import type {SentryRouteObject} from 'sentry/router/types';
-import {translateSentryRoute} from 'sentry/utils/reactRouter6Compat/router';
 
 import {BeaconDetails} from 'admin/views/beaconDetails';
 import {Beacons} from 'admin/views/beacons';
@@ -16,11 +16,11 @@ import {DebuggingTools} from 'admin/views/debuggingTools';
 import {DocIntegrationDetails} from 'admin/views/docIntegrationDetails';
 import {DocIntegrations} from 'admin/views/docIntegrations';
 import {GenerateSpikeProjectionsForBatch} from 'admin/views/generateSpikeProjectionsForBatch';
+import {GiftRecurringCredits} from 'admin/views/giftRecurringCredits';
 import {HomePage as Home} from 'admin/views/home';
 import {InstanceLevelOAuth} from 'admin/views/instanceLevelOAuth/instanceLevelOAuth';
 import {InstanceLevelOAuthDetails} from 'admin/views/instanceLevelOAuth/instanceLevelOAuthDetails';
 import {InvoiceDetails} from 'admin/views/invoiceDetails';
-import {Invoices} from 'admin/views/invoices';
 import {LaunchpadAdminPage} from 'admin/views/launchpadAdminPage';
 import {Layout} from 'admin/views/layout';
 import {NotFound} from 'admin/views/notFound';
@@ -99,13 +99,13 @@ function buildRoutes() {
                 path: 'projects/:projectId/',
                 component: ProjectDetails,
               },
-              {
-                path: 'invoices/:region/:invoiceId/',
-                component: InvoiceDetails,
-              },
             ],
           },
         ],
+      },
+      {
+        path: 'invoices/:region/:invoiceId/',
+        component: InvoiceDetails,
       },
       {
         path: 'doc-integrations/',
@@ -238,19 +238,6 @@ function buildRoutes() {
         component: BillingAdmins,
       },
       {
-        path: 'invoices/',
-        children: [
-          {
-            index: true,
-            component: Invoices,
-          },
-          {
-            path: ':invoiceId/',
-            component: InvoiceDetails,
-          },
-        ],
-      },
-      {
         path: 'billing-platform/',
         component: BillingPlatform,
       },
@@ -282,6 +269,15 @@ function buildRoutes() {
           {
             index: true,
             component: GenerateSpikeProjectionsForBatch,
+          },
+        ],
+      },
+      {
+        path: 'gift-recurring-credits/',
+        children: [
+          {
+            index: true,
+            component: GiftRecurringCredits,
           },
         ],
       },

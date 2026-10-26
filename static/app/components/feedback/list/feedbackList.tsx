@@ -1,11 +1,13 @@
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
 import {useInfiniteQuery} from '@tanstack/react-query';
 import uniqBy from 'lodash/uniqBy';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
-import {Stack} from '@sentry/scraps/layout';
+import {LinkButton} from '@sentry/scraps/button';
+import {EmptyState} from '@sentry/scraps/emptyState';
+import {Image} from '@sentry/scraps/image';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -14,20 +16,60 @@ import {FeedbackListItem} from 'sentry/components/feedback/list/feedbackListItem
 import {useFeedbackApiOptions} from 'sentry/components/feedback/useFeedbackApiOptions';
 import {InfiniteListItems} from 'sentry/components/infiniteList/infiniteListItems';
 import {InfiniteListState} from 'sentry/components/infiniteList/infiniteListState';
+import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {FeedbackIssueListItem} from 'sentry/utils/feedback/types';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
+import {RequestError} from 'sentry/utils/requestError/requestError';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 function NoFeedback() {
   return (
-    <NoFeedbackWrapper>
-      <img src={waitingForEventImg} alt={t('A person waiting for a phone to ring')} />
-      <NoFeedbackMessage>{t('Inbox Zero')}</NoFeedbackMessage>
-      <p>{t('You have two options: take a nap or be productive.')}</p>
-    </NoFeedbackWrapper>
+    <EmptyState
+      padding="3xl"
+      align="center"
+      justify="center"
+      illustration={
+        <Image src={waitingForEventImg} alt={t('A person waiting for a phone to ring')} />
+      }
+      title={t('Inbox Zero')}
+      description={t('You have two options: take a nap or be productive.')}
+    />
+  );
+}
+
+function FeedbackListError({error, onRetry}: {error: Error; onRetry: () => void}) {
+  const organization = useOrganization();
+
+  if (error instanceof RequestError && error.status === 403) {
+    return (
+      <EmptyState
+        padding="3xl"
+        align="center"
+        justify="center"
+        title={t("You don't have access to this feedback")}
+        description={t(
+          "You may not be a member of a team with access to one or more of the selected projects. Try selecting different projects, or ask an organization admin to add you to the project's team."
+        )}
+        action={
+          <LinkButton size="sm" to={`/settings/${organization.slug}/teams/`}>
+            {t('View Teams')}
+          </LinkButton>
+        }
+      />
+    );
+  }
+
+  return (
+    <Container padding="md">
+      <LoadingError
+        message={t('There was an error loading feedback.')}
+        onRetry={onRetry}
+      />
+    </Container>
   );
 }
 
@@ -56,6 +98,9 @@ export function FeedbackList({onItemSelect}: Props) {
         <InfiniteListState
           queryResult={queryResult}
           backgroundUpdatingMessage={() => null}
+          errorMessage={({error}) => (
+            <FeedbackListError error={error} onRetry={() => queryResult.refetch()} />
+          )}
           loadingMessage={() => <LoadingIndicator />}
         >
           <InfiniteListItems<FeedbackIssueListItem, ApiResponse<FeedbackIssueListItem[]>>
@@ -80,11 +125,11 @@ export function FeedbackList({onItemSelect}: Props) {
             }}
             emptyMessage={() => <NoFeedback />}
             loadingMoreMessage={() => (
-              <Centered>
+              <Container justifySelf="center">
                 <Tooltip title={t('Loading more feedback...')}>
                   <LoadingIndicator mini />
                 </Tooltip>
-              </Centered>
+              </Container>
             )}
             loadingCompleteMessage={() => null}
           />
@@ -93,26 +138,3 @@ export function FeedbackList({onItemSelect}: Props) {
     </ListItemCheckboxProvider>
   );
 }
-
-const Centered = styled('div')`
-  justify-self: center;
-`;
-
-const NoFeedbackWrapper = styled('div')`
-  padding: ${p => p.theme.space['3xl']} ${p => p.theme.space['3xl']};
-  text-align: center;
-  color: ${p => p.theme.tokens.content.secondary};
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    font-size: ${p => p.theme.font.size.md};
-  }
-`;
-
-const NoFeedbackMessage = styled('div')`
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  color: ${p => p.theme.colors.gray500};
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    font-size: ${p => p.theme.font.size.xl};
-  }
-`;

@@ -1,8 +1,8 @@
 import {useContext} from 'react';
+import {IconOpen} from '@sentry/icons/open';
 
 import {LinkButton} from '@sentry/scraps/button';
 
-import {IconOpen} from 'sentry/icons';
 import type {Integration} from 'sentry/types/integrations';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
@@ -17,7 +17,14 @@ type Props = {
    */
   buttonProps: Pick<
     React.ComponentProps<typeof AddIntegrationButton>,
-    'size' | 'variant' | 'disabled' | 'style' | 'data-test-id' | 'icon' | 'buttonText'
+    | 'size'
+    | 'variant'
+    | 'disabled'
+    | 'style'
+    | 'data-test-id'
+    | 'icon'
+    | 'buttonText'
+    | 'aria-label'
   >;
   onAddIntegration: (integration: Integration) => void;
   onExternalClick: () => void;

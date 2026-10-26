@@ -1,9 +1,6 @@
-import {useEffect} from 'react';
-import {useMutation, useQueryClient} from '@tanstack/react-query';
-import {useQuery} from '@tanstack/react-query';
+import {useMutation, useQueryClient, useQuery} from '@tanstack/react-query';
 import cloneDeep from 'lodash/cloneDeep';
 import some from 'lodash/some';
-import scrollToElement from 'scroll-to-element';
 
 import {Link} from '@sentry/scraps/link';
 
@@ -77,6 +74,7 @@ import {
   hasActiveVCFeature,
   hasPerformance,
   isBizPlanFamily,
+  isTrial,
   isUnlimitedReserved,
 } from 'getsentry/utils/billing';
 import {
@@ -139,12 +137,6 @@ export function CustomerDetails() {
     isPending: isPendingBillingConfig,
   } = useApiQuery<BillingConfig>(BILLING_CONFIG_QUERY_KEY, {staleTime: Infinity});
 
-  useEffect(() => {
-    if (location.query.dataType) {
-      scrollToElement('#stats-filter');
-    }
-  });
-
   const onUpdateMutation = useMutation({
     mutationFn: (params: Record<string, any>) =>
       api.requestPromise(`/customers/${orgId}/`, {
@@ -181,7 +173,10 @@ export function CustomerDetails() {
   const onGenerateSpikeProjectionsMutation = useMutation({
     mutationFn: () =>
       fetchMutation({
-        url: `/_admin/customers/${orgId}/queue-spike-projection/`,
+        url: getApiUrl(
+          '/_admin/customers/$organizationIdOrSlug/queue-spike-projection/',
+          {path: {organizationIdOrSlug: orgId}}
+        ),
         method: 'POST',
       }),
     onSuccess: () => {
@@ -197,6 +192,51 @@ export function CustomerDetails() {
     refetchOrganization();
     refetchBillingConfig();
   };
+
+  const onSetTestFlagMutation = useMutation({
+    mutationFn: (params: {isTest: boolean; notes?: string}) =>
+      fetchMutation<{isTest: boolean}>({
+        url: getApiUrl('/_admin/customers/$organizationIdOrSlug/test-flag/', {
+          path: {organizationIdOrSlug: orgId},
+        }),
+        method: 'PUT',
+        data: params,
+      }),
+    onSuccess: async () => {
+      await refetchSubscription();
+      addSuccessMessage('Test organization flag updated.');
+    },
+    onError: () => {
+      addErrorMessage('Could not update the test organization flag. Try again.');
+    },
+  });
+
+  const onToggleBillingPlatformMigrationMutation = useMutation({
+    mutationFn: (params: Record<string, any>) =>
+      fetchMutation({
+        url: getApiUrl(
+          '/_admin/customers/$organizationIdOrSlug/billing-platform-migration/',
+          {
+            path: {organizationIdOrSlug: orgId},
+          }
+        ),
+        method: 'POST',
+        data: params,
+      }),
+    onMutate: () => addLoadingMessage('Saving changes\u2026'),
+    onSuccess: (_data, variables) => {
+      addSuccessMessage(
+        variables.migrated
+          ? 'Marked this org as migrated to the billing platform.'
+          : 'Marked this org as not migrated to the billing platform.'
+      );
+      reloadData();
+    },
+    onError: (error: RequestError) => {
+      const detail = error.responseJSON?.detail;
+      addErrorMessage(typeof detail === 'string' ? detail : DEFAULT_ERROR_MESSAGE);
+    },
+  });
 
   if (isPendingSubscription || isPendingOrganization || isPendingBillingConfig) {
     return <LoadingIndicator />;
@@ -332,6 +372,12 @@ export function CustomerDetails() {
 
   const badges: BadgeItem[] = [
     {
+      name: 'Test Organization',
+      level: 'warning',
+      help: 'This organization is marked for internal testing. Billing is unchanged.',
+      visible: subscription.isTest === true,
+    },
+    {
       name: 'Suspended',
       level: 'danger',
       help: subscription.suspensionReason,
@@ -342,6 +388,15 @@ export function CustomerDetails() {
       help: 'OnDemand has been disabled for this account due to payment failures',
       level: 'warning',
       visible: subscription.onDemandDisabled,
+    },
+    {
+      name: subscription.hasMigratedToBillingPlatform
+        ? 'Billing Platform'
+        : 'Legacy Billing',
+      level: subscription.hasMigratedToBillingPlatform ? 'success' : 'muted',
+      help: subscription.hasMigratedToBillingPlatform
+        ? 'This org is served by the billing platform.'
+        : 'This org is still served by the legacy billing system.',
     },
   ];
 
@@ -397,14 +452,14 @@ export function CustomerDetails() {
             key: 'allowTrial',
             name: 'Allow Trial',
             help: 'Allow this account to opt-in to a trial period.',
-            visible: !subscription.canTrial && !subscription.isTrial,
+            visible: !subscription.canTrial && !isTrial(subscription),
             onAction: params => onUpdateMutation.mutate({...params, canTrial: true}),
           },
           {
             key: 'endTrialEarly',
             name: 'End Trial Early',
             help: 'End the current trial immediately.',
-            disabled: !subscription.isTrial,
+            disabled: !isTrial(subscription),
             disabledReason: 'This account is not on on trial.',
             onAction: params => onUpdateMutation.mutate({...params, endTrialEarly: true}),
           },
@@ -456,19 +511,34 @@ export function CustomerDetails() {
             ...actionRequiresBillingAdmin,
           },
           {
+            key: 'setTestFlag',
+            name: subscription.isTest
+              ? 'Remove test organization flag'
+              : 'Mark as test organization',
+            help: 'Change the internal test marker',
+            disabled:
+              subscription.isTest === undefined || onSetTestFlagMutation.isPending,
+            disabledReason: 'The test flag is unavailable or an update is in progress.',
+            confirmModalOpts: {
+              confirmText: subscription.isTest ? 'Remove test flag' : 'Mark as test',
+              showTicketURL: false,
+            },
+            onAction: ({notes}) =>
+              onSetTestFlagMutation.mutate({notes, isTest: !subscription.isTest}),
+          },
+          {
             key: 'toggleBillingPlatformMigration',
             name: subscription.hasMigratedToBillingPlatform
-              ? '[Do Not Use] Unmigrate to Billing Platform'
+              ? '[Do Not Use] Unmigrate from Billing Platform'
               : '[Do Not Use] Migrate to Billing Platform',
             help: subscription.hasMigratedToBillingPlatform
               ? 'Mark this org as not migrated to the billing platform.'
               : 'Mark this org as migrated to the billing platform.',
             onAction: params =>
-              onUpdateMutation.mutate({
+              onToggleBillingPlatformMigrationMutation.mutate({
                 ...params,
-                migratedToBillingPlatform: !subscription.hasMigratedToBillingPlatform,
+                migrated: !subscription.hasMigratedToBillingPlatform,
               }),
-            ...actionRequiresBillingAdmin,
           },
           {
             key: 'recreateBillingPlatformModels',
@@ -480,7 +550,6 @@ export function CustomerDetails() {
             },
             onAction: params =>
               onUpdateMutation.mutate({...params, recreateBillingPlatformModels: true}),
-            ...actionRequiresBillingAdmin,
           },
           {
             key: 'convertToSelfServe',
@@ -548,9 +617,9 @@ export function CustomerDetails() {
           {
             key: 'startEnterpriseTrial',
             name: 'Start Enterprise Trial',
-            help: subscription.isFree
-              ? 'Start enterprise trial with capped event limits (includes SSO).'
-              : 'Start enterprise trial with unlimited events (includes SSO).',
+            help: 'Start enterprise trial with capped event limits (includes SSO).',
+            // Enterprise trials from admin are only offered on free/developer plans.
+            visible: subscription.isFree,
             disabled: subscription.isPartner || subscription.isEnterpriseTrial,
             disabledReason: subscription.isPartner
               ? 'This account is managed by a third-party.'
@@ -568,8 +637,8 @@ export function CustomerDetails() {
           },
           {
             key: 'startTrial',
-            name: subscription.isTrial ? 'Extend Trial' : 'Start Trial',
-            help: 'Start or extend a trial for this account.',
+            name: isTrial(subscription) ? 'Extend Trial' : 'Start Trial',
+            help: 'Start or extend a trial for this account. Starting a trial on a paid plan will not change quota limits and will only enable business features.',
             confirmModalOpts: {
               renderModalSpecificContent: deps => (
                 <TrialSubscriptionAction subscription={subscription} {...deps} />
@@ -879,7 +948,7 @@ export function CustomerDetails() {
           {
             content: (
               <CustomerOverview
-                onAction={onUpdateMutation.mutate}
+                onAction={onUpdateMutation.mutateAsync}
                 customer={subscription}
                 organization={organization}
               />

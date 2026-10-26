@@ -1,7 +1,13 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Stack} from '@sentry/scraps/layout';
+import {
+  Stack,
+  type Responsive,
+  useResponsivePropValue,
+  Flex,
+  Grid,
+} from '@sentry/scraps/layout';
 import {SplitPanel} from '@sentry/scraps/splitPanel';
 import {TooltipContext} from '@sentry/scraps/tooltip';
 
@@ -64,6 +70,7 @@ function ReplayLayoutBody({
 
   const video = (
     <VideoSection ref={fullscreenRef}>
+      {/* oxlint-disable-next-line react/refs */}
       <TooltipContext value={{container: fullscreenRef.current}}>
         <ErrorBoundary mini>
           <ReplayView
@@ -100,25 +107,33 @@ function ReplayLayoutBody({
     isLoading || replayRecord?.is_archived ? (
       <Placeholder width="100%" height="100%" />
     ) : (
-      <FluidContainer>
+      <Grid as="section" gap="md" height="100%" rows="max-content 1fr">
         <FocusTabs isVideoReplay={isVideoReplay} />
 
         <ErrorBoundary mini>
           <FocusArea isVideoReplay={isVideoReplay} />
         </ErrorBoundary>
-      </FluidContainer>
+      </Grid>
     );
 
   const hasSize = width + height > 0;
   const isFocusAreaCollapsed = layout === LayoutKey.VIDEO_ONLY;
   const effectiveLayout = isFocusAreaCollapsed ? defaultLayout : layout;
   const isLeftRight = effectiveLayout === LayoutKey.SIDEBAR_LEFT;
+  const splitPanelOrientation: Responsive<'horizontal' | 'vertical'> = isLeftRight
+    ? {zero: 'vertical', xl: 'horizontal'}
+    : 'vertical';
+  const isHorizontal = useResponsivePropValue(splitPanelOrientation) === 'horizontal';
 
   if (layout === LayoutKey.NO_VIDEO) {
     return (
       <BodyGrid>
         <Stack wrap="nowrap" minHeight="0" ref={measureRef}>
-          {hasSize ? <PanelContainer>{focusArea}</PanelContainer> : null}
+          {hasSize ? (
+            <Flex flexGrow={1} position="relative">
+              {focusArea}
+            </Flex>
+          ) : null}
         </Stack>
       </BodyGrid>
     );
@@ -129,20 +144,20 @@ function ReplayLayoutBody({
       <Stack wrap="nowrap" minHeight="0" ref={measureRef}>
         {hasSize ? (
           <SplitPanel
-            orientation={isLeftRight ? 'horizontal' : 'vertical'}
-            defaultSize={isLeftRight ? width * 0.5 : (height - DIVIDER_SIZE) * 0.5}
-            minSize={isLeftRight ? MIN_SIDEBAR_WIDTH : MIN_VIDEO_HEIGHT}
-            fillMinSize={isLeftRight ? MIN_CONTENT_WIDTH : MIN_CONTENT_HEIGHT}
+            orientation={splitPanelOrientation}
+            defaultSize={isHorizontal ? width * 0.5 : (height - DIVIDER_SIZE) * 0.5}
+            minSize={isHorizontal ? MIN_SIDEBAR_WIDTH : MIN_VIDEO_HEIGHT}
+            fillMinSize={isHorizontal ? MIN_CONTENT_WIDTH : MIN_CONTENT_HEIGHT}
             onResizeEnd={({direction}) =>
               trackAnalytics('replay.details-resized-panel', {
                 organization,
                 layout: effectiveLayout,
                 slide_motion:
                   direction === 'increase'
-                    ? isLeftRight
+                    ? isHorizontal
                       ? 'toRight'
                       : 'toBottom'
-                    : isLeftRight
+                    : isHorizontal
                       ? 'toLeft'
                       : 'toTop',
               })
@@ -152,10 +167,12 @@ function ReplayLayoutBody({
                 flex="1"
                 minHeight="0"
                 minWidth="0"
-                paddingRight={isLeftRight ? 'md' : undefined}
-                paddingBottom={isLeftRight ? undefined : 'md'}
+                paddingRight={isHorizontal ? 'md' : undefined}
+                paddingBottom={isHorizontal ? undefined : 'md'}
               >
-                <PanelContainer>{video}</PanelContainer>
+                <Flex flexGrow={1} position="relative">
+                  {video}
+                </Flex>
               </Stack>
             }
             fill={
@@ -164,8 +181,8 @@ function ReplayLayoutBody({
                   flex="1"
                   minHeight="0"
                   minWidth="0"
-                  paddingLeft={isLeftRight ? 'md' : undefined}
-                  paddingTop={isLeftRight ? undefined : 'md'}
+                  paddingLeft={isHorizontal ? 'md' : undefined}
+                  paddingTop={isHorizontal ? undefined : 'md'}
                 >
                   {focusArea}
                 </Stack>
@@ -178,13 +195,6 @@ function ReplayLayoutBody({
     </BodyGrid>
   );
 }
-
-const FluidContainer = styled('section')`
-  display: grid;
-  grid-template-rows: max-content 1fr;
-  height: 100%;
-  gap: ${p => p.theme.space.md};
-`;
 
 const BodyGrid = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
@@ -213,10 +223,4 @@ const VideoSection = styled('div')`
   :fullscreen {
     padding: ${p => p.theme.space.md};
   }
-`;
-
-const PanelContainer = styled('div')`
-  position: relative;
-  display: flex;
-  flex-grow: 1;
 `;

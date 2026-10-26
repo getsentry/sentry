@@ -1,4 +1,7 @@
+import {useRef} from 'react';
 import styled from '@emotion/styled';
+import {IconDownload} from '@sentry/icons/download';
+import {IconPrint} from '@sentry/icons/print';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
@@ -11,7 +14,6 @@ import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelItem} from 'sentry/components/panels/panelItem';
-import {IconDownload, IconPrint} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 type Props = {
@@ -27,13 +29,19 @@ export function RecoveryCodes({
   codes,
   onRegenerateBackupCodes,
 }: Props) {
+  const printRef = useRef<HTMLIFrameElement>(null);
+
   const printCodes = () => {
-    // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
-    // eslint-disable-next-line @typescript-eslint/dot-notation
-    const iframe = window.frames['printable'];
-    iframe.document.write(codes.join('<br>'));
-    iframe.print();
-    iframe.document.close();
+    const doc = printRef.current?.contentDocument;
+    if (!doc) {
+      return;
+    }
+
+    doc.body.replaceChildren(
+      ...codes.map(code => Object.assign(doc.createElement('div'), {textContent: code}))
+    );
+
+    printRef.current?.contentWindow?.print();
   };
 
   if (!isEnrolled || !codes) {
@@ -89,7 +97,7 @@ export function RecoveryCodes({
           <EmptyMessage>{t('You have no more recovery codes to use')}</EmptyMessage>
         )}
       </PanelBody>
-      <iframe data-test-id="frame" name="printable" style={{display: 'none'}} />
+      <iframe ref={printRef} data-test-id="frame" style={{display: 'none'}} />
     </CodeContainer>
   );
 }

@@ -1,5 +1,6 @@
 import type {Location} from 'history';
 
+import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {decodeList} from 'sentry/utils/queryString';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
@@ -56,11 +57,14 @@ export class WidgetLegendSelectionState {
 
       const thisWidgetWithReleasesWasSelected =
         Object.values(selected).filter(value => !value).length !== 1 &&
-        Object.keys(selected).includes(`Releases${SERIES_NAME_DELIMITER}${widget.id}`);
+        Object.keys(selected).includes(
+          `${t('Releases')}${SERIES_NAME_DELIMITER}${widget.id}`
+        );
 
       const thisWidgetWithoutReleasesWasSelected =
-        !Object.keys(selected).includes(`Releases${SERIES_NAME_DELIMITER}${widget.id}`) &&
-        Object.values(selected).filter(value => !value).length === 1;
+        !Object.keys(selected).includes(
+          `${t('Releases')}${SERIES_NAME_DELIMITER}${widget.id}`
+        ) && Object.values(selected).filter(value => !value).length === 1;
 
       // For new-path widgets the default is nothing hidden, so any toggle
       // should update the URL. The two conditions above only cover old-path
@@ -148,7 +152,7 @@ export class WidgetLegendSelectionState {
       : this.widgetRequiresLegendUnselection(widget)
         ? {
             [WidgetLegendNameEncoderDecoder.encodeSeriesNameForLegend(
-              'Releases',
+              t('Releases'),
               widget.id
             )]: false,
           }
@@ -178,7 +182,7 @@ export class WidgetLegendSelectionState {
 
   formatLegendDefaultQuery(widget: Widget) {
     return this.widgetRequiresLegendUnselection(widget)
-      ? `${widget.id}${WIDGET_ID_DELIMITER}Releases`
+      ? `${widget.id}${WIDGET_ID_DELIMITER}${t('Releases')}`
       : undefined;
   }
 
@@ -207,7 +211,10 @@ export class WidgetLegendSelectionState {
     );
     if (widgetLegendString) {
       const [_, seriesNameString] = widgetLegendString.split(WIDGET_ID_DELIMITER);
-      const seriesNames = seriesNameString!.split(SERIES_LIST_DELIMITER);
+      if (!seriesNameString) {
+        return {};
+      }
+      const seriesNames = seriesNameString.split(SERIES_LIST_DELIMITER);
       return seriesNames.reduce((acc, series) => {
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         acc[
@@ -222,46 +229,10 @@ export class WidgetLegendSelectionState {
   }
 
   // when a widget has been changed/added/deleted update legend to incorporate that
-  setMultipleWidgetSelectionStateURL(newDashboard: DashboardDetails, newWidget?: Widget) {
+  setMultipleWidgetSelectionStateURL(newDashboard: DashboardDetails) {
     const location = this.location;
     if (!location.query.unselectedSeries) {
       return location.query.unselectedSeries;
-    }
-
-    // if widget was updated it returns updated widget to default selection state
-    if (newWidget && newDashboard.widgets.includes(newWidget)) {
-      const formattedDefaultQuery = this.formatLegendDefaultQuery(newWidget);
-
-      const newQuery = Array.isArray(location.query.unselectedSeries)
-        ? location.query.unselectedSeries
-            .map(legend => {
-              if (legend.includes(newWidget.id!)) {
-                return this.formatLegendDefaultQuery(newWidget);
-              }
-              return legend;
-            })
-            .filter(Boolean)
-        : location.query.unselectedSeries.includes(newWidget.id!)
-          ? formattedDefaultQuery
-          : [location.query.unselectedSeries, formattedDefaultQuery].filter(Boolean);
-
-      return newQuery;
-    }
-
-    // if widget was deleted it removes it from the selection query (clean up the url)
-    if (newWidget) {
-      return Array.isArray(location.query.unselectedSeries)
-        ? location.query.unselectedSeries
-            .map(legend => {
-              if (legend.includes(newWidget.id!)) {
-                return;
-              }
-              return legend;
-            })
-            .filter(Boolean)
-        : location.query.unselectedSeries.includes(newWidget.id!)
-          ? []
-          : location.query.unselectedSeries;
     }
 
     // widget added (since added widgets don't have an id until submitted), it sets selection state based on all widgets

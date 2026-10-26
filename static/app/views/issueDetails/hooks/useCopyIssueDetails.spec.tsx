@@ -3,7 +3,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {renderHook, userEvent} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import type {ExplorerAutofixState} from 'sentry/components/events/autofix/useExplorerAutofix';
@@ -12,7 +12,6 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {EntryType} from 'sentry/types/event';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import * as copyToClipboardModule from 'sentry/utils/useCopyToClipboard';
-import * as useOrganization from 'sentry/utils/useOrganization';
 import {formatSpanEvidenceToMarkdown} from 'sentry/views/issueDetails/hooks/spanEvidenceMarkdown';
 import {
   issueAndEventToMarkdown,
@@ -29,10 +28,6 @@ describe('useCopyIssueDetails', () => {
   const performanceGroup = GroupFixture({
     issueCategory: IssueCategory.PERFORMANCE,
     issueType: IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
-  });
-  const endpointRegressionGroup = GroupFixture({
-    issueCategory: IssueCategory.PERFORMANCE,
-    issueType: IssueType.PERFORMANCE_ENDPOINT_REGRESSION,
   });
   const functionRegressionGroup = GroupFixture({
     issueCategory: IssueCategory.PERFORMANCE,
@@ -103,6 +98,37 @@ describe('useCopyIssueDetails', () => {
       expect(result).toContain(`**Issue ID:** ${group.id}`);
       expect(result).toContain(`**Short ID:** ${group.shortId}`);
       expect(result).toContain(`**Project:** ${group.project?.slug}`);
+    });
+
+    it('uses the server-rendered body and does not add a second date', () => {
+      const user = UserFixture();
+      user.options.timezone = 'America/New_York';
+      ConfigStore.set('user', user);
+
+      const formattedEvent = EventFixture({
+        id: '123456',
+        dateCreated: '2023-01-01T00:00:00Z',
+        formatted: {
+          format: 'markdown',
+          content: '## Title\nboom\n**Date:** 2023-01-01 00:00:00 UTC',
+        },
+      });
+
+      try {
+        const result = issueAndEventToMarkdown({
+          group,
+          event: formattedEvent,
+          organization,
+        });
+
+        expect(result).toContain(`**Issue ID:** ${group.id}`);
+        expect(result).toContain('**Date:** 2023-01-01 00:00:00 UTC');
+        // the server body carries the only date; the header must not add a local-time one
+        expect(result.match(/\*\*Date:\*\*/g)).toHaveLength(1);
+        expect(result).not.toContain('EST');
+      } finally {
+        ConfigStore.set('user', UserFixture());
+      }
     });
 
     it("renders the date in the user's timezone and clock preference", () => {
@@ -197,6 +223,27 @@ describe('useCopyIssueDetails', () => {
       expect(result).not.toContain('## Message');
     });
 
+    it('strips ANSI codes from the title and message when they contain them', () => {
+      const result = issueAndEventToMarkdown({
+        group: GroupFixture({title: '\x1B[31mTypeError\x1B[0m: connection failed'}),
+        event: EventFixture({...event, message: '\x1B[33mretrying\x1B[0m in 5s'}),
+        organization,
+      });
+
+      expect(result).toContain('# TypeError: connection failed\n');
+      expect(result).toContain('## Message\n\nretrying in 5s\n');
+    });
+
+    it('omits the message when it is part of the title after stripping ANSI codes', () => {
+      const result = issueAndEventToMarkdown({
+        group: GroupFixture({title: 'TypeError: \x1B[31mconnection failed\x1B[0m'}),
+        event: EventFixture({...event, message: '\x1B[31mconnection failed\x1B[0m'}),
+        organization,
+      });
+
+      expect(result).not.toContain('## Message');
+    });
+
     it('omits the message when it is empty', () => {
       const result = issueAndEventToMarkdown({
         group: GroupFixture({title: 'TypeError'}),
@@ -270,6 +317,28 @@ describe('useCopyIssueDetails', () => {
       expect(result).toContain('#### Stacktrace');
       // No mechanism on this exception, so no handled line.
       expect(result).not.toContain('**Handled:**');
+    });
+
+    it('strips ANSI codes from exception values when they contain them', () => {
+      const eventWithException = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.EXCEPTION,
+            data: {
+              values: [{type: 'ValueError', value: '\x1B[31mfailed\x1B[0m to connect'}],
+            },
+          },
+        ],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithException,
+        organization,
+      });
+
+      expect(result).toContain('**Value:** failed to connect\n');
     });
 
     it('marks an unhandled exception', () => {
@@ -534,6 +603,35 @@ describe('useCopyIssueDetails', () => {
       expect(result).toContain('  {"url":"/api/users","status_code":500}');
       expect(result).toContain('- **navigation** `ui.click` [info]');
       expect(result).toContain('  User clicked submit');
+    });
+
+    it('strips ANSI codes from breadcrumb messages when they contain them', () => {
+      const eventWithBreadcrumbs = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.BREADCRUMBS,
+            data: {
+              values: [
+                {
+                  type: 'default',
+                  category: 'console',
+                  level: 'info',
+                  message: '\x1B[32mserver started\x1B[0m',
+                },
+              ],
+            },
+          },
+        ],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithBreadcrumbs,
+        organization,
+      });
+
+      expect(result).toContain('- **default** `console` [info]\n  server started\n');
     });
 
     it('truncates a single breadcrumb to the per-crumb character limit', () => {
@@ -879,7 +977,7 @@ LIMIT 21`;
     });
 
     it('summarizes N+1 span evidence with dedup, cardinality, code and timing', () => {
-      expect(formatSpanEvidenceToMarkdown(nPlusOneEvent, organization, performanceGroup))
+      expect(formatSpanEvidenceToMarkdown(nPlusOneEvent, performanceGroup))
         .toMatchInlineSnapshot(`
         "
         ## Span Evidence
@@ -1044,11 +1142,7 @@ LIMIT 21`;
         ],
       });
 
-      const result = formatSpanEvidenceToMarkdown(
-        payloadEvent,
-        organization,
-        payloadGroup
-      );
+      const result = formatSpanEvidenceToMarkdown(payloadEvent, payloadGroup);
       expect(result).toContain('**Payload Size:**');
       expect(result).toContain('5000000 B');
     });
@@ -1086,7 +1180,6 @@ LIMIT 21`;
 
       const result = formatSpanEvidenceToMarkdown(
         renderBlockingEvent,
-        organization,
         renderBlockingGroup
       );
       expect(result).toContain('**FCP Delay:**');
@@ -1117,7 +1210,7 @@ LIMIT 21`;
         ],
       });
 
-      const result = formatSpanEvidenceToMarkdown(apiEvent, organization, apiGroup);
+      const result = formatSpanEvidenceToMarkdown(apiEvent, apiGroup);
       expect(result).toContain('**Query Parameters:** id:{1,2,3}');
       expect(result).toContain('**Path Parameters:** /users/*');
     });
@@ -1144,7 +1237,7 @@ LIMIT 21`;
         entries: [{type: EntryType.SPANS, data: spans}],
       });
 
-      const result = formatSpanEvidenceToMarkdown(apiEvent, organization, apiGroup);
+      const result = formatSpanEvidenceToMarkdown(apiEvent, apiGroup);
       expect(result).toContain('**Query Parameters:** id:{1,2,3}');
     });
 
@@ -1178,22 +1271,14 @@ LIMIT 21`;
         ],
       });
 
-      const result = formatSpanEvidenceToMarkdown(
-        injectionEvent,
-        organization,
-        injectionGroup
-      );
+      const result = formatSpanEvidenceToMarkdown(injectionEvent, injectionGroup);
       expect(result).toContain("**Vulnerable Parameters:** username: admin' OR '1'='1");
       expect(result).toContain('**Request URL:** https://example.com/login');
     });
 
     it('does not add type-specific metrics for N+1 DB issues', () => {
       // N+1 DB has no extra per-type metric rows beyond the generic summary.
-      const result = formatSpanEvidenceToMarkdown(
-        nPlusOneEvent,
-        organization,
-        performanceGroup
-      );
+      const result = formatSpanEvidenceToMarkdown(nPlusOneEvent, performanceGroup);
       expect(result).not.toContain('**Payload Size:**');
       expect(result).not.toContain('**FCP Delay:**');
       expect(result).not.toContain('**Query Parameters:**');
@@ -1213,7 +1298,7 @@ LIMIT 21`;
         },
       });
 
-      expect(formatSpanEvidenceToMarkdown(profileEvent, organization, performanceGroup))
+      expect(formatSpanEvidenceToMarkdown(profileEvent, performanceGroup))
         .toMatchInlineSnapshot(`
         "
         ## Span Evidence
@@ -1236,48 +1321,13 @@ LIMIT 21`;
         },
       });
 
-      expect(formatSpanEvidenceToMarkdown(profileEvent, organization, performanceGroup))
+      expect(formatSpanEvidenceToMarkdown(profileEvent, performanceGroup))
         .toMatchInlineSnapshot(`
         "
         ## Span Evidence
 
         **Transaction:** app.start
         **File Path:** /data/cache.db
-        "
-      `);
-    });
-
-    it('includes regression metrics for endpoint regression issues', () => {
-      const regressionEvent = EventFixture({
-        ...event,
-        title: 'ApiException',
-        occurrence: {
-          type: 1018,
-          evidenceData: {
-            transaction: '/api/0/users/',
-            aggregateRange1: 100_000,
-            aggregateRange2: 200_000,
-            trendDifference: 100_000,
-            trendPercentage: 2,
-            breakpoint: 1_709_161_200,
-          },
-          evidenceDisplay: [],
-        },
-      });
-
-      expect(
-        formatSpanEvidenceToMarkdown(
-          regressionEvent,
-          organization,
-          endpointRegressionGroup
-        )
-      ).toMatchInlineSnapshot(`
-        "
-        ## Regression Summary
-
-        **Endpoint Name:** /api/0/users/
-        **Change in Duration:** 2min to 3min (+100%)
-        **Approx. Start Time:** Feb 28, 2024 11:00:00 PM UTC
         "
       `);
     });
@@ -1301,13 +1351,8 @@ LIMIT 21`;
         },
       });
 
-      expect(
-        formatSpanEvidenceToMarkdown(
-          regressionEvent,
-          organization,
-          functionRegressionGroup
-        )
-      ).toMatchInlineSnapshot(`
+      expect(formatSpanEvidenceToMarkdown(regressionEvent, functionRegressionGroup))
+        .toMatchInlineSnapshot(`
         "
         ## Regression Summary
 
@@ -1320,25 +1365,7 @@ LIMIT 21`;
       `);
     });
 
-    it('omits span evidence when regression issues lack evidenceData', () => {
-      const endpointRegressionEvent = EventFixture({
-        ...event,
-        title: 'ApiException',
-        occurrence: {
-          type: 1018,
-          evidenceDisplay: [],
-        },
-      });
-
-      const endpointResult = issueAndEventToMarkdown({
-        group: endpointRegressionGroup,
-        event: endpointRegressionEvent,
-        organization,
-      });
-
-      expect(endpointResult).not.toContain('## Span Evidence');
-      expect(endpointResult).not.toContain('**Transaction:** ApiException');
-
+    it('omits span evidence when a regression issue lacks evidenceData', () => {
       const functionRegressionEvent = EventFixture({
         ...event,
         title: 'ApiException',
@@ -1391,11 +1418,12 @@ LIMIT 21`;
 
       jest.spyOn(indicators, 'addSuccessMessage').mockImplementation(() => {});
       jest.spyOn(indicators, 'addErrorMessage').mockImplementation(() => {});
-      jest.spyOn(useOrganization, 'useOrganization').mockReturnValue(organization);
     });
 
     it('calls useCopyToClipboard hook', () => {
-      renderHook(() => useCopyIssueDetails(group, event));
+      renderHookWithProviders(() => useCopyIssueDetails(group, event), {
+        organization,
+      });
 
       // Check that the hook was called
       expect(copyToClipboardModule.useCopyToClipboard).toHaveBeenCalled();
@@ -1407,7 +1435,9 @@ LIMIT 21`;
         'useHotkeys'
       );
 
-      renderHook(() => useCopyIssueDetails(group, event));
+      renderHookWithProviders(() => useCopyIssueDetails(group, event), {
+        organization,
+      });
 
       expect(useHotkeysMock).toHaveBeenCalledWith([
         {
@@ -1426,7 +1456,9 @@ LIMIT 21`;
         return Promise.resolve(text);
       });
 
-      renderHook(() => useCopyIssueDetails(group, undefined));
+      renderHookWithProviders(() => useCopyIssueDetails(group, undefined), {
+        organization,
+      });
 
       await userEvent.keyboard('{Control>}{Alt>}c{/Alt}{/Control}');
 
@@ -1446,7 +1478,9 @@ LIMIT 21`;
         return Promise.resolve(text);
       });
 
-      renderHook(() => useCopyIssueDetails(group, event));
+      renderHookWithProviders(() => useCopyIssueDetails(group, event), {
+        organization,
+      });
 
       await userEvent.keyboard('{Control>}{Alt>}c{/Alt}{/Control}');
 

@@ -63,6 +63,20 @@ describe('EventTagsTree', () => {
   const referrer = 'event-tags-table';
   let mockDetailedProject: jest.Mock;
 
+  async function hoverRow(element: HTMLElement) {
+    const row = element.closest('[data-test-id="tag-tree-row"]');
+    if (!row) {
+      throw new Error('Expected tag action to be inside a tag tree row');
+    }
+    await userEvent.hover(row);
+  }
+
+  async function clickAction(element: HTMLElement) {
+    await hoverRow(element);
+    // jsdom does not evaluate :hover styles, so bypass the hidden action's pointer-events check.
+    await userEvent.click(element, {pointerEventsCheck: 0});
+  }
+
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     mockDetailedProject = MockApiClient.addMockResponse({
@@ -103,19 +117,15 @@ describe('EventTagsTree', () => {
     expect(linkDropdowns).toHaveLength(tags.length);
 
     for (const link of linkDropdowns) {
-      await userEvent.click(link);
+      await clickAction(link);
       expect(
-        await within(link.parentElement!).findByLabelText(
-          'Search issues with this tag value'
-        )
+        await screen.findByLabelText('Search issues with this tag value')
       ).toBeInTheDocument();
       expect(
-        await within(link.parentElement!).findByLabelText(
-          'View other events with this tag value'
-        )
+        await screen.findByLabelText('View other events with this tag value')
       ).toBeInTheDocument();
       expect(
-        await within(link.parentElement!).findByLabelText('Copy tag value to clipboard')
+        await screen.findByLabelText('Copy tag value to clipboard')
       ).toBeInTheDocument();
     }
   });
@@ -139,7 +149,7 @@ describe('EventTagsTree', () => {
       `/mock-pathname/?rd=show&rdRelease=${releaseVersion}&rdSource=release-version-link`
     );
     const dropdown = screen.getByLabelText('Tag Actions Menu');
-    await userEvent.click(dropdown);
+    await clickAction(dropdown);
     expect(screen.getByLabelText('View this release')).toBeInTheDocument();
   });
 
@@ -180,13 +190,16 @@ describe('EventTagsTree', () => {
   ])(
     "renders unique links for '$tag.key' tag",
     async ({tag, labelText, validateLink}) => {
-      const uniqueTagsEvent = EventFixture({tags: [tag], projectID: project.id});
+      const uniqueTagsEvent = EventFixture({
+        tags: [tag],
+        projectID: project.id,
+      });
       render(<EventTags projectSlug={project.slug} event={uniqueTagsEvent} />, {
         organization,
       });
       expect(mockDetailedProject).toHaveBeenCalled();
       const dropdown = await screen.findByLabelText('Tag Actions Menu');
-      await userEvent.click(dropdown);
+      await clickAction(dropdown);
       expect(screen.getByLabelText(labelText)).toBeInTheDocument();
       await (validateLink as () => Promise<void>)();
     }
@@ -295,7 +308,7 @@ describe('EventTagsTree', () => {
       await screen.findByText('useless-tag', {selector: 'div'})
     ).closest('div[data-test-id=tag-tree-row]') as HTMLElement;
     const normalTagDropdown = within(normalTagRow).getByLabelText('Tag Actions Menu');
-    await userEvent.click(normalTagDropdown);
+    await clickAction(normalTagDropdown);
     expect(screen.getByLabelText('Add to event highlights')).toBeInTheDocument();
 
     // https://github.com/typescript-eslint/typescript-eslint/issues/10722
@@ -305,7 +318,7 @@ describe('EventTagsTree', () => {
       .closest('div[data-test-id=tag-tree-row]') as HTMLElement;
     const highlightTagDropdown =
       within(highlightTagRow).getByLabelText('Tag Actions Menu');
-    await userEvent.click(highlightTagDropdown);
+    await clickAction(highlightTagDropdown);
     expect(screen.queryByLabelText('Add to event highlights')).not.toBeInTheDocument();
   });
 
@@ -336,7 +349,7 @@ describe('EventTagsTree', () => {
       await screen.findByText('useless-tag', {selector: 'div'})
     ).closest('div[data-test-id=tag-tree-row]') as HTMLElement;
     const normalTagDropdown = within(normalTagRow).getByLabelText('Tag Actions Menu');
-    await userEvent.click(normalTagDropdown);
+    await clickAction(normalTagDropdown);
     expect(screen.queryByLabelText('Add to event highlights')).not.toBeInTheDocument();
   });
 
@@ -361,7 +374,7 @@ describe('EventTagsTree', () => {
       await screen.findByText('useless-tag', {selector: 'div'})
     ).closest('div[data-test-id=tag-tree-row]') as HTMLElement;
     const normalTagDropdown = within(normalTagRow).getByLabelText('Tag Actions Menu');
-    await userEvent.click(normalTagDropdown);
+    await clickAction(normalTagDropdown);
     expect(await screen.findByLabelText('Tag breakdown')).toBeInTheDocument();
   });
 });

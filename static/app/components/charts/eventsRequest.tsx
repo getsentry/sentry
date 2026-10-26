@@ -21,9 +21,9 @@ import type {
   OrganizationSummary,
 } from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
-import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {getAggregateAlias, stripEquationPrefix} from 'sentry/utils/discover/fields';
+import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldUnits';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
@@ -662,7 +662,7 @@ export class EventsRequest extends PureComponent<EventsRequestProps, EventsReque
 /**
  * Transforms query response into timeseries data to be used in a chart
  */
-export function transformTimeseriesData(
+function transformTimeseriesData(
   data: EventsStatsData,
   meta: EventsStats['meta'],
   seriesName?: string
@@ -692,7 +692,7 @@ export function transformTimeseriesData(
 /**
  * Transforms comparisonCount in query response into timeseries data to be used in a comparison chart for change alerts
  */
-export function transformComparisonTimeseriesData(data: EventsStatsData): Series[] {
+function transformComparisonTimeseriesData(data: EventsStatsData): Series[] {
   return [
     {
       seriesName: 'comparisonCount()',

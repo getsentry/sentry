@@ -19,7 +19,7 @@ export const DEFAULT_FLAMEGRAPH_STATE: FlamegraphState = {
     threadId: null,
   },
   position: {
-    view: Rect.Empty(),
+    view: Rect.empty(),
   },
   preferences: {
     timelines: {

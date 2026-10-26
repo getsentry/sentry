@@ -1,6 +1,6 @@
 import {Fragment, useEffect, useState} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 import {skipToken, useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -17,12 +17,12 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
-import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import type {Organization, OrganizationSummary} from 'sentry/types/organization';
+import type {OrganizationSummary} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -85,20 +85,10 @@ export function WeeklyReportProjectExclusions({
   const organization = organizations.find(({id}) => id === orgId);
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setCurrentPage(0);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [organization?.id]);
-
-  const {data: orgDetails, isPending: orgDetailsPending} = useQuery({
-    ...apiOptions.as<Organization>()('/organizations/$organizationIdOrSlug/', {
-      path: organization ? {organizationIdOrSlug: organization.slug} : skipToken,
-      host: organization?.links?.regionUrl,
-      query: {include_feature_flags: 1},
-      staleTime: 30_000,
-    }),
-  });
-
-  const featureEnabled =
-    orgDetails?.features.includes('weekly-report-project-exclusions') ?? false;
 
   const {
     data: projects,
@@ -118,7 +108,7 @@ export function WeeklyReportProjectExclusions({
   });
 
   const exclusionsOpts = exclusionsApiOptions(
-    orgDetails && featureEnabled ? (organization?.slug ?? skipToken) : skipToken,
+    organization?.slug ?? skipToken,
     organization?.links?.regionUrl
   );
 
@@ -137,7 +127,10 @@ export function WeeklyReportProjectExclusions({
     mutationFn: (newExcludedIds: string[]) =>
       fetchMutation({
         method: 'PUT',
-        url: `/organizations/${organization!.slug}/weekly-report-project-exclusions/`,
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/weekly-report-project-exclusions/',
+          {path: {organizationIdOrSlug: organization!.slug}}
+        ),
         options: {host: organization!.links?.regionUrl},
         data: {projectIds: newExcludedIds.map(Number)},
       }),
@@ -223,9 +216,8 @@ export function WeeklyReportProjectExclusions({
     }
   };
 
-  const isPending =
-    orgDetailsPending || projectsPending || (featureEnabled && exclusionsPending);
-  const isError = projectsError || (featureEnabled && exclusionsError);
+  const isPending = projectsPending || exclusionsPending;
+  const isError = projectsError || exclusionsError;
 
   const sortedProjects = [...(projects ?? [])]
     .filter(project => project.isMember)
@@ -282,12 +274,12 @@ export function WeeklyReportProjectExclusions({
                     <LoadingError onRetry={refetchProjects} />
                   </PanelBody>
                 )}
-                {featureEnabled && isPending && !projectsPending && (
+                {isPending && !projectsPending && (
                   <PanelBody>
                     <LoadingIndicator />
                   </PanelBody>
                 )}
-                {featureEnabled && isError && !projectsError && (
+                {isError && !projectsError && (
                   <PanelBody>
                     <LoadingError
                       onRetry={() => {
@@ -299,46 +291,42 @@ export function WeeklyReportProjectExclusions({
                 )}
                 {!isPending && !isError && !projectsPending && !projectsError && (
                   <Fragment>
-                    {featureEnabled && allExcluded && (
+                    {allExcluded && (
                       <StyledAlert variant="warning">
                         {t(
                           "You won't receive a weekly report for this organization if all projects are excluded."
                         )}
                       </StyledAlert>
                     )}
-                    <DisabledOverlay disabled={!featureEnabled}>
-                      <StyledPanelBody>
-                        {sortedProjects.length === 0 ? (
-                          <EmptyStateWarning withIcon={false}>
-                            {t('No projects found')}
-                          </EmptyStateWarning>
-                        ) : (
-                          paginatedProjects.map(project => (
-                            <Item key={project.id}>
-                              <IdBadge
-                                project={project}
-                                avatarSize={20}
-                                avatarProps={{consistentWidth: true}}
-                                disableLink
-                              />
-                              <Switch
-                                size="lg"
-                                checked={
-                                  !featureEnabled ||
-                                  !excludedProjectIds.has(String(project.id))
-                                }
-                                disabled={!featureEnabled}
-                                onChange={() => handleToggle(String(project.id))}
-                                aria-label={t(
-                                  'Toggle weekly report for %s',
-                                  project.slug
-                                )}
-                              />
-                            </Item>
-                          ))
-                        )}
-                      </StyledPanelBody>
-                    </DisabledOverlay>
+                    <StyledPanelBody>
+                      {sortedProjects.length === 0 ? (
+                        <EmptyStateWarning withIcon={false}>
+                          {t('No projects found')}
+                        </EmptyStateWarning>
+                      ) : (
+                        paginatedProjects.map(project => (
+                          <Flex
+                            justify="between"
+                            align="center"
+                            padding="lg xl"
+                            key={project.id}
+                          >
+                            <IdBadge
+                              project={project}
+                              avatarSize={20}
+                              avatarProps={{consistentWidth: true}}
+                              disableLink
+                            />
+                            <Switch
+                              size="lg"
+                              checked={!excludedProjectIds.has(String(project.id))}
+                              onChange={() => handleToggle(String(project.id))}
+                              aria-label={t('Toggle weekly report for %s', project.slug)}
+                            />
+                          </Flex>
+                        ))
+                      )}
+                    </StyledPanelBody>
                     {showPagination && (
                       <Flex justify="end" align="center" margin="lg xl">
                         <PaginationCaption>
@@ -405,26 +393,10 @@ const StyledPanelHeader = styled(PanelHeader)`
   }
 `;
 
-const DisabledOverlay = styled('div')<{disabled: boolean}>`
-  ${p =>
-    p.disabled &&
-    css`
-      opacity: 0.6;
-      pointer-events: none;
-    `}
-`;
-
 const StyledPanelBody = styled(PanelBody)`
   & > div:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
-`;
-
-const Item = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
 `;
 
 const PaginationCaption = styled('span')`

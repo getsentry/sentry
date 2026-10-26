@@ -1,17 +1,16 @@
 import {cloneElement, Fragment, isValidElement} from 'react';
+import type {SVGIconProps} from '@sentry/icons/svgIcon';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
-import {PartnerPlanEndingBanner} from 'getsentry/components/partnerPlanEndingBanner';
 import type {Subscription} from 'getsentry/types';
-import {getPlanIcon, hasPartnerMigrationFeature} from 'getsentry/utils/billing';
+import {getPlanIcon} from 'getsentry/utils/billing';
 import {isDisabledByPartner} from 'getsentry/utils/partnerships';
 import {PartnershipNote} from 'getsentry/views/subscriptionPage/partnershipNote';
 
@@ -43,8 +42,8 @@ export function SubscriptionHeader(props: Props) {
       <Stack gap="md" background="primary" borderBottom="primary" padding="2xl 3xl">
         <Flex
           justify="between"
-          align={{'screen:xs': 'start', 'screen:sm': 'center'}}
-          direction={{'screen:xs': 'column', 'screen:sm': 'row'}}
+          align={{zero: 'start', xl: 'center'}}
+          direction={{zero: 'column', xl: 'row'}}
           gap="xl"
         >
           <Flex align="center" gap="sm">
@@ -104,12 +103,6 @@ function BodyWithBillingPerms({
         <DecidePendingChanges subscription={subscription} organization={organization} />
       ) : null}
       <TrialAlert subscription={subscription} organization={organization} />
-      {hasPartnerMigrationFeature(organization) && (
-        <PartnerPlanEndingBanner
-          subscription={subscription}
-          organization={organization}
-        />
-      )}
       <HeaderCards organization={organization} subscription={subscription} />
       <ManagedNote subscription={subscription} />
     </Stack>

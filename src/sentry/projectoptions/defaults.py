@@ -8,7 +8,7 @@ from sentry.projectoptions import register
 
 # This controls what sentry:option-epoch value is given to a project when it is created
 # The epoch of a project will determine what options are valid options for that specific project
-LATEST_EPOCH = 15
+LATEST_EPOCH = 17
 
 register(key="sentry:grouping_config", default=DEFAULT_GROUPING_CONFIG)
 register(key="sentry:grouping_enhancements", default="")
@@ -27,13 +27,28 @@ register(key="sentry:secondary_grouping_config", default=None)
 # it can be flipped on in the backfill script, unlike inclusion in a getsentry feature handler.)
 register(key="sentry:similarity_backfill_completed", default=None)
 
+register(
+    key="sentry:group_action_log_backfill_completed",
+    default=None,
+    epoch_defaults={16: True},
+)
+
 
 # The JavaScript loader version that is the project default.  This option
 # is expected to be never set but the epoch defaults are used if no
 # version is set on a project's DSN.
 register(
     key="sentry:default_loader_version",
-    epoch_defaults={1: "4.x", 2: "5.x", 7: "6.x", 8: "7.x", 13: "8.x", 14: "9.x", 15: "10.x"},
+    epoch_defaults={
+        1: "4.x",
+        2: "5.x",
+        7: "6.x",
+        8: "7.x",
+        13: "8.x",
+        14: "9.x",
+        15: "10.x",
+        17: "11.x",
+    },
 )
 
 # Default symbol sources. The ios source does not exist by default and
@@ -142,6 +157,13 @@ register(
     default=[],
 )
 
+# Opt-in to Relay expanding JSON-like string attributes on EAP items into KVList
+# attributes, so the nested keys become searchable.
+register(
+    key="sentry:relay_automatic_json_expansion",
+    default=False,
+)
+
 register(
     key="sentry:feedback_user_report_notifications",
     epoch_defaults={12: True},
@@ -149,6 +171,13 @@ register(
 
 register(
     key="sentry:feedback_ai_spam_detection",
+    default=True,
+)
+
+# Whether releases should be auto-created from ingested telemetry. When disabled,
+# releases must be created explicitly (e.g. via the Sentry CLI).
+register(
+    key="sentry:enable_auto_release_creation",
     default=True,
 )
 
@@ -173,8 +202,8 @@ register(
 register(
     key="sentry:loader_available_sdk_versions",
     epoch_defaults={
-        1: ["10.x", "9.x", "8.x", "7.x", "6.x", "5.x", "4.x"],
-        11: ["10.x", "9.x", "8.x", "7.x"],
+        1: ["11.x", "10.x", "9.x", "8.x", "7.x", "6.x", "5.x", "4.x"],
+        11: ["11.x", "10.x", "9.x", "8.x", "7.x"],
     },
 )
 
@@ -190,7 +219,7 @@ register(key="sentry:autofix_automation_tuning", default=AUTOFIX_AUTOMATION_TUNI
 # Should seer scanner run automatically on new issues
 register(key="sentry:seer_scanner_automation", default=True)
 
-# Per-project JSON blob of Seer Night Shift tweaks. Prototyping only — not a
+# Per-project JSON blob of Seer Agentic triage tweaks. Prototyping only — not a
 # stable API; the shape of the blob is expected to change.
 register(key="sentry:seer_nightshift_tweaks", default=None)
 
@@ -203,6 +232,8 @@ register(key="sentry:seer_automation_handoff_point", default=None)
 register(key="sentry:seer_automation_handoff_target", default=None)
 register(key="sentry:seer_automation_handoff_integration_id", default=None)
 register(key="sentry:seer_automation_handoff_auto_create_pr", default=False)
+# Should Autofix automatically iterate on the PRs it opens for this project's issues
+register(key="sentry:seer_pr_iteration", default=True)
 
 SEER_PROJECT_PREFERENCE_OPTION_KEYS = [
     "sentry:seer_automated_run_stopping_point",
@@ -212,6 +243,7 @@ SEER_PROJECT_PREFERENCE_OPTION_KEYS = [
     "sentry:seer_automation_handoff_auto_create_pr",
     "sentry:autofix_automation_tuning",
     "sentry:seer_scanner_automation",
+    "sentry:seer_pr_iteration",
 ]
 
 # Boolean to enable/disable preprod size analysis for this project.
@@ -244,6 +276,9 @@ register(key="sentry:preprod_snapshot_pr_comments_post_on_changed", default=True
 
 # When True, treat snapshot renames as a diff worth posting a PR comment.
 register(key="sentry:preprod_snapshot_pr_comments_post_on_renamed", default=False)
+
+# When True, post/update a PR comment with size analysis results for this project.
+register(key="sentry:preprod_size_pr_comments_enabled", default=False)
 
 # Whether to enable on-demand source context fetching from SCM integrations
 register(key="sentry:scm_source_context_enabled", default=False)

@@ -7,12 +7,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {DateTime} from 'sentry/components/dateTime';
 import {Body, Header, Hovercard} from 'sentry/components/hovercard';
 import {TimeSince} from 'sentry/components/timeSince';
-import {Version} from 'sentry/components/version';
-import {VersionHoverCard} from 'sentry/components/versionHoverCard';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
-import type {Release} from 'sentry/types/release';
-import {defined} from 'sentry/utils/defined';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 type RelaxedDateType = React.ComponentProps<typeof TimeSince>['date'];
@@ -20,22 +15,10 @@ type RelaxedDateType = React.ComponentProps<typeof TimeSince>['date'];
 type Props = {
   date: RelaxedDateType;
   dateGlobal: RelaxedDateType;
-  organization: Organization;
-  projectId: string;
-  projectSlug: string;
   environment?: string;
-  release?: Release;
 };
 
-export function SeenInfo({
-  date,
-  dateGlobal,
-  environment,
-  release,
-  organization,
-  projectSlug,
-  projectId,
-}: Props) {
+export function SeenInfo({date, dateGlobal, environment}: Props) {
   return (
     <Flex align="baseline">
       <StyledHovercard
@@ -82,22 +65,6 @@ export function SeenInfo({
           )}
         </DateWrapper>
       </StyledHovercard>
-      <DateWrapper>
-        {defined(release) && (
-          <Fragment>
-            {t('in release ')}
-            <VersionHoverCard
-              organization={organization}
-              projectSlug={projectSlug}
-              releaseVersion={release.version}
-            >
-              <span>
-                <Version version={release.version} projectId={projectId} />
-              </span>
-            </VersionHoverCard>
-          </Fragment>
-        )}
-      </DateWrapper>
     </Flex>
   );
 }

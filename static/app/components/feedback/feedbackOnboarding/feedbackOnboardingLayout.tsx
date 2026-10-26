@@ -5,10 +5,7 @@ import {Stack} from '@sentry/scraps/layout';
 
 import {FeedbackConfigToggle} from 'sentry/components/feedback/feedbackOnboarding/feedbackConfigToggle';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
-import {
-  OnboardingCopyMarkdownButton,
-  useCopySetupInstructionsEnabled,
-} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import type {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
 import {TabSelectionScope} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
@@ -26,7 +23,7 @@ export function FeedbackOnboardingLayout({
   dsn,
   platformKey,
   project,
-  newOrg,
+  docsFlow,
   projectKeyId,
   configType = 'onboarding',
 }: OnboardingLayoutProps) {
@@ -41,7 +38,6 @@ export function FeedbackOnboardingLayout({
     useSourcePackageRegistries(organization);
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
-  const copyEnabled = useCopySetupInstructionsEnabled();
   const {introduction, steps} = useMemo(() => {
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
 
@@ -63,7 +59,7 @@ export function FeedbackOnboardingLayout({
         data: registryData,
       },
       platformOptions: selectedOptions,
-      newOrg,
+      docsFlow,
       feedbackOptions: {
         email,
         name,
@@ -81,7 +77,7 @@ export function FeedbackOnboardingLayout({
     docsConfig,
     dsn,
     isLoadingRegistry,
-    newOrg,
+    docsFlow,
     organization,
     platformKey,
     project,
@@ -161,7 +157,7 @@ export function FeedbackOnboardingLayout({
                 stepIndex={index}
                 {...step}
                 trailingItems={
-                  index === 0 && copyEnabled ? (
+                  index === 0 ? (
                     <OnboardingCopyMarkdownButton
                       borderless
                       steps={transformedSteps}

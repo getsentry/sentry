@@ -34,10 +34,10 @@ class ConsumersDefinitionTest(TestCase):
     def test_exception_on_invalid_consumer_definition(self) -> None:
         invalid_definitions: list[ConsumerDefinition] = [
             {
-                "topic": Topic.INGEST_METRICS,
-                "strategy_factory": "sentry.sentry_metrics.consumers.indexer.parallel.MetricsConsumerStrategyFactory",
+                "topic": Topic.INGEST_EVENTS,
+                "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
                 "static_args": {
-                    "ingest_profile": "release-health",
+                    "consumer_type": "events",
                 },
                 "dlq_max_invalid_ratio": 0.01,
                 "dlq_max_consecutive_count": 1000,

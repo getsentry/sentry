@@ -1,0 +1,254 @@
+from __future__ import annotations
+
+import logging
+from datetime import timedelta
+from typing import Any, Literal
+
+from pydantic import Field, PrivateAttr, root_validator
+from sentry_sdk import traces
+
+from sentry.seer.agent.client_models import SeerRunState
+from sentry.seer.autofix.pr_iteration.check_suites import (
+    CheckSuiteAutofixRun,
+    GithubCheckSuiteEvent,
+    LivePullRequestHead,
+    check_suite_head_match,
+    compare_live_pull_request_head,
+    get_check_suite_url,
+    resolve_check_suite_autofix_run,
+    sweep_check_runs,
+)
+from sentry.seer.autofix.pr_iteration.feedback_sources.base import (
+    ConsumeTask,
+    Decision,
+    FeedbackSourceBase,
+    TriggerDecision,
+)
+from sentry.seer.autofix.pr_iteration.iterations import get_iterations
+from sentry.utils import metrics
+
+logger = logging.getLogger(__name__)
+
+
+class MissingCheckSuiteAutofixRun(Exception):
+    """No Autofix run for this check suite's PR(s).
+
+    Raised from ``CheckSuiteFeedbackSource.autofix_run`` (not a ``ValueError``)
+    so callers can catch it without colliding with pydantic ``ValidationError``.
+    """
+
+
+def _processed_check_suite_attempts(run_state: SeerRunState) -> set[tuple[int, str] | int]:
+    """Attempt keys already turned into feedback on this run (for consume dedupe)."""
+    from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import _blocks_feedback
+
+    keys: set[tuple[int, str] | int] = set()
+    for iteration in get_iterations(run_state):
+        for item in _blocks_feedback(iteration.blocks):
+            if isinstance(item.source, CheckSuiteFeedbackSource):
+                keys.add(item.source.check_suite_attempt_key())
+    return keys
+
+
+class CheckSuiteFeedbackSource(FeedbackSourceBase):
+    type: Literal["check-suite"] = "check-suite"
+    event: GithubCheckSuiteEvent
+    # Derived scalars set in ``_populate_event_fields`` (same pattern as
+    # ``GithubPrCommentFeedbackSource.comment_feedback``).
+    app_name: str = ""
+    check_suite_url: str = ""
+    # From ``event.check_suite.updated_at``; excluded so we don't duplicate the
+    # nested event field in Redis / feedback metadata. Recomputed on parse.
+    updated_at: str | None = Field(default=None, exclude=True)
+    # Transient cache for the Seer/Django resolve result. PrivateAttr so it is
+    # never serialized and cannot be injected from Redis / feedback JSON.
+    _autofix_run: Any = PrivateAttr(default=None)
+
+    @root_validator
+    def _populate_event_fields(cls, values: dict[str, object]) -> dict[str, object]:
+        event = values.get("event")
+        if event is None:
+            return values
+        assert isinstance(event, GithubCheckSuiteEvent)
+        values["app_name"] = event.check_suite.app.name
+        values["check_suite_url"] = get_check_suite_url(event)
+        values["updated_at"] = event.check_suite.updated_at
+        values["source_id"] = str(event.check_suite.id)
+        return values
+
+    @property
+    def autofix_run(self) -> CheckSuiteAutofixRun:
+        """Cached Autofix run. Lazy-resolves via Seer on first access.
+
+        Not serialized (``_autofix_run`` is a PrivateAttr). Raises
+        ``MissingCheckSuiteAutofixRun`` when no run is found.
+        """
+        if self._autofix_run is not None:
+            return self._autofix_run
+
+        autofix_run = resolve_check_suite_autofix_run(self.event)
+        if autofix_run is None:
+            raise MissingCheckSuiteAutofixRun
+
+        self._autofix_run = autofix_run
+        return autofix_run
+
+    def check_suite_attempt_key(self) -> tuple[int, str] | int:
+        """Stable attempt key for check-suite consume / batch dedupe.
+
+        Prefer ``(suite_id, updated_at)``: webhook retries share both; Actions
+        re-runs keep the suite id but bump ``updated_at``. Legacy feedback without
+        ``updated_at`` falls back to suite-id-only.
+        """
+        if self.updated_at:
+            return (self.event.check_suite.id, self.updated_at)
+        return self.event.check_suite.id
+
+    @property
+    def text(self) -> str:
+        check_suite = self.event.check_suite
+        details = [
+            f"conclusion: {check_suite.conclusion}",
+            f"app: {self.app_name}",
+            f"check suite: {self.check_suite_url}",
+            f"check runs: {check_suite.check_runs_url}",
+        ]
+        return "\n".join(
+            [
+                "A GitHub check suite on the pull request failed",
+                "\n".join(details),
+                "Fetch the failing check runs to see which checks failed and why, ",
+                "then update the pull request to fix the failure.",
+                "Assume the failure is caused by the code changes you made, not by a "
+                "problem with CI itself. Investigate and fix your code first. "
+                "Only if you are certain the failure is genuinely in the CI setup "
+                "(e.g. the workflow configuration) and cannot be fixed by changing "
+                "the code, make no code change at all.",
+            ]
+        )
+
+    @property
+    def ui_text(self) -> str | None:
+        return f"check suite for app {self.app_name} failed"
+
+    @property
+    def is_automated(self) -> bool:
+        return True
+
+    def log_fields(self, run_state: SeerRunState) -> dict[str, Any]:
+        """Which suite this is, and both sides of the head comparison."""
+        repo_name = self.event.repository.full_name
+        pr_state = run_state.repo_pr_states.get(repo_name) if repo_name else None
+        return {
+            "scm_repo_full_name": repo_name,
+            "check_suite_id": self.event.check_suite.id,
+            "check_suite_updated_at": self.updated_at,
+            "check_suite_head_sha": self.event.check_suite.head_sha,
+            "check_suite_conclusion": self.event.check_suite.conclusion,
+            "check_suite_app_name": self.app_name,
+            "run_pr_commit_sha": pr_state.commit_sha if pr_state else None,
+        }
+
+    def _live_head(self, run_state: SeerRunState) -> LivePullRequestHead:
+        try:
+            return compare_live_pull_request_head(
+                self.event, run_state, self.autofix_run.repository
+            )
+        except MissingCheckSuiteAutofixRun:
+            return LivePullRequestHead("no_autofix_run")
+        except Exception:
+            logger.exception(
+                "autofix.pr_iteration.check_suite.live_head.unexpected_error",
+                extra={"run_id": run_state.run_id, "check_suite_id": self.event.check_suite.id},
+            )
+            return LivePullRequestHead("unexpected_error")
+
+    @traces.trace
+    def should_consume(self, run_state: SeerRunState) -> Decision:
+        head_sha, repo_name, matched = check_suite_head_match(self.event, run_state)
+        attempt_key = self.check_suite_attempt_key()
+        already_processed = attempt_key in _processed_check_suite_attempts(run_state)
+        live_head = self._live_head(run_state) if matched and not already_processed else None
+        if live_head is not None:
+            metrics.incr(
+                "autofix.pr_iteration.check_suite.live_head",
+                tags={"result": live_head.result},
+            )
+        logger.info(
+            "autofix.pr_iteration.check_suite.should_consume.evaluated",
+            extra={
+                "run_id": run_state.run_id,
+                "head_sha": head_sha,
+                "repo_name": repo_name,
+                "matched": matched,
+                "check_suite_id": self.event.check_suite.id,
+                "updated_at": self.updated_at,
+                "already_processed": already_processed,
+                "live_head_result": live_head.result if live_head else None,
+                "live_head_sha": live_head.head_sha if live_head else None,
+                "repo_pr_state_count": len(run_state.repo_pr_states),
+            },
+        )
+        if not matched:
+            return Decision(ok=False, reason="stale_head")
+        # Dedupe against prior check-suite feedback so webhook retries of the same
+        # suite attempt can't burn iterations when the PR head is unchanged.
+        if already_processed:
+            return Decision(ok=False, reason="already_processed")
+        if live_head is not None and live_head.result == "mismatch":
+            return Decision(ok=False, reason="live_head_mismatch")
+        return Decision(ok=True, reason="head_matches")
+
+    @traces.trace
+    def should_trigger(self, run_state: SeerRunState) -> TriggerDecision:
+        try:
+            autofix_run = self.autofix_run
+        except MissingCheckSuiteAutofixRun:
+            return TriggerDecision(task=None, reason="no_autofix_run")
+
+        # A suite for a superseded commit says nothing about the current head.
+        # It stays queued (the next drain drops it via ``should_consume``) but
+        # schedules nothing, and the reason lands on the waiting iteration's
+        # row so the sweep can say why it never ran.
+        if not check_suite_head_match(self.event, run_state).matched:
+            return TriggerDecision(task=None, reason="stale_head")
+
+        # Otherwise queue a consume task for this run: immediately once every check
+        # run has completed, or after a delay while some are still pending (they
+        # can get stuck, so we trigger anyway rather than wait forever).
+        head_sha = self.event.check_suite.head_sha
+        organization_id = autofix_run.repository.organization_id
+        repo_id = autofix_run.repository.id
+
+        # Importing the SCM factory while feedback models are initialized pulls
+        # in integration handlers before Django finishes registering apps.
+        from sentry.scm.factory import new as make_scm
+
+        try:
+            scm = make_scm(organization_id, repo_id, referrer="seer")
+        except Exception:
+            logger.warning(
+                "autofix.pr_iteration.should_trigger.scm_init_failed",
+                extra={"organization_id": organization_id, "repo_id": repo_id},
+                exc_info=True,
+            )
+            return TriggerDecision(task=ConsumeTask.Now, reason="scm_init_failed")
+
+        sweep = sweep_check_runs(
+            scm,
+            head_sha,
+            log_extra={
+                "run_id": run_state.run_id,
+                "organization_id": organization_id,
+                "repo_id": repo_id,
+            },
+        )
+        if sweep is not None and sweep.incomplete:
+            return TriggerDecision(
+                task=ConsumeTask.Later(timedelta(hours=1)), reason="sweep_incomplete"
+            )
+
+        return TriggerDecision(task=ConsumeTask.Now, reason="sweep_complete")
+
+
+__all__ = ("CheckSuiteFeedbackSource", "MissingCheckSuiteAutofixRun")

@@ -4,6 +4,7 @@ from unittest.mock import ANY, MagicMock, patch
 
 import orjson
 import pytest
+from django.test import override_settings
 from pydantic import ValidationError
 from scm.types import CreatePullRequestCommentReactionProtocol
 
@@ -13,7 +14,6 @@ from fixtures.gitlab import (
     GitLabTestCase,
 )
 from sentry.models.organization import Organization
-from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.code_review.models import SeerCodeReviewTaskRequestForPrReview
@@ -66,6 +66,7 @@ class _FakeScmClient:
     def delete_pull_request_reaction(self, *args: Any, **kwargs: Any) -> Any: ...
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class _MergeRequestHandlerTestBase(GitLabTestCase):
     """Shared setup for the GitLab merge-request handler tests.
 
@@ -76,7 +77,6 @@ class _MergeRequestHandlerTestBase(GitLabTestCase):
     """
 
     CODE_REVIEW_FEATURES = {
-        "organizations:gen-ai-features",
         "organizations:code-review-beta",
         "organizations:seer-gitlab-support",
     }
@@ -141,11 +141,11 @@ class _MergeRequestHandlerTestBase(GitLabTestCase):
             code_review_triggers=trigger_values,
         )
 
-        OrganizationContributors.objects.get_or_create(
-            organization_id=self.organization.id,
-            integration_id=self.integration.id,
+        self.create_organization_contributor(
+            organization=self.organization,
+            integration=self.integration,
             external_identifier="51",
-            defaults={"alias": "root"},
+            alias="root",
         )
 
         self.repo = repo
@@ -162,7 +162,6 @@ class _MergeRequestHandlerTestBase(GitLabTestCase):
 class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -180,7 +179,6 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -216,7 +214,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         )
         self.mock_seer.assert_not_called()
 
-    @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
+    @with_feature({"organizations:code-review-beta"})
     def test_skips_when_gitlab_flag_disabled(self) -> None:
         # The GitLab MR handler is gated on organizations:seer-gitlab-support,
         # independent of the other code-review flags.
@@ -230,7 +228,6 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -248,7 +245,6 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -266,7 +262,6 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -284,7 +279,6 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -301,7 +295,6 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -319,7 +312,6 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -341,7 +333,6 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -360,7 +351,6 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -378,7 +368,6 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -396,7 +385,6 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -412,7 +400,6 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -428,7 +415,6 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -444,7 +430,6 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -460,7 +445,6 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -476,7 +460,6 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -493,7 +476,6 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -523,7 +505,6 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -540,7 +521,6 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -556,7 +536,6 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -572,7 +551,6 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -588,7 +566,6 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -604,7 +581,6 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -623,7 +599,6 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -642,7 +617,6 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -663,7 +637,6 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -682,7 +655,6 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -701,7 +673,6 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -720,7 +691,6 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -739,7 +709,6 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -758,7 +727,6 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -777,7 +745,6 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -796,7 +763,6 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -815,7 +781,6 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -846,7 +811,6 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -870,7 +834,6 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -898,7 +861,6 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -915,7 +877,6 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -943,7 +904,6 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -979,6 +939,7 @@ def _make_note_event(**overrides: object) -> dict[str, Any]:
     return event
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class MergeRequestNoteEventTest(GitLabTestCase):
     """Tests for the @sentry review note handler.
 
@@ -1015,11 +976,11 @@ class MergeRequestNoteEventTest(GitLabTestCase):
                 CodeReviewTrigger.ON_READY_FOR_REVIEW.value,
             ],
         )
-        OrganizationContributors.objects.get_or_create(
-            organization_id=self.organization.id,
-            integration_id=self.integration.id,
+        self.create_organization_contributor(
+            organization=self.organization,
+            integration=self.integration,
             external_identifier="51",
-            defaults={"alias": "root"},
+            alias="root",
         )
         self.repo = repo
 
@@ -1037,7 +998,6 @@ class MergeRequestNoteEventTest(GitLabTestCase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -1056,7 +1016,6 @@ class MergeRequestNoteEventTest(GitLabTestCase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -1074,7 +1033,6 @@ class MergeRequestNoteEventTest(GitLabTestCase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -1093,7 +1051,6 @@ class MergeRequestNoteEventTest(GitLabTestCase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -1111,7 +1068,6 @@ class MergeRequestNoteEventTest(GitLabTestCase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -1132,7 +1088,6 @@ class MergeRequestNoteEventTest(GitLabTestCase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -1149,7 +1104,6 @@ class MergeRequestNoteEventTest(GitLabTestCase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -1166,7 +1120,6 @@ class MergeRequestNoteEventTest(GitLabTestCase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -1183,7 +1136,6 @@ class MergeRequestNoteEventTest(GitLabTestCase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -1200,7 +1152,6 @@ class MergeRequestNoteEventTest(GitLabTestCase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -1228,7 +1179,6 @@ class MergeRequestNoteEventTest(GitLabTestCase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -1253,7 +1203,6 @@ class MergeRequestNoteEventTest(GitLabTestCase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -1271,7 +1220,6 @@ class MergeRequestNoteEventTest(GitLabTestCase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -1318,7 +1266,6 @@ class MergeRequestReactionTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -1336,7 +1283,6 @@ class MergeRequestReactionTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -1363,7 +1309,6 @@ class MergeRequestReactionTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -1389,7 +1334,6 @@ class MergeRequestReactionTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -1408,7 +1352,6 @@ class MergeRequestReactionTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -1427,7 +1370,6 @@ class MergeRequestReactionTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }
@@ -1447,7 +1389,6 @@ class MergeRequestReactionTest(_MergeRequestHandlerTestBase):
 
     @with_feature(
         {
-            "organizations:gen-ai-features",
             "organizations:code-review-beta",
             "organizations:seer-gitlab-support",
         }

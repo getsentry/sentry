@@ -8,6 +8,7 @@ import sentry_sdk
 from django.db import models
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
+from sentry_sdk import traces
 
 from sentry.analytics.events.codeowners_assignment import CodeOwnersAssignment
 from sentry.analytics.events.issueowners_assignment import IssueOwnersAssignment
@@ -33,7 +34,6 @@ from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
 from sentry.utils import metrics
 from sentry.utils.cache import cache
-from sentry.utils.tracing import trace
 
 if TYPE_CHECKING:
     from sentry.models.projectcodeowners import ProjectCodeOwners
@@ -186,7 +186,7 @@ class ProjectOwnership(Model):
 
     @classmethod
     @metrics.wraps("projectownership.get_issue_owners")
-    @trace
+    @traces.trace
     def get_issue_owners(
         cls, project_id: int, data: Mapping[str, Any], limit: int = 2
     ) -> Sequence[tuple[Rule, Sequence[Team | RpcUser], str]]:
@@ -251,7 +251,11 @@ class ProjectOwnership(Model):
 
         if ownership.auto_assignment:
             autoassignment_types.extend(
-                [GroupOwnerType.OWNERSHIP_RULE.value, GroupOwnerType.CODEOWNERS.value]
+                [
+                    GroupOwnerType.OWNERSHIP_RULE.value,
+                    GroupOwnerType.CODEOWNERS.value,
+                    GroupOwnerType.SEER_SUGGESTED.value,
+                ]
             )
         return autoassignment_types
 
@@ -330,17 +334,21 @@ class ProjectOwnership(Model):
             elif issue_owner.type == GroupOwnerType.OWNERSHIP_RULE.value:
                 activity_details["integration"] = ActivityIntegration.PROJECT_OWNERSHIP.value
                 activity_details["rule"] = (issue_owner.context or {}).get("rule", "")
+            elif issue_owner.type == GroupOwnerType.SEER_SUGGESTED.value:
+                activity_details["integration"] = ActivityIntegration.SEER_SUGGESTED.value
             else:
                 activity_details["integration"] = ActivityIntegration.CODEOWNERS.value
                 activity_details["rule"] = (issue_owner.context or {}).get("rule", "")
 
             logging_extra = {**logging_extra, **activity_details}
 
-            activity = Activity.objects.filter(
-                group=group, type=ActivityType.ASSIGNED.value
-            ).order_by("-datetime")
-            if activity:
-                auto_assigned = activity[0].data.get("integration")
+            latest_assignment = (
+                Activity.objects.filter(group=group, type=ActivityType.ASSIGNED.value)
+                .order_by("-datetime", "-id")
+                .first()
+            )
+            if latest_assignment:
+                auto_assigned = latest_assignment.data.get("integration")
                 if not auto_assigned and not force_autoassign:
                     return
 

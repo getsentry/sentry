@@ -33,7 +33,7 @@ export function StacktraceFlamegraph({frames}: StacktraceFlamegraphProps) {
 
     // If no samples, return empty flamegraph
     if (samples.length === 0) {
-      return Flamegraph.Empty();
+      return Flamegraph.empty();
     }
 
     // Create frame index for profiling
@@ -55,6 +55,7 @@ export function StacktraceFlamegraph({frames}: StacktraceFlamegraphProps) {
     };
 
     // Create profile from sampled data
+    // oxlint-disable-next-line react/capitalized-calls -- Static factory on SampledProfile, not a component.
     const profile = SampledProfile.FromProfile(sampledProfileData, frameIndex, {
       type: 'flamegraph',
     });

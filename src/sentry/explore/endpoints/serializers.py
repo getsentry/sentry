@@ -1,6 +1,6 @@
+import logging
 from datetime import timedelta
 
-from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.serializers import ListField
@@ -12,6 +12,8 @@ from sentry.utils.dates import parse_stats_period, validate_interval
 
 MAX_CROSS_EVENT_QUERIES = 2
 MAX_CROSS_EVENT_RANGE = timedelta(days=7)
+
+logger = logging.getLogger(__name__)
 
 
 class VisualizeSerializer(serializers.Serializer):
@@ -88,7 +90,6 @@ class MetricSerializer(serializers.Serializer):
     )
 
 
-@extend_schema_serializer(exclude_fields=["groupby"])
 class QuerySerializer(serializers.Serializer):
     fields = ListField(
         child=serializers.CharField(),
@@ -101,7 +102,12 @@ class QuerySerializer(serializers.Serializer):
         allow_null=True,
         help_text="How to order the query results. Must be something in the `field` list.",
     )
-    groupby = ListField(child=serializers.CharField(), required=False, allow_null=True)
+    groupby = ListField(
+        child=serializers.CharField(),
+        required=False,
+        allow_null=True,
+        help_text="Columns to group results by.",
+    )
     query = serializers.CharField(
         required=False,
         allow_null=True,
@@ -198,7 +204,7 @@ class ExploreSavedQuerySerializer(serializers.Serializer):
         allow_null=True,
         help_text="The saved end time for this saved query.",
     )
-    range = serializers.CharField(
+    statsPeriod = serializers.CharField(
         required=False,
         allow_null=True,
         help_text="The saved time range period for this saved query.",
@@ -225,7 +231,17 @@ class ExploreSavedQuerySerializer(serializers.Serializer):
         allow_null=True,
         help_text="Agent names to filter conversations by.",
     )
-    query = ListField(child=QuerySerializer(), required=True, min_length=1)
+    errorsOnly = serializers.BooleanField(
+        required=False,
+        allow_null=True,
+        help_text="Whether to only show conversations with errors.",
+    )
+    query = ListField(
+        child=QuerySerializer(),
+        required=True,
+        min_length=1,
+        help_text="The Explore query definitions to save.",
+    )
 
     def validate_projects(self, projects):
         from sentry.api.validators import validate_project_ids
@@ -237,12 +253,13 @@ class ExploreSavedQuerySerializer(serializers.Serializer):
         query = {}
         query_keys = [
             "environment",
-            "range",
+            "statsPeriod",
             "start",
             "end",
             "interval",
             "crossEvents",
             "agent",
+            "errorsOnly",
         ]
 
         inner_query_keys = [

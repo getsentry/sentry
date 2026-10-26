@@ -57,7 +57,6 @@ BASE_PROJECT = {
     "isBookmarked": False,
     "isMember": True,
     "features": [
-        "alert-filters",
         "custom-inbound-filters",
         "discard-groups",
         "minidump",
@@ -223,6 +222,7 @@ DETAILED_PROJECT = {
     "tempestFetchScreenshots": False,
     "debugFilesRole": None,
     "isDynamicallySampled": True,
+    "enableAutoReleaseCreation": True,
     "autofixAutomationTuning": "off",
     "seerScannerAutomation": True,
     "seerNightshiftTweaks": None,
@@ -269,7 +269,6 @@ PROJECT_SUMMARY = {
     "dateCreated": "2023-03-29T15:25:21.344565Z",
     "environments": ["production"],
     "features": [
-        "alert-filters",
         "custom-inbound-filters",
         "discard-groups",
         "minidump",
@@ -366,7 +365,41 @@ def project_with_team(extra_team: bool = False) -> dict[str, Any]:
     }
 
 
+ERROR_RELEASE_CUSTOM_INBOUND_FILTER = {
+    "id": "42",
+    "name": "Drop TypeErrors from the 1.x releases",
+    "active": True,
+    "dataType": "error",
+    "conditions": [
+        {"type": "error_type", "operator": "equals", "value": ["TypeError"]},
+        {"type": "error_message", "operator": "contains", "value": ["undefined"]},
+        {"type": "release", "operator": "lt", "value": ["2.0.0"]},
+    ],
+    "dateCreated": "2024-07-23T17:52:53.981206Z",
+    "dateUpdated": "2024-07-23T17:52:53.981206Z",
+    "legacyFilter": None,
+}
+
+
 class ProjectExamples:
+    CUSTOM_INBOUND_FILTER = [
+        OpenApiExample(
+            "Custom inbound filter",
+            value=ERROR_RELEASE_CUSTOM_INBOUND_FILTER,
+            status_codes=["200", "201"],
+            response_only=True,
+        ),
+    ]
+
+    LIST_CUSTOM_INBOUND_FILTERS = [
+        OpenApiExample(
+            "List custom inbound filters",
+            value=ERROR_RELEASE_CUSTOM_INBOUND_FILTER,
+            status_codes=["200"],
+            response_only=True,
+        ),
+    ]
+
     CLIENT_KEY_RESPONSE = [
         OpenApiExample(
             "Client key with rate limiting",

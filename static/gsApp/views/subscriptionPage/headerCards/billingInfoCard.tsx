@@ -29,7 +29,8 @@ export function BillingInfoCard({
       title={t('Billing information')}
       sections={[
         <Stack key="billing-info" gap="md" align="start" maxWidth="100%">
-          <BillingDetailsInfo subscription={subscription} />
+          <AccountBalanceInfo subscription={subscription} />
+          <BillingDetailsInfo />
           <PaymentSourceInfo subscription={subscription} />
         </Stack>,
         <LinkButton
@@ -48,7 +49,25 @@ export function BillingInfoCard({
   );
 }
 
-function BillingDetailsInfo({subscription}: {subscription: Subscription}) {
+function AccountBalanceInfo({subscription}: {subscription: Subscription}) {
+  const {accountBalance} = subscription;
+
+  if (!accountBalance) {
+    return null;
+  }
+
+  const isCredit = accountBalance < 0;
+
+  return (
+    <Text bold ellipsis size="sm">
+      {isCredit
+        ? tct('Account credits: [amount]', {amount: formatCurrency(0 - accountBalance)})
+        : tct('Balance due: [amount]', {amount: formatCurrency(accountBalance)})}
+    </Text>
+  );
+}
+
+function BillingDetailsInfo() {
   const {layout} = usePrimaryNavigation();
   const isMobile = layout === 'mobile';
   const {data: billingDetails, isLoading} = useBillingDetails();
@@ -91,22 +110,8 @@ function BillingDetailsInfo({subscription}: {subscription: Subscription}) {
     secondaryDetails.push(`${taxFieldInfo.label}: ${billingDetails.taxNumber}`);
   }
 
-  const balance =
-    subscription.accountBalance < 0
-      ? tct('[credits] credit', {
-          credits: formatCurrency(0 - subscription.accountBalance),
-        })
-      : formatCurrency(subscription.accountBalance);
-
   return (
     <Stack overflow="hidden" gap="sm" maxWidth={isMobile ? MAX_WIDTH : '100%'}>
-      {!!subscription.accountBalance && (
-        <Text ellipsis size="sm" variant="muted">
-          {tct('Account balance: [balance]', {
-            balance,
-          })}
-        </Text>
-      )}
       <Text ellipsis size="sm" variant="muted">
         {primaryDetails.length > 0
           ? primaryDetails.join(', ')

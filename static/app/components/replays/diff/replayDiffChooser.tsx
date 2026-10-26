@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {Grid} from '@sentry/scraps/layout';
 import {TabList, TabPanels, TabStateProvider} from '@sentry/scraps/tabs';
 
 import {ReplayMutationTree} from 'sentry/components/replays/diff/replayMutationTree';
@@ -10,10 +11,6 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-interface Props {
-  defaultTab?: DiffType;
-}
-
 const enum DiffType {
   HTML = 'html',
   SLIDER = 'slider',
@@ -21,15 +18,15 @@ const enum DiffType {
   MUTATIONS = 'mutations',
 }
 
-export function ReplayDiffChooser({defaultTab = DiffType.SLIDER}: Props) {
+export function ReplayDiffChooser() {
   const organization = useOrganization();
   const onTabChange = (tabKey: DiffType) => {
     trackAnalytics('replay.hydration-modal.tab-change', {tabKey, organization});
   };
 
   return (
-    <Grid>
-      <TabStateProvider<DiffType> defaultValue={defaultTab} onChange={onTabChange}>
+    <Grid gap="md" height="100%" rows="max-content 1fr">
+      <TabStateProvider<DiffType> defaultValue={DiffType.SLIDER} onChange={onTabChange}>
         <TabList>
           <TabList.Item key={DiffType.SLIDER}>{t('Slider Diff')}</TabList.Item>
           <TabList.Item key={DiffType.VISUAL}>{t('Side By Side Diff')}</TabList.Item>
@@ -55,13 +52,6 @@ export function ReplayDiffChooser({defaultTab = DiffType.SLIDER}: Props) {
     </Grid>
   );
 }
-
-const Grid = styled('div')`
-  display: grid;
-  grid-template-rows: max-content 1fr;
-  height: 100%;
-  gap: ${p => p.theme.space.md};
-`;
 
 const StyledTabPanels = styled(TabPanels)`
   display: flex;

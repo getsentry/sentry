@@ -1,9 +1,6 @@
-import {lazy} from 'react';
+import {
+  MonitorsListRedirect,
+  withOpenPeriodRedirect,
+} from 'sentry/views/alerts/workflowEngineRedirects';
 
-import {withOpenPeriodRedirect} from 'sentry/views/alerts/workflowEngineRedirects';
-
-const AlertWizardProjectProvider = lazy(
-  () => import('sentry/views/alerts/incidentRedirect')
-);
-
-export default withOpenPeriodRedirect(AlertWizardProjectProvider);
+export default withOpenPeriodRedirect(MonitorsListRedirect);

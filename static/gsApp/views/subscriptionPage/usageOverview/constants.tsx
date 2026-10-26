@@ -1,8 +1,8 @@
 /**
- * The minimum screen breakpoint at which the side panel is shown.
- * At smaller screen sizes, the panel is shown inline.
+ * The minimum container breakpoint at which the side panel is shown.
+ * At smaller container sizes, the panel is shown inline.
  */
-export const SIDE_PANEL_MIN_SCREEN_BREAKPOINT = 'lg';
+export const SIDE_PANEL_MIN_CONTAINER_BREAKPOINT = '4xl';
 
 /**
  * The height of the panel header for both the table and side panel.

@@ -1,9 +1,10 @@
 import {Fragment, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Flex} from '@sentry/scraps/layout';
+import {getPrismLanguage} from '@sentry/scraps/code';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {
@@ -12,11 +13,11 @@ import {
   type DiffLine,
   type FilePatch,
 } from 'sentry/components/events/autofix/types';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {DIFF_COLORS} from 'sentry/components/splitDiff';
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {getPrismLanguage} from 'sentry/utils/prism';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
+import {OpenFileButton} from 'sentry/views/seerExplorer/components/openFileButton';
 
 interface FileDiffViewerProps {
   patch: FilePatch;
@@ -30,6 +31,16 @@ interface FileDiffViewerProps {
    * Default: false (collapsed by default)
    */
   defaultExpanded?: boolean;
+  /**
+   * Web URL for the file in its source repository. When set, the header shows a
+   * button that opens it.
+   */
+  fileUrl?: string | null;
+  /**
+   * Hides the built-in header (path + added/removed) for consumers that render
+   * their own. Default: false
+   */
+  hideHeader?: boolean;
   /**
    * Optional repo name to display in the file header.
    * If provided, will show as "repoName:filePath", otherwise just "filePath"
@@ -107,11 +118,13 @@ function HunkHeader({
 
 export function FileDiffViewer({
   patch,
+  fileUrl,
   repoName,
   showBorder = false,
   useFlexForDeleted = false,
   collapsible = false,
   defaultExpanded = false,
+  hideHeader = false,
 }: FileDiffViewerProps) {
   const [isExpanded, setIsExpanded] = useState(collapsible ? defaultExpanded : true);
   const isDelete = patch.type === DiffFileType.DELETED;
@@ -119,18 +132,25 @@ export function FileDiffViewer({
 
   return (
     <FileDiffWrapper showBorder={showBorder}>
-      <FileHeader
-        collapsible={collapsible}
-        onClick={collapsible ? () => setIsExpanded(value => !value) : undefined}
-      >
-        {collapsible && <InteractionStateLayer />}
-        <Flex align="center" gap="md">
-          <FileAdded>+{patch.added}</FileAdded>
-          <FileRemoved>-{patch.removed}</FileRemoved>
-        </Flex>
-        <FilePathName title={filePath}>{filePath}</FilePathName>
-        {collapsible && <IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
-      </FileHeader>
+      {!hideHeader && (
+        <FileHeader
+          collapsible={collapsible}
+          onClick={collapsible ? () => setIsExpanded(value => !value) : undefined}
+        >
+          {collapsible && <InteractionStateLayer />}
+          <Flex align="center" gap="md">
+            <FileAdded>+{patch.added}</FileAdded>
+            <FileRemoved>-{patch.removed}</FileRemoved>
+          </Flex>
+          <Flex align="center" gap="xs" minWidth="0">
+            <FilePathName title={filePath}>{filePath}</FilePathName>
+            <OpenFileButton fileUrl={fileUrl} />
+          </Flex>
+          {collapsible && (
+            <IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />
+          )}
+        </FileHeader>
+      )}
       {isExpanded && (
         <Fragment>
           {isDelete ? (
@@ -145,7 +165,7 @@ export function FileDiffViewer({
             <DiffContainer>
               {patch.hunks.map((hunk, hunkIndex) => (
                 <Fragment key={hunkIndex}>
-                  <HunkHeaderEmptySpace />
+                  <Container background="secondary" column="1 / 3" />
                   <HunkHeader
                     sourceStart={hunk.source_start}
                     sourceLength={hunk.source_length}
@@ -249,11 +269,6 @@ const DiffContainer = styled('div')`
   display: grid;
   grid-template-columns: auto auto 1fr;
   overflow-x: auto;
-`;
-
-const HunkHeaderEmptySpace = styled('div')`
-  grid-column: 1 / 3;
-  background-color: ${p => p.theme.tokens.background.secondary};
 `;
 
 const HunkHeaderContent = styled('div')`

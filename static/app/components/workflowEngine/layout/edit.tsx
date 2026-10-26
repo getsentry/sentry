@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import type {CSS} from '@sentry/scraps/cssTypes';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -12,6 +13,7 @@ import {
 } from 'sentry/components/workflowEngine/form/fullHeightForm';
 import {StickyFooter} from 'sentry/components/workflowEngine/ui/footer';
 import type {AvatarProject} from 'sentry/types/project';
+import {TopBar} from 'sentry/views/navigation/topBar';
 
 interface EditLayoutProps {
   /**
@@ -48,32 +50,8 @@ const StyledLayoutHeader = styled(Layout.Header)`
   background-color: ${p => p.theme.tokens.background.primary};
 `;
 
-const HeaderInner = styled('div')<{maxWidth?: string}>`
-  display: contents;
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    max-width: ${p => p.maxWidth};
-    width: 100%;
-  }
-`;
-
-const StyledBody = styled(Layout.Body)<{maxWidth?: string}>`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space['2xl']};
-  padding: 0;
-  margin: ${p => p.theme.space.xl};
-  max-width: ${p => p.maxWidth};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: 0;
-    margin: ${p =>
-      p.noRowGap
-        ? `${p.theme.space.xl} ${p.theme.space['3xl']}`
-        : `${p.theme.space['2xl']} ${p.theme.space['3xl']}`};
-  }
+const HeaderInner = styled(Container)`
+  grid-template-columns: minmax(0, 1fr) auto;
 `;
 
 interface RequiredChildren {
@@ -84,10 +62,20 @@ interface HeaderProps extends RequiredChildren {
   noActionWrap?: boolean;
 }
 
-function Header({children, noActionWrap, maxWidth}: HeaderProps & {maxWidth?: string}) {
+function Header({
+  children,
+  noActionWrap,
+  maxWidth,
+}: HeaderProps & {maxWidth?: CSS['maxWidth']}) {
   return (
     <StyledLayoutHeader noActionWrap={noActionWrap}>
-      <HeaderInner maxWidth={maxWidth}>{children}</HeaderInner>
+      <HeaderInner
+        display={{zero: 'contents', '3xl': 'grid'}}
+        maxWidth={maxWidth}
+        width="100%"
+      >
+        {children}
+      </HeaderInner>
     </StyledLayoutHeader>
   );
 }
@@ -99,7 +87,7 @@ function HeaderContent({children}: RequiredChildren) {
 function Title({title, project}: {title: string; project?: AvatarProject}) {
   return (
     <Stack gap="md">
-      <Layout.Title>{title}</Layout.Title>
+      <TopBar.Slot name="breadcrumbs" title={{type: 'page-title', label: title}} />
       {project && <ProjectBadge project={project} disableLink avatarSize={16} />}
     </Stack>
   );
@@ -121,17 +109,24 @@ function HeaderFields({children}: RequiredChildren) {
   );
 }
 
-function Body({children, maxWidth}: RequiredChildren & {maxWidth?: string}) {
+function Body({children, maxWidth}: RequiredChildren & {maxWidth?: CSS['maxWidth']}) {
   return (
-    <StyledBody maxWidth={maxWidth}>
+    <Stack
+      flexGrow={1}
+      gap="2xl"
+      background="primary"
+      padding="0"
+      margin={{zero: 'xl', '3xl': '2xl 3xl'}}
+      maxWidth={maxWidth}
+    >
       <Layout.Main width="full">{children}</Layout.Main>
-    </StyledBody>
+    </Stack>
   );
 }
 
 interface FooterProps extends RequiredChildren {
   label?: string;
-  maxWidth?: string;
+  maxWidth?: CSS['maxWidth'];
 }
 
 function Footer({children, label, maxWidth}: FooterProps) {

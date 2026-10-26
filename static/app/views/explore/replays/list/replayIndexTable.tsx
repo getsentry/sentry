@@ -53,12 +53,12 @@ export function ReplayIndexTable({
     selection: {projects},
   } = usePageFilters();
 
-  const tableRef = useRef<HTMLDivElement>(null);
+  const tableRef = useRef<HTMLTableElement>(null);
   const tableDimensions = useDimensions({elementRef: tableRef});
 
   const {onSortClick, sortType} = useReplayTableSort();
 
-  const {allMobileProj} = useAllMobileProj({});
+  const {allMobileProj} = useAllMobileProj();
   const columns = useReplayIndexTableColumns({allMobileProj, tableDimensions});
 
   const endpointOptions = safeParseQueryKey(queryKey)?.options;

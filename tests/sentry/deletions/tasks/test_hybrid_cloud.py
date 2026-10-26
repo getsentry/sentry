@@ -1,20 +1,32 @@
 from __future__ import annotations
 
+import threading
 from collections.abc import Callable, Generator
+from contextlib import contextmanager
 from operator import itemgetter
-from typing import Any, ContextManager, NotRequired, TypedDict, cast
-from unittest.mock import patch
+from typing import Any, ClassVar, ContextManager, NotRequired, TypedDict, cast
+from unittest.mock import Mock, patch
 
 import pytest
 from django.apps import apps
-from django.db import connections, router, transaction
-from django.db.models import Max, QuerySet
+from django.db import IntegrityError, ProgrammingError, connections, router, transaction
+from django.db.models import BooleanField, Max, Min, QuerySet
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, cell_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.manager.base import BaseManager
+from sentry.db.models.manager.base_query_set import BaseQuerySet
+from sentry.deletions.models.watermark import CellDeletionWatermark, ControlDeletionWatermark
+from sentry.deletions.tasks import hybrid_cloud
 from sentry.deletions.tasks.hybrid_cloud import (
+    ROW_WATERMARK,
+    TOMBSTONE_WATERMARK,
+    WATERMARK_PREFIXES,
     WatermarkBatch,
+    _process_hybrid_cloud_foreign_key_cascade,
+    _read_postgres_watermark,
+    _watermark_model,
     get_ids_cross_db_for_row_watermark,
     get_ids_cross_db_for_tombstone_watermark,
     get_watermark,
@@ -27,10 +39,12 @@ from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxScope
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
+from sentry.models.authprovider import AuthProvider
 from sentry.models.dashboard import Dashboard
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.tombstone import CellTombstone
 from sentry.monitors.models import Monitor
 from sentry.silo.base import SiloMode
@@ -53,6 +67,28 @@ from sentry.users.models.user import User
 class DoNothingIntegrationModel(Model):
     __relocation_scope__ = RelocationScope.Excluded
     integration_id = HybridCloudForeignKey("sentry.Integration", on_delete="DO_NOTHING")
+
+    class Meta:
+        app_label = "fixtures"
+
+
+class VisibleOnlyManager(BaseManager["FilteredIntegrationModel"]):
+    def get_queryset(self) -> BaseQuerySet[FilteredIntegrationModel]:
+        return super().get_queryset().filter(hidden=False)
+
+
+@cell_silo_model
+class FilteredIntegrationModel(Model):
+    """
+    Stands in for the models whose default manager hides rows, such as a soft
+    deleted SentryApp or a Workflow that is pending deletion.
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+    integration_id = HybridCloudForeignKey("sentry.Integration", on_delete="DO_NOTHING")
+    hidden = BooleanField(default=False)
+
+    objects: ClassVar[BaseManager[FilteredIntegrationModel]] = VisibleOnlyManager()
 
     class Meta:
         app_label = "fixtures"
@@ -86,71 +122,444 @@ def reset_watermarks() -> None:
                 if not isinstance(field, HybridCloudForeignKey):
                     continue
                 max_val = model.objects.aggregate(Max("id"))["id__max"] or 0
-                set_watermark("tombstone", field, max_val, "abc123")
-                set_watermark("row", field, max_val, "abc123")
+                set_watermark(TOMBSTONE_WATERMARK, field, max_val, "abc123")
+                set_watermark(ROW_WATERMARK, field, max_val, "abc123")
 
 
 @pytest.fixture
-def dashboard_created_by_id_field() -> HybridCloudForeignKey[int, int]:
-    return cast(HybridCloudForeignKey[int, int], Dashboard._meta.get_field("created_by_id"))
+def project_bookmark_user_id_field() -> HybridCloudForeignKey[int, int]:
+    return cast(HybridCloudForeignKey[int, int], ProjectBookmark._meta.get_field("user_id"))
+
+
+@contextmanager
+def record_watermark_writes(
+    field: HybridCloudForeignKey[int, int],
+) -> Generator[set[str]]:
+    """
+    Collect the watermark prefixes written for one field. A write can store the
+    value the row already holds, so the row itself cannot show that it happened.
+    """
+    written: set[str] = set()
+    manager = _watermark_model(field).objects
+    real_update_or_create = manager.update_or_create
+
+    def record(**kwargs: Any) -> Any:
+        if (
+            kwargs.get("table_name") == field.model._meta.db_table
+            and kwargs.get("field_name") == field.name
+        ):
+            written.add(kwargs["prefix"])
+        return real_update_or_create(**kwargs)
+
+    with patch.object(manager, "update_or_create", record):
+        yield written
+
+
+@contextmanager
+def record_low_bound_reports(
+    field: HybridCloudForeignKey[int, int],
+) -> Generator[set[str]]:
+    """
+    Collect the watermark prefixes that reported their position for one field.
+    Reporting does not touch the row, so the row cannot show that it happened.
+    """
+    reported: set[str] = set()
+    real_report = hybrid_cloud._report_low_bound
+
+    def record(prefix: str, reported_field: Any, value: int) -> None:
+        if (
+            reported_field.model._meta.db_table == field.model._meta.db_table
+            and reported_field.name == field.name
+        ):
+            reported.add(prefix)
+        return real_report(prefix, reported_field, value)
+
+    with patch.object(hybrid_cloud, "_report_low_bound", record):
+        yield reported
 
 
 @django_db_all
 def test_no_work_is_no_op(
     task_runner: Callable[[], ContextManager[None]],
-    dashboard_created_by_id_field: HybridCloudForeignKey[int, int],
+    project_bookmark_user_id_field: HybridCloudForeignKey[int, int],
 ) -> None:
     reset_watermarks()
 
     # Transaction id should not change when no processing occurs.  (this would happen if setting the next cursor
     # to the same, previous value.)
-    level, tid = get_watermark("tombstone", dashboard_created_by_id_field)
+    level, tid = get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field)
 
     with task_runner():
         schedule_hybrid_cloud_foreign_key_jobs()
 
-    assert get_watermark("tombstone", dashboard_created_by_id_field) == (level, tid)
+    assert get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field) == (level, tid)
+
+
+@django_db_all
+def test_no_work_reports_both_watermarks_without_writing(
+    task_runner: Callable[[], ContextManager[None]],
+    project_bookmark_user_id_field: HybridCloudForeignKey[int, int],
+) -> None:
+    """
+    A caught up field writes its watermark rows only when it has work, but it
+    still reports where both watermarks sit. The every cycle rewrite existed to
+    fill the Postgres tables during the Redis to Postgres migration and is gone
+    now, so the report is what keeps the position visible.
+    """
+    reset_watermarks()
+
+    with record_watermark_writes(project_bookmark_user_id_field) as written:
+        with record_low_bound_reports(project_bookmark_user_id_field) as reported:
+            with task_runner():
+                schedule_hybrid_cloud_foreign_key_jobs()
+
+    assert written == set()
+    assert reported == set(WATERMARK_PREFIXES)
 
 
 @django_db_all
 def test_watermark_and_transaction_id(
     task_runner: Callable[[], ContextManager[None]],
-    dashboard_created_by_id_field: HybridCloudForeignKey[int, int],
+    project_bookmark_user_id_field: HybridCloudForeignKey[int, int],
 ) -> None:
-    _, tid1 = get_watermark("tombstone", dashboard_created_by_id_field)
+    _, tid1 = get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field)
     # TODO: Add another test to validate the tid is unique per field
 
-    _, tid2 = get_watermark("row", dashboard_created_by_id_field)
+    _, tid2 = get_watermark(ROW_WATERMARK, project_bookmark_user_id_field)
 
     assert tid1
     assert tid2
     assert tid1 != tid2
 
-    set_watermark("tombstone", dashboard_created_by_id_field, 5, tid1)
-    wm, new_tid1 = get_watermark("tombstone", dashboard_created_by_id_field)
+    set_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field, 5, tid1)
+    wm, new_tid1 = get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field)
 
     assert new_tid1 != tid1
     assert wm == 5
 
-    assert get_watermark("tombstone", dashboard_created_by_id_field) == (wm, new_tid1)
+    assert get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field) == (wm, new_tid1)
+
+
+def _cell_watermark_rows(
+    field: HybridCloudForeignKey[int, int],
+) -> QuerySet[CellDeletionWatermark]:
+    return CellDeletionWatermark.objects.filter(
+        table_name=field.model._meta.db_table, field_name=field.name
+    )
+
+
+@django_db_all
+def test_write_stores_the_watermark_in_postgres(
+    project_bookmark_user_id_field: HybridCloudForeignKey[int, int],
+) -> None:
+    _cell_watermark_rows(project_bookmark_user_id_field).delete()
+
+    _, tid = get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field)
+    set_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field, 7, tid)
+
+    low_bound, transaction_id = get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field)
+    assert low_bound == 7
+
+    row = _cell_watermark_rows(project_bookmark_user_id_field).get(prefix=TOMBSTONE_WATERMARK)
+    assert row.low_bound == low_bound
+    assert row.transaction_id == transaction_id
+
+
+@django_db_all
+def test_write_updates_the_row_in_place(
+    project_bookmark_user_id_field: HybridCloudForeignKey[int, int],
+) -> None:
+    _cell_watermark_rows(project_bookmark_user_id_field).delete()
+
+    _, tid = get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field)
+    set_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field, 7, tid)
+    _, tid = get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field)
+    set_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field, 9, tid)
+
+    rows = _cell_watermark_rows(project_bookmark_user_id_field).filter(prefix=TOMBSTONE_WATERMARK)
+    assert rows.count() == 1
+    assert rows.get().low_bound == 9
+
+
+@django_db_all
+def test_write_failure_reaches_the_caller(
+    project_bookmark_user_id_field: HybridCloudForeignKey[int, int],
+) -> None:
+    """
+    Postgres is the only store, so a swallowed failure would silently leave the
+    watermark where it was and re-process the same range on the next cycle.
+    """
+    _cell_watermark_rows(project_bookmark_user_id_field).delete()
+    set_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field, 5, "abc123")
+
+    broken = Mock(side_effect=ProgrammingError("relation does not exist"))
+    _, tid = get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field)
+    with patch.object(CellDeletionWatermark.objects, "update_or_create", broken):
+        with pytest.raises(ProgrammingError):
+            set_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field, 13, tid)
+
+    assert broken.called
+
+    # The watermark did not move.
+    row = _cell_watermark_rows(project_bookmark_user_id_field).get(prefix=TOMBSTONE_WATERMARK)
+    assert row.low_bound == 5
+    assert get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field)[0] == 5
+
+
+@django_db_all
+def test_watermark_model_in_monolith_follows_the_field_model_silo(
+    project_bookmark_user_id_field: HybridCloudForeignKey[int, int],
+) -> None:
+    auth_provider_field = cast(
+        HybridCloudForeignKey[int, int], AuthProvider._meta.get_field("organization_id")
+    )
+    with assume_test_silo_mode(SiloMode.MONOLITH):
+        assert _watermark_model(project_bookmark_user_id_field) is CellDeletionWatermark
+        assert _watermark_model(auth_provider_field) is ControlDeletionWatermark
+
+
+@django_db_all
+@control_silo_test
+def test_write_uses_the_control_table_in_control_silo() -> None:
+    field = cast(HybridCloudForeignKey[int, int], AuthProvider._meta.get_field("organization_id"))
+    ControlDeletionWatermark.objects.filter(
+        table_name=AuthProvider._meta.db_table, field_name=field.name
+    ).delete()
+
+    _, tid = get_watermark(TOMBSTONE_WATERMARK, field)
+    set_watermark(TOMBSTONE_WATERMARK, field, 11, tid)
+
+    low_bound, transaction_id = get_watermark(TOMBSTONE_WATERMARK, field)
+    assert low_bound == 11
+
+    row = ControlDeletionWatermark.objects.get(
+        prefix=TOMBSTONE_WATERMARK,
+        table_name=AuthProvider._meta.db_table,
+        field_name=field.name,
+    )
+    assert row.low_bound == low_bound
+    assert row.transaction_id == transaction_id
+
+
+@django_db_all
+def test_read_starts_fresh_when_no_row_holds_the_watermark(
+    project_bookmark_user_id_field: HybridCloudForeignKey[int, int],
+) -> None:
+    _cell_watermark_rows(project_bookmark_user_id_field).delete()
+
+    low_bound, transaction_id = get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field)
+
+    assert low_bound == 0
+    assert transaction_id
+
+    row = _cell_watermark_rows(project_bookmark_user_id_field).get(prefix=TOMBSTONE_WATERMARK)
+    assert (row.low_bound, row.transaction_id) == (0, transaction_id)
+
+
+@django_db_all
+def test_read_returns_the_postgres_row(
+    project_bookmark_user_id_field: HybridCloudForeignKey[int, int],
+) -> None:
+    _cell_watermark_rows(project_bookmark_user_id_field).delete()
+
+    set_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field, 55, "abc123")
+    row = _cell_watermark_rows(project_bookmark_user_id_field).get(prefix=TOMBSTONE_WATERMARK)
+
+    assert get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field) == (
+        55,
+        row.transaction_id,
+    )
+
+
+@django_db_all(transaction=True)
+def test_two_concurrent_reads_create_one_row(
+    project_bookmark_user_id_field: HybridCloudForeignKey[int, int],
+) -> None:
+    field = project_bookmark_user_id_field
+    _cell_watermark_rows(field).delete()
+
+    looked_up = threading.Barrier(2, timeout=10)
+    ready_to_insert = threading.Barrier(2, timeout=10)
+    # The concrete queryset class is a silo limited subclass, so patch that one.
+    watermark_queryset = type(CellDeletionWatermark.objects.get_queryset())
+    real_create = watermark_queryset.create
+    results: list[tuple[int, str]] = []
+    errors: list[BaseException] = []
+    conflicts: list[IntegrityError] = []
+
+    def read_row_then_wait(
+        prefix: str, hcfk: HybridCloudForeignKey[Any, Any]
+    ) -> tuple[int, str] | None:
+        watermark = _read_postgres_watermark(prefix, hcfk)
+        looked_up.wait()
+        return watermark
+
+    def insert_alongside_the_other_reader(self: Any, **kwargs: Any) -> Any:
+        ready_to_insert.wait()
+        try:
+            return real_create(self, **kwargs)
+        except IntegrityError as err:
+            conflicts.append(err)
+            raise
+
+    def read_watermark() -> None:
+        try:
+            results.append(get_watermark(TOMBSTONE_WATERMARK, field))
+        except BaseException as err:
+            errors.append(err)
+        finally:
+            for connection in connections.all():
+                connection.close()
+
+    with (
+        patch("sentry.deletions.tasks.hybrid_cloud._read_postgres_watermark", read_row_then_wait),
+        patch.object(watermark_queryset, "create", insert_alongside_the_other_reader),
+    ):
+        readers = [threading.Thread(target=read_watermark) for _ in range(2)]
+        for reader in readers:
+            reader.start()
+        for reader in readers:
+            reader.join(timeout=30)
+
+    assert errors == []
+    assert len(conflicts) == 1
+    assert _cell_watermark_rows(field).filter(prefix=TOMBSTONE_WATERMARK).count() == 1
+
+    assert [low_bound for low_bound, _ in results] == [0, 0]
+
+
+@django_db_all
+def test_empty_model_table_fast_forwards_tombstone_watermark() -> None:
+    field = cast(
+        HybridCloudForeignKey[int, int],
+        DoNothingIntegrationModel._meta.get_field("integration_id"),
+    )
+    DoNothingIntegrationModel.objects.all().delete()
+    set_watermark("tombstone", field, 0, "abc123")
+    set_watermark("row", field, 0, "abc123")
+
+    for i in range(5):
+        CellTombstone.objects.create(
+            table_name=Integration._meta.db_table, object_identifier=1000 + i
+        )
+    tombstone_max = CellTombstone.objects.aggregate(Max("id"))["id__max"]
+    assert tombstone_max is not None
+
+    process_task = Mock()
+    with patch(
+        "sentry.deletions.tasks.hybrid_cloud._get_model_ids_for_tombstone_cascade"
+    ) as get_ids:
+        _process_hybrid_cloud_foreign_key_cascade(
+            app_name="fixtures",
+            model_name=DoNothingIntegrationModel.__name__,
+            field_name=field.name,
+            process_task=process_task,
+            silo_mode=SiloMode.CELL,
+        )
+
+    # One cycle, straight to the maximum, with no batch scanned and no reschedule.
+    assert get_watermark("tombstone", field)[0] == tombstone_max
+    assert not get_ids.called
+    assert not process_task.delay.called
+
+    # A later cycle with no new tombstones does nothing at all.
+    with patch(
+        "sentry.deletions.tasks.hybrid_cloud._get_model_ids_for_tombstone_cascade"
+    ) as get_ids:
+        _process_hybrid_cloud_foreign_key_cascade(
+            app_name="fixtures",
+            model_name=DoNothingIntegrationModel.__name__,
+            field_name=field.name,
+            process_task=process_task,
+            silo_mode=SiloMode.CELL,
+        )
+
+    assert get_watermark("tombstone", field)[0] == tombstone_max
+    assert not get_ids.called
+    assert not process_task.delay.called
+
+
+@django_db_all
+def test_populated_model_table_does_not_fast_forward() -> None:
+    field = cast(
+        HybridCloudForeignKey[int, int],
+        DoNothingIntegrationModel._meta.get_field("integration_id"),
+    )
+    DoNothingIntegrationModel.objects.all().delete()
+    DoNothingIntegrationModel.objects.create(integration_id=1)
+    set_watermark("tombstone", field, 0, "abc123")
+
+    for i in range(5):
+        CellTombstone.objects.create(
+            table_name=Integration._meta.db_table, object_identifier=1000 + i
+        )
+    tombstone_min = CellTombstone.objects.aggregate(Min("id"))["id__min"]
+    assert tombstone_min is not None
+
+    _process_hybrid_cloud_foreign_key_cascade(
+        app_name="fixtures",
+        model_name=DoNothingIntegrationModel.__name__,
+        field_name=field.name,
+        process_task=Mock(),
+        silo_mode=SiloMode.CELL,
+    )
+
+    # get_batch_size is patched to 1 for this module, so one cycle walks a single
+    # id instead of jumping to the top of the tombstone table.
+    assert get_watermark("tombstone", field)[0] == tombstone_min
+
+
+@django_db_all
+def test_rows_hidden_by_the_default_manager_are_not_an_empty_table() -> None:
+    field = cast(
+        HybridCloudForeignKey[int, int],
+        FilteredIntegrationModel._meta.get_field("integration_id"),
+    )
+    FilteredIntegrationModel._base_manager.all().delete()
+    FilteredIntegrationModel._base_manager.create(integration_id=1, hidden=True)
+    assert not FilteredIntegrationModel.objects.exists()
+    assert FilteredIntegrationModel._base_manager.exists()
+
+    set_watermark("tombstone", field, 0, "abc123")
+    set_watermark("row", field, 0, "abc123")
+
+    for i in range(5):
+        CellTombstone.objects.create(
+            table_name=Integration._meta.db_table, object_identifier=1000 + i
+        )
+    tombstone_min = CellTombstone.objects.aggregate(Min("id"))["id__min"]
+    assert tombstone_min is not None
+
+    _process_hybrid_cloud_foreign_key_cascade(
+        app_name="fixtures",
+        model_name=FilteredIntegrationModel.__name__,
+        field_name=field.name,
+        process_task=Mock(),
+        silo_mode=SiloMode.CELL,
+    )
+
+    # The hidden row keeps the table non-empty, so the watermark walks one id.
+    assert get_watermark("tombstone", field)[0] == tombstone_min
 
 
 @assume_test_silo_mode(SiloMode.MONOLITH)
 def setup_deletable_objects(
     count: int = 1, send_tombstones: bool = True, u_id: int | None = None
-) -> tuple[QuerySet[Dashboard], ControlOutbox]:
+) -> tuple[QuerySet[ProjectBookmark], ControlOutbox]:
     if u_id is None:
         u = Factories.create_user()
         u_id = u.id
         with outbox_context(flush=False):
             u.delete()
 
-    # Dashboard requires an organization; the deleted user is not made a member,
+    # ProjectBookmark requires a project; the deleted user is not made a member,
     # so cell resolution still keys off the user's own (now absent) membership.
     org = Factories.create_organization()
     deleted_owner = User(id=u_id)
-    for i in range(count):
-        Factories.create_dashboard(title=f"d-{i}", organization=org, created_by=deleted_owner)
+    for _ in range(count):
+        # Use unique projects so unique_together (project, user_id) is satisfied.
+        project = Factories.create_project(organization=org)
+        Factories.create_project_bookmark(project=project, user=deleted_owner)
 
     for cell_name in find_cells_for_user(u_id):
         shard = ControlOutbox(
@@ -159,7 +568,7 @@ def setup_deletable_objects(
         if send_tombstones:
             shard.drain_shard()
 
-        return Dashboard.objects.filter(created_by_id=u_id), shard
+        return ProjectBookmark.objects.filter(user_id=u_id), shard
     assert False, "find_cells_for_user could not determine a cell for production."
 
 
@@ -198,6 +607,40 @@ def test_cell_processing(task_runner: Callable[[], ContextManager[None]]) -> Non
     with task_runner():
         schedule_hybrid_cloud_foreign_key_jobs()
     assert not results3.exists()
+
+
+@django_db_all
+def test_row_created_after_fast_forward_still_cascades(
+    task_runner: Callable[[], ContextManager[None]],
+    project_bookmark_user_id_field: HybridCloudForeignKey[int, int],
+) -> None:
+    reset_watermarks()
+    ProjectBookmark.objects.all().delete()
+    set_watermark("tombstone", project_bookmark_user_id_field, 0, "abc123")
+    set_watermark("row", project_bookmark_user_id_field, 0, "abc123")
+
+    # A deleted user with a tombstone, and no rows in the model table.
+    empty_results, shard = setup_deletable_objects(0)
+    assert not empty_results.exists()
+    assert not ProjectBookmark.objects.exists()
+
+    with task_runner():
+        schedule_hybrid_cloud_foreign_key_jobs()
+
+    tombstone_max = CellTombstone.objects.aggregate(Max("id"))["id__max"]
+    assert tombstone_max is not None
+    assert get_watermark("tombstone", project_bookmark_user_id_field)[0] == tombstone_max
+
+    # Rows written after the fast forward that point at the tombstoned user.
+    results, _ = setup_deletable_objects(10, u_id=shard.shard_identifier)
+    assert results.exists()
+    # No new tombstone, so only the row watermark side can remove these rows.
+    assert CellTombstone.objects.aggregate(Max("id"))["id__max"] == tombstone_max
+
+    with task_runner():
+        schedule_hybrid_cloud_foreign_key_jobs()
+
+    assert not results.exists()
 
 
 @django_db_all
@@ -291,6 +734,12 @@ def test_set_null_deletion_behavior(task_runner: Callable[[], ContextManager[Non
     data = setup_deletion_test()
     user = data["user"]
     saved_query = data["saved_query"]
+    organization = data["organization"]
+    dashboard = Factories.create_dashboard(
+        title="keep-me",
+        organization=organization,
+        created_by=user,
+    )
 
     user_id = user.id
     with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
@@ -306,6 +755,10 @@ def test_set_null_deletion_behavior(task_runner: Callable[[], ContextManager[Non
     # Deletion set field to null
     saved_query = DiscoverSavedQuery.objects.get(id=saved_query.id)
     assert saved_query.created_by_id is None
+
+    # Org dashboards must survive creator deletion (incl. internal-integration proxy users).
+    dashboard = Dashboard.objects.get(id=dashboard.id)
+    assert dashboard.created_by_id is None
 
 
 class _IdParams(TypedDict):
@@ -521,6 +974,7 @@ class TestGetIdsForTombstoneCascadeCrossDbTombstoneWatermarking(TestCase):
                 up=highest_tombstone_id["id__max"] + 1,
                 has_more=False,
                 transaction_id="foobar",
+                table_max=0,
             ),
         )
         assert ids == [monitor.id]
@@ -582,6 +1036,7 @@ class TestGetIdsForTombstoneCascadeCrossDbTombstoneWatermarking(TestCase):
                     up=bounds["up"],
                     has_more=False,
                     transaction_id="foobar",
+                    table_max=0,
                 ),
             )
             assert ids == bounds_with_expected_results
@@ -619,6 +1074,7 @@ class TestGetIdsForTombstoneCascadeCrossDbTombstoneWatermarking(TestCase):
                 up=highest_tombstone_id["id__max"] + 1,
                 has_more=False,
                 transaction_id="foobar",
+                table_max=0,
             ),
         )
         assert ids == [monitor.id]
@@ -671,6 +1127,7 @@ class TestGetIdsForTombstoneCascadeCrossDbRowWatermarking(TestCase):
                 up=highest_model_id["id__max"] + 1,
                 has_more=False,
                 transaction_id="foobar",
+                table_max=0,
             ),
         )
 
@@ -696,6 +1153,7 @@ class TestGetIdsForTombstoneCascadeCrossDbRowWatermarking(TestCase):
                 up=highest_model_id + 1,
                 has_more=False,
                 transaction_id="foobar",
+                table_max=0,
             ),
         )
 
@@ -765,6 +1223,7 @@ class TestGetIdsForTombstoneCascadeCrossDbRowWatermarking(TestCase):
                     up=bounds["up"],
                     has_more=False,
                     transaction_id="foobar",
+                    table_max=0,
                 ),
             )
             assert ids == bounds_with_expected_results, (
@@ -804,6 +1263,7 @@ class TestGetIdsForTombstoneCascadeCrossDbRowWatermarking(TestCase):
                 up=highest_model_id + 1,
                 has_more=False,
                 transaction_id="foobar",
+                table_max=0,
             ),
         )
         assert ids == [monitor.id]

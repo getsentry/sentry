@@ -65,10 +65,7 @@ export function EventSearch({
 }: EventSearchProps) {
   const api = useApi();
   const organization = useOrganization();
-  const groupTagsQuery = useGroupTags(
-    {groupId: group.id, environment: environments},
-    {enabled: true}
-  );
+  const groupTagsQuery = useGroupTags({groupId: group.id, environment: environments}, {});
 
   const filterKeys = useMemo<TagCollection>(() => {
     const acc: TagCollection = {};

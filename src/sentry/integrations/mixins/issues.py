@@ -3,7 +3,6 @@ from __future__ import annotations
 import enum
 import logging
 from abc import ABC, abstractmethod
-from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from operator import attrgetter
@@ -18,15 +17,15 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.tasks.sync_status_inbound import (
     sync_status_inbound as sync_status_inbound_task,
 )
+from sentry.integrations.types import IntegrationIssueConfigField
 from sentry.integrations.utils.external_issues import maybe_generate_external_issue_details
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
-from sentry.models.grouplink import GroupLink
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.services.eventstore.models import GroupEvent
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationError, IntegrationFormError
 from sentry.silo.base import all_silo_function, cell_silo_function
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -150,7 +149,7 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
     @all_silo_function
     def get_create_issue_config(
         self, group: Group | None, user: User | RpcUser, **kwargs
-    ) -> list[dict[str, Any]]:
+    ) -> list[IntegrationIssueConfigField]:
         """
         These fields are used to render a form for the user,
         and are then passed in the format of:
@@ -300,6 +299,12 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
         """
         raise NotImplementedError
 
+    def get_issue_link_data(self, url: str) -> dict[str, str]:
+        """Translate an issue URL into the provider's existing link form fields."""
+        raise IntegrationFormError(
+            {"externalIssue": "Issue URLs are not supported by this integration"}
+        )
+
     @abstractmethod
     def get_issue(self, issue_id, **kwargs):
         """
@@ -345,28 +350,6 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
         does not match the desired display name.
         """
         return ""
-
-    def get_annotations_for_group_list(self, group_list):
-        group_links = GroupLink.objects.filter(
-            group_id__in=[group.id for group in group_list],
-            project_id__in=list({group.project.id for group in group_list}),
-            linked_type=GroupLink.LinkedType.issue,
-            relationship=GroupLink.Relationship.references,
-        )
-
-        external_issues = ExternalIssue.objects.filter(
-            id__in=[group_link.linked_id for group_link in group_links],
-            integration_id=self.model.id,
-        )
-
-        # group annotations by group id
-        annotations_by_group_id = defaultdict(list)
-        for group_link in group_links:
-            issues_for_group = filter(lambda x: x.id == group_link.linked_id, external_issues)
-            annotations = self.map_external_issues_to_annotations(issues_for_group)
-            annotations_by_group_id[group_link.group_id].extend(annotations)
-
-        return annotations_by_group_id
 
     def map_external_issues_to_annotations(self, external_issues):
         annotations = []

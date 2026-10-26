@@ -112,66 +112,8 @@ class SessionMRI(Enum):
 
 
 class TransactionMRI(Enum):
-    # Ingested
-    USER = "s:transactions/user@none"
-    DURATION = "d:transactions/duration@millisecond"
+    # Dynamic sampling. Relay no longer extracts other transaction metrics.
     COUNT_PER_ROOT_PROJECT = "c:transactions/count_per_root_project@none"
-    MEASUREMENTS_FCP = "d:transactions/measurements.fcp@millisecond"
-    MEASUREMENTS_LCP = "d:transactions/measurements.lcp@millisecond"
-    MEASUREMENTS_APP_START_COLD = "d:transactions/measurements.app_start_cold@millisecond"
-    MEASUREMENTS_APP_START_WARM = "d:transactions/measurements.app_start_warm@millisecond"
-    MEASUREMENTS_CLS = "d:transactions/measurements.cls@none"
-    MEASUREMENTS_FID = "d:transactions/measurements.fid@millisecond"
-    MEASUREMENTS_FP = "d:transactions/measurements.fp@millisecond"
-    MEASUREMENTS_FRAMES_FROZEN = "d:transactions/measurements.frames_frozen@none"
-    MEASUREMENTS_FRAMES_FROZEN_RATE = "d:transactions/measurements.frames_frozen_rate@ratio"
-    MEASUREMENTS_FRAMES_SLOW = "d:transactions/measurements.frames_slow@none"
-    MEASUREMENTS_FRAMES_SLOW_RATE = "d:transactions/measurements.frames_slow_rate@ratio"
-    MEASUREMENTS_FRAMES_TOTAL = "d:transactions/measurements.frames_total@none"
-    MEASUREMENTS_TIME_TO_INITIAL_DISPLAY = (
-        "d:transactions/measurements.time_to_initial_display@millisecond"
-    )
-    MEASUREMENTS_TIME_TO_FULL_DISPLAY = (
-        "d:transactions/measurements.time_to_full_display@millisecond"
-    )
-    MEASUREMENTS_STALL_COUNT = "d:transactions/measurements.stall_count@none"
-    MEASUREMENTS_STALL_LONGEST_TIME = "d:transactions/measurements.stall_longest_time@millisecond"
-    MEASUREMENTS_STALL_PERCENTAGE = "d:transactions/measurements.stall_percentage@ratio"
-    MEASUREMENTS_STALL_TOTAL_TIME = "d:transactions/measurements.stall_total_time@millisecond"
-    MEASUREMENTS_TTFB = "d:transactions/measurements.ttfb@millisecond"
-    MEASUREMENTS_TTFB_REQUEST_TIME = "d:transactions/measurements.ttfb.requesttime@millisecond"
-    BREAKDOWNS_HTTP = "d:transactions/breakdowns.span_ops.ops.http@millisecond"
-    BREAKDOWNS_DB = "d:transactions/breakdowns.span_ops.ops.db@millisecond"
-    BREAKDOWNS_BROWSER = "d:transactions/breakdowns.span_ops.ops.browser@millisecond"
-    BREAKDOWNS_RESOURCE = "d:transactions/breakdowns.span_ops.ops.resource@millisecond"
-
-    # Derived
-    ALL = "e:transactions/all@none"
-    ALL_DURATION = "e:transactions/all_duration@none"
-    FAILURE_COUNT = "e:transactions/failure_count@none"
-    FAILURE_RATE = "e:transactions/failure_rate@ratio"
-    SATISFIED = "e:transactions/satisfied@none"
-    TOLERATED = "e:transactions/tolerated@none"
-    APDEX = "e:transactions/apdex@ratio"
-    MISERABLE_USER = "e:transactions/user.miserable@none"
-    ALL_USER = "e:transactions/user.all@none"
-    USER_MISERY = "e:transactions/user_misery@ratio"
-    TEAM_KEY_TRANSACTION = "e:transactions/team_key_transaction@none"
-    HTTP_ERROR_COUNT = "e:transactions/http_error_count@none"
-    HTTP_ERROR_RATE = "e:transactions/http_error_rate@ratio"
-
-    # Spans (might be moved to their own namespace soon)
-    SPAN_USER = "s:spans/user@none"
-    SPAN_DURATION = "d:spans/duration@millisecond"
-    SPAN_SELF_TIME = "d:spans/exclusive_time@millisecond"
-    SPAN_SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
-
-    COUNT_ON_DEMAND = "c:transactions/on_demand@none"
-    DIST_ON_DEMAND = "d:transactions/on_demand@none"
-    SET_ON_DEMAND = "s:transactions/on_demand@none"
-
-    # Less granular coarse metrics
-    DURATION_LIGHT = "d:transactions/duration_light@millisecond"
 
 
 class SpanMRI(Enum):
@@ -205,6 +147,10 @@ class SpanMRI(Enum):
     HTTP_ERROR_RATE = "e:spans/http_error_rate@ratio"
     HTTP_ERROR_COUNT_LIGHT = "e:spans/http_error_count_light@none"
     HTTP_ERROR_RATE_LIGHT = "e:spans/http_error_rate_light@ratio"
+
+    COUNT_ON_DEMAND = "c:spans/on_demand@none"
+    DIST_ON_DEMAND = "d:spans/on_demand@none"
+    SET_ON_DEMAND = "s:spans/on_demand@none"
 
 
 @dataclass
@@ -348,9 +294,6 @@ def is_custom_measurement(parsed_mri: ParsedMRI) -> bool:
 
 _ENTITY_KEY_MAPPING_GENERIC: dict[str, MetricEntity] = {
     "c": "generic_metrics_counters",
-    "s": "generic_metrics_sets",
-    "d": "generic_metrics_distributions",
-    "g": "generic_metrics_gauges",
 }
 _ENTITY_KEY_MAPPING_NON_GENERIC: dict[str, MetricEntity] = {
     "c": "metrics_counters",
@@ -363,10 +306,14 @@ def get_available_operations(parsed_mri: ParsedMRI) -> list[MetricOperationType]
     if parsed_mri.entity == "e":
         return []
     elif parsed_mri.namespace == "sessions":
-        entity_key = _ENTITY_KEY_MAPPING_NON_GENERIC[parsed_mri.entity]
+        entity_key = _ENTITY_KEY_MAPPING_NON_GENERIC.get(parsed_mri.entity)
+        if entity_key is None:
+            return []
         return AVAILABLE_OPERATIONS[entity_key]
     else:
-        entity_key = _ENTITY_KEY_MAPPING_GENERIC[parsed_mri.entity]
+        entity_key = _ENTITY_KEY_MAPPING_GENERIC.get(parsed_mri.entity)
+        if entity_key is None:
+            return []
         return AVAILABLE_GENERIC_OPERATIONS[entity_key]
 
 

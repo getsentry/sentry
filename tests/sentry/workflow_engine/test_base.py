@@ -126,6 +126,8 @@ class DataConditionHandlerMixin:
         """
 
         class MockDataConditionHandler(DataConditionHandler[int]):
+            comparison_json_schema = {"type": "number"}
+
             @staticmethod
             def evaluate_value(value: Any, comparison: Any) -> Any:
                 return evaluate_value(value, comparison)
@@ -274,7 +276,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
                 event_types=[SnubaQueryEventType.EventType.ERROR],
             )
             query_subscription = create_snuba_subscription(
-                project=detector.project,
+                project=detector.linked_project,
                 subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
                 snuba_query=snuba_query,
             )

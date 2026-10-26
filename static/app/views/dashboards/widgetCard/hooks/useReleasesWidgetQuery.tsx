@@ -1,25 +1,25 @@
-import {useMemo, useRef} from 'react';
+import {useMemo} from 'react';
 import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query';
 
 import {releaseHealthApiOptions} from 'sentry/actionCreators/metrics';
 import {sessionsApiOptions} from 'sentry/actionCreators/sessions';
 import {t} from 'sentry/locale';
-import type {Series} from 'sentry/types/echarts';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {RequestError} from 'sentry/utils/requestError/requestError';
-import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
-import {ReleasesConfig} from 'sentry/views/dashboards/datasetConfig/releases';
+import {requiresCustomReleaseSorting} from 'sentry/views/dashboards/datasetConfig/utils/releaseQueryFields';
+import {releasesResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/releasesResponseTransforms';
 import {getWidgetInterval} from 'sentry/views/dashboards/utils';
-import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
+import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {applyDashboardFiltersToWidget} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {combineWidgetJsonQueryResults} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
-import {requiresCustomReleaseSorting} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
+import {transformMultipleWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 
 import {getReleasesRequestData} from './utils/releases';
@@ -38,7 +38,6 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
   } = params;
 
   const {queue} = useWidgetQueryQueue();
-  const prevRawDataRef = useRef<SessionApiResponse[] | undefined>(undefined);
 
   const filteredWidget = useMemo(() => {
     return applyDashboardFiltersToWidget(
@@ -47,10 +46,6 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
       skipDashboardFilterParens
     );
   }, [widget, dashboardFilters, skipDashboardFilterParens]);
-
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
-  );
 
   // Compute validation error and request options together
   const {queryRequests, validationError} = useMemo(() => {
@@ -87,7 +82,7 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
     }
   }, [filteredWidget, organization, pageFilters, widgetInterval]);
 
-  const queryResults = useQueries({
+  const {results: queryResults, data: rawData} = useQueries({
     queries: queryRequests.map(requestData => {
       const baseOptions = requestData.useSessionAPI
         ? sessionsApiOptions(requestData)
@@ -109,18 +104,13 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
           return apiFetch<SessionApiResponse>(context);
         },
         enabled,
-        retry: hasQueueFeature
-          ? false
-          : (failureCount, error) => {
-              return (
-                error instanceof RequestError && error.status === 429 && failureCount < 10
-              );
-            },
+        retry: false,
         retryDelay: getRetryDelay,
         placeholderData: keepPreviousData,
         select: selectJsonWithHeaders,
       });
     }),
+    combine: combineWidgetJsonQueryResults,
   });
 
   const transformedData = (() => {
@@ -152,8 +142,7 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
       };
     }
 
-    const timeseriesResults: Series[] = [];
-    const rawData: SessionApiResponse[] = [];
+    const timeseriesResults: WidgetTimeSeries[] = [];
 
     queryResults.forEach((q, requestIndex) => {
       if (!q?.data?.json) {
@@ -161,54 +150,41 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
       }
 
       const responseData = q.data.json;
-      rawData[requestIndex] = responseData;
 
-      const transformedResult = ReleasesConfig.transformSeries?.(
+      const legacySeries = releasesResponseTransforms.transformSeries?.(
         responseData,
         filteredWidget.queries[requestIndex]!,
         organization
       );
 
-      if (!transformedResult) {
+      if (!legacySeries) {
         return;
       }
 
-      const seriesQueryPrefix = getSeriesQueryPrefix(
-        filteredWidget.queries[requestIndex]!,
-        filteredWidget
+      const transformedResult = transformMultipleWidgetSeriesToTimeSeries(
+        legacySeries,
+        filteredWidget,
+        requestIndex
       );
 
-      transformedResult.forEach((result: Series, resultIndex: number) => {
-        if (seriesQueryPrefix) {
-          result.seriesName = `${seriesQueryPrefix}${SERIES_QUERY_DELIMITER}${result.seriesName}`;
-        }
-        timeseriesResults[requestIndex * transformedResult.length + resultIndex] = result;
-      });
+      timeseriesResults.push(...transformedResult);
     });
 
     // Memoize raw data to prevent unnecessary rerenders
-    let finalRawData = rawData;
-    if (prevRawDataRef.current?.length === rawData.length) {
-      const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
-      if (allSame) {
-        finalRawData = prevRawDataRef.current;
-      }
-    }
-
-    if (finalRawData !== prevRawDataRef.current) {
-      prevRawDataRef.current = finalRawData;
-    }
 
     return {
       loading: false,
       errorMessage: undefined,
       timeseriesResults,
       tableResults: undefined,
-      rawData: finalRawData,
+      rawData,
     };
   })();
 
-  return transformedData;
+  return {
+    ...transformedData,
+    timeseriesInterval: queryRequests[0]?.interval,
+  };
 }
 
 export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQueryResult {
@@ -224,7 +200,6 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
   } = params;
 
   const {queue} = useWidgetQueryQueue();
-  const prevRawDataRef = useRef<SessionApiResponse[] | undefined>(undefined);
 
   const filteredWidget = useMemo(() => {
     return applyDashboardFiltersToWidget(
@@ -233,10 +208,6 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
       skipDashboardFilterParens
     );
   }, [widget, dashboardFilters, skipDashboardFilterParens]);
-
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
-  );
 
   // Compute validation error and request options together
   const {queryRequests, validationError} = useMemo(() => {
@@ -260,7 +231,7 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
     }
   }, [filteredWidget, organization, pageFilters, limit, cursor]);
 
-  const queryResults = useQueries({
+  const {results: queryResults, data: rawData} = useQueries({
     queries: queryRequests.map(requestData => {
       const baseOptions = requestData.useSessionAPI
         ? sessionsApiOptions(requestData)
@@ -282,18 +253,13 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
           return apiFetch<SessionApiResponse>(context);
         },
         enabled,
-        retry: hasQueueFeature
-          ? false
-          : (failureCount, error) => {
-              return (
-                error instanceof RequestError && error.status === 429 && failureCount < 10
-              );
-            },
+        retry: false,
         retryDelay: getRetryDelay,
         placeholderData: keepPreviousData,
         select: selectJsonWithHeaders,
       });
     }),
+    combine: combineWidgetJsonQueryResults,
   });
 
   const transformedData = (() => {
@@ -326,7 +292,6 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
     }
 
     const tableResults: TableDataWithTitle[] = [];
-    const rawData: SessionApiResponse[] = [];
     let responsePageLinks: string | undefined;
 
     queryResults.forEach((q, i) => {
@@ -335,9 +300,8 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
       }
 
       const responseData = q.data.json;
-      rawData[i] = responseData;
 
-      const tableData = ReleasesConfig.transformTable?.(
+      const tableData = releasesResponseTransforms.transformTable?.(
         responseData,
         filteredWidget.queries[i]!,
         organization,
@@ -360,17 +324,6 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
     });
 
     // Memoize raw data to prevent unnecessary rerenders
-    let finalRawData = rawData;
-    if (prevRawDataRef.current?.length === rawData.length) {
-      const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
-      if (allSame) {
-        finalRawData = prevRawDataRef.current;
-      }
-    }
-
-    if (finalRawData !== prevRawDataRef.current) {
-      prevRawDataRef.current = finalRawData;
-    }
 
     return {
       loading: false,
@@ -378,7 +331,7 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
       tableResults,
       timeseriesResults: undefined,
       pageLinks: responsePageLinks,
-      rawData: finalRawData,
+      rawData,
     };
   })();
 

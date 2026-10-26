@@ -1,23 +1,33 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
+import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import type {QueryTokensProps} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {
   formatDateRange,
+  getCrossEventFilterQuery,
+  normalizeSeerDateTimeParams,
   resolveSeerProjectSelection,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilderConfig} from 'sentry/components/searchQueryBuilder/context';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {t} from 'sentry/locale';
+import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {useProjects} from 'sentry/utils/useProjects';
-import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 
 const MAX_PROJECT_CHIPS = 3;
+const MAX_FIELD_CHIPS = 3;
 
-export function QueryTokens({
+export function QueryTokens(props: QueryTokensProps) {
+  const normalizedDateTimeParams = normalizeSeerDateTimeParams(props);
+
+  return <NewQueryTokens {...props} {...normalizedDateTimeParams} />;
+}
+
+function NewQueryTokens({
   groupBys,
   interval,
   query,
@@ -28,8 +38,10 @@ export function QueryTokens({
   visualizations,
   expandedProjectIds,
   crossEvents,
+  extraFields,
 }: QueryTokensProps) {
-  const tokens = [];
+  const tokens: React.ReactNode[] = [];
+  const {strategy} = useAiQueryContext();
   const {getFieldDefinition} = useSearchQueryBuilderConfig();
   const {projects} = useProjects();
   // Project is applied to the page-level project selector, so surface it as the
@@ -41,94 +53,112 @@ export function QueryTokens({
     : null;
   if (displayQuery && parsedQuery?.length) {
     tokens.push(
-      <Flex as="span" align="center" wrap="wrap" gap="xs" overflow="hidden" key="filter">
+      <Stack key="filter" minWidth="0" maxWidth="100%">
         <ExploreParamTitle>{t('Filter')}</ExploreParamTitle>
-        {parsedQuery
-          .filter(({text}) => text.trim() !== '')
-          .map(({text}) => (
-            <FormattedQueryWrapper key={text}>
-              <ProvidedFormattedQuery query={text} />
-            </FormattedQueryWrapper>
-          ))}
-      </Flex>
+        <Stack gap="xs" overflow="hidden">
+          {parsedQuery
+            .filter(({text}) => text.trim() !== '')
+            .map(({text}) => (
+              <Container
+                as="span"
+                display="block"
+                width="fit-content"
+                minWidth="0"
+                maxWidth="100%"
+                key={text}
+              >
+                <ProvidedFormattedQuery query={text} />
+              </Container>
+            ))}
+        </Stack>
+      </Stack>
     );
   }
 
   if (visualizations && visualizations.length > 0) {
     tokens.push(
-      <Flex
-        as="span"
-        align="center"
-        wrap="wrap"
-        gap="xs"
-        overflow="hidden"
-        key="visualization"
-      >
+      <Stack key="visualization">
         <ExploreParamTitle>{t('Visualization')}</ExploreParamTitle>
-        {visualizations.map((visualization, vIdx) =>
-          visualization.yAxes.map(yAxis => (
-            <ExploreVisualizes key={`${vIdx}-${yAxis}`}>{yAxis}</ExploreVisualizes>
-          ))
-        )}
-      </Flex>
+        <Stack as="span" gap="xs" overflow="hidden">
+          {visualizations.map((visualization, vIdx) =>
+            visualization.yAxes.map(yAxis => (
+              <ExploreVisualizes key={`${vIdx}-${yAxis}`}>
+                {isEquation(yAxis) ? stripEquationPrefix(yAxis) : yAxis}
+              </ExploreVisualizes>
+            ))
+          )}
+        </Stack>
+      </Stack>
     );
   }
 
   if (interval) {
     tokens.push(
-      <Flex
-        as="span"
-        align="center"
-        wrap="wrap"
-        gap="xs"
-        overflow="hidden"
-        key="interval"
-      >
+      <Stack key="interval">
         <ExploreParamTitle>{t('Interval')}</ExploreParamTitle>
-        <ExploreGroupBys>{interval}</ExploreGroupBys>
-      </Flex>
+        <Stack as="span" gap="xs" overflow="hidden">
+          <ExploreGroupBys>{interval}</ExploreGroupBys>
+        </Stack>
+      </Stack>
     );
   }
 
   if (groupBys && groupBys.length > 0) {
     tokens.push(
-      <Flex as="span" align="center" wrap="wrap" gap="xs" overflow="hidden" key="groupBy">
+      <Stack key="groupBy">
         <ExploreParamTitle>{t('Group By')}</ExploreParamTitle>
-        {groupBys.map((groupBy, idx) => (
-          <ExploreGroupBys key={idx}>{groupBy}</ExploreGroupBys>
-        ))}
-      </Flex>
+        <Stack as="span" gap="xs" overflow="hidden">
+          {groupBys.map((groupBy, idx) => (
+            <ExploreGroupBys key={idx}>{groupBy}</ExploreGroupBys>
+          ))}
+        </Stack>
+      </Stack>
+    );
+  }
+
+  // Extra fields only land as sample-table columns, so they're meaningless
+  // alongside group bys (aggregate mode) or on Issues/Metrics, whose UI has no
+  // column selection to apply them to.
+  const showExtraFields =
+    !groupBys?.length &&
+    !!extraFields?.length &&
+    strategy !== 'Issues' &&
+    strategy !== 'Metrics';
+
+  if (showExtraFields) {
+    const visibleFields = extraFields.slice(0, MAX_FIELD_CHIPS);
+
+    tokens.push(
+      <Stack key="fields">
+        <ExploreParamTitle>{t('Fields')}</ExploreParamTitle>
+        <Stack as="span" gap="xs" overflow="hidden">
+          {visibleFields.map(field => (
+            <ExploreGroupBys key={field}>{field}</ExploreGroupBys>
+          ))}
+          {extraFields.length > MAX_FIELD_CHIPS && <ExploreGroupBys>…</ExploreGroupBys>}
+        </Stack>
+      </Stack>
     );
   }
 
   // Display absolute date range if start and end are provided
   if (start && end) {
     tokens.push(
-      <Flex
-        as="span"
-        align="center"
-        wrap="wrap"
-        gap="xs"
-        overflow="hidden"
-        key="timeRange"
-      >
+      <Stack key="timeRange">
         <ExploreParamTitle>{t('Time Range')}</ExploreParamTitle>
-        <ExploreGroupBys>{formatDateRange(start, end, ' - ')}</ExploreGroupBys>
-      </Flex>
+        <Flex as="span" wrap="wrap" gap="xs" overflow="hidden">
+          <ExploreGroupBys>{formatDateRange(start, end, ' - ')}</ExploreGroupBys>
+        </Flex>
+      </Stack>
     );
   } else if (statsPeriod && statsPeriod.length > 0) {
     tokens.push(
-      <Flex
-        as="span"
-        align="center"
-        wrap="wrap"
-        gap="xs"
-        overflow="hidden"
-        key="timeRange"
-      >
+      <Stack key="timeRange">
         <ExploreParamTitle>{t('Time Range')}</ExploreParamTitle>
-        <ExploreGroupBys>{statsPeriod}</ExploreGroupBys>
-      </Flex>
+        <Stack as="span" gap="xs" overflow="hidden">
+          <ExploreGroupBys>{statsPeriod}</ExploreGroupBys>
+        </Stack>
+      </Stack>
     );
   }
 
@@ -138,106 +168,104 @@ export function QueryTokens({
       .map(id => projects.find(project => project.id === String(id))?.slug ?? String(id));
     const overflowCount = selectedProjectIds.length - shownSlugs.length;
     tokens.push(
-      <Flex
-        as="span"
-        align="center"
-        wrap="wrap"
-        gap="xs"
-        overflow="hidden"
-        key="projects"
-      >
+      <Stack key="projects">
         <ExploreParamTitle>{t('Projects')}</ExploreParamTitle>
-        {shownSlugs.map(slug => (
-          <ExploreGroupBys key={slug}>{slug}</ExploreGroupBys>
-        ))}
-        {overflowCount > 0 ? (
-          <ExploreGroupBys>{t('+%s more', overflowCount)}</ExploreGroupBys>
-        ) : null}
-      </Flex>
+        <Stack as="span" gap="xs" overflow="hidden">
+          {shownSlugs.map(slug => (
+            <ExploreGroupBys key={slug}>{slug}</ExploreGroupBys>
+          ))}
+          {overflowCount > 0 ? (
+            <ExploreGroupBys>{t('+%s more', overflowCount)}</ExploreGroupBys>
+          ) : null}
+        </Stack>
+      </Stack>
     );
   }
 
   if (sort && sort.length > 0) {
+    const descending = sort[0] === '-';
+    const rawSort = descending ? sort.slice(1) : sort;
+    const formattedSort = isEquation(rawSort) ? stripEquationPrefix(rawSort) : rawSort;
     tokens.push(
-      <Flex as="span" align="center" wrap="wrap" gap="xs" overflow="hidden" key="sort">
+      <Stack key="sort">
         <ExploreParamTitle>{t('Sort')}</ExploreParamTitle>
-        <ExploreGroupBys>
-          {sort[0] === '-' ? sort.slice(1) + ' Desc' : sort + ' Asc'}
-        </ExploreGroupBys>
-      </Flex>
+        <Stack as="span" gap="xs" overflow="hidden">
+          <ExploreGroupBys>
+            {formattedSort + (descending ? ' Desc' : ' Asc')}
+          </ExploreGroupBys>
+        </Stack>
+      </Stack>
     );
   }
 
+  const crossEventTokens: React.ReactNode[] = [];
+  crossEvents?.forEach((crossEvent, idx) => {
+    const filterQuery = getCrossEventFilterQuery(crossEvent);
+    const parsedCrossEvent = filterQuery
+      ? parseQueryBuilderValue(filterQuery, getFieldDefinition)
+      : null;
+
+    crossEventTokens.push(
+      <Stack overflow="hidden" key={`${crossEvent.type}-${idx}`}>
+        <ExploreParamTitle>{t('Cross Event Filter:')}</ExploreParamTitle>
+        <Flex gap="md" wrap="wrap">
+          <Stack gap="xs" minWidth="0" maxWidth="100%">
+            <ExploreParamTitle>{t('Dataset')}</ExploreParamTitle>
+            <Container>
+              <ExploreGroupBys>{crossEvent.type}</ExploreGroupBys>
+            </Container>
+          </Stack>
+          <Stack gap="xs" minWidth="0" maxWidth="100%">
+            <ExploreParamTitle>{t('Filter')}</ExploreParamTitle>
+            <Stack gap="xs">
+              {parsedCrossEvent
+                ?.filter(({text}) => text.trim() !== '')
+                .map(({text}) => (
+                  <Container
+                    as="span"
+                    display="block"
+                    width="fit-content"
+                    minWidth="0"
+                    maxWidth="100%"
+                    key={text}
+                  >
+                    <ProvidedFormattedQuery query={text} />
+                  </Container>
+                ))}
+            </Stack>
+          </Stack>
+        </Flex>
+      </Stack>
+    );
+  });
+
   return (
-    <Fragment>
-      <TokenContainer>{tokens}</TokenContainer>
-      {crossEvents?.length ? (
-        <CrossEventSection>
-          {crossEvents.map((crossEvent, idx) => {
-            const filterQuery =
-              crossEvent.type === 'metrics'
-                ? [
-                    `${TraceMetricKnownFieldKey.METRIC_NAME}:${crossEvent.metric.name}`,
-                    crossEvent.query,
-                  ]
-                    .filter(Boolean)
-                    .join(' ')
-                : crossEvent.query;
-            const parsedCrossEvent = filterQuery
-              ? parseQueryBuilderValue(filterQuery, getFieldDefinition)
-              : null;
-            return (
-              <Flex
-                as="span"
-                align="center"
-                wrap="wrap"
-                gap="xs"
-                overflow="hidden"
-                key={`${crossEvent.type}-${idx}`}
-              >
-                <ExploreParamTitle>{t('Cross Event Filter')}</ExploreParamTitle>
-                <ExploreParamTitle>{t('Dataset')}</ExploreParamTitle>
-                <ExploreGroupBys>{crossEvent.type}</ExploreGroupBys>
-                <ExploreParamTitle>{t('Filter')}</ExploreParamTitle>
-                {parsedCrossEvent
-                  ?.filter(({text}) => text.trim() !== '')
-                  .map(({text}) => (
-                    <FormattedQueryWrapper key={text}>
-                      <ProvidedFormattedQuery query={text} />
-                    </FormattedQueryWrapper>
-                  ))}
-              </Flex>
-            );
-          })}
-        </CrossEventSection>
+    <Stack gap="xl" padding="md">
+      {tokens.length > 0 ? (
+        <Flex gap="xl" wrap="wrap">
+          {tokens}
+        </Flex>
       ) : null}
-    </Fragment>
+      {crossEventTokens.length > 0 ? (
+        <Flex gap="xl" wrap="wrap">
+          {crossEventTokens}
+        </Flex>
+      ) : null}
+    </Stack>
   );
 }
 
-const TokenContainer = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.md};
-  padding: ${p => p.theme.space.md};
-`;
-
-// Cross-event filters render as their own block beneath the main query row,
-// one sibling per line, each labelled with its Dataset and Filter.
-const CrossEventSection = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.xs};
-  padding: 0 ${p => p.theme.space.md} ${p => p.theme.space.md};
-`;
-
-const ExploreParamTitle = styled('span')`
-  font-size: ${p => p.theme.form.sm.fontSize};
-  color: ${p => p.theme.tokens.content.secondary};
-  white-space: nowrap;
-  display: inline-flex;
-  align-items: center;
-  height: 24px;
-`;
+function ExploreParamTitle({children}: {children: React.ReactNode}) {
+  return (
+    <Flex display="inline-flex" align="center" height="24px">
+      {props => (
+        <Text {...props} bold size="sm" textWrap="nowrap">
+          {children}
+        </Text>
+      )}
+    </Flex>
+  );
+}
 
 const ExploreVisualizes = styled('span')`
   font-size: ${p => p.theme.form.sm.fontSize};
@@ -245,16 +273,13 @@ const ExploreVisualizes = styled('span')`
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
   border: 1px solid ${p => p.theme.tokens.border.secondary};
   border-radius: ${p => p.theme.radius.md};
-  height: 24px;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  min-height: 24px;
+  width: fit-content;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: normal;
   display: inline-flex;
   align-items: center;
 `;
 
 const ExploreGroupBys = ExploreVisualizes;
-
-const FormattedQueryWrapper = styled('span')`
-  display: inline-block;
-`;

@@ -68,7 +68,7 @@ def schedule_update_project_config(detector: Detector) -> None:
     """
     If `should_use_on_demand`, then invalidate the project configs
     """
-    enabled_features = on_demand_metrics_feature_flags(detector.project.organization)
+    enabled_features = on_demand_metrics_feature_flags(detector.linked_project.organization)
     prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
     if "organizations:on-demand-metrics-extraction" not in enabled_features and not prefilling:
         return
@@ -87,7 +87,7 @@ def schedule_update_project_config(detector: Detector) -> None:
     )
     if should_use_on_demand:
         schedule_invalidate_project_config(
-            trigger="alerts:create-on-demand-metric", project_id=detector.project.id
+            trigger="alerts:create-on-demand-metric", project_id=detector.linked_project.id
         )
 
 
@@ -151,9 +151,23 @@ class MetricIssueConditionGroupValidator(BaseDataConditionGroupValidator):
         MetricIssueComparisonConditionValidator(data=value, many=True).is_valid(
             raise_exception=True
         )
-        if not any(
-            condition["condition_result"] == DetectorPriorityLevel.OK for condition in value
-        ) and not any(condition["type"] == Condition.ANOMALY_DETECTION for condition in value):
+        condition_types = {condition["type"] for condition in value}
+        has_anomaly_detection = Condition.ANOMALY_DETECTION in condition_types
+        if has_anomaly_detection and condition_types != {Condition.ANOMALY_DETECTION}:
+            # Dynamic (anomaly detection) detectors are evaluated against an
+            # AnomalyDetectionValues dict rather than a scalar. Mixing in a base
+            # comparison condition (gt/lt/gte/lte) creates a malformed condition
+            # group: the shared dict payload gets handed to an operator that
+            # expects a number, which TypeErrors at evaluation time.
+            raise serializers.ValidationError(
+                "Cannot combine anomaly detection conditions with other condition types."
+            )
+        if (
+            not any(
+                condition["condition_result"] == DetectorPriorityLevel.OK for condition in value
+            )
+            and not has_anomaly_detection
+        ):
             raise serializers.ValidationError(
                 "Resolution condition required for metric issue detector."
             )
@@ -194,9 +208,7 @@ def format_extrapolation_mode(
 
 
 class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
-    data_sources = serializers.ListField(
-        child=SnubaQueryValidator(timeWindowSeconds=True), required=False
-    )
+    data_sources = serializers.ListField(child=SnubaQueryValidator(), required=False)
     condition_group = MetricIssueConditionGroupValidator(required=True)
 
     def validate_eap_rule(self, attrs: dict[str, Any]) -> None:
@@ -266,8 +278,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         comparison_delta: int | float | None,
     ) -> timedelta:
         """
-        Compute the appropriate SnubaQuery resolution for a given time window
-        (in seconds), mirroring the logic in create_alert_rule / update_alert_rule.
+        Compute the appropriate SnubaQuery resolution for a given time window in seconds.
         """
         organization = self.context["organization"]
 

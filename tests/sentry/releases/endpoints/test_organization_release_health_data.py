@@ -10,10 +10,9 @@ import pytest
 
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.snuba.metrics.naming_layer.mri import ParsedMRI, SessionMRI, TransactionMRI
+from sentry.snuba.metrics.naming_layer.mri import ParsedMRI, SessionMRI
 from sentry.snuba.metrics.naming_layer.public import (
     SessionMetricKey,
-    TransactionMetricKey,
     TransactionSatisfactionTagValue,
     TransactionStatusTagValue,
     TransactionTagsKey,
@@ -48,7 +47,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         self.login_as(user=self.create_user(is_staff=True), staff=True)
 
         self.transaction_lcp_metric = perf_indexer_record(
-            self.project.organization.id, TransactionMRI.MEASUREMENTS_LCP.value
+            self.project.organization.id, "d:transactions/measurements.lcp@millisecond"
         )
         org_id = self.organization.id
         self.session_metric = rh_indexer_record(org_id, SessionMRI.RAW_SESSION.value)
@@ -465,6 +464,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             prj_id = grp["by"]["project"]
             assert grp == expected_output[prj_id]
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_pagination_limit_without_orderby(self) -> None:
         """
         Test that ensures a successful response is returned even when sending a per_page
@@ -472,7 +472,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         """
         self.get_success_response(
             self.organization.slug,
-            field=f"count({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+            field=f"count({'transaction.measurements.lcp'})",
             groupBy="transaction",
             per_page=2,
             useCase="transactions",
@@ -501,6 +501,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             == "Failed to parse conditions: Release Health Queries don't support wildcards"
         )
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_pagination_offset_without_orderby(self) -> None:
         """
         Test that ensures a successful response is returned even when requesting an offset
@@ -508,7 +509,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         """
         self.get_success_response(
             self.organization.slug,
-            field=f"count({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+            field=f"count({'transaction.measurements.lcp'})",
             groupBy="transaction",
             cursor=Cursor(0, 1),
             statsPeriod="1h",
@@ -553,10 +554,11 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         # Request for single project gives a counter of one:
         assert count_sessions(project_id=self.project2.id) == 1
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_max_and_min_on_distributions(self) -> None:
         for v_transaction, count in (("/foo", 1), ("/bar", 3), ("/baz", 2)):
             self.store_performance_metric(
-                name=TransactionMRI.MEASUREMENTS_LCP.value,
+                name="d:transactions/measurements.lcp@millisecond",
                 tags={"transaction": v_transaction},
                 value=123.4 * count,
             )
@@ -564,8 +566,8 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         response = self.get_success_response(
             self.organization.slug,
             field=[
-                f"max({TransactionMetricKey.MEASUREMENTS_LCP.value})",
-                f"min({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+                f"max({'transaction.measurements.lcp'})",
+                f"min({'transaction.measurements.lcp'})",
             ],
             query="",
             statsPeriod="1h",
@@ -587,25 +589,26 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             }
         ]
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_orderby(self) -> None:
         for v_transaction, count in (("/foo", 1), ("/bar", 3), ("/baz", 2)):
             for v_rating in ("good", "meh", "poor"):
                 # count decides the cardinality of this distribution bucket
                 for value in [123.4] * count:
                     self.store_performance_metric(
-                        name=TransactionMRI.MEASUREMENTS_LCP.value,
+                        name="d:transactions/measurements.lcp@millisecond",
                         tags={"transaction": v_transaction, "measurement_rating": v_rating},
                         value=value,
                     )
 
         response = self.get_success_response(
             self.organization.slug,
-            field=f"count({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+            field=f"count({'transaction.measurements.lcp'})",
             query="measurement_rating:poor",
             statsPeriod="1h",
             interval="1h",
             groupBy="transaction",
-            orderBy=f"-count({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+            orderBy=f"-count({'transaction.measurements.lcp'})",
             per_page=2,
             useCase="transactions",
         )
@@ -619,20 +622,17 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         for (expected_transaction, expected_count), group in zip(expected, groups):
             # With orderBy, you only get totals:
             assert group["by"] == {"transaction": expected_transaction}
-            assert group["series"] == {
-                f"count({TransactionMetricKey.MEASUREMENTS_LCP.value})": [expected_count]
-            }
-            assert group["totals"] == {
-                f"count({TransactionMetricKey.MEASUREMENTS_LCP.value})": expected_count
-            }
+            assert group["series"] == {f"count({'transaction.measurements.lcp'})": [expected_count]}
+            assert group["totals"] == {f"count({'transaction.measurements.lcp'})": expected_count}
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_multi_field_orderby(self) -> None:
         for v_transaction, count in (("/foo", 1), ("/bar", 3), ("/baz", 2)):
             for v_rating in ("good", "meh", "poor"):
                 # count decides the cardinality of this distribution bucket
                 for value in [123.4] * count:
                     self.store_performance_metric(
-                        name=TransactionMRI.MEASUREMENTS_LCP.value,
+                        name="d:transactions/measurements.lcp@millisecond",
                         tags={"transaction": v_transaction, "measurement_rating": v_rating},
                         value=value,
                     )
@@ -640,16 +640,16 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         response = self.get_success_response(
             self.organization.slug,
             field=[
-                f"count({TransactionMetricKey.MEASUREMENTS_LCP.value})",
-                f"count({TransactionMetricKey.MEASUREMENTS_FCP.value})",
+                f"count({'transaction.measurements.lcp'})",
+                f"count({'transaction.measurements.fcp'})",
             ],
             query="measurement_rating:poor",
             statsPeriod="1h",
             interval="1h",
             groupBy="transaction",
             orderBy=[
-                f"-count({TransactionMetricKey.MEASUREMENTS_LCP.value})",
-                f"-count({TransactionMetricKey.MEASUREMENTS_FCP.value})",
+                f"-count({'transaction.measurements.lcp'})",
+                f"-count({'transaction.measurements.fcp'})",
             ],
             per_page=2,
             useCase="transactions",
@@ -665,14 +665,15 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             # With orderBy, you only get totals:
             assert group["by"] == {"transaction": expected_transaction}
             assert group["series"] == {
-                f"count({TransactionMetricKey.MEASUREMENTS_LCP.value})": [expected_count],
-                f"count({TransactionMetricKey.MEASUREMENTS_FCP.value})": [0],
+                f"count({'transaction.measurements.lcp'})": [expected_count],
+                f"count({'transaction.measurements.fcp'})": [0],
             }
             assert group["totals"] == {
-                f"count({TransactionMetricKey.MEASUREMENTS_LCP.value})": expected_count,
-                f"count({TransactionMetricKey.MEASUREMENTS_FCP.value})": 0,
+                f"count({'transaction.measurements.lcp'})": expected_count,
+                f"count({'transaction.measurements.fcp'})": 0,
             }
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_orderby_percentile(self) -> None:
         for tag, value, numbers in (
             ("tag1", "value1", [4, 5, 6]),
@@ -680,18 +681,18 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         ):
             for subvalue in numbers:
                 self.store_performance_metric(
-                    name=TransactionMRI.MEASUREMENTS_LCP.value,
+                    name="d:transactions/measurements.lcp@millisecond",
                     tags={tag: value},
                     value=subvalue,
                 )
 
         response = self.get_success_response(
             self.organization.slug,
-            field=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+            field=f"p50({'transaction.measurements.lcp'})",
             statsPeriod="1h",
             interval="1h",
             groupBy="tag1",
-            orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+            orderBy=f"p50({'transaction.measurements.lcp'})",
             useCase="transactions",
         )
         groups = response.data["groups"]
@@ -704,13 +705,10 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         for (expected_tag_value, expected_count), group in zip(expected, groups):
             # With orderBy, you only get totals:
             assert group["by"] == {"tag1": expected_tag_value}
-            assert group["totals"] == {
-                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": expected_count
-            }
-            assert group["series"] == {
-                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": [expected_count]
-            }
+            assert group["totals"] == {f"p50({'transaction.measurements.lcp'})": expected_count}
+            assert group["series"] == {f"p50({'transaction.measurements.lcp'})": [expected_count]}
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_orderby_percentile_with_pagination(self) -> None:
         for tag, value, numbers in (
             ("tag1", "value1", [4, 5, 6]),
@@ -718,33 +716,33 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         ):
             for subvalue in numbers:
                 self.store_performance_metric(
-                    name=TransactionMRI.MEASUREMENTS_LCP.value,
+                    name="d:transactions/measurements.lcp@millisecond",
                     tags={tag: value},
                     value=subvalue,
                 )
 
         response = self.get_success_response(
             self.organization.slug,
-            field=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+            field=f"p50({'transaction.measurements.lcp'})",
             statsPeriod="1h",
             interval="1h",
             groupBy="tag1",
-            orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+            orderBy=f"p50({'transaction.measurements.lcp'})",
             per_page=1,
             useCase="transactions",
         )
         groups = response.data["groups"]
         assert len(groups) == 1
         assert groups[0]["by"] == {"tag1": "value2"}
-        assert groups[0]["totals"] == {f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": 2}
+        assert groups[0]["totals"] == {f"p50({'transaction.measurements.lcp'})": 2}
 
         response = self.get_success_response(
             self.organization.slug,
-            field=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+            field=f"p50({'transaction.measurements.lcp'})",
             statsPeriod="1h",
             interval="1h",
             groupBy="tag1",
-            orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+            orderBy=f"p50({'transaction.measurements.lcp'})",
             per_page=1,
             cursor=Cursor(0, 1),
             useCase="transactions",
@@ -752,8 +750,9 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         groups = response.data["groups"]
         assert len(groups) == 1
         assert groups[0]["by"] == {"tag1": "value1"}
-        assert groups[0]["totals"] == {f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": 5}
+        assert groups[0]["totals"] == {f"p50({'transaction.measurements.lcp'})": 5}
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_limit_with_orderby_is_overridden_by_paginator_limit(self) -> None:
         """
         Test that ensures when an `orderBy` clause is set, then the paginator limit overrides the
@@ -765,49 +764,51 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         ):
             for subvalue in numbers:
                 self.store_performance_metric(
-                    name=TransactionMRI.MEASUREMENTS_LCP.value,
+                    name="d:transactions/measurements.lcp@millisecond",
                     tags={tag: value},
                     value=subvalue,
                 )
 
         response = self.get_success_response(
             self.organization.slug,
-            field=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+            field=f"p50({'transaction.measurements.lcp'})",
             statsPeriod="1h",
             interval="1h",
             groupBy="tag1",
-            orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+            orderBy=f"p50({'transaction.measurements.lcp'})",
             per_page=1,
             useCase="transactions",
         )
         groups = response.data["groups"]
         assert len(groups) == 1
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_orderby_percentile_with_many_fields_one_entity_no_data(self) -> None:
         """
         Test that ensures that when metrics data is available then an empty response is returned
         gracefully
         """
         for metric in [
-            TransactionMRI.MEASUREMENTS_FCP.value,
+            "d:transactions/measurements.fcp@millisecond",
             "transaction",
         ]:
             perf_indexer_record(self.organization.id, metric)
         response = self.get_success_response(
             self.organization.slug,
             field=[
-                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
-                f"p50({TransactionMetricKey.MEASUREMENTS_FCP.value})",
+                f"p50({'transaction.measurements.lcp'})",
+                f"p50({'transaction.measurements.fcp'})",
             ],
             statsPeriod="1h",
             interval="1h",
             groupBy=["project_id", "transaction"],
-            orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+            orderBy=f"p50({'transaction.measurements.lcp'})",
             useCase="transactions",
         )
         groups = response.data["groups"]
         assert len(groups) == 0
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_orderby_percentile_with_many_fields_one_entity(self) -> None:
         """
         Test that ensures when transactions are ordered correctly when all the fields requested
@@ -819,7 +820,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         ):
             for subvalue in numbers:
                 self.store_performance_metric(
-                    name=TransactionMRI.MEASUREMENTS_LCP.value,
+                    name="d:transactions/measurements.lcp@millisecond",
                     tags={tag: value},
                     value=subvalue,
                 )
@@ -830,7 +831,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         ):
             for subvalue in numbers:
                 self.store_performance_metric(
-                    name=TransactionMRI.MEASUREMENTS_FCP.value,
+                    name="d:transactions/measurements.fcp@millisecond",
                     tags={tag: value},
                     value=subvalue,
                 )
@@ -838,13 +839,13 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         response = self.get_success_response(
             self.organization.slug,
             field=[
-                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
-                f"p50({TransactionMetricKey.MEASUREMENTS_FCP.value})",
+                f"p50({'transaction.measurements.lcp'})",
+                f"p50({'transaction.measurements.fcp'})",
             ],
             statsPeriod="1h",
             interval="1h",
             groupBy=["project_id", "transaction"],
-            orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+            orderBy=f"p50({'transaction.measurements.lcp'})",
             useCase="transactions",
         )
         groups = response.data["groups"]
@@ -860,14 +861,15 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             # With orderBy, you only get totals:
             assert group["by"] == {"transaction": expected_tag_value, "project_id": self.project.id}
             assert group["totals"] == {
-                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": expected_lcp_count,
-                f"p50({TransactionMetricKey.MEASUREMENTS_FCP.value})": expected_fcp_count,
+                f"p50({'transaction.measurements.lcp'})": expected_lcp_count,
+                f"p50({'transaction.measurements.fcp'})": expected_fcp_count,
             }
             assert group["series"] == {
-                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": [expected_lcp_count],
-                f"p50({TransactionMetricKey.MEASUREMENTS_FCP.value})": [expected_fcp_count],
+                f"p50({'transaction.measurements.lcp'})": [expected_lcp_count],
+                f"p50({'transaction.measurements.fcp'})": [expected_fcp_count],
             }
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_multi_field_orderby_percentile_with_many_fields_one_entity(self) -> None:
         """
         Test that ensures when transactions are ordered correctly when all the fields requested
@@ -879,7 +881,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         ):
             for subvalue in numbers:
                 self.store_performance_metric(
-                    name=TransactionMRI.MEASUREMENTS_LCP.value,
+                    name="d:transactions/measurements.lcp@millisecond",
                     tags={tag: value},
                     value=subvalue,
                 )
@@ -890,15 +892,15 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         ):
             for subvalue in numbers:
                 self.store_performance_metric(
-                    name=TransactionMRI.MEASUREMENTS_FCP.value,
+                    name="d:transactions/measurements.fcp@millisecond",
                     tags={tag: value},
                     value=subvalue,
                 )
 
         kwargs = dict(
             field=[
-                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
-                f"p50({TransactionMetricKey.MEASUREMENTS_FCP.value})",
+                f"p50({'transaction.measurements.lcp'})",
+                f"p50({'transaction.measurements.fcp'})",
             ],
             statsPeriod="1h",
             interval="1h",
@@ -911,8 +913,8 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             self.organization.slug,
             **kwargs,
             orderBy=[
-                f"-p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
-                f"-p50({TransactionMetricKey.MEASUREMENTS_FCP.value})",
+                f"-p50({'transaction.measurements.lcp'})",
+                f"-p50({'transaction.measurements.fcp'})",
             ],
         )
         groups = response.data["groups"]
@@ -928,12 +930,12 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             # With orderBy, you only get totals:
             assert group["by"] == {"transaction": expected_tag_value, "project_id": self.project.id}
             assert group["totals"] == {
-                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": expected_lcp_count,
-                f"p50({TransactionMetricKey.MEASUREMENTS_FCP.value})": expected_fcp_count,
+                f"p50({'transaction.measurements.lcp'})": expected_lcp_count,
+                f"p50({'transaction.measurements.fcp'})": expected_fcp_count,
             }
             assert group["series"] == {
-                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": [expected_lcp_count],
-                f"p50({TransactionMetricKey.MEASUREMENTS_FCP.value})": [expected_fcp_count],
+                f"p50({'transaction.measurements.lcp'})": [expected_lcp_count],
+                f"p50({'transaction.measurements.fcp'})": [expected_fcp_count],
             }
 
         # Test order by ASC
@@ -941,8 +943,8 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             self.organization.slug,
             **kwargs,
             orderBy=[
-                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
-                f"p50({TransactionMetricKey.MEASUREMENTS_FCP.value})",
+                f"p50({'transaction.measurements.lcp'})",
+                f"p50({'transaction.measurements.fcp'})",
             ],
         )
         groups = response.data["groups"]
@@ -958,14 +960,15 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             # With orderBy, you only get totals:
             assert group["by"] == {"transaction": expected_tag_value, "project_id": self.project.id}
             assert group["totals"] == {
-                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": expected_lcp_count,
-                f"p50({TransactionMetricKey.MEASUREMENTS_FCP.value})": expected_fcp_count,
+                f"p50({'transaction.measurements.lcp'})": expected_lcp_count,
+                f"p50({'transaction.measurements.fcp'})": expected_fcp_count,
             }
             assert group["series"] == {
-                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": [expected_lcp_count],
-                f"p50({TransactionMetricKey.MEASUREMENTS_FCP.value})": [expected_fcp_count],
+                f"p50({'transaction.measurements.lcp'})": [expected_lcp_count],
+                f"p50({'transaction.measurements.fcp'})": [expected_fcp_count],
             }
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_orderby_percentile_with_many_fields_multiple_entities(self) -> None:
         """
         Test that ensures when transactions are ordered correctly when all the fields requested
@@ -977,7 +980,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         ):
             for subvalue in numbers:
                 self.store_performance_metric(
-                    name=TransactionMRI.MEASUREMENTS_LCP.value,
+                    name="d:transactions/measurements.lcp@millisecond",
                     tags={tag: value},
                     value=subvalue,
                 )
@@ -988,7 +991,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         ):
             for subvalue in numbers:
                 self.store_performance_metric(
-                    name=TransactionMRI.USER.value,
+                    name="s:transactions/user@none",
                     tags={tag: value},
                     value=subvalue,
                 )
@@ -996,13 +999,13 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         response = self.get_success_response(
             self.organization.slug,
             field=[
-                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
-                f"count_unique({TransactionMetricKey.USER.value})",
+                f"p50({'transaction.measurements.lcp'})",
+                f"count_unique({'transaction.user'})",
             ],
             statsPeriod="1h",
             interval="1h",
             groupBy=["project_id", "transaction"],
-            orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+            orderBy=f"p50({'transaction.measurements.lcp'})",
             useCase="transactions",
         )
         groups = response.data["groups"]
@@ -1016,14 +1019,15 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             # With orderBy, you only get totals:
             assert group["by"] == {"transaction": expected_tag_value, "project_id": self.project.id}
             assert group["totals"] == {
-                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": expected_lcp_count,
-                f"count_unique({TransactionMetricKey.USER.value})": users,
+                f"p50({'transaction.measurements.lcp'})": expected_lcp_count,
+                f"count_unique({'transaction.user'})": users,
             }
             assert group["series"] == {
-                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": [expected_lcp_count],
-                f"count_unique({TransactionMetricKey.USER.value})": [users],
+                f"p50({'transaction.measurements.lcp'})": [expected_lcp_count],
+                f"count_unique({'transaction.user'})": [users],
             }
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_orderby_percentile_with_many_fields_multiple_entities_with_paginator(self) -> None:
         """
         Test that ensures when transactions are ordered correctly when all the fields requested
@@ -1035,7 +1039,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         ):
             for subvalue in numbers:
                 self.store_performance_metric(
-                    name=TransactionMRI.MEASUREMENTS_LCP.value,
+                    name="d:transactions/measurements.lcp@millisecond",
                     tags={tag: value},
                     value=subvalue,
                 )
@@ -1050,7 +1054,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             ):
                 for subvalue in numbers:
                     self.store_performance_metric(
-                        name=TransactionMRI.USER.value,
+                        name="s:transactions/user@none",
                         tags={tag: value},
                         value=subvalue,
                         minutes_before_now=minutes,
@@ -1058,14 +1062,14 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
 
         request_args = {
             "field": [
-                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
-                f"count_unique({TransactionMetricKey.USER.value})",
+                f"p50({'transaction.measurements.lcp'})",
+                f"count_unique({'transaction.user'})",
             ],
             "statsPeriod": "1h",
             "interval": "10m",
             "datasource": "snuba",
             "groupBy": ["project_id", "transaction"],
-            "orderBy": f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+            "orderBy": f"p50({'transaction.measurements.lcp'})",
             "per_page": 1,
             "useCase": "transactions",
         }
@@ -1075,11 +1079,11 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         assert len(groups) == 1
         assert groups[0]["by"]["transaction"] == "/bar/"
         assert groups[0]["totals"] == {
-            f"count_unique({TransactionMetricKey.USER.value})": 11,
-            f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": 5.0,
+            f"count_unique({'transaction.user'})": 11,
+            f"p50({'transaction.measurements.lcp'})": 5.0,
         }
         assert groups[0]["series"] == {
-            f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": [
+            f"p50({'transaction.measurements.lcp'})": [
                 None,
                 None,
                 None,
@@ -1087,7 +1091,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
                 None,
                 5.0,
             ],
-            f"count_unique({TransactionMetricKey.USER.value})": [
+            f"count_unique({'transaction.user'})": [
                 0,
                 0,
                 0,
@@ -1104,11 +1108,11 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         assert len(groups) == 1
         assert groups[0]["by"]["transaction"] == "/foo/"
         assert groups[0]["totals"] == {
-            f"count_unique({TransactionMetricKey.USER.value})": 4,
-            f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": 11.0,
+            f"count_unique({'transaction.user'})": 4,
+            f"p50({'transaction.measurements.lcp'})": 11.0,
         }
         assert groups[0]["series"] == {
-            f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": [
+            f"p50({'transaction.measurements.lcp'})": [
                 None,
                 None,
                 None,
@@ -1116,7 +1120,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
                 None,
                 11.0,
             ],
-            f"count_unique({TransactionMetricKey.USER.value})": [
+            f"count_unique({'transaction.user'})": [
                 0,
                 0,
                 0,
@@ -1126,6 +1130,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             ],
         }
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_series_are_limited_to_total_order_in_case_with_one_field_orderby(self) -> None:
         # Create time series [1, 2, 3, 4] for every release:
         for minute in range(4):
@@ -1153,6 +1158,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
 
         assert len(response.data["groups"]) == 1
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_one_field_orderby_with_no_groupby_returns_one_row(self) -> None:
         # Create time series [1, 2, 3, 4] for every release:
         for minute in range(4):
@@ -1182,6 +1188,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
 
         assert len(response.data["groups"]) == 1
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_orderby_percentile_with_many_fields_multiple_entities_with_missing_data(self) -> None:
         """
         Test that ensures when transactions table has null values for some fields (i.e. fields
@@ -1194,7 +1201,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         ):
             for subvalue in numbers:
                 self.store_performance_metric(
-                    name=TransactionMRI.MEASUREMENTS_LCP.value,
+                    name="d:transactions/measurements.lcp@millisecond",
                     tags={tag: value},
                     value=subvalue,
                 )
@@ -1202,13 +1209,13 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         response = self.get_success_response(
             self.organization.slug,
             field=[
-                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
-                f"count_unique({TransactionMetricKey.USER.value})",
+                f"p50({'transaction.measurements.lcp'})",
+                f"count_unique({'transaction.user'})",
             ],
             statsPeriod="1h",
             interval="1h",
             groupBy=["project_id", "transaction"],
-            orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+            orderBy=f"p50({'transaction.measurements.lcp'})",
             useCase="transactions",
         )
         groups = response.data["groups"]
@@ -1222,14 +1229,16 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             # With orderBy, you only get totals:
             assert group["by"] == {"transaction": expected_tag_value, "project_id": self.project.id}
             assert group["totals"] == {
-                f"count_unique({TransactionMetricKey.USER.value})": 0,
-                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": expected_lcp_count,
+                f"count_unique({'transaction.user'})": 0,
+                f"p50({'transaction.measurements.lcp'})": expected_lcp_count,
             }
             assert group["series"] == {
-                f"count_unique({TransactionMetricKey.USER.value})": [0],
-                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": [expected_lcp_count],
+                f"count_unique({'transaction.user'})": [0],
+                f"p50({'transaction.measurements.lcp'})": [expected_lcp_count],
             }
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_limit_without_orderby(self) -> None:
         """
         Test that ensures when an `orderBy` clause is not set, then we still get groups that fit
@@ -1247,15 +1256,15 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             "value4",
         ):
             self.store_performance_metric(
-                name=TransactionMRI.MEASUREMENTS_FCP.value,
+                name="d:transactions/measurements.fcp@millisecond",
                 tags={"tag3": value},
                 value=1,
             )
         response = self.get_success_response(
             self.organization.slug,
             field=[
-                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
-                f"p50({TransactionMetricKey.MEASUREMENTS_FCP.value})",
+                f"p50({'transaction.measurements.lcp'})",
+                f"p50({'transaction.measurements.fcp'})",
             ],
             statsPeriod="1h",
             interval="1h",
@@ -1524,16 +1533,17 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             status_code=400,
         )
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_transaction_status_unknown_error(self) -> None:
         self.store_performance_metric(
-            name=TransactionMRI.DURATION.value,
+            name="d:transactions/duration@millisecond",
             tags={"transaction.status": "unknown"},
             value=10.0,
         )
 
         response = self.get_success_response(
             self.organization.slug,
-            field=f"sum({TransactionMetricKey.DURATION.value})",
+            field=f"sum({'transaction.duration'})",
             query="transaction.status:unknown_error",
             statsPeriod="1h",
             interval="1h",
@@ -1565,15 +1575,15 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         self.session_error_metric = rh_indexer_record(org_id, SessionMRI.RAW_ERROR.value)
         self.session_status_tag = rh_indexer_record(org_id, "session.status")
         self.release_tag = rh_indexer_record(self.organization.id, "release")
-        self.tx_metric = perf_indexer_record(org_id, TransactionMRI.DURATION.value)
+        self.tx_metric = perf_indexer_record(org_id, "d:transactions/duration@millisecond")
         self.tx_status = perf_indexer_record(org_id, TransactionTagsKey.TRANSACTION_STATUS.value)
         self.transaction_lcp_metric = perf_indexer_record(
-            self.organization.id, TransactionMRI.MEASUREMENTS_LCP.value
+            self.organization.id, "d:transactions/measurements.lcp@millisecond"
         )
         self.tx_satisfaction = perf_indexer_record(
             self.organization.id, TransactionTagsKey.TRANSACTION_SATISFACTION.value
         )
-        self.tx_user_metric = perf_indexer_record(self.organization.id, TransactionMRI.USER.value)
+        self.tx_user_metric = perf_indexer_record(self.organization.id, "s:transactions/user@none")
 
     @property
     def now(self):
@@ -2158,6 +2168,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             "Failed to parse 'transaction.all'. The metric name must belong to a public metric."
         )
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_failure_rate_transaction(self) -> None:
         for value, tag_value in (
             (3.4, TransactionStatusTagValue.OK.value),
@@ -2166,7 +2177,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             (0.5, TransactionStatusTagValue.ABORTED.value),
         ):
             self.store_performance_metric(
-                name=TransactionMRI.DURATION.value,
+                name="d:transactions/duration@millisecond",
                 tags={TransactionTagsKey.TRANSACTION_STATUS.value: tag_value},
                 value=value,
             )
@@ -2185,6 +2196,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["totals"] == {"transaction.failure_rate": 0.25}
         assert group["series"] == {"transaction.failure_rate": [0.25]}
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_failure_rate_without_transactions(self) -> None:
         """
         Ensures the absence of transactions isn't an issue to calculate the rate.
@@ -2239,10 +2251,11 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                 f"Failed to parse '{private_name}'. The metric name must belong to a public metric."
             )
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_apdex_transactions(self) -> None:
         # See https://docs.sentry.io/product/performance/metrics/#apdex
         self.store_performance_metric(
-            name=TransactionMRI.DURATION.value,
+            name="d:transactions/duration@millisecond",
             tags={
                 TransactionTagsKey.TRANSACTION_SATISFACTION.value: TransactionSatisfactionTagValue.SATISFIED.value
             },
@@ -2251,7 +2264,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
 
         for subvalue in [0.3, 2.3]:
             self.store_performance_metric(
-                name=TransactionMRI.DURATION.value,
+                name="d:transactions/duration@millisecond",
                 tags={
                     TransactionTagsKey.TRANSACTION_SATISFACTION.value: TransactionSatisfactionTagValue.TOLERATED.value
                 },
@@ -2269,10 +2282,11 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert len(response.data["groups"]) == 1
         assert response.data["groups"][0]["totals"] == {"transaction.apdex": 0.6666666666666666}
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_miserable_users(self) -> None:
         for subvalue in [1, 2]:
             self.store_performance_metric(
-                name=TransactionMRI.USER.value,
+                name="s:transactions/user@none",
                 tags={
                     TransactionTagsKey.TRANSACTION_SATISFACTION.value: TransactionSatisfactionTagValue.FRUSTRATED.value
                 },
@@ -2281,7 +2295,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
 
         for subvalue in [1, 3]:
             self.store_performance_metric(
-                name=TransactionMRI.USER.value,
+                name="s:transactions/user@none",
                 tags={
                     TransactionTagsKey.TRANSACTION_SATISFACTION.value: TransactionSatisfactionTagValue.SATISFIED.value
                 },
@@ -2299,10 +2313,11 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert len(response.data["groups"]) == 1
         assert response.data["groups"][0]["totals"] == {"transaction.miserable_user": 2}
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_user_misery(self) -> None:
         for subvalue in [3, 4]:
             self.store_performance_metric(
-                name=TransactionMRI.USER.value,
+                name="s:transactions/user@none",
                 tags={
                     TransactionTagsKey.TRANSACTION_SATISFACTION.value: TransactionSatisfactionTagValue.FRUSTRATED.value
                 },
@@ -2311,7 +2326,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
 
         for subvalue in [5, 6]:
             self.store_performance_metric(
-                name=TransactionMRI.USER.value,
+                name="s:transactions/user@none",
                 tags={
                     TransactionTagsKey.TRANSACTION_SATISFACTION.value: TransactionSatisfactionTagValue.SATISFIED.value
                 },

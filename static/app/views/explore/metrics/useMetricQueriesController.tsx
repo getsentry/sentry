@@ -40,7 +40,7 @@ function syncUpdatedMetricQueries(
 }
 
 export interface MetricQueriesControllerValue {
-  addMetricQuery: (options?: {type?: 'aggregate' | 'equation'}) => void;
+  addMetricQuery: (options?: {type?: 'aggregate' | 'equation'}) => string;
   metricQueries: MetricQuery[];
   reorderMetricQueries: (
     reorderedQueries: BaseMetricQuery[],
@@ -52,12 +52,6 @@ export interface MetricQueriesControllerValue {
 interface UseMetricQueriesControllerArgs {
   queries: BaseMetricQuery[];
   setQueries: (nextQueries: BaseMetricQuery[]) => void;
-  /**
-   * Whether equations are enabled. Gates the insert-before-equation behavior
-   * of `addMetricQuery` so new aggregates are inserted before any existing
-   * equation rather than appended after them.
-   */
-  hasEquations?: boolean;
 }
 
 /**
@@ -71,7 +65,6 @@ interface UseMetricQueriesControllerArgs {
 export function useMetricQueriesController({
   queries,
   setQueries,
-  hasEquations,
 }: UseMetricQueriesControllerArgs): MetricQueriesControllerValue {
   const labels = useStableLabels(queries);
 
@@ -176,7 +169,7 @@ export function useMetricQueriesController({
         isVisualizeEquation(metricQuery.queryParams.visualizes[0]!)
       );
       const insertAt =
-        hasEquations && equationStart !== -1 && type === 'aggregate'
+        equationStart !== -1 && type === 'aggregate'
           ? equationStart
           : labeledQueries.length;
       const lastAggregate = labeledQueries.at(insertAt - 1) ?? defaultMetricQuery();
@@ -189,6 +182,7 @@ export function useMetricQueriesController({
 
       labels.insert(insertAt, nextLabel);
       setQueries(labeledQueries.toSpliced(insertAt, 0, newQuery));
+      return nextLabel;
     }
 
     function reorderMetricQueries(
@@ -210,5 +204,5 @@ export function useMetricQueriesController({
       addMetricQuery,
       reorderMetricQueries,
     };
-  }, [queries, setQueries, labels, hasEquations]);
+  }, [queries, setQueries, labels]);
 }

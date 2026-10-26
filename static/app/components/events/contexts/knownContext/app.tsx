@@ -1,7 +1,7 @@
 import {
   getContextKeys,
   getRelativeTimeFromEventDateCreated,
-} from 'sentry/components/events/contexts/utils';
+} from 'sentry/components/events/contexts/dataUtils';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
@@ -63,7 +63,7 @@ export function getAppContextData({
   meta,
 }: {
   data: AppContext;
-  event: Event;
+  event?: Event;
   meta?: Record<keyof AppContext, any>;
 }): KeyValueListData {
   return getContextKeys({data}).map(ctxKey => {
@@ -79,7 +79,7 @@ export function getAppContextData({
           key: ctxKey,
           subject: t('Start Time'),
           value: getRelativeTimeFromEventDateCreated(
-            event.dateCreated ? event.dateCreated : event.dateReceived,
+            event?.dateCreated ?? event?.dateReceived,
             data.app_start_time
           ),
         };

@@ -77,18 +77,14 @@ export function getCells(): Cell[] {
  * Get a list of option objects {label: displayName, value: url}
  */
 export function getLocalityUrlOptions(
-  exclude: LocalityData[] = [],
-  only: string[] = []
+  exclude: LocalityData[] = []
 ): Array<SelectValue<string>> {
   const localities = getLocalities();
   const excludedRegionNames = exclude.map(region => region.name);
 
   return localities
     .filter(locality => {
-      if (
-        excludedRegionNames.includes(locality.name) ||
-        (only.length > 0 && !only.includes(locality.name))
-      ) {
+      if (excludedRegionNames.includes(locality.name)) {
         return false;
       }
       return true;

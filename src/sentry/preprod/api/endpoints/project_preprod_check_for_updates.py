@@ -12,6 +12,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectDistributionPermission, ProjectEndpoint
 from sentry.models.project import Project
 from sentry.preprod.build_distribution_utils import (
+    ParsedBuildNumber,
     find_current_and_latest,
     get_download_url_for_artifact,
 )
@@ -106,12 +107,10 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
                 status=400,
             )
 
-        # Validate build_number
-        provided_build_number: int | None = None
+        provided_build_number = None
         if provided_build_number_str is not None:
-            try:
-                provided_build_number = int(provided_build_number_str)
-            except ValueError:
+            provided_build_number = ParsedBuildNumber.parse(provided_build_number_str)
+            if provided_build_number is None:
                 return Response({"error": "Invalid build_number format"}, status=400)
 
         platform = _PLATFORM_MAP.get(provided_platform, provided_platform)

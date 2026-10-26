@@ -29,6 +29,16 @@ describe('node onboarding docs', () => {
     });
   });
 
+  it('starts the app with the --import flag', () => {
+    renderWithOnboardingLayout(docs);
+
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(/node --import \.\/instrument\.mjs index\.mjs/)
+      )
+    ).toBeInTheDocument();
+  });
+
   it('displays sample rates by default', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [
@@ -67,7 +77,7 @@ describe('node onboarding docs', () => {
     expect(
       screen.getByText(
         textWithMarkupMatcher(
-          /const { nodeProfilingIntegration } = require\("@sentry\/profiling-node"\)/
+          /import { nodeProfilingIntegration } from "@sentry\/profiling-node"/
         )
       )
     ).toBeInTheDocument();
@@ -93,7 +103,7 @@ describe('node onboarding docs', () => {
     expect(
       screen.getByText(
         textWithMarkupMatcher(
-          /const { nodeProfilingIntegration } = require\("@sentry\/profiling-node"\)/
+          /import { nodeProfilingIntegration } from "@sentry\/profiling-node"/
         )
       )
     ).toBeInTheDocument();
@@ -108,26 +118,6 @@ describe('node onboarding docs', () => {
     // Profiles sample rate should not be set for continuous profiling
     expect(
       screen.queryByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
-    ).not.toBeInTheDocument();
-  });
-
-  it('enables logs by setting enableLogs to true', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
-    });
-
-    expect(
-      screen.getByText(textWithMarkupMatcher(/enableLogs: true/))
-    ).toBeInTheDocument();
-  });
-
-  it('does not enable logs when not selected', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.ERROR_MONITORING],
-    });
-
-    expect(
-      screen.queryByText(textWithMarkupMatcher(/enableLogs: true/))
     ).not.toBeInTheDocument();
   });
 

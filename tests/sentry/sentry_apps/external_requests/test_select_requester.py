@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import responses
 from requests import HTTPError
+from requests.exceptions import InvalidHeader, InvalidSchema, InvalidURL, MissingSchema
 
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.sentry_apps.event_types import SentryAppEventType
@@ -108,11 +109,10 @@ class TestSelectRequester(TestCase):
             status=500,
         )
 
-        with self.feature("organizations:sentry-apps-custom-webhook-headers"):
-            with pytest.raises(SentryAppIntegratorError):
-                SelectRequester(
-                    install=self.install, project_slug=self.project.slug, uri="/get-issues"
-                ).run()
+        with pytest.raises(SentryAppIntegratorError):
+            SelectRequester(
+                install=self.install, project_slug=self.project.slug, uri="/get-issues"
+            ).run()
 
         request = responses.calls[0].request
         assert request.headers["Authorization"] == "Bearer secret-token"
@@ -127,26 +127,6 @@ class TestSelectRequester(TestCase):
         assert logged_headers["Content-Type"] == "application/json"
         assert logged_headers["Sentry-App-Signature"] == self.sentry_app.build_signature("")
         assert "secret-token" not in logged_headers.values()
-
-    @responses.activate
-    def test_no_custom_headers_without_feature(self) -> None:
-        with assume_test_silo_mode_of(SentryApp):
-            self.sentry_app.update(webhook_headers=["Authorization: Bearer secret-token"])
-        self.install = app_service.get_many(filter=dict(installation_ids=[self.orm_install.id]))[0]
-
-        responses.add(
-            method=responses.GET,
-            url=f"https://example.com/get-issues?installationId={self.install.uuid}&projectSlug={self.project.slug}",
-            json=[{"label": "An Issue", "value": "123"}],
-            status=200,
-            content_type="application/json",
-        )
-
-        SelectRequester(
-            install=self.install, project_slug=self.project.slug, uri="/get-issues"
-        ).run()
-
-        assert "Authorization" not in responses.calls[0].request.headers
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -433,3 +413,61 @@ class TestSelectRequester(TestCase):
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=1
         )
+
+    @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_invalid_json_response(self, mock_record: MagicMock) -> None:
+        url = f"https://example.com/get-issues?installationId={self.install.uuid}&projectSlug={self.project.slug}"
+        responses.add(
+            method=responses.GET,
+            url=url,
+            body="this is not json",
+            status=200,
+            content_type="application/json",
+        )
+
+        with pytest.raises(SentryAppIntegratorError) as exception_info:
+            SelectRequester(
+                install=self.install,
+                project_slug=self.project.slug,
+                uri="/get-issues",
+            ).run()
+
+        assert (
+            exception_info.value.message
+            == f"Something went wrong while getting options for Select FormField from {self.sentry_app.slug}: invalid JSON response"
+        )
+        assert exception_info.value.status_code == 502
+        assert exception_info.value.webhook_context == {
+            "error_type": FAILURE_REASON_BASE.format(
+                SentryAppExternalRequestHaltReason.BAD_RESPONSE
+            ),
+            "sentry_app_slug": self.sentry_app.slug,
+            "install_uuid": self.install.uuid,
+            "project_slug": self.project.slug,
+            "url": url,
+        }
+
+        # A single halt: the raise must not be re-caught by a later handler
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=1
+        )
+
+    @patch("sentry.sentry_apps.external_requests.select_requester.send_and_save_sentry_app_request")
+    def test_request_exception_that_is_also_valueerror(self, mock_send: MagicMock) -> None:
+        # These subclass both RequestException and ValueError, so they must take
+        # the request-failure path rather than being reported as invalid JSON.
+        for exc_type in (InvalidURL, MissingSchema, InvalidSchema, InvalidHeader):
+            mock_send.side_effect = exc_type("Invalid URL")
+
+            with pytest.raises(SentryAppIntegratorError) as exception_info:
+                SelectRequester(
+                    install=self.install,
+                    project_slug=self.project.slug,
+                    uri="/get-issues",
+                ).run()
+
+            assert (
+                exception_info.value.message
+                == f"Something went wrong while getting options for Select FormField from {self.sentry_app.slug}"
+            )

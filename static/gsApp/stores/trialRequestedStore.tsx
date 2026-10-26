@@ -8,12 +8,13 @@ type State = {
 
 type TrialRequestedStoreInterface = {
   getTrialRequstedState: () => State['requested'];
+  state: State;
 };
 
 const storeConfig: Reflux.StoreDefinition & TrialRequestedStoreInterface = {
   state: {
     requested: false,
-  } as State,
+  },
 
   init() {
     this.listenTo(TrialRequestedActions.requested, this.onRequested);

@@ -1,18 +1,37 @@
+import {SEARCH_MCP__TRANSPORT} from '@sentry/conventions/attributes/search';
+
 import {t} from 'sentry/locale';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {
   PrebuiltDashboard,
   PrebuiltWidget,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {MCP_OVERVIEW_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/settings';
+import {
+  MCP_OVERVIEW_DASHBOARD_DESCRIPTION,
+  MCP_OVERVIEW_DASHBOARD_TITLE,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/settings';
 import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {SpanFields, SpanFunction} from 'sentry/views/insights/types';
 
 const MCP_SERVER_FILTER = `${SpanFields.SPAN_OP}:mcp.server`;
-const MCP_TOOL_FILTER = `${MCP_SERVER_FILTER} has:${SpanFields.MCP_TOOL_NAME}`;
+const MCP_TOOL_FILTER = `${MCP_SERVER_FILTER} has:${SpanFields.GEN_AI_TOOL_NAME}`;
 const MCP_RESOURCE_FILTER = `${MCP_SERVER_FILTER} has:${SpanFields.MCP_RESOURCE_URI}`;
-const MCP_PROMPT_FILTER = `${MCP_SERVER_FILTER} has:${SpanFields.MCP_PROMPT_NAME}`;
+const MCP_PROMPT_FILTER = `${MCP_SERVER_FILTER} has:${SpanFields.GEN_AI_PROMPT_NAME}`;
+
+// Match known implementations exactly so custom HTTP transports keep their names.
+const HTTP_TRANSPORTS = [
+  'http',
+  'sse',
+  'StreamableHTTPServerTransport',
+  'NodeStreamableHTTPServerTransport',
+  'WebStandardStreamableHTTPServerTransport',
+  'PerRequestHTTPServerTransport',
+  'SSEServerTransport',
+  'SseServerTransport',
+];
+const STDIO_TRANSPORTS = ['stdio', 'StdioServerTransport'];
+const KNOWN_TRANSPORTS = [...HTTP_TRANSPORTS, ...STDIO_TRANSPORTS];
 
 const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [
@@ -57,17 +76,41 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
     {
       id: 'mcp-overview-transport-distribution',
       title: t('Transport Distribution'),
+      description: t(
+        'MCP requests by transport: http, stdio, and the most-used custom transport names. Missing values mean the MCP transport was not captured.'
+      ),
       displayType: DisplayType.BAR,
       widgetType: WidgetType.SPANS,
       interval: '1h',
       legendType: 'breakdown',
       queries: [
         {
-          name: '',
-          conditions: `${MCP_SERVER_FILTER} has:${SpanFields.MCP_TRANSPORT}`,
-          fields: [SpanFields.MCP_TRANSPORT, 'count()'],
+          name: 'http',
+          seriesLabel: 'query',
+          conditions: `${MCP_SERVER_FILTER} ${SEARCH_MCP__TRANSPORT}:[${HTTP_TRANSPORTS.join(',')}]`,
+          fields: ['count()'],
           aggregates: ['count()'],
-          columns: [SpanFields.MCP_TRANSPORT],
+          columns: [],
+          fieldAliases: [WIDGET_COLUMN_LABELS.count],
+          orderby: '-count()',
+        },
+        {
+          name: 'stdio',
+          seriesLabel: 'query',
+          conditions: `${MCP_SERVER_FILTER} ${SEARCH_MCP__TRANSPORT}:[${STDIO_TRANSPORTS.join(',')}]`,
+          fields: ['count()'],
+          aggregates: ['count()'],
+          columns: [],
+          fieldAliases: [WIDGET_COLUMN_LABELS.count],
+          orderby: '-count()',
+        },
+        {
+          name: 'custom',
+          seriesLabel: 'group',
+          conditions: `${MCP_SERVER_FILTER} (!has:${SEARCH_MCP__TRANSPORT} OR !${SEARCH_MCP__TRANSPORT}:[${KNOWN_TRANSPORTS.join(',')}])`,
+          fields: [SEARCH_MCP__TRANSPORT, 'count()'],
+          aggregates: ['count()'],
+          columns: [SEARCH_MCP__TRANSPORT],
           fieldAliases: [t('Transport'), WIDGET_COLUMN_LABELS.count],
           orderby: '-count()',
         },
@@ -92,15 +135,15 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
         {
           name: '',
           conditions: MCP_TOOL_FILTER,
-          fields: [SpanFields.MCP_TOOL_NAME, `count(${SpanFields.SPAN_DURATION})`],
+          fields: [SpanFields.GEN_AI_TOOL_NAME, `count(${SpanFields.SPAN_DURATION})`],
           aggregates: [`count(${SpanFields.SPAN_DURATION})`],
-          columns: [SpanFields.MCP_TOOL_NAME],
+          columns: [SpanFields.GEN_AI_TOOL_NAME],
           fieldAliases: [t('Tool'), WIDGET_COLUMN_LABELS.count],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
           linkedDashboards: [
             {
               dashboardId: '-1',
-              field: SpanFields.MCP_TOOL_NAME,
+              field: SpanFields.GEN_AI_TOOL_NAME,
               staticDashboardId: 20,
             },
           ],
@@ -146,15 +189,15 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
         {
           name: '',
           conditions: MCP_PROMPT_FILTER,
-          fields: [SpanFields.MCP_PROMPT_NAME, `count(${SpanFields.SPAN_DURATION})`],
+          fields: [SpanFields.GEN_AI_PROMPT_NAME, `count(${SpanFields.SPAN_DURATION})`],
           aggregates: [`count(${SpanFields.SPAN_DURATION})`],
-          columns: [SpanFields.MCP_PROMPT_NAME],
+          columns: [SpanFields.GEN_AI_PROMPT_NAME],
           fieldAliases: [t('Prompt'), WIDGET_COLUMN_LABELS.count],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
           linkedDashboards: [
             {
               dashboardId: '-1',
-              field: SpanFields.MCP_PROMPT_NAME,
+              field: SpanFields.GEN_AI_PROMPT_NAME,
               staticDashboardId: 22,
             },
           ],
@@ -181,14 +224,14 @@ const OVERVIEW_TABLE: PrebuiltWidget = {
         SpanFields.SPAN_DESCRIPTION,
         'count()',
         `${SpanFunction.FAILURE_RATE}()`,
-        `equation|count_if(${SpanFields.SPAN_STATUS},equals,internal_error) + count_if(${SpanFields.SPAN_STATUS},equals,error)`,
+        `equation|count_if(\`${SpanFields.SPAN_STATUS}:internal_error\`) + count_if(\`${SpanFields.SPAN_STATUS}:error\`)`,
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
       ],
       aggregates: [
         'count()',
         `${SpanFunction.FAILURE_RATE}()`,
-        `equation|count_if(${SpanFields.SPAN_STATUS},equals,internal_error) + count_if(${SpanFields.SPAN_STATUS},equals,error)`,
+        `equation|count_if(\`${SpanFields.SPAN_STATUS}:internal_error\`) + count_if(\`${SpanFields.SPAN_STATUS}:error\`)`,
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
       ],
@@ -217,6 +260,7 @@ export const MCP_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
   title: MCP_OVERVIEW_DASHBOARD_TITLE,
+  description: MCP_OVERVIEW_DASHBOARD_DESCRIPTION,
   filters: {},
   widgets: [...FIRST_ROW_WIDGETS, ...SECOND_ROW_WIDGETS, OVERVIEW_TABLE],
   onboarding: {

@@ -1,10 +1,12 @@
+import {IconOpen} from '@sentry/icons/open';
+
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconOpen} from 'sentry/icons/iconOpen';
 import {t} from 'sentry/locale';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -20,6 +22,7 @@ export function AiConfigureSeerQuotaSidebar({
   project,
 }: AutofixContentProps) {
   const organization = useOrganization();
+  const analyticsArea = useAnalyticsArea() || 'seer';
   const subscription = useSubscription();
 
   useRouteAnalyticsParams({
@@ -55,6 +58,13 @@ export function AiConfigureSeerQuotaSidebar({
             to={`/settings/${organization.slug}/billing/overview/?product=seer`}
             icon={<IconOpen />}
             disabled={!hasBillingPerms}
+            analyticsEventKey={`${analyticsArea}.upsell_clicked`}
+            analyticsEventName={
+              analyticsArea === 'issue_inbox'
+                ? 'Issue Inbox: Seer Upsell Clicked'
+                : 'Seer: Upsell Clicked'
+            }
+            analyticsParams={{group_id: group.id}}
           >
             {t('Try out Seer now')}
           </LinkButton>

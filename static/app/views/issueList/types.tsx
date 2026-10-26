@@ -1,4 +1,4 @@
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilterDatetime} from 'sentry/types/core';
 import type {
   GroupStatusResolution,
   MarkReviewed,
@@ -39,7 +39,7 @@ export type StarredGroupSearchView = {
   query: string;
   querySort: IssueSortOptions;
   stars: number;
-  timeFilters: PageFilters['datetime'];
+  timeFilters: PageFilterDatetime;
 };
 
 export type GroupSearchView = StarredGroupSearchView & {

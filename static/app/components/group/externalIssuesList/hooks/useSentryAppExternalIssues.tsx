@@ -17,7 +17,7 @@ export function useSentryAppExternalIssues({
   group,
   event,
 }: {
-  event: Event;
+  event: Event | undefined;
   group: Group;
 }): GroupIntegrationIssueResult {
   const api = useApi();

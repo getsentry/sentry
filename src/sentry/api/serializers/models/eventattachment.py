@@ -24,7 +24,6 @@ class EventAttachmentSerializer(Serializer[EventAttachmentSerializerResponse]):
     def serialize(self, obj, attrs, user, **kwargs) -> EventAttachmentSerializerResponse:
         content_type = obj.content_type
         size = obj.size or 0
-        sha1 = obj.sha1
         headers = {"Content-Type": content_type}
 
         return {
@@ -38,7 +37,7 @@ class EventAttachmentSerializer(Serializer[EventAttachmentSerializerResponse]):
             # TODO: It would be nice to deprecate these two fields.
             # If not, we can at least define `headers` as `Content-Type: $mimetype`.
             "headers": headers,
-            "sha1": sha1,
+            "sha1": None,
         }
 
 

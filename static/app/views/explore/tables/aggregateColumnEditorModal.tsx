@@ -2,23 +2,22 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconDelete} from '@sentry/icons/delete';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Grid} from '@sentry/scraps/layout';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
-import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
 import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {SPAN_PROPS_DOCS_URL} from 'sentry/constants';
-import {IconAdd} from 'sentry/icons/iconAdd';
-import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {
@@ -27,13 +26,13 @@ import {
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {
-  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   AggregationKey,
-  FieldKind,
+  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   getFieldDefinition,
   NO_ARGUMENT_SPAN_AGGREGATES,
 } from 'sentry/utils/fields';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
+import {ConditionalAggregateFilterBar} from 'sentry/views/explore/components/conditionalAggregateFilterBar';
+import {ExploreEquationArithmeticBuilder} from 'sentry/views/explore/components/exploreEquationArithmeticBuilder';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import type {GroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
@@ -46,13 +45,13 @@ import {
   updateVisualizeAggregate,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
-import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
-import type {
-  AggregateField,
-  WritableAggregateField,
+import {
+  serializeAggregateFields,
+  type AggregateField,
+  type WritableAggregateField,
 } from 'sentry/views/explore/queryParams/aggregateField';
 import {
   isVisualizeEquation,
@@ -62,6 +61,12 @@ import {
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {
+  applyConditionalFilter,
+  buildConditionalAggregate,
+  supportsConditionalAggregateFilter,
+} from 'sentry/views/explore/utils/conditionalAggregate';
+import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
 
 interface AggregateColumnEditorModalProps extends ModalRenderProps {
@@ -92,17 +97,7 @@ export function AggregateColumnEditorModal({
   }, [columns]);
 
   const handleApply = () => {
-    const newColumns: WritableAggregateField[] = [];
-
-    for (const col of tempColumns) {
-      if (isGroupBy(col)) {
-        newColumns.push(col);
-      } else if (isVisualize(col)) {
-        newColumns.push(col.serialize());
-      }
-    }
-
-    onColumnsChange(newColumns);
+    onColumnsChange(serializeAggregateFields(tempColumns));
     closeModal();
   };
 
@@ -164,13 +159,14 @@ export function AggregateColumnEditorModal({
                   },
                 ]}
                 trigger={triggerProps => (
-                  <Button
+                  <OverlayTrigger.Button
+                    showChevron={false}
                     {...triggerProps}
                     aria-label={t('Add a Column')}
                     icon={<IconAdd />}
                   >
                     {t('Add a Column')}
-                  </Button>
+                  </OverlayTrigger.Button>
                 )}
               />
             </RowContainer>
@@ -276,7 +272,7 @@ function GroupBySelector({
   booleanTags,
 }: GroupBySelectorProps) {
   const [search, setSearch] = useState('');
-  const debouncedSearch = useDebouncedValue(search, 250);
+  const [debouncedSearch] = useDebouncedValue(search, {wait: 250});
   const hasSearch = debouncedSearch.length > 0;
 
   const {attributes: searchedStringTags, isLoading: stringLoading} =
@@ -413,11 +409,15 @@ function AggregateSelector({
   visualize,
 }: VisualizeSelectorProps) {
   const yAxis = visualize.yAxis;
-  const parsedFunction = useMemo(() => parseFunction(yAxis), [yAxis]);
+  // The dropdowns operate on the base aggregate, with the `_if` combinator and its
+  // filter argument stripped off.
+  const parsedFunction = useMemo(() => parseConditionalAggregate(yAxis), [yAxis]);
   const aggregateFunc = parsedFunction?.name;
   const aggregateDefinition = aggregateFunc
     ? getFieldDefinition(aggregateFunc, 'span')
     : undefined;
+
+  const filter = parsedFunction?.filter ?? '';
 
   const aggregateOptions: Array<SelectOption<string>> = useMemo(() => {
     return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
@@ -431,14 +431,24 @@ function AggregateSelector({
 
   const handleFunctionChange = useCallback(
     (option: SelectOption<SelectKey>) => {
+      const newAggregate = option.value as string;
       const newYAxis = updateVisualizeAggregate({
-        newAggregate: option.value as string,
+        newAggregate,
         oldAggregate: parsedFunction?.name,
         oldArguments: parsedFunction?.arguments,
       });
-      onChange(visualize.replace({yAxis: newYAxis}));
+      onChange(
+        visualize.replace({
+          yAxis: supportsConditionalAggregateFilter(newAggregate)
+            ? applyConditionalFilter(newYAxis, filter)
+            : newYAxis,
+          // Aggregates on a shared chart are edited together from the
+          // toolbar. Editing one here moves it to a chart of its own.
+          chartGroup: null,
+        })
+      );
     },
-    [parsedFunction, onChange, visualize]
+    [filter, parsedFunction, onChange, visualize]
   );
 
   const handleArgumentChange = (index: number, option: SelectOption<SelectKey>) => {
@@ -449,52 +459,93 @@ function AggregateSelector({
       } else {
         args = [option.value];
       }
-      const newYAxis = `${parsedFunction?.name}(${args.join(',')})`;
-      onChange(visualize.replace({yAxis: newYAxis}));
+      onChange(
+        visualize.replace({
+          yAxis: buildConditionalAggregate({
+            name: parsedFunction?.name ?? '',
+            arguments: args,
+            filter,
+          }),
+          chartGroup: null,
+        })
+      );
     }
   };
 
+  const handleFilterSearch = useCallback(
+    (newFilter: string) => {
+      if (!parsedFunction) {
+        return;
+      }
+      onChange(
+        visualize.replace({
+          yAxis: buildConditionalAggregate({
+            name: parsedFunction.name,
+            arguments: parsedFunction.arguments,
+            filter: newFilter,
+          }),
+          chartGroup: null,
+        })
+      );
+    },
+    [onChange, parsedFunction, visualize]
+  );
+
+  const showFilterSearchBar = supportsConditionalAggregateFilter(
+    parsedFunction?.name ?? ''
+  );
+
   return (
-    <Fragment>
-      <SingleWidthCompactSelect
-        data-test-id="editor-visualize-function"
-        options={aggregateOptions}
-        value={parsedFunction?.name}
-        onChange={handleFunctionChange}
-        search
-        trigger={triggerProps => (
-          <OverlayTrigger.Button
-            {...triggerProps}
-            prefix={t('Function')}
-            style={{
-              width: '100%',
-            }}
+    <Stack flex="3" minWidth="0" gap="sm">
+      <Flex gap="md" align="center" width="100%">
+        <SingleWidthCompactSelect
+          data-test-id="editor-visualize-function"
+          options={aggregateOptions}
+          value={parsedFunction?.name}
+          onChange={handleFunctionChange}
+          search
+          trigger={triggerProps => (
+            <OverlayTrigger.Button
+              {...triggerProps}
+              prefix={t('Function')}
+              style={{
+                width: '100%',
+              }}
+            />
+          )}
+        />
+        {aggregateDefinition?.parameters?.map((param, index) => (
+          <AttributeArgumentSelect
+            key={param.name}
+            numberTags={numberTags}
+            stringTags={stringTags}
+            booleanTags={booleanTags}
+            parsedFunction={parsedFunction}
+            value={parsedFunction?.arguments[index] ?? param.defaultValue ?? ''}
+            onChange={option => handleArgumentChange(index, option)}
+          />
+        ))}
+        {aggregateDefinition?.parameters?.length === 0 && (
+          <AttributeArgumentSelect
+            numberTags={numberTags}
+            stringTags={stringTags}
+            booleanTags={booleanTags}
+            parsedFunction={parsedFunction}
+            value={parsedFunction?.arguments[0] ?? ''}
+            onChange={option => handleArgumentChange(0, option)}
+            forceDisabled
           />
         )}
-      />
-      {aggregateDefinition?.parameters?.map((param, index) => (
-        <AttributeArgumentSelect
-          key={param.name}
-          numberTags={numberTags}
-          stringTags={stringTags}
-          booleanTags={booleanTags}
-          parsedFunction={parsedFunction}
-          value={parsedFunction?.arguments[index] ?? param.defaultValue ?? ''}
-          onChange={option => handleArgumentChange(index, option)}
-        />
-      ))}
-      {aggregateDefinition?.parameters?.length === 0 && (
-        <AttributeArgumentSelect
-          numberTags={numberTags}
-          stringTags={stringTags}
-          booleanTags={booleanTags}
-          parsedFunction={parsedFunction}
-          value={parsedFunction?.arguments[0] ?? ''}
-          onChange={option => handleArgumentChange(0, option)}
-          forceDisabled
+      </Flex>
+      {showFilterSearchBar && (
+        <ConditionalAggregateFilterBar
+          data-test-id="editor-visualize-filter"
+          initialQuery={filter}
+          onSearch={handleFilterSearch}
+          searchSource="explore-conditional-aggregate"
         />
       )}
-    </Fragment>
+    </Stack>
   );
 }
 
@@ -518,7 +569,7 @@ function AttributeArgumentSelect({
   forceDisabled,
 }: AttributeArgumentSelectProps) {
   const [search, setSearch] = useState('');
-  const debouncedSearch = useDebouncedValue(search, 250);
+  const [debouncedSearch] = useDebouncedValue(search, {wait: 250});
   const hasSearch = debouncedSearch.length > 0;
 
   const supportedKinds = getSupportedAttributeKinds(parsedFunction?.name);
@@ -668,33 +719,6 @@ function EquationSelector({
 }: VisualizeSelectorProps) {
   const expression = stripEquationPrefix(visualize.yAxis);
 
-  const functionArguments: FunctionArgument[] = useMemo(() => {
-    return [
-      ...Object.entries(numberTags).map(([key, tag]) => {
-        return {
-          kind: FieldKind.MEASUREMENT,
-          name: key,
-          label: tag.name,
-        };
-      }),
-      ...Object.entries(stringTags).map(([key, tag]) => {
-        return {
-          kind: FieldKind.TAG,
-          name: key,
-          label: tag.name,
-        };
-      }),
-    ];
-  }, [numberTags, stringTags]);
-
-  const getSpanFieldDefinition = useCallback(
-    (key: string) => {
-      const tag = numberTags[key] ?? stringTags[key];
-      return getFieldDefinition(key, 'span', tag?.kind);
-    },
-    [numberTags, stringTags]
-  );
-
   const handleExpressionChange = useCallback(
     (newExpression: Expression) => {
       onChange(visualize.replace({yAxis: `${EQUATION_PREFIX}${newExpression.text}`}));
@@ -702,21 +726,15 @@ function EquationSelector({
     [onChange, visualize]
   );
 
-  const getSuggestedAttribute = useExploreSuggestedAttribute({
-    numberAttributes: numberTags,
-    stringAttributes: stringTags,
-    booleanAttributes: booleanTags,
-  });
-
   return (
-    <ArithmeticBuilder
+    <ExploreEquationArithmeticBuilder
       data-test-id="editor-visualize-equation"
-      aggregations={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
-      functionArguments={functionArguments}
-      getFieldDefinition={getSpanFieldDefinition}
       expression={expression}
       setExpression={handleExpressionChange}
-      getSuggestedKey={getSuggestedAttribute}
+      traceItemType={TraceItemDataset.SPANS}
+      numberTags={numberTags}
+      stringTags={stringTags}
+      booleanTags={booleanTags}
     />
   );
 }
@@ -729,6 +747,17 @@ const RowContainer = styled('div')`
 
   :not(:first-child) {
     margin-top: ${p => p.theme.space.md};
+  }
+
+  /* Keep the drag handle and delete button aligned with the dropdowns rather than
+   * centered against the taller column that a series filter bar adds. The buttons are a
+   * size smaller than the dropdowns, so grow them to match instead of pinning their
+   * icons to the top of the row. */
+  &:has([data-test-id='editor-visualize-filter']) {
+    align-items: flex-start;
+    > button {
+      height: ${p => p.theme.form.md.height};
+    }
   }
 `;
 

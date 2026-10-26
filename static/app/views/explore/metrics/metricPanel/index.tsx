@@ -1,10 +1,11 @@
-import {Activity, Fragment, useRef, useState} from 'react';
+import {Activity, Fragment, useEffect, useRef, useState} from 'react';
 import type {DraggableAttributes} from '@dnd-kit/core';
 import type {SyntheticListenerMap} from '@dnd-kit/core/dist/hooks/utilities';
-import {useQuery} from '@tanstack/react-query';
+import {IconClock} from '@sentry/icons/clock';
+import {IconGraph} from '@sentry/icons/graph';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Container, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
@@ -12,7 +13,6 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
   ChartIntervalUnspecifiedStrategy,
@@ -21,7 +21,11 @@ import {
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {calculateHeatMapBucketDimensions} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/calculateHeatMapBucketDimensions';
-import {mergeMetricUnit} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/mergeMetricUnit';
+import {ExploreShareButton} from 'sentry/views/explore/components/exploreShareButton';
+import {
+  AddTransformationButton,
+  VisualizeTransformationRows,
+} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeTransformations';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {useMetricsPanelAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
@@ -32,10 +36,13 @@ import {
   TraceSamplesTableColumns,
 } from 'sentry/views/explore/metrics/constants';
 import {unresolveExpression} from 'sentry/views/explore/metrics/equationBuilder/utils';
-import {metricHeatmapApiOptions} from 'sentry/views/explore/metrics/hooks/metricHeatmapApiOptions';
+import {MetricsAggregateExportModalButton} from 'sentry/views/explore/metrics/exports/metricsAggregateExportModalButton';
+import {MetricsSamplesExportModalButton} from 'sentry/views/explore/metrics/exports/metricsSamplesExportModalButton';
 import {useMetricAggregatesTable} from 'sentry/views/explore/metrics/hooks/useMetricAggregatesTable';
+import {useMetricHeatMapData} from 'sentry/views/explore/metrics/hooks/useMetricHeatMapData';
 import {useMetricSamplesTable} from 'sentry/views/explore/metrics/hooks/useMetricSamplesTable';
 import {useMetricTimeseries} from 'sentry/views/explore/metrics/hooks/useMetricTimeseries';
+import {TRACE_METRICS_INGESTION_DELAY_SECONDS} from 'sentry/views/explore/metrics/ingestionDelay';
 import {
   MetricsGraph,
   getMetricsChartTypeOptions,
@@ -59,14 +66,15 @@ import {
   useQueryParamsQuery,
   useQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
+import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {
   isVisualizeEquation,
   isVisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 const RESULT_LIMIT = 50;
-const TWO_MINUTE_DELAY = 120;
 
 const CHART_TYPE_TO_ICON: Record<ChartType, 'line' | 'area' | 'bar' | 'heatmap'> = {
   [ChartType.LINE]: 'line',
@@ -121,6 +129,10 @@ export function MetricPanel({
   const setAggregateFields = useSetMetricAggregateFields();
 
   const isHeatmap = visualize.chartType === ChartType.HEATMAP;
+  const showTransformationControls =
+    isVisualizeFunction(visualize) &&
+    !isHeatmap &&
+    organization.features.includes('explore-interpolation-and-smoothing');
 
   const [interval, setInterval, intervalOptions] = useChartInterval({
     unspecifiedStrategy: ChartIntervalUnspecifiedStrategy.USE_SMALLEST,
@@ -136,6 +148,16 @@ export function MetricPanel({
     return;
   });
 
+  useEffect(() => {
+    if (isVisualizeEquation(visualize)) {
+      // oxlint-disable-next-line react/set-state-in-effect
+      setTitle(
+        visualize.internalExpression ??
+          unresolveExpression(visualize.expression.text, referenceMap)
+      );
+    }
+  }, [visualize, referenceMap]);
+
   const areQueriesEnabled = isVisualizeFunction(visualize)
     ? Boolean(traceMetric.name) && !isMetricOptionsEmpty
     : isVisualizeEquation(visualize) && Boolean(visualize.expression.text);
@@ -145,7 +167,7 @@ export function MetricPanel({
     limit: RESULT_LIMIT,
     traceMetric,
     fields,
-    ingestionDelaySeconds: TWO_MINUTE_DELAY,
+    ingestionDelaySeconds: TRACE_METRICS_INGESTION_DELAY_SECONDS,
     staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
   });
 
@@ -181,7 +203,7 @@ export function MetricPanel({
     intervalOptions.map(intervalOption => intervalOption.value)
   );
 
-  const heatmapApiOptions = metricHeatmapApiOptions({
+  const heatMapData = useMetricHeatMapData({
     organization,
     selection,
     traceMetric,
@@ -189,14 +211,6 @@ export function MetricPanel({
     interval: heatMapBucketDimensions?.interval,
     yBuckets: heatMapBucketDimensions?.yBuckets,
     enabled: areHeatMapsEnabled && isHeatmap && !isMetricOptionsEmpty,
-  });
-
-  const heatmapResult = useQuery({
-    ...heatmapApiOptions,
-    select: data => {
-      const series = heatmapApiOptions.select!(data);
-      return mergeMetricUnit(series, traceMetric.unit ?? undefined);
-    },
   });
 
   useMetricsPanelAnalytics({
@@ -288,6 +302,12 @@ export function MetricPanel({
     </Fragment>
   );
 
+  function handleTransformationsChange(transformations: readonly string[]) {
+    setVisualizes(
+      visualizes.map(v => (isVisualizeFunction(v) ? v.replace({transformations}) : v))
+    );
+  }
+
   return (
     <Panel ref={ref} style={style} {...rest} data-test-id="metric-panel">
       <PanelBody>
@@ -309,6 +329,7 @@ export function MetricPanel({
               {isAnyDragging ? (
                 <DnDPlaceholder
                   isDragging={isDragging}
+                  // oxlint-disable-next-line react/refs
                   contentHeight={contentHeightRef.current}
                 />
               ) : null}
@@ -320,28 +341,82 @@ export function MetricPanel({
                     }
                   }}
                 >
-                  <Grid columns={{'screen:xs': '1fr', 'screen:md': '1fr 1fr'}} gap="sm">
-                    <Container minWidth="0" ref={chartContainerRef}>
+                  <Grid columns={{xs: '1fr', lg: '1fr 1fr'}} gap="sm">
+                    <Stack minWidth="0" alignSelf="start" ref={chartContainerRef}>
                       {areHeatMapsEnabled && isHeatmap ? (
                         <MetricsHeatMap
-                          heatmapResult={heatmapResult}
+                          heatMapData={heatMapData}
                           actions={actions}
                           title={title}
                           queryLabel={queryLabel}
                         />
                       ) : (
-                        <MetricsGraph
-                          timeseriesResult={timeseriesResult}
-                          actions={actions}
-                          isMetricOptionsEmpty={isMetricOptionsEmpty}
-                          title={title}
-                        />
+                        <Fragment>
+                          <MetricsGraph
+                            timeseriesResult={timeseriesResult}
+                            actions={actions}
+                            isMetricOptionsEmpty={isMetricOptionsEmpty}
+                            title={title}
+                            footerActions={
+                              showTransformationControls ? (
+                                <AddTransformationButton
+                                  traceItemDataset={TraceItemDataset.TRACEMETRICS}
+                                  transformations={visualize.transformations}
+                                  onChange={handleTransformationsChange}
+                                />
+                              ) : undefined
+                            }
+                          />
+                          {showTransformationControls &&
+                          visualize.transformations.length > 0 ? (
+                            <Container padding="xl" paddingTop="0" paddingBottom="md">
+                              <VisualizeTransformationRows
+                                traceItemDataset={TraceItemDataset.TRACEMETRICS}
+                                transformations={visualize.transformations}
+                                layout="inline"
+                                onChange={handleTransformationsChange}
+                              />
+                            </Container>
+                          ) : null}
+                        </Fragment>
                       )}
-                    </Container>
-                    <Container minWidth="0">
+                    </Stack>
+                    <Container
+                      minWidth="0"
+                      minHeight="0"
+                      contain={{xs: 'none', lg: 'size'}}
+                      height={{xs: `${STACKED_GRAPH_HEIGHT}px`, lg: 'auto'}}
+                    >
                       <MetricInfoTabs
                         traceMetric={traceMetric}
                         isMetricOptionsEmpty={isMetricOptionsEmpty}
+                        additionalActions={
+                          <Flex gap="xs">
+                            <ExploreShareButton
+                              traceItemDataset={TraceItemDataset.TRACEMETRICS}
+                            />
+                            {mode === Mode.AGGREGATE ? (
+                              <MetricsAggregateExportModalButton
+                                isError={metricAggregatesTableResult.result.isError}
+                                isLoading={
+                                  areQueriesEnabled &&
+                                  metricAggregatesTableResult.result.isPending
+                                }
+                                pageLinks={metricAggregatesTableResult.result.pageLinks}
+                                tableData={metricAggregatesTableResult.result.data ?? []}
+                                traceMetric={traceMetric}
+                              />
+                            ) : (
+                              <MetricsSamplesExportModalButton
+                                fields={fields}
+                                isError={Boolean(metricSamplesTableResult.isError)}
+                                isLoading={Boolean(metricSamplesTableResult.isPending)}
+                                tableData={metricSamplesTableResult.result.data ?? []}
+                                traceMetric={traceMetric}
+                              />
+                            )}
+                          </Flex>
+                        }
                       />
                     </Container>
                   </Grid>

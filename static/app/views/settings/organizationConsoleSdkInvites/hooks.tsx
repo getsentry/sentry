@@ -50,7 +50,9 @@ export function useRevokeConsoleSdkPlatformInvite() {
     mutationFn: ({orgSlug, items}: UseRevokeConsoleSdkPlatformInviteParams) => {
       return fetchMutation({
         method: 'DELETE',
-        url: `/organizations/${orgSlug}/console-sdk-invites/`,
+        url: getApiUrl('/organizations/$organizationIdOrSlug/console-sdk-invites/', {
+          path: {organizationIdOrSlug: orgSlug},
+        }),
         data: {items},
       });
     },

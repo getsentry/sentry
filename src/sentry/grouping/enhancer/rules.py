@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from functools import cached_property
 from typing import Any, TypedDict
 
 from .actions import EnhancementAction
-from .matchers import EnhancementMatch, ExceptionFieldMatch, MatchFrame, ReturnValueCache
+from .matchers import EnhancementMatch
 
 
 class EnhancementRuleDict(TypedDict):
@@ -14,18 +15,15 @@ class EnhancementRuleDict(TypedDict):
 class EnhancementRule:
     def __init__(self, matchers: list[EnhancementMatch], actions: list[EnhancementAction]):
         self.matchers = matchers
-
-        self._exception_matchers = []
-        self._other_matchers = []
-        for matcher in matchers:
-            if isinstance(matcher, ExceptionFieldMatch):
-                self._exception_matchers.append(matcher)
-            else:
-                self._other_matchers.append(matcher)
-
         self.actions = actions
-        self.has_classifier_actions = any(action.is_classifier for action in actions)
-        self.has_contributes_actions = any(action.sets_contributes for action in actions)
+
+    @cached_property
+    def has_classifier_actions(self) -> bool:
+        return any(action.is_classifier for action in self.actions)
+
+    @cached_property
+    def has_contributes_actions(self) -> bool:
+        return any(action.sets_contributes for action in self.actions)
 
     def __repr__(self) -> str:
         return f"<EnhancementRule {self.text}>"
@@ -61,36 +59,6 @@ class EnhancementRule:
         for matcher in self.matchers:
             matchers[matcher.key] = matcher.pattern
         return {"match": matchers, "actions": [str(action) for action in self.actions]}
-
-    def get_matching_frame_actions(
-        self,
-        match_frames: list[MatchFrame],
-        exception_data: dict[str, Any],
-        in_memory_cache: ReturnValueCache,
-    ) -> list[tuple[int, EnhancementAction]]:
-        """Given a frame returns all the matching actions based on this rule.
-        If the rule does not match `None` is returned.
-        """
-        if not self.matchers:
-            return []
-
-        # 1 - Check if exception matchers match
-        for m in self._exception_matchers:
-            if not m.matches_frame(match_frames, None, exception_data, in_memory_cache):
-                return []
-
-        rv = []
-
-        # 2 - Check if frame matchers match
-        for idx, _ in enumerate(match_frames):
-            if all(
-                m.matches_frame(match_frames, idx, exception_data, in_memory_cache)
-                for m in self._other_matchers
-            ):
-                for action in self.actions:
-                    rv.append((idx, action))
-
-        return rv
 
     def _to_config_structure(self, version: int) -> list[Any]:
         return [

@@ -38,6 +38,7 @@ import {
   SessionTerm,
 } from 'sentry/views/explore/releases/utils/sessionTerm';
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
+import {DisplayModes} from 'sentry/views/projectDetail/displayModes';
 import {
   getANRRateText,
   isPlatformANRCompatible,
@@ -47,19 +48,6 @@ import {
 import ProjectBaseEventsChart from './charts/projectBaseEventsChart';
 import ProjectBaseSessionsChart from './charts/projectBaseSessionsChart';
 import {ProjectErrorsBasicChart} from './charts/projectErrorsBasicChart';
-
-export enum DisplayModes {
-  APDEX = 'apdex',
-  FAILURE_RATE = 'failure_rate',
-  TPM = 'tpm',
-  ERRORS = 'errors',
-  TRANSACTIONS = 'transactions',
-  STABILITY = 'crash_free',
-  STABILITY_USERS = 'crash_free_users',
-  ANR_RATE = 'anr_rate',
-  FOREGROUND_ANR_RATE = 'foreground_anr_rate',
-  SESSIONS = 'sessions',
-}
 
 type Props = {
   chartId: string;
@@ -326,11 +314,11 @@ export function ProjectCharts({
                 title={t('Apdex')}
                 help={getTermHelp(organization, PerformanceTerm.APDEX)}
                 query={new MutableSearch([
-                  'event.type:transaction',
+                  'is_transaction:true',
                   query ?? '',
                 ]).formatString()}
-                yAxis="apdex()"
-                field={['apdex()']}
+                yAxis="apdex(span.duration,300)"
+                field={['apdex(span.duration,300)']}
                 api={api}
                 location={location}
                 organization={organization}
@@ -346,7 +334,7 @@ export function ProjectCharts({
                 title={t('Failure Rate')}
                 help={getTermHelp(organization, PerformanceTerm.FAILURE_RATE)}
                 query={new MutableSearch([
-                  'event.type:transaction',
+                  'is_transaction:true',
                   query ?? '',
                 ]).formatString()}
                 yAxis="failure_rate()"
@@ -366,7 +354,7 @@ export function ProjectCharts({
                 title={t('Transactions Per Minute')}
                 help={getTermHelp(organization, PerformanceTerm.TPM)}
                 query={new MutableSearch([
-                  'event.type:transaction',
+                  'is_transaction:true',
                   query ?? '',
                 ]).formatString()}
                 yAxis="tpm()"
@@ -415,7 +403,7 @@ export function ProjectCharts({
               <ProjectBaseEventsChart
                 title={t('Number of Transactions')}
                 query={new MutableSearch([
-                  'event.type:transaction',
+                  'is_transaction:true',
                   query ?? '',
                 ]).formatString()}
                 yAxis="count()"

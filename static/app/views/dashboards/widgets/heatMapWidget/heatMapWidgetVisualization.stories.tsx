@@ -17,7 +17,7 @@ export default Storybook.story('HeatMapWidgetVisualization', story => {
           <Storybook.JSXNode name="HeatMapWidgetVisualization" /> is a dense data
           visualization that plots three-dimensional data by using color as the third
           axis. This naturally makes percentiles and problem areas visible, which makes it
-          useful for analysis of spiky or modal data. Right now we use Heat Maps in our
+          useful for analysis of spiky or modal data. Right now we use Heatmaps in our
           Metrics product, so the usage is limited. We expect the X-axis to be time, and
           the Z-axis (the color axis) to be a count. The Y-axis can be any continuous
           value.

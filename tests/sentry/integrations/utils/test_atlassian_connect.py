@@ -18,6 +18,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri
+from tests.sentry.utils.test_jwt import FUTURE_EXPIRATION
 
 
 class AtlassianConnectTest(TestCase):
@@ -61,6 +62,17 @@ class AtlassianConnectTest(TestCase):
         result = get_query_hash(uri=self.path, method=self.method, query_params=self.query_params)
         assert result == self.query_hash
 
+    def test_get_query_hash_sorts_multi_value_params(self) -> None:
+        uri = "/rest/api/2/project/search"
+        method = "GET"
+        result_unsorted = get_query_hash(
+            uri=uri, method=method, query_params={"id": ["10002", "10000", "10001"]}
+        )
+        result_sorted = get_query_hash(
+            uri=uri, method=method, query_params={"id": ["10000", "10001", "10002"]}
+        )
+        assert result_unsorted == result_sorted
+
     def test_get_integration_from_jwt_success(self) -> None:
         integration = get_integration_from_jwt(
             token=self.valid_jwt,
@@ -76,6 +88,21 @@ class AtlassianConnectTest(TestCase):
         with pytest.raises(AtlassianConnectValidationError, match="Invalid algorithm"):
             get_integration_from_jwt(
                 token=self.none_alg_jwt,
+                path=self.path,
+                provider=self.provider,
+                query_params=self.query_params,
+                method=self.method,
+            )
+
+    def test_get_integration_from_jwt_requires_expiration(self) -> None:
+        token = jwt.encode(
+            {"iss": self.integration.external_id, "qsh": self.query_hash},
+            self.integration.metadata["shared_secret"],
+        )
+
+        with pytest.raises(AtlassianConnectValidationError, match="Required claim is missing"):
+            get_integration_from_jwt(
+                token=token,
                 path=self.path,
                 provider=self.provider,
                 query_params=self.query_params,
@@ -164,7 +191,11 @@ class AuthenticateAsymmetricJwtTest(TestCase):
             .public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo)
             .decode("utf-8")
         )
-        self.payload = {"aud": absolute_uri(), "iss": "connect:123"}
+        self.payload = {
+            "aud": absolute_uri(),
+            "iss": "connect:123",
+            "exp": FUTURE_EXPIRATION,
+        }
 
     def test_rejects_non_rs256_algorithm(self) -> None:
         """

@@ -5,7 +5,11 @@ import orjson
 from django.test import override_settings
 
 from sentry.preprod.api.endpoints.project_preprod_artifact_update import find_or_create_release
-from sentry.preprod.models import PreprodArtifact, PreprodArtifactMobileAppInfo
+from sentry.preprod.models import (
+    PreprodArtifact,
+    PreprodArtifactMobileAppInfo,
+    PreprodArtifactSizeMetrics,
+)
 from sentry.preprod.quotas import DISTRIBUTION_ENABLED_QUERY_KEY, SIZE_ENABLED_QUERY_KEY
 from sentry.testutils.auth import generate_service_request_signature
 from sentry.testutils.cases import TestCase
@@ -574,15 +578,41 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert "build_distribution" in resp_data["requestedFeatures"]
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
-    def test_update_preprod_artifact_filters_size_by_query(self) -> None:
+    @patch(
+        "sentry.preprod.api.endpoints.project_preprod_artifact_update"
+        ".create_preprod_status_check_task"
+    )
+    @patch(
+        "sentry.preprod.api.endpoints.project_preprod_artifact_update"
+        ".create_preprod_size_pr_comment_task"
+    )
+    def test_update_preprod_artifact_filters_size_by_query(
+        self, mock_pr_comment_task, mock_status_check_task
+    ) -> None:
         """Test that SIZE_ANALYSIS is filtered out when project query doesn't match."""
         self.preprod_artifact.app_id = "com.my.app"
         self.preprod_artifact.save()
+        self.create_preprod_artifact_size_metrics(
+            self.preprod_artifact,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+        )
 
         # Set a query filter that doesn't match
         self.project.update_option(SIZE_ENABLED_QUERY_KEY, "app_id:com.other.app")
 
-        data = {"artifact_type": 1}
+        observed_states = []
+
+        def record_metrics_state(**kwargs: Any) -> None:
+            metrics = PreprodArtifactSizeMetrics.objects.get(
+                preprod_artifact=self.preprod_artifact,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            )
+            observed_states.append((metrics.state, metrics.error_code))
+
+        mock_status_check_task.delay.side_effect = record_metrics_state
+        mock_pr_comment_task.delay.side_effect = record_metrics_state
+
+        data: dict[str, Any] = {}
         response = self._make_request(data)
 
         assert response.status_code == 200
@@ -590,6 +620,23 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert "requestedFeatures" in resp_data
         assert "size_analysis" not in resp_data["requestedFeatures"]
         assert "build_distribution" in resp_data["requestedFeatures"]
+        assert resp_data["updatedFields"] == []
+        task_kwargs = {
+            "preprod_artifact_id": self.preprod_artifact.id,
+            "caller": "artifact_update_endpoint",
+        }
+        mock_status_check_task.delay.assert_called_once_with(**task_kwargs)
+        mock_pr_comment_task.delay.assert_called_once_with(**task_kwargs)
+        assert observed_states == [
+            (
+                PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN,
+                PreprodArtifactSizeMetrics.ErrorCode.SKIPPED,
+            ),
+            (
+                PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN,
+                PreprodArtifactSizeMetrics.ErrorCode.SKIPPED,
+            ),
+        ]
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_update_preprod_artifact_includes_size_when_query_matches(self) -> None:

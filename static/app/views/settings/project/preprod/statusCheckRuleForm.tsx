@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {type ReactNode, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -27,13 +27,38 @@ import {
   STATUS_CHECK_ALLOWED_FILTER_KEYS,
 } from './types';
 
+export interface RuleFormCopy {
+  deleteConfirmHeader: string;
+  deleteConfirmMessage: (ruleDescription: string, valueWithUnit: string) => ReactNode;
+  headerLabel: string;
+  searchSource: string;
+}
+
+const DEFAULT_COPY: RuleFormCopy = {
+  headerLabel: t('Fail Status Check When'),
+  deleteConfirmHeader: t('Are you sure you want to delete this status check rule?'),
+  deleteConfirmMessage: (ruleDescription, valueWithUnit) => (
+    <span>
+      Will no longer fail status checks when <strong>{ruleDescription}</strong> surpasses{' '}
+      <strong>{valueWithUnit}</strong>
+    </span>
+  ),
+  searchSource: 'preprod_status_check_filters',
+};
+
 interface Props {
   onDelete: () => void;
   onSave: (rule: StatusCheckRule) => void;
   rule: StatusCheckRule;
+  copy?: RuleFormCopy;
 }
 
-export function StatusCheckRuleForm({rule, onSave, onDelete}: Props) {
+export function StatusCheckRuleForm({
+  rule,
+  onSave,
+  onDelete,
+  copy = DEFAULT_COPY,
+}: Props) {
   const {project} = useProjectSettingsOutlet();
   const [metric, setMetric] = useState(rule.metric);
   const [measurement, setMeasurement] = useState(rule.measurement);
@@ -78,15 +103,10 @@ export function StatusCheckRuleForm({rule, onSave, onDelete}: Props) {
     openConfirmModal({
       header: (
         <Text size="lg" bold>
-          {t('Are you sure you want to delete this status check rule?')}
+          {copy.deleteConfirmHeader}
         </Text>
       ),
-      message: (
-        <span>
-          Will no longer fail status checks when <strong>{ruleDescription}</strong>{' '}
-          surpasses <strong>{valueWithUnit}</strong>
-        </span>
-      ),
+      message: copy.deleteConfirmMessage(ruleDescription, valueWithUnit),
       confirmText: t('Delete Rule'),
       priority: 'danger',
       onConfirm: onDelete,
@@ -95,7 +115,7 @@ export function StatusCheckRuleForm({rule, onSave, onDelete}: Props) {
 
   return (
     <Stack gap="md" paddingTop="md" paddingBottom="md">
-      <SectionLabel>{t('Fail Status Check When')}</SectionLabel>
+      <SectionLabel>{copy.headerLabel}</SectionLabel>
 
       <Flex align="center" gap="md" wrap="wrap">
         <CompactSelect
@@ -135,7 +155,7 @@ export function StatusCheckRuleForm({rule, onSave, onDelete}: Props) {
           initialQuery={filterQuery}
           projects={[Number(project.id)]}
           onChange={(query, _state) => handleQueryChange(query)}
-          searchSource="preprod_status_check_filters"
+          searchSource={copy.searchSource}
           portalTarget={document.body}
           disallowFreeText
           disallowHas

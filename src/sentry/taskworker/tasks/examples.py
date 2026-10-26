@@ -2,20 +2,32 @@ from __future__ import annotations
 
 import logging
 import random
+from datetime import timedelta
+from functools import cache
 from time import sleep
 from typing import Any
 
-from arroyo.backends.kafka import KafkaPayload, KafkaProducer
+from arroyo.backends.kafka import FutureTrackingProducer, KafkaPayload, KafkaProducer
 from arroyo.types import Topic
 from taskbroker_client.constants import CompressionType
 from taskbroker_client.retry import LastAction, NoRetriesRemainingError, Retry, RetryTaskError
 from taskbroker_client.retry import retry_task as retry_task_helper
-from taskbroker_client.worker.producer import TaskProducer
 
 from sentry.taskworker.namespaces import exampletasks
+from sentry.utils.arroyo_producer import get_future_tracking_producer
 from sentry.utils.redis import redis_clusters
 
 logger = logging.getLogger(__name__)
+
+NO_RETRIES_REMAINING_TTL = timedelta(days=1)
+
+
+@cache
+def _get_example_producer(bootstrap_servers: str) -> FutureTrackingProducer:
+    def producer_factory() -> KafkaProducer:
+        return KafkaProducer({"bootstrap.servers": bootstrap_servers})
+
+    return get_future_tracking_producer(f"test.producer.{bootstrap_servers}", producer_factory)
 
 
 @exampletasks.register(name="examples.say_hello")
@@ -40,7 +52,7 @@ def retry_state() -> None:
         retry_task_helper()
     except NoRetriesRemainingError:
         redis = redis_clusters.get("default")
-        redis.set("no-retries-remaining", 1)
+        redis.set("no-retries-remaining", 1, ex=NO_RETRIES_REMAINING_TTL)
 
 
 @exampletasks.register(
@@ -138,10 +150,7 @@ def task_that_produces(
 ) -> None:
     assert production_count > 0
 
-    def producer_factory() -> KafkaProducer:
-        return KafkaProducer({"bootstrap.servers": bootstrap_servers})
-
-    producer = TaskProducer("test.producer", producer_factory)
+    producer = _get_example_producer(bootstrap_servers)
     production_count = random.randint(1, production_count) if random_count else production_count
     for i in range(production_count):
         logger.debug(f"Producing message {i} onto topic {destination_topic}...")

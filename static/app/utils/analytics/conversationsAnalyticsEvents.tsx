@@ -3,7 +3,10 @@ export type ConversationsEventParameters = {
   'conversations.detail.click-trace-link': Record<string, unknown>;
   'conversations.detail.copy-conversation': Record<string, unknown>;
   'conversations.detail.copy-conversation-id': Record<string, unknown>;
+  'conversations.detail.expand-embedding': {expanded: boolean};
   'conversations.detail.expand-thinking': {expanded: boolean};
+  'conversations.detail.expand-tool-calls': {expanded: boolean};
+  'conversations.detail.export-conversation': Record<string, unknown>;
   'conversations.detail.page-view': Record<string, unknown>;
   'conversations.detail.select-span': Record<string, unknown>;
   'conversations.detail.tab-switch': {
@@ -11,9 +14,29 @@ export type ConversationsEventParameters = {
     toTab: string;
   };
   'conversations.message.click': Record<string, unknown>;
+  'conversations.message.click-evaluation': Record<string, unknown>;
+  'conversations.message.click-memory': Record<string, unknown>;
   'conversations.message.click-tool-call': Record<string, unknown>;
+  'conversations.onboarding.interaction': {
+    action:
+      | 'collapse_prompt'
+      | 'copy_agent_prompt'
+      | 'expand_prompt'
+      | 'next_step'
+      | 'previous_step'
+      | 'select_setup_option'
+      | 'switch_tab'
+      | 'view_conversations';
+    option?: string;
+    step?: number;
+    tab?: 'agent' | 'human';
+    value?: string;
+  };
   'conversations.onboarding.page-view': Record<string, unknown>;
   'conversations.page-view': Record<string, unknown>;
+  'conversations.save_as': {
+    save_type: 'alert' | 'dashboard';
+  };
   'conversations.save_query_modal': {
     action: 'open' | 'submit';
     save_type?: 'save_new_query' | 'rename_query';
@@ -27,19 +50,26 @@ export type ConversationsEventParameters = {
 
 export const conversationsEventMap: Record<keyof ConversationsEventParameters, string> = {
   'conversations.onboarding.page-view': 'Conversations: Onboarding Page View',
+  'conversations.onboarding.interaction': 'Conversations: Onboarding Interaction',
   'conversations.page-view': 'Conversations: Page View',
+  'conversations.save_as': 'Conversations: Save As',
   'conversations.save_query_modal': 'Conversations: Save Query Modal',
   'conversations.table.page-view': 'Conversations: Table Page View',
   'conversations.table.paginate': 'Conversations: Table Paginate',
+  'conversations.detail.expand-embedding': 'Conversations: Detail Expand Embedding',
   'conversations.detail.expand-thinking': 'Conversations: Detail Expand Thinking',
+  'conversations.detail.expand-tool-calls': 'Conversations: Detail Expand Tool Calls',
   'conversations.detail.page-view': 'Conversations: Detail Page View',
   'conversations.detail.tab-switch': 'Conversations: Detail Tab Switch',
   'conversations.detail.select-span': 'Conversations: Detail Select Span',
   'conversations.detail.copy-conversation': 'Conversations: Detail Copy Conversation',
   'conversations.detail.copy-conversation-id':
     'Conversations: Detail Copy Conversation ID',
+  'conversations.detail.export-conversation': 'Conversations: Detail Export Conversation',
   'conversations.detail.click-trace-link': 'Conversations: Detail Click Trace Link',
   'conversations.detail.click-errors-link': 'Conversations: Detail Click Errors Link',
   'conversations.message.click': 'Conversations: Message Click',
+  'conversations.message.click-evaluation': 'Conversations: Message Click Evaluation',
+  'conversations.message.click-memory': 'Conversations: Message Click Memory',
   'conversations.message.click-tool-call': 'Conversations: Message Click Tool Call',
 };

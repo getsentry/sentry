@@ -58,12 +58,12 @@ export enum SpanFields {
   PROFILEID = 'profile.id',
   REPLAYID = 'replayId',
   REPLAY_ID = 'replay.id',
-  CODE_FILEPATH = 'code.filepath',
+  CODE_FILE_PATH = 'code.file.path',
   CODE_FUNCTION = 'code.function',
   SDK_NAME = 'sdk.name',
   SDK_VERSION = 'sdk.version',
   PLATFORM = 'platform',
-  CODE_LINENO = 'code.lineno',
+  CODE_LINE_NUMBER = 'code.line.number',
   SPAN_ACTION = 'span.action',
   SPAN_DOMAIN = 'span.domain',
   NORMALIZED_DESCRIPTION = 'sentry.normalized_description',
@@ -100,20 +100,22 @@ export enum SpanFields {
   GEN_AI_AGENT_NAME = 'gen_ai.agent.name',
   GEN_AI_FUNCTION_ID = 'gen_ai.function_id',
   GEN_AI_REQUEST_MODEL = 'gen_ai.request.model',
-  GEN_AI_REQUEST_REASONING_EFFORT = 'gen_ai.request.reasoning_effort',
+  GEN_AI_REQUEST_REASONING_LEVEL = 'gen_ai.request.reasoning.level',
   GEN_AI_REQUEST_MESSAGES = 'gen_ai.request.messages',
   GEN_AI_RESPONSE_TEXT = 'gen_ai.response.text',
   GEN_AI_RESPONSE_OBJECT = 'gen_ai.response.object',
   GEN_AI_RESPONSE_MODEL = 'gen_ai.response.model',
   GEN_AI_RESPONSE_TOOL_CALLS = 'gen_ai.response.tool_calls',
   GEN_AI_TOOL_NAME = 'gen_ai.tool.name',
+  GEN_AI_PROMPT_NAME = 'gen_ai.prompt.name',
+  GEN_AI_EMBEDDINGS_INPUT = 'gen_ai.embeddings.input',
   GEN_AI_COST_INPUT_TOKENS = 'gen_ai.cost.input_tokens',
   GEN_AI_COST_OUTPUT_TOKENS = 'gen_ai.cost.output_tokens',
   GEN_AI_COST_TOTAL_TOKENS = 'gen_ai.cost.total_tokens',
   GEN_AI_USAGE_INPUT_TOKENS = 'gen_ai.usage.input_tokens',
-  GEN_AI_USAGE_INPUT_TOKENS_CACHED = 'gen_ai.usage.input_tokens.cached',
+  GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS = 'gen_ai.usage.cache_read.input_tokens',
   GEN_AI_USAGE_OUTPUT_TOKENS = 'gen_ai.usage.output_tokens',
-  GEN_AI_USAGE_OUTPUT_TOKENS_REASONING = 'gen_ai.usage.output_tokens.reasoning',
+  GEN_AI_USAGE_REASONING_OUTPUT_TOKENS = 'gen_ai.usage.reasoning.output_tokens',
   GEN_AI_USAGE_TOTAL_TOKENS = 'gen_ai.usage.total_tokens',
   GEN_AI_OPERATION_TYPE = 'gen_ai.operation.type',
   GEN_AI_OPERATION_NAME = 'gen_ai.operation.name',
@@ -124,11 +126,14 @@ export enum SpanFields {
   GEN_AI_TOOL_DEFINITIONS = 'gen_ai.tool.definitions',
   GEN_AI_CONTEXT_WINDOW_SIZE = 'gen_ai.context.window_size',
   GEN_AI_CONTEXT_UTILIZATION = 'gen_ai.context.utilization',
+  GEN_AI_MEMORY_STORE_ID = 'gen_ai.memory.store.id',
+  GEN_AI_MEMORY_QUERY_TEXT = 'gen_ai.memory.query.text',
+  GEN_AI_MEMORY_RECORDS = 'gen_ai.memory.records',
+  GEN_AI_MEMORY_RECORD_ID = 'gen_ai.memory.record.id',
+  GEN_AI_MEMORY_RECORD_COUNT = 'gen_ai.memory.record.count',
   MCP_CLIENT_NAME = 'mcp.client.name',
-  MCP_TRANSPORT = 'mcp.transport',
-  MCP_TOOL_NAME = 'mcp.tool.name',
+  NETWORK_TRANSPORT = 'network.transport',
   MCP_RESOURCE_URI = 'mcp.resource.uri',
-  MCP_PROMPT_NAME = 'mcp.prompt.name',
   SPAN_AI_PIPELINE_GROUP = 'span.ai.pipeline.group',
   AI_TOTAL_COST = 'ai.total_cost',
   AI_TOTAL_TOKENS_USED = 'ai.total_tokens.used',
@@ -141,7 +146,7 @@ export enum SpanFields {
   SPANS_UI = 'spans.ui',
 
   // DB fields
-  DB_SYSTEM = 'db.system', // TODO: this is a duplicate of `SPAN_SYSTEM`
+  DB_SYSTEM_NAME = 'db.system.name', // TODO: this is a duplicate of `SPAN_SYSTEM`
 
   // Mobile fields
   DEVICE_CLASS = 'device.class',
@@ -149,7 +154,9 @@ export enum SpanFields {
   DEVICE_MANUFACTURER = 'device.manufacturer',
   APP_VITALS_START_COLD_VALUE = 'app.vitals.start.cold.value',
   APP_VITALS_START_WARM_VALUE = 'app.vitals.start.warm.value',
+  APP_VITALS_START_VALUE = 'app.vitals.start.value',
   APP_VITALS_START_TYPE = 'app.vitals.start.type',
+  APP_VITALS_START_SCREEN = 'app.vitals.start.screen',
   APP_VITALS_TTID_VALUE = 'app.vitals.ttid.value',
   APP_VITALS_TTFD_VALUE = 'app.vitals.ttfd.value',
   APP_VITALS_FRAMES_SLOW_COUNT = 'app.vitals.frames.slow.count',
@@ -188,6 +195,7 @@ export enum SpanFields {
   USER_DISPLAY = 'user.display', // Note: this is not implemented yet, waiting for EAP-123
 
   // Web vital fields
+  BROWSER_NAVIGATION_TYPE = 'browser.navigation.type',
   BROWSER_WEB_VITAL_LCP_VALUE = 'browser.web_vital.lcp.value',
   BROWSER_WEB_VITAL_FCP_VALUE = 'browser.web_vital.fcp.value',
   BROWSER_WEB_VITAL_CLS_VALUE = 'browser.web_vital.cls.value',
@@ -259,8 +267,9 @@ type SpanNumberFields =
   | SpanFields.GEN_AI_USAGE_INPUT_TOKENS
   | SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS
   | SpanFields.GEN_AI_USAGE_TOTAL_TOKENS
-  | SpanFields.GEN_AI_USAGE_INPUT_TOKENS_CACHED
-  | SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS_REASONING
+  | SpanFields.GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS
+  | SpanFields.GEN_AI_USAGE_REASONING_OUTPUT_TOKENS
+  | SpanFields.GEN_AI_MEMORY_RECORD_COUNT
   | SpanFields.TOTAL_SCORE
   | SpanFields.INP_SCORE
   | SpanFields.INP_SCORE_RATIO
@@ -277,7 +286,7 @@ type SpanNumberFields =
   | SpanFields.FCP_SCORE
   | SpanFields.FCP_SCORE_RATIO
   | SpanFields.FCP_SCORE_WEIGHT
-  | SpanFields.CODE_LINENO
+  | SpanFields.CODE_LINE_NUMBER
   | SpanFields.APP_START_COLD
   | SpanFields.APP_START_WARM
   | SpanFields.PRECISE_START_TS
@@ -316,10 +325,9 @@ type NonNullableStringFields =
   | SpanFields.GEN_AI_RESPONSE_MODEL
   | SpanFields.GEN_AI_TOOL_NAME
   | SpanFields.MCP_CLIENT_NAME
-  | SpanFields.MCP_TRANSPORT
-  | SpanFields.MCP_TOOL_NAME
+  | SpanFields.NETWORK_TRANSPORT
+  | SpanFields.GEN_AI_PROMPT_NAME
   | SpanFields.MCP_RESOURCE_URI
-  | SpanFields.MCP_PROMPT_NAME
   | SpanFields.TRACE
   | SpanFields.TRACE_PARENT_SPAN
   | SpanFields.PROFILEID
@@ -334,8 +342,8 @@ type NonNullableStringFields =
   | SpanFields.BROWSER_WEB_VITAL_CLS_SOURCE_1
   | SpanFields.TRANSACTION_SPAN_ID
   | SpanFields.TRANSACTION_EVENT_ID
-  | SpanFields.DB_SYSTEM
-  | SpanFields.CODE_FILEPATH
+  | SpanFields.DB_SYSTEM_NAME
+  | SpanFields.CODE_FILE_PATH
   | SpanFields.CODE_FUNCTION
   | SpanFields.SDK_NAME
   | SpanFields.SDK_VERSION
@@ -370,7 +378,8 @@ type NonNullableStringFields =
   | SpanFields.USER
   | SpanFields.PROFILER_ID
   | SpanFields.USER_DISPLAY
-  | SpanFields.SENTRY_ORIGIN;
+  | SpanFields.SENTRY_ORIGIN
+  | SpanFields.BROWSER_NAVIGATION_TYPE;
 
 type NullableStringFields = SpanFields.NORMALIZED_DESCRIPTION | SpanFields.SPAN_GROUP;
 
@@ -503,7 +512,7 @@ type HttpResponseFunctions =
 type CustomResponseFields = {
   [SpanFields.USER_GEO_SUBREGION]: SubregionCode;
   [SpanFields.PLATFORM]: PlatformKey;
-  [SpanFields.DB_SYSTEM]: SupportedDatabaseSystem;
+  [SpanFields.DB_SYSTEM_NAME]: SupportedDatabaseSystem;
   [SpanFields.SPAN_STATUS]:
     | 'ok'
     | 'cancelled'
@@ -524,6 +533,8 @@ type CustomResponseFields = {
     | 'data_loss'
     | 'unauthenticated';
   [SpanFields.RESOURCE_RENDER_BLOCKING_STATUS]: '' | 'non-blocking' | 'blocking';
+  // Spans from SDKs that predate the attribute come back as an empty string.
+  [SpanFields.BROWSER_NAVIGATION_TYPE]: '' | BrowserNavigationType;
 };
 
 // Fields that are used as arguments to division() queries.
@@ -550,11 +561,13 @@ type SpanResponseRaw = {
   [Property in SpanBooleanFields as `${Property}`]: boolean;
 } & Record<RegressionFunctions, number> &
   Record<SpanAnyFunction, string> & {
-    [Property in ConditionalAggregate as
-      | `${Property}(${string})`
-      | `${Property}(${string},${string})`
-      | `${Property}(${string},${string},${string})`
-      | `${Property}(${string},${string},${string},${string})`]: number;
+    [
+      Property in ConditionalAggregate as
+        | `${Property}(${string})`
+        | `${Property}(${string},${string})`
+        | `${Property}(${string},${string},${string})`
+        | `${Property}(${string},${string},${string},${string})`
+    ]: number;
     // TODO: We should allow a nicer way to define functions with multiple arguments and different arg types
     // Subset of SpanNumberFields that are actually used in division() queries.
     // Previously this was Record<`division(${SpanNumberFields},${SpanNumberFields})`, number>
@@ -570,12 +583,26 @@ type SpanResponseRaw = {
   } & CustomResponseFields & {
     [Property in SpanFields as `count_unique(${Property})`]: number;
   } & {
+    // EAP filter-first `_if` combinators: `count_if(\`span.op:db\`)`, `avg_if(\`span.op:db\`,span.duration)`.
+    [
+      Property in CounterConditionalAggregate as
+        | `${Property}(${string})`
+        | `${Property}(${string},${string})`
+    ]: number;
+  } & {
     // TODO: The middle arg represents the operator, however adding this creastes too large of a map and tsc fails
-    [Property in SpanNumberFields as `${CounterConditionalAggregate}(${Property},${string},${string},${string})`]: number;
+    // Discover-style / deprecated equals arity — keep until saved queries and formulas are migrated.
+    [
+      Property in SpanNumberFields as `${CounterConditionalAggregate}(${Property},${string},${string},${string})`
+    ]: number;
   } & {
-    [Property in SpanNumberFields as `avg_compare(${Property},${string},${string},${string})`]: number;
+    [
+      Property in SpanNumberFields as `avg_compare(${Property},${string},${string},${string})`
+    ]: number;
   } & {
-    [Property in SpanFields as `${SpanFunction.COUNT_IF}(${Property},${string},${string})`]: number;
+    [
+      Property in SpanFields as `${SpanFunction.COUNT_IF}(${Property},${string},${string})`
+    ]: number;
   };
 
 export type SpanResponse = Simplify<SpanResponseRaw>;
@@ -614,3 +641,14 @@ export const subregionCodeToName = {
 };
 
 export type SubregionCode = keyof typeof subregionCodeToName;
+
+// Named exactly as the web-vitals library names them.
+// See https://github.com/getsentry/sentry-conventions/pull/600
+export type BrowserNavigationType =
+  | 'navigate'
+  | 'reload'
+  | 'back-forward'
+  | 'back-forward-cache'
+  | 'restore'
+  | 'prerender'
+  | 'soft-navigation';

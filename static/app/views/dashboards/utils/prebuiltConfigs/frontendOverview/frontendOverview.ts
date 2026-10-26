@@ -7,6 +7,7 @@ import type {
   PrebuiltWidget,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {
+  DASHBOARD_DESCRIPTION,
   DASHBOARD_TITLE,
   FRONTEND_SDK_NAMES,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendOverview/settings';
@@ -44,7 +45,6 @@ TABLE_QUERY.addFilterValue(
 TABLE_QUERY.addOp('OR');
 TABLE_QUERY.addFilterValue('sdk.name', `[${FRONTEND_SDK_NAMES.join(',')}]`);
 TABLE_QUERY.addOp(')');
-TABLE_QUERY.addFilterValue(SpanFields.IS_TRANSACTION, 'true');
 
 const ASSETS_BY_TIME_SPENT_QUERY = getResourcesEventViewQuery(
   {},
@@ -182,12 +182,12 @@ const TABLE_FIELDS = [
   SpanFields.TRANSACTION,
   SpanFields.PROJECT,
   'equation|tpm()',
-  `equation|p50_if(${SpanFields.SPAN_DURATION},${SpanFields.IS_TRANSACTION},equals,true)`,
-  `equation|p75_if(${SpanFields.SPAN_DURATION},${SpanFields.IS_TRANSACTION},equals,true)`,
-  `equation|p95_if(${SpanFields.SPAN_DURATION},${SpanFields.IS_TRANSACTION},equals,true)`,
+  `equation|p50_if(\`${SpanFields.IS_TRANSACTION}:true\`,${SpanFields.SPAN_DURATION})`,
+  `equation|p75_if(\`${SpanFields.IS_TRANSACTION}:true\`,${SpanFields.SPAN_DURATION})`,
+  `equation|p95_if(\`${SpanFields.IS_TRANSACTION}:true\`,${SpanFields.SPAN_DURATION})`,
   `equation|failure_rate_if(${SpanFields.IS_TRANSACTION},equals,true)`,
   `count_unique(${SpanFields.USER})`,
-  `equation|sum_if(${SpanFields.SPAN_DURATION},${SpanFields.IS_TRANSACTION},equals,true)`,
+  `equation|sum_if(\`${SpanFields.IS_TRANSACTION}:true\`,${SpanFields.SPAN_DURATION})`,
   'performance_score(measurements.score.total)',
 ];
 
@@ -204,12 +204,12 @@ const TRANSACTIONS_TABLE: PrebuiltWidget = {
       conditions: TABLE_QUERY.formatString(),
       aggregates: [
         'equation|tpm()',
-        `equation|p50_if(${SpanFields.SPAN_DURATION},${SpanFields.IS_TRANSACTION},equals,true)`,
-        `equation|p75_if(${SpanFields.SPAN_DURATION},${SpanFields.IS_TRANSACTION},equals,true)`,
-        `equation|p95_if(${SpanFields.SPAN_DURATION},${SpanFields.IS_TRANSACTION},equals,true)`,
+        `equation|p50_if(\`${SpanFields.IS_TRANSACTION}:true\`,${SpanFields.SPAN_DURATION})`,
+        `equation|p75_if(\`${SpanFields.IS_TRANSACTION}:true\`,${SpanFields.SPAN_DURATION})`,
+        `equation|p95_if(\`${SpanFields.IS_TRANSACTION}:true\`,${SpanFields.SPAN_DURATION})`,
         `equation|failure_rate_if(${SpanFields.IS_TRANSACTION},equals,true)`,
         `count_unique(${SpanFields.USER})`,
-        `equation|sum_if(${SpanFields.SPAN_DURATION},${SpanFields.IS_TRANSACTION},equals,true)`,
+        `equation|sum_if(\`${SpanFields.IS_TRANSACTION}:true\`,${SpanFields.SPAN_DURATION})`,
         'performance_score(measurements.score.total)',
       ],
       fields: TABLE_FIELDS,
@@ -231,7 +231,7 @@ const TRANSACTIONS_TABLE: PrebuiltWidget = {
         SpanFields.TRANSACTION,
         SpanFields.PROJECT,
       ],
-      orderby: `-equation|sum_if(${SpanFields.SPAN_DURATION},${SpanFields.IS_TRANSACTION},equals,true)`,
+      orderby: `-equation|sum_if(\`${SpanFields.IS_TRANSACTION}:true\`,${SpanFields.SPAN_DURATION})`,
     },
   ],
   layout: {
@@ -247,6 +247,7 @@ export const FRONTEND_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
   title: DASHBOARD_TITLE,
+  description: DASHBOARD_DESCRIPTION,
   filters: {
     globalFilter: [
       {

@@ -8,12 +8,15 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, cell_silo_endpoint
+from sentry.integrations.jira.utils.api import handle_issue_moved
 from sentry.integrations.jira_server.utils import handle_assignee_change, handle_status_change
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.scope import clear_organization_info
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.shared_integrations.exceptions import ApiError
@@ -39,11 +42,19 @@ def get_integration_from_token(token: str | None) -> RpcIntegration:
     if "id" not in unvalidated:
         raise ValueError("Token did not contain `id`")
 
-    integration = integration_service.get_integration(external_id=unvalidated["id"])
+    # Filter by provider as well: Integration's only index on external_id is the
+    # (provider, external_id) unique index, so an external_id-only lookup does a
+    # sequential scan of the whole table on every inbound Jira Server webhook.
+    integration = integration_service.get_integration(
+        provider=IntegrationProviderSlug.JIRA_SERVER.value,
+        external_id=unvalidated["id"],
+        using_replica=options.get("integration_service.get_integration.using_replica"),
+    )
     if not integration:
         raise ValueError("Could not find integration for token")
     try:
-        jwt.decode(token, integration.metadata["webhook_secret"])
+        # Jira Server webhook tokens are long-lived and were generated without an expiration.
+        jwt.decode(token, integration.metadata["webhook_secret"], require_exp=False)
     except Exception as err:
         raise ValueError(f"Could not validate JWT. Got {err}")
 
@@ -81,7 +92,7 @@ class JiraServerIssueUpdatedWebhook(Endpoint):
             integration = get_integration_from_token(token)
             extra["integration_id"] = integration.id
         except ValueError as err:
-            extra.update({"token": token, "error": str(err)})
+            extra["error"] = str(err)
             logger.warning("token-validation-error", extra=extra)
             metrics.incr("jira_server.webhook.invalid_token")
             return self.respond(status=400)
@@ -95,10 +106,13 @@ class JiraServerIssueUpdatedWebhook(Endpoint):
             return self.respond()
 
         try:
+            # Rekey first: a move that also changes status or assignee arrives as one
+            # webhook, and the handlers below look the issue up by its new key.
+            handle_issue_moved(integration, data)
             handle_assignee_change(integration, data)
             handle_status_change(integration, data)
         except (ApiError, ObjectDoesNotExist) as err:
-            extra.update({"token": token, "error": str(err)})
+            extra["error"] = str(err)
             logger.info("sync-failed", extra=extra)
             return self.respond(status=400)
         else:

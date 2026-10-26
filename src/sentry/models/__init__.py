@@ -56,7 +56,6 @@ from .groupreaction import *  # NOQA
 from .groupredirect import *  # NOQA
 from .grouprelease import *  # NOQA
 from .groupresolution import *  # NOQA
-from .grouprulestatus import *  # NOQA
 from .groupsearchview import *  # NOQA
 from .groupsearchviewlastvisited import *  # NOQA
 from .groupsearchviewstarred import *  # NOQA
@@ -77,7 +76,6 @@ from .organizationmember import *  # NOQA
 from .organizationmemberinvite import *  # NOQA
 from .organizationmembermapping import *  # NOQA
 from .organizationmemberteam import *  # NOQA
-from .organizationmemberteamreplica import *  # NOQA
 from .organizationonboardingtask import *  # NOQA
 from .organizationslugreservation import *  # NOQA
 from .orgauthtoken import *  # NOQA
@@ -112,7 +110,6 @@ from .repositorysettings import *  # NOQA
 from .rollbackorganization import *  # NOQA
 from .rollbackuser import *  # NOQA
 from .rule import *  # NOQA
-from .rulesnooze import *  # NOQA
 from .savedsearch import *  # NOQA
 from .search_common import *  # NOQA
 from sentry.seer.models import *  # NOQA
@@ -120,7 +117,6 @@ from .sentryshot import *  # NOQA
 from .sourcemapprocessingissue import *  # NOQA
 from .statistical_detectors import *  # NOQA
 from .team import *  # NOQA
-from .teamreplica import *  # NOQA
 from .tombstone import *  # NOQA
 from .transaction_threshold import *  # NOQA
 from .userreport import *  # NOQA

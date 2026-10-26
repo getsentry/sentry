@@ -1,20 +1,21 @@
+import {IconNot} from '@sentry/icons/not';
 import moment from 'moment-timezone';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
-import {PanelTable} from 'sentry/components/panels/panelTable';
-import {IconNot} from 'sentry/icons';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import type {UserIdentityConfig} from 'sentry/types/auth';
 import {UserIdentityCategory, UserIdentityStatus} from 'sentry/types/auth';
 import type {InternalAppApiToken, User} from 'sentry/types/user';
 import {ApiTokenRow} from 'sentry/views/settings/account/apiTokenRow';
 
 import {DetailLabel} from 'admin/components/detailLabel';
-import {DetailList} from 'admin/components/detailList';
-import {DetailsContainer} from 'admin/components/detailsContainer';
+import {DetailsContainer, DetailsHeading} from 'admin/components/detailsContainer';
 import {prettyDate} from 'admin/utils';
 
 type Props = {
@@ -25,6 +26,13 @@ type Props = {
   tokens: InternalAppApiToken[];
   user: User;
 };
+
+const USER_TOKEN_COLUMNS: TableColumnConfig[] = [
+  {key: 'token', width: 'auto'},
+  {key: 'created', width: 'auto'},
+  {key: 'scopes', width: 'auto'},
+  {key: 'actions', width: 'auto'},
+];
 
 function identityLabel(identity: UserIdentityConfig) {
   if (identity.category === UserIdentityCategory.ORG_IDENTITY) {
@@ -68,7 +76,7 @@ export function UserOverview({
   return (
     <DetailsContainer>
       <div>
-        <DetailList>
+        <DescriptionList gap="md">
           <DetailLabel title="Status">
             {user.isSuspended ? 'Suspended' : user.isActive ? 'Active' : 'Disabled'}
           </DetailLabel>
@@ -88,9 +96,9 @@ export function UserOverview({
             <ExternalLink href={sentryUrl}>Sentry</ExternalLink> |{' '}
             <ExternalLink href={sendgridUrl}>SendGrid</ExternalLink>
           </DetailLabel>
-        </DetailList>
-        <h6>Admin</h6>
-        <DetailList>
+        </DescriptionList>
+        <DetailsHeading>Admin</DetailsHeading>
+        <DescriptionList gap="md">
           <DetailLabel title="Superuser" yesNo={user.isSuperuser} />
           <DetailLabel title="Staff" yesNo={user.isStaff} />
           <DetailLabel title="Permissions">
@@ -100,12 +108,12 @@ export function UserOverview({
               </Tag>
             ))}
           </DetailLabel>
-        </DetailList>
+        </DescriptionList>
       </div>
       <div>
-        <h6>Identities</h6>
+        <DetailsHeading>Identities</DetailsHeading>
         {identities?.length ? (
-          <DetailList>
+          <DescriptionList gap="md">
             {identities.map(identity => (
               <DetailLabel key={identity.id} title={identity.provider.name}>
                 <Flex justify="between">
@@ -135,7 +143,7 @@ export function UserOverview({
                 )}
               </DetailLabel>
             ))}
-          </DetailList>
+          </DescriptionList>
         ) : (
           <p>
             <em>
@@ -143,9 +151,9 @@ export function UserOverview({
             </em>
           </p>
         )}
-        <h6>Authenticators</h6>
+        <DetailsHeading>Authenticators</DetailsHeading>
         {user.authenticators?.length ? (
-          <DetailList>
+          <DescriptionList gap="md">
             {user.authenticators.map(auth => (
               <DetailLabel title={auth.type} key={auth.id}>
                 <Flex justify="between">
@@ -164,7 +172,7 @@ export function UserOverview({
                 </small>
               </DetailLabel>
             ))}
-          </DetailList>
+          </DescriptionList>
         ) : (
           <p>
             <em>
@@ -172,9 +180,19 @@ export function UserOverview({
             </em>
           </p>
         )}
-        <h6>Auth Tokens</h6>
+        <DetailsHeading>Auth Tokens</DetailsHeading>
         {tokens.length ? (
-          <PanelTable headers={['Token', 'Created On', 'Scopes', '']}>
+          <SimpleTable
+            columns={USER_TOKEN_COLUMNS}
+            header={
+              <SimpleTable.HeaderRow>
+                <SimpleTable.HeaderCell>Token</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell>Created On</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell>Scopes</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell />
+              </SimpleTable.HeaderRow>
+            }
+          >
             {tokens.map(token => (
               <ApiTokenRow
                 key={token.id}
@@ -183,7 +201,7 @@ export function UserOverview({
                 onRemoveConfirmMessage="Are you sure you want to revoke this user's token? Doing so may break user's applications, and should usually only be done if the token has been leaked."
               />
             ))}
-          </PanelTable>
+          </SimpleTable>
         ) : (
           <p>
             <em>

@@ -1,10 +1,12 @@
 import {categoryList} from 'sentry/data/platformPickerCategories';
 import {allPlatforms as platforms} from 'sentry/data/platforms';
 
-export const REGIONCHOICES = [
-  ['us', 'US'],
-  ['de', 'DE'],
-] as const;
+type BroadcastChoice = {label: string; value: string};
+
+export const REGIONCHOICES: readonly BroadcastChoice[] = [
+  {value: 'us', label: 'US'},
+  {value: 'de', label: 'DE'},
+];
 
 const exposedPlatformCategoriesSet = new Set([
   'browser',
@@ -18,7 +20,7 @@ export const platformOptions = categoryList
   .filter(({id}) => exposedPlatformCategoriesSet.has(id))
   .map(({name, platforms: platformKeys}) => ({
     label: name,
-    options: [...platformKeys].map(platformKey => {
+    options: Array.from(platformKeys, platformKey => {
       const platform = platforms.find(p => p.id === platformKey);
       return {
         value: platformKey,
@@ -27,52 +29,52 @@ export const platformOptions = categoryList
     }),
   }));
 
-export const PLATFORMCHOICES = platformOptions
-  .flatMap(platformChoice => platformChoice.options)
-  .map(option => [option.value, option.label]);
+export const PLATFORMCHOICES = platformOptions.flatMap(
+  platformChoice => platformChoice.options
+);
 
-export const PRODUCTCHOICES = [
-  ['errors', 'Errors'],
-  ['spans', 'Spans'],
-  ['replays', 'Replays'],
-  ['profiling', 'Profiling'],
-  ['crons', 'Crons'],
-] as const;
+export const PRODUCTCHOICES: readonly BroadcastChoice[] = [
+  {value: 'errors', label: 'Errors'},
+  {value: 'spans', label: 'Spans'},
+  {value: 'replays', label: 'Replays'},
+  {value: 'profiling', label: 'Profiling'},
+  {value: 'crons', label: 'Crons'},
+];
 
-export const TRIALCHOICES = [
-  ['trialing', 'Trialing'],
-  ['can_trial', 'Can Trial'],
-  ['has_trialed', 'Has Trialed'],
-] as const;
+export const TRIALCHOICES: readonly BroadcastChoice[] = [
+  {value: 'trialing', label: 'Trialing'},
+  {value: 'can_trial', label: 'Can Trial'},
+  {value: 'has_trialed', label: 'Has Trialed'},
+];
 
-export const ROLECHOICES = [
-  ['admin', 'Admin'],
-  ['billing', 'Billing'],
-  ['manager', 'Manager'],
-  ['member', 'Member'],
-  ['owner', 'Owner'],
-] as const;
+export const ROLECHOICES: readonly BroadcastChoice[] = [
+  {value: 'admin', label: 'Admin'},
+  {value: 'billing', label: 'Billing'},
+  {value: 'manager', label: 'Manager'},
+  {value: 'member', label: 'Member'},
+  {value: 'owner', label: 'Owner'},
+];
 
-export const AVAILABLE_PLANCHOICES = [
-  ['free', 'Free'],
-  ['team', 'Team'],
-  ['business', 'Business'],
-  ['enterprise', 'Enterprise'],
-] as const;
+export const AVAILABLE_PLANCHOICES: readonly BroadcastChoice[] = [
+  {value: 'free', label: 'Free'},
+  {value: 'team', label: 'Team'},
+  {value: 'business', label: 'Business'},
+  {value: 'enterprise', label: 'Enterprise'},
+];
 
-export const ALL_PLANCHOICES = [
-  ['paid_non_business', 'Paid Non-Business/Enterprise'],
+export const ALL_PLANCHOICES: readonly BroadcastChoice[] = [
+  {value: 'paid_non_business', label: 'Paid Non-Business/Enterprise'},
   ...AVAILABLE_PLANCHOICES,
-] as const;
+];
 
 /**
  * Category of the broadcast.
  * Synced with https://github.com/getsentry/sentry/blob/master/src/sentry/models/broadcast.py#L14
  */
-export const CATEGORYCHOICES = [
-  ['announcement', 'Announcement'],
-  ['feature', 'New Feature'],
-  ['blog', 'Blog Post'],
-  ['event', 'Event'],
-  ['video', 'Video'],
-] as const;
+export const CATEGORYCHOICES: readonly BroadcastChoice[] = [
+  {value: 'announcement', label: 'Announcement'},
+  {value: 'feature', label: 'New Feature'},
+  {value: 'blog', label: 'Blog Post'},
+  {value: 'event', label: 'Event'},
+  {value: 'video', label: 'Video'},
+];

@@ -6,6 +6,7 @@ from django.db import router
 from django.db.models import Q
 from django.db.utils import IntegrityError
 from django.utils import timezone
+from sentry_sdk import traces
 
 from sentry import options
 from sentry.demo_mode.utils import get_demo_org, is_demo_mode_enabled
@@ -18,11 +19,10 @@ from sentry.models.debugfile import ProguardArtifactRelease, ProjectDebugFile
 from sentry.models.files import FileBlobOwner
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.objectstore import get_debug_files_session
+from sentry.objectstore import UsecaseId, get_session
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import demomode_tasks
 from sentry.utils.db import atomic_transaction
-from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +79,7 @@ def _sync_project_debug_files(
     if not source_org or not target_org:
         return
 
-    with start_span(name="sync-project-debug-files-get-project-ids") as span:
+    with traces.start_span(name="sync-project-debug-files-get-project-ids") as span:
         source_project_ids = list(
             Project.objects.filter(
                 organization_id=source_org.id,
@@ -91,8 +91,8 @@ def _sync_project_debug_files(
                 organization_id=target_org.id,
             ).values_list("id", flat=True)
         )
-        set_span_data(span, "source_project_ids", source_project_ids)
-        set_span_data(span, "target_project_ids", target_project_ids)
+        span.set_attribute("source_project_ids", source_project_ids)
+        span.set_attribute("target_project_ids", target_project_ids)
 
     project_debug_files = ProjectDebugFile.objects.filter(
         Q(project_id__in=source_project_ids) | Q(project_id__in=target_project_ids),
@@ -112,8 +112,10 @@ def _sync_project_debug_files(
     )
 
     for source_project_debug_file in different_project_debug_files:
-        with start_span(name="sync-project-debug-files-sync-project-debug-file") as span:
-            set_span_data(span, "source_project_debug_file_id", source_project_debug_file.id)
+        with traces.start_span(
+            name="sync-project-debug-files-sync-project-debug-file",
+            attributes={"source_project_debug_file_id": source_project_debug_file.id},
+        ):
             _sync_project_debug_file(source_project_debug_file, target_org)
 
 
@@ -239,13 +241,15 @@ def _sync_project_debug_file(
                 return None
 
             if source_project_debug_file.storage_path is not None:
-                source_fileobj = source_project_debug_file.get_file()
+                response = source_project_debug_file.get_objectstore_session().get(
+                    source_project_debug_file.storage_path
+                )
+                if response is None:
+                    raise FileNotFoundError("Debug file does not exist in objectstore")
+                source_fileobj = response.payload
                 try:
-                    target_storage_path = get_debug_files_session(
-                        target_org.id, target_project.id
-                    ).put(
+                    target_storage_path = get_session(UsecaseId.DEBUG_FILES, target_project).put(
                         source_fileobj,
-                        compression="none",
                         content_type=source_project_debug_file.get_content_type(),
                     )
                 finally:
@@ -253,11 +257,7 @@ def _sync_project_debug_file(
 
             return ProjectDebugFile.objects.create(
                 project_id=target_project.id,
-                file=(
-                    None
-                    if source_project_debug_file.storage_path is not None
-                    else source_project_debug_file.file
-                ),
+                file=source_project_debug_file.file,
                 storage_path=target_storage_path,
                 content_type=source_project_debug_file.content_type,
                 file_size=source_project_debug_file.file_size,

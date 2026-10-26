@@ -1,7 +1,8 @@
 import {Observer} from 'mobx-react-lite';
 
-import {Button} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
+import {Separator} from '@sentry/scraps/separator';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
@@ -14,11 +15,11 @@ import {
   useDeleteAutomationMutation,
   useUpdateAutomation,
 } from 'sentry/views/automations/hooks';
+import {useAutomationEditPermission} from 'sentry/views/automations/hooks/useCanEditAutomation';
 import {
-  getNoAlertWritePermissionTooltip,
-  useCanEditAutomation,
-} from 'sentry/views/automations/hooks/useCanEditAutomation';
-import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
+  makeAutomationBasePathname,
+  makeAutomationDetailsPathname,
+} from 'sentry/views/automations/pathnames';
 
 interface EditAutomationActionsProps {
   automation: Automation;
@@ -28,8 +29,11 @@ interface EditAutomationActionsProps {
 export function EditAutomationActions({automation, form}: EditAutomationActionsProps) {
   const organization = useOrganization();
   const navigate = useNavigate();
-  const canEdit = useCanEditAutomation();
-  const permissionTooltipText = canEdit ? undefined : getNoAlertWritePermissionTooltip();
+  const {
+    canEdit,
+    disabledReason,
+    isPending: isPermissionPending,
+  } = useAutomationEditPermission(automation.id);
   const {mutateAsync: deleteAutomation, isPending: isDeleting} =
     useDeleteAutomationMutation();
   const {mutate: updateAutomation, isPending: isUpdating} = useUpdateAutomation();
@@ -69,29 +73,39 @@ export function EditAutomationActions({automation, form}: EditAutomationActionsP
           variant="secondary"
           size="sm"
           onClick={toggleDisabled}
+          busy={isPermissionPending}
           disabled={!canEdit || isUpdating}
-          tooltipProps={{title: permissionTooltipText, isHoverable: true}}
+          tooltipProps={{title: disabledReason}}
         >
           {automation.enabled ? t('Disable') : t('Enable')}
         </Button>
         <Button
           variant="danger"
           onClick={handleDelete}
+          busy={isPermissionPending}
           disabled={!canEdit || isDeleting}
-          tooltipProps={{title: permissionTooltipText, isHoverable: true}}
+          tooltipProps={{title: disabledReason}}
           size="sm"
         >
           {t('Delete')}
         </Button>
+        <Separator orientation="vertical" />
+        <LinkButton
+          variant="secondary"
+          size="sm"
+          to={makeAutomationDetailsPathname(organization.slug, automation.id)}
+        >
+          {t('Cancel')}
+        </LinkButton>
         <Observer>
           {() => (
             <Button
               type="submit"
               variant="primary"
               size="sm"
-              busy={form.isSaving}
+              busy={form.isSaving || isPermissionPending}
               disabled={!canEdit}
-              tooltipProps={{title: permissionTooltipText, isHoverable: true}}
+              tooltipProps={{title: disabledReason}}
             >
               {t('Save')}
             </Button>

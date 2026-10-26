@@ -1,5 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {IconInfo} from '@sentry/icons/info';
 
 import {InlineCode} from '@sentry/scraps/code';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -9,7 +10,6 @@ import {NumberField} from 'sentry/components/forms/fields/numberField';
 import {SegmentedRadioField} from 'sentry/components/forms/fields/segmentedRadioField';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
-import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {
   DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL,
@@ -55,7 +55,7 @@ export function MobileBuildDetectSection() {
   const maybePlatform = project ? guessPlatformForProject(project) : undefined;
 
   const metricOptions = useMemo(() => getMetricOptions(maybePlatform), [maybePlatform]);
-  const thresholdTypeOptions = useMemo(getThresholdTypeOptions, []);
+  const thresholdTypeOptions = useMemo(() => getThresholdTypeOptions(), []);
 
   return (
     <Fragment>

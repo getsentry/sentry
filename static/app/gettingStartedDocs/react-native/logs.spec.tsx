@@ -20,6 +20,12 @@ function renderMockRequests({
     method: 'GET',
     body: [ProjectKeysFixture()[0]],
   });
+  // Polled by useEventWaiter to detect the project's first log.
+  MockApiClient.addMockResponse({
+    url: `/projects/${organization.slug}/${project.slug}/`,
+    method: 'GET',
+    body: project,
+  });
   MockApiClient.addMockResponse({
     url: `/customers/${organization.slug}/`,
     method: 'GET',

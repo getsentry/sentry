@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import TypedDict
 
 from drf_spectacular.utils import extend_schema
@@ -21,7 +22,7 @@ from sentry.apidocs.parameters import GlobalParams, ReplayParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.replays.endpoints.project_replay_endpoint import ProjectReplayEndpoint
-from sentry.replays.models import ReplayDeletionJobModel
+from sentry.replays.models import DeletionJobStatus, ReplayDeletionJobModel
 from sentry.replays.permissions import has_replay_permission
 from sentry.replays.tasks import run_bulk_replay_delete_job
 
@@ -79,6 +80,10 @@ class ReplayDeletionJobCreateDataSerializer(serializers.Serializer):
     def validate(self, data):
         if data["rangeStart"] >= data["rangeEnd"]:
             raise serializers.ValidationError("rangeStart must be before rangeEnd")
+        if data["rangeEnd"] - data["rangeStart"] > timedelta(days=30):
+            raise serializers.ValidationError(
+                "you cannot delete more than 30 days of data at a time"
+            )
         return data
 
 
@@ -172,15 +177,13 @@ class ProjectReplayDeletionJobsIndexEndpoint(ProjectEndpoint):
             organization_id=project.organization_id,
             project_id=project.id,
             query=data["query"] or "",
-            status="pending",
+            status=DeletionJobStatus.PENDING,
         )
 
         # We don't check Seer features because an org may have previously had them on, then turned them off.
         has_seer_data = features.has("organizations:replay-ai-summaries", project.organization)
 
-        # We always start with an offset of 0 (obviously) but future work doesn't need to obey
-        # this. You're free to start from wherever you want.
-        run_bulk_replay_delete_job.delay(job.id, offset=0, has_seer_data=has_seer_data)
+        run_bulk_replay_delete_job.delay(job.id, has_seer_data=has_seer_data)
 
         self.create_audit_entry(
             request,

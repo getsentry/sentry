@@ -75,8 +75,8 @@ class TestSentryAppMetricAlertHandler(MetricAlertHandlerBase):
             metric_issue_context=metric_issue_context,
             open_period_context=open_period_context,
             trigger_status=TriggerStatus.ACTIVE,
-            project=self.detector.project,
-            organization=self.detector.project.organization,
+            project=self.detector.linked_project,
+            organization=self.detector.linked_project.organization,
             notification_uuid=notification_uuid,
         )
 
@@ -84,8 +84,8 @@ class TestSentryAppMetricAlertHandler(MetricAlertHandlerBase):
             notification_context=notification_context,
             alert_context=alert_context,
             metric_issue_context=metric_issue_context,
-            organization=self.detector.project.organization,
-            project_id=self.detector.project.id,
+            organization=self.detector.linked_project.organization,
+            project_id=self.detector.linked_project.id,
             notification_uuid=notification_uuid,
             incident_serialized_response=get_incident_serializer(self.open_period),
         )
@@ -123,6 +123,8 @@ class TestSentryAppMetricAlertHandler(MetricAlertHandlerBase):
             target_display=None,
             sentry_app_config=None,
             sentry_app_id=str(self.sentry_app.id),
+            workflow_id=self.workflow.id,
+            workflow_name=self.workflow.name,
         )
 
         self.assert_alert_context(
@@ -153,7 +155,7 @@ class TestSentryAppMetricAlertHandler(MetricAlertHandlerBase):
             date_closed=None,
         )
 
-        assert organization == self.detector.project.organization
+        assert organization == self.detector.linked_project.organization
         assert isinstance(notification_uuid, str)
 
     @mock.patch(
@@ -209,6 +211,8 @@ class TestSentryAppMetricAlertHandler(MetricAlertHandlerBase):
             target_display=None,
             sentry_app_config=None,
             sentry_app_id=str(self.sentry_app.id),
+            workflow_id=self.workflow.id,
+            workflow_name=self.workflow.name,
         )
 
         self.assert_alert_context(
@@ -239,5 +243,5 @@ class TestSentryAppMetricAlertHandler(MetricAlertHandlerBase):
             date_closed=None,
         )
 
-        assert organization == self.detector.project.organization
+        assert organization == self.detector.linked_project.organization
         assert isinstance(notification_uuid, str)

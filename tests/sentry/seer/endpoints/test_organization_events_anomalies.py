@@ -2,6 +2,7 @@ from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
 import orjson
+from django.test import override_settings
 from urllib3 import HTTPResponse
 from urllib3.exceptions import TimeoutError
 
@@ -22,6 +23,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
+from sentry.viewer_context import ActorType, ViewerContext, decode_viewer_context
 
 
 @freeze_time()
@@ -83,7 +85,7 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
         )
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:incidents")
+    @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
     @patch(
         "sentry.seer.anomaly_detection.get_historical_anomalies.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -114,11 +116,19 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
                 self.organization.slug, status_code=200, raw_data=orjson.dumps(data)
             )
 
+        viewer_context = decode_viewer_context(
+            mock_seer_request.call_args.kwargs["headers"]["X-Viewer-Context"],
+            key="viewer-context-test-secret",
+        )
+        assert isinstance(viewer_context, ViewerContext)
+        assert viewer_context.organization_id == self.organization.id
+        assert viewer_context.actor.actor_id == self.user.id
+        assert viewer_context.actor.type == ActorType.USER
+
         assert mock_seer_request.call_count == 1
         assert resp.data == seer_return_value["timeseries"]
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.get_historical_anomalies.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -158,7 +168,6 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
         assert resp.data == seer_return_value["timeseries"]
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.get_historical_anomalies.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -186,7 +195,6 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
         assert resp.data == []
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.get_historical_anomalies.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -214,7 +222,6 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
         assert resp.data == {"detail": "Unable to get historical anomaly data"}
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.get_historical_anomalies.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -244,7 +251,6 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
         assert resp.data == {"detail": "Unable to get historical anomaly data"}
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.get_historical_anomalies.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -274,7 +280,6 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
         assert resp.data == {"detail": "Unable to get historical anomaly data"}
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.get_historical_anomalies.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -308,7 +313,6 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
         assert resp.data == {"detail": "Unable to get historical anomaly data"}
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.get_historical_anomalies.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -340,7 +344,6 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
         assert resp.data == {"detail": "Unable to get historical anomaly data"}
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:incidents")
     def test_rejects_project_not_in_organization(self) -> None:
         """Test that POST fails when project doesn't belong to the organization"""
         other_org = self.create_organization(owner=self.user)
@@ -357,7 +360,6 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
         assert resp.data == {"detail": "You do not have permission to perform this action."}
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:incidents")
     def test_rejects_nonexistent_project(self) -> None:
         """Test that POST fails when project doesn't exist"""
         self.login_as(self.user)

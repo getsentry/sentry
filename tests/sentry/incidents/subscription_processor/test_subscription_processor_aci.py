@@ -536,7 +536,6 @@ class ProcessUpdateUpsampledCountTest(ProcessUpdateBaseClass):
             self.sub, upsampled_count=upsampled_count, time_delta=time_delta
         )
         with (
-            self.feature("organizations:incidents"),
             self.feature("organizations:performance-view"),
         ):
             SubscriptionProcessor.process(self.sub, message)
@@ -617,7 +616,7 @@ class MetricsCrashRateDetectorProcessUpdateTest(ProcessUpdateBaseClass, BaseMetr
         timestamp = timestamp.replace(microsecond=0)
 
         with (
-            self.feature(["organizations:incidents", "organizations:performance-view"]),
+            self.feature("organizations:performance-view"),
             self.capture_on_commit_callbacks(execute=True),
         ):
             if value is None:
@@ -978,7 +977,7 @@ class MetricsCrashRateDetectorProcessUpdateTest(ProcessUpdateBaseClass, BaseMetr
     def test_ensure_case_when_no_metrics_index_not_found_is_handled_gracefully(
         self, helper_metrics
     ):
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+        with self.feature("organizations:performance-view"):
             SubscriptionProcessor.process(
                 self.sub,
                 {

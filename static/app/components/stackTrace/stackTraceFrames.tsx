@@ -54,6 +54,7 @@ export function StackTraceFrames({
   // A ref is sufficient — the component already re-renders when `rows` changes.
   const everVisibleRef = useRef(new Set<number>());
   for (const idx of visibleIndices) {
+    // oxlint-disable-next-line react/refs
     everVisibleRef.current.add(idx);
   }
 
@@ -80,6 +81,7 @@ export function StackTraceFrames({
 
   return (
     <FramesPanel borderless={borderless}>
+      {/* oxlint-disable-next-line react/refs */}
       {allRows.map(row => {
         if (row.kind === 'omitted') {
           return (

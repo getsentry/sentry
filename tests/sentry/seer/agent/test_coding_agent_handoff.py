@@ -1,23 +1,52 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.utils import timezone
+from requests import HTTPError
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
+from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
 from sentry.integrations.cursor.integration import CursorAgentIntegration
 from sentry.seer.agent.coding_agent_handoff import _resolve_client, launch_coding_agents
-from sentry.seer.models import SeerRepoDefinition
+from sentry.seer.autofix.utils import CodingAgentProviderType, CodingAgentState
+from sentry.seer.models import SeerApiError, SeerRepoDefinition
+from sentry.seer.models.run import SeerRunCodingAgentHandoff
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
 
 
-def _repo(owner: str, name: str) -> SeerRepoDefinition:
+def _repo(owner: str, name: str, integration_id: str | None = None) -> SeerRepoDefinition:
     """Minimal SeerRepoDefinition for tests."""
     return SeerRepoDefinition(
         provider="github",
         owner=owner,
         name=name,
         external_id="123",
+        integration_id=integration_id,
     )
+
+
+def _state(agent_id: str = "agent-123", agent_url: str | None = None) -> CodingAgentState:
+    return CodingAgentState(
+        id=agent_id,
+        provider=CodingAgentProviderType.CURSOR_BACKGROUND_AGENT,
+        name="Cursor",
+        started_at=timezone.now(),
+        agent_url=agent_url,
+    )
+
+
+class FakeCodingAgentInstallation:
+    def __init__(self, *results: CodingAgentState | Exception) -> None:
+        self._results = list(results)
+        self.launch_calls: list[CodingAgentLaunchRequest] = []
+
+    def launch(self, request: CodingAgentLaunchRequest) -> CodingAgentState:
+        self.launch_calls.append(request)
+        result = self._results.pop(0)
+        if isinstance(result, Exception):
+            raise result
+        return result
 
 
 class TestLaunchCodingAgents(TestCase):
@@ -32,13 +61,9 @@ class TestLaunchCodingAgents(TestCase):
     @patch("sentry.seer.agent.coding_agent_handoff.validate_and_get_integration")
     def test_successful_launch(self, mock_validate, mock_store):
         """Test successful coding agent launch."""
-        mock_integration = MagicMock()
-        mock_integration.provider = "cursor"
-        mock_installation = MagicMock()
-        mock_installation.launch.return_value = MagicMock(
-            dict=lambda: {"id": "agent-123", "url": "https://cursor.sh/agent"}
-        )
-        mock_validate.return_value = (mock_integration, mock_installation)
+        state = _state(agent_url="https://cursor.sh/agent")
+        installation = FakeCodingAgentInstallation(state)
+        mock_validate.return_value = (None, installation)
 
         result = launch_coding_agents(
             organization=self.organization,
@@ -52,23 +77,96 @@ class TestLaunchCodingAgents(TestCase):
         assert len(result["successes"]) == 1
         assert len(result["failures"]) == 0
         assert result["successes"][0]["repo_name"] == "owner/repo"
-        mock_installation.launch.assert_called_once()
-        launch_request = mock_installation.launch.call_args[0][0]
-        assert launch_request.issue_short_id == "AIML-2301"
+        assert len(installation.launch_calls) == 1
+        assert installation.launch_calls[0].issue_short_id == "AIML-2301"
         mock_store.assert_called_once_with(
             run_id=self.run_id,
-            coding_agent_states=[mock_installation.launch.return_value],
+            coding_agent_states=[state],
             organization_id=self.organization.id,
         )
+
+    @patch("sentry.seer.agent.coding_agent_handoff.create_seer_run_coding_agent_handoff")
+    @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
+    @patch("sentry.seer.agent.coding_agent_handoff.validate_and_get_integration")
+    def test_handoff_row_created_per_repo_before_seer_store(
+        self, mock_validate, mock_store, mock_create_handoff
+    ):
+        call_order: list[str] = []
+        mock_create_handoff.side_effect = lambda *a, **k: call_order.append("create_handoff")
+        mock_store.side_effect = lambda *a, **k: call_order.append("store_to_seer")
+
+        installation = FakeCodingAgentInstallation(
+            _state("agent-1"),
+            _state("agent-2"),
+        )
+        mock_validate.return_value = (None, installation)
+
+        launch_coding_agents(
+            organization=self.organization,
+            integration_id=1,
+            run_id=self.run_id,
+            prompt="Fix the bug",
+            repos=[_repo("owner", "repo1"), _repo("owner", "repo2")],
+        )
+
+        assert mock_create_handoff.call_count == 2
+        assert call_order == ["create_handoff", "create_handoff", "store_to_seer"]
+
+    @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
+    @patch("sentry.seer.agent.coding_agent_handoff.validate_and_get_integration")
+    def test_successful_launch_persists_seer_run_coding_agent_handoff_row(
+        self, mock_validate, mock_store
+    ):
+        seer_run = self.create_seer_run(self.organization, seer_run_state_id=self.run_id)
+        installation = FakeCodingAgentInstallation(
+            _state("agent-123", agent_url="https://cursor.sh/agent")
+        )
+        mock_validate.return_value = (None, installation)
+
+        launch_coding_agents(
+            organization=self.organization,
+            integration_id=1,
+            run_id=self.run_id,
+            prompt="Fix the bug",
+            repos=[_repo("owner", "repo")],
+        )
+
+        handoff = SeerRunCodingAgentHandoff.objects.get(agent_id="agent-123")
+        assert handoff.seer_run_id == seer_run.id
+        assert handoff.provider == "cursor_background_agent"
+        assert handoff.extras["agent_url"] == "https://cursor.sh/agent"
+        # The launch is the only point that knows which repo row the agent got.
+        assert handoff.extras["repo_external_id"] == "123"
+        assert handoff.status == "pending"
+
+    @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
+    @patch("sentry.seer.agent.coding_agent_handoff.validate_and_get_integration")
+    def test_leaves_handoffs_alone_when_seer_storage_errors(self, mock_validate, mock_store):
+        self.create_seer_run(self.organization, seer_run_state_id=self.run_id)
+        mock_store.side_effect = SeerApiError("Seer unavailable", status=503)
+        installation = FakeCodingAgentInstallation(_state("agent-123"))
+        mock_validate.return_value = (None, installation)
+
+        result = launch_coding_agents(
+            organization=self.organization,
+            integration_id=1,
+            run_id=self.run_id,
+            prompt="Fix the bug",
+            repos=[_repo("owner", "repo")],
+        )
+
+        # The provider launch itself still succeeded -- callers should still see it.
+        assert len(result["successes"]) == 1
+
+        handoff = SeerRunCodingAgentHandoff.objects.get(agent_id="agent-123")
+        assert handoff.status == "pending"
 
     @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
     @patch("sentry.seer.agent.coding_agent_handoff.validate_and_get_integration")
     def test_launch_raises_value_error(self, mock_validate, mock_store):
         """Test that ValueError from integration launch is handled as failure."""
-        mock_integration = MagicMock()
-        mock_installation = MagicMock()
-        mock_installation.launch.side_effect = ValueError("Invalid repository name format")
-        mock_validate.return_value = (mock_integration, mock_installation)
+        installation = FakeCodingAgentInstallation(ValueError("Invalid repository name format"))
+        mock_validate.return_value = (None, installation)
 
         result = launch_coding_agents(
             organization=self.organization,
@@ -82,23 +180,17 @@ class TestLaunchCodingAgents(TestCase):
         assert len(result["failures"]) == 1
         assert result["failures"][0]["error_message"] == "Failed to launch coding agent"
         assert result["failures"][0]["failure_type"] == "generic"
-        mock_installation.launch.assert_called_once()
+        assert len(installation.launch_calls) == 1
 
     @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
     @patch("sentry.seer.agent.coding_agent_handoff.validate_and_get_integration")
     def test_multiple_repos_partial_failure(self, mock_validate, mock_store):
         """Test handling of partial failures across multiple repos."""
-        from requests import HTTPError
-
-        mock_integration = MagicMock()
-        mock_integration.provider = "cursor"
-        mock_installation = MagicMock()
-        # First call succeeds, second fails
-        mock_installation.launch.side_effect = [
-            MagicMock(dict=lambda: {"id": "agent-1"}),
+        installation = FakeCodingAgentInstallation(
+            _state("agent-1"),
             HTTPError("API Error"),
-        ]
-        mock_validate.return_value = (mock_integration, mock_installation)
+        )
+        mock_validate.return_value = (None, installation)
 
         result = launch_coding_agents(
             organization=self.organization,
@@ -118,10 +210,8 @@ class TestLaunchCodingAgents(TestCase):
     @patch("sentry.seer.agent.coding_agent_handoff.validate_and_get_integration")
     def test_branch_name_is_sanitized(self, mock_validate, mock_store):
         """Test that branch name is sanitized before launch."""
-        mock_integration = MagicMock()
-        mock_installation = MagicMock()
-        mock_installation.launch.return_value = MagicMock(dict=lambda: {"id": "agent-1"})
-        mock_validate.return_value = (mock_integration, mock_installation)
+        installation = FakeCodingAgentInstallation(_state("agent-1"))
+        mock_validate.return_value = (None, installation)
 
         launch_coding_agents(
             organization=self.organization,
@@ -132,9 +222,7 @@ class TestLaunchCodingAgents(TestCase):
             branch_name_base="my-fix",
         )
 
-        # Verify launch was called with a sanitized branch name
-        launch_request = mock_installation.launch.call_args[0][0]
-        assert launch_request.branch_name.startswith("my-fix-")
+        assert installation.launch_calls[0].branch_name.startswith("my-fix-")
         assert mock_store.call_args.kwargs["organization_id"] == self.organization.id
 
     @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
@@ -176,6 +264,146 @@ class TestLaunchCodingAgents(TestCase):
         assert failure["failure_type"] == "github_copilot_not_licensed"
         assert "Copilot license" in failure["error_message"]
 
+    def _copilot_permissions_failure(self, mock_copilot_client_class, mock_identity_service, repo):
+        mock_identity_service.get_access_token_for_user.return_value = "test-token"
+        mock_client_instance = MagicMock()
+        mock_copilot_client_class.return_value = mock_client_instance
+        mock_client_instance.launch.side_effect = ApiError(
+            "Resource not accessible by integration", code=403
+        )
+
+        result = launch_coding_agents(
+            organization=self.organization,
+            integration_id=None,
+            run_id=self.run_id,
+            prompt="Fix the bug",
+            repos=[repo],
+            provider="github_copilot",
+            user_id=1,
+        )
+
+        assert len(result["failures"]) == 1
+        failure = result["failures"][0]
+        assert failure["failure_type"] == "github_app_permissions"
+        return failure
+
+    @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
+    @patch("sentry.seer.agent.coding_agent_handoff.GithubCopilotAgentClient")
+    @patch("sentry.seer.agent.coding_agent_handoff.github_copilot_identity_service")
+    def test_permissions_403_names_the_installation_that_owns_the_repo(
+        self,
+        mock_identity_service,
+        mock_copilot_client_class,
+        mock_store,
+    ):
+        self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="1111",
+            name="other-gh-org",
+            metadata={"account_type": "Organization"},
+        )
+        owning = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="2222",
+            name="owning-gh-org",
+            metadata={"account_type": "Organization"},
+        )
+
+        failure = self._copilot_permissions_failure(
+            mock_copilot_client_class,
+            mock_identity_service,
+            _repo("owning-gh-org", "repo", integration_id=str(owning.id)),
+        )
+
+        assert failure["github_installation_id"] == "2222"
+        assert failure["github_installation_url"] == (
+            "https://github.com/organizations/owning-gh-org"
+            "/settings/installations/2222/permissions/update"
+        )
+
+    @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
+    @patch("sentry.seer.agent.coding_agent_handoff.GithubCopilotAgentClient")
+    @patch("sentry.seer.agent.coding_agent_handoff.github_copilot_identity_service")
+    def test_permissions_403_uses_personal_namespace_for_user_installations(
+        self,
+        mock_identity_service,
+        mock_copilot_client_class,
+        mock_store,
+    ):
+        owning = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="3333",
+            name="some-user",
+            metadata={"account_type": "User"},
+        )
+
+        failure = self._copilot_permissions_failure(
+            mock_copilot_client_class,
+            mock_identity_service,
+            _repo("some-user", "repo", integration_id=str(owning.id)),
+        )
+
+        assert failure["github_installation_id"] == "3333"
+        assert failure["github_installation_url"] == (
+            "https://github.com/settings/installations/3333/permissions/update"
+        )
+
+    @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
+    @patch("sentry.seer.agent.coding_agent_handoff.GithubCopilotAgentClient")
+    @patch("sentry.seer.agent.coding_agent_handoff.github_copilot_identity_service")
+    def test_permissions_403_omits_installation_when_repo_has_no_integration(
+        self,
+        mock_identity_service,
+        mock_copilot_client_class,
+        mock_store,
+    ):
+        self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="4444",
+            name="unrelated-gh-org",
+            metadata={"account_type": "Organization"},
+        )
+
+        failure = self._copilot_permissions_failure(
+            mock_copilot_client_class,
+            mock_identity_service,
+            _repo("owner", "repo"),
+        )
+
+        assert "github_installation_id" not in failure
+        assert "github_installation_url" not in failure
+
+    @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
+    @patch("sentry.seer.agent.coding_agent_handoff.GithubCopilotAgentClient")
+    @patch("sentry.seer.agent.coding_agent_handoff.github_copilot_identity_service")
+    def test_permissions_403_omits_installation_from_another_organization(
+        self,
+        mock_identity_service,
+        mock_copilot_client_class,
+        mock_store,
+    ):
+        other_org = self.create_organization()
+        foreign = self.create_integration(
+            organization=other_org,
+            provider="github",
+            external_id="5555",
+            name="foreign-gh-org",
+            metadata={"account_type": "Organization"},
+        )
+
+        failure = self._copilot_permissions_failure(
+            mock_copilot_client_class,
+            mock_identity_service,
+            _repo("foreign-gh-org", "repo", integration_id=str(foreign.id)),
+        )
+
+        assert "github_installation_id" not in failure
+        assert "github_installation_url" not in failure
+
     @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
     @patch("sentry.seer.agent.coding_agent_handoff.validate_and_get_integration")
     def test_verify_branch_error_returns_cursor_github_access_failure_type(
@@ -187,13 +415,15 @@ class TestLaunchCodingAgents(TestCase):
         granted access to the target repository. We should show the Cursor GitHub
         access modal instead of a generic error.
         """
-        mock_integration = MagicMock()
+        # Needs to satisfy isinstance(installation, CursorAgentIntegration) in
+        # production code, so this stays a real spec'd Mock rather than the plain
+        # FakeCodingAgentInstallation (which doesn't subclass the real ABC).
         mock_installation = MagicMock(spec=CursorAgentIntegration)
         mock_installation.launch.side_effect = ApiError(
             text='{"error":"Failed to verify existence of branch \'main\' in repository owner/repo. Please ensure the branch name is correct."}',
             code=400,
         )
-        mock_validate.return_value = (mock_integration, mock_installation)
+        mock_validate.return_value = (None, mock_installation)
 
         result = launch_coding_agents(
             organization=self.organization,
@@ -221,10 +451,8 @@ class TestResolveClient(TestCase):
 
     @patch(f"{MOCK_HANDOFF_PATH}.validate_and_get_integration")
     def test_returns_installation_for_cursor(self, mock_validate):
-        mock_integration = MagicMock()
-        mock_integration.provider = "cursor"
         mock_installation = MagicMock()
-        mock_validate.return_value = (mock_integration, mock_installation)
+        mock_validate.return_value = (None, mock_installation)
 
         client, installation = _resolve_client(
             self.organization, integration_id=1, provider=None, user_id=None
@@ -236,10 +464,8 @@ class TestResolveClient(TestCase):
 
     @patch(f"{MOCK_HANDOFF_PATH}.validate_and_get_integration")
     def test_returns_installation_for_claude_code(self, mock_validate):
-        mock_integration = MagicMock()
-        mock_integration.provider = "claude_code"
         mock_installation = MagicMock()
-        mock_validate.return_value = (mock_integration, mock_installation)
+        mock_validate.return_value = (None, mock_installation)
 
         client, installation = _resolve_client(
             self.organization, integration_id=1, provider=None, user_id=None

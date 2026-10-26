@@ -2,8 +2,6 @@ import {t} from 'sentry/locale';
 import type {
   FileSavingsResult,
   FileSavingsResultGroup,
-  FilesInsightResult,
-  GroupsInsightResult,
   InsightResults,
   OptimizableImageFile,
   StripBinaryFileInfo,
@@ -273,7 +271,7 @@ export function processInsights(
   }
 
   if (insights.duplicate_files?.total_savings) {
-    const insight = insights.duplicate_files as GroupsInsightResult;
+    const insight = insights.duplicate_files;
     const config = INSIGHT_CONFIGS.find(c => c.key === 'duplicate_files');
     if (config) {
       const groups = Array.isArray(insight.groups) ? insight.groups : [];
@@ -323,7 +321,7 @@ export function processInsights(
   }
 
   if (insights.loose_images?.total_savings) {
-    const insight = insights.loose_images as GroupsInsightResult;
+    const insight = insights.loose_images;
     const config = INSIGHT_CONFIGS.find(c => c.key === 'loose_images');
     if (config) {
       const groups = Array.isArray(insight.groups) ? insight.groups : [];
@@ -364,7 +362,7 @@ export function processInsights(
   ] as const;
 
   regularInsightKeys.forEach(key => {
-    const insight = insights[key] as FilesInsightResult | undefined;
+    const insight = insights[key];
     if (insight?.total_savings) {
       const config = INSIGHT_CONFIGS.find(c => c.key === key);
       if (config) {

@@ -38,10 +38,9 @@ export default Storybook.story('TableWidgetVisualization', story => {
           <Storybook.JSXNode name="TableWidgetVisualization" /> is meant to be a robust
           and eventual replacement to all tables in Dashboards and Insights (and
           potentially more). The inner component of this table is{' '}
-          <Storybook.JSXNode name="GridEditable" />. The table includes features like
-          sorting, column resizing and cell actions. The table allows for custom
-          renderers, but is also able to correctly render fields on its own using
-          fallbacks.
+          <Storybook.JSXNode name="DataGrid" />. The table includes features like sorting,
+          column resizing and cell actions. The table allows for custom renderers, but is
+          also able to correctly render fields on its own using fallbacks.
         </p>
         <p>
           Below is the the most basic example of the table which requires
@@ -68,17 +67,17 @@ export default Storybook.story('TableWidgetVisualization', story => {
           <code>TabularData</code>. This is a mandatory prop. If the <code>data</code>{' '}
           field is empty, such as
         </p>
-        <CodeBlock language="json">
+        <StyledCodeBlock language="json">
           {`
 ${JSON.stringify(tableWithEmptyData)}
           `}
-        </CodeBlock>
+        </StyledCodeBlock>
         <p>Then the table renders empty like this:</p>
         <TableWidgetVisualization tableData={tableWithEmptyData} />
         <p>
           The table columns use the type <code>TabularColumn[]</code> which is based off
-          of <code>GridColumnOrder</code> from <Storybook.JSXNode name="GridEditable" />.
-          The prop is optional, as the table will fallback to extract the columns in order
+          of <code>GridColumnOrder</code> from <Storybook.JSXNode name="DataGrid" />. The
+          prop is optional, as the table will fallback to extract the columns in order
           from the table data's <code>meta.fields</code>, displaying them as shown above.
         </p>
         <p>For example, this prop can be used for reordering columns:</p>
@@ -86,11 +85,11 @@ ${JSON.stringify(tableWithEmptyData)}
           tableData={sampleHTTPRequestTableData}
           columns={customColumns}
         />
-        <CodeBlock language="json">
+        <StyledCodeBlock language="json">
           {`
 ${JSON.stringify(customColumns)}
           `}
-        </CodeBlock>
+        </StyledCodeBlock>
         <p>
           To pass custom names for a column header, provide the prop <code>aliases</code>{' '}
           which maps column key to the alias. In some cases you may have both field
@@ -106,11 +105,11 @@ ${JSON.stringify(customColumns)}
           tableData={sampleHTTPRequestTableData}
           aliases={aliases}
         />
-        <CodeBlock language="json">
+        <StyledCodeBlock language="json">
           {`
 ${JSON.stringify(aliases)}
           `}
-        </CodeBlock>
+        </StyledCodeBlock>
       </Fragment>
     );
   });
@@ -152,7 +151,7 @@ ${JSON.stringify(aliases)}
           <code>columns</code> prop with the field <code>sortable</code> set to true.
           e.g.,
         </p>
-        <CodeBlock language="tsx">
+        <StyledCodeBlock language="tsx">
           {`
 columns={[{
   key: 'count(span.duration)',
@@ -166,7 +165,7 @@ columns={[{
   type: 'string',
 }]}
           `}
-        </CodeBlock>
+        </StyledCodeBlock>
         <p>
           This table <b>does not</b> sort entries. Almost all tables in Sentry rely on the{' '}
           <code>sort</code> URL query parameter as a reference for sorting, which is why
@@ -232,7 +231,7 @@ columns={[{
           sort={sort}
           onChangeSort={(newSort: Sort) => onChangeSort(newSort)}
         />
-        <CodeBlock language="tsx">
+        <StyledCodeBlock language="tsx">
           {`
 const [data, setData] = useState<TabularData>(...);
 const [sort, setSort] = useState<Sort>();
@@ -256,7 +255,7 @@ function onChangeSort(newSort: Sort) {
   setData({data: sortedData, meta: data.meta});
 }
         `}
-        </CodeBlock>
+        </StyledCodeBlock>
       </Fragment>
     );
   });
@@ -378,7 +377,7 @@ function onChangeSort(newSort: Sort) {
             }
           }}
         />
-        <CodeBlock language="tsx">
+        <StyledCodeBlock language="tsx">
           {`
 const [filter, setFilter] = useState<Array<string | number>>([]);
 
@@ -390,10 +389,12 @@ function onTriggerCellAction(actions: Actions, value: string | number) {
     case Actions.EXCLUDE:
       setFilter(filter.filter(_value => _value !== value));
       break;
+    default:
+      break;
   }
 }
         `}
-        </CodeBlock>
+        </StyledCodeBlock>
         <p>
           To customize actions per cell, use <code>allowedCellActions</code> as a
           function. This function receives the full cell info, including the column type.
@@ -410,7 +411,7 @@ function onTriggerCellAction(actions: Actions, value: string | number) {
             return [Actions.ADD, Actions.EXCLUDE];
           }}
         />
-        <CodeBlock language="tsx">
+        <StyledCodeBlock language="tsx">
           {`
 <TableWidgetVisualization
   tableData={sampleHTTPRequestTableData}
@@ -423,7 +424,7 @@ function onTriggerCellAction(actions: Actions, value: string | number) {
   }}
 />
           `}
-        </CodeBlock>
+        </StyledCodeBlock>
       </Fragment>
     );
   });
@@ -472,7 +473,7 @@ function onTriggerCellAction(actions: Actions, value: string | number) {
           tableData={sampleHTTPRequestTableData}
           getRenderer={getRenderer}
         />
-        <CodeBlock language="tsx">
+        <StyledCodeBlock language="tsx">
           {`
 function getRenderer(fieldName: string) {
   if (fieldName === 'http.request_method') {
@@ -488,7 +489,7 @@ function getRenderer(fieldName: string) {
   );
 }
           `}
-        </CodeBlock>
+        </StyledCodeBlock>
       </Fragment>
     );
   });
@@ -520,4 +521,8 @@ const ButtonContainer = styled('div')`
   display: flex;
   justify-content: center;
   margin: 20px;
+`;
+
+const StyledCodeBlock = styled(CodeBlock)`
+  height: fit-content;
 `;

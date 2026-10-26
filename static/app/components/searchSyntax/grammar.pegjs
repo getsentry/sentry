@@ -47,7 +47,7 @@ free_parens
 // All key:value filter types
 
 filter_start
-  = negation? ((text_key / search_key) sep / aggregate_filter_start)
+  = negation? ((array_includes_key / text_key / search_key) sep / aggregate_filter_start)
 
 aggregate_filter_start
   = &aggregate_key_start &aggregate_filter
@@ -67,6 +67,8 @@ filter
   / aggregate_filter
   / has_filter
   / is_filter
+  / regex_filter
+  / array_includes_filter
   / text_in_filter
   / text_filter
 
@@ -206,6 +208,43 @@ is_filter
       return tc.tokenFilter(FilterType.IS, key, value, opDefault, !!negation);
     }
 
+// Array membership filter, eg. `foo[*]:value`. The `[*]` on the key carries the
+// operation, so it uses the default operator (`:`) with `!` for negation.
+array_includes_filter
+  = negation:negation?
+    key:array_includes_key
+    sep
+    value:search_value &{
+      return tc.predicateFilter(FilterType.ARRAY_INCLUDES, key)
+    } {
+      return tc.tokenFilter(
+        FilterType.ARRAY_INCLUDES,
+        key,
+        value,
+        opDefault,
+        !!negation,
+        undefined,
+      );
+    }
+
+regex_filter
+  = negation:negation?
+    key:(array_includes_key / text_key)
+    sep
+    value:regex_value {
+      return tc.tokenRegexFilter(key, value.literal, value.pattern, !!negation);
+    }
+
+regex_value
+  = "//" pattern:regex_pattern "//" &end_value {
+      return {pattern, literal: tc.tokenValueText(text(), false)};
+    }
+
+regex_pattern
+  = (!("//" end_value) [^\n])* {
+      return tc.tokenValueText(text(), false);
+    }
+
 // in filter key:[val1, val2]
 text_in_filter
   = negation:negation?
@@ -253,13 +292,13 @@ text_filter
 
 // Filter keys
 key
-  = key:[a-zA-Z0-9_.-]+ {
-      return tc.tokenKeySimple(key.join(''), false);
+  = key:$[a-zA-Z0-9_.-]+ {
+      return tc.tokenKeySimple(key, false);
     }
 
 escaped_key
-  = key:[a-zA-Z0-9_.:-]+ {
-      return tc.tokenKeySimple(key.join(''), false);
+  = key:$[a-zA-Z0-9_.:-]+ {
+      return tc.tokenKeySimple(key, false);
     }
 
 quoted_key
@@ -302,6 +341,28 @@ explicit_boolean_tag_key
       return tc.tokenKeyExplicitBooleanTag(prefix, key)
     }
 
+explicit_array_tag_key
+  = prefix:"tags" open_bracket key:escaped_key spaces comma spaces 'array' closed_bracket {
+      return tc.tokenKeyExplicitArrayTag(prefix, key)
+    }
+
+// `[*]` is the required array membership operator ("any element equals value"),
+// the array analogue of scalar `:`. A future `[N]` would target one index.
+array_access_suffix = open_bracket "*" closed_bracket
+
+array_includes_tag_key
+  = prefix:"tags" open_bracket key:escaped_key array_access_suffix spaces comma spaces 'array' closed_bracket {
+      return tc.tokenKeyArrayIncludes(tc.tokenKeyExplicitArrayTag(prefix, key), "*");
+    }
+
+array_includes_attr_key
+  = base:key array_access_suffix {
+      return tc.tokenKeyArrayIncludes(base, "*");
+    }
+
+array_includes_key
+  = array_includes_tag_key / array_includes_attr_key
+
 aggregate_key
   = name:key open_paren s1:spaces args:function_args? s2:spaces closed_paren {
       return tc.tokenKeyAggregate(name, args, s1, s2);
@@ -317,13 +378,13 @@ aggregate_param
   = explicit_tag_aggregate_param / quoted_aggregate_param / raw_aggregate_param
 
 raw_aggregate_param
-  = param:[^()\t\n, \"]+ {
-      return tc.tokenKeyAggregateParam(param.join(''), false);
+  = param:$[^()\t\n, \"]+ {
+      return tc.tokenKeyAggregateParam(param, false);
     }
 
 quoted_aggregate_param
-  = '"' param:('\\"' / [^\t\n\"])* '"' {
-      return tc.tokenKeyAggregateParam(`"${param.join('')}"`, true);
+  = '"' param:$('\\"' / [^\t\n\"])* '"' {
+      return tc.tokenKeyAggregateParam(`"${param}"`, true);
     }
 
 explicit_tag_aggregate_param
@@ -335,18 +396,18 @@ search_key
   = explicit_number_flag_key / explicit_number_tag_key / explicit_boolean_tag_key / key / quoted_key
 
 text_key
-  = explicit_flag_key / explicit_string_flag_key / explicit_tag_key / explicit_string_tag_key / search_key
+  = explicit_flag_key / explicit_string_flag_key / explicit_tag_key / explicit_string_tag_key / explicit_array_tag_key / search_key
 
 // Filter values
 
 value
-  = value:[^()\t\n ]* {
-      return tc.tokenValueText(value.join(''), false);
+  = value:$[^()\t\n ]* {
+      return tc.tokenValueText(value, false);
     }
 
 quoted_value
-  = '"' value:('\\"' / [^"])* '"' {
-      return tc.tokenValueText(value.join(''), true);
+  = '"' value:$('\\"' / [^"])* '"' {
+      return tc.tokenValueText(value, true);
     }
 
 in_value
@@ -424,8 +485,8 @@ iso_8601_date_format
     }
 
 rel_date_format
-  = sign:[+-] value:[0-9]+ unit:[wdhm] &end_value {
-      return tc.tokenValueRelativeDate(value.join(''), sign, unit);
+  = sign:[+-] value:$[0-9]+ unit:[wdhm] &end_value {
+      return tc.tokenValueRelativeDate(value, sign, unit);
     }
 
 duration_format

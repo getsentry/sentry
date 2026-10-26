@@ -23,6 +23,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     TraceItemFilter,
 )
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
+from sentry_sdk import traces
 from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query, Request
 
 from sentry import features, options
@@ -74,7 +75,6 @@ from sentry.utils.snuba import (
     nest_groups,
     raw_snql_query,
 )
-from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -531,7 +531,6 @@ class SnubaTagStorage(TagStorage):
         keys: list[str] | None = None,
         include_values_seen: bool = True,
         dataset: Dataset = Dataset.Events,
-        denylist: frozenset[int | str] | None = None,
         tenant_ids=None,
         **kwargs: Any,
     ) -> set[TagKey | GroupTagKey]:
@@ -553,7 +552,6 @@ class SnubaTagStorage(TagStorage):
             keys,
             include_values_seen=include_values_seen,
             dataset=dataset,
-            denylist=denylist,
             tenant_ids=tenant_ids,
             **optimize_kwargs,
         )
@@ -569,7 +567,6 @@ class SnubaTagStorage(TagStorage):
         keys: list[str] | None = None,
         include_values_seen: bool = True,
         use_cache=False,
-        denylist: frozenset[int | str] | None = None,
         dataset: Dataset = Dataset.Discover,
         **kwargs,
     ) -> set[TagKey | GroupTagKey]:
@@ -625,19 +622,20 @@ class SnubaTagStorage(TagStorage):
             end = snuba.quantize_time(end, key_hash)
             cache_key += f":{duration}@{end.isoformat()}"
 
-            with start_span(
-                op="cache.get", name="sentry.tagstore.cache.__get_tag_keys_for_projects"
+            with traces.start_span(
+                name="sentry.tagstore.cache.__get_tag_keys_for_projects",
+                attributes={"sentry.op": "cache.get"},
             ) as span:
                 result = cache.get(cache_key, None)
 
-                set_span_data(span, "cache.key", [cache_key])
+                span.set_attribute("cache.key", [cache_key])
 
                 if result is not None:
-                    set_span_data(span, "cache.hit", True)
-                    set_span_data(span, "cache.item_size", len(str(result)))
+                    span.set_attribute("cache.hit", True)
+                    span.set_attribute("cache.item_size", len(str(result)))
                     metrics.incr("testing.tagstore.cache_tag_key.hit")
                 else:
-                    set_span_data(span, "cache.hit", False)
+                    span.set_attribute("cache.hit", False)
                     metrics.incr("testing.tagstore.cache_tag_key.miss")
 
         if result is None:
@@ -655,12 +653,14 @@ class SnubaTagStorage(TagStorage):
                 **kwargs,
             )
             if should_cache:
-                with start_span(
-                    op="cache.put", name="sentry.tagstore.cache.__get_tag_keys_for_projects"
+                with traces.start_span(
+                    name="sentry.tagstore.cache.__get_tag_keys_for_projects",
+                    attributes={"sentry.op": "cache.put"},
                 ) as span:
                     cache.set(cache_key, result, 300)
-                    set_span_data(span, "cache.key", [cache_key])
-                    set_span_data(span, "cache.item_size", len(str(result)))
+                    if cache_key is not None:
+                        span.set_attribute("cache.key", [cache_key])
+                    span.set_attribute("cache.item_size", len(str(result)))
                     metrics.incr("testing.tagstore.cache_tag_key.len", amount=len(result))
 
         ctor: _KeyCallable[TagKey, Never] | _KeyCallable[GroupTagKey, Never]
@@ -672,10 +672,6 @@ class SnubaTagStorage(TagStorage):
         results: set[TagKey | GroupTagKey] = set()
 
         for key, data in result.items():
-            # Ignore key (skip interaction) if it's in denylist
-            if denylist is not None and key in denylist:
-                continue
-
             params = {"key": key}
             if include_values_seen:
                 params["values_seen"] = data["values_seen"]
@@ -708,7 +704,6 @@ class SnubaTagStorage(TagStorage):
         environment_id: int | None,
         status: int = TagKeyStatus.ACTIVE,
         include_values_seen: bool = False,
-        denylist: frozenset[int | str] | None = None,
         tenant_ids=None,
         **kwargs,
     ) -> set[TagKey | GroupTagKey]:
@@ -729,7 +724,6 @@ class SnubaTagStorage(TagStorage):
             project_id,
             None,
             environment_id if environment_id is None else [environment_id],
-            denylist=denylist,
             tenant_ids=tenant_ids,
             include_values_seen=include_values_seen,
             **optimize_kwargs,
@@ -1048,8 +1042,6 @@ class SnubaTagStorage(TagStorage):
         )
 
         group_id_filter = f"group_id:[{','.join(str(gid) for gid in group_id_list)}]"
-        tag_filter = build_escaped_term_filter(key, [str(value)])
-        query_string = f"{group_id_filter} {tag_filter}"
 
         snuba_params = SnubaParams(
             start=resolved_start,
@@ -1060,6 +1052,9 @@ class SnubaTagStorage(TagStorage):
         )
 
         try:
+            tag_filter = build_escaped_term_filter(key, [str(value)])
+            query_string = f"{group_id_filter} {tag_filter}"
+
             result = Occurrences.run_table_query(
                 params=snuba_params,
                 query_string=query_string,
@@ -1435,8 +1430,6 @@ class SnubaTagStorage(TagStorage):
         now = datetime.now(tz=timezone.utc)
         resolved_start = start if start is not None else now - timedelta(days=90)
 
-        query_string = build_escaped_term_filter("release", [str(v) for v in versions])
-
         snuba_params = SnubaParams(
             start=resolved_start,
             end=now,
@@ -1446,6 +1439,8 @@ class SnubaTagStorage(TagStorage):
         )
 
         try:
+            query_string = build_escaped_term_filter("release", [str(v) for v in versions])
+
             result = Occurrences.run_table_query(
                 params=snuba_params,
                 query_string=query_string,
@@ -2429,7 +2424,14 @@ class SnubaTagStorage(TagStorage):
             group,
             environment_ids,
             key,
-            orderby="-last_seen",
+            orderby=(
+                "-times_seen"
+                if order_by == "-times_seen"
+                and features.has(
+                    "organizations:tag-values-sort-before-limit", group.project.organization
+                )
+                else "-last_seen"
+            ),
             tenant_ids=tenant_ids,
         )
 

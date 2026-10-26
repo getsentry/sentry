@@ -3,6 +3,7 @@ import type {CloudResourceContext} from '@sentry/core';
 import type {AppContext} from 'sentry/components/events/contexts/knownContext/app';
 import type {CultureContext} from 'sentry/components/events/contexts/knownContext/culture';
 import type {MissingInstrumentationContext} from 'sentry/components/events/contexts/knownContext/missingInstrumentation';
+import type {WERContext} from 'sentry/components/events/contexts/knownContext/wer';
 import type {
   AggregateSpanType,
   RawSpanType,
@@ -12,7 +13,7 @@ import type {SymbolicatorStatus} from 'sentry/components/events/interfaces/types
 
 import type {RawCrumb} from './breadcrumbs';
 import type {Image} from './debugImage';
-import type {IssueAttachment, IssueCategory, IssueType, UserReport} from './group';
+import type {IssueAttachment, IssueCategory, Meta, UserReport} from './group';
 import type {PlatformKey} from './platform';
 import type {Release} from './release';
 import type {StackTraceMechanism, StacktraceType} from './stacktrace';
@@ -218,6 +219,11 @@ export type EventMetadata = {
   message?: string;
   origin?: string;
   stripped_crash?: boolean;
+  /**
+   * Set when the SDK fabricated the exception to carry a stacktrace. Its `type` is then a
+   * platform label (`SIGSEGV`, `AppHang`) rather than the identity of what went wrong.
+   */
+  synthetic?: boolean;
   title?: string;
   type?: string;
   uri?: string;
@@ -227,9 +233,6 @@ export type EventMetadata = {
 export enum EventOrGroupType {
   ERROR = 'error',
   CSP = 'csp',
-  HPKP = 'hpkp',
-  EXPECTCT = 'expectct',
-  EXPECTSTAPLE = 'expectstaple',
   NEL = 'nel',
   DEFAULT = 'default',
   TRANSACTION = 'transaction',
@@ -247,9 +250,6 @@ export enum EntryType {
   STACKTRACE = 'stacktrace',
   TEMPLATE = 'template',
   CSP = 'csp',
-  EXPECTCT = 'expectct',
-  EXPECTSTAPLE = 'expectstaple',
-  HPKP = 'hpkp',
   BREADCRUMBS = 'breadcrumbs',
   THREADS = 'threads',
   THREAD_STATE = 'thread-state',
@@ -272,7 +272,7 @@ export type EntryDebugMeta = {
   type: EntryType.DEBUGMETA;
 };
 
-type EntryBreadcrumbs = {
+export type EntryBreadcrumbs = {
   data: {
     values: RawCrumb[];
   };
@@ -301,7 +301,7 @@ export type EntrySpans = {
   type: EntryType.SPANS;
 };
 
-export type AggregateEntrySpans = {
+type AggregateEntrySpans = {
   data: AggregateSpanType[];
   type: EntryType.SPANS;
 };
@@ -358,11 +358,6 @@ type EntryCsp = {
   type: EntryType.CSP;
 };
 
-type EntryGeneric = {
-  data: Record<string, any>;
-  type: EntryType.EXPECTCT | EntryType.EXPECTSTAPLE | EntryType.HPKP;
-};
-
 type EntryResources = {
   data: any; // Data is unused here
   type: EntryType.RESOURCES;
@@ -379,7 +374,6 @@ export type Entry =
   | EntryRequest
   | EntryTemplate
   | EntryCsp
-  | EntryGeneric
   | EntryResources;
 
 /** Maps each EntryType to its corresponding Entry subtype. */
@@ -662,6 +656,7 @@ export type EventContexts = {
   device?: DeviceContext;
   feedback?: Record<string, any>;
   flags?: Flags;
+  gpu_crash?: Record<string, any>;
   memory_info?: MemoryInfoContext;
   metric_alert?: MetricAlertContextType;
   missing_instrumentation?: MissingInstrumentationContext;
@@ -677,6 +672,7 @@ export type EventContexts = {
   threadpool_info?: ThreadPoolInfoContext;
   trace?: TraceContextType;
   unity?: UnityContext;
+  wer?: WERContext;
 };
 
 export type Measurement = {value: number; type?: string; unit?: string};
@@ -697,13 +693,6 @@ type EventUser = {
   ip_address?: string;
   name?: string | null;
   username?: string | null;
-};
-
-type PerformanceDetectorData = {
-  causeSpanIds: string[];
-  offenderSpanIds: string[];
-  parentSpanIds: string[];
-  issueType?: IssueType;
 };
 
 export type EventEvidenceDisplay = {
@@ -769,18 +758,13 @@ interface EventBase {
   size: number;
   tags: EventTag[];
   title: string;
-  type:
-    | EventOrGroupType.CSP
-    | EventOrGroupType.DEFAULT
-    | EventOrGroupType.EXPECTCT
-    | EventOrGroupType.EXPECTSTAPLE
-    | EventOrGroupType.HPKP;
+  type: EventOrGroupType.CSP | EventOrGroupType.DEFAULT;
   user: EventUser | null;
   _meta?: Record<string, any>;
   context?: Record<string, any>;
   dateCreated?: string;
-  device?: Record<string, any>;
   endTimestamp?: number;
+  formatted?: {content: string; format: string};
   groupID?: string;
   groupingConfig?: {
     enhancements: string;
@@ -823,34 +807,6 @@ export interface EventTransaction extends Omit<
   >;
   startTimestamp: number;
   type: EventOrGroupType.TRANSACTION;
-  perfProblem?: PerformanceDetectorData;
-}
-
-export interface AggregateEventTransaction extends Omit<
-  EventTransaction,
-  | 'crashFile'
-  | 'culprit'
-  | 'dist'
-  | 'dateReceived'
-  | 'errors'
-  | 'location'
-  | 'metadata'
-  | 'message'
-  | 'occurrence'
-  | 'type'
-  | 'size'
-  | 'user'
-  | 'eventID'
-  | 'fingerprints'
-  | 'id'
-  | 'projectID'
-  | 'tags'
-  | 'title'
-> {
-  count: number;
-  frequency: number;
-  total: number;
-  type: EventOrGroupType.AGGREGATE_TRANSACTION;
 }
 
 export interface EventError extends Omit<EventBase, 'entries' | 'type'> {
@@ -871,3 +827,53 @@ export type EventIdResponse = {
   organizationSlug: string;
   projectSlug: string;
 };
+
+/**
+ * Proposed Symbolicator native variable payload. `kind` describes the variable's scope.
+ * TODO(scttcper): Revisit this type once the Symbolicator schema lands and confirm it is still needed.
+ * https://github.com/getsentry/symbolicator/blob/90490595bfc14c929b295b97afd6f9789c3266dc/crates/symbolicator-native/src/interface/variables.rs
+ */
+export interface NativeFrameVariable {
+  formatted: string | null;
+  kind: 'local' | 'parameter';
+  type: string;
+}
+
+interface FrameVariableBase {
+  name: string;
+  /** Annotations for this value; len is the original string or collection length. */
+  meta?: Partial<Meta>;
+  /** Native type label, when provided separately by Symbolicator. */
+  type?: string;
+}
+
+type FrameVariableCollection = FrameVariableBase & {
+  children: readonly FrameVariable[];
+} & ({kind: 'object'} | {kind: 'array'});
+
+interface FrameVariableScalar extends FrameVariableBase {
+  kind: 'number' | 'string' | 'unformatted' | 'boolean';
+  /** Preserve pointer addresses and full numeric precision. */
+  value: string;
+}
+
+interface FrameVariableNull extends FrameVariableBase {
+  kind: 'null';
+  value?: string;
+}
+
+interface FrameVariableUnavailable extends FrameVariableBase {
+  kind: 'unavailable';
+}
+
+/**
+ * Renderer model built from frame.vars. Here `kind` selects the display representation,
+ * unlike NativeFrameVariable.kind, which describes local variables and parameters.
+ * Legacy native strings are preserved verbatim; proposed native payloads supply
+ * a separate type label and an already-formatted value.
+ */
+export type FrameVariable =
+  | FrameVariableCollection
+  | FrameVariableScalar
+  | FrameVariableNull
+  | FrameVariableUnavailable;

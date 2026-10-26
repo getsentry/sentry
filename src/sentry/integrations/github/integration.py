@@ -50,6 +50,7 @@ from sentry.integrations.source_code_management.repository import (
     RepositoryInfo,
     RepositoryIntegration,
 )
+from sentry.integrations.source_code_management.url import url_is_under
 from sentry.integrations.tasks.migrate_repo import migrate_repo
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import (
@@ -139,6 +140,21 @@ FEATURES = [
         Automatically create GitHub issues based on Issue Alert conditions.
         """,
         IntegrationFeatures.TICKET_RULES,
+    ),
+    FeatureDescription(
+        """
+        Get automated code reviews from Seer on your GitHub pull requests,
+        surfacing bugs and issues before they reach production.
+        """,
+        IntegrationFeatures.SEER_CONTEXT,
+    ),
+    FeatureDescription(
+        """
+        Let Seer's Autofix find the root cause of your Sentry issues and open a
+        pull request with the fix, iterating on review comments and CI feedback
+        until the PR is ready to merge.
+        """,
+        IntegrationFeatures.SEER_CONTEXT,
     ),
 ]
 
@@ -252,7 +268,7 @@ class GitHubIntegration(
     # RepositoryIntegration methods
 
     def source_url_matches(self, url: str) -> bool:
-        return url.startswith("https://{}".format(self.model.metadata["domain_name"]))
+        return url_is_under(url, f"https://{self.model.metadata['domain_name']}")
 
     def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         # Must format the url ourselves since `check_file` is a head request
@@ -1024,18 +1040,18 @@ def validate_github_installation(
 
     try:
         integration = Integration.objects.get(
-            external_id=installation_id, status=ObjectStatus.ACTIVE
+            provider=GitHubIntegrationProvider.key,
+            external_id=installation_id,
+            status=ObjectStatus.ACTIVE,
         )
     except Integration.DoesNotExist:
-        # The installation.created webhook from GitHub normally creates the
-        # Integration record (with sender metadata) before the user reaches
-        # this point. If it doesn't exist yet, the webhook likely hasn't
-        # been processed. We proceed without the sender validation that the
-        # existing-integration path provides below. In theory an attacker
-        # could race the webhook to link an installation they don't own,
-        # but the window is extremely narrow (they'd need to predict the
-        # installation_id before the webhook arrives).
-        return installation_id
+        if chosen_installation_id is not None:
+            # This installation was validated against the OAuth user's eligible
+            # installations before reaching this point.
+            return installation_id
+
+        metrics.incr("integrations.github.installation.missing_integration")
+        raise GitHubPipelineError(GitHubInstallationError.MISSING_INTEGRATION)
 
     if (
         chosen_installation_id is None

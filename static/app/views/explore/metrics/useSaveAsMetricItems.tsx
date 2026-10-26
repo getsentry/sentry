@@ -29,6 +29,7 @@ import {
 } from 'sentry/views/explore/queryParams/visualize';
 import {getVisualizeLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {getSaveAsAlertMenuItem} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 import {
@@ -158,20 +159,7 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
         };
       });
 
-    const newAlertLabel = organization.features.includes('workflow-engine-ui')
-      ? t('Monitor for')
-      : t('Alert for');
-
-    return [
-      {
-        key: 'create-alert',
-        label: newAlertLabel,
-        textValue: newAlertLabel,
-        children: alertsUrls,
-        disabled: alertsUrls.length === 0,
-        submenu: true,
-      },
-    ];
+    return [getSaveAsAlertMenuItem({alertsUrls, submenu: true})];
   }, [metricQueries, organization, project, pageFilters, options.interval]);
 
   const addToDashboardItems = useMemo(() => {
@@ -197,13 +185,11 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
           ...metricQueries.map((metricQuery, index) => {
             const visualize = metricQuery.queryParams.visualizes[0]!;
             const label = isVisualizeFunction(visualize)
-              ? `${metricQuery.label ?? getVisualizeLabel(index, isVisualizeEquation(visualize))}: ${
-                  formatTraceMetricsFunction(
-                    metricQuery.queryParams.aggregateFields
-                      .filter(isVisualize)
-                      .map(v => v.yAxis)
-                  ) as string
-                }`
+              ? `${metricQuery.label ?? getVisualizeLabel(index, isVisualizeEquation(visualize))}: ${formatTraceMetricsFunction(
+                  metricQuery.queryParams.aggregateFields
+                    .filter(isVisualize)
+                    .map(v => v.yAxis)
+                )}`
               : (metricQuery.label ?? '');
             return {
               key: `add-to-dashboard-${index}`,

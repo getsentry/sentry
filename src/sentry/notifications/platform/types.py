@@ -4,8 +4,9 @@ import abc
 from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any, Literal, Protocol
+from uuid import uuid4
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from sentry.integrations.types import ExternalProviderEnum
 
@@ -26,9 +27,8 @@ class NotificationCategory(StrEnum):
     ISSUE = "issue"
     METRIC_ALERT = "metric-alert"
     SENTRY_APP = "sentry-app"
-
-    # Refers to net-new alerts built on the workflow engine (not metric/issue alerts)
-    ALERTS = "alerts"
+    ACTIVITY = "activity"
+    DEPLOY = "deploy"
 
     def get_sources(self) -> list[NotificationSource]:
         return NOTIFICATION_SOURCE_MAP[self]
@@ -71,11 +71,19 @@ class NotificationSource(StrEnum):
     SEER_AUTOFIX_SUCCESS = "seer-autofix-success"
     SEER_AGENT_RESPONSE = "seer-agent-response"
     SEER_AGENT_ERROR = "seer-agent-error"
+    SEER_AGENT_WRITE_APPROVAL = "seer-agent-write-approval"
+    SEER_INVESTIGATION_STARTED = "seer-investigation-started"
+    SEER_INVESTIGATION_ERROR = "seer-investigation-error"
+    SEER_INVESTIGATION_STATUS = "seer-investigation-status"
+    SEER_INVESTIGATION_CONCLUSION = "seer-investigation-conclusion"
 
     # SENTRY_APP
     SENTRY_APP_WEBHOOK_DISABLED = "sentry-app-webhook-disabled"
 
-    # WORKFLOW_ENGINE
+    # DEPLOY
+    DEPLOY_RELEASE = "deploy-release"
+
+    # ACTIVITY
     ACTIVITY_SEER_RCA_STARTED = "activity-seer-rca-started"
     ACTIVITY_SEER_RCA_COMPLETED = "activity-seer-rca-completed"
     ACTIVITY_SEER_SOLUTION_STARTED = "activity-seer-solution-started"
@@ -83,12 +91,20 @@ class NotificationSource(StrEnum):
     ACTIVITY_SEER_CODING_STARTED = "activity-seer-coding-started"
     ACTIVITY_SEER_CODING_COMPLETED = "activity-seer-coding-completed"
     ACTIVITY_SEER_PR_CREATED = "activity-seer-pr-created"
+    ACTIVITY_SEER_PR_READY_FOR_REVIEW = "activity-seer-pr-ready-for-review"
     ACTIVITY_SEER_ITERATION_STARTED = "activity-seer-iteration-started"
     ACTIVITY_SEER_ITERATION_COMPLETED = "activity-seer-iteration-completed"
     ACTIVITY_SET_RESOLVED = "activity-set-resolved"
     ACTIVITY_SET_RESOLVED_IN_RELEASE = "activity-set-resolved-in-release"
     ACTIVITY_SET_RESOLVED_BY_AGE = "activity-set-resolved-by-age"
     ACTIVITY_SET_RESOLVED_IN_COMMIT = "activity-set-resolved-in-commit"
+    ACTIVITY_SET_REGRESSION = "activity-set-regression"
+    ACTIVITY_SET_ESCALATING = "activity-set-escalating"
+    ACTIVITY_SET_UNRESOLVED = "activity-set-unresolved"
+    ACTIVITY_SET_IGNORED = "activity-set-ignored"
+    ACTIVITY_NOTE = "activity-note"
+    ACTIVITY_ASSIGNED = "activity-assigned"
+    ACTIVITY_UNASSIGNED = "activity-unassigned"
 
 
 NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = {
@@ -123,11 +139,19 @@ NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = 
         NotificationSource.SEER_AUTOFIX_UPDATE,
         NotificationSource.SEER_AGENT_RESPONSE,
         NotificationSource.SEER_AGENT_ERROR,
+        NotificationSource.SEER_AGENT_WRITE_APPROVAL,
+        NotificationSource.SEER_INVESTIGATION_STARTED,
+        NotificationSource.SEER_INVESTIGATION_ERROR,
+        NotificationSource.SEER_INVESTIGATION_STATUS,
+        NotificationSource.SEER_INVESTIGATION_CONCLUSION,
     ],
     NotificationCategory.SENTRY_APP: [
         NotificationSource.SENTRY_APP_WEBHOOK_DISABLED,
     ],
-    NotificationCategory.ALERTS: [
+    NotificationCategory.DEPLOY: [
+        NotificationSource.DEPLOY_RELEASE,
+    ],
+    NotificationCategory.ACTIVITY: [
         NotificationSource.ACTIVITY_SEER_RCA_STARTED,
         NotificationSource.ACTIVITY_SEER_RCA_COMPLETED,
         NotificationSource.ACTIVITY_SEER_SOLUTION_STARTED,
@@ -135,12 +159,20 @@ NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = 
         NotificationSource.ACTIVITY_SEER_CODING_STARTED,
         NotificationSource.ACTIVITY_SEER_CODING_COMPLETED,
         NotificationSource.ACTIVITY_SEER_PR_CREATED,
+        NotificationSource.ACTIVITY_SEER_PR_READY_FOR_REVIEW,
         NotificationSource.ACTIVITY_SEER_ITERATION_STARTED,
         NotificationSource.ACTIVITY_SEER_ITERATION_COMPLETED,
         NotificationSource.ACTIVITY_SET_RESOLVED,
         NotificationSource.ACTIVITY_SET_RESOLVED_IN_RELEASE,
         NotificationSource.ACTIVITY_SET_RESOLVED_BY_AGE,
         NotificationSource.ACTIVITY_SET_RESOLVED_IN_COMMIT,
+        NotificationSource.ACTIVITY_SET_REGRESSION,
+        NotificationSource.ACTIVITY_SET_ESCALATING,
+        NotificationSource.ACTIVITY_SET_UNRESOLVED,
+        NotificationSource.ACTIVITY_SET_IGNORED,
+        NotificationSource.ACTIVITY_NOTE,
+        NotificationSource.ACTIVITY_ASSIGNED,
+        NotificationSource.ACTIVITY_UNASSIGNED,
     ],
 }
 
@@ -155,6 +187,16 @@ class NotificationProviderKey(StrEnum):
     SLACK_STAGING = ExternalProviderEnum.SLACK_STAGING
     MSTEAMS = ExternalProviderEnum.MSTEAMS
     DISCORD = ExternalProviderEnum.DISCORD
+
+
+SLACK_PROVIDERS = frozenset({NotificationProviderKey.SLACK, NotificationProviderKey.SLACK_STAGING})
+
+SHADOW_PROVIDERS: dict[str, NotificationProviderKey] = {
+    "slack": NotificationProviderKey.SLACK,
+    "slack_staging": NotificationProviderKey.SLACK_STAGING,
+    "discord": NotificationProviderKey.DISCORD,
+    "msteams": NotificationProviderKey.MSTEAMS,
+}
 
 
 class NotificationTargetResourceType(StrEnum):
@@ -203,6 +245,15 @@ class NotificationData(BaseModel):
     """
     The source is uniquely attributable to the way this notification was sent. It will be tracked in
     metrics/analytics to determine the egress from a given code-path or service.
+    """
+    organization_id: int
+    """
+    The organization this notification is sent for.
+    """
+    notification_uuid: str = Field(default_factory=lambda: str(uuid4()))
+    """
+    Identifies this notification in engagement tracking, so clicks can be tied to the send that
+    produced them.
     """
 
 
@@ -298,6 +349,13 @@ class NotificationRenderedTemplate:
     @property
     def footer_text(self) -> str:
         return self.render_text_blocks(self.footer_blocks)
+
+    # The following are option, but may need to be included in order to preserve existing user
+    # preferences when porting legacy notifications to the platform.
+    email_headers: dict[str, str] | None = None
+    """Additional headers to include when this notification is rendered as email."""
+    email_subject_prefix: str | None = None
+    """A prefix to prepend when this notification is rendered as email."""
 
     # The following are optional, as omitting them will use a default email template which expects
     # the required fields above to be present instead.

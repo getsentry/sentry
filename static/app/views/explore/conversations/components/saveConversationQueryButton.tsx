@@ -5,9 +5,11 @@ import {Button} from '@sentry/scraps/button';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {useErrorsOnlyFilter} from 'sentry/views/explore/conversations/hooks/useErrorsOnlyFilter';
 import {useInvalidateSavedQueries} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
@@ -24,16 +26,19 @@ export function SaveConversationQueryButton() {
     {agent: parseAsArrayOf(parseAsString)},
     {history: 'replace'}
   );
+  const {errorsOnly} = useErrorsOnlyFilter();
 
   function handleClick() {
     openSaveQueryModal({
       organization,
       source: 'conversations',
       traceItemDataset: TraceItemDataset.SPANS,
-      saveQuery: async (name, starred) => {
+      saveQuery: async ({name, starred}) => {
         const {datetime, projects, environments} = selection;
         const response = await api.requestPromise(
-          `/organizations/${organization.slug}/explore/saved/`,
+          getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
           {
             method: 'POST',
             data: {
@@ -41,11 +46,12 @@ export function SaveConversationQueryButton() {
               dataset: 'ai_conversations',
               projects,
               environment: environments,
-              range: datetime.period ?? undefined,
+              statsPeriod: datetime.period ?? undefined,
               start: datetime.start ?? undefined,
               end: datetime.end ?? undefined,
               starred: starred ?? true,
               agent: agent?.length ? agent : undefined,
+              errorsOnly: errorsOnly || undefined,
               query: [
                 {
                   fields: [],

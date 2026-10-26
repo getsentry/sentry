@@ -185,24 +185,6 @@ export type Tag = {
 };
 
 /**
- * Fetches tag facets for a query
- */
-export function fetchTagFacets(
-  api: Client,
-  orgSlug: string,
-  query: EventQuery
-): Promise<ApiResult<Tag[]>> {
-  const urlParams = pick(query, [...Object.values(PERFORMANCE_URL_PARAM), 'cursor']);
-
-  const queryOption = {...urlParams, query: query.query};
-
-  return api.requestPromise(`/organizations/${orgSlug}/events-facets/`, {
-    query: queryOption,
-    includeAllArgs: true,
-  });
-}
-
-/**
  * Fetches total count of events for a given query
  */
 export function fetchTotalCount(
@@ -219,9 +201,14 @@ export function fetchTotalCount(
   };
 
   return api
-    .requestPromise(`/organizations/${orgSlug}/events-meta/`, {
-      query: queryOption,
-    })
+    .requestPromise(
+      getApiUrl('/organizations/$organizationIdOrSlug/events-meta/', {
+        path: {organizationIdOrSlug: orgSlug},
+      }),
+      {
+        query: queryOption,
+      }
+    )
     .then((res: Response) => res.count);
 }
 
@@ -288,14 +275,11 @@ type DeleteEventAttachmentOptions = UseMutationOptions<
   DeleteEventAttachmentContext
 >;
 
-export const useDeleteEventAttachmentOptimistic = (
-  incomingOptions: Partial<DeleteEventAttachmentOptions> = {}
-) => {
+export const useDeleteEventAttachmentOptimistic = () => {
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
 
   const options: DeleteEventAttachmentOptions = {
-    ...incomingOptions,
     mutationFn: ({orgSlug, projectSlug, eventId, attachmentId}) => {
       return api.requestPromise(
         getApiUrl(
@@ -312,7 +296,7 @@ export const useDeleteEventAttachmentOptimistic = (
         {method: 'DELETE'}
       );
     },
-    onMutate: async (variables, context) => {
+    onMutate: async variables => {
       await queryClient.cancelQueries({
         queryKey: makeFetchEventAttachmentsQueryKey(variables),
       });
@@ -334,11 +318,9 @@ export const useDeleteEventAttachmentOptimistic = (
         }
       );
 
-      incomingOptions.onMutate?.(variables, context);
-
       return {previous};
     },
-    onError: (error, variables, onMutateResult, context) => {
+    onError: (_error, variables, onMutateResult) => {
       addErrorMessage(t('An error occurred while deleting the attachment'));
 
       if (onMutateResult) {
@@ -348,8 +330,6 @@ export const useDeleteEventAttachmentOptimistic = (
           onMutateResult.previous
         );
       }
-
-      incomingOptions.onError?.(error, variables, onMutateResult, context);
     },
   };
 

@@ -32,7 +32,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
-import {tokenPreview} from 'sentry/views/settings/organizationAuthTokens';
+import {tokenPreview} from 'sentry/views/settings/organizationAuthTokens/tokenUtils';
 
 const API_INDEX_ROUTE = '/settings/account/api/auth-tokens/';
 
@@ -62,7 +62,7 @@ function ApiTokenDetailsForm({token}: {token: InternalAppApiToken}) {
   const mutation = useMutation({
     mutationFn: (data: z.infer<typeof schema>) =>
       fetchMutation({
-        url: `/api-tokens/${token.id}/`,
+        url: getApiUrl('/api-tokens/$tokenId/', {path: {tokenId: token.id}}),
         method: 'PUT',
         data,
       }),
@@ -141,7 +141,7 @@ function ApiTokenDetailsForm({token}: {token: InternalAppApiToken}) {
           label={t('Scopes')}
           help={t('You cannot change the scopes of an existing token.')}
         >
-          <div>{token.scopes.slice().sort().join(', ')}</div>
+          <div>{token.scopes.toSorted().join(', ')}</div>
         </FieldGroup>
       </form.FieldGroup>
 

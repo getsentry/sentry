@@ -20,12 +20,13 @@ const RENDER_ERROR_MESSAGE = t('Something went wrong displaying this widget.');
 function FeedbackAction() {
   return (
     <FeedbackButton
+      variant="secondary"
       size="xs"
       feedbackOptions={{
         messagePlaceholder: t('What were you doing when this widget broke?'),
         tags: {
-          ['feedback.source']: 'dashboards-widget-render-error',
-          ['feedback.owner']: 'dashboards',
+          'feedback.source': 'dashboards-widget-render-error',
+          'feedback.owner': 'dashboards',
         },
       }}
     >
@@ -65,14 +66,6 @@ export interface Widget {
    */
   height?: number;
   /**
-   * Removes padding from the footer area
-   */
-  noFooterPadding?: boolean;
-  /**
-   * Removes padding from the header area
-   */
-  noHeaderPadding?: boolean;
-  /**
    * Removes padding from the visualization area
    */
   noVisualizationPadding?: boolean;
@@ -93,7 +86,7 @@ function WidgetLayout(props: Widget) {
       revealActions={revealActions}
       minHeight={defined(props.height) ? Math.min(props.height, MIN_HEIGHT) : MIN_HEIGHT}
     >
-      <Header noPadding={props.noHeaderPadding}>
+      <Header>
         {props.Title && <Fragment>{props.Title}</Fragment>}
         {props.TitleBadges && (
           <Flex align="center" gap="xs">
@@ -122,7 +115,7 @@ function WidgetLayout(props: Widget) {
       )}
 
       {props.Footer && (
-        <FooterWrapper noPadding={props.noFooterPadding}>
+        <FooterWrapper>
           <ErrorBoundary
             customComponent={() => <WidgetError error={RENDER_ERROR_MESSAGE} />}
           >
@@ -190,14 +183,13 @@ const Frame = styled('div')<{
     `}
 `;
 
-export const Header = styled('div')<{noPadding?: boolean}>`
+export const Header = styled('div')`
   display: flex;
   align-items: center;
   height: calc(${HEADER_HEIGHT} + ${p => p.theme.space.lg});
   flex-shrink: 0;
   gap: ${p => p.theme.space.sm};
-  padding: ${p =>
-    p.noPadding ? 0 : `${p.theme.space.lg} ${p.theme.space.xl} 0 ${p.theme.space.xl}`};
+  padding: ${p => `${p.theme.space.lg} ${p.theme.space.xl} 0 ${p.theme.space.xl}`};
 `;
 
 const VisualizationWrapper = styled('div')<{noPadding?: boolean}>`
@@ -210,11 +202,9 @@ const VisualizationWrapper = styled('div')<{noPadding?: boolean}>`
     p.noPadding ? 0 : `0 ${p.theme.space.xl} ${p.theme.space.lg} ${p.theme.space.xl}`};
 `;
 
-export const FooterWrapper = styled('div')<{noPadding?: boolean}>`
+export const FooterWrapper = styled('div')`
   margin: 0;
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
   padding: ${p =>
-    p.noPadding
-      ? 0
-      : `${p.theme.space.md} ${p.theme.space.xl} ${p.theme.space.md} ${p.theme.space.xl}`};
+    `${p.theme.space.md} ${p.theme.space.xl} ${p.theme.space.md} ${p.theme.space.xl}`};
 `;

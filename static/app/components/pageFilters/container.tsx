@@ -6,17 +6,17 @@ import {Stack} from '@sentry/scraps/layout';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {InitializeUrlStateParams} from 'sentry/components/pageFilters/actions';
 import {
+  exceedsDatetimeLimits,
   initializeUrlState,
   updateDateTime,
   updateEnvironments,
   updatePersistence,
   updateProjects,
 } from 'sentry/components/pageFilters/actions';
+import {PageFilterAdjustmentReason} from 'sentry/components/pageFilters/adjustments';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
-import {DAY as DAY_IN_MS} from 'sentry/utils/formatters';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useDefaultMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
@@ -139,38 +139,9 @@ export function PageFiltersContainer({
   const shouldResetDateTime = useMemo(() => {
     // Don't act until page filters are initialized - selection.datetime contains
     // default values until isReady, not the actual URL state
-    if (!isReady) {
-      return false;
-    }
-
-    const effectiveMaxDays = maxDateRange ?? maxPickableDays;
-    const {period, start, end} = selection.datetime;
-
-    // For relative periods (e.g., "14d"), check if the period exceeds the new max
-    if (period) {
-      return statsPeriodToDays(period) > effectiveMaxDays;
-    }
-
-    // For absolute date ranges, check if the start date is before the allowed window.
-    // Uses same calculation as initialization in pageFilters.tsx
-    if (start && end) {
-      const periodStart = new Date(start);
-      const periodEnd = new Date(end);
-      const maxPeriod = parseStatsPeriod(`${maxPickableDays}d`);
-      const maxStart = new Date(maxPeriod.start);
-
-      if (maxDateRange) {
-        const maxTimeRange = maxDateRange * DAY_IN_MS;
-        return (
-          periodEnd.getTime() - periodStart.getTime() > maxTimeRange ||
-          periodStart.getTime() < maxStart.getTime()
-        );
-      }
-
-      return periodStart.getTime() < maxStart.getTime();
-    }
-
-    return false;
+    return (
+      isReady && exceedsDatetimeLimits(selection.datetime, maxPickableDays, maxDateRange)
+    );
   }, [isReady, maxDateRange, maxPickableDays, selection.datetime]);
 
   const resetPeriodDays = maxDateRange ?? maxPickableDays;
@@ -190,7 +161,22 @@ export function PageFiltersContainer({
       project: [],
     });
     updateDateTime(newDateState, location, navigate);
-  }, [location, navigate, resetPeriodDays, selection.datetime.utc, shouldResetDateTime]);
+
+    // Recorded after the update, which clears any prior datetime adjustment.
+    PageFiltersStore.addAdjustment('datetime', {
+      reason: maxDateRange
+        ? PageFilterAdjustmentReason.MAX_DATE_RANGE
+        : PageFilterAdjustmentReason.MAX_PICKABLE_DAYS,
+      days: resetPeriodDays,
+    });
+  }, [
+    location,
+    maxDateRange,
+    navigate,
+    resetPeriodDays,
+    selection.datetime.utc,
+    shouldResetDateTime,
+  ]);
 
   // Update store persistence when `disablePersistence` changes
   useEffect(() => updatePersistence(!disablePersistence), [disablePersistence]);

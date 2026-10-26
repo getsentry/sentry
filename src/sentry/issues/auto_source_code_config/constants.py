@@ -9,7 +9,10 @@ from .utils.java import find_java_source_roots
 
 METRIC_PREFIX = "auto_source_code_config"
 DERIVED_ENHANCEMENTS_OPTION_KEY = "sentry:derived_grouping_enhancements"
-SUPPORTED_INTEGRATIONS = [IntegrationProviderSlug.GITHUB.value]
+SUPPORTED_INTEGRATIONS = [
+    IntegrationProviderSlug.GITHUB.value,
+    IntegrationProviderSlug.CURSOR_ORIGIN.value,
+]
 STACK_ROOT_MAX_LEVEL = 4
 
 # The extensions do not need to be exhaustive but only include the ones that show up in stacktraces
@@ -24,8 +27,8 @@ PLATFORMS_CONFIG: dict[str, Mapping[str, Any]] = {
         "source_roots_resolver": find_java_source_roots,
         "extensions": ["kt", "kts", "java", "jsp", "scala", "sc"],
     },
-    "javascript": {"extensions": ["js", "jsx", "mjs", "tsx", "ts"]},
-    "node": {"extensions": ["js", "jsx", "mjs", "tsx", "ts"]},
+    "javascript": {"extensions": ["js", "jsx", "mjs", "tsx", "ts", "cjs", "mts", "cts"]},
+    "node": {"extensions": ["js", "jsx", "mjs", "tsx", "ts", "cjs", "mts", "cts"]},
     "php": {"extensions": ["php"]},
     "python": {"extensions": ["py"]},
     "ruby": {"extensions": ["rb", "rake"]},

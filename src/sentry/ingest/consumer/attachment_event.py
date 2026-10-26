@@ -9,6 +9,10 @@ from arroyo.types import BrokerValue, Message
 
 from sentry.ingest.types import ConsumerType
 from sentry.models.project import Project
+from sentry.services.eventstore.processing import (
+    event_processing_store,
+    transaction_processing_store,
+)
 from sentry.utils import metrics
 
 from .processors import (
@@ -21,6 +25,17 @@ from .processors import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _event_is_stuck(message: IngestMessage) -> bool:
+    """
+    Checks if the metadata key associated with this chunk is in a processing store.
+    Processing store (which contains attachment metadata) has a TTL of 24h, but attachment chunks
+    are only stored for 1h, so if we're running the attachment consumer in recovery mode we'll typically
+    need to store the attachment chunk again.
+    """
+    key_data = {"event_id": message["event_id"], "project": message["project_id"]}
+    return event_processing_store.exists(key_data) or transaction_processing_store.exists(key_data)
 
 
 def decode_and_process_chunks(
@@ -45,7 +60,9 @@ def decode_and_process_chunks(
         message: IngestMessage = msgpack.unpackb(raw_payload, use_list=False)
 
         if message["type"] == "attachment_chunk":
-            if not reprocess_only_stuck_events:
+            # We typically still need to re-store the attachment chunk if we're reprocessing stuck events,
+            # since the attachment store only has a 1h TTL while processing stores have 24h TTL
+            if not reprocess_only_stuck_events or _event_is_stuck(message):
                 process_attachment_chunk(message)
             return None
 
@@ -61,7 +78,9 @@ def decode_and_process_chunks(
 
 
 def process_attachments_and_events(
-    raw_message: Message[IngestMessage], reprocess_only_stuck_events: bool
+    raw_message: Message[IngestMessage],
+    reprocess_only_stuck_events: bool,
+    reprocess_only_events_not_in_nodestore: bool,
 ) -> None:
     """
     The second pass for the `attachments` topic processes *individual* `attachments`
@@ -88,7 +107,9 @@ def process_attachments_and_events(
 
     try:
         if message_type == "attachment":
-            if not reprocess_only_stuck_events:
+            # Individual attachments are not idempotent, so we skip them in either reprocessing
+            # mode to avoid duplicating attachments for events that were already handled.
+            if not reprocess_only_stuck_events and not reprocess_only_events_not_in_nodestore:
                 process_individual_attachment(message, project)
         elif message_type == "event":
             process_event(
@@ -96,6 +117,7 @@ def process_attachments_and_events(
                 message,
                 project,
                 reprocess_only_stuck_events,
+                reprocess_only_events_not_in_nodestore,
             )
         elif message_type == "user_report":
             process_userreport(message, project)

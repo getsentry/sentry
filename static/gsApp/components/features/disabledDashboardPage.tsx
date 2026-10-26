@@ -1,9 +1,9 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
+import {IconBusiness} from '@sentry/icons/business';
 
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
-import {IconBusiness} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
@@ -48,7 +48,7 @@ function DisabledDashboardPage({
         <ListItem>{t('Build and share dashboards')}</ListItem>
         <ListItem>{t('Easily customize widgets')}</ListItem>
         <ListItem>{t('Manage dashboards')}</ListItem>
-        <ListItem>{t('Open widgets in Discover')}</ListItem>
+        <ListItem>{t('Open widgets in Explore')}</ListItem>
       </FeatureList>
     </Fragment>
   );

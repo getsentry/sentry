@@ -1,3 +1,5 @@
+import {DetailedProjectFixture} from 'sentry-fixture/project';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -26,6 +28,11 @@ describe('ProjectUserFeedback', () => {
       url: `${url}keys/`,
       method: 'GET',
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url,
+      method: 'GET',
+      body: DetailedProjectFixture(project),
     });
     seerSetupMock = mockSeerSetup();
   });
@@ -98,7 +105,6 @@ describe('ProjectUserFeedback', () => {
   });
 
   it('cannot toggle spam detection when the user does not have the spam feature flag', () => {
-    organization.features.push('gen-ai-features');
     seerSetupMock = mockSeerSetup();
 
     render(<ProjectUserFeedback />, {
@@ -113,12 +119,19 @@ describe('ProjectUserFeedback', () => {
 
   it('can toggle spam detection', async () => {
     organization.features.push('user-feedback-spam-ingest');
-    organization.features.push('gen-ai-features');
     seerSetupMock = mockSeerSetup();
+
+    const detailedProject = DetailedProjectFixture(project);
+    const update = Promise.withResolvers<typeof detailedProject>();
+    const mock = MockApiClient.addMockResponse({
+      url,
+      method: 'PUT',
+      body: () => update.promise,
+    });
 
     render(<ProjectUserFeedback />, {
       organization,
-      outletContext: {project},
+      outletContext: {project: detailedProject},
     });
 
     await waitFor(() => {
@@ -126,11 +139,6 @@ describe('ProjectUserFeedback', () => {
     });
 
     const checkbox = await screen.findByRole('checkbox', {name: 'Enable Spam Detection'});
-
-    const mock = MockApiClient.addMockResponse({
-      url,
-      method: 'PUT',
-    });
 
     await userEvent.click(checkbox);
 
@@ -143,5 +151,24 @@ describe('ProjectUserFeedback', () => {
         },
       })
     );
+    expect(checkbox).toBeChecked();
+    expect(checkbox).toBeDisabled();
+
+    const updatedProject = {
+      ...detailedProject,
+      options: {
+        ...detailedProject.options,
+        'sentry:feedback_ai_spam_detection': true,
+      },
+    };
+    MockApiClient.addMockResponse({
+      url,
+      method: 'GET',
+      body: updatedProject,
+    });
+    update.resolve(updatedProject);
+
+    await waitFor(() => expect(checkbox).toBeEnabled());
+    expect(checkbox).toBeChecked();
   });
 });

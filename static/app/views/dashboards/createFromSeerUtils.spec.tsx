@@ -1,5 +1,5 @@
-import {applySeerWidgetDefaults} from 'sentry/views/dashboards/createFromSeerUtils';
 import {
+  applySeerWidgetDefaults,
   extractDashboardFromSession,
   splitDashboardPrompt,
   statusIsTerminal,
@@ -65,6 +65,43 @@ describe('applySeerWidgetDefaults', () => {
       const [result] = applySeerWidgetDefaults(widgets);
 
       expect(result!.limit).toBe(5);
+    });
+  });
+
+  describe('query defaults', () => {
+    it('fills in missing query arrays and strings', () => {
+      const widgets = [
+        makeWidget({
+          queries: [{} as Widget['queries'][number]],
+        }),
+      ];
+      const [result] = applySeerWidgetDefaults(widgets);
+
+      expect(result!.queries).toEqual([
+        {
+          aggregates: [],
+          columns: [],
+          fields: [],
+          conditions: '',
+          name: '',
+          orderby: '',
+        },
+      ]);
+    });
+
+    it('preserves existing query values', () => {
+      const widgets = [makeWidget()];
+      const [result] = applySeerWidgetDefaults(widgets);
+
+      expect(result!.queries[0]!.aggregates).toEqual(['count()']);
+      expect(result!.queries[0]!.fields).toEqual(['count()']);
+    });
+
+    it('defaults queries to an empty array when missing', () => {
+      const widgets = [makeWidget({queries: undefined as unknown as Widget['queries']})];
+      const [result] = applySeerWidgetDefaults(widgets);
+
+      expect(result!.queries).toEqual([]);
     });
   });
 });

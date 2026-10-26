@@ -12,27 +12,27 @@ import rest_framework
 from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q, QuerySet
-from django.db.models.signals import post_save
 from django.utils import timezone as django_timezone
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features, options
+from sentry import analytics, features
 from sentry.analytics.events.manual_issue_assignment import ManualIssueAssignment
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
+from sentry.api.serializers.models.groupactionlogentry import get_serialized_activity_items
+from sentry.exceptions import InvalidSearchQuery
 from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.action_log import (
     action_context_scope,
     get_action_context,
     publish_action,
-    publish_action_from_context,
-    resolve_action_actor,
-    resolve_action_source,
 )
-from sentry.issues.action_log.types import MergeFromOtherAction, MergeIntoOtherAction, ResolveAction
+from sentry.issues.action_log.read_metrics import activity_read_endpoint
+from sentry.issues.action_log.request import resolve_action_actor, resolve_action_source
+from sentry.issues.action_log.types import MergeIntoOtherAction
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
 from sentry.issues.merge import MergedGroup, handle_merge
@@ -49,6 +49,7 @@ from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.models.groupinbox import GroupInboxRemoveAction, remove_group_from_inbox
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupopenperiod import update_group_open_period
+from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
@@ -85,7 +86,7 @@ class ResolutionParams(TypedDict):
     type: int | None
     status: int | None
     actor_id: int | None
-    current_release_version: NotRequired[str]
+    current_release_version: NotRequired[str | None]
 
 
 def handle_discard(
@@ -168,12 +169,28 @@ def get_current_release_version_of_group(group: Group, follows_semver: bool = Fa
         if release is not None:
             current_release_version = release.version
     else:
-        # This sets current_release_version to the most recent release associated with a group
-        # In order to be able to do that, `use_cache` has to be set to False. Otherwise,
-        # group.get_last_release might not return the actual latest release associated with a
-        # group but rather a cached version (which might or might not be the actual latest. It is
-        # the first latest observed by Sentry)
-        current_release_version = group.get_last_release(use_cache=False)
+        # Preserve the last-release cache refresh for issue details. Its history
+        # includes archived releases, so refresh it separately from anchor selection.
+        group.get_last_release(use_cache=False)
+        # Keep the issue's last-seen ordering, but exclude archived releases before
+        # choosing its resolution anchor. General release history remains unfiltered.
+        eligible_releases = Release.objects.filter(
+            organization_id=group.project.organization_id,
+        ).filter(Q(status=ReleaseStatus.OPEN) | Q(status__isnull=True))
+        latest_observation = (
+            GroupRelease.objects.filter(
+                group_id=group.id,
+                project_id=group.project_id,
+                release_id__in=eligible_releases.values("id"),
+            )
+            .order_by("-last_seen")
+            .values("release_id")[:1]
+        )
+        current_release_version = (
+            Release.objects.filter(id__in=latest_observation)
+            .values_list("version", flat=True)
+            .first()
+        )
     return current_release_version
 
 
@@ -200,7 +217,7 @@ def update_groups(
     organization = projects[0].organization if projects else None
 
     if not groups:
-        return Response({"detail": "No groups found"}, status=204)
+        return Response(status=204)
 
     serializer = validate_request(request, projects, data, user)
 
@@ -315,11 +332,15 @@ def update_groups_with_search_fn(
             return Response(
                 {"detail": "Invalid query. Error getting group ids and group list"}, status=400
             )
+        except InvalidSearchQuery:
+            # Raised while building the Snuba query (e.g. `issue:` with an
+            # invalid short ID). This is a client error; don't report it.
+            return Response({"detail": "Invalid search query."}, status=400)
 
         group_list = list(cursor_result)
 
     if not group_list:
-        return Response({"detail": "No groups found"}, status=204)
+        return Response(status=204)
 
     return update_groups(request, group_list)
 
@@ -531,10 +552,10 @@ def process_group_resolution(
             )
 
             current_release_version = get_current_release_version_of_group(group, follows_semver)
+            # Clear a previous anchor if no eligible observed release remains.
+            resolution_params["current_release_version"] = current_release_version
 
             if current_release_version:
-                resolution_params.update({"current_release_version": current_release_version})
-
                 # Sets `current_release_version` for activity, since there is no point
                 # waiting for when a new release is created i.e.
                 # clear_expired_resolutions task to be run.
@@ -571,22 +592,13 @@ def process_group_resolution(
                             organization_id=group.project.organization_id,
                         )
 
-                        date_order_q = Q(date_added__gt=current_release_obj.date_added) | Q(
-                            date_added=current_release_obj.date_added,
-                            id__gt=current_release_obj.id,
-                        )
-
-                        # Find the next release after the current_release_version
-                        # i.e. the release that resolves the issue
-                        resolved_in_release = (
-                            Release.objects.filter(
-                                date_order_q,
-                                projects=group.project,
-                                organization_id=group.project.organization_id,
-                            )
-                            .extra(select={"sort": "COALESCE(date_released, date_added)"})
-                            .order_by("sort", "id")[:1]
-                            .get()
+                        resolved_in_release = Release.objects.get_next_release(
+                            group.project,
+                            current_release_obj,
+                            use_finalized_order=features.has(
+                                "organizations:release-resolution-finalized-order",
+                                group.project.organization,
+                            ),
                         )
 
                         # If we get here, we assume it exists and so we update
@@ -629,13 +641,6 @@ def process_group_resolution(
     group.status = GroupStatus.RESOLVED
     group.substatus = None
     group.resolved_at = now
-    if affected and not options.get("groups.enable-post-update-signal"):
-        post_save.send_robust(
-            sender=Group,
-            instance=group,
-            created=False,
-            update_fields=["resolved_at", "status", "substatus"],
-        )
     remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED, user=acting_user)
     result["inbox"] = None
 
@@ -644,27 +649,25 @@ def process_group_resolution(
         result["assignedTo"] = assigned_to
 
     if bool(affected):
+        is_bulk = len(group_list) > 1
+        data = dict(activity_data)
+        if is_bulk:
+            data["bulk"] = True
         # If the group is resolved, then create an activities, actions, etc.
         activity = Activity.objects.create_group_activity(
             group,
             ActivityType(activity_type),
             user_id=acting_user.id if acting_user else None,
-            data=dict(activity_data),
+            data=data,
             ident=resolution.id if resolution else None,
             send_notification=False,  # deferred via on_commit below, will also trigger the handlers
         )
 
         record_group_history_from_activity_type(group, activity_type, actor=acting_user)
 
-        publish_action_from_context(
-            ResolveAction(),
-            group_id=group.id,
-            project=group.project,
-        )
-
         # TODO(dcramer): we need a solution for activity rollups
         # before sending notifications on bulk changes
-        if not len(group_list) > 1:
+        if not is_bulk:
             # TODO - This will trigger it every time a user clicks resolved
             # should this only trigger through workflow engine or the activity handler?
             transaction.on_commit(
@@ -676,7 +679,6 @@ def process_group_resolution(
             group=group,
             new_status=GroupStatus.RESOLVED,
             resolution_time=now,
-            resolution_activity=activity,
         )
         if group.issue_type == MetricIssue:
             update_incident_based_on_open_period_status_change(group, GroupStatus.RESOLVED)
@@ -787,12 +789,22 @@ def prepare_response(
     try:
         if len(group_list) == 1:
             if res_type in (GroupResolution.Type.in_next_release, GroupResolution.Type.in_release):
-                result["activity"] = serialize(
-                    Activity.objects.get_activities_for_group(
-                        group=group_list[0], num=ACTIVITIES_COUNT
-                    ),
+                group = group_list[0]
+                activity_items = get_serialized_activity_items(
+                    group,
                     acting_user,
+                    endpoint=activity_read_endpoint(request),
+                    limit=ACTIVITIES_COUNT - 1,
                 )
+                if activity_items is not None:
+                    result["activity"] = activity_items
+                else:
+                    result["activity"] = serialize(
+                        Activity.objects.get_activities_for_group(
+                            group=group, num=ACTIVITIES_COUNT
+                        ),
+                        acting_user,
+                    )
     except UnboundLocalError:
         pass
 
@@ -840,14 +852,6 @@ def prepare_response(
             primary_id = int(merged["parent"])
             child_ids = [int(c) for c in merged["children"]]
             group_by_id = {g.id: g for g in group_list}
-            primary = group_by_id[primary_id]
-            publish_action(
-                MergeFromOtherAction(counterpart_group_ids=child_ids),
-                source=ctx.source,
-                group_id=primary_id,
-                project=primary.project,
-                actor=ctx.actor,
-            )
             for child_id in child_ids:
                 child = group_by_id[child_id]
                 publish_action(

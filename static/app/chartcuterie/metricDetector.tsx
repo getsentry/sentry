@@ -2,8 +2,8 @@ import type {Theme} from '@emotion/react';
 import type {LineSeriesOption, YAXisComponentOption} from 'echarts';
 
 import type {AreaChartSeries} from 'sentry/components/charts/areaChart';
-import {XAxis} from 'sentry/components/charts/components/xAxis';
-import {AreaSeries} from 'sentry/components/charts/series/areaSeries';
+import {createXAxisOptions} from 'sentry/components/charts/components/xAxis';
+import {createAreaSeries} from 'sentry/components/charts/series/areaSeries';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {
   getMetricDetectorChartOption,
@@ -17,7 +17,7 @@ import {ChartType} from './types';
 
 function transformAreaSeries(series: AreaChartSeries[]): LineSeriesOption[] {
   return series.map(({seriesName, data, ...otherSeriesProps}) => {
-    const areaSeries = AreaSeries({
+    const areaSeries = createAreaSeries({
       name: seriesName,
       data: data.map(({name, value}) => [name, value]),
       lineStyle: {
@@ -48,7 +48,7 @@ export function makeMetricDetectorCharts(
   const slackChartDefaults = makeSlackChartDefaults(theme);
   const metricDetectorCharts: Array<RenderDescriptor<ChartType>> = [];
 
-  const metricDetectorXaxis = XAxis({
+  const metricDetectorXaxis = createXAxisOptions({
     theme,
     splitNumber: 3,
     isGroupedByDate: true,

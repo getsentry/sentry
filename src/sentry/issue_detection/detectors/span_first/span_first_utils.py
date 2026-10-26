@@ -25,6 +25,9 @@ DEFAULT_MAX_EVIDENCE_VALUE_LENGTH = 10_000
 # other isn't.
 class SpanFirstDetectorsRolloutController(SafeRolloutComparator):
     ROLLOUT_NAME = "span_first_detectors"
+    # Log to Sentry only, so we don't have to worry about what we might be logging to an external
+    # service when we log mismatches
+    internal_logs_only = True
 
 
 SPAN_FIRST_DETECTORS_ENABLEMENT_OPTION = (

@@ -4,7 +4,10 @@ import type {
   PrebuiltDashboard,
   PrebuiltWidget,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/caches/settings';
+import {
+  DASHBOARD_DESCRIPTION,
+  DASHBOARD_TITLE,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/caches/settings';
 import {
   WIDGET_COLUMN_LABELS,
   TABLE_MIN_HEIGHT,
@@ -26,14 +29,14 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
         {
           name: '',
           aggregates: [
-            `equation|count_if(${SpanFields.CACHE_HIT},equals,false) / count(${SpanFields.SPAN_DURATION})`,
+            `equation|count_if(\`${SpanFields.CACHE_HIT}:false\`) / count(${SpanFields.SPAN_DURATION})`,
           ],
           columns: [],
           fields: [
-            `equation|count_if(${SpanFields.CACHE_HIT},equals,false) / count(${SpanFields.SPAN_DURATION})`,
+            `equation|count_if(\`${SpanFields.CACHE_HIT}:false\`) / count(${SpanFields.SPAN_DURATION})`,
           ],
           conditions: BASE_CONDITION,
-          orderby: `equation|count_if(${SpanFields.CACHE_HIT},equals,false) / count(${SpanFields.SPAN_DURATION})`,
+          orderby: `equation|count_if(\`${SpanFields.CACHE_HIT}:false\`) / count(${SpanFields.SPAN_DURATION})`,
         },
       ],
     },
@@ -72,13 +75,13 @@ const TRANSACTION_TABLE: PrebuiltWidget = {
         SpanFields.PROJECT,
         `avg(${SpanFields.CACHE_ITEM_SIZE})`,
         'epm()',
-        `equation|count_if(${SpanFields.CACHE_HIT},equals,false) / count(${SpanFields.SPAN_DURATION})`,
+        `equation|count_if(\`${SpanFields.CACHE_HIT}:false\`) / count(${SpanFields.SPAN_DURATION})`,
         `sum(${SpanFields.SPAN_DURATION})`,
       ],
       aggregates: [
         `avg(${SpanFields.CACHE_ITEM_SIZE})`,
         'epm()',
-        `equation|count_if(${SpanFields.CACHE_HIT},equals,false) / count(${SpanFields.SPAN_DURATION})`,
+        `equation|count_if(\`${SpanFields.CACHE_HIT}:false\`) / count(${SpanFields.SPAN_DURATION})`,
         `sum(${SpanFields.SPAN_DURATION})`,
       ],
       columns: [SpanFields.TRANSACTION, SpanFields.PROJECT],
@@ -107,6 +110,7 @@ export const CACHES_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
   title: DASHBOARD_TITLE,
+  description: DASHBOARD_DESCRIPTION,
   filters: {},
   widgets: [...FIRST_ROW_WIDGETS, TRANSACTION_TABLE],
   onboarding: {type: 'module', moduleName: ModuleName.CACHE},

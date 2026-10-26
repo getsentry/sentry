@@ -3,13 +3,13 @@ from datetime import datetime, timezone
 from typing import Protocol
 
 import sentry_sdk
+from sentry_sdk import traces
 
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.datasource.redis import get_redis_client
 from sentry.ingest.transaction_clusterer.rule_validator import RuleValidator
 from sentry.models.project import Project
 from sentry.utils import metrics
-from sentry.utils.sdk import set_span_attribute
 
 from .base import ReplacementRule
 
@@ -67,6 +67,7 @@ class RedisRuleStore:
             p.delete(key)
             if len(rules) > 0:
                 p.hmset(name=key, mapping=rules)
+                p.expire(key, TRANSACTION_NAME_RULE_TTL_SECS)
             p.execute()
 
     def update_rule(self, project: Project, rule: str, last_used: int) -> None:
@@ -79,7 +80,10 @@ class RedisRuleStore:
         # There is no atomic "overwrite if exists" for hashes, so fetch keys first:
         existing_rules = client.hkeys(key)
         if rule in existing_rules:
-            client.hset(key, rule, last_used)
+            with client.pipeline() as p:
+                p.hset(key, rule, last_used)
+                p.expire(key, TRANSACTION_NAME_RULE_TTL_SECS)
+                p.execute()
 
 
 class ProjectOptionRuleStore:
@@ -146,7 +150,9 @@ class CompositeRuleStore:
         sorted_rules = [rule for rule in sorted_rules if rule[1] >= last_seen_deadline]
 
         if self.MERGE_MAX_RULES < len(rules):
-            set_span_attribute("discarded_rules", len(rules) - self.MERGE_MAX_RULES)
+            span = traces.get_current_span()
+            if span:
+                span.set_attribute("discarded_rules", len(rules) - self.MERGE_MAX_RULES)
             sentry_sdk.get_isolation_scope().set_context(
                 "clustering_rules_max",
                 {

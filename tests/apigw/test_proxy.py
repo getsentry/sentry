@@ -1,4 +1,4 @@
-import httpx
+import punkreq
 import pytest
 from emmett55 import current
 from emmett_core.http.response import HTTPResponse
@@ -96,7 +96,7 @@ def test_proxied_cell_headers_gateway_marker() -> None:
 
 
 def test_adapt_response_headers_and_cookies() -> None:
-    upstream = httpx.Response(
+    upstream = punkreq.Response(
         301,
         headers=[
             ("set-cookie", "session=abc; Path=/; HttpOnly"),

@@ -6,6 +6,8 @@ import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge
 import {t, tct} from 'sentry/locale';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
+import {getDuration} from 'sentry/utils/duration/getDuration';
+import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {
   CountBranch,
   PercentBranch,
@@ -21,10 +23,20 @@ import {
 } from 'sentry/views/automations/components/actionFilters/subfiltersList';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
-import {
-  dataConditionNodesMap,
-  useDataConditionNodeContext,
-} from 'sentry/views/automations/components/dataConditionNodes';
+import type {DataConditionNodeComponentProps} from 'sentry/views/automations/components/dataConditionNodeContext';
+import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodeContext';
+
+function getIntervalLabel(interval: string): string {
+  const label = INTERVAL_CHOICES.find(choice => choice.value === interval)?.label;
+  if (label) {
+    return label;
+  }
+
+  const intervalMilliseconds = intervalToMilliseconds(interval);
+  return intervalMilliseconds
+    ? t('in %s', getDuration(intervalMilliseconds / 1000))
+    : interval;
+}
 
 export function EventFrequencyCountDetails({condition}: {condition: DataCondition}) {
   const hasSubfilters = condition.comparison.filters?.length > 0;
@@ -32,9 +44,7 @@ export function EventFrequencyCountDetails({condition}: {condition: DataConditio
     <div>
       {tct('Number of events in an issue is more than [value] [interval] [where]', {
         value: condition.comparison.value,
-        interval:
-          INTERVAL_CHOICES.find(choice => choice.value === condition.comparison.interval)
-            ?.label || condition.comparison.interval,
+        interval: getIntervalLabel(condition.comparison.interval),
         where: hasSubfilters ? t('where') : null,
       })}
       {hasSubfilters && (
@@ -52,10 +62,7 @@ export function EventFrequencyPercentDetails({condition}: {condition: DataCondit
         'Number of events in an issue is [value]% higher [interval] compared to [comparisonInterval] [where]',
         {
           value: condition.comparison.value,
-          interval:
-            INTERVAL_CHOICES.find(
-              choice => choice.value === condition.comparison.interval
-            )?.label || condition.comparison.interval,
+          interval: getIntervalLabel(condition.comparison.interval),
           comparisonInterval:
             COMPARISON_INTERVAL_CHOICES.find(
               choice => choice.value === condition.comparison.comparisonInterval
@@ -70,7 +77,9 @@ export function EventFrequencyPercentDetails({condition}: {condition: DataCondit
   );
 }
 
-export function EventFrequencyNode() {
+export function EventFrequencyNode({
+  getDefaultComparison,
+}: DataConditionNodeComponentProps) {
   const {condition} = useDataConditionNodeContext();
   const hasSubfilters = condition.comparison.filters?.length > 0;
 
@@ -78,7 +87,7 @@ export function EventFrequencyNode() {
     <div>
       <RowLine>
         {tct('Number of events in an issue is [select] [where]', {
-          select: <ComparisonTypeField />,
+          select: <ComparisonTypeField getDefaultComparison={getDefaultComparison} />,
           where: hasSubfilters ? <ConditionBadge>{t('Where')}</ConditionBadge> : null,
         })}
       </RowLine>
@@ -87,7 +96,7 @@ export function EventFrequencyNode() {
   );
 }
 
-function ComparisonTypeField() {
+function ComparisonTypeField({getDefaultComparison}: DataConditionNodeComponentProps) {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   const {removeError} = useAutomationBuilderErrorContext();
 
@@ -118,7 +127,7 @@ function ComparisonTypeField() {
           type: option.value,
           comparison: {
             ...condition.comparison,
-            ...dataConditionNodesMap.get(option.value)?.defaultComparison,
+            ...getDefaultComparison(option.value),
           },
         });
         removeError(condition.id);

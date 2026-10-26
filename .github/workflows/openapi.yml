@@ -12,6 +12,8 @@ jobs:
   build_and_deref_json:
     runs-on: ubuntu-24.04
     timeout-minutes: 90
+    permissions:
+      contents: read
     steps:
       - name: github app token
         id: app-token
@@ -26,10 +28,10 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Check for python file changes
-        uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd # v3.0.0
+        uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
         id: changes
         with:
-          token: ${{ github.token }}
+          token: ''
           filters: .github/file-filters.yml
 
       - name: Setup sentry env
@@ -49,13 +51,8 @@ jobs:
           # https://github.com/stefanzweifel/git-auto-commit-action/tree/master?tab=readme-ov-file#push-to-protected-branches
           token: ${{ steps.app-token.outputs.token }}
 
-      - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
-        if: steps.changes.outputs.api_docs == 'true'
-        id: setup-node
-        with:
-          node-version-file: '.node-version'
+      - uses: ./.github/actions/setup-node-pnpm
 
-      - uses: pnpm/action-setup@9b5745cdf0a2e8c2620f0746130f809adb911c19 # v4
       - name: Build OpenAPI Derefed JSON
         if: steps.changes.outputs.api_docs == 'true'
         run: |

@@ -1,4 +1,11 @@
+from django.test import override_settings
+from rest_framework.test import APIClient
+
+from sentry.seer import agent_token
 from sentry.testutils.cases import APITestCase
+
+SECRET = "test-seer-api-shared-secret-thirty-two-bytes!"
+FLAG = "organizations:seer-agent-token-flow"
 
 
 class OrganizationUserDetailsTest(APITestCase):
@@ -16,6 +23,26 @@ class OrganizationUserDetailsTest(APITestCase):
     def test_gets_info_for_user_in_org(self) -> None:
         response = self.get_success_response(self.org.slug, self.user.id)
 
+        assert response.data["id"] == str(self.user.id)
+        assert response.data["email"] == self.user.email
+
+    @override_settings(SEER_API_SHARED_SECRET=SECRET)
+    def test_agent_token_gets_info_for_user_in_org(self) -> None:
+        token, _ = agent_token.encode_agent_token(
+            user_id=self.owner_user.id,
+            organization_id=self.org.id,
+            scopes=["member:read", "org:read"],
+            session_id="s1",
+        )
+        client = APIClient()
+
+        with self.feature(FLAG):
+            response = client.get(
+                f"/api/0/organizations/{self.org.slug}/users/{self.user.id}/",
+                HTTP_AUTHORIZATION=f"Bearer {token}",
+            )
+
+        assert response.status_code == 200, response.content
         assert response.data["id"] == str(self.user.id)
         assert response.data["email"] == self.user.email
 

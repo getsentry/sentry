@@ -2,7 +2,7 @@ import {DeviceName} from 'sentry/components/deviceName';
 import {
   getContextKeys,
   getRelativeTimeFromEventDateCreated,
-} from 'sentry/components/events/contexts/utils';
+} from 'sentry/components/events/contexts/dataUtils';
 import {FileSize} from 'sentry/components/fileSize';
 import {t} from 'sentry/locale';
 import {DeviceContextKey, type DeviceContext, type Event} from 'sentry/types/event';
@@ -134,7 +134,7 @@ export function getDeviceContextData({
   meta,
 }: {
   data: DeviceContext;
-  event: Event;
+  event?: Event;
   meta?: Record<keyof DeviceContext, any>;
 }): KeyValueListData {
   return getContextKeys({data: getInferredData(data)}).map(ctxKey => {
@@ -284,7 +284,7 @@ export function getDeviceContextData({
           key: ctxKey,
           subject: t('Boot Time'),
           value: getRelativeTimeFromEventDateCreated(
-            event.dateCreated ? event.dateCreated : event.dateReceived,
+            event?.dateCreated ?? event?.dateReceived,
             data.boot_time
           ),
         };

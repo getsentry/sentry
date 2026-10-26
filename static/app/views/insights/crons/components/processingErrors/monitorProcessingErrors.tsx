@@ -1,5 +1,7 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconClose} from '@sentry/icons/close';
 import groupBy from 'lodash/groupBy';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -14,7 +16,6 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {StructuredEventData} from 'sentry/components/structuredEventData';
-import {IconChevron, IconClose} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {useProjects} from 'sentry/utils/useProjects';
 import type {
@@ -25,6 +26,31 @@ import type {
 
 import {ProcessingErrorItem} from './processingErrorItem';
 import {ProcessingErrorTitle} from './processingErrorTitle';
+
+function CheckinTooltip({checkin}: {checkin: CheckInPayload}) {
+  return (
+    <StyledHovercard
+      skipWrapper
+      showUnderline
+      position="bottom"
+      header={tct('Check-in on [datetime]', {datetime: <DateTime date={checkin.ts} />})}
+      body={
+        // Prevent clicks inside the hovercard from closing the expandable alert
+        <div onClick={e => e.stopPropagation()}>
+          <StyledStructuredEventData
+            data={checkin.payload}
+            maxDefaultDepth={3}
+            withAnnotatedText
+            forceDefaultExpand
+            initialExpandedPaths={['$']}
+          />
+        </div>
+      }
+    >
+      {t('check-in')}
+    </StyledHovercard>
+  );
+}
 
 export function MonitorProcessingErrors({
   checkinErrors,
@@ -50,29 +76,6 @@ export function MonitorProcessingErrors({
       projectId,
       groupBy(projectErrors, ({error}) => error.type),
     ])
-  );
-
-  const renderCheckinTooltip = (checkin: CheckInPayload) => (
-    <StyledHovercard
-      skipWrapper
-      showUnderline
-      position="bottom"
-      header={tct('Check-in on [datetime]', {datetime: <DateTime date={checkin.ts} />})}
-      body={
-        // Prevent clicks inside the hovercard from closing the expandable alert
-        <div onClick={e => e.stopPropagation()}>
-          <StyledStructuredEventData
-            data={checkin.payload}
-            maxDefaultDepth={3}
-            withAnnotatedText
-            forceDefaultExpand
-            initialExpandedPaths={['$']}
-          />
-        </div>
-      }
-    >
-      {t('check-in')}
-    </StyledHovercard>
   );
 
   const showingMultipleProjects = Object.keys(errorsByProjectByType).length > 1;
@@ -125,7 +128,7 @@ export function MonitorProcessingErrors({
                   <ListItem key={errorIndex}>
                     <ProcessingErrorItem
                       error={error}
-                      checkinTooltip={renderCheckinTooltip(checkin)}
+                      checkinTooltip={<CheckinTooltip checkin={checkin} />}
                     />
                   </ListItem>
                 ))}

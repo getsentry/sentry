@@ -1,0 +1,2 @@
+AGENT_DELEGATION_DATA_KEY = "agent_delegation"
+SEER_AGENT_DELEGATION = "seer"

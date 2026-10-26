@@ -14,7 +14,9 @@ export const logsVerify = (params: DocsParams): ContentBlock => ({
   content: [
     {
       type: 'text',
-      text: t('Send a test log from your app to verify logs are arriving in Sentry.'),
+      text: t(
+        'Send a test log from your app, then refresh this page to verify it arrived in Sentry.'
+      ),
     },
     {
       type: 'code',

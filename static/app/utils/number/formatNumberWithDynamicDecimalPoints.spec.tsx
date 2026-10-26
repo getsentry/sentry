@@ -14,11 +14,11 @@ describe('formatNumberWithDynamicDecimals', () => {
   });
 
   it('rounds up to the maximum fraction digits passed', () => {
-    expect(formatNumberWithDynamicDecimalPoints(1, 2)).toBe('1');
+    expect(formatNumberWithDynamicDecimalPoints(1)).toBe('1');
     // eslint-disable-next-line unicorn/no-zero-fractions
-    expect(formatNumberWithDynamicDecimalPoints(1.0, 2)).toBe('1');
+    expect(formatNumberWithDynamicDecimalPoints(1.0)).toBe('1');
     expect(formatNumberWithDynamicDecimalPoints(1.2345, 1)).toBe('1.2');
-    expect(formatNumberWithDynamicDecimalPoints(1.2345, 2)).toBe('1.23');
+    expect(formatNumberWithDynamicDecimalPoints(1.2345)).toBe('1.23');
     expect(formatNumberWithDynamicDecimalPoints(1.2345, 3)).toBe('1.235');
     expect(formatNumberWithDynamicDecimalPoints(1.2345, 4)).toBe('1.2345');
     expect(formatNumberWithDynamicDecimalPoints(1.2345, 5)).toBe('1.2345');

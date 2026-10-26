@@ -1,20 +1,56 @@
 from dataclasses import dataclass
 from unittest.mock import MagicMock, patch
 
+import pytest
+from django.urls import reverse
+from rest_framework.test import APIClient
+
 from sentry.constants import SentryAppStatus
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.models.organization import Organization
 from sentry.notifications.notification_action.action_handler_registry.base import (
     IntegrationActionHandler,
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers.features import Feature
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
+from sentry.users.models.user import User
 from sentry.utils.registry import Registry
 from sentry.workflow_engine.models.action import Action
 from sentry.workflow_engine.types import ActionHandler
+
+
+@django_db_all
+@cell_silo_test
+@pytest.mark.parametrize("automation_enabled", [False, True], ids=["disabled", "enabled"])
+def test_seer_workflow_hidden_from_action_picker(
+    default_organization: Organization, default_user: User, automation_enabled: bool
+) -> None:
+    registry = Registry[type[ActionHandler]](enable_reverse_lookup=False)
+    registry.register(Action.Type.SEER_WORKFLOW)(ActionHandler)
+    client = APIClient()
+    client.force_authenticate(user=default_user)
+
+    with (
+        patch(
+            "sentry.workflow_engine.endpoints.organization_available_action_index.action_handler_registry",
+            new=registry,
+        ),
+        Feature({"organizations:seer-automations": automation_enabled}),
+    ):
+        response = client.get(
+            reverse(
+                "sentry-api-0-organization-available-action-index", args=[default_organization.slug]
+            )
+        )
+
+    assert response.status_code == 200
+    assert response.data == []
 
 
 @cell_silo_test
@@ -292,6 +328,49 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             },
         ]
 
+    def test_filter_by_type(self) -> None:
+        self.setup_integrations()
+        self.setup_email()
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"type": Action.Type.SLACK},
+            status_code=200,
+        )
+        assert response.data == [
+            {
+                "type": Action.Type.SLACK,
+                "handlerGroup": ActionHandler.Group.NOTIFICATION.value,
+                "configSchema": {},
+                "dataSchema": {},
+                "integrations": [
+                    {"id": str(self.slack_integration.id), "name": self.slack_integration.name}
+                ],
+            }
+        ]
+
+    def test_filter_by_multiple_types(self) -> None:
+        self.setup_integrations()
+        self.setup_email()
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"type": [Action.Type.EMAIL, Action.Type.GITHUB]},
+            status_code=200,
+        )
+        assert [action["type"] for action in response.data] == [
+            Action.Type.EMAIL,
+            Action.Type.GITHUB,
+        ]
+
+    def test_invalid_type_filter(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug,
+            qs_params={"type": "carrier_pigeon"},
+            status_code=400,
+        )
+        assert response.data == {"type": ["Invalid action type: carrier_pigeon"]}
+
     @with_feature({"organizations:integrations-ticket-rules": False})
     def test_does_not_return_ticket_actions_without_feature(self) -> None:
         self.setup_integrations()
@@ -313,6 +392,39 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                 ],
             }
         ]
+
+    @with_feature({"organizations:integrations-alert-rule": False})
+    def test_flags_alert_rule_actions_without_feature(self) -> None:
+        self.setup_integrations()
+        self.create_integration(
+            organization=self.organization,
+            external_id="2",
+            name="My MS Teams Integration",
+            provider="msteams",
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            status_code=200,
+        )
+        assert {action["type"]: action.get("disabledReason") for action in response.data} == {
+            Action.Type.SLACK: "plan",
+            Action.Type.GITHUB: None,
+            Action.Type.MSTEAMS: "plan",
+        }
+
+    @with_feature({"organizations:integrations-issue-basic": False})
+    def test_flags_ticket_actions_without_feature(self) -> None:
+        self.setup_integrations()
+
+        response = self.get_success_response(
+            self.organization.slug,
+            status_code=200,
+        )
+        assert {action["type"]: action.get("disabledReason") for action in response.data} == {
+            Action.Type.SLACK: None,
+            Action.Type.GITHUB: "plan",
+        }
 
     def test_integrations_with_services(self) -> None:
         self.setup_integrations_with_services()

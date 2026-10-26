@@ -3,12 +3,10 @@ import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Stack} from '@sentry/scraps/layout';
-import type {StylesConfig} from '@sentry/scraps/select';
+import {Stack, Grid} from '@sentry/scraps/layout';
+import type {StylesConfig, SelectValue, MultiValueProps} from '@sentry/scraps/select';
 import {Select} from '@sentry/scraps/select';
-import type {SelectValue} from '@sentry/scraps/select';
 
-import type {MultiValueProps} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {useInviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
 import {RoleSelectControl} from 'sentry/components/roleSelectControl';
 import {TeamSelector} from 'sentry/components/teamSelector';
@@ -141,7 +139,7 @@ export function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
           menuIsOpen={false}
         />
       </div>
-      <RoleTeamWrapper>
+      <Grid align="start" gap="lg" columns="1fr 1fr">
         <div>
           <Heading htmlFor="role">{t('Role')}</Heading>
           <RoleSelectControl
@@ -174,7 +172,7 @@ export function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
             clearable
           />
         </div>
-      </RoleTeamWrapper>
+      </Grid>
     </Stack>
   );
 }
@@ -229,11 +227,4 @@ const Heading = styled('label')`
   font-weight: ${p => p.theme.font.weight.sans.medium};
   text-transform: uppercase;
   font-size: ${p => p.theme.font.size.sm};
-`;
-
-const RoleTeamWrapper = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space.lg};
-  grid-template-columns: 1fr 1fr;
-  align-items: start;
 `;

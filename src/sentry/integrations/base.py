@@ -125,6 +125,10 @@ class IntegrationFeatures(StrEnum):
     CODEOWNERS = "codeowners"
     USER_MAPPING = "user-mapping"
     CODING_AGENT = "coding-agent"
+    # Adding this to IntegrationProvider.features lists the provider on Seer's
+    # connectors page, which is intended for infrastructure telemetry (e.g. Datadog
+    # and GCP).
+    SEER_CONTEXT = "seer-context"
 
     # features currently only existing on plugins:
     DATA_FORWARDING = "data-forwarding"
@@ -160,6 +164,7 @@ INTEGRATION_TYPE_TO_PROVIDER = {
         IntegrationProviderSlug.BITBUCKET_SERVER,
         IntegrationProviderSlug.AZURE_DEVOPS,
         IntegrationProviderSlug.PERFORCE,
+        IntegrationProviderSlug.CURSOR_ORIGIN,
     ],
     IntegrationDomain.ON_CALL_SCHEDULING: [
         IntegrationProviderSlug.PAGERDUTY,
@@ -243,6 +248,13 @@ class IntegrationProvider(PipelineProvider["IntegrationPipeline"], abc.ABC):
     allow_multiple = True
     """whether multiple installations of this integration are allowed per organization"""
 
+    overwrite_existing_integration = True
+    """
+    whether installation refreshes an existing Integration's global fields. When
+    False, fields are still refreshed if no organization has the integration
+    installed, e.g. when reinstalling after an uninstall.
+    """
+
     can_disable = False
     """
     if the integration can be uninstalled in Sentry, set to False
@@ -254,6 +266,11 @@ class IntegrationProvider(PipelineProvider["IntegrationPipeline"], abc.ABC):
     """
     if the integration has no application-style access token, associate
     the installer's identity to the organization integration
+    """
+
+    reject_pending_deletion_reinstall = False
+    """
+    Reject an installation when its existing organization link is pending deletion.
     """
 
     features: frozenset[IntegrationFeatures] = frozenset()
@@ -421,14 +438,19 @@ class IntegrationInstallation(abc.ABC):
         """
         return []
 
-    def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
+    def update_organization_config(
+        self, data: MutableMapping[str, Any]
+    ) -> Mapping[str, Any] | None:
         """
         Update the configuration field for an organization integration.
+
+        May return per-config-field detail for the caller to record on an audit log entry,
+        keyed by the config field it describes. `None` means there is nothing extra to record.
         """
         from sentry.integrations.services.integration import integration_service
 
         if not self.org_integration:
-            return
+            return None
 
         config = self.org_integration.config
         config.update(data)
@@ -438,6 +460,8 @@ class IntegrationInstallation(abc.ABC):
         )
         if org_integration is not None:
             self.org_integration = org_integration
+
+        return None
 
     def get_config_data(self) -> Mapping[str, Any]:
         if not self.org_integration:

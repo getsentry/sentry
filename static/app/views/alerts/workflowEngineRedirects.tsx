@@ -1,8 +1,10 @@
+import {skipToken, useQuery} from '@tanstack/react-query';
 import type {Query} from 'history';
 import * as qs from 'query-string';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Redirect} from 'sentry/components/redirect';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -10,14 +12,31 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {
+  makeAutomationBasePathname,
   makeAutomationDetailsPathname,
   makeAutomationEditPathname,
 } from 'sentry/views/automations/pathnames';
 import {
+  makeMonitorBasePathname,
   makeMonitorCreatePathname,
   makeMonitorDetailsPathname,
   makeMonitorEditPathname,
 } from 'sentry/views/detectors/pathnames';
+
+const DISABLE_LEGACY_ALERT_RULE_REDIRECTS_FEATURE =
+  'workflow-engine-disable-legacy-alert-rule-redirects';
+
+export function MonitorsListRedirect() {
+  const organization = useOrganization();
+
+  return <Redirect to={makeMonitorBasePathname(organization.slug)} />;
+}
+
+export function AutomationsListRedirect() {
+  const organization = useOrganization();
+
+  return <Redirect to={makeAutomationBasePathname(organization.slug)} />;
+}
 
 interface AlertRuleWorkflow {
   alertRuleId: string | null;
@@ -67,34 +86,38 @@ function withRuleRedirect<P extends Record<string, any>>(
   return function WorkflowEngineRedirectWrapper(props: P) {
     const organization = useOrganization();
     const {ruleId} = useParams();
-
-    const shouldRedirect = organization.features.includes('workflow-engine-ui');
-
-    const {data: alertRuleWorkflow, isPending} = useApiQuery<AlertRuleWorkflow>(
-      [
-        getApiUrl('/organizations/$organizationIdOrSlug/alert-rule-workflow/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        {query: {rule_id: ruleId}},
-      ],
-      {
-        staleTime: 0,
-        enabled: shouldRedirect && !!ruleId,
-        retry: false,
-      }
+    const redirectsDisabled = organization.features.includes(
+      DISABLE_LEGACY_ALERT_RULE_REDIRECTS_FEATURE
     );
 
-    if (shouldRedirect) {
-      if (isPending) {
-        return <LoadingIndicator />;
-      }
-      if (alertRuleWorkflow) {
-        return (
-          <Redirect
-            to={makeRedirectPath(alertRuleWorkflow.workflowId, organization.slug)}
-          />
-        );
-      }
+    const {data: alertRuleWorkflow, isPending} = useQuery({
+      ...apiOptions.as<AlertRuleWorkflow>()(
+        '/organizations/$organizationIdOrSlug/alert-rule-workflow/',
+        {
+          path:
+            ruleId && !redirectsDisabled
+              ? {organizationIdOrSlug: organization.slug}
+              : skipToken,
+          query: {rule_id: ruleId},
+          staleTime: 0,
+        }
+      ),
+      retry: false,
+    });
+
+    if (redirectsDisabled) {
+      return <Redirect to={makeAutomationBasePathname(organization.slug)} />;
+    }
+
+    if (isPending) {
+      return <LoadingIndicator />;
+    }
+    if (alertRuleWorkflow) {
+      return (
+        <Redirect
+          to={makeRedirectPath(alertRuleWorkflow.workflowId, organization.slug)}
+        />
+      );
     }
 
     return <Component {...(props as any)} />;
@@ -113,37 +136,41 @@ function withAlertRuleRedirect<P extends Record<string, any>>(
   return function WorkflowEngineRedirectWrapper(props: P) {
     const organization = useOrganization();
     const {ruleId, detectorId} = useParams();
-
-    const shouldRedirect = organization.features.includes('workflow-engine-ui');
-
-    const {data: alertRuleDetector, isPending} = useApiQuery<AlertRuleDetector>(
-      [
-        getApiUrl('/organizations/$organizationIdOrSlug/alert-rule-detector/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        {query: {alert_rule_id: ruleId}},
-      ],
-      {
-        staleTime: 0,
-        enabled: shouldRedirect && !!ruleId && !detectorId,
-        retry: false,
-      }
+    const redirectsDisabled = organization.features.includes(
+      DISABLE_LEGACY_ALERT_RULE_REDIRECTS_FEATURE
     );
 
-    if (shouldRedirect) {
-      if (detectorId) {
-        return <Redirect to={makeRedirectPath(detectorId, organization.slug)} />;
-      }
-      if (isPending) {
-        return <LoadingIndicator />;
-      }
-      if (alertRuleDetector) {
-        return (
-          <Redirect
-            to={makeRedirectPath(alertRuleDetector.detectorId, organization.slug)}
-          />
-        );
-      }
+    const {data: alertRuleDetector, isPending} = useQuery({
+      ...apiOptions.as<AlertRuleDetector>()(
+        '/organizations/$organizationIdOrSlug/alert-rule-detector/',
+        {
+          path:
+            ruleId && !detectorId && !redirectsDisabled
+              ? {organizationIdOrSlug: organization.slug}
+              : skipToken,
+          query: {alert_rule_id: ruleId},
+          staleTime: 0,
+        }
+      ),
+      retry: false,
+    });
+
+    if (redirectsDisabled) {
+      return <Redirect to={makeMonitorBasePathname(organization.slug)} />;
+    }
+
+    if (detectorId) {
+      return <Redirect to={makeRedirectPath(detectorId, organization.slug)} />;
+    }
+    if (isPending) {
+      return <LoadingIndicator />;
+    }
+    if (alertRuleDetector) {
+      return (
+        <Redirect
+          to={makeRedirectPath(alertRuleDetector.detectorId, organization.slug)}
+        />
+      );
     }
 
     return <Component {...(props as any)} />;
@@ -195,31 +222,32 @@ export const withDetectorDetailsRedirect = <P extends Record<string, any>>(
     const {ruleId, detectorId} = useParams();
     const location = useLocation();
     const alertId = location.query.alert as string | undefined;
+    const redirectsDisabled = organization.features.includes(
+      DISABLE_LEGACY_ALERT_RULE_REDIRECTS_FEATURE
+    );
 
-    const shouldRedirect = organization.features.includes('workflow-engine-ui');
+    if (alertId) {
+      return (
+        <RedirectToIssue alertId={alertId}>
+          <Component {...(props as any)} />
+        </RedirectToIssue>
+      );
+    }
 
-    if (shouldRedirect) {
-      if (alertId) {
-        return (
-          <RedirectToIssue alertId={alertId}>
-            <Component {...(props as any)} />
-          </RedirectToIssue>
-        );
-      }
+    if (redirectsDisabled) {
+      return <Redirect to={makeMonitorBasePathname(organization.slug)} />;
+    }
 
-      if (detectorId) {
-        return (
-          <Redirect to={makeMonitorDetailsPathname(organization.slug, detectorId)} />
-        );
-      }
+    if (detectorId) {
+      return <Redirect to={makeMonitorDetailsPathname(organization.slug, detectorId)} />;
+    }
 
-      if (ruleId) {
-        return (
-          <RedirectToDetector ruleId={ruleId}>
-            <Component {...(props as any)} />
-          </RedirectToDetector>
-        );
-      }
+    if (ruleId) {
+      return (
+        <RedirectToDetector ruleId={ruleId}>
+          <Component {...(props as any)} />
+        </RedirectToDetector>
+      );
     }
 
     return <Component {...(props as any)} />;
@@ -324,26 +352,25 @@ const getDetectionType = (type: string | undefined): string | null => {
   }
 };
 
-export function withDetectorCreateRedirect<P extends Record<string, any>>(
-  Component: React.ComponentType<P>
-) {
-  return function WorkflowEngineRedirectWrapper(props: P) {
-    const organization = useOrganization();
-    const {alertType} = useParams();
+function makeCreateRedirectPath(orgSlug: string, alertType: string | undefined) {
+  const detectorType = getDetectionType(alertType);
 
-    const shouldRedirect = organization.features.includes('workflow-engine-ui');
+  return detectorType
+    ? makeMonitorCreatePathname(orgSlug) + `?detectorType=${detectorType}`
+    : makeMonitorCreatePathname(orgSlug);
+}
 
-    if (shouldRedirect) {
-      const detectorType = getDetectionType(alertType);
-      const redirectPath = detectorType
-        ? makeMonitorCreatePathname(organization.slug) + `?detectorType=${detectorType}`
-        : makeMonitorCreatePathname(organization.slug);
+export function MonitorCreateRedirect() {
+  const organization = useOrganization();
+  const {alertType} = useParams();
 
-      return <Redirect to={redirectPath} />;
-    }
+  return <Redirect to={makeCreateRedirectPath(organization.slug, alertType)} />;
+}
 
-    return <Component {...(props as any)} />;
-  };
+export function UptimeMonitorCreateRedirect() {
+  const organization = useOrganization();
+
+  return <Redirect to={makeCreateRedirectPath(organization.slug, 'uptime')} />;
 }
 
 export function withOpenPeriodRedirect<P extends Record<string, any>>(
@@ -353,8 +380,6 @@ export function withOpenPeriodRedirect<P extends Record<string, any>>(
     const organization = useOrganization();
     const location = useLocation();
     const {alertId} = useParams();
-
-    const shouldRedirect = organization.features.includes('workflow-engine-ui');
 
     const {data: incidentGroupOpenPeriod, isPending} =
       useApiQuery<IncidentGroupOpenPeriod>(
@@ -366,27 +391,25 @@ export function withOpenPeriodRedirect<P extends Record<string, any>>(
         ],
         {
           staleTime: 0,
-          enabled: shouldRedirect && !!alertId,
+          enabled: !!alertId,
           retry: false,
         }
       );
 
-    if (shouldRedirect) {
-      if (isPending) {
-        return <LoadingIndicator />;
-      }
-      if (incidentGroupOpenPeriod) {
-        return (
-          <Redirect
-            to={getIssueDetailsPath({
-              orgSlug: organization.slug,
-              groupId: incidentGroupOpenPeriod.groupId,
-              openPeriodId: incidentGroupOpenPeriod.openPeriodId,
-              query: location.query,
-            })}
-          />
-        );
-      }
+    if (isPending) {
+      return <LoadingIndicator />;
+    }
+    if (incidentGroupOpenPeriod) {
+      return (
+        <Redirect
+          to={getIssueDetailsPath({
+            orgSlug: organization.slug,
+            groupId: incidentGroupOpenPeriod.groupId,
+            openPeriodId: incidentGroupOpenPeriod.openPeriodId,
+            query: location.query,
+          })}
+        />
+      );
     }
 
     return <Component {...(props as any)} />;

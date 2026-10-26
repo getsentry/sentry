@@ -34,7 +34,10 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 from sentry.users.models.user import User
-from sentry.web.frontend.organization_auth_settings import get_scim_url
+from sentry.web.frontend.organization_auth_settings import (
+    auth_provider_settings_form,
+    get_scim_url,
+)
 
 
 @control_silo_test
@@ -762,6 +765,12 @@ class DummyGenericSAML2Provider(GenericSAML2Provider):
     key = "saml2_generic_dummy"
 
 
+# Mirrors Active Directory / Azure Entra: GenericSAML2 configure view, non-"SAML2" name.
+class DummyActiveDirectorySAML2Provider(GenericSAML2Provider):
+    name = "Active Directory"
+    key = "active-directory-dummy"
+
+
 @control_silo_test
 class OrganizationAuthSettingsGenericSAML2Test(AuthProviderTestCase):
     provider = DummyGenericSAML2Provider
@@ -811,6 +820,42 @@ class OrganizationAuthSettingsGenericSAML2Test(AuthProviderTestCase):
 
         assert actual.provider == self.auth_provider_inst.provider
         assert actual.flags == self.auth_provider_inst.flags
+
+
+@control_silo_test
+class OrganizationAuthSettingsActiveDirectorySAML2Test(AuthProviderTestCase):
+    provider = DummyActiveDirectorySAML2Provider
+    provider_name = "active-directory-dummy"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.user = self.create_user("foobar@sentry.io")
+        self.organization = self.create_organization(owner=self.user, name="ad-saml2-org")
+        self.auth_provider_inst = AuthProvider.objects.create(
+            provider=self.provider_name,
+            config=dummy_provider_config,
+            organization_id=self.organization.id,
+        )
+
+    def test_settings_form_omits_duplicate_x509cert(self) -> None:
+        """Regression for ISWF-3364 / getsentry/sentry#122561."""
+        self.login_as(self.user, organization_id=self.organization.id)
+        provider = self.auth_provider_inst.get_provider()
+        request = self.make_request(user=self.user, method="GET")
+
+        # General settings must not add a second cert field for GenericSAML2 subclasses.
+        settings_form = auth_provider_settings_form(
+            provider, self.auth_provider_inst, self.organization, request
+        )
+        assert "x509cert" not in settings_form.fields
+
+        path = reverse("sentry-organization-auth-provider-settings", args=[self.organization.slug])
+        with self.feature("organizations:sso-saml2"):
+            resp = self.client.get(path)
+
+        assert resp.status_code == 200
+        # Certificate should appear once from the provider configure view only.
+        assert resp.content.count(b"x509 public certificate") == 1
 
 
 @control_silo_test

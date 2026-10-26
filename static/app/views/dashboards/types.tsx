@@ -17,7 +17,6 @@ export enum DashboardFilter {
   SHARED = 'shared',
   EXCLUDE_PREBUILT = 'excludePrebuilt',
   ONLY_PREBUILT = 'onlyPrebuilt',
-  ALL = 'all',
   SHOW_HIDDEN = 'showHidden',
 }
 
@@ -37,6 +36,7 @@ export const MAX_CATEGORICAL_BAR_LIMIT = 25;
 
 export const DEFAULT_WIDGET_NAME = t('Custom Widget');
 export const PREBUILT_DASHBOARD_LABEL = t('Sentry Built');
+export const CUSTOM_DASHBOARD_LABEL = t('Custom Dashboards');
 
 export enum DisplayType {
   AREA = 'area',
@@ -56,6 +56,9 @@ export enum DisplayType {
 }
 
 export enum WidgetType {
+  /**
+   * @deprecated Use `WidgetType.ERRORS` instead
+   */
   DISCOVER = 'discover',
   ISSUE = 'issue',
   RELEASE = 'metrics', // TODO(metrics): rename RELEASE to 'release', and METRICS to 'metrics'
@@ -68,38 +71,10 @@ export enum WidgetType {
   PREPROD_APP_SIZE = 'preprod-app-size',
 }
 
-// These only pertain to on-demand warnings at this point in time
-// Since they are the only soft-validation we do.
-type WidgetWarning = Record<string, OnDemandExtractionState>;
-type WidgetQueryWarning = null | OnDemandExtractionState;
-
-export interface ValidateWidgetResponse {
-  warnings: {
-    columns: WidgetWarning;
-    queries: WidgetQueryWarning[]; // Ordered, matching queries passed via the widget.
-  };
-}
-
-export enum OnDemandExtractionState {
-  DISABLED_NOT_APPLICABLE = 'disabled:not-applicable',
-  DISABLED_PREROLLOUT = 'disabled:pre-rollout',
-  DISABLED_MANUAL = 'disabled:manual',
-  DISABLED_SPEC_LIMIT = 'disabled:spec-limit',
-  DISABLED_HIGH_CARDINALITY = 'disabled:high-cardinality',
-  ENABLED_ENROLLED = 'enabled:enrolled',
-  ENABLED_MANUAL = 'enabled:manual',
-  ENABLED_CREATION = 'enabled:creation',
-}
-
 export const WIDGET_TYPE_TO_SAVED_QUERY_DATASET = {
   [WidgetType.ERRORS]: SavedQueryDatasets.ERRORS,
   [WidgetType.TRANSACTIONS]: SavedQueryDatasets.TRANSACTIONS,
 };
-
-interface WidgetQueryOnDemand {
-  enabled: boolean;
-  extractionState: OnDemandExtractionState;
-}
 
 export type LinkedDashboard = {
   // The destination dashboard id, set this to '-1' for prebuilt dashboards that link to other prebuilt dashboards
@@ -131,12 +106,16 @@ export type WidgetQuery = {
   // is currently used to track column order on table
   // widgets.
   fields?: string[];
+  // Also match `fallbackAttribute` when a global filter is applied to `attribute`.
+  // Frontend-only (prebuilt dashboards). Not stored in the backend.
+  globalFilterFallback?: {attribute: string; fallbackAttribute: string};
   isHidden?: boolean | null;
   linkedDashboards?: LinkedDashboard[];
-  // Contains the on-demand entries for the widget query.
-  onDemand?: WidgetQueryOnDemand[];
   // Aggregate selected for the Big Number widget builder
   selectedAggregate?: number;
+  // Use only the query name or group value as the series label.
+  // Frontend-only (prebuilt dashboards). Not stored in the backend.
+  seriesLabel?: 'query' | 'group';
   // Links the widget query to a slide out panel if exists.
   // TODO: currently not stored in the backend, only used
   // by prebuilt dashboards in the frontend.
@@ -183,7 +162,7 @@ export type WidgetLayout = Pick<Layout, 'h' | 'w' | 'x' | 'y'> & {
   minH: number;
 };
 
-export type WidgetPreview = {
+type WidgetPreview = {
   displayType: DisplayType;
   layout: WidgetLayout | null;
 };
@@ -206,6 +185,7 @@ export type DashboardListItem = {
   widgetPreview: WidgetPreview[];
   createdBy?: User;
   dateCreated?: string;
+  description?: string;
   isFavorited?: boolean;
   lastVisited?: string;
   permissions?: DashboardPermissions;
@@ -244,7 +224,7 @@ export type DashboardDetails = {
   widgets: Widget[];
   createdBy?: User;
   end?: string;
-  environment?: string[];
+  environment?: string[] | null;
   isFavorited?: boolean;
   period?: string;
   permissions?: DashboardPermissions;

@@ -1,7 +1,6 @@
-import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
+import {IconSearch} from '@sentry/icons/search';
 
-import {Button} from '@sentry/scraps/button';
+import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {Hotkey} from '@sentry/scraps/hotkey';
 import {Flex} from '@sentry/scraps/layout';
 
@@ -10,26 +9,30 @@ import {
   useCommandPaletteDispatch,
   useCommandPaletteState,
 } from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
-import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {useMedia} from 'sentry/utils/useMedia';
+import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
-import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
-export function SearchButton() {
-  const theme = useTheme();
+export function SearchButton(props: Pick<ButtonProps, 'className'>) {
   const organization = useOrganization({allowNull: true});
   const state = useCommandPaletteState();
   const dispatch = useCommandPaletteDispatch();
   const {openSeerExplorer} = useSeerExplorerContext();
-  const isDesktop = useMedia(`(min-width: ${theme.breakpoints.md})`);
-
   return (
-    <StyledButton
+    <Button
+      {...props}
       variant="secondary"
-      icon={<IconSearch size="xs" />}
-      aria-label={t('Search')}
+      icon={<IconSearch />}
+      aria-label={t('Command Palette')}
+      tooltipProps={{
+        title: (
+          <Flex align="center" gap="sm">
+            {t('Command Palette')}
+            <Hotkey value="command+k" />
+          </Flex>
+        ),
+      }}
       onClick={() => {
         if (!organization) {
           return;
@@ -43,19 +46,6 @@ export function SearchButton() {
           isSeerExplorerEnabled(organization) ? openSeerExplorer : undefined
         );
       }}
-    >
-      {isDesktop ? (
-        <Flex align="center" gap="sm">
-          {t('Search')}
-          <Hotkey value="mod+k" variant="debossed" />
-        </Flex>
-      ) : null}
-    </StyledButton>
+    />
   );
 }
-
-const StyledButton = styled(Button)`
-  > span:last-child {
-    overflow: visible;
-  }
-`;

@@ -1,8 +1,9 @@
-import moment from 'moment-timezone';
+import {IconBuilding} from '@sentry/icons/building';
+import {IconGroup} from '@sentry/icons/group';
+import {IconSeer} from '@sentry/icons/seer';
+import {IconUser} from '@sentry/icons/user';
 
 import type {PromptData} from 'sentry/actionCreators/prompts';
-import {IconBuilding, IconGroup, IconSeer, IconUser} from 'sentry/icons';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
@@ -13,6 +14,7 @@ import {
   BILLION,
   DEFAULT_TRIAL_DAYS,
   GIGABYTE,
+  MILLISECONDS_IN_HOUR,
   MILLION,
   RESERVED_BUDGET_QUOTA,
   UNLIMITED,
@@ -39,9 +41,104 @@ import type {
 } from 'getsentry/types';
 import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
 import {titleCase} from 'getsentry/utils/titleCase';
-import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
+import {bigNumFormatter} from 'getsentry/views/spendAllocations/utils';
 
-export const MILLISECONDS_IN_HOUR = 3600_000;
+const CURRENCY_LOCALE = 'en-US';
+
+/**
+ * Includes $, and cents in the price when needed.
+ *
+ * 100.01 => $100.01
+ * 100.00 => $100
+ * 100.30 => $100.30
+ * -100 => -$100
+ */
+export function displayPrice({
+  cents,
+  formatBigNum = false,
+}: {
+  cents: number;
+  formatBigNum?: boolean;
+}): string {
+  const dollars = cents / 100;
+  const prefix = dollars >= 0 ? '$' : '-$';
+
+  if (formatBigNum) {
+    return prefix + bigNumFormatter(Math.abs(dollars));
+  }
+  const hasCents = dollars % 1 !== 0;
+  if (hasCents) {
+    return displayPriceWithCents({cents});
+  }
+  return prefix + Math.abs(dollars).toLocaleString(CURRENCY_LOCALE);
+}
+
+/**
+ * Includes cents in the price when needed and excludes $ for separate formatting.
+ * Note: Use `displayPrice` if prices can be negative (ex: credits)
+ *
+ * 100.01 => 100.01
+ * 100.00 => 100
+ * 100.30 => 100.30
+ * -100 => -100
+ */
+export function formatPrice({cents}: {cents: number}): string {
+  return displayPrice({cents}).replace('$', '');
+}
+
+/**
+ * Format per unit price for events,
+ * where errors and transactions default to 5 digits
+ * and attachments should use 2 digits.
+ */
+export function displayUnitPrice({
+  cents,
+  minDigits = 5,
+  maxDigits = 7,
+}: {
+  cents: number;
+  maxDigits?: number;
+  minDigits?: number;
+}): string {
+  const dollars = cents / 100;
+
+  return (
+    '$' +
+    dollars.toLocaleString(CURRENCY_LOCALE, {
+      minimumFractionDigits: minDigits,
+      maximumFractionDigits: maxDigits,
+    })
+  );
+}
+
+/**
+ * Always include $ and cents in the price.
+ *
+ * $100.01 => $100.01
+ * $100.00 => $100.00
+ * $100.30 => $100.30
+ * -100 => -$100.00
+ */
+export function displayPriceWithCents({
+  cents,
+  minimumFractionDigits,
+  maximumFractionDigits,
+}: {
+  cents: number;
+  maximumFractionDigits?: number;
+  minimumFractionDigits?: number;
+}): string {
+  const dollars = cents / 100;
+  const prefix = dollars >= 0 ? '$' : '-$';
+
+  return (
+    prefix +
+    Math.abs(dollars).toLocaleString(CURRENCY_LOCALE, {
+      minimumFractionDigits: minimumFractionDigits ?? 2,
+      maximumFractionDigits: maximumFractionDigits ?? 2,
+    })
+  );
+}
 
 function isNum(val: unknown): val is number {
   return typeof val === 'number';
@@ -120,21 +217,45 @@ export const getSlot = (
  *                Useful for Errors/Transactions but not recommended to be used
  *                with Attachments because "1K GB" is hard to read.
  * isGifted: For gifted data volumes, 0 is displayed as 0 instead of unlimited.
- * useUnitScaling: For Attachments only. Scale from KB -> MB -> GB -> TB -> etc
+ * useUnitScaling: For Attachments only. Scale from kB -> MB -> GB -> TB -> etc
+ * unitType: Overrides the category's unit type, for billing platform line items
+ *           that aren't a DataCategory (see getLineItemUnitType).
  */
 type FormatOptions = {
   fractionDigits?: number;
   isAbbreviated?: boolean;
   isGifted?: boolean;
+  unitType?: LineItemUnitType;
   useUnitScaling?: boolean;
 };
+
+type LineItemUnitType = 'microCents';
+
+const MICRO_CENTS_PER_CENT = 1_000_000;
+
+/**
+ * Billing platform line items keyed by uid have no DataCategory to derive units
+ * from, so the plan declares their unit type alongside their display name.
+ */
+export function getLineItemUnitType(
+  plan: Plan,
+  category: DataCategory | string
+): LineItemUnitType | undefined {
+  return plan.categoryDisplayNames?.[category]?.unitType;
+}
+
+function formatMicroCents(microCents: number): string {
+  return displayPriceWithCents({
+    cents: microCents / MICRO_CENTS_PER_CENT,
+    minimumFractionDigits: 0,
+  });
+}
 
 /**
  * This expects values from CustomerSerializer, which contains quota/reserved
  * quantities for the data categories that we sell.
  *
  * Note: reservedQuantity for Attachments should be in GIGABYTES
- * If isReservedBudget is true, the reservedQuantity is in cents
  */
 export function formatReservedWithUnits(
   reservedQuantity: number | null,
@@ -143,11 +264,15 @@ export function formatReservedWithUnits(
     isAbbreviated: false,
     useUnitScaling: false,
     isGifted: false,
-  },
-  isReservedBudget = false
+  }
 ): string {
-  if (isReservedBudget) {
-    return displayPriceWithCents({cents: reservedQuantity ?? 0});
+  if (
+    options.unitType === 'microCents' &&
+    defined(reservedQuantity) &&
+    reservedQuantity !== RESERVED_BUDGET_QUOTA &&
+    !isUnlimitedReserved(reservedQuantity)
+  ) {
+    return formatMicroCents(reservedQuantity);
   }
 
   const categoryInfo = getCategoryInfoFromPlural(dataCategory);
@@ -190,6 +315,10 @@ export function formatUsageWithUnits(
   dataCategory: DataCategory,
   options: FormatOptions = {isAbbreviated: false, useUnitScaling: false}
 ) {
+  if (options.unitType === 'microCents') {
+    return formatMicroCents(usageQuantity);
+  }
+
   const categoryInfo = getCategoryInfoFromPlural(dataCategory);
   const unitType = categoryInfo?.formatting.unitType ?? 'count';
 
@@ -210,10 +339,12 @@ export function formatUsageWithUnits(
     }
     return options.isAbbreviated
       ? displayNumber(usageProfileHours, 1)
-      : usageProfileHours.toLocaleString(undefined, {maximumFractionDigits: 1});
+      : usageProfileHours.toLocaleString(undefined, {
+          maximumFractionDigits: 1,
+        });
   }
   return options.isAbbreviated
-    ? displayNumber(usageQuantity, 0)
+    ? displayNumber(usageQuantity)
     : usageQuantity.toLocaleString();
 }
 
@@ -280,7 +411,7 @@ function formatReservedNumberToString(
  * sentry/utils/formatBytes.
  */
 function formatByteUnits(bytes: number, u = 0) {
-  const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+  const units = ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
   const threshold = 1000;
 
   while (bytes >= threshold) {
@@ -333,16 +464,18 @@ export const isBizPlanFamily = (plan?: Plan) => plan?.name.includes(PlanName.BUS
 
 export const isTeamPlanFamily = (plan?: Plan) => plan?.name.includes(PlanName.TEAM);
 
+/**
+ * Whether the subscription is currently on a trial, derived from `trialPlan`
+ * (non-null iff trialing).
+ */
+export const isTrial = (subscription: Subscription) => defined(subscription.trialPlan);
+
 export const isBusinessTrial = (subscription: Subscription) => {
-  return (
-    subscription.isTrial &&
-    !subscription.isPerformancePlanTrial &&
-    !subscription.isEnterpriseTrial
-  );
+  return isTrial(subscription) && !subscription.isEnterpriseTrial;
 };
 
 export function hasJustStartedPlanTrial(subscription: Subscription) {
-  return subscription.isTrial && subscription.isTrialStarted;
+  return isTrial(subscription) && subscription.isTrialStarted;
 }
 
 export const displayBudgetName = (
@@ -423,14 +556,6 @@ export const isNewPayingCustomer = (
 export function getTrialDaysLeft(subscription: Subscription): number {
   // trial end is in the future
   return -1 * getDaysSinceDate(subscription.trialEnd ?? '');
-}
-
-/**
- * Get the number of days left on contract
- */
-export function getContractDaysLeft(subscription: Subscription): number {
-  // contract period end is in the future
-  return -1 * getDaysSinceDate(subscription.billingPeriodEnd ?? '');
 }
 
 /**
@@ -536,9 +661,9 @@ export function getPlanIcon(plan: Plan) {
   return <IconUser />;
 }
 
-export function getProductIcon(product: AddOnCategory, size?: SVGIconProps['size']) {
+export function getProductIcon(product: AddOnCategory) {
   if ([AddOnCategory.LEGACY_SEER, AddOnCategory.SEER].includes(product)) {
-    return <IconSeer size={size} />;
+    return <IconSeer />;
   }
   return null;
 }
@@ -722,36 +847,6 @@ export function trialPromptIsDismissed(prompt: PromptData, subscription: Subscri
   return time >= onDemandPeriodStart.getTime() / 1000;
 }
 
-export function partnerPlanEndingModalIsDismissed(
-  prompt: PromptData,
-  subscription: Subscription,
-  timeframe: string
-) {
-  const {snoozedTime, dismissedTime} = prompt || {};
-  const time = snoozedTime || dismissedTime;
-  if (!time) {
-    return false;
-  }
-
-  const lastDaysLeft = moment(subscription.billingPeriodEnd).diff(
-    moment.unix(time),
-    'days'
-  );
-
-  switch (timeframe) {
-    case 'zero':
-      return lastDaysLeft <= 0;
-    case 'two':
-      return lastDaysLeft <= 2 && lastDaysLeft > 0;
-    case 'week':
-      return lastDaysLeft <= 7 && lastDaysLeft > 2;
-    case 'month':
-      return lastDaysLeft <= 30 && lastDaysLeft > 7;
-    default:
-      return true;
-  }
-}
-
 export function getPercentage(quantity: number, total: number | null) {
   if (typeof total === 'number' && total > 0) {
     return (Math.min(quantity, total) / total) * 100;
@@ -794,6 +889,7 @@ export function getReservedBudgetCategoryForAddOn(addOnCategory: AddOnCategory) 
 export const RETENTION_SETTINGS_CATEGORIES = new Set([
   DataCategory.SPANS,
   DataCategory.LOG_BYTE,
+  DataCategory.TRACE_METRIC_BYTE,
   DataCategory.TRANSACTIONS,
 ]);
 
@@ -899,7 +995,7 @@ export function checkIsAddOnChildCategory(
  *
  * If the data category has no sibling categories, `checkReserved` is ignored and we return the parent add-on.
  */
-export function getParentAddOn(
+function getParentAddOn(
   subscription: Subscription | null,
   category: DataCategory,
   checkReserved: boolean
@@ -988,6 +1084,9 @@ export function productIsEnabled(
   const metricHistory = subscription.categories[billedCategory];
   if (!metricHistory) {
     return false;
+  }
+  if (metricHistory.isDisabled !== undefined) {
+    return !metricHistory.isDisabled;
   }
   const hasNonPaygAccess =
     (metricHistory.prepaid ?? 0) !== 0 || !!metricHistory.softCapType;

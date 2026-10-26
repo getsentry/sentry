@@ -18,7 +18,7 @@ class SnubaQueryValidatorTest(TestCase):
             "dataset": Dataset.Events.value,
             "query": "test query",
             "aggregate": "count()",
-            "timeWindow": 60,
+            "timeWindow": 3600,
             "environment": self.environment.name,
             "eventTypes": [SnubaQueryEventType.EventType.ERROR.name.lower()],
         }
@@ -35,7 +35,7 @@ class SnubaQueryValidatorTest(TestCase):
         assert validator.validated_data["dataset"] == Dataset.Events
         assert validator.validated_data["query"] == "test query"
         assert validator.validated_data["aggregate"] == "count()"
-        assert validator.validated_data["time_window"] == 60
+        assert validator.validated_data["time_window"] == 3600
         assert validator.validated_data["environment"] == self.environment
         assert validator.validated_data["event_types"] == [SnubaQueryEventType.EventType.ERROR]
         assert isinstance(validator.validated_data["_creator"], DataSourceCreator)
@@ -74,6 +74,41 @@ class SnubaQueryValidatorTest(TestCase):
         assert not validator.is_valid()
         assert validator.errors.get("queryType") == [
             ErrorDetail(string=f"Invalid query type {invalid_query_type}", code="invalid")
+        ]
+
+    def test_unsupported_dataset_with_query_type_returns_validation_error(self) -> None:
+        """Spans dataset is a valid Dataset enum but is not alert-supported.
+
+        query_type may already be present (as with detector create payloads).
+        setdefault must not eagerly KeyError on the dataset mapping.
+        """
+        self.valid_data.update(
+            {
+                "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                "dataset": Dataset.SpansIndexed.value,
+                "aggregate": "failure_rate()",
+                "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.name.lower()],
+            }
+        )
+        validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
+        assert not validator.is_valid()
+        # Prefer a field/non-field validation error over an uncaught KeyError.
+        assert validator.errors
+        assert "dataset" in validator.errors or "nonFieldErrors" in validator.errors
+
+    def test_unsupported_dataset_without_query_type_returns_validation_error(self) -> None:
+        self.valid_data.pop("queryType", None)
+        self.valid_data.update(
+            {
+                "dataset": Dataset.SpansIndexed.value,
+                "aggregate": "failure_rate()",
+                "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.name.lower()],
+            }
+        )
+        validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
+        assert not validator.is_valid()
+        assert validator.errors.get("dataset") == [
+            ErrorDetail(string="Unsupported dataset for alerts: spans", code="invalid")
         ]
 
     def test_validated_create_source_limits(self) -> None:
@@ -142,7 +177,7 @@ class SnubaQueryValidatorTest(TestCase):
             "dataset": Dataset.EventsAnalyticsPlatform.value,
             "query": "",
             "aggregate": "user_misery(span.duration,300)",
-            "timeWindow": 60,
+            "timeWindow": 3600,
             "environment": self.environment.name,
             "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.name.lower()],
         }
@@ -162,7 +197,7 @@ class SnubaQueryValidatorTest(TestCase):
             "dataset": Dataset.EventsAnalyticsPlatform.value,
             "query": "",
             "aggregate": "per_second(value,sentry.apigateway.proxy_request,counter,none)",
-            "timeWindow": 60,
+            "timeWindow": 3600,
             "environment": self.environment.name,
             "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_METRIC.name.lower()],
         }

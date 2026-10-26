@@ -6,6 +6,7 @@ import time
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import timedelta
 from enum import Enum
 from typing import Any
 from urllib.parse import urljoin
@@ -15,7 +16,7 @@ import sentry_sdk
 from django.conf import settings
 from requests.exceptions import RequestException
 
-from sentry import options
+from sentry import features, options
 from sentry.attachments.base import CachedAttachment
 from sentry.lang.native.sources import (
     get_internal_artifact_lookup_source,
@@ -26,7 +27,7 @@ from sentry.lang.native.sources import (
 from sentry.lang.native.utils import Backoff
 from sentry.models.project import Project
 from sentry.net.http import Session
-from sentry.objectstore import get_attachments_session, get_symbolicator_url
+from sentry.objectstore import UsecaseId, get_internal_download_url, get_session
 from sentry.utils import metrics
 
 MAX_ATTEMPTS = 3
@@ -34,16 +35,45 @@ MAX_ATTEMPTS = 3
 BACKOFF_INITIAL = 0.1
 BACKOFF_MAX = 5
 
+# Symbolicator runs up to 3 tries with 5 minute timeouts
+TOKEN_VALIDITY = timedelta(minutes=15)
+
 logger = logging.getLogger(__name__)
 
 
-class SymbolicatorPlatform(Enum):
-    """The platforms for which we want to
+class SymbolicatorFunction(Enum):
+    """The functions for which we want to
     invoke Symbolicator."""
 
     jvm = "jvm"
     js = "js"
     native = "native"
+    minidump = "minidump"
+    applecrashreport = "applecrashreport"
+
+    def __call__(self, symbolicator: Symbolicator, data: Any) -> Any:
+        return self.function()(symbolicator, data)
+
+    def function(self) -> Callable[[Symbolicator, Any], Any]:
+        from sentry.lang.java.processing import process_jvm_stacktraces
+        from sentry.lang.javascript.processing import process_js_stacktraces
+        from sentry.lang.native.processing import (
+            process_applecrashreport,
+            process_minidump,
+            process_native_stacktraces,
+        )
+
+        match self:
+            case SymbolicatorFunction.native:
+                return process_native_stacktraces
+            case SymbolicatorFunction.js:
+                return process_js_stacktraces
+            case SymbolicatorFunction.jvm:
+                return process_jvm_stacktraces
+            case SymbolicatorFunction.minidump:
+                return process_minidump
+            case SymbolicatorFunction.applecrashreport:
+                return process_applecrashreport
 
 
 class FrameOrder(Enum):
@@ -64,11 +94,11 @@ class SymbolicatorTaskKind:
     the platform and whether it's an existing event being reprocessed.
     """
 
-    platform: SymbolicatorPlatform
+    function: SymbolicatorFunction
     is_reprocessing: bool = False
 
-    def with_platform(self, platform: SymbolicatorPlatform) -> SymbolicatorTaskKind:
-        return dataclasses.replace(self, platform=platform)
+    def with_function(self, function: SymbolicatorFunction) -> SymbolicatorTaskKind:
+        return dataclasses.replace(self, function=function)
 
 
 class SymbolicatorPools(Enum):
@@ -77,17 +107,21 @@ class SymbolicatorPools(Enum):
     jvm = "jvm"
 
 
-def pool_for_platform(platform: SymbolicatorPlatform) -> SymbolicatorPools:
+def pool_for_function(function: SymbolicatorFunction) -> SymbolicatorPools:
     """Returns the Symbolicator pool to use to symbolicate events for
     the given platform.
     """
-    match platform:
-        case SymbolicatorPlatform.native:
+    match function:
+        case SymbolicatorFunction.native:
             return SymbolicatorPools.default
-        case SymbolicatorPlatform.js:
+        case SymbolicatorFunction.js:
             return SymbolicatorPools.js
-        case SymbolicatorPlatform.jvm:
+        case SymbolicatorFunction.jvm:
             return SymbolicatorPools.jvm
+        case SymbolicatorFunction.minidump:
+            return SymbolicatorPools.default
+        case SymbolicatorFunction.applecrashreport:
+            return SymbolicatorPools.default
 
 
 class Symbolicator:
@@ -99,7 +133,7 @@ class Symbolicator:
         event_id: str,
     ):
         URLS = settings.SYMBOLICATOR_POOL_URLS
-        pool = pool_for_platform(task_kind.platform)
+        pool = pool_for_function(task_kind.function)
 
         base_url = (
             URLS.get(pool.value)
@@ -195,26 +229,30 @@ class Symbolicator:
     def process_minidump(
         self, platform: str, minidump: CachedAttachment, rewrite_first_module: list[Any]
     ):
-        (sources, process_response) = sources_for_symbolication(self.project)
+        (sources, process_response) = sources_for_symbolication(self.project, self.event_id)
         scraping_config = get_scraping_config(self.project)
 
         if minidump.stored_id:
-            session = get_attachments_session(self.project.organization_id, self.project.id)
-            storage_url = get_symbolicator_url(session, minidump.stored_id)
+            stored_id = minidump.stored_id
+            session = get_session(UsecaseId.ATTACHMENTS, self.project)
             json: dict[str, Any] = {
                 "platform": platform,
                 "sources": sources,
                 "scraping": scraping_config,
-                "options": {"dif_candidates": True},
+                "options": {
+                    "dif_candidates": True,
+                    "extract_variables": self._should_extract_variables(),
+                },
                 "symbolicate": {
                     "type": "minidump",
-                    "storage_url": storage_url,
                     "rewrite_first_module": rewrite_first_module,
                 },
             }
 
             def cb() -> dict[str, Any]:
-                json["symbolicate"]["storage_token"] = session.mint_token()
+                json["symbolicate"]["storage_url"] = get_internal_download_url(
+                    session, stored_id, token_validity=TOKEN_VALIDITY
+                )
                 return {"json": json}
 
             res = self._process("process_minidump", "symbolicate-any", kwargs_cb=cb)
@@ -224,7 +262,9 @@ class Symbolicator:
             "platform": orjson.dumps(platform).decode(),
             "sources": orjson.dumps(sources).decode(),
             "scraping": orjson.dumps(scraping_config).decode(),
-            "options": '{"dif_candidates": true}',
+            "options": orjson.dumps(
+                {"dif_candidates": True, "extract_variables": self._should_extract_variables()}
+            ).decode(),
             "rewrite_first_module": orjson.dumps(rewrite_first_module).decode(),
         }
         files = {"upload_file_minidump": minidump.load_data(self.project)}
@@ -233,25 +273,29 @@ class Symbolicator:
         return process_response(res)
 
     def process_applecrashreport(self, platform: str, report: CachedAttachment):
-        (sources, process_response) = sources_for_symbolication(self.project)
+        (sources, process_response) = sources_for_symbolication(self.project, self.event_id)
         scraping_config = get_scraping_config(self.project)
 
         if report.stored_id:
-            session = get_attachments_session(self.project.organization_id, self.project.id)
-            storage_url = get_symbolicator_url(session, report.stored_id)
+            stored_id = report.stored_id
+            session = get_session(UsecaseId.ATTACHMENTS, self.project)
             json: dict[str, Any] = {
                 "platform": platform,
                 "sources": sources,
                 "scraping": scraping_config,
-                "options": {"dif_candidates": True},
+                "options": {
+                    "dif_candidates": True,
+                    "extract_variables": self._should_extract_variables(),
+                },
                 "symbolicate": {
                     "type": "applecrashreport",
-                    "storage_url": storage_url,
                 },
             }
 
             def cb() -> dict[str, Any]:
-                json["symbolicate"]["storage_token"] = session.mint_token()
+                json["symbolicate"]["storage_url"] = get_internal_download_url(
+                    session, stored_id, token_validity=TOKEN_VALIDITY
+                )
                 return {"json": json}
 
             res = self._process("process_applecrashreport", "symbolicate-any", kwargs_cb=cb)
@@ -261,7 +305,9 @@ class Symbolicator:
             "platform": orjson.dumps(platform).decode(),
             "sources": orjson.dumps(sources).decode(),
             "scraping": orjson.dumps(scraping_config).decode(),
-            "options": '{"dif_candidates": true}',
+            "options": orjson.dumps(
+                {"dif_candidates": True, "extract_variables": self._should_extract_variables()}
+            ).decode(),
         }
         files = {"apple_crash_report": report.load_data(self.project)}
 
@@ -283,7 +329,7 @@ class Symbolicator:
         :param signal: A numeric crash signal value. This is optional.
         :param apply_source_context: Whether to add source context to frames.
         """
-        (sources, process_response) = sources_for_symbolication(self.project)
+        (sources, process_response) = sources_for_symbolication(self.project, self.event_id)
         scraping_config = get_scraping_config(self.project)
         json = {
             "platform": platform,
@@ -292,6 +338,7 @@ class Symbolicator:
                 "dif_candidates": True,
                 "apply_source_context": apply_source_context,
                 "frame_order": frame_order.value,
+                "extract_variables": self._should_extract_variables(),
             },
             "stacktraces": stacktraces,
             "modules": modules,
@@ -331,6 +378,7 @@ class Symbolicator:
             "options": {
                 "apply_source_context": apply_source_context,
                 "frame_order": frame_order.value,
+                "extract_variables": self._should_extract_variables(),
             },
             "scraping": scraping_config,
         }
@@ -348,7 +396,6 @@ class Symbolicator:
         exceptions,
         stacktraces,
         modules,
-        release_package,
         classes,
         frame_order,
         apply_source_context=True,
@@ -363,8 +410,6 @@ class Symbolicator:
                             Frames are expected to be ordered according to the frame_order (see below).
         :param modules: ProGuard modules and source bundles. They must contain a `uuid` and have a
                         `type` of either "proguard" or "source".
-        :param release_package: The name of the release's package. This is optional.
-                                Used for determining whether frames are in-app.
         :param frame_order: The order of frames within stacktraces. See the documentation of `FrameOrder`.
         :param apply_source_context: Whether to add source context to frames.
         """
@@ -380,13 +425,18 @@ class Symbolicator:
             "options": {
                 "apply_source_context": apply_source_context,
                 "frame_order": frame_order.value,
+                "extract_variables": self._should_extract_variables(),
             },
         }
 
-        if release_package is not None:
-            json["release_package"] = release_package
-
         return self._process("symbolicate_jvm_stacktraces", "symbolicate-jvm", json=json)
+
+    def _should_extract_variables(self) -> bool:
+        """Helper for determining whether to extract variables.
+
+        This just reads the "organizations:native-variable-extraction" feature flag.
+        """
+        return features.has("organizations:native-variable-extraction", self.project.organization)
 
 
 class TaskIdNotFound(Exception):

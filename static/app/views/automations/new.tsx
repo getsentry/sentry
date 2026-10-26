@@ -6,11 +6,10 @@ import orderBy from 'lodash/orderBy';
 import {Observer} from 'mobx-react-lite';
 import {parseAsNativeArrayOf, parseAsString, useQueryState} from 'nuqs';
 
-import {Button} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {FormModel} from 'sentry/components/forms/model';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -45,8 +44,9 @@ import {
   makeAutomationBasePathname,
   makeAutomationDetailsPathname,
 } from 'sentry/views/automations/pathnames';
+import {mapAutomationFormErrors} from 'sentry/views/automations/utils/mapAutomationFormErrors';
+import {hasAutomationWriteAccess} from 'sentry/views/automations/utils/permissions';
 import {resolveDetectorIdsForProjects} from 'sentry/views/automations/utils/resolveDetectorIdsForProjects';
-import {TopBar} from 'sentry/views/navigation/topBar';
 
 function AutomationDocumentTitle() {
   const title = useFormField('name');
@@ -55,22 +55,8 @@ function AutomationDocumentTitle() {
   );
 }
 
-function AutomationBreadcrumbs() {
-  const organization = useOrganization();
-  return (
-    <Breadcrumbs
-      crumbs={[
-        {
-          label: t('Alerts'),
-          to: makeAutomationBasePathname(organization.slug),
-        },
-        {label: <EditableAutomationName />},
-      ]}
-    />
-  );
-}
-
 const INITIAL_FORM_DATA_DEFAULTS = {
+  allProjects: false,
   name: '',
   environment: null,
   frequency: 0,
@@ -80,6 +66,7 @@ const INITIAL_FORM_DATA_DEFAULTS = {
 };
 
 function useInitialFormData() {
+  const organization = useOrganization();
   const {selection} = usePageFilters();
   const [connectedIds] = useQueryState(
     'connectedIds',
@@ -87,6 +74,9 @@ function useInitialFormData() {
   );
   const [projectId] = useQueryState('project', parseAsString);
   const {projects} = useProjects();
+  const writableProjects = projects.filter(project =>
+    hasAutomationWriteAccess({organization, project})
+  );
 
   // If URL params are passed, use them
   if (connectedIds.length > 0) {
@@ -95,7 +85,7 @@ function useInitialFormData() {
       detectorIds: connectedIds,
     };
   }
-  if (projectId) {
+  if (projectId && writableProjects.some(project => project.id === projectId)) {
     return {
       ...INITIAL_FORM_DATA_DEFAULTS,
       projectIds: [projectId],
@@ -103,17 +93,19 @@ function useInitialFormData() {
   }
 
   // If any specific projects are selected, use the first one
-  const intitialSelectedProject = selection.projects.find(p => p > 0);
-  if (intitialSelectedProject) {
+  const initialSelectedProject = writableProjects.find(project =>
+    selection.projects.includes(Number(project.id))
+  );
+  if (initialSelectedProject) {
     return {
       ...INITIAL_FORM_DATA_DEFAULTS,
-      projectIds: [String(intitialSelectedProject)],
+      projectIds: [initialSelectedProject.id],
     };
   }
 
-  // Otherwise use the first project that the user has access to
+  // Otherwise use the first project where the user can create an alert.
   const sortedUserProjects = orderBy(
-    projects,
+    writableProjects,
     ['isMember', 'isBookmarked'],
     ['desc', 'desc']
   );
@@ -140,7 +132,24 @@ export default function AutomationNewSettings() {
     removeError,
   } = useAutomationBuilderErrors();
 
-  const {mutateAsync: createAutomation, error} = useCreateAutomation();
+  const {mutateAsync: createAutomation, error} = useCreateAutomation({
+    suppressErrorMessage: true,
+  });
+
+  const errorContextValue = useMemo(
+    () => ({
+      errors: automationBuilderErrors,
+      setErrors: setAutomationBuilderErrors,
+      removeError,
+      mutationErrors: error?.responseJSON,
+    }),
+    [automationBuilderErrors, setAutomationBuilderErrors, removeError, error]
+  );
+
+  const builderContextValue = useMemo(
+    () => ({state, actions, showTriggerLogicTypeSelector: false}),
+    [state, actions]
+  );
 
   const handleSubmit = useCallback<OnSubmitCallback>(
     async (data, onSubmitSuccess, onSubmitError, _event, formModel) => {
@@ -227,31 +236,17 @@ export default function AutomationNewSettings() {
       initialData={initialData}
       onSubmit={handleSubmit}
       model={model}
+      mapFormErrors={mapAutomationFormErrors}
     >
       <AutomationFormProvider>
         <AutomationDocumentTitle />
         <Stack flex={1}>
-          <TopBar.Slot name="title">
-            <AutomationBreadcrumbs />
-          </TopBar.Slot>
+          <EditableAutomationName />
           <AutomationFeedbackButton />
           <Layout.Body maxWidth={maxWidth}>
             <Layout.Main width="full">
-              <AutomationBuilderErrorContext.Provider
-                value={{
-                  errors: automationBuilderErrors,
-                  setErrors: setAutomationBuilderErrors,
-                  removeError,
-                  mutationErrors: error?.responseJSON,
-                }}
-              >
-                <AutomationBuilderContext.Provider
-                  value={{
-                    state,
-                    actions,
-                    showTriggerLogicTypeSelector: false,
-                  }}
-                >
+              <AutomationBuilderErrorContext.Provider value={errorContextValue}>
+                <AutomationBuilderContext.Provider value={builderContextValue}>
                   <AutomationForm model={model} />
                 </AutomationBuilderContext.Provider>
               </AutomationBuilderErrorContext.Provider>
@@ -266,6 +261,12 @@ export default function AutomationNewSettings() {
             gap="md"
             justify="end"
           >
+            <LinkButton
+              variant="secondary"
+              to={makeAutomationBasePathname(organization.slug)}
+            >
+              {t('Cancel')}
+            </LinkButton>
             <Observer>
               {() => (
                 <Button variant="primary" type="submit" busy={model.isSaving}>

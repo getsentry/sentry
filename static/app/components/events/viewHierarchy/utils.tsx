@@ -15,7 +15,7 @@ import {watchForResize} from 'sentry/utils/profiling/gl/utils';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 
 export function useResizeCanvasObserver(canvases: Array<HTMLCanvasElement | null>): Rect {
-  const [bounds, setCanvasBounds] = useState(Rect.Empty());
+  const [bounds, setCanvasBounds] = useState(Rect.empty());
 
   useLayoutEffect(() => {
     if (!canvases.length) {

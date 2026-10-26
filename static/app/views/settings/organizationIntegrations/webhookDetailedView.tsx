@@ -12,9 +12,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t, tct} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
-import type {PlatformKey} from 'sentry/types/platform';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -25,19 +23,8 @@ import {
 } from 'sentry/views/settings/organizationIntegrations/constants';
 import type {IntegrationTab} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 import {IntegrationLayout} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
+import {legacyWebhooksQueryOptions} from 'sentry/views/settings/organizationIntegrations/legacyWebhooksQueryOptions';
 import {WebhookConfigurations} from 'sentry/views/settings/organizationIntegrations/webhookConfigurations';
-
-export interface WebhookProject {
-  enabled: boolean;
-  projectId: number;
-  projectName: string;
-  projectPlatform: PlatformKey;
-  projectSlug: string;
-}
-
-interface OrgLegacyWebhooksResponse {
-  projects: WebhookProject[];
-}
 
 const WEBHOOK_DESCRIPTION = [
   t('Trigger outgoing HTTP POST requests from Sentry.'),
@@ -60,16 +47,6 @@ const WEBHOOK_RESOURCE_LINKS = [
     url: 'https://docs.sentry.io/organization/integrations/integration-platform/internal-integration/',
   },
 ];
-
-export function legacyWebhooksQueryOptions(organization: Organization) {
-  return apiOptions.as<OrgLegacyWebhooksResponse>()(
-    '/organizations/$organizationIdOrSlug/legacy-webhooks/',
-    {
-      path: {organizationIdOrSlug: organization.slug},
-      staleTime: 0,
-    }
-  );
-}
 
 export default function WebhookDetailedView() {
   const organization = useOrganization();
@@ -110,7 +87,15 @@ export default function WebhookDetailedView() {
             if (projectSlug) {
               fetchMutation({
                 method: 'POST',
-                url: `/projects/${organization.slug}/${projectSlug}/legacy-webhooks/`,
+                url: getApiUrl(
+                  '/projects/$organizationIdOrSlug/$projectIdOrSlug/legacy-webhooks/',
+                  {
+                    path: {
+                      organizationIdOrSlug: organization.slug,
+                      projectIdOrSlug: projectSlug,
+                    },
+                  }
+                ),
                 data: {enabled: true},
               })
                 .then(() => {
@@ -142,7 +127,7 @@ export default function WebhookDetailedView() {
 
   return (
     <IntegrationLayout.Body
-      integrationName={t('Webhooks (Legacy)')}
+      title={t('Webhooks (Legacy)')}
       alert={
         <Alert.Container>
           <Alert variant="warning">

@@ -2,12 +2,12 @@ import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegr
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import type {IssueAlertNotificationProps} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import type {IssueAlertOptionsProps} from 'sentry/views/projectInstall/issueAlertOptions';
 import {
   IssueAlertOptions,
   RuleAction,
 } from 'sentry/views/projectInstall/issueAlertOptions';
+import type {IssueAlertNotificationProps} from 'sentry/views/projectInstall/messagingIntegrationTypes';
 
 describe('IssueAlertOptions', () => {
   const notificationProps: IssueAlertNotificationProps = {
@@ -19,6 +19,7 @@ describe('IssueAlertOptions', () => {
     integration: OrganizationIntegrationsFixture(),
     provider: 'slack',
     providersToIntegrations: {},
+    queryError: false,
     querySuccess: true,
     shouldRenderSetupButton: false,
     setActions: jest.fn(),

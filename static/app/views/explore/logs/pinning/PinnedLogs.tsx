@@ -1,15 +1,16 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconClose} from '@sentry/icons/close';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {Placeholder} from 'sentry/components/placeholder';
-import {GridRow} from 'sentry/components/tables/gridEditable/styles';
-import {IconChevron, IconClose, IconWarning} from 'sentry/icons';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
-import {TableBody} from 'sentry/views/explore/components/table';
 import type {LogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
 import type {usePinnedLogsQuery} from 'sentry/views/explore/logs/pinning/usePinnedLogsQuery';
 import {LOGS_GRID_BODY_ROW_HEIGHT} from 'sentry/views/explore/logs/styles';
@@ -76,17 +77,17 @@ export function PinnedLogs({allRows, logsPinning, pinnedLogsQuery, renderRow}: P
 
               if (status === 'pending') {
                 return (
-                  <GridRow key={rowId}>
+                  <SimpleTable.Row key={rowId}>
                     <LoadingGridBodyCell>
                       <Placeholder height="100%" />
                     </LoadingGridBodyCell>
-                  </GridRow>
+                  </SimpleTable.Row>
                 );
               }
 
               const isErrorRow = status === 'error';
               return (
-                <GridRow key={rowId}>
+                <SimpleTable.Row key={rowId}>
                   <UnavailableGridBodyCell>
                     <Flex align="center" gap="sm">
                       <IconWarning size="xs" />
@@ -102,7 +103,7 @@ export function PinnedLogs({allRows, logsPinning, pinnedLogsQuery, renderRow}: P
                       )}
                     </Flex>
                   </UnavailableGridBodyCell>
-                </GridRow>
+                </SimpleTable.Row>
               );
             }
 
@@ -136,7 +137,7 @@ export function PinnedLogs({allRows, logsPinning, pinnedLogsQuery, renderRow}: P
   );
 }
 
-const PinnedTableBody = styled(TableBody)`
+const PinnedTableBody = styled(SimpleTable.Body)`
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   overflow-y: auto;
   overflow-x: hidden;
@@ -144,7 +145,7 @@ const PinnedTableBody = styled(TableBody)`
   scrollbar-width: thin;
 `;
 
-const PinnedToolbarRow = styled(GridRow)`
+const PinnedToolbarRow = styled(SimpleTable.Row)`
   position: sticky;
   bottom: 0;
   z-index: 1;

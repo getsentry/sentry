@@ -1,6 +1,7 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {Polarity} from 'sentry/components/percentChange';
@@ -105,14 +106,14 @@ function BigNumberWidgetVisualizationInner(props: BigNumberWidgetVisualizationPr
   return (
     <Wrapper>
       <NumberAndDifferenceContainer>
-        {defined(props.thresholds?.max_values.max1) &&
+        {defined(props.thresholds?.max_values?.max1) &&
           defined(props.thresholds?.max_values.max2) && (
             <ThresholdsIndicator
               preferredPolarity={props.preferredPolarity}
               thresholds={{
                 unit: props.thresholds.unit ?? undefined,
                 max_values: {
-                  max1: props.thresholds.max_values.max1,
+                  max1: props.thresholds.max_values?.max1,
                   max2: props.thresholds.max_values.max2,
                 },
               }}
@@ -125,7 +126,6 @@ function BigNumberWidgetVisualizationInner(props: BigNumberWidgetVisualizationPr
         <NumberContainerOverride>
           <Tooltip
             title={value}
-            isHoverable
             delay={0}
             disabled={doesValueHitMaximum}
             containerDisplayMode="inline-flex"
@@ -162,22 +162,16 @@ function BigNumberWidgetVisualizationInner(props: BigNumberWidgetVisualizationPr
 
 function Wrapper({children}: any) {
   return (
-    <GrowingWrapper>
+    <Container flexGrow={1} width="100%" height="100%" position="relative">
       <AutoResizeParent>
         <AutoSizedText>{children}</AutoSizedText>
       </AutoResizeParent>
-    </GrowingWrapper>
+    </Container>
   );
 }
 
 // Takes up 100% of the parent. If within flex context, grows to fill.
 // Otherwise, takes up 100% horizontally and vertically
-const GrowingWrapper = styled('div')`
-  position: relative;
-  flex-grow: 1;
-  height: 100%;
-  width: 100%;
-`;
 
 const AutoResizeParent = styled('div')`
   position: absolute;

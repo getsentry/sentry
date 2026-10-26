@@ -1,10 +1,11 @@
 import {useCallback, useMemo} from 'react';
 
-import {dedupeArray} from 'sentry/utils/dedupeArray';
-import {defined} from 'sentry/utils/defined';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
+import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
+import {getTimeSeriesForQuery} from 'sentry/utils/timeSeries/getTimeSeriesForQuery';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
-import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {defaultAggregateSortBys} from 'sentry/views/explore/contexts/pageParamsContext/aggregateSortBys';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
@@ -18,9 +19,14 @@ import {
   useQueryParamsGroupBys,
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
-import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
+import {
+  isVisualizeFunction,
+  type Visualize,
+  VisualizeFunction,
+} from 'sentry/views/explore/queryParams/visualize';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
-import {computeVisualizeSampleTotals} from 'sentry/views/explore/utils';
+import {areAllVisualizesInvalidConditionalFilters} from 'sentry/views/explore/utils/conditionalAggregate';
+import {getVisualizeTimeseriesQueries} from 'sentry/views/explore/utils/getVisualizeTimeseriesQueries';
 import {
   useSortedTimeSeries,
   type SortedTimeSeries,
@@ -54,7 +60,7 @@ export const useExploreTimeseries = ({
   );
 
   return useProgressiveQuery<typeof useExploreTimeseriesImpl>({
-    queryHookImplementation: useExploreTimeseriesImpl,
+    queryHookImplementation: useExploreTimeseriesImpl, // oxlint-disable-line react/hooks -- useProgressiveQuery takes the query hook as a value and calls it per accuracy tier.
     queryHookArgs: {query, enabled, queryExtras},
     queryOptions: {
       canTriggerHighAccuracy,
@@ -68,10 +74,15 @@ function useExploreTimeseriesImpl({
   query,
   queryExtras,
 }: UseExploreTimeseriesOptions): UseExploreTimeseriesResults {
+  const organization = useOrganization();
+  const transformationsEnabled = organization.features.includes(
+    'explore-interpolation-and-smoothing'
+  );
   const dataset = useSpansDataset();
   const groupBys = useQueryParamsGroupBys();
   const sortBys = useQueryParamsAggregateSortBys();
   const visualizes = useQueryParamsVisualizes({validate: true});
+  const unvalidatedVisualizes = useQueryParamsVisualizes();
   const [interval] = useChartInterval();
   const topEvents = useTopEvents();
 
@@ -83,38 +94,65 @@ function useExploreTimeseriesImpl({
     return [...groupBys, ...validYAxes].filter(Boolean);
   }, [groupBys, validYAxes]);
 
+  // Drop orderbys for series removed by validation so the remaining query still works.
   const orderby: string | string[] | undefined = useMemo(() => {
     if (!sortBys.length) {
       return;
     }
 
-    return sortBys.map(formatSort);
-  }, [sortBys]);
+    const allowedFields = new Set(fields);
+    const validSortBys = sortBys.filter(sort => allowedFields.has(sort.field));
+    if (validSortBys.length) {
+      return validSortBys.map(formatSort);
+    }
 
-  const yAxes = useMemo(() => {
-    const allYAxes = [...validYAxes];
+    return defaultAggregateSortBys(validYAxes).map(formatSort);
+  }, [fields, sortBys, validYAxes]);
 
+  const timeseriesQueries = useMemo(() => {
     // injects DEFAULT_VISUALIZATION here as it can be used to populate the
     // confidence footer as a fallback
-    allYAxes.push(DEFAULT_VISUALIZATION);
+    return getVisualizeTimeseriesQueries(
+      [...visualizes, new VisualizeFunction(DEFAULT_VISUALIZATION)],
+      transformationsEnabled
+    ).sort((a, b) => (a.yAxis < b.yAxis ? -1 : a.yAxis > b.yAxis ? 1 : 0));
+  }, [visualizes, transformationsEnabled]);
 
-    return dedupeArray(allYAxes).sort();
-  }, [validYAxes]);
+  const skippedForInvalidConditionalFilter = useMemo(
+    () => areAllVisualizesInvalidConditionalFilters(unvalidatedVisualizes),
+    [unvalidatedVisualizes]
+  );
 
   const options = useMemo(() => {
     const search = new MutableSearch(query);
 
     return {
       search,
-      yAxis: yAxes,
+      yAxis: timeseriesQueries.map(timeseriesQuery => timeseriesQuery.yAxis),
+      transformations: transformationsEnabled
+        ? timeseriesQueries.map(timeseriesQuery => timeseriesQuery.transformations)
+        : undefined,
       interval,
       fields,
       orderby,
       topEvents,
-      enabled,
+      // Skip only when every series failed an `_if` filter. Invalid equations still
+      // query with DEFAULT_VISUALIZATION as a fallback (prior behavior).
+      enabled: enabled && !skippedForInvalidConditionalFilter,
       ...queryExtras,
     };
-  }, [enabled, fields, interval, orderby, query, queryExtras, topEvents, yAxes]);
+  }, [
+    enabled,
+    fields,
+    interval,
+    orderby,
+    query,
+    queryExtras,
+    skippedForInvalidConditionalFilter,
+    topEvents,
+    timeseriesQueries,
+    transformationsEnabled,
+  ]);
 
   const timeseriesResult = useSortedTimeSeries(
     options,
@@ -132,23 +170,18 @@ export function shouldTriggerHighAccuracy(
   visualizes: readonly Visualize[],
   isTopN: boolean
 ) {
-  const hasData = computeVisualizeSampleTotals(
-    visualizes.map(visualize => visualize.yAxis),
-    data,
-    isTopN
-  ).some(total => total > 0);
-  return !hasData && _checkCanQueryForMoreData(data, visualizes, isTopN);
-}
-
-function _checkCanQueryForMoreData(
-  data: SortedTimeSeries['data'],
-  visualizes: readonly Visualize[],
-  isTopN: boolean
-) {
-  return visualizes.some(visualize => {
-    const dedupedYAxes = [visualize.yAxis];
-    const series = dedupedYAxes.flatMap(yAxis => data[yAxis]).filter(defined);
-    const {dataScanned} = determineSeriesSampleCountAndIsSampled(series, isTopN);
-    return dataScanned === 'partial';
-  });
+  const samplingInfo = visualizes.map(visualize =>
+    determineSeriesSampleCountAndIsSampled(
+      getTimeSeriesForQuery(
+        data,
+        visualize.yAxis,
+        isVisualizeFunction(visualize) ? visualize.transformations : []
+      ),
+      isTopN
+    )
+  );
+  return (
+    !samplingInfo.some(info => info.sampleCount > 0) &&
+    samplingInfo.some(info => info.dataScanned === 'partial')
+  );
 }

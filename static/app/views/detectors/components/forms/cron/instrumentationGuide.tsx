@@ -1,23 +1,21 @@
 import {Fragment, useEffect, useRef} from 'react';
+import {IconGlobe} from '@sentry/icons/globe';
+import {IconTerminal} from '@sentry/icons/terminal';
 import partition from 'lodash/partition';
 import {parseAsBoolean, useQueryState} from 'nuqs';
 import {PlatformIcon} from 'platformicons';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import {
-  CopyMarkdownButton,
-  CopySetupInstructionsGate,
-} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {CopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {simpleHtmlToMarkdown} from 'sentry/components/onboarding/utils/stepsToMarkdown';
 import {Container as WorkflowEngineContainer} from 'sentry/components/workflowEngine/ui/container';
 import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
-import {IconGlobe, IconTerminal} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PlatformKey} from 'sentry/types/platform';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -99,7 +97,7 @@ export function InstrumentationGuide() {
     const item = {
       key: c.platform,
       label: c.label,
-      leadingItems: <PlatformIcon platform={c.platform} size={20} />,
+      leadingItems: <PlatformIcon platform={c.platform} size={20} alt="" />,
     };
 
     // If platform has exactly one guide, select it directly
@@ -168,12 +166,18 @@ export function InstrumentationGuide() {
             <DropdownMenu
               size="sm"
               items={menuItems}
-              triggerLabel={selectedLabel}
-              triggerProps={{
-                icon: platformKey ? (
-                  <PlatformIcon platform={platformKey} size={16} />
-                ) : undefined,
-              }}
+              trigger={triggerProps => (
+                <OverlayTrigger.Button
+                  {...triggerProps}
+                  icon={
+                    platformKey ? (
+                      <PlatformIcon platform={platformKey} size={16} />
+                    ) : undefined
+                  }
+                >
+                  {selectedLabel}
+                </OverlayTrigger.Button>
+              )}
             />
             {showAutoInstrumentationGuide && (
               <Fragment>
@@ -215,13 +219,11 @@ export function InstrumentationGuide() {
                     }))}
                   />
                 )}
-                <CopySetupInstructionsGate>
-                  <CopyMarkdownButton
-                    borderless
-                    getMarkdown={getGuideMarkdown}
-                    source="crons_detector_guide"
-                  />
-                </CopySetupInstructionsGate>
+                <CopyMarkdownButton
+                  borderless
+                  getMarkdown={getGuideMarkdown}
+                  source="crons_detector_guide"
+                />
               </Flex>
             }
           >

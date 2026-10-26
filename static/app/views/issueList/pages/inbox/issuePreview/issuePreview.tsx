@@ -1,0 +1,358 @@
+import {useEffect, useRef} from 'react';
+import styled from '@emotion/styled';
+import {IconOpen} from '@sentry/icons/open';
+import {skipToken, useQuery} from '@tanstack/react-query';
+
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Heading} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
+import {AnsiText} from 'sentry/components/ansiText';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {EventMessage} from 'sentry/components/events/eventMessage';
+import {
+  EventStackTrace,
+  hasEventStackTrace,
+} from 'sentry/components/events/eventStackTrace';
+import {useLinkedPullRequests} from 'sentry/components/group/externalIssuesList/linkedPullRequests';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Placeholder} from 'sentry/components/placeholder';
+import type {Group} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getAnalyticsDataForGroup, getMessage, getTitle} from 'sentry/utils/events';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useNewIssuePriorityAndAssigneeUI} from 'sentry/utils/useNewIssuePriorityAndAssigneeUI';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import {makeSeerLocation} from 'sentry/views/issueDetails/autofix/utils';
+import {IssueDetailsContextProvider} from 'sentry/views/issueDetails/context';
+import {
+  GroupDataContextProvider,
+  useGroupData,
+} from 'sentry/views/issueDetails/groupDataContext';
+import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
+import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/header/assigneeSelector';
+import {EventUserCounts} from 'sentry/views/issueDetails/header/eventUserCounts';
+import {GroupStatusSubtitle} from 'sentry/views/issueDetails/header/groupStatusSubtitle';
+import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
+import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
+import {useMarkGroupSeen} from 'sentry/views/issueDetails/useMarkGroupSeen';
+import {
+  getGroupReprocessingStatus,
+  groupEventApiOptions,
+  ReprocessingStatus,
+} from 'sentry/views/issueDetails/utils';
+import {
+  IssuePreviewHeaderActions,
+  OpenIssueButton,
+} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewHeaderActions';
+import {
+  IssuePreviewSeerProvider,
+  useIssuePreviewSeer,
+} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSeer';
+import {
+  IssuePreviewSummary,
+  type IssueSummary,
+} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSummary';
+import {IssueSeenTimes} from 'sentry/views/issueList/pages/issueSeenTimes';
+import {useAssignmentFilter} from 'sentry/views/issueList/pages/useAssignmentFilter';
+
+import {IssuePreviewTimeline} from './issuePreviewTimeline';
+
+interface IssuePreviewProps {
+  groupId: string;
+}
+
+function useMarkPreviewedGroupSeen(group: Group | undefined) {
+  const {mutate: markGroupSeen} = useMarkGroupSeen();
+  const groupId = group && !group.hasSeen ? group.id : undefined;
+
+  useEffect(() => {
+    if (groupId) {
+      markGroupSeen(groupId);
+    }
+  }, [groupId, markGroupSeen]);
+}
+
+function useTrackPreviewedGroup(group: Group | undefined) {
+  const organization = useOrganization();
+  const lastTrackedGroupId = useRef<string | null>(null);
+  const [assignmentFilter] = useAssignmentFilter();
+
+  useEffect(() => {
+    if (!group || lastTrackedGroupId.current === group.id) {
+      return;
+    }
+
+    lastTrackedGroupId.current = group.id;
+    trackAnalytics('issue_inbox.issue_viewed', {
+      organization,
+      ...getAnalyticsDataForGroup(group),
+      assignment_filter: assignmentFilter,
+      progress: group.derivedData?.progress,
+      last_progressed_at: group.derivedData?.lastProgressedAt ?? null,
+    });
+  }, [assignmentFilter, group, organization]);
+}
+
+export function IssuePreview({groupId}: IssuePreviewProps) {
+  const organization = useOrganization();
+  const {
+    data: group,
+    isPending,
+    isError,
+  } = useQuery({
+    ...groupApiOptions({
+      organizationSlug: organization.slug,
+      groupId,
+      // The inbox list spans all environments, regardless of URL filters.
+      environments: [],
+      expandDerivedData: organization.features.includes('issue-inbox'),
+    }),
+    gcTime: 30_000,
+    retry: false,
+  });
+  const {projects} = useProjects();
+  const project = projects.find(p => p.id === group?.project.id) ?? group?.project;
+  const issueDetailsUrl = normalizeUrl(
+    `/organizations/${organization.slug}/issues/${groupId}/`
+  );
+  const issueDetailsLocation = {
+    pathname: issueDetailsUrl,
+    query: {referrer: 'inbox'},
+  };
+
+  useMarkPreviewedGroupSeen(group);
+  useTrackPreviewedGroup(group);
+
+  return (
+    <AnalyticsArea name="issue_inbox" overrideParent>
+      <Container padding="xs 2xl" borderBottom="muted">
+        <Flex align="center" justify="between" flex="1" gap="md">
+          {group && project ? (
+            <IssueIdBreadcrumb group={group} project={project} />
+          ) : isPending ? (
+            <Flex align="center" gap="md" height="36px">
+              <Placeholder width="16px" height="16px" shape="rect" />
+              <Placeholder width="80px" height="16px" shape="rect" />
+            </Flex>
+          ) : null}
+          {group && <OpenIssueButton group={group} to={issueDetailsLocation} />}
+        </Flex>
+      </Container>
+      <Container
+        flexGrow={1}
+        minHeight={0}
+        overflowY="auto"
+        overscrollBehavior="contain"
+        padding="lg 2xl"
+      >
+        {isPending && <LoadingIndicator />}
+        {isError && <LoadingError />}
+        {group && project && (
+          <GroupDataContextProvider group={group} project={project}>
+            <ErrorBoundary mini>
+              <IssuePreviewSeerProvider group={group} project={project}>
+                <IssuePreviewContent />
+              </IssuePreviewSeerProvider>
+            </ErrorBoundary>
+          </GroupDataContextProvider>
+        )}
+      </Container>
+    </AnalyticsArea>
+  );
+}
+
+function IssuePreviewContent() {
+  const navigate = useNavigate();
+  const organization = useOrganization();
+  const {group, project} = useGroupData();
+  const previewSeer = useIssuePreviewSeer();
+  const hasSeerContent =
+    previewSeer.state !== 'unavailable' && !!previewSeer.autofix.runState;
+  const linkedPullRequests = useLinkedPullRequests({group});
+  const {title: primaryTitle = ''} = getTitle(group);
+  const secondaryTitle = getMessage(group);
+  const disableActions = [
+    ReprocessingStatus.REPROCESSING,
+    ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT,
+  ].includes(getGroupReprocessingStatus(group));
+  // Inbox issues can have no events within the list's time range.
+  const {data: event, isLoading: isEventLoading} = useQuery({
+    ...groupEventApiOptions({
+      orgSlug: organization.slug,
+      groupId: group.id,
+      eventId: 'recommended',
+      environments: [],
+    }),
+    enabled: !disableActions,
+    retry: false,
+  });
+  const {data: summary, isLoading: isSummaryLoading} = useQuery({
+    ...apiOptions.as<IssueSummary>()(
+      '/organizations/$organizationIdOrSlug/issues/$issueId/summarize/',
+      {
+        path:
+          previewSeer.aiConfig.hasSummary && !disableActions
+            ? {organizationIdOrSlug: organization.slug, issueId: group.id}
+            : skipToken,
+        method: 'POST',
+        staleTime: 30_000,
+      }
+    ),
+    retry: false,
+  });
+  const shouldUseNewUI = useNewIssuePriorityAndAssigneeUI();
+
+  const issueDetailsUrl = normalizeUrl(
+    `/organizations/${organization.slug}/issues/${group.id}/`
+  );
+  const issueDetailsLocation = {
+    pathname: issueDetailsUrl,
+    query: {referrer: 'inbox'},
+  };
+  function openSeer(action?: string) {
+    navigate(
+      makeSeerLocation({
+        organization,
+        groupId: group.id,
+        action,
+        query: issueDetailsLocation.query,
+      })
+    );
+  }
+
+  return (
+    <IssueDetailsContextProvider>
+      <Container paddingBottom="sm">
+        <Stack gap="xs">
+          <Container>
+            <Flex align="center" justify="between" gap="md">
+              <Flex align="center" gap="md" minWidth={0}>
+                <Tooltip
+                  title={stripAnsi(primaryTitle)}
+                  skipWrapper
+                  showOnlyOnOverflow
+                  delay={1000}
+                >
+                  <TitleLink
+                    to={issueDetailsLocation}
+                    analyticsEventKey="issue_inbox.open_issue_clicked"
+                    analyticsEventName="Issue Inbox: Open Issue Clicked"
+                    analyticsParams={{
+                      group_id: group.id,
+                      progress: group.derivedData?.progress,
+                      source: 'title',
+                    }}
+                  >
+                    <Container flex="1" minWidth={0}>
+                      <Heading as="h3" size="lg" ellipsis>
+                        <AnsiText>{primaryTitle}</AnsiText>
+                      </Heading>
+                    </Container>
+                    <Flex align="center" flexShrink={0}>
+                      <IconOpen size="xs" variant="muted" />
+                    </Flex>
+                  </TitleLink>
+                </Tooltip>
+              </Flex>
+              <IssueSeenTimes group={group} />
+            </Flex>
+            <EventMessage
+              level={group.level}
+              message={secondaryTitle}
+              type={group.type}
+            />
+          </Container>
+          <Flex justify="between" align="center" gap="md">
+            <Flex flex="1" minWidth={0}>
+              <GroupStatusSubtitle group={group} project={project} />
+            </Flex>
+            <Flex align="center" gap="xs" flexShrink={0} wrap="nowrap">
+              <EventUserCounts group={group} project={project} />
+            </Flex>
+          </Flex>
+        </Stack>
+      </Container>
+      <Flex
+        paddingTop="sm"
+        paddingBottom="lg"
+        borderBottom="muted"
+        justify="between"
+        align="center"
+        wrap="wrap"
+        gap="md"
+      >
+        <IssuePreviewHeaderActions
+          group={group}
+          event={event}
+          isEventLoading={isEventLoading}
+          summary={summary}
+          project={project}
+          disabled={disableActions}
+          onContinueInSeer={() => openSeer()}
+          onRetryCodeChanges={() => openSeer('retry_code_changes')}
+        />
+        <Flex align="center" wrap="wrap" gap={shouldUseNewUI ? 'md' : 'lg'}>
+          <GroupPriority group={group} />
+          <GroupHeaderAssigneeSelector
+            group={group}
+            project={project}
+            event={null}
+            showLabel={false}
+          />
+        </Flex>
+      </Flex>
+      {/* Load the body together to avoid layout shifts. */}
+      {previewSeer.state === 'loading' ||
+      linkedPullRequests.isPending ||
+      isEventLoading ||
+      isSummaryLoading ? (
+        <LoadingIndicator />
+      ) : (
+        <Stack gap="2xl" paddingTop="xl" paddingBottom="md">
+          {summary && <IssuePreviewSummary summary={summary} />}
+          {event && hasEventStackTrace(event, group) && (
+            <Container key={event.id}>
+              <ErrorBoundary mini>
+                <EventStackTrace
+                  key={hasSeerContent ? 'seer' : 'default'}
+                  event={event}
+                  group={group}
+                  projectSlug={project.slug}
+                  initialCollapse={hasSeerContent || undefined}
+                />
+              </ErrorBoundary>
+            </Container>
+          )}
+          <Container borderTop="muted" paddingTop="xl">
+            <IssuePreviewTimeline
+              key={group.id}
+              group={group}
+              pullRequests={linkedPullRequests.data?.pullRequests ?? []}
+            />
+          </Container>
+        </Stack>
+      )}
+    </IssueDetailsContextProvider>
+  );
+}
+
+const TitleLink = styled(Link)`
+  display: inline-flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+  min-width: 0;
+  overflow: hidden;
+
+  &:hover {
+    text-decoration: underline;
+    text-decoration-color: ${p => p.theme.tokens.content.secondary};
+  }
+`;

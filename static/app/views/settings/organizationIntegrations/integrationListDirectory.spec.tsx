@@ -10,7 +10,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {trackAnalytics} from 'sentry/utils/analytics';
 import IntegrationListDirectory from 'sentry/views/settings/organizationIntegrations/integrationListDirectory';
+
+jest.mock('sentry/utils/analytics');
 
 const mockResponse = (mocks: Array<[string, unknown]>) => {
   mocks.forEach(([url, body]) => MockApiClient.addMockResponse({url, body}));
@@ -60,6 +63,28 @@ describe('IntegrationListDirectory', () => {
       ].map(testId => expect(screen.getByTestId(testId)).toBeInTheDocument());
     });
 
+    it('loads integrations beyond the first 100 results', async () => {
+      MockApiClient.addMockResponse({
+        url: '/doc-integrations/',
+        body: Array.from({length: 100}, (_, index) =>
+          DocIntegrationFixture({name: `Doc ${index}`, slug: `doc-${index}`})
+        ),
+        headers: {
+          Link: '<https://sentry.io>; rel="next"; results="true"; cursor="0:100:0"',
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: '/doc-integrations/',
+        body: [DocIntegrationFixture()],
+        match: [MockApiClient.matchQuery({cursor: '0:100:0'})],
+      });
+
+      render(<IntegrationListDirectory />, {organization});
+
+      expect(await screen.findByTestId('sample-doc')).toBeInTheDocument();
+      expect(screen.getByTestId('doc-0')).toBeInTheDocument();
+    });
+
     it('shows integrations that match the search query', async () => {
       render(<IntegrationListDirectory />, {organization});
       expect(await screen.findByRole('textbox', {name: 'Filter'})).toBeInTheDocument();
@@ -69,6 +94,39 @@ describe('IntegrationListDirectory', () => {
 
       expect(screen.getByText('Bitbucket')).toBeInTheDocument();
       expect(screen.getByText('La Croix Monitor')).toBeInTheDocument();
+    });
+
+    it('tracks searches with the number of results shown', async () => {
+      const {router} = render(<IntegrationListDirectory />, {organization});
+      expect(await screen.findByRole('textbox', {name: 'Filter'})).toBeInTheDocument();
+
+      await userEvent.type(screen.getByRole('textbox', {name: 'Filter'}), 'it');
+      await userEvent.keyboard('{enter}');
+
+      expect(trackAnalytics).toHaveBeenLastCalledWith(
+        'integrations.directory_item_searched',
+        expect.objectContaining({search_term: 'it', num_results: 2})
+      );
+
+      router.navigate('/mock-pathname/?category=unpublished');
+      await userEvent.type(screen.getByRole('textbox', {name: 'Filter'}), 'it');
+      await userEvent.keyboard('{enter}');
+
+      expect(trackAnalytics).toHaveBeenLastCalledWith(
+        'integrations.directory_item_searched',
+        expect.objectContaining({search_term: 'it', num_results: 1})
+      );
+
+      // The legacy webhook row renders as a result, so it counts as one
+      router.navigate('/mock-pathname/');
+      await userEvent.type(screen.getByRole('textbox', {name: 'Filter'}), 'legacy');
+      await userEvent.keyboard('{enter}');
+
+      expect(screen.getByText('Webhooks (Legacy)')).toBeInTheDocument();
+      expect(trackAnalytics).toHaveBeenLastCalledWith(
+        'integrations.directory_item_searched',
+        expect.objectContaining({search_term: 'legacy', num_results: 1})
+      );
     });
   });
 

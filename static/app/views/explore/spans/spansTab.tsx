@@ -1,11 +1,11 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 import {useQuery} from '@tanstack/react-query';
 
-import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
@@ -16,7 +16,6 @@ import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPa
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {TourElement} from 'sentry/components/tours/components';
-import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -28,6 +27,8 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ChartSelectionProvider} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
+import {ExploreQuotaExceededAlert} from 'sentry/views/explore/components/exploreQuotaExceededAlert';
+import {ExploreShareButton} from 'sentry/views/explore/components/exploreShareButton';
 import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
 import {
   ExploreBodyContent,
@@ -64,18 +65,20 @@ import {useCrossEventDatasetAvailability} from 'sentry/views/explore/spans/cross
 import {DroppedFieldsAlert} from 'sentry/views/explore/spans/droppedFieldsAlert';
 import {ExtrapolationEnabledAlert} from 'sentry/views/explore/spans/extrapolationEnabledAlert';
 import {SettingsDropdown} from 'sentry/views/explore/spans/settingsDropdown';
-import {SpansExportSwitch} from 'sentry/views/explore/spans/spansExportSwitch';
 import {SpanTabSearchSection} from 'sentry/views/explore/spans/spansTabSearchSection';
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
+import {TracesExportModalButton} from 'sentry/views/explore/spans/tracesExportModalButton';
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 import {Onboarding} from 'sentry/views/performance/onboarding';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
-
-// eslint-disable-next-line boundaries/dependencies
-import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
+import {
+  toLLMContextProjectFields,
+  useSelectedProjectsForLLMContext,
+} from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
 interface SpansTabOnboardingProps {
   datePageFilterProps: DatePageFilterProps;
@@ -83,11 +86,23 @@ interface SpansTabOnboardingProps {
   project: Project;
 }
 
-export function SpansTabOnboarding({
+function SpansTabOnboardingInner({
   datePageFilterProps,
   organization,
   project,
 }: SpansTabOnboardingProps) {
+  const selectedProjects = useSelectedProjectsForLLMContext();
+
+  useLLMContext({
+    contextHint:
+      'Sentry traces explorer page. Shows setup instructions because the selected projects have not sent any spans yet. ' +
+      'onboardingProject is the project the setup instructions are for. ' +
+      'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
+      'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction.',
+    onboardingProject: {slug: project.slug, platform: project.platform},
+    ...toLLMContextProjectFields(selectedProjects),
+  });
+
   return (
     <Layout.Body>
       <PageFilterBar condensed>
@@ -96,7 +111,7 @@ export function SpansTabOnboarding({
         <DatePageFilter {...datePageFilterProps} />
       </PageFilterBar>
       <OnboardingContentSection>
-        <QuotaExceededAlert referrer="spans-explore" traceItemDataset="spans" />
+        <ExploreQuotaExceededAlert referrer="spans-explore" traceItemDataset="spans" />
         <Onboarding project={project} organization={organization} />
       </OnboardingContentSection>
     </Layout.Body>
@@ -110,7 +125,8 @@ interface SpanTabProps {
 const SPANS_TOOLBAR_STORAGE_KEY = 'explore-spans-toolbar';
 
 export function SpansTabContent({datePageFilterProps}: SpanTabProps) {
-  useVisitExplore();
+  const id = useQueryParamsId();
+  useVisitQuery(id);
 
   const [controlSectionExpanded, setControlSectionExpanded] = useControlSectionExpanded(
     SPANS_TOOLBAR_STORAGE_KEY
@@ -132,16 +148,6 @@ export function SpansTabContent({datePageFilterProps}: SpanTabProps) {
       </ChartSelectionProvider>
     </Fragment>
   );
-}
-
-function useVisitExplore() {
-  const id = useQueryParamsId();
-  const visitQuery = useVisitQuery();
-  useEffect(() => {
-    if (defined(id)) {
-      visitQuery(id);
-    }
-  }, [id, visitQuery]);
 }
 
 interface SpanTabControlSectionProps {
@@ -185,6 +191,7 @@ function SpanTabContentSectionInner({
   setControlSectionExpanded,
 }: SpanTabContentSectionProps) {
   const {isReady, selection} = usePageFilters();
+  const selectedProjects = useSelectedProjectsForLLMContext();
   const query = useQueryParamsQuery();
   const visualizes = useQueryParamsVisualizes();
   const setVisualizes = useSetQueryParamsVisualizes();
@@ -208,13 +215,16 @@ function SpanTabContentSectionInner({
     contextHint:
       'Sentry traces explorer page. Users search spans/traces by attributes and view samples, aggregates, or breakdowns. ' +
       'You can search live telemetry for spans/traces/errors/logs/metrics, get a trace waterfall by trace ID, ' +
-      'list telemetry index nodes by keyword to discover span/function types, and query node dependencies for upstream/downstream call graphs.',
+      'list telemetry index nodes by keyword to discover span/function types, and query node dependencies for upstream/downstream call graphs. ' +
+      'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
+      'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction.',
     searchQuery: query,
     activeTab: tab,
     visualizes: visualizes.map(v => v.yAxis),
     groupBys: groupBys.filter(g => g !== ''),
     sortBys: activeSortBys.map(s => (s.kind === 'desc' ? `-${s.field}` : s.field)),
     currentSelectedDateRange: selection.datetime,
+    ...toLLMContextProjectFields(selectedProjects),
   });
 
   const queryType =
@@ -285,16 +295,6 @@ function SpanTabContentSectionInner({
     crossEventQueries,
   });
 
-  const error = defined(timeseriesResult.error)
-    ? null // if the timeseries errors, we prefer to show that error in the chart
-    : queryType === 'samples'
-      ? spansTableResult.result.error
-      : queryType === 'traces'
-        ? tracesTableResult.error
-        : queryType === 'aggregate'
-          ? aggregatesTableResult.result.error
-          : null;
-
   return (
     <ExploreContentSection gap="md">
       <OverChartButtonGroup>
@@ -316,7 +316,8 @@ function SpanTabContentSectionInner({
           {controlSectionExpanded ? null : t('Advanced')}
         </ChevronButton>
         <Flex gap="xs">
-          <SpansExportSwitch
+          <ExploreShareButton traceItemDataset={TraceItemDataset.SPANS} />
+          <TracesExportModalButton
             aggregatesTableResult={aggregatesTableResult}
             spansTableResult={spansTableResult}
             rawSpanCounts={rawSpanCounts}
@@ -325,13 +326,8 @@ function SpanTabContentSectionInner({
         </Flex>
       </OverChartButtonGroup>
       {defined(id) && <DroppedFieldsAlert />}
-      <QuotaExceededAlert referrer="spans-explore" traceItemDataset="spans" />
+      <ExploreQuotaExceededAlert referrer="spans-explore" traceItemDataset="spans" />
       <ExtrapolationEnabledAlert />
-      {defined(error) && (
-        <Alert.Container>
-          <Alert variant="danger">{error.message}</Alert>
-        </Alert.Container>
-      )}
       <TourElement<ExploreSpansTour>
         tourContext={ExploreSpansTourContext}
         id={ExploreSpansTour.RESULTS}
@@ -380,6 +376,11 @@ function SpanTabContentSectionInner({
   );
 }
 
+export const SpansTabOnboarding = registerLLMContext(
+  'traces-explorer',
+  SpansTabOnboardingInner
+);
+
 const SpanTabContentSection = registerLLMContext(
   'traces-explorer',
   SpanTabContentSectionInner
@@ -389,24 +390,30 @@ const OnboardingContentSection = styled('section')`
   grid-column: 1/3;
 `;
 
-export const ChevronButton = styled(Button)<{expanded: boolean}>`
-  display: none;
+export function ChevronButton(
+  props: React.ComponentProps<typeof Button> & {expanded: boolean}
+) {
+  return (
+    <Container as="span" display="inline-flex">
+      <StyledChevronButton {...props} />
+    </Container>
+  );
+}
 
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    display: inline-flex;
-  }
-
+const StyledChevronButton = styled(Button)<{expanded: boolean}>`
   ${p =>
     p.expanded &&
     css`
-      margin-left: -17px;
-      border-top-left-radius: 0;
-      border-bottom-left-radius: 0;
-
-      &::after {
-        border-left-color: ${p.theme.tokens.border.primary};
+      @container (min-width: ${p.theme.container.xl}) {
+        margin-left: -17px;
         border-top-left-radius: 0;
         border-bottom-left-radius: 0;
+
+        &::after {
+          border-left-color: ${p.theme.tokens.border.primary};
+          border-top-left-radius: 0;
+          border-bottom-left-radius: 0;
+        }
       }
     `}
 `;

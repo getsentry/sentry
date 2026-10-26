@@ -1,13 +1,22 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import datetime, timedelta
 from unittest.mock import Mock, patch
 
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
+from sentry.integrations.source_code_management.status_check import (
+    AggregateChecksStatus,
+    AggregateReviewStatus,
+    PullRequestStatusClient,
+    PullRequestStatusRequest,
+    PullRequestStatusResult,
+)
 from sentry.models.activity import Activity
 from sentry.models.group import Group
+from sentry.models.grouphistory import GroupHistoryStatus
 from sentry.models.grouplink import GroupLink
 from sentry.models.pullrequest import (
     PullRequest,
@@ -17,8 +26,47 @@ from sentry.models.pullrequest import (
     PullRequestLifecycleState,
 )
 from sentry.models.repository import Repository
+from sentry.tasks.merge import merge_groups
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
+
+
+class PullRequestStatusClientFake(PullRequestStatusClient):
+    """A client reporting checks and review state per pull request key."""
+
+    def __init__(
+        self,
+        status_by_key: dict[str, PullRequestStatusResult] | None = None,
+        error: Exception | None = None,
+    ) -> None:
+        self.status_by_key = status_by_key or {}
+        self.error = error
+        self.requested_keys: list[str] = []
+        self.requested_include_files: list[bool] = []
+        self.request_count = 0
+
+    def get_pull_request_statuses(
+        self, pull_requests: Sequence[PullRequestStatusRequest]
+    ) -> dict[PullRequestStatusRequest, PullRequestStatusResult]:
+        self.request_count += 1
+        self.requested_keys.extend(pull_request.pull_number for pull_request in pull_requests)
+        self.requested_include_files.extend(
+            pull_request.include_files for pull_request in pull_requests
+        )
+        if self.error is not None:
+            raise self.error
+        return {
+            pull_request: self.status_by_key.get(
+                pull_request.pull_number, PullRequestStatusResult()
+            )
+            for pull_request in pull_requests
+        }
+
+
+class UnsupportedClient:
+    """A client that cannot report checks or review state, like the non-GitHub providers."""
 
 
 class GroupPullRequestsEndpointTest(APITestCase):
@@ -36,6 +84,7 @@ class GroupPullRequestsEndpointTest(APITestCase):
         self.path = (
             f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/pull-requests/"
         )
+        self.expanded_path = f"{self.path}?expand=checksAndReview"
 
     def create_linked_pull_request(
         self,
@@ -81,11 +130,7 @@ class GroupPullRequestsEndpointTest(APITestCase):
         )
         return pull_request, link
 
-    def set_provider_pull_request_response(
-        self, mock_get_integration: Mock, response: dict[str, object]
-    ) -> Mock:
-        client = Mock()
-        client.get_pull_request.return_value = response
+    def set_provider_client[T](self, mock_get_integration: Mock, client: T) -> T:
         installation = Mock()
         installation.get_client.return_value = client
         integration = Mock()
@@ -93,11 +138,72 @@ class GroupPullRequestsEndpointTest(APITestCase):
         mock_get_integration.return_value = integration
         return client
 
-    def test_empty_response(self) -> None:
+    def set_provider_pull_request_response(
+        self, mock_get_integration: Mock, response: dict[str, object]
+    ) -> Mock:
+        client = Mock()
+        client.get_pull_request.return_value = response
+        return self.set_provider_client(mock_get_integration, client)
+
+    def get_checks_and_review(self, *, expand: bool = True) -> list[tuple[str | None, str | None]]:
+        """The (checksStatus, reviewStatus) pair of each pull request, in response order."""
+        response = self.client.get(self.expanded_path if expand else self.path)
+        assert response.status_code == 200
+        return [
+            (item["checksStatus"], item["reviewStatus"]) for item in response.data["pullRequests"]
+        ]
+
+    @patch("sentry.issues.endpoints.group_pull_requests._get_latest_regression_at")
+    def test_empty_response(self, mock_get_latest_regression_at: Mock) -> None:
         response = self.client.get(self.path)
 
         assert response.status_code == 200
-        assert response.data == {"pullRequests": []}
+        assert response.data == {"latestRegressionAt": None, "pullRequests": []}
+        mock_get_latest_regression_at.assert_not_called()
+
+    def test_returns_latest_manual_regression_and_ignores_unarchive(self) -> None:
+        self.create_linked_pull_request(key="1", state=PullRequestLifecycleState.OPEN, draft=False)
+        issue_update_path = (
+            f"/api/0/organizations/{self.organization.slug}/issues/?id={self.group.id}"
+        )
+        initial_time = timezone.now()
+        with freeze_time(initial_time):
+            self.create_group_history(
+                group=self.group,
+                status=GroupHistoryStatus.REGRESSED,
+            )
+        with freeze_time(initial_time + timedelta(days=1)):
+            response = self.client.put(issue_update_path, data={"status": "resolved"})
+            assert response.status_code == 200
+        with freeze_time(initial_time + timedelta(days=2)):
+            latest_regression_at = timezone.now()
+            response = self.client.put(
+                issue_update_path,
+                data={"status": "unresolved", "substatus": "ongoing"},
+            )
+            assert response.status_code == 200
+        with freeze_time(initial_time + timedelta(days=3)):
+            response = self.client.put(issue_update_path, data={"status": "resolved"})
+            assert response.status_code == 200
+        with freeze_time(initial_time + timedelta(days=4)):
+            response = self.client.put(
+                issue_update_path,
+                data={"status": "ignored", "substatus": "archived_forever"},
+            )
+            assert response.status_code == 200
+        with freeze_time(initial_time + timedelta(days=5)):
+            response = self.client.put(
+                issue_update_path,
+                data={"status": "unresolved", "substatus": "ongoing"},
+            )
+            assert response.status_code == 200
+
+        with freeze_time(initial_time + timedelta(days=6)):
+            response = self.client.get(self.path)
+
+        assert response.status_code == 200
+        assert response.data["latestRegressionAt"] == latest_regression_at
+        assert [item["id"] for item in response.data["pullRequests"]] == ["1"]
 
     def test_returns_resolving_pull_requests(self) -> None:
         newer_pr, newer_link = self.create_linked_pull_request(
@@ -231,20 +337,21 @@ class GroupPullRequestsEndpointTest(APITestCase):
         response = self.client.get(self.path)
 
         assert response.status_code == 200
-        assert response.data == {"pullRequests": []}
+        assert response.data == {"latestRegressionAt": None, "pullRequests": []}
 
     def test_returns_display_pull_request_attribution(self) -> None:
         delegated_pull_request, _ = self.create_linked_pull_request(key="1")
         PullRequestAttribution.objects.create(
             pull_request=delegated_pull_request,
-            signal_type=PullRequestAttributionSignalType.MCP,
-            source=PullRequestAttributionSource.WEBHOOK_DATA,
-        )
-        PullRequestAttribution.objects.create(
-            pull_request=delegated_pull_request,
             signal_type=PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE,
             source=PullRequestAttributionSource.SEER_DATA,
         )
+        PullRequestAttribution.objects.create(
+            pull_request=delegated_pull_request,
+            signal_type=PullRequestAttributionSignalType.SENTRY_APP,
+            source=PullRequestAttributionSource.SEER_DATA,
+        )
+
         sentry_app_pull_request, _ = self.create_linked_pull_request(key="2")
         PullRequestAttribution.objects.create(
             pull_request=sentry_app_pull_request,
@@ -266,13 +373,55 @@ class GroupPullRequestsEndpointTest(APITestCase):
         assert attribution_by_id["1"] == {
             "type": "seer",
             "id": "seer",
+            "agent": "claude_code",
         }
         assert attribution_by_id["2"] == {
             "type": "seer",
             "id": "seer",
+            "agent": None,
         }
 
-    @patch("sentry.issues.endpoints.group_pull_requests.integration_service.get_integration")
+    def test_returns_pull_request_after_issues_are_merged(self) -> None:
+        surviving_group = self.create_group(project=self.group.project)
+        self.create_linked_pull_request(key="1")
+
+        response = self.client.get(self.path)
+        assert response.status_code == 200
+        assert [item["id"] for item in response.data["pullRequests"]] == ["1"]
+
+        with self.tasks():
+            merge_groups([self.group.id], surviving_group.id)
+
+        response = self.client.get(
+            f"/api/0/organizations/{self.organization.slug}/issues/"
+            f"{surviving_group.id}/pull-requests/"
+        )
+
+        assert response.status_code == 200
+        assert [item["id"] for item in response.data["pullRequests"]] == ["1"]
+
+    def test_ignores_invalid_display_pull_request_attribution(self) -> None:
+        pull_request, _ = self.create_linked_pull_request(key="1")
+        PullRequestAttribution.objects.create(
+            pull_request=pull_request,
+            signal_type=PullRequestAttributionSignalType.SEER_DELEGATED_CURSOR,
+            source=PullRequestAttributionSource.SEER_DATA,
+            is_valid=False,
+        )
+        PullRequestAttribution.objects.create(
+            pull_request=pull_request,
+            signal_type=PullRequestAttributionSignalType.MCP,
+            source=PullRequestAttributionSource.WEBHOOK_DATA,
+        )
+
+        response = self.client.get(self.path)
+
+        assert response.status_code == 200
+        assert response.data["pullRequests"][0]["attribution"] is None
+
+    @patch(
+        "sentry.integrations.source_code_management.pull_request_status_batch.integration_service.get_integration"
+    )
     def test_status_derivation_prefers_stored_lifecycle_fields(
         self, mock_get_integration: Mock
     ) -> None:
@@ -312,7 +461,9 @@ class GroupPullRequestsEndpointTest(APITestCase):
         ]
         mock_get_integration.assert_not_called()
 
-    @patch("sentry.issues.endpoints.group_pull_requests.integration_service.get_integration")
+    @patch(
+        "sentry.integrations.source_code_management.pull_request_status_batch.integration_service.get_integration"
+    )
     def test_incomplete_stored_status_falls_back_to_provider(
         self, mock_get_integration: Mock
     ) -> None:
@@ -350,7 +501,9 @@ class GroupPullRequestsEndpointTest(APITestCase):
             for call in mock_get_integration.call_args_list
         )
 
-    @patch("sentry.issues.endpoints.group_pull_requests.integration_service.get_integration")
+    @patch(
+        "sentry.integrations.source_code_management.pull_request_status_batch.integration_service.get_integration"
+    )
     def test_provider_status_fetch_failure_returns_unknown(
         self, mock_get_integration: Mock
     ) -> None:
@@ -362,3 +515,145 @@ class GroupPullRequestsEndpointTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data["pullRequests"][0]["status"] == "unknown"
+
+    def test_checks_and_review_absent_without_feature(self) -> None:
+        self.create_linked_pull_request(key="1", state=PullRequestLifecycleState.OPEN, draft=False)
+
+        with patch(
+            "sentry.integrations.source_code_management.pull_request_status_batch.integration_service.get_integration"
+        ) as mock_get_integration:
+            assert self.get_checks_and_review() == [(None, None)]
+
+        # Both gates skip the provider request itself, not just the response field.
+        mock_get_integration.assert_not_called()
+
+    @with_feature("organizations:issue-pr-checks-status")
+    def test_checks_and_review_absent_without_expand(self) -> None:
+        self.create_linked_pull_request(key="1", state=PullRequestLifecycleState.OPEN, draft=False)
+
+        with patch(
+            "sentry.integrations.source_code_management.pull_request_status_batch.integration_service.get_integration"
+        ) as mock_get_integration:
+            assert self.get_checks_and_review(expand=False) == [(None, None)]
+
+        mock_get_integration.assert_not_called()
+
+    @with_feature("organizations:issue-pr-checks-status")
+    @patch(
+        "sentry.integrations.source_code_management.pull_request_status_batch.integration_service.get_integration"
+    )
+    def test_checks_and_review_for_open_pull_requests(self, mock_get_integration: Mock) -> None:
+        self.create_linked_pull_request(
+            key="1",
+            linked_delta=timedelta(days=2),
+            state=PullRequestLifecycleState.OPEN,
+            draft=False,
+        )
+        self.create_linked_pull_request(
+            key="2",
+            linked_delta=timedelta(days=1),
+            state=PullRequestLifecycleState.OPEN,
+            draft=True,
+        )
+        # "3" has no entry, standing in for a repository with no CI configured.
+        self.create_linked_pull_request(
+            key="3",
+            linked_delta=timedelta(hours=1),
+            state=PullRequestLifecycleState.OPEN,
+            draft=False,
+        )
+        client = self.set_provider_client(
+            mock_get_integration,
+            PullRequestStatusClientFake(
+                {
+                    "1": PullRequestStatusResult(
+                        checks=AggregateChecksStatus.FAILURE,
+                        review=AggregateReviewStatus.CHANGES_REQUESTED,
+                    ),
+                    "2": PullRequestStatusResult(
+                        checks=AggregateChecksStatus.SUCCESS,
+                        review=AggregateReviewStatus.APPROVED,
+                    ),
+                }
+            ),
+        )
+
+        assert self.get_checks_and_review() == [
+            (None, None),
+            ("success", "approved"),
+            ("failure", "changes_requested"),
+        ]
+        assert set(client.requested_keys) == {"1", "2", "3"}
+        assert client.requested_include_files == [False, False, False]
+        assert client.request_count == 1
+        assert mock_get_integration.call_count == 1
+
+    @with_feature("organizations:issue-pr-checks-status")
+    @patch(
+        "sentry.integrations.source_code_management.pull_request_status_batch.integration_service.get_integration"
+    )
+    def test_checks_and_review_skipped_for_finished_pull_requests(
+        self, mock_get_integration: Mock
+    ) -> None:
+        self.create_linked_pull_request(
+            key="1",
+            linked_delta=timedelta(days=2),
+            state=PullRequestLifecycleState.MERGED,
+            merged_at=timezone.now(),
+        )
+        self.create_linked_pull_request(
+            key="2",
+            linked_delta=timedelta(days=1),
+            state=PullRequestLifecycleState.CLOSED,
+        )
+        client = self.set_provider_client(mock_get_integration, PullRequestStatusClientFake())
+
+        assert self.get_checks_and_review() == [(None, None), (None, None)]
+        assert client.requested_keys == []
+
+    @with_feature("organizations:issue-pr-checks-status")
+    @patch(
+        "sentry.integrations.source_code_management.pull_request_status_batch.integration_service.get_integration"
+    )
+    def test_checks_and_review_fetch_failure_is_not_fatal(self, mock_get_integration: Mock) -> None:
+        pull_request, _ = self.create_linked_pull_request(
+            key="1", state=PullRequestLifecycleState.OPEN, draft=False
+        )
+        self.set_provider_client(
+            mock_get_integration, PullRequestStatusClientFake(error=RuntimeError("nope"))
+        )
+
+        response = self.client.get(self.expanded_path)
+
+        assert response.status_code == 200
+        assert response.data["pullRequests"][0]["checksStatus"] is None
+        assert response.data["pullRequests"][0]["reviewStatus"] is None
+        # The rest of the pull request still serializes.
+        assert response.data["pullRequests"][0]["id"] == pull_request.key
+        assert response.data["pullRequests"][0]["status"] == "open"
+
+    @with_feature("organizations:issue-pr-checks-status")
+    @patch("sentry.integrations.source_code_management.pull_request_status_batch.logger")
+    @patch(
+        "sentry.integrations.source_code_management.pull_request_status_batch.integration_service.get_integration"
+    )
+    def test_checks_and_review_without_client_support(
+        self, mock_get_integration: Mock, mock_logger: Mock
+    ) -> None:
+        self.create_linked_pull_request(key="1", state=PullRequestLifecycleState.OPEN, draft=False)
+        self.set_provider_client(mock_get_integration, UnsupportedClient())
+
+        assert self.get_checks_and_review() == [(None, None)]
+        # Nothing logged, so the capability check produced the None rather than a
+        # swallowed AttributeError.
+        mock_logger.info.assert_not_called()
+
+    @with_feature("organizations:issue-pr-checks-status")
+    @patch(
+        "sentry.integrations.source_code_management.pull_request_status_batch.integration_service.get_integration"
+    )
+    def test_checks_and_review_without_integration(self, mock_get_integration: Mock) -> None:
+        self.create_linked_pull_request(key="1", state=PullRequestLifecycleState.OPEN, draft=False)
+        mock_get_integration.return_value = None
+
+        assert self.get_checks_and_review() == [(None, None)]

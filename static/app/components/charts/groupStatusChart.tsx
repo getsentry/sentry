@@ -4,10 +4,9 @@ import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
 
-import {MarkLine} from 'sentry/components/charts/components/markLine';
+import {markLine as createMarkLine} from 'sentry/components/charts/components/markLine';
 import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
 import {LazyRender} from 'sentry/components/lazyRender';
-import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {TimeseriesValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
@@ -22,25 +21,24 @@ function asChartPoint(point: [number, number]): {name: number | string; value: n
 
 const EMPTY_STATS: readonly TimeseriesValue[] = [];
 
+/**
+ * The chart is only 36px tall, so its tooltip always overhangs it. Portal it to
+ * the body so a clipping ancestor, such as a Seer issue embed's card, cannot
+ * cut it off.
+ */
+const TOOLTIP_OPTIONS = {appendToBody: true};
+
 type Props = {
   stats: readonly TimeseriesValue[];
   groupStatus?: string;
-  height?: number;
-  hideZeros?: boolean;
-  loading?: boolean;
   secondaryStats?: readonly TimeseriesValue[];
-  showMarkLine?: boolean;
   showSecondaryPoints?: boolean;
 };
 
 export function GroupStatusChart({
   stats,
   groupStatus,
-  height = 24,
-  loading = false,
-  hideZeros = false,
   secondaryStats = EMPTY_STATS,
-  showMarkLine = false,
   showSecondaryPoints = false,
 }: Props) {
   const theme = useTheme();
@@ -56,7 +54,7 @@ export function GroupStatusChart({
 
     const formattedMarkLine = formatAbbreviatedNumber(max);
 
-    const markLine = MarkLine({
+    const markLine = createMarkLine({
       silent: true,
       lineStyle: {
         color: theme.tokens.border.transparent.neutral.moderate,
@@ -87,7 +85,7 @@ export function GroupStatusChart({
             {
               seriesName: t('Total Events'),
               data: secondaryStats.map(asChartPoint),
-              markLine: showMarkLine && max > 0 ? markLine : undefined,
+              markLine: max > 0 ? markLine : undefined,
             },
             {
               seriesName: t('Matching Events'),
@@ -98,7 +96,7 @@ export function GroupStatusChart({
             {
               seriesName: t('Events'),
               data: stats.map(asChartPoint),
-              markLine: showMarkLine && max > 0 ? markLine : undefined,
+              markLine: max > 0 ? markLine : undefined,
             },
           ];
 
@@ -107,32 +105,29 @@ export function GroupStatusChart({
       emphasisColors: [theme.tokens.dataviz.semantic.other],
       series,
     };
-  }, [showSecondaryPoints, secondaryStats, showMarkLine, stats, theme]);
+  }, [showSecondaryPoints, secondaryStats, stats, theme]);
 
   return (
-    <LazyRender containerHeight={showMarkLine ? 26 : height}>
+    <LazyRender containerHeight={26}>
       <Stack>
-        {loading ? (
-          <Placeholder height="36px" />
-        ) : (
-          <ChartAnimationWrapper>
-            <MiniBarChart
-              animateBars
-              showXAxisLine
-              hideZeros={hideZeros}
-              markLineLabelSide="right"
-              barOpacity={1}
-              height={showMarkLine ? 36 : height}
-              isGroupedByDate
-              showTimeInTooltip
-              series={graphOptions.series}
-              colors={graphOptions.colors}
-              emphasisColors={graphOptions.emphasisColors}
-              hideDelay={50}
-              showMarkLineLabel={showMarkLine}
-            />
-          </ChartAnimationWrapper>
-        )}
+        <ChartAnimationWrapper>
+          <MiniBarChart
+            animateBars
+            showXAxisLine
+            hideZeros
+            markLineLabelSide="right"
+            barOpacity={1}
+            height={36}
+            isGroupedByDate
+            showTimeInTooltip
+            series={graphOptions.series}
+            colors={graphOptions.colors}
+            emphasisColors={graphOptions.emphasisColors}
+            hideDelay={50}
+            showMarkLineLabel
+            tooltip={TOOLTIP_OPTIONS}
+          />
+        </ChartAnimationWrapper>
         <GraphText>{groupStatus}</GraphText>
       </Stack>
     </LazyRender>

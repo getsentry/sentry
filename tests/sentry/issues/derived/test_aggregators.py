@@ -21,7 +21,11 @@ from sentry.issues.action_log.types import (
 )
 from sentry.issues.derived.aggregators import AGGREGATORS
 from sentry.issues.derived.features import (
+    BLOCKER,
+    FIRST_ASSIGNMENT_ACTION_ID,
+    LAST_COMPLETED_AUTOFIX_STEP,
     LAST_PROGRESSED_AT,
+    NO_CHANGE_RECONCILE_IDS,
     PROGRESS,
     STATUS,
     VIEW_COUNT,
@@ -37,6 +41,7 @@ from sentry.issues.derived.framework import (
     resolve,
 )
 from sentry.issues.progress_state import IssueProgressState
+from sentry.types.group import IssueAutofixStep, IssueBlocker
 
 
 def _pipeline(
@@ -47,7 +52,7 @@ def _pipeline(
     aggs = aggregators if aggregators is not None else AGGREGATORS
     if targets is not None:
         aggs = resolve(targets, aggs)
-    return Pipeline(aggs, version=1, check_mutations=True)
+    return Pipeline(aggs, check_mutations=True)
 
 
 def _run_for_feature[T](feature: Feature[T], entries: list[FakeEntry]) -> T:
@@ -62,6 +67,8 @@ class FakeEntry:
     actor_type: int = GroupActorType.SYSTEM
     actor_id: int = 0
     data: dict[str, object] = field(default_factory=dict)
+    original_group_id: int | None = None
+    id: int = 0
 
     @property
     def action(self) -> GroupAction:
@@ -81,11 +88,18 @@ def _resolved_pr_data(pr_id: int) -> dict[str, object]:
     return {"pull_request": pr_id}
 
 
-def _reconcile_entry(status: IssueStatus) -> FakeEntry:
+def _reconcile_entry(
+    status: IssueStatus,
+    *,
+    id: int = 0,
+    original_group_id: int | None = None,
+) -> FakeEntry:
     action = ReconcileStatusAction(status=status.value)
     return FakeEntry(
         type=GroupActionType.RECONCILE_STATUS,
         data=action.dict(),
+        original_group_id=original_group_id,
+        id=id,
     )
 
 
@@ -95,6 +109,13 @@ def _pr_closed(has_other: bool | None = None, *, pr_id: int = 101, hour: int = 0
     if has_other is not None:
         data["has_other_open_prs"] = has_other
     return FakeEntry(type=GroupActionType.PULL_REQUEST_CLOSED, date_added=_ts(hour=hour), data=data)
+
+
+def _pr_terminal(action: GroupActionType, has_other: bool | None) -> FakeEntry:
+    data: dict[str, object] = {"pull_request": 101}
+    if has_other is not None:
+        data["has_other_open_prs"] = has_other
+    return FakeEntry(type=action, data=data)
 
 
 # ---------------------------------------------------------------------------
@@ -128,6 +149,38 @@ def test_view_ignores_non_view() -> None:
 
 
 # ---------------------------------------------------------------------------
+# track_first_assignment
+# ---------------------------------------------------------------------------
+
+
+def test_first_assignment_records_first_action_id_and_never_changes() -> None:
+    assert (
+        _run_for_feature(
+            FIRST_ASSIGNMENT_ACTION_ID,
+            [
+                FakeEntry(type=GroupActionType.ASSIGN, id=10),
+                FakeEntry(type=GroupActionType.UNASSIGN, id=11),
+                FakeEntry(type=GroupActionType.ASSIGN, id=12),
+            ],
+        )
+        == 10
+    )
+
+
+def test_first_assignment_includes_migrated_actions() -> None:
+    assert (
+        _run_for_feature(
+            FIRST_ASSIGNMENT_ACTION_ID,
+            [
+                FakeEntry(type=GroupActionType.ASSIGN, id=10, original_group_id=123),
+                FakeEntry(type=GroupActionType.ASSIGN, id=12),
+            ],
+        )
+        == 10
+    )
+
+
+# ---------------------------------------------------------------------------
 # track_status
 # ---------------------------------------------------------------------------
 
@@ -136,15 +189,45 @@ def test_starts_open() -> None:
     assert _run_for_feature(STATUS, []) == IssueStatus.OPEN
 
 
-def test_resolve_closes() -> None:
+@pytest.mark.parametrize(
+    "action_type",
+    [
+        GroupActionType.RESOLVE,
+        GroupActionType.SET_RESOLVED_IN_RELEASE,
+        GroupActionType.SET_RESOLVED_BY_AGE,
+        GroupActionType.SET_RESOLVED_IN_COMMIT,
+        GroupActionType.ARCHIVE,
+    ],
+)
+def test_close_actions(action_type: GroupActionType) -> None:
     assert (
         _run_for_feature(
             STATUS,
             [
-                FakeEntry(type=GroupActionType.RESOLVE),
+                FakeEntry(type=action_type),
             ],
         )
         == IssueStatus.CLOSED
+    )
+
+
+@pytest.mark.parametrize(
+    "action_type",
+    [
+        GroupActionType.RESOLVE,
+        GroupActionType.SET_RESOLVED_IN_RELEASE,
+        GroupActionType.SET_RESOLVED_BY_AGE,
+        GroupActionType.SET_RESOLVED_IN_COMMIT,
+        GroupActionType.ARCHIVE,
+    ],
+)
+def test_close_actions_from_merged_groups_are_ignored(action_type: GroupActionType) -> None:
+    assert (
+        _run_for_feature(
+            STATUS,
+            [FakeEntry(type=action_type, original_group_id=123)],
+        )
+        == IssueStatus.OPEN
     )
 
 
@@ -158,6 +241,27 @@ def test_unresolve_reopens() -> None:
             ],
         )
         == IssueStatus.OPEN
+    )
+
+
+@pytest.mark.parametrize(
+    "action_type",
+    [
+        GroupActionType.UNRESOLVE,
+        GroupActionType.SET_REGRESSED,
+        GroupActionType.SET_ESCALATING,
+    ],
+)
+def test_reopen_actions_from_merged_groups_are_ignored(action_type: GroupActionType) -> None:
+    assert (
+        _run_for_feature(
+            STATUS,
+            [
+                FakeEntry(type=GroupActionType.RESOLVE),
+                FakeEntry(type=action_type, original_group_id=123),
+            ],
+        )
+        == IssueStatus.CLOSED
     )
 
 
@@ -213,6 +317,19 @@ def test_regression_reopens() -> None:
     )
 
 
+def test_escalating_reopens_archived_issue() -> None:
+    assert (
+        _run_for_feature(
+            STATUS,
+            [
+                FakeEntry(type=GroupActionType.ARCHIVE),
+                FakeEntry(type=GroupActionType.SET_ESCALATING),
+            ],
+        )
+        == IssueStatus.OPEN
+    )
+
+
 def test_regression_resets_progress() -> None:
     assert (
         _run_for_feature(
@@ -224,18 +341,6 @@ def test_regression_resets_progress() -> None:
             ],
         )
         == IssueProgressState.IDENTIFIED
-    )
-
-
-def test_archive_closes() -> None:
-    assert (
-        _run_for_feature(
-            STATUS,
-            [
-                FakeEntry(type=GroupActionType.ARCHIVE),
-            ],
-        )
-        == IssueStatus.CLOSED
     )
 
 
@@ -287,6 +392,18 @@ class TestReconcileStatus:
                 ],
             )
             == IssueStatus.OPEN
+        )
+
+    def test_from_merged_group_is_ignored(self) -> None:
+        assert (
+            _run_for_feature(
+                STATUS,
+                [
+                    FakeEntry(type=GroupActionType.RESOLVE),
+                    _reconcile_entry(IssueStatus.OPEN, original_group_id=123),
+                ],
+            )
+            == IssueStatus.CLOSED
         )
 
     def test_same_value_is_noop(self) -> None:
@@ -344,6 +461,61 @@ class TestReconcileStatus:
 
 
 # ---------------------------------------------------------------------------
+# NO_CHANGE_RECONCILE_IDS
+# ---------------------------------------------------------------------------
+
+
+class TestNoChangeReconcile:
+    def test_same_status_records_id(self) -> None:
+        assert _run_for_feature(
+            NO_CHANGE_RECONCILE_IDS,
+            [_reconcile_entry(IssueStatus.OPEN, id=7)],
+        ) == [7]
+
+    def test_different_status_does_not_record(self) -> None:
+        assert (
+            _run_for_feature(
+                NO_CHANGE_RECONCILE_IDS,
+                [_reconcile_entry(IssueStatus.CLOSED, id=7)],
+            )
+            == []
+        )
+
+    def test_tracks_multiple(self) -> None:
+        assert _run_for_feature(
+            NO_CHANGE_RECONCILE_IDS,
+            [
+                _reconcile_entry(IssueStatus.OPEN, id=7),
+                _reconcile_entry(IssueStatus.OPEN, id=8),
+            ],
+        ) == [7, 8]
+
+    def test_after_close(self) -> None:
+        assert _run_for_feature(
+            NO_CHANGE_RECONCILE_IDS,
+            [
+                FakeEntry(type=GroupActionType.RESOLVE, id=1),
+                _reconcile_entry(IssueStatus.CLOSED, id=9),
+            ],
+        ) == [9]
+
+    def test_merged_source_ignored(self) -> None:
+        assert (
+            _run_for_feature(
+                NO_CHANGE_RECONCILE_IDS,
+                [_reconcile_entry(IssueStatus.OPEN, id=7, original_group_id=123)],
+            )
+            == []
+        )
+
+    def test_tracks_at_most_twenty(self) -> None:
+        assert _run_for_feature(
+            NO_CHANGE_RECONCILE_IDS,
+            [_reconcile_entry(IssueStatus.OPEN, id=id) for id in range(1, 22)],
+        ) == list(range(1, 21))
+
+
+# ---------------------------------------------------------------------------
 # track_progress
 # ---------------------------------------------------------------------------
 
@@ -376,12 +548,19 @@ def test_assign_advances_to_assigned() -> None:
     )
 
 
-def test_root_cause_identified_advances_to_diagnosed() -> None:
+@pytest.mark.parametrize(
+    "action_type",
+    [
+        GroupActionType.ROOT_CAUSE_IDENTIFIED,
+        GroupActionType.SEER_RCA_COMPLETED,
+    ],
+)
+def test_root_cause_advances_to_diagnosed(action_type: GroupActionType) -> None:
     assert (
         _run_for_feature(
             PROGRESS,
             [
-                FakeEntry(type=GroupActionType.ROOT_CAUSE_IDENTIFIED),
+                FakeEntry(type=action_type),
             ],
         )
         == IssueProgressState.DIAGNOSED
@@ -681,14 +860,7 @@ def test_pr_close_with_remaining_keeps_fix_proposed() -> None:
     )
 
 
-@pytest.mark.parametrize(
-    "action_type",
-    [
-        GroupActionType.PULL_REQUEST_MERGED,
-        GroupActionType.PULL_REQUEST_UNLINKED,
-    ],
-)
-def test_pr_merged_or_unlinked_demotes_when_no_open_prs_remain(action_type: int) -> None:
+def test_pr_merged_advances_to_fix_applied() -> None:
     assert (
         _run_for_feature(
             PROGRESS,
@@ -699,23 +871,16 @@ def test_pr_merged_or_unlinked_demotes_when_no_open_prs_remain(action_type: int)
                     data=_resolved_pr_data(101),
                 ),
                 FakeEntry(
-                    type=action_type,
+                    type=GroupActionType.PULL_REQUEST_MERGED,
                     data={"pull_request": 101, "has_other_open_prs": False},
                 ),
             ],
         )
-        == IssueProgressState.DIAGNOSED
+        == IssueProgressState.FIX_APPLIED
     )
 
 
-@pytest.mark.parametrize(
-    "action_type",
-    [
-        GroupActionType.PULL_REQUEST_MERGED,
-        GroupActionType.PULL_REQUEST_UNLINKED,
-    ],
-)
-def test_pr_merged_or_unlinked_with_remaining_keeps_fix_proposed(action_type: int) -> None:
+def test_pr_unlinked_demotes_when_no_open_prs_remain() -> None:
     assert (
         _run_for_feature(
             PROGRESS,
@@ -725,13 +890,101 @@ def test_pr_merged_or_unlinked_with_remaining_keeps_fix_proposed(action_type: in
                     data=_resolved_pr_data(101),
                 ),
                 FakeEntry(
-                    type=action_type,
+                    type=GroupActionType.PULL_REQUEST_UNLINKED,
+                    data={"pull_request": 101, "has_other_open_prs": False},
+                ),
+            ],
+        )
+        == IssueProgressState.IDENTIFIED
+    )
+
+
+def test_pr_unlinked_with_remaining_keeps_fix_proposed() -> None:
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(
+                    type=GroupActionType.RESOLVED_IN_PULL_REQUEST,
+                    data=_resolved_pr_data(101),
+                ),
+                FakeEntry(
+                    type=GroupActionType.PULL_REQUEST_UNLINKED,
                     data={"pull_request": 101, "has_other_open_prs": True},
                 ),
             ],
         )
         == IssueProgressState.FIX_PROPOSED
     )
+
+
+def test_merged_fix_persists_across_unrelated_actions() -> None:
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(
+                    type=GroupActionType.RESOLVED_IN_PULL_REQUEST,
+                    data=_resolved_pr_data(101),
+                ),
+                FakeEntry(
+                    type=GroupActionType.PULL_REQUEST_MERGED,
+                    data={"pull_request": 101, "has_other_open_prs": False},
+                ),
+                FakeEntry(type=GroupActionType.ASSIGN),
+            ],
+        )
+        == IssueProgressState.FIX_APPLIED
+    )
+
+
+@pytest.mark.parametrize(
+    "action_type",
+    [
+        GroupActionType.UNRESOLVE,
+        GroupActionType.SET_REGRESSED,
+    ],
+)
+def test_merged_fix_resets_when_issue_reopens(action_type: GroupActionType) -> None:
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(
+                    type=GroupActionType.PULL_REQUEST_MERGED,
+                    data={"pull_request": 101, "has_other_open_prs": False},
+                ),
+                FakeEntry(type=action_type),
+            ],
+        )
+        == IssueProgressState.IDENTIFIED
+    )
+
+
+def test_merged_fix_resets_after_closed_issue_regresses() -> None:
+    p = _pipeline(targets=(PROGRESS,))
+    state = p.initial_state()
+    state = p.step(
+        state,
+        FakeEntry(
+            type=GroupActionType.RESOLVED_IN_PULL_REQUEST,
+            data=_resolved_pr_data(101),
+        ),
+    )
+    state = p.step(
+        state,
+        FakeEntry(
+            type=GroupActionType.PULL_REQUEST_MERGED,
+            data={"pull_request": 101, "has_other_open_prs": False},
+        ),
+    )
+    assert state[PROGRESS] == IssueProgressState.FIX_APPLIED
+
+    state = p.step(state, FakeEntry(type=GroupActionType.SET_RESOLVED_IN_COMMIT))
+    assert state[PROGRESS] is None
+
+    state = p.step(state, FakeEntry(type=GroupActionType.SET_REGRESSED))
+    assert state[PROGRESS] == IssueProgressState.IDENTIFIED
 
 
 def test_pr_reopened_restores_fix_proposed() -> None:
@@ -1018,6 +1271,292 @@ def test_last_progressed_at_set_on_reopen() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Blocker
+# ---------------------------------------------------------------------------
+
+
+def test_blocker_defaults_to_none() -> None:
+    assert _run_for_feature(BLOCKER, []) == IssueBlocker.NONE
+
+
+@pytest.mark.parametrize(
+    ("action", "expected"),
+    [
+        (GroupActionType.ROOT_CAUSE_IDENTIFIED, IssueBlocker.APPROVE_ROOT_CAUSE),
+        (GroupActionType.SEER_RCA_COMPLETED, IssueBlocker.APPROVE_ROOT_CAUSE),
+        (GroupActionType.SEER_SOLUTION_COMPLETED, IssueBlocker.APPROVE_PLAN),
+        (GroupActionType.AUTOFIX_CODING_COMPLETE, IssueBlocker.APPROVE_CODE_CHANGES),
+        (GroupActionType.SEER_CODING_COMPLETED, IssueBlocker.APPROVE_CODE_CHANGES),
+        (GroupActionType.SEER_PR_CREATED, IssueBlocker.NONE),
+        (GroupActionType.SEER_ITERATION_COMPLETED, IssueBlocker.NONE),
+    ],
+)
+def test_completed_action_sets_blocker(action: GroupActionType, expected: IssueBlocker) -> None:
+    assert _run_for_feature(BLOCKER, [FakeEntry(type=action)]) == expected
+
+
+@pytest.mark.parametrize(
+    ("action", "data"),
+    [
+        (GroupActionType.RESOLVED_IN_PULL_REQUEST, _resolved_pr_data(101)),
+        (GroupActionType.PULL_REQUEST_REOPENED, {"pull_request": 101}),
+    ],
+)
+def test_open_pr_action_sets_merge_blocker(
+    action: GroupActionType, data: dict[str, object]
+) -> None:
+    assert _run_for_feature(BLOCKER, [FakeEntry(type=action, data=data)]) == IssueBlocker.MERGE_PR
+
+
+def test_latest_completed_action_replaces_sticky_blocker() -> None:
+    assert (
+        _run_for_feature(
+            BLOCKER,
+            [
+                FakeEntry(type=GroupActionType.SEER_CODING_COMPLETED),
+                FakeEntry(type=GroupActionType.SEER_RCA_COMPLETED),
+            ],
+        )
+        == IssueBlocker.APPROVE_ROOT_CAUSE
+    )
+
+
+@pytest.mark.parametrize(
+    ("started_action", "expected"),
+    [
+        (GroupActionType.SEER_RCA_STARTED, IssueAutofixStep.ROOT_CAUSE),
+        (GroupActionType.SEER_SOLUTION_STARTED, IssueAutofixStep.SOLUTION),
+        (GroupActionType.SEER_CODING_STARTED, IssueAutofixStep.CODE_CHANGES),
+        (GroupActionType.SEER_ITERATION_STARTED, IssueAutofixStep.PR_ITERATION),
+    ],
+)
+def test_started_action_sets_autofix_step(
+    started_action: GroupActionType, expected: IssueAutofixStep
+) -> None:
+    assert (
+        _run_for_feature(
+            LAST_COMPLETED_AUTOFIX_STEP,
+            [
+                FakeEntry(type=GroupActionType.SEER_CODING_COMPLETED),
+                FakeEntry(type=started_action),
+            ],
+        )
+        == expected
+    )
+
+
+@pytest.mark.parametrize(
+    "terminal_action",
+    [
+        GroupActionType.PULL_REQUEST_CLOSED,
+        GroupActionType.PULL_REQUEST_MERGED,
+        GroupActionType.PULL_REQUEST_UNLINKED,
+    ],
+)
+def test_last_pr_terminal_action_falls_back_to_completed_blocker(
+    terminal_action: GroupActionType,
+) -> None:
+    assert (
+        _run_for_feature(
+            BLOCKER,
+            [
+                FakeEntry(type=GroupActionType.SEER_CODING_COMPLETED),
+                FakeEntry(
+                    type=GroupActionType.RESOLVED_IN_PULL_REQUEST,
+                    data=_resolved_pr_data(101),
+                ),
+                _pr_terminal(terminal_action, has_other=False),
+            ],
+        )
+        == IssueBlocker.APPROVE_CODE_CHANGES
+    )
+
+
+@pytest.mark.parametrize(
+    "autofix_action",
+    [GroupActionType.SEER_PR_CREATED, GroupActionType.SEER_ITERATION_COMPLETED],
+)
+def test_last_pr_closed_clears_merge_blocker_after_pr_autofix_step(
+    autofix_action: GroupActionType,
+) -> None:
+    assert (
+        _run_for_feature(
+            BLOCKER,
+            [
+                FakeEntry(type=autofix_action),
+                FakeEntry(
+                    type=GroupActionType.RESOLVED_IN_PULL_REQUEST,
+                    data=_resolved_pr_data(101),
+                ),
+                _pr_terminal(GroupActionType.PULL_REQUEST_CLOSED, has_other=False),
+            ],
+        )
+        == IssueBlocker.NONE
+    )
+
+
+@pytest.mark.parametrize("has_other", [True, None])
+def test_pr_terminal_action_with_remaining_or_unknown_prs_preserves_merge_blocker(
+    has_other: bool | None,
+) -> None:
+    assert (
+        _run_for_feature(
+            BLOCKER,
+            [
+                FakeEntry(
+                    type=GroupActionType.RESOLVED_IN_PULL_REQUEST,
+                    data=_resolved_pr_data(101),
+                ),
+                _pr_terminal(GroupActionType.PULL_REQUEST_CLOSED, has_other=has_other),
+            ],
+        )
+        == IssueBlocker.MERGE_PR
+    )
+
+
+def test_reopened_pr_restores_merge_blocker() -> None:
+    assert (
+        _run_for_feature(
+            BLOCKER,
+            [
+                FakeEntry(type=GroupActionType.SEER_SOLUTION_COMPLETED),
+                FakeEntry(
+                    type=GroupActionType.RESOLVED_IN_PULL_REQUEST,
+                    data=_resolved_pr_data(101),
+                ),
+                _pr_terminal(GroupActionType.PULL_REQUEST_CLOSED, has_other=False),
+                FakeEntry(type=GroupActionType.PULL_REQUEST_REOPENED, data={"pull_request": 101}),
+            ],
+        )
+        == IssueBlocker.MERGE_PR
+    )
+
+
+@pytest.mark.parametrize(
+    "closing_entry",
+    [
+        FakeEntry(type=GroupActionType.RESOLVE),
+        FakeEntry(type=GroupActionType.ARCHIVE),
+        _reconcile_entry(IssueStatus.CLOSED),
+    ],
+)
+def test_completed_blocker_survives_close_and_restores_on_reopen(
+    closing_entry: FakeEntry,
+) -> None:
+    # The last completed blocker is sticky: it survives closure, so reopening
+    # the issue restores it.
+    assert (
+        _run_for_feature(
+            BLOCKER,
+            [
+                FakeEntry(type=GroupActionType.SEER_CODING_COMPLETED),
+                closing_entry,
+                FakeEntry(type=GroupActionType.UNRESOLVE),
+            ],
+        )
+        == IssueBlocker.APPROVE_CODE_CHANGES
+    )
+
+
+@pytest.mark.parametrize(
+    "closing_entry",
+    [
+        FakeEntry(type=GroupActionType.RESOLVE),
+        FakeEntry(type=GroupActionType.ARCHIVE),
+        _reconcile_entry(IssueStatus.CLOSED),
+    ],
+)
+def test_blocker_is_none_while_closed(closing_entry: FakeEntry) -> None:
+    assert (
+        _run_for_feature(
+            BLOCKER,
+            [
+                FakeEntry(type=GroupActionType.SEER_CODING_COMPLETED),
+                closing_entry,
+            ],
+        )
+        == IssueBlocker.NONE
+    )
+
+
+@pytest.mark.parametrize(
+    "closing_entry",
+    [
+        FakeEntry(type=GroupActionType.RESOLVE),
+        FakeEntry(type=GroupActionType.ARCHIVE),
+        _reconcile_entry(IssueStatus.CLOSED),
+    ],
+)
+def test_open_fix_pr_survives_close_and_restores_merge_blocker_on_reopen(
+    closing_entry: FakeEntry,
+) -> None:
+    # A fix PR that is still open when the issue is closed survives the closure,
+    # so reopening the issue restores the MERGE_PR blocker.
+    assert (
+        _run_for_feature(
+            BLOCKER,
+            [
+                FakeEntry(
+                    type=GroupActionType.RESOLVED_IN_PULL_REQUEST,
+                    data=_resolved_pr_data(101),
+                ),
+                closing_entry,
+                FakeEntry(type=GroupActionType.UNRESOLVE),
+            ],
+        )
+        == IssueBlocker.MERGE_PR
+    )
+
+
+@pytest.mark.parametrize(
+    ("initial_entry", "expected"),
+    [
+        (
+            FakeEntry(type=GroupActionType.SEER_CODING_COMPLETED),
+            IssueBlocker.APPROVE_CODE_CHANGES,
+        ),
+        (
+            FakeEntry(
+                type=GroupActionType.RESOLVED_IN_PULL_REQUEST,
+                data=_resolved_pr_data(101),
+            ),
+            IssueBlocker.MERGE_PR,
+        ),
+    ],
+)
+def test_regression_preserves_blocker(initial_entry: FakeEntry, expected: IssueBlocker) -> None:
+    """When the issue regresses we are intentionally preserving the last autofix step as the blocker.
+    This matches the UI behavior, which will display the same autofix status regardless of issue state changes."""
+    assert (
+        _run_for_feature(
+            BLOCKER,
+            [
+                initial_entry,
+                FakeEntry(type=GroupActionType.SET_REGRESSED),
+            ],
+        )
+        == expected
+    )
+
+
+@pytest.mark.parametrize(
+    "unrelated_action",
+    [GroupActionType.VIEW, GroupActionType.COMMENT, GroupActionType.ASSIGN],
+)
+def test_unrelated_action_preserves_blocker(unrelated_action: GroupActionType) -> None:
+    assert (
+        _run_for_feature(
+            BLOCKER,
+            [
+                FakeEntry(type=GroupActionType.SEER_SOLUTION_COMPLETED),
+                FakeEntry(type=unrelated_action),
+            ],
+        )
+        == IssueBlocker.APPROVE_PLAN
+    )
+
+
+# ---------------------------------------------------------------------------
 # Full pipeline
 # ---------------------------------------------------------------------------
 
@@ -1039,7 +1578,23 @@ def test_duplicate_output_rejected() -> None:
         return None
 
     with pytest.raises(ValueError, match="output by both"):
-        Pipeline([agg1, agg2], version=1)
+        Pipeline([agg1, agg2])
+
+
+def test_duplicate_name_different_versions_rejected() -> None:
+    A_v0 = Feature[int]("x", default=0, version=0)
+    A_v1 = Feature[int]("x", default=0, version=1)
+
+    @aggregator((A_v0,))
+    def agg1(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    @aggregator((A_v1,))
+    def agg2(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    with pytest.raises(ValueError, match="output by both"):
+        Pipeline([agg1, agg2])
 
 
 def test_missing_dependency_rejected() -> None:
@@ -1051,7 +1606,7 @@ def test_missing_dependency_rejected() -> None:
         return None
 
     with pytest.raises(ValueError, match="not output by any aggregator"):
-        Pipeline([agg], version=1)
+        Pipeline([agg])
 
 
 def test_cycle_rejected() -> None:
@@ -1067,7 +1622,24 @@ def test_cycle_rejected() -> None:
         return None
 
     with pytest.raises(ValueError, match="Cycle detected"):
-        Pipeline([agg1, agg2], version=1)
+        Pipeline([agg1, agg2])
+
+
+def test_distinct_feature_instances_same_name_rejected() -> None:
+    A_output = Feature[int]("a", default=0)
+    A_dep = Feature[int]("a", default=0)  # different instance, same name
+    B = Feature[int]("b", default=0)
+
+    @aggregator((A_output,))
+    def produce_a(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    @aggregator((B,), deps=(A_dep,))
+    def use_a(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    with pytest.raises(ValueError, match="multiple distinct instances"):
+        Pipeline([produce_a, use_a])
 
 
 def test_full_pipeline_constructs() -> None:
@@ -1076,6 +1648,7 @@ def test_full_pipeline_constructs() -> None:
     assert state[STATUS] == IssueStatus.OPEN
     assert state[VIEW_COUNT] == 0
     assert state[PROGRESS] == IssueProgressState.IDENTIFIED
+    assert state[BLOCKER] == IssueBlocker.NONE
 
 
 def test_full_pipeline_mixed_events() -> None:
@@ -1104,3 +1677,97 @@ def test_full_pipeline_mixed_events() -> None:
     )
     assert state[STATUS] == IssueStatus.CLOSED
     assert state[VIEW_COUNT] == 1
+
+
+# ---------------------------------------------------------------------------
+# Feature.content_id and Pipeline.pipeline_hash
+# ---------------------------------------------------------------------------
+
+
+def test_feature_content_id_default_version() -> None:
+    f = Feature[int]("foo", default=0)
+    assert f.content_id == "foo:0"
+
+
+def test_feature_content_id_explicit_version() -> None:
+    f = Feature[int]("foo", default=0, version=3)
+    assert f.content_id == "foo:3"
+
+
+def test_pipeline_hash_deterministic() -> None:
+    p = _pipeline()
+    assert p.pipeline_hash == p.pipeline_hash
+
+
+def test_pipeline_hash_changes_with_feature_version() -> None:
+    A = Feature[int]("a", default=0)
+    B = Feature[int]("b", default=0)
+
+    @aggregator((A,))
+    def agg_a(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    @aggregator((B,))
+    def agg_b(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    p1 = Pipeline([agg_a, agg_b])
+
+    A_v2 = Feature[int]("a", default=0, version=1)
+
+    @aggregator((A_v2,))
+    def agg_a2(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    p2 = Pipeline([agg_a2, agg_b])
+
+    assert p1.pipeline_hash != p2.pipeline_hash
+
+
+def test_pipeline_hash_changes_with_pipeline_version() -> None:
+    A = Feature[int]("a", default=0)
+
+    @aggregator((A,))
+    def agg_a(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    class V0(Pipeline[Any]):
+        _version = 0
+
+    class V1(Pipeline[Any]):
+        _version = 1
+
+    assert V0([agg_a]).pipeline_hash != V1([agg_a]).pipeline_hash
+
+
+def test_pipeline_hash_is_order_independent() -> None:
+    A = Feature[int]("a", default=0)
+    B = Feature[int]("b", default=0)
+
+    @aggregator((A,))
+    def agg_a(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    @aggregator((B,))
+    def agg_b(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    @aggregator((B,))
+    def agg_b2(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    @aggregator((A,))
+    def agg_a2(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    p1 = Pipeline([agg_a, agg_b])
+    p2 = Pipeline([agg_a2, agg_b2])
+
+    assert p1.pipeline_hash == p2.pipeline_hash
+
+
+def test_pipeline_hash_is_unpadded_base64() -> None:
+    p = _pipeline()
+    h = p.pipeline_hash
+    assert "=" not in h
+    assert len(h) == 11  # 8 bytes -> 11 base64 chars (no padding)

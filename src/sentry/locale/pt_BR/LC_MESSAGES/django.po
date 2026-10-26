@@ -22424,7 +22424,7 @@ msgstr[2] ""
 #: static/app/utils/duration/getExactDuration.tsx:9
 #: static/app/utils/duration/getExactDuration.tsx:62
 msgid "min"
-msgstr "mínimo"
+msgstr "min"
 
 #: static/app/utils/duration/getDuration.tsx:39
 #: static/app/utils/duration/getExactDuration.tsx:10

@@ -3,7 +3,7 @@ import {useQuery} from '@tanstack/react-query';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilterDatetime} from 'sentry/types/core';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {transformStatsResponse} from 'sentry/utils/profiling/hooks/utils';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -12,20 +12,16 @@ interface UseProfileEventsStatsOptions<F> {
   dataset: 'discover' | 'profiles' | 'profileFunctions';
   referrer: string;
   yAxes: readonly F[];
-  datetime?: PageFilters['datetime'];
-  enabled?: boolean;
-  interval?: string;
+  datetime?: PageFilterDatetime;
   query?: string;
 }
 
 export function useProfileEventsStats<F extends string>({
   dataset,
   datetime,
-  interval,
   query,
   referrer,
   yAxes,
-  enabled = true,
 }: UseProfileEventsStatsOptions<F>) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -50,13 +46,11 @@ export function useProfileEventsStats<F extends string>({
         environment: selection.environments,
         ...normalizeDateTimeParams(datetime ?? selection.datetime),
         yAxis: yAxes,
-        interval,
         query,
         partial: 1,
       },
       staleTime: Infinity,
     }),
-    enabled,
   });
 
   const transformed = useMemo(

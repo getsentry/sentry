@@ -1,13 +1,15 @@
+from copy import deepcopy
 from unittest.mock import patch
 
 import orjson
 import pytest
+from django.test import override_settings
 from django.urls import reverse
 from sentry_relay.processing import normalize_global_config
 
 from sentry.relay.globalconfig import get_global_config
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
+from sentry.testutils.pytest.fixtures import django_db_all
 
 
 @pytest.fixture
@@ -32,6 +34,9 @@ def call_endpoint(client, relay, private_key):
 
 
 @pytest.mark.django_db
+@pytest.mark.parametrize(
+    "inbound_filters_custom_error_values", [[], [("MyError", "Mixed CASE message *")]]
+)
 @override_options(
     {
         # Set options to Relay's non-default values to avoid Relay skipping deserialization
@@ -43,29 +48,46 @@ def call_endpoint(client, relay, private_key):
         "relay.objectstore-attachments.sample-rate": 1.0,
         "relay.kafka.span-v2.sample-rate": 1.0,
         "relay.metric-bucket-distribution-encodings": {
-            "custom": "array",
             "profiles": "array",
             "spans": "array",
             "transactions": "array",
         },
         "relay.metric-bucket-set-encodings": {
-            "custom": "base64",
             "profiles": "base64",
             "spans": "base64",
             "transactions": "base64",
         },
+        "relay.attachment-inline.limit": 123,
+        "relay.upload-max-chunk.size": 123,
     }
 )
-def test_global_config() -> None:
-    config = get_global_config()
+def test_global_config(inbound_filters_custom_error_values) -> None:
+    # Nest the settings override inside `override_options`: the `settings` fixture
+    # is torn down after the decorator exits, which leaks the options into later tests.
+    with override_settings(SENTRY_INBOUND_FILTER_CUSTOM_VALUES=inbound_filters_custom_error_values):
+        config = get_global_config()
 
     normalized = normalize_global_config(config)
+    expected = deepcopy(config)
+    # Relay serializes case-insensitive glob patterns lowercased.
+    _lowercase_glob_values(expected["filters"])
 
     # It is not allowed to specify `None` as default for an option.
-    if not config["options"]["relay.span-normalization.allowed_hosts"]:
-        del config["options"]["relay.span-normalization.allowed_hosts"]
+    if not expected["options"]["relay.span-normalization.allowed_hosts"]:
+        del expected["options"]["relay.span-normalization.allowed_hosts"]
 
-    assert normalized == config
+    assert normalized == expected
+
+
+def _lowercase_glob_values(node: object) -> None:
+    if isinstance(node, dict):
+        if node.get("op") == "glob":
+            node["value"] = [value.lower() for value in node["value"]]
+        for child in node.values():
+            _lowercase_glob_values(child)
+    elif isinstance(node, list):
+        for child in node:
+            _lowercase_glob_values(child)
 
 
 @patch(
@@ -103,7 +125,7 @@ def test_return_global_config_on_right_version(
         "filters": [
             {
                 "id": "test-id",
-                "isEnabled": True,
+                "isEnabled": False,
                 "condition": {
                     "op": "not",
                     "inner": {
@@ -121,9 +143,3 @@ def test_return_global_config_on_right_version(
 def test_global_config_valid_with_generic_filters() -> None:
     config = get_global_config()
     assert config == normalize_global_config(config)
-
-
-@django_db_all
-def test_global_config_histogram_outliers(insta_snapshot: InstaSnapshotter) -> None:
-    config = get_global_config()
-    insta_snapshot(config["metricExtraction"])

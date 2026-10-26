@@ -12,8 +12,7 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/context';
-import {SectionDivider} from 'sentry/views/issueDetails/foldSection';
-import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+import {SectionDivider, FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 interface Props {
   event: Event;

@@ -11,10 +11,9 @@ import {
 } from '@sentry/scraps/button';
 import {Checkbox, type CheckboxProps} from '@sentry/scraps/checkbox';
 import {Text} from '@sentry/scraps/text';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
-import {t} from 'sentry/locale';
-
-import {ControlContext} from './control';
+import {ControlContext} from './controlContext';
 
 export const MenuComponents = {
   /**
@@ -45,6 +44,7 @@ export const MenuComponents = {
    */
   ResetButton(props: DistributedOmit<ButtonProps, 'variant' | 'size' | 'children'>) {
     const controlContext = useContext(ControlContext);
+    const {t} = useTranslation();
 
     return (
       <StyledHeaderButton
@@ -63,6 +63,7 @@ export const MenuComponents = {
 
   ClearButton(props: DistributedOmit<ButtonProps, 'variant' | 'size' | 'children'>) {
     const controlContext = useContext(ControlContext);
+    const {t} = useTranslation();
 
     return (
       <StyledHeaderButton
@@ -121,6 +122,7 @@ export const MenuComponents = {
    */
   ApplyButton(props: DistributedOmit<ButtonProps, 'variant' | 'size' | 'children'>) {
     const controlContext = useContext(ControlContext);
+    const {t} = useTranslation();
     return (
       <Button
         size="xs"
@@ -147,6 +149,7 @@ export const MenuComponents = {
    */
   CancelButton(props: DistributedOmit<ButtonProps, 'variant' | 'size' | 'children'>) {
     const controlContext = useContext(ControlContext);
+    const {t} = useTranslation();
     return (
       <Button
         size="xs"

@@ -2,13 +2,14 @@ import forEach from 'lodash/forEach';
 import set from 'lodash/set';
 
 import {t} from 'sentry/locale';
-import type {CustomRepo} from 'sentry/types/debugFiles';
+import type {CustomRepo, CustomRepoFormData} from 'sentry/types/debugFiles';
 import {CustomRepoType} from 'sentry/types/debugFiles';
 
 export const customRepoTypeLabel = {
   [CustomRepoType.HTTP]: 'SymbolServer (HTTP)',
   [CustomRepoType.S3]: 'Amazon S3',
   [CustomRepoType.GCS]: 'Google Cloud Storage',
+  [CustomRepoType.AZURE]: 'Azure Blob Storage',
 };
 
 export const dropDownItems = [
@@ -19,6 +20,10 @@ export const dropDownItems = [
   {
     key: CustomRepoType.GCS,
     label: customRepoTypeLabel[CustomRepoType.GCS],
+  },
+  {
+    key: CustomRepoType.AZURE,
+    label: customRepoTypeLabel[CustomRepoType.AZURE],
   },
   {
     key: CustomRepoType.HTTP,
@@ -50,8 +55,8 @@ export function getRequestMessages(
   };
 }
 
-export function expandKeys(obj: CustomRepo) {
-  const result: Record<string, string> = {};
+export function expandKeys(obj: CustomRepo | CustomRepoFormData) {
+  const result: Record<string, unknown> = {};
   forEach(obj, (value, key) => {
     set(result, key.split('.'), value);
   });

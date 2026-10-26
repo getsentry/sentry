@@ -2,7 +2,7 @@
 import color from 'color';
 import type {BarSeriesOption, LineSeriesOption} from 'echarts';
 
-import {BarSeries} from 'sentry/components/charts/series/barSeries';
+import {createBarSeries} from 'sentry/components/charts/series/barSeries';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {formatXAxisValue} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/formatters/formatXAxisValue';
 import type {
@@ -23,10 +23,6 @@ interface BarsConfig extends CategoricalDataSeriesConfig {
    */
   onClick?: (item: CategoricalItem, dataIndex: number) => void;
   /**
-   * Called when a bar is downplayed (mouse leaves).
-   */
-  onDownplay?: (item: CategoricalItem, dataIndex: number) => void;
-  /**
    * Stack name. If provided, bar plottables with the same stack will be stacked visually.
    */
   stack?: string;
@@ -36,8 +32,6 @@ interface BarsConfig extends CategoricalDataSeriesConfig {
  * A plottable that renders a categorical bar series.
  */
 export class Bars
-  // Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
   extends CategoricalDataSeries<BarsConfig>
   implements CategoricalPlottable
 {
@@ -61,12 +55,7 @@ export class Bars
     }
   }
 
-  onDownplay(dataIndex: number): void {
-    const item = this.categoricalSeries.values[dataIndex];
-    if (item && this.config?.onDownplay) {
-      this.config.onDownplay(item, dataIndex);
-    }
-  }
+  onDownplay(_dataIndex: number): void {}
 
   toSeries(
     plottingOptions: CategoricalPlottingOptions
@@ -75,7 +64,7 @@ export class Bars
     const colorObject = colorOption ? color(colorOption) : undefined;
 
     return [
-      BarSeries({
+      createBarSeries({
         name: this.name,
         stack: this.config?.stack,
         yAxisIndex: 0,
@@ -95,12 +84,11 @@ export class Bars
         itemStyle: {
           opacity: 1,
         },
-        data: this.categoricalSeries.values.map(
-          item =>
-            // This name must match with the `data` setting of the `xAxis` config
-            // in ECharts. ECharts wants both a full list of the categories for
-            // the X axis, and for the series data points to specify the name.
-            [formatXAxisValue(item.category), item.value]
+        data: this.categoricalSeries.values.map(item =>
+          // This name must match with the `data` setting of the `xAxis` config
+          // in ECharts. ECharts wants both a full list of the categories for
+          // the X axis, and for the series data points to specify the name.
+          [formatXAxisValue(item.category), item.value]
         ),
       }),
     ];

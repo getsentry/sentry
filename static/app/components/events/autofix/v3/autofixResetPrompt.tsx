@@ -1,12 +1,13 @@
 import {useState, type ReactNode} from 'react';
+import {IconClose} from '@sentry/icons/close';
+import {IconRefresh} from '@sentry/icons/refresh';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
 
-import {IconClose} from 'sentry/icons/iconClose';
-import {IconRefresh} from 'sentry/icons/iconRefresh';
+import {AUTOFIX_USER_CONTEXT_MAX_LENGTH} from 'sentry/components/events/autofix/types';
 import {t} from 'sentry/locale';
 
 interface AutofixResetPromptProps {
@@ -30,6 +31,8 @@ export function AutofixResetPrompt({
       <TextArea
         autosize
         rows={2}
+        autoFocus
+        maxLength={AUTOFIX_USER_CONTEXT_MAX_LENGTH}
         placeholder={placeholder}
         value={userContext}
         onChange={event => setUserContext(event.target.value)}

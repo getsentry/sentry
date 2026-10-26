@@ -99,6 +99,7 @@ transaction_processed = BetterSignal()  # ["project", "event"]
 event_accepted = BetterSignal()  # ["ip", "data", "project"]
 
 # Organization Onboarding Signals
+organization_created = BetterSignal()  # ["organization", "user"]
 project_created = BetterSignal()  # ["project", "user", "default_rules"]
 project_transferred = BetterSignal()  # ["old_org_id", "project"]
 
@@ -143,7 +144,7 @@ deploy_created = BetterSignal()  # ["deploy"]
 ownership_rule_created = BetterSignal()  # ["project"]
 
 # issues
-issue_assigned = BetterSignal()  # ["project", "group", "user"]
+issue_assigned = BetterSignal()  # ["project", "group", "user", "is_first_assignment"]
 issue_unassigned = BetterSignal()  # ["project", "group", "user"]
 issue_deleted = BetterSignal()  # ["group", "user", "delete_type"]
 # ["organization_id", "project", "group", "user", "resolution_type", "provider", "commit_id"]

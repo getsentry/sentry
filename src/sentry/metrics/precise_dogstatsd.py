@@ -2,6 +2,7 @@ import atexit
 from typing import Any
 
 from datadog.dogstatsd.base import DogStatsd
+from datadog.util.hostname import get_hostname
 
 from .base import MetricsBackend, Tags
 
@@ -11,6 +12,7 @@ __all__ = ["PreciseDogStatsdMetricsBackend"]
 class PreciseDogStatsdMetricsBackend(MetricsBackend):
     def __init__(self, prefix: str | None = None, **kwargs: Any) -> None:
         self.tags = kwargs.pop("tags", None)
+        self.host: str | None = kwargs.pop("host", None) or get_hostname(hostname_from_config=True)
 
         instance_kwargs: dict[str, Any] = {
             "disable_telemetry": True,
@@ -116,6 +118,25 @@ class PreciseDogStatsdMetricsBackend(MetricsBackend):
 
         tags_list = [f"{k}:{v}" for k, v in tags.items()]
         self.statsd.distribution(self._get_key(key), value, sample_rate=sample_rate, tags=tags_list)
+
+    def set(
+        self,
+        key: str,
+        value: str | int,
+        instance: str | None = None,
+        tags: Tags | None = None,
+        sample_rate: float = 1,
+        stacklevel: int = 0,
+    ) -> None:
+        tags = dict(tags or ())
+
+        if self.tags:
+            tags.update(self.tags)
+        if instance:
+            tags["instance"] = instance
+
+        tags_list = [f"{k}:{v}" for k, v in tags.items()]
+        self.statsd.set(self._get_key(key), value, tags=tags_list, sample_rate=sample_rate)
 
     def event(
         self,

@@ -1,10 +1,12 @@
+from unittest import mock
+
 import pytest
 import responses
 
 from sentry.sentry_apps.external_issues.issue_link_creator import IssueLinkCreator
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.services.app import app_service
-from sentry.sentry_apps.utils.errors import SentryAppSentryError
+from sentry.sentry_apps.utils.errors import SentryAppError, SentryAppSentryError
 from sentry.testutils.cases import TestCase
 from sentry.users.services.user.serial import serialize_rpc_user
 
@@ -69,3 +71,64 @@ class TestIssueLinkCreator(TestCase):
                 fields={},
                 user=serialize_rpc_user(self.user),
             ).run()
+
+    def test_expected_issue_does_not_replace_a_concurrent_link(self) -> None:
+        target = "https://example.com/project/issue-1"
+
+        def callback() -> dict[str, str]:
+            self.create_platform_external_issue(
+                group=self.group,
+                service_type=self.sentry_app.slug,
+                web_url="https://example.com/project/issue-2",
+                display_name="Project#issue-2",
+            )
+            return {"webUrl": target, "project": "Project", "identifier": "issue-1"}
+
+        creator = IssueLinkCreator(
+            install=self.install,
+            group=self.group,
+            action="link",
+            uri="/link-issue",
+            fields={"issue": "123"},
+            user=serialize_rpc_user(self.user),
+            expected_external_issue_url=target,
+        )
+        with (
+            mock.patch.object(creator, "_make_external_request", side_effect=callback),
+            pytest.raises(SentryAppError) as error,
+        ):
+            creator.run()
+
+        assert error.value.status_code == 409
+        existing = PlatformExternalIssue.objects.get(group=self.group)
+        assert existing.web_url == "https://example.com/project/issue-2"
+        assert existing.display_name == "Project#issue-2"
+        assert creator.changed is False
+
+    def test_expected_issue_accepts_a_concurrent_matching_link(self) -> None:
+        target = "https://example.com/project/issue-1"
+
+        def callback() -> dict[str, str]:
+            self.create_platform_external_issue(
+                group=self.group,
+                service_type=self.sentry_app.slug,
+                web_url=target,
+                display_name="Existing#label",
+            )
+            return {"webUrl": target, "project": "Project", "identifier": "issue-1"}
+
+        creator = IssueLinkCreator(
+            install=self.install,
+            group=self.group,
+            action="link",
+            uri="/link-issue",
+            fields={"issue": "123"},
+            user=serialize_rpc_user(self.user),
+            expected_external_issue_url=target,
+        )
+        with mock.patch.object(creator, "_make_external_request", side_effect=callback):
+            result = creator.run()
+
+        assert result.web_url == target
+        assert result.display_name == "Existing#label"
+        assert creator.changed is False

@@ -5,34 +5,191 @@ import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import {
   formatQueryToNaturalLanguage,
   generateQueryTokensString,
+  getCrossEventFilterQuery,
   getExpandedProjectIds,
+  mergeSeerExtraFields,
+  normalizeSeerDateTimeParams,
+  parseNaturalLanguageToQuery,
   resolveSeerProjectSelection,
 } from './utils';
 
-describe('getExpandedProjectIds', () => {
-  it.each([null, undefined, []])('returns undefined when projects is %s', input => {
-    expect(getExpandedProjectIds(input, [1, 2])).toBeUndefined();
+// A realistic key predicate for the parse tests.
+const KNOWN_KEYS = new Set([
+  'is',
+  'assigned',
+  'browser',
+  'browser.name',
+  'event.type',
+  'error.type',
+  'count()',
+  'transaction.duration',
+  'release',
+]);
+const isKey = (key: string) => KNOWN_KEYS.has(key);
+
+describe('getCrossEventFilterQuery', () => {
+  it.each(['spans', 'logs'] as const)('returns the %s query unchanged', type => {
+    expect(getCrossEventFilterQuery({type, query: 'severity:error'})).toBe(
+      'severity:error'
+    );
   });
 
+  it('prepends the metric name to a metrics query', () => {
+    expect(
+      getCrossEventFilterQuery({
+        type: 'metrics',
+        metric: {name: 'foo.duration', type: 'distribution'},
+        query: 'value:>100',
+      })
+    ).toBe('metric.name:foo.duration value:>100');
+  });
+
+  it('returns the metric name when the metrics query is empty', () => {
+    expect(
+      getCrossEventFilterQuery({
+        type: 'metrics',
+        metric: {name: 'foo.duration', type: 'distribution'},
+        query: '',
+      })
+    ).toBe('metric.name:foo.duration');
+  });
+});
+
+describe('normalizeSeerDateTimeParams', () => {
+  it('prefers statsPeriod when relative and absolute values are provided', () => {
+    expect(
+      normalizeSeerDateTimeParams({
+        start: '2024-06-01T00:00:00',
+        end: '2024-06-02T00:00:00',
+        statsPeriod: '7d',
+      })
+    ).toEqual({start: undefined, end: undefined, statsPeriod: '7d'});
+  });
+
+  it('keeps a complete absolute range when statsPeriod is absent', () => {
+    expect(
+      normalizeSeerDateTimeParams({
+        start: '2024-06-01T00:00:00',
+        end: '2024-06-02T00:00:00',
+      })
+    ).toEqual({
+      start: '2024-06-01T00:00:00.000',
+      end: '2024-06-02T00:00:00.000',
+      statsPeriod: undefined,
+    });
+  });
+
+  it('does not add a default statsPeriod when datetime values are absent', () => {
+    expect(normalizeSeerDateTimeParams({})).toEqual({
+      start: undefined,
+      end: undefined,
+      statsPeriod: undefined,
+    });
+  });
+});
+
+describe('getExpandedProjectIds', () => {
   it.each([
+    {returned: null, selected: [1, 2]},
+    {returned: undefined, selected: [1, 2]},
+    {returned: [], selected: [1, 2]},
     {returned: [1, 2], selected: [1, 2]},
     {returned: [1], selected: [1, 2]},
   ])(
-    'returns undefined when returned $returned does not exceed selection $selected',
+    'returns undefined when $returned does not expand beyond $selected',
     ({returned, selected}) => {
       expect(getExpandedProjectIds(returned, selected)).toBeUndefined();
     }
   );
 
   it.each([
-    {returned: [1, 2, 3], selected: [1, 2], expected: [1, 2, 3]},
-    {returned: [5], selected: [], expected: [5]},
+    {returned: [1, 2, 3], selected: [1, 2]},
+    {returned: [5], selected: []},
   ])(
-    'returns $returned when it includes projects beyond the selection',
-    ({returned, selected, expected}) => {
-      expect(getExpandedProjectIds(returned, selected)).toEqual(expected);
+    'returns $returned when it includes projects beyond $selected',
+    ({returned, selected}) => {
+      expect(getExpandedProjectIds(returned, selected)).toEqual(returned);
     }
   );
+});
+
+describe('mergeSeerExtraFields', () => {
+  it.each([undefined, []])(
+    'returns the current fields unchanged when extras are %p',
+    extraFields => {
+      expect(mergeSeerExtraFields(['timestamp', 'message'], extraFields, 5)).toEqual([
+        'timestamp',
+        'message',
+      ]);
+    }
+  );
+
+  it('does not truncate a current selection longer than the limit', () => {
+    const currentFields = Array.from({length: 12}, (_, i) => `curr${i}`);
+    expect(mergeSeerExtraFields(currentFields, undefined, 5)).toEqual(currentFields);
+  });
+
+  it('appends extras after the current fields', () => {
+    expect(mergeSeerExtraFields(['timestamp', 'message'], ['span.op'], 5)).toEqual([
+      'timestamp',
+      'message',
+      'span.op',
+    ]);
+  });
+
+  it('keeps the first occurrence of a field the page already has', () => {
+    expect(
+      mergeSeerExtraFields(['timestamp', 'message'], ['message', 'span.op'], 5)
+    ).toEqual(['timestamp', 'message', 'span.op']);
+  });
+
+  it('trims the current fields from the end to make room for the extras', () => {
+    expect(mergeSeerExtraFields(['a', 'b', 'c', 'd'], ['x', 'y'], 4)).toEqual([
+      'a',
+      'b',
+      'x',
+      'y',
+    ]);
+  });
+
+  it('drops the current fields entirely when the extras fill the limit', () => {
+    expect(mergeSeerExtraFields(['a', 'b', 'c'], ['x', 'y', 'z'], 3)).toEqual([
+      'x',
+      'y',
+      'z',
+    ]);
+  });
+
+  it('truncates the extras when they alone exceed the limit', () => {
+    expect(mergeSeerExtraFields(['a', 'b'], ['x', 'y', 'z'], 2)).toEqual(['x', 'y']);
+  });
+
+  it('ignores the limit when there are no extras to add', () => {
+    expect(mergeSeerExtraFields(['a', 'b', 'c', 'd'], [], 2)).toEqual([
+      'a',
+      'b',
+      'c',
+      'd',
+    ]);
+  });
+
+  it('ignores the limit when every extra is already a current field', () => {
+    expect(mergeSeerExtraFields(['a', 'b', 'c', 'd'], ['b', 'd'], 2)).toEqual([
+      'a',
+      'b',
+      'c',
+      'd',
+    ]);
+  });
+
+  it('counts a deduped extra against the current fields, not the limit', () => {
+    // 'b' is already present, so only 'x' is new and nothing needs trimming.
+    expect(mergeSeerExtraFields(['a', 'b'], ['b', 'x'], 3)).toEqual(['a', 'b', 'x']);
+  });
+
+  it('returns nothing for a limit of zero', () => {
+    expect(mergeSeerExtraFields(['a'], ['x'], 0)).toEqual([]);
+  });
 });
 
 describe('resolveSeerProjectSelection', () => {
@@ -161,6 +318,16 @@ describe('generateQueryTokensString', () => {
     ).toContain("projects are 'seer, sentry'");
   });
 
+  it('announces statsPeriod when relative and absolute values are provided', () => {
+    expect(
+      generateQueryTokensString({
+        start: '2024-06-01T00:00:00',
+        end: '2024-06-02T00:00:00',
+        statsPeriod: '7d',
+      })
+    ).toBe("time range is '7d'");
+  });
+
   it('formats wildcard operators without private unicode markers', () => {
     expect(
       generateQueryTokensString({
@@ -196,7 +363,118 @@ describe('formatQueryToNaturalLanguage', () => {
       query: `!path:${WildcardOperators.ENDS_WITH}.js`,
       expected: 'path does not end with .js ',
     },
+    {
+      query: 'message://^GET// level:error',
+      expected: 'message matches regex ^GET, level is error ',
+    },
+    {
+      query: 'message://^GET /api// level:error',
+      expected: 'message matches regex "^GET /api", level is error ',
+    },
+    {
+      query: '(message://^GET /api//) OR level:error',
+      expected: '(message matches regex "^GET /api") OR level is error ',
+    },
+    {
+      query: '(!message://^GET /api//) OR level:error',
+      expected: '(message does not match regex "^GET /api") OR level is error ',
+    },
+    {
+      query: '!message://^GET /api//',
+      expected: 'message does not match regex "^GET /api" ',
+    },
+    {
+      query: 'message://"v2"//',
+      expected: 'message matches regex "\\"v2\\"" ',
+    },
+    {
+      query: 'message://^GET "v2"//',
+      expected: 'message matches regex "^GET \\"v2\\"" ',
+    },
   ])('formats $query as $expected', ({query, expected}) => {
     expect(formatQueryToNaturalLanguage(query)).toBe(expected);
+  });
+});
+
+// parseNaturalLanguageToQuery is the inverse of formatQueryToNaturalLanguage.
+describe('parseNaturalLanguageToQuery', () => {
+  it.each([
+    ['is broken', 'is:broken'],
+    ['count() > 100', 'count():>100'],
+    ['count() < 100', 'count():<100'],
+    ['count() >= 100', 'count():>=100'],
+    ['count() <= 100', 'count():<=100'],
+    ['count() is greater than or equal to 100', 'count():>=100'],
+    ['count() is less than or equal to 5', 'count():<=5'],
+    ['browser.name contains chrome', `browser.name:${WildcardOperators.CONTAINS}chrome`],
+    ['browser.name starts with Chr', `browser.name:${WildcardOperators.STARTS_WITH}Chr`],
+    ['browser.name ends with ome', `browser.name:${WildcardOperators.ENDS_WITH}ome`],
+    [
+      'browser.name does not contain chrome',
+      `!browser.name:${WildcardOperators.CONTAINS}chrome`,
+    ],
+    [
+      'browser.name does not start with Chr',
+      `!browser.name:${WildcardOperators.STARTS_WITH}Chr`,
+    ],
+    [
+      'browser.name does not end with ome',
+      `!browser.name:${WildcardOperators.ENDS_WITH}ome`,
+    ],
+    [
+      'event.type is error, browser.name contains chrome',
+      `event.type:error browser.name:${WildcardOperators.CONTAINS}chrome`,
+    ],
+  ])('parses "%s" -> "%s"', (input, expected) => {
+    expect(parseNaturalLanguageToQuery(input, isKey)).toBe(expected);
+  });
+
+  it.each([
+    // no filter shape anywhere; prose `is` is not the status key
+    'database connection timeout',
+    'the build is broken',
+    // free text before the first filter -> the whole input is prose
+    'hello event.type is error',
+    // a known key not followed by an operator phrase
+    'browser.name chrome',
+    // mid-typing a longer comparator phrase: must not fire the shorter prefix
+    // ("is greater than") and consume "or" as the value -> count():>or
+    'count() is greater than or equal',
+  ])('returns null for "%s"', input => {
+    expect(parseNaturalLanguageToQuery(input, isKey)).toBeNull();
+  });
+
+  it.each([
+    'is:unresolved',
+    '!is:resolved',
+    'is:unresolved assigned:me',
+    'is:unresolved something',
+    'browser:chrome',
+    '!browser:chrome',
+    'count():>100',
+    'count():>=100',
+    'count():<100',
+    'count():<=100',
+    '!count():>2',
+    'transaction.duration:>500',
+    'release:"a big release"',
+    'browser:[chrome, firefox]',
+    'browser:[chrome,firefox]',
+    // Wildcards now round-trip: parse emits the same TermOperator markers that
+    // formatWildcardToken reads back.
+    `browser.name:${WildcardOperators.CONTAINS}chrome`,
+    `browser.name:${WildcardOperators.STARTS_WITH}Chr`,
+    `browser.name:${WildcardOperators.ENDS_WITH}ome`,
+    `!browser.name:${WildcardOperators.CONTAINS}chrome`,
+    'release://^v1//',
+    'release://^v1 rc//',
+    '!release://^v1 rc//',
+    'release://"v1"//',
+    'release://^v1 "rc"//',
+    'event.type:error error.type:ApiError',
+    'event.type:error error.type:ApiError OR browser:chrome AND code',
+  ])('"%s" survives format -> parse', esq => {
+    const humanized = formatQueryToNaturalLanguage(esq);
+    expect(parseNaturalLanguageToQuery(humanized, isKey)).toBe(esq);
   });
 });

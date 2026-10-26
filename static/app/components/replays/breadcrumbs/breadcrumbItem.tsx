@@ -11,7 +11,6 @@ import {BreadcrumbIssueLink} from 'sentry/components/replays/breadcrumbs/breadcr
 import {BreadcrumbStructuredData} from 'sentry/components/replays/breadcrumbs/breadcrumbStructuredData';
 import {BreadcrumbWebVital} from 'sentry/components/replays/breadcrumbs/breadcrumbWebVital';
 import {Timeline} from 'sentry/components/timeline';
-import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import {getFrameDetails} from 'sentry/utils/replays/getFrameDetails';
 import {useExtractDomNodes} from 'sentry/utils/replays/hooks/useExtractDomNodes';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
@@ -34,7 +33,6 @@ interface Props {
   startTimestampMs: number;
   className?: string;
   expandPaths?: string[];
-  extraction?: Extraction;
   index?: number;
   ref?: React.Ref<HTMLDivElement>;
   style?: CSSProperties;
@@ -164,7 +162,7 @@ const StyledTimelineItem = styled(Timeline.Item)`
   cursor: pointer;
   /* vertical line connecting items */
   &:not(:last-child) {
-    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
     background-image: linear-gradient(
       ${p => p.theme.tokens.border.primary},
       ${p => p.theme.tokens.border.primary}

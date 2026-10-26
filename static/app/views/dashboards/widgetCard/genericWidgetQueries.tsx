@@ -5,17 +5,11 @@ import trimStart from 'lodash/trimStart';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {ResponseMeta} from 'sentry/types/api';
 import type {PageFilters} from 'sentry/types/core';
-import type {Series} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import {
-  isAggregateField,
-  type AggregationOutputType,
-  type DataUnit,
-} from 'sentry/utils/discover/fields';
+import {isAggregateField} from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
-import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
+import type {IngestionMeta} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
@@ -24,6 +18,8 @@ import {
   dashboardFiltersToString,
   usesTimeSeriesData,
 } from 'sentry/views/dashboards/utils';
+import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
+import {withGlobalFilterFallback} from 'sentry/views/dashboards/utils/withGlobalFilterFallback';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
@@ -50,9 +46,7 @@ export type OnDataFetchedProps = {
   pageLinks?: string;
   sampleCount?: number;
   tableResults?: TableDataWithTitle[];
-  timeseriesResults?: Series[];
-  timeseriesResultsTypes?: Record<string, AggregationOutputType>;
-  timeseriesResultsUnits?: Record<string, DataUnit>;
+  timeseriesResults?: WidgetTimeSeries[];
   totalIssuesCount?: string;
 };
 
@@ -62,14 +56,14 @@ export type GenericWidgetQueriesResult = {
   dataScanned?: 'full' | 'partial';
   errorMessage?: string;
   heatmapResults?: HeatMapSeries;
+  ingestion?: IngestionMeta;
   isProgressivelyLoading?: boolean;
   isSampled?: boolean | null;
   pageLinks?: string;
   sampleCount?: number;
   tableResults?: TableDataWithTitle[];
-  timeseriesResults?: Series[];
-  timeseriesResultsTypes?: Record<string, AggregationOutputType>;
-  timeseriesResultsUnits?: Record<string, DataUnit>;
+  timeseriesInterval?: string;
+  timeseriesResults?: WidgetTimeSeries[];
   totalCount?: string;
 };
 
@@ -93,19 +87,15 @@ type UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
   ) => void | {totalIssuesCount?: string};
   cursor?: string;
   dashboardFilters?: DashboardFilters;
-  disabled?: boolean;
   limit?: number;
   loading?: boolean;
-  mepSetting?: MEPState | null;
   onDataFetchStart?: () => void;
   onDataFetched?: ({
     tableResults,
     timeseriesResults,
     totalIssuesCount,
     pageLinks,
-    timeseriesResultsTypes,
   }: OnDataFetchedProps) => void;
-  onDemandControlContext?: OnDemandControlContext;
   samplingMode?: SamplingMode;
   // Optional selection override - if not provided, usePageFilters hook will be used
   // This is needed for the widget viewer modal where local zoom state (modalSelection)
@@ -168,13 +158,10 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     afterFetchTableData,
     cursor,
     dashboardFilters,
-    disabled,
     limit,
     loading: propsLoading,
-    mepSetting,
     onDataFetchStart,
     onDataFetched,
-    onDemandControlContext,
     samplingMode,
     selection: propsSelection,
     skipDashboardFilterParens,
@@ -191,10 +178,10 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
   const isHeatmap = widget.displayType === DisplayType.HEATMAP;
   const isTimeSeriesData = usesTimeSeriesData(widget.displayType);
 
-  const enableSeriesHook = isTimeSeriesData && !disabled && !propsLoading;
+  const enableSeriesHook = isTimeSeriesData && !propsLoading;
   // Heat maps aren't time-series but fetch via the heat map hook, not the table
   // hook — so exclude them here to avoid firing a redundant table query.
-  const enableTableHook = !isTimeSeriesData && !isHeatmap && !disabled && !propsLoading;
+  const enableTableHook = !isTimeSeriesData && !isHeatmap && !propsLoading;
   const needsBreakdownTable = isTimeSeriesData && widget.legendType === 'breakdown';
 
   const tableWidget = useMemo(
@@ -205,29 +192,27 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     [needsBreakdownTable, widget]
   );
 
+  // oxlint-disable-next-line react/hooks -- Optional per-dataset query hook; the config prop must not change for a mounted card.
   const hookSeriesResults = config.useSeriesQuery?.({
     widget,
     organization,
     pageFilters: selection,
     dashboardFilters,
     skipDashboardFilterParens,
-    onDemandControlContext,
-    mepSetting,
     samplingMode,
-    enabled: isTimeSeriesData && !disabled && !propsLoading,
+    enabled: isTimeSeriesData && !propsLoading,
     limit,
     cursor,
     widgetInterval,
   });
 
+  // oxlint-disable-next-line react/hooks -- Optional per-dataset query hook; the config prop must not change for a mounted card.
   const hookTableResults = config.useTableQuery?.({
     widget: tableWidget,
     organization,
     pageFilters: selection,
     dashboardFilters,
     skipDashboardFilterParens,
-    onDemandControlContext,
-    mepSetting,
     samplingMode,
     enabled: enableTableHook || (enableSeriesHook && needsBreakdownTable),
     limit: limit ?? DEFAULT_TABLE_LIMIT,
@@ -235,13 +220,14 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     widgetInterval,
   });
 
+  // oxlint-disable-next-line react/hooks -- Optional per-dataset query hook; the config prop must not change for a mounted card.
   const hookHeatmapResults = config.useHeatmapQuery?.({
     widget,
     organization,
     pageFilters: selection,
     dashboardFilters,
     skipDashboardFilterParens,
-    enabled: isHeatmap && !disabled && !propsLoading,
+    enabled: isHeatmap && !propsLoading,
     widgetInterval,
     yBuckets,
   });
@@ -296,8 +282,6 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
       // Call onDataFetched with transformed results
       onDataFetched?.({
         timeseriesResults: (hookResults as any).timeseriesResults,
-        timeseriesResultsTypes: (hookResults as any).timeseriesResultsTypes,
-        timeseriesResultsUnits: (hookResults as any).timeseriesResultsUnits,
       });
     } else {
       // Collect any results from afterFetchTableData callbacks
@@ -343,7 +327,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
   };
 }
 
-export function cleanWidgetForRequest(widget: Widget): Widget {
+function cleanWidgetForRequest(widget: Widget): Widget {
   const _widget = cloneDeep(widget);
   _widget.queries.forEach(query => {
     query.aggregates = query.aggregates.filter(field => !!field && field !== 'equation|');
@@ -365,12 +349,12 @@ export function applyDashboardFiltersToWidget(
 
   if (dashboardFilters) {
     const filtered = cloneDeep(widget);
-    const dashboardFilterConditions = dashboardFiltersToString(
-      dashboardFilters,
-      filtered.widgetType
-    );
 
     filtered.queries.forEach(query => {
+      const dashboardFilterConditions = dashboardFiltersToString(
+        withGlobalFilterFallback(dashboardFilters, query.globalFilterFallback),
+        filtered.widgetType
+      );
       if (dashboardFilterConditions) {
         if (query.conditions && !skipParens) {
           query.conditions = `(${query.conditions})`;

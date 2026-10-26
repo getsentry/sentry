@@ -17,10 +17,13 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
 from sentry.constants import ObjectStatus
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.models.alert_rule import AlertRule
+from sentry.integrations.models.gcp_service_account import GcpServiceAccount
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
+from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.activity import Activity
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.custominboundfilter import CustomInboundFilter
@@ -29,6 +32,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.organization import Organization
+from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
@@ -52,6 +56,8 @@ from sentry.preprod.models import (
     PreprodSnapshotComparison,
     PreprodSnapshotMetrics,
 )
+from sentry.replays.models import ReplayDeletionJobModel
+from sentry.service_accounts.models import ServiceAccount
 from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloMode
 from sentry.tempest.models import TempestCredentials
@@ -180,6 +186,54 @@ class Fixtures:
     def create_organization(self, *args, **kwargs):
         return Factories.create_organization(*args, **kwargs)
 
+    def create_organization_avatar(self, *args, **kwargs):
+        return Factories.create_organization_avatar(*args, **kwargs)
+
+    def create_investigation(self, *args, **kwargs):
+        return Factories.create_investigation(*args, **kwargs)
+
+    def create_investigation_project(self, *args, **kwargs):
+        return Factories.create_investigation_project(*args, **kwargs)
+
+    def create_investigation_favorite(self, *args, **kwargs):
+        return Factories.create_investigation_favorite(*args, **kwargs)
+
+    def create_investigation_seen(self, *args, **kwargs):
+        return Factories.create_investigation_seen(*args, **kwargs)
+
+    def create_investigation_comment(self, *args, **kwargs):
+        return Factories.create_investigation_comment(*args, **kwargs)
+
+    def create_investigation_action_request(self, *args, **kwargs):
+        return Factories.create_investigation_action_request(*args, **kwargs)
+
+    def create_investigation_orchestration_run(self, *args, **kwargs):
+        return Factories.create_investigation_orchestration_run(*args, **kwargs)
+
+    def create_investigation_orchestration_event(self, *args, **kwargs):
+        return Factories.create_investigation_orchestration_event(*args, **kwargs)
+
+    def create_investigation_orchestration_command(self, *args, **kwargs):
+        return Factories.create_investigation_orchestration_command(*args, **kwargs)
+
+    def create_investigation_block(self, *args, **kwargs):
+        return Factories.create_investigation_block(*args, **kwargs)
+
+    def create_investigation_block_dependency(self, *args, **kwargs):
+        return Factories.create_investigation_block_dependency(*args, **kwargs)
+
+    def create_investigation_parameter(self, *args, **kwargs):
+        return Factories.create_investigation_parameter(*args, **kwargs)
+
+    def create_investigation_block_parameter(self, *args, **kwargs):
+        return Factories.create_investigation_block_parameter(*args, **kwargs)
+
+    def create_investigation_block_execution(self, *args, **kwargs):
+        return Factories.create_investigation_block_execution(*args, **kwargs)
+
+    def create_investigation_block_execution_project(self, *args, **kwargs):
+        return Factories.create_investigation_block_execution_project(*args, **kwargs)
+
     def create_member(self, *args, **kwargs):
         return Factories.create_member(*args, **kwargs)
 
@@ -188,6 +242,13 @@ class Fixtures:
 
     def create_api_key(self, *args, **kwargs):
         return Factories.create_api_key(*args, **kwargs)
+
+    def create_api_application(self, **kwargs):
+        kwargs.setdefault("owner", self.user)
+        return Factories.create_api_application(**kwargs)
+
+    def create_api_device_code(self, *args, **kwargs):
+        return Factories.create_api_device_code(*args, **kwargs)
 
     def create_auth_provider(self, *args, **kwargs):
         return Factories.create_auth_provider(*args, **kwargs)
@@ -224,6 +285,16 @@ class Fixtures:
         if project is None:
             project = self.project
         return Factories.create_project_bookmark(project, *args, **kwargs)
+
+    def create_ai_conversation_metadata(self, project=None, *args, **kwargs):
+        if project is None:
+            project = self.project
+        return Factories.create_ai_conversation_metadata(project, *args, **kwargs)
+
+    def create_replay_deletion_job(self, project=None, **kwargs) -> ReplayDeletionJobModel:
+        if project is None:
+            project = self.project
+        return Factories.create_replay_deletion_job(project, **kwargs)
 
     def create_project_key(self, project=None, *args, **kwargs):
         if project is None:
@@ -288,6 +359,11 @@ class Fixtures:
         if project is None:
             project = self.project
         return Factories.create_repo(project, *args, **kwargs)
+
+    def create_project_repository(self, project=None, **kwargs):
+        if project is None:
+            project = self.project
+        return Factories.create_project_repository(project, **kwargs)
 
     def create_seer_project_repository(self, project=None, **kwargs):
         if project is None:
@@ -369,6 +445,21 @@ class Fixtures:
             group = self.group
         return Factories.create_group_activity(group, *args, **kwargs)
 
+    def create_group_link(self, group=None, **kwargs):
+        if group is None:
+            group = self.group
+        return Factories.create_group_link(group, **kwargs)
+
+    def create_group_resolution(self, group=None, **kwargs):
+        if group is None:
+            group = self.group
+        return Factories.create_group_resolution(group, **kwargs)
+
+    def create_group_subscription(self, group=None, **kwargs):
+        if group is None:
+            group = self.group
+        return Factories.create_group_subscription(group, **kwargs)
+
     def create_group_owner(self, group=None, **kwargs):
         if group is None:
             group = self.group
@@ -378,6 +469,11 @@ class Fixtures:
         if group is None:
             group = self.group
         return Factories.create_group_action_log_entry(group, *args, **kwargs)
+
+    def create_group_derived_data(self, group=None, **kwargs) -> GroupDerivedData:
+        if group is None:
+            group = self.group
+        return Factories.create_group_derived_data(group, **kwargs)
 
     def create_n_groups_with_hashes(
         self, number_of_groups: int, project: Project, group_type: int | None = None
@@ -490,9 +586,6 @@ class Fixtures:
 
         return Factories.create_incident(organization, projects, *args, **kwargs)
 
-    def create_incident_activity(self, *args, **kwargs):
-        return Factories.create_incident_activity(*args, **kwargs)
-
     def create_alert_rule(self, organization=None, projects=None, *args, **kwargs) -> AlertRule:
         if not organization:
             organization = self.organization
@@ -526,6 +619,9 @@ class Fixtures:
         return Factories.create_notification_action(
             organization=organization, projects=projects, **kwargs
         )
+
+    def create_notification_setting_option(self, *args, **kwargs):
+        return Factories.create_notification_setting_option(*args, **kwargs)
 
     def create_notification_settings_provider(self, *args, **kwargs):
         return Factories.create_notification_settings_provider(*args, **kwargs)
@@ -635,6 +731,24 @@ class Fixtures:
         """Create an integration and add an organization."""
         return Factories.create_integration(organization, external_id, oi_params, **kwargs)
 
+    def create_gcp_service_account(self, *args: Any, **kwargs: Any) -> GcpServiceAccount:
+        return Factories.create_gcp_service_account(*args, **kwargs)
+
+    def create_service_account(self, *args: Any, **kwargs: Any) -> ServiceAccount:
+        return Factories.create_service_account(*args, **kwargs)
+
+    def create_organization_contributor(
+        self,
+        organization: Organization,
+        integration: Integration | RpcIntegration,
+        external_identifier: str,
+        **kwargs: Any,
+    ) -> OrganizationContributors:
+        """Create an OrganizationContributors row, deriving provider/hostname from the integration."""
+        return Factories.create_organization_contributor(
+            organization, integration, external_identifier, **kwargs
+        )
+
     def create_provider_integration(self, **integration_params: Any) -> Integration:
         """Create an integration tied to a provider but no particular organization."""
         return Factories.create_provider_integration(**integration_params)
@@ -691,9 +805,6 @@ class Fixtures:
     def create_basic_auth_header(self, *args, **kwargs) -> bytes:
         return Factories.create_basic_auth_header(*args, **kwargs)
 
-    def snooze_rule(self, *args, **kwargs):
-        return Factories.snooze_rule(*args, **kwargs)
-
     def create_request_access(self, *args, **kwargs):
         return Factories.create_request_access(*args, **kwargs)
 
@@ -702,6 +813,14 @@ class Fixtures:
 
     def create_dashboard(self, *args, **kwargs):
         return Factories.create_dashboard(*args, **kwargs)
+
+    def create_explore_saved_formula(self, organization=None, *args, **kwargs):
+        if organization is None:
+            organization = self.organization
+        return Factories.create_explore_saved_formula(organization, *args, **kwargs)
+
+    def create_dashboard_favorite_user(self, *args, **kwargs):
+        return Factories.create_dashboard_favorite_user(*args, **kwargs)
 
     def create_dashboard_widget(self, *args, **kwargs):
         return Factories.create_dashboard_widget(*args, **kwargs)
@@ -750,6 +869,9 @@ class Fixtures:
 
         return Factories.create_detector(project=project, type=type, *args, **kwargs)
 
+    def create_all_projects_detector(self, organization: Organization, **kwargs):
+        return Factories.create_all_projects_detector(organization_id=organization.id, **kwargs)
+
     def create_detector_state(self, *args, **kwargs) -> DetectorState:
         return Factories.create_detector_state(*args, **kwargs)
 
@@ -764,6 +886,9 @@ class Fixtures:
 
     def create_data_condition_group_action(self, *args, **kwargs):
         return Factories.create_data_condition_group_action(*args, **kwargs)
+
+    def create_data_condition_alert_rule_trigger(self, *args, **kwargs):
+        return Factories.create_data_condition_alert_rule_trigger(*args, **kwargs)
 
     def create_detector_workflow(self, *args, **kwargs):
         return Factories.create_detector_workflow(*args, **kwargs)
@@ -1232,13 +1357,29 @@ class Fixtures:
 
         return head_artifact, head_size_metrics, base_artifact, base_size_metrics
 
+    def create_seer_autofix_issue_data(self, group, **kwargs):
+        return Factories.create_seer_autofix_issue_data(group=group, **kwargs)
+
     def create_seer_run(self, organization=None, **kwargs):
         if organization is None:
             organization = self.organization
         return Factories.create_seer_run(organization=organization, **kwargs)
 
+    def create_seer_agent_write_grant(self, organization=None, user=None, **kwargs):
+        return Factories.create_seer_agent_write_grant(
+            organization=organization or self.organization,
+            user=user or self.user,
+            **kwargs,
+        )
+
     def create_seer_agent_run(self, run, **kwargs):
         return Factories.create_seer_agent_run(run=run, **kwargs)
+
+    def create_seer_run_coding_agent_handoff(self, seer_run, **kwargs):
+        return Factories.create_seer_run_coding_agent_handoff(seer_run=seer_run, **kwargs)
+
+    def create_seer_run_pull_request(self, run, pull_request, **kwargs):
+        return Factories.create_seer_run_pull_request(run=run, pull_request=pull_request, **kwargs)
 
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot: InstaSnapshotter) -> None:

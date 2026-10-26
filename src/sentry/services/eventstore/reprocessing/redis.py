@@ -7,9 +7,10 @@ import redis
 from django.conf import settings
 
 from sentry.utils.dates import to_datetime
+from sentry.utils.query import TaskBulkQueryState
 from sentry.utils.redis import redis_clusters
 
-from .base import ReprocessingStore
+from .base import ReprocessingInfo, ReprocessingStore
 
 
 def _get_sync_counter_key(group_id: int) -> str:
@@ -26,6 +27,12 @@ def _get_old_primary_hash_subset_key(project_id: int, group_id: int, primary_has
 
 def _get_remaining_key(project_id: int, group_id: int) -> str:
     return f"re2:remaining:{{{project_id}:{group_id}}}"
+
+
+def _get_page_claim_key(
+    project_id: int, group_id: int, new_group_id: int, timestamp: str, event_id: str
+) -> str:
+    return f"re2:pageclaim:{project_id}:{group_id}:{new_group_id}:{timestamp}:{event_id}"
 
 
 class RedisReprocessingStore(ReprocessingStore):
@@ -149,20 +156,24 @@ class RedisReprocessingStore(ReprocessingStore):
         pipe.expire(name=sync_counter_key, time=settings.SENTRY_REPROCESSING_SYNC_TTL)
         pipe.decrby(name=sync_counter_key, amount=num_events)
         new_decremented_value = pipe.execute()[2]
-        return new_decremented_value == 0
+        # It can be that we overshoot and end up with a negative number here as such use `<=` rather than `==`.
+        return new_decremented_value <= 0
 
     def start_reprocessing(
-        self, group_id: int, date_created: Any, sync_count: int, event_count: int
+        self, group_id: int, date_created: datetime, sync_count: int, event_count: int
     ) -> None:
+        info: ReprocessingInfo = {
+            "dateCreated": date_created.isoformat(),
+            "syncCount": sync_count,
+            "totalEvents": event_count,
+        }
         self.redis.setex(
             _get_sync_counter_key(group_id), settings.SENTRY_REPROCESSING_SYNC_TTL, sync_count
         )
         self.redis.setex(
             _get_info_reprocessed_key(group_id),
             settings.SENTRY_REPROCESSING_SYNC_TTL,
-            orjson.dumps(
-                {"dateCreated": date_created, "syncCount": sync_count, "totalEvents": event_count},
-            ).decode(),
+            orjson.dumps(info).decode(),
         )
 
     def get_pending(self, group_id: int) -> tuple[str | None, int]:
@@ -171,8 +182,23 @@ class RedisReprocessingStore(ReprocessingStore):
         ttl = self.redis.ttl(pending_key)
         return pending, ttl
 
-    def get_progress(self, group_id: int) -> dict[str, Any] | None:
+    def get_progress(self, group_id: int) -> ReprocessingInfo | None:
         info = self.redis.get(_get_info_reprocessed_key(group_id))
         if info is None:
             return None
         return orjson.loads(info)
+
+    def try_claim_page(
+        self,
+        project_id: int,
+        group_id: int,
+        new_group_id: int,
+        state: TaskBulkQueryState | None,
+        claimant: str,
+    ) -> bool:
+        timestamp = state["timestamp"] if state is not None else "start"
+        event_id = state["event_id"] if state is not None else "start"
+        key = _get_page_claim_key(project_id, group_id, new_group_id, timestamp, event_id)
+        if self.redis.set(key, claimant, nx=True, ex=settings.SENTRY_REPROCESSING_PAGE_CLAIM_TTL):
+            return True
+        return self.redis.get(key) == claimant

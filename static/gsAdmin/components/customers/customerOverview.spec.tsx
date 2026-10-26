@@ -34,14 +34,52 @@ describe('CustomerOverview', () => {
       />
     );
 
-    expect(screen.getByText('Balance:')).toBeInTheDocument();
-    expect(screen.getByText('Billing Period:')).toBeInTheDocument();
-    expect(screen.getByText('Contract Period:')).toBeInTheDocument();
-    expect(screen.getByText('On-Demand:')).toBeInTheDocument();
-    expect(screen.getByText('Gifted Errors:')).toBeInTheDocument();
-    expect(screen.getByText('Gifted Transactions:')).toBeInTheDocument();
-    expect(screen.getByText('Can Trial:')).toBeInTheDocument();
-    expect(screen.getByText('Soft Cap By Category:')).toBeInTheDocument();
+    expect(screen.getByText('Balance')).toBeInTheDocument();
+    expect(screen.getByText('Billing Period')).toBeInTheDocument();
+    expect(screen.getByText('Contract Period')).toBeInTheDocument();
+    expect(screen.getByText('On-Demand')).toBeInTheDocument();
+    expect(screen.getByText('Gifted Errors')).toBeInTheDocument();
+    expect(screen.getByText('Gifted Transactions')).toBeInTheDocument();
+    expect(screen.getByText('Can Trial')).toBeInTheDocument();
+    expect(screen.getByText('Soft Cap By Category')).toBeInTheDocument();
+  });
+
+  it('renders Billing Platform as no for legacy subscriptions', () => {
+    const organization = OrganizationFixture();
+    const subscription = SubscriptionFixture({
+      organization,
+      hasMigratedToBillingPlatform: false,
+    });
+    render(
+      <CustomerOverview
+        customer={subscription}
+        onAction={jest.fn()}
+        organization={organization}
+      />
+    );
+
+    expect(screen.getByText('Billing Platform')).toBeInTheDocument();
+    const billingPlatformLabel = screen.getByText('Billing Platform').closest('dt');
+    expect(billingPlatformLabel?.nextElementSibling).toHaveTextContent('no');
+  });
+
+  it('renders Billing Platform as yes for migrated subscriptions', () => {
+    const organization = OrganizationFixture();
+    const subscription = SubscriptionFixture({
+      organization,
+      hasMigratedToBillingPlatform: true,
+    });
+    render(
+      <CustomerOverview
+        customer={subscription}
+        onAction={jest.fn()}
+        organization={organization}
+      />
+    );
+
+    expect(screen.getByText('Billing Platform')).toBeInTheDocument();
+    const billingPlatformLabel = screen.getByText('Billing Platform').closest('dt');
+    expect(billingPlatformLabel?.nextElementSibling).toHaveTextContent('yes');
   });
 
   it('renders soft cap type details', () => {
@@ -168,19 +206,19 @@ describe('CustomerOverview', () => {
     ).toBeInTheDocument();
 
     // custom price information
-    expect(screen.getByText('Custom Price Errors:')).toBeInTheDocument();
+    expect(screen.getByText('Custom Price Errors')).toBeInTheDocument();
     expect(screen.getByText('$300,000.00')).toBeInTheDocument();
-    expect(screen.getByText('Custom Price Performance units:')).toBeInTheDocument();
+    expect(screen.getByText('Custom Price Performance units')).toBeInTheDocument();
     expect(screen.getByText('$400,000.00')).toBeInTheDocument();
-    expect(screen.getByText('Custom Price Replays:')).toBeInTheDocument();
+    expect(screen.getByText('Custom Price Replays')).toBeInTheDocument();
     expect(screen.getByText('$100,000.00')).toBeInTheDocument();
-    expect(screen.getByText('Custom Price Attachments:')).toBeInTheDocument();
+    expect(screen.getByText('Custom Price Attachments')).toBeInTheDocument();
     expect(screen.getByText('$150,000.00')).toBeInTheDocument();
-    expect(screen.getByText('Custom Price Cron monitors:')).toBeInTheDocument();
+    expect(screen.getByText('Custom Price Cron monitors')).toBeInTheDocument();
     expect(screen.getByText('$10,000.00')).toBeInTheDocument();
-    expect(screen.getByText('Custom Price PCSS:')).toBeInTheDocument();
+    expect(screen.getByText('Custom Price PCSS')).toBeInTheDocument();
     expect(screen.getByText('$40,000.00')).toBeInTheDocument();
-    expect(screen.getByText('Custom Price (Total):')).toBeInTheDocument();
+    expect(screen.getByText('Custom Price (Total)')).toBeInTheDocument();
     expect(screen.getByText('$1,000,000.00')).toBeInTheDocument();
 
     // on-demand information
@@ -188,18 +226,18 @@ describe('CustomerOverview', () => {
     expect(screen.getByText('Total: $0.00 / $3,000,000.00')).toBeInTheDocument();
 
     // CPE information
-    expect(screen.getByText('On-Demand Cost-Per-Event Errors:')).toBeInTheDocument();
+    expect(screen.getByText('On-Demand Cost-Per-Event Errors')).toBeInTheDocument();
     expect(screen.getByText('$0.12345678')).toBeInTheDocument();
     expect(
-      screen.getByText('On-Demand Cost-Per-Event Performance units:')
+      screen.getByText('On-Demand Cost-Per-Event Performance units')
     ).toBeInTheDocument();
     expect(screen.getByText('$1.00000000')).toBeInTheDocument();
-    expect(screen.getByText('On-Demand Cost-Per-Event Replays:')).toBeInTheDocument();
+    expect(screen.getByText('On-Demand Cost-Per-Event Replays')).toBeInTheDocument();
     expect(screen.getByText('$0.50000000')).toBeInTheDocument();
-    expect(screen.getByText('On-Demand Cost-Per-Event Attachments:')).toBeInTheDocument();
+    expect(screen.getByText('On-Demand Cost-Per-Event Attachments')).toBeInTheDocument();
     expect(screen.getByText('$0.20300000')).toBeInTheDocument();
     expect(
-      screen.getByText('On-Demand Cost-Per-Event Cron monitors:')
+      screen.getByText('On-Demand Cost-Per-Event Cron monitors')
     ).toBeInTheDocument();
     expect(screen.getByText('$0.07550000')).toBeInTheDocument();
   });
@@ -289,7 +327,7 @@ describe('CustomerOverview', () => {
       },
     });
 
-    const mockOnAction = jest.fn();
+    const mockOnAction = jest.fn().mockResolvedValue(undefined);
 
     render(
       <CustomerOverview
@@ -365,7 +403,7 @@ describe('CustomerOverview', () => {
       sponsoredType: 'XX',
     });
 
-    const mockOnAction = jest.fn();
+    const mockOnAction = jest.fn().mockResolvedValue(undefined);
 
     render(
       <CustomerOverview
@@ -404,23 +442,24 @@ describe('CustomerOverview', () => {
       />
     );
 
-    expect(screen.getByText('Seer Budget')).toBeInTheDocument();
-    expect(screen.getByText('Reserved Budget:')).toBeInTheDocument();
-    expect(screen.getByText('$25.00')).toBeInTheDocument();
-    expect(screen.getByText('Gifted Budget:')).toBeInTheDocument();
-    expect(screen.getByText('$15.00')).toBeInTheDocument();
-    expect(screen.getByText('Total Used:')).toBeInTheDocument();
-    expect(screen.getByText('$20.00 / $40.00 (50.00%)')).toBeInTheDocument();
-    expect(screen.getByText('Reserved Issue fixes:')).toBeInTheDocument();
-    expect(screen.getByText('Reserved Cost-Per-Event Issue fixes:')).toBeInTheDocument();
+    const budgetSection = within(screen.getByTestId('reserved-budgets-data'));
+    expect(budgetSection.getByText('Seer Budget')).toBeInTheDocument();
+    expect(budgetSection.getByText('Reserved Budget')).toBeInTheDocument();
+    expect(budgetSection.getByText('$25.00')).toBeInTheDocument();
+    expect(budgetSection.getByText('Gifted Budget')).toBeInTheDocument();
+    expect(budgetSection.getByText('$15.00')).toBeInTheDocument();
+    expect(budgetSection.getByText('Total Used')).toBeInTheDocument();
+    expect(budgetSection.getByText('$20.00 / $40.00 (50.00%)')).toBeInTheDocument();
+    expect(screen.getByText('Reserved Issue fixes')).toBeInTheDocument();
+    expect(screen.getByText('Reserved Cost-Per-Event Issue fixes')).toBeInTheDocument();
     expect(screen.getByText('$1.00000000')).toBeInTheDocument();
-    expect(screen.getByText('Reserved Spend Issue fixes:')).toBeInTheDocument();
+    expect(screen.getByText('Reserved Spend Issue fixes')).toBeInTheDocument();
     expect(screen.getByText('$18.00')).toBeInTheDocument();
-    expect(screen.getByText('Reserved Issue scans:')).toBeInTheDocument();
+    expect(screen.getByText('Reserved Issue scans')).toBeInTheDocument();
     expect(screen.getAllByText('N/A')).toHaveLength(2);
-    expect(screen.getByText('Reserved Cost-Per-Event Issue scans:')).toBeInTheDocument();
+    expect(screen.getByText('Reserved Cost-Per-Event Issue scans')).toBeInTheDocument();
     expect(screen.getByText('$0.01000000')).toBeInTheDocument();
-    expect(screen.getByText('Reserved Spend Issue scans:')).toBeInTheDocument();
+    expect(screen.getByText('Reserved Spend Issue scans')).toBeInTheDocument();
     expect(screen.getByText('$2.00')).toBeInTheDocument();
 
     expect(screen.queryByText('Reserved Cost-Per-Event Errors')).not.toBeInTheDocument();
@@ -442,11 +481,13 @@ describe('CustomerOverview', () => {
     );
 
     expect(screen.queryByText('Product Trials')).not.toBeInTheDocument();
-    expect(screen.queryByText('Replays:')).not.toBeInTheDocument();
-    expect(screen.queryByText('Spans:')).not.toBeInTheDocument();
-    expect(screen.queryByText('Performance Units:')).not.toBeInTheDocument();
-    expect(screen.queryByText('Transactions:')).not.toBeInTheDocument();
-    expect(screen.queryByText('Seer:')).not.toBeInTheDocument();
+    expect(screen.queryByText('Replays', {selector: 'dt'})).not.toBeInTheDocument();
+    expect(screen.queryByText('Spans', {selector: 'dt'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Performance Units', {selector: 'dt'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Transactions', {selector: 'dt'})).not.toBeInTheDocument();
+    expect(screen.queryByText('Seer', {selector: 'dt'})).not.toBeInTheDocument();
   });
 
   it('renders product trials for non-self-serve account', () => {
@@ -465,11 +506,135 @@ describe('CustomerOverview', () => {
     );
 
     expect(screen.getByText('Product Trials')).toBeInTheDocument();
-    expect(screen.getByText('Spans:')).toBeInTheDocument();
-    expect(screen.getByText('Replays:')).toBeInTheDocument();
-    expect(screen.getByText('Seer:')).toBeInTheDocument();
-    expect(screen.queryByText('Performance Units:')).not.toBeInTheDocument();
-    expect(screen.queryByText('Transactions:')).not.toBeInTheDocument();
+    expect(screen.getByText('Spans', {selector: 'dt'})).toBeInTheDocument();
+    expect(screen.getByText('Replays', {selector: 'dt'})).toBeInTheDocument();
+    expect(screen.getByText('Seer', {selector: 'dt'})).toBeInTheDocument();
+    expect(
+      screen.queryByText('Performance Units', {selector: 'dt'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Transactions', {selector: 'dt'})).not.toBeInTheDocument();
+  });
+
+  it('disables non-Seer product trial start on enterprise plans', async () => {
+    const organization = OrganizationFixture();
+    const enterpriseSubscription = InvoicedSubscriptionFixture({
+      organization,
+      plan: 'am3_business_ent_auf',
+      productTrials: [
+        {
+          category: DataCategory.REPLAYS,
+          isStarted: true,
+          reasonCode: 1001,
+          startDate: moment().utc().subtract(20, 'days').format(),
+          endDate: moment().utc().subtract(10, 'days').format(),
+        },
+      ],
+    });
+
+    render(
+      <CustomerOverview
+        customer={enterpriseSubscription}
+        onAction={jest.fn()}
+        organization={organization}
+      />
+    );
+
+    const productTrialsList = screen.getByRole('group', {name: 'Product Trials'});
+
+    const getTrialButtons = (label: string) => {
+      const termElement = within(productTrialsList).getByText(label);
+      const definition = termElement.nextElementSibling;
+      expect(definition).toBeInTheDocument();
+      if (!definition || !(definition instanceof HTMLElement)) {
+        throw new Error(`${label} definition not found or not an HTMLElement`);
+      }
+
+      return {
+        allowTrialButton: within(definition).getByRole('button', {name: 'Allow Trial'}),
+        startTrialButton: within(definition).getByRole('button', {name: 'Start Trial'}),
+        stopTrialButton: within(definition).getByRole('button', {name: 'Stop Trial'}),
+        extendTrialButton: within(definition).getByRole('button', {
+          name: 'Extend Trial',
+        }),
+      };
+    };
+
+    const spansButtons = getTrialButtons('Spans');
+    expect(spansButtons.startTrialButton).toHaveAttribute('aria-disabled', 'true');
+    expect(spansButtons.stopTrialButton).toHaveAttribute('aria-disabled', 'true');
+    expect(spansButtons.extendTrialButton).toHaveAttribute('aria-disabled', 'true');
+
+    await userEvent.hover(spansButtons.startTrialButton);
+    expect(
+      await screen.findByText(
+        'Starting a trial for this product is disabled for enterprise plans. Use gifts as needed to add reserved volume.'
+      )
+    ).toBeInTheDocument();
+
+    // Allow Trial is unaffected by the enterprise non-Seer start block: it stays
+    // enabled once a trial has been used, regardless of plan.
+    const replaysButtons = getTrialButtons('Replays');
+    expect(replaysButtons.startTrialButton).toHaveAttribute('aria-disabled', 'true');
+    expect(replaysButtons.allowTrialButton).not.toHaveAttribute('aria-disabled', 'true');
+
+    const seerButtons = getTrialButtons('Seer');
+    expect(seerButtons.startTrialButton).not.toHaveAttribute('aria-disabled', 'true');
+    expect(seerButtons.stopTrialButton).toHaveAttribute('aria-disabled', 'true');
+    expect(seerButtons.extendTrialButton).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('keeps stop/extend available for an in-flight non-Seer trial on enterprise plans', async () => {
+    const organization = OrganizationFixture();
+    const enterpriseSubscription = InvoicedSubscriptionFixture({
+      organization,
+      plan: 'am3_business_ent_auf',
+    });
+    enterpriseSubscription.productTrials = [
+      {
+        category: DataCategory.SPANS,
+        isStarted: true,
+        reasonCode: 1001,
+        startDate: moment().utc().subtract(2, 'days').format(),
+        endDate: moment().utc().add(12, 'days').format(),
+      },
+    ];
+
+    render(
+      <CustomerOverview
+        customer={enterpriseSubscription}
+        onAction={jest.fn()}
+        organization={organization}
+      />
+    );
+
+    const productTrialsList = screen.getByRole('group', {name: 'Product Trials'});
+
+    const spansTerm = within(productTrialsList).getByText('Spans');
+    const spansDefinition = spansTerm.nextElementSibling;
+    expect(spansDefinition).toBeInTheDocument();
+    if (!spansDefinition || !(spansDefinition instanceof HTMLElement)) {
+      throw new Error('Spans definition not found or not an HTMLElement');
+    }
+
+    // The enterprise gate only blocks starting/allowing a trial. An operator must
+    // still be able to wind down or extend a trial that is already running.
+    expect(
+      within(spansDefinition).getByRole('button', {name: 'Stop Trial'})
+    ).not.toHaveAttribute('aria-disabled', 'true');
+    expect(
+      within(spansDefinition).getByRole('button', {name: 'Extend Trial'})
+    ).not.toHaveAttribute('aria-disabled', 'true');
+
+    const startTrialButton = within(spansDefinition).getByRole('button', {
+      name: 'Start Trial',
+    });
+    expect(startTrialButton).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.hover(startTrialButton);
+    expect(
+      await screen.findByText(
+        'Starting a trial for this product is disabled for enterprise plans. Use gifts as needed to add reserved volume.'
+      )
+    ).toBeInTheDocument();
   });
 
   it('renders SIZE_ANALYSIS admin-only product trials (GA, no feature flag required)', () => {
@@ -492,10 +657,10 @@ describe('CustomerOverview', () => {
 
     expect(screen.getByText('Product Trials')).toBeInTheDocument();
     // SIZE_ANALYSIS always appears (graduated)
-    expect(screen.getByText('Size Analysis Builds:')).toBeInTheDocument();
+    expect(screen.getByText('Size Analysis Builds')).toBeInTheDocument();
     // Regular product trials should still appear
-    expect(screen.getByText('Spans:')).toBeInTheDocument();
-    expect(screen.getByText('Replays:')).toBeInTheDocument();
+    expect(screen.getByText('Spans', {selector: 'dt'})).toBeInTheDocument();
+    expect(screen.getByText('Replays', {selector: 'dt'})).toBeInTheDocument();
   });
 
   it('renders product trials based on current subscription state', () => {
@@ -549,16 +714,7 @@ describe('CustomerOverview', () => {
 
     expect(screen.getByText('Product Trials')).toBeInTheDocument();
 
-    // Find the DetailList containing product trials by finding the heading and its next sibling
-    const productTrialsHeading = screen.getByRole('heading', {
-      name: 'Product Trials',
-    });
-    const productTrialsList = productTrialsHeading.nextElementSibling;
-    expect(productTrialsList).toBeInTheDocument();
-    // Check if productTrialsList is an HTMLElement before using within
-    if (!productTrialsList || !(productTrialsList instanceof HTMLElement)) {
-      throw new Error('Product trials list not found or not an HTMLElement');
-    }
+    const productTrialsList = screen.getByRole('group', {name: 'Product Trials'});
     expect(productTrialsList.tagName).toBe('DL'); // Verify it's the correct element type
 
     const possibleTrialCategories = [
@@ -578,9 +734,7 @@ describe('CustomerOverview', () => {
       shouldNotIncludeTrialCategory = false
     ) => {
       if (possibleTrialCategories.includes(category) && !shouldNotIncludeTrialCategory) {
-        const termElement = within(productTrialsList).getByText(
-          `${formattedDisplayName}:`
-        );
+        const termElement = within(productTrialsList).getByText(formattedDisplayName);
         const definition = termElement.nextElementSibling;
         expect(definition).toBeInTheDocument();
         if (!definition || !(definition instanceof HTMLElement)) {
@@ -605,32 +759,32 @@ describe('CustomerOverview', () => {
         expect(extendTrialButton).toBeInTheDocument();
 
         if (category === DataCategory.REPLAYS) {
-          expect(allowTrialButton).toBeDisabled();
-          expect(startTrialButton).toBeDisabled();
-          expect(stopTrialButton).toBeEnabled();
-          expect(extendTrialButton).toBeEnabled();
+          expect(allowTrialButton).toHaveAttribute('aria-disabled', 'true');
+          expect(startTrialButton).toHaveAttribute('aria-disabled', 'true');
+          expect(stopTrialButton).not.toHaveAttribute('aria-disabled', 'true');
+          expect(extendTrialButton).not.toHaveAttribute('aria-disabled', 'true');
           expect(
             within(definition).getByText(/Active \(until .* UTC\)/)
           ).toBeInTheDocument();
         } else if (category === DataCategory.SPANS) {
-          expect(allowTrialButton).toBeDisabled();
-          expect(startTrialButton).toBeDisabled();
-          expect(stopTrialButton).toBeDisabled();
-          expect(extendTrialButton).toBeEnabled();
+          expect(allowTrialButton).toHaveAttribute('aria-disabled', 'true');
+          expect(startTrialButton).toHaveAttribute('aria-disabled', 'true');
+          expect(stopTrialButton).toHaveAttribute('aria-disabled', 'true');
+          expect(extendTrialButton).not.toHaveAttribute('aria-disabled', 'true');
           expect(
             within(definition).getByText(/Active \(until .* UTC\)/)
           ).toBeInTheDocument();
         } else if (category === AddOnCategory.LEGACY_SEER) {
-          expect(allowTrialButton).toBeEnabled();
-          expect(startTrialButton).toBeDisabled();
-          expect(stopTrialButton).toBeDisabled();
-          expect(extendTrialButton).toBeDisabled();
+          expect(allowTrialButton).not.toHaveAttribute('aria-disabled', 'true');
+          expect(startTrialButton).toHaveAttribute('aria-disabled', 'true');
+          expect(stopTrialButton).toHaveAttribute('aria-disabled', 'true');
+          expect(extendTrialButton).toHaveAttribute('aria-disabled', 'true');
           expect(within(definition).getByText('Used')).toBeInTheDocument();
         } else {
-          expect(allowTrialButton).toBeDisabled();
-          expect(startTrialButton).toBeEnabled();
-          expect(stopTrialButton).toBeDisabled();
-          expect(extendTrialButton).toBeDisabled();
+          expect(allowTrialButton).toHaveAttribute('aria-disabled', 'true');
+          expect(startTrialButton).not.toHaveAttribute('aria-disabled', 'true');
+          expect(stopTrialButton).toHaveAttribute('aria-disabled', 'true');
+          expect(extendTrialButton).toHaveAttribute('aria-disabled', 'true');
           expect(within(definition).getByText('Available')).toBeInTheDocument();
         }
       } else {
@@ -683,7 +837,7 @@ describe('CustomerOverview', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
-      body: {effectiveSampleRate: 0.75},
+      body: {eapEffectiveSampleRate: 0.75},
     });
 
     render(
@@ -696,7 +850,7 @@ describe('CustomerOverview', () => {
 
     expect(screen.getByText('Team Plan (am3_team)')).toBeInTheDocument();
     await waitFor(() => {
-      const term = screen.getByText('Sample Rate (24h):');
+      const term = screen.getByText('Sample Rate (24h)');
       const definition = term.nextElementSibling;
       expect(definition).toHaveTextContent('75.00%');
     });
@@ -713,7 +867,7 @@ describe('CustomerOverview', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
-      body: {effectiveSampleRate: 1},
+      body: {eapEffectiveSampleRate: 1},
     });
 
     render(
@@ -725,7 +879,7 @@ describe('CustomerOverview', () => {
     );
 
     await waitFor(() => {
-      const term = screen.getByText('Sample Rate (24h):');
+      const term = screen.getByText('Sample Rate (24h)');
       const definition = term.nextElementSibling;
       expect(definition).toHaveTextContent('100.00%');
       expect(definition).not.toHaveTextContent('instead of');
@@ -744,7 +898,7 @@ describe('CustomerOverview', () => {
     // Simulates floating-point imprecision: 0.600001 * 100 !== 0.6 * 100
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
-      body: {effectiveSampleRate: 0.600001},
+      body: {eapEffectiveSampleRate: 0.600001},
     });
 
     render(
@@ -756,7 +910,7 @@ describe('CustomerOverview', () => {
     );
 
     await waitFor(() => {
-      const term = screen.getByText('Sample Rate (24h):');
+      const term = screen.getByText('Sample Rate (24h)');
       const definition = term.nextElementSibling;
       expect(definition).toHaveTextContent('60.00%');
       expect(definition).not.toHaveTextContent('instead of');
@@ -774,7 +928,7 @@ describe('CustomerOverview', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
-      body: {effectiveSampleRate: 0.54},
+      body: {eapEffectiveSampleRate: 0.58},
     });
 
     render(
@@ -784,7 +938,7 @@ describe('CustomerOverview', () => {
         organization={organization}
       />
     );
-    await screen.findByText('54.00% instead of 60.00% (~6.00%)');
+    await screen.findByText('58.00% instead of 60.00% (~2.00%)');
   });
 
   it('renders decimal sample rates preserving trailing zeros', async () => {
@@ -798,7 +952,7 @@ describe('CustomerOverview', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
-      body: {effectiveSampleRate: 0.501},
+      body: {eapEffectiveSampleRate: 0.502},
     });
 
     render(
@@ -808,7 +962,7 @@ describe('CustomerOverview', () => {
         organization={organization}
       />
     );
-    await screen.findByText('50.10% instead of 60.00% (~9.90%)');
+    await screen.findByText('50.20% instead of 60.00% (~9.80%)');
   });
 
   it('renders n/a when effective sample rate is missing', async () => {
@@ -822,7 +976,7 @@ describe('CustomerOverview', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
-      body: {effectiveSampleRate: null},
+      body: {eapEffectiveSampleRate: null},
     });
 
     render(
@@ -834,8 +988,42 @@ describe('CustomerOverview', () => {
     );
 
     await waitFor(() => {
-      const term = screen.getByText('Sample Rate (24h):');
+      const term = screen.getByText('Sample Rate (24h)');
       expect(term.nextElementSibling).toHaveTextContent('n/a');
+    });
+  });
+
+  it('renders the sample rate row while the request is pending', async () => {
+    const organization = OrganizationFixture({
+      features: ['dynamic-sampling'],
+      desiredSampleRate: 0.75,
+    });
+    const subscription = SubscriptionFixture({
+      organization,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
+      body: {eapEffectiveSampleRate: 0.75},
+      asyncDelay: 1,
+    });
+
+    render(
+      <CustomerOverview
+        customer={subscription}
+        onAction={jest.fn()}
+        organization={organization}
+      />
+    );
+
+    expect(screen.getByText('Sample Rate (24h)').nextElementSibling).toHaveTextContent(
+      'Loading...'
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Sample Rate (24h)').nextElementSibling).toHaveTextContent(
+        '75.00%'
+      );
     });
   });
 
@@ -940,5 +1128,242 @@ describe('CustomerOverview', () => {
     );
 
     expect(screen.getByText('90 days')).toBeInTheDocument();
+  });
+
+  describe('Seer plan section', () => {
+    function makeTrial(category: DataCategory) {
+      return {
+        category,
+        isStarted: true,
+        reasonCode: 1001,
+        startDate: moment().utc().subtract(2, 'days').format(),
+        endDate: moment().utc().add(12, 'days').format(),
+      };
+    }
+
+    it('shows a purchased seat-based add-on as Enabled with its figures', () => {
+      const organization = OrganizationFixture();
+      const subscription = SubscriptionFixture({organization, plan: 'am3_business'});
+      subscription.addOns![AddOnCategory.SEER]!.enabled = true;
+      subscription.categories.seerUsers = MetricHistoryFixture({
+        category: DataCategory.SEER_USER,
+        reserved: 5,
+        usage: 3,
+        free: 1,
+      });
+      subscription.productTrials = [makeTrial(DataCategory.SEER_USER)];
+
+      render(
+        <CustomerOverview
+          customer={subscription}
+          onAction={jest.fn()}
+          organization={organization}
+        />
+      );
+
+      const seerSection = within(screen.getByTestId('seer-plan-summary'));
+      const status = seerSection.getByText('Seat-based').nextSibling;
+      expect(status).toHaveTextContent('Enabled');
+      expect(status).not.toHaveTextContent('Trial');
+      expect(seerSection.getByText('Reserved Seats').nextSibling).toHaveTextContent('5');
+      expect(
+        seerSection.getByText('Active Contributors (billed this period)').nextSibling
+      ).toHaveTextContent('3');
+      expect(seerSection.getByText('Gifted Seats')).toBeInTheDocument();
+    });
+
+    it('shows zeroed seat figures when enabled before any usage accrues', () => {
+      const organization = OrganizationFixture();
+      const subscription = SubscriptionFixture({organization, plan: 'am3_business'});
+      subscription.addOns![AddOnCategory.SEER]!.enabled = true;
+      delete subscription.categories.seerUsers;
+
+      render(
+        <CustomerOverview
+          customer={subscription}
+          onAction={jest.fn()}
+          organization={organization}
+        />
+      );
+
+      const seerSection = within(screen.getByTestId('seer-plan-summary'));
+      expect(seerSection.getByText('Reserved Seats').nextSibling).toHaveTextContent('0');
+      expect(
+        seerSection.getByText('Active Contributors (billed this period)').nextSibling
+      ).toHaveTextContent('0');
+    });
+
+    it('shows a purchased legacy add-on as Enabled with its budget', () => {
+      const organization = OrganizationFixture();
+      const subscription = SubscriptionWithLegacySeerFixture({
+        organization,
+        plan: 'am3_business',
+      });
+
+      render(
+        <CustomerOverview
+          customer={subscription}
+          onAction={jest.fn()}
+          organization={organization}
+        />
+      );
+
+      const seerSection = within(screen.getByTestId('seer-plan-summary'));
+      expect(seerSection.getByText('Legacy (budget)').nextSibling).toHaveTextContent(
+        'Enabled'
+      );
+      expect(seerSection.getByText('Reserved Budget')).toBeInTheDocument();
+      expect(seerSection.getByText('Budget Used')).toBeInTheDocument();
+    });
+
+    it('flags a purchased legacy add-on that is missing its budget', () => {
+      const organization = OrganizationFixture();
+      const subscription = SubscriptionWithLegacySeerFixture({
+        organization,
+        plan: 'am3_business',
+      });
+      subscription.reservedBudgets = [];
+
+      render(
+        <CustomerOverview
+          customer={subscription}
+          onAction={jest.fn()}
+          organization={organization}
+        />
+      );
+
+      const seerSection = within(screen.getByTestId('seer-plan-summary'));
+      expect(
+        seerSection.getByText('Enabled but no budget data found')
+      ).toBeInTheDocument();
+    });
+
+    it('shows a legacy trial as Trial without flagging a missing budget', () => {
+      const organization = OrganizationFixture();
+      const subscription = SubscriptionFixture({organization, plan: 'am3_business'});
+      subscription.addOns![AddOnCategory.LEGACY_SEER]!.enabled = false;
+      subscription.reservedBudgets = [];
+      subscription.productTrials = [makeTrial(DataCategory.SEER_AUTOFIX)];
+
+      render(
+        <CustomerOverview
+          customer={subscription}
+          onAction={jest.fn()}
+          organization={organization}
+        />
+      );
+
+      const seerSection = within(screen.getByTestId('seer-plan-summary'));
+      expect(seerSection.getByText('Legacy (budget)').nextSibling).toHaveTextContent(
+        'Trial'
+      );
+      expect(
+        seerSection.queryByText('Enabled but no budget data found')
+      ).not.toBeInTheDocument();
+    });
+
+    it('shows an offered but unpurchased add-on as Available with no figures', () => {
+      const organization = OrganizationFixture();
+      const subscription = SubscriptionFixture({organization, plan: 'am3_business'});
+
+      render(
+        <CustomerOverview
+          customer={subscription}
+          onAction={jest.fn()}
+          organization={organization}
+        />
+      );
+
+      const seerSection = within(screen.getByTestId('seer-plan-summary'));
+      expect(seerSection.getByText('Seat-based').nextSibling).toHaveTextContent(
+        'Available'
+      );
+      expect(seerSection.queryByText('Reserved Seats')).not.toBeInTheDocument();
+    });
+
+    it('does not show budget figures for an unpurchased legacy add-on', () => {
+      const organization = OrganizationFixture();
+      const subscription = SubscriptionFixture({organization, plan: 'am3_business'});
+      subscription.reservedBudgets = [SeerReservedBudgetFixture({})];
+
+      render(
+        <CustomerOverview
+          customer={subscription}
+          onAction={jest.fn()}
+          organization={organization}
+        />
+      );
+
+      const seerSection = within(screen.getByTestId('seer-plan-summary'));
+      expect(seerSection.getByText('Legacy (budget)').nextSibling).toHaveTextContent(
+        'Available'
+      );
+      expect(seerSection.queryByText('Reserved Budget')).not.toBeInTheDocument();
+      expect(seerSection.queryByText('Budget Used')).not.toBeInTheDocument();
+    });
+
+    it('shows an ineligible add-on as Unavailable', () => {
+      const organization = OrganizationFixture();
+      const subscription = SubscriptionFixture({organization, plan: 'am3_business'});
+      subscription.addOns![AddOnCategory.SEER]!.isAvailable = false;
+
+      render(
+        <CustomerOverview
+          customer={subscription}
+          onAction={jest.fn()}
+          organization={organization}
+        />
+      );
+
+      const seerSection = within(screen.getByTestId('seer-plan-summary'));
+      expect(seerSection.getByText('Seat-based').nextSibling).toHaveTextContent(
+        'Unavailable'
+      );
+    });
+
+    it('replaces the section with a note when the plan offers no Seer', () => {
+      const organization = OrganizationFixture();
+      const subscription = SubscriptionFixture({organization, plan: 'mm2_a_100k'});
+
+      render(
+        <CustomerOverview
+          customer={subscription}
+          onAction={jest.fn()}
+          organization={organization}
+        />
+      );
+
+      const seerSection = within(screen.getByTestId('seer-plan-summary'));
+      expect(seerSection.getByText('Plan').nextSibling).toHaveTextContent(
+        `Not available on the ${subscription.planDetails.name} plan`
+      );
+      expect(seerSection.queryByText('Seat-based')).not.toBeInTheDocument();
+      expect(seerSection.queryByText('Legacy (budget)')).not.toBeInTheDocument();
+    });
+
+    it('renders both add-ons independently, with neither hiding the other', () => {
+      const organization = OrganizationFixture();
+      const subscription = SubscriptionWithLegacySeerFixture({
+        organization,
+        plan: 'am3_business',
+      });
+      subscription.productTrials = [makeTrial(DataCategory.SEER_USER)];
+
+      render(
+        <CustomerOverview
+          customer={subscription}
+          onAction={jest.fn()}
+          organization={organization}
+        />
+      );
+
+      const seerSection = within(screen.getByTestId('seer-plan-summary'));
+      expect(seerSection.getByText('Legacy (budget)').nextSibling).toHaveTextContent(
+        'Enabled'
+      );
+      expect(seerSection.getByText('Seat-based').nextSibling).toHaveTextContent('Trial');
+      expect(seerSection.getByText('Reserved Budget')).toBeInTheDocument();
+      expect(seerSection.getByText('Reserved Seats')).toBeInTheDocument();
+    });
   });
 });

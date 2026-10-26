@@ -30,6 +30,10 @@ from django.utils.dateparse import parse_datetime
 from pydantic import ValidationError
 
 from sentry import features, options
+from sentry.integrations.github.check_payloads import (
+    is_own_repo_pull_request,
+    pull_request_base_repo_id,
+)
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.issues.constants import cache_key_for_issue_view
@@ -37,6 +41,7 @@ from sentry.models.organization import Organization
 from sentry.models.pullrequest import (
     PullRequest,
     PullRequestActivity,
+    PullRequestActivityLog,
     PullRequestActivityType,
     PullRequestAttribution,
     PullRequestAttributionSignalType,
@@ -45,6 +50,7 @@ from sentry.models.pullrequest import (
     PullRequestVerdict,
 )
 from sentry.models.repository import Repository
+from sentry.pr_metrics.activity_doc import apply_activity, extract_event_at, new_document
 from sentry.pr_metrics.activity_types import (
     AssignedPayload,
     AutoMergeDisabledPayload,
@@ -55,11 +61,13 @@ from sentry.pr_metrics.activity_types import (
     CommentCreatedPayload,
     ConvertedToDraftPayload,
     DequeuedPayload,
+    EditedPayload,
     EnqueuedPayload,
     LabeledPayload,
     MergedPayload,
     OpenedPayload,
     ReadyForReviewPayload,
+    ReopenedPayload,
     ReviewDismissedPayload,
     ReviewRequestedPayload,
     ReviewRequestRemovedPayload,
@@ -76,12 +84,14 @@ from sentry.pr_metrics.attribution import (
     record_attribution_signal,
 )
 from sentry.pr_metrics.emit import (
-    CI_FAILING_AT_CLOSE,
-    ci_failing_at_close,
+    VerdictDeferral,
+    calculate_deterministic_diagnosis_labels,
     emit_pr_metrics_row,
     is_pr_tracked,
+    select_fallback_verdict,
     select_verdict,
 )
+from sentry.pr_metrics.lifecycle_mapping import is_stale_github_pull_request_payload
 from sentry.pr_metrics.tasks import emit_pr_metrics_cooldown_task, forward_pr_to_seer_task
 from sentry.pr_metrics.utils import (
     DELEGATED_AGENT_AUTHOR_LOGINS,
@@ -89,13 +99,17 @@ from sentry.pr_metrics.utils import (
     is_activity_tracking_enabled,
     org_has_coding_agent_for_provider,
     resolved_group_ids,
+    seer_run_link_for_pull_request,
 )
 from sentry.seer.autofix.utils import (
     DelegatedAgentMatch,
     MatchDelegatedAgentPrRequest,
     make_match_coding_agent_pr_request,
 )
+from sentry.seer.milestones import record_has_pull_request
 from sentry.seer.models import SeerRepoDefinition
+from sentry.seer.models.run import SeerRunCodingAgentHandoff
+from sentry.seer.pull_requests import link_resolved_pull_request_to_seer_run
 from sentry.seer.seer_setup import has_seer_access
 from sentry.utils import metrics
 
@@ -126,6 +140,8 @@ _ACTIVITY_ACTIONS = frozenset(
 # resolved in _write_activity.
 _ACTION_TO_ACTIVITY_TYPE: dict[str, PullRequestActivityType] = {
     "opened": PullRequestActivityType.OPENED,
+    "reopened": PullRequestActivityType.REOPENED,
+    "edited": PullRequestActivityType.EDITED,
     "synchronize": PullRequestActivityType.SYNCHRONIZED,
     "labeled": PullRequestActivityType.LABELED,
     "unlabeled": PullRequestActivityType.UNLABELED,
@@ -140,6 +156,16 @@ _ACTION_TO_ACTIVITY_TYPE: dict[str, PullRequestActivityType] = {
     "enqueued": PullRequestActivityType.ENQUEUED,
     "dequeued": PullRequestActivityType.DEQUEUED,
 }
+
+# Actions captured only on the reduced-document path; the legacy row store never
+# recorded them (reopened/edited were removed as unused, and re-adding them to the
+# legacy path would change its frozen behavior). Gated on the document store.
+_DOC_ONLY_ACTIONS = frozenset({"reopened", "edited"})
+
+# Terminal actions whose event must be recorded even when the PR row already reads
+# terminal / its verdict is claimed (see ``is_activity_tracking_enabled``'s
+# ``for_terminal_event``). "closed" forks into CLOSED/MERGED; both are terminal.
+_TERMINAL_ACTIONS = frozenset({"closed", "reopened"})
 
 
 def handle_attribution(
@@ -158,7 +184,7 @@ def handle_attribution(
     if not (action and github_user):
         return
 
-    if not features.has("organizations:pr-metrics-attribution", organization):
+    if not features.has("organizations:pr-metrics", organization):
         return
 
     pr = _get_pull_request(
@@ -176,7 +202,11 @@ def handle_attribution(
     # where the PR open and closes super fast and the webhooks might be out of order
     if action in ("opened", "closed"):
         pr_url = (pull_request or {}).get("html_url") or None
-        _write_author_attribution(pr, github_user, pr_url=pr_url, group_ids=resolved_group_ids(pr))
+        seer_group_ids, seer_run_id = seer_run_link_for_pull_request(pr)
+        group_ids = sorted(set(resolved_group_ids(pr)) | set(seer_group_ids))
+        _write_author_attribution(
+            pr, github_user, pr_url=pr_url, group_ids=group_ids, run_id=seer_run_id
+        )
     if features.has("organizations:mcp-issue-view-attribution", organization):
         _write_mcp_attribution(pr)
     # Checked on open and re-checked on close, mirroring the SENTRY_APP author
@@ -205,9 +235,11 @@ def _claim_terminal_event(pr: PullRequest, verdict: PullRequestVerdict) -> bool:
     close and later merged is thus recorded by its first close — an accepted loss
     on the rare reopened PR.
 
-    Only called once a deterministic ``verdict`` is in hand. A PR that needs a
-    judge is guarded the same way once the forward path lands — it claims the
-    event with a sentinel verdict before forwarding — but that isn't wired yet.
+    Only called once a deterministic ``verdict`` is in hand — either
+    ``select_verdict``'s outcome or, for judge-ineligible attribution,
+    ``select_fallback_verdict``'s. A PR actually forwarded to a judge is guarded
+    the same way but with the ``JUDGE_IN_PROGRESS`` sentinel via
+    ``_claim_for_judge`` instead.
     """
     claimed = PullRequestMetrics.objects.filter(pull_request=pr, verdict__isnull=True).update(
         verdict=verdict
@@ -227,21 +259,70 @@ def _claim_for_judge(pr: PullRequest) -> bool:
     return _claim_terminal_event(pr, PullRequestVerdict.JUDGE_IN_PROGRESS)
 
 
-def _forward_to_judge(pr: PullRequest, organization: Organization) -> None:
+def _forward_to_judge(
+    pr: PullRequest, organization: Organization, deferral: VerdictDeferral
+) -> None:
     """Hand a needs-judge terminal event to Seer, guarded against redelivery.
 
 
-    * Only PRs in orgs that have seer access are forwarded to the judge.
     * Only PRs with attribution in JUDGE_ELIGIBLE_SIGNAL_TYPES are forwarded to
-    the judge.
+    the judge; anything else (e.g. MCP) is settled here directly via
+    ``select_fallback_verdict`` instead, but only when ``deferral`` is
+    ``NEEDS_JUDGE`` — real activity/engagement data backs that verdict. An
+    ``INDETERMINATE`` deferral has no reliable data to fall back on either, so
+    it's skipped exactly as before this fallback existed.
+    * Only PRs in orgs that have seer access are forwarded to the judge. Checked
+    after the eligibility branch above: the fallback never talks to Seer, so it
+    must not be blocked by an org's Seer-access consent gate.
 
-    Gated on ``pr-metrics-judge`` independently of emission: until it's enabled
-    (and Seer's endpoint exists), a needs-judge PR is skipped — today's behavior.
+    Re-checks ``pr-metrics``: the cooldown task that reaches here runs well after
+    the webhook that enqueued it, so the org may have lost the flag in between.
     Claims the sentinel via the redelivery guard before enqueuing the forward, so
     a redelivered terminal event can't forward to Seer twice.
     """
+    if not PullRequestAttribution.objects.filter(
+        pull_request=pr,
+        is_valid=True,
+        signal_type__in=JUDGE_ELIGIBLE_SIGNAL_TYPES,
+    ).exists():
+        if deferral is not VerdictDeferral.NEEDS_JUDGE:
+            # Only reachable with an INDETERMINATE deferral (the other member,
+            # NEEDS_JUDGE, is handled by the fallback-verdict branch below) — no
+            # eligible attribution to forward to a real judge, and no reliable
+            # local data to settle a fallback verdict from either. Tag both
+            # facts: attribution alone doesn't explain why this stays unemitted.
+            metrics.incr(
+                "pr_metrics.emit.skipped",
+                tags={"reason": "no_eligible_attribution_indeterminate"},
+                sample_rate=1.0,
+            )
+            logger.warning(
+                "pr_metrics.emit.needs_judge",
+                extra={
+                    "organization_id": organization.id,
+                    "repository_id": pr.repository_id,
+                    "pull_request_id": pr.id,
+                    "reason": "not_agent_attribution_indeterminate",
+                },
+            )
+            return
+
+        verdict = select_fallback_verdict(pr)
+        metrics.incr("pr_metrics.emit.fallback_verdict", tags={"verdict": verdict}, sample_rate=1.0)
+        logger.info(
+            "pr_metrics.emit.fallback_verdict",
+            extra={
+                "organization_id": organization.id,
+                "repository_id": pr.repository_id,
+                "pull_request_id": pr.id,
+                "verdict": verdict,
+            },
+        )
+        _claim_and_emit(pr, verdict, "pr_metrics.emit.fallback_emitted")
+        return
+
     if not has_seer_access(organization):
-        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "no_seer_access"})
+        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "no_seer_access"}, sample_rate=1.0)
         logger.info(
             "pr_metrics.emit.needs_judge",
             extra={
@@ -253,25 +334,8 @@ def _forward_to_judge(pr: PullRequest, organization: Organization) -> None:
         )
         return
 
-    if not PullRequestAttribution.objects.filter(
-        pull_request=pr,
-        is_valid=True,
-        signal_type__in=JUDGE_ELIGIBLE_SIGNAL_TYPES,
-    ).exists():
-        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "no_eligible_attribution"})
-        logger.info(
-            "pr_metrics.emit.needs_judge",
-            extra={
-                "organization_id": organization.id,
-                "repository_id": pr.repository_id,
-                "pull_request_id": pr.id,
-                "reason": "not_agent_attribution",
-            },
-        )
-        return
-
-    if not features.has("organizations:pr-metrics-judge", organization):
-        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "needs_judge"})
+    if not features.has("organizations:pr-metrics", organization):
+        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "needs_judge"}, sample_rate=1.0)
         logger.info(
             "pr_metrics.emit.needs_judge",
             extra={
@@ -284,7 +348,7 @@ def _forward_to_judge(pr: PullRequest, organization: Organization) -> None:
         return
 
     if not _claim_for_judge(pr):
-        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "redelivery"})
+        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "redelivery"}, sample_rate=1.0)
         return
 
     try:
@@ -300,7 +364,6 @@ def _forward_to_judge(pr: PullRequest, organization: Organization) -> None:
         PullRequestMetrics.objects.filter(
             pull_request=pr, verdict=PullRequestVerdict.JUDGE_IN_PROGRESS
         ).update(verdict=None)
-        metrics.incr("pr_metrics.judge.enqueue_failed")
         logger.exception(
             "pr_metrics.judge.enqueue_failed",
             extra={
@@ -310,7 +373,7 @@ def _forward_to_judge(pr: PullRequest, organization: Organization) -> None:
             },
         )
         return
-    metrics.incr("pr_metrics.judge.enqueued")
+    metrics.incr("pr_metrics.judge.enqueued", sample_rate=1.0)
 
 
 def _claim_cooldown(pr: PullRequest) -> bool:
@@ -351,12 +414,14 @@ def handle_emission(
     Untracked PRs (no valid attribution) are dropped first, before the cooldown is
     claimed: claiming would burn the redelivery guard, so a PR that gained
     attribution only later could never emit. The cooldown claim is the redelivery
-    guard — only the first delivery schedules a task; redeliveries no-op.
+    guard — only the first delivery schedules a task; redeliveries no-op. Being
+    unable to emit also makes their activity unreadable; it is swept out of band
+    by ``sweep_unattributed_pr_activity``.
     """
     if event.get("action") != "closed":
         return
 
-    if not features.has("organizations:pr-metrics-emit", organization):
+    if not features.has("organizations:pr-metrics", organization):
         return
 
     pr = _get_pull_request(
@@ -370,11 +435,17 @@ def handle_emission(
         return
 
     if not is_pr_tracked(pr):
+        # Ambient rate while this metric's rarer reasons are unsampled: `untracked` is
+        # the webhook firehose, so sampling already resolves it. Keep both `untracked`
+        # sites on the same rate — one tag value split across two rates still totals
+        # correctly, but stops being exact.
         metrics.incr("pr_metrics.emit.skipped", tags={"reason": "untracked"})
         return
 
     if not _claim_cooldown(pr):
-        metrics.incr("pr_metrics.cooldown.skipped", tags={"reason": "already_claimed"})
+        metrics.incr(
+            "pr_metrics.cooldown.skipped", tags={"reason": "already_claimed"}, sample_rate=1.0
+        )
         return
 
     log_extra = {
@@ -398,11 +469,10 @@ def handle_emission(
         PullRequestMetrics.objects.filter(
             pull_request=pr, verdict=PullRequestVerdict.WAITING_EVENT_COOLDOWN
         ).update(verdict=None)
-        metrics.incr("pr_metrics.cooldown.enqueue_failed")
         logger.exception("pr_metrics.cooldown.enqueue_failed", extra=log_extra)
         return
 
-    metrics.incr("pr_metrics.cooldown.scheduled")
+    metrics.incr("pr_metrics.cooldown.scheduled", sample_rate=1.0)
 
 
 def run_deferred_emission(pull_request: PullRequest, organization: Organization) -> None:
@@ -414,11 +484,10 @@ def run_deferred_emission(pull_request: PullRequest, organization: Organization)
     final state.
 
     Reopen handling: if the PR is no longer terminal (reopened during the window),
-    release the sentinel and stop — a later re-close reschedules. Otherwise release
-    the cooldown claim back to NULL and run the standard verdict -> emit/forward
-    path, whose own NULL-based guards settle the row exactly once (a late redelivery
-    that races the brief NULL window still emits once: whichever of the two claims
-    the verdict wins, the other no-ops).
+    release the sentinel and stop — a later re-close reschedules. Otherwise run the
+    standard verdict -> emit/forward path, whose own NULL-based guards settle the
+    row exactly once (a late redelivery that races the brief NULL window still
+    emits once: whichever of the two claims the verdict wins, the other no-ops).
     """
     log_extra = {
         "organization_id": organization.id,
@@ -426,8 +495,6 @@ def run_deferred_emission(pull_request: PullRequest, organization: Organization)
         "pull_request_id": pull_request.id,
     }
 
-    # Release our cooldown claim so the deterministic/judge guards below — which
-    # compare-and-set against a NULL verdict — can settle the row.
     PullRequestMetrics.objects.filter(
         pull_request=pull_request, verdict=PullRequestVerdict.WAITING_EVENT_COOLDOWN
     ).update(verdict=None)
@@ -435,35 +502,40 @@ def run_deferred_emission(pull_request: PullRequest, organization: Organization)
     if pull_request.closed_at is None or pull_request.head_commit_sha is None:
         # Reopened (or no longer terminal) while waiting. Release the sentinel so a
         # later re-close can re-claim and reschedule.
-        metrics.incr("pr_metrics.cooldown.skipped", tags={"reason": "reopened"})
+        metrics.incr("pr_metrics.cooldown.skipped", tags={"reason": "reopened"}, sample_rate=1.0)
         logger.info("pr_metrics.cooldown.reopened", extra=log_extra)
         return
 
     verdict = select_verdict(pull_request, organization)
-    if verdict is None:
-        _forward_to_judge(pull_request, organization)
+    if isinstance(verdict, VerdictDeferral):
+        _forward_to_judge(pull_request, organization, verdict)
         return
 
+    _claim_and_emit(pull_request, verdict, "pr_metrics.cooldown.emitted")
+
+
+def _claim_and_emit(
+    pull_request: PullRequest, verdict: PullRequestVerdict, emitted_metric: str
+) -> None:
+    """Claim a deterministic verdict and emit its row, guarded against redelivery.
+
+    Shared by the cooldown task's deterministic path and ``_forward_to_judge``'s
+    judge-ineligible fallback — both settle a verdict Sentry decided on its own
+    (no Seer round trip) and must emit exactly once under the same NULL-verdict
+    claim. ``emitted_metric`` lets each caller keep its own success counter.
+    """
     if not _claim_terminal_event(pull_request, verdict):
-        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "redelivery"})
+        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "redelivery"}, sample_rate=1.0)
         return
 
-    # Sentry can derive this one diagnosis label itself, without a judge: a plain
-    # close (no merge, no engagement) whose check suites were red at close. Scoped
-    # to CLOSED_UNMERGED specifically — the judge-needed and merged paths don't
-    # carry this deterministic signal.
-    diagnosis_labels = (
-        [CI_FAILING_AT_CLOSE]
-        if verdict == PullRequestVerdict.CLOSED_UNMERGED and ci_failing_at_close(pull_request)
-        else None
-    )
+    diagnosis_labels = calculate_deterministic_diagnosis_labels(pull_request, verdict)
 
     # Claim before emit so build_pr_metrics_row reads the verdict back onto the row.
     # analytics.record is best-effort, async-batched telemetry; if it raises the
     # claim still stands and the row is forgone — an acceptable loss for telemetry,
     # not worth a rollback that would reopen the redelivery race.
     emit_pr_metrics_row(pull_request=pull_request, diagnosis_labels=diagnosis_labels)
-    metrics.incr("pr_metrics.cooldown.emitted")
+    metrics.incr(emitted_metric, sample_rate=1.0)
 
 
 def handle_metrics(
@@ -480,15 +552,19 @@ def handle_metrics(
     Kept current on every ``pull_request`` event so the emit path can read the
     counts off the row — the judge path (Seer RPC callback) has no payload to
     derive them from. Registered before ``handle_emission`` so a close/merge
-    reflects the final counts. Gated by the emit flag, the sole consumer; it
-    writes only the webhook-sourced counters, leaving the other columns to their
-    own producers.
+    reflects the final counts. It writes only the webhook-sourced counters, leaving
+    the other columns to their own producers.
+
+    Skips a payload the ``PullRequest`` row rejected as stale: both writes come from
+    one snapshot, and letting a replay clobber the counters while the PR row holds
+    would feed ``select_verdict`` zeroed discussion counts and emit a permanent
+    ``CLOSED_UNMERGED``.
     """
     pull_request = event.get("pull_request")
     if not pull_request:
         return
 
-    if not features.has("organizations:pr-metrics-emit", organization):
+    if not features.has("organizations:pr-metrics", organization):
         return
 
     pr = _get_pull_request(
@@ -499,6 +575,21 @@ def handle_metrics(
         github_event=github_event,
     )
     if pr is None:
+        return
+
+    if is_stale_github_pull_request_payload(pr, pull_request):
+        # Counted by lifecycle_mapping's unsampled, provider-tagged
+        # `scm.webhook.pull_request.stale_snapshot`; this path keeps the log for its
+        # delivery id.
+        logger.info(
+            "pr_metrics.metrics.stale_snapshot",
+            extra={
+                "organization_id": organization.id,
+                "repository_id": repo.id,
+                "pull_request_id": pr.id,
+                "github_delivery_id": kwargs.get("github_delivery_id"),
+            },
+        )
         return
 
     PullRequestMetrics.objects.update_or_create(
@@ -516,10 +607,13 @@ def handle_activity(
     integration: RpcIntegration | None = None,
     **kwargs: Any,
 ) -> None:
-    """Record PR lifecycle activity rows from pull_request webhook events."""
+    """Record PR lifecycle activity from pull_request webhook events."""
     pull_request_data = event.get("pull_request")
     action = event.get("action")
-    if not action or action not in _ACTIVITY_ACTIONS:
+    if not action or (action not in _ACTIVITY_ACTIONS and action not in _DOC_ONLY_ACTIONS):
+        return
+
+    if not is_activity_tracking_enabled(organization):
         return
 
     pr = _get_pull_request(
@@ -532,11 +626,20 @@ def handle_activity(
     if pr is None:
         return
 
-    if not is_activity_tracking_enabled(organization, pr):
+    use_doc = _use_activity_document(pr)
+    if action in _DOC_ONLY_ACTIONS and not use_doc:
+        # reopened/edited exist only on the document path, and this PR is still on
+        # the legacy store, so there is nothing to record.
+        return
+
+    # Terminal events (close/merge/reopen) on the document path must be recorded
+    # even if the PR row already reads terminal; other events stop once settled.
+    for_terminal_event = use_doc and action in _TERMINAL_ACTIONS
+    if not is_activity_tracking_enabled(organization, pr, for_terminal_event=for_terminal_event):
         return
 
     webhook_id: str | None = kwargs.get("github_delivery_id")
-    _write_activity(pr, action, pull_request_data or {}, event, webhook_id)
+    _write_activity(pr, action, pull_request_data or {}, event, webhook_id, use_doc)
 
 
 def handle_comment(
@@ -548,9 +651,12 @@ def handle_comment(
     integration: RpcIntegration | None = None,
     **kwargs: Any,
 ) -> None:
-    """Record PR comment activity from issue_comment webhook events."""
-    action = event.get("action")
-    if action != "created":
+    """Record PR comment activity from issue_comment webhook events.
+
+    ``created`` folds the commenter into the document's participants (or writes a
+    legacy COMMENT_CREATED row). Other actions are ignored.
+    """
+    if event.get("action") != "created":
         return
 
     if not is_activity_tracking_enabled(organization):
@@ -581,6 +687,9 @@ def handle_comment(
     if not is_activity_tracking_enabled(organization, pr):
         return
 
+    if not webhook_id:
+        return
+
     sender = event.get("sender") or {}
     comment = event.get("comment") or {}
 
@@ -589,11 +698,7 @@ def handle_comment(
         sender_type=sender.get("type", ""),
         author_association=comment.get("author_association", "NONE"),
     )
-
-    if not webhook_id:
-        return
-
-    _write_activity_row(
+    _record_activity_event(
         pr, webhook_id, PullRequestActivityType.COMMENT_CREATED, asdict(payload_obj)
     )
 
@@ -659,7 +764,13 @@ def handle_review(
     webhook_id: str | None = kwargs.get("github_delivery_id")
     if not webhook_id:
         return
-    _write_activity_row(pr, webhook_id, event_type, payload)
+    _record_activity_event(
+        pr,
+        webhook_id,
+        event_type,
+        payload,
+        event_at=extract_event_at(event_type, event),
+    )
 
 
 def handle_review_comment(
@@ -671,9 +782,12 @@ def handle_review_comment(
     integration: RpcIntegration | None = None,
     **kwargs: Any,
 ) -> None:
-    """Record inline PR review comments (pull_request_review_comment events)."""
-    action = event.get("action")
-    if action != "created":
+    """Record inline PR review comments (pull_request_review_comment events).
+
+    ``created`` folds the commenter into participants (or writes a legacy
+    COMMENT_CREATED row). Other actions are ignored.
+    """
+    if event.get("action") != "created":
         return
 
     if not is_activity_tracking_enabled(organization):
@@ -692,6 +806,10 @@ def handle_review_comment(
     if not is_activity_tracking_enabled(organization, pr):
         return
 
+    webhook_id: str | None = kwargs.get("github_delivery_id")
+    if not webhook_id:
+        return
+
     comment = event.get("comment") or {}
     sender = event.get("sender") or {}
 
@@ -702,11 +820,7 @@ def handle_review_comment(
         is_review=True,
         review_id=comment.get("pull_request_review_id"),
     )
-
-    webhook_id: str | None = kwargs.get("github_delivery_id")
-    if not webhook_id:
-        return
-    _write_activity_row(
+    _record_activity_event(
         pr, webhook_id, PullRequestActivityType.COMMENT_CREATED, asdict(payload_obj)
     )
 
@@ -762,7 +876,13 @@ def handle_review_thread(
     webhook_id: str | None = kwargs.get("github_delivery_id")
     if not webhook_id:
         return
-    _write_activity_row(pr, webhook_id, event_type, payload)
+    _record_activity_event(
+        pr,
+        webhook_id,
+        event_type,
+        payload,
+        event_at=extract_event_at(event_type, event),
+    )
 
 
 def handle_check_suite(
@@ -803,9 +923,16 @@ def handle_check_suite(
 
     for pr in _prs_from_check_payload(organization, repo, check_suite, webhook_id, github_event):
         if is_activity_tracking_enabled(organization, pr):
-            _write_activity_row(
-                pr, webhook_id, PullRequestActivityType.CHECK_SUITE_COMPLETED, payload
+            _record_activity_event(
+                pr,
+                webhook_id,
+                PullRequestActivityType.CHECK_SUITE_COMPLETED,
+                payload,
+                provider_ts=check_suite.get("updated_at"),
+                head_sha=check_suite.get("head_sha"),
+                check_suite_id=check_suite.get("id"),
             )
+            _record_check_activity_metric(github_event)
 
 
 def handle_check_run(
@@ -845,9 +972,32 @@ def handle_check_run(
 
     for pr in _prs_from_check_payload(organization, repo, check_run, webhook_id, github_event):
         if is_activity_tracking_enabled(organization, pr):
-            _write_activity_row(
-                pr, webhook_id, PullRequestActivityType.CHECK_RUN_COMPLETED, payload
+            _record_activity_event(
+                pr,
+                webhook_id,
+                PullRequestActivityType.CHECK_RUN_COMPLETED,
+                payload,
+                provider_ts=check_run.get("completed_at"),
+                head_sha=check_run.get("head_sha"),
+                check_suite_id=(check_run.get("check_suite") or {}).get("id"),
             )
+            _record_check_activity_metric(github_event)
+
+
+def _record_check_activity_metric(github_event: GithubWebhookType) -> None:
+    """Count the check activity this cell actually recorded.
+
+    The control parser drops check deliveries it predicts are no-ops here
+    (``ActionFilter.own_repo_pr_actions``). That prediction reads the payload alone,
+    and nothing else on this path is instrumented — ``_write_activity_row`` is a bare
+    insert — so a wrong prediction would silently stop work with no signal anywhere.
+    This is that signal: it must not move when a drop is enabled in control.
+
+    Left at the ambient sample rate rather than forced to 1.0: the question it
+    answers is "did the rate change", which any consistent sampling answers at this
+    volume (~90/s). Read it as a rate, never as an absolute count.
+    """
+    metrics.incr("pr_metrics.check.activity_recorded", tags={"github_event": github_event.value})
 
 
 def _prs_from_check_payload(
@@ -859,16 +1009,11 @@ def _prs_from_check_payload(
 ) -> list[PullRequest]:
     """Resolve the tracked PRs a check_suite/check_run payload references.
 
-    GitHub lists a PR on a check when they share ``head_sha`` + ``head_branch``,
-    so ``pull_requests`` can include PRs that live in *other* repositories. The
-    common case: a PR opened to merge this repo's default branch into another
-    repo (e.g. a fork syncing from upstream) has its head in this repo, so it
-    matches every default-branch check here — but the PR belongs to that other
-    repo and its ``number`` is scoped to it. Each entry carries its own
-    ``base.repo``, so an entry is only ours to resolve when its base repo is the
-    one this webhook is for. Resolving a foreign entry's number against ``repo``
-    would miss, or — on a number collision — attribute another repo's PR activity
-    to ours, so it is skipped.
+    ``pull_requests`` can include PRs based in *other* repositories, and a
+    ``number`` is scoped to its base repo, so resolving a foreign entry against
+    ``repo`` would miss or — on a number collision — attribute another repo's PR
+    activity to ours. ``is_own_repo_pull_request`` holds that rule, shared with the
+    other consumers of these payloads.
 
     Numbers are deduped before resolving each to its stored row; unknown PRs are
     dropped by ``_get_pull_request``.
@@ -879,12 +1024,8 @@ def _prs_from_check_payload(
         number = ref.get("number")
         if number is None or str(number) in seen:
             continue
-        # A PR's number is scoped to its own base repo; resolve it against
-        # ``repo`` only when the PR lives here. Entries whose base is another repo
-        # (a PR merging this repo's branch elsewhere) are not ours to record.
-        base_repo_id = ((ref.get("base") or {}).get("repo") or {}).get("id")
-        if base_repo_id is None or str(base_repo_id) != repo.external_id:
-            metrics.incr("pr_metrics.check.foreign_pull_request")
+        if not is_own_repo_pull_request(pull_request_base_repo_id(ref), repo.external_id):
+            metrics.incr("pr_metrics.check.foreign_pull_request", sample_rate=1.0)
             continue
         seen.add(str(number))
         # Check payloads carry no PR timestamp, only a number. A missing row is the
@@ -974,7 +1115,7 @@ def _resolve_or_stub_pull_request(
         reason = None
 
     if reason is not None:
-        metrics.incr("pr_metrics.pull_request.unresolved", tags={"reason": reason})
+        metrics.incr("pr_metrics.pull_request.unresolved", tags={"reason": reason}, sample_rate=1.0)
         logger.info("pr_metrics.pull_request.unresolved", extra={**log_extra, "reason": reason})
         return None
 
@@ -985,7 +1126,7 @@ def _resolve_or_stub_pull_request(
         defaults={"opened_at": opened_at, "title": title},
     )
     if created:
-        metrics.incr("pr_metrics.pull_request.stub_created")
+        metrics.incr("pr_metrics.pull_request.stub_created", sample_rate=1.0)
         logger.info("pr_metrics.pull_request.stub_created", extra=log_extra)
     return pull_request
 
@@ -1068,6 +1209,7 @@ def _write_author_attribution(
     github_user: dict[str, Any],
     pr_url: str | None = None,
     group_ids: list[int] | None = None,
+    run_id: int | None = None,
 ) -> None:
     user_id = github_user.get("id")
     if user_id is None:
@@ -1080,6 +1222,7 @@ def _write_author_attribution(
         signal_details = SentryAppSignalDetails(
             pr_url=pr_url,
             group_ids=group_ids or [],
+            run_id=run_id,
         )
     record_attribution_signal(
         pull_request=pr,
@@ -1100,6 +1243,7 @@ def _record_delegated_candidate(provider: str, outcome: str) -> None:
     metrics.incr(
         "pr_metrics.delegated_agent.candidate",
         tags={"provider": provider, "outcome": outcome},
+        sample_rate=1.0,
     )
 
 
@@ -1148,9 +1292,8 @@ def _detect_delegated_agent(
     Filter PRs that could have been delegated by Autofix to external coding agents,
     and fire the matching request to Seer if it's a candidate.
 
-    Seer resolves the match either synchronously (a ``200`` with the match body,
-    recorded in-process here) or asynchronously (a ``202``, followed later by the
-    "record_pr_attribution" RPC callback writing the attribution row).
+    Seer returns ``200`` when a match is found (with the match body recorded
+    in-process here) or ``202`` when a match is not found.
     """
     group_ids = resolved_group_ids(pr)
     if not group_ids:
@@ -1225,8 +1368,7 @@ def _send_seer_delegated_agent_match(
         return
 
     if response.status != 200:
-        # 202: Seer enqueued the match asynchronously and will call back via the
-        # record_pr_attribution RPC once it resolves.
+        # 202: Seer did not find a match.
         _record_delegated_candidate(provider_hint, "sent")
         return
 
@@ -1248,9 +1390,83 @@ def _send_seer_delegated_agent_match(
             agent_id=match.agent_id,
             pr_url=request_body.pr_url,
             run_id=match.run_id,
+            group_ids=request_body.group_ids,
         ).dict(),
     )
+    _link_matched_delegated_agent_pr(match, pr, provider_hint)
     _record_delegated_candidate(provider_hint, "sync_matched")
+
+
+def _link_matched_delegated_agent_pr(
+    match: DelegatedAgentMatch,
+    pr: PullRequest,
+    provider_hint: str,
+) -> None:
+    """Link a matched PR to the run that produced it, on the same 200 that attributes it.
+
+    A coding agent's PR is linked only from an observation of that agent that carries the
+    PR url - a Cursor webhook, or a Claude Code / Copilot poll, and those polls run only
+    while a user is loading the issue's autofix state. So an agent that goes terminal
+    before its PR is visible reports no PR, and one that finishes with nobody watching is
+    never observed at all; neither is ever looked at again. This webhook is the next time
+    anyone sees that PR, and Seer has just told us which run it came from -- so it is the
+    last chance to link it.
+
+    Attribution and the run link answer the same question and are trusted on the same
+    signal, so this fires wherever attribution does. Best-effort: a failure here must not
+    cost the attribution already recorded above.
+    """
+    log_extra = {
+        "pull_request_id": pr.id,
+        "organization_id": pr.organization_id,
+        "provider_hint": provider_hint,
+        "agent_id": match.agent_id,
+        "run_id": match.run_id,
+        "match_path": match.match_path,
+    }
+
+    def record_outcome(outcome: str) -> None:
+        metrics.incr(
+            "pr_metrics.delegated_agent.link",
+            tags={
+                "provider": provider_hint,
+                "outcome": outcome,
+                "match_path": match.match_path,
+            },
+            sample_rate=1.0,
+        )
+
+    try:
+        handoff = SeerRunCodingAgentHandoff.objects.select_related("seer_run").get(
+            agent_id=match.agent_id, seer_run__organization_id=pr.organization_id
+        )
+    except SeerRunCodingAgentHandoff.DoesNotExist:
+        # Seer knows agents whose handoff row we never wrote (a failed create, or a launch
+        # that predates the row). Nothing to link to, and not an error.
+        logger.info("pr_metrics.delegated_agent.handoff_not_found", extra=log_extra)
+        record_outcome("no_handoff")
+        return
+    except Exception:
+        logger.exception("pr_metrics.delegated_agent.handoff_lookup_failed", extra=log_extra)
+        record_outcome("lookup_failed")
+        return
+
+    linked = link_resolved_pull_request_to_seer_run(
+        seer_run=handoff.seer_run,
+        pull_request=pr,
+        log_context=log_extra,
+        coding_agent_handoff=handoff,
+    )
+    if linked is not None:
+        try:
+            # The run's furthest milestone drives which stage it appears under. Nothing
+            # else records this one for a PR that arrives after reconcile_milestones --
+            # the status sync records it for its own PRs, and this path is later still.
+            record_has_pull_request(handoff.seer_run)
+        except Exception:
+            logger.exception("pr_metrics.delegated_agent.milestone_failed", extra=log_extra)
+
+    record_outcome("linked" if linked is not None else "link_failed")
 
 
 def _write_mcp_attribution(pr: PullRequest) -> None:
@@ -1274,6 +1490,103 @@ def _write_mcp_attribution(pr: PullRequest) -> None:
         source=PullRequestAttributionSource.WEBHOOK_DATA,
         signal_details={"group_ids": matched_groups},
     )
+
+
+def _use_activity_document(pr: PullRequest) -> bool:
+    """Whether this PR's activity writes go to the reduced JSON document.
+
+    Per-PR routing: a PR stays on whichever store it started on — an existing
+    document wins, else pre-existing legacy rows keep it on the old path, else (a
+    new PR) it starts on the document. The indexed 1:1 document lookup runs first;
+    the legacy-rows EXISTS only when there's no document.
+    """
+    if PullRequestActivityLog.objects.filter(pull_request=pr).exists():
+        return True
+    if PullRequestActivity.objects.filter(pull_request=pr).exists():
+        return False
+    return True
+
+
+def _apply_activity_into_doc(
+    pr: PullRequest,
+    *,
+    event_type: PullRequestActivityType,
+    payload: dict[str, Any],
+    webhook_id: str,
+    event_at: str | None = None,
+    provider_ts: str | None = None,
+) -> None:
+    """Apply one processed event to the PR's activity document, under a row lock.
+
+    ``get_or_create`` the 1:1 row (race-safe on its unique constraint), then lock
+    it and run the pure reducer, so concurrent webhook processors for one PR
+    serialize on the document. The reducer can't be expressed as an atomic JSONB
+    update, so the lock is required. ``date_updated`` is bumped on every fold so
+    retention keys off last-write, not creation.
+
+    Creation and fold share one transaction. The webhook processor loop swallows a
+    failed fold (logs it, no GitHub retry), so a ``get_or_create`` committed outside
+    the atomic would strand the row at its empty ``{}`` default — and routing then
+    sends every later event for that PR down the document path onto a doc that reads
+    as all-zeros. Rolling the creation back with the fold keeps a failed fold a true
+    no-op, exactly like the legacy row insert it replaces.
+    """
+    with transaction.atomic(using=router.db_for_write(PullRequestActivityLog)):
+        PullRequestActivityLog.objects.get_or_create(pull_request=pr)
+        log = PullRequestActivityLog.objects.select_for_update().get(pull_request=pr)
+        doc = log.data if log.data.get("version") else new_document()
+        apply_activity(
+            doc,
+            event_type=event_type,
+            payload=payload,
+            ts=timezone.now().isoformat(),
+            event_at=event_at,
+            webhook_id=webhook_id,
+            provider_ts=provider_ts,
+        )
+        log.data = doc
+        log.save(update_fields=["data", "date_updated"])
+
+
+def _record_activity_event(
+    pr: PullRequest,
+    webhook_id: str,
+    event_type: PullRequestActivityType,
+    payload: dict[str, Any],
+    *,
+    event_at: str | None = None,
+    provider_ts: str | None = None,
+    head_sha: str | None = None,
+    check_suite_id: int | None = None,
+    use_doc: bool | None = None,
+) -> None:
+    """Route one processed event to the document or a legacy row per this PR's store.
+
+    ``event_at``, ``provider_ts``, ``head_sha`` and ``check_suite_id`` only feed the
+    document path; see ``apply_activity`` for their per-family semantics
+    (``head_sha`` and ``check_suite_id`` key the check rollup's per-push, per-suite
+    groups, so the legacy row's payload is left exactly as before). Callers that
+    already resolved the routing decision — because the payload's shape depends on
+    it — pass it as ``use_doc``; otherwise it is computed here.
+    """
+    if use_doc is None:
+        use_doc = _use_activity_document(pr)
+    if use_doc:
+        doc_extras = {
+            key: value
+            for key, value in (("head_sha", head_sha), ("check_suite_id", check_suite_id))
+            if value is not None
+        }
+        _apply_activity_into_doc(
+            pr,
+            event_type=event_type,
+            payload={**payload, **doc_extras} if doc_extras else payload,
+            webhook_id=webhook_id,
+            event_at=event_at,
+            provider_ts=provider_ts,
+        )
+    else:
+        _write_activity_row(pr, webhook_id, event_type, payload)
 
 
 def _write_activity_row(
@@ -1300,6 +1613,7 @@ def _write_activity(
     pull_request: Mapping[str, Any],
     event: Mapping[str, Any],
     webhook_id: str | None,
+    use_doc: bool,
 ) -> None:
     if not webhook_id:
         # Without a delivery ID idempotency cannot be guaranteed — skip.
@@ -1319,14 +1633,22 @@ def _write_activity(
             return
         event_type = mapped
 
-    payload = _build_activity_payload(action, pull_request, event)
-    _write_activity_row(pr, webhook_id, event_type, payload)
+    payload = _build_activity_payload(action, pull_request, event, use_doc)
+    _record_activity_event(
+        pr,
+        webhook_id,
+        event_type,
+        payload,
+        event_at=extract_event_at(event_type, event),
+        use_doc=use_doc,
+    )
 
 
 def _build_activity_payload(
     action: str,
     pull_request: Mapping[str, Any],
     event: Mapping[str, Any],
+    use_doc: bool,
 ) -> dict[str, Any]:
     head = pull_request.get("head") or {}
     base = pull_request.get("base") or {}
@@ -1336,9 +1658,15 @@ def _build_activity_payload(
         sender_login=sender.get("login", ""),
         sender_type=sender.get("type", ""),
     )
+    # The auto-merge / merge-queue payloads only carry a sender on the document
+    # path: adding it to the legacy row would fold these actors into that path's
+    # participants_count, changing its frozen behavior. On the legacy path the
+    # fields stay at their empty defaults (excluded from participants).
+    queue_sender_kw = sender_kw if use_doc else {}
 
     match action:
         case "opened":
+            repository_payload = event.get("repository") or {}
             return asdict(
                 OpenedPayload(
                     **sender_kw,
@@ -1348,6 +1676,7 @@ def _build_activity_payload(
                     deletions=pull_request.get("deletions", 0),
                     changed_files=pull_request.get("changed_files", 0),
                     commits=pull_request.get("commits", 0),
+                    is_private=repository_payload.get("private"),
                 )
             )
         case "synchronize":
@@ -1362,6 +1691,11 @@ def _build_activity_payload(
             if pull_request.get("merged"):
                 return asdict(MergedPayload(**sender_kw))
             return asdict(ClosedPayload(**sender_kw))
+        case "reopened":
+            return asdict(ReopenedPayload(**sender_kw))
+        case "edited":
+            changed_fields = sorted((event.get("changes") or {}).keys())
+            return asdict(EditedPayload(**sender_kw, changed_fields=changed_fields))
         case "labeled":
             label = event.get("label") or {}
             return asdict(LabeledPayload(**sender_kw, label_name=(label.get("name") or "")))
@@ -1393,13 +1727,15 @@ def _build_activity_payload(
         case "auto_merge_enabled":
             auto_merge = pull_request.get("auto_merge") or {}
             return asdict(
-                AutoMergeEnabledPayload(merge_method=auto_merge.get("merge_method") or "")
+                AutoMergeEnabledPayload(
+                    **queue_sender_kw, merge_method=auto_merge.get("merge_method") or ""
+                )
             )
         case "auto_merge_disabled":
-            return asdict(AutoMergeDisabledPayload())
+            return asdict(AutoMergeDisabledPayload(**queue_sender_kw))
         case "enqueued":
-            return asdict(EnqueuedPayload())
+            return asdict(EnqueuedPayload(**queue_sender_kw))
         case "dequeued":
-            return asdict(DequeuedPayload(reason=event.get("reason") or ""))
+            return asdict(DequeuedPayload(**queue_sender_kw, reason=event.get("reason") or ""))
         case _:
             raise ValueError(f"No payload builder for action {action!r}")

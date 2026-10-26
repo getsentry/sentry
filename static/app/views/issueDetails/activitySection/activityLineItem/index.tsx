@@ -1,55 +1,59 @@
 import {useMemo} from 'react';
 
 import {TimeSince} from 'sentry/components/timeSince';
-import type {Group, GroupActivity} from 'sentry/types/group';
+import type {Group} from 'sentry/types/group';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {Timeline} from 'sentry/views/issueDetails/activitySection/timeline';
 
-import {ActivityLineActor} from './actor';
-import {ActivityLineBody} from './body';
-import {getCompactGroupActivityItem} from './compactActivityItem';
-import {ActivityLineHeadline, ActivityLineRow, type ActivityLineVariant} from './layout';
-import {ActivityLineMarker} from './progressMarker';
-
-export {ActivityLineNote, isActivityNote} from './note';
+import {getActorActivity, type ActivityFeedItem} from './activityFeedItem';
+import {getActivityItem} from './activityItem';
+import {ActivityLineHeadline} from './layout';
+import {ActivityLineMarker} from './marker';
 
 interface ActivityLineProps {
   group: Group;
-  inputVariant: ActivityLineVariant;
-  item: GroupActivity;
+  item: ActivityFeedItem;
+  children?: React.ReactNode;
   timestampUnitStyle?: React.ComponentProps<typeof TimeSince>['unitStyle'];
 }
 
 export function ActivityLine({
   item,
   group,
-  inputVariant,
+  children,
   timestampUnitStyle,
 }: ActivityLineProps) {
   const organization = useOrganization();
   const {issueCategory, project} = group;
-  const compactItem = useMemo(
+  const {activity} = item;
+  const activityItem = useMemo(
     () =>
-      getCompactGroupActivityItem({
-        activity: item,
+      getActivityItem({
+        item,
         organization,
         project,
         issueCategory,
       }),
     [item, issueCategory, organization, project]
   );
-  const timestamp = <TimeSince date={item.dateCreated} unitStyle={timestampUnitStyle} />;
+  const timestamp = (
+    <TimeSince date={activity.dateCreated} unitStyle={timestampUnitStyle} />
+  );
 
   return (
-    <ActivityLineRow variant={inputVariant}>
-      <ActivityLineMarker item={item} />
-      <ActivityLineActor item={item} />
-      <ActivityLineHeadline
-        title={compactItem.title}
-        details={compactItem.details}
-        timestamp={timestamp}
-        variant={inputVariant}
-      />
-      <ActivityLineBody subtext={compactItem.subtext} />
-    </ActivityLineRow>
+    <Timeline.Item
+      variant={item.variant}
+      marker={<ActivityLineMarker item={getActorActivity(item)} />}
+      headline={
+        <ActivityLineHeadline
+          title={activityItem.title}
+          details={activityItem.details}
+          source={activityItem.source}
+          timestamp={timestamp}
+        />
+      }
+    >
+      {children}
+    </Timeline.Item>
   );
 }

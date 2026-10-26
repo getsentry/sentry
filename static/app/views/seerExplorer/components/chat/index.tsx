@@ -1,3 +1,4 @@
+import {memo} from 'react';
 import {motion} from 'framer-motion';
 
 import {Container} from '@sentry/scraps/layout';
@@ -22,7 +23,11 @@ interface BlockProps {
   showThinking?: boolean;
 }
 
-export function BlockComponent({onClick, ref, ...props}: BlockProps) {
+export const BlockComponent = memo(function BlockComponent({
+  onClick,
+  ref,
+  ...props
+}: BlockProps) {
   return (
     <Container
       width="100%"
@@ -37,7 +42,7 @@ export function BlockComponent({onClick, ref, ...props}: BlockProps) {
       </motion.div>
     </Container>
   );
-}
+});
 
 function BlockVariant(props: Omit<BlockProps, 'onClick' | 'ref'>) {
   const {block} = props;

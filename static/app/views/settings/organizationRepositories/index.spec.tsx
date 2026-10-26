@@ -2,8 +2,11 @@ import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegration
 import {GitLabIntegrationProviderFixture} from 'sentry-fixture/gitlabIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RepositoryFixture} from 'sentry-fixture/repository';
 
 import {
+  act,
   render,
   renderGlobalModal,
   screen,
@@ -11,6 +14,11 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import * as pipelineModal from 'sentry/components/pipeline/modal';
+import type {
+  IntegrationWithConfig,
+  RepositoryProjectPathConfig,
+} from 'sentry/types/integrations';
 import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
 import OrganizationRepositories from 'sentry/views/settings/organizationRepositories';
 
@@ -108,6 +116,38 @@ describe('OrganizationRepositories', () => {
     expect(await screen.findByText('my-org')).toBeInTheDocument();
   });
 
+  it('does not render integrations that are pending deletion', async () => {
+    const pendingDeletionIntegration = OrganizationIntegrationsFixture({
+      id: '2',
+      name: 'pending-deletion-org',
+      organizationIntegrationStatus: 'pending_deletion',
+      provider: GITHUB_INTEGRATION.provider,
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/config/integrations/',
+      body: {providers: [GITHUB_PROVIDER]},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/',
+      body: [GITHUB_INTEGRATION, pendingDeletionIntegration],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/integrations/${GITHUB_INTEGRATION.id}/`,
+      body: GITHUB_INTEGRATION,
+    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/repos/', body: []});
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/code-mappings/',
+      body: [],
+    });
+
+    render(<OrganizationRepositories />);
+
+    expect(await screen.findByText('my-org')).toBeInTheDocument();
+    expect(screen.queryByText('pending-deletion-org')).not.toBeInTheDocument();
+  });
+
   it('shows repos loading state in the table while the repos query is pending', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/config/integrations/',
@@ -176,7 +216,10 @@ describe('OrganizationRepositories', () => {
       organization: OrganizationFixture({access: []}),
     });
 
-    expect(await screen.findByRole('button', {name: 'Uninstall'})).toBeDisabled();
+    expect(await screen.findByRole('button', {name: 'Uninstall'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
   it('shows the settings button as disabled while the integration config is loading', async () => {
@@ -269,6 +312,124 @@ describe('OrganizationRepositories', () => {
     });
   });
 
+  describe('connect', () => {
+    const NEW_INTEGRATION = OrganizationIntegrationsFixture({
+      id: '2',
+      name: 'my-new-org',
+      provider: {
+        key: 'github',
+        slug: 'github',
+        name: 'GitHub',
+        canAdd: true,
+        canDisable: false,
+        features: [],
+        aspects: {},
+      },
+    });
+
+    async function startConnectFlow() {
+      const openPipelineModalSpy = jest
+        .spyOn(pipelineModal, 'openPipelineModal')
+        .mockImplementation(() => {});
+
+      await userEvent.click(screen.getByRole('button', {name: 'Connect new provider'}));
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'GitHub'}));
+
+      return openPipelineModalSpy.mock.calls[0]![0].onComplete!;
+    }
+
+    it('auto-syncs a newly connected integration so repos appear without a refresh', async () => {
+      setupDefaultMocks();
+
+      render(<OrganizationRepositories />);
+
+      await screen.findByText('my-org');
+      const onComplete = await startConnectFlow();
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/',
+        body: [GITHUB_INTEGRATION, NEW_INTEGRATION],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/integrations/${NEW_INTEGRATION.id}/`,
+        body: NEW_INTEGRATION,
+      });
+      const syncRequest = MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/integrations/${NEW_INTEGRATION.id}/repo-sync/`,
+        method: 'POST',
+        body: {},
+      });
+
+      act(() => onComplete(NEW_INTEGRATION as IntegrationWithConfig));
+
+      await waitFor(() => expect(syncRequest).toHaveBeenCalledTimes(1));
+    });
+
+    it('does not auto-sync integrations that were already installed on load', async () => {
+      const syncRequest = MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/integrations/${GITHUB_INTEGRATION.id}/repo-sync/`,
+        method: 'POST',
+        body: {},
+      });
+      setupDefaultMocks();
+
+      render(<OrganizationRepositories />);
+
+      // Once the settings button enables, the integration is fully loaded — a
+      // pending auto-sync would have fired by now.
+      expect(
+        await screen.findByRole('button', {name: 'Integration settings'})
+      ).toBeEnabled();
+      expect(syncRequest).not.toHaveBeenCalled();
+    });
+
+    it('does not re-sync a connected integration when its row remounts', async () => {
+      setupDefaultMocks();
+
+      render(<OrganizationRepositories />);
+      renderGlobalModal();
+
+      await screen.findByText('my-org');
+      const onComplete = await startConnectFlow();
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/',
+        body: [GITHUB_INTEGRATION, NEW_INTEGRATION],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/integrations/${NEW_INTEGRATION.id}/`,
+        body: NEW_INTEGRATION,
+      });
+      const syncRequest = MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/integrations/${NEW_INTEGRATION.id}/repo-sync/`,
+        method: 'POST',
+        body: {},
+      });
+
+      act(() => onComplete(NEW_INTEGRATION as IntegrationWithConfig));
+      await waitFor(() => expect(syncRequest).toHaveBeenCalledTimes(1));
+      await screen.findByText('my-new-org');
+
+      // Uninstall the original integration; the provider drops back to a single
+      // install, remounting the connected row.
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/integrations/${GITHUB_INTEGRATION.id}/`,
+        method: 'DELETE',
+        body: {},
+      });
+      await userEvent.click(screen.getAllByRole('button', {name: 'Uninstall'})[0]!);
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/',
+        body: [NEW_INTEGRATION],
+      });
+      await userEvent.click(screen.getByRole('button', {name: "I'm sure, uninstall"}));
+
+      await waitFor(() => expect(screen.queryByText('my-org')).not.toBeInTheDocument());
+
+      expect(syncRequest).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it('opens a settings drawer with backend fields and POSTs changes to the integration endpoint', async () => {
     const integration = OrganizationIntegrationsFixture({
       id: '1',
@@ -322,5 +483,141 @@ describe('OrganizationRepositories', () => {
 
     await userEvent.click(screen.getByRole('checkbox', {name: 'Enable Sync'}));
     await waitFor(() => expect(updateRequest).toHaveBeenCalledTimes(1));
+  });
+
+  describe('repo row actions', () => {
+    const REPO = RepositoryFixture({
+      id: '42',
+      name: 'getsentry/sentry',
+      externalId: 'ext-1',
+      integrationId: GITHUB_INTEGRATION.id,
+      provider: {id: 'github', name: 'GitHub'},
+    });
+
+    const PROJECT = ProjectFixture({id: 'proj-1', slug: 'my-project'});
+    const organization = OrganizationFixture({features: ['code-mappings-refactor']});
+
+    function setupRepoMocks(codeMappingBody: RepositoryProjectPathConfig[]) {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/config/integrations/',
+        body: {providers: [GITHUB_PROVIDER]},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/',
+        body: [GITHUB_INTEGRATION],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/integrations/${GITHUB_INTEGRATION.id}/`,
+        body: GITHUB_INTEGRATION,
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/repos/',
+        body: [REPO],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/code-mappings/',
+        body: codeMappingBody,
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/projects/',
+        body: [PROJECT],
+      });
+    }
+
+    it('shows a + button for a repo with no code mappings', async () => {
+      setupRepoMocks([]);
+      render(<OrganizationRepositories />, {organization});
+
+      expect(
+        await screen.findByRole('button', {name: 'Connect project'})
+      ).toBeInTheDocument();
+    });
+
+    it('always shows the + button even when a repo already has code mappings', async () => {
+      setupRepoMocks([
+        {
+          automaticallyGenerated: false,
+          hasCodeOwner: false,
+          id: '1',
+          repoId: REPO.id,
+          repoName: REPO.name,
+          projectId: PROJECT.id,
+          projectSlug: PROJECT.slug,
+          stackRoot: '',
+          sourceRoot: '',
+          defaultBranch: 'main',
+          integrationId: GITHUB_INTEGRATION.id,
+          provider: null,
+        },
+      ]);
+      render(<OrganizationRepositories />, {organization});
+
+      expect(
+        await screen.findByRole('button', {name: 'Connect project'})
+      ).toBeInTheDocument();
+    });
+
+    it('clicking + opens the repo-locked connect modal', async () => {
+      setupRepoMocks([]);
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/integrations/${GITHUB_INTEGRATION.id}/repos/`,
+        body: {repos: []},
+      });
+
+      render(<OrganizationRepositories />, {organization});
+      renderGlobalModal();
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Connect project'}));
+
+      expect(
+        await screen.findByText('Connect a project to getsentry/sentry')
+      ).toBeInTheDocument();
+    });
+
+    it('clicking a mapped project chip opens the repo-locked edit modal', async () => {
+      setupRepoMocks([
+        {
+          automaticallyGenerated: false,
+          hasCodeOwner: false,
+          id: '1',
+          repoId: REPO.id,
+          repoName: REPO.name,
+          projectId: PROJECT.id,
+          projectSlug: PROJECT.slug,
+          stackRoot: '',
+          sourceRoot: '',
+          defaultBranch: 'main',
+          integrationId: GITHUB_INTEGRATION.id,
+          provider: null,
+        },
+      ]);
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/code-mappings/',
+        body: [],
+        match: [MockApiClient.matchQuery({project: PROJECT.id})],
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/org-slug/${PROJECT.slug}/code-mapping-prefixes/stack/`,
+        body: {prefixes: []},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/code-mapping-prefixes/repo/',
+        body: {prefixes: []},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/integrations/${GITHUB_INTEGRATION.id}/repos/`,
+        body: {repos: []},
+      });
+
+      render(<OrganizationRepositories />, {organization});
+      renderGlobalModal();
+
+      const chip = await screen.findByTestId(/^platform-icon-/);
+      await userEvent.click(chip);
+
+      expect(
+        await screen.findByRole('heading', {name: 'Edit code mappings'})
+      ).toBeInTheDocument();
+    });
   });
 });

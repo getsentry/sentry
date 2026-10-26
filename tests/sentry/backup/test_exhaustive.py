@@ -3,6 +3,7 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
+import pytest
 from django.db.models import Model
 
 from sentry.backup.dependencies import NormalizedModelName
@@ -22,6 +23,9 @@ from tests.sentry.backup import expect_models, verify_models_in_output
 
 EXHAUSTIVELY_TESTED: set[NormalizedModelName] = set()
 UNIQUENESS_TESTED: set[NormalizedModelName] = set()
+
+
+pytestmark = pytest.mark.usefixtures("skip_group_attributes_snapshots")
 
 
 class ExhaustiveTests(BackupTransactionTestCase):

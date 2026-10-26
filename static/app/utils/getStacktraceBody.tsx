@@ -1,9 +1,12 @@
 import {displayRawContent as rawStacktraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
 import type {Event} from 'sentry/types/event';
+import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 
 type GetStacktraceBodyArgs = {
-  /** The Sentry event containing stack trace data. */
-  event: Event;
+  /**
+   * The Sentry event containing stack trace data. Returns no content when omitted.
+   */
+  event: Event | undefined;
   /** Whether the similarity embeddings feature is enabled. */
   hasSimilarityEmbeddingsFeature?: boolean;
   /** Whether to include source code context in stack trace frames for JavaScript. */
@@ -49,7 +52,7 @@ export function getStacktraceBody({
       if (!msg) {
         return [];
       }
-      return msg?.data?.formatted && [msg.data.formatted];
+      return msg?.data?.formatted && [stripAnsi(msg.data.formatted)];
     }
   }
 

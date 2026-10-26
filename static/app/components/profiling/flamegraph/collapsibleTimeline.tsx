@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 
@@ -49,10 +49,10 @@ function CollapsibleTimeline(props: CollapsibleTimelineProps) {
 
 const StyledButton = Button;
 
-export function CollapsibleTimelineLoadingIndicator({size}: {size?: number}) {
+export function CollapsibleTimelineLoadingIndicator() {
   return (
     <Stack justify="center" width="100%" height="100%" position="absolute">
-      <LoadingIndicator size={size ?? 32} />
+      <LoadingIndicator size={32} />
     </Stack>
   );
 }

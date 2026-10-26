@@ -14,7 +14,11 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import type {useBulkUpdateRepositorySettings} from 'sentry/components/repositories/useBulkUpdateRepositorySettings';
-import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {getNextSort} from 'sentry/components/tables/getNextSort';
+import {
+  SIMPLE_TABLE_HEADER_ROW_HEIGHT,
+  SimpleTable,
+} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import type {CodeReviewTrigger} from 'sentry/types/seer';
@@ -27,7 +31,6 @@ import {
 import {useCanWriteSettings} from 'sentry/utils/seer/useCanWriteSettings';
 
 interface Props {
-  gridColumns: string;
   isFetchingNextPage: boolean;
   isPending: boolean;
   mutateRepositorySettings: ReturnType<
@@ -59,7 +62,6 @@ const COLUMNS = [
 ];
 
 export function SeerRepoTableHeader({
-  gridColumns,
   isFetchingNextPage,
   isPending,
   mutateRepositorySettings,
@@ -71,8 +73,11 @@ export function SeerRepoTableHeader({
   const listItemCheckboxState = useListItemCheckboxContext();
   const {countSelected, endpointOptionsRef, selectAll, selectedIds, knownIds} =
     listItemCheckboxState;
+  // oxlint-disable-next-line react/refs
   const endpointOptions = endpointOptionsRef.current;
+  // oxlint-disable-next-line react/refs
   const rawQuery = endpointOptions?.query?.query;
+  // oxlint-disable-next-line react/refs
   const queryString = typeof rawQuery === 'string' ? rawQuery : undefined;
 
   const selectedRepos = useMemo(() => {
@@ -141,6 +146,7 @@ export function SeerRepoTableHeader({
           repositoryIds.length
         )
       );
+      // oxlint-disable-next-line react/todo
     } finally {
       setIsBulkUpdating(false);
     }
@@ -236,144 +242,171 @@ export function SeerRepoTableHeader({
 
   return (
     <Fragment>
-      <ListItemSelectedState selected="none">
-        <TableHeader gridColumns={gridColumns}>
-          <SimpleTable.HeaderCell>
-            <SelectAllCheckbox
-              disabled={isPending || isFetchingNextPage}
-              knownIds={knownIds}
-              listItemCheckboxState={listItemCheckboxState}
-            />
-          </SimpleTable.HeaderCell>
-          {COLUMNS.map(({title, key, sortKey}) => (
-            <SimpleTable.HeaderCell
-              key={key}
-              handleSortClick={
-                sortKey
-                  ? () =>
-                      onSortClick({
-                        field: sortKey,
-                        kind:
-                          sortKey === sort.field
-                            ? sort.kind === 'asc'
-                              ? 'desc'
-                              : 'asc'
-                            : 'desc',
-                      })
-                  : undefined
-              }
-              sort={sort?.field === sortKey ? sort.kind : undefined}
-            >
-              {title}
-            </SimpleTable.HeaderCell>
-          ))}
-        </TableHeader>
-      </ListItemSelectedState>
-
-      <ListItemSelectedState selected="indeterminate-or-all">
-        <TableHeader gridColumns={gridColumns}>
-          <TableCellFirst>
-            <SelectAllCheckbox
-              disabled={isPending || isFetchingNextPage}
-              knownIds={knownIds}
-              listItemCheckboxState={listItemCheckboxState}
-            />
-          </TableCellFirst>
-          <TableCellsRemainingContent align="center" gap="md">
-            <CompactSelect
-              disabled={!canWrite}
-              size="xs"
-              trigger={props => (
-                <OverlayTrigger.Button {...props}>
-                  {t('Code Review')}
-                </OverlayTrigger.Button>
-              )}
-              options={[
-                {
-                  value: 'enabled_code_review:enabled',
-                  label: t('Enable'),
-                  disabled: isBulkUpdating,
-                },
-                {
-                  value: 'enabled_code_review:disabled',
-                  label: t('Disable'),
-                  disabled: isBulkUpdating,
-                },
-              ]}
-              value={currentCodeReviewValue}
-              onChange={option => {
-                if (option.value === 'enabled_code_review:enabled') {
-                  handleBulkCodeReview(true);
-                } else {
-                  handleBulkCodeReview(false);
+      <SimpleTable.Head sticky>
+        <ListItemSelectedState selected="none">
+          <SimpleTable.HeaderRow>
+            <SelectAllHeadCell>
+              <SelectAllCheckbox
+                disabled={isPending || isFetchingNextPage}
+                knownIds={knownIds}
+                listItemCheckboxState={listItemCheckboxState}
+              />
+            </SelectAllHeadCell>
+            {COLUMNS.map(({title, key, sortKey}) => (
+              <SimpleTable.HeaderCell
+                key={key}
+                handleSortClick={
+                  sortKey ? () => onSortClick(getNextSort(sortKey, sort)) : undefined
                 }
-              }}
-            />
+                sort={sort?.field === sortKey ? sort.kind : undefined}
+              >
+                {title}
+              </SimpleTable.HeaderCell>
+            ))}
+          </SimpleTable.HeaderRow>
+        </ListItemSelectedState>
 
-            <CompactSelect<CodeReviewTrigger>
-              disabled={!canWrite}
-              multiple
-              size="xs"
-              trigger={props => (
-                <OverlayTrigger.Button {...props}>{t('Triggers')}</OverlayTrigger.Button>
-              )}
-              options={[
-                {
-                  value: 'on_ready_for_review',
-                  label: t('On Ready for Review'),
-                  disabled: isBulkUpdating,
-                },
-                {
-                  value: 'on_new_commit',
-                  label: t('On New Commit'),
-                  disabled: isBulkUpdating,
-                },
-              ]}
-              value={currentTriggersValue}
-              onChange={option => {
-                const value = option.map(v => v.value);
-                const added = value.findLast(v => !currentTriggersValue.includes(v));
-                const removed = currentTriggersValue.findLast(v => !value.includes(v));
-                handleBulkTriggers({added, removed});
-              }}
-            />
-          </TableCellsRemainingContent>
-        </TableHeader>
-      </ListItemSelectedState>
+        <ListItemSelectedState selected="indeterminate-or-all">
+          <SimpleTable.HeaderRow>
+            <SelectAllHeadCell>
+              <SelectAllCheckbox
+                disabled={isPending || isFetchingNextPage}
+                knownIds={knownIds}
+                listItemCheckboxState={listItemCheckboxState}
+              />
+            </SelectAllHeadCell>
+            <Flex
+              as="th"
+              role="columnheader"
+              aria-colspan={COLUMNS.length}
+              column="2 / -1"
+              align="center"
+              gap="md"
+              padding="0 xl"
+            >
+              <CompactSelect
+                disabled={!canWrite}
+                strategy="fixed"
+                size="xs"
+                trigger={props => (
+                  <OverlayTrigger.Button {...props}>
+                    {t('Code Review')}
+                  </OverlayTrigger.Button>
+                )}
+                options={[
+                  {
+                    value: 'enabled_code_review:enabled',
+                    label: t('Enable'),
+                    disabled: isBulkUpdating,
+                  },
+                  {
+                    value: 'enabled_code_review:disabled',
+                    label: t('Disable'),
+                    disabled: isBulkUpdating,
+                  },
+                ]}
+                value={currentCodeReviewValue}
+                onChange={option => {
+                  if (option.value === 'enabled_code_review:enabled') {
+                    handleBulkCodeReview(true);
+                  } else {
+                    handleBulkCodeReview(false);
+                  }
+                }}
+              />
+
+              <CompactSelect<CodeReviewTrigger>
+                disabled={!canWrite}
+                strategy="fixed"
+                multiple
+                size="xs"
+                trigger={props => (
+                  <OverlayTrigger.Button {...props}>
+                    {t('Triggers')}
+                  </OverlayTrigger.Button>
+                )}
+                options={[
+                  {
+                    value: 'on_ready_for_review',
+                    label: t('On Ready for Review'),
+                    disabled: isBulkUpdating,
+                  },
+                  {
+                    value: 'on_new_commit',
+                    label: t('On New Commit'),
+                    disabled: isBulkUpdating,
+                  },
+                ]}
+                value={currentTriggersValue}
+                onChange={option => {
+                  const value = option.map(v => v.value);
+                  const added = value.findLast(v => !currentTriggersValue.includes(v));
+                  const removed = currentTriggersValue.findLast(v => !value.includes(v));
+                  handleBulkTriggers({added, removed});
+                }}
+              />
+            </Flex>
+          </SimpleTable.HeaderRow>
+        </ListItemSelectedState>
+      </SimpleTable.Head>
 
       <ListItemSelectedState selected="indeterminate">
-        <FullGridAlert variant="info" system>
-          <Flex justify="start" width="100%" wrap="wrap" gap="md">
-            {tn('Selected %s repository.', 'Selected %s repositories.', countSelected)}
-            <a onClick={selectAll}>
-              {queryString
-                ? tct('Select all [count] repositories that match: [queryString].', {
-                    count: listItemCheckboxState.hits,
-                    queryString: <var>{queryString}</var>,
-                  })
-                : t('Select all %s repositories.', listItemCheckboxState.hits)}
-            </a>
-          </Flex>
-        </FullGridAlert>
+        <SelectionBannerBody>
+          <SimpleTable.FullWidthRow>
+            <Alert variant="info" system>
+              <Flex justify="start" width="100%" wrap="wrap" gap="md">
+                {tn(
+                  'Selected %s repository.',
+                  'Selected %s repositories.',
+                  countSelected
+                )}
+                <a onClick={selectAll}>
+                  {/* oxlint-disable-next-line react/refs */}
+                  {queryString
+                    ? tct('Select all [count] repositories that match: [queryString].', {
+                        count: listItemCheckboxState.hits,
+                        // oxlint-disable-next-line react/refs
+                        queryString: <var>{queryString}</var>,
+                      })
+                    : t('Select all %s repositories.', listItemCheckboxState.hits)}
+                </a>
+              </Flex>
+            </Alert>
+          </SimpleTable.FullWidthRow>
+        </SelectionBannerBody>
       </ListItemSelectedState>
 
       <ListItemSelectedState selected="all">
-        <FullGridAlert variant="info" system>
-          {queryString
-            ? tct('Selected all [count] repositories matching: [queryString].', {
-                count: countSelected,
-                queryString: <var>{queryString}</var>,
-              })
-            : countSelected > knownIds.length
-              ? t('Selected all %s+ repositories.', knownIds.length)
-              : tn(
-                  'Selected %s repository.',
-                  'Selected all %s repositories.',
-                  countSelected
-                )}
-        </FullGridAlert>
+        <SelectionBannerBody>
+          <SimpleTable.FullWidthRow>
+            <Alert variant="info" system>
+              {/* oxlint-disable-next-line react/refs */}
+              {queryString
+                ? tct('Selected all [count] repositories matching: [queryString].', {
+                    count: countSelected,
+                    // oxlint-disable-next-line react/refs
+                    queryString: <var>{queryString}</var>,
+                  })
+                : countSelected > knownIds.length
+                  ? t('Selected all %s+ repositories.', knownIds.length)
+                  : tn(
+                      'Selected %s repository.',
+                      'Selected all %s repositories.',
+                      countSelected
+                    )}
+            </Alert>
+          </SimpleTable.FullWidthRow>
+        </SelectionBannerBody>
       </ListItemSelectedState>
     </Fragment>
+  );
+}
+
+function SelectAllHeadCell({children}: {children: React.ReactNode}) {
+  return (
+    <Flex as="th" role="columnheader" align="center" padding="0 xl">
+      {children}
+    </Flex>
   );
 }
 
@@ -389,6 +422,7 @@ function SelectAllCheckbox({
   return (
     <Checkbox
       id="repository-table-select-all"
+      aria-label={t('Select all repositories')}
       checked={isAllSelected}
       disabled={knownIds.length === 0 || disabled}
       onChange={() => {
@@ -402,22 +436,8 @@ function SelectAllCheckbox({
   );
 }
 
-const TableHeader = styled(SimpleTable.Header)<{gridColumns: string}>`
-  grid-template-columns: ${p => p.gridColumns};
-  grid-column: unset;
-  grid-row: unset;
+const SelectionBannerBody = styled(SimpleTable.Body)`
+  position: sticky;
+  top: ${SIMPLE_TABLE_HEADER_ROW_HEIGHT.default}px;
   z-index: ${p => p.theme.zIndex.initial};
-  height: min-content;
-`;
-
-const TableCellFirst = styled(SimpleTable.HeaderCell)`
-  grid-column: 1;
-`;
-
-const TableCellsRemainingContent = styled(Flex)`
-  grid-column: 2 / -1;
-`;
-
-const FullGridAlert = styled(Alert)`
-  grid-column: 1 / -1;
 `;

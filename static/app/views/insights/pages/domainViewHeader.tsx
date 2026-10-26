@@ -1,7 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconBusiness} from '@sentry/icons/business';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
+import type {BreadcrumbTitleItem} from '@sentry/scraps/breadcrumbList';
 import type {TabListItemProps} from '@sentry/scraps/tabs';
 import {TabList} from '@sentry/scraps/tabs';
 
@@ -9,7 +11,6 @@ import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
-import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -38,17 +39,13 @@ export type Props = {
   selectedModule: ModuleName | undefined;
   additionalBreadCrumbs?: Crumb[];
   additonalHeaderActions?: React.ReactNode;
-  // TODO - hasOverviewPage could be improved, the overview page could just be a "module", but that has a lot of other implications that have to be considered
-  hasOverviewPage?: boolean;
-  headerTitle?: React.ReactNode;
+  headerTitle?: string | BreadcrumbTitleItem;
   hideDefaultTabs?: boolean;
   tabs?: {onTabChange: (key: string) => void; tabList: React.ReactNode; value: string};
-  unified?: boolean;
 };
 
 export function DomainViewHeader({
   modules,
-  hasOverviewPage = true,
   headerTitle,
   domainTitle,
   selectedModule,
@@ -57,7 +54,6 @@ export function DomainViewHeader({
   additionalBreadCrumbs = [],
   domainBaseUrl,
   tabs,
-  unified,
 }: Props) {
   const organization = useOrganization();
   const location = useLocation();
@@ -88,15 +84,11 @@ export function DomainViewHeader({
   };
 
   const tabList: TabListItemProps[] = [
-    ...(hasOverviewPage
-      ? [
-          {
-            key: OVERVIEW_PAGE_TITLE,
-            children: OVERVIEW_PAGE_TITLE,
-            to: {pathname: domainBaseUrl, query: globalQuery},
-          },
-        ]
-      : []),
+    {
+      key: OVERVIEW_PAGE_TITLE,
+      children: OVERVIEW_PAGE_TITLE,
+      to: {pathname: domainBaseUrl, query: globalQuery},
+    },
     ...modules
       .filter(moduleName => isModuleVisible(moduleName, organization))
       .map(moduleName => ({
@@ -122,20 +114,27 @@ export function DomainViewHeader({
   const feedbackOptions = activeFeedback
     ? {
         tags: {
-          ['feedback.source']: activeFeedback.source,
-          ['feedback.owner']: activeFeedback.owner,
+          'feedback.source': activeFeedback.source,
+          'feedback.owner': activeFeedback.owner,
         },
       }
     : undefined;
   return (
     <Fragment>
-      <Layout.Header unified={unified}>
+      <Layout.Header>
         {crumbs.length > 1 && (
           <Layout.HeaderContent>
             <Breadcrumbs crumbs={crumbs} />
           </Layout.HeaderContent>
         )}
-        <Layout.Title>{headerTitle || domainTitle}</Layout.Title>
+        <TopBar.Slot
+          name="breadcrumbs"
+          title={
+            typeof headerTitle === 'object'
+              ? headerTitle
+              : {type: 'page-title', label: headerTitle || domainTitle}
+          }
+        />
         {additonalHeaderActions && (
           <TopBar.Slot name="actions">{additonalHeaderActions}</TopBar.Slot>
         )}

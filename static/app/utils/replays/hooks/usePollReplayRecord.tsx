@@ -8,7 +8,6 @@ type Props = {
   enabled: boolean;
   orgSlug: string;
   replayId: string;
-  pollInterval?: number;
 };
 
 // A react hook to poll for replay record on the backend every POLL_INTERVAL
@@ -16,7 +15,6 @@ export function usePollReplayRecord({
   enabled,
   orgSlug,
   replayId,
-  pollInterval = 30_000, // Default to every 30 seconds
 }: Props): ReplayRecord | undefined {
   const queryKey: ApiQueryKey = [
     getApiUrl('/organizations/$organizationIdOrSlug/replays/$replayId/', {
@@ -29,7 +27,7 @@ export function usePollReplayRecord({
   ];
 
   const {data} = useApiQuery<{data: ReplayRecord}>(queryKey, {
-    refetchInterval: pollInterval,
+    refetchInterval: 30_000,
     enabled,
     refetchIntervalInBackground: true,
     staleTime: 0,

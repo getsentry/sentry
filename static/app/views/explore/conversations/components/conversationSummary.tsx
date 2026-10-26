@@ -1,33 +1,55 @@
 import type React from 'react';
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {ATTRIBUTE_SEARCH_METADATA} from '@sentry/conventions/attributes/search';
+import {IconCalendar} from '@sentry/icons/calendar';
+import {IconFire} from '@sentry/icons/fire';
+import {IconUser} from '@sentry/icons/user';
 
 import {Tag} from '@sentry/scraps/badge';
-import {Button} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {DateTime} from 'sentry/components/dateTime';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconCopy} from 'sentry/icons';
-import {t, tn} from 'sentry/locale';
+import {t} from 'sentry/locale';
+import type {AvatarProject} from 'sentry/types/project';
+import {escapeDoubleQuotes} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {isUUID} from 'sentry/utils/string/isUUID';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {normalizeUserField} from 'sentry/views/explore/conversations/components/conversationsTable';
+import {
+  getUserDisplayName,
+  normalizeUserField,
+  UserNotInstrumentedTooltip,
+} from 'sentry/views/explore/conversations/components/conversationsTable';
+import {ConversationTraceLink} from 'sentry/views/explore/conversations/components/conversationTraceLink';
+import {ToolTag} from 'sentry/views/explore/conversations/components/toolTag';
+import type {
+  ConversationModelUsage,
+  ConversationStats,
+} from 'sentry/views/explore/conversations/hooks/useConversation';
 import type {ConversationUser} from 'sentry/views/explore/conversations/hooks/useConversations';
-import {getTimeBoundsFromNodes} from 'sentry/views/explore/conversations/utils/timeBounds';
+import {getConversationDisplayId} from 'sentry/views/explore/conversations/utils/conversationDisplayId';
 import {getExploreUrl} from 'sentry/views/explore/utils';
+import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
+import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
 import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
+import {
+  CostBreakdownTooltip,
+  type CostBreakdownDetails,
+  TokenBreakdownTooltip,
+  type TokenBreakdownDetails,
+} from 'sentry/views/insights/pages/agents/components/tokenBreakdownTooltip';
 import {
   getNumberAttr,
   getStringAttr,
@@ -38,80 +60,495 @@ import {
   getIsAiGenerationSpan,
   getIsExecuteToolSpan,
 } from 'sentry/views/insights/pages/agents/utils/query';
+import {getTokenBreakdown} from 'sentry/views/insights/pages/agents/utils/tokenBreakdown';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
 interface ConversationSummaryProps {
   conversationId: string;
   nodes: AITraceSpanNode[];
+  stats: ConversationStats | null;
+  hasMoreSpans?: boolean;
   isLoading?: boolean;
   nodeTraceMap?: Map<string, string>;
+  /** Project the conversation belongs to; rendered beneath the title. */
+  project?: AvatarProject;
+  /** Conversation title when Sentry has one; falls back to the id when null. */
+  title?: string | null;
 }
 
-const VISIBLE_TRACE_COUNT = 5;
-const VISIBLE_TOOL_COUNT = 4;
+const VISIBLE_TOOL_COUNT = 6;
 
-export function getTraceUrl(orgSlug: string, traceId: string, spanId: string) {
-  return normalizeUrl(
-    `/organizations/${orgSlug}/explore/traces/trace/${traceId}/?node=span-${spanId}`
+// Rendered heights of the content the loading skeletons stand in for. Text trims
+// to its font's ascender and descender, so those values are the trimmed boxes
+// rather than the line heights.
+const TEXT_XL_HEIGHT = '23px'; // `Text size="xl"`, and `Heading as="h2"` with it
+const TEXT_MD_HEIGHT = '16px'; // the `ProjectBadge` name, at the body font size
+const TEXT_SM_HEIGHT = '14px';
+const TAG_HEIGHT = '20px'; // `Tag`, and `ToolTag` with it
+// The zero-size dropdown button the trace link renders for several traces.
+const TRACE_LINK_HEIGHT = '24px';
+
+export function ConversationSummary({
+  nodes,
+  stats,
+  conversationId,
+  title,
+  project,
+  hasMoreSpans,
+  isLoading,
+  nodeTraceMap,
+}: ConversationSummaryProps) {
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
+
+  const errorCount = stats?.errors ?? 0;
+  const erroredToolNames = new Set(stats?.errorToolNames);
+  const usageByModel = stats?.usageByModel ?? [];
+  const tokenBreakdowns = getTokenBreakdowns(usageByModel);
+  const toolNames = stats?.toolNames ?? [];
+  const startTimestamp = stats?.startTimestamp || null;
+  const user = useMemo(() => getConversationUser(nodes), [nodes]);
+  const userDisplayName = user ? getUserDisplayName(user) : null;
+
+  const displayId = getConversationDisplayId(conversationId);
+  // Prefer the human-readable title; fall back to the (possibly truncated) id.
+  const headingText = title || displayId;
+  const headingTooltip = title || conversationId;
+  // A UUID id is truncated to 8 chars, so it always needs the tooltip to reveal
+  // the full value; a title or non-UUID id only needs it when it overflows.
+  const headingTooltipOnlyOnOverflow = title ? true : !isUUID(conversationId);
+
+  const errorsUrl = getExploreUrl({
+    organization,
+    selection,
+    query: getConversationErrorsQuery(conversationId),
+  });
+
+  // Distinct traces the conversation spans, keyed by trace ID with a
+  // representative span ID to deep-link into the trace view.
+  const traces = useMemo(() => {
+    if (!nodeTraceMap) {
+      return [];
+    }
+    const seen = new Map<string, string>();
+    for (const [spanId, traceId] of nodeTraceMap) {
+      if (!seen.has(traceId)) {
+        seen.set(traceId, spanId);
+      }
+    }
+    return Array.from(seen, ([traceId, spanId]) => ({traceId, spanId}));
+  }, [nodeTraceMap]);
+
+  return (
+    <Flex
+      direction={{zero: 'column', xl: 'row'}}
+      justify="between"
+      align={{zero: 'stretch', xl: 'center'}}
+      gap="xl"
+      flex={1}
+      minWidth={0}
+    >
+      <Stack gap="md" minWidth={0} flex={1}>
+        {/* A flex box rather than a block: Tooltip wraps the heading in an
+            inline-block span, and as a block this would size to a line box,
+            adding the font strut's descender under the heading. */}
+        <Container minWidth={0} display="flex">
+          {isLoading ? (
+            // The title is only known once the conversation loads, so show a
+            // skeleton rather than briefly flashing the id and swapping it out.
+            <Placeholder width="240px" height={TEXT_XL_HEIGHT} />
+          ) : (
+            <Tooltip
+              title={headingTooltip}
+              showOnlyOnOverflow={headingTooltipOnlyOnOverflow}
+            >
+              <Heading as="h2" ellipsis>
+                {headingText}
+              </Heading>
+            </Tooltip>
+          )}
+        </Container>
+        {isLoading ? (
+          <Fragment>
+            <Flex align="center" gap="sm" minWidth={0} wrap="wrap">
+              <Placeholder width="40px" height={TEXT_SM_HEIGHT} />
+              <Placeholder width="72px" height={TAG_HEIGHT} />
+              <Placeholder width="72px" height={TAG_HEIGHT} />
+            </Flex>
+            <MetaRow>
+              <Flex align="center" gap="xs">
+                <Placeholder width="16px" height="16px" />
+                <Placeholder width="140px" height={TEXT_SM_HEIGHT} />
+              </Flex>
+              <Flex align="center" gap="xs">
+                <Placeholder width="12px" height="12px" />
+                <Placeholder width="40px" height={TEXT_SM_HEIGHT} />
+              </Flex>
+              {/* The project comes from the conversation's spans, so it is only
+                  known once they load; its space is reserved either way. */}
+              <Flex align="center" gap="sm">
+                <Placeholder width="16px" height="16px" />
+                <Placeholder width="80px" height={TEXT_MD_HEIGHT} />
+              </Flex>
+              <Flex align="center" gap="xs">
+                <Placeholder width="16px" height="16px" />
+                <Placeholder width="120px" height={TEXT_SM_HEIGHT} />
+              </Flex>
+            </MetaRow>
+          </Fragment>
+        ) : (
+          <Fragment>
+            {toolNames.length > 0 && (
+              <Flex align="center" gap="sm" minWidth={0} wrap="wrap">
+                <Text size="sm" wrap="nowrap">
+                  {t('Tools:')}
+                </Text>
+                {toolNames.slice(0, VISIBLE_TOOL_COUNT).map(name => (
+                  <ToolTag key={name} name={name} hasError={erroredToolNames.has(name)} />
+                ))}
+                {toolNames.length > VISIBLE_TOOL_COUNT && (
+                  <InfoText
+                    size="sm"
+                    variant="muted"
+                    wrap="nowrap"
+                    title={
+                      <Flex wrap="wrap" gap="sm" paddingTop="xs" paddingBottom="xs">
+                        {toolNames.slice(VISIBLE_TOOL_COUNT).map(name => (
+                          <ToolTag
+                            key={name}
+                            name={name}
+                            hasError={erroredToolNames.has(name)}
+                          />
+                        ))}
+                      </Flex>
+                    }
+                  >
+                    {t('+%s more', toolNames.length - VISIBLE_TOOL_COUNT)}
+                  </InfoText>
+                )}
+              </Flex>
+            )}
+            <MetaRow>
+              {startTimestamp !== null && (
+                <Flex align="center" gap="xs">
+                  <IconCalendar size="md" />
+                  <InfoText
+                    size="sm"
+                    title={<TimeSince date={startTimestamp} disabledAbsoluteTooltip />}
+                  >
+                    <DateTime date={startTimestamp} year timeZone />
+                  </InfoText>
+                </Flex>
+              )}
+              <ConversationTraceLink
+                conversationId={conversationId}
+                traces={traces}
+                hasMoreSpans={hasMoreSpans}
+              />
+              {project && <ProjectBadge project={project} avatarSize={16} disableLink />}
+              <Flex align="center" gap="xs" minWidth={0}>
+                <IconUser size="md" />
+                {userDisplayName ? (
+                  <InfoText
+                    title={userDisplayName}
+                    mode="overflowOnly"
+                    size="sm"
+                    variant="muted"
+                  >
+                    {userDisplayName}
+                  </InfoText>
+                ) : (
+                  <InfoText
+                    size="sm"
+                    variant="muted"
+                    title={<UserNotInstrumentedTooltip />}
+                  >
+                    &mdash;
+                  </InfoText>
+                )}
+              </Flex>
+            </MetaRow>
+          </Fragment>
+        )}
+      </Stack>
+      <Flex align="start" gap="xl" wrap="wrap" flexShrink={0}>
+        <Stat
+          label={t('LLM Calls')}
+          value={
+            <ModelMetricBreakdown
+              breakdowns={usageByModel}
+              metric="llmCalls"
+              total={stats?.llmCalls ?? 0}
+            />
+          }
+          isLoading={isLoading}
+        />
+        <Stat
+          label={t('Errors')}
+          value={<Count value={errorCount} />}
+          icon={
+            errorCount > 0 ? (
+              <IconFire
+                size="sm"
+                variant="danger"
+                data-test-id="conversation-error-icon"
+              />
+            ) : undefined
+          }
+          to={errorCount > 0 ? errorsUrl : undefined}
+          onClick={
+            errorCount > 0
+              ? () =>
+                  trackAnalytics('conversations.detail.click-errors-link', {organization})
+              : undefined
+          }
+          isLoading={isLoading}
+        />
+        <Stat
+          label={t('Tokens')}
+          value={
+            <TokenCount breakdowns={tokenBreakdowns} total={stats?.totalTokens ?? 0} />
+          }
+          isLoading={isLoading}
+        />
+        <Stat
+          label={t('Cost')}
+          value={<CostCount breakdowns={usageByModel} total={stats?.totalCost ?? 0} />}
+          isLoading={isLoading}
+        />
+      </Flex>
+    </Flex>
   );
 }
 
-interface ConversationAggregates {
+/**
+ * The row of conversation metadata under the title. Its minHeight matches the
+ * trace link's dropdown button, the tallest thing it holds, so the row keeps
+ * its height whether the link renders as a button, a plain link, or a skeleton.
+ */
+function MetaRow({children}: {children: React.ReactNode}) {
+  return (
+    <Flex align="center" gap="xl" minWidth={0} wrap="wrap" minHeight={TRACE_LINK_HEIGHT}>
+      {children}
+    </Flex>
+  );
+}
+
+function Stat({
+  label,
+  value,
+  isLoading,
+  to,
+  onClick,
+  icon,
+}: {
+  label: string;
+  value: React.ReactNode;
+  icon?: React.ReactNode;
+  isLoading?: boolean;
+  onClick?: () => void;
+  to?: string;
+}) {
+  const isInteractive = !!to && !isLoading;
+
+  const valueContent = (
+    <Flex align="center" gap="xs">
+      <Text
+        size="xl"
+        tabular
+        variant={isInteractive ? 'danger' : undefined}
+        wrap="nowrap"
+      >
+        {value}
+      </Text>
+      {icon}
+    </Flex>
+  );
+
+  return (
+    <Stack gap="xs" flexShrink={0}>
+      <Text size="sm" variant="muted" bold wrap="nowrap">
+        {label}
+      </Text>
+      {isLoading ? (
+        <Placeholder width="32px" height={TEXT_XL_HEIGHT} />
+      ) : isInteractive ? (
+        <Link to={to} onClick={onClick}>
+          {valueContent}
+        </Link>
+      ) : (
+        valueContent
+      )}
+    </Stack>
+  );
+}
+
+interface TraceAggregates {
   errorCount: number;
-  erroredToolNames: Set<string>;
   llmCalls: number;
-  toolCalls: number;
+  modelBreakdowns: ModelBreakdownDetails[];
+  tokenBreakdowns: TokenBreakdownDetails[];
   toolNames: string[];
   totalCost: number;
   totalTokens: number;
 }
 
+interface ConversationErrorState {
+  errorCount: number;
+  erroredToolNames: Set<string>;
+}
+
+type ModelBreakdownDetails = Pick<
+  ConversationModelUsage,
+  'llmCalls' | 'model' | 'totalCost'
+>;
+
 function getGenAiOpType(node: AITraceSpanNode): string | undefined {
   return getStringAttr(node, SpanFields.GEN_AI_OPERATION_TYPE);
 }
 
-export function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
-  let llmCalls = 0;
-  let toolCalls = 0;
+function getConversationErrorState(nodes: AITraceSpanNode[]): ConversationErrorState {
   let errorCount = 0;
-  let totalTokens = 0;
-  let totalCost = 0;
-  const toolNameSet = new Set<string>();
-  const erroredToolNameSet = new Set<string>();
+  const erroredToolNames = new Set<string>();
 
   for (const node of nodes) {
-    const opType = getGenAiOpType(node);
-    const nodeHasError = hasError(node);
+    if (!hasError(node)) {
+      continue;
+    }
+    errorCount++;
 
-    if (getIsAiGenerationSpan(opType)) {
-      llmCalls++;
-      totalTokens += getNumberAttr(node, SpanFields.GEN_AI_USAGE_TOTAL_TOKENS) ?? 0;
-      totalCost += getNumberAttr(node, SpanFields.GEN_AI_COST_TOTAL_TOKENS) ?? 0;
-    } else if (getIsExecuteToolSpan(opType)) {
-      toolCalls++;
+    if (getIsExecuteToolSpan(getGenAiOpType(node))) {
       const toolName = getStringAttr(node, SpanFields.GEN_AI_TOOL_NAME);
       if (toolName) {
-        toolNameSet.add(toolName);
-        if (nodeHasError) {
-          erroredToolNameSet.add(toolName);
-        }
+        erroredToolNames.add(toolName);
       }
-    }
-
-    if (nodeHasError) {
-      errorCount++;
     }
   }
 
+  return {errorCount, erroredToolNames};
+}
+
+function getNumberAttrByConvention(
+  node: AITraceSpanNode,
+  key: 'gen_ai.usage.cache_creation.input_tokens' | 'gen_ai.usage.cache_read.input_tokens'
+): number | undefined {
+  for (const candidate of ATTRIBUTE_SEARCH_METADATA[key]?.deprecationChain ?? [key]) {
+    const value = getNumberAttr(node, candidate);
+    if (value !== undefined) {
+      return value;
+    }
+  }
+  return undefined;
+}
+
+function getTokenBreakdowns(
+  usageByModel: ConversationModelUsage[]
+): TokenBreakdownDetails[] {
+  return usageByModel.map(usage => ({
+    cacheRead: usage.cacheReadTokens,
+    cacheWrite: usage.cacheWriteTokens,
+    input: usage.inputTokens,
+    isComplete: true,
+    output: usage.outputTokens,
+    reasoning: usage.reasoningTokens,
+    total: usage.totalTokens,
+    model: usage.model ?? t('Unknown model'),
+  }));
+}
+
+function calculateTraceAggregates(nodes: AITraceSpanNode[]): TraceAggregates {
+  const {errorCount, erroredToolNames} = getConversationErrorState(nodes);
+  let llmCalls = 0;
+  let totalCost = 0;
+  const metricsByModel = new Map<string, ModelBreakdownDetails>();
+  const tokensByModel = new Map<string, TokenBreakdownDetails>();
+  const toolNameSet = new Set<string>();
+
+  for (const node of nodes) {
+    const opType = getGenAiOpType(node);
+
+    if (getIsAiGenerationSpan(opType)) {
+      llmCalls++;
+      const cached =
+        getNumberAttrByConvention(node, 'gen_ai.usage.cache_read.input_tokens') ?? 0;
+      const cacheWrite =
+        getNumberAttrByConvention(node, 'gen_ai.usage.cache_creation.input_tokens') ?? 0;
+      const input = getNumberAttr(node, SpanFields.GEN_AI_USAGE_INPUT_TOKENS);
+      const output = getNumberAttr(node, SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS);
+      const reasoning =
+        getNumberAttr(node, SpanFields.GEN_AI_USAGE_REASONING_OUTPUT_TOKENS) ?? 0;
+      const reportedTotal =
+        getNumberAttr(node, SpanFields.GEN_AI_USAGE_TOTAL_TOKENS) ?? 0;
+      const breakdown = getTokenBreakdown({
+        inputTokens: input ?? 0,
+        cachedTokens: cached,
+        cacheWriteTokens: cacheWrite,
+        outputTokens: output ?? 0,
+        reasoningTokens: reasoning,
+        totalTokens: reportedTotal,
+      });
+      const inputTotal = breakdown.netNewInput + breakdown.cached + breakdown.cacheWrite;
+      const isComplete = input !== undefined && output !== undefined;
+
+      const model =
+        getStringAttr(node, SpanFields.GEN_AI_RESPONSE_MODEL) ||
+        getStringAttr(node, SpanFields.GEN_AI_REQUEST_MODEL) ||
+        t('Unknown model');
+      const cost = getNumberAttr(node, SpanFields.GEN_AI_COST_TOTAL_TOKENS) ?? 0;
+      const modelMetrics = metricsByModel.get(model) ?? {
+        llmCalls: 0,
+        model,
+        totalCost: 0,
+      };
+      modelMetrics.llmCalls++;
+      modelMetrics.totalCost += cost;
+      metricsByModel.set(model, modelMetrics);
+      const modelTokens = tokensByModel.get(model) ?? {
+        cacheRead: 0,
+        cacheWrite: 0,
+        input: 0,
+        isComplete: true,
+        model,
+        output: 0,
+        reasoning: 0,
+        total: 0,
+      };
+      modelTokens.input += inputTotal;
+      modelTokens.output += breakdown.output;
+      modelTokens.cacheRead += breakdown.cached;
+      modelTokens.cacheWrite += breakdown.cacheWrite;
+      modelTokens.reasoning += reasoning;
+      modelTokens.isComplete &&= isComplete;
+      modelTokens.total += isComplete ? inputTotal + breakdown.output : reportedTotal;
+      tokensByModel.set(model, modelTokens);
+      totalCost += cost;
+    } else if (getIsExecuteToolSpan(opType)) {
+      const toolName = getStringAttr(node, SpanFields.GEN_AI_TOOL_NAME);
+      if (toolName) {
+        toolNameSet.add(toolName);
+      }
+    }
+  }
+
+  // Errored tools lead, so they survive the row's truncation.
+  const toolNames = Array.from(toolNameSet).sort(
+    (a, b) =>
+      Number(erroredToolNames.has(b)) - Number(erroredToolNames.has(a)) ||
+      a.localeCompare(b)
+  );
+  const tokenBreakdowns = Array.from(tokensByModel.values()).sort(
+    (a, b) => b.total - a.total
+  );
+
   return {
     llmCalls,
-    toolCalls,
     errorCount,
-    erroredToolNames: erroredToolNameSet,
-    totalTokens,
+    modelBreakdowns: Array.from(metricsByModel.values()),
+    tokenBreakdowns,
+    totalTokens: tokenBreakdowns.reduce((total, breakdown) => total + breakdown.total, 0),
     totalCost,
-    toolNames: Array.from(toolNameSet).sort(),
+    toolNames,
   };
 }
 
@@ -119,7 +556,7 @@ export function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggre
  * Derives the conversation's user from the first span node that carries any
  * user identity attribute. Returns null when the spans aren't user-instrumented.
  */
-export function getConversationUser(nodes: AITraceSpanNode[]): ConversationUser | null {
+function getConversationUser(nodes: AITraceSpanNode[]): ConversationUser | null {
   for (const node of nodes) {
     const email = normalizeUserField(getStringAttr(node, SpanFields.USER_EMAIL));
     const username = normalizeUserField(getStringAttr(node, SpanFields.USER_USERNAME));
@@ -137,38 +574,47 @@ export function getConversationUser(nodes: AITraceSpanNode[]): ConversationUser 
   return null;
 }
 
+const AGGREGATES_BAR_VISIBLE_TOOL_COUNT = 4;
+
+function getConversationErrorsQuery(conversationId: string): string {
+  return `gen_ai.conversation.id:"${escapeDoubleQuotes(conversationId)}" has:span.status !span.status:[ok,cancelled,unknown]`;
+}
+
 /**
  * Aggregate metrics row for a conversation (LLM Calls, Errors, Tokens, Cost, Tools).
- * Used standalone in the trace AI tab, and as part of ConversationSummary on the detail page.
+ * Used standalone in the trace AI tab.
  */
 export function ConversationAggregatesBar({
   nodes,
   conversationId,
   isLoading,
-  lastMessageDate,
-  onErrorsLinkClick,
 }: {
   conversationId: string;
   nodes: AITraceSpanNode[];
   isLoading?: boolean;
-  lastMessageDate?: Date | null;
-  onErrorsLinkClick?: () => void;
 }) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const aggregates = useMemo(() => calculateAggregates(nodes), [nodes]);
+  const aggregates = useMemo(() => calculateTraceAggregates(nodes), [nodes]);
 
   const errorsUrl = getExploreUrl({
     organization,
     selection,
-    query: `gen_ai.conversation.id:"${conversationId.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}" span.status:[internal_error,error]`,
+    query: getConversationErrorsQuery(conversationId),
   });
 
+  // minHeight matches the tool Tag height so the row stays the same height whether or not tools render
   return (
-    <Flex align="center" gap="lg" minWidth={0}>
+    <Flex align="center" gap="lg" minWidth={0} minHeight="20px">
       <AggregateItem
         label={t('LLM Calls')}
-        value={<Count value={aggregates.llmCalls} />}
+        value={
+          <ModelMetricBreakdown
+            breakdowns={aggregates.modelBreakdowns}
+            metric="llmCalls"
+            total={aggregates.llmCalls}
+          />
+        }
         isLoading={isLoading}
       />
       <AggregateItem
@@ -176,11 +622,15 @@ export function ConversationAggregatesBar({
         value={<Count value={aggregates.errorCount} />}
         to={aggregates.errorCount > 0 ? errorsUrl : undefined}
         isLoading={isLoading}
-        onClick={aggregates.errorCount > 0 ? onErrorsLinkClick : undefined}
       />
       <AggregateItem
         label={t('Tokens')}
-        value={<Count value={aggregates.totalTokens} />}
+        value={
+          <TokenCount
+            breakdowns={aggregates.tokenBreakdowns}
+            total={aggregates.totalTokens}
+          />
+        }
         isLoading={isLoading}
       />
       <AggregateItem
@@ -189,26 +639,15 @@ export function ConversationAggregatesBar({
           aggregates.totalCost < 0 ? (
             <NegativeCostInfo cost={aggregates.totalCost} />
           ) : (
-            formatLLMCosts(aggregates.totalCost)
+            <ModelMetricBreakdown
+              breakdowns={aggregates.modelBreakdowns}
+              metric="totalCost"
+              total={aggregates.totalCost}
+            />
           )
         }
         isLoading={isLoading}
       />
-      {lastMessageDate !== undefined && (
-        <AggregateItem
-          label={t('Last message')}
-          value={
-            lastMessageDate ? (
-              <TimeSince date={lastMessageDate} />
-            ) : (
-              <Text size="sm" variant="muted">
-                {'\u2014'}
-              </Text>
-            )
-          }
-          isLoading={isLoading}
-        />
-      )}
       {isLoading ? (
         <Flex align="center" gap="xs" flexShrink={0}>
           <Text size="sm" bold variant="muted">
@@ -222,27 +661,34 @@ export function ConversationAggregatesBar({
             <Text size="sm" bold variant="muted" wrap="nowrap">
               {t('Used Tools')}
             </Text>
-            {aggregates.toolNames.slice(0, VISIBLE_TOOL_COUNT).map(name => (
-              <Tag key={name} variant="info">
-                {name}
-              </Tag>
-            ))}
-            {aggregates.toolNames.length > VISIBLE_TOOL_COUNT && (
+            {aggregates.toolNames
+              .slice(0, AGGREGATES_BAR_VISIBLE_TOOL_COUNT)
+              .map(name => (
+                <Tag key={name} variant="info">
+                  {name}
+                </Tag>
+              ))}
+            {aggregates.toolNames.length > AGGREGATES_BAR_VISIBLE_TOOL_COUNT && (
               <InfoText
                 size="sm"
                 variant="muted"
                 wrap="nowrap"
                 title={
                   <Flex wrap="wrap" gap="xs" paddingTop="xs" paddingBottom="xs">
-                    {aggregates.toolNames.slice(VISIBLE_TOOL_COUNT).map(name => (
-                      <Tag key={name} variant="info">
-                        {name}
-                      </Tag>
-                    ))}
+                    {aggregates.toolNames
+                      .slice(AGGREGATES_BAR_VISIBLE_TOOL_COUNT)
+                      .map(name => (
+                        <Tag key={name} variant="info">
+                          {name}
+                        </Tag>
+                      ))}
                   </Flex>
                 }
               >
-                {t('+%s more', aggregates.toolNames.length - VISIBLE_TOOL_COUNT)}
+                {t(
+                  '+%s more',
+                  aggregates.toolNames.length - AGGREGATES_BAR_VISIBLE_TOOL_COUNT
+                )}
               </InfoText>
             )}
           </ToolTagsRow>
@@ -252,130 +698,88 @@ export function ConversationAggregatesBar({
   );
 }
 
-export function ConversationSummary({
-  nodes,
-  conversationId,
-  isLoading,
-  nodeTraceMap,
-}: ConversationSummaryProps) {
-  const organization = useOrganization();
-  const lastMessageDate = useMemo(() => {
-    const {endTimestamp} = getTimeBoundsFromNodes(nodes);
-    return endTimestamp === undefined ? null : new Date(endTimestamp);
-  }, [nodes]);
+function CostCount({
+  breakdowns,
+  total,
+}: {
+  breakdowns: CostBreakdownDetails[];
+  total: number;
+}) {
+  if (total < 0) {
+    return <NegativeCostInfo cost={total} />;
+  }
+  if (total === 0 || breakdowns.length === 0) {
+    return <LLMCosts cost={total} />;
+  }
 
-  const handleCopyConversationId = () => {
-    trackAnalytics('conversations.detail.copy-conversation-id', {
-      organization,
-    });
-    copyToClipboard(conversationId, {
-      successMessage: t('Copied conversation ID to clipboard'),
-    });
-  };
+  const sortedBreakdowns = [...breakdowns].sort((a, b) => b.totalCost - a.totalCost);
+  return (
+    <Tooltip title={<CostBreakdownTooltip breakdowns={sortedBreakdowns} />}>
+      <BreakdownValue>{formatLLMCosts(total)}</BreakdownValue>
+    </Tooltip>
+  );
+}
 
-  const traces = useMemo(() => {
-    if (!nodeTraceMap) {
-      return [];
-    }
-    const seen = new Map<string, string>();
-    for (const [spanId, traceId] of nodeTraceMap) {
-      if (!seen.has(traceId)) {
-        seen.set(traceId, spanId);
-      }
-    }
-    return Array.from(seen, ([traceId, spanId]) => ({traceId, spanId}));
-  }, [nodeTraceMap]);
+function ModelMetricBreakdown({
+  breakdowns,
+  metric,
+  total,
+}: {
+  breakdowns: ModelBreakdownDetails[];
+  metric: 'llmCalls' | 'totalCost';
+  total: number;
+}) {
+  if (total === 0 || breakdowns.length === 0) {
+    return metric === 'llmCalls' ? <Count value={total} /> : <LLMCosts cost={total} />;
+  }
+
+  const formatValue = metric === 'llmCalls' ? formatAbbreviatedNumber : formatLLMCosts;
+  const sortedBreakdowns = [...breakdowns].sort((a, b) => b[metric] - a[metric]);
 
   return (
-    <Stack gap="md" flex={1}>
-      <Flex align="center" gap="sm" minWidth={0}>
-        <Tooltip
-          title={conversationId}
-          showOnlyOnOverflow
-          skipWrapper
-          disabled={isUUID(conversationId)}
-        >
-          <Heading as="h2" ellipsis style={{minWidth: 0, flexShrink: 1}}>
-            {isUUID(conversationId)
-              ? t('Conversation %s', conversationId.slice(0, 8))
-              : t('Conversation %s', conversationId)}
-          </Heading>
-        </Tooltip>
-        <Tooltip title={t('Copy conversation ID')}>
-          <Button
-            size="zero"
-            variant="transparent"
-            aria-label={t('Copy conversation ID')}
-            icon={<IconCopy size="xs" />}
-            onClick={handleCopyConversationId}
-          />
-        </Tooltip>
-        {traces.length > 0 && (
-          <Flex align="baseline" gap="xs">
-            <Text size="sm" variant="muted">
-              {tn('Trace', 'Traces', traces.length)}
-            </Text>
-            {traces.slice(0, VISIBLE_TRACE_COUNT).map((trace, i) => (
-              <Flex key={trace.traceId} align="baseline" gap="xs">
-                {i > 0 && (
-                  <Text size="sm" variant="muted">
-                    {','}
-                  </Text>
-                )}
-                <StyledLink
-                  to={getTraceUrl(organization.slug, trace.traceId, trace.spanId)}
-                  onClick={() =>
-                    trackAnalytics('conversations.detail.click-trace-link', {
-                      organization,
-                    })
-                  }
-                >
-                  <Text size="sm" monospace variant="accent">
-                    {trace.traceId.slice(0, 8)}
-                  </Text>
-                </StyledLink>
-              </Flex>
-            ))}
-            {traces.length > VISIBLE_TRACE_COUNT && (
-              <DropdownMenu
-                size="sm"
-                triggerLabel={
-                  <Text size="sm" variant="muted">
-                    {t('+%s more', traces.length - VISIBLE_TRACE_COUNT)}
-                  </Text>
-                }
-                triggerProps={{
-                  size: 'zero',
-                  variant: 'transparent',
-                  showChevron: false,
-                }}
-                items={traces.slice(VISIBLE_TRACE_COUNT).map(trace => ({
-                  key: trace.traceId,
-                  label: (
-                    <Text size="sm" monospace>
-                      {trace.traceId.slice(0, 8)}
-                    </Text>
-                  ),
-                  textValue: trace.traceId,
-                  to: getTraceUrl(organization.slug, trace.traceId, trace.spanId),
-                }))}
-              />
-            )}
-          </Flex>
-        )}
-      </Flex>
-      <ConversationAggregatesBar
-        nodes={nodes}
-        conversationId={conversationId}
-        isLoading={isLoading}
-        lastMessageDate={lastMessageDate}
-        onErrorsLinkClick={() =>
-          trackAnalytics('conversations.detail.click-errors-link', {
-            organization,
-          })
-        }
-      />
-    </Stack>
+    <Tooltip
+      title={
+        <Stack gap="sm" width="100%">
+          {sortedBreakdowns.map(breakdown => (
+            <Flex key={breakdown.model} align="center" gap="xl" width="100%">
+              <Container minWidth={0} flex={1} overflow="hidden">
+                <ModelName
+                  modelId={breakdown.model ?? t('Unknown model')}
+                  size={14}
+                  gap="sm"
+                />
+              </Container>
+              <Container flexShrink={0}>
+                <Text tabular align="right">
+                  {formatValue(breakdown[metric])}
+                </Text>
+              </Container>
+            </Flex>
+          ))}
+        </Stack>
+      }
+    >
+      <BreakdownValue>{formatValue(total)}</BreakdownValue>
+    </Tooltip>
+  );
+}
+
+function TokenCount({
+  breakdowns,
+  total,
+}: {
+  breakdowns: TokenBreakdownDetails[];
+  total: number;
+}) {
+  const value = formatAbbreviatedNumber(total);
+  if (breakdowns.length === 0) {
+    return value;
+  }
+
+  return (
+    <Tooltip title={<TokenBreakdownTooltip breakdowns={breakdowns} />}>
+      <BreakdownValue>{value}</BreakdownValue>
+    </Tooltip>
   );
 }
 
@@ -384,12 +788,10 @@ function AggregateItem({
   value,
   to,
   isLoading,
-  onClick,
 }: {
   label: string;
   value: React.ReactNode;
   isLoading?: boolean;
-  onClick?: () => void;
   to?: string;
 }) {
   const isInteractive = !!to && !isLoading;
@@ -410,15 +812,16 @@ function AggregateItem({
   );
 
   if (isInteractive) {
-    return (
-      <StyledLink to={to} onClick={onClick}>
-        {content}
-      </StyledLink>
-    );
+    return <StyledLink to={to}>{content}</StyledLink>;
   }
 
   return content;
 }
+
+const BreakdownValue = styled('span')`
+  text-decoration: underline dotted;
+  text-underline-offset: ${p => p.theme.space['2xs']};
+`;
 
 const AggregateValue = styled(Text)<{isInteractive?: boolean}>`
   ${p =>

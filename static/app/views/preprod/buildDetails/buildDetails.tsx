@@ -1,5 +1,6 @@
 import {useEffect, useRef} from 'react';
-import styled from '@emotion/styled';
+import {IconDownload} from '@sentry/icons/download';
+import {IconRefresh} from '@sentry/icons/refresh';
 import {useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
@@ -9,13 +10,11 @@ import {Text} from '@sentry/scraps/text';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconDownload, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {UrlParamBatchProvider} from 'sentry/utils/url/urlParamBatchContext';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -107,7 +106,10 @@ export default function BuildDetails() {
   >({
     mutationFn: () => {
       return fetchMutation({
-        url: `/organizations/${organization.slug}/preprod-artifact/rerun-analysis/${artifactId}/`,
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/preprod-artifact/rerun-analysis/$headArtifactId/',
+          {path: {organizationIdOrSlug: organization.slug, headArtifactId: artifactId}}
+        ),
         method: 'POST',
       });
     },
@@ -186,60 +188,37 @@ export default function BuildDetails() {
     <SentryDocumentTitle title={title}>
       <Stack flex={1}>
         <PreprodQuotaAlert system />
-        <Layout.Header>
-          <BuildDetailsHeaderContent
-            buildDetailsQuery={buildDetailsQuery}
-            projectSlug={projectSlug ?? ''}
-            artifactId={artifactId}
-            projectType={projectType}
-          />
-        </Layout.Header>
+        <BuildDetailsHeaderContent
+          buildDetailsQuery={buildDetailsQuery}
+          projectSlug={projectSlug ?? ''}
+          artifactId={artifactId}
+          projectType={projectType}
+        />
 
-        <BuildDetailsBody>
-          <UrlParamBatchProvider>
-            <BuildDetailsSide>
-              <BuildDetailsSidebarContent
-                buildDetailsData={buildDetailsQuery.data}
-                isBuildDetailsPending={buildDetailsQuery.isLoading}
-                artifactId={artifactId}
-                projectId={projectSlug ?? null}
-              />
-            </BuildDetailsSide>
-            <BuildDetailsMain>
-              <BuildDetailsMainContent
-                appSizeQuery={appSizeQuery}
-                onRerunAnalysis={onRerunAnalysis}
-                isRerunning={isRerunning}
-                buildDetailsData={buildDetailsQuery.data}
-                isBuildDetailsPending={buildDetailsQuery.isLoading}
-                projectType={projectType}
-                projectId={projectSlug}
-              />
-            </BuildDetailsMain>
-          </UrlParamBatchProvider>
-        </BuildDetailsBody>
+        <Layout.Body gap={{zero: '2xl', '4xl': '3xl'}}>
+          <Layout.Side
+            minWidth={{zero: 'auto', '4xl': '325px'}}
+            maxWidth={{zero: 'none', '4xl': '325px'}}
+            row={{zero: 'auto', '4xl': '1'}}
+          >
+            <BuildDetailsSidebarContent
+              buildDetailsData={buildDetailsQuery.data}
+              isBuildDetailsPending={buildDetailsQuery.isLoading}
+            />
+          </Layout.Side>
+          <Layout.Main row={{zero: 'auto', '4xl': '1'}}>
+            <BuildDetailsMainContent
+              appSizeQuery={appSizeQuery}
+              onRerunAnalysis={onRerunAnalysis}
+              isRerunning={isRerunning}
+              buildDetailsData={buildDetailsQuery.data}
+              isBuildDetailsPending={buildDetailsQuery.isLoading}
+              projectType={projectType}
+              projectId={projectSlug}
+            />
+          </Layout.Main>
+        </Layout.Body>
       </Stack>
     </SentryDocumentTitle>
   );
 }
-
-const BuildDetailsBody = styled(Layout.Body)`
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    display: flex;
-    flex-direction: row-reverse;
-    gap: ${p => p.theme.space['3xl']};
-  }
-`;
-
-const BuildDetailsMain = styled(Layout.Main)`
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    width: 100%;
-  }
-`;
-
-const BuildDetailsSide = styled(Layout.Side)`
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    min-width: 325px;
-    max-width: 325px;
-  }
-`;

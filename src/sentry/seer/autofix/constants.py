@@ -7,10 +7,6 @@ CODING_PAYLOAD_TYPES = frozenset({"select_solution", "create_branch", "create_pr
 # PR-state lookup pass the specific repo's ``provider`` instead.
 SEER_GITHUB_PROVIDERS = ("integrations:github", "integrations:github_enterprise")
 
-# An issue group must have >= this number of occurrences in order to be
-# a target for 'workflow' autofix.
-AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD = 10
-
 
 class FixabilityScoreThresholds(enum.Enum):
     SUPER_HIGH = 0.76
@@ -57,16 +53,40 @@ class AutofixReferrer(enum.StrEnum):
     ISSUE_SUMMARY_POST_PROCESS_FIXABILITY = "issue_summary.post_process_fixability"
     SLACK = "slack"
     ON_COMPLETION_HOOK = "autofix.on_completion_hook"
-    NIGHT_SHIFT = "night_shift"
+    AGENTIC_TRIAGE = "night_shift"
+    NIGHT_SHIFT = AGENTIC_TRIAGE
     CLI = "api.cli"
     LINEAR_AGENT = "api.linear_agent"
     MCP = "api.mcp"
     WEB = "api.web"
+    # Unprefixed because Seer Explorer's autofix lib sends this literal, and the value has to
+    # match it or every Explorer-started run records itself as UNKNOWN.
+    SEER_EXPLORER = "seer_explorer"
     GITHUB_PR_COMMENT = "github.pr_comment"
+    GITHUB_PR_REVIEW = "github.pr_review"
+    GITHUB_CHECK_SUITE = "github.check_suite"
     UNKNOWN = "unknown"
 
 
 class SeerAutomationSource(enum.Enum):
     ISSUE_DETAILS = "issue_details"
     POST_PROCESS = "post_process"
-    NIGHT_SHIFT = "night_shift"
+    AGENTIC_TRIAGE = "night_shift"
+    NIGHT_SHIFT = AGENTIC_TRIAGE
+    FIRST_ASSIGNMENT = "first_assignment"
+
+
+class CodingAgentStatus(enum.StrEnum):
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+    @classmethod
+    def from_cursor_status(cls, cursor_status: str) -> "CodingAgentStatus | None":
+        status_mapping = {
+            "FINISHED": cls.COMPLETED,
+            "ERROR": cls.FAILED,
+        }
+
+        return status_mapping.get(cursor_status.upper(), None)

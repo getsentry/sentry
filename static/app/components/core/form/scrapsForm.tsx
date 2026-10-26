@@ -9,12 +9,19 @@ import {
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {BaseField} from '@sentry/scraps/form/field/baseField';
-import {FieldMeta} from '@sentry/scraps/form/field/meta';
-import {FieldLayout} from '@sentry/scraps/form/layout';
+import {CheckboxField} from '@sentry/scraps/form/field/checkboxField';
 import {FieldGroup} from '@sentry/scraps/form/layout/fieldGroup';
+import {
+  FieldMeta,
+  FieldLayout,
+  FormElementContext,
+  fieldContext,
+  formContext,
+  useFormContext,
+  useIsInsideFormElement,
+} from '@sentry/scraps/formPresentation';
 
-import {RequestError} from 'sentry/utils/requestError/requestError';
-
+import {CompactSelectField} from './field/compactSelectField';
 import {InputField} from './field/inputField';
 import {NumberField} from './field/numberField';
 import {PasswordField} from './field/passwordField';
@@ -24,21 +31,21 @@ import {SelectAsyncField} from './field/selectAsyncField';
 import {SelectField} from './field/selectField';
 import {SwitchField} from './field/switchField';
 import {TextAreaField} from './field/textAreaField';
-import {
-  FormElementContext,
-  fieldContext,
-  formContext,
-  useFormContext,
-  useIsInsideFormElement,
-} from './formContext';
 
 export const defaultFormOptions = formOptions({
-  onSubmitInvalid({formApi}: {formApi: {formId: string}}) {
-    // https://github.com/typescript-eslint/typescript-eslint/issues/10722
-    // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
-    const InvalidInput = document.querySelector(
+  onSubmitInvalid({
+    formApi,
+  }: {
+    formApi: {formId: string; validateSync: (cause: 'submit') => unknown};
+  }) {
+    // TanStack bails out of submission as soon as a field-level validator fails,
+    // before it ever runs the form-level (schema) validators. Fields validated
+    // only by the schema would then show no error at all, so run them here.
+    formApi.validateSync('submit');
+
+    const InvalidInput = document.querySelector<HTMLInputElement>(
       `#${CSS.escape(formApi.formId)} [aria-invalid="true"]`
-    ) as HTMLInputElement;
+    );
 
     InvalidInput?.focus();
   },
@@ -50,6 +57,8 @@ export const defaultFormOptions = formOptions({
 
 const fieldComponents = {
   Base: BaseField,
+  Checkbox: CheckboxField,
+  CompactSelect: CompactSelectField,
   Input: InputField,
   Number: NumberField,
   Password: PasswordField,
@@ -84,8 +93,8 @@ function SubmitButton(props: ButtonProps) {
     <form.Subscribe selector={state => state.isSubmitting}>
       {isSubmitting => (
         <Button
-          {...props}
           variant="primary"
+          {...props}
           type="submit"
           form={isInsideForm ? undefined : form.formId}
           busy={isSubmitting || props.busy}
@@ -130,7 +139,7 @@ function FormWrapper({children}: {children: React.ReactNode}) {
       noValidate
       data-test-id={form.formId}
       id={form.formId}
-      style={{width: '100%', flexGrow: 1}}
+      style={{width: '100%'}}
       onSubmit={e => {
         e.preventDefault();
         form.handleSubmit();
@@ -149,7 +158,9 @@ export {formOptions, withFieldGroup, withForm};
  * Type for field errors that can be set after form submission (e.g., from backend validation).
  * Keys are constrained to valid field paths (including nested paths like 'address.city').
  */
-type FieldErrors<TFormData> = Partial<Record<DeepKeys<TFormData>, {message: string}>>;
+export type FieldErrors<TFormData> = Partial<
+  Record<DeepKeys<TFormData>, {message: string}>
+>;
 
 /**
  * Infers the form data type from a form API instance.
@@ -160,61 +171,23 @@ type InferFormData<T> = T extends {state: {values: infer D}} ? D : never;
  * Sets field errors on a form after submission (e.g., from backend validation).
  * This provides a type-safe way to set errors on specific fields.
  *
- * Accepts either a `FieldErrors` object for manually constructed errors, or a
- * `RequestError` to automatically extract field errors from `responseJSON`.
- * When given a `RequestError`, only keys matching existing form fields are used.
- * String values are used directly; array values use the first element.
- *
- * @returns `true` if field errors were set, `false` if no valid errors were found (when given a `RequestError` without matching fields).
+ * @returns `true` if field errors were set, or `false` if the object was empty.
  *
  * @example
  * ```tsx
- * // With manual field errors:
  * setFieldErrors(formApi, {
  *   firstName: { message: 'This name is already taken' },
  *   'address.city': { message: 'City not found' },
  * });
- *
- * // With a RequestError (e.g., in an onSubmit handler):
- * onSubmit: ({value, formApi}) => {
- *   return mutation.mutateAsync(value).catch((error: RequestError) => {
- *     setFieldErrors(formApi, error);
- *   });
- * },
  * ```
  */
 export function setFieldErrors<
   TForm extends {setErrorMap: (...args: any[]) => unknown; state: {values: unknown}},
->(formApi: TForm, errors: FieldErrors<InferFormData<TForm>> | RequestError): boolean {
-  if (errors instanceof RequestError) {
-    const responseJSON = errors.responseJSON;
-    if (!responseJSON) {
-      return false;
-    }
-    const formValues = formApi.state.values;
-    const fieldErrors: Record<string, {message: string}> = {};
-
-    for (const key of Object.keys(responseJSON)) {
-      if (typeof formValues === 'object' && formValues !== null && key in formValues) {
-        const value = responseJSON[key];
-        if (typeof value === 'string') {
-          fieldErrors[key] = {message: value};
-        } else if (Array.isArray(value) && value.length > 0) {
-          fieldErrors[key] = {
-            message: typeof value[0] === 'string' ? value[0] : String(value[0]),
-          };
-        }
-      }
-    }
-
-    if (Object.keys(fieldErrors).length > 0) {
-      formApi.setErrorMap({
-        onSubmit: {fields: fieldErrors},
-      });
-      return true;
-    }
+>(formApi: TForm, errors: FieldErrors<InferFormData<TForm>>): boolean {
+  if (Object.keys(errors).length === 0) {
     return false;
   }
+
   formApi.setErrorMap({
     onSubmit: {
       fields: errors,

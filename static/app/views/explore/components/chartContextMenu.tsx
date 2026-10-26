@@ -1,20 +1,28 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import Feature from 'sentry/components/acl/feature';
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {useAddToDashboard} from 'sentry/views/explore/hooks/useAddToDashboard';
+import {useQueryParamsHasTransformations} from 'sentry/views/explore/queryParams/context';
 import {
   isVisualizeEquation,
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
+import {hasConditionalAggregateFilter} from 'sentry/views/explore/utils/conditionalAggregate';
+import {
+  getCreateAlertForLabel,
+  getSaveAsAlertMenuItem,
+} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 export function ChartContextMenu({
@@ -30,11 +38,12 @@ export function ChartContextMenu({
 }) {
   const {addToDashboard} = useAddToDashboard();
   const organization = useOrganization();
+  const hasTransformations = useQueryParamsHasTransformations();
 
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
 
-  const items: MenuItemProps[] = useMemo(() => {
+  const items = useMemo(() => {
     const menuItems = [];
 
     const project =
@@ -43,39 +52,38 @@ export function ChartContextMenu({
         : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
 
     if (visualizeYAxes.length === 1) {
-      const newAlertLabel = organization.features.includes('workflow-engine-ui')
-        ? t('Create a Monitor')
-        : t('Create an Alert');
-
       const yAxis = visualizeYAxes[0]!.yAxis;
-      menuItems.push({
-        key: 'create-alert',
-        textValue: newAlertLabel,
-        label: newAlertLabel,
-        disabled: isVisualizeEquation(visualizeYAxes[0]!),
-        to: getAlertsUrl({
-          project,
-          query,
-          pageFilters: pageFilters.selection,
-          aggregate: yAxis,
-          organization,
-          dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
-          interval,
-        }),
-        onAction: () => {
-          trackAnalytics('trace_explorer.save_as', {
-            save_type: 'alert',
-            ui_source: 'chart',
+      menuItems.push(
+        getSaveAsAlertMenuItem({
+          disabled:
+            isVisualizeEquation(visualizeYAxes[0]!) ||
+            hasConditionalAggregateFilter(yAxis),
+          to: getAlertsUrl({
+            project,
+            query,
+            pageFilters: pageFilters.selection,
+            aggregate: yAxis,
             organization,
-          });
-          return;
-        },
-      });
+            dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+            interval,
+          }),
+          onAction: () => {
+            trackAnalytics('trace_explorer.save_as', {
+              save_type: 'alert',
+              ui_source: 'chart',
+              organization,
+            });
+            return;
+          },
+        })
+      );
     } else {
       const alertsUrls = visualizeYAxes.map((visualizeYAxis, index) => ({
         key: `${visualizeYAxis.yAxis}-${index}`,
         label: visualizeYAxis.yAxis,
-        disabled: isVisualizeEquation(visualizeYAxis),
+        disabled:
+          isVisualizeEquation(visualizeYAxis) ||
+          hasConditionalAggregateFilter(visualizeYAxis.yAxis),
         to: getAlertsUrl({
           project,
           query,
@@ -95,17 +103,13 @@ export function ChartContextMenu({
         },
       }));
 
-      const newAlertLabel = organization.features.includes('workflow-engine-ui')
-        ? t('Create a Monitor for')
-        : t('Create an Alert for');
-
-      menuItems.push({
-        key: 'create-alert',
-        label: newAlertLabel,
-        children: alertsUrls ?? [],
-        disabled: !alertsUrls || alertsUrls.length === 0,
-        submenu: true,
-      });
+      menuItems.push(
+        getSaveAsAlertMenuItem({
+          alertsUrls,
+          submenu: true,
+          label: getCreateAlertForLabel(),
+        })
+      );
     }
 
     const disableAddToDashboard = !organization.features.includes('dashboards-edit');
@@ -131,7 +135,7 @@ export function ChartContextMenu({
           ui_source: 'chart',
           organization,
         });
-        return addToDashboard(visualizeIndex);
+        return addToDashboard(visualizeIndex, {includeChartGroup: true});
       },
     });
 
@@ -153,12 +157,21 @@ export function ChartContextMenu({
 
   return (
     <DropdownMenu
-      triggerProps={{
-        size: 'xs',
-        variant: 'transparent',
-        showChevron: false,
-        icon: <IconEllipsis />,
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.IconButton
+          {...triggerProps}
+          size="xs"
+          variant="transparent"
+          icon={<IconEllipsis />}
+          aria-label={t('Chart actions')}
+          disabled={hasTransformations}
+          tooltipProps={
+            hasTransformations
+              ? {title: t('Queries with transformations cannot be saved yet.')}
+              : undefined
+          }
+        />
+      )}
       position="bottom-end"
       items={items}
     />

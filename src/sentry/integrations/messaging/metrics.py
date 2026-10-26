@@ -131,3 +131,4 @@ class SeerSlackHaltReason(StrEnum):
     IDENTITY_NOT_LINKED = "identity_not_linked"
     MISSING_EVENT_DATA = "missing_event_data"
     MISSING_MEMBERSHIP = "missing_membership"
+    EMPTY_PROMPT = "empty_prompt"

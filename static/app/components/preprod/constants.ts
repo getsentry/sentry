@@ -28,6 +28,11 @@ export const MOBILE_BUILDS_ALLOWED_KEYS = [
   'platform_name',
 ];
 
+export const MOBILE_BUILDS_DISTRIBUTION_ALLOWED_KEYS = [
+  ...MOBILE_BUILDS_ALLOWED_KEYS,
+  'install_groups',
+];
+
 export const SNAPSHOT_ALLOWED_KEYS = [
   'app_id',
   'git_base_ref',

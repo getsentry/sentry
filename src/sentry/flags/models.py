@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Literal
 
 from django.conf import settings
 from django.db import models
@@ -55,6 +56,9 @@ CREATED_BY_TYPE_MAP = {
 }
 
 
+ProviderName = Literal["generic", "flagpole", "launchdarkly", "unleash", "statsig"]
+
+
 class ProviderEnum(Enum):
     GENERIC = 0
     FLAGPOLE = 1
@@ -63,7 +67,7 @@ class ProviderEnum(Enum):
     STATSIG = 4
 
     @classmethod
-    def to_string(cls, integer) -> str:
+    def to_string(cls, integer) -> ProviderName:
         if integer == 0:
             return "generic"
         if integer == 1:
@@ -115,7 +119,7 @@ class FlagAuditLogModel(Model):
     created_at = models.DateTimeField(default=timezone.now)
     created_by = models.CharField(max_length=100, null=True)
     created_by_type = models.PositiveSmallIntegerField(choices=CREATED_BY_TYPE_TYPES, null=True)
-    flag = models.CharField(max_length=100)
+    flag = models.CharField(max_length=256)
     organization_id = HybridCloudForeignKey("sentry.Organization", null=False, on_delete="CASCADE")
     provider = models.PositiveSmallIntegerField(choices=PROVIDER_TYPES, null=True)
     tags = models.JSONField()

@@ -35,8 +35,11 @@ export function ReplayTableHeader({
   const listItemCheckboxState = useListItemCheckboxContext();
   const {countSelected, deselectAll, endpointOptionsRef, selectAll, selectedIds} =
     listItemCheckboxState;
+  // oxlint-disable-next-line react/refs
   const endpointOptions = endpointOptionsRef.current;
+  // oxlint-disable-next-line react/refs
   const rawQuery = endpointOptions?.query?.query;
+  // oxlint-disable-next-line react/refs
   const queryString = typeof rawQuery === 'string' ? rawQuery : undefined;
 
   const headerStyle: React.CSSProperties = stickyHeader
@@ -63,82 +66,82 @@ export function ReplayTableHeader({
 
       <ListItemSelectedState selected="indeterminate-or-all">
         <TableHeader>
-          <TableCellFirst>
+          <SimpleTable.HeaderCell variant="first">
             <ReplaySelectColumn.Header
               columnIndex={0}
               listItemCheckboxState={listItemCheckboxState}
               replays={replays}
             />
-          </TableCellFirst>
-          <Flex
-            align="center"
-            column="2 / -1"
-            flex="1"
-            gap="md"
-            justify="start"
-            wrap="wrap"
-          >
-            {selectedIds !== 'all' && (
-              <ReplayBulkViewedActions
-                deselectAll={deselectAll}
-                endpointOptionsRef={endpointOptionsRef}
+          </SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell variant="remaining" divider={false}>
+            <Flex align="center" flex="1" gap="md" justify="start" wrap="wrap">
+              {selectedIds !== 'all' && (
+                <ReplayBulkViewedActions
+                  deselectAll={deselectAll}
+                  endpointOptionsRef={endpointOptionsRef}
+                  replays={replays}
+                  selectedIds={selectedIds}
+                />
+              )}
+              <DeleteReplays
+                // oxlint-disable-next-line react/refs
+                queryOptions={endpointOptionsRef.current}
                 replays={replays}
                 selectedIds={selectedIds}
               />
-            )}
-            <DeleteReplays
-              queryOptions={endpointOptionsRef.current}
-              replays={replays}
-              selectedIds={selectedIds}
-            />
-          </Flex>
+            </Flex>
+          </SimpleTable.HeaderCell>
         </TableHeader>
       </ListItemSelectedState>
 
       <ListItemSelectedState selected="indeterminate">
-        <FullGridAlert variant="info" system>
-          <Flex justify="start" width="100%" wrap="wrap" gap="md">
-            {tn(
-              'Selected %s visible replay.',
-              'Selected %s visible replays.',
-              countSelected
-            )}
-            <a onClick={selectAll}>
-              {queryString
-                ? tct('Select all replays that match: [queryString].', {
-                    queryString: <var>{queryString}</var>,
-                  })
-                : t('Select all replays.')}
-            </a>
-          </Flex>
-        </FullGridAlert>
+        <SimpleTable.FullWidthRow>
+          <Alert variant="info" system>
+            <Flex justify="start" width="100%" wrap="wrap" gap="md">
+              {tn(
+                'Selected %s visible replay.',
+                'Selected %s visible replays.',
+                countSelected
+              )}
+              <a onClick={selectAll}>
+                {/* oxlint-disable-next-line react/refs */}
+                {queryString
+                  ? tct('Select all replays that match: [queryString].', {
+                      // oxlint-disable-next-line react/refs
+                      queryString: <var>{queryString}</var>,
+                    })
+                  : t('Select all replays.')}
+              </a>
+            </Flex>
+          </Alert>
+        </SimpleTable.FullWidthRow>
       </ListItemSelectedState>
 
       <ListItemSelectedState selected="all">
-        <FullGridAlert variant="info" system>
-          {queryString
-            ? tct('Selected all replays matching: [queryString].', {
-                queryString: <var>{queryString}</var>,
-              })
-            : countSelected > replays.length
-              ? t('Selected all %s+ replays.', replays.length)
-              : tn('Selected all %s replay.', 'Selected all %s replays.', countSelected)}
-        </FullGridAlert>
+        <SimpleTable.FullWidthRow>
+          <Alert variant="info" system>
+            {/* oxlint-disable-next-line react/refs */}
+            {queryString
+              ? tct('Selected all replays matching: [queryString].', {
+                  // oxlint-disable-next-line react/refs
+                  queryString: <var>{queryString}</var>,
+                })
+              : countSelected > replays.length
+                ? t('Selected all %s+ replays.', replays.length)
+                : tn(
+                    'Selected all %s replay.',
+                    'Selected all %s replays.',
+                    countSelected
+                  )}
+          </Alert>
+        </SimpleTable.FullWidthRow>
       </ListItemSelectedState>
     </Fragment>
   );
 }
 
-const TableHeader = styled(SimpleTable.Header)`
+const TableHeader = styled(SimpleTable.HeaderRow)`
   grid-row: 1;
   z-index: ${p => p.theme.zIndex.initial};
   height: min-content;
-`;
-
-const TableCellFirst = styled(SimpleTable.HeaderCell)`
-  grid-column: 1;
-`;
-
-const FullGridAlert = styled(Alert)`
-  grid-column: 1 / -1;
 `;

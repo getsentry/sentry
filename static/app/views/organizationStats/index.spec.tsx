@@ -88,13 +88,12 @@ describe('OrganizationStats', () => {
       },
     });
 
-    expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
+    expect(await screen.findByText('Project(s) Stats')).toBeInTheDocument();
 
     // Default to Errors category
     expect(screen.getAllByText('Errors')[0]).toBeInTheDocument();
 
     // Render the chart and project table
-    expect(screen.getByTestId('usage-stats-chart')).toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
 
     // Render the cards
@@ -158,7 +157,7 @@ describe('OrganizationStats', () => {
     });
     render(<OrganizationStats />, {organization});
 
-    expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
+    expect(await screen.findByText('Project(s) Stats')).toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
     expect(await screen.findByTestId('error-messages')).toBeInTheDocument();
   });
@@ -172,7 +171,7 @@ describe('OrganizationStats', () => {
     });
     render(<OrganizationStats />, {organization});
 
-    expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
+    expect(await screen.findByText('Project(s) Stats')).toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
     expect(await screen.findByTestId('empty-message')).toBeInTheDocument();
   });
@@ -219,6 +218,46 @@ describe('OrganizationStats', () => {
     );
   });
 
+  it('defaults to errors when dataCategory does not support external stats', async () => {
+    // monitorSeats has showExternalStats=false, so it is absent from
+    // CHART_OPTIONS_DATACATEGORY and UsageChart throws "Selected item is not
+    // supported" if it is passed through from the URL.
+    render(<OrganizationStats />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/stats/',
+          query: {dataCategory: DATA_CATEGORY_INFO.monitor_seat.plural},
+        },
+      },
+    });
+
+    // Category selector falls back to Errors
+    expect(
+      await screen.findByRole('button', {name: 'Category Errors'})
+    ).toBeInTheDocument();
+
+    // Chart cards and project table load with data instead of the error boundary
+    await waitFor(() => expect(screen.getAllByText('67')).toHaveLength(2));
+    expect(
+      screen.queryByText('There was a problem rendering this component')
+    ).not.toBeInTheDocument();
+
+    // Requests use the fallback category, never the unsupported one
+    expect(mockRequest).toHaveBeenCalledWith(
+      endpoint,
+      expect.objectContaining({query: expect.objectContaining({category: ['error']})})
+    );
+    expect(mockRequest).not.toHaveBeenCalledWith(
+      endpoint,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          category: [DATA_CATEGORY_INFO.monitor_seat.name],
+        }),
+      })
+    );
+  });
+
   it('does not leak query params onto next page links', async () => {
     render(<OrganizationStats />, {
       organization,
@@ -261,7 +300,7 @@ describe('OrganizationStats', () => {
     });
 
     expect(await screen.findByText('All Projects')).toBeInTheDocument();
-    expect(screen.getByTestId('usage-stats-chart')).toBeInTheDocument();
+    expect(screen.getByText('Project(s) Stats')).toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
 
     mockRequest.mock.calls.forEach(([_path, {query}]) => {
@@ -284,7 +323,7 @@ describe('OrganizationStats', () => {
     });
     act(() => PageFiltersStore.updateProjects(selectedProjects, []));
 
-    expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
+    expect(await screen.findByText('Project(s) Stats')).toBeInTheDocument();
     expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
 
@@ -312,7 +351,7 @@ describe('OrganizationStats', () => {
     });
     act(() => PageFiltersStore.updateProjects(selectedProject, []));
 
-    expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
+    expect(await screen.findByText('Project(s) Stats')).toBeInTheDocument();
     expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
     expect(screen.getByText('All Projects')).toBeInTheDocument();
@@ -338,7 +377,7 @@ describe('OrganizationStats', () => {
       organization: newOrg,
     });
 
-    expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
+    expect(await screen.findByText('Project(s) Stats')).toBeInTheDocument();
     await userEvent.click(await screen.findByTestId('proj-1'));
     expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
     expect(screen.getAllByText('proj-1')).toHaveLength(2);
@@ -620,7 +659,10 @@ describe('OrganizationStats', () => {
     const newOrg = OrganizationFixture({
       openMembership: false,
     });
-    act(() => ProjectsStore.loadInitialData([ProjectFixture({isMember: false})]));
+    // Without open membership, the API reports no access for a non-member.
+    act(() =>
+      ProjectsStore.loadInitialData([ProjectFixture({hasAccess: false, isMember: false})])
+    );
 
     render(<OrganizationStats />, {
       organization: newOrg,

@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -8,7 +9,6 @@ import {DateTime} from 'sentry/components/dateTime';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {prettifyTagKey} from 'sentry/utils/fields';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useTraceMetricItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {HIDDEN_TRACEMETRIC_GROUP_BY_FIELDS_SET} from 'sentry/views/explore/metrics/constants';
 import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
@@ -90,10 +90,9 @@ function MetricAttributesSection({
     type: metricType,
   });
 
-  const debouncedTraceMetricFilter = useDebouncedValue(
-    traceMetricFilter,
-    METRIC_ATTRIBUTES_DEBOUNCE_DURATION
-  );
+  const [debouncedTraceMetricFilter] = useDebouncedValue(traceMetricFilter, {
+    wait: METRIC_ATTRIBUTES_DEBOUNCE_DURATION,
+  });
 
   const isDebouncingAttributes = debouncedTraceMetricFilter !== traceMetricFilter;
   const metricAttributeQuery = {

@@ -47,9 +47,7 @@ export default function TeamStatsIssues() {
   const {period, start, end, utc} = dataDatetime(query);
 
   if (teams.length === 0) {
-    return (
-      <NoProjectMessage organization={organization} superuserNeedsToBeProjectMember />
-    );
+    return <NoProjectMessage organization={organization} requireProjectMembership />;
   }
 
   if (isError) {

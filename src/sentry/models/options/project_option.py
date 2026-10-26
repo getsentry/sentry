@@ -45,7 +45,9 @@ OPTION_KEYS = frozenset(
         "sentry:replay_rage_click_issues",
         "sentry:feedback_user_report_notifications",
         "sentry:feedback_ai_spam_detection",
+        "sentry:enable_auto_release_creation",
         "sentry:toolbar_allowed_origins",
+        "sentry:relay_automatic_json_expansion",
         "sentry:token",
         "sentry:token_header",
         "sentry:verify_ssl",
@@ -56,6 +58,7 @@ OPTION_KEYS = frozenset(
         "sentry:secondary_grouping_config",
         "sentry:secondary_grouping_expiry",
         "sentry:similarity_backfill_completed",
+        "sentry:group_action_log_backfill_completed",
         "sentry:fingerprinting_rules",
         "sentry:relay_pii_config",
         "sentry:dynamic_sampling",
@@ -71,6 +74,8 @@ OPTION_KEYS = frozenset(
         "sentry:debug_files_role",
         "sentry:preprod_size_status_checks_enabled",
         "sentry:preprod_size_status_checks_rules",
+        "sentry:preprod_size_pr_comments_enabled",
+        "sentry:preprod_size_pr_comments_rules",
         "sentry:preprod_size_enabled_query",
         "sentry:preprod_distribution_enabled_query",
         "sentry:preprod_size_enabled_by_customer",
@@ -231,6 +236,11 @@ class ProjectOption(Model):
         unique_together = (("project", "key"),)
         indexes = [
             models.Index(fields=["key"]),
+            models.Index(
+                fields=["value", "id"],
+                condition=models.Q(key="sentry:group_action_log_backfill_completed"),
+                name="sentry_proj_gal_val_id_idx",
+            ),
         ]
 
     __repr__ = sane_repr("project_id", "key", "value")

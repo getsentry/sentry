@@ -2,7 +2,7 @@ import {queryOptions, type QueryFunctionContext} from '@tanstack/react-query';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
-import type {Tag, TagCollection} from 'sentry/types/group';
+import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
@@ -13,9 +13,9 @@ import {FieldKind} from 'sentry/utils/fields';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
 import {findFreshEmptyPrefixSearchCacheMatch} from 'sentry/views/explore/utils/findFreshEmptyPrefixSearchCacheMatch';
 
-type AttributeType = {
+export type TraceItemAttribute = {
   attributeSource: {
-    source_type: string;
+    source_type: 'sentry' | 'user';
   };
   attributeType: TraceItemAttributeType;
   key: string;
@@ -23,7 +23,7 @@ type AttributeType = {
   secondaryAliases?: string[];
 };
 
-type TraceItemAttributeType = 'string' | 'number' | 'boolean';
+export type TraceItemAttributeType = 'string' | 'number' | 'boolean' | 'array';
 
 type TraceItemAttributeKeyOptions = Pick<
   ReturnType<typeof normalizeDateTimeParams>,
@@ -55,7 +55,7 @@ export function traceItemAttributeKeysOptions({
   selection,
   staleTime = 0,
   traceItemType,
-  type = ['string', 'number', 'boolean'],
+  type = ['string', 'number', 'boolean', 'array'],
   projects,
   projectIds: explicitProjectIds,
   environments,
@@ -67,9 +67,14 @@ export function traceItemAttributeKeysOptions({
     (defined(projects) ? projects.map(project => project.id) : selection.projects);
 
   const substringMatch = search || undefined;
+  const supportsArrays = organization.features.includes('trace-item-array-query-support');
+  const attributeType =
+    Array.isArray(type) && !supportsArrays
+      ? type.filter(attrType => attrType !== 'array')
+      : type;
   const options: TraceItemAttributeKeyOptions = {
     itemType: traceItemType,
-    attributeType: type,
+    attributeType,
     project: projectIds?.map(String),
     environment: environments ?? selection.environments,
     query,
@@ -77,7 +82,7 @@ export function traceItemAttributeKeysOptions({
     ...(substringMatch === undefined ? {} : {substringMatch}),
   };
 
-  const baseOptions = apiOptions.as<AttributeType[]>()(
+  const baseOptions = apiOptions.as<TraceItemAttribute[]>()(
     '/organizations/$organizationIdOrSlug/trace-items/attributes/',
     {
       path: {organizationIdOrSlug: organization.slug},
@@ -105,27 +110,28 @@ export function traceItemAttributeKeysOptions({
 }
 
 type TraceItemTagCollections = {
+  arrayAttributes: TagCollection;
   booleanAttributes: TagCollection;
   numberAttributes: TagCollection;
   stringAttributes: TagCollection;
 };
 
 export function selectTraceItemTagCollection(): (
-  data: ApiResponse<AttributeType[]>
+  data: ApiResponse<TraceItemAttribute[]>
 ) => TraceItemTagCollections;
 
 export function selectTraceItemTagCollection(
   type: TraceItemAttributeType
-): (data: ApiResponse<AttributeType[]>) => TagCollection;
+): (data: ApiResponse<TraceItemAttribute[]>) => TagCollection;
 
 export function selectTraceItemTagCollection(
   type: TraceItemAttributeType[]
-): (data: ApiResponse<AttributeType[]>) => TraceItemTagCollections;
+): (data: ApiResponse<TraceItemAttribute[]>) => TraceItemTagCollections;
 
 export function selectTraceItemTagCollection(
   type?: TraceItemAttributeKeysOptions['type']
-): (data: ApiResponse<AttributeType[]>) => TagCollection | TraceItemTagCollections {
-  return function (data: ApiResponse<AttributeType[]>) {
+): (data: ApiResponse<TraceItemAttribute[]>) => TagCollection | TraceItemTagCollections {
+  return function (data: ApiResponse<TraceItemAttribute[]>) {
     const {json} = selectJsonWithHeaders(data);
 
     if (type === undefined || Array.isArray(type)) {
@@ -137,26 +143,27 @@ export function selectTraceItemTagCollection(
 }
 
 export function getTraceItemTagCollection(
-  result: AttributeType[]
+  result: TraceItemAttribute[]
 ): TraceItemTagCollections;
 
 export function getTraceItemTagCollection(
-  result: AttributeType[],
+  result: TraceItemAttribute[],
   type: TraceItemAttributeType
 ): TagCollection;
 
 export function getTraceItemTagCollection(
-  result: AttributeType[],
+  result: TraceItemAttribute[],
   type: TraceItemAttributeType[]
 ): TraceItemTagCollections;
 
 export function getTraceItemTagCollection(
-  result: AttributeType[],
+  result: TraceItemAttribute[],
   type?: TraceItemAttributeKeysOptions['type']
 ) {
   const stringAttributes: TagCollection = {};
   const numberAttributes: TagCollection = {};
   const booleanAttributes: TagCollection = {};
+  const arrayAttributes: TagCollection = {};
 
   for (const attribute of result ?? []) {
     if (isKnownAttribute(attribute)) {
@@ -167,7 +174,7 @@ export function getTraceItemTagCollection(
     // SnQL forbids `-` but is allowed in RPC. So add it back later
     if (
       !/^[\w.:@-]+$/.test(attribute.key) &&
-      !/^tags\[[\w.:@-]+,(number|boolean)\]$/.test(attribute.key)
+      !/^tags\[[\w.:@-]+,(number|boolean|string|array)\]$/.test(attribute.key)
     ) {
       continue;
     }
@@ -184,6 +191,7 @@ export function getTraceItemTagCollection(
         name: attribute.name,
         kind: FieldKind.TAG,
         secondaryAliases: attribute?.secondaryAliases ?? [],
+        attributeSource: attribute.attributeSource?.source_type,
       };
     } else if (attributeType === 'number') {
       numberAttributes[attribute.key] = {
@@ -191,6 +199,7 @@ export function getTraceItemTagCollection(
         name: attribute.name,
         kind: FieldKind.MEASUREMENT,
         secondaryAliases: attribute?.secondaryAliases ?? [],
+        attributeSource: attribute.attributeSource?.source_type,
       };
     } else if (attributeType === 'boolean') {
       booleanAttributes[attribute.key] = {
@@ -198,7 +207,29 @@ export function getTraceItemTagCollection(
         name: attribute.name,
         kind: FieldKind.BOOLEAN,
         secondaryAliases: attribute?.secondaryAliases ?? [],
+        attributeSource: attribute.attributeSource?.source_type,
       };
+    } else if (attributeType === 'array') {
+      // Store under the backend key form (tag-annotated for tags, unwrapped for
+      // non-tags) since the query must use it; `[*]` is appended at construction.
+      arrayAttributes[attribute.key] = {
+        key: attribute.key,
+        name: attribute.name,
+        kind: FieldKind.ARRAY,
+        secondaryAliases: attribute?.secondaryAliases ?? [],
+        attributeSource: attribute.attributeSource?.source_type,
+      };
+    }
+  }
+
+  const arrayAttributesNames = new Set(
+    Object.values(arrayAttributes).map(attr => attr.name)
+  );
+
+  // dedupe stringified arrays
+  for (const [key, attr] of Object.entries(stringAttributes)) {
+    if (arrayAttributesNames.has(attr.name)) {
+      delete stringAttributes[key];
     }
   }
 
@@ -214,14 +245,19 @@ export function getTraceItemTagCollection(
     return stringAttributes;
   }
 
+  if (type === 'array') {
+    return arrayAttributes;
+  }
+
   return {
     stringAttributes,
     numberAttributes,
     booleanAttributes,
+    arrayAttributes,
   };
 }
 
-function isKnownAttribute(attribute: Tag) {
+function isKnownAttribute(attribute: {key: string}) {
   // For now, skip all the sentry. prefixed attributes as they
   // should be covered by the static attributes that will be
   // merged with these results.

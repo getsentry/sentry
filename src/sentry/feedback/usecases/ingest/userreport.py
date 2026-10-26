@@ -50,8 +50,17 @@ def save_userreport(
                 "user_report.create_user_report.filtered",
                 tags={"reason": "org.denylist", "referrer": source.value},
             )
-            metrics.incr("feedback.ingest.denylist")
-
+            track_outcome(
+                org_id=project.organization_id,
+                project_id=project.id,
+                key_id=None,
+                outcome=Outcome.RATE_LIMITED,
+                reason="feedback_denylist",
+                timestamp=start_time,
+                event_id=None,  # Note report["event_id"] is id of the associated event, not the report itself.
+                category=DataCategory.USER_REPORT_V2,
+                quantity=1,
+            )
             if (
                 source == FeedbackCreationSource.USER_REPORT_DJANGO_ENDPOINT
                 or source == FeedbackCreationSource.CRASH_REPORT_EMBED_FORM

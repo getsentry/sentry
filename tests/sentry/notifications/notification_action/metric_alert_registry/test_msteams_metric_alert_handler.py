@@ -63,13 +63,13 @@ class TestMsteamsMetricAlertHandler(MetricAlertHandlerBase):
             metric_issue_context=metric_issue_context,
             open_period_context=open_period_context,
             trigger_status=TriggerStatus.ACTIVE,
-            project=self.detector.project,
-            organization=self.detector.project.organization,
+            project=self.detector.linked_project,
+            organization=self.detector.linked_project.organization,
             notification_uuid=notification_uuid,
         )
 
         mock_send_incident_alert_notification.assert_called_once_with(
-            organization=self.detector.project.organization,
+            organization=self.detector.linked_project.organization,
             alert_context=alert_context,
             notification_context=notification_context,
             metric_issue_context=metric_issue_context,
@@ -111,6 +111,8 @@ class TestMsteamsMetricAlertHandler(MetricAlertHandlerBase):
             target_display="Channel 123",
             sentry_app_config=None,
             sentry_app_id=None,
+            workflow_id=self.workflow.id,
+            workflow_name=self.workflow.name,
         )
 
         self.assert_alert_context(
@@ -141,7 +143,7 @@ class TestMsteamsMetricAlertHandler(MetricAlertHandlerBase):
             date_closed=None,
         )
 
-        assert organization == self.detector.project.organization
+        assert organization == self.detector.linked_project.organization
         assert isinstance(notification_uuid, str)
 
     @mock.patch(
@@ -197,6 +199,8 @@ class TestMsteamsMetricAlertHandler(MetricAlertHandlerBase):
             target_display="Channel 123",
             sentry_app_config=None,
             sentry_app_id=None,
+            workflow_id=self.workflow.id,
+            workflow_name=self.workflow.name,
         )
 
         self.assert_alert_context(
@@ -227,5 +231,5 @@ class TestMsteamsMetricAlertHandler(MetricAlertHandlerBase):
             date_closed=None,
         )
 
-        assert organization == self.detector.project.organization
+        assert organization == self.detector.linked_project.organization
         assert isinstance(notification_uuid, str)

@@ -1,6 +1,13 @@
 from unittest.mock import MagicMock, patch
 
-from sentry.lang.native.utils import Backoff, get_os_from_event, is_minidump_event
+import pytest
+
+from sentry.lang.native.utils import (
+    Backoff,
+    get_os_from_event,
+    is_gpu_crash_event,
+    is_minidump_event,
+)
 
 
 def test_get_os_from_event() -> None:
@@ -33,6 +40,30 @@ def test_is_minidump() -> None:
     assert not is_minidump_event({"exception": {"values": []}})
     assert not is_minidump_event({"exception": {"values": None}})
     assert not is_minidump_event({"exception": None})
+
+
+class _Att:
+    def __init__(self, type: str, name: str = "") -> None:
+        self.type = type
+        self.name = name
+
+
+@pytest.mark.parametrize(
+    "attachments,expected",
+    [
+        # A pure GPU event (dump, no CPU crash report) — Relay split it off → teapot.
+        ([_Att("event.nv_gpudmp", "d.nv-gpudmp")], True),
+        # A combined upload (dump + minidump) is the CPU crash → leave it to symbolicator.
+        ([_Att("event.nv_gpudmp", "d.nv-gpudmp"), _Att("event.minidump", "m")], False),
+        # Same when the dump rides an apple crash report event.
+        ([_Att("event.nv_gpudmp", "d.nv-gpudmp"), _Att("event.applecrashreport", "a")], False),
+        # An untyped `event.attachment` is not a GPU dump (no filename fallback).
+        ([_Att("event.attachment", "d.nv-gpudmp")], False),
+    ],
+)
+def test_is_gpu_crash_event(attachments: list[_Att], expected: bool) -> None:
+    with patch("sentry.lang.native.utils.get_attachments_for_event", return_value=attachments):
+        assert is_gpu_crash_event({}) is expected
 
 
 @patch("time.sleep")

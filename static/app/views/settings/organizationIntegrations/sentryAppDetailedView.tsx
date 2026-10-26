@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconSubtract} from '@sentry/icons/subtract';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {SentryAppAvatar} from '@sentry/scraps/avatar';
@@ -18,9 +19,9 @@ import {CircleIndicator} from 'sentry/components/circleIndicator';
 import {Confirm} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {IntegrationFeature, SentryAppInstallation} from 'sentry/types/integrations';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getSpecialPermissions, toPermissions} from 'sentry/utils/consolidatedScopes';
@@ -30,7 +31,6 @@ import {
 } from 'sentry/utils/integrationUtil';
 import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
-import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -74,17 +74,16 @@ export default function SentryAppDetailedView() {
     data: featureData = [],
     isPending: isFeatureDataPending,
     isError: isFeatureDataError,
-  } = useApiQuery<IntegrationFeature[]>(
-    [
-      getApiUrl('/sentry-apps/$sentryAppIdOrSlug/features/', {
+  } = useQuery({
+    ...apiOptions.as<IntegrationFeature[]>()(
+      '/sentry-apps/$sentryAppIdOrSlug/features/',
+      {
         path: {sentryAppIdOrSlug: integrationSlug},
-      }),
-    ],
-    {
-      staleTime: Infinity,
-      retry: false,
-    }
-  );
+        staleTime: Infinity,
+      }
+    ),
+    retry: false,
+  });
 
   const {
     data: appInstalls = [],
@@ -142,7 +141,6 @@ export default function SentryAppDetailedView() {
   }, [sentryApp?.status, navigate, organization.slug, integrationSlug]);
 
   useEffect(() => {
-    recordInteraction(integrationSlug, 'sentry_app_viewed');
     trackIntegrationAnalytics('integrations.integration_viewed', {
       view: 'integrations_directory_integration_detail',
       integration: integrationSlug,
@@ -151,6 +149,7 @@ export default function SentryAppDetailedView() {
       organization,
       integration_tab: 'overview',
     });
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [sentryApp?.status, installationStatus, organization, integrationSlug]);
 
   const redirectUser = useCallback(
@@ -344,7 +343,15 @@ export default function SentryAppDetailedView() {
         integrationSlug.charAt(0).toUpperCase() + integrationSlug.slice(1);
       if (install?.status === 'pending_deletion') {
         return (
-          <Button size="sm" disabled>
+          <Button
+            size="sm"
+            disabled
+            tooltipProps={{
+              title: t('Deletion is in progress. This may take a few minutes.'),
+              position: 'top',
+            }}
+            data-test-id="pending-deletion-button"
+          >
             {t('Pending Deletion')}
           </Button>
         );
@@ -415,7 +422,7 @@ export default function SentryAppDetailedView() {
 
   return (
     <IntegrationLayout.Body
-      integrationName={integrationName}
+      title={integrationName}
       alert={null}
       topSection={
         <IntegrationLayout.TopSection

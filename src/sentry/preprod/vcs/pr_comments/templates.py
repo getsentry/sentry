@@ -3,6 +3,7 @@ from __future__ import annotations
 from sentry.models.project import Project
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.url_utils import get_preprod_artifact_url
+from sentry.preprod.vcs.markdown_utils import escape_markdown
 
 
 def format_pr_comment(artifacts: list[PreprodArtifact], project: Project) -> str:
@@ -13,12 +14,16 @@ def format_pr_comment(artifacts: list[PreprodArtifact], project: Project) -> str
     ios_rows: list[str] = []
 
     for artifact in artifacts:
+        # Artifact-derived fields are untrusted and escaped for Markdown.
         mobile_app_info = artifact.get_mobile_app_info()
         app_name_value = mobile_app_info.app_name if mobile_app_info else None
-        app_name = app_name_value or "--"
-        app_id = artifact.app_id or "--"
-        version_string = mobile_app_info.format_version_string() if mobile_app_info else "--"
-        config = artifact.build_configuration.name if artifact.build_configuration else "--"
+        app_name = escape_markdown(app_name_value, default="--")
+        app_id = escape_markdown(artifact.app_id, default="--")
+        version_string = escape_markdown(
+            mobile_app_info.format_version_string() if mobile_app_info else "--"
+        )
+        config_value = artifact.build_configuration.name if artifact.build_configuration else None
+        config = escape_markdown(config_value, default="--")
         artifact_url = get_preprod_artifact_url(artifact, view_type="install")
 
         app_name_cell = f"[{app_name}]({artifact_url})"

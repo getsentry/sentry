@@ -9,8 +9,10 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.issues.endpoints.bases.group import GroupAiEndpoint
 from sentry.models.group import Group
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.models import SeerApiError, SeerPermissionError
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 @cell_silo_endpoint
@@ -19,6 +21,18 @@ class GroupAutofixReposEndpoint(GroupAiEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ML_AI
+    enforce_rate_limit = True
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(limit=500, window=60, concurrent_limit=100),
+                RateLimitCategory.USER: RateLimit(limit=500, window=60, concurrent_limit=100),
+                RateLimitCategory.ORGANIZATION: RateLimit(
+                    limit=1000, window=60, concurrent_limit=100
+                ),
+            }
+        }
+    )
 
     def get(self, request: Request, group: Group) -> Response:
         try:
@@ -34,14 +48,12 @@ class GroupAutofixReposEndpoint(GroupAiEndpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        runs = client.get_runs(category_key="autofix", category_value=str(group.id))
-        if not runs:
+        run = client.latest_run(group_id=group.id)
+        if run is None:
             return Response({"repos": []}, status=status.HTTP_200_OK)
 
-        run_id = runs[0].run_id
-
         try:
-            response = client.get_repos(run_id)
+            response = client.get_repos(run.run.seer_run_state_id)
         except Exception:
             return Response(
                 {"detail": "Failed to reach Seer"},

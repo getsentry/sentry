@@ -26,9 +26,7 @@ export default function CreateFromSeer() {
   const location = useLocation();
 
   const seerRunId = location.query?.seerRunId ? Number(location.query.seerRunId) : null;
-  const hasFeature =
-    organization.features.includes('dashboards-edit') &&
-    organization.features.includes('dashboards-ai-generate');
+  const hasFeature = organization.features.includes('dashboards-edit');
 
   const [dashboard, setDashboard] = useState(EMPTY_DASHBOARD);
 
@@ -158,6 +156,7 @@ export default function CreateFromSeer() {
     return <CreateFromSeerLoading blocks={session?.blocks ?? []} seerRunId={seerRunId} />;
   }
 
+  // oxlint-disable-next-line react/refs
   const widgetErrors: WidgetError[] = dashboard.widgets.flatMap(widget => {
     if (widget.tempId === undefined) {
       return [];

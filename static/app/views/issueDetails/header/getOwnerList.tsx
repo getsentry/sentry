@@ -1,7 +1,6 @@
 import {t} from 'sentry/locale';
 import type {Actor} from 'sentry/types/core';
-import type {SuggestedOwnerReason} from 'sentry/types/group';
-import type {Commit, Committer} from 'sentry/types/integrations';
+import type {SuggestedOwner, SuggestedOwnerReason} from 'sentry/types/group';
 import type {Team} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
@@ -42,8 +41,7 @@ function findMatchedRules(
 
 type IssueOwner = {
   actor: Actor;
-  source: 'codeowners' | 'projectOwnership' | 'suspectCommit';
-  commits?: Commit[];
+  source: 'codeowners' | 'projectOwnership' | 'seerSuggested' | 'suspectCommit';
   rules?: Array<[string, string]> | null;
 };
 export interface EventOwners {
@@ -53,8 +51,12 @@ export interface EventOwners {
 }
 
 function getSuggestedReason(owner: IssueOwner) {
-  if (owner.commits) {
+  if (owner.source === 'suspectCommit') {
     return t('Suspect commit author');
+  }
+
+  if (owner.source === 'seerSuggested') {
+    return t('Seer Suggestion');
   }
 
   if (owner.rules?.length) {
@@ -79,9 +81,12 @@ type AssignableTeam = {
 };
 
 /**
- * Combine the committer and ownership data into a single array, merging
- * users who are both owners based on having commits, and owners matching
- * project ownership rules into one array.
+ * Combine the owners Sentry recorded against the group — suspect commit authors
+ * and Seer suggestions — with the ownership rules matched by the current event,
+ * merging users who appear in both into a single suggestion.
+ *
+ * Group owners are only surfaced when they resolve to someone in `memberList`,
+ * since an actor who isn't a project member can't be assigned the issue.
  *
  * ### The return array will include objects of the format:
  *
@@ -90,28 +95,36 @@ type AssignableTeam = {
  *    type,              # Either user or team
  *    {User},            # API expanded user object
  *    {email, id, name}  # Sentry user which is *not* expanded
- *    {email, name}      # Unidentified user (from commits)
  *    {id, name},        # Sentry team (check `type`)
  *   >,
- * ```
- *
- * ### One or both of commits and rules will be present
- *
- * ```ts
- *   commits: [...]  # List of commits made by this owner
- *   rules:   [...]  # Project rules matched for this owner
+ *   rules: [...]        # Project rules matched for this owner
  * ```
  */
 export function getOwnerList(
-  committers: Committer[],
+  groupOwners: SuggestedOwner[],
   eventOwners: EventOwners | undefined,
-  assignedTo: Actor | null
+  assignedTo: Actor | null,
+  memberList: User[] = []
 ): Array<Omit<SuggestedAssignee, 'assignee'>> {
-  const owners: IssueOwner[] = committers.map(commiter => ({
-    actor: {...commiter.author, type: 'user'},
-    commits: commiter.commits,
-    source: 'suspectCommit',
-  }));
+  const owners: IssueOwner[] = [];
+
+  groupOwners.forEach(({owner, type}) => {
+    if (type !== 'suspectCommit' && type !== 'seerSuggested') {
+      return;
+    }
+
+    const [actorType, actorId] = owner.split(':');
+    const member =
+      actorType === 'user' ? memberList.find(user => user.id === actorId) : undefined;
+    if (!member || owners.some(existing => existing.actor.id === member.id)) {
+      return;
+    }
+
+    owners.push({
+      actor: {id: member.id, type: 'user', name: member.name, email: member.email},
+      source: type,
+    });
+  });
 
   eventOwners?.owners.forEach(owner => {
     const matchingRule = findMatchedRules(eventOwners?.rules || [], owner);
@@ -122,7 +135,7 @@ export function getOwnerList(
     };
 
     const existingIdx =
-      committers.length > 0 && owner.email && owner.type === 'user'
+      owner.email && owner.type === 'user'
         ? owners.findIndex(o => o.actor.email === owner.email)
         : -1;
     if (existingIdx > -1) {

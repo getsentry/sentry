@@ -1,13 +1,15 @@
 import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {useVirtualizer} from '@tanstack/react-virtual';
+import {IconClose} from '@sentry/icons/close';
+import {IconSearch} from '@sentry/icons/search';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {InputGroup} from '@sentry/scraps/input';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack, Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconClose, IconSearch, IconWarning} from 'sentry/icons';
+import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {t} from 'sentry/locale';
 import {TagChip} from 'sentry/views/preprod/snapshots/tagChip';
 import {useTagFilters} from 'sentry/views/preprod/snapshots/tagFilterContext';
@@ -87,7 +89,7 @@ interface SnapshotSidebarContentProps {
   statusCounts?: StatusCounts | null;
 }
 
-export const SnapshotSidebarContent = memo(function SnapshotSidebarContent({
+export const SnapshotSidebarContent = memo(function SnapshotSidebarContentImpl({
   sections,
   activeItemKey,
   searchQuery,
@@ -146,7 +148,7 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContent({
     return rows;
   }, [sections, collapsed, showSectionHeaders]);
 
-  const virtualizer = useVirtualizer({
+  const {totalSize, virtualItems, virtualizer} = useVirtualRows({
     count: virtualRows.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: i =>
@@ -171,7 +173,6 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContent({
   }, [activeItemKey, virtualRows, virtualizer]);
 
   const hasGroups = sections.some(s => s.groups.length > 0);
-  const virtualItems = virtualizer.getVirtualItems();
 
   return (
     <Stack height="100%" width="100%">
@@ -219,7 +220,7 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContent({
         {hasGroups ? (
           <div
             style={{
-              height: virtualizer.getTotalSize(),
+              height: totalSize,
               position: 'relative',
               width: '100%',
             }}
@@ -227,7 +228,11 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContent({
             {virtualItems.map(vi => {
               const row = virtualRows[vi.index]!;
               return (
-                <VirtualRowPositioner
+                <Container
+                  width="100%"
+                  position="absolute"
+                  top="0"
+                  left="0"
                   key={vi.key}
                   ref={virtualizer.measureElement}
                   data-index={vi.index}
@@ -247,7 +252,7 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContent({
                       onSelect={onSelectItem}
                     />
                   )}
-                </VirtualRowPositioner>
+                </Container>
               );
             })}
           </div>
@@ -263,7 +268,7 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContent({
   );
 });
 
-const SectionHeaderRow = memo(function SectionHeaderRow({
+const SectionHeaderRow = memo(function SectionHeaderRowImpl({
   row,
   expanded,
   onToggle,
@@ -290,7 +295,7 @@ const SectionHeaderRow = memo(function SectionHeaderRow({
   );
 });
 
-const SidebarItem = memo(function SidebarItem({
+const SidebarItem = memo(function SidebarItemImpl({
   group,
   indented,
   isActive,
@@ -356,7 +361,7 @@ function StatusPill({
   );
 }
 
-const TagFilterSection = memo(function TagFilterSection({
+const TagFilterSection = memo(function TagFilterSectionImpl({
   availableTags,
 }: {
   availableTags: Map<string, Map<string, number>>;
@@ -539,10 +544,4 @@ const TagDisclosure = styled(Disclosure)`
       border-radius: 0;
     }
   }
-`;
-const VirtualRowPositioner = styled('div')`
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
 `;

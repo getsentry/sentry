@@ -9,7 +9,7 @@ from django.db.models.functions import Coalesce
 from taskbroker_client.retry import Retry
 from taskbroker_client.state import current_task
 
-from sentry import eventstream, features, similarity, tsdb
+from sentry import eventstream, similarity, tsdb
 from sentry.db.models.base import Model
 from sentry.issues.derived.processing import invalidate_group_derived_data
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
@@ -18,7 +18,7 @@ from sentry.models.group import Group
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, track_group_async_operation
 from sentry.tasks.post_process import fetch_buffered_group_stats
-from sentry.taskworker.namespaces import issues_merge_tasks, issues_tasks
+from sentry.taskworker.namespaces import issues_merge_tasks
 from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 from sentry.tsdb.base import TSDBModel
 from sentry.utils import metrics
@@ -30,20 +30,71 @@ delete_logger = logging.getLogger("sentry.deletions.async")
 _TASK_KEY = "merge_groups"
 
 
+_START_TASK_KEY = "start_merge_groups"
+
+
+@instrumented_task(
+    name="sentry.tasks.merge.start_merge_groups",
+    namespace=issues_merge_tasks,
+    retry=Retry(delay=60 * 5),
+    silo_mode=SiloMode.CELL,
+)
+def start_merge_groups(
+    from_object_ids: list[int] | None = None,
+    to_object_id: int | str | None = None,
+    transaction_id: str | None = None,
+    eventstream_state: Mapping[str, Any] | None = None,
+) -> bool:
+    if not (from_object_ids and to_object_id):
+        logger.error("merge.start.missing_params", extra={"transaction_id": transaction_id})
+        return False
+
+    task_state = current_task()
+    activation_id = task_state.id if task_state else None
+    if activation_id and already_spawned(_START_TASK_KEY, activation_id):
+        logger.info(
+            "merge.start.duplicate_redelivery.skipped",
+            extra={"transaction_id": transaction_id, "activation_id": activation_id},
+        )
+        metrics.incr("taskworker.selfchain.duplicate_skipped", tags={"task": _START_TASK_KEY})
+        return True
+
+    logger.info(
+        "merge.start",
+        extra={
+            "transaction_id": transaction_id,
+            "to_group_id": to_object_id,
+            "from_group_ids": from_object_ids,
+            "num_groups": len(from_object_ids),
+        },
+    )
+    metrics.incr("merge.started")
+
+    merge_groups.delay(
+        from_object_ids=from_object_ids,
+        to_object_id=to_object_id,
+        transaction_id=transaction_id,
+        eventstream_state=eventstream_state,
+    )
+    if activation_id:
+        mark_spawned(_START_TASK_KEY, activation_id)
+    return True
+
+
 @instrumented_task(
     name="sentry.tasks.merge.merge_groups",
     namespace=issues_merge_tasks,
-    alias_namespace=issues_tasks,
     retry=Retry(delay=60 * 5),
+    processing_deadline_duration=300,
     silo_mode=SiloMode.CELL,
 )
 @track_group_async_operation
 def merge_groups(
     from_object_ids: list[int] | None = None,
     to_object_id: int | str | None = None,
-    transaction_id: int | None = None,
-    recursed: bool = False,
+    transaction_id: str | None = None,
     eventstream_state: Mapping[str, Any] | None = None,
+    recursed: bool = False,  # Deprecated: tolerated for in-flight tasks during rolling deploy
 ) -> bool:
     # TODO(mattrobenolt): Write tests for all of this
     from sentry.models.activity import Activity
@@ -53,9 +104,9 @@ def merge_groups(
     from sentry.models.groupassignee import GroupAssignee
     from sentry.models.groupenvironment import GroupEnvironment
     from sentry.models.grouphash import GroupHash
+    from sentry.models.grouplink import GroupLink
     from sentry.models.groupmeta import GroupMeta
     from sentry.models.groupredirect import GroupRedirect
-    from sentry.models.grouprulestatus import GroupRuleStatus
     from sentry.models.groupsubscription import GroupSubscription
     from sentry.models.userreport import UserReport
 
@@ -80,6 +131,16 @@ def merge_groups(
     # until each group has been merged.
     from_object_id = from_object_ids[0]
 
+    logger.info(
+        "merge.batch",
+        extra={
+            "transaction_id": transaction_id,
+            "from_object_id": from_object_id,
+            "remaining_groups": len(from_object_ids),
+            "to_group_id": to_object_id,
+        },
+    )
+
     try:
         new_group, _ = get_group_with_redirect(
             to_object_id,
@@ -103,21 +164,6 @@ def merge_groups(
             eventstream.backend.end_merge(eventstream_state)
         return False
 
-    if not recursed:
-        logger.info(
-            "merge.queued",
-            extra={
-                "transaction_id": transaction_id,
-                "new_group_id": new_group.id,
-                "old_group_ids": from_object_ids,
-                # TODO(jtcunning): figure out why these are full seq scans and/or alternative solution
-                # 'new_event_id': getattr(new_group.event_set.order_by('-id').first(), 'id', None),
-                # 'old_event_id': getattr(group.event_set.order_by('-id').first(), 'id', None),
-                # 'new_hash_id': getattr(new_group.grouphash_set.order_by('-id').first(), 'id', None),
-                # 'old_hash_id': getattr(group.grouphash_set.order_by('-id').first(), 'id', None),
-            },
-        )
-
     try:
         group = Group.objects.select_related("project").get(id=from_object_id)
     except Group.DoesNotExist:
@@ -133,7 +179,7 @@ def merge_groups(
             GroupAssignee,
             GroupEnvironment,
             GroupHash,
-            GroupRuleStatus,
+            GroupLink,
             GroupSubscription,
             EventAttachment,
             UserReport,
@@ -184,21 +230,6 @@ def merge_groups(
                     ),
                 )
 
-            for model in [
-                TSDBModel.frequent_releases_by_group,
-                TSDBModel.frequent_environments_by_group,
-            ]:
-                tsdb.backend.merge_frequencies(
-                    model,
-                    new_group.id,
-                    [group.id],
-                    environment_ids=(
-                        environment_ids
-                        if model in tsdb.backend.models_with_environment_support
-                        else None
-                    ),
-                )
-
             # Fetch buffered stats before deleting the group
             fetch_buffered_group_stats(group)
 
@@ -227,7 +258,7 @@ def merge_groups(
                     num_comments=F("num_comments") + group.num_comments,
                 )
             except DataError as e:
-                with sentry_sdk.push_scope() as scope:
+                with sentry_sdk.new_scope() as scope:
                     scope.set_extra("new_group_id", new_group.id)
                     scope.set_extra("old_group_id", group.id)
                     sentry_sdk.capture_exception(e, level="warning")
@@ -239,7 +270,6 @@ def merge_groups(
             from_object_ids=from_object_ids,
             to_object_id=to_object_id,
             transaction_id=transaction_id,
-            recursed=True,
             eventstream_state=eventstream_state,
         )
         # Record that this activation has spawned its continuation. A subsequent re-pend of this
@@ -247,12 +277,7 @@ def merge_groups(
         if activation_id:
             mark_spawned(_TASK_KEY, activation_id)
     else:
-        if features.has(
-            "organizations:hard-delete-derived-data-invalidation",
-            new_group.project.organization,
-        ):
-            # hard delete derived data on the new group - it will be rebuilt when the next action is processed
-            invalidate_group_derived_data(new_group.id)
+        invalidate_group_derived_data(new_group.id)
 
         if eventstream_state:
             # All `from_object_ids` have been merged!
@@ -267,7 +292,7 @@ def merge_objects(
     new_group: Group,
     limit: int = 1000,
     logger: logging.Logger | None = None,
-    transaction_id: int | None = None,
+    transaction_id: str | None = None,
 ) -> bool:
     has_more = False
     for model in models:

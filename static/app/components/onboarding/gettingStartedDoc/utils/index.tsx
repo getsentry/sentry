@@ -1,14 +1,22 @@
 import {Fragment} from 'react';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconCopyId} from '@sentry/icons/copyId';
 
 import {Button} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 
+import type {ContentBlock} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/types';
+import {
+  docsFlowVariantParams,
+  resolveDocsFlowEvent,
+  SOURCE_MAPS_COPY_CLICKED_EVENT,
+  SOURCE_MAPS_SELECTED_AND_COPIED_EVENT,
+} from 'sentry/components/onboarding/gettingStartedDoc/docsFlowAnalytics';
 import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import type {
   DocsParams,
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {IconCopy} from 'sentry/icons/iconCopy';
 import {t, tct} from 'sentry/locale';
 import type {ProjectKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -20,8 +28,7 @@ export function getUploadSourceMapsStep({
   organization,
   platformKey,
   project,
-  newOrg,
-  hasScmOnboarding,
+  docsFlow,
   isSelfHosted,
   description,
 }: DocsParams & {
@@ -33,6 +40,7 @@ export function getUploadSourceMapsStep({
       project_id: project.id,
       platform: platformKey,
       organization,
+      ...docsFlowVariantParams(docsFlow),
     });
   }
 
@@ -57,21 +65,11 @@ export function getUploadSourceMapsStep({
           <OnboardingCodeSnippet
             language="bash"
             onCopy={() =>
-              trackEvent(
-                hasScmOnboarding
-                  ? 'onboarding.scm_source_maps_wizard_button_copy_clicked'
-                  : newOrg
-                    ? 'onboarding.source_maps_wizard_button_copy_clicked'
-                    : 'project_creation.source_maps_wizard_button_copy_clicked'
-              )
+              trackEvent(resolveDocsFlowEvent(SOURCE_MAPS_COPY_CLICKED_EVENT, docsFlow))
             }
             onSelectAndCopy={() =>
               trackEvent(
-                hasScmOnboarding
-                  ? 'onboarding.scm_source_maps_wizard_selected_and_copied'
-                  : newOrg
-                    ? 'onboarding.source_maps_wizard_selected_and_copied'
-                    : 'project_creation.source_maps_wizard_selected_and_copied'
+                resolveDocsFlowEvent(SOURCE_MAPS_SELECTED_AND_COPIED_EVENT, docsFlow)
               )
             }
           >
@@ -82,6 +80,147 @@ export function getUploadSourceMapsStep({
             })}
           </OnboardingCodeSnippet>
         ),
+      },
+    ],
+  };
+}
+
+// Platform key families using the JavaScript SDKs. React Native is excluded
+// because its docs do not cover `dataCollection`.
+const JS_PLATFORM_PREFIXES = [
+  'javascript',
+  'node',
+  'bun',
+  'deno',
+  'electron',
+  'capacitor',
+  'cordova',
+  'ionic',
+];
+
+/**
+ * Whether the platform uses a JavaScript SDK that exposes `dataCollection`.
+ * A positive list, so a future non-JavaScript platform is excluded by default.
+ */
+export function isJavaScriptPlatform(platformKey: string | null | undefined): boolean {
+  return (
+    !!platformKey &&
+    JS_PLATFORM_PREFIXES.some(
+      prefix => platformKey === prefix || platformKey.startsWith(`${prefix}-`)
+    )
+  );
+}
+
+// Platform keys whose docs guide slug is not simply the key minus its family prefix.
+const DOCS_GUIDE_SLUG_OVERRIDES: Record<string, string> = {
+  'node-awslambda': 'aws-lambda',
+  'node-azurefunctions': 'azure-functions',
+  'node-gcpfunctions': 'gcp-functions',
+  // Workers and Pages share the `cloudflare` guide.
+  'node-cloudflare-workers': 'cloudflare',
+  'node-cloudflare-pages': 'cloudflare',
+  ionic: 'capacitor',
+};
+
+/**
+ * The `dataCollection` docs for the platform's own guide, for configs shared
+ * across JavaScript platforms. Unknown platforms get the canonical page.
+ */
+export function getJsDataCollectionDocsLink(
+  platformKey: string | null | undefined
+): string {
+  if (
+    !platformKey ||
+    !isJavaScriptPlatform(platformKey) ||
+    platformKey === 'javascript'
+  ) {
+    return 'https://docs.sentry.io/platforms/javascript/configuration/options/#dataCollection';
+  }
+  const slug =
+    DOCS_GUIDE_SLUG_OVERRIDES[platformKey] ??
+    platformKey.replace(/^(javascript|node)-/, '');
+  return `https://docs.sentry.io/platforms/javascript/guides/${slug}/configuration/options/#dataCollection`;
+}
+
+// Turns off generative AI content in the `Sentry.init` options. Cloudflare
+// agent setups show a `defineCloudflareOptions` variant instead.
+export const GEN_AI_DATA_COLLECTION_SNIPPET = `Sentry.init({
+  // ...
+  dataCollection: {
+    genAI: { inputs: false, outputs: false },
+  },
+});`;
+
+const DEFAULT_DATA_COLLECTION_SNIPPET = `Sentry.init({
+  // ...
+  dataCollection: {
+    userInfo: false,
+    // other options
+  },
+});`;
+
+/**
+ * Presents `dataCollection` as its own setup step instead of a commented-out
+ * override in the init snippet, as the SDK data collection spec requires. Pass
+ * `collapsible: false` for `GuidedSteps` surfaces, which drop collapsible steps.
+ */
+export function getDataCollectionStep({
+  docsLink,
+  code,
+  description,
+  collapsible = true,
+}: {
+  docsLink: string;
+  code?: string;
+  collapsible?: boolean;
+  description?: React.ReactNode;
+}): OnboardingStep {
+  const summary: ContentBlock[] = description
+    ? [{type: 'text', text: description}]
+    : [
+        {
+          type: 'text',
+          text: t(
+            'By default, the SDK sends user identity data (IP address, ID, and similar) and other data like HTTP bodies and URL query parameters. This gives you rich debugging context.'
+          ),
+        },
+        {
+          type: 'text',
+          text: tct(
+            'The SDK always filters sensitive values whose keys match a built-in denylist, such as [authCode:auth] or [passwordCode:password], and sends [filtered] instead.',
+            {
+              authCode: <code />,
+              passwordCode: <code />,
+              filtered: <code>[Filtered]</code>,
+            }
+          ),
+        },
+      ];
+
+  return {
+    collapsible,
+    title: t('Control the Data You Send to Sentry (Optional)'),
+    content: [
+      ...summary,
+      {
+        type: 'text',
+        text: tct(
+          "To send less data, turn off the categories you don't need in the [code:dataCollection] option. For the full list of categories and their defaults, see [link:the dataCollection options].",
+          {
+            code: <code />,
+            link: <ExternalLink href={docsLink} />,
+          }
+        ),
+      },
+      {
+        type: 'code',
+        tabs: [
+          {
+            label: 'JavaScript',
+            language: 'javascript',
+            code: code ?? DEFAULT_DATA_COLLECTION_SNIPPET,
+          },
+        ],
       },
     ],
   };
@@ -143,7 +282,7 @@ function CopyDsnButton({
   return (
     <Button
       size="xs"
-      icon={<IconCopy />}
+      icon={<IconCopyId />}
       onClick={() =>
         copy(dsn.public, {successMessage: t('DSN copied to clipboard')}).then(onCopyDsn)
       }

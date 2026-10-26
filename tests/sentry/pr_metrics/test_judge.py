@@ -19,7 +19,9 @@ from sentry.models.pullrequest import (
 from sentry.pr_metrics.attribution import record_attribution_signal
 from sentry.pr_metrics.judge import (
     _MAX_FORWARDED_CHECK_ROWS,
+    _reconcile_stuck_judge_claim,
     forward_pr_to_seer_judge,
+    reap_stuck_judge_verdicts,
     update_pr_metrics,
 )
 from sentry.seer.sentry_data_models import (
@@ -27,6 +29,7 @@ from sentry.seer.sentry_data_models import (
     UpdatePrMetricsSuccessResponse,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.analytics import get_event_count
 from sentry.testutils.silo import cell_silo_test
 
@@ -67,6 +70,7 @@ def _last_row(mock_record: Any) -> PrCloseMetricsEvent:
 
 
 @cell_silo_test
+@with_feature("organizations:pr-metrics")
 class UpdatePrMetricsTest(TestCase):
     def setUp(self) -> None:
         self.repo = self.create_repo(
@@ -167,7 +171,9 @@ class UpdatePrMetricsTest(TestCase):
         assert row.conversation_sentiment is None
         assert row.conversation_comments_total is None
         assert row.conversation_metadata is None
-        mock_metrics.incr.assert_any_call("pr_metrics.update.invalid_conversation_analysis")
+        mock_metrics.incr.assert_any_call(
+            "pr_metrics.update.invalid_conversation_analysis", sample_rate=1.0
+        )
 
     @patch("sentry.pr_metrics.judge.metrics")
     @patch("sentry.analytics.record")
@@ -188,7 +194,9 @@ class UpdatePrMetricsTest(TestCase):
         row = _last_row(mock_record)
         assert row.conversation_sentiment is None
         assert row.conversation_metadata is None
-        mock_metrics.incr.assert_any_call("pr_metrics.update.invalid_conversation_analysis")
+        mock_metrics.incr.assert_any_call(
+            "pr_metrics.update.invalid_conversation_analysis", sample_rate=1.0
+        )
 
     @patch("sentry.pr_metrics.judge.metrics")
     @patch("sentry.analytics.record")
@@ -203,7 +211,9 @@ class UpdatePrMetricsTest(TestCase):
         assert result.dict() == {"success": True}
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
         assert _last_row(mock_record).diagnosis_labels is None
-        mock_metrics.incr.assert_any_call("pr_metrics.update.invalid_diagnosis_labels")
+        mock_metrics.incr.assert_any_call(
+            "pr_metrics.update.invalid_diagnosis_labels", sample_rate=1.0
+        )
 
     @patch("sentry.pr_metrics.judge.metrics")
     @patch("sentry.analytics.record")
@@ -214,7 +224,9 @@ class UpdatePrMetricsTest(TestCase):
 
         assert result.dict() == {"success": True}
         assert _last_row(mock_record).diagnosis_labels is None
-        mock_metrics.incr.assert_any_call("pr_metrics.update.invalid_diagnosis_labels")
+        mock_metrics.incr.assert_any_call(
+            "pr_metrics.update.invalid_diagnosis_labels", sample_rate=1.0
+        )
 
     @patch("sentry.analytics.record")
     def test_judge_enrichment_absent_is_back_compat(self, mock_record: Any) -> None:
@@ -442,6 +454,153 @@ class UpdatePrMetricsTest(TestCase):
 
 
 @cell_silo_test
+@with_feature(["organizations:pr-metrics"])
+class ReapStuckJudgeVerdictsTest(TestCase):
+    def setUp(self) -> None:
+        self.repo = self.create_repo(
+            self.project, name="getsentry/sentry", provider="integrations:github"
+        )
+        self.pull_request = self.create_pull_request(
+            repository_id=self.repo.id, organization_id=self.organization.id, key="42"
+        )
+        self.pull_request.update(head_commit_sha=HEAD_SHA)
+        record_attribution_signal(
+            pull_request=self.pull_request,
+            signal_type=PullRequestAttributionSignalType.SENTRY_APP,
+            source=PullRequestAttributionSource.WEBHOOK_DATA,
+        )
+
+    def _stick(
+        self, *, closed_at: datetime | None = None, merged_at: datetime | None = None
+    ) -> None:
+        self.pull_request.update(closed_at=closed_at, merged_at=merged_at)
+        PullRequestMetrics.objects.create(
+            pull_request=self.pull_request, verdict=PullRequestVerdict.JUDGE_IN_PROGRESS
+        )
+
+    @patch("sentry.analytics.record")
+    def test_settles_stuck_merged_pr_unchanged(self, mock_record: Any) -> None:
+        # GitHub sets both closed_at and merged_at on a merge.
+        merged_at = datetime.now(timezone.utc) - timedelta(hours=5)
+        self._stick(closed_at=merged_at, merged_at=merged_at)
+
+        reap_stuck_judge_verdicts()
+
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
+            "merged_unchanged"
+        )
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+
+    @patch("sentry.analytics.record")
+    def test_settles_stuck_merged_pr_with_iteration(self, mock_record: Any) -> None:
+        merged_at = datetime.now(timezone.utc) - timedelta(hours=5)
+        self._stick(closed_at=merged_at, merged_at=merged_at)
+        PullRequestActivity.objects.create(
+            pull_request=self.pull_request,
+            webhook_id="delivery-1",
+            event_type=PullRequestActivityType.SYNCHRONIZED,
+            payload={},
+        )
+
+        reap_stuck_judge_verdicts()
+
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
+            "merged_with_iteration"
+        )
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+
+    @patch("sentry.analytics.record")
+    def test_settles_stuck_closed_unmerged_pr(self, mock_record: Any) -> None:
+        self._stick(closed_at=datetime.now(timezone.utc) - timedelta(hours=5))
+
+        reap_stuck_judge_verdicts()
+
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
+            "closed_unmerged"
+        )
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+
+    @patch("sentry.analytics.record")
+    def test_releases_without_emitting_when_pr_metrics_disabled(self, mock_record: Any) -> None:
+        # The org lost pr-metrics while the forward was in flight. Release the
+        # sentinel so the row can't sit claimed forever, but settle nothing — a
+        # null-verdict row would leave the door open, via verdict IS NULL, for a
+        # later genuine Seer callback to emit for an org the pipeline skipped.
+        self._stick(closed_at=datetime.now(timezone.utc) - timedelta(hours=5))
+
+        with self.feature({"organizations:pr-metrics": False}):
+            reap_stuck_judge_verdicts()
+
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
+        assert mock_record.call_count == 0
+
+    @patch("sentry.analytics.record")
+    def test_leaves_recently_stuck_pr_alone(self, mock_record: Any) -> None:
+        # Within JUDGE_REAP_STUCK_AFTER: may still be legitimately in flight to Seer.
+        self._stick(closed_at=datetime.now(timezone.utc) - timedelta(hours=1))
+
+        reap_stuck_judge_verdicts()
+
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
+            "judge_in_progress"
+        )
+        assert mock_record.call_count == 0
+
+    @patch("sentry.analytics.record")
+    def test_settles_pr_stuck_long_past_stale_cutoff(self, mock_record: Any) -> None:
+        # No upper bound: a row that fell behind (task outage, an oversized
+        # backlog) still gets reaped rather than aging out and staying stuck.
+        self._stick(closed_at=datetime.now(timezone.utc) - timedelta(days=10))
+
+        reap_stuck_judge_verdicts()
+
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
+            "closed_unmerged"
+        )
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+
+    @patch("sentry.analytics.record")
+    def test_releases_sentinel_for_reopened_pr(self, mock_record: Any) -> None:
+        # closed_at/merged_at both null: the PR was reopened after being claimed.
+        self._stick()
+
+        reap_stuck_judge_verdicts()
+
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
+        assert mock_record.call_count == 0
+
+    @patch("sentry.analytics.record")
+    def test_does_not_touch_rows_with_other_verdicts(self, mock_record: Any) -> None:
+        self.pull_request.update(closed_at=datetime.now(timezone.utc) - timedelta(hours=5))
+        PullRequestMetrics.objects.create(
+            pull_request=self.pull_request, verdict=PullRequestVerdict.MERGED_UNCHANGED
+        )
+
+        reap_stuck_judge_verdicts()
+
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
+            "merged_unchanged"
+        )
+        assert mock_record.call_count == 0
+
+    @patch("sentry.analytics.record")
+    def test_settle_is_a_no_op_if_already_settled_concurrently(self, mock_record: Any) -> None:
+        # A very-late Seer callback landing first: the row is no longer
+        # JUDGE_IN_PROGRESS by the time the reaper's compare-and-set runs.
+        self.pull_request.update(closed_at=datetime.now(timezone.utc) - timedelta(hours=5))
+        PullRequestMetrics.objects.create(
+            pull_request=self.pull_request, verdict=PullRequestVerdict.MERGED_UNCHANGED
+        )
+
+        _reconcile_stuck_judge_claim(self.pull_request)
+
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
+            "merged_unchanged"
+        )
+        assert mock_record.call_count == 0
+
+
+@cell_silo_test
 class ForwardPrToSeerJudgeTest(TestCase):
     """The Sentry → Seer forward: assemble the judge request and classify the response."""
 
@@ -577,7 +736,7 @@ class ForwardPrToSeerJudgeTest(TestCase):
         assert timestamps == sorted(timestamps)
         # Hitting the cap is observable: it emits a metric and a warning so a
         # persistently high rate can argue for raising the cap.
-        mock_metrics.incr.assert_any_call("pr_metrics.judge.check_rows_capped")
+        mock_metrics.incr.assert_any_call("pr_metrics.judge.check_rows_capped", sample_rate=1.0)
         mock_logger.warning.assert_any_call(
             "pr_metrics.judge.check_rows_capped",
             extra={
@@ -613,5 +772,5 @@ class ForwardPrToSeerJudgeTest(TestCase):
         mock_request.return_value = self._response(404)
         forward_pr_to_seer_judge(self.pull_request, self.repo)
         mock_metrics.incr.assert_any_call(
-            "pr_metrics.judge.forward_failed", tags={"reason": "client_error"}
+            "pr_metrics.judge.forward_failed", tags={"reason": "client_error"}, sample_rate=1.0
         )

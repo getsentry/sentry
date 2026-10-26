@@ -23,12 +23,7 @@ class DebugFileSerializerResponse(TypedDict):
 @register(ProjectDebugFile)
 class DebugFileSerializer(Serializer[DebugFileSerializerResponse]):
     def serialize(self, obj, attrs, user, **kwargs) -> DebugFileSerializerResponse:
-        if obj.storage_path is not None:
-            headers = {"Content-Type": obj.get_content_type()}
-        elif obj.file is not None:
-            headers = obj.file.headers
-        else:
-            raise ValueError("ProjectDebugFile has neither file nor storage_path")
+        headers = {"Content-Type": obj.get_content_type()}
 
         return {
             "id": str(obj.id),

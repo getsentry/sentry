@@ -85,6 +85,9 @@ class TestSentrySDKMetricsBackend:
     def test_event_noop(self, backend):
         backend.event("title", "message")
 
+    def test_set_noop(self, backend):
+        backend.set("foo", 4242, tags={"x": "y"})
+
     @mock.patch("sentry_sdk.metrics.count")
     def test_incr_sampling(self, mock_count):
         backend = SentrySDKMetricsBackend(prefix="test.", experimental_sample_rate=0.0)
@@ -92,15 +95,39 @@ class TestSentrySDKMetricsBackend:
         mock_count.assert_not_called()
 
     @mock.patch("sentry_sdk.metrics.count")
-    def test_incr_deny_list(self, mock_count):
+    def test_incr_allow_list(self, mock_count):
         backend = SentrySDKMetricsBackend(
-            prefix="test.", experimental_sample_rate=1.0, deny_list=["test.denied"]
+            prefix="test.", experimental_sample_rate=1.0, allow_list=["test.allowed"]
         )
-        backend.incr("denied.metric", amount=1)
+        backend.incr("other.metric", amount=1)
         mock_count.assert_not_called()
 
         backend.incr("allowed.metric", amount=1)
         mock_count.assert_called_once()
+
+    @mock.patch("sentry_sdk.metrics.count")
+    def test_incr_deny_list_ignored(self, mock_count):
+        backend = SentrySDKMetricsBackend(
+            prefix="test.", experimental_sample_rate=1.0, deny_list=["test.denied"]
+        )
+        backend.incr("denied.metric", amount=1)
+        mock_count.assert_called_once()
+
+    @mock.patch("sentry_sdk.metrics.count")
+    def test_incr_empty_allow_list_sends_nothing(self, mock_count):
+        backend = SentrySDKMetricsBackend(
+            prefix="test.", experimental_sample_rate=1.0, allow_list=[]
+        )
+        backend.incr("any.metric", amount=1)
+        mock_count.assert_not_called()
+
+    @mock.patch("sentry_sdk.metrics.count")
+    def test_incr_allow_list_sampling(self, mock_count):
+        backend = SentrySDKMetricsBackend(
+            prefix="test.", experimental_sample_rate=0.0, allow_list=["test.allowed"]
+        )
+        backend.incr("allowed.metric", amount=1)
+        mock_count.assert_not_called()
 
     @mock.patch("sentry_sdk.metrics.count")
     def test_incr_with_sample_rate(self, mock_count, backend):

@@ -98,6 +98,7 @@ export interface DetailedProject extends ProjectSummary {
   digestsMaxDelay: number;
   digestsMinDelay: number;
   dynamicSamplingBiases: DynamicSamplingBias[] | null;
+  enableAutoReleaseCreation: boolean;
   fingerprintingRules: string;
   groupingConfig: string;
   groupingEnhancements: string;
@@ -130,6 +131,8 @@ export interface DetailedProject extends ProjectSummary {
   preprodDistributionPrCommentsEnabledByCustomer?: boolean;
   preprodSizeEnabledByCustomer?: boolean;
   preprodSizeEnabledQuery?: string | null;
+  preprodSizePrCommentsEnabled?: boolean;
+  preprodSizePrCommentsRules?: unknown[];
   preprodSizeStatusChecksEnabled?: boolean;
   preprodSizeStatusChecksRules?: unknown[];
   preprodSnapshotPrCommentsEnabled?: boolean;
@@ -221,6 +224,12 @@ export type PlatformIntegration = {
   name: string;
   type: string;
   deprecated?: boolean;
+  /**
+   * True for a platform that is still valid for existing projects but is no
+   * longer offered when creating one. Its docs stay reachable, unlike
+   * `deprecated`.
+   */
+  hidden?: boolean;
   iconConfig?: {
     withLanguageIcon: boolean;
   };

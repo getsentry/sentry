@@ -4,10 +4,11 @@ import type {
   SeriesOption,
 } from 'echarts';
 
+import type {Theme} from '@sentry/scraps/theme';
+
 import {MarkArea} from 'sentry/components/charts/components/markArea';
-import {MarkLine} from 'sentry/components/charts/components/markLine';
+import {markLine} from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
-import type {Theme} from 'sentry/utils/theme';
 import {normalizeUnit} from 'sentry/views/dashboards/utils/normalizeUnit';
 import {
   NEGATIVE_POLARITY_COLOR_ORDER,
@@ -63,12 +64,12 @@ export class Thresholds implements Plottable {
       this.thresholds = {
         ...thresholds,
         max_values: {
-          max1: thresholds.max_values.max1
+          max1: thresholds.max_values?.max1
             ? normalizeUnit(thresholds.max_values.max1, thresholdUnit, dataType)
-            : thresholds.max_values.max1,
-          max2: thresholds.max_values.max2
+            : thresholds.max_values?.max1,
+          max2: thresholds.max_values?.max2
             ? normalizeUnit(thresholds.max_values.max2, thresholdUnit, dataType)
-            : thresholds.max_values.max2,
+            : thresholds.max_values?.max2,
         },
       };
     } else {
@@ -76,7 +77,7 @@ export class Thresholds implements Plottable {
     }
 
     this.showLabels = options.showLabels ?? false;
-    this.isEmpty = !this.thresholds.max_values.max1 && !this.thresholds.max_values.max2;
+    this.isEmpty = !this.thresholds.max_values?.max1 && !this.thresholds.max_values?.max2;
   }
 
   toMarkArea(
@@ -95,7 +96,7 @@ export class Thresholds implements Plottable {
   }
 
   toMarkAreas(theme: Theme, maxOffset = this.maxOffset) {
-    const {max1, max2} = this.thresholds.max_values;
+    const {max1, max2} = this.thresholds.max_values ?? {};
     const isHigherBetter = this.thresholds.preferredPolarity === '+';
 
     const colorOrder = isHigherBetter
@@ -139,7 +140,7 @@ export class Thresholds implements Plottable {
     style: MarkLineComponentOption['lineStyle'],
     maxOffset = this.maxOffset
   ) {
-    return MarkLine({
+    return markLine({
       animation: false,
       silent: true,
       lineStyle: style,
@@ -160,7 +161,7 @@ export class Thresholds implements Plottable {
   }
 
   toMarkLines(theme: Theme, maxOffset = this.maxOffset) {
-    const {max1, max2} = this.thresholds.max_values;
+    const {max1, max2} = this.thresholds.max_values ?? {};
     const isHigherBetter = this.thresholds.preferredPolarity === '+';
 
     // For '-' (lower is better): Good (green), Meh (yellow), Poor (red) bottom-to-top
@@ -226,12 +227,12 @@ export class Thresholds implements Plottable {
       color: (markArea?.itemStyle?.color as string) || undefined,
     }));
 
-    const markLineSeries: SeriesOption[] = markLines.map(markLine => ({
+    const markLineSeries: SeriesOption[] = markLines.map(markLineOption => ({
       type: 'line',
-      markLine,
+      markLine: markLineOption,
       name: this.name,
       data: [],
-      color: (markLine?.lineStyle?.color as string) || undefined,
+      color: (markLineOption?.lineStyle?.color as string) || undefined,
     }));
 
     return [...markAreaSeries, ...markLineSeries];

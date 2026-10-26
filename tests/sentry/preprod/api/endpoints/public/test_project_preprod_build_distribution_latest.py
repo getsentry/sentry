@@ -344,6 +344,90 @@ class CheckForUpdatesTest(LatestBuildTestBase):
         assert data["currentArtifact"]["buildId"] == str(current.id)
         assert data["currentArtifact"]["appInfo"]["version"] == "1.0.0"
 
+    def test_dotted_build_number_matches_packed_current(self) -> None:
+        # "1.2.3" is packed to 1_000_002_000_003 in build_number; the raw client
+        # value must expand to the same int to match.
+        current = self._create_installable_artifact(
+            build_version="1.0.0", build_number=1_000_002_000_003
+        )
+        newer = self._create_installable_artifact(build_version="2.0.0", build_number=1)
+
+        response = self._get(
+            self._get_url(),
+            {
+                "appId": "com.example.app",
+                "platform": "android",
+                "buildVersion": "1.0.0",
+                "buildNumber": "1.2.3",
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+
+        assert data["currentArtifact"]["buildId"] == str(current.id)
+        assert data["latestArtifact"]["buildId"] == str(newer.id)
+
+    def test_raw_build_number_distinguishes_current_artifact_from_update(self) -> None:
+        encoded_build_number = 152_000_000_004_191
+        current = self._create_installable_artifact(
+            build_number=encoded_build_number,
+            main_binary_identifier="shared-identifier",
+        )
+        current_app_info = current.get_mobile_app_info()
+        assert current_app_info is not None
+        current_app_info.update(extras={"build_number_raw": "152.0.4191.9"})
+        update = self._create_installable_artifact(
+            build_number=encoded_build_number,
+            main_binary_identifier="shared-identifier",
+        )
+        update_app_info = update.get_mobile_app_info()
+        assert update_app_info is not None
+        update_app_info.update(extras={"build_number_raw": "152.0.4191.10"})
+
+        response = self._get(
+            self._get_url(),
+            {
+                "appId": "com.example.app",
+                "platform": "android",
+                "buildVersion": "1.0.0",
+                "buildNumber": "152.0.4191.9",
+                "mainBinaryIdentifier": "shared-identifier",
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+
+        assert data["currentArtifact"]["buildId"] == str(current.id)
+        assert data["latestArtifact"]["buildId"] == str(update.id)
+
+    def test_invalid_build_number_returns_400(self) -> None:
+        self._create_installable_artifact(build_version="1.0.0", build_number=1)
+
+        response = self._get(
+            self._get_url(),
+            {
+                "appId": "com.example.app",
+                "platform": "android",
+                "buildVersion": "1.0.0",
+                "buildNumber": "not-a-build",
+            },
+        )
+        assert response.status_code == 400
+
+    def test_overflowing_build_number_returns_400(self) -> None:
+        self._create_installable_artifact(build_version="1.0.0", build_number=1)
+
+        response = self._get(
+            self._get_url(),
+            {
+                "appId": "com.example.app",
+                "platform": "android",
+                "buildVersion": "1.0.0",
+                "buildNumber": "99999999999999999999999999",
+            },
+        )
+        assert response.status_code == 400
+
     def test_already_on_latest(self) -> None:
         artifact = self._create_installable_artifact(build_version="2.0.0", build_number=1)
 

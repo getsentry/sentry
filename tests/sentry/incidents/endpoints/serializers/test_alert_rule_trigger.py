@@ -1,5 +1,4 @@
 from sentry.api.serializers import serialize
-from sentry.incidents.logic import create_alert_rule_trigger
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, AlertRuleThresholdType
 from sentry.testutils.cases import TestCase
 
@@ -22,13 +21,17 @@ class BaseAlertRuleTriggerSerializerTest:
 class AlertRuleTriggerSerializerTest(BaseAlertRuleTriggerSerializerTest, TestCase):
     def test_simple(self) -> None:
         alert_rule = self.create_alert_rule(resolve_threshold=200)
-        trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
+        trigger = self.create_alert_rule_trigger(
+            alert_rule=alert_rule, label="hi", alert_threshold=1000
+        )
         result = serialize(trigger)
         self.assert_alert_rule_trigger_serialized(trigger, result)
 
     def test_decimal(self) -> None:
         alert_rule = self.create_alert_rule(resolve_threshold=200.70)
-        trigger = create_alert_rule_trigger(alert_rule, "hi", 1000.50)
+        trigger = self.create_alert_rule_trigger(
+            alert_rule=alert_rule, label="hi", alert_threshold=1000.50
+        )
         result = serialize(trigger)
         self.assert_alert_rule_trigger_serialized(trigger, result)
 
@@ -36,7 +39,9 @@ class AlertRuleTriggerSerializerTest(BaseAlertRuleTriggerSerializerTest, TestCas
         alert_rule = self.create_alert_rule(
             comparison_delta=60, detection_type=AlertRuleDetectionType.PERCENT
         )
-        trigger = create_alert_rule_trigger(alert_rule, "hi", 180)
+        trigger = self.create_alert_rule_trigger(
+            alert_rule=alert_rule, label="hi", alert_threshold=180
+        )
         result = serialize(trigger)
         self.assert_alert_rule_trigger_serialized(trigger, result, 80)
 
@@ -46,6 +51,8 @@ class AlertRuleTriggerSerializerTest(BaseAlertRuleTriggerSerializerTest, TestCas
             threshold_type=AlertRuleThresholdType.BELOW,
             detection_type=AlertRuleDetectionType.PERCENT,
         )
-        trigger = create_alert_rule_trigger(alert_rule, "hi", 80)
+        trigger = self.create_alert_rule_trigger(
+            alert_rule=alert_rule, label="hi", alert_threshold=80
+        )
         result = serialize(trigger)
         self.assert_alert_rule_trigger_serialized(trigger, result, 20)

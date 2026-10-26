@@ -1,4 +1,3 @@
-import logging
 from collections.abc import Sequence
 from typing import override
 
@@ -15,8 +14,6 @@ from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models import Action, DataConditionGroupAction
 from sentry.workflow_engine.types import ActionInvocation
 
-logger = logging.getLogger(__name__)
-
 
 @group_type_notification_registry.register(MetricIssue.slug)
 class MetricAlertRegistryHandler(LegacyRegistryHandler):
@@ -26,16 +23,10 @@ class MetricAlertRegistryHandler(LegacyRegistryHandler):
         try:
             handler = metric_alert_handler_registry.get(invocation.action.type)
             handler.invoke_legacy_registry(invocation)
-        except NoRegistrationExistsError:
+        except NoRegistrationExistsError:  # noqa: S010
             # Fall through silently: execute_via_group_type_registry catches this
             # and routes to the issue alert handler for action types (e.g. WEBHOOK,
             # PLUGIN, ticketing) that have no metric-alert-specific handler.
-            raise
-        except Exception:
-            logger.exception(
-                "Error invoking metric alert handler",
-                extra={"action_id": invocation.action.id},
-            )
             raise
 
     @staticmethod
@@ -53,8 +44,7 @@ class MetricAlertRegistryHandler(LegacyRegistryHandler):
         result: dict[int, OrganizationMember | Team | str | None] = {}
 
         user_actions: list[Action] = []
-        team_ids: list[int] = []
-        team_action_ids: dict[int, list[int]] = {}
+        team_id_by_action_id: dict[int, int] = {}
 
         for action in actions:
             target_identifier = action.config.get("target_identifier")
@@ -66,22 +56,24 @@ class MetricAlertRegistryHandler(LegacyRegistryHandler):
             if target_type == ActionTarget.USER.value:
                 user_actions.append(action)
             elif target_type == ActionTarget.TEAM.value:
-                tid = int(target_identifier)
-                team_ids.append(tid)
-                team_action_ids.setdefault(tid, []).append(action.id)
+                team_id_by_action_id[action.id] = int(target_identifier)
             elif target_type == ActionTarget.SPECIFIC.value:
                 result[action.id] = target_identifier
             else:
                 result[action.id] = None
 
-        if user_actions:
+        org_by_action_id: dict[int, int] = {}
+        organization_scoped_action_ids = [action.id for action in user_actions]
+        organization_scoped_action_ids.extend(team_id_by_action_id)
+        if organization_scoped_action_ids:
             dcgas = DataConditionGroupAction.objects.filter(
-                action__in=[a.id for a in user_actions]
+                action__in=organization_scoped_action_ids
             ).select_related("condition_group")
             org_by_action_id = {
                 dcga.action_id: dcga.condition_group.organization_id for dcga in dcgas
             }
 
+        if user_actions:
             org_members = OrganizationMember.objects.filter(
                 user_id__in=[int(a.config["target_identifier"]) for a in user_actions],
                 organization_id__in=set(org_by_action_id.values()),
@@ -96,10 +88,16 @@ class MetricAlertRegistryHandler(LegacyRegistryHandler):
                 else:
                     result[action.id] = None
 
-        if team_ids:
-            teams = {t.id: t for t in Team.objects.filter(id__in=team_ids)}
-            for tid, action_ids in team_action_ids.items():
-                for action_id in action_ids:
-                    result[action_id] = teams.get(tid)
+        if team_id_by_action_id:
+            teams = {
+                (team.id, team.organization_id): team
+                for team in Team.objects.filter(
+                    id__in=team_id_by_action_id.values(),
+                    organization_id__in=set(org_by_action_id.values()),
+                )
+            }
+            for action_id, team_id in team_id_by_action_id.items():
+                organization_id = org_by_action_id.get(action_id)
+                result[action_id] = teams.get((team_id, organization_id))
 
         return result

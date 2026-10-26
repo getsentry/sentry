@@ -25,7 +25,6 @@ const ALL_AVAILABLE_FEATURES = [
   'performance-view',
   'profiling',
   'visibility-explore-view',
-  'workflow-engine-ui',
 ];
 
 function setupMocks() {
@@ -52,7 +51,7 @@ function setupMocks() {
     body: {},
   });
   MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/explore/saved/',
+    url: '/organizations/org-slug/explore/all-queries/',
     body: [],
   });
   MockApiClient.addMockResponse({

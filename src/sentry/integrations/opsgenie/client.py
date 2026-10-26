@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+from collections.abc import Sequence
 from typing import Literal
 
 from sentry.integrations.client import ApiClient
@@ -8,9 +10,10 @@ from sentry.integrations.on_call.metrics import OnCallInteractionType
 from sentry.integrations.opsgenie.metrics import record_event, record_lifecycle_termination_level
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.utils.feature_flags import EventFeatureFlag, get_event_feature_flags
 from sentry.models.group import Group
+from sentry.notifications.types import NotificationOrigin
 from sentry.notifications.utils.links import create_link_to_workflow
-from sentry.notifications.utils.rules import get_key_from_rule_data, split_rules_by_rule_workflow_id
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.shared_integrations.exceptions import ApiError
 
@@ -19,6 +22,25 @@ OPSGENIE_API_VERSION = "v2"
 OPSGENIE_DEFAULT_PRIORITY = "P3"
 
 OpsgeniePriority = Literal["P1", "P2", "P3", "P4", "P5"]
+
+logger = logging.getLogger("sentry.integrations.opsgenie")
+
+# Opsgenie/JSM caps the total size of `details`, so keep the flags entry bounded.
+MAX_FEATURE_FLAGS_DETAIL_LENGTH = 4000
+
+
+def format_feature_flags_detail(flags: Sequence[EventFeatureFlag]) -> str | None:
+    """
+    Format feature flags as a single Opsgenie/JSM `details` value, e.g.
+    "new-checkout: true, dark-mode: false", truncated to fit the details limit.
+    """
+    if not flags:
+        return None
+
+    detail = ", ".join(f"{f.flag}: {f.result}" for f in flags)
+    if len(detail) > MAX_FEATURE_FLAGS_DETAIL_LENGTH:
+        detail = detail[: MAX_FEATURE_FLAGS_DETAIL_LENGTH - 3] + "..."
+    return detail
 
 
 class OpsgenieClient(ApiClient):
@@ -41,35 +63,51 @@ class OpsgenieClient(ApiClient):
         path = f"/alerts?limit={limit}"
         return self.get(path=path, headers=self._get_auth_headers())
 
-    def _get_workflow_urls(self, group, rules):
+    def _get_workflow_links(
+        self, group: Group, rules: Sequence[NotificationOrigin]
+    ) -> list[tuple[str, str]]:
+        """
+        Returns (label, url) pairs for each rule that carries a workflow id.
+        """
         organization = group.project.organization
-        workflow_urls = []
+        links = []
         for rule in rules:
-            # fetch the workflow_id from the rule.data
-            workflow_id = get_key_from_rule_data(rule, "workflow_id")
-            workflow_urls.append(
-                organization.absolute_url(create_link_to_workflow(organization.slug, workflow_id))
+            workflow_id = rule.workflow_id
+            if workflow_id is None:
+                # Test notifications have no backing workflow, so nothing to link to.
+                if not rule.is_test_notification():
+                    logger.warning(
+                        "opsgenie.issue_alert.missing_workflow_id",
+                        extra={
+                            "legacy_rule_id": rule.legacy_rule_id,
+                            "group_id": group.id,
+                            "project_id": group.project_id,
+                            "organization_id": organization.id,
+                        },
+                    )
+                continue
+            links.append(
+                (
+                    rule.label,
+                    organization.absolute_url(
+                        create_link_to_workflow(organization.slug, str(workflow_id))
+                    ),
+                )
             )
-        return workflow_urls
-
-    def _get_rule_urls(self, group, rules):
-        organization = group.project.organization
-        rule_urls = []
-        for rule in rules:
-            rule_id = get_key_from_rule_data(rule, "legacy_rule_id")
-            path = f"/organizations/{organization.slug}/issues/alerts/rules/{group.project.slug}/{rule_id}/details/"
-            rule_urls.append(organization.absolute_url(path))
-        return rule_urls
+        return links
 
     def build_issue_alert_payload(
         self,
         data,
-        rules,
+        rules: Sequence[NotificationOrigin],
         event: Event | GroupEvent,
         group: Group | None,
         priority: OpsgeniePriority | None = "P3",
         notification_uuid: str | None = None,
     ):
+        feature_flags = format_feature_flags_detail(get_event_feature_flags(event))
+        feature_flags_context = {"Feature Flags": feature_flags} if feature_flags else {}
+
         payload = {
             "message": event.message or event.title,
             "source": "Sentry",
@@ -77,6 +115,7 @@ class OpsgenieClient(ApiClient):
             "details": {
                 "Triggering Rules": ", ".join([rule.label for rule in rules]),
                 "Release": data.release,
+                **feature_flags_context,
             },
             "tags": [f"{str(x).replace(',', '')}:{str(y).replace(',', '')}" for x, y in event.tags],
         }
@@ -87,28 +126,13 @@ class OpsgenieClient(ApiClient):
             if notification_uuid:
                 group_params["notification_uuid"] = notification_uuid
 
-            rules_and_workflows = split_rules_by_rule_workflow_id(rules)
-            workflow_urls = self._get_workflow_urls(group, rules_and_workflows.workflow_rules)
-            rule_urls = self._get_rule_urls(group, rules_and_workflows.rules)
+            workflow_links = self._get_workflow_links(group, rules)
             rule_workflow_context = {}
-            if rule_urls:
-                rule_workflow_context.update(
-                    {
-                        "Triggering Rules": ", ".join(
-                            [rule.label for rule in rules_and_workflows.rules]
-                        ),
-                        "Triggering Rule URLs": "\n".join(rule_urls),
-                    }
-                )
-            if workflow_urls:
-                rule_workflow_context.update(
-                    {
-                        "Triggering Workflows": ", ".join(
-                            [workflow.label for workflow in rules_and_workflows.workflow_rules]
-                        ),
-                        "Triggering Workflow URLs": "\n".join(workflow_urls),
-                    }
-                )
+            if workflow_links:
+                rule_workflow_context = {
+                    "Triggering Workflows": ", ".join(label for label, _ in workflow_links),
+                    "Triggering Workflow URLs": "\n".join(url for _, url in workflow_links),
+                }
 
             payload["details"] = {
                 "Sentry ID": str(group.id),
@@ -120,6 +144,7 @@ class OpsgenieClient(ApiClient):
                 "Issue URL": group.get_absolute_url(params=group_params),
                 "Release": data.release,
                 **rule_workflow_context,
+                **feature_flags_context,
             }
         return payload
 

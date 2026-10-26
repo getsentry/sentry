@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconDelete} from '@sentry/icons/delete';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
@@ -17,7 +18,6 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {ExternalTeam, Integration} from 'sentry/types/integrations';
 import type {Team} from 'sentry/types/organization';
@@ -27,6 +27,7 @@ import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 const DOCS_LINK =
@@ -190,24 +191,41 @@ export default function TeamNotificationSettings() {
   );
 
   if (isTeamPending || isIntegrationsPending) {
-    return <LoadingIndicator />;
+    return (
+      <Fragment>
+        <BreadcrumbTitle title={t('Notifications')} />
+        <LoadingIndicator />
+      </Fragment>
+    );
   }
 
   if (isTeamError || isIntegrationsError) {
     return (
-      <LoadingError
-        onRetry={() => {
-          refetchTeam();
-          refetchIntegrations();
-        }}
-      />
+      <Fragment>
+        <BreadcrumbTitle title={t('Notifications')} />
+        <LoadingError
+          onRetry={() => {
+            refetchTeam();
+            refetchIntegrations();
+          }}
+        />
+      </Fragment>
     );
   }
 
   const handleDelete = async (externalTeam: ExternalTeam) => {
     try {
       await api.requestPromise(
-        `/teams/${organization.slug}/${team.slug}/external-teams/${externalTeam.id}/`,
+        getApiUrl(
+          '/teams/$organizationIdOrSlug/$teamIdOrSlug/external-teams/$externalTeamId/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              teamIdOrSlug: team.slug,
+              externalTeamId: externalTeam.id,
+            },
+          }
+        ),
         {
           method: 'DELETE',
         }
@@ -223,6 +241,7 @@ export default function TeamNotificationSettings() {
 
   return (
     <Fragment>
+      <BreadcrumbTitle title={t('Notifications')} />
       <SentryDocumentTitle
         title={t('%s Team Notification Settings', `#${params.teamId}`)}
       />

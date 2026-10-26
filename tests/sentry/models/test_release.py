@@ -10,8 +10,10 @@ from sentry.api.exceptions import InvalidRepository
 from sentry.api.release_search import INVALID_SEMVER_MESSAGE
 from sentry.exceptions import InvalidSearchQuery
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource
+from sentry.issues.action_log.types import SetResolvedInReleaseAction
 from sentry.models.commit import Commit
-from sentry.models.commitauthor import CommitAuthor
+from sentry.models.commitauthor import COMMIT_AUTHOR_EMAIL_LENGTH, CommitAuthor
 from sentry.models.deploy import Deploy
 from sentry.models.distribution import Distribution
 from sentry.models.environment import Environment
@@ -23,6 +25,7 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.latestreporeleaseenvironment import LatestRepoReleaseEnvironment
+from sentry.models.project import Project
 from sentry.models.release import (
     Release,
     ReleaseStatus,
@@ -40,9 +43,104 @@ from sentry.search.events.filter import parse_semver
 from sentry.signals import receivers_raise_on_send
 from sentry.testutils.cases import SetRefsTestCase, TestCase
 from sentry.testutils.factories import Factories
+from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.strings import truncatechars
+
+
+@django_db_all
+@pytest.mark.parametrize("use_finalized_order", [False, True], ids=["legacy", "finalized"])
+@pytest.mark.parametrize("successor_status", [ReleaseStatus.OPEN, None], ids=["open", "null"])
+def test_next_release_excludes_archived_successors(
+    factories: Factories,
+    default_project: Project,
+    use_finalized_order: bool,
+    successor_status: int | None,
+) -> None:
+    now = timezone.now()
+    # An archived starting point is still valid; only successors are filtered.
+    anchor = factories.create_release(
+        project=default_project,
+        version="anchor",
+        date_added=now - timedelta(days=3),
+        status=ReleaseStatus.ARCHIVED,
+    )
+    factories.create_release(
+        project=default_project,
+        version="archived-successor",
+        date_added=now - timedelta(days=2),
+        status=ReleaseStatus.ARCHIVED,
+    )
+    with pytest.raises(Release.DoesNotExist):
+        Release.objects.get_next_release(
+            default_project, anchor, use_finalized_order=use_finalized_order
+        )
+
+    successor = factories.create_release(
+        project=default_project,
+        version="eligible-successor",
+        date_added=now - timedelta(days=1),
+        status=successor_status,
+    )
+    assert (
+        Release.objects.get_next_release(
+            default_project, anchor, use_finalized_order=use_finalized_order
+        )
+        == successor
+    )
+
+
+class NextReleaseOrderingTest(TestCase):
+    def test_finalized_order_and_legacy_order(self) -> None:
+        now = timezone.now()
+        current = self.create_release(version="current", date_added=now - timedelta(days=3))
+        next_release = self.create_release(
+            version="next",
+            date_added=now - timedelta(days=4),
+            date_released=now - timedelta(days=2),
+        )
+        late_old_release = self.create_release(
+            version="old", date_added=now - timedelta(days=1), date_released=now - timedelta(days=5)
+        )
+        assert (
+            Release.objects.get_next_release(self.project, current, use_finalized_order=True)
+            == next_release
+        )
+        assert (
+            Release.objects.get_next_release(self.project, current, use_finalized_order=False)
+            == late_old_release
+        )
+
+    def test_current_release_uses_its_finalized_date(self) -> None:
+        now = timezone.now()
+        current = self.create_release(
+            version="current", date_added=now, date_released=now - timedelta(days=3)
+        )
+        next_release = self.create_release(version="next", date_added=now - timedelta(days=2))
+        assert (
+            Release.objects.get_next_release(self.project, current, use_finalized_order=True)
+            == next_release
+        )
+
+    def test_no_successor(self) -> None:
+        current = self.create_release(version="current")
+        with pytest.raises(Release.DoesNotExist):
+            Release.objects.get_next_release(self.project, current, use_finalized_order=True)
+
+    def test_equal_dates_and_project_scope(self) -> None:
+        current = self.create_release(version="current")
+        other_project = self.create_project(organization=self.organization)
+        self.create_release(
+            project=other_project, version="other-project", date_added=current.date_added
+        )
+        next_release = self.create_release(version="next", date_added=current.date_added)
+        self.create_release(version="later", date_added=current.date_added)
+        assert (
+            Release.objects.get_next_release(self.project, current, use_finalized_order=True)
+            == next_release
+        )
 
 
 @pytest.mark.parametrize(
@@ -95,6 +193,49 @@ def test_version_is_semver_valid(release_version) -> None:
 )
 def test_version_is_semver_invalid(release_version) -> None:
     assert Release.is_semver_version(release_version) is False
+
+
+class GetOrCreateNoCreateTest(TestCase):
+    def setUp(self) -> None:
+        self.org = self.create_organization()
+        self.project = self.create_project(organization=self.org, name="foo")
+
+    def test_returns_none_on_miss_without_creating(self) -> None:
+        release = Release.get_or_create(project=self.project, version="1.0", create=False)
+        assert release is None
+        assert not Release.objects.filter(organization_id=self.org.id).exists()
+
+    def test_does_not_cache_miss(self) -> None:
+        # A miss must not be cached, so a release created later is still found.
+        assert Release.get_or_create(project=self.project, version="1.0", create=False) is None
+
+        existing = Release.objects.create(version="1.0", organization=self.org)
+        existing.add_project(self.project)
+
+        release = Release.get_or_create(project=self.project, version="1.0", create=False)
+        assert release is not None
+        assert release.id == existing.id
+
+    def test_returns_existing_release(self) -> None:
+        existing = Release.objects.create(version="1.0", organization=self.org)
+        existing.add_project(self.project)
+
+        release = Release.get_or_create(project=self.project, version="1.0", create=False)
+        assert release is not None
+        assert release.id == existing.id
+
+    def test_associates_existing_org_release_with_project(self) -> None:
+        # A release that exists in the org but is linked to a different project is
+        # associated with the ingesting project, not skipped.
+        other_project = self.create_project(organization=self.org, name="bar")
+        existing = Release.objects.create(version="1.0", organization=self.org)
+        existing.add_project(other_project)
+        assert not existing.projects.filter(id=self.project.id).exists()
+
+        release = Release.get_or_create(project=self.project, version="1.0", create=False)
+        assert release is not None
+        assert release.id == existing.id
+        assert release.projects.filter(id=self.project.id).exists()
 
 
 class MergeReleasesTest(TestCase):
@@ -210,6 +351,8 @@ class MergeReleasesTest(TestCase):
         assert GroupRelease.objects.get(id=group_release.id).release_id == release.id
         assert GroupRelease.objects.get(id=group_release2.id).release_id == release.id
         assert GroupRelease.objects.get(id=group_release3.id).release_id == release.id
+        assert GroupRelease.objects.get(id=group_release2.id).new_release_id == release.id
+        assert GroupRelease.objects.get(id=group_release3.id).new_release_id == release.id
 
         # GroupResolution.release
         assert GroupResolution.objects.get(id=group_resolution.id).release == release
@@ -225,6 +368,20 @@ class MergeReleasesTest(TestCase):
         assert Release.objects.filter(id=release.id).exists()
         assert not Release.objects.filter(id=release2.id).exists()
         assert not Release.objects.filter(id=release3.id).exists()
+
+    @patch("sentry.issues.attributes.produce_snapshot_to_kafka")
+    def test_merging_first_release_emits_snapshot(self, produce_snapshot: MagicMock) -> None:
+        release = self.create_release()
+
+        merged_release = self.create_release()
+
+        self.create_group(first_release=merged_release)
+
+        produce_snapshot.reset_mock()
+
+        Release.merge(release, [merged_release])
+
+        assert produce_snapshot.called
 
 
 class SetCommitsTestCase(TestCase):
@@ -523,6 +680,35 @@ class SetCommitsTestCase(TestCase):
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
         assert not GroupInbox.objects.filter(group=group).exists()
 
+    @receivers_raise_on_send()
+    def test_commit_resolves_only_when_released_to_issue_project(self) -> None:
+        org = self.create_organization(owner=Factories.create_user())
+        frontend_project = self.create_project(organization=org, name="frontend")
+        backend_project = self.create_project(organization=org, name="backend")
+        frontend_group = self.create_group(project=frontend_project)
+        repo = self.create_repo(project=backend_project, name="test/monorepo")
+        commit = self.create_commit(
+            repo=repo,
+            message=f"fixes {frontend_group.qualified_short_id}",
+        )
+        backend_release = self.create_release(project=backend_project, version="backend@1.0.0")
+
+        backend_release.set_commits([{"id": commit.key, "repository": repo.name}])
+
+        assert list(backend_release.projects.all()) == [backend_project]
+        assert not GroupResolution.objects.filter(
+            group=frontend_group, release=backend_release
+        ).exists()
+        assert Group.objects.get(id=frontend_group.id).status == GroupStatus.UNRESOLVED
+
+        frontend_release = self.create_release(project=frontend_project, version="frontend@1.0.0")
+        frontend_release.set_commits([{"id": commit.key, "repository": repo.name}])
+
+        resolution = GroupResolution.objects.get(group=frontend_group)
+        assert resolution.release == frontend_release
+        assert resolution.status == GroupResolution.Status.resolved
+        assert Group.objects.get(id=frontend_group.id).status == GroupStatus.RESOLVED
+
     @patch("sentry.analytics.record")
     @receivers_raise_on_send()
     def test_resolution_records_commit_provider(self, mock_record: MagicMock) -> None:
@@ -592,6 +778,25 @@ class SetCommitsTestCase(TestCase):
                 issue_type=group.issue_type.slug,
                 issue_category=group.issue_category.name.lower(),
             ),
+        )
+
+    @receivers_raise_on_send()
+    def test_resolution_attributes_to_system(self) -> None:
+        org = self.create_organization(owner=Factories.create_user())
+        project = self.create_project(organization=org, name="foo")
+        group = self.create_group(project=project)
+
+        release = self.create_release(project=project, version="abcdabc")
+        with capture_action_log() as log:
+            release.set_commits(
+                [{"id": "a" * 40, "message": "fixes %s" % (group.qualified_short_id)}]
+            )
+
+        log.assert_logged(
+            SetResolvedInReleaseAction,
+            group_id=group.id,
+            source=ActionSource.SYSTEM,
+            actor=SYSTEM_ACTOR,
         )
 
     @patch("sentry.analytics.record")
@@ -726,7 +931,7 @@ class SetCommitsTestCase(TestCase):
         )
         commit = Commit.objects.get(repository_id=repo.id, organization_id=org.id, key="a" * 40)
         assert commit.author is not None
-        assert commit.author.email == truncatechars(commit_email, 75)
+        assert commit.author.email == truncatechars(commit_email, COMMIT_AUTHOR_EMAIL_LENGTH)
 
     @receivers_raise_on_send()
     def test_multiple_authors(self) -> None:

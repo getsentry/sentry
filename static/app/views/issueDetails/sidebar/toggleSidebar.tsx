@@ -1,10 +1,10 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 
-import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useIssueDetails} from 'sentry/views/issueDetails/context';
@@ -14,7 +14,7 @@ export function ToggleSidebar({size = 'md'}: {size?: 'md' | 'sm'}) {
   const {isSidebarOpen, dispatch} = useIssueDetails();
 
   return (
-    <Container position="relative" display={{'2xs': 'none', lg: 'block'}}>
+    <Container position="relative" display={{zero: 'none', '4xl': 'block'}}>
       <ToggleButton
         expanded={isSidebarOpen}
         onClick={() => dispatch({type: 'UPDATE_SIDEBAR_STATE', isOpen: !isSidebarOpen})}

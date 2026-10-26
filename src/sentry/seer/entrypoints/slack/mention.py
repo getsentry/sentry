@@ -36,6 +36,17 @@ _SLACK_PERMALINK_PATH_RE = re.compile(
 # Cap how many linked messages we will fetch per prompt to bound API + token cost.
 _MAX_LINKED_MESSAGES = 5
 
+_ANY_MENTION_RE = re.compile(r"<@[^>]+>")
+
+
+def has_prompt_content(text: str) -> bool:
+    """Whether the text holds anything beyond Slack mentions and whitespace.
+
+    Takes no bot_user_id: Slack omits `authorizations` in some cases, and
+    `extract_prompt` strips nothing when the id is missing.
+    """
+    return bool(_ANY_MENTION_RE.sub("", text).strip())
+
 
 def extract_prompt(text: str, bot_user_id: str) -> str:
     """Remove the bot mention from text to get the user's clean prompt.

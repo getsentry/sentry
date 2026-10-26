@@ -1,12 +1,16 @@
-import {type LogsQueryInfo} from 'sentry/components/exports/dataExport';
-import {ExportQueryType} from 'sentry/components/exports/useDataExport';
+import {downloadRows} from 'sentry/components/exports/downloadRows';
+import {
+  ExportQueryType,
+  type EventsQuerySamplingMode,
+} from 'sentry/components/exports/useDataExport';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExploreExportModalButton} from 'sentry/views/explore/components/exports/exploreExportModalButton';
 import {trackExploreTableExported} from 'sentry/views/explore/components/exports/trackExploreTableExported';
 import type {ExploreExportConfig} from 'sentry/views/explore/components/exports/types';
-import {downloadLogs} from 'sentry/views/explore/logs/exports/downloadLogs';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import type {
   OurLogsAggregateResponseItem,
   OurLogsResponseItem,
@@ -14,19 +18,35 @@ import type {
 import {useQueryParamsSearch} from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
+export interface LogsQueryInfo {
+  dataset: 'logs';
+  field: string[];
+  project: number[];
+  query: string;
+  sampling: EventsQuerySamplingMode;
+  sort: string[];
+  caseInsensitive?: '1';
+  end?: string;
+  environment?: string[];
+  start?: string;
+  statsPeriod?: string;
+}
+
 type LogsExportModalButtonProps = {
   estimatedRowCount: number;
   isLoading: boolean;
   queryInfo: LogsQueryInfo;
   supportsAllColumns: boolean;
+  /**
+   * Whether `tableData` holds the same values the server would export. The
+   * samples table asks the API to truncate long values for display, so it opts
+   * out and every one of its exports goes through the server instead.
+   */
+  supportsLocalDownload: boolean;
   tableData: Array<OurLogsResponseItem | OurLogsAggregateResponseItem>;
   title: string;
   error?: Error | null;
 };
-
-export function formatExportSort(sort: {field: string; kind: 'asc' | 'desc'}) {
-  return `${sort.kind === 'desc' ? '-' : ''}${sort.field}`;
-}
 
 export function useLogsQueryInfo({
   field,
@@ -37,6 +57,7 @@ export function useLogsQueryInfo({
 }): LogsQueryInfo {
   const {selection} = usePageFilters();
   const logsSearch = useQueryParamsSearch();
+  const [caseInsensitive] = useCaseInsensitivity();
   const {start, end, period: statsPeriod} = selection.datetime;
   const {environments, projects} = selection;
 
@@ -45,11 +66,13 @@ export function useLogsQueryInfo({
     field,
     query: logsSearch.formatString(),
     project: projects,
+    sampling: SAMPLING_MODE.HIGH_ACCURACY,
     sort,
     start: start ? new Date(start).toISOString() : undefined,
     end: end ? new Date(end).toISOString() : undefined,
     statsPeriod: statsPeriod || undefined,
     environment: environments,
+    caseInsensitive: caseInsensitive ? '1' : undefined,
   };
 }
 
@@ -59,6 +82,7 @@ export function LogsExportModalButton({
   isLoading,
   queryInfo,
   supportsAllColumns,
+  supportsLocalDownload,
   tableData,
   title,
 }: LogsExportModalButtonProps) {
@@ -74,14 +98,16 @@ export function LogsExportModalButton({
     supportsAllColumns,
     availableFormats: ['csv', 'jsonl'],
     estimatedRowCount,
-    localRowCount: tableData.length,
-    localDownload: ({format, limit}) =>
-      downloadLogs({
-        rows: tableData.slice(0, limit),
-        fields: queryInfo.field,
-        filename: filenameBase,
-        format,
-      }),
+    localRowCount: supportsLocalDownload ? tableData.length : undefined,
+    localDownload: supportsLocalDownload
+      ? ({format, limit}) =>
+          downloadRows({
+            rows: tableData.slice(0, limit),
+            fields: queryInfo.field,
+            filename: filenameBase,
+            format,
+          })
+      : undefined,
     trackExportSubmit: args =>
       trackExploreTableExported({
         ...args,

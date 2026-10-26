@@ -5,6 +5,7 @@ from typing import Any
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
+from sentry import options
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.rules.actions import IntegrationNotifyServiceForm
@@ -18,7 +19,9 @@ class JiraServerNotifyServiceForm(IntegrationNotifyServiceForm):
 
         integration_id = cleaned_data.get("integration")
         integration = integration_service.get_integration(
-            integration_id=integration_id, provider=self.provider
+            integration_id=integration_id,
+            provider=self.provider,
+            using_replica=options.get("integration_service.get_integration.using_replica"),
         )
 
         if not integration:

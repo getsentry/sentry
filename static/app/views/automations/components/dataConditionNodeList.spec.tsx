@@ -17,7 +17,10 @@ import {
   DataConditionHandlerSubgroupType,
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
-import {MatchType} from 'sentry/views/automations/components/actionFilters/constants';
+import {
+  Interval,
+  MatchType,
+} from 'sentry/views/automations/components/actionFilters/constants';
 import {DataConditionNodeList} from 'sentry/views/automations/components/dataConditionNodeList';
 import {AutomationBuilderTestProvider} from 'sentry/views/automations/components/testUtils';
 
@@ -39,7 +42,7 @@ const dataConditionHandlers: DataConditionHandler[] = [
 ];
 
 describe('DataConditionNodeList', () => {
-  const organization = OrganizationFixture({features: ['workflow-engine-ui']});
+  const organization = OrganizationFixture();
 
   const mockOnAddRow = jest.fn();
   const mockOnDeleteRow = jest.fn();
@@ -199,6 +202,21 @@ describe('DataConditionNodeList', () => {
     expect(mockOnDeleteRow).toHaveBeenCalledWith('1');
   });
 
+  it('hides delete button for the last remaining workflow trigger condition', () => {
+    render(
+      <AutomationBuilderTestProvider>
+        <DataConditionNodeList
+          {...defaultProps}
+          handlerGroup={DataConditionHandlerGroupType.WORKFLOW_TRIGGER}
+          conditions={[DataConditionFixture()]}
+        />
+      </AutomationBuilderTestProvider>,
+      {organization}
+    );
+
+    expect(screen.queryByRole('button', {name: 'Delete row'})).not.toBeInTheDocument();
+  });
+
   it('shows conflicting condition warning for action filters', () => {
     const conflictReason = 'The conditions highlighted in red are in conflict.';
     render(
@@ -329,10 +347,21 @@ describe('DataConditionNodeList', () => {
       });
 
       await userEvent.click(await screen.findByLabelText('Issue category'));
+      expect(
+        screen.getByRole('menuitemradio', {name: 'configuration'})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('menuitemradio', {name: 'preprod'})).toBeInTheDocument();
       await userEvent.click(screen.getByRole('menuitemradio', {name: 'metric'}));
 
       expect(mockUpdateCondition).toHaveBeenLastCalledWith('issue-category', {
         comparison: {value: 11, include: false},
+      });
+
+      await userEvent.click(await screen.findByLabelText('Issue category'));
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'configuration'}));
+
+      expect(mockUpdateCondition).toHaveBeenLastCalledWith('issue-category', {
+        comparison: {value: 19, include: false},
       });
     });
 
@@ -360,6 +389,35 @@ describe('DataConditionNodeList', () => {
 
       expect(mockUpdateCondition).toHaveBeenLastCalledWith('issue-type', {
         comparison: {value: IssueType.METRIC_ISSUE, include: true},
+      });
+    });
+
+    it('event frequency node applies defaults for the chosen comparison type', async () => {
+      const condition = DataConditionFixture({
+        id: 'event-frequency',
+        type: DataConditionType.EVENT_FREQUENCY,
+        comparison: {},
+      });
+
+      render(
+        <AutomationBuilderTestProvider>
+          <DataConditionNodeList {...defaultProps} conditions={[condition]} />
+        </AutomationBuilderTestProvider>,
+        {organization}
+      );
+
+      await userEvent.click(await screen.findByLabelText('Comparison type'));
+      await userEvent.click(
+        screen.getByRole('menuitemradio', {name: 'relatively higher than...'})
+      );
+
+      expect(mockUpdateCondition).toHaveBeenLastCalledWith('event-frequency', {
+        type: DataConditionType.EVENT_FREQUENCY_PERCENT,
+        comparison: {
+          value: 100,
+          interval: Interval.ONE_HOUR,
+          comparisonInterval: Interval.ONE_WEEK,
+        },
       });
     });
   });

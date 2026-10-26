@@ -1,7 +1,84 @@
-import pytest
+from datetime import UTC, datetime
+from typing import Any
+from unittest import mock
 
-from sentry.api.endpoints.project_trace_item_details import convert_rpc_attribute_to_json
+import pytest
+from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import (
+    TraceItemDetailsResponse,
+)
+
+from sentry.api.endpoints.project_trace_item_details import (
+    convert_rpc_attribute_to_json,
+    serialize_event,
+    serialize_meta,
+)
 from sentry.search.eap.types import SupportedTraceItemType
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import before_now
+from sentry.utils import json
+from sentry.utils.snuba_rpc import SnubaRPCBadRequest
+
+
+class ProjectTraceItemDetailsRoutingHintTest(APITestCase):
+    endpoint = "sentry-api-0-project-trace-item-details"
+
+    def test_routing_hint_is_forwarded_unchanged(self) -> None:
+        self.assert_routing_hint({"routing_hint": " opaque+/== "}, " opaque+/== ")
+
+    def test_omitted_routing_hint(self) -> None:
+        self.assert_routing_hint({}, "")
+
+    def test_blank_routing_hint(self) -> None:
+        self.assert_routing_hint({"routing_hint": ""}, "")
+
+    def assert_routing_hint(self, params: dict[str, str], expected_hint: str) -> None:
+        self.login_as(user=self.user)
+        organization, project = self.organization, self.project
+        item_id = "0123456789abcdef"
+        trace_id = "0123456789abcdef0123456789abcdef"
+        timestamp = before_now(minutes=1)
+        response = TraceItemDetailsResponse(item_id=item_id)
+        response.timestamp.FromDatetime(timestamp)
+        attribute = response.attributes.add()
+        attribute.name = "sentry.op"
+        attribute.value.val_str = "http.server"
+        with mock.patch(
+            "sentry.api.endpoints.project_trace_item_details.trace_item_details_rpc",
+            return_value=response,
+        ) as rpc:
+            self.get_success_response(
+                organization.slug,
+                project.slug,
+                item_id,
+                item_type="spans",
+                trace_id=trace_id,
+                timestamp=timestamp.isoformat(),
+                **params,
+            )
+
+        request = rpc.call_args.args[0]
+        assert request.routing_hint == expected_hint
+        assert request.meta.organization_id == self.organization.id
+        assert list(request.meta.project_ids) == [self.project.id]
+
+    def test_rpc_bad_request_is_returned_as_400(self) -> None:
+        self.login_as(user=self.user)
+        organization, project = self.organization, self.project
+        with mock.patch(
+            "sentry.api.endpoints.project_trace_item_details.trace_item_details_rpc",
+            side_effect=SnubaRPCBadRequest("invalid routing_hint"),
+        ):
+            response = self.get_error_response(
+                organization.slug,
+                project.slug,
+                "0123456789abcdef",
+                item_type="spans",
+                trace_id="0123456789abcdef0123456789abcdef",
+                routing_hint="invalid",
+                status_code=400,
+            )
+
+        assert response.data == {"detail": "Invalid trace item details request."}
 
 
 def test_convert_rpc_attribute_to_json_serializes_known_string_array_without_array_flag() -> None:
@@ -73,6 +150,102 @@ def test_convert_rpc_attribute_to_json_exposes_array_with_array_flag() -> None:
     ]
 
 
+@pytest.mark.parametrize("field_key", ["http.method", "http.request.method"])
+def test_serialize_meta_resolves_deprecated_attribute_names(field_key: str) -> None:
+    result = serialize_meta(
+        [
+            {"name": "http.request.method", "value": {"valStr": "GET"}},
+            {
+                "name": f"sentry._meta.fields.attributes.{field_key}",
+                "value": {"valStr": '{"": {"rem": [["!config", "s"]]}}'},
+            },
+        ],
+        SupportedTraceItemType.SPANS,
+    )
+
+    assert result == {field_key: {"": {"rem": [["!config", "s"]]}}}
+
+
+class TestSerializeEvent:
+    def _breadcrumb_attribute(self, values: list[dict[str, Any]]) -> dict[str, Any]:
+        return {
+            "name": "sentry.event.serialized_breadcrumbs",
+            "value": {"valStr": json.dumps({"values": values})},
+        }
+
+    def test_returns_none_when_no_event_attributes(self) -> None:
+        assert serialize_event([{"name": "sentry.op", "value": {"valStr": "http"}}]) is None
+
+    def test_normalizes_numeric_breadcrumb_timestamp_to_datetime(self) -> None:
+        # Relay serializes breadcrumb timestamps as epoch-seconds floats.
+        result = serialize_event(
+            [self._breadcrumb_attribute([{"type": "default", "timestamp": 1785955938.308}])]
+        )
+
+        assert result is not None
+        crumb = result["breadcrumbs"]["values"][0]
+        assert crumb["timestamp"] == datetime(2026, 8, 5, 18, 52, 18, 308000, tzinfo=UTC)
+
+    def test_leaves_string_breadcrumb_timestamp_untouched(self) -> None:
+        result = serialize_event(
+            [
+                self._breadcrumb_attribute(
+                    [{"type": "default", "timestamp": "2026-08-05T18:52:18.308000Z"}]
+                )
+            ]
+        )
+
+        assert result is not None
+        crumb = result["breadcrumbs"]["values"][0]
+        assert crumb["timestamp"] == "2026-08-05T18:52:18.308000Z"
+
+    def test_handles_breadcrumb_without_timestamp(self) -> None:
+        result = serialize_event([self._breadcrumb_attribute([{"type": "default"}])])
+
+        assert result is not None
+        assert "timestamp" not in result["breadcrumbs"]["values"][0]
+
+    def test_does_not_coerce_boolean_timestamp(self) -> None:
+        # bool is a subclass of int; ensure we don't treat it as an epoch value.
+        result = serialize_event(
+            [self._breadcrumb_attribute([{"type": "default", "timestamp": True}])]
+        )
+
+        assert result is not None
+        assert result["breadcrumbs"]["values"][0]["timestamp"] is True
+
+    def test_leaves_out_of_range_timestamp_untouched(self) -> None:
+        # A millisecond-scale epoch is out of datetime's range; degrade to the
+        # raw value instead of 500ing the whole response.
+        result = serialize_event(
+            [self._breadcrumb_attribute([{"type": "default", "timestamp": 1785955938308.0}])]
+        )
+
+        assert result is not None
+        assert result["breadcrumbs"]["values"][0]["timestamp"] == 1785955938308.0
+
+    def test_passes_through_contexts_and_extra(self) -> None:
+        result = serialize_event(
+            [
+                {
+                    "name": "sentry.event.serialized_contexts",
+                    "value": {
+                        "valStr": json.dumps({"device": {"boot_time": "2018-02-08T12:52:12Z"}})
+                    },
+                },
+                {
+                    "name": "sentry.event.serialized_extra",
+                    "value": {"valStr": json.dumps({"foo": "bar"})},
+                },
+            ]
+        )
+
+        assert result == {
+            "contexts": {"device": {"boot_time": "2018-02-08T12:52:12Z"}},
+            "extra": {"foo": "bar"},
+        }
+
+
 class TestReplacementAttributeFiltering:
     """Replacement attributes should only be hidden if a deprecated source
     attribute is also present in the response."""
@@ -96,18 +269,40 @@ class TestReplacementAttributeFiltering:
         assert len(result) == 1
         assert result[0]["name"] == attr_name
 
-    def test_replacement_attribute_hidden_when_deprecated_source_present(self) -> None:
+    def test_replacement_attribute_hidden_when_normalized_source_present(self) -> None:
         result = convert_rpc_attribute_to_json(
             [
-                {"name": "gen_ai.usage.prompt_tokens", "value": {"valInt": "42"}},
-                {"name": "gen_ai.usage.input_tokens", "value": {"valInt": "42"}},
+                {"name": "gen_ai.tool.output", "value": {"valStr": "result"}},
+                {"name": "gen_ai.tool.call.result", "value": {"valStr": "result"}},
             ],
             SupportedTraceItemType.SPANS,
         )
 
         names = [r["name"] for r in result]
-        assert "gen_ai.usage.prompt_tokens" in names
-        assert "gen_ai.usage.input_tokens" not in names
+        assert "gen_ai.tool.output" in names
+        assert "gen_ai.tool.call.result" not in names
+
+    @pytest.mark.parametrize(
+        "source,replacement,value",
+        [
+            ("gen_ai.usage.prompt_tokens", "gen_ai.usage.input_tokens", {"valInt": "42"}),
+            ("anthropic.tool_result.content", "gen_ai.tool.call.result", {"valStr": "result"}),
+        ],
+    )
+    def test_replacement_attribute_shown_when_backfilled_source_present(
+        self, source: str, replacement: str, value: dict[str, str]
+    ) -> None:
+        result = convert_rpc_attribute_to_json(
+            [
+                {"name": source, "value": value},
+                {"name": replacement, "value": value},
+            ],
+            SupportedTraceItemType.SPANS,
+        )
+
+        names = [r["name"] for r in result]
+        assert source in names
+        assert replacement in names
 
     def test_replacement_array_shown_when_no_deprecated_source(self) -> None:
         result = convert_rpc_attribute_to_json(
@@ -147,11 +342,17 @@ class TestInternalConventionVisibilityFiltering:
         assert "sentry.dsc.environment" not in names
         assert "dsc.environment" not in names
 
-    def test_convert_rpc_shows_internal_convention_attributes_when_include_internal(self) -> None:
+    @pytest.mark.parametrize(
+        "visibility",
+        [{"include_internal": True}, {"include_internal_convention_attributes": True}],
+    )
+    def test_convert_rpc_shows_internal_convention_attributes_when_included(
+        self, visibility: dict[str, bool]
+    ) -> None:
         result = convert_rpc_attribute_to_json(
             [self.INTERNAL_ATTR, self.PUBLIC_ATTR],
             SupportedTraceItemType.SPANS,
-            include_internal=True,
+            **visibility,
         )
 
         names = [r["name"] for r in result]

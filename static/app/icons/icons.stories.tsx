@@ -1,5 +1,7 @@
 import React, {Fragment, isValidElement} from 'react';
 import styled from '@emotion/styled';
+import {IconSentry} from '@sentry/icons/sentry';
+import type {SVGIconProps} from '@sentry/icons/svgIcon';
 import lowerFirst from 'lodash/lowerFirst';
 import {parseAsString, useQueryState} from 'nuqs';
 import {PlatformIcon, platforms} from 'platformicons';
@@ -12,14 +14,21 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Sticky} from 'sentry/components/sticky';
-import * as Icons from 'sentry/icons';
 import {IdentityIcon, type IdentityIconProps} from 'sentry/icons/identityIcon';
 import {PluginIcon, type PluginIconProps} from 'sentry/icons/pluginIcon';
-import {type SVGIconProps} from 'sentry/icons/svgIcon';
 import {fzf} from 'sentry/utils/search/fzf';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useKeyPress} from 'sentry/utils/useKeyPress';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
+
+const iconModules = import.meta.glob<Record<string, React.ComponentType<SVGIconProps>>>(
+  ['../../packages/icons/src/icon*.tsx', '!../../packages/icons/src/*.spec.tsx'],
+  {eager: true}
+);
+
+const Icons = Object.fromEntries(
+  Object.values(iconModules).flatMap(module => Object.entries(module))
+);
 
 type TIcon = {
   id: string;
@@ -187,11 +196,11 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
-        id: 'seer-waiting',
+        id: 'seer-idle',
         groups: ['product', 'seer'],
         keywords: ['seer', 'ai', 'eye', 'pyramid'],
         name: 'Seer',
-        defaultProps: {animation: 'waiting'},
+        defaultProps: {animation: 'idle'},
       },
       {
         id: 'seer-loading',
@@ -679,6 +688,13 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
+        id: 'circleDashed',
+        groups: ['status'],
+        keywords: ['shape', 'round', 'indicator', 'progress', 'pending', 'not started'],
+        name: 'CircleDashed',
+        defaultProps: {},
+      },
+      {
         id: 'circleFill',
         groups: ['status'],
         keywords: ['shape', 'round', 'dot', 'indicator', 'filled'],
@@ -994,6 +1010,13 @@ const SECTIONS: TSection[] = [
         groups: ['action'],
         keywords: ['duplicate', 'clone', 'clipboard'],
         name: 'Copy',
+        defaultProps: {},
+      },
+      {
+        id: 'copyId',
+        groups: ['action'],
+        keywords: ['duplicate', 'clone', 'clipboard', 'id', 'identifier'],
+        name: 'CopyId',
         defaultProps: {},
       },
       {
@@ -1671,7 +1694,7 @@ export function IconsStories() {
       <Flex direction="row" gap="md" justify="between" width="100%">
         {variants.map(v => (
           <Stack key={v} align="center" gap="md">
-            <Icons.IconSentry size="md" variant={v} />
+            <IconSentry size="md" variant={v} />
             <InlineCode>
               <Text size="xs" monospace>
                 {v}
@@ -1724,6 +1747,7 @@ const PLUGIN_ICON_KEYS: Array<PluginIconProps['pluginId']> = [
   'bitbucket',
   'bitbucket_pipelines',
   'bitbucket_server',
+  'cursor_origin',
   'discord',
   'github',
   'github_enterprise',
@@ -1828,7 +1852,6 @@ function IdentityIconsSection({searchTerm}: {searchTerm: string}) {
 function CoreSection({section, searchTerm}: {searchTerm: string; section: TSection}) {
   const renderIcon = (icon: TIcon) => {
     const name = icon.name.startsWith('Icon') ? icon.name : `Icon${icon.name}`;
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const Component = Icons[name];
 
     if (!Component) {
@@ -1842,7 +1865,7 @@ function CoreSection({section, searchTerm}: {searchTerm: string; section: TSecti
 
     const props = {...icon.defaultProps};
     return (
-      <IconCard icon={icon} importSource="sentry/icons">
+      <IconCard icon={icon} importSource={`@sentry/icons/${lowerFirst(name.slice(4))}`}>
         <Component {...props} />
         {name}
         {variant && (
@@ -1911,9 +1934,9 @@ function Section(props: CategorySectionProps) {
       </Container>
       <Grid
         columns={{
-          'screen:xs': 'repeat(2, 1fr)',
-          'screen:sm': 'repeat(3, 1fr)',
-          'screen:lg': 'repeat(4, 1fr)',
+          zero: 'repeat(2, 1fr)',
+          sm: 'repeat(3, 1fr)',
+          xl: 'repeat(4, 1fr)',
         }}
         align="center"
         gap="md"
@@ -1951,7 +1974,6 @@ function IconCard(props: IconCardProps) {
   return (
     <Tooltip
       maxWidth={640}
-      isHoverable
       title={
         <Stack gap="md">
           <CodeBlock language="jsx" code={snippets.all} />

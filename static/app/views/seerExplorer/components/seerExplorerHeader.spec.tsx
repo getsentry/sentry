@@ -1,11 +1,13 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {ConfigStore} from 'sentry/stores/configStore';
 import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/seerExplorerHeader';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 
-const BASE_FEATURES = ['seer-explorer', 'gen-ai-features'];
+const BASE_FEATURES = ['seer-explorer'];
 
 function orgWith(...extraFeatures: string[]) {
   return OrganizationFixture({
@@ -21,8 +23,8 @@ function defaultProps(overrides = {}) {
     onChangeSession: jest.fn(),
     onCopySessionClick: jest.fn(),
     onCopyLinkClick: jest.fn(),
-    overrideCtxEngEnable: false,
-    onOverrideCtxEngEnableToggle: jest.fn(),
+    overrideBashModeEnabled: false,
+    onOverrideBashModeToggle: jest.fn(),
     showThinking: false,
     onShowThinkingToggle: jest.fn(),
     isPipSupported: false,
@@ -34,6 +36,7 @@ function defaultProps(overrides = {}) {
 
 describe('SeerExplorerHeader', () => {
   beforeEach(() => {
+    ConfigStore.set('user', UserFixture());
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/seer/runs/`,
@@ -60,8 +63,24 @@ describe('SeerExplorerHeader', () => {
   }
 
   describe('Debug menu', () => {
+    beforeEach(() => {
+      ConfigStore.set(
+        'user',
+        UserFixture({
+          emails: [{email: 'employee@sentry.io', is_verified: true, id: '1'}],
+        })
+      );
+    });
+
     it('does not render when no debug feature flags are enabled', async () => {
       await renderHeader();
+      expect(screen.queryByRole('button', {name: 'Debug'})).not.toBeInTheDocument();
+    });
+
+    it('does not render for non-employees with a debug flag enabled', async () => {
+      ConfigStore.set('user', UserFixture());
+      await renderHeader({}, orgWith('seer-explorer-allow-bash-mode'));
+
       expect(screen.queryByRole('button', {name: 'Debug'})).not.toBeInTheDocument();
     });
 
@@ -70,27 +89,98 @@ describe('SeerExplorerHeader', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'Debug'}));
 
+      expect(screen.getByRole('option', {name: /Show thinking/})).toBeInTheDocument();
       expect(
-        screen.getByRole('menuitemradio', {name: /Show thinking/})
-      ).toBeInTheDocument();
-      expect(
-        screen.queryByRole('menuitemradio', {name: /Context Engine/})
+        screen.queryByRole('option', {name: /Force bash mode on/})
       ).not.toBeInTheDocument();
     });
 
-    it('reflects the toggle state and fires the handler', async () => {
-      const onOverrideCtxEngEnableToggle = jest.fn();
+    it('hides the thinking toggle when code mode tools is enabled', async () => {
       await renderHeader(
-        {overrideCtxEngEnable: true, onOverrideCtxEngEnableToggle},
-        orgWith('seer-explorer-context-engine-fe-override-ui-flag')
+        {},
+        orgWith('seer-explorer-thinking-blocks', 'seer-explorer-code-mode-tools')
+      );
+
+      // Code mode always shows thinking, so the Debug menu has nothing left to
+      // offer when only the thinking toggle would have been present.
+      expect(screen.queryByRole('button', {name: 'Debug'})).not.toBeInTheDocument();
+    });
+
+    it('renders the force bash mode toggle behind its own flag', async () => {
+      const onOverrideBashModeToggle = jest.fn();
+      await renderHeader(
+        {overrideBashModeEnabled: true, onOverrideBashModeToggle},
+        orgWith('seer-explorer-allow-bash-mode')
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'Debug'}));
 
-      expect(screen.getByRole('checkbox')).toBeChecked();
+      expect(screen.getByRole('option', {name: /Force bash mode on/})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
 
-      await userEvent.click(screen.getByRole('menuitemradio', {name: /Context Engine/}));
-      expect(onOverrideCtxEngEnableToggle).toHaveBeenCalled();
+      await userEvent.click(screen.getByRole('option', {name: /Force bash mode on/}));
+      expect(onOverrideBashModeToggle).toHaveBeenCalled();
+      expect(screen.getByRole('listbox')).toBeInTheDocument();
+    });
+
+    it('renders the agent trace link alongside the toggles', async () => {
+      const conversationsUrl =
+        'https://sentry.io/organizations/sentry/explore/conversations/run-id/';
+      await renderHeader({conversationsUrl}, orgWith('seer-explorer-allow-bash-mode'));
+
+      await userEvent.click(screen.getByRole('button', {name: 'Debug'}));
+
+      expect(
+        screen.getByRole('option', {name: /Force bash mode on/})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Open agent trace'})).toBeInTheDocument();
+    });
+
+    it('opens the agent trace in a new tab without toggling anything', async () => {
+      const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
+      const onOverrideBashModeToggle = jest.fn();
+      const conversationsUrl =
+        'https://sentry.io/organizations/sentry/explore/conversations/run-id/';
+      await renderHeader(
+        {conversationsUrl, onOverrideBashModeToggle},
+        orgWith('seer-explorer-allow-bash-mode')
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Debug'}));
+      await userEvent.click(screen.getByRole('option', {name: 'Open agent trace'}));
+
+      expect(openSpy).toHaveBeenCalledWith(
+        conversationsUrl,
+        '_blank',
+        'noopener,noreferrer'
+      );
+      expect(onOverrideBashModeToggle).not.toHaveBeenCalled();
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+      openSpy.mockRestore();
+    });
+
+    it('renders with only the agent trace link when no debug flags are enabled', async () => {
+      const conversationsUrl =
+        'https://sentry.io/organizations/sentry/explore/conversations/run-id/';
+      await renderHeader({conversationsUrl});
+
+      await userEvent.click(screen.getByRole('button', {name: 'Debug'}));
+
+      expect(screen.getAllByRole('option')).toEqual([
+        screen.getByRole('option', {name: 'Open agent trace'}),
+      ]);
+    });
+
+    it('does not render the agent trace link for non-employees', async () => {
+      ConfigStore.set('user', UserFixture());
+      await renderHeader({
+        conversationsUrl:
+          'https://sentry.io/organizations/sentry/explore/conversations/run-id/',
+      });
+
+      expect(screen.queryByRole('button', {name: 'Debug'})).not.toBeInTheDocument();
     });
   });
 
@@ -115,10 +205,13 @@ describe('SeerExplorerHeader', () => {
 
     it('disables both variants when disableNewChatButton is set', async () => {
       await renderHeader({disableNewChatButton: true});
-      expect(screen.getByRole('button', {name: 'New chat'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'New chat'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
       expect(
         screen.getByRole('button', {name: 'Start a new chat (/new)'})
-      ).toBeDisabled();
+      ).toHaveAttribute('aria-disabled', 'true');
     });
   });
 

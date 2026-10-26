@@ -435,7 +435,7 @@ def update_uptime_detector(
 
         current_env = detector.config.get("environment")
         if current_env:
-            current_env_obj = Environment.get_or_create(detector.project, current_env)
+            current_env_obj = Environment.get_or_create(detector.linked_project, current_env)
         else:
             current_env_obj = None
         env = default_if_not_set(current_env_obj, environment)

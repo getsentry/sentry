@@ -81,6 +81,10 @@ class GroupListTest(APITestCase, SnubaTestCase):
         self.create_group(last_seen=before_now(seconds=1))
         self.login_as(user=self.user)
 
+        response = self.client.get(f"{self.path}?sort=inbox", format="json")
+        assert response.status_code == 400
+        assert "Sort key 'inbox' not supported" in response.data["detail"]
+
         response = self.client.get(f"{self.path}?sort=-lastSeen", format="json")
         assert response.status_code == 400
         assert "Sort key '-lastSeen' not supported" in response.data["detail"]
@@ -174,21 +178,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert len(response.data) == 0
 
-    def test_auto_resolved(self) -> None:
-        project = self.project
-        project.update_option("sentry:resolve_age", 1)
-        self.create_group(last_seen=before_now(days=1))
-        group2 = self.create_group(last_seen=timezone.now())
-
-        self.login_as(user=self.user)
-        response = self.client.get(self.path + "?query=is:unresolved", format="json")
-        assert response.status_code == 200
-        assert len(response.data) == 1
-        assert response.data[0]["id"] == str(group2.id)
-
     def test_lookup_by_event_id(self) -> None:
-        project = self.project
-        project.update_option("sentry:resolve_age", 1)
         event_id = "c" * 32
         event = self.store_event(
             data={"event_id": event_id, "timestamp": self.min_ago.isoformat()},
@@ -204,7 +194,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
     def test_lookup_by_event_with_matching_environment(self) -> None:
         project = self.project
-        project.update_option("sentry:resolve_age", 1)
         self.create_environment(name="test", project=project)
 
         event = self.store_event(
@@ -224,8 +213,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.data[0]["matchingEventEnvironment"] == "test"
 
     def test_lookup_by_event_id_with_whitespace(self) -> None:
-        project = self.project
-        project.update_option("sentry:resolve_age", 1)
         event = self.store_event(
             data={"event_id": "c" * 32, "timestamp": self.min_ago.isoformat()},
             project_id=self.project.id,
@@ -239,8 +226,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.data[0]["id"] == str(event.group.id)
 
     def test_lookup_by_unknown_event_id(self) -> None:
-        project = self.project
-        project.update_option("sentry:resolve_age", 1)
         self.create_group()
         self.create_group()
 
@@ -365,7 +350,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
     def test_token_auth(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
-            token = ApiToken.objects.create(user=self.user, scopes=256)
+            token = ApiToken.objects.create(user=self.user, scope_list=["event:write"])
         response = self.client.get(
             self.path, format="json", HTTP_AUTHORIZATION=f"Bearer {token.token}"
         )
@@ -912,6 +897,36 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         activity = Activity.objects.get(group=group, type=ActivityType.SET_RESOLVED_IN_COMMIT.value)
         assert activity.data["commit"] == commit.id
 
+    def test_set_resolved_in_explicit_commit_with_duplicate_repository_name(self) -> None:
+        repo = self.create_repo(project=self.project, name=self.project.name)
+        commit = self.create_commit(project=self.project, repo=repo)
+        self.create_repo(
+            project=self.project,
+            name=repo.name,
+            provider="integrations:github",
+            external_id="duplicate-repository",
+        )
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+
+        self.login_as(user=self.user)
+
+        url = f"{self.path}?id={group.id}"
+        response = self.client.put(
+            url,
+            data={
+                "status": "resolved",
+                "statusDetails": {"inCommit": {"commit": commit.key, "repository": repo.name}},
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200
+        assert response.data["status"] == "resolved"
+        assert response.data["statusDetails"]["inCommit"]["id"] == commit.key
+
+        link = GroupLink.objects.get(group_id=group.id)
+        assert link.linked_id == commit.id
+
     def test_set_resolved_in_explicit_commit_released(self) -> None:
         release = self.create_release(project=self.project)
         repo = self.create_repo(project=self.project, name=self.project.name)
@@ -1327,7 +1342,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert "inbox" not in response.data
 
     @patch("sentry.issues.merge.uuid4")
-    @patch("sentry.issues.merge.merge_groups")
+    @patch("sentry.issues.merge.start_merge_groups")
     @patch("sentry.eventstream.backend")
     def test_merge(
         self, mock_eventstream: MagicMock, merge_groups: MagicMock, mock_uuid4: MagicMock
@@ -1369,7 +1384,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
 
     @patch("sentry.issues.merge.uuid4")
-    @patch("sentry.issues.merge.merge_groups")
+    @patch("sentry.issues.merge.start_merge_groups")
     @patch("sentry.eventstream.backend")
     def test_merge_performance_issues(
         self, mock_eventstream: MagicMock, merge_groups: MagicMock, mock_uuid4: MagicMock

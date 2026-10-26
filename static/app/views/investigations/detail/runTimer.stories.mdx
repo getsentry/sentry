@@ -1,0 +1,95 @@
+---
+title: Investigation active duration
+description: Persistent active work time next to the investigation status.
+category: patterns
+source: sentry/views/investigations/detail/runTimer
+---
+
+import {Tag} from '@sentry/scraps/badge';
+import {Flex} from '@sentry/scraps/layout';
+
+import * as Storybook from 'sentry/stories';
+import {InvestigationRunTimer} from 'sentry/views/investigations/detail/runTimer';
+import {InvestigationOrchestrationFixture} from 'sentry/views/investigations/fixtures';
+import {InvestigationAgenticDetailFixture} from 'sentry/views/investigations/fixtures';
+import {InvestigationFixtureApi} from 'sentry/views/investigations/__stories__/investigationFixtureApi';
+import {InvestigationBootstrapPage} from 'sentry/views/investigations/detail';
+
+The timer adds completed active intervals to the current interval using API server
+time. Waiting for input and terminal outcomes retain the accumulated duration.
+
+export function DetailExample() {
+  return (
+    <InvestigationFixtureApi
+      organizationSlug="storybook-duration"
+      details={[
+        InvestigationAgenticDetailFixture({
+          title:
+            'Investigating checkout latency across production services and background workers',
+          blocks: [],
+        }),
+      ]}
+      orchestration={{
+        'investigation-1': InvestigationOrchestrationFixture({
+          status: 'completed',
+          phase: 'completed',
+          startedAt: '2025-01-01T00:00:00Z',
+          finishedAt: '2025-01-01T00:05:00Z',
+          activeTimeElapsedSeconds: 72,
+          activeSince: null,
+        }),
+      }}
+    >
+      <InvestigationBootstrapPage investigationId="investigation-1" />
+    </InvestigationFixtureApi>
+  );
+}
+
+<Storybook.Demo>
+  <DetailExample />
+</Storybook.Demo>
+
+<Storybook.Demo>
+  <Flex align="center" gap="md">
+    <Tag variant="info">Investigating…</Tag>
+    <InvestigationRunTimer
+      orchestration={InvestigationOrchestrationFixture({
+        startedAt: '2025-01-01T00:00:00Z',
+        finishedAt: null,
+        activeTimeElapsedSeconds: 24.5,
+        activeSince: '2025-01-01T00:05:00Z',
+        serverTime: '2025-01-01T00:05:10Z',
+      })}
+    />
+  </Flex>
+</Storybook.Demo>
+
+<Storybook.Demo>
+  <Flex align="center" gap="md">
+    <Tag variant="warning">Awaiting input</Tag>
+    <InvestigationRunTimer
+      orchestration={InvestigationOrchestrationFixture({
+        status: 'awaiting_input',
+        startedAt: '2025-01-01T00:00:00Z',
+        finishedAt: null,
+        activeTimeElapsedSeconds: 59.999,
+        activeSince: null,
+      })}
+    />
+  </Flex>
+</Storybook.Demo>
+
+<Storybook.Demo>
+  <Flex align="center" gap="md">
+    <Tag variant="success">Completed</Tag>
+    <InvestigationRunTimer
+      orchestration={InvestigationOrchestrationFixture({
+        status: 'completed',
+        startedAt: '2025-01-01T00:00:00Z',
+        finishedAt: '2025-01-01T00:05:00Z',
+        activeTimeElapsedSeconds: 72,
+        activeSince: null,
+      })}
+    />
+  </Flex>
+</Storybook.Demo>

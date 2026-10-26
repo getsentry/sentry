@@ -7,8 +7,9 @@ from datetime import datetime, timezone
 from typing import Any, Literal, TypedDict
 
 import sentry_sdk
+from sentry_sdk import traces
 
-from sentry import features, killswitches, options, quotas, utils
+from sentry import features, options, quotas, utils
 from sentry.constants import (
     HEALTH_CHECK_GLOBS,
     INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
@@ -16,15 +17,15 @@ from sentry.constants import (
 )
 from sentry.dynamic_sampling import generate_rules
 from sentry.grouping.api import get_grouping_config_dict_for_project
+from sentry.ingest import legacy_filter_lists
 from sentry.ingest.inbound_filters import (
     FilterStatKeys,
     FilterTypes,
+    InboundFilterFeatures,
     _FilterSpec,
     get_all_filter_specs,
     get_filter_key,
     get_generic_filters,
-    get_log_messages_generic_filter,
-    get_trace_metric_names_generic_filter,
 )
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.meta import get_clusterer_meta
@@ -38,23 +39,16 @@ from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.quotas.base import RETENTIONS_CONFIG_MAPPING
 from sentry.relay.config.experimental import TimeChecker, add_experimental_config
-from sentry.relay.config.metric_extraction import (
-    get_metric_conditional_tagging_rules,
-    get_metric_extraction_config,
-)
 from sentry.relay.datascrubbing import get_datascrubbing_settings, get_pii_config
-from sentry.relay.types.generic_filters import GenericFilter
 from sentry.relay.utils import to_camel_case_name
 from sentry.utils import metrics
 from sentry.utils.http import get_origins
 from sentry.utils.options import sample_modulo
-from sentry.utils.tracing import start_span
 
 # These features will be listed in the project config.
 EXPOSABLE_FEATURES = [
     "organizations:continuous-profiling",
     "organizations:continuous-profiling-perfetto",
-    "organizations:profiling",
     "organizations:session-replay-recording-scrubbing",
     "organizations:session-replay-video-disabled",
     "organizations:session-replay",
@@ -68,13 +62,14 @@ EXPOSABLE_FEATURES = [
     "organizations:view-hierarchy-scrubbing",
     "organizations:performance-issues-spans",
     "organizations:relay-playstation-ingestion",
-    "projects:span-v2-experimental-processing",
+    "organizations:gpu-crash-symbolication",
     "projects:span-v2-attachment-processing",
     "projects:trace-attachment-processing",
-    "projects:relay-minidump-attachment-uploads",
     "projects:relay-minidump-uploads",
     "projects:relay-playstation-uploads",
-    "projects:minidump-multi-exception",
+    "projects:relay-nintendo-event-rewrite",
+    "projects:relay-upload-multipart",
+    "projects:resumable-uploads",
 ]
 
 EXTRACT_METRICS_VERSION = 1
@@ -143,40 +138,28 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
         if settings is not None and settings.get("isEnabled", True):
             filter_settings[filter_id] = settings
 
-    base_generic_filters: list[GenericFilter] = []
+    organization = project.organization
+    filter_features = InboundFilterFeatures(
+        custom_inbound_filters=features.has("projects:custom-inbound-filters", project),
+        logs=features.has("organizations:ourlogs-ingestion", organization),
+        metrics=features.has("organizations:tracemetrics-ingestion", organization),
+        custom_inbound_filters_v2=features.has("organizations:inbound-filters-v2", organization),
+        generic_ip_filter=features.has(
+            "organizations:inbound-filters-generic-ip-filter", organization
+        ),
+    )
 
-    error_messages: list[str] = []
-
-    if features.has("projects:custom-inbound-filters", project):
-        invalid_releases = project.get_option(f"sentry:{FilterTypes.RELEASES}")
+    if filter_features.custom_inbound_filters:
+        invalid_releases = legacy_filter_lists.get_applied_lines(project, FilterTypes.RELEASES)
         if invalid_releases:
             filter_settings["releases"] = {"releases": invalid_releases}
 
-        error_messages += project.get_option(f"sentry:{FilterTypes.ERROR_MESSAGES}") or []
-
-        if features.has("organizations:ourlogs-ingestion", project.organization):
-            log_messages = project.get_option(f"sentry:{FilterTypes.LOG_MESSAGES}") or []
-            if log_messages:
-                log_messages_filter = get_log_messages_generic_filter(log_messages)
-                if log_messages_filter:
-                    base_generic_filters.append(log_messages_filter)
-
-        if features.has("organizations:tracemetrics-ingestion", project.organization):
-            trace_metric_names = (
-                project.get_option(f"sentry:{FilterTypes.TRACE_METRIC_NAMES}") or []
-            )
-            if trace_metric_names:
-                trace_metric_names_filter = get_trace_metric_names_generic_filter(
-                    trace_metric_names
-                )
-                if trace_metric_names_filter:
-                    base_generic_filters.append(trace_metric_names_filter)
-
-    if error_messages:
-        filter_settings["errorMessages"] = {"patterns": error_messages}
+        error_messages = legacy_filter_lists.get_applied_lines(project, FilterTypes.ERROR_MESSAGES)
+        if error_messages:
+            filter_settings["errorMessages"] = {"patterns": error_messages}
 
     blacklisted_ips = project.get_option("sentry:blacklisted_ips")
-    if blacklisted_ips:
+    if blacklisted_ips and not filter_features.generic_ip_filter:
         filter_settings["clientIps"] = {"blacklistedIps": blacklisted_ips}
 
     csp_disallowed_sources: list[str] = []
@@ -187,9 +170,7 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
         filter_settings["csp"] = {"disallowedSources": csp_disallowed_sources}
 
     try:
-        # At the end we compute the generic inbound filters, which are inbound filters expressible with a
-        # conditional DSL that Relay understands.
-        generic_filters = get_generic_filters(project, base_generic_filters)
+        generic_filters = get_generic_filters(project, filter_features)
         if generic_filters is not None:
             filter_settings["generic"] = generic_filters
     except Exception as e:
@@ -230,8 +211,9 @@ def get_project_config(
     with sentry_sdk.isolation_scope() as scope:
         scope.set_tag("project", project.id)
         scope.set_attribute("project", project.id)
+        traces.new_trace()
         with (
-            start_span(name="get_project_config", transaction=True),
+            traces.start_span(name="get_project_config", parent_span=None),
             metrics.timer("relay.config.get_project_config.duration"),
         ):
             return _get_project_config(project, project_keys=project_keys)
@@ -831,7 +813,7 @@ def _get_project_config(
 
     public_keys = get_public_key_configs(project_keys=project_keys)
 
-    with start_span(op="get_public_config", name="get_public_config"):
+    with traces.start_span(name="get_public_config", attributes={"sentry.op": "get_public_config"}):
         now = datetime.now(timezone.utc)
         cfg = {
             "disabled": False,
@@ -865,8 +847,14 @@ def _get_project_config(
     if verify_signature != INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT:
         config["trustedRelaySettings"] = {"verifySignature": verify_signature}
 
-    with start_span(op="get_exposed_features", name="get_exposed_features"):
-        if exposed_features := get_exposed_features(project):
+    with traces.start_span(
+        name="get_exposed_features", attributes={"sentry.op": "get_exposed_features"}
+    ):
+        exposed_features = list(get_exposed_features(project))
+        if project.get_option("sentry:relay_automatic_json_expansion"):
+            # This is a project option encoded as a feature, not an actual project flag.
+            exposed_features.append("projects:relay-automatic-json-expansion")
+        if exposed_features:
             config["features"] = exposed_features
 
     # NOTE: Omitting dynamicSampling because of a failure increases the number
@@ -885,20 +873,6 @@ def _get_project_config(
 
     config["breakdownsV2"] = project.get_option("sentry:breakdowns")
 
-    if _should_extract_transaction_metrics(project):
-        # This config key is technically not specific to _transaction_ metrics,
-        # is however currently both only applied to transaction metrics in
-        # Relay, and only used to tag transaction metrics in Sentry.
-        add_experimental_config(
-            config,
-            "metricConditionalTagging",
-            get_metric_conditional_tagging_rules,
-            project,
-        )
-
-        if metric_extraction := get_metric_extraction_config(project):
-            config["metricExtraction"] = metric_extraction
-
     config["sessionMetrics"] = {
         "version": (
             EXTRACT_ABNORMAL_MECHANISM_VERSION
@@ -915,41 +889,53 @@ def _get_project_config(
     if performance_score_profiles:
         config["performanceScore"] = {"profiles": performance_score_profiles}
 
-    with start_span(op="get_filter_settings", name="get_filter_settings"):
+    with traces.start_span(
+        name="get_filter_settings", attributes={"sentry.op": "get_filter_settings"}
+    ):
         if filter_settings := get_filter_settings(project):
             config["filterSettings"] = filter_settings
-    with start_span(
-        op="get_grouping_config_dict_for_project", name="get_grouping_config_dict_for_project"
+    with traces.start_span(
+        name="get_grouping_config_dict_for_project",
+        attributes={"sentry.op": "get_grouping_config_dict_for_project"},
     ):
         grouping_config = get_grouping_config_dict_for_project(project)
         if grouping_config is not None:
             config["groupingConfig"] = grouping_config
-    with start_span(op="get_event_retention", name="get_event_retention"):
+    with traces.start_span(
+        name="get_event_retention", attributes={"sentry.op": "get_event_retention"}
+    ):
         event_retention = quotas.backend.get_event_retention(project.organization)
         if event_retention is not None:
             config["eventRetention"] = event_retention
-    with start_span(op="get_downsampled_event_retention", name="get_downsampled_event_retention"):
+    with traces.start_span(
+        name="get_downsampled_event_retention",
+        attributes={"sentry.op": "get_downsampled_event_retention"},
+    ):
         downsampled_event_retention = quotas.backend.get_downsampled_event_retention(
             project.organization
         )
         if downsampled_event_retention is not None:
             config["downsampledEventRetention"] = downsampled_event_retention
-    with start_span(op="get_retentions", name="get_retentions"):
+    with traces.start_span(name="get_retentions", attributes={"sentry.op": "get_retentions"}):
         retentions = quotas.backend.get_retentions(project.organization)
+        # Iterate the mapping (not the backend's dict) so that wire-name
+        # collisions resolve deterministically: the last mapping wins.
         retentions_config = {
-            RETENTIONS_CONFIG_MAPPING[c]: v.to_object()
-            for c, v in retentions.items()
-            if c in RETENTIONS_CONFIG_MAPPING
+            name: retentions[c].to_object()
+            for c, name in RETENTIONS_CONFIG_MAPPING.items()
+            if c in retentions
         }
         if retentions_config:
             config["retentions"] = retentions_config
 
-    with start_span(op="get_trimming_configs", name="get_trimming_configs"):
+    with traces.start_span(
+        name="get_trimming_configs", attributes={"sentry.op": "get_trimming_configs"}
+    ):
         trimming_configs = quotas.backend.get_trimming_configs(project.organization)
         if trimming_configs:
             config["trimming"] = trimming_configs
 
-    with start_span(op="get_all_quotas", name="get_all_quotas"):
+    with traces.start_span(name="get_all_quotas", attributes={"sentry.op": "get_all_quotas"}):
         if quotas_config := get_quotas(project, keys=project_keys):
             config["quotas"] = quotas_config
 
@@ -1114,11 +1100,3 @@ def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Mapping[
         else:
             ret_val = {"patterns": [], "isEnabled": False}
     return ret_val
-
-
-def _should_extract_transaction_metrics(project: Project) -> bool:
-    return features.has(
-        "organizations:transaction-metrics-extraction", project.organization
-    ) and not killswitches.killswitch_matches_context(
-        "relay.drop-transaction-metrics", {"project_id": project.id}
-    )

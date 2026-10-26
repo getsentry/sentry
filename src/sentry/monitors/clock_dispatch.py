@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload
 from django.conf import settings
 from sentry_kafka_schemas.codecs import Codec
+from sentry_kafka_schemas.schema_types.ingest_monitors_v1 import ClockPulse
 from sentry_kafka_schemas.schema_types.monitors_clock_tick_v1 import ClockTick
 
+from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.utils import metrics, redis
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
@@ -41,6 +44,84 @@ def _get_producer():
 
 
 _clock_tick_producer = SingletonProducer(_get_producer)
+
+
+@dataclass
+class PartitionSetState:
+    # partition ids from the most recent clock pulse this process has seen
+    expected_partitions: frozenset[int] | None = None
+
+    # time when this process first saw an incomplete partition set (None when set is complete)
+    incomplete_since: float | None = None
+
+
+_partition_set_state = PartitionSetState()
+
+
+def record_pulse_partitions(pulse: ClockPulse) -> None:
+    if "partition_ids" in pulse:
+        _partition_set_state.expected_partitions = frozenset(pulse["partition_ids"])
+
+
+def _missing_partitions(partition_clocks: list[tuple[str, float]]) -> frozenset[int] | None:
+    expected_partitions = _partition_set_state.expected_partitions
+
+    if expected_partitions is None:
+        return None
+
+    present_members = {member for member, _ in partition_clocks}
+    return frozenset(
+        partition for partition in expected_partitions if f"part-{partition}" not in present_members
+    )
+
+
+def _unexpected_members(partition_clocks: list[tuple[str, float]]) -> frozenset[str] | None:
+    """
+    Members of the partition clock set that the most recent clock pulse did not name.
+    """
+    expected_partitions = _partition_set_state.expected_partitions
+
+    if expected_partitions is None:
+        return None
+
+    expected_members = {f"part-{partition}" for partition in expected_partitions}
+    return frozenset(member for member, _ in partition_clocks if member not in expected_members)
+
+
+def _record_partition_set_metrics(
+    missing_partitions: frozenset[int] | None,
+    unexpected_members: frozenset[str] | None,
+) -> None:
+    if unexpected_members is not None:
+        metrics.gauge(
+            "monitors.task.clock_unexpected_partitions",
+            len(unexpected_members),
+            sample_rate=1.0,
+        )
+
+    if missing_partitions is None:
+        return
+
+    missing_count = len(missing_partitions)
+
+    now = datetime.now().timestamp()
+    if missing_count == 0:
+        _partition_set_state.incomplete_since = None
+        stall_gap = 0.0
+    else:
+        if _partition_set_state.incomplete_since is None:
+            _partition_set_state.incomplete_since = now
+        stall_gap = now - _partition_set_state.incomplete_since
+
+    metrics.gauge("monitors.task.clock_missing_partitions", missing_count, sample_rate=1.0)
+    metrics.gauge("monitors.task.clock_stall_gap", stall_gap, sample_rate=1.0)
+
+
+def _should_hold_clock_tick(missing_partitions: frozenset[int] | None) -> bool:
+    if not missing_partitions:
+        return False
+
+    return not options.get("crons.clock_tick.disable_hold_on_missing_partitions")
 
 
 def _dispatch_tick(ts: datetime):
@@ -91,18 +172,25 @@ def try_monitor_clock_tick(ts: datetime, partition: int):
         mapping={f"part-{partition}": reference_ts},
     )
 
-    # Find the slowest partition from our sorted set of partitions, where the
-    # clock is the score.
-    slowest_partitions: list[tuple[str, float]] = redis_client.zrange(
+    # Read every partition from our sorted set of partitions, where the clock
+    # is the score. The full set lets us see which partitions are missing.
+    partition_clocks: list[tuple[str, float]] = redis_client.zrange(
         name=MONITOR_TASKS_PARTITION_CLOCKS,
         withscores=True,
         start=0,
-        end=0,
+        end=-1,
     )
+
+    missing_partitions = _missing_partitions(partition_clocks)
+    unexpected_members = _unexpected_members(partition_clocks)
+    _record_partition_set_metrics(missing_partitions, unexpected_members)
+
+    if _should_hold_clock_tick(missing_partitions):
+        return
 
     # the first tuple is the slowest (part-<id>, score), the score is the
     # timestamp. Use `int()` to keep the timestamp (score) as an int
-    slowest_part_ts = int(slowest_partitions[0][1])
+    slowest_part_ts = int(partition_clocks[0][1])
 
     precheck_last_ts = _int_or_none(redis_client.get(MONITOR_TASKS_LAST_TRIGGERED_KEY))
 

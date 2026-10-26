@@ -68,15 +68,14 @@ class TestIssueLinkRequester(TestCase):
             content_type="application/json",
         )
 
-        with self.feature("organizations:sentry-apps-custom-webhook-headers"):
-            IssueLinkRequester(
-                install=self.install,
-                group=self.group,
-                uri="/link-issue",
-                fields={},
-                user=self.rpc_user,
-                action=IssueRequestActionType("create"),
-            ).run()
+        IssueLinkRequester(
+            install=self.install,
+            group=self.group,
+            uri="/link-issue",
+            fields={},
+            user=self.rpc_user,
+            action=IssueRequestActionType("create"),
+        ).run()
 
         request = responses.calls[0].request
         assert request.headers["Authorization"] == "Bearer secret-token"

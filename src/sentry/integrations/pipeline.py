@@ -5,12 +5,12 @@ from collections.abc import Callable, Sequence
 from typing import Any, Never, TypedDict
 
 import sentry_sdk
-from django.db import IntegrityError
+from django.db import IntegrityError, router, transaction
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase, HttpResponseRedirect
 from django.utils import timezone
 from django.utils.translation import gettext as _
-from sentry_sdk.tracing import TransactionSource
+from sentry_sdk.traces import SegmentNameSource
 
 from sentry import analytics, features
 from sentry.analytics.events.integration_pipeline_step import IntegrationPipelineStep
@@ -25,7 +25,10 @@ from sentry.integrations.base import (
     is_provider_enabled,
 )
 from sentry.integrations.manager import default_manager
-from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.integration import (
+    Integration,
+    OrganizationIntegrationDeletionInProgress,
+)
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
@@ -68,7 +71,7 @@ def initialize_integration_pipeline(
     fail (feature flags disabled or provider cannot be added).
     """
     scope = sentry_sdk.get_current_scope()
-    scope.set_transaction_name(f"integration.{provider_id}", source=TransactionSource.VIEW)
+    scope.set_transaction_name(f"integration.{provider_id}", source=SegmentNameSource.VIEW)
 
     pipeline = IntegrationPipeline(
         request=request, organization=organization, provider_key=provider_id
@@ -109,7 +112,9 @@ class _IntegrationDefaults(TypedDict):
     status: int
 
 
-def ensure_integration(key: str, data: IntegrationData) -> Integration:
+def ensure_integration(
+    key: str, data: IntegrationData, *, overwrite_existing_integration: bool = True
+) -> Integration:
     defaults: _IntegrationDefaults = {
         "metadata": data.get("metadata", {}),
         "name": data.get("name", data["external_id"]),
@@ -118,10 +123,21 @@ def ensure_integration(key: str, data: IntegrationData) -> Integration:
     integration, created = Integration.objects.get_or_create(
         provider=key, external_id=data["external_id"], defaults=defaults
     )
-    if not created:
+    if not created and (overwrite_existing_integration or not _has_live_installations(integration)):
         integration.update(**defaults)
 
     return integration
+
+
+def _has_live_installations(integration: Integration) -> bool:
+    # Uninstalling only removes the OrganizationIntegration, leaving the
+    # Integration row behind. Once no organization is using it, the stored
+    # global fields are stale and safe to replace on the next install.
+    return (
+        OrganizationIntegration.objects.filter(integration_id=integration.id)
+        .exclude(status__in=[ObjectStatus.PENDING_DELETION, ObjectStatus.DELETION_IN_PROGRESS])
+        .exists()
+    )
 
 
 class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
@@ -245,12 +261,31 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
 
         Raises IntegrationError on failure. Returns the created OrganizationIntegration.
         """
+        if not self.provider.reject_pending_deletion_reinstall:
+            return self._install_integration_transaction(data)
+
+        try:
+            with transaction.atomic(using=router.db_for_write(Integration)):
+                return self._install_integration_transaction(data)
+        except OrganizationIntegrationDeletionInProgress as error:
+            raise IntegrationError(
+                _(
+                    "This integration is already being removed. "
+                    "Removal is queued automatically; try installing it again in about 15 minutes."
+                )
+            ) from error
+
+    def _install_integration_transaction(self, data: IntegrationData) -> OrganizationIntegration:
         if "expect_exists" in data:
             self.integration = Integration.objects.get(
                 provider=self.provider.integration_key, external_id=data["external_id"]
             )
         else:
-            self.integration = ensure_integration(self.provider.integration_key, data)
+            self.integration = ensure_integration(
+                self.provider.integration_key,
+                data,
+                overwrite_existing_integration=self.provider.overwrite_existing_integration,
+            )
 
         assert self.request.user.is_authenticated
 
@@ -331,9 +366,11 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
             default_auth_id = identity_model.id
 
         org_integration = self.integration.add_organization(
-            self.organization, self.request.user, default_auth_id=default_auth_id
+            self.organization,
+            self.request.user,
+            default_auth_id=default_auth_id,
+            reject_pending_deletion=self.provider.reject_pending_deletion_reinstall,
         )
-
         if org_integration is None:
             raise IntegrationError("Could not create the integration for this organization.")
 

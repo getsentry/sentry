@@ -13,13 +13,15 @@ import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/number/formatNu
  */
 
 export function formatBytesBase10(bytes: number, u = 0) {
-  const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+  const units = ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
   const threshold = 1000;
+  const prefix = bytes < 0 ? '-' : '';
+  bytes = Math.abs(bytes);
 
   while (bytes >= threshold) {
     bytes /= threshold;
     u += 1;
   }
 
-  return formatNumberWithDynamicDecimalPoints(bytes) + ' ' + units[u];
+  return prefix + formatNumberWithDynamicDecimalPoints(bytes) + ' ' + units[u];
 }

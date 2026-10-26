@@ -9,7 +9,6 @@ import type {ReducerAction} from 'sentry/types/reducerAction';
  *
  * @param reducer The reducer function that updates the state.
  * @param initialState The initial state of the reducer.
- * @param initializer An optional function that can be used to initialize the state.
  */
 
 export interface DispatchingReducerMiddleware<R extends React.Reducer<any, any>> {
@@ -95,11 +94,10 @@ function update<R extends React.Reducer<any, any>>(
 
 export function useDispatchingReducer<R extends React.Reducer<any, any>>(
   reducer: R,
-  initialState: ReducerState<R>,
-  initializer?: (arg: ReducerState<R>) => ReducerState<R>
+  initialState: ReducerState<R>
 ): [ReducerState<R>, React.Dispatch<ReducerAction<R>>, DispatchingReducerEmitter<R>] {
   const emitter = useMemo(() => new DispatchingReducerEmitter<R>(), []);
-  const [state, setState] = useState(initialState ?? initializer?.(initialState)!);
+  const [state, setState] = useState(initialState);
 
   const stateRef = useRef(state);
   stateRef.current = state;

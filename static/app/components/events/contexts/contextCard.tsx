@@ -4,18 +4,11 @@ import startCase from 'lodash/startCase';
 import {Flex} from '@sentry/scraps/layout';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import type {ContextValue} from 'sentry/components/events/contexts';
 import {
-  getContextIcon,
-  getContextMeta,
-  getContextTitle,
-  getContextType,
-  getFormattedContextData,
-} from 'sentry/components/events/contexts/utils';
-import {
-  KeyValueData,
-  type KeyValueDataContentProps,
-} from 'sentry/components/keyValueData';
+  KeyValueTableCard,
+  KeyValueTableDataRow,
+  type KeyValueTableDataRowProps,
+} from 'sentry/components/tables/keyValueTable';
 import type {Event} from 'sentry/types/event';
 import type {KeyValueListDataItem} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -23,10 +16,19 @@ import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+import type {ContextValue} from './contextItems';
+import {getContextMeta} from './dataUtils';
+import {
+  getContextIcon,
+  getContextTitle,
+  getContextType,
+  getFormattedContextData,
+} from './utils';
+
 interface ContextCardProps {
   alias: string;
-  event: Event;
   type: string;
+  event?: Event;
   project?: Project;
   value?: ContextValue;
 }
@@ -48,6 +50,14 @@ interface ContextCardContentProps {
   config?: ContextCardContentConfig;
 }
 
+function getContextItemMeta(
+  meta: Record<string, any> | undefined,
+  key: string
+): Pick<KeyValueTableDataRowProps, 'errors' | 'meta'> {
+  const itemMeta = meta?.[key];
+  return {meta: itemMeta, errors: itemMeta?.['']?.err ?? []};
+}
+
 export function ContextCardContent({
   item,
   alias,
@@ -59,13 +69,12 @@ export function ContextCardContent({
   if (contextKey === 'type') {
     return null;
   }
-  const contextMeta = meta?.[contextKey];
-  const contextErrors = contextMeta?.['']?.err ?? [];
+  const {meta: contextMeta, errors: contextErrors} = getContextItemMeta(meta, contextKey);
   const contextSubject =
     config?.includeAliasInSubject && alias ? `${startCase(alias)}: ${subject}` : subject;
 
   return (
-    <KeyValueData.Content
+    <KeyValueTableDataRow
       item={{...item, subject: contextSubject}}
       meta={contextMeta}
       errors={config?.disableErrors ? [] : contextErrors}
@@ -94,18 +103,13 @@ export function ContextCard({alias, event, type, project, value = {}}: ContextCa
     location,
   });
 
-  const contentItems = contextItems.map<KeyValueDataContentProps>(item => {
-    const itemMeta: KeyValueDataContentProps['meta'] = meta?.[item?.key];
-    const itemErrors: KeyValueDataContentProps['errors'] = itemMeta?.['']?.err ?? [];
-    return {
-      item,
-      meta: itemMeta,
-      errors: itemErrors,
-    };
-  });
+  const contentItems = contextItems.map<KeyValueTableDataRowProps>(item => ({
+    item,
+    ...getContextItemMeta(meta, item.key),
+  }));
 
   return (
-    <KeyValueData.Card
+    <KeyValueTableCard
       contentItems={contentItems}
       title={
         <Flex justify="between" align="center">

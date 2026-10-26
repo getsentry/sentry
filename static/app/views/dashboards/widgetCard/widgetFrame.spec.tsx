@@ -4,10 +4,6 @@ import {WidgetFrame} from 'sentry/views/dashboards/widgetCard/widgetFrame';
 
 describe('WidgetFrame', () => {
   describe('Layout', () => {
-    beforeEach(() => {
-      jest.spyOn(console, 'error').mockImplementation();
-    });
-
     afterEach(() => {
       jest.resetAllMocks();
     });
@@ -22,6 +18,8 @@ describe('WidgetFrame', () => {
     });
 
     it('Catches errors in the visualization and hides the internal message', async () => {
+      // React reports the error caught by the widget's error boundary.
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation();
       render(
         <WidgetFrame title="Uh Oh">
           <UhOh />
@@ -36,6 +34,8 @@ describe('WidgetFrame', () => {
         await screen.findByText('Something went wrong displaying this widget.')
       ).toBeInTheDocument();
       expect(screen.queryByText(/cannot read properties/i)).not.toBeInTheDocument();
+      expect(errorSpy).toHaveBeenCalled();
+      errorSpy.mockRestore();
     });
   });
 
@@ -152,11 +152,15 @@ describe('WidgetFrame', () => {
         />
       );
 
-      await userEvent.click(screen.getByRole('button', {name: 'Widget actions'}));
+      const $trigger = screen.getByRole('button', {name: 'Widget actions'});
+      await userEvent.hover($trigger);
+      expect(await screen.findByText('Widget actions')).toBeInTheDocument();
+
+      await userEvent.click($trigger);
       await userEvent.click(screen.getByRole('menuitemradio', {name: 'One'}));
       expect(onAction1).toHaveBeenCalledTimes(1);
 
-      await userEvent.click(screen.getByRole('button', {name: 'Widget actions'}));
+      await userEvent.click($trigger);
       await userEvent.click(screen.getByRole('menuitemradio', {name: 'Two'}));
       expect(onAction2).toHaveBeenCalledTimes(1);
     });
@@ -242,6 +246,10 @@ describe('WidgetFrame', () => {
 
       const $button = screen.getByRole('button', {name: 'Open Full-Screen View'});
       expect($button).toBeInTheDocument();
+
+      await userEvent.hover($button);
+      expect(await screen.findByText('Open Full-Screen View')).toBeInTheDocument();
+
       await userEvent.click($button);
 
       expect(onFullScreenViewClick).toHaveBeenCalledTimes(1);

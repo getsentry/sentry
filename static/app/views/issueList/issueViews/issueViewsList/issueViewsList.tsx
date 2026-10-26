@@ -1,10 +1,13 @@
+import type {ReactNode} from 'react';
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconSort} from '@sentry/icons/sort';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 
@@ -15,7 +18,6 @@ import {Hovercard} from 'sentry/components/hovercard';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconAdd, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
@@ -232,11 +234,15 @@ function NoViewsBanner({
   return (
     <Banner>
       <BannerTitle>{t('Create your first view')}</BannerTitle>
-      <BannerText>
+      <Container
+        maxWidth={{zero: '100%', '3xl': '75%', '4xl': '60%', '5xl': '50%'}}
+        flexShrink={0}
+        style={{fontSize: '14px', fontWeight: 400}}
+      >
         {t(
           'Your haven’t saved any issue views yet — saving views makes it easier to return to your most frequent search queries, like high priority, assigned to you, or most recent.'
         )}
-      </BannerText>
+      </Container>
       <Feature
         features="organizations:issue-views"
         overrideName="feature-disabled:issue-views"
@@ -333,8 +339,8 @@ const issueViewsFeedbackOptions = {
   formTitle: t('Give Feedback'),
   messagePlaceholder: t('How can we make issue views better for you?'),
   tags: {
-    ['feedback.source']: 'custom_views',
-    ['feedback.owner']: 'issues',
+    'feedback.source': 'custom_views',
+    'feedback.owner': 'issues',
   },
 };
 
@@ -376,7 +382,10 @@ export default function IssueViewsList() {
   return (
     <SentryDocumentTitle title={t('All Views')} orgSlug={organization.slug}>
       <Stack flex={1}>
-        <Layout.Title>{t('All Views')}</Layout.Title>
+        <TopBar.Slot
+          name="breadcrumbs"
+          title={{type: 'page-title', label: t('All Views')}}
+        />
         <TopBar.Slot name="feedback">
           <FeedbackButton
             size="sm"
@@ -388,8 +397,8 @@ export default function IssueViewsList() {
           </FeedbackButton>
         </TopBar.Slot>
         <Layout.Body>
-          <MainTableLayout width="full">
-            <FilterSortBar>
+          <MainTableLayout>
+            <Grid align="center" gap="md" columns="1fr auto">
               <SearchBar
                 defaultQuery={query}
                 onSearch={newQuery => {
@@ -443,7 +452,7 @@ export default function IssueViewsList() {
                   )}
                 </Feature>
               </Flex>
-            </FilterSortBar>
+            </Grid>
             <TableHeading>{t('Created by Me')}</TableHeading>
             <IssueViewSection
               createdBy={GroupSearchViewCreatedBy.ME}
@@ -497,33 +506,8 @@ const BannerTitle = styled('div')`
   font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
-const BannerText = styled('div')`
-  font-size: ${p => p.theme.font.size.md};
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  flex-shrink: 0;
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    max-width: 75%;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    max-width: 60%;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.xl}) {
-    max-width: 50%;
-  }
-`;
-
 const BannerAddViewButton = styled(Button)`
   align-self: flex-start;
-`;
-
-const FilterSortBar = styled('div')`
-  display: grid;
-  align-items: center;
-  grid-template-columns: 1fr auto;
-  gap: ${p => p.theme.space.md};
 `;
 
 const TableHeading = styled('h2')`
@@ -535,6 +519,12 @@ const TableHeading = styled('h2')`
   margin-bottom: ${p => p.theme.space.lg};
 `;
 
-const MainTableLayout = styled(Layout.Main)`
-  container-type: inline-size;
-`;
+// A scraps container rather than raw `container-type`, so that the tables inside
+// can resolve their responsive columns against it in JS as well as in CSS.
+function MainTableLayout({children}: {children: ReactNode}) {
+  return (
+    <Layout.Main width="full">
+      <Container containerType="inline-size">{children}</Container>
+    </Layout.Main>
+  );
+}

@@ -59,13 +59,16 @@ Brewfile.lock.json
 bin/rrweb-output
 model-manifest.json
 .mypy_cache
+.mypy_worker.*.json
 .devenv
 .yalc/
 yalc.lock
 ngrok.yml
 package-lock.json
 yarn.lock
+stats.rspack.json
 .claude/settings.local.json
+.claude/launch.json
 .claude/plans
 .claude/worktrees
 .warden/

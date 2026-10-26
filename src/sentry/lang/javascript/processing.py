@@ -2,7 +2,6 @@ import logging
 import re
 from typing import Any
 
-from sentry.debug_files.artifact_bundles import maybe_renew_artifact_bundles_from_processing
 from sentry.lang.javascript.utils import JAVASCRIPT_PLATFORMS
 from sentry.lang.native.error import SymbolicationFailed, write_error
 from sentry.lang.native.symbolicator import FrameOrder, Symbolicator
@@ -65,11 +64,6 @@ def _merge_frame(new_frame, symbolicated):
             frame_meta["symbolicated"] = data["symbolicated"]
     if symbolicated.get("module"):
         new_frame["module"] = symbolicated["module"]
-    if symbolicated.get("in_app") is not None:
-        new_frame["in_app"] = symbolicated["in_app"]
-    # if symbolicated.get("status"):
-    # NOTE: We don't need this currently, and it's not clear whether we'll use it at all.
-    # frame_meta["symbolicator_status"] = symbolicated["status"]
 
     return new_frame
 
@@ -264,10 +258,6 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
 
     if not _handle_response_status(data, response):
         return data
-
-    used_artifact_bundles = response.get("used_artifact_bundles", [])
-    if used_artifact_bundles:
-        maybe_renew_artifact_bundles_from_processing(symbolicator.project.id, used_artifact_bundles)
 
     processing_errors = response.get("errors", [])
     if len(processing_errors) > 0:

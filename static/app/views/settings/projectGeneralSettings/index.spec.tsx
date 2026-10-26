@@ -130,6 +130,41 @@ describe('projectGeneralSettings', () => {
     );
   });
 
+  it('confirms before disabling release auto-creation', async () => {
+    putMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      method: 'PUT',
+      body: {...project, enableAutoReleaseCreation: false},
+    });
+
+    render(<ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />, {
+      organization,
+      initialRouterConfig,
+    });
+
+    const toggle = await screen.findByRole('checkbox', {
+      name: 'Enable release auto-creation from telemetry',
+    });
+    expect(toggle).toBeChecked();
+
+    await userEvent.click(toggle);
+
+    // A confirmation modal must appear before the change is persisted.
+    renderGlobalModal();
+    expect(putMock).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByTestId('confirm-button'));
+
+    await waitFor(() =>
+      expect(putMock).toHaveBeenCalledWith(
+        `/projects/${organization.slug}/${project.slug}/`,
+        expect.objectContaining({
+          method: 'PUT',
+          data: {enableAutoReleaseCreation: false},
+        })
+      )
+    );
+  });
+
   it('disables scrapeJavaScript when equivalent org setting is false', async () => {
     const orgWithoutScrapeJavaScript = OrganizationFixture({
       scrapeJavaScript: false,
@@ -450,9 +485,6 @@ describe('projectGeneralSettings', () => {
         method: 'GET',
         body: [],
       });
-
-      // required for async updates
-      jest.spyOn(console, 'error').mockImplementation();
     });
 
     it('shows all platform options when all console platforms enabled', async () => {
@@ -539,5 +571,21 @@ describe('projectGeneralSettings', () => {
       // Should still show non-console platforms
       expect(screen.getByText('React')).toBeInTheDocument();
     });
+  });
+
+  it('renders connected repositories panel', async () => {
+    const orgWithFlag = OrganizationFixture({features: ['code-mappings-refactor']});
+    MockApiClient.addMockResponse({
+      url: `/projects/${orgWithFlag.slug}/${project.slug}/repo/`,
+      method: 'GET',
+      body: [],
+    });
+
+    render(<ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />, {
+      organization: orgWithFlag,
+      initialRouterConfig,
+    });
+
+    expect(await screen.findByText('Connected Repositories')).toBeInTheDocument();
   });
 });

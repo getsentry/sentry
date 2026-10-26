@@ -1,6 +1,12 @@
+from unittest import mock
+
 from sentry.models.group import Group
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
+
+FORMATTER_FEATURE = "organizations:issue-standardized-markdown-for-llm"
+BOOLEAN_SEARCH_FEATURE = "organizations:issue-details-boolean-search"
 
 
 class GroupEventDetailsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
@@ -18,6 +24,7 @@ class GroupEventDetailsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
                 "environment": "staging",
                 "fingerprint": ["group_1"],
                 "timestamp": two_min_ago,
+                "tags": {"region": "us"},
             },
             project_id=project.id,
         )
@@ -28,6 +35,16 @@ class GroupEventDetailsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
                 "environment": "production",
                 "fingerprint": ["group_1"],
                 "timestamp": min_ago,
+                "tags": {"region": "de"},
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ValueError",
+                            "value": "example",
+                            "mechanism": {"type": "generic", "handled": True},
+                        }
+                    ]
+                },
             },
             project_id=project.id,
         )
@@ -130,3 +147,175 @@ class GroupEventDetailsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
         url = f"/api/0/organizations/{self.organization.slug}/issues/{event.group.id}/events/{event.event_id}/"
         response = self.client.get(url, format="json", data={"query": "release.version:foobar"})
         assert response.status_code == 400
+
+    @with_feature(BOOLEAN_SEARCH_FEATURE)
+    def test_boolean_query(self) -> None:
+        self.store_event(
+            data={
+                "fingerprint": ["group_1"],
+                "timestamp": before_now(seconds=30).isoformat(),
+                "tags": {"region": "ca"},
+            },
+            project_id=self.group.project_id,
+        )
+        self.store_event(
+            data={
+                "fingerprint": ["another_issue"],
+                "timestamp": before_now(seconds=15).isoformat(),
+                "tags": {"region": "us"},
+                "exception": self.event2.data["exception"],
+            },
+            project_id=self.group.project_id,
+        )
+        for event_id, query, expected_id in [
+            ("oldest", 'region:"us" OR handled:yes', self.event1.event_id),
+            ("latest", 'region:"us" OR handled:yes', self.event2.event_id),
+            ("recommended", 'region:"us" OR handled:yes', self.event2.event_id),
+            (
+                "oldest",
+                "(region:us OR handled:yes) environment:production",
+                self.event2.event_id,
+            ),
+            (
+                "latest",
+                "region:us OR (handled:yes AND environment:staging)",
+                self.event1.event_id,
+            ),
+        ]:
+            url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/events/{event_id}/"
+            response = self.client.get(url, {"query": query})
+            assert response.status_code == 200, response.content
+            assert response.data["id"] == expected_id, (event_id, query)
+
+    @with_feature(BOOLEAN_SEARCH_FEATURE)
+    def test_boolean_query_navigation(self) -> None:
+        self.store_event(
+            data={
+                "fingerprint": ["group_1"],
+                "timestamp": before_now(seconds=90).isoformat(),
+                "tags": {"region": "ca"},
+            },
+            project_id=self.group.project_id,
+        )
+        with self.options({"eventstore.adjacent_event_ids_use_snql": False}):
+            for event, adjacent_key, expected_id in [
+                (self.event1, "nextEventID", self.event2.event_id),
+                (self.event2, "previousEventID", self.event1.event_id),
+            ]:
+                url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/events/{event.event_id}/"
+                response = self.client.get(url, {"query": "region:us OR handled:yes"})
+                assert response.status_code == 200, response.content
+                assert response.data[adjacent_key] == expected_id
+
+    @with_feature(BOOLEAN_SEARCH_FEATURE)
+    def test_boolean_query_oldest_navigation_respects_retention(self) -> None:
+        self.store_event(
+            data={
+                "fingerprint": ["group_1"],
+                "timestamp": before_now(days=14).isoformat(),
+                "tags": {"region": "us"},
+            },
+            project_id=self.group.project_id,
+        )
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/events/oldest/"
+        with mock.patch("sentry.quotas.backend.get_event_retention", return_value=7):
+            for params in [{}, {"statsPeriod": "90d"}]:
+                response = self.client.get(url, {"query": "region:us OR handled:yes", **params})
+
+                assert response.status_code == 200, response.content
+                assert response.data["id"] == self.event1.event_id
+                assert response.data["previousEventID"] is None
+                assert response.data["nextEventID"] == self.event2.event_id
+
+    @with_feature(BOOLEAN_SEARCH_FEATURE)
+    def test_boolean_query_respects_environment_and_dates(self) -> None:
+        for params in [
+            {"environment": "staging"},
+            {
+                "start": before_now(minutes=3).isoformat(),
+                "end": before_now(seconds=90).isoformat(),
+            },
+        ]:
+            response = self.client.get(
+                self._latest_url(), {"query": "region:us OR handled:yes", **params}
+            )
+            assert response.status_code == 200, response.content
+            assert response.data["id"] == self.event1.event_id
+            assert response.data["nextEventID"] is None
+
+    @with_feature({BOOLEAN_SEARCH_FEATURE: False})
+    def test_boolean_query_disabled(self) -> None:
+        response = self.client.get(self._latest_url(), {"query": "region:us OR handled:yes"})
+
+        assert response.status_code == 400
+        assert response.data["detail"] == "Invalid event query"
+
+    @with_feature(BOOLEAN_SEARCH_FEATURE)
+    def test_issue_filters_with_boolean_search_enabled(self) -> None:
+        for query, expected_id in [
+            ("is:unresolved region:us", self.event1.event_id),
+            ("is:unresolved AND region:us", self.event1.event_id),
+            (
+                "(is:unresolved AND region:us) OR (is:resolved AND region:de)",
+                self.event2.event_id,
+            ),
+            ("(is:unresolved)", self.event2.event_id),
+        ]:
+            response = self.client.get(self._latest_url(), {"query": query})
+            assert response.status_code == 200, (query, response.content)
+            assert response.data["id"] == expected_id, query
+
+    @with_feature(BOOLEAN_SEARCH_FEATURE)
+    def test_boolean_query_invalid(self) -> None:
+        for query in ["region:us OR", "(count():>1)"]:
+            response = self.client.get(self._latest_url(), {"query": query})
+            assert response.status_code == 400
+
+    @with_feature(BOOLEAN_SEARCH_FEATURE)
+    def test_boolean_query_performance_issue(self) -> None:
+        event = self.create_performance_issue()
+        assert event.group is not None
+        url = (
+            f"/api/0/organizations/{self.organization.slug}/issues/{event.group.id}/events/latest/"
+        )
+        response = self.client.get(url, {"query": f"id:{event.event_id} OR region:unknown"})
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == event.event_id
+
+    def _latest_url(self, query: str = "") -> str:
+        base = (
+            f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/events/latest/"
+        )
+        return base + query
+
+    def test_format_markdown_adds_formatted_field(self) -> None:
+        with self.feature(FORMATTER_FEATURE):
+            response = self.client.get(self._latest_url("?llmFormat=markdown"))
+
+        assert response.status_code == 200
+        assert response.data["id"] == str(self.event2.event_id)
+        assert response.data["formatted"]["format"] == "markdown"
+        assert "## Title" in response.data["formatted"]["content"]
+
+    def test_no_format_param_has_no_formatted_field(self) -> None:
+        with self.feature(FORMATTER_FEATURE):
+            response = self.client.get(self._latest_url())
+
+        assert response.status_code == 200
+        assert "formatted" not in response.data
+
+    def test_format_ignored_when_feature_off(self) -> None:
+        # feature defaults off -> ?llmFormat is inert, response unchanged
+        response = self.client.get(self._latest_url("?llmFormat=markdown"))
+
+        assert response.status_code == 200
+        assert "formatted" not in response.data
+
+    def test_invalid_format_is_ignored(self) -> None:
+        # an unrecognized value is inert, not a 400 -> response is unchanged
+        with self.feature(FORMATTER_FEATURE):
+            response = self.client.get(self._latest_url("?llmFormat=banana"))
+
+        assert response.status_code == 200
+        assert "formatted" not in response.data

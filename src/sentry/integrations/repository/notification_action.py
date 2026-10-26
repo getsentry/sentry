@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from logging import Logger, getLogger
 
-from django.db.models import Q
+from django.db.models import F, Q
 
 from sentry.integrations.repository.base import (
     BaseNewNotificationMessage,
@@ -85,18 +85,20 @@ class NotificationActionNotificationMessageRepository:
         """
         try:
             base_filter = self._parent_notification_message_base_filter()
-            instance: NotificationMessage = (
+            instance = (
                 self._model.objects.filter(base_filter)
                 .filter(
                     action=action,
                     group=group,
                     open_period_start=open_period_start,
                 )
-                .latest("date_added")
+                # Order by open_period_start to encourage index use.
+                .order_by(F("open_period_start").asc(nulls_last=True), "-date_added")
+                .first()
             )
+            if instance is None:
+                return None
             return NotificationActionNotificationMessage.from_model(instance=instance)
-        except NotificationMessage.DoesNotExist:
-            return None
         except Exception as e:
             self._logger.warning(
                 "Failed to get parent notification for issue rule",

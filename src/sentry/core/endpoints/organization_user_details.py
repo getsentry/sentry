@@ -6,6 +6,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.bases.organizationmember import MemberPermission
+from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 
 
@@ -23,7 +24,8 @@ class OrganizationUserDetailsEndpoint(OrganizationEndpoint):
             raise ValidationError(f"user_id({user_id}) must be an integer")
 
         users = user_service.serialize_many(
-            filter={"user_ids": [user_id], "organization_id": organization.id}, as_user=request.user
+            filter={"user_ids": [user_id], "organization_id": organization.id},
+            as_user=serialize_generic_user(request.user),
         )
         if len(users) == 0:
             return Response(status=404)

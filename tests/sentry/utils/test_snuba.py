@@ -3,8 +3,9 @@ from datetime import datetime, timedelta
 from unittest import mock
 
 import pytest
+import sentry_sdk
 from django.utils import timezone
-from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
+from snuba_sdk import Column, Condition, DeleteQuery, Entity, Function, Op, Query, Request
 from urllib3 import HTTPConnectionPool
 from urllib3.exceptions import HTTPError, ReadTimeoutError
 from urllib3.response import HTTPResponse
@@ -18,6 +19,7 @@ from sentry.testutils.cases import TestCase
 from sentry.utils import json
 from sentry.utils.snuba import (
     ROUND_UP,
+    EmptyGroupIdIntersectionError,
     RateLimitExceeded,
     RetrySkipTimeout,
     SnubaQueryParams,
@@ -25,6 +27,7 @@ from sentry.utils.snuba import (
     UnqualifiedQueryError,
     _bulk_snuba_query,
     _prepare_query_params,
+    _snuba_query,
     get_json_type,
     get_query_params_to_update_for_projects,
     get_snuba_column_name,
@@ -307,6 +310,15 @@ class PrepareQueryParamsTest(TestCase):
         _prepare_query_params(snuba_params)
         assert conditions == snuba_params.conditions
         assert kwargs == snuba_params.kwargs
+
+    def test_preprocess_empty_group_intersection_raises(self) -> None:
+        group = self.create_group()
+        with pytest.raises(EmptyGroupIdIntersectionError):
+            SnubaQueryParams(
+                dataset=Dataset.Events,
+                filter_keys={"group_id": [group.id]},
+                conditions=[["group_id", "!=", group.id]],
+            )
 
     def test_preprocess_group_redirects(self) -> None:
         g1 = self.create_group(id=1)
@@ -754,3 +766,33 @@ class SnubaQueryRateLimitTest(TestCase):
             _bulk_snuba_query([make_request("ok"), make_request("rate_limited")])
 
         assert mock.call("allocation_policy.is_successful", True) not in mock_set_tag.call_args_list
+
+
+class SnubaResponseCompressionTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.mock_pool = mock.patch("sentry.utils.snuba._snuba_pool").start()
+        self.addCleanup(mock.patch.stopall)
+        self.mock_pool.urlopen.return_value = mock.Mock(status=200, data=b'{"data": []}')
+
+    def _run_query(self, query) -> None:
+        req = mock.Mock(dataset="events", query=query)
+        req.serialize.return_value = b"{}"
+        _snuba_query(
+            (
+                sentry_sdk.get_isolation_scope(),
+                sentry_sdk.get_current_scope(),
+                SnubaRequest(
+                    request=req, referrer="test", forward=lambda x: x, reverse=lambda x: x
+                ),
+            )
+        )
+
+    def test_compresses_read_query(self) -> None:
+        self._run_query(mock.Mock(spec=Query))
+        headers = self.mock_pool.urlopen.call_args.kwargs["headers"]
+        assert headers["Accept-Encoding"] == "zstd"
+
+    def test_skips_delete_query(self) -> None:
+        self._run_query(mock.Mock(spec=DeleteQuery, storage_name="events"))
+        headers = self.mock_pool.urlopen.call_args.kwargs["headers"]
+        assert "Accept-Encoding" not in headers

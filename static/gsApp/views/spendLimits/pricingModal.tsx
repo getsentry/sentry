@@ -10,7 +10,7 @@ import type {Organization} from 'sentry/types/organization';
 
 import type {Subscription} from 'getsentry/types';
 import {displayBudgetName} from 'getsentry/utils/billing';
-import {SharedSpendLimitPriceTable} from 'getsentry/views/spendLimits/spendLimitSettings';
+import {SharedSpendLimitPriceTable} from 'getsentry/views/spendLimits/sharedSpendLimitPriceTable';
 
 function SpendLimitsPricingModal({
   subscription,

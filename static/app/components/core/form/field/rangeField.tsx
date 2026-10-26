@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import type {DistributedOmit} from 'type-fest';
 
-import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
+import {useAutoSaveContext, useLabelId} from '@sentry/scraps/formPresentation';
 import {Flex} from '@sentry/scraps/layout';
 import {Slider, type SliderProps} from '@sentry/scraps/slider';
 
@@ -20,6 +20,7 @@ export function RangeField({
     disabled?: boolean | string;
   }) {
   const autoSaveContext = useAutoSaveContext();
+  const labelId = useLabelId();
 
   return (
     <BaseField disabled={disabled} ref={ref}>
@@ -27,6 +28,7 @@ export function RangeField({
         <Fragment>
           <Slider
             {...fieldProps}
+            aria-labelledby={labelId}
             {...props}
             value={value}
             onChange={onChange}

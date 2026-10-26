@@ -27,9 +27,9 @@ from sentry.workflow_engine.handlers.detector.stateful import (
     StatefulDetectorHandler,
 )
 from sentry.workflow_engine.models import DataPacket, DetectorState
-from sentry.workflow_engine.processors.data_condition_group import ProcessedDataConditionGroup
+from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
+from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
-    DetectorEvaluationResult,
     DetectorGroupKey,
     DetectorPriorityLevel,
     DetectorSettings,
@@ -117,7 +117,7 @@ class ProcessingErrorDetectorHandler(
 
     @override
     def extract_dedupe_value(self, data_packet: DataPacket[ProcessingErrorPacketValue]) -> int:
-        # Not used — we override evaluate_impl and skip dedupe logic
+        # Not used — we override evaluate and skip dedupe logic
         return 0
 
     @override
@@ -127,7 +127,7 @@ class ProcessingErrorDetectorHandler(
     @override
     def create_occurrence(
         self,
-        evaluation_result: ProcessedDataConditionGroup,
+        evaluation_result: DataConditionGroupEvaluation,
         data_packet: DataPacket[ProcessingErrorPacketValue],
         priority: DetectorPriorityLevel,
     ) -> tuple[DetectorOccurrence, EventData]:
@@ -168,7 +168,7 @@ class ProcessingErrorDetectorHandler(
         return (occurrence, event_data)
 
     @override
-    def evaluate_impl(
+    def evaluate(
         self, data_packet: DataPacket[ProcessingErrorPacketValue]
     ) -> GroupedDetectorEvaluationResult:
         """
@@ -177,11 +177,11 @@ class ProcessingErrorDetectorHandler(
         parent's batched state manager approach.
         """
         data_value = self.extract_value(data_packet)
-        results: dict[DetectorGroupKey, DetectorEvaluationResult] = {}
+        results: dict[DetectorGroupKey, DetectorEvaluation] = {}
 
-        condition_results, evaluated_priority = self._evaluation_detector_conditions(data_value)
+        detector_trigger_evaluations, evaluated_priority = self.evaluate_conditions(data_value)
 
-        if condition_results is None or condition_results.logic_result.triggered is False:
+        if detector_trigger_evaluations is None or detector_trigger_evaluations.triggered is False:
             return GroupedDetectorEvaluationResult(result=results, tainted=False)
 
         # Only handle triggering (FAILURE → HIGH). Resolution is handled
@@ -200,7 +200,7 @@ class ProcessingErrorDetectorHandler(
         results[None] = self._build_detector_evaluation_result(
             None,
             DetectorPriorityLevel.HIGH,
-            condition_results,
+            detector_trigger_evaluations,
             data_packet,
             data_value,
         )
@@ -260,17 +260,17 @@ class SourcemapConfigurationType(GroupType):
     enable_escalation_detection = False
     creation_quota = Quota(3600, 60, 100)
     notification_config = NotificationConfig(context=[])
-    detector_settings = DetectorSettings(
-        handler=SourcemapDetectorHandler,
-        validator=None,
-        config_schema={},
-    )
     enable_user_status_and_priority_changes = False
     # For the moment, we only want to show these issue types in the ui
     enable_status_change_workflow_notifications = False
     enable_workflow_notifications = False
     # We want to show these separately to normal issue types
     in_default_search = False
+
+
+@detector_settings_registry.register(SourcemapConfigurationType.slug)
+class SourcemapConfigurationDetectorSettings(DetectorSettings):
+    handler = SourcemapDetectorHandler
 
 
 @dataclass(frozen=True)

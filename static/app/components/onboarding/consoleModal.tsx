@@ -122,7 +122,7 @@ export function ConsoleModal({
     <Fragment>
       <Header closeButton>
         <Flex align="center" gap="xl">
-          <PlatformIcon size={32} format="lg" platform={selectedPlatform.key} />
+          <PlatformIcon size={32} format="lg" platform={selectedPlatform.key} alt="" />
           <Heading as="h5">{t('Request Access for %s', selectedPlatform.name)}</Heading>
         </Flex>
       </Header>

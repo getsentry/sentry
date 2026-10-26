@@ -10,6 +10,7 @@ import {t, tct} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 
 import {openOnDemandBudgetEditModal} from 'getsentry/actionCreators/modal';
 import {withSubscription} from 'getsentry/components/withSubscription';
@@ -19,6 +20,7 @@ import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/compon
 import {UsageOverview} from 'getsentry/views/subscriptionPage/usageOverview';
 
 import {TrialEnded} from './trial/trialEnded';
+import {BillingPlatformMigrationAlert} from './billingPlatformMigrationAlert';
 import {OnDemandDisabled} from './ondemandDisabled';
 import {RecurringCredits} from './recurringCredits';
 import {SubscriptionHeader} from './subscriptionHeader';
@@ -73,6 +75,7 @@ function Overview({subscription}: Props) {
   if (!hasBillingPerms && !subscription.canSelfServe) {
     return (
       <SubscriptionPageContainer>
+        <BreadcrumbTitle title={t('Overview')} />
         <ContactBillingMembers />
       </SubscriptionPageContainer>
     );
@@ -80,6 +83,7 @@ function Overview({subscription}: Props) {
 
   return (
     <Fragment>
+      <BreadcrumbTitle title={t('Overview')} />
       <SubscriptionHeader organization={organization} subscription={subscription} />
       <SubscriptionPageContainer padding="0 2xl 3xl">
         {isPending ? (
@@ -118,6 +122,7 @@ function Overview({subscription}: Props) {
               </Fragment>
             ) : null}
             <OnDemandDisabled organization={organization} subscription={subscription} />
+            <BillingPlatformMigrationAlert subscription={subscription} />
             <UsageAlert subscription={subscription} usage={usage} />
             <UsageOverview
               subscription={subscription}

@@ -1,0 +1,161 @@
+from drf_spectacular.utils import OpenApiExample
+
+
+class AIConversationExamples:
+    RETRIEVE_AI_CONVERSATION = [
+        OpenApiExample(
+            "Return an AI conversation",
+            value={
+                "conversationId": "01JQZ4W8X7J2Q9B4R5M6N7P8T9",
+                "title": "Check San Francisco weather",
+                "projects": [{"id": 1, "name": "Weather Assistant", "slug": "weather-assistant"}],
+                "webUrl": "https://sentry.io/organizations/org-slug/explore/agents/conversations/01JQZ4W8X7J2Q9B4R5M6N7P8T9/?project=1",
+                "stats": {
+                    "cacheReadTokens": 0,
+                    "cacheWriteTokens": 0,
+                    "cacheReadCost": 0.0,
+                    "cacheWriteCost": 0.0,
+                    "reasoningCost": 0.0,
+                    "endTimestamp": 1743465601250,
+                    "errors": 0,
+                    "errorToolNames": [],
+                    "generationDuration": 1250.0,
+                    "inputTokens": 0,
+                    "llmCalls": 1,
+                    "outputTokens": 0,
+                    "reasoningTokens": 0,
+                    "startTimestamp": 1743465600000,
+                    "toolCalls": 0,
+                    "toolErrors": 0,
+                    "toolNames": [],
+                    "totalCost": 0.0042,
+                    "totalTokens": 485,
+                    "usageByModel": [
+                        {
+                            "model": "gpt-4o-mini-2024-07-18",
+                            "llmCalls": 1,
+                            "inputTokens": 0,
+                            "outputTokens": 0,
+                            "totalTokens": 485,
+                            "cacheReadTokens": 0,
+                            "cacheWriteTokens": 0,
+                            "reasoningTokens": 0,
+                            "inputCost": 0,
+                            "outputCost": 0,
+                            "cacheReadCost": 0.0,
+                            "cacheWriteCost": 0.0,
+                            "reasoningCost": 0.0,
+                            "totalCost": 0.0042,
+                        }
+                    ],
+                },
+                "spans": [
+                    {
+                        "span_id": "a1b2c3d4e5f67890",
+                        "trace": "4c79f60c11214eb38604f4ae0781bfb2",
+                        "parent_span": None,
+                        "precise.start_ts": 1743465600.0,
+                        "precise.finish_ts": 1743465601.25,
+                        "project": "weather-assistant",
+                        "project.id": 1,
+                        "span.op": "gen_ai.chat",
+                        "span.status": "ok",
+                        "span.description": "chat gpt-4o-mini",
+                        "span.duration": 1250.0,
+                        "transaction": "weather-agent",
+                        "is_transaction": False,
+                        "gen_ai.conversation.id": "01JQZ4W8X7J2Q9B4R5M6N7P8T9",
+                        "gen_ai.operation.type": "ai_client",
+                        "gen_ai.request.model": "gpt-4o-mini",
+                        "gen_ai.response.model": "gpt-4o-mini-2024-07-18",
+                        "gen_ai.input.messages": '[{"role":"user","content":"What is the weather in San Francisco?"}]',
+                        "gen_ai.output.messages": '[{"role":"assistant","content":"It is currently 18°C and sunny in San Francisco."}]',
+                        "gen_ai.usage.total_tokens": 485,
+                        "gen_ai.cost.total_tokens": 0.0042,
+                        "user.id": "123",
+                        "user.email": "user@example.com",
+                        "errors": [],
+                        "occurrences": [],
+                    }
+                ],
+            },
+            response_only=True,
+            status_codes=["200"],
+        ),
+        OpenApiExample(
+            "Return a normalized AI conversation transcript",
+            description="Request view=transcript with feature access. Raw spans remain available through view=timeline.",
+            value={
+                "conversationId": "conversation-1",
+                "title": "Greeting",
+                "projects": [{"id": 1, "name": "Example Agent", "slug": "example-agent"}],
+                "webUrl": "https://sentry.io/organizations/org-slug/explore/agents/conversations/conversation-1/?project=1",
+                "stats": None,
+                "complete": True,
+                "sourceSpanCount": 1,
+                "transcript": [
+                    {
+                        "id": "user-a1b2c3d4e5f67890",
+                        "role": "user",
+                        "content": "Hello",
+                        "timestamp": 1743465600.0,
+                        "nodeId": "a1b2c3d4e5f67890",
+                        "userEmail": "",
+                    },
+                    {
+                        "id": "assistant-a1b2c3d4e5f67890",
+                        "role": "assistant",
+                        "content": "Hi",
+                        "timestamp": 1743465601.25,
+                        "nodeId": "a1b2c3d4e5f67890",
+                        "duration": 1.25,
+                    },
+                ],
+            },
+            response_only=True,
+            status_codes=["200"],
+        ),
+    ]
+
+    LIST_AI_CONVERSATIONS = [
+        OpenApiExample(
+            "Return a list of AI conversations",
+            value=[
+                {
+                    "conversationId": "01JQZ4W8X7J2Q9B4R5M6N7P8T9",
+                    "title": "Check San Francisco weather",
+                    "projectId": 1,
+                    "projects": [
+                        {"id": 1, "name": "Weather Assistant", "slug": "weather-assistant"}
+                    ],
+                    "webUrl": "https://sentry.io/organizations/org-slug/explore/agents/conversations/01JQZ4W8X7J2Q9B4R5M6N7P8T9/?project=1",
+                    "flow": ["Weather Assistant"],
+                    "errors": 0,
+                    "llmCalls": 2,
+                    "toolCalls": 1,
+                    "totalTokens": 485,
+                    "inputTokens": 320,
+                    "outputTokens": 165,
+                    "totalCost": 0.0042,
+                    "timeSpan": 2500.0,
+                    "generationDuration": 1250.5,
+                    "startTimestamp": 1743465600000,
+                    "endTimestamp": 1743465602500,
+                    "traceCount": 1,
+                    "traceIds": ["4c79f60c11214eb38604f4ae0781bfb2"],
+                    "firstInput": "What is the weather in San Francisco?",
+                    "lastOutput": "It is currently 18°C and sunny in San Francisco.",
+                    "user": {
+                        "id": "123",
+                        "email": "user@example.com",
+                        "username": "example-user",
+                        "ip_address": "192.0.2.1",
+                    },
+                    "toolNames": ["get_weather"],
+                    "toolErrors": 0,
+                }
+            ],
+            response_only=True,
+            status_codes=["200"],
+        )
+    ]

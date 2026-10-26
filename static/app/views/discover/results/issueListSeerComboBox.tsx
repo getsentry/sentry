@@ -1,7 +1,10 @@
 import {useCallback} from 'react';
 import {mutationOptions} from '@tanstack/react-query';
+import omit from 'lodash/omit';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
+import {ALL_DATE_TIME_QUERY_KEYS} from 'sentry/components/pageFilters/constants';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
@@ -18,11 +21,14 @@ import {
   useSelectedProjectIds,
   useSelectedProjectIdsForMutation,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
+import {mergeSeerExtraFields} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -58,7 +64,9 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
     mutationFn: async (queryToSubmit: string) => {
       const user = ConfigStore.get('user');
       const data = await fetchMutation<SeerRawResponse>({
-        url: `/organizations/${organization.slug}/search-agent/translate/`,
+        url: getApiUrl('/organizations/$organizationIdOrSlug/search-agent/translate/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         method: 'POST',
         data: {
           org_id: organization.id,
@@ -90,6 +98,7 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
         end: resultEnd,
         visualizations,
         expandedProjectIds,
+        extraFields,
       } = result;
 
       const dt = buildSeerDateTimeSelection(
@@ -98,33 +107,36 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
         statsPeriod,
         pageFilters.selection.datetime
       );
-
-      const start = dt.start;
-      const end = dt.end;
+      const timeParams = normalizeDateTimeParams(dt, {allowEmptyPeriod: true});
 
       const yAxis =
         visualizations?.length > 0 ? visualizations[0]?.yAxes?.[0] : undefined;
 
-      const columns: string[] = [];
+      const aggregateColumns: string[] = [];
       if (groupBys && groupBys.length > 0) {
-        columns.push(...groupBys);
+        aggregateColumns.push(...groupBys);
       }
       if (visualizations && visualizations.length > 0) {
         for (const viz of visualizations) {
           if (viz.yAxes && viz.yAxes.length > 0) {
-            columns.push(...viz.yAxes);
+            aggregateColumns.push(...viz.yAxes);
           }
         }
       }
 
+      // Seer's group bys and y-axes replace the table's columns outright. When
+      // extraFields is returned instead, merge with the existing columns.
+      const newColumns =
+        aggregateColumns.length > 0
+          ? aggregateColumns
+          : mergeSeerExtraFields(decodeList(location.query.field), extraFields);
+
       askSeerSuggestedQueryRef.current = JSON.stringify({
         query: queryToUse,
         sort,
-        statsPeriod,
-        start,
-        end,
+        ...timeParams,
         yAxis,
-        columns,
+        columns: newColumns,
       });
 
       trackAnalytics('ai_query.applied', {
@@ -136,7 +148,8 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
       onSearch(queryToUse);
 
       const newQueryParams: Record<string, string | string[] | null | undefined> = {
-        ...location.query,
+        ...omit(location.query, ALL_DATE_TIME_QUERY_KEYS),
+        ...timeParams,
         query: queryToUse,
       };
 
@@ -156,22 +169,8 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
         newQueryParams.yAxis = yAxis;
       }
 
-      if (columns.length > 0) {
-        newQueryParams.field = columns;
-      }
-
-      if (resultStart && resultEnd) {
-        newQueryParams.start = typeof start === 'string' ? start : start?.toISOString();
-        newQueryParams.end = typeof end === 'string' ? end : end?.toISOString();
-        newQueryParams.statsPeriod = undefined;
-        // Seer absolute ranges are UTC; carry the flag so Discover charts
-        // display them in UTC instead of the page's local timezone.
-        newQueryParams.utc = dt.utc ? 'true' : undefined;
-      } else if (statsPeriod) {
-        newQueryParams.statsPeriod = statsPeriod;
-        newQueryParams.start = undefined;
-        newQueryParams.end = undefined;
-        newQueryParams.utc = dt.utc ? 'true' : undefined;
+      if (newColumns.length > 0) {
+        newQueryParams.field = newColumns;
       }
 
       if (runId !== undefined) {

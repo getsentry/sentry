@@ -25,13 +25,9 @@ type Context = {
 const WidgetQueueContext = createContext<Context | undefined>(undefined);
 
 export function useWidgetQueryQueue() {
-  const organization = useOrganization();
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
-  );
   const queueContext = useContext(WidgetQueueContext);
 
-  return hasQueueFeature && queueContext ? queueContext : {queue: undefined};
+  return queueContext ? queueContext : {queue: undefined};
 }
 
 // Lowest known safe value for customers — used when the org option is unset so we
@@ -63,6 +59,7 @@ export function WidgetQueryQueueProvider({children}: {children: React.ReactNode}
         onSettled: (_item: QueueItem, queuer) => {
           const queueIsEmpty = queuer.peekAllItems().length === 0;
           if (queueIsEmpty && startTimeRef.current) {
+            // oxlint-disable-next-line react/purity
             const endTime = performance.now();
             const totalTime = endTime - startTimeRef.current;
             startTimeRef.current = undefined;

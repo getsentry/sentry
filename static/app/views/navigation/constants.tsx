@@ -7,8 +7,8 @@ export const NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE =
   'data-secondary-navigation-sidebar';
 
 export const PRIMARY_SIDEBAR_WIDTH = 74;
-// 52 + 1px border
-export const PRIMARY_HEADER_HEIGHT = 53;
+export const PRIMARY_HEADER_HEIGHT = 49;
+export const PRIMARY_HEADER_TITLE_MIN_WIDTH = 120;
 export const SUPERUSER_MARQUEE_HEIGHT = 24;
 
 export const SECONDARY_SIDEBAR_WIDTH = 190;
@@ -20,7 +20,6 @@ export const NAVIGATION_SIDEBAR_OPEN_DELAY_MS = 250;
 export const NAVIGATION_SIDEBAR_RESET_DELAY_MS = 300;
 
 export const NAVIGATION_MOBILE_TOPBAR_HEIGHT = 40;
-export const NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME = 48;
 
 export const TOP_BAR_HEIGHT_CSS_VAR = '--top-bar-height';
 

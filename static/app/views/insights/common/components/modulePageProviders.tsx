@@ -21,12 +21,10 @@ interface Props {
   moduleName: TitleableModuleNames;
   analyticEventName?: InsightEventKey;
   maxPickableDays?: DatePageFilterProps['maxPickableDays'];
-  pageTitle?: string;
 }
 
 export function ModulePageProviders({
   moduleName,
-  pageTitle,
   children,
   analyticEventName,
   maxPickableDays,
@@ -43,9 +41,7 @@ export function ModulePageProviders({
 
   const moduleTitle = moduleTitles[moduleName];
 
-  const fullPageTitle = [pageTitle, moduleTitle, INSIGHTS_TITLE]
-    .filter(Boolean)
-    .join(' — ');
+  const fullPageTitle = [moduleTitle, INSIGHTS_TITLE].filter(Boolean).join(' — ');
 
   return (
     <PageFiltersContainer

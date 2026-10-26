@@ -2,6 +2,12 @@ import {Link} from '@sentry/scraps/link';
 
 import {buildSdkConfig} from 'sentry/components/onboarding/gettingStartedDoc/buildSdkConfig';
 import {
+  docsFlowVariantParams,
+  JS_LOADER_NPM_DOCS_SHOWN_EVENT,
+  resolveDocsFlowEvent,
+  SETUP_LOADER_DOCS_RENDERED_EVENT,
+} from 'sentry/components/onboarding/gettingStartedDoc/docsFlowAnalytics';
+import {
   StepType,
   type BasePlatformOptions,
   type ContentBlock,
@@ -11,6 +17,7 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getAISetupStep,
+  getDataCollectionStep,
   getUploadSourceMapsStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {getFeedbackConfigOptions} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
@@ -49,7 +56,7 @@ export const isAutoInstall = (params: Params) =>
 
 const getIntegrations = (params: Params): string[] => {
   const integrations = [];
-  if (params.isPerformanceSelected) {
+  if (params.isPerformanceSelected || params.isProfilingSelected) {
     integrations.push('Sentry.browserTracingIntegration()');
   }
 
@@ -77,10 +84,10 @@ const getIntegrations = (params: Params): string[] => {
 const getDynamicParts = (params: Params): string[] => {
   const dynamicParts: string[] = [];
 
-  if (params.isPerformanceSelected) {
+  if (params.isPerformanceSelected || params.isProfilingSelected) {
     dynamicParts.push(`
       // Tracing
-      tracesSampleRate: 1.0, //  Capture 100% of the transactions
+      tracesSampleRate: 1.0, // Capture 100% of traces
       // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
       tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/]`);
   }
@@ -96,7 +103,8 @@ const getDynamicParts = (params: Params): string[] => {
     dynamicParts.push(`
         // Set profileSessionSampleRate to 1.0 to profile during every session.
         // The decision, whether to profile or not, is made once per session (when the SDK is initialized).
-        profileSessionSampleRate: 1.0`);
+        profileSessionSampleRate: 1.0,
+        profileLifecycle: "trace"`);
   }
 
   return dynamicParts;
@@ -105,15 +113,7 @@ const getDynamicParts = (params: Params): string[] => {
 export const getSdkSetupSnippet = (params: Params) => {
   const config = buildSdkConfig({
     params,
-    staticParts: [
-      `dsn: "${params.dsn.public}"`,
-      `dataCollection: {
-    // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
-    // https://docs.sentry.io/platforms/javascript/configuration/options/#dataCollection
-    // userInfo: false,
-    // httpBodies: []
-  }`,
-    ],
+    staticParts: [`dsn: "${params.dsn.public}"`],
     getIntegrations,
     getDynamicParts,
   });
@@ -286,7 +286,7 @@ export const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
       params.isPerformanceSelected
         ? `
       // Tracing
-      tracesSampleRate: 1.0, // Capture 100% of the transactions`
+      tracesSampleRate: 1.0, // Capture 100% of traces`
         : ''
     }${
       params.isReplaySelected
@@ -314,6 +314,10 @@ export const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
       },
     },
     getAiSetupConfig(),
+    getDataCollectionStep({
+      docsLink:
+        'https://docs.sentry.io/platforms/javascript/configuration/options/#dataCollection',
+    }),
   ],
   verify: (params: Params) => getVerifyConfig(params),
   nextSteps: (params: Params) => {
@@ -344,13 +348,12 @@ export const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
   onPageLoad: params => {
     return () => {
       trackAnalytics(
-        params.hasScmOnboarding
-          ? 'onboarding.scm_setup_loader_docs_rendered'
-          : 'onboarding.setup_loader_docs_rendered',
+        resolveDocsFlowEvent(SETUP_LOADER_DOCS_RENDERED_EVENT, params.docsFlow),
         {
           organization: params.organization,
           platform: params.platformKey,
           project_id: params.project.id,
+          ...docsFlowVariantParams(params.docsFlow),
         }
       );
     };
@@ -358,13 +361,12 @@ export const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
   onPlatformOptionsChange: params => {
     return () => {
       trackAnalytics(
-        params.hasScmOnboarding
-          ? 'onboarding.scm_js_loader_npm_docs_shown'
-          : 'onboarding.js_loader_npm_docs_shown',
+        resolveDocsFlowEvent(JS_LOADER_NPM_DOCS_SHOWN_EVENT, params.docsFlow),
         {
           organization: params.organization,
           platform: params.platformKey,
           project_id: params.project.id,
+          ...docsFlowVariantParams(params.docsFlow),
         }
       );
     };
@@ -443,6 +445,10 @@ export const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
       ...params,
     }),
     getAiSetupConfig(),
+    getDataCollectionStep({
+      docsLink:
+        'https://docs.sentry.io/platforms/javascript/configuration/options/#dataCollection',
+    }),
   ],
   verify: (params: Params) => getVerifyConfig(params),
   nextSteps: (params: Params) => {
@@ -464,13 +470,12 @@ export const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
   onPageLoad: params => {
     return () => {
       trackAnalytics(
-        params.hasScmOnboarding
-          ? 'onboarding.scm_js_loader_npm_docs_shown'
-          : 'onboarding.js_loader_npm_docs_shown',
+        resolveDocsFlowEvent(JS_LOADER_NPM_DOCS_SHOWN_EVENT, params.docsFlow),
         {
           organization: params.organization,
           platform: params.platformKey,
           project_id: params.project.id,
+          ...docsFlowVariantParams(params.docsFlow),
         }
       );
     };
@@ -500,13 +505,12 @@ export const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
   onPlatformOptionsChange: params => {
     return () => {
       trackAnalytics(
-        params.hasScmOnboarding
-          ? 'onboarding.scm_setup_loader_docs_rendered'
-          : 'onboarding.setup_loader_docs_rendered',
+        resolveDocsFlowEvent(SETUP_LOADER_DOCS_RENDERED_EVENT, params.docsFlow),
         {
           organization: params.organization,
           platform: params.platformKey,
           project_id: params.project.id,
+          ...docsFlowVariantParams(params.docsFlow),
         }
       );
     };

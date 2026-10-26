@@ -5,6 +5,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
@@ -27,7 +28,9 @@ export async function fetchTeamKeyTransactions(
   teams: string[],
   projects?: string[]
 ): Promise<TeamKeyTransaction[]> {
-  const url = `/organizations/${orgSlug}/key-transactions-list/`;
+  const url = getApiUrl('/organizations/$organizationIdOrSlug/key-transactions-list/', {
+    path: {organizationIdOrSlug: orgSlug},
+  });
 
   const datas: TeamKeyTransactions[] = [];
   let cursor: string | undefined = undefined;
@@ -81,7 +84,9 @@ export function toggleKeyTransaction(
   addLoadingMessage(t('Saving changes\u2026'));
 
   const promise: Promise<undefined> = api.requestPromise(
-    `/organizations/${orgId}/key-transactions/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/key-transactions/', {
+      path: {organizationIdOrSlug: orgId},
+    }),
     {
       method: isKeyTransaction ? 'DELETE' : 'POST',
       query: {

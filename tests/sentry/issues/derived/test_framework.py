@@ -1,0 +1,456 @@
+from datetime import datetime, timezone
+from enum import IntEnum, StrEnum
+from typing import Any, Literal, assert_type
+
+import pytest
+
+from sentry.issues.derived.features import (
+    HAS_OPEN_FIX_PR,
+    LAST_PROGRESSED_AT,
+    NO_CHANGE_RECONCILE_IDS,
+    PROGRESS,
+    STATUS,
+    VIEW_COUNT,
+    IssueStatus,
+)
+from sentry.issues.derived.framework import (
+    AggregatorResult,
+    BoolCodec,
+    Codec,
+    DateTimeCodec,
+    DerivedDataError,
+    EnumCodec,
+    Feature,
+    IntCodec,
+    IntListCodec,
+    OptionalCodec,
+    Pipeline,
+    Scope,
+    State,
+    StateUpdate,
+    StateView,
+    aggregator,
+)
+from sentry.issues.progress_state import IssueProgressState
+
+
+class EntryType(IntEnum):
+    FIRST = 1
+    SECOND = 2
+    THIRD = 3
+
+
+def test_feature_types_are_inferred_from_codecs() -> None:
+    assert_type(HAS_OPEN_FIX_PR, Feature[bool])
+    assert_type(VIEW_COUNT, Feature[int])
+    assert_type(NO_CHANGE_RECONCILE_IDS, Feature[list[int]])
+    assert_type(STATUS, Feature[IssueStatus])
+    assert_type(PROGRESS, Feature[IssueProgressState | None])
+    assert_type(LAST_PROGRESSED_AT, Feature[datetime | None])
+
+    assert HAS_OPEN_FIX_PR.initial_value() is False
+    assert PROGRESS.initial_value() is IssueProgressState.IDENTIFIED
+    assert LAST_PROGRESSED_AT.initial_value() is None
+
+
+def test_inferred_feature_default_factory_creates_independent_values() -> None:
+    feature = Feature("items", default_factory=list, codec=IntListCodec())
+    assert_type(feature, Feature[list[int]])
+
+    first = feature.initial_value()
+    first.append(1)
+    assert feature.initial_value() == []
+
+
+def test_mutation_checking_catches_in_place_mutation() -> None:
+    ITEMS = Feature[list[str]]("items", default_factory=list)
+
+    @aggregator((ITEMS,))
+    def bad_mutator(state: StateView, entry: object) -> AggregatorResult:
+        state[ITEMS].append("oops")
+        return None
+
+    p = Pipeline([bad_mutator], check_mutations=True)
+    state = p.initial_state()
+
+    class FakeEntry:
+        type = 0
+
+    with pytest.raises(DerivedDataError) as exc:
+        p.step(state, FakeEntry())
+    assert exc.value.stage == "aggregate"
+    assert exc.value.aggregator_name == "bad_mutator"
+    assert isinstance(exc.value.__cause__, RuntimeError)
+    assert "mutated feature 'items' in place" in str(exc.value.__cause__)
+
+
+def test_state_updated_tracks_merged_features() -> None:
+    A = Feature[int]("a", default=0)
+    B = Feature[int]("b", default=0)
+    state = State({A: 0, B: 0})
+
+    assert state.updated == frozenset()
+
+    state.merge(StateUpdate({A: 1}))
+    assert state.updated == frozenset({A})
+    assert state[A] == 1
+    assert state[B] == 0
+
+
+def test_dependency_scope_must_cover_producer_scope() -> None:
+    A = Feature[int]("a", default=0)
+    B = Feature[int]("b", default=0)
+
+    @aggregator((A,), scope=(EntryType.FIRST, EntryType.SECOND))
+    def produce_a(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    @aggregator((B,), deps=(A,), scope=(EntryType.FIRST,))
+    def use_a(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    with pytest.raises(ValueError, match="scope that does not cover dependency 'a'"):
+        Pipeline([produce_a, use_a])
+
+
+def test_scoped_aggregator_cannot_depend_on_all_scope_aggregator() -> None:
+    A = Feature[int]("a", default=0)
+    B = Feature[int]("b", default=0)
+
+    @aggregator((A,))
+    def produce_a(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    @aggregator((B,), deps=(A,), scope=(EntryType.FIRST,))
+    def use_a(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    with pytest.raises(ValueError, match="scope that does not cover dependency 'a'"):
+        Pipeline([produce_a, use_a])
+
+
+def test_dependency_scope_can_be_a_superset_of_producer_scope() -> None:
+    A = Feature[int]("a", default=0)
+    B = Feature[int]("b", default=0)
+
+    @aggregator((A,), scope=(EntryType.FIRST,))
+    def produce_a(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    @aggregator((B,), deps=(A,), scope=(EntryType.FIRST, EntryType.SECOND))
+    def use_a(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    assert Pipeline([produce_a, use_a]).aggregators == (produce_a, use_a)
+
+
+def test_all_scope_aggregator_covers_scoped_dependency() -> None:
+    A = Feature[int]("a", default=0)
+    B = Feature[int]("b", default=0)
+
+    @aggregator((A,), scope=(EntryType.FIRST,))
+    def produce_a(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    @aggregator((B,), deps=(A,))
+    def use_a(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    assert Pipeline([produce_a, use_a]).aggregators == (produce_a, use_a)
+
+
+def test_default_scope_is_all() -> None:
+    A = Feature[int]("a", default=0)
+
+    @aggregator((A,))
+    def produce_a(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    assert produce_a.scope is Scope.ALL
+
+
+def test_deps_scope_runs_for_union_of_dependency_scopes() -> None:
+    A = Feature[int]("a", default=0)
+    B = Feature[int]("b", default=0)
+    C = Feature[int]("c", default=0)
+
+    @aggregator((A,), scope=(EntryType.FIRST,))
+    def produce_a(state: StateView, entry: object) -> AggregatorResult:
+        return StateUpdate({A: state[A] + 1})
+
+    @aggregator((B,), scope=(EntryType.SECOND,))
+    def produce_b(state: StateView, entry: object) -> AggregatorResult:
+        return StateUpdate({B: state[B] + 1})
+
+    @aggregator((C,), deps=(A, B), scope=Scope.DEPS)
+    def use_deps(state: StateView, entry: object) -> AggregatorResult:
+        return StateUpdate({C: state[C] + 1})
+
+    class Entry:
+        def __init__(self, type: EntryType) -> None:
+            self.type = type
+
+    state = Pipeline([produce_a, produce_b, use_deps]).run(
+        [Entry(EntryType.FIRST), Entry(EntryType.SECOND), Entry(EntryType.THIRD)]
+    )
+
+    assert state[A] == 1
+    assert state[B] == 1
+    assert state[C] == 2
+
+
+def test_deps_scope_is_resolved_transitively() -> None:
+    A = Feature[int]("a", default=0)
+    B = Feature[int]("b", default=0)
+    C = Feature[int]("c", default=0)
+
+    @aggregator((A,), scope=(EntryType.FIRST,))
+    def produce_a(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    @aggregator((B,), deps=(A,), scope=Scope.DEPS)
+    def use_a(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    @aggregator((C,), deps=(B,), scope=(EntryType.SECOND,))
+    def use_b(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    with pytest.raises(ValueError, match="scope that does not cover dependency 'b'"):
+        Pipeline([produce_a, use_a, use_b])
+
+
+def test_deps_scope_resolves_to_all_when_dependency_scope_is_all() -> None:
+    A = Feature[int]("a", default=0)
+    B = Feature[int]("b", default=0)
+
+    @aggregator((A,))
+    def produce_a(state: StateView, entry: object) -> AggregatorResult:
+        return StateUpdate({A: state[A] + 1})
+
+    @aggregator((B,), deps=(A,), scope=Scope.DEPS)
+    def use_a(state: StateView, entry: object) -> AggregatorResult:
+        return StateUpdate({B: state[B] + 1})
+
+    class Entry:
+        type = EntryType.THIRD
+
+    state = Pipeline([produce_a, use_a]).run([Entry()])
+
+    assert state[A] == 1
+    assert state[B] == 1
+
+
+def test_deps_scope_requires_dependency() -> None:
+    A = Feature[int]("a", default=0)
+
+    with pytest.raises(ValueError, match="requires at least one dependency"):
+        aggregator((A,), scope=Scope.DEPS)
+
+
+class TestDateTimeCodec:
+    def test_json_round_trip(self) -> None:
+        codec = DateTimeCodec()
+        dt = datetime(2025, 3, 15, 12, 30, 45, tzinfo=timezone.utc)
+        assert codec.from_json(codec.to_json(dt)) == dt
+
+    def test_to_json_produces_iso_string(self) -> None:
+        codec = DateTimeCodec()
+        dt = datetime(2025, 3, 15, 12, 30, 45, tzinfo=timezone.utc)
+        dumped = codec.to_json(dt)
+        assert isinstance(dumped, str)
+        assert dumped == dt.isoformat()
+
+    def test_column_round_trip_is_identity(self) -> None:
+        codec = DateTimeCodec()
+        dt = datetime(2025, 3, 15, 12, 30, 45, tzinfo=timezone.utc)
+        assert codec.from_column(codec.to_column(dt)) == dt
+        assert codec.to_column(dt) is dt
+
+    def test_optional_none(self) -> None:
+        codec = OptionalCodec(DateTimeCodec())
+        assert codec.to_json(None) is None
+        assert codec.from_json(None) is None
+
+    def test_optional_json_round_trip(self) -> None:
+        codec = OptionalCodec(DateTimeCodec())
+        dt = datetime(2025, 3, 15, 12, 30, 45, tzinfo=timezone.utc)
+        assert codec.from_json(codec.to_json(dt)) == dt
+
+
+class TestEnumCodecCoverage:
+    @pytest.mark.parametrize("raw", ["open", "closed"])
+    def test_issue_status_json_round_trip(self, raw: str) -> None:
+        codec = EnumCodec(IssueStatus)
+        loaded = codec.from_json(raw)
+        assert codec.to_json(loaded) == raw
+
+    @pytest.mark.parametrize("raw", ["open", "closed"])
+    def test_issue_status_column_round_trip(self, raw: str) -> None:
+        codec = EnumCodec(IssueStatus)
+        loaded = codec.from_column(raw)
+        assert isinstance(loaded, IssueStatus)
+        assert codec.to_column(loaded) == raw
+
+    @pytest.mark.parametrize(
+        "raw", ["identified", "assigned", "diagnosed", "fix_proposed", "fix_applied"]
+    )
+    def test_issue_progress_state_json_round_trip(self, raw: str) -> None:
+        codec = EnumCodec(IssueProgressState)
+        loaded = codec.from_json(raw)
+        assert codec.to_json(loaded) == raw
+
+    @pytest.mark.parametrize(
+        "raw", ["identified", "assigned", "diagnosed", "fix_proposed", "fix_applied"]
+    )
+    def test_issue_progress_state_column_produces_enum(self, raw: str) -> None:
+        codec = EnumCodec(IssueProgressState)
+        loaded = codec.from_column(raw)
+        assert isinstance(loaded, IssueProgressState)
+
+    @pytest.mark.parametrize(
+        "raw",
+        [None, "identified", "assigned", "diagnosed", "fix_proposed", "fix_applied"],
+    )
+    def test_optional_progress_json_round_trip(self, raw: str | None) -> None:
+        codec = OptionalCodec(EnumCodec(IssueProgressState))
+        loaded = codec.from_json(raw)
+        assert codec.to_json(loaded) == raw
+
+    @pytest.mark.parametrize(
+        "raw",
+        [None, "identified", "assigned", "diagnosed", "fix_proposed", "fix_applied"],
+    )
+    def test_optional_progress_column_round_trip(self, raw: str | None) -> None:
+        codec = OptionalCodec(EnumCodec(IssueProgressState))
+        loaded = codec.from_column(raw)
+        if raw is not None:
+            assert isinstance(loaded, IssueProgressState)
+        assert codec.to_column(loaded) == raw
+
+
+@pytest.mark.parametrize(
+    "method,stage",
+    [
+        ("to_json", "encode"),
+        ("from_json", "decode"),
+        ("to_column", "encode"),
+        ("from_column", "decode"),
+    ],
+)
+def test_codec_error_context(method: str, stage: Literal["decode", "encode"]) -> None:
+    cause = RuntimeError("codec failed")
+
+    class BrokenCodec(Codec[Any]):
+        def _validate(self, value: Any) -> Any:
+            raise cause
+
+    feature = Feature("broken", default=0, codec=BrokenCodec())
+    with pytest.raises(DerivedDataError) as exc:
+        getattr(feature, method)("sensitive value")
+    assert exc.value.stage == stage
+    assert exc.value.feature_name == "broken"
+    assert exc.value.__cause__ is cause
+    assert "sensitive value" not in str(exc.value)
+
+
+def test_aggregator_error_context() -> None:
+    feature = Feature[int]("count", default=0)
+    cause = KeyError("missing field")
+
+    @aggregator((feature,))
+    def broken(state: StateView, entry: object) -> AggregatorResult:
+        raise cause
+
+    class Entry:
+        type = 0
+        id = 123
+
+    with pytest.raises(DerivedDataError) as exc:
+        Pipeline([broken]).run([Entry()])
+    assert exc.value.stage == "aggregate"
+    assert exc.value.aggregator_name == "broken"
+    assert exc.value.entry_id == 123
+    assert exc.value.__cause__ is cause
+
+
+def test_codec_does_not_wrap_process_interrupt() -> None:
+    class InterruptCodec(Codec[Any]):
+        def _validate(self, value: Any) -> Any:
+            raise KeyboardInterrupt
+
+    with pytest.raises(KeyboardInterrupt):
+        Feature("interrupt", default=None, codec=InterruptCodec()).from_json(None)
+
+
+def test_undeclared_output_has_aggregator_context() -> None:
+    declared = Feature("declared", default=0)
+    undeclared = Feature("undeclared", default=0)
+
+    @aggregator((declared,))
+    def bad_output(state: StateView, entry: object) -> AggregatorResult:
+        return StateUpdate({undeclared: 1})
+
+    class Entry:
+        type = 0
+        id = 42
+
+    with pytest.raises(DerivedDataError) as exc:
+        Pipeline([bad_output]).run([Entry()])
+    assert exc.value.stage == "aggregate"
+    assert exc.value.aggregator_name == "bad_output"
+    assert exc.value.entry_id == 42
+    assert isinstance(exc.value.__cause__, ValueError)
+    assert "undeclared outputs" in str(exc.value.__cause__)
+
+
+@pytest.mark.parametrize(
+    "codec,value",
+    [
+        (BoolCodec(), 1),
+        (BoolCodec(), "false"),
+        (IntCodec(), True),
+        (IntCodec(), 1.5),
+        (IntCodec(), "1"),
+        (IntListCodec(), [True]),
+        (IntListCodec(), ["1"]),
+        (IntListCodec(), {}),
+    ],
+)
+@pytest.mark.parametrize("method", ["from_json", "to_json", "from_column", "to_column"])
+def test_invalid_typed_values(codec: Codec[Any], value: Any, method: str) -> None:
+    with pytest.raises(DerivedDataError) as exc:
+        getattr(Feature("typed", default=None, codec=codec), method)(value)
+    assert exc.value.feature_name == "typed"
+    assert isinstance(exc.value.__cause__, TypeError)
+
+
+@pytest.mark.parametrize("method", ["from_column", "to_column", "to_json"])
+def test_datetime_rejects_non_datetime(method: str) -> None:
+    with pytest.raises(DerivedDataError) as exc:
+        getattr(LAST_PROGRESSED_AT, method)("2025-01-01")
+    assert isinstance(exc.value.__cause__, TypeError)
+
+
+@pytest.mark.parametrize("method", ["to_json", "to_column"])
+@pytest.mark.parametrize("value", [IssueProgressState.IDENTIFIED, "open", None])
+def test_enum_rejects_wrong_type_on_write(method: str, value: Any) -> None:
+    with pytest.raises(DerivedDataError) as exc:
+        getattr(STATUS, method)(value)
+    assert exc.value.stage == "encode"
+    assert exc.value.feature_name == STATUS.name
+    assert isinstance(exc.value.__cause__, TypeError)
+
+
+@pytest.mark.parametrize("method", ["to_json", "to_column"])
+def test_enum_rejects_wrong_enum_with_same_value(method: str) -> None:
+    class OtherStatus(StrEnum):
+        OPEN = "open"
+
+    with pytest.raises(DerivedDataError):
+        getattr(STATUS, method)(OtherStatus.OPEN)
+
+
+@pytest.mark.parametrize("method", ["to_json", "to_column"])
+def test_enum_accepts_own_members_on_write(method: str) -> None:
+    assert getattr(STATUS, method)(IssueStatus.OPEN) == "open"

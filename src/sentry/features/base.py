@@ -7,7 +7,6 @@ __all__ = [
     "FeatureHandlerStrategy",
     "OrganizationFeature",
     "ProjectFeature",
-    "ProjectPluginFeature",
     "SystemFeature",
 ]
 
@@ -64,16 +63,6 @@ class ProjectFeature(Feature):
         return self.project.organization
 
 
-class ProjectPluginFeature(Feature):
-    def __init__(self, name: str, project: Project, plugin: Any) -> None:
-        super().__init__(name)
-        self.project = project
-        self.plugin = plugin
-
-    def get_subject(self) -> Organization:
-        return self.project.organization
-
-
 class FeatureHandlerStrategy(Enum):
     """
     This controls whether the feature flag is evaluated statically,
@@ -87,6 +76,5 @@ class FeatureHandlerStrategy(Enum):
     """
     FLAGPOLE = 2
     """
-    Handle the feature using Flagpole and option backed rules based features.
-    Features will automatically have options registered for them.
+    Handle the feature using Flagpole rules configured in sentry-options.
     """

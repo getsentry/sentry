@@ -770,9 +770,6 @@ class SnubaQueryBuilder:
         "metrics_distributions",
         "metrics_sets",
         "generic_metrics_counters",
-        "generic_metrics_distributions",
-        "generic_metrics_sets",
-        "generic_metrics_gauges",
     }
 
     def __init__(

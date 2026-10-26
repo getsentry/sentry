@@ -1,13 +1,14 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {useInfiniteQuery} from '@tanstack/react-query';
-import {useQueryClient} from '@tanstack/react-query';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconSearch} from '@sentry/icons/search';
+import {useInfiniteQuery, useQueryClient} from '@tanstack/react-query';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {InputGroup} from '@sentry/scraps/input';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack, Container} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 
 import {
@@ -34,11 +35,11 @@ import {PanelItem} from 'sentry/components/panels/panelItem';
 import {AddAutofixRepoModal} from 'sentry/components/seer/legacy/addAutofixRepoModal';
 import {SEER_THRESHOLD_OPTIONS} from 'sentry/components/seer/legacy/constants';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconChevron, IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
 import {
   organizationRepositoriesInfiniteOptions,
@@ -274,7 +275,7 @@ function ProjectsWithoutRepos({
   );
 
   const handleUpdateProjectState = useCallback(
-    (projectId: string, preference: any, codeMappingRepos?: SeerRepoDefinition[]) => {
+    (projectId: string, preference: any) => {
       setProjectStates(prev => {
         const existingState = prev[projectId];
         return {
@@ -288,7 +289,7 @@ function ProjectsWithoutRepos({
       });
       const project = projects.find(p => p.id === projectId);
       if (project) {
-        onProjectStateUpdate(project, preference, false, codeMappingRepos);
+        onProjectStateUpdate(project, preference, false);
       }
     },
     [projects, onProjectStateUpdate]
@@ -367,7 +368,7 @@ function ProjectsWithoutRepos({
           <HeaderText>
             {t('%s Projects missing repositories', projectsWithoutRepos.length)}
           </HeaderText>
-          <SearchInputWrapper>
+          <Container width="300px">
             <InputGroup>
               <InputGroup.LeadingItems>
                 <IconSearch size="sm" />
@@ -383,7 +384,7 @@ function ProjectsWithoutRepos({
                 size="sm"
               />
             </InputGroup>
-          </SearchInputWrapper>
+          </Container>
         </PanelHeader>
         <PanelBody>
           {projectsWithoutRepos.map(project => (
@@ -480,13 +481,21 @@ function AutoTriggerFixesButton({
         const batch = projectsWithRepos.slice(i, i + batchSize);
         await Promise.all(
           batch.map(project =>
-            api.requestPromise(`/projects/${organization.slug}/${project.slug}/`, {
-              method: 'PUT',
-              data: {
-                autofixAutomationTuning: selectedThreshold,
-                seerScannerAutomation: true,
-              },
-            })
+            api.requestPromise(
+              getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
+                path: {
+                  organizationIdOrSlug: organization.slug,
+                  projectIdOrSlug: project.slug,
+                },
+              }),
+              {
+                method: 'PUT',
+                data: {
+                  autofixAutomationTuning: selectedThreshold,
+                  seerScannerAutomation: true,
+                },
+              }
+            )
           )
         );
       }
@@ -512,6 +521,7 @@ function AutoTriggerFixesButton({
       setCurrentStep(enableIssueScansStepNumber);
     } catch (err) {
       addErrorMessage(t('Failed to enable automation for some projects'));
+      // oxlint-disable-next-line react/todo
     } finally {
       setIsLoading(false);
     }
@@ -560,10 +570,18 @@ function EnableIssueScansButton({
         const batch = projectsWithoutRepos.slice(i, i + batchSize);
         await Promise.all(
           batch.map(project =>
-            api.requestPromise(`/projects/${organization.slug}/${project.slug}/`, {
-              method: 'PUT',
-              data: {seerScannerAutomation: true},
-            })
+            api.requestPromise(
+              getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
+                path: {
+                  organizationIdOrSlug: organization.slug,
+                  projectIdOrSlug: project.slug,
+                },
+              }),
+              {
+                method: 'PUT',
+                data: {seerScannerAutomation: true},
+              }
+            )
           )
         );
       }
@@ -586,6 +604,7 @@ function EnableIssueScansButton({
       setCurrentStep(reviewCustomizeStepNumber);
     } catch (err) {
       addErrorMessage(t('Failed to enable issue scans for some projects'));
+      // oxlint-disable-next-line react/todo
     } finally {
       setIsLoading(false);
     }
@@ -898,8 +917,4 @@ const CustomizationList = styled('ul')`
     margin-bottom: ${p => p.theme.space.md};
     color: ${p => p.theme.tokens.content.secondary};
   }
-`;
-
-const SearchInputWrapper = styled('div')`
-  width: 300px;
 `;

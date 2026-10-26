@@ -1,0 +1,540 @@
+import {useEffect, useLayoutEffect, useMemo, useRef} from 'react';
+import styled from '@emotion/styled';
+import {mergeRefs} from '@react-aria/utils';
+import {Item} from '@react-stately/collections';
+import {useComboBoxState} from '@react-stately/combobox';
+import {IconClose} from '@sentry/icons/close';
+import {IconMegaphone} from '@sentry/icons/megaphone';
+import {IconSearch} from '@sentry/icons/search';
+import {IconSync} from '@sentry/icons/sync';
+import type {Primitive} from 'type-fest';
+
+import {Button} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
+import {Flex, Stack, Container} from '@sentry/scraps/layout';
+import {useOverlay} from '@sentry/scraps/useOverlay';
+
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
+import {AskSeerFeedback} from 'sentry/components/searchQueryBuilder/askSeer/askSeerFeedback';
+import {AskSeerQueryStatusIndicator} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerQueryStatusIndicator';
+import {AskSeerSearchHeader} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchHeader';
+import {AskSeerSearchListBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchListBox';
+import {AskSeerSearchPopover} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchPopover';
+import {QueryTokens} from 'sentry/components/searchQueryBuilder/askSeerCombobox/queryTokens';
+import type {QueryTokensProps} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
+import {
+  generateQueryTokensString,
+  stringifyQueryForFeedback,
+} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
+import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
+import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
+import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+
+export interface BaseAskSeerComboBoxProps<T extends QueryTokensProps> {
+  applySeerSearchQuery: (item: T) => void;
+  emptyTitle: string;
+  errorTitle: string;
+  isError: boolean;
+  isPending: boolean;
+  loadingContent: React.ReactNode;
+  onSearchQueryChange: (query: string) => void;
+  queries: T[];
+  searchQuery: string;
+  submitQuery: (query: string) => void;
+  additionalFeedbackTags?: Record<string, Primitive>;
+  className?: string;
+  onReset?: () => void;
+  unsupportedReason?: string | null;
+}
+
+export function BaseAskSeerComboBox<T extends QueryTokensProps>({
+  applySeerSearchQuery,
+  className,
+  emptyTitle,
+  errorTitle,
+  isError,
+  isPending,
+  loadingContent,
+  onReset,
+  onSearchQueryChange,
+  queries,
+  searchQuery,
+  submitQuery,
+  unsupportedReason,
+  additionalFeedbackTags,
+  ...props
+}: BaseAskSeerComboBoxProps<T>) {
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const listBoxRef = useRef<HTMLUListElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+  // Input.withComponent('div') retains Input's ref type even though this renders a div.
+  const containerRef = useRef<HTMLInputElement>(null);
+  const isInitialRender = useRef(true);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const organization = useOrganization();
+  const {projects} = useProjects();
+
+  const openForm = useFeedbackForm();
+
+  const {
+    displayAskSeerFeedback,
+    setDisplayAskSeer,
+    setDisplayAskSeerFeedback,
+    askSeerNLQueryRef,
+    autoSubmitSeer,
+    setAutoSubmitFromCurrentQuery,
+    setAutoSubmitSeer,
+    enableAISearch,
+    skipNextSearchQueryBuilderAutoFocusRef,
+  } = useSearchQueryBuilderAI();
+
+  const analyticsArea = useAnalyticsArea();
+
+  const items = useMemo(
+    () =>
+      queries.map((query, index) => ({
+        ...query,
+        key: `${index}-${query.query}`,
+      })),
+    [queries]
+  );
+
+  const applySelectedQuery = (item: T) => {
+    askSeerNLQueryRef.current = searchQuery.trim();
+    skipNextSearchQueryBuilderAutoFocusRef.current = true;
+    inputRef.current?.blur();
+    applySeerSearchQuery(item);
+    setDisplayAskSeerFeedback(false);
+    setDisplayAskSeer(false);
+    onReset?.();
+  };
+
+  const state = useComboBoxState({
+    ...props,
+    items,
+    defaultItems: [],
+    value: null,
+    allowsCustomValue: true,
+    allowsEmptyCollection: true,
+    shouldCloseOnBlur: false,
+    inputValue: searchQuery,
+    onInputChange: onSearchQueryChange,
+    defaultFilter: () => true,
+    onChange(key) {
+      if (typeof key !== 'string') {
+        return;
+      }
+
+      const item = items.find(i => i.key === key);
+      if (!item) {
+        addErrorMessage(t('Failed to find AI query to apply'));
+        return;
+      }
+
+      applySelectedQuery(item);
+      state.close();
+    },
+    children: item => {
+      const readableQuery = generateQueryTokensString(item, projects);
+
+      return (
+        <Item
+          key={item.key}
+          textValue={readableQuery}
+          aria-label={`Query parameters: ${readableQuery}`}
+        >
+          <QueryTokens
+            sort={item?.sort}
+            query={item?.query}
+            groupBys={item?.groupBys}
+            statsPeriod={item?.statsPeriod}
+            start={item?.start}
+            end={item?.end}
+            visualizations={item?.visualizations}
+            expandedProjectIds={item?.expandedProjectIds}
+            interval={item?.interval}
+            crossEvents={item?.crossEvents}
+            extraFields={item?.extraFields}
+          />
+        </Item>
+      );
+    },
+  });
+
+  const {inputProps, listBoxProps} = useSearchTokenCombobox(
+    {
+      ...props,
+      inputRef,
+      buttonRef,
+      listBoxRef,
+      popoverRef,
+      ariaHideOutsideRef: containerRef,
+      'aria-label': t('Ask Seer with Natural Language'),
+      onFocus: () => {
+        state.open();
+      },
+      onBlur: () => {
+        state.close();
+      },
+      onKeyDown: e => {
+        switch (e.key) {
+          case 'Escape':
+            if (!state.isOpen) {
+              trackAnalytics('ai_query.interface', {
+                organization,
+                area: analyticsArea,
+                action: 'closed',
+              });
+              setDisplayAskSeerFeedback(false);
+              setDisplayAskSeer(false);
+            }
+
+            onReset?.();
+            state.close();
+            return;
+          case 'Enter':
+            if (state.isOpen && state.selectionManager.focusedKey) {
+              const item = items.find(i => i.key === state.selectionManager.focusedKey);
+              if (!item) {
+                addErrorMessage(t('Failed to find AI query to apply'));
+                return;
+              }
+
+              applySelectedQuery(item);
+              state.close();
+              return;
+            }
+
+            if (
+              state.isOpen &&
+              searchQuery.trim() !== null &&
+              searchQuery.trim() !== ''
+            ) {
+              trackAnalytics('ai_query.submitted', {
+                organization,
+                area: analyticsArea,
+                natural_language_query: searchQuery.trim(),
+              });
+              askSeerNLQueryRef.current = searchQuery.trim();
+              submitQuery(searchQuery.trim());
+              state.open();
+              return;
+            }
+
+            state.open();
+            return;
+          default:
+            return;
+        }
+      },
+    },
+    state
+  );
+
+  const {overlayProps, triggerProps} = useOverlay({
+    type: 'listbox',
+    isOpen: state.isOpen,
+    position: 'bottom-start',
+    offset: 2,
+    shouldCloseOnBlur: true,
+    shouldApplyMinWidth: false,
+    isKeyboardDismissDisabled: true,
+    preventOverflowOptions: {boundary: document.body},
+    flipOptions: {
+      // We don't want the menu to ever flip to the other side of the input
+      fallbackPlacements: [],
+    },
+    shouldCloseOnInteractOutside: el => {
+      if (popoverRef.current?.contains(el) || containerRef.current?.contains(el)) {
+        return false;
+      }
+      return true;
+    },
+    onInteractOutside: () => {
+      state.close();
+    },
+  });
+
+  useLayoutEffect(() => {
+    if (!state.isOpen && inputRef.current && isInitialRender.current) {
+      isInitialRender.current = false;
+      inputRef.current?.focus();
+      state.open();
+    }
+  }, [state]);
+
+  useLayoutEffect(() => {
+    if (!autoSubmitSeer) {
+      return;
+    }
+
+    if (!searchQuery.trim()) {
+      setAutoSubmitFromCurrentQuery(false);
+      setAutoSubmitSeer(false);
+      return;
+    }
+
+    trackAnalytics('ai_query.submitted', {
+      organization,
+      area: analyticsArea,
+      natural_language_query: searchQuery.trim(),
+    });
+    submitQuery(searchQuery.trim());
+    setAutoSubmitFromCurrentQuery(false);
+    setAutoSubmitSeer(false);
+  }, [
+    analyticsArea,
+    autoSubmitSeer,
+    organization,
+    searchQuery,
+    setAutoSubmitFromCurrentQuery,
+    setAutoSubmitSeer,
+    submitQuery,
+  ]);
+
+  const onMouseLeave = () => {
+    state.selectionManager.setFocusedKey(null);
+  };
+
+  const hasResults = queries.length > 0;
+  const isDisplayingResults = !isPending && !isError && hasResults;
+  const isUnsupported = Boolean(unsupportedReason) && !hasResults;
+  const hasQueryStatus = isPending || isError || hasResults || isUnsupported;
+
+  useEffect(() => {
+    if (enableAISearch && isDisplayingResults) {
+      setDisplayAskSeerFeedback(true);
+    }
+  }, [enableAISearch, isDisplayingResults, setDisplayAskSeerFeedback]);
+
+  if (!enableAISearch) {
+    return null;
+  }
+
+  const showFooter = isDisplayingResults || isError;
+
+  return (
+    <Wrapper className={className} ref={containerRef} isDropdownOpen={state.isOpen}>
+      <PositionedSearchIconContainer>
+        <SearchIcon size="sm" />
+      </PositionedSearchIconContainer>
+      <Container width="100%" height="100%" position="relative">
+        <InvisibleInput
+          {...inputProps}
+          autoComplete="off"
+          hasQueryStatus={hasQueryStatus}
+          onClick={() => state.open()}
+          placeholder={t('Ask Seer with Natural Language')}
+          ref={mergeRefs(inputRef, triggerProps.ref as React.Ref<HTMLInputElement>)}
+        />
+      </Container>
+      <ButtonsWrapper>
+        {hasQueryStatus ? (
+          <AskSeerQueryStatusIndicator
+            hasResults={hasResults}
+            isError={isError}
+            isPending={isPending}
+            unsupportedReason={unsupportedReason}
+          />
+        ) : null}
+        <Button
+          ref={buttonRef}
+          size="xs"
+          icon={<IconClose />}
+          onFocus={() => !state.isOpen && state.open()}
+          onClick={() => {
+            trackAnalytics('ai_query.interface', {
+              organization,
+              area: analyticsArea,
+              action: 'closed',
+            });
+            setDisplayAskSeerFeedback(false);
+            setDisplayAskSeer(false);
+            onReset?.();
+          }}
+          aria-label={t('Close Seer Search')}
+          variant="transparent"
+        />
+      </ButtonsWrapper>
+      {state.isOpen ? (
+        <AskSeerSearchPopover
+          isNonModal
+          state={state}
+          triggerRef={inputRef}
+          popoverRef={popoverRef}
+          containerRef={containerRef}
+          overlayProps={overlayProps}
+        >
+          {isPending ? (
+            loadingContent
+          ) : isError ? (
+            <Stack flex="1">
+              <AskSeerSearchHeader title={errorTitle} isError />
+            </Stack>
+          ) : hasResults ? (
+            <Stack flex="1" onMouseLeave={onMouseLeave}>
+              <AskSeerSearchListBox
+                {...listBoxProps}
+                listBoxRef={listBoxRef}
+                state={state}
+              />
+            </Stack>
+          ) : unsupportedReason ? (
+            <Stack flex="1">
+              <AskSeerSearchHeader
+                title={unsupportedReason || 'This query is not supported'}
+              />
+            </Stack>
+          ) : (
+            <Stack flex="1" onMouseLeave={onMouseLeave}>
+              <AskSeerSearchHeader title={emptyTitle} />
+            </Stack>
+          )}
+          {showFooter ? (
+            <Flex
+              containerType="inline-size"
+              justify="between"
+              align="start"
+              borderTop="primary"
+              paddingTop="sm"
+              paddingBottom="sm"
+              paddingLeft="md"
+              paddingRight="md"
+              background="secondary"
+              onMouseDown={e => e.preventDefault()}
+            >
+              <Flex
+                direction={{zero: 'column', md: 'row'}}
+                align={{zero: 'start', md: 'center'}}
+                gap="sm"
+              >
+                <Button
+                  icon={<IconSync />}
+                  size="zero"
+                  onClick={() => {
+                    const query = searchQuery.trim() || askSeerNLQueryRef.current?.trim();
+                    if (!query) {
+                      return;
+                    }
+
+                    trackAnalytics('ai_query.regenerated', {
+                      organization,
+                      area: analyticsArea,
+                      natural_language_query: query,
+                    });
+                    setDisplayAskSeerFeedback(false);
+                    onReset?.();
+                    submitQuery(query);
+                  }}
+                >
+                  {isError ? t('Try again') : t('Generate again')}
+                </Button>
+                {displayAskSeerFeedback && isDisplayingResults ? (
+                  <AskSeerFeedback />
+                ) : null}
+              </Flex>
+              {openForm ? (
+                <Button
+                  size="zero"
+                  icon={<IconMegaphone />}
+                  onClick={() =>
+                    openForm({
+                      messagePlaceholder: t(
+                        'How can we make Seer search better for you?'
+                      ),
+                      tags: {
+                        'feedback.source': `ai_query.${analyticsArea}`,
+                        'feedback.owner': 'ml-ai',
+                        'feedback.natural_language_query': searchQuery.trim(),
+                        'feedback.raw_result': queries
+                          .map(query => stringifyQueryForFeedback(query))
+                          .join('\n\n'),
+                        'feedback.num_queries_returned': queries.length,
+                        ...additionalFeedbackTags,
+                      },
+                    })
+                  }
+                >
+                  {t('Give Feedback')}
+                </Button>
+              ) : null}
+            </Flex>
+          ) : null}
+        </AskSeerSearchPopover>
+      ) : null}
+    </Wrapper>
+  );
+}
+
+const Wrapper = styled(Input.withComponent('div'))<{isDropdownOpen: boolean}>`
+  min-height: ${p => p.theme.form.md.minHeight};
+  padding: 0;
+  height: auto;
+  width: 100%;
+  position: relative;
+  font-size: ${p => p.theme.font.size.md};
+  cursor: text;
+
+  border-bottom-left-radius: ${p => (p.isDropdownOpen ? '0' : p.theme.radius.md)};
+  border-bottom-right-radius: ${p => (p.isDropdownOpen ? '0' : p.theme.radius.md)};
+`;
+
+const PositionedSearchIconContainer = styled('div')`
+  position: absolute;
+  left: ${p => p.theme.space.lg};
+  top: ${p => p.theme.space.sm};
+`;
+
+const SearchIcon = styled(IconSearch)`
+  color: ${p => p.theme.tokens.content.secondary};
+  height: 22px;
+`;
+
+const InvisibleInput = styled('input')<{hasQueryStatus: boolean}>`
+  position: absolute;
+  inset: 0;
+  resize: none;
+  outline: none;
+  border: 0;
+  width: 100%;
+  height: ${p => p.theme.form.md.height};
+  line-height: 25px;
+  margin-bottom: -1px;
+  background: transparent;
+
+  padding-top: calc(${p => p.theme.space.xs} + 1px);
+  padding-bottom: calc(${p => p.theme.space.xs} + 1px);
+  padding-left: calc(${p => p.theme.space['3xl']} + ${p => p.theme.space.xs});
+  padding-right: ${p =>
+    p.hasQueryStatus
+      ? `calc(${p.theme.space['3xl']} + ${p.theme.space['2xl']})`
+      : `calc(${p.theme.space['3xl']} + ${p.theme.space.xs})`};
+
+  &::selection {
+    background: rgba(0, 0, 0, 0.2);
+  }
+
+  &:not(:focus) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  [disabled] {
+    color: ${p => p.theme.tokens.content.disabled};
+  }
+`;
+
+const ButtonsWrapper = styled('div')`
+  position: absolute;
+  right: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+`;

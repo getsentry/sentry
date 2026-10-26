@@ -41,6 +41,7 @@ describe('ReleasesList', () => {
 
   let endpointMock: jest.Mock;
   let sessionApiMock: jest.Mock;
+  let sdkVersionsMock: jest.Mock;
 
   beforeEach(() => {
     act(() => ProjectsStore.loadInitialData(projects));
@@ -100,6 +101,10 @@ describe('ReleasesList', () => {
       url: `/organizations/${organization.slug}/builds/`,
       body: [],
     });
+    sdkVersionsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {data: []},
+    });
   });
 
   afterEach(() => {
@@ -121,6 +126,49 @@ describe('ReleasesList', () => {
     expect(await within(items.at(1)!).findByText('0%')).toBeInTheDocument();
     expect(within(items.at(2)!).getByText('af4f231ec9a8')).toBeInTheDocument();
     expect(within(items.at(2)!).getByText('Project Slug')).toBeInTheDocument();
+  });
+
+  it('renders the SDK version of each release from only its own projects when events report one', async () => {
+    sdkVersionsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {
+        data: [
+          {
+            'project.id': 4383603,
+            release: '1.0.1',
+            'sdk.name': 'sentry.javascript.react',
+            'sdk.version': '9.12.0',
+            'count()': 10,
+          },
+          {
+            'project.id': 4383604,
+            release: '1.0.1',
+            'sdk.name': 'sentry.cocoa',
+            'sdk.version': '8.40.0',
+            'count()': 20,
+          },
+        ],
+      },
+    });
+
+    render(<ReleasesList />, {organization});
+    const items = await screen.findAllByTestId('release-panel');
+
+    expect(
+      await within(items.at(1)!).findByText('SDK 9.12.0 · sentry.javascript.react')
+    ).toBeInTheDocument();
+    expect(within(items.at(0)!).queryByText(/^SDK /)).not.toBeInTheDocument();
+    expect(within(items.at(1)!).queryByText('+1')).not.toBeInTheDocument();
+    expect(sdkVersionsMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events/`,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query:
+            'has:sdk.version ( release:1.0.0 OR release:1.0.1 OR release:af4f231ec9a8 )',
+          statsPeriod: '90d',
+        }),
+      })
+    );
   });
 
   it('displays quickstart when appropriate', async () => {
@@ -489,10 +537,10 @@ describe('ReleasesList', () => {
     });
     PageFiltersStore.updateProjects([2], null);
     render(<ReleasesList />, {organization});
-    const hiddenProjectsMessage = await screen.findByTestId('hidden-projects');
+    const hiddenProjectsMessage = await screen.findByText(/hidden projects/);
     expect(hiddenProjectsMessage).toHaveTextContent('2 hidden projects');
 
-    expect(screen.getAllByTestId('release-card-project-row')).toHaveLength(1);
+    expect(screen.getAllByRole('button', {name: 'View'})).toHaveLength(1);
 
     expect(screen.getByTestId('badge-display-name')).toHaveTextContent('test2');
   });
@@ -505,8 +553,37 @@ describe('ReleasesList', () => {
     PageFiltersStore.updateProjects([-1], null);
     render(<ReleasesList />, {organization});
 
-    expect(await screen.findByTestId('release-card-project-row')).toBeInTheDocument();
-    expect(screen.queryByTestId('hidden-projects')).not.toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'View'})).toBeInTheDocument();
+    expect(screen.queryByText(/hidden projects/)).not.toBeInTheDocument();
+  });
+
+  it('shows health rows past the first five projects when expanded', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/releases/`,
+      body: [
+        {
+          ...ReleaseFixture({version: '2.0.0'}),
+          projects: Array.from({length: 7}, (_, index) => ({
+            id: index + 1,
+            name: `Test${index + 1}`,
+            slug: `test${index + 1}`,
+          })),
+        },
+      ],
+    });
+    PageFiltersStore.updateProjects([-1], null);
+    render(<ReleasesList />, {organization});
+
+    expect(await screen.findAllByRole('button', {name: 'View'})).toHaveLength(5);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Show 2 More'}));
+
+    expect(screen.getAllByRole('button', {name: 'View'})).toHaveLength(7);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Collapse'}));
+
+    expect(screen.getAllByRole('button', {name: 'View'})).toHaveLength(5);
+    expect(screen.getByRole('button', {name: 'Show 2 More'})).toBeInTheDocument();
   });
 
   it('renders mobile builds when the mobile-builds tab is selected', async () => {
@@ -594,6 +671,13 @@ describe('ReleasesList', () => {
     });
   }
 
+  it('does not fetch releases while viewing mobile builds', async () => {
+    renderMobileBuildsTab({query: 'sha:abcdef1'});
+
+    expect(await screen.findByTestId('query-builder-input')).toBeInTheDocument();
+    expect(endpointMock).not.toHaveBeenCalled();
+  });
+
   it('toggles display mode in the mobile-builds tab and injects installable:true', async () => {
     const {router} = renderMobileBuildsTab();
 
@@ -636,6 +720,22 @@ describe('ReleasesList', () => {
     // Wait for the controls to render before asserting the button is absent.
     expect(await screen.findByRole('button', {name: 'Display Size'})).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Download CSV'})).not.toBeInTheDocument();
+  });
+
+  it('searches distribution builds by install group without fetching values', async () => {
+    const installGroupValuesMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/install_groups/values/`,
+      body: [],
+    });
+    const {router} = renderMobileBuildsTab({display: 'distribution'});
+
+    const searchInput = await screen.findByTestId('query-builder-input');
+    await userEvent.type(searchInput, 'install_groups:alpha{enter}');
+
+    await waitFor(() => {
+      expect(router.location.query.query).toBe('install_groups:alpha');
+    });
+    expect(installGroupValuesMock).not.toHaveBeenCalled();
   });
 
   it('allows searching within the mobile-builds tab', async () => {

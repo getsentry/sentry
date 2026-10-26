@@ -97,3 +97,11 @@ def test_all() -> None:
             }
         ],
     }
+
+
+def test_title_truncated_to_discord_limit() -> None:
+    title = "a" * 300
+    embed = DiscordMessageEmbed(title=title)
+    result = embed.build()
+    assert result["title"] == "a" * 256
+    assert len(result["title"]) == 256

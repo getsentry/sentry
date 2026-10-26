@@ -1,5 +1,6 @@
 import {AutomationFixture} from 'sentry-fixture/automations';
 import {MemberFixture} from 'sentry-fixture/member';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 import {
@@ -20,6 +21,7 @@ import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 
 import {Form} from 'sentry/components/forms/form';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import type {Scope} from 'sentry/types/core';
 import {ActionGroup, ActionType} from 'sentry/types/workflowEngine/actions';
 import {
   DataConditionHandlerGroupType,
@@ -37,7 +39,7 @@ const mockMember = MemberFixture({
 });
 
 function setupSharedMocks() {
-  jest.resetAllMocks();
+  jest.clearAllMocks();
   MockApiClient.clearMockResponses();
   ProjectsStore.loadInitialData([project]);
 
@@ -150,6 +152,43 @@ describe('AutomateSection', () => {
       </form.AppForm>
     );
   }
+
+  it.each([
+    {initial: [], connectionButton: 'Connect Existing Alerts'},
+    {initial: [automation1.id], connectionButton: 'Edit Alerts'},
+  ])(
+    'allows team admins to $connectionButton without creating detached alerts',
+    async ({initial, connectionButton}) => {
+      ProjectsStore.loadInitialData([
+        ProjectFixture({...project, access: ['project:read', 'alerts:write']}),
+      ]);
+      render(<FormHarness initial={initial} />, {
+        organization: OrganizationFixture({access: ['org:read', 'alerts:read']}),
+      });
+
+      expect(
+        screen.queryByRole('button', {name: 'Create New Alert'})
+      ).not.toBeInTheDocument();
+
+      const connectButton = screen.getByRole('button', {name: connectionButton});
+      expect(connectButton).toBeEnabled();
+      await userEvent.click(connectButton);
+      expect(
+        await screen.findByRole('complementary', {name: 'Connect Alerts'})
+      ).toBeInTheDocument();
+    }
+  );
+
+  it.each<Scope>(['org:write', 'org:admin', 'alerts:write'])(
+    'allows detached alert creation with organization-level %s',
+    scope => {
+      render(<FormHarness initial={[]} />, {
+        organization: OrganizationFixture({access: [scope]}),
+      });
+
+      expect(screen.getByRole('button', {name: 'Create New Alert'})).toBeEnabled();
+    }
+  );
 
   it('can connect an existing automation', async () => {
     render(<FormHarness initial={[]} />);

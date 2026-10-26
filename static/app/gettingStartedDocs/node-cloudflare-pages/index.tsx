@@ -1,23 +1,5 @@
-import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {agentMonitoring} from 'sentry/gettingStartedDocs/node/agentMonitoring';
-import {featureFlag} from 'sentry/gettingStartedDocs/node/featureFlag';
-
-import {crashReport} from './crashReport';
-import {logs} from './logs';
-import {mcp} from './mcp';
-import {metrics} from './metrics';
-import {onboarding} from './onboarding';
-
-export const docs: Docs = {
-  onboarding,
-  crashReportOnboarding: crashReport,
-  featureFlagOnboarding: featureFlag({
-    packageName: '@sentry/cloudflare',
-  }),
-  logsOnboarding: logs,
-  agentMonitoringOnboarding: agentMonitoring({
-    packageName: '@sentry/cloudflare',
-  }),
-  mcpOnboarding: mcp,
-  metricsOnboarding: metrics,
-};
+// `node-cloudflare-pages` is a legacy platform key: Workers and Pages were merged
+// into a single "Cloudflare" platform, which lives under `node-cloudflare-workers`.
+// Projects created before the merge keep this key, so they resolve to the same docs,
+// where the "Setup Type" option covers Pages.
+export {docs} from 'sentry/gettingStartedDocs/node-cloudflare-workers';

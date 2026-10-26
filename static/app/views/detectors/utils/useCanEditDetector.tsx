@@ -1,14 +1,28 @@
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import type {Detector, DetectorType} from 'sentry/types/workflowEngine/detectors';
+import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {useProjects} from 'sentry/utils/useProjects';
 import {detectorTypeIsUserCreateable} from 'sentry/views/detectors/utils/detectorTypeConfig';
+import {hasDetectorWriteAccess} from 'sentry/views/detectors/utils/permissions';
 
-export function useCanEditDetectorWorkflowConnections({projectId}: {projectId: string}) {
+export function useCanEditDetectorWorkflowConnections({
+  projectId,
+}: {
+  projectId: Detector['projectId'];
+}) {
   const organization = useOrganization();
-  const project = useProjectFromId({project_id: projectId});
-  return hasEveryAccess(['alerts:write'], {organization, project});
+  const project = useProjectFromId({project_id: projectId ?? undefined});
+  if (!projectId) {
+    // Workflows connected to all project detector do not allow alerts:write updates.
+    return hasEveryAccess(['org:write'], {organization});
+  }
+
+  return (
+    hasEveryAccess(['org:write'], {organization, project}) ||
+    hasEveryAccess(['alerts:write'], {organization, project})
+  );
 }
 
 export function useCanEditDetector({
@@ -16,10 +30,10 @@ export function useCanEditDetector({
   detectorType,
 }: {
   detectorType: DetectorType;
-  projectId: string;
+  projectId: Detector['projectId'];
 }) {
   const organization = useOrganization();
-  const project = useProjectFromId({project_id: projectId});
+  const project = useProjectFromId({project_id: projectId ?? undefined});
 
   if (!project) {
     return false;
@@ -28,7 +42,7 @@ export function useCanEditDetector({
   // For user-createable detectors (such as metric, cron, uptime, etc.),
   // we check for organization-level edit access (determined by an org setting).
   if (detectorTypeIsUserCreateable(detectorType)) {
-    return hasEveryAccess(['alerts:write'], {organization, project});
+    return hasDetectorWriteAccess({organization, project});
   }
 
   // For non-user-createable detectors (such as error, n+1 etc.), only team admins can edit.
@@ -50,6 +64,9 @@ export function useCanEditDetectors({detectors}: {detectors: Detector[]}) {
 
   for (const detector of detectors) {
     const projectId = detector.projectId;
+    if (!defined(projectId)) {
+      return false;
+    }
     if (!projectToDetectors[projectId]) {
       projectToDetectors[projectId] = [];
     }

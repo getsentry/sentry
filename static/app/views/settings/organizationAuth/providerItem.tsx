@@ -1,14 +1,15 @@
 import styled from '@emotion/styled';
+import {IconLock} from '@sentry/icons/lock';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 
 import {Access} from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {Hovercard} from 'sentry/components/hovercard';
 import {PanelItem} from 'sentry/components/panels/panelItem';
-import {IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {AuthProvider} from 'sentry/types/auth';
 import type {FeatureDisabledOverrides} from 'sentry/types/overrides';
@@ -32,14 +33,9 @@ type LockedFeatureProps = {
 type Props = {
   active: boolean;
   provider: AuthProvider;
-  onConfigure?: (providerKey: string, e: React.MouseEvent) => void;
 };
 
-export function ProviderItem({provider, active, onConfigure}: Props) {
-  const handleConfigure = (e: React.MouseEvent) => {
-    onConfigure?.(provider.key, e);
-  };
-
+export function ProviderItem({provider, active}: Props) {
   const renderDisabledLock = (p: LockedFeatureProps) => (
     <LockedFeature provider={p.provider} features={p.features} />
   );
@@ -53,7 +49,6 @@ export function ProviderItem({provider, active, onConfigure}: Props) {
           size="sm"
           value={provider.key}
           disabled={!hasFeature || !hasAccess}
-          onClick={handleConfigure}
         >
           {t('Configure')}
         </Button>
@@ -114,11 +109,11 @@ export function ProviderItem({provider, active, onConfigure}: Props) {
             </div>
           </ProviderInfo>
 
-          <FeatureBadge>
+          <Container flex="1">
             {!hasFeature &&
               // renderDisabled is overridden by renderDisabled above
               (renderDisabled as typeof renderDisabledLock)({provider, features})}
-          </FeatureBadge>
+          </Container>
 
           <div>
             {active ? (
@@ -159,10 +154,6 @@ const ProviderName = styled('div')`
 const ProviderDescription = styled('div')`
   font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const FeatureBadge = styled('div')`
-  flex: 1;
 `;
 
 const ActiveIndicator = styled('div')`

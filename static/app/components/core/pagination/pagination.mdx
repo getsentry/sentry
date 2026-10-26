@@ -12,7 +12,7 @@ resources:
 import {useState} from 'react';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {Pagination, getPaginationCaption} from '@sentry/scraps/pagination';
+import {Pagination} from '@sentry/scraps/pagination';
 
 import * as Storybook from 'sentry/stories';
 
@@ -62,27 +62,30 @@ The `size` prop is derived from `Button`'s `size` prop, so values stay in sync w
 
 ## Caption
 
-Pass a `caption` to render helper text to the left of the controls. The exported `getPaginationCaption` helper produces a canonical `"[start]-[end] of [total]"` label when you have access to the current `cursor`, page `limit`, current `pageLength`, and `total` count.
+Pass a `caption` to render helper text to the left of the controls. The `useGetPaginationCaption` hook returns a function that produces a canonical `"[start]-[end] of [total]"` label when you have access to the current `cursor`, page `limit`, current `pageLength`, and `total` count.
 
 <Storybook.Demo>
   <Flex width="100%" justify="end">
-    <Pagination
-      pageLinks={samplePageLinks}
-      caption={getPaginationCaption({
-        cursor: '0:0:0',
-        limit: 25,
-        pageLength: 25,
-        total: 100,
-      })}
-    />
+    <Pagination pageLinks={samplePageLinks} caption="1-25 of 100" />
   </Flex>
 </Storybook.Demo>
 
 ```tsx
-<Pagination
-  pageLinks={pageLinks}
-  caption={getPaginationCaption({cursor, limit, pageLength: items.length, total})}
-/>
+function PaginatedList({cursor, items, limit, pageLinks, total}) {
+  const getPaginationCaption = useGetPaginationCaption();
+
+  return (
+    <Pagination
+      pageLinks={pageLinks}
+      caption={getPaginationCaption({
+        cursor,
+        limit,
+        pageLength: items.length,
+        total,
+      })}
+    />
+  );
+}
 ```
 
 ## Custom cursor handler

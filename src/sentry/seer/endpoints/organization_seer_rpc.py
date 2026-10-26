@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from rest_framework.exceptions import NotFound, ParseError, PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import traces
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -31,10 +32,8 @@ from sentry.seer.agent.tools import (
     execute_timeseries_query,
     execute_trace_table_query,
     get_baseline_tag_distribution,
-    get_comparative_attribute_distributions,
     get_dsn,
     get_event_details,
-    get_issue_and_event_details_v2,
     get_issue_committers,
     get_issue_details,
     get_issue_ownership,
@@ -43,7 +42,6 @@ from sentry.seer.agent.tools import (
     get_replay_metadata,
     get_repository_definition,
     get_team_members,
-    get_trace_item_attributes,
     rpc_get_profile_flamegraph,
     rpc_get_trace_waterfall,
 )
@@ -65,21 +63,18 @@ from sentry.seer.assisted_query.traces_tools import (
 from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profile_details
 from sentry.seer.endpoints.registry import SeerRpcMethod, seer_rpc
 from sentry.seer.endpoints.seer_rpc import (
-    get_attributes_and_values,
     get_attributes_for_span,
     get_github_enterprise_integration_config,
     get_organization_features,
-    get_organization_project_ids,
     get_organization_projects,
     get_organization_slug,
     has_repo_code_mappings,
-    validate_repo,
 )
 from sentry.seer.endpoints.utils import accept_organization_id_param, map_org_id_param
 from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
+from sentry.seer.public_caller import bind_public_seer_caller
 from sentry.utils import metrics
 from sentry.utils.env import in_test_environment
-from sentry.utils.tracing import trace
 from sentry.viewer_context import get_viewer_context, observe_viewer_context_propagation
 
 logger = logging.getLogger(__name__)
@@ -108,11 +103,9 @@ logger = logging.getLogger(__name__)
 # - `organization_id` (int): Organization ID, auto-injected and validated. use map_org_id_param to map to `org_id` if needed.
 public_org_seer_method_registry: dict[str, SeerRpcMethod] = {
     # Common to Seer features
-    "get_organization_project_ids": seer_rpc(map_org_id_param(get_organization_project_ids)),
     "get_organization_projects": seer_rpc(map_org_id_param(get_organization_projects)),
     "get_organization_slug": seer_rpc(map_org_id_param(get_organization_slug)),
     "get_organization_features": seer_rpc(map_org_id_param(get_organization_features)),
-    "validate_repo": seer_rpc(validate_repo),
     "get_github_enterprise_integration_config": seer_rpc(get_github_enterprise_integration_config),
     #
     # Bug prediction
@@ -127,7 +120,6 @@ public_org_seer_method_registry: dict[str, SeerRpcMethod] = {
     "get_attribute_values_with_substring": seer_rpc(
         map_org_id_param(get_attribute_values_with_substring)
     ),
-    "get_attributes_and_values": seer_rpc(map_org_id_param(get_attributes_and_values)),
     "get_metric_metadata": seer_rpc(map_org_id_param(get_metric_metadata)),
     "get_event_filter_keys": seer_rpc(map_org_id_param(get_event_filter_keys)),
     "get_event_filter_key_values": seer_rpc(map_org_id_param(get_event_filter_key_values)),
@@ -141,7 +133,6 @@ public_org_seer_method_registry: dict[str, SeerRpcMethod] = {
     "execute_timeseries_query": seer_rpc(map_org_id_param(execute_timeseries_query)),
     "execute_trace_table_query": seer_rpc(execute_trace_table_query),
     "execute_issues_query": seer_rpc(map_org_id_param(execute_issues_query)),
-    "get_issue_and_event_details_v2": seer_rpc(get_issue_and_event_details_v2),
     "get_issue_details": seer_rpc(get_issue_details),
     "get_issue_committers": seer_rpc(get_issue_committers),
     "get_issue_ownership": seer_rpc(get_issue_ownership),
@@ -153,7 +144,6 @@ public_org_seer_method_registry: dict[str, SeerRpcMethod] = {
     "get_metric_attributes_for_trace": seer_rpc(map_org_id_param(get_metric_attributes_for_trace)),
     "get_issues_stats": seer_rpc(map_org_id_param(get_issues_stats)),
     "get_baseline_tag_distribution": seer_rpc(get_baseline_tag_distribution),
-    "get_comparative_attribute_distributions": seer_rpc(get_comparative_attribute_distributions),
     "get_dsn": seer_rpc(get_dsn),
     #
     # Agent eval tooling
@@ -183,7 +173,6 @@ public_project_seer_method_registry: dict[str, SeerRpcMethod] = {
     "get_error_event_details": seer_rpc(accept_organization_id_param(get_error_event_details)),
     "get_profile_details": seer_rpc(get_profile_details),
     "get_attributes_for_span": seer_rpc(map_org_id_param(get_attributes_for_span)),
-    "get_trace_item_attributes": seer_rpc(map_org_id_param(get_trace_item_attributes)),
     # Replays - project-scoped methods
     "get_replay_summary_logs": seer_rpc(accept_organization_id_param(rpc_get_replay_summary_logs)),
 }
@@ -204,7 +193,6 @@ _issue_scoped_org_methods: frozenset[str] = frozenset(
         "get_issue_ownership",
         "get_issue_details",
         "get_event_details",
-        "get_issue_and_event_details_v2",
     }
 )
 
@@ -293,7 +281,7 @@ class OrganizationSeerRpcEndpoint(OrganizationEndpoint):
 
         return result
 
-    @trace
+    @traces.trace
     def _dispatch_to_local_method(
         self,
         request: Request,
@@ -307,7 +295,10 @@ class OrganizationSeerRpcEndpoint(OrganizationEndpoint):
         if method_name in public_org_seer_method_registry:
             method = public_org_seer_method_registry[method_name]
             arguments["organization_id"] = organization.id
-            result = method(**arguments)
+            # These helpers also serve the internal Seer RPC, where org-wide reads are
+            # intended. Binding the member's access keeps them to the member's projects.
+            with bind_public_seer_caller(request.access):
+                result = method(**arguments)
             if method_name in _issue_scoped_org_methods:
                 result = self._filter_issue_scoped_result(request, method_name, result)
             return _serialize_result(result)
@@ -331,7 +322,7 @@ class OrganizationSeerRpcEndpoint(OrganizationEndpoint):
 
         raise RpcResolutionException(f"Unknown method {method_name}")
 
-    @trace
+    @traces.trace
     def post(self, request: Request, organization: Organization, method_name: str) -> Response:
         sentry_sdk.set_tag("rpc.method", method_name)
         sentry_sdk.set_attribute("rpc.method", method_name)

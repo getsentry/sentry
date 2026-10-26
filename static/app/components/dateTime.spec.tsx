@@ -1,16 +1,18 @@
-import {UserFixture} from 'sentry-fixture/user';
-
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {ConfigStore} from 'sentry/stores/configStore';
+import {type DateTimeContextValue, DateTimeProvider} from '@sentry/scraps/datetime';
 
 import {DateTime} from './dateTime';
-import {TimezoneProvider} from './timezoneProvider';
 
 describe('DateTime', () => {
-  function renderPDT(child: React.ReactElement) {
+  function renderPDT(
+    child: React.ReactElement,
+    {clockDisplay = '12'}: Partial<DateTimeContextValue> = {}
+  ) {
     return render(
-      <TimezoneProvider timezone="America/Los_Angeles">{child}</TimezoneProvider>
+      <DateTimeProvider value={{timezone: 'America/Los_Angeles', clockDisplay}}>
+        {child}
+      </DateTimeProvider>
     );
   }
 
@@ -75,45 +77,38 @@ describe('DateTime', () => {
   });
 
   describe('24 Hours', () => {
-    beforeAll(() => {
-      const user = UserFixture();
-      user.options.clock24Hours = true;
-      ConfigStore.set('user', user);
-    });
-
-    afterAll(() => {
-      const user = UserFixture();
-      user.options.clock24Hours = false;
-      ConfigStore.set('user', user);
-    });
+    const on24HourClock = {clockDisplay: '24'} as const;
 
     it('renders a date', () => {
-      renderPDT(<DateTime date={new Date()} />);
+      renderPDT(<DateTime date={new Date()} />, on24HourClock);
       expect(screen.getByText('Oct 16, 19:41')).toBeInTheDocument();
     });
 
     it('renders only the time', () => {
-      renderPDT(<DateTime date={new Date()} timeOnly />);
+      renderPDT(<DateTime date={new Date()} timeOnly />, on24HourClock);
       expect(screen.getByText('19:41')).toBeInTheDocument();
     });
 
     it('renders a date with milliseconds', () => {
-      renderPDT(<DateTime date={new Date()} milliseconds />);
+      renderPDT(<DateTime date={new Date()} milliseconds />, on24HourClock);
       expect(screen.getByText('Oct 16, 19:41:20.000')).toBeInTheDocument();
     });
 
     it('renders a date with seconds and milliseconds', () => {
-      renderPDT(<DateTime date={new Date()} seconds milliseconds />);
+      renderPDT(<DateTime date={new Date()} seconds milliseconds />, on24HourClock);
       expect(screen.getByText('Oct 16, 19:41:20.000')).toBeInTheDocument();
     });
 
     it('renders date with forced utc', () => {
-      renderPDT(<DateTime date={new Date()} utc />);
+      renderPDT(<DateTime date={new Date()} utc />, on24HourClock);
       expect(screen.getByText('Oct 17, 02:41 UTC')).toBeInTheDocument();
     });
 
     it('renders date with forced timezone', () => {
-      renderPDT(<DateTime date={new Date()} forcedTimezone="America/Toronto" />);
+      renderPDT(
+        <DateTime date={new Date()} forcedTimezone="America/Toronto" />,
+        on24HourClock
+      );
       expect(screen.getByText('Oct 16, 22:41')).toBeInTheDocument();
     });
   });

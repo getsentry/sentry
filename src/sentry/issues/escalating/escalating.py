@@ -11,7 +11,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime, timedelta, timezone
 from typing import Any, TypedDict
 
-from django.db.models.signals import post_save
+from django.db import router, transaction
 from snuba_sdk import (
     Column,
     Condition,
@@ -26,7 +26,6 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry import options
 from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.escalating.escalating_issues_alg import GroupCount
 from sentry.issues.grouptype import GroupCategory
@@ -471,7 +470,7 @@ def is_escalating(group: Group) -> tuple[bool, int | None]:
             },
         )
 
-    forecast_today = EscalatingGroupForecast.fetch_todays_forecast(group.project.id, group.id)
+    forecast_today = EscalatingGroupForecast.fetch_todays_forecast(group)
     # Check if current event occurrence is greater than forecast for today's date
     if forecast_today and group_hourly_count > forecast_today:
         return True, forecast_today
@@ -534,13 +533,6 @@ def manage_issue_states(
         if updated:
             group.status = GroupStatus.UNRESOLVED
             group.substatus = GroupSubStatus.ESCALATING
-            if not options.get("groups.enable-post-update-signal"):
-                post_save.send_robust(
-                    sender=Group,
-                    instance=group,
-                    created=False,
-                    update_fields=["status", "substatus"],
-                )
             add_group_to_inbox(group, GroupInboxReason.ESCALATING, snooze_details)
             record_group_history(group, GroupHistoryStatus.ESCALATING)
             kick_off_status_syncs.apply_async(
@@ -567,25 +559,22 @@ def manage_issue_states(
             auto_update_priority(group, PriorityChangeReason.ESCALATING)
 
     elif group_inbox_reason == GroupInboxReason.ONGOING:
-        updated = Group.objects.filter(
-            id=group.id, status__in=[GroupStatus.RESOLVED, GroupStatus.IGNORED]
-        ).update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
-        if updated:
-            group.status = GroupStatus.UNRESOLVED
-            group.substatus = GroupSubStatus.ONGOING
-            if not options.get("groups.enable-post-update-signal"):
-                post_save.send_robust(
-                    sender=Group,
-                    instance=group,
-                    created=False,
-                    update_fields=["status", "substatus"],
-                )
-            add_group_to_inbox(group, GroupInboxReason.ONGOING, snooze_details)
-            record_group_history(group, GroupHistoryStatus.ONGOING)
+        with transaction.atomic(router.db_for_write(Group)):
+            updated = Group.objects.filter(
+                id=group.id, status__in=[GroupStatus.RESOLVED, GroupStatus.IGNORED]
+            ).update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
+            if updated:
+                group.status = GroupStatus.UNRESOLVED
+                group.substatus = GroupSubStatus.ONGOING
+                add_group_to_inbox(group, GroupInboxReason.ONGOING, snooze_details)
+                record_group_history(group, GroupHistoryStatus.ONGOING)
 
-            Activity.objects.create_group_activity(
-                group=group, type=ActivityType.SET_UNRESOLVED, data=data, send_notification=False
-            )
+                Activity.objects.create_group_activity(
+                    group=group,
+                    type=ActivityType.SET_UNRESOLVED,
+                    data=data,
+                    send_notification=False,
+                )
 
     elif group_inbox_reason == GroupInboxReason.UNIGNORED:
         updated = Group.objects.filter(
@@ -594,13 +583,6 @@ def manage_issue_states(
         if updated:
             group.status = GroupStatus.UNRESOLVED
             group.substatus = GroupSubStatus.ONGOING
-            if not options.get("groups.enable-post-update-signal"):
-                post_save.send_robust(
-                    sender=Group,
-                    instance=group,
-                    created=False,
-                    update_fields=["status", "substatus"],
-                )
             add_group_to_inbox(group, GroupInboxReason.UNIGNORED, snooze_details)
             record_group_history(group, GroupHistoryStatus.UNIGNORED)
             Activity.objects.create_group_activity(

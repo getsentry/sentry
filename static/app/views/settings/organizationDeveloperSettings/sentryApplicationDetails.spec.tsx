@@ -12,7 +12,10 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
+import {trackAnalytics} from 'sentry/utils/analytics';
 import SentryApplicationDetails from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails';
+
+jest.mock('sentry/utils/analytics');
 
 describe('Sentry Application Details', () => {
   let sentryApp: ReturnType<typeof SentryAppFixture>;
@@ -45,7 +48,7 @@ describe('Sentry Application Details', () => {
       });
     });
 
-    it('has inputs for redirectUrl and verifyInstall', () => {
+    it('renders the fields for a new public app', () => {
       renderComponent();
 
       expect(
@@ -53,10 +56,6 @@ describe('Sentry Application Details', () => {
       ).toBeInTheDocument();
 
       expect(screen.getByRole('textbox', {name: 'Redirect URL'})).toBeInTheDocument();
-    });
-
-    it('shows empty scopes and no credentials', () => {
-      renderComponent();
 
       expect(screen.getByText('Permissions')).toBeInTheDocument();
 
@@ -64,10 +63,6 @@ describe('Sentry Application Details', () => {
       expect(screen.getByRole('checkbox', {name: 'issue'})).not.toBeChecked();
       expect(screen.getByRole('checkbox', {name: 'error'})).not.toBeChecked();
       expect(screen.getByRole('checkbox', {name: 'comment'})).not.toBeChecked();
-    });
-
-    it('does not show logo upload fields', () => {
-      renderComponent();
 
       expect(screen.queryByText('Logo')).not.toBeInTheDocument();
       expect(screen.queryByText('Small Icon')).not.toBeInTheDocument();
@@ -76,18 +71,15 @@ describe('Sentry Application Details', () => {
     it('saves', async () => {
       renderComponent();
 
-      await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'Test App');
-      await userEvent.type(screen.getByRole('textbox', {name: 'Author'}), 'Sentry');
-
-      await userEvent.type(
-        screen.getByRole('textbox', {name: 'Webhook URL'}),
-        'https://webhook.com'
-      );
-
-      await userEvent.type(
-        screen.getByRole('textbox', {name: 'Redirect URL'}),
-        'https://webhook.com/setup'
-      );
+      // Paste instead of typing: every keystroke re-renders the whole form.
+      await userEvent.click(screen.getByRole('textbox', {name: 'Name'}));
+      await userEvent.paste('Test App');
+      await userEvent.click(screen.getByRole('textbox', {name: 'Author'}));
+      await userEvent.paste('Sentry');
+      await userEvent.click(screen.getByRole('textbox', {name: 'Webhook URL'}));
+      await userEvent.paste('https://webhook.com');
+      await userEvent.click(screen.getByRole('textbox', {name: 'Redirect URL'}));
+      await userEvent.paste('https://webhook.com/setup');
 
       await userEvent.click(screen.getByRole('textbox', {name: 'Schema'}));
       await userEvent.paste('{}');
@@ -119,7 +111,13 @@ describe('Sentry Application Details', () => {
           'event:admin',
           'org:ci',
         ]),
-        events: ['issue'],
+        events: [
+          'issue.created',
+          'issue.resolved',
+          'issue.assigned',
+          'issue.ignored',
+          'issue.unresolved',
+        ],
         isInternal: false,
         verifyInstall: true,
         isAlertable: true,
@@ -139,23 +137,16 @@ describe('Sentry Application Details', () => {
     });
 
     it('saves webhook headers', async () => {
-      render(<SentryApplicationDetails />, {
-        initialRouterConfig,
-        organization: OrganizationFixture({
-          features: ['sentry-apps-custom-webhook-headers'],
-        }),
-      });
+      render(<SentryApplicationDetails />, {initialRouterConfig});
 
-      await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'Test App');
-      await userEvent.type(screen.getByRole('textbox', {name: 'Author'}), 'Sentry');
-      await userEvent.type(
-        screen.getByRole('textbox', {name: 'Webhook URL'}),
-        'https://webhook.com'
-      );
-      await userEvent.type(
-        screen.getByRole('textbox', {name: 'Webhook Headers'}),
-        'X-Example: value'
-      );
+      await userEvent.click(screen.getByRole('textbox', {name: 'Name'}));
+      await userEvent.paste('Test App');
+      await userEvent.click(screen.getByRole('textbox', {name: 'Author'}));
+      await userEvent.paste('Sentry');
+      await userEvent.click(screen.getByRole('textbox', {name: 'Webhook URL'}));
+      await userEvent.paste('https://webhook.com');
+      await userEvent.click(screen.getByRole('textbox', {name: 'Webhook Headers'}));
+      await userEvent.paste('X-Example: value');
 
       await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
 
@@ -182,15 +173,11 @@ describe('Sentry Application Details', () => {
       return render(<SentryApplicationDetails />, {initialRouterConfig});
     }
 
-    it('does not show logo upload fields', () => {
+    it('renders the fields for a new internal app', () => {
       renderComponent();
 
       expect(screen.queryByText('Logo')).not.toBeInTheDocument();
       expect(screen.queryByText('Small Icon')).not.toBeInTheDocument();
-    });
-
-    it('no inputs for redirectUrl and verifyInstall', () => {
-      renderComponent();
 
       expect(
         screen.queryByRole('checkbox', {name: 'Verify Installation'})
@@ -199,6 +186,255 @@ describe('Sentry Application Details', () => {
       expect(
         screen.queryByRole('textbox', {name: 'Redirect URL'})
       ).not.toBeInTheDocument();
+    });
+
+    it('disables the alert action switch until a webhook URL is set', async () => {
+      renderComponent();
+
+      expect(screen.getByRole('checkbox', {name: 'Alert Action'})).toBeDisabled();
+
+      await userEvent.click(screen.getByRole('textbox', {name: 'Webhook URL'}));
+      await userEvent.paste('https://example.com');
+      expect(screen.getByRole('checkbox', {name: 'Alert Action'})).toBeEnabled();
+
+      await userEvent.clear(screen.getByRole('textbox', {name: 'Webhook URL'}));
+      expect(screen.getByRole('checkbox', {name: 'Alert Action'})).toBeDisabled();
+    });
+
+    it('requires a webhook URL to save enabled subscriptions', async () => {
+      createAppRequest = MockApiClient.addMockResponse({
+        url: '/sentry-apps/',
+        method: 'POST',
+        body: [],
+      });
+
+      renderComponent();
+
+      await userEvent.click(screen.getByRole('textbox', {name: 'Name'}));
+      await userEvent.paste('Test App');
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Issue & Event'}),
+        'Read'
+      );
+      await userEvent.click(screen.getByRole('checkbox', {name: 'issue'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+
+      expect(
+        await screen.findByText('This field is required when webhook events are enabled')
+      ).toBeInTheDocument();
+      expect(createAppRequest).not.toHaveBeenCalled();
+    });
+
+    it('notes the payload transform when the URL fires a Claude routine', async () => {
+      render(<SentryApplicationDetails />, {
+        initialRouterConfig,
+      });
+
+      const webhookInput = screen.getByRole('textbox', {name: 'Webhook URL'});
+      await userEvent.click(webhookInput);
+      await userEvent.paste(
+        'https://api.anthropic.com/v1/claude_code/routines/trig_123/fire'
+      );
+
+      await userEvent.hover(screen.getByText('Claude routine'));
+      expect(
+        await screen.findByText(/automatically format your webhook payloads/)
+      ).toBeInTheDocument();
+
+      // Clicking puts the caret at the end, so this appends to the URL.
+      await userEvent.click(webhookInput);
+      await userEvent.paste('/extra');
+      expect(screen.queryByText('Claude routine')).not.toBeInTheDocument();
+    });
+
+    describe('with a creation template', () => {
+      const templateRouterConfig: RouterConfig = {
+        location: {
+          pathname: '/settings/org-slug/developer-settings/new-internal/',
+          query: {template: 'claude-routine', referrer: 'test_referrer'},
+        },
+        route: '/settings/:orgId/developer-settings/new-internal/',
+      };
+      const organization = OrganizationFixture();
+
+      it('prefills the form and renders only the template fields', async () => {
+        render(<SentryApplicationDetails />, {
+          initialRouterConfig: templateRouterConfig,
+          organization,
+        });
+
+        expect(screen.getByText('Trigger a Claude routine')).toBeInTheDocument();
+        expect(screen.getByRole('textbox', {name: 'Name'})).toHaveValue('Claude Routine');
+        expect(screen.getByRole('textbox', {name: 'Routine Token'})).toHaveValue('');
+        expect(
+          screen.getByRole('button', {name: 'Copy a starter prompt'})
+        ).toBeInTheDocument();
+        expect(screen.getByRole('button', {name: 'Permissions'})).toHaveAttribute(
+          'aria-expanded',
+          'false'
+        );
+        expect(screen.getByRole('button', {name: 'Webhooks'})).toHaveAttribute(
+          'aria-expanded',
+          'false'
+        );
+
+        expect(
+          screen.queryByRole('checkbox', {name: 'Alert Action'})
+        ).not.toBeInTheDocument();
+        expect(screen.queryByRole('textbox', {name: 'Schema'})).not.toBeInTheDocument();
+        expect(screen.queryByRole('textbox', {name: 'Overview'})).not.toBeInTheDocument();
+        expect(
+          screen.queryByRole('textbox', {name: 'Authorized JavaScript Origins'})
+        ).not.toBeInTheDocument();
+        // The raw headers textarea is replaced by the token input.
+        expect(
+          screen.queryByRole('textbox', {name: 'Webhook Headers'})
+        ).not.toBeInTheDocument();
+
+        await userEvent.click(screen.getByRole('button', {name: 'Webhooks'}));
+
+        expect(screen.getByRole('checkbox', {name: 'issue'})).toBeEnabled();
+        expect(screen.getByRole('checkbox', {name: 'issue'})).toBePartiallyChecked();
+        expect(screen.getByRole('checkbox', {name: 'issue.created'})).toBeChecked();
+
+        expect(trackAnalytics).toHaveBeenCalledWith(
+          'integrations.sentry_app_template_applied',
+          expect.objectContaining({
+            template: 'claude-routine',
+            referrer: 'test_referrer',
+          })
+        );
+      });
+
+      it('saves the composed integration', async () => {
+        createAppRequest = MockApiClient.addMockResponse({
+          url: '/sentry-apps/',
+          method: 'POST',
+          body: [],
+        });
+
+        render(<SentryApplicationDetails />, {
+          initialRouterConfig: templateRouterConfig,
+          organization,
+        });
+
+        await userEvent.click(
+          screen.getByRole('textbox', {name: 'Anthropic Routine URL'})
+        );
+        await userEvent.paste(
+          'https://api.anthropic.com/v1/claude_code/routines/trig_123/fire'
+        );
+        await userEvent.click(screen.getByRole('textbox', {name: 'Routine Token'}));
+        await userEvent.paste('sk-ant-oat01-test');
+        await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+
+        expect(createAppRequest).toHaveBeenCalledWith(
+          '/sentry-apps/',
+          expect.objectContaining({
+            method: 'POST',
+            data: expect.objectContaining({
+              name: 'Claude Routine',
+              webhookUrl:
+                'https://api.anthropic.com/v1/claude_code/routines/trig_123/fire',
+              webhookHeaders: [
+                'Authorization: Bearer sk-ant-oat01-test',
+                'anthropic-version: 2023-06-01',
+                'anthropic-beta: experimental-cc-routine-2026-04-01',
+              ],
+              events: ['issue.created'],
+              scopes: ['event:read', 'event:write'],
+              isAlertable: true,
+              overview: '',
+            }),
+          })
+        );
+      });
+
+      it('requires the routine URL', async () => {
+        createAppRequest = MockApiClient.addMockResponse({
+          url: '/sentry-apps/',
+          method: 'POST',
+          body: [],
+        });
+
+        render(<SentryApplicationDetails />, {
+          initialRouterConfig: templateRouterConfig,
+          organization,
+        });
+
+        await userEvent.click(screen.getByRole('textbox', {name: 'Routine Token'}));
+        await userEvent.paste('sk-ant-oat01-test');
+        await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+
+        expect(await screen.findByText('This field is required')).toBeInTheDocument();
+        expect(createAppRequest).not.toHaveBeenCalled();
+      });
+
+      it('rejects a non-routine URL', async () => {
+        createAppRequest = MockApiClient.addMockResponse({
+          url: '/sentry-apps/',
+          method: 'POST',
+          body: [],
+        });
+
+        render(<SentryApplicationDetails />, {
+          initialRouterConfig: templateRouterConfig,
+          organization,
+        });
+
+        await userEvent.click(
+          screen.getByRole('textbox', {name: 'Anthropic Routine URL'})
+        );
+        await userEvent.paste('https://example.com/webhook');
+        await userEvent.click(screen.getByRole('textbox', {name: 'Routine Token'}));
+        await userEvent.paste('sk-ant-oat01-test');
+        await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+
+        expect(
+          await screen.findByText(
+            'Enter the fire URL from the API trigger settings of the routine'
+          )
+        ).toBeInTheDocument();
+        expect(createAppRequest).not.toHaveBeenCalled();
+      });
+
+      it('requires the routine token', async () => {
+        createAppRequest = MockApiClient.addMockResponse({
+          url: '/sentry-apps/',
+          method: 'POST',
+          body: [],
+        });
+
+        render(<SentryApplicationDetails />, {
+          initialRouterConfig: templateRouterConfig,
+          organization,
+        });
+
+        await userEvent.click(
+          screen.getByRole('textbox', {name: 'Anthropic Routine URL'})
+        );
+        await userEvent.paste(
+          'https://api.anthropic.com/v1/claude_code/routines/trig_123/fire'
+        );
+        await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+
+        expect(await screen.findByText('This field is required')).toBeInTheDocument();
+        expect(createAppRequest).not.toHaveBeenCalled();
+      });
+
+      it('returns to a blank form from the template header', async () => {
+        render(<SentryApplicationDetails />, {
+          initialRouterConfig: templateRouterConfig,
+          organization,
+        });
+
+        await userEvent.click(
+          screen.getByRole('link', {name: 'Start from a blank integration instead'})
+        );
+
+        expect(screen.getByRole('textbox', {name: 'Name'})).toHaveValue('');
+        expect(screen.queryByText('Trigger a Claude routine')).not.toBeInTheDocument();
+      });
     });
   });
 
@@ -228,39 +464,23 @@ describe('Sentry Application Details', () => {
       });
     });
 
-    it('shows logo upload fields', async () => {
+    it('renders the fields and credentials for a public app', async () => {
       renderComponent();
 
       await screen.findByRole('button', {name: 'Save Changes'});
       expect(screen.getByText('Logo')).toBeInTheDocument();
       expect(screen.getByText('Small Icon')).toBeInTheDocument();
-    });
 
-    it('has inputs for redirectUrl and verifyInstall', async () => {
-      renderComponent();
-
-      await screen.findByRole('button', {name: 'Save Changes'});
       expect(
         screen.getByRole('checkbox', {name: 'Verify Installation'})
       ).toBeInTheDocument();
-
       expect(screen.getByRole('textbox', {name: 'Redirect URL'})).toBeInTheDocument();
-    });
 
-    it('shows application data', async () => {
-      renderComponent();
-
-      await screen.findByRole('button', {name: 'Save Changes'});
-      await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Project'}));
-      expect(screen.getByRole('menuitemradio', {name: 'Read'})).toBeChecked();
-    });
-
-    it('renders clientId and clientSecret for public apps', async () => {
-      renderComponent();
-
-      await screen.findByRole('button', {name: 'Save Changes'});
       expect(screen.getByRole('textbox', {name: 'Client ID'})).toBeInTheDocument();
       expect(screen.getByRole('textbox', {name: 'Client Secret'})).toBeInTheDocument();
+
+      await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Project'}));
+      expect(screen.getByRole('menuitemradio', {name: 'Read'})).toBeChecked();
     });
 
     it('prefills webhook headers from the app', async () => {
@@ -270,12 +490,7 @@ describe('Sentry Application Details', () => {
         body: sentryApp,
       });
 
-      render(<SentryApplicationDetails />, {
-        initialRouterConfig,
-        organization: OrganizationFixture({
-          features: ['sentry-apps-custom-webhook-headers'],
-        }),
-      });
+      render(<SentryApplicationDetails />, {initialRouterConfig});
 
       expect(await screen.findByRole('textbox', {name: 'Webhook Headers'})).toHaveValue(
         'X-Example: value\nAnother-Header: thing'
@@ -297,6 +512,8 @@ describe('Sentry Application Details', () => {
     beforeEach(() => {
       sentryApp = SentryAppFixture({
         status: 'internal',
+        // Internal integrations are created without an author.
+        author: null,
       });
       token = SentryAppTokenFixture();
       sentryApp.events = ['issue'];
@@ -312,38 +529,44 @@ describe('Sentry Application Details', () => {
       });
     });
 
-    it('no inputs for redirectUrl and verifyInstall', async () => {
+    it('saves without an author', async () => {
+      editAppRequest = MockApiClient.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/`,
+        method: 'PUT',
+        body: [],
+      });
+
+      renderComponent();
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Save Changes'}));
+
+      await waitFor(() => {
+        expect(editAppRequest).toHaveBeenCalledWith(
+          `/sentry-apps/${sentryApp.slug}/`,
+          expect.objectContaining({
+            method: 'PUT',
+            data: expect.objectContaining({author: null}),
+          })
+        );
+      });
+    });
+
+    it('renders the fields, tokens and client secret for an internal app', async () => {
       renderComponent();
 
       await screen.findByRole('button', {name: 'Save Changes'});
       expect(
         screen.queryByRole('checkbox', {name: 'Verify Installation'})
       ).not.toBeInTheDocument();
-
       expect(
         screen.queryByRole('textbox', {name: 'Redirect URL'})
       ).not.toBeInTheDocument();
-    });
 
-    it('shows logo upload fields', async () => {
-      renderComponent();
-
-      await screen.findByRole('button', {name: 'Save Changes'});
       expect(screen.getByText('Logo')).toBeInTheDocument();
       expect(screen.getByText('Small Icon')).toBeInTheDocument();
-    });
 
-    it('has tokens', async () => {
-      renderComponent();
-
-      await screen.findByRole('button', {name: 'Save Changes'});
       expect(screen.getByLabelText('Token preview')).toHaveTextContent('oken');
-    });
 
-    it('shows just clientSecret', async () => {
-      renderComponent();
-
-      await screen.findByRole('button', {name: 'Save Changes'});
       expect(screen.queryByRole('textbox', {name: 'Client ID'})).not.toBeInTheDocument();
       expect(screen.getByRole('textbox', {name: 'Client Secret'})).toBeInTheDocument();
     });
@@ -379,17 +602,11 @@ describe('Sentry Application Details', () => {
       });
     });
 
-    it('shows masked tokens', async () => {
+    it('shows masked tokens and clientSecret', async () => {
       renderComponent();
 
       await screen.findByRole('button', {name: 'Save Changes'});
       expect(screen.getByLabelText('Token preview')).toHaveTextContent(maskedValue);
-    });
-
-    it('shows masked clientSecret', async () => {
-      renderComponent();
-
-      await screen.findByRole('button', {name: 'Save Changes'});
       expect(screen.getByRole('textbox', {name: 'Client Secret'})).toHaveValue(
         maskedValue
       );
@@ -505,6 +722,13 @@ describe('Sentry Application Details', () => {
     beforeEach(() => {
       sentryApp = SentryAppFixture();
       sentryApp.events = ['issue'];
+      sentryApp.webhookEvents = [
+        'issue.created',
+        'issue.resolved',
+        'issue.assigned',
+        'issue.ignored',
+        'issue.unresolved',
+      ];
       sentryApp.scopes = ['project:read', 'event:read'];
 
       editAppRequest = MockApiClient.addMockResponse({
@@ -527,11 +751,9 @@ describe('Sentry Application Details', () => {
     it('updates app with correct data', async () => {
       renderComponent();
       await screen.findByRole('button', {name: 'Save Changes'});
+      // clear() leaves the emptied field focused for the paste.
       await userEvent.clear(screen.getByRole('textbox', {name: 'Redirect URL'}));
-      await userEvent.type(
-        screen.getByRole('textbox', {name: 'Redirect URL'}),
-        'https://hello.com/'
-      );
+      await userEvent.paste('https://hello.com/');
 
       await userEvent.click(screen.getByRole('textbox', {name: 'Schema'}));
       await userEvent.paste('{}');
@@ -605,9 +827,6 @@ describe('Sentry Application Details', () => {
   });
 
   describe('Editing granular event subscriptions', () => {
-    const organization = OrganizationFixture({
-      features: ['sentry-apps-granular-events'],
-    });
     const initialRouterConfig: RouterConfig = {
       location: {
         pathname: '/sentry-apps/sample-app/',
@@ -615,7 +834,7 @@ describe('Sentry Application Details', () => {
       route: '/sentry-apps/:appSlug/',
     };
     function renderComponent() {
-      return render(<SentryApplicationDetails />, {initialRouterConfig, organization});
+      return render(<SentryApplicationDetails />, {initialRouterConfig});
     }
 
     beforeEach(() => {
@@ -707,22 +926,6 @@ describe('Sentry Application Details', () => {
           method: 'PUT',
         })
       );
-    });
-
-    it('expands the consolidated events when webhookEvents is absent', async () => {
-      sentryApp.webhookEvents = undefined;
-      MockApiClient.addMockResponse({
-        url: `/sentry-apps/${sentryApp.slug}/`,
-        body: sentryApp,
-      });
-
-      renderComponent();
-      await screen.findByRole('button', {name: 'Save Changes'});
-
-      expect(screen.getByRole('checkbox', {name: 'issue'})).toBeChecked();
-      expect(screen.getByRole('checkbox', {name: 'issue.created'})).toBeChecked();
-      expect(screen.getByRole('checkbox', {name: 'issue.unresolved'})).toBeChecked();
-      expect(screen.getByRole('checkbox', {name: 'comment.created'})).not.toBeChecked();
     });
   });
 

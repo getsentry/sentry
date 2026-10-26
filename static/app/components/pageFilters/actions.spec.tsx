@@ -1,3 +1,4 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
@@ -7,12 +8,14 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
 import {
+  exceedsDatetimeLimits,
   initializeUrlState,
   updateDateTime,
   updateEnvironments,
   updatePersistence,
   updateProjects,
 } from 'sentry/components/pageFilters/actions';
+import {PageFilterAdjustmentReason} from 'sentry/components/pageFilters/adjustments';
 import * as PageFilterPersistence from 'sentry/components/pageFilters/persistence';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -79,7 +82,8 @@ describe('PageFilters ActionCreators', () => {
           environments: [],
           projects: [1],
         }),
-        true
+        true,
+        {}
       );
       expect(navigate).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -130,7 +134,8 @@ describe('PageFilters ActionCreators', () => {
           environments: [],
           projects: [],
         }),
-        false
+        false,
+        {}
       );
 
       // `onInitializeUrlState` is being spied on, so PageFiltersStore wasn't actually
@@ -153,7 +158,7 @@ describe('PageFilters ActionCreators', () => {
     it('does not change dates with no query params or defaultSelection', () => {
       initializeUrlState({
         organization,
-        location: {...router.location, query: {project: '1'}},
+        location: LocationFixture({...router.location, query: {project: '1'}}),
         memberProjects: projects,
         nonMemberProjects: [],
         navigate,
@@ -167,14 +172,15 @@ describe('PageFilters ActionCreators', () => {
             utc: null,
           },
         }),
-        true
+        true,
+        {}
       );
     });
 
     it('does changes to default dates with defaultSelection and no query params', () => {
       initializeUrlState({
         organization,
-        location: {...router.location, query: {project: '1'}},
+        location: LocationFixture({...router.location, query: {project: '1'}}),
         memberProjects: projects,
         nonMemberProjects: [],
         defaultSelection: {
@@ -196,14 +202,18 @@ describe('PageFilters ActionCreators', () => {
             utc: null,
           },
         }),
-        true
+        true,
+        {}
       );
     });
 
     it('uses query params statsPeriod over defaults', () => {
       initializeUrlState({
         organization,
-        location: {...router.location, query: {statsPeriod: '1h', project: '1'}},
+        location: LocationFixture({
+          ...router.location,
+          query: {statsPeriod: '1h', project: '1'},
+        }),
         memberProjects: projects,
         nonMemberProjects: [],
         defaultSelection: {
@@ -222,17 +232,18 @@ describe('PageFilters ActionCreators', () => {
           datetime: expect.objectContaining({period: '1h'}),
           projects: [1],
         }),
-        true
+        true,
+        {}
       );
     });
 
     it('uses absolute dates over defaults', () => {
       initializeUrlState({
         organization,
-        location: {
+        location: LocationFixture({
           ...router.location,
           query: {start: '2020-03-22T00:53:38', end: '2020-04-21T00:53:38', project: '1'},
-        },
+        }),
         memberProjects: projects,
         nonMemberProjects: [],
         defaultSelection: {
@@ -254,14 +265,15 @@ describe('PageFilters ActionCreators', () => {
           }),
           projects: [1],
         }),
-        true
+        true,
+        {}
       );
     });
 
     it('does not load from local storage when there are query params', () => {
       initializeUrlState({
         organization,
-        location: {...router.location, query: {project: '1'}},
+        location: LocationFixture({...router.location, query: {project: '1'}}),
         memberProjects: projects,
         nonMemberProjects: [],
         navigate,
@@ -278,14 +290,15 @@ describe('PageFilters ActionCreators', () => {
           projects: [1],
           environments: [],
         },
-        true
+        true,
+        {}
       );
     });
 
     it('does not invalidate all projects from query params', () => {
       initializeUrlState({
         organization,
-        location: {...router.location, query: {project: '-1'}},
+        location: LocationFixture({...router.location, query: {project: '-1'}}),
         memberProjects: projects,
         nonMemberProjects: [],
         navigate,
@@ -301,7 +314,8 @@ describe('PageFilters ActionCreators', () => {
           projects: [-1],
           environments: [],
         },
-        true
+        true,
+        {}
       );
     });
 
@@ -350,7 +364,13 @@ describe('PageFilters ActionCreators', () => {
         expect.objectContaining({
           projects: [parseInt(nonMemberProject.id, 10)],
         }),
-        true
+        true,
+        {
+          projects: {
+            reason: PageFilterAdjustmentReason.SINGLE_PROJECT_AUTO_SELECTED,
+            projectSlug: nonMemberProject.slug,
+          },
+        }
       );
     });
 
@@ -369,7 +389,8 @@ describe('PageFilters ActionCreators', () => {
         expect.objectContaining({
           projects: [-1],
         }),
-        true
+        true,
+        {projects: {reason: PageFilterAdjustmentReason.NO_MEMBER_PROJECTS}}
       );
     });
 
@@ -392,7 +413,13 @@ describe('PageFilters ActionCreators', () => {
         expect.objectContaining({
           projects: [parseInt(nonMemberProject.id, 10)],
         }),
-        true
+        true,
+        {
+          projects: {
+            reason: PageFilterAdjustmentReason.SINGLE_PROJECT_AUTO_SELECTED,
+            projectSlug: nonMemberProject.slug,
+          },
+        }
       );
     });
 
@@ -410,7 +437,159 @@ describe('PageFilters ActionCreators', () => {
         expect.objectContaining({
           projects: [42],
         }),
-        true
+        true,
+        {
+          projects: {
+            reason: PageFilterAdjustmentReason.SINGLE_PROJECT_AUTO_SELECTED,
+            projectSlug: singleProject.slug,
+          },
+        }
+      );
+    });
+
+    it('records an adjustment when inaccessible projects are dropped from the URL', () => {
+      initializeUrlState({
+        organization,
+        location: {...router.location, query: {project: ['1', '999']}},
+        navigate,
+        memberProjects: projects,
+        nonMemberProjects: [],
+      });
+
+      expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
+        expect.objectContaining({projects: [1]}),
+        true,
+        {projects: {reason: PageFilterAdjustmentReason.INVALID_PROJECTS}}
+      );
+    });
+
+    it('keeps only the last adjustment when a filter is adjusted twice', () => {
+      // Dropping the inaccessible project empties the selection, which then
+      // falls back to All Projects. Only the fallback describes the result.
+      initializeUrlState({
+        organization,
+        location: {...router.location, query: {project: '999'}},
+        navigate,
+        memberProjects: [],
+        nonMemberProjects: [
+          ProjectFixture({id: '10', isMember: false}),
+          ProjectFixture({id: '11', isMember: false}),
+        ],
+      });
+
+      expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
+        expect.objectContaining({projects: [-1]}),
+        true,
+        {projects: {reason: PageFilterAdjustmentReason.NO_MEMBER_PROJECTS}}
+      );
+    });
+
+    it('drops project adjustments when a forced project replaces the selection', () => {
+      const singleProject = ProjectFixture({id: '42', isMember: true});
+      const forced = ProjectFixture({id: '7', slug: 'forced-project'});
+
+      initializeUrlState({
+        organization,
+        location: router.location,
+        navigate,
+        memberProjects: [singleProject],
+        nonMemberProjects: [],
+        shouldForceProject: true,
+        forceProject: forced,
+      });
+
+      // The single-project auto-select is overwritten by the forced project, so
+      // explaining it would describe a selection that isn't in effect.
+      expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
+        expect.objectContaining({projects: [7]}),
+        true,
+        {}
+      );
+    });
+
+    it('records an adjustment when nonexistent environments are dropped from the URL', () => {
+      initializeUrlState({
+        organization,
+        location: {
+          ...router.location,
+          query: {project: ['1'], environment: ['prod', 'nope']},
+        },
+        navigate,
+        memberProjects: projects,
+        nonMemberProjects: [],
+      });
+
+      expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
+        expect.objectContaining({environments: ['prod']}),
+        true,
+        {
+          environments: {reason: PageFilterAdjustmentReason.INVALID_ENVIRONMENTS},
+        }
+      );
+    });
+
+    it('records an adjustment for each filter that was adjusted', () => {
+      initializeUrlState({
+        organization,
+        location: {
+          ...router.location,
+          query: {project: ['1', '999'], environment: ['prod', 'nope']},
+        },
+        navigate,
+        memberProjects: projects,
+        nonMemberProjects: [],
+      });
+
+      expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
+        expect.objectContaining({projects: [1], environments: ['prod']}),
+        true,
+        {
+          projects: {reason: PageFilterAdjustmentReason.INVALID_PROJECTS},
+          environments: {reason: PageFilterAdjustmentReason.INVALID_ENVIRONMENTS},
+        }
+      );
+    });
+
+    it('records an adjustment when the date range exceeds maxPickableDays', () => {
+      initializeUrlState({
+        organization,
+        location: {...router.location, query: {statsPeriod: '90d'}},
+        navigate,
+        memberProjects: projects,
+        nonMemberProjects: [],
+        maxPickableDays: 30,
+      });
+
+      expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
+        expect.objectContaining({
+          datetime: expect.objectContaining({period: '30d'}),
+        }),
+        true,
+        {
+          datetime: {reason: PageFilterAdjustmentReason.MAX_PICKABLE_DAYS, days: 30},
+        }
+      );
+    });
+
+    it('records an adjustment when the date range exceeds maxDateRange', () => {
+      initializeUrlState({
+        organization,
+        location: {...router.location, query: {statsPeriod: '90d'}},
+        navigate,
+        memberProjects: projects,
+        nonMemberProjects: [],
+        maxPickableDays: 90,
+        maxDateRange: 7,
+      });
+
+      expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
+        expect.objectContaining({
+          datetime: expect.objectContaining({period: '7d'}),
+        }),
+        true,
+        {
+          datetime: {reason: PageFilterAdjustmentReason.MAX_DATE_RANGE, days: 7},
+        }
       );
     });
 
@@ -427,7 +606,8 @@ describe('PageFilters ActionCreators', () => {
         expect.objectContaining({
           projects: [],
         }),
-        true
+        true,
+        {}
       );
     });
 
@@ -511,7 +691,8 @@ describe('PageFilters ActionCreators', () => {
             utc: null,
           },
         }),
-        true
+        true,
+        {}
       );
       expect(navigate).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -577,7 +758,8 @@ describe('PageFilters ActionCreators', () => {
             utc: null,
           },
         }),
-        true
+        true,
+        {}
       );
       expect(navigate).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -617,7 +799,8 @@ describe('PageFilters ActionCreators', () => {
           environments: [],
           projects: [1],
         }),
-        true
+        true,
+        {}
       );
       expect(navigate).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -640,7 +823,7 @@ describe('PageFilters ActionCreators', () => {
     it('updates history when queries are different', () => {
       const nav = jest.fn();
       const location = RouterFixture({
-        location: {pathname: '/test/', query: {project: '2'}},
+        location: LocationFixture({pathname: '/test/', query: {project: '2'}}),
       }).location;
       // this can be passed w/ `project` as an array (e.g. multiple projects being selected)
       // however react-router will treat it as a string if there is only one param
@@ -654,7 +837,7 @@ describe('PageFilters ActionCreators', () => {
     it('does not update history when queries are the same', () => {
       const nav = jest.fn();
       const location = RouterFixture({
-        location: {pathname: '/test/', query: {project: '1'}},
+        location: LocationFixture({pathname: '/test/', query: {project: '1'}}),
       }).location;
       // this can be passed w/ `project` as an array (e.g. multiple projects
       // being selected) however react-router will treat it as a string if
@@ -667,7 +850,7 @@ describe('PageFilters ActionCreators', () => {
     it('updates history when queries are different with replace', () => {
       const nav = jest.fn();
       const location = RouterFixture({
-        location: {pathname: '/test/', query: {project: '2'}},
+        location: LocationFixture({pathname: '/test/', query: {project: '2'}}),
       }).location;
       updateProjects([1], location, nav, {replace: true});
 
@@ -680,7 +863,7 @@ describe('PageFilters ActionCreators', () => {
     it('does not update history when queries are the same with replace', () => {
       const nav = jest.fn();
       const location = RouterFixture({
-        location: {pathname: '/test/', query: {project: '1'}},
+        location: LocationFixture({pathname: '/test/', query: {project: '1'}}),
       }).location;
       updateProjects([1], location, nav, {replace: true});
 
@@ -690,10 +873,10 @@ describe('PageFilters ActionCreators', () => {
     it('does not override an absolute date selection', () => {
       const nav = jest.fn();
       const location = RouterFixture({
-        location: {
+        location: LocationFixture({
           pathname: '/test/',
           query: {project: '1', start: '2020-03-22T00:53:38', end: '2020-04-21T00:53:38'},
-        },
+        }),
       }).location;
       updateProjects([2], location, nav, {replace: true});
 
@@ -715,7 +898,7 @@ describe('PageFilters ActionCreators', () => {
     it('updates single', () => {
       const nav = jest.fn();
       const location = RouterFixture({
-        location: {pathname: '/test/', query: {environment: 'test'}},
+        location: LocationFixture({pathname: '/test/', query: {environment: 'test'}}),
       }).location;
       updateEnvironments(['new-env'], location, nav);
 
@@ -728,7 +911,7 @@ describe('PageFilters ActionCreators', () => {
     it('updates multiple', () => {
       const nav = jest.fn();
       const location = RouterFixture({
-        location: {pathname: '/test/', query: {environment: 'test'}},
+        location: LocationFixture({pathname: '/test/', query: {environment: 'test'}}),
       }).location;
       updateEnvironments(['new-env', 'another-env'], location, nav);
 
@@ -741,7 +924,7 @@ describe('PageFilters ActionCreators', () => {
     it('removes environment', () => {
       const nav = jest.fn();
       const location = RouterFixture({
-        location: {pathname: '/test/', query: {environment: 'test'}},
+        location: LocationFixture({pathname: '/test/', query: {environment: 'test'}}),
       }).location;
       updateEnvironments(null, location, nav);
       expect(nav).toHaveBeenCalledWith(
@@ -753,14 +936,14 @@ describe('PageFilters ActionCreators', () => {
     it('does not override an absolute date selection', () => {
       const nav = jest.fn();
       const location = RouterFixture({
-        location: {
+        location: LocationFixture({
           pathname: '/test/',
           query: {
             environment: 'test',
             start: '2020-03-22T00:53:38',
             end: '2020-04-21T00:53:38',
           },
-        },
+        }),
       }).location;
       updateEnvironments(['new-env'], location, nav, {replace: true});
 
@@ -782,7 +965,7 @@ describe('PageFilters ActionCreators', () => {
     it('updates statsPeriod when there is no existing stats period', () => {
       const nav = jest.fn();
       const location = RouterFixture({
-        location: {pathname: '/test/', query: {}},
+        location: LocationFixture({pathname: '/test/', query: {}}),
       }).location;
       updateDateTime({period: '24h'}, location, nav);
 
@@ -795,7 +978,7 @@ describe('PageFilters ActionCreators', () => {
     it('updates statsPeriod when there is an existing stats period', () => {
       const nav = jest.fn();
       const location = RouterFixture({
-        location: {pathname: '/test/', query: {statsPeriod: '14d'}},
+        location: LocationFixture({pathname: '/test/', query: {statsPeriod: '14d'}}),
       }).location;
       updateDateTime({period: '24h'}, location, nav);
 
@@ -808,7 +991,7 @@ describe('PageFilters ActionCreators', () => {
     it('changes to absolute date', () => {
       const nav = jest.fn();
       const location = RouterFixture({
-        location: {pathname: '/test/', query: {statsPeriod: '24h'}},
+        location: LocationFixture({pathname: '/test/', query: {statsPeriod: '24h'}}),
       }).location;
       updateDateTime(
         {start: '2020-03-22T00:53:38', end: '2020-04-21T00:53:38'},
@@ -822,6 +1005,44 @@ describe('PageFilters ActionCreators', () => {
           query: {start: '2020-03-22T00:53:38', end: '2020-04-21T00:53:38'},
         },
         {replace: undefined}
+      );
+    });
+  });
+
+  describe('exceedsDatetimeLimits()', () => {
+    const now = new Date('2026-10-19T12:00:00Z').getTime();
+
+    function datetime(start: string, end = '2026-10-10T00:00:00Z') {
+      return {period: null, utc: null, start, end};
+    }
+
+    it('returns false when a period equals maxPickableDays', () => {
+      expect(
+        exceedsDatetimeLimits({period: '30d', utc: null, start: null, end: null}, 30)
+      ).toBe(false);
+    });
+
+    it('returns true when a period exceeds maxPickableDays', () => {
+      expect(
+        exceedsDatetimeLimits({period: '31d', utc: null, start: null, end: null}, 30)
+      ).toBe(true);
+    });
+
+    it('returns false when a range starts less than a day before the window', () => {
+      expect(
+        exceedsDatetimeLimits(datetime('2026-09-18T12:00:00Z'), 30, undefined, now)
+      ).toBe(false);
+    });
+
+    it('returns true when a range starts more than a day before the window', () => {
+      expect(
+        exceedsDatetimeLimits(datetime('2026-09-18T11:59:00Z'), 30, undefined, now)
+      ).toBe(true);
+    });
+
+    it('returns true when a range is longer than maxDateRange', () => {
+      expect(exceedsDatetimeLimits(datetime('2026-10-01T00:00:00Z'), 30, 7, now)).toBe(
+        true
       );
     });
   });

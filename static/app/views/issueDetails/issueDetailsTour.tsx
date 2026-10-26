@@ -77,6 +77,7 @@ function useIssueDetailsTourModal() {
     };
 
     hasOpenedTourModal.current = true;
+    // oxlint-disable-next-line react/todo
     void import('sentry/components/tours/startTour').then(
       ({StartTourModal, startTourModalCss}) => {
         if (cancelled) {
@@ -122,6 +123,7 @@ function useIssueDetailsTourModal() {
     };
   }, [
     endTour,
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     forceShowTourModal,
     isRegistered,
     mutateAssistant,

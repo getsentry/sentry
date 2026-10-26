@@ -1,15 +1,16 @@
-import {Fragment, type MouseEventHandler, useEffect, useRef} from 'react';
+import {Fragment, useEffect, useRef} from 'react';
 import {createPortal} from 'react-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {mergeProps} from '@react-aria/utils';
+import {IconDefaultsProvider} from '@sentry/icons/useIconDefaults';
 import {motion} from 'framer-motion';
 import type {LocationDescriptor} from 'history';
-import type {DistributedOmit} from 'type-fest';
 
 import type {ButtonBarProps, ButtonProps} from '@sentry/scraps/button';
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {ButtonBar} from '@sentry/scraps/button';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {
   Container,
   type ContainerProps,
@@ -18,22 +19,23 @@ import {
   Stack,
 } from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
+import {Overlay, type OverlayProps, PositionWrapper} from '@sentry/scraps/overlay';
+import {
+  OverlayTrigger,
+  type OverlayTriggerIconButtonProps,
+} from '@sentry/scraps/overlayTrigger';
 import {SizeProvider, useSizeContext} from '@sentry/scraps/sizeContext';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
+import {useOverlay, type UseOverlayProps} from '@sentry/scraps/useOverlay';
 
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {useFrontendVersion} from 'sentry/components/frontendVersionContext';
-import {Overlay, type OverlayProps, PositionWrapper} from 'sentry/components/overlay';
-import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useOverlay, type UseOverlayProps} from 'sentry/utils/useOverlay';
 import {
-  NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME,
   NAVIGATION_PRIMARY_LINK_DATA_ATTRIBUTE,
   PRIMARY_HEADER_HEIGHT,
   PRIMARY_SIDEBAR_WIDTH,
@@ -69,8 +71,6 @@ function PrimaryNavigationSidebar({children, ...props}: PrimaryNavigationSidebar
 interface PrimaryNavigationSidebarHeaderProps extends Omit<FlexProps<'header'>, 'as'> {}
 
 function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderProps) {
-  const {layout} = usePrimaryNavigation();
-
   return (
     <SizeProvider size="sm">
       <Stack
@@ -79,16 +79,8 @@ function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderPro
         justify="center"
         borderBottom="primary"
         width="100%"
-        minHeight={
-          layout === 'mobile'
-            ? `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`
-            : `${PRIMARY_HEADER_HEIGHT}px`
-        }
-        height={
-          layout === 'mobile'
-            ? `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`
-            : `${PRIMARY_HEADER_HEIGHT}px`
-        }
+        height={`${PRIMARY_HEADER_HEIGHT}px`}
+        flexShrink={0}
         {...props}
       >
         {props.children}
@@ -124,12 +116,9 @@ interface PrimaryNavigationItemBaseProps {
 }
 
 function PrimaryNavigationListItem({children, ...props}: FlexProps<'li'>) {
-  const {layout} = usePrimaryNavigation();
   return (
     <Flex as="li" justify="center" align="center" width="100%" {...props}>
-      <IconDefaultsProvider legacySize={layout === 'mobile' ? '16px' : '21px'}>
-        {children}
-      </IconDefaultsProvider>
+      <IconDefaultsProvider size="lg">{children}</IconDefaultsProvider>
     </Flex>
   );
 }
@@ -144,7 +133,7 @@ interface PrimaryNavigationLinkProps
 function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
   const organization = useOrganization({allowNull: true});
   const {layout, features} = usePrimaryNavigation();
-  const isMobilePageFrame = layout === 'mobile';
+  const isMobile = layout === 'mobile';
   // Reload the page when the frontend is stale to ensure users get the latest version
   const {state: appState} = useFrontendVersion();
   const theme = useTheme();
@@ -158,8 +147,8 @@ function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
     onMouseEnter: props.onMouseEnter,
     onMouseLeave: props.onMouseLeave,
     onClick: (e: React.MouseEvent<HTMLAnchorElement>) => {
-      // On touch devices with page frame, prevent navigation and let setActiveGroup handle the active state
-      if (isMobilePageFrame && !features.hover) {
+      // On touch mobile devices, prevent navigation and let setActiveGroup handle the active state
+      if (isMobile && !features.hover) {
         e.preventDefault();
       }
       trackAnalytics('navigation.primary_item_clicked', {
@@ -194,29 +183,20 @@ function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
   );
 
   return (
-    <DesktopPageFrameNavigationLink {...sharedLinkProps}>
-      {desktopChildren}
-    </DesktopPageFrameNavigationLink>
+    <DesktopNavigationLink {...sharedLinkProps}>{desktopChildren}</DesktopNavigationLink>
   );
 }
 
 interface PrimaryNavigationButtonProps extends PrimaryNavigationItemBaseProps {
-  label: React.ReactNode;
-  buttonProps?: Omit<ButtonProps, 'aria-label' | 'size'>;
-  children?: React.ReactNode;
+  buttonProps: Omit<ButtonProps, 'aria-label' | 'size' | 'icon'> &
+    Pick<OverlayTriggerIconButtonProps, 'icon'>;
+  label: string;
   indicator?: 'accent' | 'danger' | 'warning';
 }
 
 function PrimaryNavigationButton(props: PrimaryNavigationButtonProps) {
   const {layout} = usePrimaryNavigation();
   const organization = useOrganization({allowNull: true});
-
-  const ariaLabel =
-    layout === 'mobile'
-      ? undefined
-      : typeof props.label === 'string'
-        ? props.label
-        : undefined;
 
   return (
     <Tooltip
@@ -228,7 +208,7 @@ function PrimaryNavigationButton(props: PrimaryNavigationButtonProps) {
       <NavigationButton
         {...props.buttonProps}
         analyticsParams={props.analyticsParams}
-        aria-label={ariaLabel}
+        aria-label={props.label}
         onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
           trackAnalytics('navigation.primary_item_clicked', {
             item: props.analyticsKey,
@@ -250,20 +230,17 @@ function PrimaryNavigationButton(props: PrimaryNavigationButtonProps) {
             props.buttonProps?.icon
           )
         }
-      >
-        {props.children}
-      </NavigationButton>
+      />
     </Tooltip>
   );
 }
 
-interface PrimaryNavigationUnreadIndicatorProps extends React.HTMLAttributes<HTMLSpanElement> {
+interface PrimaryNavigationUnreadIndicatorProps {
   variant: 'accent' | 'danger' | 'warning';
 }
 
 function PrimaryNavigationUnreadIndicator({
   variant,
-  ...props
 }: PrimaryNavigationUnreadIndicatorProps) {
   const indicatorPosition: Pick<ContainerProps, 'top' | 'right' | 'left'> = {
     top: '0',
@@ -274,7 +251,7 @@ function PrimaryNavigationUnreadIndicator({
     <Container position="absolute" {...indicatorPosition}>
       {p => (
         <StatusIndicator
-          {...mergeProps(p, props)}
+          {...p}
           animationIterationCount={14}
           variant={variant}
           data-unread-indicator
@@ -285,12 +262,10 @@ function PrimaryNavigationUnreadIndicator({
 }
 
 interface PrimaryNavigationMenuProps extends PrimaryNavigationItemBaseProps {
+  icon: OverlayTriggerIconButtonProps['icon'];
   items: MenuItemProps[];
   label: string;
-  children?: React.ReactNode;
-  icon?: React.ReactNode;
   indicator?: 'accent' | 'danger' | 'warning';
-  onOpen?: MouseEventHandler<HTMLButtonElement>;
 }
 
 function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
@@ -326,7 +301,7 @@ function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
           >
             <NavigationButton
               {...triggerProps}
-              aria-label={layout === 'mobile' ? undefined : props.label}
+              aria-label={props.label}
               onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
                 if (organization) {
                   trackAnalytics('navigation.primary_item_clicked', {
@@ -336,7 +311,6 @@ function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
                   });
                 }
                 triggerProps.onClick?.(event);
-                props.onOpen?.(event);
               }}
               icon={
                 props.indicator ? (
@@ -348,9 +322,7 @@ function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
                   props.icon
                 )
               }
-            >
-              {layout === 'mobile' ? null : props.children}
-            </NavigationButton>
+            />
           </Tooltip>
         );
       }}
@@ -359,11 +331,17 @@ function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
   );
 }
 
-function NavigationButton(props: DistributedOmit<ButtonProps, 'size'>) {
+type NavigationButtonProps = Omit<
+  OverlayTriggerIconButtonProps,
+  'size' | 'children' | 'showChevron'
+> &
+  Pick<ButtonProps, 'onClick'>;
+
+function NavigationButton(props: NavigationButtonProps) {
   const {layout} = usePrimaryNavigation();
 
   return (
-    <Flex align="center" padding="xs" justify="center">
+    <PrimaryNavigationButtonContainer>
       {p => (
         <ButtonWithOverflowVisible
           {...p}
@@ -371,8 +349,12 @@ function NavigationButton(props: DistributedOmit<ButtonProps, 'size'>) {
           {...(layout === 'mobile' ? {variant: 'secondary'} : {variant: props.variant})}
         />
       )}
-    </Flex>
+    </PrimaryNavigationButtonContainer>
   );
+}
+
+function PrimaryNavigationButtonContainer(props: React.ComponentProps<typeof Flex>) {
+  return <Flex align="center" padding="xs" justify="center" {...props} />;
 }
 
 /**
@@ -381,7 +363,9 @@ function NavigationButton(props: DistributedOmit<ButtonProps, 'size'>) {
  * otherwise clip the indicator and StatusIndicator animation. We need to unwind this and remove the overflow
  * from buttons from ever being set.
  */
-const ButtonWithOverflowVisible = styled(Button)`
+const ButtonWithOverflowVisible = styled(OverlayTrigger.IconButton)<
+  Pick<ButtonProps, 'onClick'>
+>`
   > span:last-child {
     overflow: initial;
   }
@@ -418,7 +402,7 @@ function PrimaryNavigationFooterItems(props: PrimaryNavigationFooterItemsProps) 
   );
 }
 
-const DesktopPageFrameNavigationLink = styled((props: LinkProps) => {
+const DesktopNavigationLink = styled((props: LinkProps) => {
   return (
     <Stack
       position="relative"
@@ -571,6 +555,7 @@ export const PrimaryNavigation = {
   ListItem: PrimaryNavigationListItem,
   Link: PrimaryNavigationLink,
   Button: PrimaryNavigationButton,
+  ButtonContainer: PrimaryNavigationButtonContainer,
   ButtonBar: PrimaryNavigationButtonBar,
   Menu: PrimaryNavigationMenu,
   ButtonOverlay: PrimaryNavigationButtonOverlay,

@@ -2,7 +2,7 @@ import {useCallback} from 'react';
 
 import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
+import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
 import {
   useProgressiveQuery,
   type RPCQueryExtras,
@@ -60,7 +60,7 @@ export function useLogsTimeseries({
   );
 
   const timeseriesResult = useProgressiveQuery<typeof useLogsTimeseriesImpl>({
-    queryHookImplementation: useLogsTimeseriesImpl,
+    queryHookImplementation: useLogsTimeseriesImpl, // oxlint-disable-line react/hooks -- useProgressiveQuery takes the query hook as a value and calls it per accuracy tier.
     queryHookArgs: {enabled, timeseriesIngestDelay},
     queryOptions: {
       canTriggerHighAccuracy,

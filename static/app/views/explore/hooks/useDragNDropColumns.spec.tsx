@@ -15,7 +15,9 @@ describe('useDragNDropColumns', () => {
     let insertColumn: (column: string) => void;
 
     function TestPage() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       [columns, setColumns] = useState(initialColumns);
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       ({insertColumn} = useDragNDropColumns({columns, setColumns}));
       return null;
     }
@@ -35,7 +37,9 @@ describe('useDragNDropColumns', () => {
     let updateColumnAtIndex: (i: number, column: string) => void;
 
     function TestPage() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       [columns, setColumns] = useState(initialColumns);
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       ({updateColumnAtIndex} = useDragNDropColumns({columns, setColumns}));
       return null;
     }
@@ -53,7 +57,9 @@ describe('useDragNDropColumns', () => {
     let deleteColumnAtIndex: (index: number) => void;
 
     function TestPage() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       [columns, setColumns] = useState(initialColumns);
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       ({deleteColumnAtIndex} = useDragNDropColumns({columns, setColumns}));
       return null;
     }
@@ -71,7 +77,9 @@ describe('useDragNDropColumns', () => {
     let onDragEnd: (arg: any) => void;
 
     function TestPage() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       [columns, setColumns] = useState(initialColumns);
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       ({onDragEnd} = useDragNDropColumns({columns, setColumns}));
       return null;
     }
@@ -88,13 +96,48 @@ describe('useDragNDropColumns', () => {
     expect(columns).toEqual(['span_id', 'timestamp', 'span.op']);
   });
 
+  it('should reject a reorder before moving columns or unique IDs', () => {
+    let columns!: string[];
+    let setColumns: (columns: string[]) => void;
+    let editableColumns!: Array<Column<string>>;
+    let onDragEnd: (arg: any) => void;
+
+    function TestPage() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
+      [columns, setColumns] = useState(initialColumns);
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
+      ({editableColumns, onDragEnd} = useDragNDropColumns({
+        columns,
+        setColumns,
+        canReorder: (oldIndex, newIndex) => oldIndex === newIndex,
+      }));
+      return null;
+    }
+
+    render(<TestPage />);
+
+    const uniqueIdsBefore = editableColumns.map(column => column.uniqueId);
+
+    act(() =>
+      onDragEnd({
+        active: {id: 1},
+        over: {id: 3},
+      })
+    );
+
+    expect(columns).toEqual(initialColumns);
+    expect(editableColumns.map(column => column.uniqueId)).toEqual(uniqueIdsBefore);
+  });
+
   it('should generate unique UUIDs for editable columns', () => {
     let columns!: string[];
     let setColumns: (columns: string[]) => void;
     let editableColumns!: Array<Column<string>>;
 
     function TestPage() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       [columns, setColumns] = useState(initialColumns);
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       ({editableColumns} = useDragNDropColumns({columns, setColumns}));
       return null;
     }
@@ -116,7 +159,9 @@ describe('useDragNDropColumns', () => {
     let editableColumns!: Array<Column<string>>;
 
     function TestPage() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       [columns, setColumns] = useState(duplicateColumns);
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       ({editableColumns} = useDragNDropColumns({columns, setColumns}));
       return null;
     }
@@ -136,7 +181,9 @@ describe('useDragNDropColumns', () => {
     let updateColumnAtIndex: (i: number, column: string) => void;
 
     function TestPage() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       [columns, setColumns] = useState(initialColumns);
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       ({editableColumns, updateColumnAtIndex} = useDragNDropColumns({
         columns,
         setColumns,

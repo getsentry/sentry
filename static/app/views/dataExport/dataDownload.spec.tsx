@@ -1,6 +1,11 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ExportQueryType} from 'sentry/components/exports/useDataExport';
@@ -120,7 +125,7 @@ describe('DataDownload', () => {
     );
   });
 
-  it('should render the Open in Discover button when needed', async () => {
+  it('should render the Open in Explore button for discover exports', async () => {
     const status = DownloadStatus.VALID;
     getDataExportDetails({
       dateExpired,
@@ -133,10 +138,10 @@ describe('DataDownload', () => {
 
     render(<DataDownload />, {initialRouterConfig});
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-    expect(screen.getByRole('button', {name: 'Open in Discover'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Open in Explore'})).toBeInTheDocument();
   });
 
-  it('should not render the Open in Discover button when not needed', () => {
+  it('should not render the Open in Explore button when not needed', () => {
     const status = DownloadStatus.VALID;
     getDataExportDetails({
       dateExpired,
@@ -149,11 +154,11 @@ describe('DataDownload', () => {
 
     render(<DataDownload />, {initialRouterConfig});
     expect(
-      screen.queryByRole('button', {name: 'Open in Discover'})
+      screen.queryByRole('button', {name: 'Open in Explore'})
     ).not.toBeInTheDocument();
   });
 
-  it('should render the Open in Explore button when needed', async () => {
+  it('should render the Open in Explore button for explore exports', async () => {
     const status = DownloadStatus.VALID;
     getDataExportDetails({
       dateExpired,
@@ -164,6 +169,29 @@ describe('DataDownload', () => {
     render(<DataDownload />, {initialRouterConfig});
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     expect(screen.getByRole('button', {name: 'Open in Explore'})).toBeInTheDocument();
+  });
+
+  it('should keep the case setting when opening a logs export in Explore', async () => {
+    getDataExportDetails({
+      dateExpired,
+      status: DownloadStatus.VALID,
+      query: {
+        type: ExportQueryType.EXPLORE,
+        info: {
+          dataset: 'logs',
+          field: ['message'],
+          project: [1],
+          query: 'message:deleted',
+          sort: [],
+          caseInsensitive: '1',
+        },
+      },
+    });
+
+    const {router} = render(<DataDownload />, {initialRouterConfig});
+    await userEvent.click(await screen.findByRole('button', {name: 'Open in Explore'}));
+
+    expect(router.location.query.caseInsensitive).toBe('1');
   });
 
   it('should render with null organization', async () => {

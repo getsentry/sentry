@@ -77,7 +77,7 @@ class OccurrencesRPCTest(TestCase):
         assert resolved_column.proto_definition == AttributeKey(
             name="group_id", type=AttributeKey.Type.TYPE_INT
         )
-        assert virtual_context is None
+        assert virtual_context == [None]
 
     def test_count_aggregate(self) -> None:
         resolved_column, virtual_context = self.resolver.resolve_column("count()")
@@ -87,7 +87,7 @@ class OccurrencesRPCTest(TestCase):
             label="count()",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
-        assert virtual_context is None
+        assert virtual_context == [None]
         assert resolved_column.public_alias == "count()"
         assert resolved_column.search_type == "integer"
 
@@ -109,7 +109,7 @@ class OccurrencesRPCTest(TestCase):
             label="count_if(timestamp, greaterOrEquals, 1704067200)",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
-        assert virtual_context is None
+        assert virtual_context == [None]
         assert resolved_column.public_alias == "count_if(timestamp, greaterOrEquals, 1704067200)"
         assert resolved_column.search_type == "integer"
 
@@ -131,7 +131,7 @@ class OccurrencesRPCTest(TestCase):
             label="count_if(timestamp, less, 1704067200)",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
-        assert virtual_context is None
+        assert virtual_context == [None]
         assert resolved_column.search_type == "integer"
 
     def test_count_if_aggregate_between(self) -> None:
@@ -169,7 +169,7 @@ class OccurrencesRPCTest(TestCase):
             label="count_if(timestamp, between, 1704067200, 1704153600)",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
-        assert virtual_context is None
+        assert virtual_context == [None]
         assert resolved_column.search_type == "integer"
 
     def test_count_if_aggregate_invalid_operator(self) -> None:
@@ -194,7 +194,7 @@ class OccurrencesRPCTest(TestCase):
             label="min(timestamp)",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
-        assert virtual_context is None
+        assert virtual_context == [None]
         assert resolved_column.public_alias == "min(timestamp)"
         assert resolved_column.search_type == "string"  # timestamp is processed as string
 
@@ -203,7 +203,7 @@ class OccurrencesRPCTest(TestCase):
         assert resolved_column.proto_definition == AttributeKey(
             name="type", type=AttributeKey.Type.TYPE_STRING
         )
-        assert virtual_context is None
+        assert virtual_context == [None]
 
     def test_type_filter_query(self) -> None:
         where, having, _ = self.resolver.resolve_query("type:error")
@@ -371,8 +371,8 @@ class OccurrencesStatsRPCTest(TestCase, SnubaTestCase, OccurrenceTestCase):
 
         result = self._query_stats()
         assert len(result) == 1
-        assert "attribute_distributions" in result[0]
-        data = result[0]["attribute_distributions"]["data"]
+        assert "attributeDistributions" in result[0]
+        data = result[0]["attributeDistributions"]["data"]
         assert "level" in data
         level_buckets = data["level"]
         labels = {bucket["label"] for bucket in level_buckets}
@@ -391,7 +391,7 @@ class OccurrencesStatsRPCTest(TestCase, SnubaTestCase, OccurrenceTestCase):
 
         result = self._query_stats(query_string="level:error")
         assert len(result) == 1
-        data = result[0]["attribute_distributions"]["data"]
+        data = result[0]["attributeDistributions"]["data"]
         # With the filter, only error occurrences are included
         assert "level" in data
         labels = {bucket["label"] for bucket in data["level"]}
@@ -411,7 +411,7 @@ class OccurrencesStatsRPCTest(TestCase, SnubaTestCase, OccurrenceTestCase):
             attributes=[AttributeKey(name="level", type=AttributeKey.TYPE_STRING)],
         )
         assert len(result) == 1
-        data = result[0]["attribute_distributions"]["data"]
+        data = result[0]["attributeDistributions"]["data"]
         assert "level" in data
 
     def test_stats_excludes_private_attributes(self) -> None:
@@ -425,7 +425,7 @@ class OccurrencesStatsRPCTest(TestCase, SnubaTestCase, OccurrenceTestCase):
 
         result = self._query_stats()
         assert len(result) == 1
-        data = result[0]["attribute_distributions"]["data"]
+        data = result[0]["attributeDistributions"]["data"]
         # Private attributes should not appear
         assert "sentry.item_type" not in data
         assert "sentry.organization_id" not in data
@@ -452,7 +452,7 @@ class OccurrencesStatsRPCTest(TestCase, SnubaTestCase, OccurrenceTestCase):
         # Filter to only error category
         result = self._query_stats(occurrence_category=OccurrenceCategory.ERROR)
         assert len(result) == 1
-        data = result[0]["attribute_distributions"]["data"]
+        data = result[0]["attributeDistributions"]["data"]
         assert "level" in data
         labels = {bucket["label"] for bucket in data["level"]}
         assert "error" in labels
@@ -465,5 +465,5 @@ class OccurrencesStatsRPCTest(TestCase, SnubaTestCase, OccurrenceTestCase):
     def test_stats_empty_results(self) -> None:
         result = self._query_stats(query_string="level:nonexistent")
         assert len(result) == 1
-        data = result[0]["attribute_distributions"]["data"]
+        data = result[0]["attributeDistributions"]["data"]
         assert len(data) == 0

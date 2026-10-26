@@ -608,7 +608,28 @@ describe('AssigneeSelectorDropdown', () => {
     });
   });
 
-  it('shows the suggested assignee even if they would be cut off by the size limit', async () => {
+  it('labels suggested owner reason on the current assignee as a suggestion', async () => {
+    const assignedGroup: Group = {
+      ...GROUP_2,
+      assignedTo: {id: USER_1.id, name: USER_1.name, type: 'user'},
+    };
+
+    render(
+      <AssigneeSelectorDropdown
+        group={assignedGroup}
+        loading={false}
+        memberList={[USER_1, USER_2, USER_3, USER_4]}
+        onAssign={newAssignee => updateGroup(assignedGroup, newAssignee)}
+      />
+    );
+
+    await userEvent.hover(screen.getByTestId('letter_avatar-avatar'));
+
+    expect(await screen.findByText(`Assigned to ${USER_1.name}`)).toBeInTheDocument();
+    expect(await screen.findByText('Suggested based on')).toBeInTheDocument();
+  });
+
+  it('shows the suggested assignee at the top of the menu', async () => {
     jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_3);
 
     render(
@@ -617,7 +638,6 @@ describe('AssigneeSelectorDropdown', () => {
         loading={false}
         memberList={[USER_1, USER_2, USER_3, USER_4]}
         onAssign={newAssignee => updateGroup(GROUP_3, newAssignee)}
-        sizeLimit={2}
       />
     );
 
@@ -625,10 +645,7 @@ describe('AssigneeSelectorDropdown', () => {
     expect(await screen.findByText('GH')).toBeInTheDocument();
 
     await openMenu();
-    // User 4, Git Hub, would have normally been cut off by the size limit since it is
-    // alphabetically last, but it should still be shown because it is a suggested assignee
     const options = await screen.findAllByRole('option');
-    expect(options).toHaveLength(2);
     expect(options[0]).toHaveTextContent('GH');
   });
 
@@ -648,6 +665,7 @@ describe('AssigneeSelectorDropdown', () => {
 
     await userEvent.click(await screen.findByRole('button', {name: 'Invite Member'}));
     expect(openInviteMembersModal).toHaveBeenCalled();
+    expect(screen.queryByRole('button', {name: 'Invite Member'})).not.toBeInTheDocument();
     jest.mocked(ConfigStore.get).mockRestore();
   });
 

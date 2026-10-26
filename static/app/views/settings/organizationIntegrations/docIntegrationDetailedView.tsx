@@ -1,6 +1,8 @@
 import {useCallback, useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconOpen} from '@sentry/icons/open';
+import {useQuery} from '@tanstack/react-query';
 
 import {DocIntegrationAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
@@ -8,12 +10,10 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DocIntegration} from 'sentry/types/integrations';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import type {IntegrationTab} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
@@ -25,14 +25,13 @@ export default function DocIntegrationDetailsView() {
   const organization = useOrganization();
   const {integrationSlug} = useParams<{integrationSlug: string}>();
 
-  const {data: doc, isPending} = useApiQuery<DocIntegration>(
-    [
-      getApiUrl('/doc-integrations/$docIntegrationIdOrSlug/', {
-        path: {docIntegrationIdOrSlug: integrationSlug},
-      }),
-    ],
-    {staleTime: Infinity, retry: false}
-  );
+  const {data: doc, isPending} = useQuery({
+    ...apiOptions.as<DocIntegration>()('/doc-integrations/$docIntegrationIdOrSlug/', {
+      path: {docIntegrationIdOrSlug: integrationSlug},
+      staleTime: Infinity,
+    }),
+    retry: false,
+  });
 
   const integrationType = 'document';
   const description = doc?.description ?? '';
@@ -101,7 +100,7 @@ export default function DocIntegrationDetailsView() {
 
   return (
     <IntegrationLayout.Body
-      integrationName={integrationName}
+      title={integrationName}
       alert={null}
       topSection={
         <IntegrationLayout.TopSection

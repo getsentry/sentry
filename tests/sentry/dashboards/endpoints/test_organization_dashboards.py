@@ -4,8 +4,10 @@ from datetime import datetime, timedelta
 from typing import Any
 from unittest.mock import patch
 
+from django.db import connection
 from django.urls import reverse
 
+from sentry import audit_log
 from sentry.dashboards.endpoints.organization_dashboards import (
     PREBUILT_DASHBOARDS,
     PrebuiltDashboardId,
@@ -13,6 +15,8 @@ from sentry.dashboards.endpoints.organization_dashboards import (
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
+    DashboardLastVisited,
+    DashboardRevision,
 )
 from sentry.models.dashboard_widget import (
     DashboardWidget,
@@ -20,9 +24,14 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetQuery,
     DashboardWidgetTypes,
 )
+from sentry.silo.base import SiloMode
+from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
@@ -305,6 +314,31 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         # sorted by title by default
         assert values == ["Dashboard 3", "Dashboard 4", "Dashboard 5"]
 
+    def test_get_only_favorites_ordered_by_position(self) -> None:
+        d_a = Dashboard.objects.create(
+            title="Alpha", created_by_id=self.user.id, organization=self.organization
+        )
+        d_b = Dashboard.objects.create(
+            title="Bravo", created_by_id=self.user.id, organization=self.organization
+        )
+        d_c = Dashboard.objects.create(
+            title="Charlie", created_by_id=self.user.id, organization=self.organization
+        )
+        d_a.favorited_by = [self.user.id]
+        d_b.favorited_by = [self.user.id]
+        d_c.favorited_by = [self.user.id]
+        # Reorder so position order is Charlie, Alpha, Bravo (not title order)
+        DashboardFavoriteUser.objects.reorder_favorite_dashboards(
+            organization=self.organization,
+            user_id=self.user.id,
+            new_dashboard_positions=[d_c.id, d_a.id, d_b.id],
+        )
+        self.login_as(self.user)
+        with self.feature("organizations:dashboards-starred"):
+            response = self.client.get(self.url, data={"filter": "onlyFavorites"})
+        assert response.status_code == 200, response.content
+        assert [row["title"] for row in response.data] == ["Charlie", "Alpha", "Bravo"]
+
     def test_get_only_favorites_with_sort(self) -> None:
         user_1 = self.create_user(username="user_1")
         self.create_member(organization=self.organization, user=user_1)
@@ -355,6 +389,34 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
         values = [row["title"] for row in response.data]
         assert values == ["Dashboard 4", "Dashboard 3", "Dashboard 5"]
+
+    def test_get_only_favorites_explicit_sort_overrides_position_with_flag(self) -> None:
+        d_a = Dashboard.objects.create(
+            title="Alpha", created_by_id=self.user.id, organization=self.organization
+        )
+        d_b = Dashboard.objects.create(
+            title="Bravo", created_by_id=self.user.id, organization=self.organization
+        )
+        d_c = Dashboard.objects.create(
+            title="Charlie", created_by_id=self.user.id, organization=self.organization
+        )
+        d_a.favorited_by = [self.user.id]
+        d_b.favorited_by = [self.user.id]
+        d_c.favorited_by = [self.user.id]
+        # Reorder positions to the reverse of dateCreated order
+        DashboardFavoriteUser.objects.reorder_favorite_dashboards(
+            organization=self.organization,
+            user_id=self.user.id,
+            new_dashboard_positions=[d_c.id, d_b.id, d_a.id],
+        )
+        self.login_as(self.user)
+        with self.feature("organizations:dashboards-starred"):
+            response = self.client.get(
+                self.url, data={"filter": "onlyFavorites", "sort": "dateCreated"}
+            )
+        assert response.status_code == 200, response.content
+        # Explicit sort wins over per-user position order even with the flag on
+        assert [row["title"] for row in response.data] == ["Alpha", "Bravo", "Charlie"]
 
     def test_get_exclude_favorites_with_no_sort(self) -> None:
         user_1 = self.create_user(username="user_1")
@@ -842,13 +904,151 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         visited_at = [row.get("lastVisited") for row in response.data]
         assert visited_at == [now, one_hour_ago]
 
+    def test_recently_viewed_sort_is_per_user_with_flag(self) -> None:
+        Dashboard.objects.all().delete()
+
+        now = before_now(minutes=0)
+        one_hour_ago = before_now(hours=1)
+
+        dashboard_a = Dashboard.objects.create(
+            title="Dashboard A",
+            organization=self.organization,
+            created_by_id=self.user.id,
+            last_visited=now,
+        )
+        dashboard_b = Dashboard.objects.create(
+            title="Dashboard B",
+            organization=self.organization,
+            created_by_id=self.user.id,
+            last_visited=one_hour_ago,
+        )
+
+        # Should respect this last_visited, not the independent dashboard's
+        DashboardLastVisited.objects.create(
+            user_id=self.user.id,
+            dashboard=dashboard_a,
+            last_visited=one_hour_ago,
+        )
+        DashboardLastVisited.objects.create(
+            user_id=self.user.id,
+            dashboard=dashboard_b,
+            last_visited=now,
+        )
+
+        with self.feature("organizations:dashboards-user-last-visited"):
+            response = self.client.get(self.url, data={"sort": "recentlyViewed"})
+
+        assert response.status_code == 200, response.content
+        titles = [row["title"] for row in response.data]
+        assert titles == ["Dashboard B", "Dashboard A"]
+
+        visited_at = [row.get("lastVisited") for row in response.data]
+        assert visited_at == [now, one_hour_ago]
+
+    def test_recently_viewed_sort_unvisited_last_with_flag(self) -> None:
+        Dashboard.objects.all().delete()
+
+        now = before_now(minutes=0)
+
+        visited = Dashboard.objects.create(
+            title="Visited by me",
+            organization=self.organization,
+            created_by_id=self.user.id,
+            last_visited=before_now(hours=1),
+        )
+        never_visited = Dashboard.objects.create(
+            title="Never visited by me",
+            organization=self.organization,
+            created_by_id=self.user.id,
+            last_visited=now,
+        )
+
+        DashboardLastVisited.objects.create(
+            user_id=self.user.id,
+            dashboard=visited,
+            last_visited=now,
+        )
+
+        with self.feature("organizations:dashboards-user-last-visited"):
+            response = self.client.get(self.url, data={"sort": "recentlyViewed"})
+
+        assert response.status_code == 200, response.content
+        titles = [row["title"] for row in response.data]
+        assert titles == ["Visited by me", "Never visited by me"]
+
+        assert response.data[0]["title"] == visited.title
+        assert response.data[0].get("lastVisited") == now
+        assert response.data[1]["title"] == never_visited.title
+        assert response.data[1].get("lastVisited") is None
+
+    def test_recently_viewed_sort_unvisited_stable_order_with_flag(self) -> None:
+        Dashboard.objects.all().delete()
+
+        first = Dashboard.objects.create(
+            title="First",
+            organization=self.organization,
+            created_by_id=self.user.id,
+        )
+        second = Dashboard.objects.create(
+            title="Second",
+            organization=self.organization,
+            created_by_id=self.user.id,
+        )
+        third = Dashboard.objects.create(
+            title="Third",
+            organization=self.organization,
+            created_by_id=self.user.id,
+        )
+
+        with self.feature("organizations:dashboards-user-last-visited"):
+            response = self.client.get(self.url, data={"sort": "recentlyViewed"})
+
+        assert response.status_code == 200, response.content
+        ids = [row["id"] for row in response.data]
+        assert ids == [str(third.id), str(second.id), str(first.id)]
+
     def test_post(self) -> None:
-        response = self.do_request("post", self.url, data={"title": "Dashboard from Post"})
+        with outbox_runner():
+            response = self.do_request("post", self.url, data={"title": "Dashboard from Post"})
         assert response.status_code == 201
         dashboard = Dashboard.objects.get(
             organization=self.organization, title="Dashboard from Post"
         )
         assert dashboard.created_by_id == self.user.id
+        assert_org_audit_log_exists(
+            organization=self.organization,
+            event=audit_log.get_event_id("DASHBOARD_ADD"),
+            target_object=dashboard.id,
+            data=dashboard.get_audit_log_data(),
+        )
+
+    def test_post_with_integer_title(self) -> None:
+        response = self.do_request("post", self.url, data={"title": 12345})
+        assert response.status_code == 201
+        assert Dashboard.objects.filter(organization=self.organization, title="12345").exists()
+
+    def test_post_with_numeric_string_title_keeps_incrementing(self) -> None:
+        response = self.do_request("post", self.url, data={"title": "12345"})
+        assert response.status_code == 201
+        assert Dashboard.objects.filter(organization=self.organization, title="12345").exists()
+
+        response = self.do_request("post", self.url, data={"title": "12345"})
+        assert response.status_code == 201
+        assert Dashboard.objects.filter(organization=self.organization, title="12345 copy").exists()
+
+        response = self.do_request("post", self.url, data={"title": "12345"})
+        assert response.status_code == 201
+        assert Dashboard.objects.filter(
+            organization=self.organization,
+            title="12345 copy 1",
+        ).exists()
+
+        response = self.do_request("post", self.url, data={"title": "12345"})
+        assert response.status_code == 201
+        assert Dashboard.objects.filter(
+            organization=self.organization,
+            title="12345 copy 2",
+        ).exists()
 
     def test_post_member_can_create(self) -> None:
         self.create_user_member_role()
@@ -883,7 +1083,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                             "conditions": "event.type:transaction",
                         }
                     ],
-                    "layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2},
+                    "layout": {"x": 0, "y": 0, "w": 1, "h": 2, "minH": 2},
                 },
                 {
                     "displayType": "bar",
@@ -898,7 +1098,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                             "conditions": "event.type:error",
                         }
                     ],
-                    "layout": {"x": 1, "y": 0, "w": 1, "h": 1, "minH": 2},
+                    "layout": {"x": 1, "y": 0, "w": 1, "h": 2, "minH": 2},
                 },
             ],
         }
@@ -920,6 +1120,123 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             queries = actual_widget.dashboardwidgetquery_set.all()
             for expected_query, actual_query in zip(expected_widget["queries"], queries):
                 self.assert_serialized_widget_query(expected_query, actual_query)
+
+    def test_post_derives_widget_min_height(self) -> None:
+        data = {
+            "title": "Dashboard with derived minimum heights",
+            "widgets": [
+                {
+                    "displayType": "line",
+                    "interval": "5m",
+                    "title": "Minimum height omitted",
+                    "queries": [
+                        {
+                            "name": "Transactions",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                    "layout": {"x": 0, "y": 0, "w": 3, "h": 2},
+                },
+                {
+                    "displayType": "bar",
+                    "interval": "5m",
+                    "title": "Caller minimum height ignored",
+                    "queries": [
+                        {
+                            "name": "Errors",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:error",
+                        }
+                    ],
+                    "layout": {"x": 3, "y": 0, "w": 3, "h": 2, "minH": 5},
+                },
+            ],
+        }
+
+        response = self.do_request("post", self.url, data=data)
+
+        assert response.status_code == 201, response.data
+        assert response.data["widgets"][0]["layout"] == {
+            "x": 0,
+            "y": 0,
+            "w": 3,
+            "h": 2,
+            "minH": 2,
+        }
+        assert response.data["widgets"][1]["layout"] == {
+            "x": 3,
+            "y": 0,
+            "w": 3,
+            "h": 2,
+            "minH": 2,
+        }
+
+    def test_post_rejects_widget_height_below_minimum(self) -> None:
+        data = {
+            "title": "Dashboard with short widget",
+            "widgets": [
+                {
+                    "displayType": "line",
+                    "interval": "5m",
+                    "title": "Short line chart",
+                    "queries": [
+                        {
+                            "name": "Transactions",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                    "layout": {"x": 0, "y": 0, "w": 3, "h": 1, "minH": 1},
+                }
+            ],
+        }
+
+        response = self.do_request("post", self.url, data=data)
+
+        assert response.status_code == 400, response.data
+        assert str(response.data["widgets"][0]["layout"]["h"]) == (
+            "Height must be at least 2 for line widgets."
+        )
+
+    def test_post_allows_short_widget_display_type_at_height_one(self) -> None:
+        data = {
+            "title": "Dashboard with big number",
+            "widgets": [
+                {
+                    "displayType": "big_number",
+                    "interval": "5m",
+                    "title": "Transaction count()",
+                    "queries": [
+                        {
+                            "name": "Transactions",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                    "layout": {"x": 0, "y": 0, "w": 2, "h": 1, "minH": 2},
+                }
+            ],
+        }
+
+        response = self.do_request("post", self.url, data=data)
+
+        assert response.status_code == 201, response.data
+        assert response.data["widgets"][0]["layout"] == {
+            "x": 0,
+            "y": 0,
+            "w": 2,
+            "h": 1,
+            "minH": 1,
+        }
 
     def test_post_widget_with_camel_case_layout_keys_returns_camel_case(self) -> None:
         data = {
@@ -1032,7 +1349,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                     "conditions": "event.type:transaction",
                 }
             ],
-            "layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2},
+            "layout": {"x": 0, "y": 0, "w": 1, "h": 2, "minH": 2},
         }
         data: dict[str, Any] = {
             "title": "Dashboard from Post",
@@ -1474,7 +1791,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                             "conditions": "event.type:transaction",
                         }
                     ],
-                    "layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2},
+                    "layout": {"x": 0, "y": 0, "w": 1, "h": 2, "minH": 2},
                 },
             ],
         }
@@ -1512,7 +1829,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                             "conditions": "event.type:transaction",
                         }
                     ],
-                    "layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2},
+                    "layout": {"x": 0, "y": 0, "w": 1, "h": 2, "minH": 2},
                 }
                 for i in range(Dashboard.MAX_WIDGETS + 1)
             ],
@@ -1840,7 +2157,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                             "conditions": "is:unresolved",
                         }
                     ],
-                    "layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2},
+                    "layout": {"x": 0, "y": 0, "w": 1, "h": 2, "minH": 2},
                     "widgetType": "error-events",
                 },
             ],
@@ -2104,8 +2421,13 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert PrebuiltDashboardId.BACKEND_QUERIES_SUMMARY in prebuilt_ids_in_response
 
     def test_node_runtime_metrics_prebuilt_dashboard_sync(self) -> None:
-        """The Node.js Runtime Metrics prebuilt dashboard syncs when enabled via options."""
-        with self.feature("organizations:dashboards-prebuilt-insights-dashboards"):
+        """The Node.js Runtime Metrics dashboard syncs when metrics and its option are enabled."""
+        with self.feature(
+            [
+                "organizations:dashboards-prebuilt-insights-dashboards",
+                "organizations:tracemetrics-enabled",
+            ]
+        ):
             with override_options(
                 {"dashboards.prebuilt-dashboard-ids": [PrebuiltDashboardId.NODE_RUNTIME_METRICS]}
             ):
@@ -2124,6 +2446,205 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             if d.get("prebuiltId") == PrebuiltDashboardId.NODE_RUNTIME_METRICS
         ]
         assert len(prebuilt_in_response) == 1
+
+    def test_node_runtime_metrics_prebuilt_dashboard_not_synced_without_metrics(self) -> None:
+        with self.feature("organizations:dashboards-prebuilt-insights-dashboards"):
+            with override_options(
+                {"dashboards.prebuilt-dashboard-ids": [PrebuiltDashboardId.NODE_RUNTIME_METRICS]}
+            ):
+                response = self.do_request("get", self.url)
+        assert response.status_code == 200
+
+        assert not Dashboard.objects.filter(
+            organization=self.organization,
+            prebuilt_id=PrebuiltDashboardId.NODE_RUNTIME_METRICS,
+        ).exists()
+        assert all(
+            dashboard.get("prebuiltId") != PrebuiltDashboardId.NODE_RUNTIME_METRICS
+            for dashboard in response.data
+        )
+
+    def test_endpoint_creates_pre_favorited_prebuilt_dashboards(self) -> None:
+        assert (
+            DashboardFavoriteUser.objects.filter(
+                organization=self.organization, user_id=self.user.id
+            ).count()
+            == 0
+        )
+
+        pre_favorited_prebuilt_ids = {
+            d["prebuilt_id"] for d in PREBUILT_DASHBOARDS if d.get("pre_favorited")
+        }
+
+        with self.feature(
+            [
+                "organizations:dashboards-prebuilt-insights-dashboards",
+                "organizations:dashboards-sync-all-registered-prebuilt-dashboards",
+                "organizations:dashboards-starred",
+            ]
+        ):
+            response = self.do_request("get", self.url)
+        assert response.status_code == 200
+
+        favorites = DashboardFavoriteUser.objects.filter(
+            organization=self.organization, user_id=self.user.id
+        )
+        favorited_prebuilt_ids = set(
+            Dashboard.objects.filter(
+                id__in=favorites.values_list("dashboard_id", flat=True)
+            ).values_list("prebuilt_id", flat=True)
+        )
+        assert favorited_prebuilt_ids == pre_favorited_prebuilt_ids
+
+    def test_prebuilt_autostar_skips_unfavorited_position(self) -> None:
+        stale_favorite = DashboardFavoriteUser.objects.create(
+            organization=self.organization,
+            user_id=self.user.id,
+            dashboard=self.dashboard,
+            position=1,
+            favorited=False,
+        )
+
+        # The position unique constraint is DEFERRABLE INITIALLY DEFERRED, so inside
+        # the test transaction a conflict would not be checked until teardown.
+        # Making constraints immediate matches a committed request in production.
+        with connection.cursor() as cursor:
+            cursor.execute("SET CONSTRAINTS ALL IMMEDIATE")
+
+        with self.feature(
+            [
+                "organizations:dashboards-prebuilt-insights-dashboards",
+                "organizations:dashboards-sync-all-registered-prebuilt-dashboards",
+                "organizations:dashboards-starred",
+            ]
+        ):
+            response = self.do_request("get", self.url)
+
+        assert response.status_code == 200, response.content
+        stale_favorite.refresh_from_db()
+        assert stale_favorite.favorited is False
+        assert stale_favorite.position == 1
+
+        first_autostar = DashboardFavoriteUser.objects.get(
+            organization=self.organization,
+            user_id=self.user.id,
+            dashboard__prebuilt_id=PrebuiltDashboardId.AI_AGENTS_OVERVIEW,
+        )
+        assert first_autostar.favorited is True
+        assert first_autostar.position == 2
+
+    def test_endpoint_does_not_create_favorites_without_starred_flag(self) -> None:
+        with self.feature(
+            [
+                "organizations:dashboards-prebuilt-insights-dashboards",
+                "organizations:dashboards-sync-all-registered-prebuilt-dashboards",
+            ]
+        ):
+            response = self.do_request("get", self.url)
+        assert response.status_code == 200
+
+        assert (
+            DashboardFavoriteUser.objects.filter(
+                organization=self.organization, user_id=self.user.id
+            ).count()
+            == 0
+        )
+
+    def test_endpoint_does_not_re_favorite_unstarred_prebuilt_dashboards(self) -> None:
+        pre_favorited_prebuilt_ids = {
+            d["prebuilt_id"] for d in PREBUILT_DASHBOARDS if d.get("pre_favorited")
+        }
+
+        with self.feature(
+            [
+                "organizations:dashboards-prebuilt-insights-dashboards",
+                "organizations:dashboards-sync-all-registered-prebuilt-dashboards",
+                "organizations:dashboards-starred",
+            ]
+        ):
+            response = self.do_request("get", self.url)
+            assert response.status_code == 200
+
+            # The user deliberately unstars one of the pre-favorited prebuilt dashboards.
+            unstarred_prebuilt_id = next(iter(pre_favorited_prebuilt_ids))
+            unstarred_dashboard = Dashboard.objects.get(
+                organization=self.organization, prebuilt_id=unstarred_prebuilt_id
+            )
+            DashboardFavoriteUser.objects.unfavorite_dashboard(
+                organization=self.organization,
+                user_id=self.user.id,
+                dashboard=unstarred_dashboard,
+            )
+
+            # A subsequent load must not silently re-star it.
+            response = self.do_request("get", self.url)
+            assert response.status_code == 200
+
+        favorites = DashboardFavoriteUser.objects.filter(
+            organization=self.organization, user_id=self.user.id, favorited=True
+        )
+        favorited_prebuilt_ids = set(
+            Dashboard.objects.filter(
+                id__in=favorites.values_list("dashboard_id", flat=True)
+            ).values_list("prebuilt_id", flat=True)
+        )
+        assert favorited_prebuilt_ids == pre_favorited_prebuilt_ids - {unstarred_prebuilt_id}
+
+    def test_endpoint_preserves_existing_stars_and_appends_prebuilts(self) -> None:
+        # User already has a starred (non-prebuilt) dashboard before rollout.
+        DashboardFavoriteUser.objects.insert_favorite_dashboard(
+            organization=self.organization,
+            user_id=self.user.id,
+            dashboard=self.dashboard_2,
+        )
+
+        pre_favorited_prebuilt_ids = {
+            d["prebuilt_id"] for d in PREBUILT_DASHBOARDS if d.get("pre_favorited")
+        }
+
+        with self.feature(
+            [
+                "organizations:dashboards-prebuilt-insights-dashboards",
+                "organizations:dashboards-sync-all-registered-prebuilt-dashboards",
+                "organizations:dashboards-starred",
+            ]
+        ):
+            response = self.do_request("get", self.url)
+        assert response.status_code == 200
+
+        favorites = list(
+            DashboardFavoriteUser.objects.filter(
+                organization=self.organization, user_id=self.user.id, favorited=True
+            ).order_by("position")
+        )
+        # Existing star is retained and kept at the front; prebuilts appended after.
+        assert favorites[0].dashboard_id == self.dashboard_2.id
+        assert favorites[0].position == 0
+
+        favorited_prebuilt_ids = set(
+            Dashboard.objects.filter(
+                id__in=[f.dashboard_id for f in favorites],
+                prebuilt_id__isnull=False,
+            ).values_list("prebuilt_id", flat=True)
+        )
+        assert favorited_prebuilt_ids == pre_favorited_prebuilt_ids
+
+    def test_endpoint_auto_stars_prebuilts_in_alphabetical_order(self) -> None:
+        with self.feature(
+            [
+                "organizations:dashboards-prebuilt-insights-dashboards",
+                "organizations:dashboards-sync-all-registered-prebuilt-dashboards",
+                "organizations:dashboards-starred",
+            ]
+        ):
+            response = self.do_request("get", self.url, {"filter": "onlyFavorites"})
+        assert response.status_code == 200
+
+        # The sidebar (onlyFavorites) returns auto-starred prebuilts by position, and the
+        # auto-star inserts them alphabetically, mirroring Explore.
+        titles = [row["title"] for row in response.data]
+        assert titles == sorted(titles)
+        assert titles == ["AI Agents Overview", "Backend Overview", "Web Vitals"]
 
     def test_post_with_text_widget(self) -> None:
         data = {
@@ -2336,6 +2857,36 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.status_code == 400, response.data
         assert "queries" in response.data["widgets"][0], response.data
 
+    def test_post_tracemetrics_table_rejects_fields_without_aggregate(self) -> None:
+        data: dict[str, Any] = {
+            "title": "Dashboard with Tracemetrics Table",
+            "widgets": [
+                {
+                    "displayType": "table",
+                    "title": "Metric Samples",
+                    "widgetType": "tracemetrics",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["metric.name"],
+                            "columns": ["metric.name"],
+                            "aggregates": ["sum(value,foo,counter,none)"],
+                            "conditions": "",
+                        }
+                    ],
+                    "layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2},
+                },
+            ],
+        }
+
+        with self.feature("organizations:tracemetrics-dashboard-table"):
+            response = self.do_request("post", self.url, data=data)
+
+        assert response.status_code == 400, response.data
+        assert response.data["widgets"][0]["queries"] == [
+            "Application Metrics table widgets require at least one aggregate. Add an aggregate or remove this widget."
+        ]
+
     def test_post_validate_only_error_for_invalid_dashboard(self) -> None:
         data: dict[str, Any] = {
             "title": "Invalid Dashboard",
@@ -2362,3 +2913,237 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert not Dashboard.objects.filter(
             organization=self.organization, title="Invalid Dashboard"
         ).exists()
+
+    # resolve_params only raises on an empty project list outside tests.
+
+    def _single_widget_dashboard(
+        self, title: str, conditions: str = "event.type:transaction"
+    ) -> dict[str, Any]:
+        return {
+            "title": title,
+            "widgets": [
+                {
+                    "displayType": "line",
+                    "interval": "5m",
+                    "title": "Transaction count()",
+                    "queries": [
+                        {
+                            "name": "Transactions",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": conditions,
+                        }
+                    ],
+                },
+            ],
+        }
+
+    @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
+    def test_post_validation_succeeds_for_user_without_team_membership(
+        self, mock_in_test_environment
+    ) -> None:
+        """get_projects filters by team membership, so this resolves to []."""
+        assert self.project  # lazy fixture; the org needs a project
+        teamless_user = self.create_user()
+        self.create_member(
+            organization=self.organization, user=teamless_user, role="member", teams=[]
+        )
+        self.login_as(teamless_user)
+
+        response = self.do_request(
+            "post", self.url + "?validateOnly=1", data=self._single_widget_dashboard("Teamless")
+        )
+        assert response.status_code == 200, response.data
+        assert not Dashboard.objects.filter(
+            organization=self.organization, title="Teamless"
+        ).exists()
+
+    @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
+    def test_post_creates_dashboard_for_teamless_member_of_open_membership_org(
+        self, mock_in_test_environment
+    ) -> None:
+        """Creation must work too, not just validation."""
+        org = self.create_organization(owner=self.user, flags=1)  # allow_joinleave
+        team = self.create_team(organization=org)
+        self.create_project(organization=org, teams=[team])
+        member = self.create_user()
+        self.create_member(organization=org, user=member, role="member", teams=[])
+        self.login_as(member)
+
+        url = reverse(
+            "sentry-api-0-organization-dashboards",
+            kwargs={"organization_id_or_slug": org.slug},
+        )
+        response = self.do_request("post", url, data=self._single_widget_dashboard("Open Org"))
+        assert response.status_code == 201, response.data
+        assert Dashboard.objects.filter(organization=org, title="Open Org").exists()
+
+    @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
+    def test_post_validation_accepts_accessible_project_filters_for_teamless_member(
+        self, mock_in_test_environment
+    ) -> None:
+        org = self.create_organization(owner=self.user, flags=1)
+        team = self.create_team(organization=org)
+        project_one = self.create_project(organization=org, teams=[team])
+        project_two = self.create_project(organization=org, teams=[team])
+        member = self.create_user()
+        self.create_member(organization=org, user=member, role="member", teams=[])
+        self.login_as(member)
+
+        url = reverse(
+            "sentry-api-0-organization-dashboards",
+            kwargs={"organization_id_or_slug": org.slug},
+        )
+        response = self.do_request(
+            "post",
+            url + "?validateOnly=1",
+            data=self._single_widget_dashboard(
+                "Project Filters",
+                f"project:{project_one.slug} OR project:{project_two.slug}",
+            ),
+        )
+        assert response.status_code == 200, response.data
+        assert not Dashboard.objects.filter(organization=org, title="Project Filters").exists()
+
+    @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
+    def test_post_validation_errors_when_no_project_is_accessible(
+        self, mock_in_test_environment
+    ) -> None:
+        """Without allow_joinleave a teamless member can reach no project."""
+        org = self.create_organization(owner=self.user, flags=0)  # no allow_joinleave
+        team = self.create_team(organization=org)
+        self.create_project(organization=org, teams=[team])
+        member = self.create_user()
+        self.create_member(organization=org, user=member, role="member", teams=[])
+        self.login_as(member)
+
+        url = reverse(
+            "sentry-api-0-organization-dashboards",
+            kwargs={"organization_id_or_slug": org.slug},
+        )
+        response = self.do_request(
+            "post", url + "?validateOnly=1", data=self._single_widget_dashboard("Closed Org")
+        )
+        assert response.status_code == 400, response.data
+        assert response.data["widgets"][0]["queries"][0]["conditions"] == [
+            "Could not validate query: no project available."
+        ]
+        assert not Dashboard.objects.filter(organization=org, title="Closed Org").exists()
+
+    @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
+    def test_post_validation_does_not_error_for_organization_without_projects(
+        self, mock_in_test_environment
+    ) -> None:
+        """With no projects there is no fallback, so this hits the backstop."""
+        empty_org = self.create_organization(owner=self.user)
+        url = reverse(
+            "sentry-api-0-organization-dashboards",
+            kwargs={"organization_id_or_slug": empty_org.slug},
+        )
+        self.login_as(self.user)
+
+        response = self.do_request(
+            "post", url + "?validateOnly=1", data=self._single_widget_dashboard("No Projects")
+        )
+        assert response.status_code == 400, response.data
+        # Exact match: the exception text must not be echoed back.
+        assert response.data["widgets"][0]["queries"][0]["conditions"] == [
+            "Could not validate query: no project available."
+        ]
+        assert not Dashboard.objects.filter(organization=empty_org, title="No Projects").exists()
+
+
+@with_feature("organizations:granular-permission-scopes")
+class OrganizationDashboardsCreateScopeTest(OrganizationDashboardWidgetTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+        self.url = reverse(
+            "sentry-api-0-organization-dashboards",
+            kwargs={"organization_id_or_slug": self.organization.slug},
+        )
+
+    def _use_token(self, scope_list: list[str]) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+    def _details_url(self, dashboard_id: int) -> str:
+        return reverse(
+            "sentry-api-0-organization-dashboard-details",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "dashboard_id": dashboard_id,
+            },
+        )
+
+    def test_create_scope_can_create(self) -> None:
+        self._use_token(["dashboard:read", "dashboard:create"])
+        with outbox_runner():
+            response = self.client.post(self.url, data={"title": "Created"})
+        assert response.status_code == 201, response.content
+        assert Dashboard.objects.filter(organization=self.organization, title="Created").exists()
+
+    def test_create_scope_cannot_update_own_dashboard(self) -> None:
+        self._use_token(["dashboard:read", "dashboard:create"])
+        with outbox_runner():
+            response = self.client.post(self.url, data={"title": "Created"})
+        assert response.status_code == 201, response.content
+
+        response = self.client.put(
+            self._details_url(response.data["id"]),
+            data={"title": "Renamed"},
+            format="json",
+        )
+        assert response.status_code == 403
+        assert Dashboard.objects.filter(organization=self.organization, title="Created").exists()
+
+    def test_create_scope_cannot_delete(self) -> None:
+        self._use_token(["dashboard:read", "dashboard:create"])
+        response = self.client.delete(self._details_url(self.dashboard.id))
+        assert response.status_code == 403
+        assert Dashboard.objects.filter(id=self.dashboard.id).exists()
+
+    def test_create_scope_cannot_restore_revision(self) -> None:
+        revision = DashboardRevision.objects.create(
+            dashboard=self.dashboard,
+            created_by_id=self.user.id,
+            title="Old Title",
+            source="edit",
+            snapshot={"title": "Old Title", "widgets": []},
+            snapshot_schema_version=DashboardRevision.SNAPSHOT_SCHEMA_VERSION,
+        )
+        url = reverse(
+            "sentry-api-0-organization-dashboard-revision-restore",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "dashboard_id": self.dashboard.id,
+                "revision_id": revision.id,
+            },
+        )
+        self._use_token(["dashboard:read", "dashboard:create"])
+        response = self.client.post(url)
+        assert response.status_code == 403
+        self.dashboard.refresh_from_db()
+        assert self.dashboard.title == "Dashboard 1"
+
+    def test_read_scope_cannot_create(self) -> None:
+        self._use_token(["dashboard:read"])
+        response = self.client.post(self.url, data={"title": "Created"})
+        assert response.status_code == 403
+
+    def test_write_scope_can_create_and_update(self) -> None:
+        # Tokens issued before `dashboard:create` existed only store `dashboard:write`.
+        self._use_token(["dashboard:read", "dashboard:write"])
+        with outbox_runner():
+            response = self.client.post(self.url, data={"title": "Created"})
+        assert response.status_code == 201, response.content
+
+        response = self.client.put(
+            self._details_url(response.data["id"]),
+            data={"title": "Renamed"},
+            format="json",
+        )
+        assert response.status_code == 200, response.content

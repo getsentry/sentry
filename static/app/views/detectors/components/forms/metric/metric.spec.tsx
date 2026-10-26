@@ -13,7 +13,7 @@ import {NewMetricDetectorForm} from 'sentry/views/detectors/components/forms/met
 
 describe('NewMetricDetectorForm', () => {
   const organization = OrganizationFixture({
-    features: ['workflow-engine-ui', 'visibility-explore-view'],
+    features: ['visibility-explore-view'],
   });
   const project = ProjectFixture({id: '1', slug: 'proj-1'});
   const user = UserFixture();

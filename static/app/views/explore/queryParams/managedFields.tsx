@@ -1,5 +1,4 @@
 import {defined} from 'sentry/utils/defined';
-import {parseFunction} from 'sentry/utils/discover/fields';
 import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
@@ -9,6 +8,9 @@ import {
   type BaseVisualize,
 } from 'sentry/views/explore/queryParams/visualize';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
+import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
+
+const NUMERIC_LITERAL = /^-?\d*\.?\d+$/;
 
 type DerivedUpdatedManagedFields = {
   updatedFields?: string[];
@@ -173,8 +175,10 @@ function findAllFieldRefs(
 
 function getVisualizeFields(visualize: Visualize): string[] {
   if (isVisualizeFunction(visualize)) {
-    const field = parseFunction(visualize.yAxis)?.arguments?.[0];
-    return defined(field) ? [field] : [];
+    // Parse conditionally so an `_if` filter query, which is the first argument, is not
+    // mistaken for a visualize field. Formulas can also take plain numbers.
+    const field = parseConditionalAggregate(visualize.yAxis)?.arguments?.[0];
+    return defined(field) && !NUMERIC_LITERAL.test(field) ? [field] : [];
   }
 
   return []; // TODO: unsupported
@@ -192,6 +196,7 @@ function findChangedFields(
 
   // TODO: check if we need to distinguish between null and undefined here
   if (defined(writableQueryParams.fields)) {
+    // oxlint-disable-next-line no-inner-declarations -- Match ESLint's handling of block-scoped functions.
     function countFields(counter: Counter, field: string) {
       const count = counter.get(field) || 0;
       counter.set(field, count + 1);

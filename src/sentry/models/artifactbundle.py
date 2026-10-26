@@ -27,6 +27,9 @@ from sentry.utils.hashlib import sha1_text
 NULL_UUID = "00000000-00000000-00000000-00000000"
 NULL_STRING = ""
 
+# Must stay in sync with Symbolicator's `object_file_max_decompressed_source_size`
+MAX_SOURCE_FILE_SIZE = 1024 * 1024 * 1024
+
 
 class SourceFileType(Enum):
     SOURCE = 1
@@ -237,6 +240,9 @@ class ArtifactBundleArchive:
     def info(self, filename: str) -> zipfile.ZipInfo:
         return self._zip_file.getinfo(filename)
 
+    def infolist(self) -> list[zipfile.ZipInfo]:
+        return self._zip_file.infolist()
+
     def read(self, filename: str) -> bytes:
         return self._zip_file.read(filename)
 
@@ -292,6 +298,24 @@ class ArtifactBundleArchive:
 
     def has_debug_ids(self):
         return len(self._entries_by_debug_id) > 0
+
+    def get_files_without_debug_ids(self) -> list[tuple[str, dict[str, Any]]]:
+        """
+        Returns the `(url, info)` of every file that can be looked up by URL but not by debug ID.
+        """
+        files_with_debug_ids = {file_path for file_path, _, _ in self._entries_by_debug_id.values()}
+        return [
+            (url, info)
+            for url, (file_path, info) in self._entries_by_url.items()
+            if file_path not in files_with_debug_ids
+        ]
+
+    def has_debug_ids_for_all_files(self) -> bool:
+        """
+        Whether the bundle has files with debug IDs, and every file that can be looked up by URL
+        can also be looked up by debug ID.
+        """
+        return self.has_debug_ids() and not self.get_files_without_debug_ids()
 
     def extract_bundle_id(self) -> str | None:
         bundle_id = self.manifest.get("debug_id")

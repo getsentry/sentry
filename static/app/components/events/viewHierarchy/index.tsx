@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {Node} from 'sentry/components/events/viewHierarchy/node';
@@ -29,7 +29,7 @@ function getNodeLabel({
 }
 
 function onScrollToNode(
-  node: VirtualizedTreeRenderedRow<ViewHierarchyWindow>,
+  node: VirtualizedTreeRenderedRow<ViewHierarchyWindow> | undefined,
   scrollContainer: HTMLElement | HTMLElement[] | null,
   coordinates: {depth: number; top: number} | undefined
 ) {
@@ -77,8 +77,8 @@ export type ViewHierarchyWindow = {
 
 export type ViewHierarchyData = {
   rendering_system: string;
-  windows: ViewHierarchyWindow[];
   positioning?: 'absolute' | 'relative';
+  windows?: ViewHierarchyWindow[];
 };
 
 export type ViewHierarchyNodeField = 'type' | 'name';
@@ -87,7 +87,7 @@ type ViewHierarchyProps = {
   emptyMessage: string;
   nodeField: ViewHierarchyNodeField;
   showWireframe: boolean;
-  viewHierarchy: ViewHierarchyData;
+  viewHierarchy: ViewHierarchyData | null;
   platform?: string;
 };
 
@@ -102,11 +102,11 @@ function ViewHierarchy({
   const [scrollContainerRef, setScrollContainerRef] = useState<HTMLDivElement | null>(
     null
   );
-  const [selectedNode, setSelectedNode] = useState(viewHierarchy.windows[0]);
+  const [selectedNode, setSelectedNode] = useState(viewHierarchy?.windows?.[0]);
   const [userHasSelected, setUserHasSelected] = useState(false);
   const hierarchy = useMemo(() => {
-    return viewHierarchy.windows;
-  }, [viewHierarchy.windows]);
+    return viewHierarchy?.windows ?? [];
+  }, [viewHierarchy?.windows]);
 
   const renderRow: UseVirtualizedTreeProps<ViewHierarchyWindow>['renderRow'] = (
     r,
@@ -205,17 +205,21 @@ function ViewHierarchy({
 
   const viewHierarchyContent = (
     <Fragment>
-      <RenderingSystem platform={platform} system={viewHierarchy.rendering_system} />
+      <RenderingSystem platform={platform} system={viewHierarchy?.rendering_system} />
       <Flex gap="md" height="700px">
         <Left hasRight={showWireframe}>
           <TreeContainer>
             <div ref={hoveredGhostRowRef} />
             <div ref={clickedGhostRowRef} />
-            <ScrollContainer ref={setScrollContainerRef} style={scrollContainerStyles}>
-              <RenderedItemsContainer style={containerStyles}>
+            <Container
+              padding="0 lg lg lg"
+              ref={setScrollContainerRef}
+              style={scrollContainerStyles}
+            >
+              <Container position="relative" style={containerStyles}>
                 {renderedItems}
-              </RenderedItemsContainer>
-            </ScrollContainer>
+              </Container>
+            </Container>
           </TreeContainer>
           {defined(selectedNode) && (
             <DetailsContainer>
@@ -233,7 +237,7 @@ function ViewHierarchy({
               selectedNode={userHasSelected ? selectedNode : undefined}
               onNodeSelect={onWireframeNodeSelect}
               platform={platform}
-              positioning={viewHierarchy.positioning}
+              positioning={viewHierarchy?.positioning}
             />
           </Right>
         )}
@@ -241,15 +245,14 @@ function ViewHierarchy({
     </Fragment>
   );
 
-  return <Container>{viewHierarchyContent}</Container>;
+  return (
+    <Container marginLeft="xl" position="relative">
+      {viewHierarchyContent}
+    </Container>
+  );
 }
 
 export {ViewHierarchy};
-
-const Container = styled('div')`
-  position: relative;
-  margin-left: ${p => p.theme.space.xl};
-`;
 
 const Left = styled('div')<{hasRight?: boolean}>`
   width: ${p => (p.hasRight ? '40%' : '100%')};
@@ -280,14 +283,6 @@ const DetailsContainer = styled('div')`
   border: 1px solid ${p => p.theme.colors.gray100};
   border-radius: ${p => p.theme.radius.md};
   overflow: auto;
-`;
-
-const ScrollContainer = styled('div')`
-  padding: 0 ${p => p.theme.space.lg} ${p => p.theme.space.lg} ${p => p.theme.space.lg};
-`;
-
-const RenderedItemsContainer = styled('div')`
-  position: relative;
 `;
 
 const TreeItem = styled('div')`

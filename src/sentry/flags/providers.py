@@ -5,6 +5,7 @@ from collections.abc import Callable, Iterator
 from typing import Any, Protocol, TypedDict, TypeVar
 
 from django.http.request import HttpHeaders
+from django.utils.crypto import constant_time_compare
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
@@ -98,7 +99,7 @@ class LaunchDarklyItemSerializer(serializers.Serializer):
     accesses = serializers.ListField(required=True)
     date = serializers.IntegerField(required=True)
     member = serializers.DictField(required=False, allow_null=True)
-    name = serializers.CharField(max_length=100, required=True)
+    name = serializers.CharField(max_length=256, required=True)
     description = serializers.CharField(allow_blank=True, required=True)
 
 
@@ -201,7 +202,7 @@ class GenericItemSerializer(serializers.Serializer):
     change_id = serializers.IntegerField(required=True)
     created_at = serializers.DateTimeField(required=True)
     created_by = GenericItemCreatedBySerializer(required=True)
-    flag = serializers.CharField(required=True, max_length=100)
+    flag = serializers.CharField(required=True, max_length=256)
 
 
 class GenericMetaSerializer(serializers.Serializer):
@@ -277,7 +278,7 @@ SUPPORTED_UNLEASH_ACTIONS = {
 
 class UnleashItemSerializer(serializers.Serializer):
     # Technically featureName is not required by Unleash, but for all the actions we care about, it should exist.
-    featureName = serializers.CharField(max_length=100, required=True)
+    featureName = serializers.CharField(max_length=256, required=True)
     createdAt = serializers.DateTimeField(
         required=True,
         input_formats=["iso-8601"],
@@ -548,7 +549,7 @@ class AuthTokenValidator:
             return False
 
         for secret in self.secret_finder(self.organization_id, self.provider):
-            if secret == self.signature:
+            if constant_time_compare(secret, self.signature):
                 return True
 
         return False
@@ -582,7 +583,7 @@ class PayloadSignatureValidator:
             return False
 
         for secret in self.secret_finder(self.organization_id, self.provider):
-            if self.secret_validator(secret, self.message) == self.signature:
+            if constant_time_compare(self.secret_validator(secret, self.message), self.signature):
                 return True
         return False
 

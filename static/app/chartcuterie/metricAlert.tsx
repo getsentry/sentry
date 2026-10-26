@@ -1,15 +1,15 @@
 import type {Theme} from '@emotion/react';
 import type {LineSeriesOption, YAXisComponentOption} from 'echarts';
 
-import type {AreaChartSeries} from 'sentry/components/charts/areaChart';
-import {XAxis} from 'sentry/components/charts/components/xAxis';
-import {AreaSeries} from 'sentry/components/charts/series/areaSeries';
-import type {SessionApiResponse} from 'sentry/types/organization';
-import type {MetricChartData} from 'sentry/views/alerts/rules/metric/details/metricChartOption';
+import type {MetricChartData} from 'sentry/chartcuterie/metricChartOption';
 import {
   getMetricAlertChartOption,
   transformSessionResponseToSeries,
-} from 'sentry/views/alerts/rules/metric/details/metricChartOption';
+} from 'sentry/chartcuterie/metricChartOption';
+import type {AreaChartSeries} from 'sentry/components/charts/areaChart';
+import {createXAxisOptions} from 'sentry/components/charts/components/xAxis';
+import {createAreaSeries} from 'sentry/components/charts/series/areaSeries';
+import type {SessionApiResponse} from 'sentry/types/organization';
 
 import {DEFAULT_FONT_FAMILY, makeSlackChartDefaults, slackChartSize} from './slack';
 import type {RenderDescriptor} from './types';
@@ -17,7 +17,7 @@ import {ChartType} from './types';
 
 function transformAreaSeries(series: AreaChartSeries[]): LineSeriesOption[] {
   return series.map(({seriesName, data, ...otherSeriesProps}) => {
-    const areaSeries = AreaSeries({
+    const areaSeries = createAreaSeries({
       name: seriesName,
       data: data.map(({name, value}) => [name, value]),
       lineStyle: {
@@ -46,7 +46,7 @@ export function makeMetricAlertCharts(theme: Theme): Array<RenderDescriptor<Char
   const slackChartDefaults = makeSlackChartDefaults(theme);
   const metricAlertCharts: Array<RenderDescriptor<ChartType>> = [];
 
-  const metricAlertXaxis = XAxis({
+  const metricAlertXaxis = createXAxisOptions({
     theme,
     splitNumber: 3,
     isGroupedByDate: true,

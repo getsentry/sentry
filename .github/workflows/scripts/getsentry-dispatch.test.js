@@ -71,6 +71,7 @@ describe('dispatch', () => {
     const workflows = github.calls.map(c => c.workflow_id);
     assert.ok(workflows.includes('backend.yml'));
     assert.ok(workflows.includes('acceptance.yml'));
+    assert.equal(github.calls[0].inputs['sentry-changed-files'], 'src/sentry/foo.py');
   });
 
   it('sets skip=true when pathFilter does not match', async () => {
@@ -140,6 +141,27 @@ describe('dispatch', () => {
 
     assert.equal(github.calls.length, 1);
     assert.equal(github.calls[0].workflow_id, 'backend.yml');
+  });
+
+  it('runs the full suite when changed-file inputs exceed the GitHub limit', async () => {
+    const github = makeGithub();
+    const core = mockCore();
+    await dispatch({
+      github,
+      context: mockContext(),
+      core,
+      mergeCommitSha: 'deadbeef',
+      fileChanges: {backend_all: 'true'},
+      sentryChangedFiles: 'a'.repeat(40_000),
+      sentryPreviousFilenames: 'b'.repeat(30_000),
+      targetWorkflow: 'backend.yml',
+    });
+
+    assert.equal(github.calls.length, 1);
+    assert.equal(github.calls[0].inputs.skip, 'false');
+    assert.equal(github.calls[0].inputs['sentry-changed-files'], '');
+    assert.equal(github.calls[0].inputs['sentry-previous-filenames'], '');
+    assert.ok(core.logs.warning.some(message => message.includes('full suite')));
   });
 
   it('retries on transient failure and eventually succeeds', async () => {

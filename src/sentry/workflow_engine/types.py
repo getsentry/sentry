@@ -1,17 +1,23 @@
 from __future__ import annotations
 
-import random
 from abc import ABC, abstractmethod
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
-from logging import Logger
-from typing import TYPE_CHECKING, Any, ClassVar, Generic, Sequence, TypeAlias, TypedDict, TypeVar
+from types import MappingProxyType
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    ClassVar,
+    Generic,
+    Sequence,
+    TypeAlias,
+    TypedDict,
+    TypeVar,
+)
 
 from django.db.models import Q
-from sentry_sdk import logger as sentry_logger
 
-from sentry import features, options
 from sentry.types.group import PriorityLevel
 
 if TYPE_CHECKING:
@@ -27,21 +33,22 @@ if TYPE_CHECKING:
     from sentry.services.eventstore.models import GroupEvent
     from sentry.snuba.dataset import Dataset
     from sentry.snuba.models import ExtrapolationMode, SnubaQuery, SnubaQueryEventType
-    from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowItem
     from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
-    from sentry.workflow_engine.handlers.detector import DetectorHandler
-    from sentry.workflow_engine.models import Action, DataConditionGroup, Detector, Workflow
-    from sentry.workflow_engine.models.action import ActionSnapshot
+    from sentry.workflow_engine.handlers.detector import BaseDetectorHandler
+    from sentry.workflow_engine.models import Action, Detector
     from sentry.workflow_engine.models.data_condition import Condition
-    from sentry.workflow_engine.models.data_condition_group import DataConditionGroupSnapshot
     from sentry.workflow_engine.models.data_source import DataSource
-    from sentry.workflow_engine.models.detector import DetectorSnapshot
-    from sentry.workflow_engine.models.workflow import WorkflowSnapshot
+    from sentry.workflow_engine.preview import (
+        ActionFilterPreviewBehavior,
+        UnsupportedPreviewBehavior,
+        WorkflowTriggerPreviewBehavior,
+    )
 
 T = TypeVar("T")
 
 ERROR_DETECTOR_NAME = "Error Monitor"
 ISSUE_STREAM_DETECTOR_NAME = "Issue Stream"
+ALL_PROJECTS_DETECTOR_NAME = "Issue Stream: All Projects"
 
 ActionId: TypeAlias = int
 DataConditionGroupId: TypeAlias = int
@@ -87,22 +94,12 @@ class ConditionError:
     msg: str
 
 
-@dataclass(frozen=True)
-class DetectorEvaluationResult:
-    # TODO - Should group key live at this level?
-    group_key: DetectorGroupKey
-    # TODO: Are these actually necessary? We're going to produce the occurrence in the detector, so we probably don't
-    # need to know the other results externally
-    is_triggered: bool
-    priority: DetectorPriorityLevel
-    # TODO: This is only temporarily optional. We should always have a value here if returning a result
-    result: IssueOccurrence | StatusChangeMessage | None = None
-    # Event data to supplement the `IssueOccurrence`, if passed.
-    event_data: dict[str, Any] | None = None
+type DetectorResult = IssueOccurrence | StatusChangeMessage | None
 
 
 class _WorkflowEventLocalCache(TypedDict, total=False):
     group_assignees: Sequence[GroupAssignee]
+    activity_environment: Environment | None
 
 
 @dataclass(frozen=True)
@@ -139,158 +136,6 @@ class ActionInvocation:
     workflow_id: WorkflowId
 
 
-class WorkflowEvaluationSnapshot(TypedDict):
-    """
-    A snapshot of data used to evaluate a workflow.
-    Ensure that this size is kept smaller, since it's used in logging.
-    """
-
-    associated_detector: DetectorSnapshot | None
-    event_id: str | None  # ID in NodeStore
-    group: Group | None
-    workflow_ids: list[int] | None
-    triggered_workflows: list[WorkflowSnapshot] | None
-    delayed_conditions: list[str] | None
-    action_filter_conditions: list[DataConditionGroupSnapshot] | None
-    triggered_actions: list[ActionSnapshot] | None
-
-
-@dataclass
-class WorkflowEvaluationData:
-    event: GroupEvent | Activity
-    organization: Organization
-    associated_detector: Detector | None = None
-    action_groups: set[DataConditionGroup] | None = None
-    workflows: set[Workflow] | None = None
-    triggered_workflows: set[Workflow] | None = None
-    delayed_conditions: dict[Workflow, DelayedWorkflowItem] | None = None
-    triggered_actions: set[Action] | None = None
-
-    def get_snapshot(self) -> WorkflowEvaluationSnapshot:
-        """
-        This method will take the complex data structures, like models / list of models,
-        and turn them into the critical attributes of a model or lists of IDs.
-        """
-
-        associated_detector = None
-        if self.associated_detector:
-            associated_detector = self.associated_detector.get_snapshot()
-
-        workflow_ids = None
-        if self.workflows:
-            workflow_ids = [workflow.id for workflow in self.workflows]
-
-        triggered_workflows = None
-        if self.triggered_workflows:
-            triggered_workflows = [workflow.get_snapshot() for workflow in self.triggered_workflows]
-
-        action_filter_conditions = None
-        if self.action_groups:
-            action_filter_conditions = [group.get_snapshot() for group in self.action_groups]
-
-        triggered_actions = None
-        if self.triggered_actions:
-            triggered_actions = [action.get_snapshot() for action in self.triggered_actions]
-
-        event_id = None
-        if hasattr(self.event, "event_id"):
-            event_id = str(self.event.event_id)
-
-        delayed_conditions = None
-        if self.delayed_conditions:
-            delayed_conditions = [
-                delayed_item.buffer_key() for _, delayed_item in self.delayed_conditions.items()
-            ]
-
-        return {
-            "associated_detector": associated_detector,
-            "event_id": event_id,
-            "group": self.event.group,
-            "workflow_ids": workflow_ids,
-            "triggered_workflows": triggered_workflows,
-            "delayed_conditions": delayed_conditions,
-            "action_filter_conditions": action_filter_conditions,
-            "triggered_actions": triggered_actions,
-        }
-
-
-@dataclass(frozen=True)
-class WorkflowEvaluation:
-    """
-    This is the result of `process_workflows`, and is used to
-    encapsulate different stages of completion for the method.
-
-    The `tainted` flag is used to indicate whether or not actions
-    have been triggered during the workflows evaluation.
-
-    The `msg` field is used for debug information during the evaluation.
-
-    The `data` attribute will include all the data used to evaluate the
-    workflows, and determine if an action should be triggered.
-    """
-
-    tainted: bool
-    data: WorkflowEvaluationData
-    msg: str | None = None
-
-    def log_to(self, logger: Logger) -> bool:
-        """
-        Logs workflow evaluation data.
-        Logging may be skipped if the organization isn't opted in and logs are being
-        sampled.
-        Returns True if logged, False otherwise.
-        """
-        # Check if we should log this evaluation
-        organization = self.data.organization
-        should_log = features.has("organizations:workflow-engine-log-evaluations", organization)
-        direct_to_sentry = options.get("workflow_engine.evaluation_logs_direct_to_sentry")
-
-        if not should_log:
-            sample_rate = options.get("workflow_engine.evaluation_log_sample_rate")
-            should_log = random.random() < sample_rate
-
-        if not should_log:
-            return False
-
-        log_str = "workflow_engine.process_workflows.evaluation"
-
-        if self.tainted:
-            if self.data.triggered_workflows is None:
-                log_str = f"{log_str}.workflows.not_triggered"
-            else:
-                log_str = f"{log_str}.workflows.triggered"
-        else:
-            log_str = f"{log_str}.actions.triggered"
-
-        data_snapshot = self.data.get_snapshot()
-        detection_type = (
-            data_snapshot["associated_detector"]["type"]
-            if data_snapshot["associated_detector"]
-            else None
-        )
-        group_id = data_snapshot["group"].id if data_snapshot["group"] else None
-        triggered_workflows = data_snapshot["triggered_workflows"] or []
-        action_filter_conditions = data_snapshot["action_filter_conditions"] or []
-        triggered_actions = data_snapshot["triggered_actions"] or []
-        extra = {
-            "event_id": data_snapshot["event_id"],
-            "group_id": group_id,
-            "detection_type": detection_type,
-            "workflow_ids": data_snapshot["workflow_ids"],
-            "triggered_workflow_ids": [w["id"] for w in triggered_workflows],
-            "delayed_conditions": data_snapshot["delayed_conditions"],
-            "action_filter_group_ids": [afg["id"] for afg in action_filter_conditions],
-            "triggered_action_ids": [a["id"] for a in triggered_actions],
-            "debug_msg": self.msg,
-        }
-
-        if direct_to_sentry:
-            sentry_logger.info(log_str, attributes=extra)
-        else:
-            logger.info(log_str, extra=extra)
-        return True
-
-
 class ConfigTransformer(ABC):
     """
     A ConfigTransformer is used to transform the config between API and internal representations.
@@ -308,6 +153,7 @@ class ConfigTransformer(ABC):
 class ActionHandler:
     config_schema: ClassVar[dict[str, Any]]
     data_schema: ClassVar[dict[str, Any]]
+    required_features: ClassVar[tuple[FeatureGate, ...]] = ()
 
     class Group(StrEnum):
         NOTIFICATION = "notification"
@@ -315,6 +161,26 @@ class ActionHandler:
         OTHER = "other"
 
     group: ClassVar[Group]
+
+    @classmethod
+    def get_dedup_key(cls, action: Action) -> str:
+        key_parts = [action.type]
+        if action.integration_id:
+            key_parts.append(str(action.integration_id))
+
+        if action.config:
+            config = action.config.copy()
+            config.pop("target_display", None)
+            key_parts.append(str(config))
+
+        if action.data:
+            data = action.data.copy()
+            if "dynamic_form_fields" in data:
+                data = data["dynamic_form_fields"]
+
+            key_parts.append(str(data))
+
+        return ":".join(key_parts)
 
     @classmethod
     def get_config_transformer(cls) -> ConfigTransformer | None:
@@ -397,7 +263,7 @@ class DataConditionHandler(Generic[T]):
 
     group: ClassVar[Group]
     subgroup: ClassVar[Subgroup]
-    comparison_json_schema: ClassVar[dict[str, Any]] = {}
+    comparison_json_schema: ClassVar[dict[str, Any]]
     condition_result_schema: ClassVar[dict[str, Any]] = {}
     label_template = ""
 
@@ -426,6 +292,16 @@ class DataConditionHandler(Generic[T]):
         return comparison
 
 
+class WorkflowTriggerDataConditionHandler(DataConditionHandler[WorkflowEventData]):
+    group = DataConditionHandler.Group.WORKFLOW_TRIGGER
+    preview_behavior: ClassVar[WorkflowTriggerPreviewBehavior | UnsupportedPreviewBehavior]
+
+
+class ActionFilterDataConditionHandler(DataConditionHandler[T]):
+    group = DataConditionHandler.Group.ACTION_FILTER
+    preview_behavior: ClassVar[ActionFilterPreviewBehavior | UnsupportedPreviewBehavior]
+
+
 class DataConditionType(TypedDict):
     id: int | None
     comparison: int
@@ -447,12 +323,32 @@ class SnubaQueryDataSourceType(TypedDict, total=False):
     event_types: list[SnubaQueryEventType.EventType]
 
 
+class DetectorAPIOperation(StrEnum):
+    LIST = "list"
+    GET = "GET"
+    POST = "POST"
+    PUT = "PUT"
+    DELETE = "DELETE"
+
+
 @dataclass(frozen=True)
+class FeatureGate:
+    name: str
+
+
+APIGate: TypeAlias = bool | FeatureGate
+
+
 class DetectorSettings:
-    handler: type[DetectorHandler[Any]] | None = None
-    validator: type[BaseDetectorTypeValidator] | None = None
-    config_schema: dict[str, Any] = field(default_factory=dict)
-    filter: Q | None = None
+    DEFAULT_API_AVAILABILITY: ClassVar[Mapping[DetectorAPIOperation, APIGate]] = MappingProxyType(
+        {operation: True for operation in DetectorAPIOperation}
+    )
+
+    api_availability: ClassVar[Mapping[DetectorAPIOperation, APIGate]] = DEFAULT_API_AVAILABILITY
+    handler: ClassVar[type[BaseDetectorHandler[Any, Any]] | None] = None
+    validator: ClassVar[type[BaseDetectorTypeValidator] | None] = None
+    config_schema: ClassVar[dict[str, Any]] = {}
+    filter: ClassVar[Q | None] = None
 
 
 WorkflowActivityHandler: TypeAlias = Callable[["Group", "Activity", DetectorId | None], None]

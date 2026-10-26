@@ -1,9 +1,11 @@
-import type {CSSProperties, ReactNode} from 'react';
+import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
+import {IconInfo} from '@sentry/icons/info';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconArrow, IconInfo} from 'sentry/icons';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import type {ColumnAlign} from 'sentry/components/tables/sortableHeaderCell';
 
 type BaseRecord = Record<string, unknown>;
 export interface SortConfig<RecordType extends BaseRecord> {
@@ -13,17 +15,18 @@ export interface SortConfig<RecordType extends BaseRecord> {
 }
 
 type Props<SortableRecord extends BaseRecord> = {
+  align: undefined | ColumnAlign;
   field: string;
   handleSort: (fieldName: string) => void;
   label: ReactNode;
   sortConfig: SortConfig<SortableRecord>;
-  style: CSSProperties;
   tooltipTitle: undefined | ReactNode;
-  ref?: React.Ref<HTMLButtonElement>;
 };
 
 const StyledIconInfo = styled(IconInfo)`
-  display: block;
+  margin-left: ${p => p.theme.space.xs};
+  margin-top: 1px;
+  vertical-align: text-top;
 `;
 
 function CatchClicks({children}: {children: ReactNode}) {
@@ -31,53 +34,25 @@ function CatchClicks({children}: {children: ReactNode}) {
 }
 
 export function HeaderCell<T extends BaseRecord>({
+  align,
   field,
   handleSort,
   label,
   sortConfig,
-  style,
   tooltipTitle,
-  ref,
 }: Props<T>) {
   return (
-    <HeaderButton style={style} onClick={() => handleSort(field)} ref={ref}>
+    <SimpleTable.HeaderCell
+      align={align}
+      handleSortClick={() => handleSort(field)}
+      sort={sortConfig.by === field ? (sortConfig.asc ? 'asc' : 'desc') : undefined}
+    >
       {label}
       {tooltipTitle ? (
-        <Tooltip isHoverable title={<CatchClicks>{tooltipTitle}</CatchClicks>}>
+        <Tooltip title={<CatchClicks>{tooltipTitle}</CatchClicks>}>
           <StyledIconInfo size="xs" />
         </Tooltip>
       ) : null}
-      <IconArrow
-        variant="muted"
-        size="xs"
-        direction={sortConfig.by === field && !sortConfig.asc ? 'down' : 'up'}
-        style={{visibility: sortConfig.by === field ? 'visible' : 'hidden'}}
-      />
-    </HeaderButton>
+    </SimpleTable.HeaderCell>
   );
 }
-
-const HeaderButton = styled('button')`
-  border: 0;
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  background: ${p => p.theme.tokens.background.secondary};
-  color: ${p => p.theme.tokens.content.secondary};
-
-  font-size: ${p => p.theme.font.size.sm};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  line-height: 16px;
-  text-align: unset;
-  text-transform: uppercase;
-  white-space: nowrap;
-
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md} ${p => p.theme.space.xs}
-    ${p => p.theme.space.lg};
-
-  svg {
-    margin-left: ${p => p.theme.space['2xs']};
-  }
-`;

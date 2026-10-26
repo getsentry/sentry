@@ -1,18 +1,20 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {useTheme} from '@emotion/react';
+import {IconMenu} from '@sentry/icons/menu';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, type FlexProps, Stack} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
-import {IconMenu} from 'sentry/icons';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   NAVIGATION_MOBILE_TOPBAR_HEIGHT,
-  NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME,
+  PRIMARY_HEADER_HEIGHT,
 } from 'sentry/views/navigation/constants';
 import {
   PrimaryNavigationFooterItems,
@@ -20,7 +22,12 @@ import {
   PrimaryNavigationItems,
 } from 'sentry/views/navigation/navigation';
 import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
+import {
+  PrimaryNavigationHelpMenu,
+  useWhatsNewHelpMenuItem,
+} from 'sentry/views/navigation/primary/helpMenu';
 import {OrganizationDropdown} from 'sentry/views/navigation/primary/organizationDropdown';
+import {SearchButton} from 'sentry/views/navigation/searchButton';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/content';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
@@ -48,14 +55,24 @@ function MobileNavigationHeader(props: FlexProps<'header'>) {
   );
 }
 
+function MobileWhatsNewHelpMenu() {
+  const whatsNewHelpMenuOptions = useWhatsNewHelpMenuItem();
+  return <PrimaryNavigationHelpMenu {...whatsNewHelpMenuOptions} />;
+}
+
+function MobileHelpMenuFallback() {
+  return <PrimaryNavigationHelpMenu />;
+}
+
 function MobilePrimaryNavigation() {
+  const organization = useOrganization({allowNull: true});
   const {view} = useSecondaryNavigation();
 
   return (
     <SizeProvider size="sm">
       <PrimaryNavigation.Sidebar>
         <PrimaryNavigation.SidebarHeader>
-          <OrganizationDropdown />
+          {organization && <OrganizationDropdown />}
         </PrimaryNavigation.SidebarHeader>
         <PrimaryNavigation.List>
           <PrimaryNavigationItems />
@@ -71,12 +88,13 @@ function MobilePrimaryNavigation() {
 }
 
 export function MobileNavigation() {
+  const organization = useOrganization({allowNull: true});
   const theme = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const navPanelRef = useRef<HTMLDivElement>(null);
   const toggleButtonRef = useRef<HTMLButtonElement>(null);
   const {view, setView} = useSecondaryNavigation();
-  const scrollLock = useScrollLock(document.getElementById('main')!);
+  const scrollLock = useScrollLock(document.getElementById('main') ?? document.body);
 
   useEffect(() => {
     const main = document.getElementById('main');
@@ -100,6 +118,7 @@ export function MobileNavigation() {
   // which sets view to 'collapsed'.
   useEffect(() => {
     if (isOpen && view === 'collapsed') {
+      // oxlint-disable-next-line react/set-state-in-effect
       setIsOpen(false);
     }
   }, [isOpen, view]);
@@ -118,10 +137,7 @@ export function MobileNavigation() {
 
   return (
     <SizeProvider size="sm">
-      <MobileNavigationHeader
-        padding="sm"
-        height={`${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`}
-      >
+      <MobileNavigationHeader padding="sm" height={`${PRIMARY_HEADER_HEIGHT}px`}>
         <Flex align="center" gap="md" justify="between" width="100%">
           <Button
             ref={toggleButtonRef}
@@ -135,9 +151,18 @@ export function MobileNavigation() {
             aria-label={isOpen ? t('Close main menu') : t('Open main menu')}
           />
           <Stack gap="md" direction="row">
-            <PrimaryNavigation.ButtonBar orientation="horizontal">
-              <PrimaryNavigationFooterItems />
-            </PrimaryNavigation.ButtonBar>
+            {organization && (
+              <PrimaryNavigation.ButtonBar orientation="horizontal">
+                <PrimaryNavigationFooterItems>
+                  <PrimaryNavigation.ButtonContainer>
+                    {buttonProps => <SearchButton {...buttonProps} />}
+                  </PrimaryNavigation.ButtonContainer>
+                  <ErrorBoundary customComponent={MobileHelpMenuFallback}>
+                    <MobileWhatsNewHelpMenu />
+                  </ErrorBoundary>
+                </PrimaryNavigationFooterItems>
+              </PrimaryNavigation.ButtonBar>
+            )}
             <PrimaryNavigationFooterItemsUserDropdown />
           </Stack>
         </Flex>

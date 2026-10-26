@@ -1,173 +1,133 @@
-import {Fragment, memo, useCallback, type ComponentPropsWithRef} from 'react';
+import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconUser} from '@sentry/icons/user';
+import {parseAsString, useQueryState} from 'nuqs';
 
-import {InfoText} from '@sentry/scraps/info';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {ExternalLink, Link} from '@sentry/scraps/link';
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {Tag} from '@sentry/scraps/badge';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {markdownToPlainText} from '@sentry/scraps/markdown';
 import {Pagination} from '@sentry/scraps/pagination';
+import {Separator} from '@sentry/scraps/separator';
+import {COL_WIDTH_MINIMUM, COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {
-  COL_WIDTH_UNDEFINED,
-  GridEditable,
-  type GridColumnHeader,
+  DataGrid,
   type GridColumnOrder,
-} from 'sentry/components/tables/gridEditable';
-import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
+  type GridColumnSort,
+} from 'sentry/components/tables/dataGrid';
+import {TableNoDataPanel} from 'sentry/components/tables/tableNoDataPanel';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconArrow, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {MarkedText} from 'sentry/utils/marked/markedText';
+import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import type {ColumnValueType} from 'sentry/utils/discover/fields';
+import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
-import {isUUID} from 'sentry/utils/string/isUUID';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useLocation} from 'sentry/utils/useLocation';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useDimensions} from 'sentry/utils/useDimensions';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ConversationMissingMessagesAlert} from 'sentry/views/explore/conversations/components/conversationMissingMessagesAlert';
-import {ToolTags} from 'sentry/views/explore/conversations/components/toolTags';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
+import {Actions, CellAction, updateQuery} from 'sentry/views/discover/table/cellAction';
+import type {TableColumn} from 'sentry/views/discover/table/types';
+import {ALLOWED_CELL_ACTIONS} from 'sentry/views/explore/components/cellActions';
 import {
-  useConversations,
+  CONVERSATION_FIELDS,
   type Conversation,
+  type ConversationSortField,
   type ConversationUser,
+  type useConversations,
 } from 'sentry/views/explore/conversations/hooks/useConversations';
-import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
-import {hasGenAiConversationsFeature} from 'sentry/views/explore/conversations/utils/features';
-import {getConversationsListLocationState} from 'sentry/views/explore/conversations/utils/listNavigation';
+import {getConversationDisplayId} from 'sentry/views/explore/conversations/utils/conversationDisplayId';
+import {getConversationDetailUrl} from 'sentry/views/explore/conversations/utils/urlParams';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
-import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
+import {ErrorCell} from 'sentry/views/insights/pages/agents/utils/cells';
 
-const ONE_HOUR_MS = 60 * 60 * 1000;
+// Tool tags wrap across at most this many rows; anything that doesn't fit
+// collapses into a trailing "+N" overflow tag.
+const MAX_TOOL_ROWS = 2;
 
-export function getConversationDetailUrl(
-  orgSlug: string,
-  conversation: Conversation,
-  projects: number[],
-  referrer = 'conversations-table'
-): string {
-  const basePath = `/organizations/${orgSlug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/${encodeURIComponent(conversation.conversationId)}/`;
-  const params = new URLSearchParams();
-  if (conversation.startTimestamp) {
-    params.set(
-      'start',
-      new Date(conversation.startTimestamp - ONE_HOUR_MS).toISOString()
-    );
-  }
-  if (conversation.endTimestamp) {
-    params.set('end', new Date(conversation.endTimestamp + ONE_HOUR_MS).toISOString());
-  }
-  for (const project of projects) {
-    params.append('project', String(project));
-  }
-  params.set('referrer', referrer);
-  const qs = params.toString();
-  return normalizeUrl(qs ? `${basePath}?${qs}` : basePath);
-}
+// Floor for a truncated tool tag so it never collapses to nothing when the
+// column is extremely narrow.
+const MIN_TOOL_TAG_WIDTH = 40;
 
-export function ConversationsTable() {
-  const organization = useOrganization();
-  const showTable = hasGenAiConversationsFeature(organization);
+// Slack (px) subtracted from a tag's max-width so sub-pixel rounding never
+// wraps the trailing "+N" badge onto a second line.
+const TAG_WIDTH_SLACK = 2;
 
-  if (!showTable) {
-    return null;
-  }
-  return <ConversationsTableInner />;
-}
+// Fixed height for each data row.
+const ROW_HEIGHT = 63;
 
-const EMPTY_ARRAY: never[] = [];
+type ColumnKey =
+  | 'conversation'
+  | 'timeSpan'
+  | 'messages'
+  | 'errors'
+  | 'cost'
+  | 'tools'
+  | 'age';
 
-const defaultColumnOrder: Array<GridColumnOrder<string>> = [
-  {key: 'conversationId', name: t('Conv. ID'), width: 0},
-  {key: 'inputOutput', name: t('First Input / Last Output'), width: COL_WIDTH_UNDEFINED},
-  {key: 'user', name: t('User'), width: 120},
-  {key: 'steps', name: t('Steps'), width: 80},
-  {key: 'toolsUsed', name: t('Tools'), width: 140},
-  {key: 'tokensAndCost', name: t('Total Tokens / Cost'), width: 170},
-  {key: 'timestamp', name: t('Last Message'), width: 120},
+const COLUMN_ORDER: ColumnKey[] = [
+  'conversation',
+  'timeSpan',
+  'messages',
+  'errors',
+  'cost',
+  'tools',
+  'age',
 ];
 
-const rightAlignColumns = new Set(['steps', 'tokensAndCost', 'timestamp']);
+// `conversation` is the flexible growth column (COL_WIDTH_UNDEFINED); the rest
+// have sensible starting widths that the user can drag to resize.
+const COLUMN_DEFAULTS: Record<ColumnKey, {name: string; width: number}> = {
+  conversation: {name: t('Conversation'), width: COL_WIDTH_UNDEFINED},
+  timeSpan: {name: t('Timespan'), width: 120},
+  messages: {name: t('Messages'), width: 120},
+  errors: {name: t('Errors'), width: 100},
+  cost: {name: t('Cost'), width: 120},
+  tools: {name: t('Tools'), width: 220},
+  age: {name: t('Age'), width: 110},
+};
 
-function ConversationsTableInner() {
-  const organization = useOrganization();
-  const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize({
-    columns: defaultColumnOrder,
-  });
+const RIGHT_ALIGNED_COLUMNS = new Set<ColumnKey>(['age']);
 
-  const {data, isFetching, error, pageLinks, setCursor} = useConversations();
+const SORT_FIELD_BY_COLUMN: Partial<Record<ColumnKey, ConversationSortField>> = {
+  timeSpan: CONVERSATION_FIELDS.timeSpan.key,
+  messages: CONVERSATION_FIELDS.messages.key,
+  errors: CONVERSATION_FIELDS.errors.key,
+  cost: CONVERSATION_FIELDS.totalCost.key,
+  age: CONVERSATION_FIELDS.age.key,
+};
 
-  const showMissingMessagesAlert =
-    !isFetching &&
-    !error &&
-    data.length > 0 &&
-    data.every(conversation => !conversation.firstInput && !conversation.lastOutput);
+// Persisted per-column widths. Only the widths are stored, keyed by column:
+// names are translated, and keying by column (rather than storing the whole
+// column array) keeps a stored layout usable when columns change.
+const COLUMN_WIDTHS_STORAGE_KEY = 'conversation-table-column-widths';
 
-  const handlePaginate: typeof setCursor = (cursor, path, query, pageDelta) => {
-    trackAnalytics('conversations.table.paginate', {
-      organization,
-      direction: pageDelta > 0 ? 'next' : 'previous',
-    });
-    setCursor(cursor, path, query, pageDelta);
-  };
+type ColumnWidths = Partial<Record<ColumnKey, number>>;
 
-  const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
-    return (
-      <Flex
-        flex="1"
-        align="center"
-        gap="xs"
-        justify={rightAlignColumns.has(column.key) ? 'end' : 'start'}
-      >
-        {column.key === 'steps' ? (
-          <Tooltip title={t('LLM calls + Tool calls')}>
-            <DashedUnderline>{column.name}</DashedUnderline>
-          </Tooltip>
-        ) : (
-          column.name
-        )}
-        {column.key === 'timestamp' && <IconArrow direction="down" size="xs" />}
-        {column.key === 'inputOutput' && (
-          // Force the cell to take as much width as possible in the table
-          // layout, otherwise GridEditable will let the last column grow.
-          <Container width="100vw" />
-        )}
-      </Flex>
-    );
-  }, []);
+// Plain-text title/first-message is ellipsized to this length before rendering.
+const CELL_MAX_CHARS = 256;
 
-  const renderBodyCell = useCallback(
-    (column: GridColumnOrder<string>, dataRow: Conversation) => {
-      return <BodyCell column={column} dataRow={dataRow} />;
-    },
-    []
-  );
+type CellActionHandler = (
+  action: Actions,
+  column: TableColumn<keyof TableDataRow>,
+  value: string | number
+) => void;
 
-  return (
-    <Fragment>
-      {showMissingMessagesAlert && <ConversationMissingMessagesAlert />}
-      <Container>
-        <GridEditable
-          isLoading={isFetching}
-          error={error}
-          data={data}
-          columnOrder={columnOrder}
-          columnSortBy={EMPTY_ARRAY}
-          stickyHeader
-          grid={{
-            renderBodyCell,
-            renderHeadCell,
-            onResizeColumn: handleResizeColumn,
-          }}
-        />
-      </Container>
-      <Pagination pageLinks={pageLinks} onCursor={handlePaginate} />
-    </Fragment>
-  );
+export function getConversationTimeSpan(
+  conversation: Pick<Conversation, 'timeSpan' | 'generationDuration'>
+): number {
+  return conversation.timeSpan || conversation.generationDuration;
 }
 
 export function normalizeUserField(value: string | null | undefined): string | null {
@@ -182,54 +142,8 @@ export function getUserDisplayName(user: ConversationUser): string | null {
     normalizeUserField(user.email) ||
     normalizeUserField(user.username) ||
     normalizeUserField(user.ip_address) ||
+    normalizeUserField(user.id) ||
     null
-  );
-}
-
-const TOOLTIP_MAX_CHARS = 2048;
-const CELL_MAX_CHARS = 256;
-
-function TooltipContent({text}: {text: string}) {
-  return (
-    <TooltipTextContainer onClick={e => e.stopPropagation()}>
-      <AIContentRenderer text={ellipsize(text, TOOLTIP_MAX_CHARS)} inline />
-    </TooltipTextContainer>
-  );
-}
-
-function cleanMarkdownForCell(text: string): string {
-  return text
-    .replace(/```[\s\S]*?```/g, '') // fenced code blocks
-    .replace(/^#{1,6}\s+(.+)$/gm, '**$1**') // headings -> bold text
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-type CellContentProps = ComponentPropsWithRef<'div'> & {
-  text: string;
-};
-
-export function CellContent({text, ref, ...props}: CellContentProps) {
-  const cleanedText = cleanMarkdownForCell(text);
-  return (
-    <SingleLineMarkdown ref={ref} {...props}>
-      <MarkedText text={ellipsize(cleanedText, CELL_MAX_CHARS)} />
-    </SingleLineMarkdown>
-  );
-}
-
-export function InputOutputTooltipCell({text}: {text: string}) {
-  return (
-    <Tooltip
-      title={<TooltipContent text={text} />}
-      showOnlyOnOverflow
-      maxWidth={800}
-      isHoverable
-      skipWrapper
-      position="right"
-    >
-      <CellContent text={text} />
-    </Tooltip>
   );
 }
 
@@ -237,7 +151,7 @@ export function UserNotInstrumentedTooltip() {
   return (
     <Text>
       {tct(
-        'User data not found. Call [code:sentry.setUser()] in your SDK to track users. [link:Learn more]',
+        'User data not found. Call [code:Sentry.setUser()] in your SDK to track users. [link:Learn more]',
         {
           code: <code />,
           link: (
@@ -249,186 +163,676 @@ export function UserNotInstrumentedTooltip() {
   );
 }
 
-const BodyCell = memo(function BodyCell({
-  column,
-  dataRow,
-}: {
-  column: GridColumnHeader<string>;
-  dataRow: Conversation;
-}) {
+/**
+ * When no conversation on the page has tools, the tools column only ever renders
+ * a placeholder, so collapse it to the grid's minimum width and let the flexible
+ * conversation column absorb the freed space. This only kicks in while the column
+ * is still at its default width — once the user has resized it we respect their
+ * choice and leave it alone. The passed-in resize state is never mutated, so the
+ * column returns to its default width once a page with tools loads.
+ */
+export function collapseToolsColumnWhenUnused(
+  columnOrder: Array<GridColumnOrder<ColumnKey>>,
+  hasNoTools: boolean
+): Array<GridColumnOrder<ColumnKey>> {
+  const toolsColumn = columnOrder.find(column => column.key === 'tools');
+  const toolsColumnAtDefault = toolsColumn?.width === COLUMN_DEFAULTS.tools.width;
+  if (!hasNoTools || !toolsColumnAtDefault) {
+    return columnOrder;
+  }
+  return columnOrder.map(column =>
+    column.key === 'tools' ? {...column, width: COL_WIDTH_MINIMUM} : column
+  );
+}
+
+/**
+ * Reads the persisted column widths, dropping anything that isn't a width we
+ * would have written: unknown columns, and values below the grid's own resize
+ * floor (which includes a persisted COL_WIDTH_UNDEFINED). Dropped columns fall
+ * back to their default width.
+ */
+export function parseStoredColumnWidths(value?: unknown): ColumnWidths {
+  if (typeof value !== 'object' || value === null) {
+    return {};
+  }
+  const stored = value as Record<string, unknown>;
+  const widths: ColumnWidths = {};
+  for (const key of COLUMN_ORDER) {
+    const width = stored[key];
+    if (
+      typeof width === 'number' &&
+      Number.isFinite(width) &&
+      width >= COL_WIDTH_MINIMUM
+    ) {
+      widths[key] = width;
+    }
+  }
+  return widths;
+}
+
+interface ConversationsTableProps {
+  conversations: ReturnType<typeof useConversations>;
+}
+
+export function ConversationsTable({conversations}: ConversationsTableProps) {
   const organization = useOrganization();
   const navigate = useNavigate();
-  const location = useLocation();
   const {selection} = usePageFilters();
+  const {data, isFetching, error, pageLinks, setCursor, unsetCursor, sort, setSort} =
+    conversations;
 
-  const detailUrl = getConversationDetailUrl(
-    organization.slug,
-    dataRow,
-    selection.projects
+  const [highlightedRowKey, setHighlightedRowKey] = useState<number | undefined>();
+  const [searchQuery, setSearchQuery] = useQueryState(
+    'query',
+    parseAsString.withOptions({history: 'replace'})
   );
-  const listLocationState = getConversationsListLocationState(location.query);
 
-  const navigateToDetail = () => {
-    navigate(detailUrl, {state: listLocationState});
+  const [storedWidths, setStoredWidths] = useLocalStorageState<ColumnWidths>(
+    COLUMN_WIDTHS_STORAGE_KEY,
+    parseStoredColumnWidths
+  );
+
+  const columnOrder = useMemo<Array<GridColumnOrder<ColumnKey>>>(
+    () =>
+      COLUMN_ORDER.map(key => ({
+        key,
+        name: COLUMN_DEFAULTS[key].name,
+        width: storedWidths[key] ?? COLUMN_DEFAULTS[key].width,
+      })),
+    [storedWidths]
+  );
+
+  const handleResizeColumn = useCallback(
+    (_columnIndex: number, nextColumn: GridColumnOrder<ColumnKey>) => {
+      // Keyed by column rather than by index so a stored width survives a
+      // change to the column order.
+      setStoredWidths(current => ({...current, [nextColumn.key]: nextColumn.width}));
+    },
+    [setStoredWidths]
+  );
+
+  const hasNoTools = useMemo(
+    () =>
+      data.length > 0 && data.every(conversation => conversation.toolNames.length === 0),
+    [data]
+  );
+
+  const displayedColumns = useMemo(
+    () => collapseToolsColumnWhenUnused(columnOrder, hasNoTools),
+    [columnOrder, hasNoTools]
+  );
+  const staticColumnWidths = useMemo(
+    () =>
+      storedWidths.conversation === undefined ||
+      storedWidths.conversation === COL_WIDTH_UNDEFINED
+        ? {conversation: `minmax(${COL_WIDTH_MINIMUM}px, 1fr)`}
+        : undefined,
+    [storedWidths.conversation]
+  );
+
+  const handlePaginate: typeof setCursor = (cursor, path, query, pageDelta) => {
+    trackAnalytics('conversations.table.paginate', {
+      organization,
+      direction: pageDelta > 0 ? 'next' : 'previous',
+    });
+    setCursor(cursor, path, query, pageDelta);
   };
 
+  const handleCellAction = useCallback<CellActionHandler>(
+    (action, column, value) => {
+      const search = new MutableSearch(searchQuery ?? '');
+      updateQuery(search, action, column, value);
+      if (action === Actions.COPY_TO_CLIPBOARD) {
+        return;
+      }
+      setSearchQuery(search.formatString() || null);
+      unsetCursor();
+    },
+    [searchQuery, setSearchQuery, unsetCursor]
+  );
+
+  const handleRowClick = useCallback(
+    (dataRow: Conversation, _key: number, event: React.MouseEvent) => {
+      if (
+        event.target instanceof Element &&
+        (event.target.closest('button, [role="menu"]') ||
+          !event.currentTarget.contains(event.target))
+      ) {
+        return;
+      }
+      const url = getConversationDetailUrl(
+        organization.slug,
+        dataRow,
+        selection.projects
+      );
+      // Mirror native link behavior instead of navigating in place: Cmd/Ctrl+click
+      // opens a new tab (no features string) and Shift+click opens a new window
+      // (a features string makes browsers open a window rather than a tab).
+      if (event.shiftKey) {
+        window.open(url, '_blank', 'noopener,noreferrer');
+        return;
+      }
+      if (isCtrlKeyPressed(event)) {
+        window.open(url, '_blank');
+        return;
+      }
+      navigate(url);
+    },
+    [navigate, organization.slug, selection.projects]
+  );
+
+  const getColumnSort = useCallback(
+    (column: GridColumnOrder<ColumnKey>): GridColumnSort | undefined => {
+      const field = SORT_FIELD_BY_COLUMN[column.key];
+      if (!field) {
+        return undefined;
+      }
+
+      let direction: 'asc' | 'desc' | undefined;
+      if (sort === field) {
+        direction = 'asc';
+      } else if (sort === `-${field}`) {
+        direction = 'desc';
+      }
+      return {
+        align: RIGHT_ALIGNED_COLUMNS.has(column.key) ? 'right' : undefined,
+        direction,
+        onSort: () => {
+          setSort(direction === 'desc' ? field : `-${field}`);
+          unsetCursor();
+        },
+      };
+    },
+    [setSort, sort, unsetCursor]
+  );
+
+  const renderBodyCell = useCallback(
+    (column: GridColumnOrder<ColumnKey>, dataRow: Conversation) => (
+      <BodyCell column={column} conversation={dataRow} onCellAction={handleCellAction} />
+    ),
+    [handleCellAction]
+  );
+
+  return (
+    <Stack gap="lg">
+      <FixedRowHeightGrid>
+        <DataGrid
+          isLoading={isFetching}
+          error={error}
+          data={data}
+          emptyMessage={<TableNoDataPanel />}
+          columnOrder={displayedColumns}
+          stickyHeader
+          // DataGrid has a default bottom margin; drop it so
+          // the Stack's `lg` gap is the only spacing before the pagination.
+          bodyStyle={{marginBottom: 0}}
+          grid={{
+            getColumnSort,
+            renderBodyCell,
+            onResizeColumn: handleResizeColumn,
+            staticColumnWidths,
+          }}
+          onRowClick={handleRowClick}
+          isRowClickable={() => true}
+          onRowMouseOver={(_dataRow, key) => setHighlightedRowKey(key)}
+          onRowMouseOut={() => setHighlightedRowKey(undefined)}
+          highlightedRowKey={highlightedRowKey}
+        />
+      </FixedRowHeightGrid>
+      {/* Zero Pagination's built-in top margin so the Stack's `lg` gap is the
+          only spacing between the table and the controls. */}
+      <TablePagination pageLinks={pageLinks} onCursor={handlePaginate} />
+    </Stack>
+  );
+}
+
+function BodyCell({
+  column,
+  conversation,
+  onCellAction,
+}: {
+  column: GridColumnOrder<ColumnKey>;
+  conversation: Conversation;
+  onCellAction: CellActionHandler;
+}) {
   switch (column.key) {
-    case 'conversationId':
+    case 'conversation':
+      return <ConversationCell conversation={conversation} />;
+    case 'timeSpan':
       return (
-        <ConversationIdLink to={detailUrl} state={listLocationState}>
-          {isUUID(dataRow.conversationId) ? (
-            dataRow.conversationId.slice(0, 8)
+        <FilterCellAction
+          field={
+            conversation.timeSpan
+              ? CONVERSATION_FIELDS.timeSpan.key
+              : CONVERSATION_FIELDS.generationDuration.key
+          }
+          type="duration"
+          value={getConversationTimeSpan(conversation)}
+          conversationId={conversation.conversationId}
+          onCellAction={onCellAction}
+        >
+          <Text tabular>
+            <PerformanceDuration
+              milliseconds={getConversationTimeSpan(conversation)}
+              abbreviation
+            />
+          </Text>
+        </FilterCellAction>
+      );
+    case 'messages':
+      return (
+        <FilterCellAction
+          field={CONVERSATION_FIELDS.messages.key}
+          type="integer"
+          value={conversation.llmCalls}
+          conversationId={conversation.conversationId}
+          onCellAction={onCellAction}
+        >
+          <Text tabular>
+            <Count value={conversation.llmCalls} />
+          </Text>
+        </FilterCellAction>
+      );
+    case 'errors':
+      return (
+        <FilterCellAction
+          field={CONVERSATION_FIELDS.errors.key}
+          type="integer"
+          value={conversation.errors}
+          conversationId={conversation.conversationId}
+          onCellAction={onCellAction}
+        >
+          <ErrorCell value={conversation.errors} />
+        </FilterCellAction>
+      );
+    case 'cost': {
+      const cost = (
+        <Text tabular>
+          {conversation.totalCost !== null && conversation.totalCost < 0 ? (
+            <NegativeCostInfo cost={conversation.totalCost} />
           ) : (
-            <Tooltip title={dataRow.conversationId} showOnlyOnOverflow skipWrapper>
-              <ConversationIdText ellipsis>{dataRow.conversationId}</ConversationIdText>
-            </Tooltip>
-          )}
-        </ConversationIdLink>
-      );
-    case 'user': {
-      if (!dataRow.user) {
-        return (
-          <InfoText variant="muted" title={<UserNotInstrumentedTooltip />}>
-            &mdash;
-          </InfoText>
-        );
-      }
-      const displayName = getUserDisplayName(dataRow.user) ?? t('Unknown');
-      return (
-        <Tooltip title={displayName} showOnlyOnOverflow>
-          <Flex align="center" gap="xs" minWidth={0}>
-            <IconUser size="md" variant="muted" />
-            <Text ellipsis>{displayName}</Text>
-          </Flex>
-        </Tooltip>
-      );
-    }
-    case 'inputOutput': {
-      return (
-        <Stack width="100%">
-          <InputOutputRow type="button" onClick={() => navigateToDetail()}>
-            <InputOutputLabel variant="muted">{t('Input')}</InputOutputLabel>
-            <Flex flex="1" minWidth="0">
-              {dataRow.firstInput ? (
-                <InputOutputTooltipCell text={dataRow.firstInput} />
-              ) : (
-                <Text variant="muted">&mdash;</Text>
-              )}
-            </Flex>
-          </InputOutputRow>
-          <InputOutputRow type="button" onClick={() => navigateToDetail()}>
-            <InputOutputLabel variant="muted">{t('Output')}</InputOutputLabel>
-            <Flex flex="1" minWidth="0">
-              {dataRow.lastOutput ? (
-                <InputOutputTooltipCell text={dataRow.lastOutput} />
-              ) : (
-                <Text variant="muted">&mdash;</Text>
-              )}
-            </Flex>
-          </InputOutputRow>
-        </Stack>
-      );
-    }
-    case 'steps':
-      return (
-        <Text as="div" align="right">
-          <Count value={dataRow.llmCalls + dataRow.toolCalls} />
-        </Text>
-      );
-    case 'toolsUsed':
-      if (dataRow.toolNames.length === 0) {
-        return <Text variant="muted">&mdash;</Text>;
-      }
-      return <ToolTags toolNames={dataRow.toolNames} />;
-    case 'tokensAndCost':
-      return (
-        <Text as="div" align="right">
-          <Count value={dataRow.totalTokens} /> /{' '}
-          {dataRow.totalCost !== null && dataRow.totalCost < 0 ? (
-            <NegativeCostInfo cost={dataRow.totalCost} />
-          ) : (
-            <LLMCosts cost={dataRow.totalCost} />
+            <LLMCosts cost={conversation.totalCost} />
           )}
         </Text>
       );
-    case 'timestamp':
+      if (conversation.totalCost === null) {
+        return cost;
+      }
       return (
-        <Text as="div" align="right">
-          <TimeSince unitStyle="extraShort" date={dataRow.endTimestamp} />
+        <FilterCellAction
+          field={CONVERSATION_FIELDS.totalCost.key}
+          type="number"
+          value={conversation.totalCost}
+          conversationId={conversation.conversationId}
+          onCellAction={onCellAction}
+        >
+          {cost}
+        </FilterCellAction>
+      );
+    }
+    case 'tools':
+      return <ToolsCell toolNames={conversation.toolNames} />;
+    case 'age':
+      return (
+        <Text align="right" variant="muted">
+          <TimeSince unitStyle="extraShort" date={conversation.endTimestamp} />
         </Text>
       );
     default:
       return null;
   }
-});
+}
 
-const TooltipTextContainer = styled('div')`
-  text-align: left;
-  max-width: min(800px, 60vw);
-  max-height: 50vh;
-  overflow: hidden;
+function FilterCellAction({
+  children,
+  conversationId,
+  field,
+  onCellAction,
+  type,
+  value,
+}: {
+  children: React.ReactNode;
+  conversationId: string;
+  field: string;
+  onCellAction: CellActionHandler;
+  type: ColumnValueType;
+  value: number;
+}) {
+  const column: TableColumn<keyof TableDataRow> = {
+    key: field,
+    name: field,
+    type,
+    column: {kind: 'field', field},
+    isSortable: false,
+    width: COL_WIDTH_UNDEFINED,
+  };
 
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
-    font-size: inherit;
-    font-weight: bold;
-    margin: 0;
+  return (
+    <CellAction
+      column={column}
+      dataRow={{id: conversationId, [field]: value}}
+      allowActions={ALLOWED_CELL_ACTIONS}
+      handleCellAction={(action, cellValue) => onCellAction(action, column, cellValue)}
+    >
+      {children}
+    </CellAction>
+  );
+}
+
+function getConversationTitle(
+  title: string | null,
+  firstInput: string | null
+): string | null {
+  // Prefer the AI-generated title, falling back to the first user message. Both
+  // can contain markdown/tags and are rendered as plain Text, so flatten them to
+  // a single line; a value that flattens to nothing falls back to the caller's
+  // placeholder rather than showing a blank title.
+  const raw = title ?? firstInput;
+  if (!raw) {
+    return null;
+  }
+  const plainText = ellipsize(
+    markdownToPlainText(raw).replace(/\s+/g, ' ').trim(),
+    CELL_MAX_CHARS
+  );
+  return plainText.length > 0 ? plainText : null;
+}
+
+function ConversationCell({conversation}: {conversation: Conversation}) {
+  // Flattening markdown to plain text renders HTML + parses it, so memoize on
+  // the inputs to avoid recomputing on unrelated re-renders (hover, resize).
+  const title = useMemo(
+    () => getConversationTitle(conversation.title, conversation.firstInput),
+    [conversation.title, conversation.firstInput]
+  );
+  const project = useProjectFromId({
+    project_id: conversation.projectId ? String(conversation.projectId) : undefined,
+  });
+
+  return (
+    <Stack gap="xs" minWidth={0}>
+      <Text size="lg" ellipsis>
+        {title ?? <Text variant="muted">{t('Untitled conversation')}</Text>}
+      </Text>
+      <Flex align="center" gap="sm" minWidth={0}>
+        <Flex align="center" gap="xs" minWidth={0}>
+          {project && (
+            <ProjectAvatar
+              project={project}
+              size={14}
+              hasTooltip
+              tooltip={project.slug}
+            />
+          )}
+          <Text size="sm" variant="muted" ellipsis>
+            {getConversationDisplayId(conversation.conversationId)}
+          </Text>
+        </Flex>
+        <CellDivider orientation="vertical" />
+        <ConversationUserLabel user={conversation.user} />
+      </Flex>
+    </Stack>
+  );
+}
+
+function ConversationUserLabel({user}: {user: Conversation['user']}) {
+  const displayName = user ? getUserDisplayName(user) : null;
+
+  if (displayName) {
+    return (
+      <Flex align="center" gap="xs" minWidth={0}>
+        <UserIcon size="xs" />
+        <Text size="sm" variant="muted" ellipsis>
+          {displayName}
+        </Text>
+      </Flex>
+    );
+  }
+
+  return (
+    <Tooltip title={<UserNotInstrumentedTooltip />} skipWrapper>
+      <Flex align="center" gap="xs">
+        <UserIcon size="xs" />
+        <Text size="sm" variant="muted">
+          &mdash;
+        </Text>
+      </Flex>
+    </Tooltip>
+  );
+}
+
+/**
+ * Greedily packs tool tags into up to `maxRows` rows and returns how many are
+ * visible. When they don't all fit, room is reserved on the last row for the
+ * trailing "+N" overflow tag.
+ */
+export function getVisibleToolCount({
+  tagWidths,
+  badgeWidth,
+  gap,
+  containerWidth,
+  maxRows,
+}: {
+  badgeWidth: number;
+  containerWidth: number;
+  gap: number;
+  maxRows: number;
+  tagWidths: number[];
+}): number {
+  const totalTags = tagWidths.length;
+
+  // Whether the first `tagCount` tags — plus the overflow badge when
+  // `withOverflowBadge` — can be laid out within `maxRows`.
+  const fitsWithinRows = (tagCount: number, withOverflowBadge: boolean): boolean => {
+    const itemWidths = tagWidths.slice(0, tagCount);
+    if (withOverflowBadge) {
+      itemWidths.push(badgeWidth);
+    }
+
+    let rowCount = 1;
+    let rowWidth = 0;
+    for (const itemWidth of itemWidths) {
+      const widthWithGap = rowWidth === 0 ? itemWidth : gap + itemWidth;
+      if (rowWidth + widthWithGap <= containerWidth) {
+        rowWidth += widthWithGap;
+        continue;
+      }
+      // Doesn't fit on the current row — wrap onto the next one.
+      rowCount += 1;
+      rowWidth = itemWidth;
+      if (rowCount > maxRows) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  if (fitsWithinRows(totalTags, false)) {
+    return totalTags;
+  }
+
+  // Adding a tag never reduces the number of rows needed, so the answer is the
+  // largest prefix that still fits alongside the badge — stop at the first that
+  // doesn't.
+  let visibleCount = 0;
+  for (let tagCount = 1; tagCount <= totalTags; tagCount++) {
+    if (!fitsWithinRows(tagCount, true)) {
+      break;
+    }
+    visibleCount = tagCount;
+  }
+  return visibleCount;
+}
+
+function ToolsCell({toolNames}: {toolNames: string[]}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const measureRef = useRef<HTMLDivElement>(null);
+  const {width} = useDimensions({elementRef: containerRef});
+
+  const [layout, setLayout] = useState<{
+    badgeWidth: number;
+    gap: number;
+    rowHeight: number;
+    tagWidths: number[];
+  } | null>(null);
+
+  // Tag widths/heights are content-based (independent of the container width),
+  // so we only re-measure when the set of tools changes. Join on NUL so tool
+  // names containing spaces can't collide into the same key.
+  const toolsKey = toolNames.join('\x00');
+  useLayoutEffect(() => {
+    const el = measureRef.current;
+    if (!el) {
+      return;
+    }
+    const tagEls = el.querySelectorAll<HTMLElement>('[data-tool-tag]');
+    const badgeEl = el.querySelector<HTMLElement>('[data-tool-badge]');
+    setLayout({
+      gap: parseFloat(getComputedStyle(el).columnGap) || 0,
+      tagWidths: Array.from(tagEls, tag => tag.getBoundingClientRect().width),
+      badgeWidth: badgeEl?.getBoundingClientRect().width ?? 0,
+      rowHeight: badgeEl?.getBoundingClientRect().height ?? 0,
+    });
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
+  }, [toolsKey]);
+
+  const visibleCount = useMemo(() => {
+    if (!layout || width === 0) {
+      return toolNames.length;
+    }
+    const fitCount = getVisibleToolCount({
+      tagWidths: layout.tagWidths,
+      badgeWidth: layout.badgeWidth,
+      gap: layout.gap,
+      containerWidth: width,
+      maxRows: MAX_TOOL_ROWS,
+    });
+    // Always keep at least one tag visible; if it can't fit it will be
+    // truncated (see maxTagWidth below) rather than dropped into the overflow.
+    return Math.max(fitCount, 1);
+  }, [layout, width, toolNames.length]);
+
+  if (toolNames.length === 0) {
+    return <Text variant="muted">&mdash;</Text>;
+  }
+
+  const overflowCount = toolNames.length - visibleCount;
+
+  // Cap each tag so a long tool name ellipsizes instead of being clipped. When
+  // an overflow badge is present, also reserve room for it so it never wraps.
+  // Expressed as a CSS calc against the container width (not the measured JS
+  // width) so it tracks resizing synchronously — otherwise the ResizeObserver
+  // lag lets the tag/badge flicker onto a second line for a frame. `max()`
+  // keeps a floor when the column is narrow.
+  let maxTagWidth: string | undefined;
+  if (layout) {
+    maxTagWidth =
+      overflowCount > 0
+        ? `max(${MIN_TOOL_TAG_WIDTH}px, calc(100% - ${
+            layout.badgeWidth + layout.gap + TAG_WIDTH_SLACK
+          }px))`
+        : '100%';
+  }
+
+  // Pin the container to exactly MAX_TOOL_ROWS so a transient reflow during
+  // resize can't briefly spill onto another line before the count settles.
+  const maxHeight = layout
+    ? layout.rowHeight * MAX_TOOL_ROWS + layout.gap * (MAX_TOOL_ROWS - 1)
+    : undefined;
+
+  return (
+    <ToolsContainer
+      ref={containerRef}
+      position="relative"
+      wrap="wrap"
+      gap="xs"
+      width="100%"
+      minWidth={0}
+      overflow="hidden"
+      style={maxHeight ? {maxHeight} : undefined}
+    >
+      {toolNames.slice(0, visibleCount).map((name, index) => (
+        <Tag
+          key={`${name}-${index}`}
+          variant="muted"
+          style={maxTagWidth ? {maxWidth: maxTagWidth} : undefined}
+        >
+          {/* Tag's own text node is display:flex, which breaks text-overflow;
+              a block-level Text ellipsizes within it. */}
+          <Text ellipsis>{name}</Text>
+        </Tag>
+      ))}
+      {overflowCount > 0 && (
+        <Tooltip title={toolNames.slice(visibleCount).join(', ')}>
+          <Tag variant="muted">{`+${overflowCount}`}</Tag>
+        </Tooltip>
+      )}
+
+      {/* Hidden measurement layer: always renders every tag so their intrinsic
+          widths (and the badge width) stay available no matter what is
+          currently visible. */}
+      <Flex
+        ref={measureRef}
+        aria-hidden
+        position="absolute"
+        top={0}
+        left={0}
+        height={0}
+        overflow="hidden"
+        visibility="hidden"
+        pointerEvents="none"
+        wrap="wrap"
+        gap="xs"
+      >
+        {toolNames.map((name, index) => (
+          <Tag key={`${name}-${index}`} variant="muted" data-tool-tag>
+            {name}
+          </Tag>
+        ))}
+        <Tag variant="muted" data-tool-badge>
+          {`+${toolNames.length}`}
+        </Tag>
+      </Flex>
+    </ToolsContainer>
+  );
+}
+
+const TablePagination = styled(Pagination)`
+  margin: 0;
+`;
+
+const FixedRowHeightGrid = styled('div')`
+  /* Pin data rows to a fixed height by sizing their body cells. Head cells are
+     <th> (unaffected), and the empty/loading/error status cell keeps its own
+     size because its larger min-height wins over this fixed height. */
+  tbody td {
+    height: ${ROW_HEIGHT}px;
+  }
+
+  /* Tighter padding fits two rows of tool tags; [role='cell'] skips the hover layer td. */
+  tbody td[role='cell'] {
+    padding-top: ${p => p.theme.space.md};
+    padding-bottom: ${p => p.theme.space.md};
   }
 `;
 
-const SingleLineMarkdown = styled('div')`
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-
-  * {
-    display: inline;
-  }
+// Separator is full-height by default; pin it to a short fixed height so it
+// reads as a small inline divider between the id and the user. Override its
+// `align-self: stretch` so the fixed height stays centered in the row instead
+// of pinning to the top.
+// Keep the user icon from shrinking when the display name is long.
+const UserIcon = styled(IconUser)`
+  flex-shrink: 0;
 `;
 
-const ConversationIdLink = styled(Link)`
-  color: ${p => p.theme.tokens.interactive.link.accent.rest};
-  font-weight: normal;
+const CellDivider = styled(Separator)`
+  align-self: center;
+  height: 12px;
+  flex-shrink: 0;
 `;
 
-const ConversationIdText = styled(Text)`
-  display: block;
-  max-width: 100%;
-  color: inherit;
-`;
-
-const InputOutputRow = styled('button')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
-  background: transparent;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  text-align: left;
-  width: 100%;
-
-  &:hover {
-    background-color: ${p =>
-      p.theme.tokens.interactive.transparent.neutral.background.hover};
-  }
-
-  &:active {
-    background-color: ${p =>
-      p.theme.tokens.interactive.transparent.neutral.background.active};
-  }
-`;
-
-const InputOutputLabel = styled(Text)`
-  width: 4em;
-`;
-
-const DashedUnderline = styled('span')`
-  text-decoration: underline dotted;
-  text-underline-offset: 2px;
-  cursor: pointer;
+// align-content isn't a Flex prop, so keep it as a small styled(Flex) so wrapped
+// tag rows stack from the top instead of spreading across the container height.
+const ToolsContainer = styled(Flex)`
+  align-content: flex-start;
 `;

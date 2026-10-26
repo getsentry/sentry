@@ -1,5 +1,7 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconSync} from '@sentry/icons/sync';
+import {IconThumb} from '@sentry/icons/thumb';
 
 import aiBanner from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
 import replayEmptyState from 'sentry-images/spot/replays-empty-state.svg';
@@ -12,7 +14,6 @@ import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconSync, IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
@@ -118,7 +119,6 @@ export function Ai() {
             </Text>
             <Button
               variant="secondary"
-              type="button"
               size="xs"
               onClick={() => {
                 startSummaryRequest();
@@ -264,6 +264,7 @@ function ThumbsUpDownButton({
 }) {
   return (
     <FeedbackButton
+      variant="secondary"
       aria-label={t('Give feedback on the replay summary section')}
       icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} />}
       tooltipProps={{
@@ -277,9 +278,9 @@ function ThumbsUpDownButton({
             ? t('What did you like about the replay summary and chapters?')
             : t('How can we make the replay summary and chapters work better for you?'),
         tags: {
-          ['feedback.source']: 'replay_ai_summary',
-          ['feedback.owner']: 'replay',
-          ['feedback.type']: type,
+          'feedback.source': 'replay_ai_summary',
+          'feedback.owner': 'replay',
+          'feedback.type': type,
         },
       }}
     >
@@ -295,16 +296,17 @@ function ThumbsUpDownButton({
  * Use `useRef` to store the message so that it is not changed after the initial render. (Alternatively, React.memo or React Compiler would also work)
  */
 function NoReplaySummary() {
-  const noSummaryMessageRef = useRef(
-    NO_REPLAY_SUMMARY_MESSAGES[
-      Math.floor(Math.random() * NO_REPLAY_SUMMARY_MESSAGES.length)
-    ]
+  const [noSummaryMessage] = useState(
+    () =>
+      NO_REPLAY_SUMMARY_MESSAGES[
+        Math.floor(Math.random() * NO_REPLAY_SUMMARY_MESSAGES.length)
+      ]
   );
 
   return (
     <Fragment>
       <img src={aiBanner} alt="" />
-      <div>{noSummaryMessageRef.current}</div>
+      <div>{noSummaryMessage}</div>
     </Fragment>
   );
 }

@@ -1,43 +1,39 @@
 import type {ReactNode} from 'react';
-import {useMatches} from 'react-router-dom';
+import {useMatches} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconCursorArrow} from '@sentry/icons/cursorArrow';
+import {IconOpen} from '@sentry/icons/open';
+import {IconPlay} from '@sentry/icons/play';
 import type {LocationDescriptor} from 'history';
 import invariant from 'invariant';
-import {PlatformIcon} from 'platformicons';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {InfoText} from '@sentry/scraps/info';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Duration} from 'sentry/components/duration/duration';
 import {useSelectedReplayIndex} from 'sentry/components/replays/queryParams/selectedReplayIndex';
+import {ReplayActivityScore} from 'sentry/components/replays/replayActivityScore';
 import {ReplayBadge} from 'sentry/components/replays/replayBadge';
+import {ReplayErrorCount} from 'sentry/components/replays/replayErrorCount';
+import {ReplayPlatformIcon} from 'sentry/components/replays/replayPlatformIcon';
 import {ReplayPlayPauseButton} from 'sentry/components/replays/replayPlayPauseButton';
 import {NumericDropdownFilter} from 'sentry/components/replays/table/filters/numericDropdownFilter';
 import {OSBrowserDropdownFilter} from 'sentry/components/replays/table/filters/osBrowserDropdownFilter';
-import {ScoreBar} from 'sentry/components/scoreBar';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconNot} from 'sentry/icons';
-import {IconCursorArrow} from 'sentry/icons/iconCursorArrow';
-import {IconFire} from 'sentry/icons/iconFire';
-import {IconOpen} from 'sentry/icons/iconOpen';
-import {IconPlay} from 'sentry/icons/iconPlay';
+import {UnreadIndicator} from 'sentry/components/unreadIndicator';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
-import {
-  useListItemCheckboxContext,
-  type ListItemCheckboxState,
-} from 'sentry/utils/list/useListItemCheckboxState';
-import {generatePlatformIconName} from 'sentry/utils/replays/generatePlatformIconName';
+import {ListItemSelectCheckbox} from 'sentry/utils/list/listItemSelectCheckbox';
+import type {ListItemCheckboxState} from 'sentry/utils/list/useListItemCheckboxState';
 import {MIN_DEAD_RAGE_CLICK_SDK} from 'sentry/utils/replays/sdkVersions';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useMedia} from 'sentry/utils/useMedia';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
@@ -110,22 +106,12 @@ export const ReplayActivityColumn: ReplayTableColumn = {
   interactive: false,
   sortKey: 'activity',
   Component: ({replay, showDropdownFilters}) => {
-    const theme = useTheme();
-
     if (replay.is_archived) {
       return null;
     }
-    const colors = theme.chart.getColorPalette(0);
-    const scoreBarPalette = Array.from<string[]>({length: 10}).fill([colors[0]]);
     return (
       <DropdownContainer key="activity">
-        <ScoreBar
-          size={20}
-          score={replay?.activity ?? 1}
-          // @ts-expect-error -- TODO: Resolve this mismatch
-          palette={scoreBarPalette}
-          radius={0}
-        />
+        <ReplayActivityScore score={replay?.activity ?? null} />
         {showDropdownFilters ? (
           <NumericDropdownFilter type="activity" val={replay?.activity ?? 0} />
         ) : null}
@@ -139,41 +125,18 @@ export const ReplayBrowserColumn: ReplayTableColumn = {
   interactive: false,
   sortKey: 'browser.name',
   Component: ({replay, showDropdownFilters}) => {
-    const theme = useTheme();
-    const isLargeBreakpoint = useMedia(`(min-width: ${theme.breakpoints.lg})`);
-
     if (replay.is_archived) {
       return null;
     }
     const {name, version} = replay.browser;
-    if (!name && !version) {
-      return (
-        <DropdownContainer>
-          <Tooltip title={t('N/A')}>
-            <Flex justify="center" width="20px">
-              <IconNot size="xs" variant="muted" />
-            </Flex>
-          </Tooltip>
-        </DropdownContainer>
-      );
-    }
-
-    const icon = generatePlatformIconName(
-      name ?? '',
-      version && isLargeBreakpoint ? version : undefined
-    );
-
-    const nameOrUnknown = name ?? t('Unknown');
-    const versionOrBlank = version ?? '';
 
     return (
       <DropdownContainer key="browser">
-        <Tooltip title={`${nameOrUnknown} ${versionOrBlank}`.trim()}>
-          <PlatformIcon platform={icon} size="20px" />
+        <ReplayPlatformIcon name={name} version={version}>
           {showDropdownFilters ? (
             <OSBrowserDropdownFilter type="browser" name={name} version={version} />
           ) : null}
-        </Tooltip>
+        </ReplayPlatformIcon>
       </DropdownContainer>
     );
   },
@@ -256,16 +219,7 @@ export const ReplayCountErrorsColumn: ReplayTableColumn = {
         key="countErrors"
         data-test-id="replay-table-column-count-errors"
       >
-        <TabularNumber>
-          {replay.count_errors ? (
-            <Flex gap="xs">
-              <IconFire variant="danger" />
-              {replay.count_errors}
-            </Flex>
-          ) : (
-            0
-          )}
-        </TabularNumber>
+        <ReplayErrorCount count={replay.count_errors} />
         {showDropdownFilters ? (
           <NumericDropdownFilter type="count_errors" val={replay.count_errors ?? 0} />
         ) : null}
@@ -365,29 +319,18 @@ export const ReplayOSColumn: ReplayTableColumn = {
   interactive: false,
   sortKey: 'os.name',
   Component: ({replay, showDropdownFilters}) => {
-    const theme = useTheme();
-    const isLargeBreakpoint = useMedia(`(min-width: ${theme.breakpoints.lg})`);
-
     if (replay.is_archived) {
       return null;
     }
     const {name, version} = replay.os;
-    const icon = generatePlatformIconName(
-      name ?? '',
-      version && isLargeBreakpoint ? version : undefined
-    );
-
-    const nameOrUnknown = name ?? t('Unknown');
-    const versionOrBlank = version ?? '';
 
     return (
       <DropdownContainer key="os">
-        <Tooltip title={`${nameOrUnknown} ${versionOrBlank}`.trim()}>
-          <PlatformIcon platform={icon} size="20px" />
+        <ReplayPlatformIcon name={name} version={version}>
           {showDropdownFilters ? (
             <OSBrowserDropdownFilter type="os" name={name} version={version} />
           ) : null}
-        </Tooltip>
+        </ReplayPlatformIcon>
       </DropdownContainer>
     );
   },
@@ -470,28 +413,19 @@ export const ReplaySelectColumn: ReplayTableColumn = {
   interactive: true,
   sortKey: undefined,
   Component: ({replay}) => {
-    const {isSelected, toggleSelected} = useListItemCheckboxContext();
     if (replay.is_archived) {
       return null;
     }
     return (
       <CheckboxClickCapture onClick={e => e.stopPropagation()}>
-        <CheckboxCellContainer>
-          <CheckboxClickTarget htmlFor={`replay-table-select-${replay.id}`}>
-            <Checkbox
-              id={`replay-table-select-${replay.id}`}
-              disabled={isSelected(replay.id) === 'all-selected'}
-              checked={isSelected(replay.id) !== false}
-              onChange={() => {
-                toggleSelected(replay.id);
-              }}
-            />
-          </CheckboxClickTarget>
-
-          <Tooltip title={t('Unread')} skipWrapper disabled={Boolean(replay.has_viewed)}>
-            <UnreadIndicator data-has-viewed={replay.has_viewed} />
-          </Tooltip>
-        </CheckboxCellContainer>
+        <Stack justify="center" align="center" gap="xs" position="relative">
+          <ListItemSelectCheckbox htmlPrefix="replay-table-select" value={replay.id} />
+          {replay.has_viewed ? (
+            <Container width="8px" height="8px" />
+          ) : (
+            <UnreadIndicator />
+          )}
+        </Stack>
       </CheckboxClickCapture>
     );
   },
@@ -608,46 +542,12 @@ const CheckboxHeaderContainer = styled(Flex)`
   justify-content: center;
   align-items: center;
   gap: ${p => p.theme.space.md};
-
-  margin: 0 -${p => p.theme.space.md} 0 -${p => p.theme.space.xs};
 `;
 
 const CheckboxClickCapture = styled('div')`
   z-index: 1; /* Raise above any ReplaySessionColumn in the row */
   padding: ${p => p.theme.space.xl};
   margin: -${p => p.theme.space.xl};
-`;
-
-const CheckboxCellContainer = styled('div')`
-  display: flex;
-  position: relative;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-
-  padding: ${p => p.theme.space.xs} 0 0 0;
-  margin: 0 -${p => p.theme.space.md} 0 -${p => p.theme.space.xs};
-`;
-
-const CheckboxClickTarget = styled('label')`
-  cursor: pointer;
-  display: block;
-  margin: -${p => p.theme.space.md};
-  padding: ${p => p.theme.space.md};
-  max-width: unset;
-  line-height: 0;
-`;
-
-const UnreadIndicator = styled('div')`
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-
-  background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
-  &[data-has-viewed='true'] {
-    background-color: transparent;
-  }
 `;
 
 const SpanOperationBreakdown = styled('div')`

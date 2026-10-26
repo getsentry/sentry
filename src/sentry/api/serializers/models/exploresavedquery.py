@@ -1,5 +1,6 @@
 from collections import defaultdict
-from typing import TypedDict
+from datetime import datetime
+from typing import Literal, TypedDict
 
 from sentry.api.serializers import Serializer, register
 from sentry.constants import ALL_ACCESS_PROJECTS
@@ -13,6 +14,11 @@ from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.services.user.service import user_service
 from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
 
+ExploreSavedQueryDatasetType = Literal[
+    "spans", "logs", "segment_spans", "metrics", "replays", "ai_conversations"
+]
+ExploreSavedQueryMode = Literal["samples", "aggregate"]
+
 
 class MetricResponseTypeOptional(TypedDict, total=False):
     unit: str | None
@@ -20,27 +26,58 @@ class MetricResponseTypeOptional(TypedDict, total=False):
 
 class MetricResponseType(MetricResponseTypeOptional):
     name: str
-    type: str
+    type: Literal["counter", "gauge", "distribution"]
+
+
+class VisualizeResponseTypeOptional(TypedDict, total=False):
+    chartType: int
+
+
+class VisualizeResponseType(VisualizeResponseTypeOptional):
+    yAxes: list[str]
+
+
+class AggregateFieldResponseType(TypedDict, total=False):
+    chartType: int
+    yAxes: list[str]
+    groupBy: str
+
+
+class QueryResponseTypeOptional(TypedDict, total=False):
+    fields: list[str] | None
+    orderby: str | None
+    groupby: list[str] | None
+    query: str | None
+    visualize: list[VisualizeResponseType] | None
+    aggregateField: list[AggregateFieldResponseType] | None
+    aggregateOrderby: str | None
+    metric: MetricResponseType | None
+    caseInsensitive: bool
+
+
+class QueryResponseType(QueryResponseTypeOptional):
+    mode: ExploreSavedQueryMode
 
 
 class CrossEventResponseTypeOptional(TypedDict, total=False):
-    metric: MetricResponseType
+    metric: MetricResponseType | None
 
 
 class CrossEventResponseType(CrossEventResponseTypeOptional):
     query: str
-    type: str
+    type: Literal["spans", "logs", "metrics"]
 
 
 class ExploreSavedQueryResponseOptional(TypedDict, total=False):
     environment: list[str]
-    query: str
-    range: str
+    query: list[QueryResponseType]
+    statsPeriod: str
     start: str
     end: str
     interval: str
-    mode: str
     crossEvents: list[CrossEventResponseType]
+    agent: list[str]
+    errorsOnly: bool
 
 
 class ExploreSavedQueryChangedReasonType(TypedDict):
@@ -53,12 +90,12 @@ class ExploreSavedQueryResponse(ExploreSavedQueryResponseOptional):
     id: str
     name: str
     projects: list[int]
-    dataset: str
+    dataset: ExploreSavedQueryDatasetType
     expired: bool
-    dateAdded: str
-    dateUpdated: str
-    lastVisited: str
-    createdBy: UserSerializerResponse
+    dateAdded: datetime
+    dateUpdated: datetime
+    lastVisited: datetime | None
+    createdBy: UserSerializerResponse | None
     starred: bool
     position: int | None
     isPrebuilt: bool
@@ -119,12 +156,13 @@ class ExploreSavedQueryModelSerializer(Serializer[ExploreSavedQueryResponse]):
         query_keys = [
             "environment",
             "query",
-            "range",
+            "statsPeriod",
             "start",
             "end",
             "interval",
             "crossEvents",
             "agent",
+            "errorsOnly",
         ]
         data: ExploreSavedQueryResponse = {
             "id": str(obj.id),
@@ -145,6 +183,10 @@ class ExploreSavedQueryModelSerializer(Serializer[ExploreSavedQueryResponse]):
         for key in query_keys:
             if obj.query.get(key) is not None:
                 data[key] = obj.query[key]  # type: ignore[literal-required]
+
+        # Older rows stored the relative period as `range`.
+        if data.get("statsPeriod") is None and obj.query.get("range") is not None:
+            data["statsPeriod"] = obj.query["range"]
 
         # expire queries that are beyond the retention period
         if "start" in obj.query:

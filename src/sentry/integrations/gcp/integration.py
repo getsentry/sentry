@@ -1,0 +1,477 @@
+from __future__ import annotations
+
+import logging
+from collections.abc import Mapping, MutableMapping
+from typing import Any, TypedDict, cast
+
+from django.http.request import HttpRequest
+from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
+from rest_framework.fields import CharField, ListField
+from rest_framework.serializers import Serializer
+
+from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
+from sentry.constants import ObjectStatus
+from sentry.integrations.base import (
+    FeatureDescription,
+    IntegrationData,
+    IntegrationFeatures,
+    IntegrationInstallation,
+    IntegrationMetadata,
+    IntegrationProvider,
+)
+from sentry.integrations.errors import OrganizationIntegrationNotFound
+from sentry.integrations.gcp.client import delete_sentry_sa, generate_sentry_sa
+from sentry.integrations.gcp.utils import (
+    GCP_MCP_URLS,
+    GCP_STATUS_UNVERIFIED,
+    parse_customer_sa_email,
+    parse_gcp_project_ids,
+    validate_gcp_project_id,
+)
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.pipeline import IntegrationPipeline
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import IntegrationProviderSlug
+from sentry.models.organization import Organization
+from sentry.organizations.services.organization import RpcOrganization
+from sentry.pipeline.types import PipelineStepResult
+from sentry.pipeline.views.base import ApiPipelineSteps
+from sentry.seer.agent.monitoring_providers import (
+    OrgMonitoringProvider,
+    org_monitoring_provider_registry,
+)
+from sentry.seer.sentry_data_models import GcpSaImpersonationConnectionData
+from sentry.shared_integrations.exceptions import IntegrationConfigurationError
+
+logger = logging.getLogger(__name__)
+
+DESCRIPTION = """
+Connect your Google Cloud Platform projects so Seer can pull in infrastructure
+telemetry via GCP's MCP endpoints — shared across everyone in your organization.
+"""
+
+FEATURES = [
+    FeatureDescription(
+        "Give Seer access to your GCP telemetry (logging, monitoring, tracing) while investigating issues.",
+        IntegrationFeatures.SEER_CONTEXT,
+    ),
+]
+
+metadata = IntegrationMetadata(
+    description=DESCRIPTION.strip(),
+    features=FEATURES,
+    author="The Sentry Team",
+    noun=_("Organization"),
+    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug.yml&title=GCP%20Integration%20Problem",
+    source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/gcp",
+    aspects={},
+)
+
+
+class GcpConfig(TypedDict):
+    sentry_sa_email: str
+    customer_sa_email: str
+    projects: list[str]
+    connection_status: str
+    project_statuses: list[GcpProjectVerification]
+    last_verified_at: str | None
+
+
+class GcpConfigInputSerializer(CamelSnakeSerializer["GcpConfigInput"]):
+    customer_sa_email = CharField(required=True, max_length=255)
+    projects = ListField(child=CharField(max_length=64), required=True, min_length=1)
+
+
+class GcpConfigInput(TypedDict):
+    customer_sa_email: str
+    projects: list[str]
+
+
+class GcpVerification(TypedDict):
+    connection_status: str
+    projects: list[GcpProjectVerification]
+
+
+class GcpServiceVerification(TypedDict):
+    service: str
+    status: str
+    error_detail: str | None
+
+
+class GcpProjectVerification(TypedDict):
+    gcp_project_id: str
+    connection_status: str
+    services: list[GcpServiceVerification]
+    error_detail: str | None
+
+
+class GcpServiceVerificationSerializer(Serializer[GcpServiceVerification]):
+    service = CharField(required=True)
+    status = CharField(required=True)
+    error_detail = CharField(required=False, allow_null=True, allow_blank=True, default=None)
+
+
+class GcpProjectVerificationSerializer(Serializer[GcpProjectVerification]):
+    gcp_project_id = CharField(required=True, max_length=64)
+    connection_status = CharField(required=True)
+    services = GcpServiceVerificationSerializer(many=True, required=True)
+    error_detail = CharField(required=False, allow_null=True, allow_blank=True, default=None)
+
+
+class GcpVerificationInputSerializer(CamelSnakeSerializer["GcpVerification"]):
+    connection_status = CharField(required=True)
+    projects = GcpProjectVerificationSerializer(many=True, required=True, allow_empty=False)
+
+
+class GcpSaGenerationApiStep:
+    step_name = "gcp_sa_generation"
+
+    def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> dict[str, Any]:
+        assert pipeline.organization is not None
+
+        existing_email = pipeline.fetch_state("sentry_sa_email")
+        if existing_email:
+            return {"sentrySaEmail": existing_email}
+
+        sentry_sa_email = generate_sentry_sa(pipeline.organization.id)
+        pipeline.bind_state("sentry_sa_email", sentry_sa_email)
+        return {"sentrySaEmail": sentry_sa_email}
+
+    def get_serializer_cls(self) -> type | None:
+        return None
+
+    def handle_post(
+        self,
+        validated_data: Any,
+        pipeline: IntegrationPipeline,
+        request: HttpRequest,
+    ) -> PipelineStepResult:
+        return PipelineStepResult.advance()
+
+
+class GcpCustomerConfigApiStep:
+    step_name = "gcp_customer_config"
+
+    def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> dict[str, Any]:
+        return {}
+
+    def get_serializer_cls(self) -> type:
+        return GcpConfigInputSerializer
+
+    def handle_post(
+        self,
+        validated_data: GcpConfigInput,
+        pipeline: IntegrationPipeline,
+        request: HttpRequest,
+    ) -> PipelineStepResult:
+        config = dict(validated_data)
+        config["projects"] = list(dict.fromkeys(validated_data["projects"]))
+        pipeline.bind_state("config", config)
+        return PipelineStepResult.advance()
+
+
+class GcpVerificationApiStep:
+    step_name = "gcp_verification"
+
+    def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> dict[str, Any]:
+        config: dict[str, Any] = pipeline.fetch_state("config") or {}
+        return {
+            "customerSaEmail": config.get("customer_sa_email", ""),
+            "projects": config.get("projects", []),
+        }
+
+    def get_serializer_cls(self) -> type:
+        return GcpVerificationInputSerializer
+
+    def handle_post(
+        self,
+        validated_data: GcpVerification,
+        pipeline: IntegrationPipeline,
+        request: HttpRequest,
+    ) -> PipelineStepResult:
+        config: dict[str, Any] = pipeline.fetch_state("config") or {}
+        configured_projects = set(config.get("projects", []))
+        verified_projects = {p["gcp_project_id"] for p in validated_data["projects"]}
+        if configured_projects != verified_projects:
+            return PipelineStepResult.error(
+                "Verification results do not match the configured GCP projects. "
+                "Please re-run verification."
+            )
+
+        verification: GcpVerification = {
+            "connection_status": validated_data["connection_status"],
+            "projects": [
+                {
+                    "gcp_project_id": project["gcp_project_id"],
+                    "connection_status": project["connection_status"],
+                    "services": project["services"],
+                    "error_detail": project.get("error_detail") or None,
+                }
+                for project in validated_data["projects"]
+            ],
+        }
+        pipeline.bind_state("verification", verification)
+        return PipelineStepResult.advance()
+
+
+class GcpIntegration(IntegrationInstallation):
+    @property
+    def gcp_config(self) -> GcpConfig | None:
+        try:
+            org_integration = self.org_integration
+        except OrganizationIntegrationNotFound:
+            return None
+        config = org_integration.config
+        if not config:
+            return None
+        return cast(GcpConfig, config)
+
+    def uninstall(self) -> None:
+        config = self.gcp_config
+        if config is None:
+            return
+        sa_email = config.get("sentry_sa_email")
+        if sa_email:
+            delete_sentry_sa(sa_email, self.organization_id)
+
+    def get_organization_config(self) -> list[dict[str, Any]]:
+        return [
+            {
+                "name": "sentry_sa_email",
+                "type": "string",
+                "label": _("Sentry Service Account"),
+                "help": _(
+                    "A service account that Sentry has auto-generated for you. "
+                    "Your service account must grant this account the "
+                    "roles/iam.serviceAccountTokenCreator role."
+                ),
+                "disabled": True,
+                "disabledReason": _("Managed by Sentry"),
+            },
+            {
+                "name": "customer_sa_email",
+                "type": "string",
+                "label": _("Customer Service Account"),
+                "help": _(
+                    "Your GCP service account that the Sentry service account impersonates. "
+                    "It must have viewer roles on the connected projects."
+                ),
+                "required": True,
+            },
+            {
+                "name": "projects",
+                "type": "select",
+                "label": _("GCP Project IDs"),
+                "help": _("The GCP projects Sentry reads telemetry from."),
+                "multiple": True,
+                "creatable": True,
+                "required": True,
+            },
+        ]
+
+    def get_config_data(self) -> Mapping[str, Any]:
+        config = self.gcp_config
+        if not config:
+            return {}
+        return {
+            "sentry_sa_email": config.get("sentry_sa_email", ""),
+            "customer_sa_email": config.get("customer_sa_email", ""),
+            "projects": list(config.get("projects", [])),
+            "connection_status": config.get("connection_status", GCP_STATUS_UNVERIFIED),
+            "project_statuses": config.get("project_statuses", []),
+            "last_verified_at": config.get("last_verified_at"),
+        }
+
+    def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
+        config = self.gcp_config
+        if config is None or not config.get("projects"):
+            raise IntegrationConfigurationError("GCP integration is not configured.")
+
+        new_config: GcpConfig = cast(GcpConfig, dict(config))
+        changed = False
+
+        if "customer_sa_email" in data:
+            customer_sa_email = parse_customer_sa_email(data["customer_sa_email"])
+            if customer_sa_email != config.get("customer_sa_email"):
+                new_config["customer_sa_email"] = customer_sa_email
+                changed = True
+
+        if "projects" in data:
+            projects = parse_gcp_project_ids(data["projects"])
+            if set(projects) != set(config.get("projects", [])):
+                new_config["projects"] = projects
+                changed = True
+
+        if not changed:
+            return
+
+        new_config["connection_status"] = GCP_STATUS_UNVERIFIED
+        new_config["project_statuses"] = [
+            {
+                "gcp_project_id": project_id,
+                "connection_status": GCP_STATUS_UNVERIFIED,
+                "services": [],
+                "error_detail": None,
+            }
+            for project_id in new_config["projects"]
+        ]
+        new_config["last_verified_at"] = None
+
+        integration_service.update_organization_integration(
+            org_integration_id=self.org_integration.id,
+            config=dict(new_config),
+        )
+
+    def get_client(self) -> Any:
+        raise NotImplementedError
+
+
+class GcpIntegrationProvider(IntegrationProvider):
+    key = IntegrationProviderSlug.GCP.value
+    name = "Google Cloud Platform for Seer"
+    metadata = metadata
+    integration_cls = GcpIntegration
+    features = frozenset([IntegrationFeatures.SEER_CONTEXT])
+    requires_feature_flag = True
+    allow_multiple = False
+
+    def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
+        return [
+            GcpSaGenerationApiStep(),
+            GcpCustomerConfigApiStep(),
+            GcpVerificationApiStep(),
+        ]
+
+    def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
+        config = state.get("config", {})
+        if not config:
+            raise IntegrationConfigurationError("Missing configuration data")
+
+        sentry_sa_email = state.get("sentry_sa_email")
+        if not sentry_sa_email:
+            raise IntegrationConfigurationError("Missing Sentry service account email")
+        customer_sa_email: str = config["customer_sa_email"]
+        projects: list[str] = config["projects"]
+
+        for project_id in projects:
+            validate_gcp_project_id(project_id)
+
+        assert self.pipeline.organization is not None
+        org_id = self.pipeline.organization.id
+
+        return {
+            "external_id": str(org_id),
+            "name": "Google Cloud Platform for Seer",
+            "metadata": {},
+            "post_install_data": {
+                "sentry_sa_email": sentry_sa_email,
+                "customer_sa_email": customer_sa_email,
+                "projects": projects,
+                "verification": state.get("verification"),
+            },
+        }
+
+    def post_install(
+        self,
+        integration: Integration,
+        organization: RpcOrganization,
+        *,
+        extra: dict[str, Any],
+    ) -> None:
+        org_integration: OrganizationIntegration = OrganizationIntegration.objects.get(
+            organization_id=organization.id,
+            integration_id=integration.id,
+        )
+        verification: GcpVerification | None = extra.get("verification")
+        last_verified_at = timezone.now().isoformat() if verification is not None else None
+        if verification is None:
+            logger.error(
+                "gcp.post_install_missing_verification",
+                extra={
+                    "organization_id": organization.id,
+                    "integration_id": integration.id,
+                },
+            )
+            verification = {
+                "connection_status": "error",
+                "projects": [
+                    {
+                        "gcp_project_id": project_id,
+                        "connection_status": "error",
+                        "services": [],
+                        "error_detail": "Verification failed to run during setup.",
+                    }
+                    for project_id in extra["projects"]
+                ],
+            }
+
+        gcp_config: GcpConfig = {
+            "sentry_sa_email": extra["sentry_sa_email"],
+            "customer_sa_email": extra["customer_sa_email"],
+            "projects": extra["projects"],
+            "connection_status": verification["connection_status"],
+            "project_statuses": verification["projects"],
+            "last_verified_at": last_verified_at,
+        }
+        org_integration.update(config=gcp_config)
+
+
+@org_monitoring_provider_registry.register(IntegrationProviderSlug.GCP.value)
+class GcpOrgMonitoringProvider(OrgMonitoringProvider):
+    """Surfaces the org-level GCP integration to Seer as shared monitoring connections."""
+
+    provider_key = IntegrationProviderSlug.GCP.value
+
+    def build_connection(
+        self, organization: Organization
+    ) -> list[GcpSaImpersonationConnectionData] | None:
+        ctx = integration_service.organization_context(
+            organization_id=organization.id, provider=self.provider_key
+        )
+        integration = ctx.integration
+        org_integration = ctx.organization_integration
+        if (
+            integration is None
+            or org_integration is None
+            or integration.status != ObjectStatus.ACTIVE
+            or org_integration.status != ObjectStatus.ACTIVE
+        ):
+            return None
+
+        config = org_integration.config
+        projects: list[str] = config.get("projects", [])
+        sentry_sa_email: str | None = config.get("sentry_sa_email")
+        customer_sa_email: str | None = config.get("customer_sa_email")
+
+        if not projects:
+            logger.error(
+                "seer.monitoring_providers.gcp_integration_no_projects",
+                extra={
+                    "organization_id": organization.id,
+                    "integration_id": integration.id,
+                },
+            )
+            return None
+
+        if not sentry_sa_email or not customer_sa_email:
+            logger.error(
+                "seer.monitoring_providers.gcp_integration_missing_sa_emails",
+                extra={
+                    "organization_id": organization.id,
+                    "integration_id": integration.id,
+                },
+            )
+            return None
+
+        return [
+            GcpSaImpersonationConnectionData(
+                provider_key=self.provider_key,
+                url=url,
+                sentry_sa_email=sentry_sa_email,
+                customer_sa_email=customer_sa_email,
+                gcp_project_ids=projects,
+            )
+            for url in GCP_MCP_URLS
+        ]

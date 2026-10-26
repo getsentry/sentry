@@ -4,7 +4,8 @@ from urllib.parse import urlencode
 
 import orjson
 import pytest
-from django.test import RequestFactory
+from django.conf import settings
+from django.test import Client, RequestFactory, override_settings
 from django.utils.functional import cached_property
 
 from sentry import options
@@ -123,6 +124,96 @@ class SlackRequestTest(TestCase):
         }
 
 
+@pytest.mark.django_db(databases=["default", "control"])
+class TestSlackCredentialSources:
+    @control_silo_test
+    @pytest.mark.parametrize(
+        "database_options,deployment_options,setting_secret,effective_secret,rejected_secret",
+        [
+            (
+                {"slack.signing-secret": "database-secret"},
+                {},
+                "",
+                "database-secret",
+                "incorrect-secret",
+            ),
+            (
+                {},
+                {"slack.signing-secret": "deployment-secret"},
+                "",
+                "deployment-secret",
+                "incorrect-secret",
+            ),
+            (
+                {"slack.signing-secret": "shared-secret"},
+                {"slack.signing-secret": "shared-secret"},
+                "shared-secret",
+                "shared-secret",
+                "incorrect-secret",
+            ),
+            (
+                {"slack.signing-secret": "database-secret"},
+                {"slack.signing-secret": "deployment-secret"},
+                "deployment-secret",
+                "deployment-secret",
+                "database-secret",
+            ),
+        ],
+        ids=["database-only", "legacy-deployment-only", "matching-dual", "deployment-wins"],
+    )
+    def test_legacy_effective_secret_requires_hmac(
+        self,
+        client: Client,
+        database_options: dict[str, str],
+        deployment_options: dict[str, str],
+        setting_secret: str,
+        effective_secret: str,
+        rejected_secret: str,
+    ) -> None:
+        deployment = {
+            key: value
+            for key, value in settings.SENTRY_OPTIONS.items()
+            if key != "slack.signing-secret"
+        }
+        deployment["slack.verification-token"] = "legacy-token"
+        with override_settings(SENTRY_OPTIONS=deployment):  # noqa: S011
+            options.delete("slack.signing-secret")
+            for key, value in database_options.items():
+                options.set(key, value)
+        deployment.update(deployment_options)
+        body = orjson.dumps(
+            {"type": "url_verification", "challenge": "challenge", "token": "legacy-token"}
+        )
+
+        with override_settings(
+            SENTRY_OPTIONS=deployment,  # noqa: S011
+            SENTRY_SLACK_SIGNING_SECRET=setting_secret,
+            SENTRY_SLACK_VERIFICATION_TOKEN="legacy-token",
+        ):
+            accepted = client.post(
+                "/extensions/slack/event/",
+                data=body,
+                content_type="application/json",
+                **set_signing_secret(effective_secret, body),
+            )
+            rejected = client.post(
+                "/extensions/slack/event/",
+                data=body,
+                content_type="application/json",
+                **set_signing_secret(rejected_secret, body),
+            )
+            token_only = client.post(
+                "/extensions/slack/event/",
+                data=body,
+                content_type="application/json",
+            )
+
+        assert accepted.status_code == 200
+        assert accepted.json() == {"challenge": "challenge"}
+        assert rejected.status_code == 401
+        assert token_only.status_code == 401
+
+
 class SlackEventRequestTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -207,6 +298,19 @@ class SlackEventRequestTest(TestCase):
             self.request.body = orjson.dumps(self.request.data)
 
             self.slack_request.validate()
+
+    def test_rejects_non_string_verification_token(self) -> None:
+        with override_options({"slack.signing-secret": None, "slack.verification-token": "12345"}):
+            self.request.data = {
+                "token": 12345,
+                "challenge": "abc123",
+                "type": "url_verification",
+            }
+            self.request.body = orjson.dumps(self.request.data)
+
+            with pytest.raises(SlackRequestError) as e:
+                self.slack_request.validate()
+            assert e.value.status == 401
 
     def test_is_seer_agent_request(self) -> None:
         self.request.data["event"] = {"type": "app_mention"}

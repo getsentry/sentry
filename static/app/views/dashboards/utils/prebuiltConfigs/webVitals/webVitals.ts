@@ -1,8 +1,16 @@
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
-import {DisplayType, SlideoutId, WidgetType} from 'sentry/views/dashboards/types';
+import {
+  DisplayType,
+  SlideoutId,
+  WidgetType,
+  type GlobalFilter,
+} from 'sentry/views/dashboards/types';
 import {type PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/settings';
+import {
+  DASHBOARD_DESCRIPTION,
+  DASHBOARD_TITLE,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/settings';
 import {SCORE_BREAKDOWN_WHEEL_WIDGET} from 'sentry/views/dashboards/widgetLibrary/webVitalsWidgets';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
@@ -18,10 +26,25 @@ export const ISSUE_TYPES = [
   'performance_p95_endpoint_regression',
 ];
 
+/**
+ * Lives in the config so duplicated dashboards carry it. A literal rather than
+ * an import from the switcher's settings, which import this module's index.
+ */
+export const WEB_VITALS_NAVIGATION_TYPE_FILTER: GlobalFilter = {
+  dataset: WidgetType.SPANS,
+  tag: {
+    key: SpanFields.BROWSER_NAVIGATION_TYPE,
+    name: SpanFields.BROWSER_NAVIGATION_TYPE,
+    kind: FieldKind.TAG,
+  },
+  value: '',
+};
+
 export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
   title: DASHBOARD_TITLE,
+  description: DASHBOARD_DESCRIPTION,
   filters: {
     globalFilter: [
       {
@@ -42,6 +65,7 @@ export const WEB_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
         },
         value: '',
       },
+      WEB_VITALS_NAVIGATION_TYPE_FILTER,
     ],
   },
   widgets: [

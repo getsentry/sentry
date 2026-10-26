@@ -1,4 +1,4 @@
-import {Outlet} from 'react-router-dom';
+import {Outlet} from 'react-router';
 
 /**
  * Route component version that renders children via Outlet.

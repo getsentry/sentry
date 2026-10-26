@@ -8,12 +8,6 @@ sudo.settings
 
 from django.conf import settings
 
-# Default url to be redirected to after elevating permissions
-REDIRECT_URL = getattr(settings, "SUDO_REDIRECT_URL", "/")
-
-# The querystring argument to be used for redirection
-REDIRECT_FIELD_NAME = getattr(settings, "SUDO_REDIRECT_FIELD_NAME", "next")
-
 # How long should sudo mode be active for? Duration in seconds.
 COOKIE_AGE = getattr(settings, "SUDO_COOKIE_AGE", 10800)
 
@@ -38,10 +32,3 @@ COOKIE_SECURE = getattr(settings, "SUDO_COOKIE_SECURE", None)
 
 # An extra salt to be added into the cookie signature
 COOKIE_SALT = getattr(settings, "SUDO_COOKIE_SALT", "")
-
-# The name of the session attribute used to preserve the redirect destination
-# between the original page request and successful sudo login.
-REDIRECT_TO_FIELD_NAME = getattr(settings, "SUDO_REDIRECT_TO_FIELD_NAME", "sudo_redirect_to")
-
-# The url for the sudo page itself. May be a url or a view name
-URL = getattr(settings, "SUDO_URL", "sudo.views.sudo")

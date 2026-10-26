@@ -6,13 +6,13 @@ action_log.types — safe to import from models and other dependency-sensitive c
 from __future__ import annotations
 
 import logging
+import secrets
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Optional, Sequence
 
-from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.issues.action_log.types import (
     SYSTEM_ACTOR,
     ActionSource,
@@ -34,7 +34,7 @@ _publish_callbacks: ContextVar[tuple[_PublishCallback, ...]] = ContextVar(
 
 # Group Action Log — tracks who did what to an issue and how.
 #
-# publish_action() writes a CellOutbox entry; the outbox receiver creates the
+# publish_action() writes an outbox entry; the outbox receiver creates the
 # GroupActionLogEntry on the (eventually separate) grouplog database and kicks
 # off derived-data processing.
 #
@@ -55,8 +55,15 @@ class ActionContext:
 _action_context: ContextVar[ActionContext | None] = ContextVar("action_context", default=None)
 
 
+def _get_outbox_identifier() -> int:
+    # This only needs to be unique among currently stored outboxes for the same group,
+    # typically one or two rows. Even with 10k rows, the collision probability for
+    # positive signed bigint is about 1 in 184 billion.
+    return secrets.randbelow(2**63 - 1) + 1
+
+
 @contextmanager
-def action_context_scope(source: str, actor: GroupActionActor) -> Generator[None]:
+def action_context_scope(source: str, actor: GroupActionActor = SYSTEM_ACTOR) -> Generator[None]:
     """
     Set action attribution context for the duration of a block. Must be set before
     any code path that calls publish_action_from_context().
@@ -103,20 +110,24 @@ def publish_action(
     from django.db import router, transaction
 
     from sentry import features
-    from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
+    from sentry.hybridcloud.models.outbox import outbox_context
     from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
+    from sentry.issues.models.groupactionlogoutbox import GroupActionLogOutbox
     from sentry.utils import metrics
 
     for callback in _publish_callbacks.get():
         callback(action, source, group_id, project, actor)
 
     action_name = action.get_type().name.lower()
+    write_to_db = features.has("projects:issue-action-log-write-to-db", project)
+
     metrics.incr(
         "issues.action_log",
         tags={
             "action": action_name,
             "source": source,
             "actor_type": actor.actor_type.name.lower(),
+            "persisted": write_to_db,
         },
     )
     logger.info(
@@ -135,7 +146,7 @@ def publish_action(
         },
     )
 
-    if not features.has("projects:issue-action-log-write-to-db", project):
+    if not write_to_db:
         return
 
     payload: GroupActionLogPayload = {
@@ -145,23 +156,31 @@ def publish_action(
         "actor_type": actor.actor_type.value,
         "actor_id": actor.actor_id,
         "source": source,
-        "data": action.dict(),
+        "data": action.json_dict(),
         "force_async_derived": force_async_derived,
     }
 
     if idempotency_key is not None:
         payload["idempotency_key"] = idempotency_key
 
-    outbox = CellOutbox(
-        shard_scope=OutboxScope.GROUP_SCOPE,
-        shard_identifier=group_id,
-        category=OutboxCategory.GROUP_ACTION_LOG_EVENT,
-        object_identifier=CellOutbox.next_object_identifier(),
-        payload=payload,
-    )
     # Flush on commit by default; callers can wrap in outbox_context(flush=False) to defer.
-    with outbox_context(transaction.atomic(router.db_for_write(CellOutbox))):
-        outbox.save()
+    with outbox_context(transaction.atomic(router.db_for_write(GroupActionLogOutbox))):
+        with metrics.timer(
+            "issues.action_log.enqueue.duration",
+            tags={
+                "action": action_name,
+                "source": source,
+                "derived_strategy": "async" if force_async_derived else "inline",
+            },
+        ):
+            outbox = GroupActionLogOutbox(
+                shard_scope=OutboxScope.GROUP_SCOPE,
+                shard_identifier=group_id,
+                category=OutboxCategory.GROUP_ACTION_LOG_EVENT,
+                object_identifier=_get_outbox_identifier(),
+                payload=payload,
+            )
+            outbox.save()
 
 
 def publish_action_from_context(
@@ -183,6 +202,7 @@ def publish_action_from_context(
         logger.error(
             "publish_action_from_context called without ActionContext",
             extra={"action": action.get_type().name.lower(), "group_id": str(group_id)},
+            stack_info=True,
         )
         source: str = ActionSource.UNKNOWN
         actor = SYSTEM_ACTOR
@@ -201,17 +221,19 @@ def publish_action_from_context(
 
 
 def publish_actions_from_context_bulk(
-    actions: Sequence[GroupAction],
+    actions: Sequence[tuple[GroupAction, Project, int, str | None]],
     *,
-    group_id: int,
-    project: Project,
     force_async_derived: bool = False,
 ) -> None:
     """
     Record multiple issue actions using the current ActionContext. See docstring for
     publish_action_from_context. The distinction is that this is a function to publish
     multiple GroupActions at once while only flushing the Outbox once.
+
+    Input is a sequence of tuples of (GroupAction, Project, GroupID, IdempotencyKey)
     """
+    from sentry.hybridcloud.models.outbox import outbox_context
+
     if len(actions) == 0:
         return
 
@@ -220,9 +242,9 @@ def publish_actions_from_context_bulk(
         logger.error(
             "publish_action_from_context_bulk called without ActionContext",
             extra={
-                "actions": [action.get_type().name.lower() for action in actions],
-                "group_id": str(group_id),
+                "actions": [ap[0].get_type().name.lower() for ap in actions],
             },
+            stack_info=True,
         )
         source: str = ActionSource.UNKNOWN
         actor = SYSTEM_ACTOR
@@ -231,22 +253,24 @@ def publish_actions_from_context_bulk(
         actor = ctx.actor
 
     with outbox_context(flush=False):
-        for action in actions[:-1]:
+        for apgi in actions[:-1]:
             publish_action(
-                action,
+                apgi[0],
                 source=source,
-                group_id=group_id,
-                project=project,
+                group_id=apgi[2],
+                project=apgi[1],
                 actor=actor,
                 force_async_derived=force_async_derived,
+                idempotency_key=apgi[3],
             )
 
     # Flushes the outbox by default.
     publish_action(
-        actions[-1],
+        actions[-1][0],
         source=source,
-        group_id=group_id,
-        project=project,
+        group_id=actions[-1][2],
+        project=actions[-1][1],
         actor=actor,
         force_async_derived=force_async_derived,
+        idempotency_key=actions[-1][3],
     )

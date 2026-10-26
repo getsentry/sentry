@@ -19,14 +19,13 @@ type Props = {
    * in the order they want bars displayed.
    */
   data: Point[];
-  maxItems?: number;
 };
 
-export function BreakdownBars({data, maxItems}: Props) {
+export function BreakdownBars({data}: Props) {
   const total = data.reduce((sum, point) => point.value + sum, 0);
   return (
     <BreakdownGrid>
-      {(maxItems ? data.slice(0, maxItems) : data).map((point, i) => {
+      {data.map((point, i) => {
         const bar = (
           <Fragment>
             <Bar

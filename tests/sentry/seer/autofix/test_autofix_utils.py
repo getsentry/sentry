@@ -2,6 +2,7 @@ from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
+from django.test import override_settings
 
 from sentry.constants import (
     SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
@@ -9,10 +10,12 @@ from sentry.constants import (
     ObjectStatus,
 )
 from sentry.models.options.project_option import ProjectOption
+from sentry.models.project import Project
 from sentry.models.projectrepository import ProjectRepository
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
     AutofixStatus,
+    CodingAgentStatus,
 )
 from sentry.seer.autofix.trigger import is_issue_eligible_for_seer_automation
 from sentry.seer.autofix.utils import (
@@ -20,7 +23,6 @@ from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     AutomationCodingAgent,
     CodingAgentProviderType,
-    CodingAgentStatus,
     add_seer_project_repos,
     bulk_read_preferences_from_sentry_db,
     bulk_write_preferences_to_sentry_db,
@@ -29,6 +31,7 @@ from sentry.seer.autofix.utils import (
     extract_api_error_message,
     get_org_default_seer_automation_handoff,
     get_repo_url_path,
+    get_token_based_billing_project_repos,
     has_project_connected_repos,
     is_seer_seat_based_tier_enabled,
     read_preference_from_sentry_db,
@@ -47,7 +50,8 @@ from sentry.seer.models.project_repository import (
     SeerProjectRepository,
     SeerProjectRepositoryBranchOverride,
 )
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import BaseTestCase, TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.utils.cache import cache
 
 
@@ -128,6 +132,7 @@ class TestAutofixStateParsing(TestCase):
         assert state.coding_agents["agent-1"].status == CodingAgentStatus.COMPLETED
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class TestIsIssueEligibleForSeerAutomation(TestCase):
     """Test the is_issue_eligible_for_seer_automation function."""
 
@@ -138,75 +143,68 @@ class TestIsIssueEligibleForSeerAutomation(TestCase):
         self.group = self.create_group(project=self.project)
 
     def test_returns_false_for_unsupported_issue_categories(self) -> None:
-        """Test returns False for unsupported issue categories like REPLAY and FEEDBACK."""
-        from sentry.issues.grouptype import FeedbackGroup, ReplayRageClickType
+        """Test returns False for unsupported issue categories like FEEDBACK."""
+        from sentry.issues.grouptype import FeedbackGroup
 
-        # Create groups with unsupported categories
-        replay_group = self.create_group(project=self.project, type=ReplayRageClickType.type_id)
         feedback_group = self.create_group(project=self.project, type=FeedbackGroup.type_id)
 
-        assert is_issue_eligible_for_seer_automation(replay_group) is False
         assert is_issue_eligible_for_seer_automation(feedback_group) is False
 
     def test_returns_true_for_supported_issue_categories(self) -> None:
         """Test returns True for supported issue categories when all conditions are met."""
-        with self.feature("organizations:gen-ai-features"):
-            with patch("sentry.quotas.backend.check_seer_quota") as mock_budget:
-                mock_budget.return_value = True
-                self.project.update_option("sentry:seer_scanner_automation", True)
+        with patch("sentry.quotas.backend.check_seer_quota") as mock_budget:
+            mock_budget.return_value = True
+            self.project.update_option("sentry:seer_scanner_automation", True)
 
-                # Test supported categories - using default error group
-                result = is_issue_eligible_for_seer_automation(self.group)
+            # Test supported categories - using default error group
+            result = is_issue_eligible_for_seer_automation(self.group)
 
-                assert result is True
+            assert result is True
 
-    def test_returns_false_when_gen_ai_features_not_enabled(self) -> None:
-        """Test returns False when organizations:gen-ai-features feature flag is not enabled."""
+    @override_settings(SENTRY_SELF_HOSTED=True)
+    def test_returns_false_when_self_hosted(self) -> None:
+        """Test returns False when Seer is not available (self-hosted)."""
         result = is_issue_eligible_for_seer_automation(self.group)
         assert result is False
 
     def test_returns_false_when_ai_features_hidden(self) -> None:
         """Test returns False when sentry:hide_ai_features option is enabled."""
-        with self.feature("organizations:gen-ai-features"):
-            self.organization.update_option("sentry:hide_ai_features", True)
-            result = is_issue_eligible_for_seer_automation(self.group)
-            assert result is False
+        self.organization.update_option("sentry:hide_ai_features", True)
+        result = is_issue_eligible_for_seer_automation(self.group)
+        assert result is False
 
     def test_returns_false_when_scanner_automation_disabled_and_not_always_trigger(self) -> None:
         """Test returns False when scanner automation is disabled and issue type doesn't always trigger."""
-        with self.feature("organizations:gen-ai-features"):
-            self.project.update_option("sentry:seer_scanner_automation", False)
-            result = is_issue_eligible_for_seer_automation(self.group)
-            assert result is False
+        self.project.update_option("sentry:seer_scanner_automation", False)
+        result = is_issue_eligible_for_seer_automation(self.group)
+        assert result is False
 
     @patch("sentry.quotas.backend.check_seer_quota")
     def test_returns_false_when_no_budget_available(self, mock_has_budget):
         """Test returns False when organization has no available budget for scanner."""
-        with self.feature("organizations:gen-ai-features"):
-            self.project.update_option("sentry:seer_scanner_automation", True)
-            mock_has_budget.return_value = False
+        self.project.update_option("sentry:seer_scanner_automation", True)
+        mock_has_budget.return_value = False
 
-            result = is_issue_eligible_for_seer_automation(self.group)
+        result = is_issue_eligible_for_seer_automation(self.group)
 
-            assert result is False
-            mock_has_budget.assert_called_once_with(
-                org_id=self.organization.id, data_category=DataCategory.SEER_SCANNER
-            )
+        assert result is False
+        mock_has_budget.assert_called_once_with(
+            org_id=self.organization.id, data_category=DataCategory.SEER_SCANNER
+        )
 
     @patch("sentry.quotas.backend.check_seer_quota")
     def test_returns_true_when_all_conditions_met(self, mock_has_budget):
         """Test returns True when all eligibility conditions are met."""
-        with self.feature("organizations:gen-ai-features"):
-            self.project.update_option("sentry:seer_scanner_automation", True)
+        self.project.update_option("sentry:seer_scanner_automation", True)
 
-            mock_has_budget.return_value = True
+        mock_has_budget.return_value = True
 
-            result = is_issue_eligible_for_seer_automation(self.group)
+        result = is_issue_eligible_for_seer_automation(self.group)
 
-            assert result is True
-            mock_has_budget.assert_called_once_with(
-                org_id=self.organization.id, data_category=DataCategory.SEER_SCANNER
-            )
+        assert result is True
+        mock_has_budget.assert_called_once_with(
+            org_id=self.organization.id, data_category=DataCategory.SEER_SCANNER
+        )
 
     @patch("sentry.quotas.backend.check_seer_quota")
     def test_returns_true_when_issue_type_always_triggers(
@@ -214,17 +212,16 @@ class TestIsIssueEligibleForSeerAutomation(TestCase):
         mock_has_budget,
     ):
         """Test returns True when issue type has always_trigger_seer_automation even if scanner automation is disabled."""
-        with self.feature("organizations:gen-ai-features"):
-            # Disable scanner automation
-            self.project.update_option("sentry:seer_scanner_automation", False)
+        # Disable scanner automation
+        self.project.update_option("sentry:seer_scanner_automation", False)
 
-            mock_has_budget.return_value = True
+        mock_has_budget.return_value = True
 
-            # Mock the group's issue_type to always trigger
-            with patch.object(self.group.issue_type, "always_trigger_seer_automation", True):
-                result = is_issue_eligible_for_seer_automation(self.group)
+        # Mock the group's issue_type to always trigger
+        with patch.object(self.group.issue_type, "always_trigger_seer_automation", True):
+            result = is_issue_eligible_for_seer_automation(self.group)
 
-                assert result is True
+            assert result is True
 
 
 class TestIsSeerSeatBasedTierEnabled(TestCase):
@@ -275,18 +272,21 @@ class TestIsSeerSeatBasedTierEnabled(TestCase):
         assert result is True
 
 
-class TestHasProjectConnectedRepos(TestCase):
+class HasProjectConnectedReposTestMixin(BaseTestCase):
     """Test the has_project_connected_repos function."""
 
     def setUp(self) -> None:
-        super().setUp()
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
+        self.integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:1"
+        )
 
     def test_returns_true_when_repos_exist(self):
         repo = self.create_repo(
             project=self.project,
             provider="integrations:github",
+            integration_id=self.integration.id,
             external_id="123",
             name="owner/repo",
         )
@@ -301,6 +301,7 @@ class TestHasProjectConnectedRepos(TestCase):
         repo = self.create_repo(
             project=self.project,
             provider="integrations:github",
+            integration_id=self.integration.id,
             external_id="123",
             name="owner/repo",
         )
@@ -314,6 +315,7 @@ class TestHasProjectConnectedRepos(TestCase):
         disabled_repo = self.create_repo(
             project=self.project,
             provider="integrations:github",
+            integration_id=self.integration.id,
             external_id="123",
             name="owner/disabled",
         )
@@ -322,6 +324,7 @@ class TestHasProjectConnectedRepos(TestCase):
         active_repo = self.create_repo(
             project=self.project,
             provider="integrations:github",
+            integration_id=self.integration.id,
             external_id="456",
             name="owner/active",
         )
@@ -334,6 +337,7 @@ class TestHasProjectConnectedRepos(TestCase):
         repo = self.create_repo(
             project=self.project,
             provider="integrations:github",
+            integration_id=self.integration.id,
             external_id="789",
             name="owner/fk-repo",
         )
@@ -343,6 +347,53 @@ class TestHasProjectConnectedRepos(TestCase):
         )
 
         assert has_project_connected_repos(self.organization, self.project) is True
+
+
+class TestHasProjectConnectedReposSeatBasedBilling(HasProjectConnectedReposTestMixin, TestCase):
+    def test_returns_false_when_repo_has_no_seer_config(self) -> None:
+        repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            integration_id=self.integration.id,
+            external_id="123",
+            name="owner/repo",
+        )
+        self.create_project_repository(project=self.project, repository=repo)
+
+        assert has_project_connected_repos(self.organization, self.project) is False
+
+
+@with_feature(
+    {
+        "organizations:seer-token-based-billing-onboarding": True,
+        "organizations:token-billed-seer-enabled": True,
+    }
+)
+class TestHasProjectConnectedReposTokenBasedBilling(HasProjectConnectedReposTestMixin, TestCase):
+    def test_returns_true_when_repo_has_no_seer_config(self) -> None:
+        repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            integration_id=self.integration.id,
+            external_id="123",
+            name="owner/repo",
+        )
+        self.create_project_repository(project=self.project, repository=repo)
+
+        assert has_project_connected_repos(self.organization, self.project) is True
+
+    def test_returns_false_when_project_inactive(self) -> None:
+        repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            integration_id=self.integration.id,
+            external_id="123",
+            name="owner/repo",
+        )
+        self.create_project_repository(project=self.project, repository=repo)
+        self.project.update(status=ObjectStatus.PENDING_DELETION)
+
+        assert has_project_connected_repos(self.organization, self.project) is False
 
 
 class TestDeduplicateRepositories(TestCase):
@@ -915,20 +966,122 @@ class TestClearPreferenceAutomationHandoff(TestCase):
         self._assert_handoff_options_cleared()
 
 
-class TestReadPreferenceFromSentryDb(TestCase):
-    def setUp(self):
+class TestGetTokenBasedBillingProjectRepos(TestCase):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
+        self.integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:1"
+        )
+
+    def _create_project_repo(
+        self,
+        name: str,
+        project: Project | None = None,
+        provider: str = "integrations:github",
+        has_integration: bool = True,
+        has_external_id: bool = True,
+    ) -> ProjectRepository:
+        project = project or self.project
+        repo = self.create_repo(
+            project=project,
+            name=name,
+            provider=provider,
+            integration_id=self.integration.id if has_integration else None,
+            external_id=name if has_external_id else None,
+        )
+        return self.create_project_repository(project=project, repository=repo)
+
+    def test_returns_linked_repos_with_and_without_config(self) -> None:
+        configured = self._create_project_repo("owner/configured")
+        SeerProjectRepository.objects.create(project_repository=configured, branch_name="main")
+        unconfigured = self._create_project_repo("owner/unconfigured")
+
+        assert set(
+            list(get_token_based_billing_project_repos(self.organization, [self.project.id]))
+        ) == {configured, unconfigured}
+
+    def test_excludes_inactive_repos(self) -> None:
+        project_repo = self._create_project_repo("owner/repo")
+        project_repo.repository.status = ObjectStatus.DISABLED
+        project_repo.repository.save()
+
+        assert (
+            list(get_token_based_billing_project_repos(self.organization, [self.project.id])) == []
+        )
+
+    def test_excludes_unsupported_providers(self) -> None:
+        self._create_project_repo("owner/repo", provider="integrations:bitbucket")
+
+        assert (
+            list(get_token_based_billing_project_repos(self.organization, [self.project.id])) == []
+        )
+
+    def test_excludes_repos_without_integration(self) -> None:
+        self._create_project_repo("owner/repo", has_integration=False)
+
+        assert (
+            list(get_token_based_billing_project_repos(self.organization, [self.project.id])) == []
+        )
+
+    def test_excludes_repos_without_external_id(self) -> None:
+        self._create_project_repo("owner/null-external-id", has_external_id=False)
+        empty_external_id_repo = self.create_repo(
+            project=self.project,
+            name="owner/empty-external-id",
+            provider="integrations:github",
+            integration_id=self.integration.id,
+            external_id="",
+        )
+        self.create_project_repository(project=self.project, repository=empty_external_id_repo)
+
+        assert (
+            list(get_token_based_billing_project_repos(self.organization, [self.project.id])) == []
+        )
+
+    def test_excludes_other_projects(self) -> None:
+        other_project = self.create_project(organization=self.organization)
+        self._create_project_repo("owner/repo", project=other_project)
+
+        assert (
+            list(get_token_based_billing_project_repos(self.organization, [self.project.id])) == []
+        )
+
+    def test_excludes_other_organizations(self) -> None:
+        other_project = self.create_project(organization=self.create_organization())
+        other_repo = self.create_repo(
+            project=other_project,
+            name="owner/repo",
+            provider="integrations:github",
+            integration_id=self.integration.id,
+            external_id="123",
+        )
+        self.create_project_repository(project=self.project, repository=other_repo)
+
+        assert (
+            list(get_token_based_billing_project_repos(self.organization, [self.project.id])) == []
+        )
+
+
+class ReadPreferenceFromSentryDbTestMixin(BaseTestCase):
+    def setUp(self):
+        self.organization = self.create_organization()
+        self.project = self.create_project(organization=self.organization)
+        self.integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:1"
+        )
         self.repo = self.create_repo(
             project=self.project,
             provider="integrations:github",
+            integration_id=self.integration.id,
             external_id="ext123",
             name="test-org/test-repo",
         )
         self.repo2 = self.create_repo(
             project=self.project,
             provider="integrations:github",
+            integration_id=self.integration.id,
             external_id="ext456",
             name="test-org/other-repo",
         )
@@ -1080,6 +1233,7 @@ class TestReadPreferenceFromSentryDb(TestCase):
         other_repo = self.create_repo(
             project=other_project,
             provider="integrations:github",
+            integration_id=self.integration.id,
             external_id="ext789",
             name="test-org/other-project-repo",
         )
@@ -1110,6 +1264,7 @@ class TestReadPreferenceFromSentryDb(TestCase):
         bad_repo = self.create_repo(
             project=self.project,
             provider="integrations:github",
+            integration_id=self.integration.id,
             external_id="ext_bad",
             name="no-slash-repo",
         )
@@ -1142,22 +1297,56 @@ class TestReadPreferenceFromSentryDb(TestCase):
         assert result.repositories[0].name == "test-repo"
 
 
-class TestBulkReadPreferencesFromSentryDb(TestCase):
+class TestReadPreferenceFromSentryDbSeatBasedBilling(ReadPreferenceFromSentryDbTestMixin, TestCase):
+    def test_excludes_repos_without_seer_config(self) -> None:
+        self.create_project_repository(project=self.project, repository=self.repo)
+
+        result = read_preference_from_sentry_db(self.project)
+        assert result.repositories == []
+
+
+@with_feature(
+    {
+        "organizations:seer-token-based-billing-onboarding": True,
+        "organizations:token-billed-seer-enabled": True,
+    }
+)
+class TestReadPreferenceFromSentryDbTokenBasedBilling(
+    ReadPreferenceFromSentryDbTestMixin, TestCase
+):
+    """Runs the tests above under token-based billing, plus token-based billing only cases."""
+
+    def test_includes_repos_without_seer_config(self) -> None:
+        self.create_project_repository(project=self.project, repository=self.repo)
+
+        result = read_preference_from_sentry_db(self.project)
+        assert len(result.repositories) == 1
+        assert result.repositories[0].name == "test-repo"
+        assert result.repositories[0].branch_name is None
+        assert result.repositories[0].instructions is None
+        assert result.repositories[0].branch_overrides == []
+
+
+class BulkReadPreferencesFromSentryDbTestMixin(BaseTestCase):
     def setUp(self):
-        super().setUp()
         self.organization = self.create_organization()
         self.project1 = self.create_project(organization=self.organization)
         self.project2 = self.create_project(organization=self.organization)
         self.project3 = self.create_project(organization=self.organization)
+        self.integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:1"
+        )
         self.repo = self.create_repo(
             project=self.project1,
             provider="integrations:github",
+            integration_id=self.integration.id,
             external_id="ext123",
             name="test-org/test-repo",
         )
         self.repo2 = self.create_repo(
             project=self.project1,
             provider="integrations:github",
+            integration_id=self.integration.id,
             external_id="ext456",
             name="test-org/other-repo",
         )
@@ -1264,6 +1453,7 @@ class TestBulkReadPreferencesFromSentryDb(TestCase):
         project2_repo = self.create_repo(
             project=self.project2,
             provider="integrations:github",
+            integration_id=self.integration.id,
             external_id="ext_p2",
             name="test-org/p2-repo",
         )
@@ -1279,6 +1469,36 @@ class TestBulkReadPreferencesFromSentryDb(TestCase):
         assert len(result[self.project1.id].repositories) == 1
         assert result[self.project1.id].repositories[0].name == "test-repo"
         assert len(result[self.project2.id].repositories) == 0
+
+
+class TestBulkReadPreferencesFromSentryDbSeatBasedBilling(
+    BulkReadPreferencesFromSentryDbTestMixin, TestCase
+):
+    def test_excludes_repos_without_seer_config(self) -> None:
+        self.create_project_repository(project=self.project1, repository=self.repo)
+
+        result = bulk_read_preferences_from_sentry_db(self.organization.id, [self.project1.id])
+        assert result[self.project1.id].repositories == []
+
+
+@with_feature(
+    {
+        "organizations:seer-token-based-billing-onboarding": True,
+        "organizations:token-billed-seer-enabled": True,
+    }
+)
+class TestBulkReadPreferencesFromSentryDbTokenBasedBilling(
+    BulkReadPreferencesFromSentryDbTestMixin, TestCase
+):
+    """Runs the tests above under token-based billing, plus token-based billing only cases."""
+
+    def test_includes_repos_without_seer_config(self) -> None:
+        self.create_project_repository(project=self.project1, repository=self.repo)
+
+        result = bulk_read_preferences_from_sentry_db(self.organization.id, [self.project1.id])
+        assert [(r.name, r.branch_name) for r in result[self.project1.id].repositories] == [
+            ("test-repo", None)
+        ]
 
 
 class TestGetOrgDefaultSeerAutomationHandoff(TestCase):

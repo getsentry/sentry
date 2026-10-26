@@ -19,9 +19,10 @@ const platform: OnboardingSelectedSDK = {
 describe('useCreateProject', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture({slug: 'my-project'});
+  let reloadOrgRequest: jest.Mock;
 
   beforeEach(() => {
-    MockApiClient.addMockResponse({
+    reloadOrgRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       body: organization,
     });
@@ -48,10 +49,8 @@ describe('useCreateProject', () => {
     result.current.mutate({platform, name: 'my-project'});
 
     await waitFor(() => expect(mockCreate).toHaveBeenCalled());
-    expect(ProjectsStore.onCreateSuccess).toHaveBeenCalledWith(
-      project,
-      organization.slug
-    );
+    expect(ProjectsStore.onCreateSuccess).toHaveBeenCalledWith(project);
+    await waitFor(() => expect(reloadOrgRequest).toHaveBeenCalled());
   });
 
   it('POSTs to /teams/{org}/{team}/projects/ when a team slug is provided', async () => {

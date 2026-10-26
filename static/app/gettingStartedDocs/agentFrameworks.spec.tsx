@@ -1,0 +1,26 @@
+import {docs as eveDocs} from 'sentry/gettingStartedDocs/node-eve';
+import {onboarding as eveOnboarding} from 'sentry/gettingStartedDocs/node-eve/onboarding';
+import {docs as flueDocs} from 'sentry/gettingStartedDocs/node-flue';
+import {onboarding as flueOnboarding} from 'sentry/gettingStartedDocs/node-flue/onboarding';
+import {docs as mastraDocs} from 'sentry/gettingStartedDocs/node-mastra';
+import {onboarding as mastraOnboarding} from 'sentry/gettingStartedDocs/node-mastra/onboarding';
+import {docs as piDocs} from 'sentry/gettingStartedDocs/node-pi-durable';
+import {onboarding as piOnboarding} from 'sentry/gettingStartedDocs/node-pi-durable/onboarding';
+
+describe('agent framework getting started docs', () => {
+  it.each([
+    ['Eve', eveDocs, eveOnboarding],
+    ['Flue', flueDocs, flueOnboarding],
+    ['Mastra', mastraDocs, mastraOnboarding],
+    ['Pi Durable', piDocs, piOnboarding],
+  ] as const)(
+    'uses dedicated %s setup while retaining Node product docs',
+    (_name, docs, onboarding) => {
+      expect(docs.onboarding).toBe(onboarding);
+      expect(docs.logsOnboarding).toBeDefined();
+      expect(docs.metricsOnboarding).toBeDefined();
+      expect(docs.profilingOnboarding).toBeDefined();
+      expect(docs.agentMonitoringOnboarding).toBeDefined();
+    }
+  );
+});

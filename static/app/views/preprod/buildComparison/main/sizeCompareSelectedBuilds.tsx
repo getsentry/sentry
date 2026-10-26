@@ -1,16 +1,19 @@
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/close';
+import {IconCommit} from '@sentry/icons/commit';
+import {IconFocus} from '@sentry/icons/focus';
+import {IconLock} from '@sentry/icons/lock';
+import {IconTelescope} from '@sentry/icons/telescope';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconClose, IconCommit, IconFocus, IconLock, IconTelescope} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFormat, getFormattedDate} from 'sentry/utils/dates';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   getBuildNumber,
@@ -23,10 +26,18 @@ interface BuildButtonProps {
   icon: React.ReactNode;
   label: string;
   slot: 'head' | 'base';
+  className?: string;
   onRemove?: () => void;
 }
 
-function BuildButton({buildDetails, icon, label, onRemove, slot}: BuildButtonProps) {
+function BuildButton({
+  buildDetails,
+  icon,
+  label,
+  onRemove,
+  slot,
+  className,
+}: BuildButtonProps) {
   const organization = useOrganization();
   const sha = buildDetails.vcs_info?.head_sha?.substring(0, 7);
   const branchName = buildDetails.vcs_info?.head_ref;
@@ -67,6 +78,7 @@ function BuildButton({buildDetails, icon, label, onRemove, slot}: BuildButtonPro
 
   return (
     <StyledLinkButton
+      className={className}
       to={buildUrl}
       onClick={() =>
         trackAnalytics('preprod.builds.compare.go_to_build_details', {
@@ -79,8 +91,8 @@ function BuildButton({buildDetails, icon, label, onRemove, slot}: BuildButtonPro
         })
       }
     >
-      <ContentWrapper>
-        <ClippedContent>
+      <Container width="100%" position="relative">
+        <Container overflow="hidden">
           <Stack gap="xs">
             <Flex align="center" gap="sm">
               {icon}
@@ -114,7 +126,7 @@ function BuildButton({buildDetails, icon, label, onRemove, slot}: BuildButtonPro
               </Text>
             </Flex>
           </Stack>
-        </ClippedContent>
+        </Container>
         {onRemove && (
           <CloseButtonWrapper>
             <Button
@@ -130,7 +142,7 @@ function BuildButton({buildDetails, icon, label, onRemove, slot}: BuildButtonPro
             />
           </CloseButtonWrapper>
         )}
-      </ContentWrapper>
+      </Container>
     </StyledLinkButton>
   );
 }
@@ -146,38 +158,12 @@ const StyledLinkButton = styled(LinkButton)`
   }
 `;
 
-const ContentWrapper = styled('div')`
-  position: relative;
-  width: 100%;
-`;
-
-const ClippedContent = styled('div')`
-  overflow: hidden;
-`;
-
 const CloseButtonWrapper = styled('div')`
   position: absolute;
   top: 0;
   right: -6px;
   background-color: ${p => p.theme.colors.surface500};
   border-radius: ${p => p.theme.radius.xs};
-`;
-
-const ComparisonContainer = styled(Flex)`
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: ${p => p.theme.space.lg};
-  width: 100%;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    flex-direction: column;
-
-    > * {
-      min-width: 0;
-      max-width: 100%;
-    }
-  }
 `;
 
 interface SizeCompareSelectedBuildsProps {
@@ -196,29 +182,49 @@ export function SizeCompareSelectedBuilds({
   onTriggerComparison,
 }: SizeCompareSelectedBuildsProps) {
   const organization = useOrganization();
-  const {project: projectId} = useLocationQuery({fields: {project: decodeScalar}});
+  const [projectId] = useQueryState('project', parseAsString.withDefault(''));
   const platform = headBuildDetails.app_info?.platform ?? null;
   const project = ProjectsStore.getById(projectId);
 
   return (
-    <ComparisonContainer>
-      <BuildButton
-        buildDetails={headBuildDetails}
-        icon={<IconLock size="xs" locked />}
-        label={t('Head')}
-        slot="head"
-      />
+    <Flex
+      direction={{zero: 'column', xl: 'row'}}
+      wrap="wrap"
+      align={{zero: 'stretch', xl: 'center'}}
+      justify="center"
+      gap="lg"
+      width="100%"
+    >
+      <Container minWidth={{zero: '0', xl: 'auto'}} maxWidth={{zero: '100%', xl: 'none'}}>
+        {props => (
+          <BuildButton
+            {...props}
+            buildDetails={headBuildDetails}
+            icon={<IconLock size="xs" locked />}
+            label={t('Head')}
+            slot="head"
+          />
+        )}
+      </Container>
 
-      <Text>{t('vs')}</Text>
+      <Text align="center">{t('vs')}</Text>
 
       {baseBuildDetails ? (
-        <BuildButton
-          buildDetails={baseBuildDetails}
-          icon={<IconFocus size="xs" variant="accent" />}
-          label={t('Base')}
-          onRemove={onClearBaseBuild}
-          slot="base"
-        />
+        <Container
+          minWidth={{zero: '0', xl: 'auto'}}
+          maxWidth={{zero: '100%', xl: 'none'}}
+        >
+          {props => (
+            <BuildButton
+              {...props}
+              buildDetails={baseBuildDetails}
+              icon={<IconFocus size="xs" variant="accent" />}
+              label={t('Base')}
+              onRemove={onClearBaseBuild}
+              slot="base"
+            />
+          )}
+        </Container>
       ) : (
         <SelectBuild>
           <Text size="sm">{t('Select a build')}</Text>
@@ -246,7 +252,7 @@ export function SizeCompareSelectedBuilds({
           {isComparing ? t('Comparing...') : t('Compare builds')}
         </Button>
       )}
-    </ComparisonContainer>
+    </Flex>
   );
 }
 

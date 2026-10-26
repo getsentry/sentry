@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/arrow';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconArrow} from 'sentry/icons';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -25,7 +25,7 @@ export function StoryFooter() {
         <Card
           to={{
             pathname: normalizeUrl(
-              `/organizations/${organization.slug}/stories/${pagination.prev.category}/${pagination.prev.slug}/`
+              `/organizations/${organization.slug}/scraps/${pagination.prev.category}/${pagination.prev.slug}/`
             ),
           }}
           icon={<IconArrow direction="left" />}
@@ -43,7 +43,7 @@ export function StoryFooter() {
           data-flip
           to={{
             pathname: normalizeUrl(
-              `/organizations/${organization.slug}/stories/${pagination.next.category}/${pagination.next.slug}/`
+              `/organizations/${organization.slug}/scraps/${pagination.next.category}/${pagination.next.slug}/`
             ),
           }}
           icon={<IconArrow direction="right" />}

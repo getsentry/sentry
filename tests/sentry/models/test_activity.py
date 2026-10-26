@@ -21,6 +21,35 @@ class ActivityTest(TestCase):
         assert len(act_for_group) == 1
         assert act_for_group[0].type == ActivityType.FIRST_SEEN.value
 
+    def test_get_activities_for_group_excludes_hidden(self) -> None:
+        project = self.create_project(name="test_activities_group")
+        group = self.create_group(project)
+        user1 = self.create_user()
+
+        visible = Activity.objects.create_group_activity(
+            group=group,
+            type=ActivityType.SET_RESOLVED,
+            user=user1,
+            send_notification=False,
+        )
+        # Internal signal that drives workflow handlers; it must never reach the feed.
+        Activity.objects.create_group_activity(
+            group=group,
+            type=ActivityType.SMART_ASSIGNMENT_COMPLETED,
+            data={
+                "run_id": 123,
+                "run_uuid": "00000000-0000-0000-0000-000000000001",
+                "predicted_assignee_user_ids": [],
+            },
+            send_notification=False,
+        )
+
+        act_for_group = Activity.objects.get_activities_for_group(group=group, num=100)
+        types = {a.type for a in act_for_group}
+        assert ActivityType.SMART_ASSIGNMENT_COMPLETED.value not in types
+        assert visible.id in {a.id for a in act_for_group}
+        assert act_for_group[-1].type == ActivityType.FIRST_SEEN.value
+
     def test_get_activities_for_group_priority(self) -> None:
         manager = EventManager(make_event(level=logging.FATAL))
         project = self.create_project(name="test_activities_group")
@@ -448,3 +477,27 @@ class ActivityTest(TestCase):
 
         activity.refresh_from_db()
         assert activity.ident is None
+
+    @patch("sentry.issues.attributes.produce_snapshot_to_kafka")
+    def test_creating_note_emits_snapshot(self, produce_snapshot: MagicMock) -> None:
+        group = self.create_group()
+
+        produce_snapshot.reset_mock()
+
+        self.create_group_activity(group=group, type=ActivityType.NOTE.value, data={"text": "hi"})
+
+        assert produce_snapshot.called
+
+    @patch("sentry.issues.attributes.produce_snapshot_to_kafka")
+    def test_deleting_note_emits_snapshot(self, produce_snapshot: MagicMock) -> None:
+        group = self.create_group()
+
+        note = self.create_group_activity(
+            group=group, type=ActivityType.NOTE.value, data={"text": "hi"}
+        )
+
+        produce_snapshot.reset_mock()
+
+        note.delete()
+
+        assert produce_snapshot.called

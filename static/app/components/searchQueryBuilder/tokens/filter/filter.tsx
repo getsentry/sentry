@@ -1,14 +1,12 @@
-import {Fragment, useLayoutEffect, useRef, useState} from 'react';
+import {useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useFocusWithin} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
+import {IconClose} from '@sentry/icons/close';
 
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Flex} from '@sentry/scraps/layout';
-
-import {DateTime} from 'sentry/components/dateTime';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {
   useSearchQueryBuilderConfig,
   useSearchQueryBuilderLayout,
@@ -22,26 +20,24 @@ import {
 import {AggregateKey} from 'sentry/components/searchQueryBuilder/tokens/filter/aggregateKey';
 import {FilterKey} from 'sentry/components/searchQueryBuilder/tokens/filter/filterKey';
 import {FilterOperator} from 'sentry/components/searchQueryBuilder/tokens/filter/filterOperator';
+import {FilterValueText} from 'sentry/components/searchQueryBuilder/tokens/filter/filterValueText';
 import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
-import {
-  formatFilterValue,
-  getFilterValueType,
-  isAggregateFilterToken,
-} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
+import {isAggregateFilterToken} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {SearchQueryBuilderValueCombobox} from 'sentry/components/searchQueryBuilder/tokens/filter/valueCombobox';
 import {GridInvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/tokens/invalidTokenTooltip';
+import {isInvalidFilterKey} from 'sentry/components/searchQueryBuilder/utils';
 import {
   FilterType,
+  InvalidReason,
   Token,
   type ParseResultToken,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
-import {IconClose} from 'sentry/icons';
+import {isQueryBuilderPanelChrome} from 'sentry/components/tokenizedInput/token/comboBoxLayout';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
-import {prettifyTagKey} from 'sentry/utils/fields';
 
 interface SearchQueryTokenProps {
   item: Node<ParseResultToken>;
@@ -54,112 +50,66 @@ interface FilterValueProps extends SearchQueryTokenProps {
   onActiveChange: (active: boolean) => void;
 }
 
-export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
-  const {getFieldDefinition} = useSearchQueryBuilderConfig();
-  const {size} = useSearchQueryBuilderLayout();
-  const valueType = getFilterValueType(token, getFieldDefinition(getKeyName(token.key)));
-
-  if (token.filter === FilterType.HAS) {
-    return (
-      <FilterValueSingleTruncatedValue>
-        {prettifyTagKey(token.value.text)}
-      </FilterValueSingleTruncatedValue>
-    );
-  }
-
-  switch (token.value.type) {
-    case Token.VALUE_TEXT_LIST:
-    case Token.VALUE_NUMBER_LIST: {
-      const items = token.value.items;
-      const multiValueJoiner = token.negated ? 'and' : 'or';
-
-      if (items.length === 1 && items[0]!.value) {
-        return (
-          <FilterValueSingleTruncatedValue>
-            {formatFilterValue({token: items[0]!.value, valueType})}
-          </FilterValueSingleTruncatedValue>
-        );
-      }
-
-      const maxItems = size === 'small' ? 1 : 3;
-
-      return (
-        <Flex align="center" wrap="nowrap" gap="xs" maxWidth="400px">
-          {items.slice(0, maxItems).map((item, index) => (
-            <Fragment key={index}>
-              <FilterMultiValueTruncated>
-                {formatFilterValue({token: item.value!, valueType})}
-              </FilterMultiValueTruncated>
-              {index !== items.length - 1 && index < maxItems - 1 ? (
-                <FilterValueJoiner> {multiValueJoiner} </FilterValueJoiner>
-              ) : null}
-            </Fragment>
-          ))}
-          {items.length > maxItems && <span>+{items.length - maxItems}</span>}
-        </Flex>
-      );
-    }
-    case Token.VALUE_ISO_8601_DATE: {
-      const isUtc = token.value.tz?.toLowerCase() === 'z' || !token.value.tz;
-
-      return (
-        <DateTime date={token.value.value} dateOnly={!token.value.time} utc={isUtc} />
-      );
-    }
-    default: {
-      return (
-        <FilterValueSingleTruncatedValue>
-          {formatFilterValue({token: token.value, valueType})}
-        </FilterValueSingleTruncatedValue>
-      );
-    }
-  }
-}
-
 function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValueProps) {
   const ref = useRef<HTMLDivElement>(null);
   const {dispatch, focusOverride} = useSearchQueryBuilderState();
   const {disabled} = useSearchQueryBuilderConfig();
+  const {menuPresentation, panelRef, portalTarget} = useSearchQueryBuilderLayout();
 
-  const [isEditing, setIsEditing] = useState(false);
+  const [editSource, setEditSource] = useState<'click' | 'focusOverride' | false>(false);
 
   useLayoutEffect(() => {
     if (
-      !isEditing &&
+      !editSource &&
       focusOverride?.itemKey === item.key &&
       focusOverride.part === 'value'
     ) {
-      setIsEditing(true);
+      // oxlint-disable-next-line react/set-state-in-effect
+      setEditSource('focusOverride');
       onActiveChange(true);
       dispatch({type: 'RESET_FOCUS_OVERRIDE'});
     }
-  }, [dispatch, focusOverride, isEditing, item.key, onActiveChange]);
+  }, [dispatch, editSource, focusOverride, item.key, onActiveChange]);
 
   const {focusWithinProps} = useFocusWithin({
-    onBlurWithin: () => {
-      setIsEditing(false);
+    onBlurWithin: event => {
+      if (
+        menuPresentation === 'panel' &&
+        event.relatedTarget instanceof Node &&
+        isQueryBuilderPanelChrome(event.relatedTarget, panelRef.current, portalTarget)
+      ) {
+        return;
+      }
+      setEditSource(false);
     },
   });
 
   const filterButtonProps = useFilterButtonProps({state, item});
+  const {showAllFilterValues} = useSearchQueryBuilderLayout();
 
-  if (isEditing) {
+  if (editSource) {
     return (
       <ValueEditing ref={ref} {...mergeProps(focusWithinProps, filterButtonProps)}>
         <SearchQueryBuilderValueCombobox
           token={token}
           wrapperRef={ref}
+          editingCommittedValue={editSource === 'click'}
           onDelete={() => {
             filterRef.current?.focus();
             state.selectionManager.setFocusedKey(item.key);
-            setIsEditing(false);
+            setEditSource(false);
             onActiveChange(false);
           }}
           onCommit={() => {
-            setIsEditing(false);
+            setEditSource(false);
             onActiveChange(false);
             dispatch({type: 'COMMIT_QUERY'});
-            if (state.collection.getKeyAfter(item.key)) {
+            // Committing on blur must not move focus back into a dismissed panel.
+            if (
+              state.collection.getKeyAfter(item.key) &&
+              (menuPresentation !== 'panel' ||
+                panelRef.current?.contains(document.activeElement))
+            ) {
               state.selectionManager.setFocusedKey(
                 state.collection.getKeyAfter(item.key)
               );
@@ -174,10 +124,11 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
     <ValueButton
       aria-label={t('Edit value for filter: %s', getKeyName(token.key))}
       onClick={() => {
-        setIsEditing(true);
+        setEditSource('click');
         onActiveChange(true);
       }}
       disabled={disabled}
+      showAllValues={showAllFilterValues}
       {...filterButtonProps}
     >
       <InteractionStateLayer />
@@ -213,7 +164,9 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
   const isFocused = item.key === state.selectionManager.focusedKey;
 
   const {dispatch} = useSearchQueryBuilderState();
-  const {invalidFilterKeys} = useSearchQueryBuilderConfig();
+  const {invalidFilterKeys, invalidFilterKeyMessage, filterKeyAliases} =
+    useSearchQueryBuilderConfig();
+  const {showAllFilterValues} = useSearchQueryBuilderLayout();
   const {rowProps, gridCellProps} = useQueryBuilderGridItem(item, state, ref);
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -230,22 +183,28 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
     }
   };
 
+  // oxlint-disable-next-line react/refs
   const modifiedRowProps = mergeProps(rowProps, {
     tabIndex: isFocused ? 0 : -1,
     onKeyDown,
   });
 
-  const hasTokenInvalid = 'invalid' in token && defined(token.invalid);
+  const hasTokenInvalid =
+    'invalid' in token &&
+    defined(token.invalid) &&
+    !(filterMenuOpen && token.invalid.type === InvalidReason.FILTER_MUST_HAVE_VALUE);
   const tokenHasWarning = 'warning' in token && defined(token.warning);
   const filterKeyName = getKeyName(token.key, {aggregateWithArgs: true});
-  const isInvalidFilterKey = invalidFilterKeys.includes(filterKeyName);
-  const tokenHasError = hasTokenInvalid || isInvalidFilterKey;
+  const keyIsInvalid = isInvalidFilterKey(token.key, invalidFilterKeys, filterKeyAliases);
+  const tokenHasError = hasTokenInvalid || keyIsInvalid;
 
   return (
     <FilterWrapper
       aria-label={token.text}
       aria-invalid={tokenHasError}
       state={tokenHasError ? 'invalid' : tokenHasWarning ? 'warning' : 'valid'}
+      height={showAllFilterValues ? 'auto' : '24px'}
+      minHeight={showAllFilterValues ? '24px' : undefined}
       ref={ref}
       {...modifiedRowProps}
     >
@@ -254,11 +213,14 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
         state={state}
         item={item}
         columnCount={4}
+        height={showAllFilterValues ? 'auto' : undefined}
+        minHeight={showAllFilterValues ? '22px' : undefined}
         containerDisplayMode="grid"
         forceVisible={filterMenuOpen ? false : undefined}
         warning={
-          isInvalidFilterKey && !hasTokenInvalid
-            ? t('Invalid key. "%s" is not a supported search key.', filterKeyName)
+          keyIsInvalid && !hasTokenInvalid
+            ? (invalidFilterKeyMessage ??
+              t('Invalid key. "%s" is not a supported search key.', filterKeyName))
             : undefined
         }
       >
@@ -312,13 +274,13 @@ const FilterValueGridCell = styled(BaseGridCell)`
   min-width: 0;
 `;
 
-const ValueButton = styled(UnstyledButton)`
+const ValueButton = styled(UnstyledButton)<{showAllValues: boolean}>`
   padding: 0 ${p => p.theme.space['2xs']};
   color: ${p => p.theme.tokens.content.accent};
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
   width: 100%;
-  max-width: 400px;
+  max-width: ${p => (p.showAllValues ? 'none' : '400px')};
 
   :focus {
     background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
@@ -351,26 +313,4 @@ const DeleteButton = styled(UnstyledButton)`
     background-color: ${p => p.theme.colors.gray100};
     border-left: 1px solid ${p => p.theme.tokens.border.secondary};
   }
-`;
-
-const FilterValueJoiner = styled('span')`
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const FilterMultiValueTruncated = styled('div')`
-  display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 110px;
-  width: min-content;
-`;
-
-const FilterValueSingleTruncatedValue = styled('div')`
-  display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-  width: min-content;
 `;

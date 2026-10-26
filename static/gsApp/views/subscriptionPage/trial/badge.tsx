@@ -6,7 +6,7 @@ import {t, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
 import type {Subscription} from 'getsentry/types';
-import {getTrialDaysLeft, getTrialLength} from 'getsentry/utils/billing';
+import {getTrialDaysLeft, getTrialLength, isTrial} from 'getsentry/utils/billing';
 
 type Props = {
   organization: Organization;
@@ -14,7 +14,7 @@ type Props = {
 };
 
 export function TrialBadge({subscription, organization}: Props) {
-  if (subscription.isTrial) {
+  if (isTrial(subscription)) {
     return (
       <Tag variant="promotion">
         <TrialText>

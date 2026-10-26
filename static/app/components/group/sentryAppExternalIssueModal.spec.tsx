@@ -33,10 +33,6 @@ describe('openSentryAppIssueModal', () => {
 
   beforeEach(() => {
     MockApiClient.addMockResponse({
-      url: `/sentry-apps/${sentryApp.slug}/interaction/`,
-      method: 'POST',
-    });
-    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/external-issues/',
       body: [],
     });
@@ -75,6 +71,20 @@ describe('openSentryAppIssueModal', () => {
     for (const field of component.schema.link.required_fields) {
       expect(screen.getByRole('textbox', {name: field.label})).toBeInTheDocument();
     }
+  });
+
+  it('renders without an event', async () => {
+    openSentryAppIssueModal({
+      organization,
+      group,
+      event: undefined,
+      sentryAppComponent: component,
+      sentryAppInstallation: install,
+    });
+
+    renderGlobalModal();
+
+    expect(await screen.findByRole('textbox', {name: 'Title'})).toHaveValue(group.title);
   });
 
   it('can link an existing Issue', async () => {

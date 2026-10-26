@@ -1,10 +1,13 @@
+import type {MessagingIntegrationAnalyticsView} from 'sentry/components/messagingIntegrations/setupMessagingIntegrationButton';
 import type {IntegrationType, SentryAppStatus} from 'sentry/types/integrations';
-import type {MessagingIntegrationAnalyticsView} from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
 
 import type {PlatformEventParameters} from './platformAnalyticsEvents';
 import {platformEventMap} from './platformAnalyticsEvents';
 
 export type IntegrationView = {
+  // `view` identifies the flow or surface; `variant` identifies whether that flow
+  // uses the SCM or legacy experience.
+  variant?: 'scm' | 'legacy';
   view?:
     | MessagingIntegrationAnalyticsView
     | 'external_install'
@@ -16,7 +19,6 @@ export type IntegrationView = {
     | 'stacktrace_issue_details'
     | 'integration_configuration_detail'
     | 'onboarding'
-    | 'onboarding_scm'
     | 'project_creation'
     | 'developer_settings'
     | 'new_integration_modal'
@@ -77,6 +79,11 @@ type ProjectOwnershipModalParams = {
   net_change?: number;
 };
 
+type SentryAppTemplateAppliedParams = {
+  template: string;
+  referrer?: string;
+};
+
 // Event key to payload mappings
 export type IntegrationEventParameters = {
   'integrations.cloudformation_link_clicked': SingleIntegrationEventParams;
@@ -89,7 +96,9 @@ export type IntegrationEventParameters = {
   'integrations.index_viewed': MultipleIntegrationsEventParams;
   'integrations.install_modal_auto_opened': SingleIntegrationEventParams;
   'integrations.install_modal_opened': SingleIntegrationEventParams;
+  'integrations.installation_cancelled': IntegrationInstallEventParams;
   'integrations.installation_complete': IntegrationInstallEventParams;
+  'integrations.installation_failed': IntegrationInstallEventParams;
   'integrations.installation_input_value_changed': IntegrationInstallationInputValueChangeEventParams;
   'integrations.installation_start': IntegrationInstallEventParams;
   'integrations.integration_tab_clicked': SingleIntegrationEventParams;
@@ -97,6 +106,7 @@ export type IntegrationEventParameters = {
   'integrations.plugin_add_to_project_clicked': SingleIntegrationEventParams;
   'integrations.request_install': SingleIntegrationEventParams;
   'integrations.resolve_now_clicked': SingleIntegrationEventParams;
+  'integrations.sentry_app_template_applied': SentryAppTemplateAppliedParams;
   'integrations.serverless_function_action': IntegrationServerlessFunctionActionParams;
   'integrations.serverless_functions_viewed': IntegrationServerlessFunctionsViewedParams;
   'integrations.switch_manual_sdk_setup': SingleIntegrationEventParams;
@@ -117,6 +127,8 @@ export const integrationEventMap: Record<IntegrationAnalyticsKey, string> = {
   'integrations.integration_viewed': 'Integrations: Integration Viewed',
   'integrations.installation_start': 'Integrations: Installation Start',
   'integrations.installation_complete': 'Integrations: Installation Complete',
+  'integrations.installation_cancelled': 'Integrations: Installation Cancelled',
+  'integrations.installation_failed': 'Integrations: Installation Failed',
   'integrations.uninstall_clicked': 'Integrations: Uninstall Clicked',
   'integrations.uninstall_completed': 'Integrations: Uninstall Completed',
   'integrations.enabled': 'Integrations: Enabled',
@@ -134,6 +146,7 @@ export const integrationEventMap: Record<IntegrationAnalyticsKey, string> = {
   'integrations.serverless_functions_viewed': 'Integrations: Serverless Functions Viewed',
   'integrations.installation_input_value_changed':
     'Integrations: Installation Input Value Changed',
+  'integrations.sentry_app_template_applied': 'Integrations: Sentry App Template Applied',
   'integrations.serverless_function_action': 'Integrations: Serverless Function Action',
   'integrations.cloudformation_link_clicked': 'Integrations: CloudFormation Link Clicked',
   'integrations.switch_manual_sdk_setup': 'Integrations: Switch Manual SDK Setup',

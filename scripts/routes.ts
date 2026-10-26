@@ -167,8 +167,9 @@ const CONSTANTS: Record<string, string> = {
   MOBILE_LANDING_SUB_PATH: 'mobile',
   // sentry/views/insights/pages/mcp/settings
   MCP_LANDING_SUB_PATH: 'mcp',
-  // sentry/views/insights/pages/conversations/settings
-  CONVERSATIONS_LANDING_SUB_PATH: 'conversations',
+  // sentry/views/explore/conversations/settings
+  EXPLORE_AGENTS_SUB_PATH: 'agents',
+  CONVERSATIONS_DETAIL_SUB_PATH: 'conversations',
   // sentry/views/insights/pages/agents/settings
   AGENTS_LANDING_SUB_PATH: 'ai-agents',
   // sentry/views/insights/common/utils/useModuleURL → MODULE_BASE_URLS

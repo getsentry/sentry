@@ -1,0 +1,19 @@
+import {IconDocs} from '@sentry/icons/docs';
+
+import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
+import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
+
+export const Docs = defineSeerEmbed({
+  name: 'docs',
+  render({href, title}, level) {
+    switch (level) {
+      case 'markdown':
+        return (
+          <ResourceLink icon={IconDocs} href={href} title={title} format="markdown" />
+        );
+      case 'block':
+      case 'inline':
+        return <ResourceLink icon={IconDocs} href={href} title={title} />;
+    }
+  },
+});

@@ -4,7 +4,7 @@ description: Text components display text content with various typography option
 category: typography
 source: '@sentry/scraps/text'
 resources:
-  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/text/text.tsx
+  js: https://github.com/getsentry/sentry/blob/master/static/packages/scraps/src/text/text.tsx
   a11y:
     WCAG 1.4.3: https://www.w3.org/TR/WCAG22/#contrast-minimum
     WCAG 1.4.4: https://www.w3.org/TR/WCAG22/#resize-text
@@ -177,7 +177,7 @@ Control text alignment with the `align` prop: `left` (default), `center`, `right
 
 ## Density
 
-Control line height with the `density` prop: `compressed` (1.0), default (1.2), or `comfortable` (1.4).
+Control line height with the `density` prop: `compressed` (1.0), `default` (1.2), `comfortable` (1.4), or `fixed` (1rem). Omitting the prop uses the default line height.
 
 <Storybook.Demo>
   <Storybook.SideBySide vertical>
@@ -191,7 +191,7 @@ Control line height with the `density` prop: `compressed` (1.0), default (1.2), 
       </Container>
       <Container>
         <Heading as="h4">Default density</Heading>
-        <Text as="p">
+        <Text as="p" density="default">
           Default density text. Lorem ipsum dolor sit amet, consectetur adipiscing elit.
           Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
         </Text>
@@ -203,13 +203,21 @@ Control line height with the `density` prop: `compressed` (1.0), default (1.2), 
           elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
         </Text>
       </Container>
+      <Container>
+        <Heading as="h4">Fixed density</Heading>
+        <Text as="p" density="fixed">
+          Fixed density text. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed
+          do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+        </Text>
+      </Container>
     </Stack>
   </Storybook.SideBySide>
 </Storybook.Demo>
 ```jsx
 <Text density="compressed">Compressed density text...</Text>
-<Text>Default density text...</Text>
+<Text density="default">Default density text...</Text>
 <Text density="comfortable">Comfortable density text...</Text>
+<Text density="fixed">Fixed density text...</Text>
 ```
 
 ## Ellipsis Overflow
@@ -225,6 +233,16 @@ Handle text overflow with the `ellipsis` prop to truncate long text with an elli
 <Container width="200px" padding="md" border="primary">
   <Text ellipsis>This is a very long text that will be truncated with an ellipsis</Text>
 </Container>
+```
+
+### Rich content
+
+`Text` trims its box to the glyph bounds. With `ellipsis`, content taller than a line of text, such as a `Tag`, gets clipped. Pass `trim={false}` to keep the full line box.
+
+```jsx
+<Text ellipsis trim={false}>
+  <Tag variant="muted">Option</Tag>
+</Text>
 ```
 
 ## Wrapping
@@ -364,5 +382,5 @@ Text components automatically meet WCAG 2.2 AA compliance for color contrast and
 
 ## See Also
 
-- [Heading](/stories/core/heading/) - Related component for semantic headings
-- [Prose](/stories/core/prose/) - Related component for long-form content
+- [Heading](/scraps/core/heading/) - Related component for semantic headings
+- [Prose](/scraps/core/prose/) - Related component for long-form content

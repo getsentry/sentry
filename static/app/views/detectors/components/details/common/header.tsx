@@ -1,9 +1,11 @@
 import {Fragment} from 'react';
 
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {
   DisableDetectorAction,
   EditDetectorAction,
@@ -21,30 +23,35 @@ type DetectorDetailsHeaderProps = {
   useLocalDetailActions?: boolean;
 };
 
-function DetectorDetailsBreadcrumbs({detector}: {detector: Detector}) {
+function DetectorDetailsDefaultHeaderContent({detector}: {detector: Detector}) {
   const organization = useOrganization();
+  const project = useProjectFromId({project_id: detector.projectId ?? undefined});
+
   return (
-    <Breadcrumbs
-      crumbs={[
+    <TopBar.Slot
+      name="breadcrumbs"
+      title={{
+        type: 'page-title',
+        label: detector.name,
+        leadingGraphic: project ? (
+          <ProjectBadge disableLink hideName project={project} avatarSize={16} />
+        ) : (
+          <Placeholder width="16px" height="16px" />
+        ),
+      }}
+      items={[
         {
+          type: 'link',
           label: t('Monitors'),
           to: makeMonitorBasePathname(organization.slug),
         },
         {
+          type: 'link',
           label: getDetectorTypeLabel(detector.type),
           to: makeMonitorTypePathname(organization.slug, detector.type),
         },
-        {label: detector.name},
       ]}
     />
-  );
-}
-
-function DetectorDetailsDefaultHeaderContent({detector}: {detector: Detector}) {
-  return (
-    <TopBar.Slot name="title">
-      <DetectorDetailsBreadcrumbs detector={detector} />
-    </TopBar.Slot>
   );
 }
 

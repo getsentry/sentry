@@ -1,46 +1,43 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconDelete} from '@sentry/icons/delete';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Grid, type GridProps} from '@sentry/scraps/layout';
 
 import {Confirm} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
-import {IconDelete} from 'sentry/icons';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {InternalAppApiToken} from 'sentry/types/user';
-import {tokenPreview} from 'sentry/views/settings/organizationAuthTokens';
+import {tokenPreview} from 'sentry/views/settings/organizationAuthTokens/tokenUtils';
 
 type Props = {
   onRemove: (token: InternalAppApiToken) => void;
   token: InternalAppApiToken;
   canEdit?: boolean;
   onRemoveConfirmMessage?: string;
-  tokenPrefix?: string;
 };
 
 export function ApiTokenRow({
   token,
   onRemove,
-  tokenPrefix = '',
   canEdit = false,
   onRemoveConfirmMessage,
 }: Props) {
   return (
-    <Fragment>
-      <div>
+    <SimpleTable.Row>
+      <SimpleTable.RowCell>
         {token.name}
         <TokenPreview aria-label={t('Token preview')}>
-          {tokenPreview(token.tokenLastCharacters, tokenPrefix)}
+          {tokenPreview(token.tokenLastCharacters)}
         </TokenPreview>
-      </div>
-      <div>
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell>
         <DateTime date={token.dateCreated} />
-      </div>
-      <div>
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell>
         <ScopeList>{token.scopes.join(', ')}</ScopeList>
-      </div>
-      <Actions>
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell justify="end" gap="md">
         {canEdit && (
           <LinkButton size="sm" to={`/settings/account/api/auth-tokens/${token.id}/`}>
             {t('Edit')}
@@ -52,7 +49,7 @@ export function ApiTokenRow({
             onRemoveConfirmMessage ||
             t(
               'Are you sure you want to revoke %s token? It will not be usable anymore, and this cannot be undone.',
-              tokenPreview(token.tokenLastCharacters, tokenPrefix)
+              tokenPreview(token.tokenLastCharacters)
             )
           }
         >
@@ -60,8 +57,8 @@ export function ApiTokenRow({
             {t('Revoke')}
           </Button>
         </Confirm>
-      </Actions>
-    </Fragment>
+      </SimpleTable.RowCell>
+    </SimpleTable.Row>
   );
 }
 
@@ -69,12 +66,6 @@ const ScopeList = styled('div')`
   font-family: ${p => p.theme.font.family.mono};
   font-size: ${p => p.theme.font.size.sm};
   max-width: 400px;
-`;
-
-const Actions = styled((props: GridProps) => (
-  <Grid flow="column" align="center" gap="md" {...props} />
-))`
-  justify-content: flex-end;
 `;
 
 const TokenPreview = styled('div')`

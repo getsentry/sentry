@@ -91,6 +91,7 @@ export function AlertsBackground({anchorRef}: Props) {
   const alertAnimationHook: React.Ref<SVGGElement> = el => {
     if (alertInterval !== undefined) {
       clearInterval(alertInterval);
+      // oxlint-disable-next-line react/immutability
       alertInterval = undefined;
     }
 

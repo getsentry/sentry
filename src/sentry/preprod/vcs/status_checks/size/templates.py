@@ -7,6 +7,7 @@ from sentry.integrations.source_code_management.status_check import StatusCheckS
 from sentry.models.project import Project
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.preprod.url_utils import get_preprod_artifact_comparison_url, get_preprod_artifact_url
+from sentry.preprod.vcs.markdown_utils import escape_markdown, escape_markdown_code
 from sentry.preprod.vcs.status_checks.size.types import TriggeredRule
 
 _SIZE_ANALYZER_TITLE_BASE = _("Size Analysis")
@@ -209,6 +210,8 @@ def _format_artifact_summary(
     group_order: list[str] = []
 
     for artifact, size_metrics in artifact_metric_rows:
+        # Artifact-derived fields (app name/id, version, build config) are untrusted
+        # and escaped for Markdown; qualifiers and labels are Sentry-generated.
         qualifiers = []
 
         platform_label = artifact.get_platform_label()
@@ -223,16 +226,16 @@ def _format_artifact_summary(
             qualifiers.append(metric_type_display)
 
         mobile_app_info = artifact.get_mobile_app_info()
-        artifact_app_name = mobile_app_info.app_name if mobile_app_info else None
-        app_name = (
-            f"{artifact_app_name or '--'}{' (' + ', '.join(qualifiers) + ')' if qualifiers else ''}"
+        app_name_value = mobile_app_info.app_name if mobile_app_info else None
+        artifact_app_name = escape_markdown(app_name_value, default="--")
+        app_name = f"{artifact_app_name}{' (' + ', '.join(qualifiers) + ')' if qualifiers else ''}"
+
+        # app_id renders inside an inline code span
+        app_id = escape_markdown_code(artifact.app_id, default="--")
+
+        version_string = escape_markdown(
+            _format_version_string(artifact, default=str(_("Unknown")))
         )
-
-        # App ID
-        app_id = artifact.app_id or "--"
-
-        # App version
-        version_string = _format_version_string(artifact, default=str(_("Unknown")))
 
         base_artifact = base_artifact_map.get(artifact.id)
         base_metrics = None
@@ -265,10 +268,8 @@ def _format_artifact_summary(
         download_text = f"{download_size_display} ({download_change})"
         install_text = f"{install_size_display} ({install_change})"
 
-        # Configuration
-        configuration_text = (
-            f"{artifact.build_configuration.name or '--'}" if artifact.build_configuration else "--"
-        )
+        config_name = artifact.build_configuration.name if artifact.build_configuration else None
+        configuration_text = escape_markdown(config_name, default="--")
 
         row = f"| {name_text} | {configuration_text} | {version_string} | {download_text} | {install_text} |"
 
@@ -305,14 +306,15 @@ def _format_failure_summary(
     """Format summary for artifacts with processing failures."""
     table_rows = []
     for artifact in artifacts:
-        version_string = _format_version_string(artifact, default="-")
+        version_string = escape_markdown(_format_version_string(artifact, default="-"))
 
         artifact_url = get_preprod_artifact_url(artifact, view_type="size")
         unknown_app_text = str(_("Unknown App"))
-        app_id_link = f"[`{artifact.app_id or unknown_app_text}`]({artifact_url})"
+        app_id_text = escape_markdown_code(artifact.app_id, default=unknown_app_text)
+        app_id_link = f"[`{app_id_text}`]({artifact_url})"
 
         if artifact.state == PreprodArtifact.ArtifactState.FAILED:
-            error_msg = artifact.error_message or str(_("Unknown error"))
+            error_msg = escape_markdown(artifact.error_message, default=str(_("Unknown error")))
             table_rows.append(f"| {app_id_link} | {version_string} | {error_msg} |")
         else:
             # Show successful/processing ones too in mixed state
@@ -364,9 +366,9 @@ def _format_failed_checks_details(
 
     details_content = []
     for (app_id, config_name, platform), app_rules in rules_by_app.items():
-        platform_text = f" ({platform})" if platform else ""
-        config_text = f" | {config_name}" if config_name else ""
-        details_content.append(f"`{app_id}`{config_text}{platform_text}")
+        platform_text = f" ({escape_markdown(platform)})" if platform else ""
+        config_text = f" | {escape_markdown(config_name)}" if config_name else ""
+        details_content.append(f"`{escape_markdown_code(app_id)}`{config_text}{platform_text}")
 
         for tr in app_rules:
             metric_display = _get_metric_display_name(tr.rule.metric)
@@ -512,7 +514,7 @@ def _get_triggered_metric_type_display_name(
             return "Watch App"
         case PreprodArtifactSizeMetrics.MetricsArtifactType.ANDROID_DYNAMIC_FEATURE:
             if identifier:
-                return f"Dynamic Feature ({identifier})"
+                return f"Dynamic Feature ({escape_markdown(identifier)})"
             return "Dynamic Feature"
         case PreprodArtifactSizeMetrics.MetricsArtifactType.APP_CLIP_ARTIFACT:
             return "App Clip"

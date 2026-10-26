@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import type {QueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
+import type {ResponsiveKey} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {bulkUpdate} from 'sentry/actionCreators/group';
@@ -11,18 +12,19 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
+import {getWorkflowEngineResponseErrorMessage} from 'sentry/components/workflowEngine/getWorkflowEngineResponseErrorMessage';
 import {t, tct, tn} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {PageFilters} from 'sentry/types/core';
 import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {defined} from 'sentry/utils/defined';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {capitalize} from 'sentry/utils/string/capitalize';
+import {BULK_LIMIT, BULK_LIMIT_STR} from 'sentry/views/issueList/actions/constants';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
+import type {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 import {ExtraDescription} from './extraDescription';
-
-export const BULK_LIMIT = 1000;
-export const BULK_LIMIT_STR = BULK_LIMIT.toLocaleString();
 
 export enum ConfirmAction {
   RESOLVE = 'resolve',
@@ -169,19 +171,17 @@ export function getLabel(numIssues: number, allInQuerySelected: boolean) {
   };
 }
 
-// A mapping of which container sizes will trigger the column to disappear
-// e.g. 'Trend': screen.small => 'Trend' column will disappear on screen.small widths
+// The container breakpoint at which each issue-list column becomes visible.
 export const COLUMN_BREAKPOINTS = {
   ISSUE: undefined, // Issue column is always visible
-  TREND: '800px',
-  LAST_SEEN: '500px',
-  FIRST_SEEN: '900px',
-  EVENTS: '700px',
-  USERS: '900px',
-  PRIORITY: '1100px',
-  PROGRESS: '400px',
-  ASSIGNEE: '500px',
-};
+  TREND: 'xl',
+  LAST_SEEN: 'sm',
+  FIRST_SEEN: '2xl',
+  EVENTS: 'lg',
+  USERS: '2xl',
+  PRIORITY: '4xl',
+  ASSIGNEE: 'sm',
+} as const satisfies Record<string, ResponsiveKey | undefined>;
 
 function getSelectedProjectIds({
   selectedGroupIds,
@@ -213,7 +213,7 @@ export function invalidateIssueQueries({
   organizationSlug: string;
   queryClient: QueryClient;
 }) {
-  if (itemIds?.length) {
+  if (itemIds !== undefined) {
     for (const itemId of itemIds) {
       queryClient.invalidateQueries({
         queryKey: [`/organizations/${organizationSlug}/issues/${itemId}/`],
@@ -234,14 +234,24 @@ export function invalidateIssueQueries({
   });
 }
 
-export function performBulkUpdate({
+function getBulkUpdateErrorMessage(error: unknown): string {
+  const fallback = t('Unable to update issues');
+  if (!(error instanceof RequestError) || error.status !== 400) {
+    return fallback;
+  }
+
+  const message = getWorkflowEngineResponseErrorMessage(error.responseJSON);
+  return message ? t('Unable to update issues: %s', message) : fallback;
+}
+
+export async function performBulkUpdate({
   api,
   data,
   itemIds,
   organizationSlug,
   query,
   selection,
-  onError,
+  sort,
   onSuccess,
 }: {
   api: Client;
@@ -250,7 +260,7 @@ export function performBulkUpdate({
   organizationSlug: string;
   query: string;
   selection: PageFilters;
-  onError?: () => void;
+  sort: IssueSortOptions;
   onSuccess?: (itemIds: string[] | undefined) => void;
 }) {
   const projectConstraints = {
@@ -259,28 +269,22 @@ export function performBulkUpdate({
 
   addLoadingMessage(t('Saving changes…'));
 
-  bulkUpdate(
-    api,
-    {
+  try {
+    await bulkUpdate(api, {
       orgId: organizationSlug,
       itemIds,
       data,
       query,
+      sort,
       environment: selection.environments,
       failSilently: true,
       ...projectConstraints,
       ...selection.datetime,
-    },
-    {
-      success: () => {
-        clearIndicators();
-        onSuccess?.(itemIds);
-      },
-      error: () => {
-        clearIndicators();
-        addErrorMessage(t('Unable to update issues'));
-        onError?.();
-      },
-    }
-  );
+    });
+    clearIndicators();
+    onSuccess?.(itemIds);
+  } catch (error) {
+    clearIndicators();
+    addErrorMessage(getBulkUpdateErrorMessage(error));
+  }
 }

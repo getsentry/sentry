@@ -196,6 +196,7 @@ export const MOBILE_SESSION_HEALTH_PREBUILT_CONFIG: PrebuiltDashboard = {
   filters: {},
   projects: [],
   title: t('Mobile Session Health'),
+  description: t('Monitor mobile session health by user and session.'),
   widgets: [
     ...FIRST_ROW_WIDGETS,
     ...SECOND_ROW_WIDGETS,

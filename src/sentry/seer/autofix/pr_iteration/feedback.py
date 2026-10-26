@@ -1,47 +1,60 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from datetime import datetime
 from typing import Annotated, Any
 
 from django.utils import timezone
-from pydantic import BaseModel, Field, ValidationError, parse_raw_as, root_validator
+from pydantic import BaseModel, Field, ValidationError, root_validator
 
+from sentry import options
+from sentry.seer.agent.client_models import MemoryBlock, SeerRunState
+from sentry.seer.autofix.pr_iteration.feedback_sources.base import Decision
+from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import CheckSuiteFeedbackSource
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
+    GithubPrReviewBodyFeedbackSource,
     GithubPrReviewCommentFeedbackSource,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
+from sentry.seer.autofix.pr_iteration.iterations import get_iterations
+from sentry.seer.autofix.pr_iteration.project_setting import pr_iteration_enabled_for_group
 from sentry.utils import json
 
 FeedbackSource = Annotated[
-    UserUIFeedbackSource | GithubPrCommentFeedbackSource | GithubPrReviewCommentFeedbackSource,
+    UserUIFeedbackSource
+    | GithubPrCommentFeedbackSource
+    | GithubPrReviewCommentFeedbackSource
+    | GithubPrReviewBodyFeedbackSource
+    | CheckSuiteFeedbackSource,
     Field(discriminator="type"),
 ]
+
+_PARSE_FEEDBACK_ERRORS = (ValidationError, ValueError)
 
 
 class Feedback(BaseModel):
     source: FeedbackSource
     timestamp: datetime = Field(default_factory=timezone.now)
-    # `text` (verbatim prompt text) and `ui_text` (UI display) are derived from
-    # `source` by `_populate`. They are declared as real fields, not properties,
-    # so pydantic serializes them via .dict()/.json() at every nesting level —
-    # the frontend and Seer prompt metadata read them off the wire.
     text: str = ""
     ui_text: str = ""
+
+    @property
+    def feedback_id(self) -> str:
+        """Names this one item in a log line, without carrying its payload.
+
+        Delegates to :attr:`FeedbackSourceBase.source_id`. Source types are not
+        comparable (a GitHub issue-comment id and a review-comment id can
+        collide), so pair this with ``source.type`` when uniqueness across
+        sources matters.
+        """
+        return self.source.source_id
 
     @root_validator
     def _populate(cls, values: dict[str, Any]) -> dict[str, Any]:
         source = values.get("source")
         if source is None:
             return values
-        # Backwards compat: feedback serialized before sources produced their own
-        # text stored it at the top level, and those sources lack the fields this
-        # derivation needs (e.g. user-ui had no `user_feedback`), so `source.text`
-        # comes back empty. Fall back to the persisted top-level value so old
-        # run_state blocks in Seer keep rendering. Seer's run_state TTL is nominally
-        # 30 days, but a continuously-triggered run can retain old blocks
-        # indefinitely, so this fallback is permanent.
         values["text"] = source.text or values.get("text") or ""
         values["ui_text"] = (
             source.ui_text or source.text or values.get("ui_text") or values.get("text") or ""
@@ -49,16 +62,119 @@ class Feedback(BaseModel):
         return values
 
 
+def _parse_feedback_item(data: object) -> Feedback | None:
+    try:
+        return Feedback.parse_obj(data)
+    except _PARSE_FEEDBACK_ERRORS:
+        return None
+
+
 def parse_feedback(raw: str) -> list[Feedback]:
     try:
-        return parse_raw_as(list[Feedback], raw)
-    except (ValidationError, ValueError):
-        pass
-    try:
-        return [parse_raw_as(Feedback, raw)]
-    except (ValidationError, ValueError):
+        data = json.loads(raw)
+    except (TypeError, ValueError):
         return []
+
+    if isinstance(data, list):
+        # Parse item-by-item so one bad element cannot erase sibling
+        # comment/UI feedback in the same metadata blob.
+        return [
+            item for item in (_parse_feedback_item(entry) for entry in data) if item is not None
+        ]
+
+    item = _parse_feedback_item(data)
+    return [item] if item is not None else []
 
 
 def serialize_feedback(items: Sequence[Feedback]) -> str:
     return json.dumps([item.dict() for item in items])
+
+
+def blocks_feedback(blocks: Sequence[MemoryBlock]) -> list[Feedback]:
+    return [
+        feedback
+        for block in blocks
+        for feedback in parse_feedback((block.message.metadata or {}).get("feedback", ""))
+    ]
+
+
+def feedback_kind(items: Collection[Feedback]) -> str:
+    """Whether a batch is manual, automated, or both — the ``feedback_kind`` metrics tag."""
+    kinds = {item.source.is_automated for item in items}
+    if not kinds:
+        return "unknown"
+    if len(kinds) != 1:
+        return "mixed"
+    return "automated" if kinds.pop() else "manual"
+
+
+def latest_iteration_feedback_kind(run_state: SeerRunState) -> str:
+    """``feedback_kind`` for the run's most recent PR iteration."""
+    try:
+        iterations = get_iterations(run_state)
+    except Exception:
+        return "unknown"
+    if not iterations:
+        return "unknown"
+    return feedback_kind(blocks_feedback(iterations[-1].blocks))
+
+
+def iteration_is_automated(iteration_blocks: Sequence[MemoryBlock]) -> bool:
+    """Whether a PR iteration was driven *only* by automated feedback.
+
+    A human comment or UI feedback mixed into an iteration makes it human-driven
+    (and resets the streak); an iteration is automated only when every feedback
+    item in it is automated (see ``FeedbackSourceBase.is_automated``).
+    """
+    # An iteration with no parseable feedback isn't a human iteration, so treat it
+    # as automated (don't let a metadata gap reset the streak).
+    return all(feedback.source.is_automated for feedback in blocks_feedback(iteration_blocks))
+
+
+# Total PR iterations after which automated feedback stops triggering iterations.
+MAX_TOTAL_ITERATIONS = 25
+
+
+def total_iteration_cap_reached(run_state: SeerRunState) -> bool:
+    """Whether the run has hit ``MAX_TOTAL_ITERATIONS`` iterations."""
+    return len(get_iterations(run_state)) >= MAX_TOTAL_ITERATIONS
+
+
+def automated_streak_cap_reached(run_state: SeerRunState) -> bool:
+    """Whether the last N PR iterations were *all* automated (bots + CI).
+
+    ``N`` is ``autofix.pr-iteration.max-iterations``. Human feedback in any of
+    the last N iterations breaks the streak.
+    """
+    cap = options.get("autofix.pr-iteration.max-iterations")
+    if cap <= 0:
+        return False
+
+    last_iterations = get_iterations(run_state)[-cap:]
+    if len(last_iterations) < cap:
+        return False
+
+    return all(iteration_is_automated(iteration.blocks) for iteration in last_iterations)
+
+
+def iteration_cap_reached(run_state: SeerRunState) -> bool:
+    """Whether automated feedback should stop triggering iterations: either cap was hit."""
+    return total_iteration_cap_reached(run_state) or automated_streak_cap_reached(run_state)
+
+
+def automated_iteration_allowed(run_state: SeerRunState) -> Decision:
+    """Whether the run allows another automated iteration right now.
+
+    False when the project has PR iteration turned off or the run has hit the
+    automated iteration cap. Only automated feedback (CI, bots) is checked
+    against this: callers skip it for feedback from a person, which is never
+    held back by either.
+    """
+    group_id = run_state.metadata.get("group_id") if run_state.metadata else None
+    if group_id is not None and not pr_iteration_enabled_for_group(group_id):
+        return Decision(ok=False, reason="project_disabled")
+
+    if iteration_cap_reached(run_state):
+        return Decision(ok=False, reason="hard_cap_reached")
+
+    return Decision(ok=True, reason="run_allows")

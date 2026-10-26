@@ -1,3 +1,5 @@
+import DOMPurify from 'dompurify';
+
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {tct} from 'sentry/locale';
@@ -19,12 +21,15 @@ export function PartnershipNote({subscription}: Props) {
     <Panel data-test-id="partnership-note">
       <PanelBody withPadding>
         {subscription.partner ? (
-          // usually we pass it through sentry.utils.marked but
-          // markdown doesn't support adding attributes to links
           <TextBlock
             noMargin
             dangerouslySetInnerHTML={{
-              __html: subscription.partner?.partnership.supportNote || '',
+              __html: DOMPurify.sanitize(
+                subscription.partner?.partnership.supportNote || '',
+                // The note links out to the partner's support site; `target` is
+                // not in DOMPurify's default allowlist.
+                {ADD_ATTR: ['target']}
+              ),
             }}
           />
         ) : (

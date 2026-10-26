@@ -1,7 +1,7 @@
 import {useMemo, useState} from 'react';
 
 import {Dataset, TimePeriod, TimeWindow} from 'sentry/views/alerts/rules/metric/types';
-import {getTimePeriodOptions} from 'sentry/views/alerts/utils/timePeriods';
+import {getTimePeriodOptions} from 'sentry/views/detectors/utils/timePeriods';
 
 interface UseTimePeriodSelectionProps {
   dataset: Dataset;

@@ -1,25 +1,26 @@
-import type {RouteObject} from 'react-router-dom';
-import {Outlet} from 'react-router-dom';
+import {Outlet, type RouteObject} from 'react-router';
 import memoize from 'lodash/memoize';
 
-import {EXPERIMENTAL_SPA} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {makeLazyloadComponent as make} from 'sentry/makeLazyloadComponent';
 import {getOverride} from 'sentry/overrideRegistry';
+import {translateSentryRoute} from 'sentry/router/translateSentryRoute';
 import {ScrapsProviders} from 'sentry/scrapsProviders';
 import type {OverrideName} from 'sentry/types/overrides';
 import {errorHandler} from 'sentry/utils/errorHandler';
 import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
-import {translateSentryRoute} from 'sentry/utils/reactRouter6Compat/router';
 import {withDomainRedirect} from 'sentry/utils/withDomainRedirect';
 import {withDomainRequired} from 'sentry/utils/withDomainRequired';
 import {App} from 'sentry/views/app';
 import {AppBodyContentRoute} from 'sentry/views/app/appBodyContent';
-import {AuthLayoutRoute} from 'sentry/views/auth/layout';
+import {AuthenticatedApiErrorHandler} from 'sentry/views/app/authenticatedApiErrorHandler';
 import {authV2Routes} from 'sentry/views/authV2/routes';
 import {automationRoutes} from 'sentry/views/automations/routes';
 import {detectorRoutes} from 'sentry/views/detectors/routes';
-import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
+import {
+  CONVERSATIONS_DETAIL_SUB_PATH,
+  EXPLORE_AGENTS_SUB_PATH,
+} from 'sentry/views/explore/conversations/settings';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
 import {AGENTS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/agents/settings';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
@@ -81,15 +82,6 @@ function buildRoutes(): RouteObject[] {
   //
   // ## The structure
   //
-  // * `experimentalSpaRoutes`
-  //
-  //   These routes are specifically for the experimental single-page-app mode,
-  //   where Sentry is run separate from Django. These are NOT part of the root
-  //   <App /> component.
-  //
-  //   Right now these are mainly used for authentication pages. In the future
-  //   they would be used for other pages like registration.
-  //
   // * `rootRoutes`
   //
   //   These routes live directly under the <App /> container, and generally
@@ -129,63 +121,10 @@ function buildRoutes(): RouteObject[] {
   //   next to the routes they redirect to, and place 'legacy route' redirects
   //   for routes that have completely changed in this tree.
 
-  const experimentalSpaChildRoutes: SentryRouteObject[] = [
-    {
-      index: true,
-      component: make(() => import('sentry/views/auth/login')),
-    },
-    {
-      path: ':orgId/',
-      component: make(() => import('sentry/views/auth/login')),
-    },
-  ];
-  const experimentalSpaRoutes: SentryRouteObject = EXPERIMENTAL_SPA
-    ? {
-        path: '/auth/login/',
-        component: errorHandler(AuthLayoutRoute),
-        children: experimentalSpaChildRoutes,
-      }
-    : {};
-
-  const rootChildren: SentryRouteObject[] = [
-    {
-      index: true,
-      component: make(() => import('sentry/views/app/root')),
-    },
-    routeHook('routes:root'),
-    {
-      path: '/accept/:orgId/:memberId/:token/',
-      component: make(() => import('sentry/views/acceptOrganizationInvite')),
-    },
-    {
-      path: '/accept-transfer/',
-      component: make(() => import('sentry/views/acceptProjectTransfer')),
-    },
-    {
-      component: errorHandler(OrganizationContainerRoute),
-      children: [
-        {
-          path: '/extensions/:integrationSlug/link/',
-          component: make(() => import('sentry/views/integrationOrganizationLink')),
-        },
-      ],
-    },
-    {
-      path: '/sentry-apps/:sentryAppSlug/external-install/',
-      component: make(() => import('sentry/views/sentryAppExternalInstallation')),
-    },
-    {
-      path: '/account/',
-      redirectTo: '/settings/account/details/',
-    },
+  const publicRootChildren: SentryRouteObject[] = [
     {
       path: '/share/group/:shareId/',
       redirectTo: '/share/issue/:shareId/',
-    },
-    // Add redirect from old user feedback to new feedback
-    {
-      path: '/user-feedback/',
-      redirectTo: '/feedback/',
     },
     {
       path: '/share/issue/:shareId/',
@@ -214,6 +153,56 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/unsubscribe/issue')),
     },
     {
+      path: '/join-request/',
+      component: withDomainRequired(
+        make(() => import('sentry/views/organizationJoinRequest'))
+      ),
+      customerDomainOnlyRoute: true,
+    },
+    {
+      path: '/join-request/:orgId/',
+      component: withDomainRedirect(
+        make(() => import('sentry/views/organizationJoinRequest'))
+      ),
+    },
+  ];
+  const publicRootRoutes: SentryRouteObject = {
+    component: errorHandler(AppBodyContentRoute),
+    children: publicRootChildren,
+  };
+  const rootChildren: SentryRouteObject[] = [
+    {
+      index: true,
+      component: make(() => import('sentry/views/app/root')),
+    },
+    routeHook('routes:root'),
+    {
+      path: '/accept-transfer/',
+      component: make(() => import('sentry/views/acceptProjectTransfer')),
+    },
+    {
+      component: errorHandler(OrganizationContainerRoute),
+      children: [
+        {
+          path: '/extensions/:integrationSlug/link/',
+          component: make(() => import('sentry/views/integrationOrganizationLink')),
+        },
+      ],
+    },
+    {
+      path: '/sentry-apps/:sentryAppSlug/external-install/',
+      component: make(() => import('sentry/views/sentryAppExternalInstallation')),
+    },
+    {
+      path: '/account/',
+      redirectTo: '/settings/account/details/',
+    },
+    // Add redirect from old user feedback to new feedback
+    {
+      path: '/user-feedback/',
+      redirectTo: '/feedback/',
+    },
+    {
       path: '/organizations/new/',
       component: make(() => import('sentry/views/organizationCreate')),
     },
@@ -240,19 +229,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: '/organizations/:orgId/restore/',
       component: make(() => import('sentry/views/organizationRestore')),
-    },
-    {
-      path: '/join-request/',
-      component: withDomainRequired(
-        make(() => import('sentry/views/organizationJoinRequest'))
-      ),
-      customerDomainOnlyRoute: true,
-    },
-    {
-      path: '/join-request/:orgId/',
-      component: withDomainRedirect(
-        make(() => import('sentry/views/organizationJoinRequest'))
-      ),
     },
     {
       path: '/relocation/',
@@ -299,10 +275,17 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
-      path: '/stories/*',
+      path: '/scraps/*',
       withOrgPath: true,
       // eslint-disable-next-line boundaries/dependencies -- storybook entrypoint
       component: make(() => import('sentry/stories/view/index')),
+    },
+    {
+      path: '/stories/*',
+      withOrgPath: true,
+      // A redirectTo cannot preserve the wildcard deep link, query, or hash.
+      // eslint-disable-next-line boundaries/dependencies -- storybook redirect
+      component: make(() => import('sentry/stories/view/legacyStoriesRedirect')),
     },
     {
       path: '/debug/notifications/:notificationSource?/',
@@ -338,6 +321,13 @@ function buildRoutes(): RouteObject[] {
           ),
         },
         {
+          handle: {
+            settingsBreadcrumb: {
+              type: 'link',
+              label: t('Notifications'),
+              to: '/settings/account/notifications/',
+            },
+          },
           path: ':fineTuneType/',
           name: t('Fine Tune Alerts'),
           component: make(
@@ -359,6 +349,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'authorizations/',
+      name: t('Authorized Applications'),
       component: make(
         () => import('sentry/views/settings/account/accountAuthorizations')
       ),
@@ -380,24 +371,42 @@ function buildRoutes(): RouteObject[] {
               ),
             },
             {
-              path: 'session-history/',
-              name: t('Session History'),
-              component: make(
-                () =>
-                  import('sentry/views/settings/account/accountSecurity/sessionHistory')
-              ),
-            },
-            {
-              path: 'mfa/:authId/',
-              name: t('Details'),
-              component: make(
-                () =>
-                  import('sentry/views/settings/account/accountSecurity/accountSecurityDetails')
-              ),
+              handle: {
+                settingsBreadcrumb: {
+                  type: 'link',
+                  label: t('Security'),
+                  to: '/settings/account/security/',
+                },
+              },
+              children: [
+                {
+                  path: 'session-history/',
+                  name: t('Session History'),
+                  component: make(
+                    () =>
+                      import('sentry/views/settings/account/accountSecurity/sessionHistory')
+                  ),
+                },
+                {
+                  path: 'mfa/:authId/',
+                  name: t('Details'),
+                  component: make(
+                    () =>
+                      import('sentry/views/settings/account/accountSecurity/accountSecurityDetails')
+                  ),
+                },
+              ],
             },
           ],
         },
         {
+          handle: {
+            settingsBreadcrumb: {
+              type: 'link',
+              label: t('Security'),
+              to: '/settings/account/security/',
+            },
+          },
           path: 'mfa/:authId/enroll/',
           name: t('Enroll'),
           component: make(
@@ -426,43 +435,76 @@ function buildRoutes(): RouteObject[] {
           redirectTo: 'auth-tokens/',
         },
         {
-          path: 'auth-tokens/',
-          name: t('Personal Tokens'),
+          handle: {
+            settingsBreadcrumb: {
+              type: 'link',
+              label: t('API'),
+              to: '/settings/account/api/',
+            },
+          },
           children: [
             {
-              index: true,
-              component: make(() => import('sentry/views/settings/account/apiTokens')),
+              path: 'auth-tokens/',
+              name: t('Personal Tokens'),
+              children: [
+                {
+                  index: true,
+                  component: make(
+                    () => import('sentry/views/settings/account/apiTokens')
+                  ),
+                },
+                {
+                  handle: {
+                    settingsBreadcrumb: {
+                      type: 'link',
+                      label: t('Personal Tokens'),
+                      to: '/settings/account/api/auth-tokens/',
+                    },
+                  },
+                  children: [
+                    {
+                      path: 'new-token/',
+                      name: t('Create Personal Token'),
+                      component: make(
+                        () => import('sentry/views/settings/account/apiNewToken')
+                      ),
+                    },
+                    {
+                      path: ':tokenId/',
+                      name: t('Edit Personal Token'),
+                      component: make(
+                        () => import('sentry/views/settings/account/apiTokenDetails')
+                      ),
+                    },
+                  ],
+                },
+              ],
             },
             {
-              path: 'new-token/',
-              name: t('Create Personal Token'),
-              component: make(() => import('sentry/views/settings/account/apiNewToken')),
-            },
-            {
-              path: ':tokenId/',
-              name: t('Edit Personal Token'),
-              component: make(
-                () => import('sentry/views/settings/account/apiTokenDetails')
-              ),
-            },
-          ],
-        },
-        {
-          path: 'applications/',
-          name: t('Applications'),
-          children: [
-            {
-              index: true,
-              component: make(
-                () => import('sentry/views/settings/account/apiApplications')
-              ),
-            },
-            {
-              path: ':appId/',
-              name: t('Details'),
-              component: make(
-                () => import('sentry/views/settings/account/apiApplications/details')
-              ),
+              path: 'applications/',
+              name: t('Applications'),
+              children: [
+                {
+                  index: true,
+                  component: make(
+                    () => import('sentry/views/settings/account/apiApplications')
+                  ),
+                },
+                {
+                  handle: {
+                    settingsBreadcrumb: {
+                      type: 'link',
+                      label: t('Applications'),
+                      to: '/settings/account/api/applications/',
+                    },
+                  },
+                  path: ':appId/',
+                  name: t('Details'),
+                  component: make(
+                    () => import('sentry/views/settings/account/apiApplications/details')
+                  ),
+                },
+              ],
             },
           ],
         },
@@ -475,6 +517,9 @@ function buildRoutes(): RouteObject[] {
     },
   ];
   const accountSettingsRoutes: SentryRouteObject = {
+    handle: {
+      settingsBreadcrumb: {type: 'link', label: t('Account'), to: '/settings/account/'},
+    },
     path: 'account/',
     name: t('Account'),
     component: make(() => import('sentry/views/settings/account/accountSettingsLayout')),
@@ -482,7 +527,15 @@ function buildRoutes(): RouteObject[] {
   };
 
   const projectSettingsChildren: SentryRouteObject[] = [
+    routeHook('routes:project-settings'),
     {
+      handle: {
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+          switchTo: '/settings/:orgId/projects/:projectId/',
+        },
+      },
       index: true,
       name: t('General'),
       component: make(() => import('sentry/views/settings/projectGeneralSettings')),
@@ -492,11 +545,25 @@ function buildRoutes(): RouteObject[] {
       redirectTo: '/projects/:projectId/getting-started/',
     },
     {
+      handle: {
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+          switchTo: '/settings/:orgId/projects/:projectId/teams/',
+        },
+      },
       path: 'teams/',
       name: t('Teams'),
       component: make(() => import('sentry/views/settings/project/projectTeams')),
     },
     {
+      handle: {
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+          switchTo: '/settings/:orgId/projects/:projectId/alerts/',
+        },
+      },
       path: 'alerts/',
       name: t('Alerts'),
       component: make(() => import('sentry/views/settings/projectAlerts')),
@@ -511,7 +578,7 @@ function buildRoutes(): RouteObject[] {
         },
         {
           path: 'rules/',
-          redirectTo: '/organizations/:orgId/alerts/rules/',
+          redirectTo: '/organizations/:orgId/monitors/',
         },
         {
           path: 'rules/new/',
@@ -532,11 +599,37 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
+      handle: {
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+          switchTo: '/settings/:orgId/projects/:projectId/attributes/',
+        },
+      },
+      path: 'attributes/',
+      name: t('Attributes'),
+      component: make(() => import('sentry/views/settings/project/projectAttributes')),
+    },
+    {
+      handle: {
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+          switchTo: '/settings/:orgId/projects/:projectId/tags/',
+        },
+      },
       path: 'tags/',
       name: t('Tags & Context'),
       component: make(() => import('sentry/views/settings/projectTags')),
     },
     {
+      handle: {
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+          switchTo: '/settings/:orgId/projects/:projectId/environments/',
+        },
+      },
       path: 'environments/',
       name: t('Environments'),
       component: make(() => import('sentry/views/settings/project/projectEnvironments')),
@@ -550,6 +643,13 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
+      handle: {
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+          switchTo: '/settings/:orgId/projects/:projectId/ownership/',
+        },
+      },
       path: 'ownership/',
       name: t('Ownership Rules'),
       component: make(() => import('sentry/views/settings/project/projectOwnership')),
@@ -559,22 +659,37 @@ function buildRoutes(): RouteObject[] {
       redirectTo: '/settings/:orgId/data-forwarding/',
     },
     {
-      path: 'seer/',
-      name: t('Seer'),
-      // eslint-disable-next-line boundaries/dependencies -- TODO: move to getsentry routes
-      component: make(() => import('getsentry/views/seerAutomation/projectDetails')),
-    },
-    {
+      handle: {
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+          switchTo: '/settings/:orgId/projects/:projectId/user-feedback/',
+        },
+      },
       path: 'user-feedback/',
       name: t('User Feedback'),
       component: make(() => import('sentry/views/settings/projectUserFeedback')),
     },
     {
+      handle: {
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+          switchTo: '/settings/:orgId/projects/:projectId/toolbar/',
+        },
+      },
       path: 'toolbar/',
       name: t('Developer Toolbar'),
       component: make(() => import('sentry/views/settings/project/projectToolbar')),
     },
     {
+      handle: {
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+          switchTo: '/settings/:orgId/projects/:projectId/filters/',
+        },
+      },
       path: 'filters/',
       name: t('Inbound Filters'),
       component: make(() => import('sentry/views/settings/project/projectFilters')),
@@ -589,6 +704,13 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
+      handle: {
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+          switchTo: '/settings/:orgId/projects/:projectId/security-and-privacy/',
+        },
+      },
       path: 'security-and-privacy/',
       name: t('Security & Privacy'),
       children: [
@@ -607,21 +729,49 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
+      handle: {
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+          switchTo: '/settings/:orgId/projects/:projectId/issue-grouping/',
+        },
+      },
       path: 'issue-grouping/',
       name: t('Issue Grouping'),
       component: make(() => import('sentry/views/settings/projectIssueGrouping')),
     },
     {
+      handle: {
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+          switchTo: '/settings/:orgId/projects/:projectId/debug-symbols/',
+        },
+      },
       path: 'debug-symbols/',
       name: t('Debug Information Files'),
       component: make(() => import('sentry/views/settings/projectDebugFiles')),
     },
     {
+      handle: {
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+          switchTo: '/settings/:orgId/projects/:projectId/proguard/',
+        },
+      },
       path: 'proguard/',
       name: t('ProGuard Mappings'),
       component: make(() => import('sentry/views/settings/projectProguard')),
     },
     {
+      handle: {
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+          switchTo: '/settings/:orgId/projects/:projectId/source-maps/',
+        },
+      },
       path: 'source-maps/',
       name: t('Source Maps'),
       children: [
@@ -630,6 +780,13 @@ function buildRoutes(): RouteObject[] {
           component: make(() => import('sentry/views/settings/projectSourceMaps')),
         },
         {
+          handle: {
+            settingsBreadcrumb: {
+              type: 'link',
+              label: t('Source Maps'),
+              to: '/settings/:orgId/projects/:projectId/source-maps/',
+            },
+          },
           path: ':bundleId/',
           name: t('Source Map Uploads'),
           component: make(() => import('sentry/views/settings/projectSourceMaps')),
@@ -645,6 +802,13 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
+      handle: {
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+          switchTo: '/settings/:orgId/projects/:projectId/performance/',
+        },
+      },
       path: 'performance/',
       name: t('Performance'),
       component: make(() => import('sentry/views/settings/projectPerformance')),
@@ -654,26 +818,73 @@ function buildRoutes(): RouteObject[] {
       redirectTo: 'performance/',
     },
     {
+      handle: {
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+          switchTo: '/settings/:orgId/projects/:projectId/replays/',
+        },
+      },
       path: 'replays/',
       name: t('Replays'),
       component: make(() => import('sentry/views/settings/project/projectReplays')),
     },
     {
+      handle: {
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+          switchTo: '/settings/:orgId/projects/:projectId/logs/',
+        },
+      },
+      path: 'logs/',
+      name: t('Logs'),
+      component: make(() => import('sentry/views/settings/project/projectLogs')),
+    },
+    {
+      handle: {
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+          switchTo: '/settings/:orgId/projects/:projectId/playstation/',
+        },
+      },
       path: 'playstation/',
       name: t('PlayStation'),
       component: make(() => import('sentry/views/settings/project/tempest')),
     },
     {
+      handle: {
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+          switchTo: '/settings/:orgId/projects/:projectId/mobile-builds/',
+        },
+      },
       path: 'mobile-builds/',
       name: t('Mobile Builds'),
       component: make(() => import('sentry/views/settings/project/preprod')),
     },
     {
+      handle: {
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+          switchTo: '/settings/:orgId/projects/:projectId/snapshots/',
+        },
+      },
       path: 'snapshots/',
       name: t('Snapshots'),
       component: make(() => import('sentry/views/settings/project/preprod/snapshots')),
     },
     {
+      handle: {
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+          switchTo: '/settings/:orgId/projects/:projectId/keys/',
+        },
+      },
       path: 'keys/',
       name: t('Client Keys'),
       children: [
@@ -682,6 +893,13 @@ function buildRoutes(): RouteObject[] {
           component: make(() => import('sentry/views/settings/project/projectKeys/list')),
         },
         {
+          handle: {
+            settingsBreadcrumb: {
+              type: 'link',
+              label: t('Client Keys'),
+              to: '/settings/:orgId/projects/:projectId/keys/',
+            },
+          },
           path: ':keyId/',
           name: t('Details'),
           component: make(
@@ -691,11 +909,25 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
+      handle: {
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+          switchTo: '/settings/:orgId/projects/:projectId/loader-script/',
+        },
+      },
       path: 'loader-script/',
       name: t('Loader Script'),
       component: make(() => import('sentry/views/settings/project/loaderScript')),
     },
     {
+      handle: {
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+          switchTo: '/settings/:orgId/projects/:projectId/release-tracking/',
+        },
+      },
       path: 'release-tracking/',
       name: t('Release Tracking'),
       component: make(
@@ -703,6 +935,13 @@ function buildRoutes(): RouteObject[] {
       ),
     },
     {
+      handle: {
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+          switchTo: '/settings/:orgId/projects/:projectId/security-headers/',
+        },
+      },
       path: 'security-headers/',
       name: t('Security Headers'),
       children: [
@@ -711,24 +950,17 @@ function buildRoutes(): RouteObject[] {
           component: make(() => import('sentry/views/settings/projectSecurityHeaders')),
         },
         {
+          handle: {
+            settingsBreadcrumb: {
+              type: 'link',
+              label: t('Security Headers'),
+              to: '/settings/:orgId/projects/:projectId/security-headers/',
+            },
+          },
           path: 'csp/',
           name: t('Content Security Policy'),
           component: make(
             () => import('sentry/views/settings/projectSecurityHeaders/csp')
-          ),
-        },
-        {
-          path: 'expect-ct/',
-          name: t('Certificate Transparency'),
-          component: make(
-            () => import('sentry/views/settings/projectSecurityHeaders/expectCt')
-          ),
-        },
-        {
-          path: 'hpkp/',
-          name: t('HPKP'),
-          component: make(
-            () => import('sentry/views/settings/projectSecurityHeaders/hpkp')
           ),
         },
       ],
@@ -738,6 +970,13 @@ function buildRoutes(): RouteObject[] {
       redirectTo: '/settings/:orgId/projects/:projectId/security-headers/csp/',
     },
     {
+      handle: {
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+          switchTo: '/settings/:orgId/projects/:projectId/legacy-webhooks/',
+        },
+      },
       path: 'legacy-webhooks/',
       name: t('Webhooks'),
       component: make(
@@ -816,6 +1055,13 @@ function buildRoutes(): RouteObject[] {
           component: make(() => import('sentry/views/settings/organizationApiKeys')),
         },
         {
+          handle: {
+            settingsBreadcrumb: {
+              type: 'link',
+              label: t('API Key'),
+              to: '/settings/:orgId/api-keys/',
+            },
+          },
           path: ':apiKey/',
           name: t('Details'),
           component: make(
@@ -851,6 +1097,13 @@ function buildRoutes(): RouteObject[] {
           ),
         },
         {
+          handle: {
+            settingsBreadcrumb: {
+              type: 'link',
+              label: t('Members'),
+              to: '/settings/:orgId/members/',
+            },
+          },
           path: ':memberId/',
           name: t('Details'),
           component: make(
@@ -901,6 +1154,13 @@ function buildRoutes(): RouteObject[] {
           component: make(() => import('sentry/views/settings/organizationTeams')),
         },
         {
+          handle: {
+            settingsBreadcrumb: {
+              type: 'link',
+              label: t('Teams'),
+              to: '/settings/:orgId/teams/',
+            },
+          },
           path: ':teamId/',
           name: t('Team'),
           component: make(
@@ -912,6 +1172,13 @@ function buildRoutes(): RouteObject[] {
               redirectTo: 'members/',
             },
             {
+              handle: {
+                settingsBreadcrumb: {
+                  type: 'team',
+                  to: '/settings/:orgId/teams/:teamId/',
+                  switchTo: '/settings/:orgId/teams/:teamId/members/',
+                },
+              },
               path: 'members/',
               name: t('Members'),
               component: make(
@@ -919,6 +1186,13 @@ function buildRoutes(): RouteObject[] {
               ),
             },
             {
+              handle: {
+                settingsBreadcrumb: {
+                  type: 'team',
+                  to: '/settings/:orgId/teams/:teamId/',
+                  switchTo: '/settings/:orgId/teams/:teamId/notifications/',
+                },
+              },
               path: 'notifications/',
               name: t('Notifications'),
               component: make(
@@ -926,6 +1200,13 @@ function buildRoutes(): RouteObject[] {
               ),
             },
             {
+              handle: {
+                settingsBreadcrumb: {
+                  type: 'team',
+                  to: '/settings/:orgId/teams/:teamId/',
+                  switchTo: '/settings/:orgId/teams/:teamId/projects/',
+                },
+              },
               path: 'projects/',
               name: t('Projects'),
               component: make(
@@ -933,6 +1214,13 @@ function buildRoutes(): RouteObject[] {
               ),
             },
             {
+              handle: {
+                settingsBreadcrumb: {
+                  type: 'team',
+                  to: '/settings/:orgId/teams/:teamId/',
+                  switchTo: '/settings/:orgId/teams/:teamId/settings/',
+                },
+              },
               path: 'settings/',
               name: t('Settings'),
               component: make(
@@ -956,12 +1244,30 @@ function buildRoutes(): RouteObject[] {
       name: t('Integrations'),
       children: [
         {
-          path: ':integrationSlug',
-          name: t('Details'),
-          component: make(
-            () =>
-              import('sentry/views/settings/organizationIntegrations/sentryAppDetailedView')
-          ),
+          handle: {
+            settingsBreadcrumb: {
+              type: 'link',
+              label: t('Integrations'),
+              to: '/settings/:orgId/sentry-apps/',
+            },
+          },
+          children: [
+            {
+              handle: {
+                settingsBreadcrumb: {
+                  type: 'sentry-app',
+                  to: '/settings/:orgId/sentry-apps/:integrationSlug/',
+                  switchTo: '/settings/:orgId/integrations/:providerKey/',
+                },
+              },
+              path: ':integrationSlug',
+              name: t('Details'),
+              component: make(
+                () =>
+                  import('sentry/views/settings/organizationIntegrations/sentryAppDetailedView')
+              ),
+            },
+          ],
         },
       ],
     },
@@ -974,6 +1280,13 @@ function buildRoutes(): RouteObject[] {
       name: t('Integrations'),
       children: [
         {
+          handle: {
+            settingsBreadcrumb: {
+              type: 'link',
+              label: t('Integrations'),
+              to: '/settings/:orgId/document-integrations/',
+            },
+          },
           path: ':integrationSlug',
           name: t('Details'),
           component: make(
@@ -995,28 +1308,53 @@ function buildRoutes(): RouteObject[] {
           ),
         },
         {
-          path: 'legacy-webhooks/',
-          name: t('Webhooks'),
-          component: make(
-            () =>
-              import('sentry/views/settings/organizationIntegrations/webhookDetailedView')
-          ),
-        },
-        {
-          path: ':integrationSlug',
-          name: t('Integration Details'),
-          component: make(
-            () =>
-              import('sentry/views/settings/organizationIntegrations/integrationDetailedView')
-          ),
-        },
-        {
-          path: ':providerKey/:integrationId/',
-          name: t('Configure Integration'),
-          component: make(
-            () =>
-              import('sentry/views/settings/organizationIntegrations/configureIntegration')
-          ),
+          handle: {
+            settingsBreadcrumb: {
+              type: 'link',
+              label: t('Integrations'),
+              to: '/settings/:orgId/integrations/',
+            },
+          },
+          children: [
+            {
+              path: 'legacy-webhooks/',
+              name: t('Webhooks'),
+              component: make(
+                () =>
+                  import('sentry/views/settings/organizationIntegrations/webhookDetailedView')
+              ),
+            },
+            {
+              handle: {
+                settingsBreadcrumb: {
+                  type: 'integration',
+                  to: '/settings/:orgId/integrations/:integrationSlug/',
+                  switchTo: '/settings/:orgId/integrations/:providerKey/',
+                },
+              },
+              path: ':integrationSlug',
+              name: t('Integration Details'),
+              component: make(
+                () =>
+                  import('sentry/views/settings/organizationIntegrations/integrationDetailedView')
+              ),
+            },
+            {
+              handle: {
+                settingsBreadcrumb: {
+                  type: 'integration',
+                  to: '/settings/:orgId/integrations/:providerKey/',
+                  switchTo: '/settings/:orgId/integrations/:providerKey/',
+                },
+              },
+              path: ':providerKey/:integrationId/',
+              name: t('Configure Integration'),
+              component: make(
+                () =>
+                  import('sentry/views/settings/organizationIntegrations/configureIntegration')
+              ),
+            },
+          ],
         },
       ],
     },
@@ -1031,36 +1369,47 @@ function buildRoutes(): RouteObject[] {
           ),
         },
         {
-          path: 'new-public/',
-          name: t('Create Integration'),
-          component: make(
-            () =>
-              import('sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails')
-          ),
-        },
-        {
-          path: 'new-internal/',
-          name: t('Create Integration'),
-          component: make(
-            () =>
-              import('sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails')
-          ),
-        },
-        {
-          path: ':appSlug/',
-          name: t('Edit Integration'),
-          component: make(
-            () =>
-              import('sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails')
-          ),
-        },
-        {
-          path: ':appSlug/dashboard/',
-          name: t('Integration Dashboard'),
-          component: make(
-            () =>
-              import('sentry/views/settings/organizationDeveloperSettings/sentryApplicationDashboard')
-          ),
+          handle: {
+            settingsBreadcrumb: {
+              type: 'link',
+              label: t('Custom Integrations'),
+              to: '/settings/:orgId/developer-settings/',
+            },
+          },
+          children: [
+            {
+              path: 'new-public/',
+              name: t('Create Integration'),
+              component: make(
+                () =>
+                  import('sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails')
+              ),
+            },
+            {
+              path: 'new-internal/',
+              name: t('Create Integration'),
+              component: make(
+                () =>
+                  import('sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails')
+              ),
+            },
+            {
+              path: ':appSlug/',
+              name: t('Edit Integration'),
+              component: make(
+                () =>
+                  import('sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails')
+              ),
+            },
+            {
+              path: ':appSlug/dashboard/',
+              name: t('Integration Dashboard'),
+              component: make(
+                () =>
+                  import('sentry/views/settings/organizationDeveloperSettings/sentryApplicationDashboard')
+              ),
+            },
+          ],
         },
       ],
     },
@@ -1073,18 +1422,30 @@ function buildRoutes(): RouteObject[] {
           component: make(() => import('sentry/views/settings/organizationAuthTokens')),
         },
         {
-          path: 'new-token/',
-          name: t('Create New Organization Token'),
-          component: make(
-            () => import('sentry/views/settings/organizationAuthTokens/newAuthToken')
-          ),
-        },
-        {
-          path: ':tokenId/',
-          name: t('Edit Organization Token'),
-          component: make(
-            () => import('sentry/views/settings/organizationAuthTokens/authTokenDetails')
-          ),
+          handle: {
+            settingsBreadcrumb: {
+              type: 'link',
+              label: t('Organization Tokens'),
+              to: '/settings/:orgId/auth-tokens/',
+            },
+          },
+          children: [
+            {
+              path: 'new-token/',
+              name: t('Create New Organization Token'),
+              component: make(
+                () => import('sentry/views/settings/organizationAuthTokens/newAuthToken')
+              ),
+            },
+            {
+              path: ':tokenId/',
+              name: t('Edit Organization Token'),
+              component: make(
+                () =>
+                  import('sentry/views/settings/organizationAuthTokens/authTokenDetails')
+              ),
+            },
+          ],
         },
       ],
     },
@@ -1112,6 +1473,13 @@ function buildRoutes(): RouteObject[] {
           component: make(() => import('sentry/views/settings/featureFlags')),
         },
         {
+          handle: {
+            settingsBreadcrumb: {
+              type: 'link',
+              label: t('Feature Flags'),
+              to: '/settings/:orgId/feature-flags/',
+            },
+          },
           path: 'change-tracking/',
           name: t('Change Tracking'),
           children: [
@@ -1122,6 +1490,13 @@ function buildRoutes(): RouteObject[] {
               ),
             },
             {
+              handle: {
+                settingsBreadcrumb: {
+                  type: 'link',
+                  label: t('Change Tracking'),
+                  to: '/settings/:orgId/feature-flags/change-tracking/',
+                },
+              },
               path: 'new-provider/',
               name: t('Add New Provider'),
               component: make(
@@ -1201,6 +1576,7 @@ function buildRoutes(): RouteObject[] {
   };
 
   const settingsRoutes: SentryRouteObject = {
+    handle: {settingsBreadcrumb: {type: 'link', label: t('Settings'), to: '/settings/'}},
     path: '/settings/',
     name: t('Settings'),
     component: SettingsWrapper,
@@ -1259,7 +1635,7 @@ function buildRoutes(): RouteObject[] {
 
   const traceView: SentryRouteObject = {
     path: 'trace/:traceSlug/',
-    component: make(() => import('sentry/views/performance/newTraceDetails/index')),
+    component: make(() => import('sentry/views/performance/traceDetails/index')),
   };
 
   const dashboardChildren: SentryRouteObject[] = [
@@ -1343,14 +1719,19 @@ function buildRoutes(): RouteObject[] {
   const alertChildRoutes = (forCustomerDomain: boolean): SentryRouteObject[] => [
     {
       index: true,
-      component: make(() => import('sentry/views/alerts/list/incidents')),
+      redirectTo: forCustomerDomain ? '/monitors/' : '/organizations/:orgId/monitors/',
     },
     {
       path: 'rules/',
       children: [
         {
+          // Kept as a redirect: the MS Teams installation card links here, and
+          // Adaptive Card buttons cannot be rewritten once delivered.
           index: true,
-          component: make(() => import('sentry/views/alerts/list/rules/alertRulesList')),
+          component: make(
+            () =>
+              import('sentry/views/alerts/workflowEngineRedirectWrappers/alertRulesListRedirect')
+          ),
         },
         {
           path: 'details/:ruleId/',
@@ -1366,14 +1747,14 @@ function buildRoutes(): RouteObject[] {
             {
               index: true,
               redirectTo: forCustomerDomain
-                ? '/alerts/rules/'
-                : '/organizations/:orgId/alerts/rules/',
+                ? '/monitors/'
+                : '/organizations/:orgId/monitors/',
             },
             {
               path: ':ruleId/',
               component: make(
                 () =>
-                  import('sentry/views/alerts/workflowEngineRedirectWrappers/alertEdit')
+                  import('sentry/views/alerts/workflowEngineRedirectWrappers/issueAlertRuleEditRedirect')
               ),
             },
           ],
@@ -1387,7 +1768,7 @@ function buildRoutes(): RouteObject[] {
         },
         {
           path: 'uptime/',
-          component: make(() => import('sentry/views/alerts/rules/uptime')),
+          component: make(() => import('sentry/views/detectors/components/uptime')),
           children: [
             {
               path: ':projectId/:detectorId/details/',
@@ -1423,8 +1804,8 @@ function buildRoutes(): RouteObject[] {
         {
           index: true,
           redirectTo: forCustomerDomain
-            ? '/alerts/rules/'
-            : '/organizations/:orgId/alerts/rules/',
+            ? '/monitors/'
+            : '/organizations/:orgId/monitors/',
         },
         {
           path: ':projectId/',
@@ -1433,14 +1814,14 @@ function buildRoutes(): RouteObject[] {
             {
               index: true,
               redirectTo: forCustomerDomain
-                ? '/alerts/rules/'
-                : '/organizations/:orgId/alerts/rules/',
+                ? '/monitors/'
+                : '/organizations/:orgId/monitors/',
             },
             {
               path: ':ruleId/',
               component: make(
                 () =>
-                  import('sentry/views/alerts/workflowEngineRedirectWrappers/metricAlertRuleEdit')
+                  import('sentry/views/alerts/workflowEngineRedirectWrappers/metricAlertRuleEditRedirect')
               ),
             },
           ],
@@ -1484,14 +1865,8 @@ function buildRoutes(): RouteObject[] {
       path: 'wizard/',
       component: make(
         () =>
-          import('sentry/views/alerts/workflowEngineRedirectWrappers/alertBuilderProjectProvider')
+          import('sentry/views/alerts/workflowEngineRedirectWrappers/monitorCreateRedirect')
       ),
-      children: [
-        {
-          index: true,
-          component: make(() => import('sentry/views/alerts/wizard')),
-        },
-      ],
     },
     {
       path: 'new/',
@@ -1506,7 +1881,8 @@ function buildRoutes(): RouteObject[] {
         {
           path: ':alertType/',
           component: make(
-            () => import('sentry/views/alerts/workflowEngineRedirectWrappers/alertCreate')
+            () =>
+              import('sentry/views/alerts/workflowEngineRedirectWrappers/monitorCreateRedirect')
           ),
         },
       ],
@@ -1518,21 +1894,18 @@ function buildRoutes(): RouteObject[] {
       ),
     },
     {
-      path: ':projectId/',
+      path: ':projectId/new/',
       component: make(
         () =>
-          import('sentry/views/alerts/workflowEngineRedirectWrappers/alertBuilderProjectProvider')
+          import('sentry/views/alerts/workflowEngineRedirectWrappers/monitorCreateRedirect')
       ),
-      children: [
-        {
-          path: 'new/',
-          component: make(() => import('sentry/views/alerts/create')),
-        },
-        {
-          path: 'wizard/',
-          component: make(() => import('sentry/views/alerts/wizard')),
-        },
-      ],
+    },
+    {
+      path: ':projectId/wizard/',
+      component: make(
+        () =>
+          import('sentry/views/alerts/workflowEngineRedirectWrappers/monitorCreateRedirect')
+      ),
     },
   ];
   const alertRoutes: SentryRouteObject = {
@@ -1674,10 +2047,10 @@ function buildRoutes(): RouteObject[] {
     ],
   };
 
-  const discoverChildren: SentryRouteObject[] = [
+  const discoverErrorsChildren: SentryRouteObject[] = [
     {
       index: true,
-      redirectTo: 'queries/',
+      component: make(() => import('sentry/views/discover/homepage')),
     },
     {
       path: 'homepage/',
@@ -1697,11 +2070,11 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/discover/eventDetails')),
     },
   ];
-  const discoverRoutes: SentryRouteObject = {
+  const discoverErrorsRoutes: SentryRouteObject = {
     path: '/discover/',
     component: make(() => import('sentry/views/discover')),
     withOrgPath: true,
-    children: discoverChildren,
+    children: discoverErrorsChildren,
   };
 
   const errorsChildren: SentryRouteObject[] = [
@@ -1711,7 +2084,7 @@ function buildRoutes(): RouteObject[] {
     },
   ];
   const errorsRoutes: SentryRouteObject = {
-    path: '/errors/',
+    path: '/errors-v2/',
     component: make(() => import('sentry/views/explore/errors')),
     withOrgPath: true,
     children: errorsChildren,
@@ -1743,7 +2116,7 @@ function buildRoutes(): RouteObject[] {
             path: `${moduleBaseURL}/*`,
             redirectTo: `/${DOMAIN_VIEW_BASE_URL}/${getModuleView(
               moduleUrlToModule[moduleBaseURL]!
-            )}${moduleBaseURL}/:splat`,
+            )}/${moduleBaseURL}/`,
           }
         : null
     )
@@ -2090,33 +2463,23 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: `${FRONTEND_LANDING_SUB_PATH}/uptime/`,
-      redirectTo: '/insights/uptime/',
+      redirectTo: '/organizations/:orgId/monitors/uptime/',
     },
     {
       path: `${BACKEND_LANDING_SUB_PATH}/uptime/`,
-      redirectTo: '/insights/uptime/',
+      redirectTo: '/organizations/:orgId/monitors/uptime/',
     },
     {
       path: `${BACKEND_LANDING_SUB_PATH}/crons/`,
-      redirectTo: '/insights/crons/',
+      redirectTo: '/organizations/:orgId/monitors/crons/',
     },
     {
       path: 'uptime/',
-      children: [
-        {
-          index: true,
-          component: make(() => import('sentry/views/insights/uptime/views/overview')),
-        },
-      ],
+      redirectTo: '/organizations/:orgId/monitors/uptime/',
     },
     {
       path: 'crons/',
-      children: [
-        {
-          index: true,
-          component: make(() => import('sentry/views/insights/crons/views/overview')),
-        },
-      ],
+      redirectTo: '/organizations/:orgId/monitors/crons/',
     },
   ];
 
@@ -2261,9 +2624,14 @@ function buildRoutes(): RouteObject[] {
       children: replayChildren,
     },
     {
+      path: 'errors/',
+      component: make(() => import('sentry/views/discover')),
+      children: discoverErrorsChildren,
+    },
+    {
       path: 'discover/',
       component: make(() => import('sentry/views/discover')),
-      children: discoverChildren,
+      children: discoverErrorsChildren,
     },
     {
       path: 'releases/',
@@ -2281,7 +2649,7 @@ function buildRoutes(): RouteObject[] {
       children: metricsChildren,
     },
     {
-      path: `${CONVERSATIONS_LANDING_SUB_PATH}/`,
+      path: `${EXPLORE_AGENTS_SUB_PATH}/`,
       component: make(() => import('sentry/views/explore/conversations/layout')),
       children: [
         {
@@ -2289,7 +2657,7 @@ function buildRoutes(): RouteObject[] {
           component: make(() => import('sentry/views/explore/conversations/overview')),
         },
         {
-          path: ':conversationId/',
+          path: `${CONVERSATIONS_DETAIL_SUB_PATH}/:conversationId/`,
           component: make(
             () => import('sentry/views/explore/conversations/conversationDetail')
           ),
@@ -2299,7 +2667,25 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
-      path: 'errors/',
+      // Redirect the legacy `/explore/conversations/*` paths to `/explore/agents/`.
+      path: 'conversations/',
+      children: [
+        {
+          index: true,
+          component: make(
+            () => import('sentry/views/explore/conversations/conversationsRedirect')
+          ),
+        },
+        {
+          path: ':conversationId/',
+          component: make(
+            () => import('sentry/views/explore/conversations/conversationsRedirect')
+          ),
+        },
+      ],
+    },
+    {
+      path: 'errors-v2/',
       component: make(() => import('sentry/views/explore/errors')),
       children: errorsChildren,
     },
@@ -2307,14 +2693,34 @@ function buildRoutes(): RouteObject[] {
       path: 'saved-queries/',
       component: make(() => import('sentry/views/explore/savedQueries')),
     },
-    // These two routes have to be placed at the end of the exploreChildren
-    // array to avoid being overridden by the other routes.
+    {
+      path: 'saved-formulas/',
+      component: make(() => import('sentry/views/explore/savedFormulas')),
+    },
+    {
+      path: 'saved-formulas/new/',
+      component: make(() => import('sentry/views/explore/savedFormulas/formulaBuilder')),
+    },
+    {
+      path: 'saved-formulas/:formulaId/',
+      component: make(() => import('sentry/views/explore/savedFormulas/formulaBuilder')),
+    },
+    // Unknown /explore/ subpaths redirect to the default explore view, rather
+    // than falling through to the `/:orgId/:projectId/` legacy redirect and
+    // rendering "The project you were looking for was not found".
+    //
+    // Real routes outrank these on specificity, so they win regardless of
+    // where they sit in this array. Keep these last anyway: order is the
+    // tiebreaker if a sibling ever scores the same.
     {
       path: ':catchAll/',
       component: make(() => import('sentry/views/explore/indexRedirect')),
     },
     {
-      path: ':catchAll/*',
+      // Same, for deeper paths. Not `:catchAll/*` — our SDK matches relative
+      // route paths against the full pathname, so that pattern would rename
+      // every transaction in the app to `/:catchAll/...`.
+      path: '*',
       component: make(() => import('sentry/views/explore/indexRedirect')),
     },
   ];
@@ -2322,6 +2728,30 @@ function buildRoutes(): RouteObject[] {
     path: '/explore/',
     withOrgPath: true,
     children: exploreChildren,
+  };
+
+  const seerChildren: SentryRouteObject[] = [
+    {
+      index: true,
+      redirectTo: 'automations/',
+    },
+    {
+      path: 'investigations/',
+      component: make(() => import('sentry/views/investigations')),
+    },
+    {
+      path: 'investigations/:investigationId/',
+      component: make(() => import('sentry/views/investigations/detail')),
+    },
+    {
+      path: 'automations/',
+      component: make(() => import('sentry/views/seerWorkflows')),
+    },
+  ];
+  const seerRoutes: SentryRouteObject = {
+    path: '/seer/',
+    withOrgPath: true,
+    children: seerChildren,
   };
 
   const preprodChildren: SentryRouteObject[] = [
@@ -2453,6 +2883,10 @@ function buildRoutes(): RouteObject[] {
       ),
     },
     {
+      path: TabPaths[Tab.AUTOFIX],
+      component: make(() => import('sentry/views/issueDetails/autofix')),
+    },
+    {
       path: TabPaths[Tab.USER_FEEDBACK],
       component: make(() => import('sentry/views/issueDetails/groupUserFeedback')),
     },
@@ -2498,8 +2932,8 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/issueList/pages/sentryConfiguration')),
     },
     {
-      path: 'awaiting-input/',
-      component: make(() => import('sentry/views/issueList/pages/awaitingInput')),
+      path: 'inbox/',
+      component: make(() => import('sentry/views/issueList/pages/inbox')),
     },
     {
       path: 'views/',
@@ -2509,11 +2943,23 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'autofix/',
-      component: make(() => import('sentry/views/seerWorkflows')),
+      component: make(() => import('sentry/views/seerWorkflows/overview')),
     },
     {
       path: 'autofix/recent/',
       component: make(() => import('sentry/views/issueList/pages/autofix/recentlyRun')),
+    },
+    {
+      path: 'autofix/runs/',
+      component: make(() => import('sentry/views/seerRunsDemo')),
+    },
+    {
+      path: 'autofix/issues/',
+      component: make(() => import('sentry/views/autofixIssuesDemo')),
+    },
+    {
+      path: 'autofix/overview/',
+      redirectTo: '../autofix/',
     },
     {
       path: 'views/:viewId/',
@@ -2576,51 +3022,65 @@ function buildRoutes(): RouteObject[] {
   const adminManageChildren: SentryRouteObject[] = [
     {
       index: true,
+      name: t('Environment'),
       component: make(() => import('sentry/views/admin/adminEnvironment')),
     },
     {
       path: 'relays/',
+      name: t('Relays'),
       component: make(() => import('sentry/views/admin/adminRelays')),
     },
     {
       path: 'organizations/',
+      name: t('Organizations'),
       component: make(() => import('sentry/views/admin/adminOrganizations')),
     },
     {
       path: 'projects/',
+      name: t('Projects'),
       component: make(() => import('sentry/views/admin/adminProjects')),
     },
     {
       path: 'settings/',
+      name: t('Settings'),
       component: make(() => import('sentry/views/admin/adminSettings')),
     },
     {
       path: 'users/',
+      name: t('Users'),
       children: [
         {
           index: true,
           component: make(() => import('sentry/views/admin/adminUsers')),
         },
         {
+          handle: {
+            settingsBreadcrumb: {type: 'link', label: t('Users'), to: '/manage/users/'},
+          },
           path: ':id',
+          name: t('Details'),
           component: make(() => import('sentry/views/admin/adminUserEdit')),
         },
       ],
     },
     {
       path: 'status/mail/',
+      name: t('Mail'),
       component: make(() => import('sentry/views/admin/adminMail')),
     },
     {
       path: 'status/environment/',
+      name: t('Environment'),
       component: make(() => import('sentry/views/admin/adminEnvironment')),
     },
     {
       path: 'status/packages/',
+      name: t('Packages'),
       component: make(() => import('sentry/views/admin/adminPackages')),
     },
     {
       path: 'status/warnings/',
+      name: t('Warnings'),
       component: make(() => import('sentry/views/admin/adminWarnings')),
     },
   ];
@@ -2628,7 +3088,9 @@ function buildRoutes(): RouteObject[] {
   // These are the "manage" pages. For sentry.io, these are _different_ from
   // the SaaS admin routes in getsentry.
   const adminManageRoutes: SentryRouteObject = {
+    handle: {settingsBreadcrumb: {type: 'link', label: t('Settings'), to: '/manage/'}},
     path: '/manage/',
+    name: t('Settings'),
     component: make(() => import('sentry/views/admin/adminLayout')),
     children: adminManageChildren,
   };
@@ -2751,6 +3213,10 @@ function buildRoutes(): RouteObject[] {
         )
       ),
     },
+    {
+      path: 'events/:eventId/',
+      component: errorHandler(ProjectEventRedirect),
+    },
   ];
   const legacyOrgRedirects: SentryRouteObject = {
     path: '/:orgId/:projectId/',
@@ -2772,12 +3238,13 @@ function buildRoutes(): RouteObject[] {
       releasesRoutes,
       snapshotsRedirect,
       statsRoutes,
-      discoverRoutes,
+      discoverErrorsRoutes,
       errorsRoutes,
       performanceRoutes,
       domainViewRoutes,
       tracesRoutes,
       exploreRoutes,
+      seerRoutes,
       llmMonitoringRedirects,
       profilingRoutes,
       gettingStartedRoutes,
@@ -2870,15 +3337,6 @@ function buildRoutes(): RouteObject[] {
             redirectTo: '/settings/:orgId/projects/:projectId/security-headers/csp/',
           },
           {
-            path: 'security-headers/expect-ct/',
-            redirectTo:
-              '/settings/:orgId/projects/:projectId/security-headers/expect-ct/',
-          },
-          {
-            path: 'security-headers/hpkp/',
-            redirectTo: '/settings/:orgId/projects/:projectId/security-headers/hpkp/',
-          },
-          {
             path: 'integrations/:providerKey/',
             redirectTo: '/settings/:orgId/projects/:projectId/integrations/:providerKey/',
           },
@@ -2920,10 +3378,6 @@ function buildRoutes(): RouteObject[] {
         path: ':projectId/issues/:groupId/merged/',
         redirectTo: '/organizations/:orgId/issues/:groupId/merged/',
       },
-      {
-        path: ':projectId/events/:eventId/',
-        component: errorHandler(ProjectEventRedirect),
-      },
     ],
   };
 
@@ -2938,22 +3392,27 @@ function buildRoutes(): RouteObject[] {
       );
     },
     children: [
-      experimentalSpaRoutes,
       {
         path: '/',
         component: errorHandler(App),
         children: [
-          rootRoutes,
+          publicRootRoutes,
           authV2Routes,
-          organizationRoutes,
-          legacyRedirectRoutes,
           {
-            path: '*',
-            component: errorHandler(OrganizationLayout),
+            component: AuthenticatedApiErrorHandler,
             children: [
+              rootRoutes,
+              organizationRoutes,
+              legacyRedirectRoutes,
               {
                 path: '*',
-                component: errorHandler(RouteNotFound),
+                component: errorHandler(OrganizationLayout),
+                children: [
+                  {
+                    path: '*',
+                    component: errorHandler(RouteNotFound),
+                  },
+                ],
               },
             ],
           },

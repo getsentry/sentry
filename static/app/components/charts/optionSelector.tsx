@@ -1,8 +1,6 @@
-import {Fragment, useMemo} from 'react';
-import styled from '@emotion/styled';
+import {useMemo} from 'react';
 import type {DistributedOmit} from 'type-fest';
 
-import {FeatureBadge} from '@sentry/scraps/badge';
 import type {
   MultipleSelectProps,
   SelectOption,
@@ -13,11 +11,9 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {Truncate} from 'sentry/components/truncate';
-import {defined} from 'sentry/utils/defined';
 
 type BaseProps = {
   title: string;
-  featureType?: 'alpha' | 'beta' | 'new';
 };
 
 type SingleUnClearableProps = DistributedOmit<
@@ -59,7 +55,6 @@ export function OptionSelector({
   onChange,
   selected,
   title,
-  featureType,
   multiple,
   closeOnSelect,
   clearable,
@@ -128,21 +123,8 @@ export function OptionSelector({
       isOptionDisabled={isOptionDisabled}
       position="bottom-end"
       trigger={triggerProps => (
-        <OverlayTrigger.Button
-          {...triggerProps}
-          variant="transparent"
-          prefix={
-            <Fragment>
-              {title}
-              {defined(featureType) ? <StyledFeatureBadge type={featureType} /> : null}
-            </Fragment>
-          }
-        />
+        <OverlayTrigger.Button {...triggerProps} variant="transparent" prefix={title} />
       )}
     />
   );
 }
-
-const StyledFeatureBadge = styled(FeatureBadge)`
-  margin-left: 0px;
-`;

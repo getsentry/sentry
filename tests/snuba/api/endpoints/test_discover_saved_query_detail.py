@@ -3,6 +3,7 @@ from django.urls import NoReverseMatch, reverse
 
 from sentry.discover.models import (
     DiscoverSavedQuery,
+    DiscoverSavedQueryLastVisited,
     DiscoverSavedQueryProject,
     DiscoverSavedQueryTypes,
 )
@@ -53,6 +54,15 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
     def test_invalid_id(self) -> None:
         with pytest.raises(NoReverseMatch):
             reverse("sentry-api-0-discover-saved-query-detail", args=[self.org.slug, "not-an-id"])
+
+    def test_out_of_range_id(self) -> None:
+        with self.feature(self.feature_name):
+            url = reverse(
+                "sentry-api-0-discover-saved-query-detail",
+                args=[self.org.slug, "99999999999999999999"],
+            )
+            response = self.client.get(url)
+        assert response.status_code == 404
 
     def test_get(self) -> None:
         with self.feature(self.feature_name):
@@ -171,6 +181,8 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
             {"yAxes": ["count(span.duration)"], "chartType": 2}
         ]
         assert set(response.data["exploreQuery"]["projects"]) == set(self.project_ids)
+        assert "range" not in response.data["exploreQuery"]
+        assert response.data["exploreQuery"]["statsPeriod"] == "24h"
 
     def test_get_org_without_access(self) -> None:
         with self.feature(self.feature_name):
@@ -624,6 +636,65 @@ class OrganizationDiscoverQueryVisitTest(APITestCase, SnubaTestCase):
         query = DiscoverSavedQuery.objects.get(id=self.query.id)
         assert query.visits == 1
         assert query.last_visited == last_visited
+
+    def test_visit_query_creates_per_user_last_visited(self) -> None:
+        assert not DiscoverSavedQueryLastVisited.objects.filter(
+            discover_saved_query=self.query
+        ).exists()
+
+        with self.feature(["organizations:discover-query"]):
+            response = self.client.post(self.url(self.query.id))
+
+        assert response.status_code == 204
+
+        last_visited = DiscoverSavedQueryLastVisited.objects.get(
+            organization=self.org, user_id=self.user.id, discover_saved_query=self.query
+        )
+        assert last_visited.last_visited is not None
+
+    def test_visit_query_updates_existing_last_visited(self) -> None:
+        existing = DiscoverSavedQueryLastVisited.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            discover_saved_query=self.query,
+            last_visited=before_now(minutes=10),
+        )
+
+        with self.feature(["organizations:discover-query"]):
+            response = self.client.post(self.url(self.query.id))
+
+        assert response.status_code == 204
+
+        rows = list(DiscoverSavedQueryLastVisited.objects.filter(discover_saved_query=self.query))
+        assert len(rows) == 1
+        assert rows[0].id == existing.id
+        assert rows[0].last_visited > existing.last_visited
+
+    def test_visit_query_tracks_each_user_separately(self) -> None:
+        other_user = self.create_user()
+        self.create_member(organization=self.org, user=other_user)
+
+        with self.feature(["organizations:discover-query"]):
+            response = self.client.post(self.url(self.query.id))
+        assert response.status_code == 204
+
+        self.login_as(user=other_user)
+        with self.feature(["organizations:discover-query"]):
+            response = self.client.post(self.url(self.query.id))
+        assert response.status_code == 204
+
+        rows = list(DiscoverSavedQueryLastVisited.objects.filter(discover_saved_query=self.query))
+        assert len(rows) == 2
+        assert sorted(row.user_id for row in rows) == sorted([self.user.id, other_user.id])
+
+    def test_visit_query_no_access_does_not_create_last_visited(self) -> None:
+        with self.feature({"organizations:discover-query": False}):
+            response = self.client.post(self.url(self.query.id))
+
+        assert response.status_code == 404
+        assert not DiscoverSavedQueryLastVisited.objects.filter(
+            discover_saved_query=self.query
+        ).exists()
 
     def test_visit_disallow_when_no_project_access(self) -> None:
         self.org.flags.allow_joinleave = False

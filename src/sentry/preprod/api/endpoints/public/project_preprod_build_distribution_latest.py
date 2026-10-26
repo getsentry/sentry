@@ -24,7 +24,7 @@ from sentry.preprod.api.models.public.installable_builds import (
     create_latest_installable_build_response,
 )
 from sentry.preprod.api.validators import PreprodLatestInstallableBuildValidator
-from sentry.preprod.build_distribution_utils import find_current_and_latest
+from sentry.preprod.build_distribution_utils import ParsedBuildNumber, find_current_and_latest
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -76,9 +76,15 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
             ),
             OpenApiParameter(
                 name="buildNumber",
-                description="Current build number. Either this or mainBinaryIdentifier must be provided when buildVersion is set.",
+                description=(
+                    "Current build number. Accepts a plain integer (e.g. 42) or a "
+                    "version string of two or more period-separated integers (e.g. "
+                    "1.2.3), each up to 6 digits. Groups beyond the third are "
+                    "dropped. Either this or mainBinaryIdentifier must be provided "
+                    "when buildVersion is set."
+                ),
                 required=False,
-                type=int,
+                type={"oneOf": [{"type": "integer"}, {"type": "string"}]},
                 location="query",
             ),
             OpenApiParameter(
@@ -141,7 +147,7 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
         app_id: str = params["appId"]
         platform: str = params["platform"]
         build_version: str | None = params.get("buildVersion")
-        build_number: int | None = params.get("buildNumber")
+        build_number: ParsedBuildNumber | None = params.get("buildNumber")
         main_binary_identifier: str | None = params.get("mainBinaryIdentifier")
         build_configuration: str | None = params.get("buildConfiguration")
         codesigning_type: str | None = params.get("codesigningType")

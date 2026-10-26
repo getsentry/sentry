@@ -3,7 +3,7 @@ import {
   buildSeerDateTimeSelection,
   type SeerDateTimeSelection,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilterDatetime} from 'sentry/types/core';
 import type {Sort} from 'sentry/utils/discover/fields';
 import type {
   AggregateField,
@@ -14,6 +14,7 @@ import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {
   type BaseVisualize,
   isVisualize,
+  serializeVisualizes,
 } from 'sentry/views/explore/queryParams/visualize';
 
 type SeerVisualization = AskSeerSearchQuery['visualizations'][number];
@@ -62,7 +63,7 @@ export function getSeerExploreQuery({
   pageDatetime,
   result,
 }: {
-  pageDatetime: PageFilters['datetime'];
+  pageDatetime: PageFilterDatetime;
   result: AskSeerSearchQuery;
 }): SeerExploreQuery {
   const datetime = buildSeerDateTimeSelection(
@@ -123,9 +124,9 @@ export function getSeerWritableAggregateFields({
   visualizes: readonly BaseVisualize[];
   fallbackVisualizes?: readonly BaseVisualize[];
 }): WritableAggregateField[] {
-  const existingVisualizes = currentAggregateFields
-    .filter(isVisualize)
-    .map(visualize => visualize.serialize());
+  const existingVisualizes = serializeVisualizes(
+    currentAggregateFields.filter(isVisualize)
+  );
   const visualizesToUse = visualizes.length
     ? visualizes
     : existingVisualizes.length

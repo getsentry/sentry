@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
+import type {FuseResultMatch} from 'fuse.js/basic';
 
-import type {Fuse} from 'sentry/utils/fuzzySearch';
 import {getFuseMatches, highlightFuseMatches} from 'sentry/utils/highlightFuseMatches';
 
 describe('highlightFuseMatches', () => {
-  const matchObj: Fuse.FuseResultMatch = {
+  const matchObj: FuseResultMatch = {
     value: 'Authentication tokens allow you to perform actions',
     indices: [
       [4, 6],

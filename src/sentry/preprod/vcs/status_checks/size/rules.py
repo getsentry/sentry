@@ -50,14 +50,20 @@ def get_status_checks_enabled(project: Project) -> bool:
     return bool(project.get_option(ENABLED_OPTION_KEY, default=True))
 
 
-def get_status_check_rules(project: Project) -> list[StatusCheckRule]:
+def get_status_check_rules(
+    project: Project, option_key: str = RULES_OPTION_KEY
+) -> list[StatusCheckRule]:
     """
-    Fetch and parse status check rules from project options.
+    Fetch and parse size rules from a project option.
+
+    ``option_key`` defaults to the status-check rules option; callers that store
+    a separate rule set (e.g. PR comments) pass their own key. The rule schema is
+    identical across option keys.
 
     Returns an empty list if feature is disabled or no rules configured.
     """
 
-    raw = project.get_option(RULES_OPTION_KEY, default=None)
+    raw = project.get_option(option_key, default=None)
     if not raw:
         return []
 

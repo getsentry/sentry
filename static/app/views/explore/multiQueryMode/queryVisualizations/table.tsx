@@ -1,21 +1,14 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconStack} from '@sentry/icons/stack';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import type {Alignments} from 'sentry/components/tables/gridEditable/sortLink';
-import {GridBodyCell, GridHeadCell} from 'sentry/components/tables/gridEditable/styles';
-import {IconArrow} from 'sentry/icons/iconArrow';
-import {IconStack} from 'sentry/icons/iconStack';
-import {IconWarning} from 'sentry/icons/iconWarning';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils/defined';
 import {
   fieldAlignment,
   parseFunction,
@@ -23,19 +16,11 @@ import {
 } from 'sentry/utils/discover/fields';
 import {prettifyTagKey} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
-import {
-  TableBody,
-  TableHead,
-  TableRow,
-  TableStatus,
-  useTableStyles,
-} from 'sentry/views/explore/components/table';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/topEventsConstants';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
-import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
 import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
-import {Table} from 'sentry/views/explore/multiQueryMode/components/miniTable';
 import type {
   useMultiQueryTableAggregateMode,
   useMultiQueryTableSampleMode,
@@ -47,7 +32,7 @@ import {
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {MultiQueryFieldRenderer} from 'sentry/views/explore/tables/fieldRenderer';
 
-const TABLE_HEIGHT = 258;
+const TABLE_HEIGHT = '258px';
 
 interface MultiQueryTableBaseProps {
   index: number;
@@ -98,28 +83,27 @@ function AggregatesTable({
   const {attributes: stringTags} = useSpanItemAttributes({}, 'string');
   const {attributes: booleanTags} = useSpanItemAttributes({}, 'boolean');
 
-  const tableRef = useRef<HTMLTableElement>(null);
-  const {initialTableStyles} = useTableStyles(fields, tableRef, {
-    minimumColumnWidth: 50,
-    prefixColumnWidth: 'min-content',
-  });
-
   const numberOfRowsNeedingColor = Math.min(result.data?.length ?? 0, TOP_EVENTS_LIMIT);
 
   const palette = theme.chart.getColorPalette(numberOfRowsNeedingColor - 1);
 
   return (
     <Fragment>
-      <Table ref={tableRef} style={initialTableStyles} scrollable height={TABLE_HEIGHT}>
-        <TableHead>
-          <TableRow>
-            <TableHeadCell isFirst={false}>
+      <SimpleTable
+        columns={fields.map(field => ({key: field}))}
+        maxHeight={TABLE_HEIGHT}
+        minimumColumnWidth={50}
+        prependColumnWidths={['min-content']}
+        scrollable
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>
               <Flex align="center" gap="xs" />
-            </TableHeadCell>
+            </SimpleTable.HeaderCell>
             {fields.map((field, i) => {
               // Hide column names before alignment is determined
               if (result.isPending) {
-                return <TableHeadCell key={i} isFirst={i === 0} />;
+                return <SimpleTable.HeaderCell key={i} />;
               }
 
               let label = field;
@@ -140,76 +124,51 @@ function AggregatesTable({
               const direction = sortBys.find(s => s.field === field)?.kind;
 
               return (
-                <TableHeadCell align={align} key={i} isFirst={i === 0}>
-                  <Flex align="center" gap="xs">
-                    <Tooltip showOnlyOnOverflow title={label}>
-                      {label}
-                    </Tooltip>
-                    {defined(direction) && (
-                      <IconArrow
-                        size="xs"
-                        direction={
-                          direction === 'desc'
-                            ? 'down'
-                            : direction === 'asc'
-                              ? 'up'
-                              : undefined
-                        }
-                      />
-                    )}
-                  </Flex>
-                </TableHeadCell>
+                <SimpleTable.HeaderCell align={align} key={i} sort={direction}>
+                  {label}
+                </SimpleTable.HeaderCell>
               );
             })}
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {result.isPending ? (
-            <TableStatus>
-              <LoadingIndicator />
-            </TableStatus>
-          ) : result.isError ? (
-            <TableStatus>
-              <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
-            </TableStatus>
-          ) : result.isFetched && result.data?.length ? (
-            result.data?.map((row, i) => {
-              const target = getSamplesTargetAtIndex(index, [...queries], row, location);
-              return (
-                <TableRow key={i}>
-                  <TableBodyCell key={`samples-${i}`}>
-                    {i < TOP_EVENTS_LIMIT && <TopResultsIndicator color={palette[i]!} />}
-                    <Tooltip title={t('View Samples')} containerDisplayMode="flex">
-                      <StyledLink to={target} data-test-id="unstack-link">
-                        <IconStack />
-                      </StyledLink>
-                    </Tooltip>
-                  </TableBodyCell>
-                  {fields.map((field, j) => {
-                    return (
-                      <TableBodyCell key={j}>
-                        <MultiQueryFieldRenderer
-                          index={index}
-                          column={columns[j]}
-                          data={row}
-                          unit={meta?.units?.[field]}
-                          meta={meta}
-                        />
-                      </TableBodyCell>
-                    );
-                  })}
-                </TableRow>
-              );
-            })
-          ) : (
-            <TableStatus>
-              <EmptyStateWarning>
-                <p>{t('No spans found')}</p>
-              </EmptyStateWarning>
-            </TableStatus>
-          )}
-        </TableBody>
-      </Table>
+          </SimpleTable.HeaderRow>
+        }
+      >
+        {result.isPending ? (
+          <SimpleTable.Loading />
+        ) : result.isError ? (
+          <SimpleTable.Error />
+        ) : result.isFetched && result.data?.length ? (
+          result.data?.map((row, i) => {
+            const target = getSamplesTargetAtIndex(index, [...queries], row, location);
+            return (
+              <SimpleTable.Row key={i}>
+                <SimpleTable.RowCell key={`samples-${i}`}>
+                  {i < TOP_EVENTS_LIMIT && <TopResultsIndicator color={palette[i]!} />}
+                  <Tooltip title={t('View Samples')} containerDisplayMode="flex">
+                    <StyledLink to={target} data-test-id="unstack-link">
+                      <IconStack />
+                    </StyledLink>
+                  </Tooltip>
+                </SimpleTable.RowCell>
+                {fields.map((field, j) => {
+                  return (
+                    <SimpleTable.RowCell key={j}>
+                      <MultiQueryFieldRenderer
+                        index={index}
+                        column={columns[j]}
+                        data={row}
+                        unit={meta?.units?.[field]}
+                        meta={meta}
+                      />
+                    </SimpleTable.RowCell>
+                  );
+                })}
+              </SimpleTable.Row>
+            );
+          })
+        ) : (
+          <SimpleTable.Empty>{t('No spans found')}</SimpleTable.Empty>
+        )}
+      </SimpleTable>
     </Fragment>
   );
 }
@@ -234,20 +193,19 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
   const {attributes: stringTags} = useSpanItemAttributes({}, 'string');
   const {attributes: booleanTags} = useSpanItemAttributes({}, 'boolean');
 
-  const tableRef = useRef<HTMLTableElement>(null);
-  const {initialTableStyles} = useTableStyles(visibleFields, tableRef, {
-    minimumColumnWidth: 50,
-  });
-
   return (
     <Fragment>
-      <Table ref={tableRef} style={initialTableStyles} scrollable height={TABLE_HEIGHT}>
-        <TableHead>
-          <TableRow>
+      <SimpleTable
+        columns={visibleFields.map(field => ({key: field}))}
+        maxHeight={TABLE_HEIGHT}
+        minimumColumnWidth={50}
+        scrollable
+        header={
+          <SimpleTable.HeaderRow>
             {visibleFields.map((field, i) => {
               // Hide column names before alignment is determined
               if (result.isPending) {
-                return <TableHeadCell key={i} isFirst={i === 0} />;
+                return <SimpleTable.HeaderCell key={i} />;
               }
 
               const fieldType = meta.fields?.[field];
@@ -259,65 +217,40 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
               const label = tag?.name ?? prettifyTagKey(field);
 
               return (
-                <TableHeadCell align={align} key={i} isFirst={i === 0}>
-                  <Flex align="center" gap="xs">
-                    <Tooltip showOnlyOnOverflow title={label}>
-                      {label}
-                    </Tooltip>
-                    {defined(direction) && (
-                      <IconArrow
-                        size="xs"
-                        direction={
-                          direction === 'desc'
-                            ? 'down'
-                            : direction === 'asc'
-                              ? 'up'
-                              : undefined
-                        }
-                      />
-                    )}
-                  </Flex>
-                </TableHeadCell>
+                <SimpleTable.HeaderCell align={align} key={i} sort={direction}>
+                  {label}
+                </SimpleTable.HeaderCell>
               );
             })}
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {result.isPending ? (
-            <TableStatus>
-              <LoadingIndicator />
-            </TableStatus>
-          ) : result.isError ? (
-            <TableStatus>
-              <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
-            </TableStatus>
-          ) : result.isFetched && result.data?.length ? (
-            result.data?.map((row, i) => (
-              <TableRow key={i}>
-                {visibleFields.map((field, j) => {
-                  return (
-                    <TableBodyCell key={j}>
-                      <MultiQueryFieldRenderer
-                        index={index}
-                        column={columnsFromEventView[j]}
-                        data={row}
-                        unit={meta?.units?.[field]}
-                        meta={meta}
-                      />
-                    </TableBodyCell>
-                  );
-                })}
-              </TableRow>
-            ))
-          ) : (
-            <TableStatus>
-              <EmptyStateWarning>
-                <p>{t('No spans found')}</p>
-              </EmptyStateWarning>
-            </TableStatus>
-          )}
-        </TableBody>
-      </Table>
+          </SimpleTable.HeaderRow>
+        }
+      >
+        {result.isPending ? (
+          <SimpleTable.Loading />
+        ) : result.isError ? (
+          <SimpleTable.Error />
+        ) : result.isFetched && result.data?.length ? (
+          result.data?.map((row, i) => (
+            <SimpleTable.Row key={i}>
+              {visibleFields.map((field, j) => {
+                return (
+                  <SimpleTable.RowCell key={j}>
+                    <MultiQueryFieldRenderer
+                      index={index}
+                      column={columnsFromEventView[j]}
+                      data={row}
+                      unit={meta?.units?.[field]}
+                      meta={meta}
+                    />
+                  </SimpleTable.RowCell>
+                );
+              })}
+            </SimpleTable.Row>
+          ))
+        ) : (
+          <SimpleTable.Empty>{t('No spans found')}</SimpleTable.Empty>
+        )}
+      </SimpleTable>
     </Fragment>
   );
 }
@@ -334,19 +267,4 @@ const TopResultsIndicator = styled('div')<{color: string}>`
 
 const StyledLink = styled(Link)`
   display: flex;
-`;
-
-const TableBodyCell = styled(GridBodyCell)`
-  font-size: ${p => p.theme.font.size.sm};
-  min-height: 12px;
-`;
-
-const TableHeadCell = styled(GridHeadCell)<{align?: Alignments}>`
-  ${p =>
-    p.align &&
-    css`
-      justify-content: ${p.align};
-    `}
-  font-size: ${p => p.theme.font.size.sm};
-  height: 33px;
 `;

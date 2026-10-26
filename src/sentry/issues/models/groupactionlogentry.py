@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import functools
+from typing import ClassVar
 
 from django.db import models
 from django.db.models.functions import Now
@@ -13,7 +14,13 @@ from sentry.db.models import (
     cell_silo_model,
     sane_repr,
 )
+from sentry.db.models.manager.base import BaseManager
 from sentry.issues.action_log.types import GroupAction, GroupActionType, GroupActorType
+
+
+class GroupActionLogEntryManager(BaseManager["GroupActionLogEntry"]):
+    def user_visible(self) -> models.QuerySet[GroupActionLogEntry]:
+        return self.filter(type__in=GroupAction.get_user_visible_types())
 
 
 @cell_silo_model
@@ -27,6 +34,8 @@ class GroupActionLogEntry(Model):
     **Do not create or update rows directly.** Use the helpers in
     ``sentry.issues.action_log`` instead.
     """
+
+    objects: ClassVar[GroupActionLogEntryManager] = GroupActionLogEntryManager()
 
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -55,11 +64,15 @@ class GroupActionLogEntry(Model):
     data = models.JSONField(default=dict)
 
     # DB-defaulted; backfill code may pass an explicit value.
+    # Defines the log's canonical order. For published actions this is when the outbox
+    # drained, not when publish_action() was called. Usually that's near-immediate, but
+    # with a deferred flush, or during an incident, it can be noticeably later (tens of
+    # seconds to minutes). See the GroupAction docstring before relying on exact times.
     date_added = models.DateTimeField(db_default=Now())
 
     # Primarly intended for debugging; not intended to be relied upon
     # for invalidation.
-    date_updated = models.DateTimeField(auto_now=True)
+    date_updated = models.DateTimeField(db_default=Now(), auto_now=True)
 
     # Unique identifier for external action this corresponds to.
     # Primarly exists to make backfilling third party actions simpler.

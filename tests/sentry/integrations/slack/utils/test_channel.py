@@ -170,7 +170,7 @@ class GetChannelIdTest(TestCase):
                     get_channel_id(self.integration, "@Morty")
 
     def test_invalid_channel_selected_sdk_client(self) -> None:
-        with self.patch_msg_response_not_found():
+        with self.patch_msg_response_not_found(), self.patch_mock_list("users", [], "members"):
             assert get_channel_id(self.integration, "#fake-channel").channel_id is None
             assert get_channel_id(self.integration, "@fake-user").channel_id is None
 

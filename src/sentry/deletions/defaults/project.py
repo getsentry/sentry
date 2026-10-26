@@ -14,9 +14,12 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
     def get_child_relations(self, instance: Project) -> list[BaseRelation]:
         from sentry.discover.models import DiscoverSavedQueryProject
         from sentry.incidents.models.alert_rule import AlertRule, AlertRuleProjects
-        from sentry.incidents.models.incident import IncidentProject
         from sentry.integrations.models.repository_project_path_config import (
             RepositoryProjectPathConfig,
+        )
+        from sentry.investigations.models import (
+            InvestigationBlockExecutionProject,
+            InvestigationProject,
         )
         from sentry.models.activity import Activity
         from sentry.models.artifactbundle import ProjectArtifactBundle
@@ -29,7 +32,6 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
         from sentry.models.groupemailthread import GroupEmailThread
         from sentry.models.groupopenperiod import GroupOpenPeriod
         from sentry.models.grouprelease import GroupRelease
-        from sentry.models.grouprulestatus import GroupRuleStatus
         from sentry.models.groupseen import GroupSeen
         from sentry.models.groupshare import GroupShare
         from sentry.models.groupsubscription import GroupSubscription
@@ -68,7 +70,6 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
             GroupBookmark,
             GroupEmailThread,
             GroupRelease,
-            GroupRuleStatus,
             GroupSeen,
             GroupShare,
             GroupSubscription,
@@ -91,7 +92,8 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
             ProjectArtifactBundle,
             ProguardArtifactRelease,
             DiscoverSavedQueryProject,
-            IncidentProject,
+            InvestigationProject,
+            InvestigationBlockExecutionProject,
         ):
             relations.append(ModelRelation(m1, {"project_id": instance.id}, BulkModelDeletionTask))
 

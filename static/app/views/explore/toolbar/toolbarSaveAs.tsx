@@ -1,9 +1,12 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import {mergeProps} from '@react-aria/utils';
 import * as Sentry from '@sentry/react';
 
-import {Button, LinkButton} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
+import {LinkButton} from '@sentry/scraps/button';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {Container, Grid} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {
   addErrorMessage,
@@ -12,16 +15,15 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {defined} from 'sentry/utils/defined';
-import {encodeSort} from 'sentry/utils/discover/eventView';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
+import {encodeSort} from 'sentry/utils/queryString';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -37,6 +39,7 @@ import {
   useQueryParamsCrossEvents,
   useQueryParamsFields,
   useQueryParamsGroupBys,
+  useQueryParamsHasTransformations,
   useQueryParamsId,
   useQueryParamsMode,
   useQueryParamsQuery,
@@ -44,8 +47,16 @@ import {
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
-import {isVisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {
+  isVisualizeFunction,
+  serializeVisualizes,
+} from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {
+  hasConditionalAggregateFilter,
+  withReadableConditionalFilter,
+} from 'sentry/views/explore/utils/conditionalAggregate';
+import {getSaveAsAlertMenuItem} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 export function ToolbarSaveAs() {
@@ -60,6 +71,7 @@ export function ToolbarSaveAs() {
   const query = useQueryParamsQuery();
   const groupBys = useQueryParamsGroupBys();
   const visualizes = useQueryParamsVisualizes();
+  const hasTransformations = useQueryParamsHasTransformations();
   const fields = useQueryParamsFields();
   const sampleSortBys = useQueryParamsSortBys();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
@@ -90,11 +102,15 @@ export function ToolbarSaveAs() {
   const hasCrossEvents = defined(crossEvents) && crossEvents.length > 0;
 
   const alertsUrls = visualizeYAxes.map((yAxis, index) => {
-    const func = parseFunction(yAxis);
+    const func = parseFunction(withReadableConditionalFilter(yAxis));
     const label = func ? prettifyParsedFunction(func) : yAxis;
     return {
       key: `${yAxis}-${index}`,
       label,
+      // The monitor form has no way to express an `_if` filter and silently falls back
+      // to its default aggregate when given one, so don't offer a monitor that would
+      // not match the series.
+      disabled: hasConditionalAggregateFilter(yAxis),
       to: getAlertsUrl({
         project,
         query,
@@ -159,18 +175,7 @@ export function ToolbarSaveAs() {
     },
   });
 
-  const newAlertLabel = organization.features.includes('workflow-engine-ui')
-    ? t('Monitor for')
-    : t('Alert for');
-
-  items.push({
-    key: 'create-alert',
-    label: newAlertLabel,
-    textValue: newAlertLabel,
-    children: alertsUrls ?? [],
-    disabled: !alertsUrls || alertsUrls.length === 0,
-    submenu: true,
-  });
+  items.push(getSaveAsAlertMenuItem({alertsUrls, submenu: true}));
 
   const disableAddToDashboard = !organization.features.includes('dashboards-edit');
 
@@ -178,7 +183,7 @@ export function ToolbarSaveAs() {
     return visualizeYAxes.map((yAxis, index) => {
       const dedupedYAxes = [yAxis];
       const formattedYAxes = dedupedYAxes.map(yaxis => {
-        const func = parseFunction(yaxis);
+        const func = parseFunction(withReadableConditionalFilter(yaxis));
         return func ? prettifyParsedFunction(func) : undefined;
       });
 
@@ -247,11 +252,7 @@ export function ToolbarSaveAs() {
       ),
       !valueIsEqual(locationSortByString, singleQuery?.orderby),
       !valueIsEqual(fields, singleQuery?.fields),
-      !valueIsEqual(
-        visualizes.map(visualize => visualize.serialize()),
-        singleQuery?.visualize,
-        true
-      ),
+      !valueIsEqual(serializeVisualizes(visualizes), singleQuery?.visualize, true),
       !valueIsEqual(savedQuery.crossEvents ?? [], crossEvents ?? [], true),
       !valueIsEqual(savedQuery.projects, pageFilters.selection.projects),
       !valueIsEqual(savedQuery.environment, pageFilters.selection.environments),
@@ -263,7 +264,7 @@ export function ToolbarSaveAs() {
         (pageFilters.selection.datetime.end
           ? new Date(pageFilters.selection.datetime.end).getTime()
           : null),
-      (savedQuery.range ?? null) !== pageFilters.selection.datetime.period,
+      (savedQuery.statsPeriod ?? null) !== pageFilters.selection.datetime.period,
     ];
     return hasChangesArray.some(Boolean);
   }, [
@@ -294,19 +295,24 @@ export function ToolbarSaveAs() {
         <DropdownMenu
           items={items}
           trigger={triggerProps => (
-            <SaveAsButton
-              {...triggerProps}
-              variant="primary"
-              aria-label={t('Save as')}
-              onClick={e => {
-                e.stopPropagation();
-                e.preventDefault();
-
-                triggerProps.onClick?.(e);
-              }}
-            >
-              {shouldHighlightSaveButton ? t('Save') : t('Save as')}
-            </SaveAsButton>
+            <Container width="100%">
+              {containerProps => (
+                <OverlayTrigger.Button
+                  {...mergeProps(triggerProps, containerProps)}
+                  showChevron={false}
+                  variant="primary"
+                  disabled={hasTransformations}
+                  tooltipProps={
+                    hasTransformations
+                      ? {title: t('Queries with transformations cannot be saved yet.')}
+                      : undefined
+                  }
+                  aria-label={t('Save as')}
+                >
+                  {shouldHighlightSaveButton ? t('Save') : t('Save as')}
+                </OverlayTrigger.Button>
+              )}
+            </Container>
           )}
         />
 
@@ -357,8 +363,4 @@ const DisabledText = styled('span')`
 export const SaveStyledToolbarSection = styled(ToolbarSection)`
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
   padding-top: ${p => p.theme.space['2xl']};
-`;
-
-const SaveAsButton = styled(Button)`
-  width: 100%;
 `;

@@ -5,6 +5,7 @@ from typing import Any
 import sentry_sdk
 from django.conf import settings
 from django.utils import timezone
+from sentry_sdk import traces
 
 from sentry import options
 from sentry import ratelimits as ratelimiter
@@ -42,12 +43,11 @@ from sentry.services.eventstore.models import Event
 from sentry.utils import metrics
 from sentry.utils.circuit_breaker2 import CircuitBreaker, CountBasedTripStrategy
 from sentry.utils.safe import get_path
-from sentry.utils.tracing import trace
 
 logger = logging.getLogger("sentry.events.grouping")
 
 
-@trace
+@traces.trace
 def should_call_seer_for_grouping(
     event: Event,
     variants: dict[str, BaseVariant],
@@ -313,8 +313,6 @@ def _build_seer_request(
 
     model_version = get_grouping_model_version(event.project)
 
-    skip_fallback = should_skip_seer_fallback(event.project)
-
     request_data: SimilarIssuesEmbeddingsRequest = {
         "event_id": event.event_id,
         "hash": event.get_primary_hash(),
@@ -326,7 +324,7 @@ def _build_seer_request(
         "model": model_version,
         "training_mode": training_mode,
         "platform": event.platform or "unknown",
-        "skip_fallback": skip_fallback,
+        "skip_fallback": should_skip_seer_fallback(event.project),
     }
     event.data.pop("stacktrace_string", None)
 
@@ -339,7 +337,7 @@ def _build_seer_request(
     return request_data, metric_tags
 
 
-@trace
+@traces.trace
 def get_seer_similar_issues(
     event: Event,
     event_grouphash: GroupHash,
@@ -501,13 +499,18 @@ def _get_event_exception(event: Event) -> tuple[str | None, str | None]:
     Return the event's main exception type and value, normalized exactly as they are stored in
     group metadata (``group.data.metadata.{type,value}``) — so they compare apples-to-apples with
     the parent's stored values. Reuses ``ErrorEvent.extract_metadata`` (the same code path that
-    produced the parent's values), which respects ``main_exception_id`` and returns nothing for
-    synthetic exceptions. Returns ``(None, None)`` when there is no exception to compare.
+    produced the parent's values), which respects ``main_exception_id``. Returns ``(None, None)``
+    when there is no exception to compare.
+
+    A synthetic exception's type is withheld: it is a platform label, so a difference in it is
+    not a real mismatch.
 
     Note: this reads the exception values directly (via ErrorEvent), so it does not depend on
     the event's ``type`` discriminator being populated.
     """
     metadata = ErrorEvent().extract_metadata(event.data)
+    if metadata.get("synthetic"):
+        return None, metadata.get("value")
     return metadata.get("type"), metadata.get("value")
 
 
@@ -545,7 +548,11 @@ def _should_use_seer_match_for_grouping(
         raise SimilarHashMissingGroupError(
             f"Seer-matched grouphash {parent_grouphash.hash} unexpectedly has no group"
         )
-    parent_exception_type = get_path(parent_group.data, "metadata", "type")
+    parent_exception_type = (
+        None
+        if get_path(parent_group.data, "metadata", "synthetic")
+        else get_path(parent_group.data, "metadata", "type")
+    )
     if (
         event_exception_type
         and parent_exception_type
@@ -618,7 +625,7 @@ def _should_use_seer_match_for_grouping(
     return SeerMatchResult(accepted=fingerprints_match, hybrid_related=True)
 
 
-@trace
+@traces.trace
 def maybe_check_seer_for_matching_grouphash(
     event: Event,
     event_grouphash: GroupHash,
@@ -691,7 +698,7 @@ def maybe_check_seer_for_matching_grouphash(
     return seer_matched_grouphash
 
 
-@trace
+@traces.trace
 def maybe_send_seer_for_new_model_training(
     event: Event,
     existing_grouphash: GroupHash,
@@ -701,7 +708,7 @@ def maybe_send_seer_for_new_model_training(
     Send a training_mode=true request to Seer for the project's current non-stable model
     version if the existing grouphash hasn't been sent to that version yet.
 
-    This only happens for projects on a non-stable model (via feature flags). It helps
+    This only happens for projects using the configured next model. It helps
     build data for existing groups without affecting production grouping decisions.
 
     Args:

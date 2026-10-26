@@ -1,4 +1,6 @@
 import {Fragment} from 'react';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconNot} from '@sentry/icons/not';
 import {skipToken, useMutation, useQuery} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -13,7 +15,6 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconCheckmark, IconNot} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {
   CodeOwner,
@@ -24,6 +25,7 @@ import type {
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -124,7 +126,9 @@ function ApplyCodeMappings({
     mutationFn: (payload: {codeMappingId: string; raw: string}) =>
       fetchMutation<CodeOwner>({
         method: 'POST',
-        url: `/projects/${organization.slug}/${project.slug}/codeowners/`,
+        url: getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/codeowners/', {
+          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+        }),
         options: {},
         data: payload,
       }),

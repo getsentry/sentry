@@ -232,6 +232,7 @@ class P4:
         self.ticket_file: str | None = None
         self.ssl_fingerprint: str | None = None
         self.exception_level = 1
+        self.timeout = _DEFAULT_TIMEOUT
         self.use_ssl = False
         self._sock: socket.socket | None = None
         self._buf = b""
@@ -264,10 +265,10 @@ class P4:
         # validated IP, so the SSRF/blocklist check and the connection share a
         # single DNS lookup — closing the DNS-rebinding TOCTOU window.
         try:
-            raw = safe_create_connection((host, port), timeout=_DEFAULT_TIMEOUT)
+            raw = safe_create_connection((host, port), timeout=self.timeout)
         except RestrictedIPAddress as exc:
             raise P4Exception(f"refused to connect to a disallowed address for {host}: {exc}")
-        except OSError as exc:
+        except Exception as exc:
             raise P4Exception(
                 f"connect to server failed; check P4PORT. TCP connect to {host}:{port} failed: {exc}"
             )
@@ -473,8 +474,10 @@ class P4:
                 if data:
                     self._ticket = data.decode()
             elif func == b"flush1":
-                echo = [(b"func", b"flush2")]
-                echo += [(key, msg[key]) for key in (b"himark", b"fseq", b"rseq") if key in msg]
+                echo = [
+                    (k, msg[k]) for k in (b"himark", b"flushHard", b"fseq", b"rseq") if k in msg
+                ]
+                echo.append((b"func", b"flush2"))
                 self._write(_encode_message(echo))
             elif func == b"client-Message":
                 self._handle_message(msg, errors)

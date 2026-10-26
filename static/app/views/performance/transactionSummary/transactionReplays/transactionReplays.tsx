@@ -1,6 +1,7 @@
 import {Fragment, useEffect, useMemo} from 'react';
-import {useTheme} from '@emotion/react';
 import type {Location} from 'history';
+
+import {useResponsivePropValue} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -23,13 +24,13 @@ import type {Organization} from 'sentry/types/organization';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {useReplayList} from 'sentry/utils/replays/hooks/useReplayList';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useMedia} from 'sentry/utils/useMedia';
 import {useAllMobileProj} from 'sentry/views/explore/replays/detail/useAllMobileProj';
 import {useTransactionSummaryContext} from 'sentry/views/performance/transactionSummary/transactionSummaryContext';
 
 import type {EventSpanData} from './useReplaysFromTransaction';
 import {useReplaysFromTransaction} from './useReplaysFromTransaction';
 import {useReplaysWithTxData} from './useReplaysWithTxData';
+import {generateTransactionReplaysEventView} from './utils';
 
 export function TransactionReplays() {
   return (
@@ -40,13 +41,13 @@ export function TransactionReplays() {
 }
 
 function TransactionReplaysContent() {
-  const {
-    eventView: replayIdsEventView,
-    organization,
-    setError,
-  } = useTransactionSummaryContext();
+  const {organization, transactionName, setError} = useTransactionSummaryContext();
 
   const location = useLocation();
+  const replayIdsEventView = useMemo(
+    () => generateTransactionReplaysEventView({location, transactionName}),
+    [location, transactionName]
+  );
 
   // Hard-code 90d to match the count query. There's no date selector for the replay tab.
   const {data, fetchError, isFetching} = useReplaysFromTransaction({
@@ -97,13 +98,13 @@ function ReplaysContent({
   const location = useLocation();
 
   if (!eventView.query) {
+    // oxlint-disable-next-line react/immutability
     eventView.query = String(location.query.query ?? '');
   }
   const playlistQuery = usePlaylistQuery('transactionReplays', eventView);
 
   const newLocation = useMemo(() => ({query: {}}) as Location, []);
-  const theme = useTheme();
-  const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.sm})`);
+  const hasRoomForColumns = useResponsivePropValue({zero: false, xl: true});
 
   const {replays, isFetching, fetchError} = useReplayList({
     enabled: eventView.query !== '',
@@ -124,7 +125,7 @@ function ReplaysContent({
     events,
   });
 
-  const {allMobileProj} = useAllMobileProj({});
+  const {allMobileProj} = useAllMobileProj();
 
   return (
     <Layout.Main width="full">

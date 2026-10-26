@@ -2,20 +2,16 @@ import pickBy from 'lodash/pickBy';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {TagCollection} from 'sentry/types/group';
-import type {
-  EventsStats,
-  GroupedMultiSeriesEventsStats,
-  MultiSeriesEventsStats,
-  Organization,
-} from 'sentry/types/organization';
+import type {Organization} from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Aggregation, QueryFieldValue} from 'sentry/utils/discover/fields';
-import {AggregationKey} from 'sentry/utils/fields';
+import {AggregationKey, attributeTypeFromKind} from 'sentry/utils/fields';
+import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {WIDGET_BUILDER_ATTRIBUTE_STALE_TIME} from 'sentry/views/dashboards/constants';
 import {
-  handleOrderByReset,
   type DatasetConfig,
   type SearchBarData,
   type SearchBarDataProviderProps,
@@ -24,10 +20,10 @@ import {
 import {
   getTableSortOptions,
   getTimeseriesSortOptions,
-  transformEventsResponseToTable,
-} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
+} from 'sentry/views/dashboards/datasetConfig/events';
+import {eventsResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/eventsResponseTransforms';
+import {handleOrderByReset} from 'sentry/views/dashboards/datasetConfig/utils/handleOrderByReset';
 import {DisplayType, type WidgetQuery} from 'sentry/views/dashboards/types';
-import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
 import {
   useLogsSeriesQuery,
   useLogsTableQuery,
@@ -118,6 +114,7 @@ function LogsSearchBar({
   'widgetQuery' | 'onSearch' | 'portalTarget' | 'onClose'
 >) {
   const organization = useOrganization();
+  const supportsArrays = organization.features.includes('trace-item-array-query-support');
   const {
     selection: {projects},
   } = usePageFilters();
@@ -127,14 +124,21 @@ function LogsSearchBar({
     useLogItemAttributes({enabled: isLogsEnabled(organization)}, 'number');
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
     useLogItemAttributes({enabled: isLogsEnabled(organization)}, 'boolean');
+  const {attributes: arrayAttributes, secondaryAliases: arraySecondaryAliases} =
+    useLogItemAttributes(
+      {enabled: isLogsEnabled(organization) && supportsArrays},
+      'array'
+    );
   return (
     <TraceItemSearchQueryBuilder
       initialQuery={widgetQuery.conditions}
       onSearch={onSearch}
       itemType={TraceItemDataset.LOGS}
+      arrayAttributes={supportsArrays ? arrayAttributes : {}}
       booleanAttributes={booleanAttributes}
       numberAttributes={numberAttributes}
       stringAttributes={stringAttributes}
+      arraySecondaryAliases={supportsArrays ? arraySecondaryAliases : {}}
       booleanSecondaryAliases={booleanSecondaryAliases}
       numberSecondaryAliases={numberSecondaryAliases}
       stringSecondaryAliases={stringSecondaryAliases}
@@ -149,22 +153,53 @@ function LogsSearchBar({
 }
 
 function useLogsSearchBarDataProvider(props: SearchBarDataProviderProps): SearchBarData {
-  const {pageFilters, widgetQuery} = props;
+  const {filterKeySearch, pageFilters, widgetQuery} = props;
   const organization = useOrganization();
+  const supportsArrays = organization.features.includes('trace-item-array-query-support');
+  const logsEnabled = isLogsEnabled(organization);
+  const attributeOptions = {
+    enabled: logsEnabled,
+    search: filterKeySearch,
+    staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME,
+  };
 
-  const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useLogItemAttributes({enabled: isLogsEnabled(organization)}, 'string');
-  const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useLogItemAttributes({enabled: isLogsEnabled(organization)}, 'number');
-  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-    useLogItemAttributes({enabled: isLogsEnabled(organization)}, 'boolean');
+  const {
+    attributes: stringAttributes,
+    isLoading: stringAttributesLoading,
+    secondaryAliases: stringSecondaryAliases,
+  } = useLogItemAttributes(attributeOptions, 'string');
+  const {
+    attributes: numberAttributes,
+    isLoading: numberAttributesLoading,
+    secondaryAliases: numberSecondaryAliases,
+  } = useLogItemAttributes(attributeOptions, 'number');
+  const {
+    attributes: booleanAttributes,
+    isLoading: booleanAttributesLoading,
+    secondaryAliases: booleanSecondaryAliases,
+  } = useLogItemAttributes(attributeOptions, 'boolean');
+  const {
+    attributes: arrayAttributes,
+    isLoading: arrayAttributesLoading,
+    secondaryAliases: arraySecondaryAliases,
+  } = useLogItemAttributes(
+    {...attributeOptions, enabled: logsEnabled && supportsArrays},
+    'array'
+  );
+  const isFetchingFilterKeys =
+    stringAttributesLoading ||
+    numberAttributesLoading ||
+    booleanAttributesLoading ||
+    arrayAttributesLoading;
 
   const {filterKeys, filterKeySections, getTagValues} =
     useTraceItemSearchQueryBuilderProps({
       itemType: TraceItemDataset.LOGS,
+      arrayAttributes: supportsArrays ? arrayAttributes : {},
       booleanAttributes,
       numberAttributes,
       stringAttributes,
+      arraySecondaryAliases: supportsArrays ? arraySecondaryAliases : {},
       booleanSecondaryAliases,
       numberSecondaryAliases,
       stringSecondaryAliases,
@@ -176,11 +211,12 @@ function useLogsSearchBarDataProvider(props: SearchBarDataProviderProps): Search
     getFilterKeySections: () => filterKeySections,
     getFilterKeys: () => filterKeys,
     getTagValues,
+    isFetchingFilterKeys,
   };
 }
 
 export const LogsConfig: DatasetConfig<
-  EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
+  EventsTimeSeriesResponse,
   TableData | EventsTableData
 > = {
   defaultCategoryField: 'severity',
@@ -209,8 +245,7 @@ export const LogsConfig: DatasetConfig<
   ],
   useSeriesQuery: useLogsSeriesQuery,
   useTableQuery: useLogsTableQuery,
-  transformTable: transformEventsResponseToTable,
-  transformSeries: transformEventsResponseToSeries,
+  ...eventsResponseTransforms,
   filterAggregateParams,
   getCustomFieldRenderer: (field, meta, widget, _organization, dashboardFilters) => {
     return getFieldRenderer(field, meta, false, widget, dashboardFilters);
@@ -239,7 +274,7 @@ function getPrimaryFieldOptions(
           // We have numeric and string tags which have the same
           // display name, but one is used for aggregates and the other
           // is used for grouping.
-          meta: {name: tag.key, dataType: tag.kind === 'tag' ? 'string' : 'number'},
+          meta: {name: tag.key, dataType: attributeTypeFromKind(tag.kind)},
         },
       };
       return acc;
@@ -268,7 +303,7 @@ function filterAggregateParams(option: FieldValueOption, fieldValue?: QueryField
   const expectedDataTypes =
     fieldValue?.kind === 'function' &&
     fieldValue?.function[0] === AggregationKey.COUNT_UNIQUE
-      ? new Set(['number', 'string'])
+      ? new Set(['number', 'string', 'boolean'])
       : new Set(['number']);
 
   if ('dataType' in option.value.meta) {
@@ -283,16 +318,8 @@ function filterYAxisOptions() {
   };
 }
 
-function getGroupByFieldOptions(
-  organization: Organization,
-  tags?: TagCollection,
-  customMeasurements?: CustomMeasurementCollection
-) {
-  const primaryFieldOptions = getPrimaryFieldOptions(
-    organization,
-    tags,
-    customMeasurements
-  );
+function getGroupByFieldOptions(organization: Organization, tags?: TagCollection) {
+  const primaryFieldOptions = getPrimaryFieldOptions(organization, tags);
   const yAxisFilter = filterYAxisOptions();
   const filterGroupByOptions = (option: FieldValueOption) => !yAxisFilter(option);
 

@@ -18,7 +18,6 @@ export function useExtractDomNodes({replay, frame, enabled}: Params) {
     // visualize the rendered elements
     queryFn: () => replay?.getDomNodesForFrame({frame}) ?? null,
     enabled: Boolean(!replay?.isFetching() && enabled),
-    gcTime: Infinity,
     staleTime: Infinity,
     retry: false,
   });

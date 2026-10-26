@@ -7,6 +7,7 @@ import {t} from 'sentry/locale';
 import type {PreprodDetector} from 'sentry/types/workflowEngine/detectors';
 import {
   DisableDetectorAction,
+  DuplicateDetectorAction,
   EditDetectorAction,
 } from 'sentry/views/detectors/components/details/common/actions';
 import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/details/common/automations';
@@ -33,6 +34,7 @@ export function MobileBuildDetectorDetails({detector}: MobileBuildDetectorDetail
             <DatePageFilter />
             <Flex flex={1} justify="end" gap="md">
               <DisableDetectorAction detector={detector} />
+              <DuplicateDetectorAction detector={detector} />
               <EditDetectorAction detector={detector} />
             </Flex>
           </Flex>

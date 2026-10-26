@@ -65,6 +65,6 @@ export function useExtractPageHtml({replay, offsetMsToStopAt}: Props) {
         startTimestampMs: replay?.getReplay().started_at.getTime() ?? 0,
       }),
     enabled: Boolean(replay),
-    gcTime: Infinity,
+    staleTime: Infinity,
   });
 }

@@ -105,7 +105,7 @@ describe('formatUsageWithUnits', () => {
     ).toBe('1.2K GB');
 
     expect(formatUsageWithUnits(0, dataCategory, {useUnitScaling: true})).toBe('0 B');
-    expect(formatUsageWithUnits(1000, dataCategory, {useUnitScaling: true})).toBe('1 KB');
+    expect(formatUsageWithUnits(1000, dataCategory, {useUnitScaling: true})).toBe('1 kB');
     expect(formatUsageWithUnits(MILLION, dataCategory, {useUnitScaling: true})).toBe(
       '1 MB'
     );

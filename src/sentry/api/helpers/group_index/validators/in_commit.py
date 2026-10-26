@@ -19,13 +19,6 @@ class InCommitValidator(serializers.Serializer[InCommitResult]):
         required=True, help_text="The name of the repository (as it appears in Sentry)."
     )
 
-    def validate_repository(self, value: str) -> Repository:
-        project = self.context["project"]
-        try:
-            return Repository.objects.get(organization_id=project.organization_id, name=value)
-        except Repository.DoesNotExist:
-            raise serializers.ValidationError("Unable to find the given repository.")
-
     def validate(self, attrs: dict[str, Any]) -> Commit:
         attrs = super().validate(attrs)
         repository = attrs.get("repository")
@@ -36,8 +29,24 @@ class InCommitValidator(serializers.Serializer[InCommitResult]):
             )
         if not commit:
             raise serializers.ValidationError({"commit": ["Unable to find the given commit."]})
+
+        project = self.context["project"]
+        repositories = Repository.objects.filter(
+            organization_id=project.organization_id, name=repository
+        )
+        if not repositories.exists():
+            raise serializers.ValidationError(
+                {"repository": ["Unable to find the given repository."]}
+            )
+
         try:
-            commit = Commit.objects.get(repository_id=repository.id, key=commit)
+            return Commit.objects.get(
+                repository_id__in=repositories.values("id"),
+                key=commit,
+            )
         except Commit.DoesNotExist:
             raise serializers.ValidationError({"commit": ["Unable to find the given commit."]})
-        return commit
+        except Commit.MultipleObjectsReturned:
+            raise serializers.ValidationError(
+                {"commit": ["Multiple repositories contain the given commit."]}
+            )

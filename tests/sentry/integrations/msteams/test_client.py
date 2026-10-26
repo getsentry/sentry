@@ -9,8 +9,14 @@ from django.test import override_settings
 from requests import Request
 
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.msteams.client import MsTeamsClient, get_token_data
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.integrations.msteams.client import MsTeamsClient, OAuthMsTeamsClient, get_token_data
+from sentry.integrations.msteams.metrics import record_lifecycle_termination_level
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiHostError,
+    ApiInvalidRequestError,
+    IntegrationError,
+)
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
     PROXY_BASE_PATH,
@@ -21,6 +27,7 @@ from sentry.silo.util import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 from tests.sentry.integrations.test_helpers import add_control_silo_proxy_response
 
@@ -176,6 +183,80 @@ class MsTeamsClientTest(TestCase):
         assert self.metrics.incr.mock_calls == calls
 
     @responses.activate
+    def test_invalid_request_records_failure(self) -> None:
+        lifecycle = mock.MagicMock()
+
+        record_lifecycle_termination_level(lifecycle, ApiInvalidRequestError("Invalid request"))
+
+        lifecycle.record_failure.assert_called_once()
+        lifecycle.record_halt.assert_not_called()
+
+    @responses.activate
+    def test_bad_syntax_records_halt(self) -> None:
+        lifecycle = mock.MagicMock()
+        error = ApiInvalidRequestError(
+            '{"error":{"code":"BadSyntax","message":"Bad format of conversation ID"}}'
+        )
+
+        record_lifecycle_termination_level(lifecycle, error)
+
+        lifecycle.record_halt.assert_called_once()
+        lifecycle.record_failure.assert_not_called()
+
+    @responses.activate
+    def test_integration_error_records_failure(self) -> None:
+        lifecycle = mock.MagicMock()
+
+        record_lifecycle_termination_level(lifecycle, IntegrationError("nope"))
+
+        lifecycle.record_failure.assert_called_once()
+        lifecycle.record_halt.assert_not_called()
+
+    @responses.activate
+    @patch("sentry.integrations.msteams.client.IntegrationProxyClient.request")
+    def test_conversation_not_found_is_invalid_request(self, mock_request: mock.MagicMock) -> None:
+        mock_request.side_effect = ApiError(
+            '{"error":{"code":"ConversationNotFound","message":"Conversation not found."}}',
+            code=404,
+        )
+
+        with pytest.raises(ApiInvalidRequestError):
+            self.msteams_client.get_channel_list("foobar")
+
+    @responses.activate
+    @patch("sentry.integrations.msteams.client.IntegrationProxyClient.request")
+    def test_bad_syntax_is_invalid_request(self, mock_request: mock.MagicMock) -> None:
+        mock_request.side_effect = ApiError(
+            '{"error":{"code":"BadSyntax","message":"Bad format of conversation ID"}}',
+            code=400,
+        )
+
+        with pytest.raises(ApiInvalidRequestError):
+            self.msteams_client.get_channel_list("foobar")
+
+    @responses.activate
+    @patch("sentry.integrations.msteams.client.IntegrationProxyClient.request")
+    def test_unknown_api_error_is_integration_error(self, mock_request: mock.MagicMock) -> None:
+        mock_request.side_effect = ApiError(
+            '{"error":{"code":"SomeOtherError","message":"nope"}}',
+            code=500,
+        )
+
+        with pytest.raises(IntegrationError):
+            self.msteams_client.get_channel_list("foobar")
+
+    @responses.activate
+    @patch("sentry.integrations.msteams.client.IntegrationProxyClient.request")
+    def test_raw_response_preserves_transport_error(self, mock_request: mock.MagicMock) -> None:
+        error = ApiHostError("Unable to reach host")
+        mock_request.side_effect = error
+
+        with pytest.raises(ApiHostError) as exc_info:
+            self.msteams_client.request("GET", "/", raw_response=True)
+
+        assert exc_info.value is error
+
+    @responses.activate
     def test_api_client_from_integration_installation(self) -> None:
         installation = self.integration.get_installation(organization_id=self.organization.id)
         client = installation.get_client()
@@ -319,3 +400,18 @@ class MsTeamsProxyApiClientTest(TestCase):
             assert request.headers[PROXY_BASE_URL_HEADER] == "https://smba.trafficmanager.net/amer"
             assert client.base_url not in request.url
             assert_proxy_request(request, is_proxy=True)
+
+
+@control_silo_test
+class OAuthMsTeamsClientTest(TestCase):
+    def test_defaults_to_botframework_authority(self) -> None:
+        client = OAuthMsTeamsClient("client-id", "client-secret")
+        assert client.base_url == "https://login.microsoftonline.com/botframework.com"
+
+    @override_options({"msteams.tenant-id": "00000000-1111-2222-3333-444444444444"})
+    def test_uses_tenant_authority_when_configured(self) -> None:
+        client = OAuthMsTeamsClient("client-id", "client-secret")
+        assert (
+            client.base_url
+            == "https://login.microsoftonline.com/00000000-1111-2222-3333-444444444444"
+        )

@@ -1,7 +1,12 @@
 from unittest.mock import patch
 from urllib.parse import urlencode
 
+from django.test import RequestFactory
+from rest_framework.request import Request
+
+from sentry.api.serializers.models.event import FULL_PAYLOAD_MAX_PER_PAGE
 from sentry.eventstream.snuba import SnubaEventStream
+from sentry.issues.endpoints.group_hashes import GroupHashesEndpoint
 from sentry.models.grouphash import GroupHash
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -175,6 +180,20 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert "entries" not in response.data[0]["latestEvent"]
 
+    def test_per_page_clamped_when_full(self) -> None:
+        endpoint = GroupHashesEndpoint()
+
+        def req(path: str) -> Request:
+            return Request(RequestFactory().get(path))
+
+        # full defaults to true on this endpoint, so an unqualified request clamps
+        assert endpoint.get_per_page(req("/")) == FULL_PAYLOAD_MAX_PER_PAGE
+        assert endpoint.get_per_page(req("/?per_page=100")) == FULL_PAYLOAD_MAX_PER_PAGE
+        # a smaller explicit page is honored
+        assert endpoint.get_per_page(req("/?per_page=5")) == 5
+        # opting out of full removes the clamp
+        assert endpoint.get_per_page(req("/?full=false&per_page=100")) == 100
+
     def test_unmerge(self) -> None:
         self.login_as(user=self.user)
 
@@ -260,48 +279,3 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 409
         assert response.data["detail"] == "Already being unmerged"
-
-    def test_unmerge_rejects_large_group(self) -> None:
-        self.login_as(user=self.user)
-
-        group = self.create_group(platform="javascript", times_seen=10001)
-
-        hashes = [
-            GroupHash.objects.create(project=group.project, group=group, hash=hash)
-            for hash in ["a" * 32, "b" * 32]
-        ]
-
-        url = "?".join(
-            [
-                f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/hashes/",
-                urlencode({"id": [h.hash for h in hashes]}, True),
-            ]
-        )
-
-        with self.options({"issues.merge-unmerge.max-group-times-seen": 10000}):
-            response = self.client.put(url, format="json")
-
-        assert response.status_code == 400
-        assert "temporarily restricted" in response.data["detail"]
-
-    def test_unmerge_allows_group_at_threshold(self) -> None:
-        self.login_as(user=self.user)
-
-        group = self.create_group(platform="javascript", times_seen=10000)
-
-        hashes = [
-            GroupHash.objects.create(project=group.project, group=group, hash=hash)
-            for hash in ["a" * 32, "b" * 32]
-        ]
-
-        url = "?".join(
-            [
-                f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/hashes/",
-                urlencode({"id": [h.hash for h in hashes]}, True),
-            ]
-        )
-
-        with self.options({"issues.merge-unmerge.max-group-times-seen": 10000}):
-            response = self.client.put(url, format="json")
-
-        assert response.status_code == 202

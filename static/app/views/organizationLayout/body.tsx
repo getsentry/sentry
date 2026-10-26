@@ -10,6 +10,7 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {LogoSentry} from 'sentry/components/logoSentry';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -75,10 +76,15 @@ function DeletionPending({organization}: OrganizationProps) {
     setIsRestoring(true);
 
     try {
-      await api.requestPromise(`/organizations/${organization.slug}/`, {
-        method: 'PUT',
-        data: {cancelDeletion: true},
-      });
+      await api.requestPromise(
+        getApiUrl('/organizations/$organizationIdOrSlug/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
+        {
+          method: 'PUT',
+          data: {cancelDeletion: true},
+        }
+      );
       testableWindowLocation.reload();
     } catch {
       setIsRestoring(false);

@@ -19,9 +19,9 @@ import {t} from 'sentry/locale';
 import {DataCategory, type PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {encodeSort, type EventView} from 'sentry/utils/discover/eventView';
+import {type EventView} from 'sentry/utils/discover/eventView';
 import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
-import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
+import {decodeScalar, decodeSorts, encodeSort} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -52,14 +52,19 @@ import {
 import {
   decodeEventsDisplayFilterFromLocation,
   EventsDisplayFilterName,
+  generateTransactionEventsEventView,
   getEventsFilterOptions,
   type PercentileValues,
 } from './utils';
 
 export function EAPSampledEventsTab() {
-  const {organization, eventView, transactionName} = useTransactionSummaryContext();
+  const {organization, transactionName} = useTransactionSummaryContext();
   const navigate = useNavigate();
   const location = useLocation();
+  const eventView = useMemo(
+    () => generateTransactionEventsEventView({location, transactionName}),
+    [location, transactionName]
+  );
   const {selection} = usePageFilters();
 
   const eventsDisplayFilterName = decodeEventsDisplayFilterFromLocation(location);
@@ -84,7 +89,7 @@ export function EAPSampledEventsTab() {
       'performance_views.transactionEvents.display_filter_dropdown.selection',
       {
         organization,
-        action: newFilterName as string,
+        action: newFilterName,
       }
     );
 
@@ -169,7 +174,7 @@ function FilterBar(props: FilterBarProps) {
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
   return (
-    <Grid gap="xl" marginBottom="xl" columns={{'screen:sm': 'auto 1fr auto auto'}}>
+    <Grid gap="xl" marginBottom="xl" columns={{zero: '1fr', xl: 'auto 1fr auto auto'}}>
       <PageFilterBar condensed>
         <EnvironmentPageFilter />
         <DatePageFilter {...datePageFilterProps} />

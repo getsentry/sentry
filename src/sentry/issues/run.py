@@ -14,6 +14,7 @@ from arroyo.processing.strategies.batching import BatchStep, ValuesBatch
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import Commit, Message, Partition
 
+from sentry.issues.action_log.publish import action_context_scope
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
@@ -99,7 +100,8 @@ def process_message(message: Message[KafkaPayload]) -> None:
 
     try:
         payload = orjson.loads(message.payload.value)
-        _process_message(payload)
+        with action_context_scope(source="occurrence_consumer"):
+            _process_message(payload)
     except Exception:
         logger.exception("failed to process message payload")
 
@@ -110,6 +112,7 @@ def process_batch(
     from sentry.issues.occurrence_consumer import process_occurrence_batch
 
     try:
-        process_occurrence_batch(worker, messages)
+        with action_context_scope(source="batched_occurrence_consumer"):
+            process_occurrence_batch(worker, messages)
     except Exception:
         logger.exception("failed to process batch payload")

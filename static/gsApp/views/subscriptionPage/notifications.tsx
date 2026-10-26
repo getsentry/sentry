@@ -1,3 +1,4 @@
+import {IconInfo} from '@sentry/icons/info';
 import {useQuery} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -10,9 +11,9 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Redirect} from 'sentry/components/redirect';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -133,7 +134,9 @@ function ThresholdsForm({
     onSubmit: async ({value}) => {
       try {
         await fetchMutation({
-          url: `/customers/${organization.slug}/spend-notifications/`,
+          url: getApiUrl('/customers/$organizationIdOrSlug/spend-notifications/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
           method: 'POST',
           data: value,
         });

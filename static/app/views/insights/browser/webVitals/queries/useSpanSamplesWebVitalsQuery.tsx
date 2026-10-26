@@ -29,7 +29,6 @@ export function useSpanSamplesWebVitalsQuery({
   limit,
   enabled,
   filter = SPANS_FILTER,
-  sortName,
   browserTypes,
   subregions,
   webVital = 'inp',
@@ -38,7 +37,6 @@ export function useSpanSamplesWebVitalsQuery({
   browserTypes?: BrowserType[];
   enabled?: boolean;
   filter?: string;
-  sortName?: string;
   subregions?: SubregionCode[];
   transaction?: string;
   webVital?: WebVitals;
@@ -48,23 +46,19 @@ export function useSpanSamplesWebVitalsQuery({
     ...SORTABLE_INDEXED_INTERACTION_FIELDS,
   ];
   const sort = useWebVitalsSort({
-    sortName,
     defaultSort: DEFAULT_INDEXED_SPANS_SORT,
-    sortableFields: filteredSortableFields as unknown as string[],
+    sortableFields: filteredSortableFields,
   });
 
-  const mutableSearch = MutableSearch.fromQueryObject({
-    has: 'message',
-    [`!${SpanFields.SPAN_DESCRIPTION}`]: '<unknown>',
-  });
+  const mutableSearch = new MutableSearch('');
   if (transaction !== undefined) {
     mutableSearch.addFilterValue(SpanFields.TRANSACTION, transaction);
   }
-  if (browserTypes) {
-    mutableSearch.addDisjunctionFilterValues(SpanFields.BROWSER_NAME, browserTypes);
+  if (browserTypes?.length) {
+    mutableSearch.addFilterValueList(SpanFields.BROWSER_NAME, browserTypes);
   }
-  if (subregions) {
-    mutableSearch.addDisjunctionFilterValues(SpanFields.USER_GEO_SUBREGION, subregions);
+  if (subregions?.length) {
+    mutableSearch.addFilterValueList(SpanFields.USER_GEO_SUBREGION, subregions);
   }
 
   let field: SpanFields | undefined;
@@ -110,7 +104,7 @@ export function useSpanSamplesWebVitalsQuery({
         SpanFields.USER_ID,
         SpanFields.USER_IP,
         SpanFields.PROJECT,
-        SpanFields.SPAN_DESCRIPTION,
+        SpanFields.NAME,
         SpanFields.TIMESTAMP,
         SpanFields.SPAN_SELF_TIME,
         SpanFields.TRANSACTION,

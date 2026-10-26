@@ -1,3 +1,9 @@
+from __future__ import annotations
+
+from typing import Any
+from unittest import mock
+
+from sentry.deletions.base import ModelDeletionTask
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.models.environment import Environment
 from sentry.monitors.models import (
@@ -14,6 +20,159 @@ from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 
 
 class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTestMixin):
+    def _spy_marked_models(self) -> tuple[mock._patch[mock.MagicMock], list[str]]:
+        marked_models: list[str] = []
+        original = ModelDeletionTask.mark_deletion_in_progress
+
+        def spy(task: ModelDeletionTask[Any], instance_list: object) -> None:
+            marked_models.append(task.model.__name__)
+            original(task, instance_list)  # type: ignore[arg-type]
+
+        patcher = mock.patch.object(
+            ModelDeletionTask, "mark_deletion_in_progress", autospec=True, side_effect=spy
+        )
+        return patcher, marked_models
+
+    def _create_monitor_with_checkins(self, num_checkins: int) -> tuple[Monitor, int]:
+        project = self.create_project(name="test")
+        env = Environment.objects.create(organization_id=project.organization_id, name="prod")
+        monitor = Monitor.objects.create(
+            organization_id=project.organization.id,
+            project_id=project.id,
+            config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
+        )
+        monitor_env = MonitorEnvironment.objects.create(monitor=monitor, environment_id=env.id)
+        for _ in range(num_checkins):
+            MonitorCheckIn.objects.create(
+                monitor_environment=monitor_env,
+                status=CheckInStatus.OK,
+            )
+        return monitor, num_checkins
+
+    def test_checkin_deletion_is_rate_limited(self) -> None:
+        monitor, num_checkins = self._create_monitor_with_checkins(5)
+        self.ScheduledDeletion.schedule(instance=monitor, days=0)
+
+        with mock.patch("sentry.deletions.base.LeakyBucketRateLimiter") as mock_limiter_cls:
+            mock_limiter_cls.return_value.use_and_get_info.return_value = mock.Mock(wait_time=0)
+            with self.tasks():
+                run_scheduled_deletions()
+
+        assert not MonitorCheckIn.objects.exists()
+        mock_limiter_cls.assert_called_with(
+            burst_limit=1000,
+            drip_rate=1000,
+            key="deletions.rate_limit:deletions.monitor-check-in.rate-limit",
+        )
+        # Every deleted check-in is charged to the bucket exactly once.
+        limiter = mock_limiter_cls.return_value
+        total_charged = sum(
+            call.kwargs["incr_by"] for call in limiter.use_and_get_info.call_args_list
+        )
+        assert total_charged == num_checkins
+
+    def test_checkin_deletion_rate_limit_disabled(self) -> None:
+        """A rate of 0 disables throttling entirely (limiter is never built)."""
+        monitor, _ = self._create_monitor_with_checkins(3)
+        self.ScheduledDeletion.schedule(instance=monitor, days=0)
+
+        with self.options({"deletions.monitor-check-in.rate-limit": 0}):
+            with mock.patch("sentry.deletions.base.LeakyBucketRateLimiter") as mock_limiter_cls:
+                with self.tasks():
+                    run_scheduled_deletions()
+
+        assert not MonitorCheckIn.objects.exists()
+        mock_limiter_cls.assert_not_called()
+
+    def test_checkin_deletion_sleeps_when_throttled(self) -> None:
+        """When the bucket reports a wait, we sleep for it before retrying."""
+        monitor, _ = self._create_monitor_with_checkins(2)
+        self.ScheduledDeletion.schedule(instance=monitor, days=0)
+
+        # First reservation is throttled (wait 0.2s), second is admitted.
+        infos = [mock.Mock(wait_time=0.2), mock.Mock(wait_time=0)]
+        with mock.patch("sentry.deletions.base.LeakyBucketRateLimiter") as mock_limiter_cls:
+            mock_limiter_cls.return_value.use_and_get_info.side_effect = infos
+            with mock.patch("sentry.deletions.base.time.sleep") as mock_sleep:
+                with self.tasks():
+                    run_scheduled_deletions()
+
+        mock_sleep.assert_called_once_with(0.2)
+        assert not MonitorCheckIn.objects.exists()
+
+    def test_delete_monitor_does_not_mark_checkins_in_progress(self) -> None:
+        """
+        Deleting a Monitor should not mark its check-ins as
+        DELETION_IN_PROGRESS (an UPDATE per row) since the interim status is
+        meaningless for rows that are about to be deleted. Other models should
+        still be marked.
+        """
+        project = self.create_project(name="test")
+        env = Environment.objects.create(organization_id=project.organization_id, name="prod")
+
+        monitor = Monitor.objects.create(
+            organization_id=project.organization.id,
+            project_id=project.id,
+            config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
+        )
+        monitor_env = MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment_id=env.id,
+        )
+        for status in (CheckInStatus.OK, CheckInStatus.ERROR, CheckInStatus.OK):
+            MonitorCheckIn.objects.create(
+                monitor_environment=monitor_env,
+                status=status,
+            )
+
+        self.ScheduledDeletion.schedule(instance=monitor, days=0)
+
+        patcher, marked_models = self._spy_marked_models()
+        with patcher, self.tasks():
+            run_scheduled_deletions()
+
+        assert not MonitorCheckIn.objects.exists()
+        assert "MonitorCheckIn" not in marked_models
+        assert "Monitor" in marked_models
+
+    def test_delete_checkin_directly_does_not_mark_in_progress(self) -> None:
+        """
+        Deleting a MonitorCheckIn directly should also skip marking it as
+        DELETION_IN_PROGRESS.
+        """
+        project = self.create_project(name="test")
+        env = Environment.objects.create(organization_id=project.organization_id, name="prod")
+
+        monitor = Monitor.objects.create(
+            organization_id=project.organization.id,
+            project_id=project.id,
+            config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
+        )
+        monitor_env = MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment_id=env.id,
+        )
+        checkin = MonitorCheckIn.objects.create(
+            monitor_environment=monitor_env,
+            status=CheckInStatus.ERROR,
+        )
+        incident = MonitorIncident.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_env,
+            starting_checkin=checkin,
+        )
+
+        self.ScheduledDeletion.schedule(instance=checkin, days=0)
+
+        patcher, marked_models = self._spy_marked_models()
+        with patcher, self.tasks():
+            run_scheduled_deletions()
+
+        assert not MonitorCheckIn.objects.filter(id=checkin.id).exists()
+        assert not MonitorIncident.objects.filter(id=incident.id).exists()
+        assert "MonitorCheckIn" not in marked_models
+        assert "MonitorIncident" in marked_models
+
     def test_delete_checkin_directly(self) -> None:
         """
         Test that deleting a MonitorCheckIn directly (not via Monitor deletion)
@@ -34,21 +193,15 @@ class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTest
 
         # Create check-ins
         checkin1 = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_env,
-            project_id=project.id,
             status=CheckInStatus.ERROR,
         )
         checkin2 = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_env,
-            project_id=project.id,
             status=CheckInStatus.OK,
         )
         checkin3 = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_env,
-            project_id=project.id,
             status=CheckInStatus.ERROR,
         )
 
@@ -129,21 +282,15 @@ class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTest
 
         # Create multiple check-ins to test bulk deletion
         checkin1 = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_env,
-            project_id=project.id,
             status=CheckInStatus.ERROR,
         )
         checkin2 = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_env,
-            project_id=project.id,
             status=CheckInStatus.ERROR,
         )
         checkin3 = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_env,
-            project_id=project.id,
             status=CheckInStatus.OK,
         )
 
@@ -172,7 +319,7 @@ class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTest
         )
 
         # Verify initial state
-        assert MonitorCheckIn.objects.filter(monitor=monitor).count() == 3
+        assert MonitorCheckIn.objects.filter(monitor_environment__monitor=monitor).count() == 3
         assert MonitorIncident.objects.filter(monitor=monitor).count() == 2
         assert MonitorEnvBrokenDetection.objects.count() == 2
 
@@ -217,15 +364,11 @@ class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTest
 
         # Create check-ins
         failed_checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_env,
-            project_id=project.id,
             status=CheckInStatus.ERROR,
         )
         ok_checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_env,
-            project_id=project.id,
             status=CheckInStatus.OK,
         )
 
@@ -272,15 +415,11 @@ class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTest
             environment_id=env.id,
         )
         checkin1_m1 = MonitorCheckIn.objects.create(
-            monitor=monitor1,
             monitor_environment=monitor_env1,
-            project_id=project.id,
             status=CheckInStatus.ERROR,
         )
         checkin2_m1 = MonitorCheckIn.objects.create(
-            monitor=monitor1,
             monitor_environment=monitor_env1,
-            project_id=project.id,
             status=CheckInStatus.OK,
         )
         incident1_m1 = MonitorIncident.objects.create(
@@ -305,15 +444,11 @@ class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTest
             environment_id=env.id,
         )
         checkin1_m2 = MonitorCheckIn.objects.create(
-            monitor=monitor2,
             monitor_environment=monitor_env2,
-            project_id=project.id,
             status=CheckInStatus.ERROR,
         )
         checkin2_m2 = MonitorCheckIn.objects.create(
-            monitor=monitor2,
             monitor_environment=monitor_env2,
-            project_id=project.id,
             status=CheckInStatus.OK,
         )
         incident1_m2 = MonitorIncident.objects.create(

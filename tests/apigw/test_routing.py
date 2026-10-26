@@ -17,7 +17,6 @@ logger = logging.getLogger(__name__)
 # to drain this registry to zero: fix the apigw routes (or the sentry url /
 # silo annotation) and remove the entry. Do not add new entries. Entries whose
 # routing has been fixed make the test fail as stale and must be removed.
-CELL_NO_ORG_SCOPE = "cell endpoint/view without org in path; falls through to control"
 RELOCATION = "relocation endpoints; known issue, see cell-architecture known issues"
 
 KNOWN_MISLEADING = {
@@ -46,8 +45,6 @@ KNOWN_MISLEADING = {
     "favicon\\.ico",
 }
 KNOWN_MISROUTED = {
-    # Cell endpoints with no org in the path
-    "api/0/internal/feature-flags/ea-feature-flags": CELL_NO_ORG_SCOPE,
     # The loader cell is resolved from the SDK public key, which apigw cannot
     # do yet; route to control and rely on its django gateway middleware
     # (SdkPublicKeyResolver) until apigw grows public-key-based resolution

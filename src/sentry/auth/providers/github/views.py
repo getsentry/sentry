@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from django import forms
@@ -9,20 +10,22 @@ from django.http.response import HttpResponseBase
 from sentry.auth.helper import AuthHelper
 from sentry.auth.services.auth.model import RpcAuthProvider
 from sentry.auth.view import AuthView
+from sentry.identity.github.provider import get_verified_primary_email
 from sentry.models.authidentity import AuthIdentity
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.base.response import DeferredResponse
 from sentry.utils.forms import set_field_choices
 
-from .client import GitHubClient
+from .client import GitHubApiError, GitHubClient
 from .constants import (
     ERR_NO_ORG_ACCESS,
     ERR_NO_PRIMARY_EMAIL,
     ERR_NO_SINGLE_PRIMARY_EMAIL,
-    ERR_NO_SINGLE_VERIFIED_PRIMARY_EMAIL,
     ERR_NO_VERIFIED_PRIMARY_EMAIL,
     REQUIRE_VERIFIED_EMAIL,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _get_name_from_email(email: str) -> str:
@@ -57,27 +60,45 @@ class FetchUser(AuthView):
             user = client.get_user()
             assert isinstance(user, dict)
 
+            is_returning_active_user = AuthIdentity.objects.filter(
+                auth_provider=pipeline.provider_model, ident=user["id"], user__is_active=True
+            ).exists()
+
+            emails: list[dict[str, Any]] = []
+            if not is_returning_active_user or not user.get("email"):
+                # only do the 2nd api call to get_user_emails if the user is new
+                # or if they don't have a public default email
+                try:
+                    emails = client.get_user_emails()
+                except (GitHubApiError, ValueError):
+                    # Best-effort, let the logic below handle missing emails
+                    logger.warning("auth.github.user_emails_fetch_failed", exc_info=True)
+
+            verified_email = get_verified_primary_email(emails)
+            if verified_email:
+                user["email"] = verified_email
+                user["email_verified"] = True
+
             if not user.get("email"):
-                emails = client.get_user_emails()
-                email = [
+                # No public email and no verified primary. When verified emails are
+                # required there's nothing left to accept; otherwise fall back to
+                # the account's (possibly unverified) primary.
+                #
+                # NOTE: unclear whether REQUIRE_VERIFIED_EMAIL is meant to gate
+                # returning users' logins at all, vs. only new-account creation.
+                # Leaving this unchanged until we decide.
+                if REQUIRE_VERIFIED_EMAIL:
+                    return pipeline.error(ERR_NO_VERIFIED_PRIMARY_EMAIL)
+                primary = [
                     e["email"]
                     for e in emails
-                    if ((not REQUIRE_VERIFIED_EMAIL) or e["verified"]) and e["primary"]
+                    if isinstance(e, dict) and e.get("email") and e.get("primary")
                 ]
-                if len(email) == 0:
-                    if REQUIRE_VERIFIED_EMAIL:
-                        msg = ERR_NO_VERIFIED_PRIMARY_EMAIL
-                    else:
-                        msg = ERR_NO_PRIMARY_EMAIL
-                    return pipeline.error(msg)
-                elif len(email) > 1:
-                    if REQUIRE_VERIFIED_EMAIL:
-                        msg = ERR_NO_SINGLE_VERIFIED_PRIMARY_EMAIL
-                    else:
-                        msg = ERR_NO_SINGLE_PRIMARY_EMAIL
-                    return pipeline.error(msg)
-                else:
-                    user["email"] = email[0]
+                if len(primary) == 0:
+                    return pipeline.error(ERR_NO_PRIMARY_EMAIL)
+                elif len(primary) > 1:
+                    return pipeline.error(ERR_NO_SINGLE_PRIMARY_EMAIL)
+                user["email"] = primary[0]
 
             # A user hasn't set their name in their Github profile so it isn't
             # populated in the response
@@ -87,38 +108,6 @@ class FetchUser(AuthView):
             pipeline.bind_state("user", user)
 
             return pipeline.next_step()
-
-
-class ConfirmEmailForm(forms.Form):
-    email = forms.EmailField(label="Email")
-
-
-class ConfirmEmail(AuthView):
-    def handle(self, request: HttpRequest, pipeline: AuthHelper) -> HttpResponseBase:
-        user: dict[str, Any] | None = pipeline.fetch_state("user")
-        assert user is not None
-
-        # TODO(dcramer): this isn't ideal, but our current flow doesnt really
-        # support this behavior;
-        try:
-            auth_identity = AuthIdentity.objects.select_related("user").get(
-                auth_provider=pipeline.provider_model, ident=user["id"]
-            )
-        except AuthIdentity.DoesNotExist:
-            pass
-        else:
-            user["email"] = auth_identity.user.email
-
-        if user.get("email"):
-            return pipeline.next_step()
-
-        form = ConfirmEmailForm(request.POST or None)
-        if form.is_valid():
-            user["email"] = form.cleaned_data["email"]
-            pipeline.bind_state("user", user)
-            return pipeline.next_step()
-
-        return self.respond("sentry_auth_github/enter-email.html", {"form": form})
 
 
 class SelectOrganizationForm(forms.Form):

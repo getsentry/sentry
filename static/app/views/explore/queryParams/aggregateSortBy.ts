@@ -24,7 +24,7 @@ export function getAggregateSortBysFromLocation(
 
 export function validateAggregateSort(
   sort: Sort,
-  aggregateFields: AggregateField[]
+  aggregateFields: readonly AggregateField[]
 ): boolean {
   return aggregateFields.some(aggregateField => {
     if (isGroupBy(aggregateField)) {

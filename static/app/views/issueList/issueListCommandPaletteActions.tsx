@@ -1,4 +1,9 @@
 import {Fragment, useMemo} from 'react';
+import {IconBookmark} from '@sentry/icons/bookmark';
+import {IconFilter} from '@sentry/icons/filter';
+import {IconGroup} from '@sentry/icons/group';
+import {IconIssues} from '@sentry/icons/issues';
+import {IconSort} from '@sentry/icons/sort';
 import orderBy from 'lodash/orderBy';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
@@ -14,7 +19,6 @@ import {
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {SearchGroup} from 'sentry/components/searchBar/types';
-import {IconBookmark, IconFilter, IconGroup, IconIssues, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Tag} from 'sentry/types/group';
@@ -197,7 +201,6 @@ function FilterActions({
       prompt: t('Select a value...'),
       limit: 4,
       resource: (_q: string, ctx: CMDKResourceContext) =>
-        // eslint-disable-next-line @tanstack/query/exhaustive-deps
         cmdkQueryOptions({
           queryKey: ['cmdk-filter-values', tag.key, query, pageFilterCacheKey],
           queryFn: async () => {
@@ -279,6 +282,7 @@ function SortActions({
   onSortChange,
 }: Pick<IssueListCommandPaletteActionsProps, 'sort' | 'query' | 'onSortChange'>) {
   const sortKeys = [
+    IssueSortOptions.RECOMMENDED,
     ...(FOR_REVIEW_QUERIES.includes(query) ? [IssueSortOptions.INBOX] : []),
     IssueSortOptions.DATE,
     IssueSortOptions.NEW,
@@ -400,6 +404,7 @@ export function IssueListCommandPaletteActions({
           query={query}
           queryCount={queryCount}
           selection={selection}
+          sort={sort}
           onActionTaken={onActionTaken}
         />
         <SortActions sort={sort} query={query} onSortChange={onSortChange} />

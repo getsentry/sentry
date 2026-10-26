@@ -1,0 +1,51 @@
+---
+title: ToolCallIndicator
+description: A compact status icon for a group of agent tool calls.
+category: chat
+source: '@sentry/scraps/chat'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/chat/toolCallIndicator.tsx
+---
+
+import {Grid} from '@sentry/scraps/layout';
+import {ToolCallIndicator} from '@sentry/scraps/chat';
+import {Text} from '@sentry/scraps/text';
+
+import * as Storybook from 'sentry/stories';
+
+export const documentation =
+  import('!!type-loader!@sentry/scraps/chat/toolCallIndicator');
+
+The `ToolCallIndicator` communicates the aggregate status of a message's tool
+calls in an agent conversation: a spinner while they run and a semantic icon
+once they settle.
+
+## Statuses
+
+<Storybook.Demo>
+  <Grid columns="16px 1fr" flow="row" gap="md" align="center">
+    <ToolCallIndicator status="loading" />
+    <Text>loading — work in progress</Text>
+
+    <ToolCallIndicator status="pending" />
+    <Text>pending — waiting for approval</Text>
+
+    <ToolCallIndicator status="success" />
+    <Text>success — all tool calls succeeded</Text>
+
+    <ToolCallIndicator status="mixed" />
+    <Text>mixed — some succeeded, some failed</Text>
+
+    <ToolCallIndicator status="failure" />
+    <Text>failure — all tool calls failed</Text>
+
+  </Grid>
+</Storybook.Demo>
+
+```jsx
+<ToolCallIndicator status="loading" />
+<ToolCallIndicator status="pending" />
+<ToolCallIndicator status="success" />
+<ToolCallIndicator status="mixed" />
+<ToolCallIndicator status="failure" />
+```

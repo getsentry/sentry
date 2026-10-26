@@ -1,95 +1,61 @@
-import {Fragment, useCallback, useEffect, useMemo, useState, type ReactNode} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 import {Stack} from '@sentry/scraps/layout';
 
 import {MultipleCheckbox} from 'sentry/components/forms/controls/multipleCheckbox';
-import {useCreateProjectRules} from 'sentry/components/onboarding/useCreateProjectRules';
-import {t, tct} from 'sentry/locale';
-import {IssueAlertActionType, type IntegrationAction} from 'sentry/types/alerts';
+import {
+  MessagingIntegrationAnalyticsView,
+  SetupMessagingIntegrationButton,
+} from 'sentry/components/messagingIntegrations/setupMessagingIntegrationButton';
+import {t} from 'sentry/locale';
+import {IssueAlertActionType, type IssueAlertRuleAction} from 'sentry/types/alerts';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  MessagingIntegrationAnalyticsView,
-  SetupMessagingIntegrationButton,
-} from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
 import type {RequestDataFragment} from 'sentry/views/projectInstall/issueAlertOptions';
 import {MessagingIntegrationAlertRule} from 'sentry/views/projectInstall/messagingIntegrationAlertRule';
+import {
+  buildIntegrationAction,
+  getChannelTarget,
+  type IntegrationChannel,
+  type IssueAlertNotificationProps,
+  MultipleCheckboxOptions,
+  type NotificationSelection,
+  providerDetails,
+} from 'sentry/views/projectInstall/messagingIntegrationTypes';
 
-export const providerDetails = {
-  slack: {
-    name: t('Slack'),
-    action: IssueAlertActionType.SLACK,
-    placeholder: t('channel, e.g. #critical'),
-    makeSentence: ({providerName, integrationName, target}: any) =>
-      tct(
-        'Send [providerName] notification to the [integrationName] workspace to [target]',
-        {
-          providerName,
-          integrationName,
-          target,
-        }
-      ),
-  },
-  discord: {
-    name: t('Discord'),
-    action: IssueAlertActionType.DISCORD,
-    placeholder: t('channel ID or URL'),
-    makeSentence: ({providerName, integrationName, target}: any) =>
-      tct(
-        'Send [providerName] notification to the [integrationName] server in the channel [target]',
-        {
-          providerName,
-          integrationName,
-          target,
-        }
-      ),
-  },
-  msteams: {
-    name: t('MS Teams'),
-    action: IssueAlertActionType.MS_TEAMS,
-    placeholder: t('channel ID'),
-    makeSentence: ({providerName, integrationName, target}: any) =>
-      tct('Send [providerName] notification to the [integrationName] team to [target]', {
-        providerName,
-        integrationName,
-        target,
-      }),
-  },
-};
+/**
+ * Result of resolving the initial notification-picker selection, computed
+ * from whatever restore source a caller-specific hook uses (a persisted
+ * rule action, a raw stored selection, etc).
+ */
+type RestoreOutcome =
+  | {kind: 'auto'}
+  | {kind: 'wait'}
+  | {
+      actions: MultipleCheckboxOptions[];
+      channel: IntegrationChannel | undefined;
+      integration: OrganizationIntegration | undefined;
+      kind: 'apply';
+      provider: string | undefined;
+      shouldRenderSetupButton: boolean;
+    };
 
-export const enum MultipleCheckboxOptions {
-  EMAIL = 'email',
-  INTEGRATION = 'integration',
-}
+type RestoreResolver = (
+  providersToIntegrations: Record<string, OrganizationIntegration[]>
+) => RestoreOutcome;
 
-export type IntegrationChannel = {
-  label: ReactNode;
-  value: string;
-  new?: boolean;
-};
-
-export type IssueAlertNotificationProps = {
-  actions: MultipleCheckboxOptions[];
-  integration: OrganizationIntegration | undefined;
-  provider: string | undefined;
-  providersToIntegrations: Record<string, OrganizationIntegration[]>;
-  querySuccess: boolean;
-  setActions: (action: MultipleCheckboxOptions[]) => void;
-  setChannel: (channel?: IntegrationChannel) => void;
-  setIntegration: (integration: OrganizationIntegration | undefined) => void;
-  setProvider: (provider: string | undefined) => void;
-  shouldRenderSetupButton: boolean;
-  channel?: IntegrationChannel;
-};
-
-export function useCreateNotificationAction({
-  actions: defaultActions,
-}: Partial<Pick<RequestDataFragment, 'actions'>> = {}) {
+/**
+ * Flow-agnostic base for the messaging-integration notification picker: owns
+ * the integrations query, picker state, the once-only restore/auto-select effect,
+ * and resolution of the selected integration action. Callers only supply how
+ * to resolve the initial selection via `resolveRestore`.
+ */
+function useNotificationPicker(resolveRestore: RestoreResolver) {
   const organization = useOrganization();
-  const createProjectRules = useCreateProjectRules();
 
   const messagingIntegrationsQuery = useApiQuery<OrganizationIntegration[]>(
     [
@@ -125,64 +91,65 @@ export function useCreateNotificationAction({
   const [channel, setChannel] = useState<IntegrationChannel | undefined>(undefined);
   const [shouldRenderSetupButton, setShouldRenderSetupButton] = useState(false);
 
+  const hasInitializedSelection = useRef(false);
+
+  // Seeds the notification picker once, after the integrations query resolves:
+  // restores the selection via `resolveRestore` when it can, otherwise
+  // auto-selects the first available integration. Guarded by a ref so it runs
+  // a single time and never overwrites later user edits.
   useEffect(() => {
-    // Initializes form state based on the first default action and available integrations.
-    // Sets provider, integration, selected actions, and channel if present.
-    const firstAction = defaultActions?.[0];
-    if (!firstAction) {
+    if (!messagingIntegrationsQuery.isSuccess || hasInitializedSelection.current) {
       return;
     }
 
-    const matchedProviderKey = Object.keys(providerDetails).find(
-      key =>
-        providerDetails[key as keyof typeof providerDetails].action === firstAction.id
-    );
+    const outcome = resolveRestore(providersToIntegrations);
 
-    const matchedIntegration = matchedProviderKey
-      ? providersToIntegrations[matchedProviderKey]?.[0]
-      : undefined;
+    if (outcome.kind === 'wait') {
+      // The restore source names an integration that hasn't loaded yet: show
+      // the setup CTA and do NOT latch, so this effect re-runs after a
+      // refetch delivers it. Don't half-apply the restore, so the picker
+      // can't look submittable with an unresolved integration.
+      // oxlint-disable-next-line react/set-state-in-effect
+      setShouldRenderSetupButton(true);
+      return;
+    }
 
-    setProvider(matchedProviderKey);
-    setIntegration(matchedIntegration);
-
-    setShouldRenderSetupButton(!matchedIntegration);
-
-    const newActions =
-      firstAction.id === IssueAlertActionType.NOTIFY_EMAIL
-        ? [MultipleCheckboxOptions.EMAIL]
-        : [MultipleCheckboxOptions.EMAIL, MultipleCheckboxOptions.INTEGRATION];
-
-    setActions(newActions);
-
-    if (firstAction.channel) {
+    if (outcome.kind === 'apply') {
+      // eslint-disable react-you-might-not-need-an-effect/no-derived-state
+      setProvider(outcome.provider);
+      setIntegration(outcome.integration);
+      // eslint-enable react-you-might-not-need-an-effect/no-derived-state
       // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
-      setChannel({
-        label: firstAction.channel,
-        value: firstAction.channel,
-      });
+      setActions(outcome.actions);
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
+      setShouldRenderSetupButton(outcome.shouldRenderSetupButton);
+      if (outcome.channel) {
+        // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
+        setChannel(outcome.channel);
+      }
+      hasInitializedSelection.current = true;
+      return;
     }
-  }, [defaultActions, providersToIntegrations]);
 
-  useEffect(() => {
-    if (messagingIntegrationsQuery.isSuccess) {
-      const providerKeys = Object.keys(providersToIntegrations);
-      const firstProvider = providerKeys[0];
-      const firstIntegration = providersToIntegrations[String(firstProvider)]?.[0];
-      setProvider(firstProvider);
-      setIntegration(firstIntegration);
-      setShouldRenderSetupButton(!firstProvider);
+    // No restore source: auto-select the first available provider/integration.
+    const providerKeys = Object.keys(providersToIntegrations);
+    const firstProvider = providerKeys[0];
+    if (!firstProvider) {
+      // No integrations yet: show the setup CTA and do NOT latch, so this
+      // effect re-runs after the user connects one and the query refetches.
+      setShouldRenderSetupButton(true);
+      return;
     }
-  }, [messagingIntegrationsQuery.isSuccess, providersToIntegrations]);
+    hasInitializedSelection.current = true;
+    const firstIntegration = providersToIntegrations[firstProvider]?.[0];
+    setProvider(firstProvider);
+    setIntegration(firstIntegration);
+    setChannel(undefined);
+    setShouldRenderSetupButton(false);
+  }, [messagingIntegrationsQuery.isSuccess, providersToIntegrations, resolveRestore]);
 
-  const createNotificationAction = useCallback(
-    ({
-      shouldCreateRule,
-      projectSlug,
-      name,
-      conditions,
-      actionMatch,
-      frequency,
-    }: Partial<RequestDataFragment> & {projectSlug: string}) => {
+  const getIntegrationAction = useCallback(
+    ({shouldCreateRule}: Partial<RequestDataFragment>) => {
       const isCreatingIntegrationNotification = actions.find(
         action => action === MultipleCheckboxOptions.INTEGRATION
       );
@@ -190,49 +157,23 @@ export function useCreateNotificationAction({
         return;
       }
 
-      let integrationAction: IntegrationAction;
-      switch (provider) {
-        case 'slack':
-          integrationAction = {
-            id: IssueAlertActionType.SLACK,
-            workspace: integration?.id,
-            channel: channel?.value,
-          };
-
-          break;
-        case 'discord':
-          integrationAction = {
-            id: IssueAlertActionType.DISCORD,
-            server: integration?.id,
-            channel_id: channel?.value,
-          };
-
-          break;
-        case 'msteams':
-          integrationAction = {
-            id: IssueAlertActionType.MS_TEAMS,
-            team: integration?.id,
-            channel: channel?.value,
-          };
-          break;
-        default:
-          return;
+      const integrationAction = buildIntegrationAction({
+        provider,
+        integrationId: integration?.id,
+        channel: getChannelTarget(provider, channel),
+        channelId: channel?.channelId,
+      });
+      if (!integrationAction) {
+        return;
       }
 
-      return createProjectRules.mutateAsync({
-        projectSlug,
-        name,
-        conditions,
-        actions: [integrationAction],
-        actionMatch,
-        frequency,
-      });
+      return integrationAction;
     },
-    [actions, provider, integration, channel, createProjectRules]
+    [actions, provider, integration, channel]
   );
 
   return {
-    createNotificationAction,
+    getIntegrationAction,
     notificationProps: {
       actions,
       provider,
@@ -243,10 +184,127 @@ export function useCreateNotificationAction({
       setIntegration,
       setChannel,
       providersToIntegrations,
+      queryError: messagingIntegrationsQuery.isError,
       querySuccess: messagingIntegrationsQuery.isSuccess,
       shouldRenderSetupButton,
     },
   };
+}
+
+function getIntegrationId(action: IssueAlertRuleAction): string | undefined {
+  switch (action.id) {
+    case IssueAlertActionType.SLACK:
+      return action.workspace;
+    case IssueAlertActionType.DISCORD:
+      return action.server;
+    case IssueAlertActionType.MS_TEAMS:
+      return action.team;
+    default:
+      return undefined;
+  }
+}
+
+/**
+ * Classic notification-picker adapter: restores the selection by decoding a
+ * persisted `IssueAlertRuleAction` (e.g. from a previously created rule, in
+ * the API's flattened action shape). Used by the standalone Create Project
+ * page, whose only restore source is a real created rule.
+ */
+export function useCreateNotificationAction({
+  actions: defaultActions,
+}: Partial<Pick<RequestDataFragment, 'actions'>> = {}) {
+  const resolveRestore = useCallback<RestoreResolver>(
+    providersToIntegrations => {
+      const restoredAction =
+        defaultActions?.find(action => action.id !== IssueAlertActionType.NOTIFY_EMAIL) ??
+        defaultActions?.[0];
+      if (!restoredAction) {
+        return {kind: 'auto'};
+      }
+
+      // Provider key is derived from the action's id; integration is matched
+      // by integrationId if present, falling back to the first in the list.
+      const matchedProviderKey = Object.keys(providerDetails).find(
+        key =>
+          providerDetails[key as keyof typeof providerDetails].action ===
+          restoredAction.id
+      );
+      const integrationId = getIntegrationId(restoredAction);
+      const integrationList = matchedProviderKey
+        ? (providersToIntegrations[matchedProviderKey] ?? [])
+        : [];
+      const matchedIntegration = integrationId
+        ? integrationList.find(i => i.id === integrationId)
+        : integrationList[0];
+
+      const isIntegrationAction = restoredAction.id !== IssueAlertActionType.NOTIFY_EMAIL;
+      if (isIntegrationAction && !matchedIntegration) {
+        return {kind: 'wait'};
+      }
+
+      const restoredChannel = restoredAction.channel ?? restoredAction.channel_id;
+
+      return {
+        kind: 'apply',
+        provider: matchedProviderKey,
+        integration: matchedIntegration,
+        channel: restoredChannel
+          ? {label: restoredChannel, value: restoredChannel}
+          : undefined,
+        actions: isIntegrationAction
+          ? [MultipleCheckboxOptions.EMAIL, MultipleCheckboxOptions.INTEGRATION]
+          : [MultipleCheckboxOptions.EMAIL],
+        shouldRenderSetupButton: !matchedIntegration,
+      };
+    },
+    [defaultActions]
+  );
+
+  return useNotificationPicker(resolveRestore);
+}
+
+/**
+ * SCM notification-picker adapter: restores the selection directly from raw
+ * `provider`/`integrationId`/`channel` fields (e.g. persisted in the SCM
+ * wizard's own session storage), with no decoding step.
+ */
+export function useScmNotificationAction({
+  provider,
+  integrationId,
+  channel,
+}: Partial<NotificationSelection> = {}) {
+  const resolveRestore = useCallback<RestoreResolver>(
+    providersToIntegrations => {
+      // A stored selection always carries an integrationId (the encoder bails
+      // without one); anything less is treated as no selection at all.
+      if (!provider || !integrationId) {
+        return {kind: 'auto'};
+      }
+
+      const matchedIntegration = providersToIntegrations[provider]?.find(
+        i => i.id === integrationId
+      );
+
+      // Named integration not (yet) in the query response: show the setup CTA
+      // and don't latch, so this re-resolves after a refetch delivers it
+      // (mirrors the classic decode resolver's guard).
+      if (!matchedIntegration) {
+        return {kind: 'wait'};
+      }
+
+      return {
+        kind: 'apply',
+        provider,
+        integration: matchedIntegration,
+        channel: channel ? {label: channel, value: channel} : undefined,
+        actions: [MultipleCheckboxOptions.EMAIL, MultipleCheckboxOptions.INTEGRATION],
+        shouldRenderSetupButton: false,
+      };
+    },
+    [provider, integrationId, channel]
+  );
+
+  return useNotificationPicker(resolveRestore);
 }
 
 /**
@@ -281,6 +339,7 @@ export function IssueAlertNotificationOptions(
   notificationProps: IssueAlertNotificationProps
 ) {
   const {actions, setActions} = notificationProps;
+  const organization = useOrganization();
   const {querySuccess, shouldRenderNotificationConfigs, shouldRenderSetupButton} =
     useIssueAlertNotificationOptions(notificationProps);
 
@@ -293,7 +352,18 @@ export function IssueAlertNotificationOptions(
       <MultipleCheckbox
         name="notification"
         value={actions}
-        onChange={values => setActions(values)}
+        onChange={values => {
+          const wasEnabled = actions.includes(MultipleCheckboxOptions.INTEGRATION);
+          const isEnabled = values.includes(MultipleCheckboxOptions.INTEGRATION);
+          setActions(values);
+          if (wasEnabled !== isEnabled) {
+            trackAnalytics('project_creation.notify_integration_toggled', {
+              organization,
+              enabled: isEnabled,
+              variant: 'legacy',
+            });
+          }
+        }}
       >
         <Stack gap="md">
           <MultipleCheckbox.Item value={MultipleCheckboxOptions.EMAIL} disabled>
@@ -314,6 +384,7 @@ export function IssueAlertNotificationOptions(
       {shouldRenderSetupButton && (
         <SetupMessagingIntegrationButton
           analyticsView={MessagingIntegrationAnalyticsView.PROJECT_CREATION}
+          variant="legacy"
         />
       )}
     </Fragment>

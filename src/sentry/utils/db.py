@@ -1,13 +1,32 @@
 import logging
-from collections.abc import Sequence
-from contextlib import ExitStack
+from collections.abc import Generator, Sequence
+from contextlib import ExitStack, contextmanager
+from datetime import timedelta
 from functools import wraps
 
 from django.db import DEFAULT_DB_ALIAS, connections, router, transaction
 from django.db.utils import OperationalError, ProgrammingError
+from sentry_sdk import traces
 from sentry_sdk.integrations import Integration
 
-from sentry.utils.tracing import set_span_data, start_span
+
+@contextmanager
+def statement_timeout(alias: str, timeout: timedelta) -> Generator[None]:
+    """
+    Bound every query in this block server-side.
+
+    A task deadline alone would abandon the query while the database kept executing
+    it. `SET LOCAL` cancels it for real, and confines the setting to the surrounding
+    transaction so it cannot leak into other work that reuses the connection.
+
+    Raises ``OperationalError`` on expiry, so reporting callers should catch it.
+    """
+    with transaction.atomic(using=alias):
+        with connections[alias].cursor() as cursor:
+            cursor.execute(
+                "SET LOCAL statement_timeout = %s", [int(timeout.total_seconds() * 1000)]
+            )
+        yield
 
 
 def handle_db_failure(func, model, wrap_in_transaction: bool = True):
@@ -59,8 +78,13 @@ class DjangoAtomicIntegration(Integration):
         original_exit = Atomic.__exit__
 
         def _enter(self):
-            self._sentry_sdk_span = start_span(op="transaction.atomic", name="transaction.atomic")
-            set_span_data(self._sentry_sdk_span, "using", self.using)
+            self._sentry_sdk_span = traces.start_span(
+                name="transaction.atomic",
+                attributes={
+                    "sentry.op": "transaction.atomic",
+                    "using": self.using,
+                },
+            )
             self._sentry_sdk_span.__enter__()
             return original_enter(self)
 

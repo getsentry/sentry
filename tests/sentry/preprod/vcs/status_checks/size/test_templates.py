@@ -1898,3 +1898,153 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
         # No pipe or config name — same format as before
         assert "`com.example.app` (Android)" in summary
         assert " | " not in summary.split("<details>")[1]
+
+
+@cell_silo_test
+class MarkdownEscapingTest(StatusCheckTestBase):
+    """Untrusted artifact metadata must be escaped before rendering to Markdown."""
+
+    def _analyzed_artifact(
+        self, **kwargs
+    ) -> tuple[PreprodArtifact, dict[int, list[PreprodArtifactSizeMetrics]]]:
+        kwargs.setdefault("build_version", "1.0.0")
+        kwargs.setdefault("build_number", 1)
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            **kwargs,
+        )
+        size_metrics = self.create_preprod_artifact_size_metrics(
+            artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+        )
+        return artifact, {artifact.id: [size_metrics]}
+
+    def test_app_name_link_breakout_is_escaped(self) -> None:
+        artifact, size_metrics_map = self._analyzed_artifact(
+            app_id="com.example.app", app_name="App](https://sentry.io) ["
+        )
+
+        _, _, summary = format_status_check_messages(
+            [artifact],
+            size_metrics_map,
+            StatusCheckStatus.SUCCESS,
+            self.project,
+            {},
+            {},
+        )
+
+        # The forged link must not survive; the brackets are backslash-escaped so
+        # the `]` can't close the surrounding link.
+        assert "App](" not in summary
+        assert "App\\](https://sentry.io) \\[" in summary
+
+    def test_app_id_backtick_breakout_is_escaped(self) -> None:
+        # A backtick in app_id would otherwise close the surrounding code span.
+        artifact, size_metrics_map = self._analyzed_artifact(
+            app_id="com.example`](http://sentry.io)`x"
+        )
+
+        _, _, summary = format_status_check_messages(
+            [artifact],
+            size_metrics_map,
+            StatusCheckStatus.SUCCESS,
+            self.project,
+            {},
+            {},
+        )
+
+        assert "`](http://sentry.io)`" not in summary
+        assert "com.example](http://sentry.io)x" in summary
+
+    def test_build_configuration_name_is_escaped(self) -> None:
+        config = self.create_preprod_build_configuration(
+            project=self.project, name="Release [x](http://sentry.io)"
+        )
+        artifact, size_metrics_map = self._analyzed_artifact(
+            app_id="com.example.app", build_configuration=config
+        )
+
+        _, _, summary = format_status_check_messages(
+            [artifact],
+            size_metrics_map,
+            StatusCheckStatus.SUCCESS,
+            self.project,
+            {},
+            {},
+        )
+
+        assert "[x](http://sentry.io)" not in summary
+        assert "Release \\[x\\](http://sentry.io)" in summary
+
+    def test_error_message_is_escaped(self) -> None:
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.FAILED,
+            app_id="com.example.app",
+            build_version="1.0.0",
+            build_number=1,
+            error_message="boom | [click](http://sentry.io) <img src=x>",
+        )
+
+        _, _, summary = format_status_check_messages(
+            [artifact], {}, StatusCheckStatus.FAILURE, self.project, {}, {}
+        )
+
+        assert "[click](http://sentry.io)" not in summary
+        assert "<img src=x>" not in summary
+        assert "boom \\| \\[click\\](http://sentry.io) \\<img src=x\\>" in summary
+
+    def test_dynamic_feature_identifier_is_escaped(self) -> None:
+        # The dynamic-feature `identifier` is artifact-derived and flows into the
+        # <details> block via _get_triggered_metric_type_display_name.
+        artifact, size_metrics_map = self._analyzed_artifact(
+            app_id="com.example.android", artifact_type=PreprodArtifact.ArtifactType.AAB
+        )
+
+        triggered_rule = TriggeredRule(
+            rule=StatusCheckRule(
+                id="rule-1",
+                metric="download_size",
+                measurement="absolute",
+                value=50 * 1024 * 1024,
+            ),
+            artifact_id=artifact.id,
+            app_id="com.example.android",
+            platform="Android",
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.ANDROID_DYNAMIC_FEATURE,
+            identifier="feature [x](http://sentry.io)",
+        )
+
+        _, _, summary = format_status_check_messages(
+            [artifact],
+            size_metrics_map,
+            StatusCheckStatus.FAILURE,
+            self.project,
+            {},
+            {},
+            triggered_rules=[triggered_rule],
+        )
+
+        assert "[x](http://sentry.io)" not in summary
+        assert "Dynamic Feature (feature \\[x\\](http://sentry.io))" in summary
+
+    def test_benign_values_are_not_mangled(self) -> None:
+        # Guard against over-escaping: common values must render cleanly.
+        artifact, size_metrics_map = self._analyzed_artifact(
+            app_id="com.example.app", app_name="My Cool App", build_version="2.1.0", build_number=42
+        )
+
+        _, _, summary = format_status_check_messages(
+            [artifact],
+            size_metrics_map,
+            StatusCheckStatus.SUCCESS,
+            self.project,
+            {},
+            {},
+        )
+
+        assert "My Cool App" in summary
+        assert "com.example.app" in summary
+        assert "2.1.0 (42)" in summary

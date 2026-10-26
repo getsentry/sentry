@@ -11,10 +11,26 @@ from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.types import ExternalProviders
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.repository import Repository
+from sentry.seer.models.run import SeerAgentRun
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
+
+
+def runs_for_group(group_id: int, source: str) -> QuerySet[SeerAgentRun]:
+    """The Seer run mirrors for a group, scoped to a feature (``SeerAgentRun.source``)."""
+    return SeerAgentRun.objects.filter(group_id=group_id, source=source)
+
+
+def latest_run_for_group(group_id: int, source: str) -> SeerAgentRun | None:
+    """The canonical Seer run for a group + feature (latest wins).
+
+    Picking the latest run keeps writers that touch the same group in agreement on a
+    single row even if a feature dispatches more than one run per issue over time.
+    """
+    return runs_for_group(group_id, source).order_by("-date_added").first()
 
 
 def encrypt_access_token_for_seer(access_token: str) -> str | None:
@@ -50,7 +66,9 @@ def filter_repo_by_provider(
     )
 
 
-def get_github_username_for_user(user: User | RpcUser, organization_id: int) -> str | None:
+def get_github_username_for_user(
+    user: User | RpcUser, organization_id: int, *, referrer: str = "unknown"
+) -> str | None:
     """
     Get GitHub username for a user by checking multiple sources.
 
@@ -58,6 +76,9 @@ def get_github_username_for_user(user: User | RpcUser, organization_id: int) -> 
     1. Checking ExternalActor for explicit user->GitHub mappings
     2. Falling back to CommitAuthor records matched by email (like suspect commits)
     3. Extracting the GitHub username from the CommitAuthor external_id
+
+    ``referrer`` names the calling feature; it only tags the resolution metric
+    so per-caller resolution rates stay separable.
     """
     # Method 1: Check ExternalActor for direct user->GitHub mapping
     external_actor: ExternalActor | None = (
@@ -74,6 +95,7 @@ def get_github_username_for_user(user: User | RpcUser, organization_id: int) -> 
     )
 
     if external_actor and external_actor.external_name:
+        _record_username_resolution("external_actor", referrer)
         username = external_actor.external_name
         return username[1:] if username.startswith("@") else username
 
@@ -105,6 +127,15 @@ def get_github_username_for_user(user: User | RpcUser, organization_id: int) -> 
         if commit_author:
             commit_username = commit_author.get_username_from_external_id()
             if commit_username:
+                _record_username_resolution("commit_author", referrer)
                 return commit_username
 
+    _record_username_resolution("none", referrer)
     return None
+
+
+def _record_username_resolution(source: str, referrer: str) -> None:
+    metrics.incr(
+        "seer.github_username_for_user",
+        tags={"source": source, "referrer": referrer},
+    )

@@ -2,6 +2,7 @@ import logging
 from typing import Any
 
 from django.core.exceptions import PermissionDenied
+from requests.exceptions import RequestException
 
 from sentry import http, options
 from sentry.constants import ObjectStatus
@@ -27,6 +28,41 @@ def get_user_info(access_token):
         )
         resp.raise_for_status()
     return resp.json()
+
+
+def get_verified_primary_email(emails: list[dict[str, Any]]) -> str | None:
+    """Return the verified primary email from GitHub email records, else None."""
+    verified_primary = [
+        e["email"]
+        for e in emails
+        if isinstance(e, dict) and e.get("email") and e.get("verified") and e.get("primary")
+    ]
+    if not verified_primary:
+        return None
+    return verified_primary[0]
+
+
+def fetch_verified_primary_email(access_token: str) -> str | None:
+    """Fetch /user/emails and return the verified primary email, else None.
+
+    Degrades to None on fetch failure since this runs on the login critical path.
+    """
+    try:
+        with http.build_session() as session:
+            resp = session.get(
+                "https://api.github.com/user/emails",
+                headers={"Authorization": f"token {access_token}"},
+            )
+            resp.raise_for_status()
+            emails = resp.json()
+    except (RequestException, ValueError):
+        logger.exception("identity.github.user_emails_fetch_failed")
+        return None
+
+    if not isinstance(emails, list):
+        logger.warning("identity.github.user_emails_unexpected_shape")
+        return None
+    return get_verified_primary_email(emails)
 
 
 # GitHub has 2 types of apps -- GitHub apps and OAuth apps. SSO is implemented
@@ -61,7 +97,7 @@ class GitHubIdentityProvider(OAuth2Provider):
             "type": "github",
             "id": user["id"],
             "email": user["email"],
-            "email_verified": bool(user["email"]),
+            "email_verified": False,
             "login": user["login"],
             "name": user["name"],
             "company": user["company"],

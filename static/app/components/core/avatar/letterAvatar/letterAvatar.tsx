@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Tagged} from 'type-fest';
 
-// eslint-disable-next-line no-relative-import-paths/no-relative-import-paths
+// eslint-disable-next-line @sentry/no-relative-import-paths
 import {baseAvatarStyles, type BaseAvatarStyleProps} from '../avatarComponentStyles';
 
 export interface LetterAvatarProps

@@ -2,17 +2,20 @@ from collections.abc import Mapping
 from typing import Any
 from unittest.mock import patch
 
-from sentry.seer.models.run import SeerRunType
+import orjson
+from django.test import override_settings
+from urllib3.response import HTTPResponse
+
+from sentry.seer.models.run import SeerRunPullRequest, SeerRunType
 from sentry.seer.run_questions import QUESTIONS, question_hash
-from sentry.seer.runs_query import filtered_runs_queryset
-from sentry.testutils.cases import APITestCase, TestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
+from sentry.viewer_context import Actor, ActorType, ViewerContext, decode_viewer_context
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 @with_feature("organizations:seer-explorer")
-@with_feature("organizations:gen-ai-features")
-@with_feature("organizations:gen-ai-consent-flow-removal")
 class OrganizationSeerRunsEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-seer-runs"
 
@@ -177,8 +180,8 @@ class OrganizationSeerRunsEndpointTest(APITestCase):
         assert [r["id"] for r in response.data] == [str(chat.uuid)]
 
     def test_source_in_filter(self) -> None:
-        night_shift = self.create_seer_run(organization=self.organization, user_id=self.user.id)
-        self.create_seer_agent_run(run=night_shift, source="night_shift")
+        agentic_triage = self.create_seer_run(organization=self.organization, user_id=self.user.id)
+        self.create_seer_agent_run(run=agentic_triage, source="night_shift")
         chat = self.create_seer_run(organization=self.organization, user_id=self.user.id)
         self.create_seer_agent_run(run=chat, source="chat")
         slack = self.create_seer_run(organization=self.organization, user_id=self.user.id)
@@ -187,22 +190,22 @@ class OrganizationSeerRunsEndpointTest(APITestCase):
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": "source:[night_shift, chat]"}
         )
-        assert {r["id"] for r in response.data} == {str(night_shift.uuid), str(chat.uuid)}
+        assert {r["id"] for r in response.data} == {str(agentic_triage.uuid), str(chat.uuid)}
 
     def test_source_wildcard_in_filter(self) -> None:
         # A bracketed list with wildcards collapses to a regex string; it must
         # match via __regex rather than being iterated char-by-char by __in.
         slack = self.create_seer_run(organization=self.organization, user_id=self.user.id)
         self.create_seer_agent_run(run=slack, source="slack_thread")
-        night_shift = self.create_seer_run(organization=self.organization, user_id=self.user.id)
-        self.create_seer_agent_run(run=night_shift, source="night_shift")
+        agentic_triage = self.create_seer_run(organization=self.organization, user_id=self.user.id)
+        self.create_seer_agent_run(run=agentic_triage, source="night_shift")
         chat = self.create_seer_run(organization=self.organization, user_id=self.user.id)
         self.create_seer_agent_run(run=chat, source="chat")
 
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": "source:[slack*, night*]"}
         )
-        assert {r["id"] for r in response.data} == {str(slack.uuid), str(night_shift.uuid)}
+        assert {r["id"] for r in response.data} == {str(slack.uuid), str(agentic_triage.uuid)}
 
     def test_project_filter(self) -> None:
         project = self.create_project(organization=self.organization)
@@ -372,6 +375,45 @@ class OrganizationSeerRunsEndpointTest(APITestCase):
         assert data["id"] == str(run.uuid)
         assert data["userId"] == str(self.user.id)
 
+    def test_pull_requests_serialized_with_state(self) -> None:
+        run = self.create_seer_run(
+            organization=self.organization,
+            user_id=self.user.id,
+            last_triggered_at=before_now(minutes=1),
+        )
+        without_prs = self.create_seer_run(
+            organization=self.organization,
+            user_id=self.user.id,
+            last_triggered_at=before_now(minutes=10),
+        )
+        project = self.create_project(organization=self.organization)
+        repo = self.create_repo(project, name="getsentry/sentry")
+        merged_pr = self.create_pull_request(
+            repository_id=repo.id, organization_id=self.organization.id, key="123"
+        )
+        merged_at = before_now(minutes=5)
+        merged_pr.update(state="merged", merged_at=merged_at)
+        open_pr = self.create_pull_request(
+            repository_id=repo.id, organization_id=self.organization.id, key="124"
+        )
+        SeerRunPullRequest.objects.create(seer_run=run, pull_request=merged_pr)
+        SeerRunPullRequest.objects.create(seer_run=run, pull_request=open_pr)
+
+        response = self.get_success_response(self.organization.slug)
+        by_id = {r["id"]: r for r in response.data}
+
+        # The PR number is exposed as the serializer's ``id`` (PullRequest.key).
+        prs_by_key = {pr["id"]: pr for pr in by_id[str(run.uuid)]["pullRequests"]}
+        assert prs_by_key["123"]["status"] == "merged"
+        assert prs_by_key["123"]["mergedAt"] == merged_at
+        # Standard PullRequestSerializer fields come through too.
+        assert "repository" in prs_by_key["123"]
+        # No webhook has reported a state for the second PR.
+        assert prs_by_key["124"]["status"] is None
+        assert prs_by_key["124"]["mergedAt"] is None
+
+        assert by_id[str(without_prs.uuid)]["pullRequests"] == []
+
     def test_outputs_absent_without_flag(self) -> None:
         self.create_seer_run(
             organization=self.organization, user_id=self.user.id, seer_run_state_id=1
@@ -419,6 +461,36 @@ class OrganizationSeerRunsEndpointTest(APITestCase):
             f"answer to: {q.question}" for q in QUESTIONS
         ]
         assert mock_run.call_count == len(QUESTIONS)
+
+    @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
+    @with_feature("organizations:seer-run-questions")
+    @patch("sentry.seer.signed_seer_api.seer_autofix_default_connection_pool.urlopen")
+    def test_user_question_propagates_request_context_to_seer(self, mock_urlopen) -> None:
+        run = self.create_seer_run(
+            organization=self.organization,
+            user_id=self.user.id,
+            seer_run_state_id=12345,
+            type=SeerRunType.EXPLORER,
+        )
+        mock_urlopen.return_value = HTTPResponse(
+            orjson.dumps({"result": {"answer": "The database is slow."}}), status=200
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"question": ["Why is this slow?"]},
+        )
+
+        row = next(item for item in response.data if item["id"] == str(run.uuid))
+        assert row["outputs"][0]["answer"] == "The database is slow."
+        viewer_context = decode_viewer_context(
+            mock_urlopen.call_args.kwargs["headers"]["X-Viewer-Context"],
+            key="viewer-context-test-secret",
+        )
+        assert viewer_context == ViewerContext(
+            actor=Actor(type=ActorType.USER, actor_id=self.user.id),
+            organization_id=self.organization.id,
+        )
 
     @with_feature("organizations:seer-run-questions")
     def test_builtin_and_user_questions_are_additive(self) -> None:
@@ -643,35 +715,3 @@ class OrganizationSeerRunsEndpointAccessTest(APITestCase):
     def test_missing_features_returns_403(self) -> None:
         with self.feature({"organizations:seer-explorer": True}):
             self.get_error_response(self.organization.slug, status_code=403)
-
-
-class FilteredRunsQuerysetTest(TestCase):
-    def test_scopes_to_accessible_projects(self) -> None:
-        accessible = self.create_project(organization=self.organization)
-        hidden = self.create_project(organization=self.organization)
-
-        run_accessible = self.create_seer_run(organization=self.organization)
-        self.create_seer_agent_run(run=run_accessible, project=accessible)
-        run_hidden = self.create_seer_run(organization=self.organization)
-        self.create_seer_agent_run(run=run_hidden, project=hidden)
-        # No project (agent row with null project) and no agent row at all are
-        # both kept regardless of project access.
-        run_null_project = self.create_seer_run(organization=self.organization)
-        self.create_seer_agent_run(run=run_null_project, project=None)
-        run_no_agent = self.create_seer_run(organization=self.organization)
-
-        queryset = filtered_runs_queryset(
-            organization=self.organization,
-            query="",
-            user_id=None,
-            accessible_project_ids={accessible.id},
-            start=None,
-            end=None,
-        )
-
-        assert {r.id for r in queryset} == {
-            run_accessible.id,
-            run_null_project.id,
-            run_no_agent.id,
-        }
-        assert run_hidden.id not in {r.id for r in queryset}

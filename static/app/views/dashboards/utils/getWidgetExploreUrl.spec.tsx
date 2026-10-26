@@ -70,9 +70,9 @@ describe('getWidgetExploreUrl', () => {
     expectUrl(url).toMatch({
       path: '/organizations/org-slug/explore/logs/',
       params: [
+        ['aggregateField', '{"groupBy":""}'],
         ['aggregateField', '{"chartType":1,"yAxes":["count(message)"]}'],
         ['interval', '3h'],
-        ['logsGroupBy', ''],
         ['mode', 'aggregate'],
         ['project', '17762'],
         ['statsPeriod', '14d'],
@@ -100,11 +100,11 @@ describe('getWidgetExploreUrl', () => {
     expectUrl(url).toMatch({
       path: '/organizations/org-slug/explore/logs/',
       params: [
+        ['aggregateField', '{"groupBy":"message"}'],
         ['aggregateField', '{"chartType":1,"yAxes":["count(message)"]}'],
         ['interval', '3h'],
         ['logsFields', 'timestamp'],
         ['logsFields', 'message'],
-        ['logsGroupBy', 'message'],
         ['mode', 'aggregate'],
         ['project', ''],
         ['statsPeriod', '14d'],
@@ -324,6 +324,61 @@ describe('getWidgetExploreUrl', () => {
     });
   });
 
+  it('widens a screen filter when the widget query has a fallback', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.TABLE,
+      widgetType: WidgetType.SPANS,
+      queries: [
+        {
+          fields: ['span.op', 'avg(span.self_time)'],
+          aggregates: ['avg(span.self_time)'],
+          columns: ['span.op'],
+          conditions: '!is_transaction:true',
+          orderby: '-avg(span.self_time)',
+          name: '',
+          globalFilterFallback: {
+            attribute: 'app.vitals.start.screen',
+            fallbackAttribute: 'transaction',
+          },
+        },
+      ],
+    });
+
+    const url = getWidgetExploreUrl(
+      widget,
+      {
+        globalFilter: [
+          {
+            dataset: WidgetType.SPANS,
+            tag: {key: 'app.vitals.start.screen', name: 'app.vitals.start.screen'},
+            value: 'app.vitals.start.screen:[MainActivity]',
+          },
+        ],
+      },
+      selection,
+      organization
+    );
+
+    expectUrl(url).toMatch({
+      path: '/organizations/org-slug/explore/traces/',
+      params: [
+        ['field', 'span.op'],
+        ['field', 'span.self_time'],
+        ['groupBy', 'span.op'],
+        ['interval', '3h'],
+        ['mode', 'aggregate'],
+        [
+          'query',
+          '(!is_transaction:true) (app.vitals.start.screen:[MainActivity] OR transaction:[MainActivity])',
+        ],
+        ['sort', '-avg(span.self_time)'],
+        ['statsPeriod', '14d'],
+        ['visualize', JSON.stringify({chartType: 1, yAxes: ['avg(span.self_time)']})],
+        ['project', ''],
+      ],
+    });
+  });
+
   it('returns the correct url for multiple queries', () => {
     const widget = WidgetFixture({
       displayType: DisplayType.LINE,
@@ -371,6 +426,16 @@ describe('getWidgetExploreUrl', () => {
     expect(query2.fields).toEqual([]);
     expect(query2.groupBys).toEqual(['span.description']);
     expect(query2.query).toBe('is_transaction:false');
+  });
+
+  it('returns null for widgets with an empty queries array', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      queries: [],
+    });
+
+    const url = getWidgetExploreUrl(widget, undefined, selection, organization);
+    expect(url).toBeNull();
   });
 
   it('returns null for log widgets with multiple queries', () => {
@@ -537,7 +602,7 @@ function expectUrl(url: string | null) {
         return a[1].localeCompare(b[1]);
       }
       expect([...urlParams.entries()].sort(compareFn)).toEqual(
-        [...params].sort(compareFn)
+        params.toSorted(compareFn)
       );
     },
   };

@@ -1,4 +1,11 @@
 'use strict';
 // empty stub file for echarts with jest
 
-module.exports = {default: {id: 'echarts'}, use: () => {}};
+module.exports = {
+  __esModule: true,
+  connect: () => {},
+  default: {id: 'echarts'},
+  disconnect: () => {},
+  getInstanceByDom: () => {},
+  use: () => {},
+};

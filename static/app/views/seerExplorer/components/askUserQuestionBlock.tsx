@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Input} from '@sentry/scraps/input';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack, Container} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
 import {Text} from '@sentry/scraps/text';
 
@@ -17,21 +17,13 @@ interface AskUserQuestionBlockProps {
   onSelectOption: (index: number) => void;
   questionIndex: number;
   selectedOption: number;
-  isFocused?: boolean;
-  onClick?: () => void;
-  onMouseEnter?: () => void;
-  onMouseLeave?: () => void;
 }
 
 export function AskUserQuestionBlock({
   currentQuestion,
   customText,
-  isFocused,
   isOtherSelected,
-  onClick,
   onCustomTextChange,
-  onMouseEnter,
-  onMouseLeave,
   onSelectOption,
   questionIndex,
   selectedOption,
@@ -54,12 +46,7 @@ export function AskUserQuestionBlock({
   };
 
   return (
-    <Block
-      isFocused={isFocused}
-      onClick={onClick}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
-    >
+    <Block>
       <AnimatePresence>
         <motion.div
           initial={{opacity: 0, y: 10}}
@@ -67,7 +54,7 @@ export function AskUserQuestionBlock({
           exit={{opacity: 0, y: 10}}
         >
           <Flex align="start" width="100%">
-            <BlockContentWrapper>
+            <Container flex="1" padding="xl" minWidth="0" overflow="hidden">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={questionIndex}
@@ -110,7 +97,7 @@ export function AskUserQuestionBlock({
                           name={`question-${questionIndex}`}
                           size="sm"
                         />
-                        <CustomInputWrapper>
+                        <Container flex="1">
                           <CustomInput
                             ref={customInputRef}
                             value={customText}
@@ -122,13 +109,13 @@ export function AskUserQuestionBlock({
                             placeholder="Type your own answer..."
                             size="sm"
                           />
-                        </CustomInputWrapper>
+                        </Container>
                       </OptionRow>
                     </Stack>
                   </Stack>
                 </motion.div>
               </AnimatePresence>
-            </BlockContentWrapper>
+            </Container>
           </Flex>
         </motion.div>
       </AnimatePresence>
@@ -136,22 +123,12 @@ export function AskUserQuestionBlock({
   );
 }
 
-const Block = styled('div')<{isFocused?: boolean}>`
+const Block = styled('div')`
   width: 100%;
   position: relative;
   flex-shrink: 0;
   cursor: pointer;
-  background: ${p =>
-    p.isFocused
-      ? p.theme.tokens.interactive.transparent.neutral.background.active
-      : 'transparent'};
-`;
-
-const BlockContentWrapper = styled('div')`
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  padding: ${p => p.theme.space.xl};
+  background: transparent;
 `;
 
 const OptionRow = styled('div')<{isSelected: boolean}>`
@@ -174,10 +151,6 @@ const OptionContent = styled('div')`
   gap: ${p => p.theme.space['2xs']};
   flex: 1;
   padding-top: 2px;
-`;
-
-const CustomInputWrapper = styled('div')`
-  flex: 1;
 `;
 
 const CustomInput = styled(Input)`

@@ -1,8 +1,10 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconClock} from '@sentry/icons/clock';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconDownload} from '@sentry/icons/download';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Grid, Stack} from '@sentry/scraps/layout';
+import {Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -10,8 +12,8 @@ import {Access} from 'sentry/components/acl/access';
 import {useRole} from 'sentry/components/acl/useRole';
 import {Confirm} from 'sentry/components/confirm';
 import {FileSize} from 'sentry/components/fileSize';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {DebugFile} from 'sentry/types/debugFiles';
 
@@ -31,18 +33,18 @@ export function ProjectProguardRow({mapping, onDelete, downloadUrl, orgSlug}: Pr
   };
 
   return (
-    <Fragment>
-      <Stack justify="center" align="start">
+    <SimpleTable.Row>
+      <SimpleTable.RowCell align="start">
         <Name>{debugId || uuid || `(${t('empty')})`}</Name>
         <TimeWrapper>
           <IconClock size="sm" />
           <TimeSince date={dateCreated} />
         </TimeWrapper>
-      </Stack>
-      <SizeColumn>
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell justify="end">
         <FileSize bytes={size} />
-      </SizeColumn>
-      <ActionsColumn>
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell justify="end">
         <Grid flow="column" align="center" gap="xs">
           <Tooltip
             title={tct(
@@ -54,7 +56,6 @@ export function ProjectProguardRow({mapping, onDelete, downloadUrl, orgSlug}: Pr
               }
             )}
             disabled={hasRole}
-            isHoverable
           >
             <LinkButton
               size="sm"
@@ -89,19 +90,10 @@ export function ProjectProguardRow({mapping, onDelete, downloadUrl, orgSlug}: Pr
             )}
           </Access>
         </Grid>
-      </ActionsColumn>
-    </Fragment>
+      </SimpleTable.RowCell>
+    </SimpleTable.Row>
   );
 }
-
-const SizeColumn = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  text-align: right;
-  align-items: center;
-`;
-
-const ActionsColumn = styled(SizeColumn)``;
 
 const Name = styled('div')`
   padding-right: ${p => p.theme.space['3xl']};

@@ -9,23 +9,24 @@ This skill helps migrate forms from Sentry's legacy form system (JsonForm, FormM
 
 ## Feature Mapping
 
-| Old System           | New System          | Notes                                                |
-| -------------------- | ------------------- | ---------------------------------------------------- |
-| `saveOnBlur: true`   | `AutoSaveForm`      | Default behavior                                     |
-| `confirm`            | `confirm` prop      | `string \| ((value) => string \| undefined)`         |
-| `showHelpInTooltip`  | `variant="compact"` | On layout components                                 |
-| `disabledReason`     | `disabled="reason"` | String shows tooltip                                 |
-| `extraHelp`          | JSX in layout       | Render `<Text>` below field                          |
-| `getData`            | `mutationFn`        | Transform data in mutation function                  |
-| `mapFormErrors`      | `setFieldErrors`    | Transform API errors in catch block                  |
-| `saveMessage`        | `onSuccess`         | Show toast in mutation onSuccess callback            |
-| `formatMessageValue` | `onSuccess`         | Control toast content in onSuccess callback          |
-| `resetOnError`       | `onError`           | Call form.reset() in mutation onError                |
-| `saveOnBlur: false`  | `useScrapsForm`     | Use regular form with explicit Save button           |
-| (automatic)          | `form.reset()`      | Call after successful mutation if form stays on page |
-| `help`               | `hintText`          | On layout components                                 |
-| `label`              | `label`             | On layout components                                 |
-| `required`           | `required`          | On layout + Zod schema                               |
+| Old System           | New System                                | Notes                                                |
+| -------------------- | ----------------------------------------- | ---------------------------------------------------- |
+| `saveOnBlur: true`   | `AutoSaveForm`                            | Default behavior                                     |
+| `confirm`            | `confirm` prop                            | `string \| ((value) => string \| undefined)`         |
+| `showHelpInTooltip`  | `variant="compact"`                       | On layout components                                 |
+| `disabledReason`     | `disabled="reason"`                       | String shows tooltip                                 |
+| `extraHelp`          | JSX in layout                             | Render `<Text>` below field                          |
+| `getData`            | `mutationFn`                              | Transform data in mutation function                  |
+| `mapFormErrors`      | Request error adapter                     | Explicit for regular forms; provided for auto-save   |
+| `saveMessage`        | `onSuccess`                               | Show toast in mutation onSuccess callback            |
+| `formatMessageValue` | `onSuccess`                               | Control toast content in onSuccess callback          |
+| `resetOnError`       | `onError`                                 | Call form.reset() in mutation onError                |
+| `saveOnBlur: false`  | `useScrapsForm`                           | Use regular form with explicit Save button           |
+| (automatic)          | `form.reset()`                            | Call after successful mutation if form stays on page |
+| `help`               | `hintText`                                | On layout components                                 |
+| `label`              | `label`                                   | On layout components                                 |
+| `required`           | `required`                                | On layout + Zod schema                               |
+| Display-only content | `DisplayField.Row` / `DisplayField.Stack` | No registered input or form state                    |
 
 ## Feature Details
 
@@ -256,9 +257,15 @@ mutationOptions({
 })
 ```
 
-### mapFormErrors → `setFieldErrors`
+### mapFormErrors → `requestErrorToFieldErrors` + `setFieldErrors`
 
-The `mapFormErrors` function transformed API error responses into field-specific errors. In the new system, handle this in the catch block using `setFieldErrors`.
+The `mapFormErrors` function transformed API error responses into field-specific
+errors. In the new system, convert Sentry API errors with
+`requestErrorToFieldErrors`, then pass the Scraps `FieldErrors` result to
+`setFieldErrors`.
+
+Do not pass `RequestError` directly to `setFieldErrors`. Scraps does not depend
+on Sentry's API client types.
 
 **Old:**
 
@@ -284,6 +291,8 @@ function mapMonitorFormErrors(responseJson?: any) {
 ```tsx
 import {setFieldErrors} from '@sentry/scraps/form';
 
+import {RequestError} from 'sentry/utils/requestError/requestError';
+
 const form = useScrapsForm({
   ...defaultFormOptions,
   defaultValues: {...},
@@ -292,7 +301,11 @@ const form = useScrapsForm({
     try {
       await mutation.mutateAsync(value);
     } catch (error) {
-      // Transform API errors and set on fields (equivalent to mapFormErrors)
+      if (!(error instanceof RequestError)) {
+        return;
+      }
+
+      // Keep custom mapping only when the legacy form reshaped the response.
       const responseJson = error.responseJSON;
       if (responseJson?.config) {
         // Flatten nested errors to dot notation
@@ -316,21 +329,42 @@ const form = useScrapsForm({
 **Simpler pattern** - For flat error responses:
 
 ```tsx
+import {setFieldErrors} from '@sentry/scraps/form';
+
+import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
+
 onSubmit: async ({value, formApi}) => {
   try {
     await mutation.mutateAsync(value);
   } catch (error) {
-    // API returns {email: ['Already taken'], username: ['Invalid']}
-    const errors = error.responseJSON;
-    if (errors) {
-      setFieldErrors(formApi, {
-        email: {message: errors.email?.[0]},
-        username: {message: errors.username?.[0]},
-      });
+    if (!(error instanceof RequestError)) {
+      addErrorMessage(t('Unable to save changes.'));
+      return;
+    }
+
+    const handled = setFieldErrors(
+      formApi,
+      requestErrorToFieldErrors(error, formApi.state.values)
+    );
+
+    if (!handled) {
+      addErrorMessage(t('Unable to save changes.'));
     }
   }
 },
 ```
+
+`requestErrorToFieldErrors` accepts `RequestError`. Narrow unknown errors at the
+Sentry call site before conversion. The adapter filters response keys against
+`formApi.state.values` and returns the Scraps field-error shape. Use a direct
+`FieldErrors` object only when the migration needs custom response reshaping,
+such as the nested `config` example above.
+
+For `AutoSaveForm`, standard request error handling is automatic. The Sentry
+form error provider uses `requestErrorToFieldErrors` for field errors and
+`getRequestErrorUserMessage` for request detail or status messages. Do not add
+the regular-form catch block to each auto-save field.
 
 > **Note**: `setFieldErrors` supports nested paths with dot notation: `'config.schedule': {message: 'Invalid schedule'}`
 
@@ -558,6 +592,24 @@ return (
 
 A form that's never actually submitted bypasses validation, pending/disabled state, and field-error wiring.
 
+## Display-Only Information
+
+For dates, status text, or other content without an input, use `DisplayField.Row` or `DisplayField.Stack` from `@sentry/scraps/form`. Do not create an `AppField` or `AutoSaveForm` just to get a layout:
+
+```tsx
+<DisplayField.Row label={t('Created')}>
+  <Text>
+    <DateTime date={data.dateCreated} />
+  </Text>
+</DisplayField.Row>
+```
+
+Remove schema entries and default values that existed only to display this content. Preserve text styling with `<Text>` where needed. Use an existing `form.Subscribe` to calculate derived display values during render; do not copy them into form state with `form.setFieldValue`.
+
+`Row` matches the responsive field layout; `Stack` always stacks. These components use description-list semantics without a `<label>`, field context, or error-focus registration. Keep actual read-only inputs on `field.Input readOnly` inside `AppField` and `field.Layout.*` so they retain input association. Custom controls that handle form state still need `field.Base`.
+
+See the [form generation guide](../generate-frontend-forms/SKILL.md#display-only-information) for layout props and a subscription example.
+
 ## Preserving Form Search Functionality
 
 Sentry's SettingsSearch allows users to search for individual settings fields. When migrating forms, you must preserve this searchability by wrapping migrated forms with `FormSearch`.
@@ -603,7 +655,7 @@ After adding or updating `FormSearch` wrappers, regenerate the field registry so
 pnpm run extract-form-fields
 ```
 
-This script (`scripts/extractFormFields.ts`) scans all TSX files, finds `<FormSearch>` components, extracts field metadata (`name`, `label`, `hintText`, `route`), and writes the generated registry to `static/app/components/core/form/generatedFieldRegistry.ts`. **Commit this generated file** alongside your migration PR — it is part of the source tree.
+This script (`./scripts/extractFormFields.ts`) scans all TSX files, finds `<FormSearch>` components, extracts field metadata (`name`, `label`, `hintText`, `route`), and writes the generated registry to `static/app/views/settings/fieldRegistry.generated.ts`. **Commit this generated file** alongside your migration PR — it is part of the source tree.
 
 > Run the command after **any** change to forms inside a `FormSearch` wrapper (adds, removals, label changes). The generated file is checked in and should not be edited manually.
 
@@ -613,7 +665,7 @@ If the legacy `JsonForm` being migrated was already indexed by SettingsSearch (i
 
 ## Handling Nullable Initial Values
 
-Legacy select fields often started with an empty/undefined value and required a selection. In the new system, use `.nullable().refine()` in the schema, type `defaultValues` with `z.input<typeof schema>`, and call `schema.parse(value)` in `onSubmit`.
+Legacy select fields often started with an empty/undefined value and required a selection. When the field is always required, use `.nullable().refine()` in the schema, type `defaultValues` with `z.input<typeof schema>`, and call `schema.parse(value)` in `onSubmit`.
 
 **Old:**
 
@@ -654,6 +706,36 @@ const form = useScrapsForm({
 
 This pattern is necessary whenever a required field has no meaningful initial value. The `z.input` / `z.output` distinction ensures the form accepts `null` as default while the mutation receives the validated, non-null type.
 
+## Conditionally Required Fields
+
+When migrating a legacy field that is required only while another value makes it visible, keep its form-level schema permissive and validate it on the rendered `AppField`. **Do not use form-level `.superRefine()` for this conditional requirement:** form-level validation still runs when the field is hidden, so a required-field error can block submission even though the user cannot see or fix that field.
+
+```tsx
+const schema = z.object({
+  plan: z.enum(['standard', 'enterprise']),
+  billingEmail: z.string(),
+});
+
+<form.Subscribe selector={state => state.values.plan === 'enterprise'}>
+  {showBilling =>
+    showBilling ? (
+      <form.AppField
+        name="billingEmail"
+        validators={{onDynamic: z.string().trim().email('Enter a valid billing email')}}
+      >
+        {field => (
+          <field.Layout.Stack label="Billing Email" required>
+            <field.Input value={field.state.value} onChange={field.handleChange} />
+          </field.Layout.Stack>
+        )}
+      </form.AppField>
+    ) : null
+  }
+</form.Subscribe>;
+```
+
+For a nullable number field, use `z.number().nullable()` in the form schema and a field validator such as `z.number().positive('Amount must be greater than zero').nullable().refine(value => value !== null, 'Amount is required')`. The field validator rejects the `null` emitted when the visible input is empty.
+
 ## Intentionally Not Migrated
 
 | Feature     | Usage   | Reason                                                                                |
@@ -665,17 +747,21 @@ This pattern is necessary whenever a required field has no meaningful initial va
 - [ ] Replace JsonForm/FormModel with useScrapsForm or AutoSaveForm
 - [ ] No generics on `useMutation` — type the `mutationFn` payload and use `fetchMutation<T>` for the return type
 - [ ] When using `useScrapsForm` with a Save button: mutation runs in `onSubmit`, triggered by `<form.SubmitButton>` (no form that's never submitted)
-- [ ] Convert field config objects to JSX AppField components
+- [ ] Convert input field config objects to JSX AppField components
+- [ ] Convert display-only content to `DisplayField.Row` or `DisplayField.Stack`, without schema or form-state entries
+- [ ] Validate conditionally required fields on the rendered `AppField`, with a permissive form schema
 - [ ] Replace `help` → `hintText` on layouts
 - [ ] Replace `showHelpInTooltip` → `variant="compact"`
 - [ ] Replace `disabledReason` → `disabled="reason string"`
 - [ ] Replace `extraHelp` → additional JSX in layout
 - [ ] Convert `confirm` object to function: `(value) => message | undefined`
 - [ ] Handle `getData` in mutationFn
-- [ ] Handle `mapFormErrors` with setFieldErrors in catch
+- [ ] For regular forms, narrow unknown errors to `RequestError` before `requestErrorToFieldErrors`, then call `setFieldErrors`
+- [ ] For `AutoSaveForm`, use the app-provided request error handling
+- [ ] Keep custom error mapping only when `mapFormErrors` reshaped the API response
 - [ ] Handle `saveMessage` in onSuccess callback
 - [ ] Convert `saveOnBlur: false` fields to regular forms with Save button
 - [ ] Call `form.reset()` after successful mutation (for forms that stay on page)
 - [ ] Verify `onSuccess` cache updates merge with existing data (use updater function) — some API endpoints may return partial objects
 - [ ] Wrap the migrated form with `<FormSearch route="...">` if the old form was searchable in SettingsSearch
-- [ ] Run `pnpm run extract-form-fields` and commit the updated `generatedFieldRegistry.ts`
+- [ ] Run `pnpm run extract-form-fields` and commit the updated `fieldRegistry.generated.ts`

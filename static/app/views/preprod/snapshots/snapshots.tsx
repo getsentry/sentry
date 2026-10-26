@@ -9,25 +9,24 @@ import {
 } from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconGrabbable} from '@sentry/icons/grabbable';
 import {parseAsArrayOf, parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack, useResponsivePropValue} from '@sentry/scraps/layout';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {ModalStore} from 'sentry/stores/modalStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {useBreakpoints} from 'sentry/utils/useBreakpoints';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
-import {TopBar} from 'sentry/views/navigation/topBar';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
 import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
 import {
@@ -42,7 +41,7 @@ import type {
   SnapshotImage,
 } from 'sentry/views/preprod/types/snapshotTypes';
 
-import {SnapshotHeaderActions} from './header/snapshotHeaderActions';
+import {SnapshotEntityHeader} from './header/snapshotEntityHeader';
 import {SnapshotHeaderContent} from './header/snapshotHeaderContent';
 import type {DiffMode} from './main/imageDisplay/diffImageDisplay';
 import type {SnapshotListViewHandle} from './main/snapshotListView';
@@ -174,8 +173,6 @@ export default function SnapshotsPage() {
 
   const pushHistory = {history: 'push' as const};
   const palette = theme.chart.getColorPalette(10);
-  // Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
   const [overlayColor, setOverlayColor] = useLocalStorageState<string>(
     'snapshot-overlay-color',
     palette.at(-3) ?? palette[0]
@@ -188,8 +185,8 @@ export default function SnapshotsPage() {
     'snapshot-overlay-opacity',
     50
   );
-  const breakpoints = useBreakpoints();
-  const effectiveDiffMode = !breakpoints.sm && diffMode === 'split' ? 'wipe' : diffMode;
+  const isNarrow = useResponsivePropValue({zero: true, xl: false});
+  const effectiveDiffMode = isNarrow && diffMode === 'split' ? 'wipe' : diffMode;
   const [viewMode, setViewMode] = useQueryState(
     'view',
     parseAsStringLiteral(['list', 'single'] as const)
@@ -470,7 +467,7 @@ export default function SnapshotsPage() {
       ? tagFilteredItems.filter(item => activeStatuses.has(item.type as DiffStatus))
       : tagFilteredItems;
 
-    return [...base].sort((a, b) => {
+    return base.toSorted((a, b) => {
       const typeOrder = (DIFF_TYPE_ORDER[a.type] ?? 99) - (DIFF_TYPE_ORDER[b.type] ?? 99);
       if (typeOrder !== 0) {
         return typeOrder;
@@ -653,6 +650,7 @@ export default function SnapshotsPage() {
     listItems,
     setSelectedSnapshotKey,
   });
+  // oxlint-disable-next-line react/refs
   navRef.current = {
     navigateSingleView,
     setViewMode,
@@ -670,6 +668,9 @@ export default function SnapshotsPage() {
         e.key !== 'ArrowLeft' &&
         e.key !== 'ArrowRight'
       ) {
+        return;
+      }
+      if (typeof ModalStore.getState().renderer === 'function') {
         return;
       }
       const tag = (e.target as HTMLElement)?.tagName;
@@ -783,8 +784,8 @@ export default function SnapshotsPage() {
           flexShrink={0}
           overflow="auto"
           borderRight="primary"
-          display={{'screen:2xs': 'none', 'screen:xs': 'none', 'screen:sm': 'flex'}}
-          maxWidth={{'screen:sm': '300px', 'screen:md': 'none'}}
+          display={{zero: 'none', xl: 'flex'}}
+          maxWidth={{zero: '300px', '3xl': 'none'}}
           style={{
             width: sidebarWidth,
             height: 'calc(100dvh - var(--top-bar-height, 53px))',
@@ -803,6 +804,13 @@ export default function SnapshotsPage() {
           />
         </Flex>
         <DragHandle
+          display={{zero: 'none', '3xl': 'grid'}}
+          align="center"
+          justifyItems="center"
+          position="relative"
+          width={theme.space.xl}
+          height="100%"
+          cursor="ew-resize"
           data-is-held={isHeld}
           onMouseDown={onMouseDown}
           onDoubleClick={onDoubleClick}
@@ -845,10 +853,21 @@ export default function SnapshotsPage() {
     </TagFilterProvider>
   );
 
+  const breadcrumbs = (
+    <SnapshotHeaderContent
+      snapshotId={snapshotId}
+      data={data}
+      organizationSlug={organization.slug}
+      apiUrl={snapshotApiUrl}
+    />
+  );
+
   if (isPending) {
     return (
       <SentryDocumentTitle title={t('Snapshot')}>
         <Stack flex={1}>
+          {breadcrumbs}
+          <SnapshotEntityHeader data={undefined} />
           <Flex align="center" justify="center" padding="3xl">
             <LoadingIndicator />
           </Flex>
@@ -861,6 +880,7 @@ export default function SnapshotsPage() {
     return (
       <SentryDocumentTitle title={t('Snapshot')}>
         <Stack flex={1}>
+          {breadcrumbs}
           <BuildError
             title={t('Snapshot unavailable')}
             message={t(
@@ -875,14 +895,8 @@ export default function SnapshotsPage() {
   return (
     <SentryDocumentTitle title={t('Snapshot')}>
       <Stack flex={1} onClick={handleDeselectSnapshot}>
-        <SnapshotHeaderContent data={data} />
-        <TopBar.Slot name="actions">
-          <SnapshotHeaderActions
-            data={data}
-            organizationSlug={organization.slug}
-            apiUrl={snapshotApiUrl}
-          />
-        </TopBar.Slot>
+        {breadcrumbs}
+        <SnapshotEntityHeader data={data} />
 
         {isComparisonProcessing ? processingContent : snapshotContent}
       </Stack>
@@ -892,17 +906,7 @@ export default function SnapshotsPage() {
 
 const TOOLBAR_HEIGHT = '45px';
 
-const DragHandle = styled('div')`
-  position: relative;
-  display: grid;
-  place-items: center;
-
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    display: none;
-  }
-  width: ${p => p.theme.space.xl};
-  height: 100%;
-  cursor: ew-resize;
+const DragHandle = styled(Grid)`
   user-select: inherit;
   background: linear-gradient(
     to bottom,

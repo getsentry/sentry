@@ -1,8 +1,11 @@
+import {useCallback, useLayoutEffect, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useResizeObserver} from '@react-aria/utils';
 
 import {Container, Stack} from '@sentry/scraps/layout';
 
+import {Sticky} from 'sentry/components/sticky';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -10,6 +13,7 @@ import type {Project} from 'sentry/types/project';
 import {DemoTourStep, SharedTourElement} from 'sentry/utils/demoMode/demoTours';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {AutofixPanelProvider} from 'sentry/views/issueDetails/autofix/context';
 import {
   IssueDetailsContextProvider,
   useIssueDetails,
@@ -24,8 +28,10 @@ import {
 import {SampleEventAlert} from 'sentry/views/issueDetails/sampleEventAlert';
 import {IssueDetailsSidebar} from 'sentry/views/issueDetails/sidebar/sidebar';
 import {ToggleSidebar} from 'sentry/views/issueDetails/sidebar/toggleSidebar';
-import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
+import {Tab} from 'sentry/views/issueDetails/types';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {
+  useIsSampleEvent,
   getGroupReprocessingStatus,
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
@@ -36,8 +42,8 @@ function GroupLayoutBody({children}: {children: React.ReactNode}) {
     <Container
       data-test-id="group-event-details"
       background="primary"
-      display={{'2xs': 'flex', lg: 'grid'}}
-      flexGrow={{'2xs': 1, lg: 0}}
+      display={{zero: 'flex', '4xl': 'grid'}}
+      flexGrow={{zero: 1, '4xl': 0}}
       style={{
         flexDirection: 'column',
         gridTemplateColumns: isSidebarOpen ? 'minmax(100px, 100%) 325px' : '100%',
@@ -45,6 +51,143 @@ function GroupLayoutBody({children}: {children: React.ReactNode}) {
     >
       {children}
     </Container>
+  );
+}
+
+function IssueDetailsColumn({children}: {children: React.ReactNode}) {
+  const {isSidebarOpen} = useIssueDetails();
+
+  return (
+    <Container borderRight={isSidebarOpen ? {zero: 'none', '4xl': 'primary'} : 'none'}>
+      {children}
+    </Container>
+  );
+}
+
+function EventDetailsSection({children}: {children: React.ReactNode}) {
+  return (
+    <EventSection as="section" background="secondary">
+      {children}
+    </EventSection>
+  );
+}
+
+// Fill the column beside the sidebar so a short tab keeps the secondary
+// background and the scroll position stable. Below this width the sidebar
+// stacks under the content, and the floor would only push it a full viewport
+// down. That is the common case once the Seer panel narrows the app content.
+function EventDetailsContent({children}: {children: React.ReactNode}) {
+  return (
+    <Container padding="0 xl 2xl xl" minHeight={{zero: 'auto', '4xl': '100vh'}}>
+      {children}
+    </Container>
+  );
+}
+
+const STICKY_BACKGROUND_FADE_DISTANCE = 40;
+
+function StickyIssueEventNavigation({
+  event,
+  group,
+  hasToggleSidebar,
+}: {
+  event: Event | undefined;
+  group: Group;
+  hasToggleSidebar: boolean;
+}) {
+  const navigationRef = useRef<HTMLDivElement>(null);
+  const {dispatch} = useIssueDetails();
+
+  const updateBackgroundOpacity = useCallback(() => {
+    const navigation = navigationRef.current;
+    const section = navigation?.parentElement;
+    if (!navigation || !section) {
+      return;
+    }
+
+    // The section keeps scrolling after the navigation sticks. Their distance
+    // gives us progress without remembering a potentially stale scroll position.
+    const distance =
+      navigation.getBoundingClientRect().top - section.getBoundingClientRect().top;
+    const progress = Math.min(1, Math.max(0, distance / STICKY_BACKGROUND_FADE_DISTANCE));
+    // Ease into and out of the fade without delaying it behind the scroll position.
+    const opacity = String(progress * progress * (3 - 2 * progress));
+    if (section.style.getPropertyValue('--issue-event-header-opacity') !== opacity) {
+      section.style.setProperty('--issue-event-header-opacity', opacity);
+    }
+  }, []);
+
+  const updateNavigationHeight = useCallback(() => {
+    dispatch({
+      type: 'UPDATE_EVENT_NAVIGATION_HEIGHT',
+      height: navigationRef.current?.offsetHeight ?? 0,
+    });
+    updateBackgroundOpacity();
+  }, [dispatch, updateBackgroundOpacity]);
+
+  useLayoutEffect(() => {
+    const section = navigationRef.current?.parentElement;
+    let frame: number | undefined;
+    const scheduleUpdate = () => {
+      if (frame !== undefined) {
+        return;
+      }
+      frame = requestAnimationFrame(() => {
+        frame = undefined;
+        updateBackgroundOpacity();
+      });
+    };
+
+    updateNavigationHeight();
+    // Capture also handles scrolling inside the app's content pane.
+    document.addEventListener('scroll', scheduleUpdate, {capture: true, passive: true});
+    window.addEventListener('resize', scheduleUpdate);
+
+    return () => {
+      document.removeEventListener('scroll', scheduleUpdate, true);
+      window.removeEventListener('resize', scheduleUpdate);
+      if (frame !== undefined) {
+        cancelAnimationFrame(frame);
+      }
+      section?.style.removeProperty('--issue-event-header-opacity');
+      dispatch({type: 'UPDATE_EVENT_NAVIGATION_HEIGHT', height: 0});
+    };
+  }, [dispatch, updateBackgroundOpacity, updateNavigationHeight]);
+
+  useResizeObserver({ref: navigationRef, onResize: updateNavigationHeight});
+
+  return (
+    <NavigationSidebarWrapper
+      ref={navigationRef}
+      hasToggleSidebar={hasToggleSidebar}
+      data-issue-event-navigation
+    >
+      <IssueEventNavigation event={event} group={group} />
+      {/* Since the event details header is disabled, display the sidebar toggle here */}
+      {hasToggleSidebar && <ToggleSidebar size="sm" />}
+    </NavigationSidebarWrapper>
+  );
+}
+
+function AutofixPanelBoundary({
+  children,
+  enabled,
+  group,
+  project,
+}: {
+  children: React.ReactNode;
+  enabled: boolean;
+  group: Group;
+  project: Project;
+}) {
+  if (!enabled) {
+    return children;
+  }
+
+  return (
+    <AutofixPanelProvider group={group} project={project}>
+      {children}
+    </AutofixPanelProvider>
   );
 }
 
@@ -67,6 +210,8 @@ export function GroupDetailsLayout({
   const theme = useTheme();
   const organization = useOrganization();
   const isSampleError = useIsSampleEvent();
+  const {currentTab} = useGroupDetailsRoute();
+  const isAutofixTab = currentTab === Tab.AUTOFIX;
 
   return (
     <IssueDetailsContextProvider>
@@ -79,55 +224,70 @@ export function GroupDetailsLayout({
       >
         <GroupHeader group={group} event={event ?? null} project={project} />
         <GroupLayoutBody>
-          <div>
-            <SharedTourElement<IssueDetailsTour>
-              id={IssueDetailsTour.AGGREGATES}
-              demoTourId={DemoTourStep.ISSUES_AGGREGATES}
-              tourContext={IssueDetailsTourContext}
-              title={t('See overall impact')}
-              description={t(
-                "Here you'll see aggregate metrics like frequency over time, total affected users, and where it occurs (environment, release, device, etc.)."
+          <AutofixPanelBoundary enabled={isAutofixTab} group={group} project={project}>
+            <IssueDetailsColumn>
+              <SharedTourElement<IssueDetailsTour>
+                id={IssueDetailsTour.AGGREGATES}
+                demoTourId={DemoTourStep.ISSUES_AGGREGATES}
+                tourContext={IssueDetailsTourContext}
+                title={t('See overall impact')}
+                description={t(
+                  "Here you'll see aggregate metrics like frequency over time, total affected users, and where it occurs (environment, release, device, etc.)."
+                )}
+                position="bottom"
+              >
+                {tourProps => (
+                  <div {...tourProps}>
+                    <EventDetailsHeader event={event} group={group} project={project} />
+                  </div>
+                )}
+              </SharedTourElement>
+              {isAutofixTab ? (
+                // The autofix section. Same chrome and tab navigation as the
+                // event pages — the navigation is the only way back out of the
+                // tab — but no event details tour, whose copy is about stack
+                // traces and tags, neither of which this tab shows.
+                <EventDetailsSection>
+                  {groupReprocessingStatus !== ReprocessingStatus.REPROCESSING &&
+                    issueTypeConfig.header.eventNavigation.enabled && (
+                      <StickyIssueEventNavigation
+                        event={event}
+                        group={group}
+                        hasToggleSidebar={!hasFilterBar}
+                      />
+                    )}
+                  <EventDetailsContent>{children}</EventDetailsContent>
+                </EventDetailsSection>
+              ) : (
+                <SharedTourElement<IssueDetailsTour>
+                  id={IssueDetailsTour.EVENT_DETAILS}
+                  demoTourId={DemoTourStep.ISSUES_EVENT_DETAILS}
+                  tourContext={IssueDetailsTourContext}
+                  title={t('Investigate the issue')}
+                  description={t(
+                    'See all the issue context including the stack trace, tags, screenshots and connected replays, logs, and traces.'
+                  )}
+                  position="top"
+                >
+                  {tourProps => (
+                    <div {...tourProps}>
+                      <EventDetailsSection>
+                        {groupReprocessingStatus !== ReprocessingStatus.REPROCESSING &&
+                          issueTypeConfig.header.eventNavigation.enabled && (
+                            <StickyIssueEventNavigation
+                              event={event}
+                              group={group}
+                              hasToggleSidebar={!hasFilterBar}
+                            />
+                          )}
+                        <EventDetailsContent>{children}</EventDetailsContent>
+                      </EventDetailsSection>
+                    </div>
+                  )}
+                </SharedTourElement>
               )}
-              position="bottom"
-            >
-              {tourProps => (
-                <div {...tourProps}>
-                  <EventDetailsHeader event={event} group={group} project={project} />
-                </div>
-              )}
-            </SharedTourElement>
-            <SharedTourElement<IssueDetailsTour>
-              id={IssueDetailsTour.EVENT_DETAILS}
-              demoTourId={DemoTourStep.ISSUES_EVENT_DETAILS}
-              tourContext={IssueDetailsTourContext}
-              title={t('Investigate the issue')}
-              description={t(
-                'See all the issue context including the stack trace, tags, screenshots and connected replays, logs, and traces.'
-              )}
-              position="top"
-            >
-              {tourProps => (
-                <div {...tourProps}>
-                  <Stack
-                    as="section"
-                    background="secondary"
-                    borderRight={{'2xs': 'none', lg: 'primary'}}
-                    borderBottom={{'2xs': 'primary', lg: 'none'}}
-                  >
-                    {groupReprocessingStatus !== ReprocessingStatus.REPROCESSING &&
-                      issueTypeConfig.header.eventNavigation.enabled && (
-                        <NavigationSidebarWrapper hasToggleSidebar={!hasFilterBar}>
-                          <IssueEventNavigation event={event} group={group} />
-                          {/* Since the event details header is disabled, display the sidebar toggle here */}
-                          {!hasFilterBar && <ToggleSidebar size="sm" />}
-                        </NavigationSidebarWrapper>
-                      )}
-                    <ContentPadding>{children}</ContentPadding>
-                  </Stack>
-                </div>
-              )}
-            </SharedTourElement>
-          </div>
+            </IssueDetailsColumn>
+          </AutofixPanelBoundary>
           <IssueDetailsSidebar group={group} event={event} project={project} />
         </GroupLayoutBody>
       </Container>
@@ -135,20 +295,51 @@ export function GroupDetailsLayout({
   );
 }
 
-const NavigationSidebarWrapper = styled('div')<{
-  hasToggleSidebar: boolean;
-}>`
-  position: relative;
+const EventSection = styled(Stack)`
+  /* Both sticky rows inherit the same scroll progress. */
+  &:has(> [data-issue-event-navigation]) {
+    --issue-event-header-opacity: 0;
+    --issue-event-header-radius: calc(
+      ${p => p.theme.radius.md} * (1 - var(--issue-event-header-opacity))
+    );
+  }
+`;
+
+const NavigationSidebarWrapper = styled(Sticky, {
+  shouldForwardProp: prop => prop !== 'hasToggleSidebar',
+})<{hasToggleSidebar: boolean}>`
+  isolation: isolate;
+  background: ${p => p.theme.tokens.background.secondary};
+  /* The tab list's overflow menu opens downward over the event title, a sibling
+     sticky that otherwise carries the same z-index and so wins on DOM order.
+     Isolating this context traps the menu inside it, and CompactSelect cannot
+     portal out, so the context itself has to outrank that sibling in both the
+     resting and the stuck state. */
+  z-index: ${p => p.theme.zIndex.initial + 1};
   display: flex;
   gap: ${p => p.theme.space.xs};
   padding: ${p =>
     p.hasToggleSidebar
       ? `${p.theme.space.md} 0 ${p.theme.space.sm} var(--issue-details-inset, ${p.theme.space['2xl']})`
       : `${p.theme.space.sm} var(--issue-details-inset, ${p.theme.space['2xl']}) ${p.theme.space.xs} var(--issue-details-inset, ${p.theme.space['2xl']})`};
-`;
 
-const ContentPadding = styled('div')`
-  min-height: 100vh;
-  padding: 0 var(--issue-details-inset, ${p => p.theme.space['2xl']})
-    ${p => p.theme.space['2xl']} var(--issue-details-inset, ${p => p.theme.space['2xl']});
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background: ${p => p.theme.tokens.background.primary};
+    opacity: var(--issue-event-header-opacity, 0);
+    pointer-events: none;
+    will-change: opacity;
+  }
+
+  & > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  &[data-stuck] {
+    z-index: ${p => p.theme.zIndex.stickyHeader + 1};
+  }
 `;

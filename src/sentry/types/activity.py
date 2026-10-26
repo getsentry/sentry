@@ -49,6 +49,15 @@ class ActivityType(Enum):
     PULL_REQUEST_REOPENED = 39
     PULL_REQUEST_MERGED = 40
     PULL_REQUEST_UNLINKED = 41
+    TRIGGER_AUTOFIX = 42
+
+    # A smart-assignment run finished and delivered its verdict.
+    SMART_ASSIGNMENT_COMPLETED = 43
+
+    # Seer's PR is ready for a human to review: either it was opened undrafted,
+    # or it was opened as a draft and CI later went green. SEER_PR_CREATED (35)
+    # still fires when the PR is opened; this is the moment worth reading it.
+    SEER_PR_READY_FOR_REVIEW = 44
 
 
 # Warning: This must remain in this EXACT order.
@@ -96,8 +105,17 @@ CHOICES = tuple(
         ActivityType.PULL_REQUEST_REOPENED,  # 39
         ActivityType.PULL_REQUEST_MERGED,  # 40
         ActivityType.PULL_REQUEST_UNLINKED,  # 41
+        ActivityType.TRIGGER_AUTOFIX,  # 42
+        ActivityType.SMART_ASSIGNMENT_COMPLETED,  # 43
+        ActivityType.SEER_PR_READY_FOR_REVIEW,  # 44
     ]
 )
+
+# Activity types created purely as internal signals (e.g. to drive workflow handlers
+# such as scoring/auto-assignment) that must never surface in the user-facing issue
+# activity feed. The frontend has no GroupActivityType entry for these, so leaking one
+# renders a blank feed item and fires an "Unknown group activity type" Sentry message.
+HIDDEN_ACTIVITY_TYPES = (ActivityType.SMART_ASSIGNMENT_COMPLETED,)
 
 SEER_ACTIVITY_TYPES = (
     ActivityType.SEER_RCA_STARTED,
@@ -107,6 +125,7 @@ SEER_ACTIVITY_TYPES = (
     ActivityType.SEER_CODING_STARTED,
     ActivityType.SEER_CODING_COMPLETED,
     ActivityType.SEER_PR_CREATED,
+    ActivityType.SEER_PR_READY_FOR_REVIEW,
     ActivityType.SEER_ITERATION_STARTED,
     ActivityType.SEER_ITERATION_COMPLETED,
 )

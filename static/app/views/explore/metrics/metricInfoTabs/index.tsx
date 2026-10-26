@@ -1,12 +1,9 @@
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Grid, Stack} from '@sentry/scraps/layout';
 import {TabList, TabPanels, TabStateProvider} from '@sentry/scraps/tabs';
 
 import {t} from 'sentry/locale';
 import {AggregatesTab} from 'sentry/views/explore/metrics/metricInfoTabs/aggregatesTab';
-import {
-  StyledTabPanels,
-  TabListWrapper,
-} from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
+import {StyledTabPanels} from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
 import {SamplesTab} from 'sentry/views/explore/metrics/metricInfoTabs/samplesTab';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParams';
@@ -20,14 +17,12 @@ import {isVisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
 interface MetricInfoTabsProps {
   traceMetric: TraceMetric;
   additionalActions?: React.ReactNode;
-  contentsHidden?: boolean;
   isMetricOptionsEmpty?: boolean;
 }
 
 export function MetricInfoTabs({
   traceMetric,
   additionalActions,
-  contentsHidden,
   isMetricOptionsEmpty,
 }: MetricInfoTabsProps) {
   const visualize = useMetricVisualize();
@@ -42,32 +37,35 @@ export function MetricInfoTabs({
       }}
       size="md"
     >
-      <Container paddingRight="xl" paddingLeft="xl" paddingBottom="md" paddingTop="md">
+      <Stack
+        height="100%"
+        minHeight="0"
+        paddingRight="xl"
+        paddingLeft="xl"
+        paddingBottom="md"
+        paddingTop="md"
+      >
         {visualize.visible ? (
-          <Flex direction="row" justify="between" align="center">
-            <TabListWrapper>
-              <TabList variant="floating">
-                <TabList.Item
-                  key={Mode.SAMPLES}
-                  disabled={contentsHidden || isVisualizeEquation(visualize)}
-                  tooltip={{
-                    title: isVisualizeEquation(visualize)
-                      ? t('Samples are not available for equations')
-                      : undefined,
-                  }}
-                >
-                  {t('Samples')}
-                </TabList.Item>
-                <TabList.Item key={Mode.AGGREGATE} disabled={contentsHidden}>
-                  {t('Aggregates')}
-                </TabList.Item>
-              </TabList>
-            </TabListWrapper>
+          <Grid columns="minmax(0, 1fr) auto" gap="md" align="center" flexShrink={0}>
+            <TabList variant="floating">
+              <TabList.Item
+                key={Mode.SAMPLES}
+                disabled={isVisualizeEquation(visualize)}
+                tooltip={{
+                  title: isVisualizeEquation(visualize)
+                    ? t('Samples are not available for equations')
+                    : undefined,
+                }}
+              >
+                {t('Samples')}
+              </TabList.Item>
+              <TabList.Item key={Mode.AGGREGATE}>{t('Aggregates')}</TabList.Item>
+            </TabList>
             {additionalActions}
-          </Flex>
+          </Grid>
         ) : null}
-        {visualize.visible && !contentsHidden ? (
-          <Container height="312px">
+        {visualize.visible ? (
+          <Container flex="1" minHeight="0">
             <StyledTabPanels>
               <TabPanels.Item key={Mode.AGGREGATE}>
                 <AggregatesTab
@@ -84,7 +82,7 @@ export function MetricInfoTabs({
             </StyledTabPanels>
           </Container>
         ) : null}
-      </Container>
+      </Stack>
     </TabStateProvider>
   );
 }

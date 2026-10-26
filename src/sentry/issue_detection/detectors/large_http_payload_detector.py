@@ -11,6 +11,8 @@ from ..base import DetectorType, PerformanceDetector
 from ..detectors.utils import (
     fingerprint_http_spans,
     get_notification_attachment_body,
+    get_numeric_value_from_span,
+    get_span_description,
     get_span_duration,
     get_span_evidence_value,
 )
@@ -45,18 +47,16 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
         if not self._is_span_eligible(span):
             return
 
-        data = span.get("data", None)
-        if not data:
-            return
-
-        encoded_body_size = data.get("http.response_content_length", None)
+        encoded_body_size = get_numeric_value_from_span(
+            span,
+            keys=["http.response_content_length"],
+            detector="large_http_payload",
+            number_type=int,
+        )
         if not encoded_body_size:
             return
 
         payload_size_threshold = self.settings["payload_size_threshold"]
-
-        if isinstance(encoded_body_size, str):
-            encoded_body_size = int(encoded_body_size)
 
         if encoded_body_size > payload_size_threshold:
             self._store_performance_problem(span)
@@ -64,14 +64,14 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
     def _store_performance_problem(self, span: Span) -> None:
         fingerprint = self._fingerprint(span)
         offender_span_id: str = span["span_id"]
-        desc: str = span.get("description", "")
+        desc = get_span_description(span)
 
         evidence_data = {
             "parent_span_ids": [],
             "cause_span_ids": [],
             "offender_span_ids": [offender_span_id],
             "op": "http",
-            "transaction_name": self._event.get("description", ""),
+            "transaction_name": self._event.get("transaction", ""),
             "repeating_spans": get_span_evidence_value(span),
             "repeating_spans_compact": get_span_evidence_value(span, include_op=False),
             "num_repeating_spans": 1,
@@ -85,7 +85,7 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
             desc=desc,
             type=PerformanceLargeHTTPPayloadGroupType,
             cause_span_ids=[],
-            parent_span_ids=None,
+            parent_span_ids=[],
             offender_span_ids=[offender_span_id],
             evidence_display=[
                 IssueEvidence(
@@ -105,7 +105,7 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
         span_id = span.get("span_id", None)
         op: str = span.get("op", "") or ""
         hash = span.get("hash", None)
-        description: str = span.get("description", "") or ""
+        description = get_span_description(span)
 
         if not span_id or not op or not hash or not description:
             return False
@@ -117,7 +117,7 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
         if get_span_duration(span) < timedelta(milliseconds=self.settings["minimum_span_duration"]):
             return False
 
-        normalized_description = description.strip().upper()
+        normalized_description = description.upper()
         extension = EXTENSION_REGEX.search(normalized_description)
         if extension and extension.group(1) not in EXTENSION_ALLOW_LIST:
             return False

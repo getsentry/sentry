@@ -1,4 +1,3 @@
-import logging
 from collections.abc import Sequence
 from functools import partial
 from typing import TypedDict
@@ -9,7 +8,6 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -17,6 +15,7 @@ from sentry.api.helpers.deprecation import deprecated
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, SimpleEventSerializer, serialize
 from sentry.api.serializers.models.event import (
+    FULL_PAYLOAD_MAX_PER_PAGE,
     EventSerializerResponse,
     SimpleEventSerializerResponse,
 )
@@ -33,13 +32,11 @@ from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.services import eventstore
-from sentry.tasks.unmerge import unmerge
+from sentry.tasks.unmerge import start_unmerge
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import metrics
 from sentry.utils.snuba import raw_query
-
-logger = logging.getLogger(__name__)
 
 
 class GroupHashesResult(TypedDict):
@@ -58,6 +55,14 @@ class GroupHashesEndpoint(GroupEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
     }
 
+    def get_per_page(
+        self, request: Request, default_per_page: int | None = None, max_per_page: int | None = None
+    ) -> int:
+        per_page = super().get_per_page(request, default_per_page, max_per_page)
+        if request.GET.get("full") not in ("0", "false"):
+            return min(per_page, FULL_PAYLOAD_MAX_PER_PAGE)
+        return per_page
+
     @extend_schema(
         operation_id="listOrganizationIssueHashes",
         summary="List an Issue's Hashes",
@@ -73,7 +78,7 @@ class GroupHashesEndpoint(GroupEndpoint):
                 location=OpenApiParameter.QUERY,
                 required=False,
                 default=True,
-                description="Specify true to include the full event body, including the stacktrace, in the event payload.",
+                description="Specify true to include the full event body, including the stacktrace, in the event payload. When true, the page size is capped at 10.",
             ),
             CursorQueryParam,
         ],
@@ -137,24 +142,6 @@ class GroupHashesEndpoint(GroupEndpoint):
         if not grouphash_ids:
             return Response()
 
-        max_times_seen = options.get("issues.merge-unmerge.max-group-times-seen")
-        if max_times_seen and group.times_seen > max_times_seen:
-            metrics.incr("issues.merge_unmerge.restricted", tags={"op": "unmerge"})
-            logger.info(
-                "merge_unmerge.restricted",
-                extra={
-                    "op": "unmerge",
-                    "project_id": group.project_id,
-                    "source_id": group.id,
-                    "grouphash_ids": grouphash_ids,
-                    "max_times_seen": max_times_seen,
-                },
-            )
-            return Response(
-                {"detail": "Large merges and unmerges are temporarily restricted at this time."},
-                status=400,
-            )
-
         grouphashes = list(
             GroupHash.objects.filter(
                 project_id=group.project_id, group=group.id, hash__in=grouphash_ids
@@ -172,7 +159,7 @@ class GroupHashesEndpoint(GroupEndpoint):
             tags={"platform": group.platform or "unknown", "sdk": group.sdk or "unknown"},
         )
 
-        unmerge.delay(
+        start_unmerge.delay(
             group.project_id, group.id, None, grouphashes, request.user.id if request.user else None
         )
 

@@ -1,7 +1,8 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useEffect, useId, useState} from 'react';
 import type {Location} from 'history';
 
 import {Button} from '@sentry/scraps/button';
+import type {CSS} from '@sentry/scraps/cssTypes';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -24,7 +25,7 @@ interface CreditCardPanelProps {
   organization: Organization;
   subscription: Subscription;
   analyticsEvent?: GetsentryEventKey;
-  maxPanelWidth?: string;
+  maxPanelWidth?: CSS['maxWidth'];
   shouldExpandInitially?: boolean;
 }
 
@@ -47,6 +48,7 @@ export function CreditCardPanel({
   const [expandInitially, setExpandInitially] = useState(
     shouldExpandInitially && !subscription.paymentSource
   );
+  const headingId = useId();
 
   const handleCardUpdated = (data: Subscription) => {
     // if the card was successfully updated, reset the billing failure state
@@ -58,19 +60,23 @@ export function CreditCardPanel({
 
   useEffect(() => {
     if (expandInitially) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setIsEditing(true);
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       setExpandInitially(false);
     }
   }, [expandInitially]);
 
   useEffect(() => {
     // Open credit card update form/modal and track clicks from payment failure notifications (in app, email, etc.)
+    // oxlint-disable-next-line react/set-state-in-effect
     setReferrer(decodeScalar(location.query?.referrer));
   }, [location.query?.referrer]);
 
   useEffect(() => {
     // There are multiple billing failure referrals and each should have analytics tracking
     if (referrer?.includes('billing-failure')) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setFromBillingFailure(true);
 
       setIsEditing(true);
@@ -83,9 +89,12 @@ export function CreditCardPanel({
   }, [organization, referrer]);
 
   const countryName = getCountryByCode(subscription.paymentSource?.countryCode)?.name;
+  const paymentMethodLabel = t('Payment method');
 
   return (
     <Flex
+      as="section"
+      aria-labelledby={headingId}
       justify={isEditing ? 'start' : 'between'}
       align="start"
       gap="3xl"
@@ -93,12 +102,11 @@ export function CreditCardPanel({
       background="primary"
       border="primary"
       radius="md"
-      data-test-id="credit-card-panel"
       maxWidth={maxPanelWidth}
     >
       <Stack gap="lg" width="100%">
-        <Heading as="h2" size="lg">
-          {t('Payment method')}
+        <Heading as="h2" size="lg" id={headingId}>
+          {paymentMethodLabel}
         </Heading>
         {isEditing ? (
           <CreditCardSetup

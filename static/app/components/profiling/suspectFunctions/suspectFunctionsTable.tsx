@@ -1,16 +1,14 @@
-import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import {IconChevron} from '@sentry/icons/chevron';
 import clamp from 'lodash/clamp';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ArrayLinks} from 'sentry/components/profiling/arrayLinks';
-import {IconChevron} from 'sentry/icons/iconChevron';
-import {IconWarning} from 'sentry/icons/iconWarning';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -26,16 +24,6 @@ import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/r
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  Table,
-  TableBody,
-  TableBodyCell,
-  TableHead,
-  TableHeadCell,
-  TableRow,
-  TableStatus,
-  useTableStyles,
-} from 'sentry/views/explore/components/table';
 import {getProfileTargetId} from 'sentry/views/explore/profiling/utils';
 
 const MAX_EXAMPLES_PER_FRAME = 5;
@@ -51,11 +39,11 @@ type Column = {
 
 const COLUMNS: Column[] = [
   {
-    label: t('function'),
+    label: t('Function'),
     value: 'name',
   },
   {
-    label: t('package'),
+    label: t('Package'),
     value: 'package',
   },
   {
@@ -75,7 +63,7 @@ const COLUMNS: Column[] = [
     value: 'p99',
   },
   {
-    label: t('examples'),
+    label: t('Examples'),
     value: 'examples',
   },
 ];
@@ -210,10 +198,6 @@ export function SuspectFunctionsTable({
     return sortedMetrics.slice(pagination.start, pagination.end);
   }, [sortedMetrics, pagination]);
 
-  const fields = COLUMNS.map(column => column.value);
-  const tableRef = useRef<HTMLTableElement>(null);
-  const {initialTableStyles} = useTableStyles(fields, tableRef);
-
   const baggage: RenderFunctionBaggage = {
     location,
     navigate,
@@ -241,14 +225,15 @@ export function SuspectFunctionsTable({
           />
         </ButtonBar>
       </Flex>
-      <Table ref={tableRef} style={initialTableStyles}>
-        <TableHead>
-          <TableRow>
+      <SimpleTable
+        columns={COLUMNS.map(column => ({key: column.value}))}
+        scrollable
+        header={
+          <SimpleTable.HeaderRow>
             {COLUMNS.map((column, i) => {
               return (
-                <TableHeadCell
+                <SimpleTable.HeaderCell
                   key={i}
-                  isFirst={i === 0}
                   align={
                     column.value === 'package' || column.value === 'name'
                       ? 'left'
@@ -256,40 +241,31 @@ export function SuspectFunctionsTable({
                   }
                 >
                   {column.label}
-                </TableHeadCell>
+                </SimpleTable.HeaderCell>
               );
             })}
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {flamegraphQuery.isPending ? (
-            <TableStatus>
-              <LoadingIndicator />
-            </TableStatus>
-          ) : flamegraphQuery.isError ? (
-            <TableStatus>
-              <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
-            </TableStatus>
-          ) : flamegraphQuery.isFetched && metrics.length > 0 ? (
-            metrics.map((metric, i) => (
-              <TableEntry
-                key={i}
-                analyticsPageSource={analyticsPageSource}
-                baggage={baggage}
-                metric={metric}
-                organization={organization}
-                project={project}
-              />
-            ))
-          ) : (
-            <TableStatus>
-              <EmptyStateWarning>
-                <p>{t('No functions found')}</p>
-              </EmptyStateWarning>
-            </TableStatus>
-          )}
-        </TableBody>
-      </Table>
+          </SimpleTable.HeaderRow>
+        }
+      >
+        {flamegraphQuery.isPending ? (
+          <SimpleTable.Loading />
+        ) : flamegraphQuery.isError ? (
+          <SimpleTable.Error />
+        ) : flamegraphQuery.isFetched && metrics.length > 0 ? (
+          metrics.map((metric, i) => (
+            <TableEntry
+              key={i}
+              analyticsPageSource={analyticsPageSource}
+              baggage={baggage}
+              metric={metric}
+              organization={organization}
+              project={project}
+            />
+          ))
+        ) : (
+          <SimpleTable.Empty>{t('No functions found')}</SimpleTable.Empty>
+        )}
+      </SimpleTable>
     </Fragment>
   );
 }
@@ -310,7 +286,7 @@ function TableEntry({
   project,
 }: TableEntryProps) {
   return (
-    <TableRow>
+    <SimpleTable.Row>
       {COLUMNS.map(column => {
         if (column.value === 'examples') {
           const items = metric[column.value].map(example => {
@@ -338,9 +314,9 @@ function TableEntry({
             };
           });
           return (
-            <TableBodyCell key={column.value}>
+            <SimpleTable.RowCell key={column.value}>
               <ArrayLinks items={items} />
-            </TableBodyCell>
+            </SimpleTable.RowCell>
           );
         }
 
@@ -349,12 +325,12 @@ function TableEntry({
             ? FIELD_FORMATTERS.duration.renderFunc
             : FIELD_FORMATTERS.string.renderFunc;
         return (
-          <TableBodyCell key={column.value}>
+          <SimpleTable.RowCell key={column.value}>
             {formatter(column.value, metric, baggage)}
-          </TableBodyCell>
+          </SimpleTable.RowCell>
         );
       })}
-    </TableRow>
+    </SimpleTable.Row>
   );
 }
 

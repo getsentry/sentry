@@ -1,6 +1,6 @@
 ---
 name: generate-frontend-forms
-description: Guide for creating forms using Sentry's new form system. Use when implementing forms, form fields, validation, or auto-save functionality.
+description: Guide for creating forms using Sentry's new form system. Use when implementing forms, form fields, display-only form content, validation, or auto-save functionality.
 ---
 
 # Form System Guide
@@ -23,6 +23,7 @@ import {z} from 'zod';
 import {
   AutoSaveForm,
   defaultFormOptions,
+  DisplayField,
   setFieldErrors,
   useScrapsForm,
 } from '@sentry/scraps/form';
@@ -44,7 +45,7 @@ import {z} from 'zod';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 
 const schema = z.object({
-  email: z.string().email('Invalid email'),
+  email: z.email('Invalid email'),
   name: z.string().min(2, 'Name must be at least 2 characters'),
 });
 
@@ -98,7 +99,7 @@ function MyForm() {
 
 ## Field Components
 
-All fields are accessed via the `field` render prop and follow consistent patterns.
+Registered fields are accessed via the `field` render prop and follow consistent patterns. For display-only information without an input, use `DisplayField` as described below.
 
 ### Input Field (Text)
 
@@ -135,6 +136,8 @@ All fields are accessed via the `field` render prop and follow consistent patter
 ```
 
 ### Select Field (Single)
+
+Use `field.Select` for form choices. Do not compose a form select from bare `Menu` components; those are internal presentation primitives for shared controls.
 
 ```tsx
 <form.AppField name="country">
@@ -185,6 +188,10 @@ All fields are accessed via the `field` render prop and follow consistent patter
   )}
 </form.AppField>
 ```
+
+### Checkbox Group (Multiple Selections)
+
+Use `field.Checkbox.Group` and `field.Checkbox.Item` for multiple selections stored as one string array. Read the [checkbox group docs](../../../static/app/components/core/form/fields.mdx#checkbox-group) for the example, layout, validation, disabled state, and auto-save behavior.
 
 ### TextArea Field
 
@@ -304,7 +311,7 @@ Use `field.Base` instead of building custom wrappers that duplicate this logic. 
 
 ## Layouts
 
-Two layout options are available for positioning labels and fields.
+Use `field.Layout.Stack` or `field.Layout.Row` for registered fields. These layouts require field context and provide label/input association. For display-only information, use `DisplayField.Stack` or `DisplayField.Row` instead.
 
 ### Stack Layout (Vertical)
 
@@ -337,17 +344,17 @@ Both Stack and Row layouts support a `variant="compact"` prop. In compact mode, 
 ```tsx
 // Default: hint text appears below the label
 <field.Layout.Row label="Email" hintText="We'll never share your email">
-  <field.Input ... />
+    <field.Input ... />
 </field.Layout.Row>
 
 // Compact: hint text appears in tooltip when hovering the label
 <field.Layout.Row label="Email" hintText="We'll never share your email" variant="compact">
-  <field.Input ... />
+    <field.Input ... />
 </field.Layout.Row>
 
 // Also works with Stack layout
 <field.Layout.Stack label="Email" hintText="We'll never share your email" variant="compact">
-  <field.Input ... />
+    <field.Input ... />
 </field.Layout.Stack>
 ```
 
@@ -383,19 +390,51 @@ You are allowed to create new layouts if necessary, or not use any layouts at al
 
 ---
 
+## Display-Only Information
+
+Use `DisplayField.Row` or `DisplayField.Stack` for dates, status text, and other information without an input. Import `DisplayField` from `@sentry/scraps/form` and render it directly in a `FieldGroup` or alongside registered fields:
+
+```tsx
+<DisplayField.Row label={t('Created')}>
+  <Text>
+    <DateTime date={data.dateCreated} />
+  </Text>
+</DisplayField.Row>
+```
+
+- `Row` uses the same responsive layout as `field.Layout.Row`: it stacks below the `md` container breakpoint when a query container is present. Without a query container, it stays in a row.
+- `Stack` always places the value below the term.
+- Both accept `label`, `children`, `hintText`, `padding`, and `variant="compact"`. Compact mode puts the hint in a tooltip; otherwise it appears below the term in a row and after the value in a stack.
+- They render `dl`/`dt`/`dd`, without a `<label>`, input association, validation, or error-focus registration. No form or field context is required.
+- Style the displayed value explicitly, for example with `<Text>`; `DisplayField` does not wrap its children in `Text`.
+
+Do not register display-only information with `AppField` or `AutoSaveForm`, or add it to the schema or `defaultValues` just for layout. For a value derived from form state, calculate it during render with `form.Subscribe` rather than storing a second value with `form.setFieldValue`:
+
+```tsx
+<form.Subscribe selector={state => state.values.provider}>
+  {provider => (
+    <DisplayField.Stack label={t('Selected provider')}>
+      <Text>{provider ?? t('None selected')}</Text>
+    </DisplayField.Stack>
+  )}
+</form.Subscribe>
+```
+
+A read-only input is still a real input. Keep `AppField`, `field.Layout.*`, and `field.Input readOnly` for values that users select or copy from an input. Keep custom controls that handle form state on `field.Base`; do not replace them with `DisplayField`.
+
 ## Field Groups
 
 Group related fields into sections with a title.
 
 ```tsx
 <form.FieldGroup title="Personal Information">
-  <form.AppField name="firstName">{/* ... */}</form.AppField>
-  <form.AppField name="lastName">{/* ... */}</form.AppField>
+    <form.AppField name="firstName">{/* ... */}</form.AppField>
+    <form.AppField name="lastName">{/* ... */}</form.AppField>
 </form.FieldGroup>
 
 <form.FieldGroup title="Contact Information">
-  <form.AppField name="email">{/* ... */}</form.AppField>
-  <form.AppField name="phone">{/* ... */}</form.AppField>
+    <form.AppField name="email">{/* ... */}</form.AppField>
+    <form.AppField name="phone">{/* ... */}</form.AppField>
 </form.FieldGroup>
 ```
 
@@ -411,9 +450,9 @@ Fields accept `disabled` as a boolean or string. When a string is provided, it d
 
 // ✅ Provide a reason when disabling
 <field.Input
-  disabled="This feature requires a Business plan"
-  value={field.state.value}
-  onChange={field.handleChange}
+    disabled="This feature requires a Business plan"
+    value={field.state.value}
+    onChange={field.handleChange}
 />
 ```
 
@@ -427,7 +466,7 @@ Fields accept `disabled` as a boolean or string. When a string is provided, it d
 import {z} from 'zod';
 
 const userSchema = z.object({
-  email: z.string().email('Please enter a valid email'),
+  email: z.email('Please enter a valid email'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   age: z.number().gte(13, 'You must be at least 13 years old'),
   bio: z.string().optional(),
@@ -479,7 +518,9 @@ const form = useScrapsForm({
 
 ### Conditional Validation
 
-Use `.refine()` for cross-field validation:
+Use `.refine()` when the validity of one value depends on another value, such as
+matching passwords. Do not use a form-level `.superRefine()` to require a field
+only while it is displayed; put that validator on the conditional field instead.
 
 ```tsx
 const schema = z
@@ -495,13 +536,25 @@ const schema = z
 
 ### Conditional Fields
 
-Use `form.Subscribe` to show/hide fields based on other field values:
+Use `form.Subscribe` to show/hide fields based on other field values. Keep
+conditionally required values permissive in the form schema, then validate
+them on the rendered `AppField` so hidden fields do not block submission:
 
 ```tsx
+const schema = z.object({
+  plan: z.enum(['standard', 'enterprise']),
+  billingEmail: z.string(),
+});
+
 <form.Subscribe selector={state => state.values.plan === 'enterprise'}>
   {showBilling =>
     showBilling ? (
-      <form.AppField name="billingEmail">
+      <form.AppField
+        name="billingEmail"
+        validators={{
+          onDynamic: z.email('Enter a valid billing email'),
+        }}
+      >
         {field => (
           <field.Layout.Stack label="Billing Email" required>
             <field.Input value={field.state.value} onChange={field.handleChange} />
@@ -510,8 +563,13 @@ Use `form.Subscribe` to show/hide fields based on other field values:
       </form.AppField>
     ) : null
   }
-</form.Subscribe>
+</form.Subscribe>;
 ```
+
+For a nullable number field, keep `z.number().nullable()` in the form schema
+and use a field validator such as
+`z.number().positive('Amount must be greater than zero').nullable().refine(value => value !== null, 'Amount is required')`.
+The `refine` rejects the `null` emitted when the number input is empty.
 
 ---
 
@@ -527,6 +585,8 @@ import {useMutation} from '@tanstack/react-query';
 import {setFieldErrors} from '@sentry/scraps/form';
 
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 
 function MyForm() {
   const mutation = useMutation({
@@ -547,17 +607,43 @@ function MyForm() {
       try {
         await mutation.mutateAsync(value);
       } catch (error) {
-        // Set field-specific errors from backend
-        setFieldErrors(formApi, {
-          email: {message: 'This email is already registered'},
-          username: {message: 'Username is taken'},
-        });
+        if (error instanceof RequestError) {
+          setFieldErrors(formApi, requestErrorToFieldErrors(error, formApi.state.values));
+        }
       }
     },
   });
 
   // ...
 }
+```
+
+`setFieldErrors` accepts the Scraps `FieldErrors` contract. It does not accept
+Sentry's `RequestError`. Use `requestErrorToFieldErrors` at the app boundary to:
+
+- accept a `RequestError` after the call site narrows the unknown error;
+- keep only keys that exist in the form values;
+- convert string and array response values to `{message: string}`.
+
+Do not pass an API error to Scraps directly:
+
+```tsx
+// ❌ RequestError is an app type, not a Scraps form error
+setFieldErrors(formApi, error);
+
+// ✅ Narrow at the app call site, then convert to the Scraps contract
+if (error instanceof RequestError) {
+  setFieldErrors(formApi, requestErrorToFieldErrors(error, formApi.state.values));
+}
+```
+
+Use a direct object when you create the field messages in the form code:
+
+```tsx
+setFieldErrors(formApi, {
+  email: {message: 'This email is already registered'},
+  username: {message: 'Username is taken'},
+});
 ```
 
 > **Important**: `setFieldErrors` supports nested paths with dot notation: `'address.city': {message: 'City not found'}`
@@ -635,6 +721,24 @@ The form system automatically shows:
 - **Warning icon** on validation error (with tooltip)
 
 > **Important**: Do NOT use toasts to communicate auto-save status. The built-in inline indicators (spinner, checkmark, warning icon) are the correct feedback mechanism. Toasts are noisy and disruptive for fields that save frequently on every change.
+
+### Auto-Save Request Errors
+
+`AutoSaveForm` receives app-specific error mapping from the form error context.
+Sentry installs this mapping once through `ScrapsProviders`. Do not catch
+`RequestError` or call `requestErrorToFieldErrors` at each `AutoSaveForm` call
+site.
+
+The Sentry provider:
+
+- narrows failed mutations to `RequestError`;
+- uses `requestErrorToFieldErrors` for matching backend field errors;
+- uses `getRequestErrorUserMessage` for request detail and status messages;
+- keeps `Failed to save` as the fallback for other errors.
+
+Scraps remains independent of Sentry's API error type. Outside the Sentry app,
+the form error context uses the generic fallback unless the host app supplies
+its own mapper.
 
 ### Confirmation Dialogs
 
@@ -947,6 +1051,11 @@ Make sure the zod schema's types are compatible with the API type. For example, 
 
 ### Form Reset After Save
 
+`defaultValues` are reactive in TanStack Form. When query data arrives after the form
+mounts, passing that data through `defaultValues` updates an untouched form. Do not
+add an effect that calls `form.reset()` just to populate async query results. A reset
+is still useful after a successful save when the form remains mounted and is dirty.
+
 ```tsx
 // ❌ Don't forget to reset forms that stay on the page after save
 onSubmit: ({value}) => {
@@ -984,9 +1093,10 @@ When creating a new form:
 - [ ] Set `defaultValues` matching schema shape (use `z.input<typeof schema>` if schema has `.refine()`)
 - [ ] Set `validators: {onDynamic: schema}`
 - [ ] Wrap with `<form.AppForm form={form}>`
-- [ ] Use `<form.AppField>` for each field
+- [ ] Use `<form.AppField>` for each registered input, including read-only inputs
+- [ ] Use `DisplayField.Row` or `DisplayField.Stack` for display-only information; keep it out of form state
 - [ ] Choose appropriate layout (Stack or Row)
-- [ ] Handle server errors with `setFieldErrors`
+- [ ] Narrow unknown errors to `RequestError` at the call site, convert them with `requestErrorToFieldErrors`, then call `setFieldErrors`
 - [ ] Add `<form.SubmitButton>` for submission
 - [ ] Call `form.reset()` after successful mutation if the form stays on the page
 
@@ -997,15 +1107,19 @@ When creating auto-save fields:
 - [ ] Pass `initialValue` from current data
 - [ ] Configure `mutationOptions` with `mutationFn`
 - [ ] Update cache in `onSuccess` callback
+- [ ] Let the Sentry form error provider handle standard request errors
 
 ---
 
 ## File References
 
-| File                                               | Purpose                     |
-| -------------------------------------------------- | --------------------------- |
-| `static/app/components/core/form/scrapsForm.tsx`   | Main form hook              |
-| `static/app/components/core/form/autoSaveForm.tsx` | Auto-save wrapper           |
-| `static/app/components/core/form/field/*.tsx`      | Individual field components |
-| `static/app/components/core/form/layout/index.tsx` | Layout components           |
-| `static/app/components/core/form/form.stories.tsx` | Usage examples              |
+| File                                                   | Purpose                     |
+| ------------------------------------------------------ | --------------------------- |
+| `static/app/components/core/form/scrapsForm.tsx`       | Main form hook              |
+| `static/app/components/core/form/autoSaveForm.tsx`     | Auto-save wrapper           |
+| `static/app/components/core/form/formErrorContext.tsx` | Host error-mapper contract  |
+| `static/app/scrapsProviders/formError.tsx`             | Sentry request-error mapper |
+| `static/app/components/core/form/field/*.tsx`          | Individual field components |
+| `static/app/components/core/form/layout/index.tsx`     | Layout components           |
+| `static/app/components/core/form/displayField.tsx`     | Display-only layouts        |
+| `static/app/components/core/form/form.stories.tsx`     | Usage examples              |

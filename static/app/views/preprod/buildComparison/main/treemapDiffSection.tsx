@@ -1,5 +1,6 @@
 import {useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import {IconContract} from '@sentry/icons/contract';
 import type {ECharts, TreemapSeriesOption} from 'echarts';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -8,7 +9,6 @@ import {useRenderToString} from '@sentry/scraps/renderToString';
 import {Text} from '@sentry/scraps/text';
 
 import {BaseChart, type TooltipOption} from 'sentry/components/charts/baseChart';
-import {IconContract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getAppSizeDiffCategoryInfo} from 'sentry/views/preprod/components/visualizations/appSizeTreemapTheme';
 import {TreemapControlButtons} from 'sentry/views/preprod/components/visualizations/treemapControlButtons';
@@ -78,9 +78,6 @@ export function TreemapDiffSection({diffItems}: TreemapDiffSectionProps) {
         color: theme.colors.white,
         fontFamily: 'Rubik',
         padding: 0,
-        textShadowBlur: 2,
-        textShadowColor: theme.colors.gray800,
-        textShadowOffsetY: 0.5,
       },
       upperLabel: {
         show: true,
@@ -92,9 +89,6 @@ export function TreemapDiffSection({diffItems}: TreemapDiffSectionProps) {
         borderRadius: [2, 2, 0, 0],
         fontFamily: 'Rubik',
         padding: 0,
-        textShadowBlur: 2,
-        textShadowColor: theme.colors.gray800,
-        textShadowOffsetY: 0.5,
       },
     };
 

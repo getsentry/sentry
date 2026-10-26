@@ -1,5 +1,7 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {useDebouncedValue} from '@tanstack/react-pacer';
+import cloneDeep from 'lodash/cloneDeep';
 
 import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
 
@@ -7,7 +9,7 @@ import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {AggregationKey} from 'sentry/utils/fields';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
+import {ConditionalAggregateFilterBar} from 'sentry/views/explore/components/conditionalAggregateFilterBar';
 import {
   ToolbarFooter,
   ToolbarSection,
@@ -23,13 +25,19 @@ import {
   ToolbarVisualizeHeader,
 } from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
+import {
+  useDatasetFormulas,
+  type SavedFormula,
+} from 'sentry/views/explore/hooks/useGetSavedFormulas';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {useLogItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
+import {useValidatedGroupBys} from 'sentry/views/explore/hooks/useValidatedGroupBys';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 import {
   OurLogKnownFieldKey,
   type OurLogsAggregate,
 } from 'sentry/views/explore/logs/types';
+import {useValidateLogsTab} from 'sentry/views/explore/logs/useValidateLogsTab';
 import {
   useQueryParamsGroupBys,
   useQueryParamsVisualizes,
@@ -44,6 +52,21 @@ import {
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {
+  applyConditionalFilter,
+  buildConditionalAggregate,
+  supportsConditionalAggregateFilter,
+} from 'sentry/views/explore/utils/conditionalAggregate';
+import {
+  buildFormulaYAxis,
+  findFormula,
+  getFormulaColumnFunction,
+} from 'sentry/views/explore/utils/formulaAggregate';
+import {
+  mergeValidatedGroupByTags,
+  shouldHideGroupByForValidation,
+} from 'sentry/views/explore/utils/groupByValidation';
+import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 
 import {HiddenLogSearchFields} from './constants';
 
@@ -105,7 +128,7 @@ export function LogsToolbar() {
 
 function ToolbarVisualize() {
   const [search, setSearch] = useState<string | undefined>(undefined);
-  const debouncedSearch = useDebouncedValue(search, 200);
+  const [debouncedSearch] = useDebouncedValue(search, {wait: 200});
 
   const {attributes: stringTags, isLoading: stringTagsLoading} = useLogItemAttributes(
     {search: debouncedSearch},
@@ -126,6 +149,7 @@ function ToolbarVisualize() {
   const onSearch = setSearch;
   const onClose = useCallback(() => setSearch(undefined), []);
 
+  const formulas = useDatasetFormulas('logs');
   const visualizes = useQueryParamsVisualizes();
   const setVisualizes = useSetQueryParamsVisualizes();
 
@@ -171,6 +195,7 @@ function ToolbarVisualize() {
               onDelete={onDelete}
               onReplace={newVisualize => replaceOverlay(group, newVisualize)}
               visualize={visualize}
+              formulas={formulas}
               booleanTags={booleanTags}
               numberTags={numberTags}
               stringTags={stringTags}
@@ -194,6 +219,7 @@ function ToolbarVisualize() {
 
 interface VisualizeDropdownProps {
   booleanTags: TagCollection;
+  formulas: readonly SavedFormula[];
   loading: boolean;
   numberTags: TagCollection;
   onClose: () => void;
@@ -205,6 +231,7 @@ interface VisualizeDropdownProps {
 }
 
 function VisualizeDropdown({
+  formulas,
   loading,
   onDelete,
   onReplace,
@@ -227,61 +254,134 @@ function VisualizeDropdown({
     });
   }, [firstNumberKey]);
 
-  const aggregateFunction = visualize.parsedFunction?.name ?? '';
-  const aggregateParam = visualize.parsedFunction?.arguments?.[0] ?? '';
+  // Dropdowns operate on the base aggregate; strip the `_if` combinator and filter.
+  const parsedFunction = useMemo(
+    () => parseConditionalAggregate(visualize.yAxis),
+    [visualize.yAxis]
+  );
+  const formula = findFormula(formulas, parsedFunction?.name);
+
+  const filter = parsedFunction?.filter ?? '';
 
   const fieldOptions = useVisualizeFields({
     numberTags,
     stringTags,
     booleanTags,
-    parsedFunction: visualize.parsedFunction,
+    parsedFunction:
+      formula && parsedFunction
+        ? getFormulaColumnFunction(formula, parsedFunction)
+        : parsedFunction,
     traceItemType: TraceItemDataset.LOGS,
   });
 
   const onChangeAggregate = useCallback(
     (option: SelectOption<SelectKey>) => {
-      if (typeof option.value === 'string') {
-        const yAxis = updateVisualizeAggregate({
-          newAggregate: option.value,
-          oldAggregate: aggregateFunction,
-          oldArgument: aggregateParam,
-          firstNumberKey,
-        });
-        onReplace(visualize.replace({yAxis}));
+      if (typeof option.value !== 'string') {
+        return;
       }
+      const newFormula = findFormula(formulas, option.value);
+      if (newFormula) {
+        const formulaYAxis = buildFormulaYAxis(newFormula, firstNumberKey);
+        if (formulaYAxis) {
+          onReplace(visualize.replace({yAxis: formulaYAxis}));
+        }
+        return;
+      }
+      // Formula arguments don't map onto built in aggregates, so switch as if from the default.
+      const yAxis = updateVisualizeAggregate({
+        newAggregate: option.value,
+        oldAggregate: formula ? AggregationKey.COUNT : (parsedFunction?.name ?? ''),
+        oldArgument: formula
+          ? OurLogKnownFieldKey.MESSAGE
+          : (parsedFunction?.arguments?.[0] ?? ''),
+        firstNumberKey,
+      });
+      onReplace(
+        visualize.replace({
+          yAxis: supportsConditionalAggregateFilter(option.value)
+            ? applyConditionalFilter(yAxis, filter)
+            : yAxis,
+        })
+      );
     },
-    [onReplace, visualize, aggregateFunction, aggregateParam, firstNumberKey]
+    [filter, firstNumberKey, formula, formulas, onReplace, parsedFunction, visualize]
   );
 
   const onChangeArgument = useCallback(
-    (_index: number, option: SelectOption<SelectKey>) => {
-      if (typeof option.value === 'string') {
-        const yAxis = `${aggregateFunction}(${option.value})`;
-        onReplace(visualize.replace({yAxis}));
+    (index: number, value: string) => {
+      let args = cloneDeep(parsedFunction?.arguments);
+      if (args) {
+        args[index] = value;
+      } else {
+        args = [value];
       }
+      onReplace(
+        visualize.replace({
+          yAxis: buildConditionalAggregate({
+            name: parsedFunction?.name ?? '',
+            arguments: args,
+            filter,
+          }),
+        })
+      );
     },
-    [onReplace, aggregateFunction, visualize]
+    [filter, onReplace, parsedFunction, visualize]
+  );
+
+  const onFilterSearch = useCallback(
+    (newFilter: string) => {
+      if (!parsedFunction) {
+        return;
+      }
+      onReplace(
+        visualize.replace({
+          yAxis: buildConditionalAggregate({
+            name: parsedFunction.name,
+            arguments: parsedFunction.arguments,
+            filter: newFilter,
+          }),
+        })
+      );
+    },
+    [onReplace, parsedFunction, visualize]
+  );
+
+  const showFilterSearchBar = supportsConditionalAggregateFilter(
+    parsedFunction?.name ?? ''
   );
 
   return (
     <ToolbarVisualizeDropdown
       aggregateOptions={aggregateOptions}
       fieldOptions={fieldOptions}
+      formulaDefaultColumn={firstNumberKey}
+      formulas={formulas}
       onChangeAggregate={onChangeAggregate}
       onChangeArgument={onChangeArgument}
       onDelete={onDelete}
-      parsedFunction={visualize.parsedFunction}
+      parsedFunction={parsedFunction}
       onClose={onClose}
       onSearch={onSearch}
       loading={loading}
       fieldDefinitionType="log"
+      filterSearchBar={
+        showFilterSearchBar ? (
+          <ConditionalAggregateFilterBar
+            itemType={TraceItemDataset.LOGS}
+            menuPresentation="panel"
+            initialQuery={filter}
+            onSearch={onFilterSearch}
+            searchSource="explore-logs-conditional-aggregate"
+          />
+        ) : undefined
+      }
     />
   );
 }
 
 function ToolbarGroupBy() {
   const [search, setSearch] = useState<string | undefined>(undefined);
-  const debouncedSearch = useDebouncedValue(search, 200);
+  const [debouncedSearch] = useDebouncedValue(search, {wait: 200});
 
   const {attributes: numberTags, isLoading: numberTagsLoading} = useLogItemAttributes(
     {search: debouncedSearch},
@@ -304,12 +404,50 @@ function ToolbarGroupBy() {
 
   const groupBys = useQueryParamsGroupBys();
   const setGroupBys = useSetQueryParamsGroupBys();
+  const {
+    data: validatedSearchQueryData,
+    isFetching: validationFetching,
+    isLoading: validationLoading,
+    isPlaceholderData: validationIsPlaceholderData,
+  } = useValidateLogsTab();
+  const validationIsPending =
+    validationFetching || validationLoading || validationIsPlaceholderData;
+
+  const cleanupInvalidGroupBys = useCallback(
+    (validatedGroupBys: string[]) => {
+      if (validatedGroupBys.some(Boolean)) {
+        setGroupBys(validatedGroupBys);
+      } else {
+        setGroupBys(validatedGroupBys, Mode.SAMPLES);
+      }
+    },
+    [setGroupBys]
+  );
+  const {visibleGroupBys} = useValidatedGroupBys({
+    groupBys,
+    validationData: validatedSearchQueryData,
+    validationIsPending,
+    onGroupBysCleanup: cleanupInvalidGroupBys,
+  });
+
+  const {validatedBooleanTags, validatedNumberTags, validatedStringTags} = useMemo(
+    () =>
+      mergeValidatedGroupByTags({
+        booleanTags: booleanTags ?? {},
+        numberTags: numberTags ?? {},
+        stringTags: stringTags ?? {},
+        validatedFields: validatedSearchQueryData?.field.filter(
+          field => field.valid && groupBys.includes(field.name)
+        ),
+      }),
+    [booleanTags, groupBys, numberTags, stringTags, validatedSearchQueryData?.field]
+  );
 
   const options = useGroupByFields({
-    numberTags: numberTags ?? {},
-    stringTags: stringTags ?? {},
-    booleanTags: booleanTags ?? {},
-    groupBys,
+    numberTags: validatedNumberTags,
+    stringTags: validatedStringTags,
+    booleanTags: validatedBooleanTags,
+    groupBys: visibleGroupBys,
     traceItemType: TraceItemDataset.LOGS,
   });
 
@@ -338,21 +476,36 @@ function ToolbarGroupBy() {
       {({editableColumns, insertColumn, updateColumnAtIndex, deleteColumnAtIndex}) => (
         <ToolbarSection data-test-id="section-group-by">
           <ToolbarGroupByHeader />
-          {editableColumns.map((column, i) => (
-            <ToolbarGroupByDropdown
-              key={column.id}
-              canDelete={editableColumns.length > 1}
-              column={column}
-              onColumnChange={c => updateColumnAtIndex(i, c)}
-              onColumnDelete={() => deleteColumnAtIndex(i)}
-              options={options}
-              groupBys={groupBys}
-              onSearch={onSearch}
-              onClose={onClose}
-              loading={numberTagsLoading || stringTagsLoading || booleanTagsLoading}
-              fieldDefinitionType="log"
-            />
-          ))}
+          {editableColumns.map((column, i) => {
+            const displayColumn = shouldHideGroupByForValidation(
+              column.column,
+              validatedSearchQueryData?.field,
+              validationIsPending
+            )
+              ? {...column, column: ''}
+              : column;
+
+            return (
+              <ToolbarGroupByDropdown
+                key={column.id}
+                canDelete={editableColumns.length > 1}
+                column={displayColumn}
+                onColumnChange={c => updateColumnAtIndex(i, c)}
+                onColumnDelete={() => deleteColumnAtIndex(i)}
+                options={options}
+                groupBys={visibleGroupBys}
+                onSearch={onSearch}
+                onClose={onClose}
+                loading={
+                  validationIsPending ||
+                  numberTagsLoading ||
+                  stringTagsLoading ||
+                  booleanTagsLoading
+                }
+                fieldDefinitionType="log"
+              />
+            );
+          })}
           <ToolbarFooter>
             <ToolbarGroupByAddGroupBy add={() => insertColumn('')} disabled={false} />
           </ToolbarFooter>

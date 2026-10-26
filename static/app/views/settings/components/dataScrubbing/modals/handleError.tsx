@@ -19,7 +19,7 @@ type ResponseError = {
 };
 
 export function handleError(error: ResponseError): Error {
-  const errorMessage = error.responseJSON?.relayPiiConfig[0];
+  const errorMessage = error.responseJSON?.relayPiiConfig?.[0];
 
   if (!errorMessage) {
     return {

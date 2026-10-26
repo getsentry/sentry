@@ -123,3 +123,31 @@ class ReleaseCommitsListTest(APITestCase):
             status_code=404,
             qs_params={"repo_id": "0"},
         )
+
+    def test_query_external_id_ignores_other_provider(self) -> None:
+        # External ids are only unique per provider: another provider's repo with the same
+        # id has no commits in this release and must not shadow the release's repo.
+        self.create_repo(
+            project=self.project,
+            name="other/repo",
+            provider="integrations:gitlab",
+            external_id="123",
+        )
+        response = self.get_success_response(
+            self.project.organization.slug,
+            self.project.slug,
+            self.release.version,
+            qs_params={"repo_id": "123"},
+        )
+
+        assert len(response.data) == 2
+
+    def test_query_external_id_repo_without_release_commits(self) -> None:
+        self.create_repo(project=self.project, name="other/repo", external_id="456")
+        self.get_error_response(
+            self.project.organization.slug,
+            self.project.slug,
+            self.release.version,
+            status_code=404,
+            qs_params={"repo_id": "456"},
+        )

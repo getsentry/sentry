@@ -1,7 +1,8 @@
+import {IconDownload} from '@sentry/icons/download';
+
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {useModal} from '@sentry/scraps/modal';
 
-import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ExploreExportModal} from 'sentry/views/explore/components/exports/exploreExportModal';
 import type {
@@ -77,7 +78,7 @@ export function ExploreExportModalButton({
           : t('Configure export options before starting your export.'),
       }}
     >
-      {t('Export Data')}
+      {t('Export')}
     </Button>
   );
 }

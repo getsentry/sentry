@@ -14,7 +14,7 @@ export function DiscoverButton(buttonProps: LinkButtonProps) {
       {({hasFeature}) => (
         <LinkButton
           disabled={!hasFeature}
-          aria-label={t('Open in Discover')}
+          aria-label={t('Open in Explore')}
           {...buttonProps}
         />
       )}

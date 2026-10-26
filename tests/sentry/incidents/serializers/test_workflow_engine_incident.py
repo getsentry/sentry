@@ -4,7 +4,6 @@ from typing import Any
 from sentry.api.serializers import serialize
 from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.incidents.endpoints.serializers.workflow_engine_incident import (
-    WorkflowEngineDetailedIncidentSerializer,
     WorkflowEngineIncidentSerializer,
 )
 from sentry.incidents.models.incident import (
@@ -34,7 +33,7 @@ class TestIncidentSerializer(TestWorkflowEngineSerializer):
         self.incident_identifier = str(self.incident_group_open_period.incident_identifier)
         self.expected["eventTypes"] = sorted(
             SnubaQueryEventType.EventType(et.type).name.lower()
-            for et in SnubaQueryEventType.objects.filter(snuba_query=self.alert_rule.snuba_query)
+            for et in SnubaQueryEventType.objects.filter(snuba_query=self.snuba_query)
         )
         self.expected["snooze"] = False
         self.incident_expected = {
@@ -68,15 +67,6 @@ class TestIncidentSerializer(TestWorkflowEngineSerializer):
         serialized_incident = serialize(
             self.group_open_period, self.user, WorkflowEngineIncidentSerializer()
         )
-        assert self._sort_triggers(serialized_incident) == self._sort_triggers(
-            self.incident_expected
-        )
-
-    def test_detailed(self) -> None:
-        serialized_incident = serialize(
-            self.group_open_period, self.user, WorkflowEngineDetailedIncidentSerializer()
-        )
-        self.incident_expected["discoverQuery"] = "(event.type:error) AND (level:error)"
         assert self._sort_triggers(serialized_incident) == self._sort_triggers(
             self.incident_expected
         )

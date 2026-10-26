@@ -355,7 +355,7 @@ class DebugFileObjectstoreRedirectTest(DebugFilesTestCases):
         download_id = self._upload_and_get_download_id()
 
         with (
-            self.feature("organizations:objectstore-debugfiles-direct-read"),
+            self.feature("organizations:objectstore-debugfiles-read"),
             patch("sentry.auth.system.is_internal_ip", return_value=True),
         ):
             response = self.client.get(f"{self.url}?id={download_id}")
@@ -369,7 +369,7 @@ class DebugFileObjectstoreRedirectTest(DebugFilesTestCases):
         download_id = self._upload_and_get_download_id()
 
         with (
-            self.feature("organizations:objectstore-debugfiles-direct-read"),
+            self.feature("organizations:objectstore-debugfiles-read"),
             patch("sentry.auth.system.is_internal_ip", return_value=False),
         ):
             response = self.client.get(f"{self.url}?id={download_id}")
@@ -379,7 +379,15 @@ class DebugFileObjectstoreRedirectTest(DebugFilesTestCases):
         assert (
             f"/organizations/{self.organization.id}/objectstore/v1/objects/debug_files/" in location
         )
-        assert "os_sig=" in location
+        assert "os_auth=" in location
+
+    def test_redirect_requires_read_gate(self) -> None:
+        download_id = self._upload_and_get_download_id()
+
+        response = self.client.get(f"{self.url}?id={download_id}")
+
+        assert response.status_code == 200
+        assert close_streaming_response(response) == PROGUARD_SOURCE
 
 
 @debug_files_test_both_backends
@@ -537,9 +545,7 @@ class SourceMapsEndpointTest(APITestCase):
         assert response.data["error"] == "You can either sort via 'date_added' or '-date_added'"
 
     def test_source_maps_delete_archive(self) -> None:
-        release = Release.objects.create(
-            organization_id=self.project.organization_id, version="1", id=1
-        )
+        release = Release.objects.create(organization_id=self.project.organization_id, version="1")
         release.add_project(self.project)
 
         ReleaseFile.objects.create(

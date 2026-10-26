@@ -23,24 +23,18 @@ interface Props {
 }
 
 function OthersBadge() {
-  const theme = useTheme();
   return (
-    <div
-      css={css`
-        display: flex;
-        align-items: center;
-        gap: ${theme.space.sm};
-      `}
-    >
+    <Flex align="center" gap="sm">
       <PlatformIcon
         css={css`
           width: 16px;
           height: 16px;
         `}
         platform="other"
+        alt=""
       />
       {t('other projects')}
-    </div>
+    </Flex>
   );
 }
 
@@ -89,7 +83,7 @@ export function SamplingBreakdown({sampleCounts, sampleRates, isLoading}: Props)
               return (
                 <Tooltip
                   key={item.project.id}
-                  overlayStyle={{maxWidth: 'none'}}
+                  maxWidth="none"
                   title={
                     <Flex align="center" gap="sm" key={item.project.id}>
                       <ProjectBadge disableLink avatarSize={16} project={item.project} />
@@ -110,7 +104,7 @@ export function SamplingBreakdown({sampleCounts, sampleRates, isLoading}: Props)
             })}
             {hasOthers && (
               <Tooltip
-                overlayStyle={{maxWidth: 'none'}}
+                maxWidth="none"
                 title={
                   <Flex align="center" gap="sm">
                     <OthersBadge />

@@ -1,13 +1,27 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useRef, useState} from 'react';
+import {mergeProps, mergeRefs} from '@react-aria/utils';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {expectTypeOf} from 'expect-type';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Button} from '@sentry/scraps/button';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {
+  OverlayTrigger,
+  type OverlayTriggerButtonProps,
+  type OverlayTriggerIconButtonProps,
+} from '@sentry/scraps/overlayTrigger';
 
-import {DropdownButton} from 'sentry/components/dropdownButton';
+import {CompactSelect, getEscapedKey, type SelectOption} from './';
 
-import {CompactSelect, type SelectOption} from './';
+describe('getEscapedKey', () => {
+  it('only escapes values that need it', () => {
+    expect(getEscapedKey('environment-123')).toBe('environment-123');
+    expect(getEscapedKey('release.version')).toBe('release\\.version');
+    expect(getEscapedKey(123)).toBe('\\31 23');
+  });
+});
 
 describe('CompactSelect', () => {
   describe('types', () => {
@@ -102,35 +116,92 @@ describe('CompactSelect', () => {
       );
     });
 
-    it('should only allow SelectTrigger as trigger', () => {
-      const value: 'opt_one' | 'opt_two' = 'opt_one';
+    it('rejects trigger refs on native elements and regular buttons', () => {
       void (
         <CompactSelect
-          value={value}
+          value="opt_one"
+          onChange={() => {}}
+          trigger={triggerProps => {
+            return (
+              <Fragment>
+                {/* @ts-expect-error not allowed */}
+                <button {...triggerProps} />
+                {/* @ts-expect-error not allowed */}
+                <Button {...triggerProps} />
+                {/* @ts-expect-error not allowed */}
+                <div {...triggerProps} />
+                {/* @ts-expect-error not allowed */}
+                <span {...triggerProps} />
+              </Fragment>
+            );
+          }}
+          options={[{value: 'opt_one', label: 'Option One'}]}
+        />
+      );
+    });
+
+    it('accepts trigger props on OverlayTrigger.Button and OverlayTrigger.IconButton', () => {
+      void (
+        <CompactSelect
+          value="opt_one"
           onChange={() => {}}
           trigger={props => {
-            // @ts-expect-error should only allow SelectTrigger components
-            return <DropdownButton {...props}>Trigger</DropdownButton>;
+            expectTypeOf(props).toExtend<OverlayTriggerButtonProps>();
+            return <OverlayTrigger.Button {...props} />;
           }}
-          options={[
-            {value: 'opt_one', label: 'Option One'},
-            {value: 'opt_two', label: 'Option Two'},
-          ]}
+          options={[{value: 'opt_one', label: 'Option One'}]}
         />
       );
 
       void (
         <CompactSelect
-          value={value}
+          value="opt_one"
           onChange={() => {}}
           trigger={props => {
-            // no type error here
-            return <OverlayTrigger.Button {...props}>Trigger</OverlayTrigger.Button>;
+            const iconButtonProps = {
+              ...props,
+              icon: <IconEllipsis />,
+              'aria-label': 'Select option',
+            };
+            expectTypeOf(iconButtonProps).toExtend<OverlayTriggerIconButtonProps>();
+            return <OverlayTrigger.IconButton {...iconButtonProps} />;
           }}
-          options={[
-            {value: 'opt_one', label: 'Option One'},
-            {value: 'opt_two', label: 'Option Two'},
-          ]}
+          options={[{value: 'opt_one', label: 'Option One'}]}
+        />
+      );
+    });
+
+    it('accepts merging trigger refs', () => {
+      void (
+        <CompactSelect
+          value="opt_one"
+          onChange={() => {}}
+          trigger={({ref, ...triggerProps}) => {
+            return (
+              <OverlayTrigger.Button
+                {...triggerProps}
+                ref={mergeRefs(ref, useRef<HTMLButtonElement>(null))}
+              />
+            );
+          }}
+          options={[{value: 'opt_one', label: 'Option One'}]}
+        />
+      );
+    });
+
+    it('accepts merging trigger props', () => {
+      void (
+        <CompactSelect
+          value="opt_one"
+          onChange={() => {}}
+          trigger={triggerProps => {
+            return (
+              <OverlayTrigger.Button
+                {...mergeProps(triggerProps, {ref: useRef<HTMLButtonElement>(null)})}
+              />
+            );
+          }}
+          options={[{value: 'opt_one', label: 'Option One'}]}
         />
       );
     });
@@ -210,6 +281,59 @@ describe('CompactSelect', () => {
 
     expect(screen.getByText('Menu title')).toBeInTheDocument();
   });
+
+  it.each([
+    {search: true, usePortal: true},
+    {search: false, usePortal: true},
+    {search: true, usePortal: false},
+    {search: false, usePortal: false},
+  ])(
+    'preserves nested menu focus when opening autofocus runs (search=$search, portal=$usePortal)',
+    async ({search, usePortal}) => {
+      const onAction = jest.fn();
+      render(
+        <CompactSelect
+          search={search}
+          value="opt_one"
+          onChange={jest.fn()}
+          options={[{value: 'opt_one', label: 'Option One'}]}
+          menuTitle={
+            <DropdownMenu
+              usePortal={usePortal}
+              triggerLabel="Operator"
+              items={[{key: 'is', label: 'is', onAction}]}
+            />
+          }
+        />
+      );
+
+      const openingFrames: FrameRequestCallback[] = [];
+      const frameMock = jest
+        .spyOn(window, 'requestAnimationFrame')
+        .mockImplementation(callback => {
+          openingFrames.push(callback);
+          return 0;
+        });
+
+      try {
+        await userEvent.click(screen.getByRole('button', {name: 'Option One'}));
+        frameMock.mockRestore();
+        await userEvent.click(screen.getByRole('button', {name: 'Operator'}));
+        const menuItem = screen.getByRole('menuitemradio', {name: 'is'});
+        expect(menuItem).toHaveFocus();
+
+        act(() => {
+          openingFrames.forEach(callback => callback(0));
+        });
+
+        expect(menuItem).toHaveFocus();
+        await userEvent.keyboard('{Enter}');
+        expect(onAction).toHaveBeenCalledTimes(1);
+      } finally {
+        frameMock.mockRestore();
+      }
+    }
+  );
 
   it('can be dismissed', async () => {
     render(
@@ -295,6 +419,40 @@ describe('CompactSelect', () => {
     await waitFor(() => {
       expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
     });
+  });
+
+  it('keeps a hidden clear button in a titled header without a selection', async () => {
+    render(
+      <CompactSelect
+        clearable
+        menuTitle="Options"
+        value={undefined}
+        onChange={jest.fn()}
+        options={[{value: 'opt_one', label: 'Option One'}]}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'None'}));
+    expect(screen.getByText('Options')).toBeInTheDocument();
+    expect(screen.getByText('Clear').closest('button')).toHaveAttribute(
+      'aria-hidden',
+      'true'
+    );
+  });
+
+  it('omits the header in an untitled menu without a selection', async () => {
+    render(
+      <CompactSelect
+        clearable
+        value={undefined}
+        onChange={jest.fn()}
+        options={[{value: 'opt_one', label: 'Option One'}]}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'None'}));
+    expect(screen.getByRole('option', {name: 'Option One'})).toBeInTheDocument();
+    expect(screen.queryByText('Clear')).not.toBeInTheDocument();
   });
 
   describe('ListBox', () => {
@@ -445,6 +603,172 @@ describe('CompactSelect', () => {
       // only Option Two should be available, Option One should be filtered out
       expect(screen.getByRole('option', {name: 'Option Two'})).toBeInTheDocument();
       expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
+    });
+
+    it('selects the only matching option when Enter is pressed in the search input', async () => {
+      function Component() {
+        const [value, setValue] = useState<string>();
+
+        return (
+          <CompactSelect
+            search={{placeholder: 'Search here…'}}
+            options={[
+              {value: 'opt_one', label: 'Option One'},
+              {value: 'opt_two', label: 'Option Two'},
+            ]}
+            value={value}
+            onChange={option => setValue(option.value)}
+          />
+        );
+      }
+
+      render(<Component />);
+
+      await userEvent.click(screen.getByRole('button'));
+      const searchInput = screen.getByPlaceholderText('Search here…');
+      await userEvent.type(searchInput, 'Two');
+      await userEvent.keyboard('{Enter}');
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', {name: 'Option Two'})).toBeInTheDocument();
+      });
+      expect(screen.queryByPlaceholderText('Search here…')).not.toBeInTheDocument();
+    });
+
+    it('moves focus to the option list when Enter is pressed with multiple matches', async () => {
+      render(
+        <CompactSelect
+          search
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+          value={undefined}
+          onChange={jest.fn()}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      const searchInput = screen.getByPlaceholderText('Search…');
+      await waitFor(() => expect(searchInput).toHaveFocus());
+      await userEvent.keyboard('{Enter}');
+
+      expect(screen.getByRole('option', {name: 'Option One'})).toHaveFocus();
+    });
+
+    it('keeps focus in the search input when there are no matches', async () => {
+      const onChange = jest.fn();
+      render(
+        <CompactSelect
+          search
+          options={[{value: 'opt_one', label: 'Option One'}]}
+          value={undefined}
+          onChange={onChange}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      const searchInput = screen.getByPlaceholderText('Search…');
+      await userEvent.type(searchInput, 'missing');
+      await userEvent.keyboard('{Enter}');
+
+      expect(searchInput).toHaveFocus();
+      expect(screen.getByText('No options found')).toBeInTheDocument();
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it('keeps focus in the search input while loading', async () => {
+      const onChange = jest.fn();
+      render(
+        <CompactSelect
+          search
+          loading
+          options={[{value: 'opt_one', label: 'Option One'}]}
+          value={undefined}
+          onChange={onChange}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      const searchInput = screen.getByPlaceholderText('Search…');
+      await waitFor(() => expect(searchInput).toHaveFocus());
+      await userEvent.keyboard('{Enter}');
+
+      expect(searchInput).toHaveFocus();
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it('does not auto-select when matching options are hidden by sizeLimit', async () => {
+      const onChange = jest.fn();
+      render(
+        <CompactSelect
+          search
+          sizeLimit={1}
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+          value={undefined}
+          onChange={onChange}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      const searchInput = screen.getByPlaceholderText('Search…');
+      await waitFor(() => expect(searchInput).toHaveFocus());
+      await userEvent.keyboard('{Enter}');
+
+      expect(screen.getByRole('option', {name: 'Option One'})).toHaveFocus();
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it('does not auto-select based on the rendered virtualized options', async () => {
+      const onChange = jest.fn();
+      render(
+        <CompactSelect
+          search
+          virtualizeThreshold={1}
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+          value={undefined}
+          onChange={onChange}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      const searchInput = screen.getByPlaceholderText('Search…');
+      await waitFor(() => expect(searchInput).toHaveFocus());
+      await userEvent.keyboard('{Enter}');
+
+      expect(screen.getByRole('listbox')).toHaveFocus();
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it('does not count disabled options as selectable', async () => {
+      const onChange = jest.fn();
+      render(
+        <CompactSelect
+          search
+          options={[
+            {value: 'opt_disabled', label: 'Disabled', disabled: true},
+            {value: 'opt_enabled', label: 'Enabled'},
+          ]}
+          value={undefined}
+          onChange={onChange}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      const searchInput = screen.getByPlaceholderText('Search…');
+      await waitFor(() => expect(searchInput).toHaveFocus());
+      await userEvent.keyboard('{Enter}');
+
+      expect(onChange).toHaveBeenCalledWith({
+        value: 'opt_enabled',
+        label: 'Enabled',
+      });
     });
 
     it('highlights the matched substring when search.highlight is enabled', async () => {
@@ -1364,6 +1688,35 @@ describe('CompactSelect', () => {
       // Option Three is still available via search
       await userEvent.type(screen.getByPlaceholderText('Search…'), 'three');
       expect(screen.getByRole('row', {name: 'Option Three'})).toBeInTheDocument();
+    });
+
+    it('preserves selected values outside the size limit', async () => {
+      const onChange = jest.fn();
+      render(
+        <CompactSelect
+          mode="grid"
+          multiple
+          search
+          sizeLimit={2}
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+            {value: 'opt_three', label: 'Option Three'},
+          ]}
+          value={['opt_one', 'opt_two', 'opt_three']}
+          onChange={onChange}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      expect(screen.queryByRole('row', {name: 'Option Three'})).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('row', {name: 'Option One'}));
+
+      expect(onChange).toHaveBeenCalledWith([
+        {value: 'opt_two', label: 'Option Two'},
+        {value: 'opt_three', label: 'Option Three'},
+      ]);
     });
 
     it('can toggle sections', async () => {

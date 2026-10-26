@@ -1,10 +1,14 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconGraph} from '@sentry/icons/graph';
+import {IconMarkdown} from '@sentry/icons/markdown';
+import {IconNumber} from '@sentry/icons/number';
+import {IconSettings} from '@sentry/icons/settings';
+import {IconTable} from '@sentry/icons/table';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
-import {IconGraph, IconMarkdown, IconNumber, IconSettings, IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
@@ -19,12 +23,15 @@ import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/ho
 import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {convertWidgetToBuilderState} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
-import {canUseMetricsHeatMap} from 'sentry/views/explore/metrics/metricsFlags';
+import {
+  canUseMetricsDashboardTable,
+  canUseMetricsHeatMap,
+} from 'sentry/views/explore/metrics/metricsFlags';
 
 export const DISPLAY_TYPE_ICONS: Partial<Record<DisplayType, React.ReactNode>> = {
   [DisplayType.AREA]: <IconGraph key="area" type="area" />,
   [DisplayType.BAR]: <IconGraph key="bar" type="bar" />,
-  [DisplayType.LINE]: <IconGraph key="line" type="line" />,
+  [DisplayType.LINE]: <IconGraph key="line" />,
   [DisplayType.TABLE]: <IconTable key="table" />,
   [DisplayType.BIG_NUMBER]: <IconNumber key="number" />,
   [DisplayType.DETAILS]: <IconSettings key="details" />,
@@ -50,6 +57,7 @@ export function WidgetBuilderTypeSelector({
 
   const hasDetailsWidget = organization.features.includes('dashboards-details-widget');
   const hasHeatMapWidget = canUseMetricsHeatMap(organization);
+  const hasTraceMetricsTableWidget = canUseMetricsDashboardTable(organization);
   // Use an array to define display type order explicitly.
   // Object key ordering in JS is technically specified but easy to break accidentally.
   const displayTypeOrder: Array<{
@@ -76,7 +84,7 @@ export function WidgetBuilderTypeSelector({
       ? [
           {
             type: DisplayType.HEATMAP,
-            label: t('Heat Map'),
+            label: t('Heatmap'),
             details: t('Visualize the distribution of a measurement over time.'),
           },
         ]
@@ -174,7 +182,12 @@ export function WidgetBuilderTypeSelector({
         <CompactSelect
           value={state.displayType}
           options={displayTypeOrder.map(({type, label, details}) => {
-            const disabledReason = getVisualizationTypeDisabledReason(type, config);
+            const disabledReason = getVisualizationTypeDisabledReason(
+              type,
+              config,
+              state.dataset,
+              hasTraceMetricsTableWidget
+            );
             return {
               leadingItems: DISPLAY_TYPE_ICONS[type],
               label,
@@ -231,10 +244,19 @@ export function WidgetBuilderTypeSelector({
 
 // Returns why a display type is unavailable, or undefined when it's usable — so
 // the dropdown can both disable and explain the option from a single source.
-function getVisualizationTypeDisabledReason(
+export function getVisualizationTypeDisabledReason(
   type: DisplayType,
-  config: ReturnType<typeof getDatasetConfig>
+  config: ReturnType<typeof getDatasetConfig>,
+  dataset?: WidgetType,
+  hasTraceMetricsTableWidget = false
 ): string | undefined {
+  if (
+    type === DisplayType.TABLE &&
+    dataset === WidgetType.TRACEMETRICS &&
+    !hasTraceMetricsTableWidget
+  ) {
+    return t('Tables are not yet available for the Trace Metrics dataset.');
+  }
   if (type !== DisplayType.TEXT && !config.supportedDisplayTypes.includes(type)) {
     return t('This visualization is not supported for the selected dataset.');
   }

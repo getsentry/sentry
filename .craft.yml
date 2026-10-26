@@ -1,27 +1,89 @@
-minVersion: '2.20.0'
-releaseBranchPrefix: releases
-changelog:
-  filePath: CHANGES
-  policy: auto
-statusProvider:
-  name: github
-  config:
-    contexts:
-      - 'self-hosted-ubuntu-24.04-amd64'
-      - 'self-hosted-ubuntu-24.04-arm-arm64'
-      - 'assemble'
-artifactProvider:
-  name: none
-targets:
-  - name: github
-  - id: release
-    name: docker
-    source: ghcr.io/getsentry/sentry
-    target: ghcr.io/getsentry/sentry
-  - id: latest
-    name: docker
-    source: ghcr.io/getsentry/sentry
-    target: ghcr.io/getsentry/sentry
-    targetFormat: '{{{target}}}:latest'
-versioning:
-  policy: calver
+minVersion: '3.0.0'
+workspaces:
+  sentry:
+    preReleaseCommand: bash scripts/bump-version.sh
+    releaseBranchPrefix: releases
+    changelog:
+      filePath: CHANGES
+      policy: auto
+      # Files outside every workspace (src/, tests/, root config) belong to
+      # this changelog only, not to the scraps or icons changelogs.
+      unownedPaths: own
+      # Craft treats pnpm workspace directories as separately owned and drops
+      # their commits from this changelog unless they are listed here.
+      includePaths:
+        - api-docs
+        - static/app
+        - static/gsAdmin
+        - static/gsApp
+        - tests/js
+    statusProvider:
+      name: github
+      config:
+        contexts:
+          - 'self-hosted-ubuntu-24.04-amd64'
+          - 'self-hosted-ubuntu-24.04-arm-arm64'
+          - 'assemble'
+    artifactProvider:
+      name: none
+    targets:
+      - name: github
+      - id: release
+        name: docker
+        source: ghcr.io/getsentry/sentry
+        target: ghcr.io/getsentry/sentry
+      - id: latest
+        name: docker
+        source: ghcr.io/getsentry/sentry
+        target: ghcr.io/getsentry/sentry
+        targetFormat: '{{{target}}}:latest'
+    versioning:
+      policy: calver
+  static/packages/scraps:
+    preReleaseCommand: >-
+      sh -c 'npm --prefix static/packages/scraps --no-git-tag-version --package-lock=false version "$CRAFT_NEW_VERSION"'
+    releaseBranchPrefix: scraps/release
+    changelog:
+      policy: auto
+    statusProvider:
+      name: github
+      config:
+        contexts:
+          - scraps-package-pack
+    artifactProvider:
+      name: github
+      config:
+        artifacts:
+          Scraps package:
+            - scraps-tarball
+    targets:
+      - name: github
+        tagPrefix: scraps@
+      - name: npm
+        access: public
+    versioning:
+      policy: auto
+  static/packages/icons:
+    preReleaseCommand: >-
+      sh -c 'npm --prefix static/packages/icons --no-git-tag-version --package-lock=false --allow-same-version version "$CRAFT_NEW_VERSION"'
+    releaseBranchPrefix: icons/release
+    changelog:
+      policy: auto
+    statusProvider:
+      name: github
+      config:
+        contexts:
+          - icons-package-pack
+    artifactProvider:
+      name: github
+      config:
+        artifacts:
+          Icons package:
+            - icons-tarball
+    targets:
+      - name: github
+        tagPrefix: icons@
+      - name: npm
+        access: public
+    versioning:
+      policy: auto

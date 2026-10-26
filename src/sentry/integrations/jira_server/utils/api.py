@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
+from sentry.integrations.utils.status_sync import PROVIDER_EVENT_TIME_KEY
 from sentry.integrations.utils.sync import sync_group_assignee_inbound
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
 
@@ -13,6 +14,14 @@ if TYPE_CHECKING:
     from sentry.integrations.models.integration import Integration
 
 logger = logging.getLogger(__name__)
+
+
+def changelog_items(data: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+    """The changelog entries in an issue-updated payload; a changelog without an `items`
+    key is valid and yields an empty list."""
+    changelog = data.get("changelog") or {}
+    items = changelog.get("items")
+    return items if isinstance(items, list) else []
 
 
 def get_assignee_email(
@@ -28,7 +37,7 @@ def handle_assignee_change(
     data: Mapping[str, Any],
 ) -> None:
     assignee_changed = any(
-        item for item in data["changelog"]["items"] if item["field"] == "assignee"
+        item for item in changelog_items(data) if item.get("field") == "assignee"
     )
     if not assignee_changed:
         return
@@ -38,9 +47,13 @@ def handle_assignee_change(
     # If there is no assignee, assume it was unassigned.
     assignee = fields.get("assignee")
     issue_key = data["issue"]["key"]
+    # Jira's own timestamp for the change, used to drop out-of-order deliveries.
+    updated = fields.get("updated")
 
     if assignee is None:
-        sync_group_assignee_inbound(integration, None, issue_key, assign=False)
+        sync_group_assignee_inbound(
+            integration, None, issue_key, assign=False, provider_event_updated_at=updated
+        )
         return
 
     email = get_assignee_email(integration, assignee)
@@ -51,26 +64,31 @@ def handle_assignee_change(
         )
         return
 
-    sync_group_assignee_inbound(integration, email, issue_key, assign=True)
+    sync_group_assignee_inbound(
+        integration, email, issue_key, assign=True, provider_event_updated_at=updated
+    )
 
 
 def handle_status_change(
     integration: RpcIntegration | Integration, data: Mapping[str, Any]
 ) -> None:
-    status_changed = any(item for item in data["changelog"]["items"] if item["field"] == "status")
+    status_changed = any(item for item in changelog_items(data) if item.get("field") == "status")
     if not status_changed:
         return
 
     issue_key = data["issue"]["key"]
 
     try:
-        changelog = next(item for item in data["changelog"]["items"] if item["field"] == "status")
+        changelog = next(item for item in changelog_items(data) if item.get("field") == "status")
     except StopIteration:
         logger.info(
             "missing-changelog-status",
             extra={"issue_key": issue_key, "integration_id": integration.id},
         )
         return
+
+    # Jira's own timestamp for the transition, used to drop out-of-order deliveries.
+    updated = (data["issue"].get("fields") or {}).get("updated")
 
     org_integrations = integration_service.get_organization_integrations(
         integration_id=integration.id,
@@ -82,5 +100,10 @@ def handle_status_change(
 
             if hasattr(installation, "sync_status_inbound"):
                 installation.sync_status_inbound(
-                    issue_key, {"changelog": changelog, "issue": data["issue"]}
+                    issue_key,
+                    {
+                        "changelog": changelog,
+                        "issue": data["issue"],
+                        PROVIDER_EVENT_TIME_KEY: updated,
+                    },
                 )

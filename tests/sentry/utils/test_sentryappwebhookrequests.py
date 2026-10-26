@@ -1,3 +1,7 @@
+from unittest.mock import Mock
+
+from requests.models import Response
+
 from sentry.testutils.cases import TestCase
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
@@ -62,3 +66,47 @@ class TestSentryAppWebhookRequests(TestCase):
         assert len(requests) == 1
         assert "error_id" not in requests[0]
         assert "project_id" not in requests[0]
+
+    def _error_response(self, content: str | bytes, body: str | bytes | None) -> Mock:
+        response = Mock(spec=Response)
+        response.content = content
+        response.request = Mock()
+        response.request.body = body
+        return response
+
+    def test_bodies_stored_verbatim(self) -> None:
+        self.buffer.add_request(
+            500,
+            1,
+            "issue.assigned",
+            "https://example.com/hook",
+            response=self._error_response(
+                b'{"error": "boom"}', '{"installation": {"uuid": "abc"}}'
+            ),
+        )
+        requests = self.buffer.get_requests(errors_only=True)
+        assert requests[0]["response_body"] == '{"error": "boom"}'
+        assert requests[0]["request_body"] == '{"installation": {"uuid": "abc"}}'
+
+    def test_bodies_truncated_to_max_size(self) -> None:
+        self.buffer.add_request(
+            500,
+            1,
+            "issue.assigned",
+            "https://example.com/hook",
+            response=self._error_response(b"a" * 2000, "b" * 2000),
+        )
+        requests = self.buffer.get_requests(errors_only=True)
+        assert requests[0]["response_body"] == "a" * 1024
+        assert requests[0]["request_body"] == "b" * 1024
+
+    def test_multibyte_body_truncated_on_a_character_boundary(self) -> None:
+        self.buffer.add_request(
+            500,
+            1,
+            "issue.assigned",
+            "https://example.com/hook",
+            response=self._error_response(("x" + "\u00e9" * 2000).encode("utf-8"), None),
+        )
+        requests = self.buffer.get_requests(errors_only=True)
+        assert requests[0]["response_body"] == "x" + "\u00e9" * 1023

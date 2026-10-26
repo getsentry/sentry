@@ -1,6 +1,8 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Grid} from '@sentry/scraps/layout';
+
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
@@ -98,7 +100,7 @@ function Profiles({transaction}: ProfilesProps) {
 
   return (
     <StyledMain width="full">
-      <FilterActions>
+      <Grid columns={{zero: '1fr', xl: 'auto 1fr'}} gap="xl" marginBottom="xl">
         <PageFilterBar condensed>
           <EnvironmentPageFilter />
           <DatePageFilter {...datePageFilterProps} />
@@ -108,18 +110,11 @@ function Profiles({transaction}: ProfilesProps) {
           initialQuery={rawQuery}
           onSearch={handleSearch}
         />
-      </FilterActions>
+      </Grid>
       <TransactionProfilesContent query={query} />
     </StyledMain>
   );
 }
-
-const FilterActions = styled('div')`
-  margin-bottom: ${p => p.theme.space.xl};
-  gap: ${p => p.theme.space.xl};
-  display: grid;
-  grid-template-columns: min-content 1fr;
-`;
 
 const StyledMain = styled(Layout.Main)`
   display: flex;

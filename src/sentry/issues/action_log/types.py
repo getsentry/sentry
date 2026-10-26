@@ -6,10 +6,15 @@ from __future__ import annotations
 
 import abc
 import dataclasses
+from datetime import datetime
 from enum import IntEnum, StrEnum
-from typing import Any, Literal, NotRequired, Optional, TypedDict
+from typing import Any, ClassVar, Literal, NotRequired, Optional, TypeAlias, TypedDict
 
+import orjson
 from pydantic import BaseModel
+
+# NOTE: Underspecified schema; don't copy this. See the GroupAction docstring.
+SeerPullRequestItem: TypeAlias = dict[str, str | dict[str, str | int]]
 
 
 class GroupActorType(IntEnum):
@@ -54,7 +59,8 @@ class GroupActionType(IntEnum):
     Action kinds stored in GroupActionLogEntry.type.
 
     To add a new kind: add a value here, then add a corresponding
-    GroupAction subclass below. Values need not be contiguous.
+    GroupAction subclass below (read the GroupAction docstring first).
+    Values need not be contiguous, and must never be reused.
     """
 
     VIEW = 0
@@ -80,6 +86,7 @@ class GroupActionType(IntEnum):
     PULL_REQUEST_REOPENED = 31
     PULL_REQUEST_MERGED = 32
     PULL_REQUEST_UNLINKED = 33
+    FIRST_SEEN = 34
 
     # Certain GroupActions are mirrors of Activity records.
     # (See ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE for the mapping.)
@@ -121,6 +128,8 @@ class GroupActionType(IntEnum):
     SEER_PR_CREATED = 1035
     SEER_ITERATION_STARTED = 1036
     SEER_ITERATION_COMPLETED = 1037
+    SEER_PR_READY_FOR_REVIEW = 1038
+    SMART_ASSIGNMENT_COMPLETED = 1043
 
 
 class ActionSource(StrEnum):
@@ -137,6 +146,7 @@ class ActionSource(StrEnum):
     MSTEAMS = "msteams"
     GITHUB = "github"
     GITHUB_ENTERPRISE = "github_enterprise"
+    CURSOR_ORIGIN = "cursor_origin"
     GITLAB = "gitlab"
     JIRA = "jira"
     JIRA_SERVER = "jira_server"
@@ -146,15 +156,97 @@ class ActionSource(StrEnum):
     PAGERDUTY = "pagerduty"
     OPSGENIE = "opsgenie"
     PERFORCE = "perforce"
+    EMAIL = "email"
     UNKNOWN = (
         "unknown"  # fallback when ActionContext is missing; indicates a gap in instrumentation
     )
 
 
-class GroupAction(BaseModel, abc.ABC):
-    """Typed payload for a group action log entry. Frozen after construction."""
+COMMIT_ACTION_TYPES = {
+    GroupActionType.SET_RESOLVED_IN_COMMIT.value,
+    GroupActionType.REFERENCED_IN_COMMIT.value,
+}
 
-    _registry: dict[GroupActionType, type[GroupAction]] = {}
+ACTION_TYPES_WITH_COMMIT_DATA = {
+    *COMMIT_ACTION_TYPES,
+    GroupActionType.SET_RESOLVED_IN_RELEASE.value,
+}
+
+COMMENT_ACTION_TYPES = {
+    GroupActionType.COMMENT.value,
+    GroupActionType.COMMENT_EDIT.value,
+    GroupActionType.COMMENT_DELETE.value,
+}
+
+PULL_REQUEST_ACTION_TYPES = {
+    GroupActionType.RESOLVED_IN_PULL_REQUEST.value,
+    GroupActionType.PULL_REQUEST_CLOSED.value,
+    GroupActionType.PULL_REQUEST_REOPENED.value,
+    GroupActionType.PULL_REQUEST_MERGED.value,
+    GroupActionType.PULL_REQUEST_UNLINKED.value,
+}
+
+
+class GroupAction(BaseModel, abc.ABC):
+    """
+    Typed payload for a group action log entry. Frozen after construction.
+
+    Action log entries are retained effectively indefinitely and are never migrated. A
+    payload written today will be read back years from now with ``cls(**entry.data)``,
+    using whatever this subclass looks like at that point. The subclass, its types, and its
+    docs *are* the schema: anyone must be able to interpret any stored payload from those
+    alone, without knowing what code wrote it or when.
+
+    Defining a subclass:
+
+    - Payloads must never be implementation-defined. Avoid open-ended types such as
+      ``dict[str, Any]`` or ``list[dict[str, str | dict[str, str]]]``; it's impossible to
+      tell what those contain, or whether a value from two years ago means the same thing
+      as one written today. Use nested ``BaseModel`` types, ``Literal``, or enums. Existing
+      fields marked ``NOTE: Underspecified schema`` are debt, not precedent.
+    - When the source data is loosely shaped (an upstream API response, ``Activity.data``),
+      translate it into a fixed shape when publishing rather than storing it as-is.
+    - Document anything the type doesn't say: which model an ID refers to, units, and what
+      ``None`` means.
+
+    Avoid adding a second timestamp for when the action happened (``occurred_at``,
+    ``happened_at``, etc.):
+
+    - The log is ordered by ``date_added``, and that order is canonical. A second timestamp
+      can disagree with that order, and every consumer then has to special-case it instead of
+      just reading ``date_added``.
+    - ``date_added`` can lag the real event, especially when the outbox isn't flushed on
+      commit (see ``GroupActionLogEntry.date_added``). That lag is only visible when
+      compared against some other record of the event's time; out-of-order entries are
+      visible to every consumer. Prefer correct order over precise wall-clock time.
+    - Prefer publishing with the default flush on commit: it's cheap, keeps ``date_added``
+      accurate, and keeps derived data up to date. If the event already happened and its
+      true time matters, backfill the entry with that ``date_added`` (see ``backfill.py``)
+      instead of adding a separate timestamp. Backfill is cheap too; don't avoid it for
+      performance reasons.
+    - Timestamps that describe something other than when this action occurred are fine, e.g.
+      ``IgnoreAction.ignore_until``.
+
+    Evolving a subclass:
+
+    - Every payload already stored must still parse and must still mean the same thing.
+      Never change the meaning of an existing field, and never reuse a GroupActionType value.
+    - Add new fields as optional with a default. If a legacy shape needs reinterpreting,
+      translate it explicitly on read (e.g. with ``@root_validator(pre=True)``) rather than
+      leaving it ambiguous.
+    - Unknown keys are ignored when parsing, so removing or renaming a field silently drops
+      that data from old payloads. Changing a field's type can also silently coerce old
+      values (pydantic v1 tries ``Union`` members left to right).
+    - Add a test that parses a literal snapshot of a currently-stored payload and asserts how
+      it's interpreted, so later changes can't break old payloads unnoticed.
+    - If the change is significant, add a new GroupActionType and subclass instead, and keep
+      the old one registered so existing entries still parse.
+    """
+
+    _registry: ClassVar[dict[GroupActionType, type[GroupAction]]] = {}
+    _user_visible_types: ClassVar[set[GroupActionType]] = set()
+
+    user_visible: ClassVar[bool] = False
 
     class Config:
         frozen = True
@@ -170,6 +262,8 @@ class GroupAction(BaseModel, abc.ABC):
                     f"{cls.__name__} conflicts with {existing.__name__}"
                 )
             cls._registry[action_type] = cls
+            if cls.user_visible:
+                cls._user_visible_types.add(action_type)
 
     @classmethod
     @abc.abstractmethod
@@ -179,6 +273,14 @@ class GroupAction(BaseModel, abc.ABC):
     def by_type(cls, action_type: GroupActionType) -> type[GroupAction] | None:
         return cls._registry.get(action_type)
 
+    @classmethod
+    def get_user_visible_types(cls) -> frozenset[GroupActionType]:
+        return frozenset(cls._user_visible_types)
+
+    def json_dict(self) -> dict[str, Any]:
+        """The action as JSON-safe data for storage; unlike dict(), datetimes become ISO 8601."""
+        return orjson.loads(self.json())
+
 
 class ViewAction(GroupAction):
     @classmethod
@@ -186,13 +288,36 @@ class ViewAction(GroupAction):
         return GroupActionType.VIEW
 
 
+class FirstSeenAction(GroupAction):
+    """The group was created. Published exactly once per group, keyed by first_seen_idempotency_key()."""
+
+    user_visible = True
+    # When this group was first seen; may be more accurate than the entry's date_added.
+    # Due to merges, a group can be first seen multiple times; consumers should usually
+    # ignore all but the first.
+    first_seen: datetime
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.FIRST_SEEN
+
+
+def first_seen_idempotency_key(group_id: int) -> str:
+    # Temporary convention so the backfill can't duplicate live entries. Once the backfill
+    # is finished, we can stop using this.
+    return f"first_seen:{group_id}"
+
+
 class ResolveAction(GroupAction):
+    user_visible = True
+
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.RESOLVE
 
 
 class UnresolveAction(GroupAction):
+    user_visible = True
     event_id: Optional[str] = None
 
     @classmethod
@@ -201,6 +326,7 @@ class UnresolveAction(GroupAction):
 
 
 class ArchiveAction(GroupAction):
+    user_visible = True
     ignore_count: Optional[int] = None
     ignore_duration: Optional[int] = None
     ignore_until: Optional[str] = None
@@ -215,6 +341,7 @@ class ArchiveAction(GroupAction):
 
 
 class AssignAction(GroupAction):
+    user_visible = True
     assignee: Optional[str] = None
     assignee_email: Optional[str] = None
     assignee_name: Optional[str] = None
@@ -228,12 +355,15 @@ class AssignAction(GroupAction):
 
 
 class UnassignAction(GroupAction):
+    user_visible = True
+
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.UNASSIGN
 
 
 class SetPriorityAction(GroupAction):
+    user_visible = True
     priority: str
     reason: Optional[str] = None
 
@@ -243,6 +373,7 @@ class SetPriorityAction(GroupAction):
 
 
 class MergeIntoOtherAction(GroupAction):
+    user_visible = True
     counterpart_group_id: int
 
     @classmethod
@@ -251,6 +382,7 @@ class MergeIntoOtherAction(GroupAction):
 
 
 class MergeFromOtherAction(GroupAction):
+    user_visible = True
     counterpart_group_ids: list[int]
 
     @classmethod
@@ -259,12 +391,16 @@ class MergeFromOtherAction(GroupAction):
 
 
 class DeleteAction(GroupAction):
+    user_visible = True
+
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.DELETE
 
 
 class BookmarkAction(GroupAction):
+    user_visible = True
+
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.BOOKMARK
@@ -277,7 +413,10 @@ class SentryActorRef(BaseModel):
 
 
 class CommentAction(GroupAction):
-    comment_id: int
+    """Comment creation. Current content lives in the Activity NOTE row."""
+
+    comment_id: int  # Activity NOTE ID
+    # Historical payloads include content; new producers may omit it.
     text: Optional[str] = None
     mentions: Optional[list[SentryActorRef]] = None
 
@@ -287,7 +426,14 @@ class CommentAction(GroupAction):
 
 
 class CommentEditAction(GroupAction):
+    """Comment edit. The ID kind distinguishes historical GAL references from comments."""
+
     comment_id: int
+    # Missing in historical payloads: comment_id refers to the original COMMENT GAL row.
+    # "comment" means the comment's own ID (currently Activity NOTE), independent of any creation event.
+    comment_id_kind: Literal["group_action_log", "comment"] = "group_action_log"
+    text: Optional[str] = None
+    mentions: Optional[list[SentryActorRef]] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:
@@ -295,7 +441,11 @@ class CommentEditAction(GroupAction):
 
 
 class CommentDeleteAction(GroupAction):
+    """Comment deletion. The referenced comment may no longer exist."""
+
     comment_id: int
+    # Same reference semantics as CommentEditAction; omitted means the original GAL row.
+    comment_id_kind: Literal["group_action_log", "comment"] = "group_action_log"
 
     @classmethod
     def get_type(cls) -> GroupActionType:
@@ -303,30 +453,40 @@ class CommentDeleteAction(GroupAction):
 
 
 class SubscribeAction(GroupAction):
+    user_visible = True
+
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.SUBSCRIBE
 
 
 class UnsubscribeAction(GroupAction):
+    user_visible = True
+
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.UNSUBSCRIBE
 
 
 class MarkReviewedAction(GroupAction):
+    user_visible = True
+
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.MARK_REVIEWED
 
 
 class TriggerAutofixAction(GroupAction):
+    user_visible = True
+    referrer: Optional[str] = None
+
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.TRIGGER_AUTOFIX
 
 
 class CreateExternalIssueAction(GroupAction):
+    user_visible = True
     provider: str
     external_issue_key: str
 
@@ -336,6 +496,7 @@ class CreateExternalIssueAction(GroupAction):
 
 
 class LinkExternalIssueAction(GroupAction):
+    user_visible = True
     provider: str
     external_issue_key: str
 
@@ -345,6 +506,7 @@ class LinkExternalIssueAction(GroupAction):
 
 
 class UnlinkExternalIssueAction(GroupAction):
+    user_visible = True
     provider: str
     external_issue_key: str
 
@@ -354,6 +516,7 @@ class UnlinkExternalIssueAction(GroupAction):
 
 
 class CreatePlatformExternalIssueAction(GroupAction):
+    user_visible = True
     service_type: str
     display_name: str
     web_url: str
@@ -364,6 +527,7 @@ class CreatePlatformExternalIssueAction(GroupAction):
 
 
 class LinkPlatformExternalIssueAction(GroupAction):
+    user_visible = True
     service_type: str
     display_name: str
     web_url: str
@@ -374,6 +538,7 @@ class LinkPlatformExternalIssueAction(GroupAction):
 
 
 class UnlinkPlatformExternalIssueAction(GroupAction):
+    user_visible = True
     service_type: str
     display_name: str
     web_url: str
@@ -384,7 +549,9 @@ class UnlinkPlatformExternalIssueAction(GroupAction):
 
 
 class AutofixPrCreatedAction(GroupAction):
+    user_visible = True
     run_id: str | None = None
+    # NOTE: Underspecified schema; don't copy this. See the GroupAction docstring.
     pull_requests: list[dict[str, object]]
 
     @classmethod
@@ -393,7 +560,8 @@ class AutofixPrCreatedAction(GroupAction):
 
 
 class ResolvedInPullRequestAction(GroupAction):
-    pull_request: int  # PullRequest model ID
+    user_visible = True
+    pull_request: Optional[int] = None  # PullRequest model ID
 
     @classmethod
     def get_type(cls) -> GroupActionType:
@@ -402,6 +570,8 @@ class ResolvedInPullRequestAction(GroupAction):
 
 class RootCauseIdentifiedAction(GroupAction):
     """Seer (or a human) identified the root cause of an issue."""
+
+    user_visible = True
 
     run_id: str | None = None
     summary: str | None = None
@@ -414,6 +584,8 @@ class RootCauseIdentifiedAction(GroupAction):
 class AutofixCodingCompleteAction(GroupAction):
     """Seer finished writing a fix (code ready, PR not yet created)."""
 
+    user_visible = True
+
     run_id: str | None = None
 
     @classmethod
@@ -422,6 +594,7 @@ class AutofixCodingCompleteAction(GroupAction):
 
 
 class SetRegressedAction(GroupAction):
+    user_visible = True
     event_id: Optional[str] = None
     version: Optional[str] = None
 
@@ -431,7 +604,8 @@ class SetRegressedAction(GroupAction):
 
 
 class PullRequestClosedAction(GroupAction):
-    pull_request: int  # PullRequest model ID
+    user_visible = True
+    pull_request: Optional[int | str] = None  # PullRequest model ID
     # Whether the issue has other linked PRs still open when this one closed
     has_other_open_prs: Optional[bool] = None
 
@@ -441,6 +615,7 @@ class PullRequestClosedAction(GroupAction):
 
 
 class PullRequestReopenedAction(GroupAction):
+    user_visible = True
     pull_request: int
 
     @classmethod
@@ -449,6 +624,7 @@ class PullRequestReopenedAction(GroupAction):
 
 
 class PullRequestMergedAction(GroupAction):
+    user_visible = True
     pull_request: int
     has_other_open_prs: Optional[bool] = None
 
@@ -458,6 +634,7 @@ class PullRequestMergedAction(GroupAction):
 
 
 class PullRequestUnlinkedAction(GroupAction):
+    user_visible = True
     pull_request: int
     has_other_open_prs: Optional[bool] = None
 
@@ -481,6 +658,7 @@ class GroupActionLogPayload(TypedDict):
 
 
 class SetPublicAction(GroupAction):
+    user_visible = True
     # No activity data.
 
     @classmethod
@@ -489,6 +667,7 @@ class SetPublicAction(GroupAction):
 
 
 class SetPrivateAction(GroupAction):
+    user_visible = True
     # No activity data.
 
     @classmethod
@@ -497,6 +676,7 @@ class SetPrivateAction(GroupAction):
 
 
 class CreateIssueAction(GroupAction):
+    user_visible = True
     title: str
     provider: str
     location: str
@@ -509,7 +689,10 @@ class CreateIssueAction(GroupAction):
 
 
 class SetResolvedInReleaseAction(GroupAction):
-    version: str
+    user_visible = True
+    version: Optional[str] = None
+    current_release_version: Optional[str] = None
+    commit: Optional[int] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:
@@ -517,7 +700,8 @@ class SetResolvedInReleaseAction(GroupAction):
 
 
 class SetResolvedByAgeAction(GroupAction):
-    auto_resolve_age_threshold: int
+    user_visible = True
+    auto_resolve_age_threshold: Optional[int] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:
@@ -525,7 +709,8 @@ class SetResolvedByAgeAction(GroupAction):
 
 
 class SetResolvedInCommitAction(GroupAction):
-    commit: int
+    user_visible = True
+    commit: Optional[int] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:
@@ -533,6 +718,7 @@ class SetResolvedInCommitAction(GroupAction):
 
 
 class DeployAction(GroupAction):
+    user_visible = True
     deploy_id: int
     version: str
     environment: str
@@ -543,8 +729,9 @@ class DeployAction(GroupAction):
 
 
 class NewProcessingIssuesAction(GroupAction):
+    user_visible = True
     reprocessing_active: bool
-    # TODO Break out as separate model?
+    # NOTE: Underspecified schema; don't copy this. See the GroupAction docstring.
     issues: list[dict[str, str | dict[str, str]]]
 
     @classmethod
@@ -553,6 +740,7 @@ class NewProcessingIssuesAction(GroupAction):
 
 
 class UnmergeSourceAction(GroupAction):
+    user_visible = True
     destination_id: int
     fingerprints: list[str]
 
@@ -562,6 +750,7 @@ class UnmergeSourceAction(GroupAction):
 
 
 class UnmergeDestinationAction(GroupAction):
+    user_visible = True
     source_id: int
     fingerprints: list[str]
 
@@ -571,9 +760,10 @@ class UnmergeDestinationAction(GroupAction):
 
 
 class ReprocessAction(GroupAction):
-    event_count: int
-    old_group_id: int
-    new_group_id: int
+    user_visible = True
+    event_count: Optional[int] = None
+    old_group_id: Optional[int] = None
+    new_group_id: Optional[int] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:
@@ -581,6 +771,7 @@ class ReprocessAction(GroupAction):
 
 
 class AutoSetOngoingAction(GroupAction):
+    user_visible = True
     after_days: Optional[int] = None
 
     @classmethod
@@ -589,9 +780,11 @@ class AutoSetOngoingAction(GroupAction):
 
 
 class SetEscalatingAction(GroupAction):
+    user_visible = True
     event_id: Optional[str] = None
     forecast: Optional[int] = None
-    expired_snooze: Optional[dict[str, int | str]] = None
+    # NOTE: Underspecified schema; don't copy this. See the GroupAction docstring.
+    expired_snooze: Optional[dict[str, int | str | None]] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:
@@ -599,6 +792,7 @@ class SetEscalatingAction(GroupAction):
 
 
 class DeletedAttachmentAction(GroupAction):
+    user_visible = True
     # No activity data.
 
     @classmethod
@@ -607,6 +801,7 @@ class DeletedAttachmentAction(GroupAction):
 
 
 class ReferencedInCommitAction(GroupAction):
+    user_visible = True
     commit: int
 
     @classmethod
@@ -615,6 +810,7 @@ class ReferencedInCommitAction(GroupAction):
 
 
 class SeerRCAStartedAction(GroupAction):
+    user_visible = True
     run_id: Optional[int] = None
 
     @classmethod
@@ -623,9 +819,10 @@ class SeerRCAStartedAction(GroupAction):
 
 
 class SeerRCACompletedAction(GroupAction):
-    run_id: Optional[int] = None
+    user_visible = True
+    run_id: Optional[int | str] = None
     summary: Optional[str] = None
-    # TODO Break out as separate model?
+    # NOTE: Underspecified schema; don't copy this. See the GroupAction docstring.
     root_cause: Optional[dict[str, str | list[str]]] = None
 
     @classmethod
@@ -634,6 +831,7 @@ class SeerRCACompletedAction(GroupAction):
 
 
 class SeerSolutionStartedAction(GroupAction):
+    user_visible = True
     run_id: Optional[int] = None
 
     @classmethod
@@ -642,8 +840,9 @@ class SeerSolutionStartedAction(GroupAction):
 
 
 class SeerSolutionCompletedAction(GroupAction):
+    user_visible = True
     run_id: Optional[int] = None
-    # TODO Break out as separate model?
+    # NOTE: Underspecified schema; don't copy this. See the GroupAction docstring.
     solution: Optional[dict[str, str | list[dict[str, str]]]] = None
     summary: Optional[str] = None
 
@@ -653,6 +852,7 @@ class SeerSolutionCompletedAction(GroupAction):
 
 
 class SeerCodingStartedAction(GroupAction):
+    user_visible = True
     run_id: Optional[int] = None
 
     @classmethod
@@ -661,7 +861,9 @@ class SeerCodingStartedAction(GroupAction):
 
 
 class SeerCodingCompletedAction(GroupAction):
+    user_visible = True
     run_id: Optional[int] = None
+    # NOTE: Underspecified schema; don't copy this. See the GroupAction docstring.
     changes: Optional[list[dict[str, str | int]]] = None
 
     @classmethod
@@ -670,25 +872,53 @@ class SeerCodingCompletedAction(GroupAction):
 
 
 class SeerPRCreatedAction(GroupAction):
+    user_visible = True
     run_id: Optional[int] = None
-    # TODO Break out as separate model?
-    pull_requests: Optional[list[dict[str, str | dict[str, str | int]]]] = None
+    pull_requests: Optional[list[SeerPullRequestItem]] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.SEER_PR_CREATED
 
 
+class SeerPRReadyForReviewAction(GroupAction):
+    user_visible = True
+    run_id: Optional[int] = None
+    # Same PR as SeerPRCreatedAction, but will not be in draft mode
+    pull_requests: Optional[list[SeerPullRequestItem]] = None
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.SEER_PR_READY_FOR_REVIEW
+
+
 class SeerIterationStartedAction(GroupAction):
+    user_visible = True
+    run_id: Optional[int] = None
+    referrer: Optional[str] = None
+
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.SEER_ITERATION_STARTED
 
 
 class SeerIterationCompletedAction(GroupAction):
+    user_visible = True
+
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.SEER_ITERATION_COMPLETED
+
+
+class SmartAssignmentCompletedAction(GroupAction):
+    user_visible = False
+    run_id: int
+    run_uuid: str
+    predicted_assignee_user_ids: list[int | None]
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.SMART_ASSIGNMENT_COMPLETED
 
 
 class ReconcileStatusAction(GroupAction):

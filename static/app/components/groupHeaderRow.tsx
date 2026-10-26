@@ -1,6 +1,7 @@
-import {useRef} from 'react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
+import {IconStar} from '@sentry/icons/star';
+import {useDebouncer} from '@tanstack/react-pacer';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Link} from '@sentry/scraps/link';
@@ -9,7 +10,6 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {EventMessage} from 'sentry/components/events/eventMessage';
 import {GroupTitle} from 'sentry/components/groupTitle';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {IconStar} from 'sentry/icons';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {getMessage} from 'sentry/utils/events';
@@ -23,8 +23,6 @@ import {EventTitleError} from './eventTitleError';
 interface GroupHeaderRowProps {
   data: Group;
   eventId?: string;
-  hideIcons?: boolean;
-  onClick?: React.MouseEventHandler<HTMLAnchorElement>;
   query?: string;
   source?: string;
 }
@@ -39,26 +37,24 @@ function usePreloadGroupOnHover({
   organization: Organization;
 }) {
   const queryClient = useQueryClient();
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const {selection} = usePageFilters();
+  const preloadDebouncer = useDebouncer(
+    () => {
+      void queryClient.prefetchQuery(
+        groupApiOptions({
+          groupId,
+          organizationSlug: organization.slug,
+          environments: selection.environments,
+          expandDerivedData: organization.features.includes('issue-inbox'),
+        })
+      );
+    },
+    {wait: 300}
+  );
 
   const {hoverProps} = useHover({
-    onHoverStart: () => {
-      timeoutRef.current = setTimeout(() => {
-        queryClient.prefetchQuery(
-          groupApiOptions({
-            groupId,
-            organizationSlug: organization.slug,
-            environments: selection.environments,
-          })
-        );
-      }, 300);
-    },
-    onHoverEnd: () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    },
+    onHoverStart: () => preloadDebouncer.maybeExecute(),
+    onHoverEnd: () => preloadDebouncer.cancel(),
     isDisabled: disabled,
   });
 
@@ -68,14 +64,7 @@ function usePreloadGroupOnHover({
 /**
  * Displays a group/issue title row (i.e. in Stream)
  */
-export function GroupHeaderRow({
-  data,
-  query,
-  onClick,
-  hideIcons,
-  eventId,
-  source,
-}: GroupHeaderRowProps) {
+export function GroupHeaderRow({data, query, eventId, source}: GroupHeaderRowProps) {
   const location = useLocation();
   const organization = useOrganization();
 
@@ -101,10 +90,9 @@ export function GroupHeaderRow({
           data-test-id={data.status === 'resolved' ? 'resolved-issue' : undefined}
           {...preloadHoverProps}
           to={to}
-          onClick={onClick}
           data-issue-title-link
         >
-          {!hideIcons && data.isBookmarked && (
+          {data.isBookmarked && (
             <IconWrapper>
               <IconStar isSolid variant="warning" />
             </IconWrapper>

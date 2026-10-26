@@ -23,7 +23,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "1118_add_group_derived_data"),
+        ("sentry", "0001_squashed_1118_add_group_derived_data"),
     ]
 
     operations = [

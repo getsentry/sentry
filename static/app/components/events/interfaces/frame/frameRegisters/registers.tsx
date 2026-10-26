@@ -1,3 +1,5 @@
+// Keep these maps synchronized with src/sentry/lang/native/registers.py.
+
 // Architecture "x86" (alias "i386", "i686")
 // Special case: Breakpad uses "efl" in place of "eflags"
 export const REGISTERS_X86 = {
@@ -229,6 +231,7 @@ export const REGISTERS_ARM64 = {
   lr: 30,
   sp: 31,
   pc: 32,
+  cpsr: 33,
   v0: 64,
   v1: 65,
   v2: 66,

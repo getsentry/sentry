@@ -2,15 +2,22 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useConversations} from './useConversations';
+import {useConversations, type Conversation} from './useConversations';
 
-const BASE_CONVERSATION = {
+const BASE_CONVERSATION: Conversation = {
   conversationId: 'conv-1',
-  duration: 1000,
   endTimestamp: 2000,
   errors: 0,
+  firstInput: null,
+  generationDuration: 0,
+  inputTokens: 0,
+  lastOutput: null,
   llmCalls: 1,
+  outputTokens: 0,
+  projectId: null,
   startTimestamp: 1000,
+  timeSpan: 1000,
+  title: null,
   toolCalls: 0,
   toolErrors: 0,
   toolNames: [],
@@ -32,7 +39,7 @@ describe('useConversations', () => {
 
   it('requests 50 conversations per page', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/ai-conversations/`,
+      url: `/organizations/${organization.slug}/agents/conversations/`,
       body: [],
       match: [MockApiClient.matchQuery({per_page: 50})],
     });
@@ -42,9 +49,9 @@ describe('useConversations', () => {
     await waitFor(() => expect(result.current.isFetching).toBe(false));
   });
 
-  it('normalizes firstInput when it is a string', async () => {
+  it('preserves string firstInput', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/ai-conversations/`,
+      url: `/organizations/${organization.slug}/agents/conversations/`,
       body: [{...BASE_CONVERSATION, firstInput: 'hello', lastOutput: null}],
     });
 
@@ -55,50 +62,9 @@ describe('useConversations', () => {
     expect(result.current.data[0]?.firstInput).toBe('hello');
   });
 
-  it('normalizes firstInput from array format to string', async () => {
+  it('preserves string lastOutput', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/ai-conversations/`,
-      body: [
-        {
-          ...BASE_CONVERSATION,
-          firstInput: [
-            {type: 'image', text: 'ignore me'},
-            {type: 'text', text: 'hello from array'},
-          ],
-          lastOutput: null,
-        },
-      ],
-    });
-
-    const {result} = renderHookWithProviders(() => useConversations(), {organization});
-
-    await waitFor(() => expect(result.current.isFetching).toBe(false));
-
-    expect(result.current.data[0]?.firstInput).toBe('hello from array');
-  });
-
-  it('normalizes firstInput to null when array has no text type', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/ai-conversations/`,
-      body: [
-        {
-          ...BASE_CONVERSATION,
-          firstInput: [{type: 'image', text: 'no text type'}],
-          lastOutput: null,
-        },
-      ],
-    });
-
-    const {result} = renderHookWithProviders(() => useConversations(), {organization});
-
-    await waitFor(() => expect(result.current.isFetching).toBe(false));
-
-    expect(result.current.data[0]?.firstInput).toBeNull();
-  });
-
-  it('normalizes lastOutput when it is a string', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/ai-conversations/`,
+      url: `/organizations/${organization.slug}/agents/conversations/`,
       body: [{...BASE_CONVERSATION, firstInput: null, lastOutput: 'world'}],
     });
 
@@ -109,52 +75,9 @@ describe('useConversations', () => {
     expect(result.current.data[0]?.lastOutput).toBe('world');
   });
 
-  it('normalizes lastOutput from array format to string', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/ai-conversations/`,
-      body: [
-        {
-          ...BASE_CONVERSATION,
-          firstInput: null,
-          lastOutput: [
-            {type: 'tool_use', text: 'ignore me'},
-            {type: 'text', text: 'world from array'},
-          ],
-        },
-      ],
-    });
-
-    const {result} = renderHookWithProviders(() => useConversations(), {organization});
-
-    await waitFor(() => expect(result.current.isFetching).toBe(false));
-
-    // This was the bug: lastOutput was passed through as an array, causing
-    // `.replace is not a function` when rendering the table cell
-    expect(result.current.data[0]?.lastOutput).toBe('world from array');
-  });
-
-  it('normalizes lastOutput to null when array has no text type', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/ai-conversations/`,
-      body: [
-        {
-          ...BASE_CONVERSATION,
-          firstInput: null,
-          lastOutput: [{type: 'tool_use', text: 'no text type'}],
-        },
-      ],
-    });
-
-    const {result} = renderHookWithProviders(() => useConversations(), {organization});
-
-    await waitFor(() => expect(result.current.isFetching).toBe(false));
-
-    expect(result.current.data[0]?.lastOutput).toBeNull();
-  });
-
   it('handles null firstInput and lastOutput', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/ai-conversations/`,
+      url: `/organizations/${organization.slug}/agents/conversations/`,
       body: [{...BASE_CONVERSATION, firstInput: null, lastOutput: null}],
     });
 
@@ -166,9 +89,9 @@ describe('useConversations', () => {
     expect(result.current.data[0]?.lastOutput).toBeNull();
   });
 
-  it('sorts conversations by endTimestamp descending', async () => {
+  it('preserves the server sort order', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/ai-conversations/`,
+      url: `/organizations/${organization.slug}/agents/conversations/`,
       body: [
         {...BASE_CONVERSATION, conversationId: 'older', endTimestamp: 1000},
         {...BASE_CONVERSATION, conversationId: 'newer', endTimestamp: 2000},
@@ -179,7 +102,72 @@ describe('useConversations', () => {
 
     await waitFor(() => expect(result.current.isFetching).toBe(false));
 
-    expect(result.current.data[0]?.conversationId).toBe('newer');
-    expect(result.current.data[1]?.conversationId).toBe('older');
+    expect(result.current.data[0]?.conversationId).toBe('older');
+    expect(result.current.data[1]?.conversationId).toBe('newer');
+  });
+
+  it('reports a direct hit when the header is present', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/agents/conversations/`,
+      body: [{...BASE_CONVERSATION, firstInput: null, lastOutput: null}],
+      headers: {'X-Sentry-Direct-Hit': '1'},
+    });
+
+    const {result} = renderHookWithProviders(() => useConversations(), {organization});
+
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
+
+    expect(result.current.isDirectHit).toBe(true);
+  });
+
+  it('does not report a direct hit when the header is absent', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/agents/conversations/`,
+      body: [{...BASE_CONVERSATION, firstInput: null, lastOutput: null}],
+    });
+
+    const {result} = renderHookWithProviders(() => useConversations(), {organization});
+
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
+
+    expect(result.current.isDirectHit).toBe(false);
+  });
+
+  it('adds the errors filter when errorsOnly is set', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/agents/conversations/`,
+      body: [],
+      match: [
+        MockApiClient.matchQuery({
+          query: '(conversation.errors:>0) and (gen_ai.tool.name:search)',
+        }),
+      ],
+    });
+
+    const {result} = renderHookWithProviders(() => useConversations(), {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/',
+          query: {errorsOnly: 'true', query: 'gen_ai.tool.name:search'},
+        },
+      },
+    });
+
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
+    expect(request).toHaveBeenCalled();
+  });
+
+  it('does not add the errors filter by default', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/agents/conversations/`,
+      body: [],
+      match: [MockApiClient.matchQuery({query: ''})],
+    });
+
+    const {result} = renderHookWithProviders(() => useConversations(), {organization});
+
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
+    expect(request).toHaveBeenCalled();
   });
 });

@@ -1,7 +1,7 @@
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
+import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import {AssertionFailureTree} from 'sentry/views/alerts/rules/uptime/assertions/assertionFailure/assertionFailureTree';
+import {AssertionFailureTree} from 'sentry/views/detectors/components/uptime/assertions/assertionFailure/assertionFailureTree';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
@@ -18,16 +18,17 @@ export function UptimeAssertionsSection({event}: {event: Event}) {
       title={t('Assertions')}
       disableCollapsePersistence
     >
-      <KeyValueList
-        data={[
+      <KeyValueTableCard
+        variant="label"
+        contentItems={[
           {
-            subject: t('Failure'),
-            key: 'assertion_failure_data',
-            value: (
-              <pre className="val-string">
+            item: {
+              subject: t('Failure'),
+              key: 'assertion_failure_data',
+              value: (
                 <AssertionFailureTree assertion={evidenceData.assertionFailureData} />
-              </pre>
-            ),
+              ),
+            },
           },
         ]}
       />

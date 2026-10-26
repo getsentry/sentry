@@ -4,6 +4,7 @@ from typing import Any, Literal
 
 from sentry_conventions.attributes import (
     ATTRIBUTE_METADATA,
+    ATTRIBUTE_NAMES,
     AttributeMetadata,
     DeprecationStatus,
 )
@@ -29,6 +30,7 @@ from sentry.search.utils import DEVICE_CLASS, validate_event_id, validate_span_i
 from sentry.utils.validators import (
     is_empty_string,
     normalize_event_id_strict,
+    normalize_span_id,
 )
 
 logger = logging.getLogger(__name__)
@@ -45,6 +47,8 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             internal_name="sentry.item_id",
             search_type="string",
             validator=validate_span_id,
+            normalizer=normalize_span_id,
+            canonical_case=True,
         ),
         ResolvedAttribute(
             public_alias="parent_span",
@@ -150,6 +154,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
             validator=validate_event_id,
             normalizer=normalize_event_id_strict,
+            canonical_case=True,
             context=AttributeContext(
                 brief=(
                     "A trace represents the record of the entire operation you want to "
@@ -216,6 +221,11 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             private=True,
         ),
         ResolvedAttribute(
+            public_alias="trace_lifecycle",
+            internal_name="sentry.trace_lifecycle",
+            search_type="string",
+        ),
+        ResolvedAttribute(
             public_alias="ai.total_tokens.used",
             internal_name="ai_total_tokens_used",
             search_type="integer",
@@ -239,6 +249,11 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             public_alias="gen_ai.operation.type",
             internal_name="gen_ai.operation.type",
             search_type="string",
+        ),
+        ResolvedAttribute(
+            public_alias="gen_ai.tool.call.result.size",
+            internal_name="gen_ai.tool.call.result.size",
+            search_type="byte",
         ),
         ResolvedAttribute(
             public_alias="gen_ai.usage.input_tokens",
@@ -296,13 +311,28 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="currency",
         ),
         ResolvedAttribute(
-            public_alias="gen_ai.usage.total_cost",
-            internal_name="gen_ai.usage.total_cost",
+            public_alias="gen_ai.cost.cache_read.input_tokens",
+            internal_name="gen_ai.cost.cache_read.input_tokens",
             search_type="currency",
         ),
         ResolvedAttribute(
-            public_alias="gen_ai.request.reasoning_effort",
-            internal_name="gen_ai.request.reasoning_effort",
+            public_alias="gen_ai.cost.cache_creation.input_tokens",
+            internal_name="gen_ai.cost.cache_creation.input_tokens",
+            search_type="currency",
+        ),
+        ResolvedAttribute(
+            public_alias="gen_ai.cost.reasoning.output_tokens",
+            internal_name="gen_ai.cost.reasoning.output_tokens",
+            search_type="currency",
+        ),
+        ResolvedAttribute(
+            public_alias="gen_ai.memory.record.count",
+            internal_name="gen_ai.memory.record.count",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="gen_ai.request.reasoning.level",
+            internal_name="gen_ai.request.reasoning.level",
             search_type="string",
         ),
         ResolvedAttribute(
@@ -384,6 +414,21 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             public_alias="mobile.total_frames",
             internal_name="frames.total",
             search_type="number",
+        ),
+        ResolvedAttribute(
+            public_alias="react_native.module.duration.max",
+            internal_name="react_native.module.duration.max",
+            search_type="millisecond",
+        ),
+        ResolvedAttribute(
+            public_alias="react_native.module.duration.total",
+            internal_name="react_native.module.duration.total",
+            search_type="millisecond",
+        ),
+        ResolvedAttribute(
+            public_alias="react_native.module.top.duration",
+            internal_name="react_native.module.top.duration",
+            search_type="millisecond",
         ),
         # These fields are extracted from span measurements but were accessed
         # 2 ways, with + without the measurements. prefix. So expose both for compatibility.
@@ -694,13 +739,22 @@ def _update_attribute_definitions_with_deprecations(
                     secondary_alias=False,
                 )
         else:
-            attr_type = _normalize_convention_attribute_type(metadata.type.value)
-            if attr_type is None:
+            current_attr_type = _normalize_convention_attribute_type(metadata.type.value)
+
+            if current_attr_type is None:
                 continue
+
+            replacement_metadata = convention_attributes.get(replacement)
+            replacement_attr_type = (
+                _normalize_convention_attribute_type(replacement_metadata.type.value)
+                if replacement_metadata is not None
+                else None
+            ) or current_attr_type
+
             attribute_definitions[key] = ResolvedAttribute(
                 public_alias=key,
                 internal_name=key,
-                search_type=attr_type,
+                search_type=current_attr_type,
                 replacement=replacement,
                 deprecation_status=status,
             )
@@ -712,7 +766,7 @@ def _update_attribute_definitions_with_deprecations(
                 attribute_definitions[replacement] = ResolvedAttribute(
                     public_alias=replacement,
                     internal_name=replacement,
-                    search_type=attr_type,
+                    search_type=replacement_attr_type,
                 )
 
         span_attribute_definitions_by_internal_name[key] = attribute_definitions[
@@ -792,7 +846,7 @@ SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[
         # to return the new aliases, remove these temp mappings.
         "sentry.description": "sentry.normalized_description",
         "sentry.span_id": "id",
-        "sentry.segment_name": "transaction",
+        ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME: "transaction",
     },
     "boolean": {
         definition.internal_name: definition.public_alias

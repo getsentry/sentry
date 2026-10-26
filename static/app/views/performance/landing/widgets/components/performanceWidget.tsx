@@ -1,17 +1,17 @@
 import {Fragment, useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconWarning} from 'sentry/icons/iconWarning';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {MEPDataProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {useApi} from 'sentry/utils/useApi';
 import {
-  getPerformanceWidgetContainer,
+  PERFORMANCE_WIDGET_CONTAINERS,
   type PerformanceWidgetContainerTypes,
 } from 'sentry/views/performance/landing/widgets/components/performanceWidgetContainer';
 import type {
@@ -39,7 +39,7 @@ export function GenericPerformanceWidget<T extends WidgetDataConstraint>(
   const setWidgetDataForKey = useCallback(
     (dataKey: string, result?: WidgetDataResult) => {
       const _widgetData = widgetDataRef.current;
-      const newWidgetData = {..._widgetData, [dataKey]: result} as T;
+      const newWidgetData = {..._widgetData, [dataKey]: result};
       widgetDataRef.current = newWidgetData;
       setWidgetData({[props.chartSetting]: newWidgetData});
     },
@@ -111,9 +111,7 @@ function DataDisplay<T extends WidgetDataConstraint>(
 ) {
   const {Visualizations, chartHeight, totalHeight, containerType, EmptyComponent} = props;
 
-  const Container = getPerformanceWidgetContainer({
-    containerType,
-  });
+  const Container = PERFORMANCE_WIDGET_CONTAINERS[containerType];
 
   const numberKeys = Object.keys(props.Queries).length;
   const missingDataKeys = Object.values(props.widgetData).length !== numberKeys;

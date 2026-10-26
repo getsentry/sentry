@@ -19,7 +19,10 @@ type Props = {
   action: 'create' | 'link';
   appName: string;
   config: SchemaFormConfig;
-  event: Event;
+  /**
+   * Adds stack trace content to the default issue description when available.
+   */
+  event: Event | undefined;
   group: Group;
   onSubmitSuccess: (externalIssue: PlatformExternalIssue) => void;
   sentryAppInstallation: SentryAppInstallation;

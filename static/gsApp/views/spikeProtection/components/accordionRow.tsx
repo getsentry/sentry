@@ -1,9 +1,10 @@
 import type React from 'react';
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 import {motion} from 'framer-motion';
 
-import {IconChevron} from 'sentry/icons';
+import {Stack} from '@sentry/scraps/layout';
 
 type AccordionRowProps = {
   /**
@@ -41,6 +42,7 @@ export function AccordionRow({
 
   useEffect(() => {
     if (disabled) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setIsExpanded(false);
     }
   }, [disabled]);
@@ -50,7 +52,7 @@ export function AccordionRow({
   };
 
   return (
-    <AccordionContent>
+    <Stack width="100%">
       <Title
         onClick={async () => {
           if (!isExpanded) {
@@ -81,15 +83,9 @@ export function AccordionRow({
       >
         {body}
       </motion.div>
-    </AccordionContent>
+    </Stack>
   );
 }
-
-const AccordionContent = styled('div')`
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-`;
 
 const Title = styled('div')<{disabled: boolean}>`
   width: 100%;

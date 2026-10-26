@@ -1,12 +1,12 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
+import {IconAdd} from '@sentry/icons/add';
 
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DropdownButton} from 'sentry/components/dropdownButton';
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {NotificationActionItem} from 'sentry/components/notificationActions/notificationActionItem';
-import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {
   AvailableNotificationAction,
@@ -35,10 +35,6 @@ type NotificationActionManagerProps = {
    * Optional list of roles to display as recipients of Sentry notifications
    */
   recipientRoles?: string[];
-  /**
-   * Updates the notification alert count for this project
-   */
-  updateAlertCount?: (projectId: number, alertCount: number) => void;
 };
 
 export function NotificationActionManager({
@@ -52,7 +48,7 @@ export function NotificationActionManager({
     useState<Array<Partial<NotificationAction>>>(actions);
 
   useEffect(() => {
-    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state, react/set-state-in-effect, react/no-deriving-state-in-effects
     setNotificationActions(actions);
   }, [actions]);
 
@@ -210,6 +206,7 @@ export function NotificationActionManager({
       });
     });
     return dropdownMenuItems;
+    // oxlint-disable-next-line react/memo-dependencies
   }, [actionsMap, availableServices, notificationActions]);
 
   let toolTipText: undefined | string;
@@ -228,7 +225,7 @@ export function NotificationActionManager({
       <DropdownMenu
         items={menuItems}
         trigger={(triggerProps, isOpen) => (
-          <DropdownButton
+          <OverlayTrigger.Button
             {...triggerProps}
             isOpen={isOpen}
             aria-label={t('Add Action')}
@@ -237,7 +234,7 @@ export function NotificationActionManager({
             disabled={isAddAlertDisabled}
           >
             {t('Add Action')}
-          </DropdownButton>
+          </OverlayTrigger.Button>
         )}
         isDisabled={isAddAlertDisabled}
         data-test-id="add-action-button"

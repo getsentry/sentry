@@ -31,6 +31,10 @@ class SummarizeIssueResponse(BaseModel):
     scores: SummarizeIssueScores | None = None
 
 
+class IssueSummary(SummarizeIssueResponse):
+    event_id: str
+
+
 class SeerRepoDefinition(BaseModel):
     repository_id: int | None = None
     organization_id: int | None = None
@@ -120,6 +124,10 @@ class SeerApiError(Exception):
         return f"Seer API error: {self.message} (status: {self.status})"
 
 
+class SeerUnavailableError(SeerApiError):
+    """Seer kept answering with a server error (5xx) after retrying."""
+
+
 class SeerApiResponseValidationError(Exception):
     def __init__(self, message: str):
         self.message = message
@@ -134,3 +142,6 @@ class SeerPermissionError(Exception):
 
     def __str__(self):
         return f"Seer permission error: {self.message}"
+
+
+UNKNOWN_RUN_ID_FOR_GROUP = "Unknown run id for group"

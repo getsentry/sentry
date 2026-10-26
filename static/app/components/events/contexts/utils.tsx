@@ -1,8 +1,6 @@
-import {Fragment} from 'react';
 import type {Theme} from '@emotion/react';
-import styled from '@emotion/styled';
+import {SvgIcon} from '@sentry/icons/svgIcon';
 import type {Location} from 'history';
-import moment from 'moment-timezone';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 
@@ -22,6 +20,7 @@ import {getDartContextData} from 'sentry/components/events/contexts/knownContext
 import {getDeviceContextData} from 'sentry/components/events/contexts/knownContext/device';
 import {getFlutterContextData} from 'sentry/components/events/contexts/knownContext/flutterContext';
 import {getGPUContextData} from 'sentry/components/events/contexts/knownContext/gpu';
+import {getGPUCrashContextData} from 'sentry/components/events/contexts/knownContext/gpuCrash';
 import {getMemoryInfoContext} from 'sentry/components/events/contexts/knownContext/memoryInfo';
 import {getMissingInstrumentationContextData} from 'sentry/components/events/contexts/knownContext/missingInstrumentation';
 import {getOperatingSystemContextData} from 'sentry/components/events/contexts/knownContext/os';
@@ -33,6 +32,7 @@ import {getStateContextData} from 'sentry/components/events/contexts/knownContex
 import {getThreadPoolInfoContext} from 'sentry/components/events/contexts/knownContext/threadPoolInfo';
 import {getTraceContextData} from 'sentry/components/events/contexts/knownContext/trace';
 import {getUserContextData} from 'sentry/components/events/contexts/knownContext/user';
+import {getWERContextData} from 'sentry/components/events/contexts/knownContext/wer';
 import {
   getPlatformContextData,
   getPlatformContextIcon,
@@ -40,14 +40,14 @@ import {
   PLATFORM_CONTEXT_KEYS,
 } from 'sentry/components/events/contexts/platformContext/utils';
 import {userContextToActor} from 'sentry/components/events/interfaces/utils';
-import {StructuredEventData} from 'sentry/components/structuredEventData';
-import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {KeyValueListData, KeyValueListDataItem} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
+
+import {getContextKeys, getContextMeta} from './dataUtils';
 
 /**
  * Generates the class name used for contexts
@@ -104,37 +104,6 @@ export function generateIconName(
   return formattedName;
 }
 
-export function getRelativeTimeFromEventDateCreated(
-  eventDateCreated: string,
-  timestamp?: string,
-  showTimestamp = true
-) {
-  if (!defined(timestamp)) {
-    return timestamp;
-  }
-
-  const dateTime = moment(timestamp);
-
-  if (!dateTime.isValid()) {
-    return timestamp;
-  }
-
-  const relativeTime = `(${dateTime.from(eventDateCreated, true)} ${t(
-    'before this event'
-  )})`;
-
-  if (!showTimestamp) {
-    return <RelativeTime>{relativeTime}</RelativeTime>;
-  }
-
-  return (
-    <Fragment>
-      {timestamp}
-      <RelativeTime>{relativeTime}</RelativeTime>
-    </Fragment>
-  );
-}
-
 type KnownDataDetails = Omit<KeyValueListDataItem, 'key'> | undefined;
 
 // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
@@ -183,18 +152,6 @@ export function getKnownData<Data, DataType>({
     .filter(defined);
 }
 
-export function getKnownStructuredData(
-  knownData: KeyValueListData,
-  meta: Record<string, any>
-): KeyValueListData {
-  return knownData.map(kd => ({
-    ...kd,
-    value: (
-      <StructuredEventData data={kd.value} meta={meta?.[kd.key]} withAnnotatedText />
-    ),
-  }));
-}
-
 /**
  * Returns the type of a given context, after coercing from its type and alias.
  * - 'type' refers to the `type` key on it's data blob. This is usually overridden by the SDK for known types, but not always.
@@ -205,23 +162,6 @@ export function getContextType({alias, type}: {alias: string; type?: string}): s
     return alias;
   }
   return type === 'default' ? alias : type;
-}
-
-/**
- * Omit certain keys from ever being displayed on context items.
- * All custom context (and some known context) has the type:default so we remove it.
- */
-export function getContextKeys({
-  data,
-  hiddenKeys = [],
-}: {
-  data: Record<string, any>;
-  hiddenKeys?: string[];
-}): string[] {
-  const hiddenKeySet = new Set(hiddenKeys);
-  return Object.keys(data).filter(
-    ctxKey => ctxKey !== 'type' && !hiddenKeySet.has(ctxKey)
-  );
 }
 
 export function getContextTitle({
@@ -263,10 +203,14 @@ export function getContextTitle({
       return t('Feedback');
     case 'os':
       return t('Operating System');
+    case 'wer':
+      return t('Windows Error Reporting');
     case 'user':
       return t('User');
     case 'gpu':
       return t('Graphics Processing Unit');
+    case 'gpu_crash':
+      return t('GPU Crash');
     case 'runtime':
       return t('Runtime');
     case 'trace':
@@ -308,22 +252,6 @@ export function getContextTitle({
       return t('Dart');
     default:
       return contextType;
-  }
-}
-
-export function getContextMeta(event: Event, contextType: string): Record<string, any> {
-  const defaultMeta = event._meta?.contexts?.[contextType] ?? {};
-  switch (contextType) {
-    case 'memory_info': // Current
-    case 'Memory Info': // Legacy
-      return event._meta?.contexts?.['Memory Info'] ?? defaultMeta;
-    case 'threadpool_info': // Current
-    case 'ThreadPool Info': // Legacy
-      return event._meta?.contexts?.['ThreadPool Info'] ?? defaultMeta;
-    case 'user':
-      return event._meta?.user ?? defaultMeta;
-    default:
-      return defaultMeta;
   }
 }
 
@@ -369,6 +297,9 @@ export function getContextIcon({
       iconName = generateIconName(value?.vendor_name ? value?.vendor_name : value?.name);
       break;
   }
+  if (contextType === 'wer') {
+    iconName = 'windows';
+  }
   if (iconName.length === 0) {
     return null;
   }
@@ -389,9 +320,9 @@ export function getFormattedContextData({
 }: {
   contextType: string;
   contextValue: any;
-  event: Event;
   location: Location;
   organization: Organization;
+  event?: Event;
   project?: Project;
 }): KeyValueListData {
   const meta = getContextMeta(event, contextType);
@@ -416,10 +347,14 @@ export function getFormattedContextData({
       return getOperatingSystemContextData({data: contextValue, meta});
     case 'runtime':
       return getRuntimeContextData({data: contextValue, meta});
+    case 'wer':
+      return getWERContextData({data: contextValue, meta});
     case 'user':
       return getUserContextData({data: contextValue, meta});
     case 'gpu':
       return getGPUContextData({data: contextValue, meta});
+    case 'gpu_crash':
+      return getGPUCrashContextData({data: contextValue, meta});
     case 'trace':
       return getTraceContextData({
         data: contextValue,
@@ -595,11 +530,6 @@ export function getContextSummary({
     subtitleType,
   };
 }
-
-const RelativeTime = styled('span')`
-  color: ${p => p.theme.tokens.content.secondary};
-  margin-left: ${p => p.theme.space.xs};
-`;
 
 export const CONTEXT_DOCS_LINK =
   'https://docs.sentry.io/platform-redirect/?next=/enriching-events/context/';

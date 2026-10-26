@@ -1,8 +1,9 @@
-import {Outlet, ScrollRestoration} from 'react-router-dom';
+import {useRef} from 'react';
+import {Outlet, ScrollRestoration} from 'react-router';
 import styled from '@emotion/styled';
 
 import {GlobalDrawer} from '@sentry/scraps/drawer';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
 import {DemoHeader} from 'sentry/components/demo/demoHeader';
@@ -20,7 +21,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useRouteAnalyticsHookSetup} from 'sentry/utils/routeAnalytics/useRouteAnalyticsHookSetup';
-import {useInitSentryToolbar} from 'sentry/utils/useInitSentryToolbar';
+import {useDimensions} from 'sentry/utils/useDimensions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SystemAlerts} from 'sentry/views/app/systemAlerts';
 import {useReleasesDrawer} from 'sentry/views/explore/releases/drawer/useReleasesDrawer';
@@ -32,8 +33,8 @@ import {OrganizationContainer} from 'sentry/views/organizationContainer';
 import {SeerExplorerSidebarLayout} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerSidebarLayout';
 import {useSeerExplorerDocumentTitle} from 'sentry/views/seerExplorer/components/useSeerExplorerDocumentTitle';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
+import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/seerExplorerContextProvider';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
-import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 import {OrganizationDetailsBody} from './body';
 
@@ -46,8 +47,6 @@ export function OrganizationLayout() {
   // oganization is loaded before rendering children. Organization may not be
   // loaded yet when this first renders.
   const organization = useOrganization({allowNull: true});
-
-  useInitSentryToolbar(organization);
 
   return (
     <SentryDocumentTitle noSuffix title={organization?.name ?? 'Sentry'}>
@@ -87,6 +86,10 @@ function AppDrawers() {
 
 function AppLayout({organization}: LayoutProps) {
   useSeerExplorerDocumentTitle();
+  const pageBannerRef = useRef<HTMLDivElement>(null);
+  const {height: pageBannerHeight} = useDimensions({
+    elementRef: pageBannerRef,
+  });
   const showSuperuserWarning =
     isActiveSuperuser() &&
     !ConfigStore.get('isSelfHosted') &&
@@ -95,10 +98,12 @@ function AppLayout({organization}: LayoutProps) {
   return (
     <PrimaryNavigationContextProvider>
       <Stack flex="1" minWidth="0" minHeight="100dvh">
-        {showSuperuserWarning && (
-          <Override name="component:superuser-warning" organization={organization} />
-        )}
-        <SystemAlerts className="messages-container" />
+        <Container ref={pageBannerRef}>
+          {showSuperuserWarning && (
+            <Override name="component:superuser-warning" organization={organization} />
+          )}
+          <SystemAlerts className="messages-container" />
+        </Container>
         <Flex
           flex="1"
           minWidth="0"
@@ -106,7 +111,7 @@ function AppLayout({organization}: LayoutProps) {
           direction={{'screen:sm': 'column', 'screen:md': 'row'}}
           position="relative"
         >
-          <Navigation />
+          <Navigation pageBannerHeight={pageBannerHeight} />
           <SeerExplorerSidebarLayout>
             {/* The `#main` selector is used to make the app content `inert` when an overlay is active */}
             <ContentStack

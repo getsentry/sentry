@@ -1,5 +1,6 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 
@@ -7,7 +8,6 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import {prettifyTagKey} from 'sentry/utils/fields';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTags} from 'sentry/utils/useTags';
 import {
@@ -49,10 +49,9 @@ export function WidgetBuilderXAxisSelector() {
   const {traceItemType, ...traceItemOptions} = useWidgetBuilderTraceItemConfig();
 
   const [search, setSearch] = useState('');
-  const debouncedSearch = useDebouncedValue(
-    search,
-    WIDGET_BUILDER_ATTRIBUTE_SEARCH_DEBOUNCE_MS
-  );
+  const [debouncedSearch] = useDebouncedValue(search, {
+    wait: WIDGET_BUILDER_ATTRIBUTE_SEARCH_DEBOUNCE_MS,
+  });
 
   const searchedTraceItemOptions = {
     ...traceItemOptions,

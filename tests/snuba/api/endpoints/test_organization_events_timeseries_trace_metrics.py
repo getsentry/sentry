@@ -32,7 +32,7 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
         )
 
     def _do_request(self, data, url=None, features=None):
-        return self.client.get(self.url if url is None else url, data=data, format="json")
+        return self.client_get(data=data, url=self.url if url is None else url)
 
     def test_simple(self) -> None:
         metric_values = [6, 0, 6, 3, 0, 3]

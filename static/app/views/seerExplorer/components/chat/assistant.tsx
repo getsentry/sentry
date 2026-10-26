@@ -1,19 +1,18 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout';
+import {AssistantActions, AssistantMessage, MessageRow} from '@sentry/scraps/chat';
+import {Flex} from '@sentry/scraps/layout';
 
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
-import {IconThumb} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import type {SeerEmbedScope} from 'sentry/components/seer/markdown/embeds/renderTracking';
+import {useSeerMarkdownText} from 'sentry/components/seer/markdown/markdownText';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
 import type {Block, SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
-import {getExplorerUrl, getLangfuseUrl} from 'sentry/views/seerExplorer/utils';
+import {getExplorerUrl} from 'sentry/views/seerExplorer/utils';
 
 import type {AssistantBlockProps} from './shared';
 import {BLOCK_WRAPPER_SELECTOR, MessagePlaceholder, hasValidContent} from './shared';
@@ -24,17 +23,33 @@ export function AssistantBlock({
   runId,
   interactionPending,
   readOnly,
+  compact,
 }: AssistantBlockProps) {
   const organization = useOrganization();
   const content = block.message.content ?? '';
   const isStreamingEnabled = organization.features.includes('seer-explorer-stream');
 
+  // Only the settled render carries a scope. While `block.loading`, the id is
+  // still the optimistic client-side one (`loading-N-optimistic`), which the
+  // server replaces on the next poll -- tracking both would count one embed
+  // twice. The settled render fires immediately after, so nothing is lost.
+  const embedScope: SeerEmbedScope | null =
+    runId === undefined
+      ? null
+      : {
+          conversationId: String(runId),
+          messageId: block.id,
+          surface: 'seer_explorer',
+        };
+
   if (block.loading) {
     if (isStreamingEnabled && hasValidContent(content)) {
       return (
-        <Container padding="xl" minWidth={0} overflow="hidden">
-          <SeerMarkdown raw={content} variant="streaming" />
-        </Container>
+        <MessageRow from="assistant">
+          <AssistantMessage>
+            <SeerMarkdown raw={content} variant="streaming" />
+          </AssistantMessage>
+        </MessageRow>
       );
     }
     return <MessagePlaceholder content={isStreamingEnabled ? undefined : content} />;
@@ -43,9 +58,11 @@ export function AssistantBlock({
   return (
     <Fragment>
       {hasValidContent(content) && (
-        <Container padding="xl" minWidth={0} overflow="hidden">
-          <SeerMarkdown raw={content} />
-        </Container>
+        <MessageRow from="assistant" density={compact ? 'compact' : undefined}>
+          <AssistantMessage>
+            <SeerMarkdown raw={content} scope={embedScope} />
+          </AssistantMessage>
+        </MessageRow>
       )}
       <BlockActionBar
         block={block}
@@ -77,7 +94,6 @@ function useBlockFeedback(
         run_id: runId,
         block_index: blockIndex,
         block_message: block.message.content?.slice(0, 100) ?? '',
-        langfuse_url: getLangfuseUrl(runId),
         explorer_url: getExplorerUrl(runId),
         conversations_url: getConversationsUrlForExternalUse('sentry', runId),
       });
@@ -97,82 +113,34 @@ function BlockActionBar({
 }: AssistantBlockProps) {
   const organization = useOrganization();
   const {feedbackSubmitted, trackFeedback} = useBlockFeedback(block, blockIndex, runId);
-  const showCopy = !!block.message.content?.trim();
+  const content = block.message.content ?? '';
+  const showCopy = !!content.trim();
+  // Copying verbatim would hand over Seer's raw embed tags, which mean nothing
+  // outside the conversation.
+  const {node: copyTextNode, text: copyText} = useSeerMarkdownText(content);
 
   if (readOnly || interactionPending) {
     return null;
   }
 
   return (
-    <ButtonBar
-      size="xs"
-      position="absolute"
-      bottom="2px"
-      right="8px"
-      visibility="hidden"
-      css={css`
-        ${BLOCK_WRAPPER_SELECTOR}:hover &,
-        ${BLOCK_WRAPPER_SELECTOR}:focus-within & {
-          visibility: visible;
-        }
-      `}
-    >
-      <FeedbackButton
-        type="positive"
-        disabled={feedbackSubmitted}
-        onClick={trackFeedback}
+    <Flex justify="end" padding="0 md xs">
+      {copyTextNode}
+      <AssistantActions
+        visibility="hidden"
+        onFeedback={trackFeedback}
+        feedbackDisabled={feedbackSubmitted}
+        copyText={showCopy ? copyText : undefined}
+        onCopy={() => {
+          trackAnalytics('seer.explorer.block_copied', {organization});
+        }}
+        css={css`
+          ${BLOCK_WRAPPER_SELECTOR}:hover &,
+          ${BLOCK_WRAPPER_SELECTOR}:focus-within & {
+            visibility: visible;
+          }
+        `}
       />
-      <FeedbackButton
-        type="negative"
-        disabled={feedbackSubmitted}
-        onClick={trackFeedback}
-      />
-      {showCopy && (
-        <CopyToClipboardButton
-          aria-label={t('Copy block content')}
-          text={block.message.content ?? ''}
-          tooltipProps={{title: t('Copy to clipboard')}}
-          onCopy={() => {
-            trackAnalytics('seer.explorer.block_copied', {organization});
-          }}
-          onClick={e => {
-            e.stopPropagation();
-          }}
-        />
-      )}
-    </ButtonBar>
-  );
-}
-
-function FeedbackButton({
-  type,
-  disabled,
-  onClick,
-}: {
-  disabled: boolean;
-  onClick: (type: 'positive' | 'negative') => void;
-  type: 'positive' | 'negative';
-}) {
-  return (
-    <Button
-      aria-label={
-        type === 'positive' ? t('Feedback Thumbs Up') : t('Feedback Thumbs Down')
-      }
-      icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} />}
-      disabled={disabled}
-      tooltipProps={{
-        title: disabled
-          ? t('Feedback submitted')
-          : type === 'positive'
-            ? t('I like this response')
-            : t("I don't like this response"),
-      }}
-      onClick={e => {
-        e.stopPropagation();
-        onClick(type);
-      }}
-    >
-      {undefined}
-    </Button>
+    </Flex>
   );
 }

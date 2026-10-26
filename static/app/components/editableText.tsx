@@ -1,12 +1,12 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconEdit} from '@sentry/icons/edit';
 
 import {Input} from '@sentry/scraps/input';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {TextOverflow} from 'sentry/components/textOverflow';
-import {IconEdit} from 'sentry/icons/iconEdit';
 import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
 
 type Props = {
@@ -23,12 +23,12 @@ type Props = {
   errorMessage?: React.ReactNode;
   isDisabled?: boolean;
   maxLength?: number;
-  name?: string;
   /**
    * The placeholder text to display when the input is empty.
    */
   placeholder?: string;
-  successMessage?: React.ReactNode;
+  /** Custom markup for the displayed value, outside edit mode. */
+  renderLabel?: (value: string) => React.ReactNode;
   /**
    * "compact" removes fixed heights so the component inherits font-size and
    * line-height from its context (e.g. when rendered inside a breadcrumb row).
@@ -39,9 +39,7 @@ type Props = {
 export function EditableText({
   value,
   onChange,
-  name,
   errorMessage,
-  successMessage,
   maxLength,
   isDisabled = false,
   autoSelect = false,
@@ -49,6 +47,7 @@ export function EditableText({
   'aria-label': ariaLabel,
   placeholder,
   allowEmpty = false,
+  renderLabel,
   variant,
 }: Props) {
   const [isEditing, setIsEditing] = useState(false);
@@ -74,12 +73,8 @@ export function EditableText({
         }
         return;
       }
-
-      if (successMessage) {
-        addSuccessMessage(successMessage);
-      }
     },
-    [errorMessage, successMessage]
+    [errorMessage]
   );
 
   const exitEditing = useCallback(() => {
@@ -126,6 +121,7 @@ export function EditableText({
   // Close editing if the field becomes disabled (e.g. form revalidation)
   useEffect(() => {
     if (isDisabled) {
+      // oxlint-disable-next-line react/set-state-in-effect
       handleCancel();
     }
   }, [handleCancel, isDisabled]);
@@ -140,6 +136,7 @@ export function EditableText({
     setOptimisticValue(null);
 
     if (isEditing) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setDraftValue(null);
       exitEditing();
     }
@@ -206,7 +203,6 @@ export function EditableText({
         >
           <StyledInput
             aria-label={ariaLabel}
-            name={name}
             ref={inputRef}
             value={currentDraft}
             onChange={handleInputChange}
@@ -225,7 +221,11 @@ export function EditableText({
           isDisabled={isDisabled}
           data-test-id="editable-text-label"
         >
-          <InnerLabel isCompact={isCompact}>{currentValue || placeholder}</InnerLabel>
+          <InnerLabel isCompact={isCompact}>
+            {renderLabel
+              ? renderLabel(currentValue || placeholder || '')
+              : currentValue || placeholder}
+          </InnerLabel>
           {!isDisabled && <IconEdit />}
         </Label>
       )}

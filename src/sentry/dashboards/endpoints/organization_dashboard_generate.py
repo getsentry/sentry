@@ -9,7 +9,6 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -99,6 +98,13 @@ Widget-type-specific rules:
 - For text widgets, widget_type must be null and queries must be empty.
 - Description must not exceed 255 characters for non-text widgets. For text widgets,
 description must not exceed 15,000 characters.
+- For heatmap widgets (display_type "heatmap"):
+  - widget_type must be "tracemetrics"; heatmaps are not supported on any other dataset.
+  - Use exactly one filter (one query) with exactly one aggregate.
+  - That aggregate must use the "count" function over a distribution-type trace metric, \
+in the 4-argument tracemetric form: count(value, <metric_name>, distribution, <metric_unit>). \
+Only "count" is supported; counter and gauge metrics are not.
+  - Do not use equations, group-by columns, or thresholds.
 
 Limits:
 - A dashboard can have at most {Dashboard.MAX_WIDGETS} widgets.
@@ -129,7 +135,7 @@ class DashboardGenerateSerializer(serializers.Serializer[dict[str, Any]]):
 
 class OrganizationDashboardGeneratePermission(OrganizationPermission):
     scope_map = {
-        "POST": ["org:read"],
+        "POST": ["org:read", "dashboard:read"],
     }
 
 
@@ -152,12 +158,7 @@ class OrganizationDashboardGenerateEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationDashboardGeneratePermission,)
 
     def post(self, request: Request, organization: Organization) -> Response:
-        if not features.has(
-            "organizations:dashboards-ai-generate", organization, actor=request.user
-        ):
-            return Response({"detail": "Feature not enabled"}, status=403)
-
-        has_access, error = has_seer_access_with_detail(organization, request.user)
+        has_access, error = has_seer_access_with_detail(organization)
         if not has_access:
             raise PermissionDenied(error)
 
@@ -171,12 +172,17 @@ class OrganizationDashboardGenerateEndpoint(OrganizationEndpoint):
 
         # If current_dashboard is provided, we're editing; otherwise generating a new dashboard.
         if current_dashboard is not None:
+            projects = self.get_projects(request, organization)
             dashboard_serializer = DashboardDetailsSerializer(
                 data=current_dashboard,
                 context={
                     "organization": organization,
                     "request": request,
-                    "projects": self.get_projects(request, organization),
+                    "projects": projects,
+                    # allow_joinleave grants project access without team membership.
+                    "validation_projects": projects
+                    or self.get_projects(request, organization, include_all_accessible=True),
+                    "environment": request.GET.getlist("environment"),
                 },
             )
             if not dashboard_serializer.is_valid():

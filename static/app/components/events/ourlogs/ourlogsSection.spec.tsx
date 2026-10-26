@@ -161,7 +161,7 @@ describe('OurlogsSection', () => {
             [OurLogKnownFieldKey.MESSAGE]: 'i am a log',
           }),
         ],
-        meta: {},
+        meta: {routingHint: 'issue-log-hint'},
       },
     });
 
@@ -243,6 +243,16 @@ describe('OurlogsSection', () => {
     expect(
       screen.queryByRole('complementary', {name: 'logs drawer'})
     ).not.toBeInTheDocument();
+
+    await userEvent.hover(screen.getByTestId('log-table-row'));
+    await waitFor(() => {
+      expect(mockRowDetailsRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({routing_hint: 'issue-log-hint'}),
+        })
+      );
+    });
 
     await userEvent.click(screen.getByText(/i am a log/));
 
@@ -409,7 +419,7 @@ describe('OurlogsSection', () => {
     expect(mockRequest).not.toHaveBeenCalled();
   });
 
-  it('renders Open in explore button with correct URL when trace_id exists', async () => {
+  it('renders Open in Explore button with correct URL when trace_id exists', async () => {
     render(<OurlogsSection event={event} project={project} group={group} />, {
       organization: OrganizationFixture({
         features: ['ourlogs-enabled', 'visibility-explore-view'],
@@ -434,14 +444,14 @@ describe('OurlogsSection', () => {
     expect(aside).toBeInTheDocument();
 
     const openInExploreButton = within(aside).getByRole('button', {
-      name: 'Open in explore',
+      name: 'Open in Explore',
     });
     expect(openInExploreButton).toBeInTheDocument();
     expect(openInExploreButton).toHaveAttribute('target', '_blank');
 
     const href = openInExploreButton.getAttribute('href');
     expect(href).toBe(
-      '/organizations/org-slug/explore/logs/?end=2019-03-21T00%3A00%3A00&environment=dev&logsQuery=trace%3A00000000000000000000000000000000&project=2&start=2019-03-19T00%3A00%3A00'
+      '/organizations/org-slug/explore/logs/?end=2019-03-21T00%3A00%3A00&logsQuery=trace%3A00000000000000000000000000000000&project=-1&start=2019-03-19T00%3A00%3A00'
     );
   });
 });

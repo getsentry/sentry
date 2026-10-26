@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
+import {IconBusiness} from '@sentry/icons/business';
+import {IconQuestion} from '@sentry/icons/question';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Grid, type GridProps} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
 
-import {IconBusiness} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -12,7 +12,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
-import {getTrialDaysLeft} from 'getsentry/utils/billing';
+import {getTrialDaysLeft, isTrial} from 'getsentry/utils/billing';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 type Props = {
@@ -37,7 +37,7 @@ function TargetedOnboardingHeader({source, subscription}: Props) {
 
   // if trial is active, show info on that
   // otherwise show help button
-  const cta = subscription.isTrial ? (
+  const cta = isTrial(subscription) ? (
     <ActiveTrialWrapper
       onClick={() => openUpsellModal({organization, source: 'targeted-onboarding'})}
     >
@@ -45,21 +45,28 @@ function TargetedOnboardingHeader({source, subscription}: Props) {
       <div>{tn('%s Day Left', '%s Days Left', getTrialDaysLeft(subscription) || 0)}</div>
     </ActiveTrialWrapper>
   ) : (
-    <NeedHelpLink href="https://www.sentry.help" onClick={trackClickNeedHelp}>
-      {t('Need help?')}
-    </NeedHelpLink>
+    <LinkButton
+      href="https://www.sentry.help"
+      external
+      onClick={trackClickNeedHelp}
+      size="xs"
+      icon={<IconQuestion />}
+      variant="transparent"
+      aria-label={t('Help Center')}
+      tooltipProps={{title: t('Help Center')}}
+    />
   );
 
   return (
-    <HeaderActionBar gap="xl">
-      <SecondaryCTAWrapper>{cta}</SecondaryCTAWrapper>
+    <HeaderActionBar>
+      {cta}
       <LinkButton
         onClick={trackClickUpgrade}
         href={normalizeUrl(`/checkout/${organization.slug}/?referrer=upgrade-${source}`)}
         external
-        size="sm"
+        size="xs"
         icon={<IconBusiness />}
-        variant="secondary"
+        variant="transparent"
       >
         {t('Upgrade Now')}
       </LinkButton>
@@ -75,16 +82,6 @@ const HeaderActionBar = styled((props: GridProps) => (
   <Grid flow="column" align="center" gap="md" {...props} />
 ))`
   margin-left: ${p => p.theme.space.xl};
-`;
-
-const SecondaryCTAWrapper = styled('div')`
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: none;
-  }
-`;
-
-const NeedHelpLink = styled(ExternalLink)`
-  white-space: nowrap;
 `;
 
 const ActiveTrialHeader = styled('div')`

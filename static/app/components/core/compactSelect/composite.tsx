@@ -1,12 +1,11 @@
-import {Children, useMemo} from 'react';
+import {Children, isValidElement, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {Item} from '@react-stately/collections';
 import type {DistributedOmit} from 'type-fest';
 
 import {type ButtonProps} from '@sentry/scraps/button';
-
-import {t} from 'sentry/locale';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {ClearButton, Control} from './control';
 import type {ControlProps} from './control';
@@ -61,7 +60,7 @@ type CompositeSelectChild =
   | null
   | undefined;
 
-export interface CompositeSelectProps extends Omit<
+interface CompositeSelectProps extends Omit<
   ControlProps,
   'clearable' | 'triggerProps' | 'trigger'
 > {
@@ -86,8 +85,26 @@ function CompositeSelect({
   size = 'md',
   ...controlProps
 }: CompositeSelectProps) {
+  const {t} = useTranslation();
+  const items = useMemo(
+    () =>
+      Children.toArray(children).flatMap((child, regionIndex) => {
+        if (!isValidElement<CompositeSelectRegion<SelectKey>>(child)) {
+          return [];
+        }
+
+        const {options, isOptionDisabled} = child.props;
+        return getItemsWithKeys(options).map(option => ({
+          ...option,
+          key: `${regionIndex}-${String(option.key)}`,
+          disabled: option.disabled || isOptionDisabled?.(option),
+        }));
+      }),
+    [children]
+  );
+
   return (
-    <Control {...controlProps} mode={mode} size={size} disabled={disabled}>
+    <Control {...controlProps} mode={mode} size={size} disabled={disabled} items={items}>
       <FocusScope>
         <RegionsWrap>
           {Children.map(children, child => {
@@ -123,6 +140,8 @@ CompositeSelect.Region = function <Value extends SelectKey>(
 CompositeSelect.ClearButton = function CompositeSelectClearButton(
   props: DistributedOmit<ButtonProps, 'variant' | 'size' | 'children'>
 ) {
+  const {t} = useTranslation();
+
   return (
     <ClearButton size="zero" variant="transparent" {...props}>
       {t('Clear')}

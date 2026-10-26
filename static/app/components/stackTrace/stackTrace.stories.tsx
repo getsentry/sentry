@@ -1,5 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconGithub} from '@sentry/icons/github';
+import {IconRefresh} from '@sentry/icons/refresh';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -22,7 +25,6 @@ import {
 import {StackTraceFrames} from 'sentry/components/stackTrace/stackTraceFrames';
 import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
 import type {StackTraceViewStateProviderProps} from 'sentry/components/stackTrace/types';
-import {IconCopy, IconGithub, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
 import {
@@ -272,7 +274,7 @@ function makeCircularStackTraceData(): StackTraceStoryData {
         {...inAppRecursiveFrame},
         {...inAppRecursiveFrame},
       ],
-    } as StacktraceWithFrames,
+    },
   };
 }
 
@@ -294,7 +296,7 @@ function makeSourceMapTooltipStackTraceData(): StackTraceStoryData {
           inApp: true,
         },
       ],
-    } as StacktraceWithFrames,
+    },
   };
 }
 
@@ -315,7 +317,7 @@ function makeLongPathStackTraceData(): StackTraceStoryData {
           inApp: true,
         };
       }),
-    } as StacktraceWithFrames,
+    },
   };
 }
 
@@ -333,7 +335,7 @@ function makeLongPathAndFunctionStackTraceData(): StackTraceStoryData {
           '__with_additional_context_and_nested_handler_resolution_chain',
         inApp: true,
       })),
-    } as StacktraceWithFrames,
+    },
   };
 }
 
@@ -356,7 +358,7 @@ function makeRawFunctionAndPackageStackTraceData(): StackTraceStoryData {
             },
           ]
         : [],
-    } as StacktraceWithFrames,
+    },
   };
 }
 
@@ -398,7 +400,7 @@ function makeMixedExpandabilityStackTraceData(): StackTraceStoryData {
           package: null,
         }),
       ],
-    } as StacktraceWithFrames,
+    },
   };
 }
 
@@ -1323,7 +1325,7 @@ const WideHovercard = styled(WideHovercardBase)`
 
 const HoverActionsSlot = styled(Flex)<{visible: boolean}>`
   align-items: center;
-  gap: ${p => p.theme.space.sm};
+  gap: ${p => p.theme.space.xs};
   opacity: ${p => (p.visible ? 1 : 0)};
   pointer-events: ${p => (p.visible ? 'auto' : 'none')};
 `;

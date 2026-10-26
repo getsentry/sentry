@@ -1,4 +1,6 @@
 import {useMemo} from 'react';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconSettings} from '@sentry/icons/settings';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -15,14 +17,14 @@ import {Confirm} from 'sentry/components/confirm';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {Panel} from 'sentry/components/panels/panel';
-import {IconDelete, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
-import {legacyWebhooksQueryOptions} from './webhookDetailedView';
-import type {WebhookProject} from './webhookDetailedView';
+import {legacyWebhooksQueryOptions} from './legacyWebhooksQueryOptions';
+import type {WebhookProject} from './legacyWebhooksQueryOptions';
 
 interface WebhookConfigurationsProps {
   webhookProjects: WebhookProject[];
@@ -56,7 +58,15 @@ function useWebhookProjectMutations(project: WebhookProject) {
       addLoadingMessage(shouldEnable ? t('Enabling...') : t('Disabling...'));
       return fetchMutation({
         method: 'POST',
-        url: `/projects/${organization.slug}/${project.projectSlug}/legacy-webhooks/`,
+        url: getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/legacy-webhooks/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              projectIdOrSlug: project.projectSlug,
+            },
+          }
+        ),
         data: {enabled: shouldEnable},
       });
     },
@@ -80,7 +90,15 @@ function useWebhookProjectMutations(project: WebhookProject) {
       addLoadingMessage(t('Removing...'));
       return fetchMutation({
         method: 'DELETE',
-        url: `/projects/${organization.slug}/${project.projectSlug}/legacy-webhooks/`,
+        url: getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/legacy-webhooks/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              projectIdOrSlug: project.projectSlug,
+            },
+          }
+        ),
       });
     },
     onSuccess: () => {

@@ -45,6 +45,9 @@ def proto_to_sentry_quota_config(proto_quota: ProtoQuotaConfig) -> QuotaConfig |
     categories: list[DataCategory] = []
     for c in proto_quota.categories:
         sentry_cat = proto_to_sentry_category(c)
+        # UNKNOWN is a valid enum member, so the ValueError handler won't drop it.
+        if sentry_cat == DataCategory.UNKNOWN:
+            continue
         try:
             categories.append(DataCategory(sentry_cat))
         except ValueError:

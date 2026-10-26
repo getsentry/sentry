@@ -25,7 +25,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("seer", "0020_backfill_night_shift_run_shards"),
+        ("seer", "0001_squashed_0020_backfill_night_shift_run_shards"),
     ]
 
     operations = [

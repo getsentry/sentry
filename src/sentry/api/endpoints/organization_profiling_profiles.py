@@ -22,7 +22,12 @@ from sentry.api.serializers.models.profilechunkattachment import (
     ProfileChunkAttachmentSerializerResponse,
 )
 from sentry.api.utils import handle_query_errors
-from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
 from sentry.apidocs.examples.profiling_examples import ProfilingExamples
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
@@ -196,14 +201,6 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
         )
 
 
-PROFILER_ID_QUERY_PARAM = OpenApiParameter(
-    name="profiler_id",
-    location="query",
-    required=True,
-    type=str,
-    description="The continuous-profiler ID to fetch chunks for.",
-)
-
 CHUNKS_PROJECT_PARAM = OpenApiParameter(
     name="project",
     location="query",
@@ -211,6 +208,13 @@ CHUNKS_PROJECT_PARAM = OpenApiParameter(
     type=str,
     description="The ID or slug of the project to fetch chunks for. Exactly one project must be specified.",
 )
+
+
+class OrganizationProfilingChunksQuerySerializer(serializers.Serializer):
+    profiler_id = serializers.UUIDField(
+        format="hex",
+        help_text="The continuous-profiler ID to fetch chunks for.",
+    )
 
 
 @extend_schema(tags=["Profiling"])
@@ -229,19 +233,22 @@ class OrganizationProfilingChunksEndpoint(OrganizationProfilingBaseEndpoint):
             GlobalParams.STATS_PERIOD,
             GlobalParams.START,
             GlobalParams.END,
-            PROFILER_ID_QUERY_PARAM,
+            OrganizationProfilingChunksQuerySerializer,
         ],
         responses={
             200: inline_sentry_response_serializer(
                 "OrganizationProfilingChunksResponse", dict[str, Any]
             ),
+            400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
         examples=ProfilingExamples.PROFILE_CHUNKS,
     )
-    def get(self, request: Request, organization: Organization) -> Response[None] | HttpResponse:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[None] | Response[ValidationErrorResponse] | HttpResponse:
         """
         Retrieve continuous profiling data for a profiler over a time range.
 
@@ -259,9 +266,10 @@ class OrganizationProfilingChunksEndpoint(OrganizationProfilingBaseEndpoint):
         if project_ids is None or len(project_ids) != 1:
             raise ParseError(detail="one project_id must be specified.")
 
-        profiler_id = request.query_params.get("profiler_id")
-        if profiler_id is None:
-            raise ParseError(detail="profiler_id must be specified.")
+        serializer = OrganizationProfilingChunksQuerySerializer(data=request.query_params)
+        if not serializer.is_valid():
+            return Response(as_validation_errors(serializer), status=400)
+        profiler_id = serializer.validated_data["profiler_id"].hex
 
         chunk_ids = get_chunk_ids(snuba_params, profiler_id, project_ids[0])
 
@@ -305,7 +313,7 @@ class OrganizationProfilingChunkAttachmentsEndpoint(OrganizationProfilingBaseEnd
             GlobalParams.STATS_PERIOD,
             GlobalParams.START,
             GlobalParams.END,
-            PROFILER_ID_QUERY_PARAM,
+            OrganizationProfilingChunksQuerySerializer,
             CHUNK_ID_QUERY_PARAM,
         ],
         responses={
@@ -313,12 +321,15 @@ class OrganizationProfilingChunkAttachmentsEndpoint(OrganizationProfilingBaseEnd
                 "OrganizationProfilingChunkAttachmentsResponse",
                 list[ProfileChunkAttachmentSerializerResponse],
             ),
+            400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, organization: Organization) -> HttpResponse:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[ValidationErrorResponse] | HttpResponse:
         """
         List attachments (e.g. Perfetto traces) for a profiler's chunks.
 
@@ -339,9 +350,10 @@ class OrganizationProfilingChunkAttachmentsEndpoint(OrganizationProfilingBaseEnd
         if project_ids is None or len(project_ids) != 1:
             raise ParseError(detail="one project_id must be specified.")
 
-        profiler_id = request.query_params.get("profiler_id")
-        if profiler_id is None:
-            raise ParseError(detail="profiler_id must be specified.")
+        serializer = OrganizationProfilingChunksQuerySerializer(data=request.query_params)
+        if not serializer.is_valid():
+            return Response(as_validation_errors(serializer), status=400)
+        profiler_id = serializer.validated_data["profiler_id"].hex
 
         chunk_id = request.query_params.get("chunk_id")
         if chunk_id is not None:

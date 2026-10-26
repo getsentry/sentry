@@ -1,10 +1,16 @@
 from datetime import datetime
 from unittest.mock import patch
 
+from django.urls import reverse
+
 from sentry import audit_log
-from sentry.api.endpoints.project_custom_inbound_filters import MAX_CONDITIONS_PER_FILTER
+from sentry.api.endpoints.project_custom_inbound_filters import (
+    MAX_CONDITION_VALUE_CHARS_PER_FILTER,
+    MAX_CONDITIONS_PER_FILTER,
+)
+from sentry.ingest.legacy_filter_lists import served_legacy_filters
 from sentry.models.auditlogentry import AuditLogEntry
-from sentry.models.custominboundfilter import CustomInboundFilter
+from sentry.models.custominboundfilter import CustomInboundFilter, LegacyFilter
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
@@ -22,16 +28,80 @@ class CustomInboundFiltersTest(APITestCase):
         self.project = self.create_project(organization=self.organization, teams=[self.team])
         self.login_as(user=self.user)
 
+    def test_get_lists_the_row_of_a_legacy_list_with_its_id(self) -> None:
+        # With the inbound-filters-v2 feature the API serves the row of every legacy
+        # list and marks it.
+        legacy_row = self.create_project_custom_inbound_filter(
+            project=self.project,
+            data_type="all",
+            conditions=[{"type": "release", "value": ["1.*"]}],
+            legacy_filter=LegacyFilter.RELEASE_VERSION,
+        )
+        mine = self.create_project_custom_inbound_filter(project=self.project, name="Mine")
+
+        with self.feature(self.features):
+            response = self.get_success_response(self.organization.slug, self.project.slug)
+
+        assert [(item["id"], item["legacyFilter"]) for item in response.data] == [
+            (str(legacy_row.id), "release-version"),
+            (str(mine.id), None),
+        ]
+
+    def test_legacy_rows_stay_hidden_without_the_feature(self) -> None:
+        # Without the inbound-filters-v2 feature there is no v2 API, and the rows stay
+        # hidden from every reader of the table.
+        assert served_legacy_filters(self.organization) == []
+
+    @patch("sentry.api.endpoints.project_custom_inbound_filters.MAX_FILTERS_PER_PROJECT", 1)
+    def test_post_does_not_count_a_hidden_row_against_the_cap(self) -> None:
+        self.create_project_custom_inbound_filter(
+            project=self.project,
+            data_type="all",
+            conditions=[{"type": "release", "value": ["1.*"]}],
+            legacy_filter=LegacyFilter.RELEASE_VERSION,
+        )
+
+        with self.feature(self.features):
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                status_code=201,
+                name="Mine",
+                dataType="all",
+                conditions=[{"type": "release", "operator": "starts_with", "value": ["2."]}],
+            )
+
+    def test_post_cannot_set_legacy_filter(self) -> None:
+        with self.feature(self.features):
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                status_code=201,
+                name="Mine",
+                dataType="all",
+                conditions=[{"type": "release", "operator": "starts_with", "value": ["1."]}],
+                legacyFilter="release-version",
+                legacy_filter="release-version",
+            )
+
+        assert response.data["legacyFilter"] is None
+        row = CustomInboundFilter.objects.get(id=response.data["id"])
+        assert row.legacy_filter is None
+
     def test_get(self) -> None:
         first_filter = self.create_project_custom_inbound_filter(
             project=self.project,
             name="Release filter",
+            data_type="all",
             conditions=[{"type": "release", "value": ["1.*"]}],
         )
         second_filter = self.create_project_custom_inbound_filter(
             project=self.project,
             name="Error filter",
             active=False,
+            data_type="error",
             conditions=[{"type": "error_message", "value": ["TypeError*"]}],
         )
 
@@ -44,23 +114,28 @@ class CustomInboundFiltersTest(APITestCase):
         assert datetime.fromisoformat(second_data.pop("dateCreated")) == second_filter.date_added
         assert datetime.fromisoformat(second_data.pop("dateUpdated")) == second_filter.date_updated
 
+        # A row stored before operators existed comes back as stored, without one.
         assert first_data == {
             "id": str(first_filter.id),
             "name": "Release filter",
             "active": True,
+            "dataType": "all",
             "conditions": [{"type": "release", "value": ["1.*"]}],
+            "legacyFilter": None,
         }
         assert second_data == {
             "id": str(second_filter.id),
             "name": "Error filter",
             "active": False,
+            "dataType": "error",
             "conditions": [{"type": "error_message", "value": ["TypeError*"]}],
+            "legacyFilter": None,
         }
 
     def test_post(self) -> None:
         conditions = [
-            {"type": "release", "value": ["1.*"]},
-            {"type": "error_message", "value": ["TypeError*"]},
+            {"type": "release", "operator": "starts_with", "value": ["1."]},
+            {"type": "error_message", "operator": "contains", "value": ["TypeError"]},
         ]
 
         with self.feature(self.features), outbox_runner():
@@ -70,6 +145,7 @@ class CustomInboundFiltersTest(APITestCase):
                 method="post",
                 name="Important errors",
                 active=False,
+                dataType="error",
                 conditions=conditions,
                 status_code=201,
             )
@@ -78,6 +154,7 @@ class CustomInboundFiltersTest(APITestCase):
         assert custom_filter.project_id == self.project.id
         assert custom_filter.name == "Important errors"
         assert custom_filter.active is False
+        assert custom_filter.data_type == "error"
         assert custom_filter.conditions == conditions
 
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -88,16 +165,18 @@ class CustomInboundFiltersTest(APITestCase):
         assert audit_entry.target_object == custom_filter.id
         assert audit_entry.data["operation"] == "add"
         assert audit_entry.data["filter_name"] == "Important errors"
+        assert audit_entry.data["data_type"] == "error"
         assert audit_entry.data["conditions"] == conditions
 
     def test_post_without_name(self) -> None:
-        conditions = [{"type": "release", "value": ["1.*"]}]
+        conditions = [{"type": "release", "operator": "starts_with", "value": ["1."]}]
 
         with self.feature(self.features), outbox_runner():
             response = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
                 method="post",
+                dataType="error",
                 conditions=conditions,
                 status_code=201,
             )
@@ -106,42 +185,407 @@ class CustomInboundFiltersTest(APITestCase):
         assert response.data["name"] is None
         assert custom_filter.name is None
 
-    def test_without_inbound_filters_v2_feature(self) -> None:
-        with self.feature(["projects:custom-inbound-filters"]):
-            self.get_error_response(self.organization.slug, self.project.slug, status_code=404)
-
-    def test_without_custom_inbound_filters_plan_feature(self) -> None:
-        with self.feature(["organizations:inbound-filters-v2"]):
-            response = self.get_error_response(
-                self.organization.slug, self.project.slug, status_code=400
-            )
-
-        assert response.data["detail"] == "You do not have that feature enabled"
-
-    def test_rejects_incompatible_primary_conditions(self) -> None:
-        conditions = [
-            {"type": "error_message", "value": ["TypeError*"]},
-            {"type": "log_message", "value": ["Rate limit*"]},
-        ]
-
-        with self.feature([*self.features, "organizations:ourlogs-ingestion"]):
+    def test_post_requires_operator(self) -> None:
+        with self.feature(self.features):
             response = self.get_error_response(
                 self.organization.slug,
                 self.project.slug,
                 method="post",
-                name="Mixed data types",
-                conditions=conditions,
+                dataType="error",
+                conditions=[{"type": "release", "value": ["1.*"]}],
             )
 
-        assert (
-            str(response.data["conditions"][0])
-            == "Only one of error_message, log_message, or metric_name can be used in a filter."
+        assert str(response.data["conditions"][0]["operator"][0]) == "This field is required."
+        assert not CustomInboundFilter.objects.filter(project_id=self.project.id).exists()
+
+    def test_post_stores_glob_characters_as_typed(self) -> None:
+        """The API never reads a value as a glob, so Relay gets the escaping, not the row."""
+        conditions = [
+            {"type": "error_message", "operator": "contains", "value": ["*[401]*", "a?b"]},
+            {"type": "release", "operator": "equals", "value": ["{1,2}.0"]},
+        ]
+
+        with self.feature(self.features), outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                dataType="error",
+                conditions=conditions,
+                status_code=201,
+            )
+
+        custom_filter = CustomInboundFilter.objects.get(id=response.data["id"])
+        assert response.data["conditions"] == conditions
+        assert custom_filter.conditions == conditions
+
+    def test_post_glob_and_negated_operators(self) -> None:
+        conditions = [
+            {"type": "release", "operator": "glob", "value": ["1.*", "2.?"]},
+            {"type": "error_message", "operator": "does_not_contain", "value": ["timeout"]},
+        ]
+
+        with self.feature(self.features), outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                name="Old releases without timeouts",
+                dataType="error",
+                conditions=conditions,
+                status_code=201,
+            )
+
+        custom_filter = CustomInboundFilter.objects.get(id=response.data["id"])
+        assert response.data["conditions"] == conditions
+        assert custom_filter.conditions == conditions
+
+    def test_post_release_comparison(self) -> None:
+        conditions = [
+            {"type": "release", "operator": "gte", "value": ["1.2.0"]},
+            {"type": "release", "operator": "lt", "value": ["myapp@2.0"]},
+        ]
+
+        with self.feature(self.features), outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                name="Old versions",
+                dataType="all",
+                conditions=conditions,
+                status_code=201,
+            )
+
+        custom_filter = CustomInboundFilter.objects.get(id=response.data["id"])
+        assert response.data["conditions"] == conditions
+        assert custom_filter.conditions == conditions
+
+    def test_rejects_unknown_operator(self) -> None:
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                dataType="error",
+                conditions=[{"type": "release", "operator": "matches", "value": ["1.*"]}],
+            )
+
+        assert '"matches" is not a valid choice.' in str(
+            response.data["conditions"][0]["operator"][0]
         )
+
+    def test_rejects_operator_the_field_does_not_take(self) -> None:
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                dataType="error",
+                conditions=[
+                    {"type": "release", "operator": "glob", "value": ["1.*"]},
+                    {"type": "ip_address", "operator": "glob", "value": ["10.0.0.0/8"]},
+                ],
+            )
+
+        assert response.data["conditions"][0] == {}
+        assert str(response.data["conditions"][1]["operator"][0]) == (
+            "The ip_address condition does not take the glob operator. It accepts cidr, not_cidr."
+        )
+
+    def test_rejects_comparison_on_a_field_that_is_not_a_release(self) -> None:
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                dataType="error",
+                conditions=[
+                    {"type": "release", "operator": "gte", "value": ["1.2.0"]},
+                    {"type": "error_message", "operator": "gt", "value": ["1.2.0"]},
+                ],
+            )
+
+        assert response.data["conditions"][0] == {}
+        assert str(response.data["conditions"][1]["operator"][0]) == (
+            "The error_message condition does not take the gt operator. "
+            "It accepts glob, equals, starts_with, contains, ends_with, does_not_start_with, "
+            "does_not_contain, does_not_end_with."
+        )
+
+    def test_rejects_text_operator_on_ip_address(self) -> None:
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                dataType="error",
+                conditions=[{"type": "ip_address", "operator": "starts_with", "value": ["10."]}],
+            )
+
+        assert str(response.data["conditions"][0]["operator"][0]) == (
+            "The ip_address condition does not take the starts_with operator. "
+            "It accepts cidr, not_cidr."
+        )
+
+    def test_rejects_comparison_with_several_values(self) -> None:
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                dataType="error",
+                conditions=[{"type": "release", "operator": "lte", "value": ["1.2.0", "2.0.0"]}],
+            )
+
+        assert str(response.data["conditions"][0]["value"][0]) == (
+            "The lte operator takes exactly one value."
+        )
+
+    def test_rejects_comparison_against_a_release_without_a_version(self) -> None:
+        cases = ["2*", "a4b7e0f9c2d1", "1.0/beta", "x" * 300]
+
+        for value in cases:
+            with self.feature(self.features):
+                response = self.get_error_response(
+                    self.organization.slug,
+                    self.project.slug,
+                    method="post",
+                    dataType="error",
+                    conditions=[{"type": "release", "operator": "gt", "value": [value]}],
+                )
+
+            assert str(response.data["conditions"][0]["value"][0]) == (
+                f"{value} is not a release with a version such as 1.2.0 or myapp@1.2.0."
+            )
+
+    def test_without_inbound_filters_v2_feature(self) -> None:
+        with self.feature(["projects:custom-inbound-filters"]):
+            self.get_error_response(self.organization.slug, self.project.slug, status_code=404)
+
+    def test_lists_without_custom_inbound_filters_plan_feature(self) -> None:
+        custom_filter = self.create_project_custom_inbound_filter(project=self.project)
+
+        with self.feature(["organizations:inbound-filters-v2"]):
+            response = self.get_success_response(self.organization.slug, self.project.slug)
+
+        assert [f["id"] for f in response.data] == [str(custom_filter.id)]
+
+    def test_rejects_condition_the_data_type_does_not_carry(self) -> None:
+        cases = [
+            (
+                "error",
+                [
+                    {"type": "error_message", "operator": "starts_with", "value": ["TypeError"]},
+                    {"type": "log_message", "operator": "starts_with", "value": ["Rate limit"]},
+                ],
+                "A filter on error data cannot use the log_message condition. "
+                "It accepts error_type, error_message, release, ip_address, geo_country_code.",
+            ),
+            (
+                "log",
+                [
+                    {"type": "error_type", "operator": "equals", "value": ["TypeError"]},
+                    {"type": "log_message", "operator": "starts_with", "value": ["Rate limit"]},
+                ],
+                "A filter on log data cannot use the error_type condition. "
+                "It accepts log_message, release, ip_address.",
+            ),
+            (
+                "span",
+                [
+                    {"type": "release", "operator": "starts_with", "value": ["1."]},
+                    {"type": "metric_name", "operator": "starts_with", "value": ["counter."]},
+                ],
+                "A filter on span data cannot use the metric_name condition. "
+                "It accepts release, ip_address.",
+            ),
+            (
+                "all",
+                [
+                    {"type": "release", "operator": "starts_with", "value": ["1."]},
+                    {"type": "error_message", "operator": "starts_with", "value": ["TypeError"]},
+                ],
+                "A filter on all data cannot use the error_message condition. "
+                "It accepts release, ip_address.",
+            ),
+            (
+                "all",
+                [{"type": "geo_country_code", "operator": "equals", "value": ["US"]}],
+                "A filter on all data cannot use the geo_country_code condition. "
+                "It accepts release, ip_address.",
+            ),
+        ]
+
+        for data_type, conditions, expected in cases:
+            with self.feature([*self.features, "organizations:ourlogs-ingestion"]):
+                response = self.get_error_response(
+                    self.organization.slug,
+                    self.project.slug,
+                    method="post",
+                    name="Mixed data types",
+                    dataType=data_type,
+                    conditions=conditions,
+                )
+
+            assert str(response.data["conditions"][0]) == expected
+
+    def test_post_catch_all(self) -> None:
+        conditions = [{"type": "release", "operator": "starts_with", "value": ["1."]}]
+
+        with self.feature(self.features), outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                name="Bad release, every data type",
+                dataType="all",
+                conditions=conditions,
+                status_code=201,
+            )
+
+        custom_filter = CustomInboundFilter.objects.get(id=response.data["id"])
+        assert response.data["dataType"] == "all"
+        assert custom_filter.data_type == "all"
+
+    def test_post_span(self) -> None:
+        """Relay ingests spans for every organization, so a span filter needs no feature."""
+        with self.feature(self.features), outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                name="Spans from a bad release",
+                dataType="span",
+                conditions=[{"type": "release", "operator": "starts_with", "value": ["1."]}],
+                status_code=201,
+            )
+
+        custom_filter = CustomInboundFilter.objects.get(id=response.data["id"])
+        assert response.data["dataType"] == "span"
+        assert custom_filter.data_type == "span"
+
+    def test_post_ip_address(self) -> None:
+        """An IP condition reads the envelope, so every data type takes it."""
+        conditions = [
+            {"type": "ip_address", "operator": "cidr", "value": ["10.0.0.0/8", "2001:db8::1"]}
+        ]
+
+        with self.feature(self.features), outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                name="Block the office",
+                dataType="all",
+                conditions=conditions,
+                status_code=201,
+            )
+
+        custom_filter = CustomInboundFilter.objects.get(id=response.data["id"])
+        assert response.data["conditions"] == conditions
+        assert custom_filter.conditions == conditions
+
+    def test_post_geo_country_code(self) -> None:
+        """A country code is free text: Relay compares it case-insensitively."""
+        conditions = [{"type": "geo_country_code", "operator": "equals", "value": ["US", "ca"]}]
+
+        with self.feature(self.features), outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                name="Drop North America",
+                dataType="error",
+                conditions=conditions,
+                status_code=201,
+            )
+
+        custom_filter = CustomInboundFilter.objects.get(id=response.data["id"])
+        assert response.data["conditions"] == conditions
+        assert custom_filter.conditions == conditions
+
+    def test_rejects_ip_address_that_does_not_parse(self) -> None:
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                name="Typo",
+                dataType="error",
+                conditions=[
+                    {
+                        "type": "ip_address",
+                        "operator": "cidr",
+                        "value": ["10.0.0.0/8", "10.0.0.*", "nope"],
+                    }
+                ],
+            )
+
+        assert str(response.data["conditions"][0]["value"][0]) == (
+            "10.0.0.*, nope is not an IP address or CIDR range."
+        )
+
+    def test_catch_all_needs_no_ingestion_feature(self) -> None:
+        """The catch-all filters whichever data types the organization ingests."""
+        with self.feature(self.features):
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                name="Bad release",
+                dataType="all",
+                conditions=[{"type": "release", "operator": "starts_with", "value": ["1."]}],
+                status_code=201,
+            )
+
+    def test_rejects_unknown_data_type(self) -> None:
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                dataType="replay",
+                conditions=[{"type": "release", "operator": "starts_with", "value": ["1."]}],
+            )
+
+        assert '"replay" is not a valid choice.' in str(response.data["dataType"][0])
+
+    def test_rejects_missing_data_type(self) -> None:
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                conditions=[{"type": "release", "operator": "starts_with", "value": ["1."]}],
+            )
+
+        assert str(response.data["dataType"][0]) == "This field is required."
+
+    def test_allows_error_type_with_error_message(self) -> None:
+        conditions = [
+            {"type": "error_type", "operator": "equals", "value": ["TypeError"]},
+            {"type": "error_message", "operator": "contains", "value": ["undefined"]},
+        ]
+
+        with self.feature(self.features):
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                name="Type and message",
+                dataType="error",
+                conditions=conditions,
+                status_code=201,
+            )
+
+        custom_filter = CustomInboundFilter.objects.get(id=response.data["id"])
+        assert custom_filter.conditions == conditions
 
     def test_allows_duplicate_condition_types(self) -> None:
         conditions = [
-            {"type": "release", "value": [">2"]},
-            {"type": "release", "value": ["<4"]},
+            {"type": "release", "operator": "gt", "value": ["2.0"]},
+            {"type": "release", "operator": "lt", "value": ["4.0"]},
         ]
 
         with self.feature(self.features):
@@ -150,6 +594,7 @@ class CustomInboundFiltersTest(APITestCase):
                 self.project.slug,
                 method="post",
                 name="Release range",
+                dataType="error",
                 conditions=conditions,
                 status_code=201,
             )
@@ -164,6 +609,7 @@ class CustomInboundFiltersTest(APITestCase):
                 self.project.slug,
                 method="post",
                 name="",
+                dataType="error",
                 conditions=[],
             )
 
@@ -177,14 +623,16 @@ class CustomInboundFiltersTest(APITestCase):
                 self.project.slug,
                 method="post",
                 name="Empty value",
-                conditions=[{"type": "release", "value": []}],
+                dataType="error",
+                conditions=[{"type": "release", "operator": "equals", "value": []}],
             )
 
         assert str(response.data["conditions"][0]["value"][0]) == "This list may not be empty."
 
     def test_rejects_too_many_conditions(self) -> None:
         conditions = [
-            {"type": "release", "value": [str(i)]} for i in range(MAX_CONDITIONS_PER_FILTER + 1)
+            {"type": "release", "operator": "equals", "value": [str(i)]}
+            for i in range(MAX_CONDITIONS_PER_FILTER + 1)
         ]
 
         with self.feature(self.features):
@@ -192,10 +640,52 @@ class CustomInboundFiltersTest(APITestCase):
                 self.organization.slug,
                 self.project.slug,
                 method="post",
+                dataType="error",
                 conditions=conditions,
             )
 
         assert "no more than" in str(response.data["conditions"]["non_field_errors"][0])
+
+    def test_rejects_oversized_condition_values(self) -> None:
+        half = "a" * (MAX_CONDITION_VALUE_CHARS_PER_FILTER // 2)
+        conditions = [
+            {"type": "release", "operator": "equals", "value": [half]},
+            {"type": "error_message", "operator": "equals", "value": [half, "x"]},
+        ]
+
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                dataType="error",
+                conditions=conditions,
+            )
+
+        assert str(response.data["conditions"][0]) == (
+            f"A filter's condition values can have at most "
+            f"{MAX_CONDITION_VALUE_CHARS_PER_FILTER} characters in total."
+        )
+        assert not CustomInboundFilter.objects.filter(project_id=self.project.id).exists()
+
+    def test_allows_condition_values_at_the_size_cap(self) -> None:
+        conditions = [
+            {
+                "type": "release",
+                "operator": "equals",
+                "value": ["a" * MAX_CONDITION_VALUE_CHARS_PER_FILTER],
+            }
+        ]
+
+        with self.feature(self.features):
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                dataType="error",
+                conditions=conditions,
+                status_code=201,
+            )
 
     @patch(
         "sentry.api.endpoints.project_custom_inbound_filters.MAX_FILTERS_PER_PROJECT",
@@ -210,26 +700,28 @@ class CustomInboundFiltersTest(APITestCase):
                 self.organization.slug,
                 self.project.slug,
                 method="post",
-                conditions=[{"type": "release", "value": ["1.*"]}],
+                dataType="error",
+                conditions=[{"type": "release", "operator": "starts_with", "value": ["1."]}],
             )
 
         assert "at most 2" in response.data["detail"]
         assert CustomInboundFilter.objects.filter(project_id=self.project.id).count() == 2
 
-    def test_rejects_conditions_without_required_ingestion_feature(self) -> None:
+    def test_rejects_data_type_without_required_ingestion_feature(self) -> None:
         cases = [
-            ("log_message", ["Rate limit*"], "Log message filters are not enabled"),
-            ("metric_name", ["counter.*"], "Metric name filters are not enabled"),
+            ("log", "log_message", ["Rate limit*"], "Log filters are not enabled"),
+            ("metric", "metric_name", ["counter.*"], "Metric filters are not enabled"),
         ]
-        for condition_type, value, expected in cases:
+        for data_type, condition_type, value, expected in cases:
             with self.feature(self.features):
                 response = self.get_error_response(
                     self.organization.slug,
                     self.project.slug,
                     method="post",
+                    dataType=data_type,
                     conditions=[{"type": condition_type, "value": value}],
                 )
-            assert expected in str(response.data["conditions"][0])
+            assert expected in str(response.data["dataType"][0])
 
 
 class CustomInboundFilterDetailsTest(APITestCase):
@@ -245,9 +737,150 @@ class CustomInboundFilterDetailsTest(APITestCase):
         self.custom_filter = self.create_project_custom_inbound_filter(
             project=self.project,
             name="Original filter",
-            conditions=[{"type": "release", "value": ["1.*"]}],
+            data_type="error",
+            conditions=[{"type": "release", "operator": "starts_with", "value": ["1."]}],
         )
         self.login_as(user=self.user)
+
+    def test_put_cannot_set_legacy_filter(self) -> None:
+        with self.feature(self.features), outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.custom_filter.id,
+                legacyFilter="release-version",
+                legacy_filter="release-version",
+            )
+
+        assert response.data["legacyFilter"] is None
+        self.custom_filter.refresh_from_db()
+        assert self.custom_filter.legacy_filter is None
+
+    def create_legacy_row(self) -> CustomInboundFilter:
+        self.project.update_option("sentry:releases", ["1.*"])
+        return self.create_project_custom_inbound_filter(
+            project=self.project,
+            name="Releases",
+            data_type="all",
+            conditions=[{"type": "release", "operator": "glob", "value": ["1.*"]}],
+            legacy_filter=LegacyFilter.RELEASE_VERSION,
+        )
+
+    def test_legacy_row_edits_its_lines_in_the_row_and_in_the_option(self) -> None:
+        legacy_row = self.create_legacy_row()
+
+        with self.feature(self.features), outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                legacy_row.id,
+                name="Old builds",
+                active=False,
+                # Stored the way the project settings store the list: trimmed, blank lines
+                # dropped, and releases lowercased.
+                conditions=[
+                    {"type": "release", "operator": "glob", "value": [" 2.* ", "# Beta", "3.*"]}
+                ],
+            )
+
+        lines = ["2.*", "# beta", "3.*"]
+        condition = {"type": "release", "operator": "glob", "value": lines}
+        assert response.data["legacyFilter"] == "release-version"
+        assert response.data["conditions"] == [condition]
+        legacy_row.refresh_from_db()
+        assert legacy_row.name == "Old builds"
+        assert legacy_row.active is False
+        assert legacy_row.conditions == [condition]
+        assert self.project.get_option("sentry:releases") == lines
+
+    def test_legacy_row_without_operator_takes_a_partial_update(self) -> None:
+        # The backfill wrote the rows without an operator, which reads as glob.
+        legacy_row = self.create_project_custom_inbound_filter(
+            project=self.project,
+            name="Releases",
+            data_type="all",
+            conditions=[{"type": "release", "value": ["1.*"]}],
+            legacy_filter=LegacyFilter.RELEASE_VERSION,
+        )
+
+        with self.feature(self.features), outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                legacy_row.id,
+                name="Old builds",
+                active=False,
+            )
+
+        assert response.data["name"] == "Old builds"
+        assert response.data["active"] is False
+        legacy_row.refresh_from_db()
+        assert legacy_row.conditions == [{"type": "release", "value": ["1.*"]}]
+
+    def test_legacy_row_keeps_its_data_type_and_its_one_condition(self) -> None:
+        legacy_row = self.create_legacy_row()
+
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                legacy_row.id,
+                status_code=400,
+                dataType="error",
+            )
+            assert (
+                response.data["dataType"][0]
+                == "The data type cannot be changed on the Releases filter."
+            )
+
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                legacy_row.id,
+                status_code=400,
+                conditions=[
+                    {"type": "release", "operator": "glob", "value": ["2.*"]},
+                    {"type": "ip_address", "operator": "cidr", "value": ["10.0.0.0/8"]},
+                ],
+            )
+            assert "cannot be changed on the Releases filter" in str(response.data["conditions"][0])
+
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                legacy_row.id,
+                status_code=400,
+                conditions=[{"type": "ip_address", "operator": "cidr", "value": ["10.0.0.0/8"]}],
+            )
+            assert "cannot be changed on the Releases filter" in str(response.data["conditions"][0])
+
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                legacy_row.id,
+                status_code=400,
+                conditions=[{"type": "release", "operator": "starts_with", "value": ["2."]}],
+            )
+            assert "cannot be changed on the Releases filter" in str(response.data["conditions"][0])
+
+        legacy_row.refresh_from_db()
+        assert legacy_row.data_type == "all"
+        assert legacy_row.conditions == [{"type": "release", "operator": "glob", "value": ["1.*"]}]
+
+    def test_legacy_row_delete_empties_the_list(self) -> None:
+        legacy_row = self.create_legacy_row()
+
+        with self.feature(self.features), outbox_runner():
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                legacy_row.id,
+                method="delete",
+                status_code=204,
+            )
+
+        assert not CustomInboundFilter.objects.filter(id=legacy_row.id).exists()
+        assert self.project.get_option("sentry:releases") == []
 
     def test_get(self) -> None:
         with self.feature(self.features):
@@ -261,10 +894,15 @@ class CustomInboundFilterDetailsTest(APITestCase):
         assert response.data["id"] == str(self.custom_filter.id)
         assert response.data["name"] == "Original filter"
         assert response.data["active"] is True
-        assert response.data["conditions"] == [{"type": "release", "value": ["1.*"]}]
+        assert response.data["dataType"] == "error"
+        assert response.data["conditions"] == [
+            {"type": "release", "operator": "starts_with", "value": ["1."]}
+        ]
 
     def test_put(self) -> None:
-        new_conditions = [{"type": "error_message", "value": ["TypeError*"]}]
+        new_conditions = [
+            {"type": "error_message", "operator": "starts_with", "value": ["TypeError"]}
+        ]
 
         with self.feature(self.features), outbox_runner():
             response = self.get_success_response(
@@ -296,7 +934,7 @@ class CustomInboundFilterDetailsTest(APITestCase):
             "name": {"old": "Original filter", "new": "Renamed filter"},
             "active": {"old": True, "new": False},
             "conditions": {
-                "old": [{"type": "release", "value": ["1.*"]}],
+                "old": [{"type": "release", "operator": "starts_with", "value": ["1."]}],
                 "new": new_conditions,
             },
         }
@@ -314,7 +952,9 @@ class CustomInboundFilterDetailsTest(APITestCase):
         assert response.data["active"] is False
         assert self.custom_filter.active is False
         assert self.custom_filter.name == "Original filter"
-        assert self.custom_filter.conditions == [{"type": "release", "value": ["1.*"]}]
+        assert self.custom_filter.conditions == [
+            {"type": "release", "operator": "starts_with", "value": ["1."]}
+        ]
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             audit_entry = AuditLogEntry.objects.get(
@@ -323,6 +963,58 @@ class CustomInboundFilterDetailsTest(APITestCase):
             )
         assert audit_entry.data["operation"] == "edit"
         assert audit_entry.data["changes"] == {"active": {"old": True, "new": False}}
+
+    def test_put_requires_operator(self) -> None:
+        """A partial update skips required fields, so the operator is checked by hand."""
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                self.custom_filter.id,
+                conditions=[{"type": "release", "value": ["2.*"]}],
+            )
+
+        assert str(response.data["conditions"][0]["operator"][0]) == "This field is required."
+        self.custom_filter.refresh_from_db()
+        assert self.custom_filter.conditions == [
+            {"type": "release", "operator": "starts_with", "value": ["1."]}
+        ]
+
+    def test_put_rejects_comparison_on_a_field_that_is_not_a_release(self) -> None:
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                self.custom_filter.id,
+                conditions=[{"type": "error_type", "operator": "lt", "value": ["1.0"]}],
+            )
+
+        assert str(response.data["conditions"][0]["operator"][0]) == (
+            "The error_type condition does not take the lt operator. "
+            "It accepts glob, equals, starts_with, contains, ends_with, does_not_start_with, "
+            "does_not_contain, does_not_end_with."
+        )
+        self.custom_filter.refresh_from_db()
+        assert self.custom_filter.conditions == [
+            {"type": "release", "operator": "starts_with", "value": ["1."]}
+        ]
+
+    def test_put_name_only_change_skips_project_config_invalidation(self) -> None:
+        with (
+            self.feature(self.features),
+            outbox_runner(),
+            patch(
+                "sentry.api.endpoints.project_custom_inbound_filters.schedule_invalidate_project_config"
+            ) as mock_invalidate,
+        ):
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.custom_filter.id,
+                name="Renamed filter",
+            )
+
+        mock_invalidate.assert_not_called()
 
     def test_put_no_changes_skips_audit_log(self) -> None:
         with self.feature(self.features), outbox_runner():
@@ -339,24 +1031,153 @@ class CustomInboundFilterDetailsTest(APITestCase):
                 event=audit_log.get_event_id("CUSTOM_INBOUND_FILTER"),
             ).exists()
 
-    def test_put_rejects_incompatible_primary_conditions(self) -> None:
-        conditions = [
-            {"type": "error_message", "value": ["TypeError*"]},
-            {"type": "log_message", "value": ["Rate limit*"]},
-        ]
-
+    def test_put_validates_new_conditions_against_stored_data_type(self) -> None:
+        """A partial update sending conditions alone keeps the stored data type."""
         with self.feature([*self.features, "organizations:ourlogs-ingestion"]):
             response = self.get_error_response(
                 self.organization.slug,
                 self.project.slug,
                 self.custom_filter.id,
-                conditions=conditions,
+                conditions=[
+                    {"type": "log_message", "operator": "starts_with", "value": ["Rate limit"]}
+                ],
             )
 
         assert (
             str(response.data["conditions"][0])
-            == "Only one of error_message, log_message, or metric_name can be used in a filter."
+            == "A filter on error data cannot use the log_message condition. "
+            "It accepts error_type, error_message, release, ip_address, geo_country_code."
         )
+
+    def test_put_to_catch_all(self) -> None:
+        with self.feature(self.features), outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.custom_filter.id,
+                dataType="all",
+            )
+
+        self.custom_filter.refresh_from_db()
+        assert response.data["dataType"] == "all"
+        assert self.custom_filter.data_type == "all"
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            audit_entry = AuditLogEntry.objects.get(
+                organization_id=self.organization.id,
+                event=audit_log.get_event_id("CUSTOM_INBOUND_FILTER"),
+            )
+        assert audit_entry.data["changes"] == {"data_type": {"old": "error", "new": "all"}}
+
+    def test_put_widening_data_type_and_conditions_together(self) -> None:
+        """A data type and the conditions it allows are validated as one update."""
+        with self.feature(self.features), outbox_runner():
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.custom_filter.id,
+                dataType="all",
+                conditions=[{"type": "release", "operator": "starts_with", "value": ["2."]}],
+            )
+
+        self.custom_filter.refresh_from_db()
+        assert self.custom_filter.data_type == "all"
+        assert self.custom_filter.conditions == [
+            {"type": "release", "operator": "starts_with", "value": ["2."]}
+        ]
+
+    def test_put_rejects_data_type_the_stored_conditions_do_not_fit(self) -> None:
+        """Widening alone would strand conditions the new data type cannot read."""
+        error_filter = self.create_project_custom_inbound_filter(
+            project=self.project,
+            name="Error filter",
+            data_type="error",
+            conditions=[
+                {"type": "error_message", "operator": "starts_with", "value": ["TypeError"]}
+            ],
+        )
+
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                error_filter.id,
+                dataType="all",
+            )
+
+        assert (
+            str(response.data["conditions"][0])
+            == "A filter on all data cannot use the error_message condition. "
+            "It accepts release, ip_address."
+        )
+        error_filter.refresh_from_db()
+        assert error_filter.data_type == "error"
+
+    def test_put_rejects_growing_past_the_size_cap(self) -> None:
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                self.custom_filter.id,
+                conditions=[
+                    {
+                        "type": "release",
+                        "operator": "equals",
+                        "value": ["a" * (MAX_CONDITION_VALUE_CHARS_PER_FILTER + 1)],
+                    }
+                ],
+            )
+
+        assert str(response.data["conditions"][0]) == (
+            f"A filter's condition values can have at most "
+            f"{MAX_CONDITION_VALUE_CHARS_PER_FILTER} characters in total."
+        )
+        self.custom_filter.refresh_from_db()
+        assert self.custom_filter.conditions == [
+            {"type": "release", "operator": "starts_with", "value": ["1."]}
+        ]
+
+    def test_put_keeps_stored_oversized_filter_but_refuses_growth(self) -> None:
+        """A filter written before the cap can be edited at its size or smaller."""
+        stored_size = MAX_CONDITION_VALUE_CHARS_PER_FILTER + 10
+        self.custom_filter.update(
+            conditions=[{"type": "release", "operator": "equals", "value": ["a" * stored_size]}]
+        )
+
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                self.custom_filter.id,
+                conditions=[
+                    {"type": "release", "operator": "equals", "value": ["b" * (stored_size + 1)]}
+                ],
+            )
+
+        assert str(response.data["conditions"][0]) == (
+            f"This filter already exceeds the {MAX_CONDITION_VALUE_CHARS_PER_FILTER} "
+            "character limit for condition values. It can shrink but not grow."
+        )
+
+        same_size = [
+            {"type": "release", "operator": "equals", "value": ["b" * (stored_size - 3)]},
+            {"type": "error_message", "operator": "equals", "value": ["c", "dd"]},
+        ]
+        with self.feature(self.features):
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.custom_filter.id,
+                conditions=same_size,
+            )
+
+        self.custom_filter.refresh_from_db()
+        assert self.custom_filter.conditions == same_size
+
+        with self.feature(self.features):
+            self.get_success_response(
+                self.organization.slug, self.project.slug, self.custom_filter.id, active=False
+            )
 
     def test_delete(self) -> None:
         with self.feature(self.features), outbox_runner():
@@ -411,14 +1232,73 @@ class CustomInboundFilterDetailsTest(APITestCase):
                 status_code=404,
             )
 
-    def test_without_custom_inbound_filters_plan_feature(self) -> None:
+    def test_reads_without_custom_inbound_filters_plan_feature(self) -> None:
+        with self.feature(["organizations:inbound-filters-v2"]):
+            response = self.get_success_response(
+                self.organization.slug, self.project.slug, self.custom_filter.id, method="get"
+            )
+
+        assert response.data["id"] == str(self.custom_filter.id)
+
+    def test_refuses_writes_without_custom_inbound_filters_plan_feature(self) -> None:
         with self.feature(["organizations:inbound-filters-v2"]):
             response = self.get_error_response(
                 self.organization.slug,
                 self.project.slug,
                 self.custom_filter.id,
-                method="get",
+                method="put",
+                active=False,
                 status_code=400,
             )
 
         assert response.data["detail"] == "You do not have that feature enabled"
+
+
+class CustomInboundFilterProjectConfigInvalidationTest(APITestCase):
+    features = ["organizations:inbound-filters-v2", "projects:custom-inbound-filters"]
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization(owner=self.user)
+        self.team = self.create_team(organization=self.organization)
+        self.project = self.create_project(organization=self.organization, teams=[self.team])
+        self.custom_filter = self.create_project_custom_inbound_filter(project=self.project)
+        self.login_as(user=self.user)
+
+    def test_write_methods_invalidate_project_config(self) -> None:
+        list_url = reverse(
+            "sentry-api-0-project-custom-inbound-filters",
+            args=[self.organization.slug, self.project.slug],
+        )
+        details_url = reverse(
+            "sentry-api-0-project-custom-inbound-filter-details",
+            args=[self.organization.slug, self.project.slug, self.custom_filter.id],
+        )
+        cases = [
+            (
+                "post",
+                list_url,
+                {
+                    "dataType": "all",
+                    "conditions": [{"type": "release", "operator": "starts_with", "value": ["1."]}],
+                },
+                201,
+            ),
+            ("put", details_url, {"active": False}, 200),
+            ("delete", details_url, {}, 204),
+        ]
+
+        for method, url, payload, status_code in cases:
+            with (
+                self.feature(self.features),
+                outbox_runner(),
+                patch(
+                    "sentry.api.endpoints.project_custom_inbound_filters.schedule_invalidate_project_config"
+                ) as mock_invalidate,
+            ):
+                response = getattr(self.client, method)(url, payload, format="json")
+
+            assert response.status_code == status_code, (method, response.data)
+            mock_invalidate.assert_called_once_with(
+                project_id=self.project.id, trigger="custom_inbound_filters"
+            )

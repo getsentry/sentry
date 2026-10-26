@@ -1,4 +1,4 @@
-import {Outlet} from 'react-router-dom';
+import {Outlet} from 'react-router';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Stack} from '@sentry/scraps/layout';
@@ -8,18 +8,53 @@ import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {Redirect} from 'sentry/components/redirect';
 import {t} from 'sentry/locale';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {useRedirectNavigationV2Routes} from 'sentry/views/navigation/useRedirectNavigationV2Routes';
+import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 function DiscoverContainer() {
   const organization = useOrganization();
+  const location = useLocation();
   const redirectPath = useRedirectNavigationV2Routes({
     oldPathPrefix: '/discover/',
-    newPathPrefix: '/explore/discover/',
+    newPathPrefix: '/explore/errors/',
   });
 
   if (redirectPath) {
+    // When the deprecation is active and the legacy /discover/ URL carries a
+    // transactions dataset, the generic redirect would send the user to
+    // /explore/errors/ — which doesn't support transactions. Intercept that
+    // case here and send them to /explore/traces/ instead.
+    if (
+      location.query.queryDataset === SavedQueryDatasets.TRANSACTIONS ||
+      location.query.dataset === Dataset.TRANSACTIONS
+    ) {
+      return <Redirect to={makeTracesPathname({organization, path: '/'})} />;
+    }
     return <Redirect to={redirectPath} />;
+  }
+
+  // Tranasctions deprecation redirects
+  if (location.pathname.includes('/explore/discover')) {
+    // errors dataset (or no dataset specified) redirects to errors url and keeps the same query params
+    if (
+      location.query.queryDataset !== SavedQueryDatasets.TRANSACTIONS &&
+      location.query.dataset !== Dataset.TRANSACTIONS
+    ) {
+      const match = location.pathname.match(/\/explore\/discover\/([^/]+)\//);
+      const discoverPath = match?.[1];
+      const targetPath = makeDiscoverPathname({
+        path: discoverPath ? `/${discoverPath}/` : '/',
+        organization,
+      });
+      return <Redirect to={targetPath + location.search} />;
+    }
+    // transactions dataset redirects to traces url as we don't support transactions anymore
+    return <Redirect to={makeTracesPathname({organization, path: '/'})} />;
   }
 
   function renderNoAccess() {

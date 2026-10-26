@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/arrow';
 import isNumber from 'lodash/isNumber';
 
 import {
@@ -7,7 +8,6 @@ import {
   getPolarityRating,
   type Polarity,
 } from 'sentry/components/percentChange';
-import {IconArrow} from 'sentry/icons';
 import {
   DEEMPHASIS_VARIANT,
   LOADING_PLACEHOLDER,
@@ -77,7 +77,7 @@ const Deemphasize = styled('span')`
 
 function getDifferenceDirectionMarker(difference: number) {
   if (difference > 0) {
-    return <IconArrow direction="up" size="xs" />;
+    return <IconArrow size="xs" />;
   }
 
   if (difference < 0) {

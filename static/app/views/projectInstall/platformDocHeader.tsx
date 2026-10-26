@@ -1,16 +1,17 @@
-import {useCallback} from 'react';
-import {useBlocker} from 'react-router-dom';
-import styled from '@emotion/styled';
+import {useCallback, useEffect, useEffectEvent} from 'react';
+import {useBlocker} from 'react-router';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
 
 import {removeProject} from 'sentry/actionCreators/projects';
 import {useRecentCreatedProject} from 'sentry/components/onboarding/useRecentCreatedProject';
-import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import type {PlatformIntegration, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {ProjectCreationVariant} from 'sentry/utils/analytics/projectCreationAnalyticsEvents';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
@@ -21,10 +22,21 @@ import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 type Props = {
   platform: PlatformIntegration;
   projectSlug: Project['slug'];
-  title?: string;
+  /**
+   * When this getting-started page was reached from project creation, the
+   * create form stamps `?projectCreationVariant=scm|legacy`. Stamp that onto
+   * the three header events so abandonment can be segmented. Unmarked entry
+   * points (older projects, peripheral links) keep firing the same
+   * `project_creation.*` names without a variant guess.
+   */
+  projectCreationVariant?: ProjectCreationVariant;
 };
 
-export function PlatformDocHeader({platform, projectSlug, title}: Props) {
+export function PlatformDocHeader({
+  platform,
+  projectSlug,
+  projectCreationVariant,
+}: Props) {
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});
   const navigate = useNavigate();
@@ -39,15 +51,19 @@ export function PlatformDocHeader({platform, projectSlug, title}: Props) {
       return;
     }
 
+    const variantParams = projectCreationVariant ? {variant: projectCreationVariant} : {};
+
     trackAnalytics('project_creation.back_button_clicked', {
       organization,
+      ...variantParams,
     });
 
     if (!isProjectActive) {
       trackAnalytics('project_creation.data_removal_modal_confirm_button_clicked', {
         organization,
-        platform: recentCreatedProject.slug,
+        platform: platform.id,
         project_id: recentCreatedProject.id,
+        ...variantParams,
       });
 
       try {
@@ -61,8 +77,9 @@ export function PlatformDocHeader({platform, projectSlug, title}: Props) {
         trackAnalytics('project_creation.data_removed', {
           organization,
           date_created: recentCreatedProject.dateCreated,
-          platform: recentCreatedProject.slug,
+          platform: platform.id,
           project_id: recentCreatedProject.id,
+          ...variantParams,
         });
       } catch (error) {
         handleXhrErrorResponse(
@@ -80,20 +97,43 @@ export function PlatformDocHeader({platform, projectSlug, title}: Props) {
       }) + `?referrer=getting-started&project=${recentCreatedProject.id}`,
       {replace: true}
     );
-  }, [api, recentCreatedProject, organization, isProjectActive, navigate]);
+  }, [
+    api,
+    recentCreatedProject,
+    organization,
+    isProjectActive,
+    navigate,
+    projectCreationVariant,
+    platform.id,
+  ]);
 
-  useBlocker(({historyAction}) => {
-    if (historyAction === 'POP') {
-      handleGoBack();
-    }
-    return false;
+  // Keep return navigation on the docs until deletion and the restore URL are ready.
+  const blocker = useBlocker(
+    ({historyAction}) => historyAction === 'POP' && !!recentCreatedProject
+  );
+  const handleBlockedBack = useEffectEvent(() => {
+    void handleGoBack();
   });
 
+  useEffect(() => {
+    if (blocker.state !== 'blocked') {
+      return;
+    }
+
+    handleBlockedBack();
+  }, [blocker.state]);
+
   return (
-    <StyledPageHeader>
-      <h2>
-        {title ?? t('Configure %(platform)s SDK', {platform: platform.name ?? 'other'})}
-      </h2>
+    <Flex
+      direction={{zero: 'column', xl: 'row'}}
+      align="start"
+      justify="between"
+      gap={{zero: 'xl', xl: '0'}}
+      marginBottom="2xl"
+    >
+      <Heading as="h2">
+        {t('Configure %(platform)s SDK', {platform: platform.name ?? 'other'})}
+      </Heading>
       <Grid flow="column" align="center" gap="md">
         <Button
           size="sm"
@@ -108,25 +148,6 @@ export function PlatformDocHeader({platform, projectSlug, title}: Props) {
           </LinkButton>
         )}
       </Grid>
-    </StyledPageHeader>
+    </Flex>
   );
 }
-
-const StyledPageHeader = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: ${p => p.theme.space['2xl']};
-
-  h2 {
-    margin: 0;
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    flex-direction: column;
-    align-items: flex-start;
-
-    h2 {
-      margin-bottom: ${p => p.theme.space.xl};
-    }
-  }
-`;

@@ -10,6 +10,7 @@ import {DataCategory} from 'sentry/types/core';
 import {
   BILLION,
   GIGABYTE,
+  MILLISECONDS_IN_HOUR,
   MILLION,
   RESERVED_BUDGET_QUOTA,
   UNLIMITED,
@@ -21,6 +22,10 @@ import {
   checkIsAddOn,
   checkIsAddOnChildCategory,
   convertUsageToReservedUnit,
+  displayPrice,
+  displayPriceWithCents,
+  displayUnitPrice,
+  formatPrice,
   formatReservedWithUnits,
   formatUsageWithUnits,
   getActiveProductTrial,
@@ -36,11 +41,51 @@ import {
   isDeveloperPlan,
   isNewPayingCustomer,
   isTeamPlanFamily,
-  MILLISECONDS_IN_HOUR,
   productIsEnabled,
   trialPromptIsDismissed,
   UsageAction,
 } from 'getsentry/utils/billing';
+
+describe('formatPrice', () => {
+  it('formats price correctly', () => {
+    expect(formatPrice({cents: 0})).toBe('0');
+    expect(formatPrice({cents: 1500})).toBe('15');
+    expect(formatPrice({cents: 1510})).toBe('15.10');
+    expect(formatPrice({cents: 92400})).toBe('924');
+    expect(formatPrice({cents: 119400})).toBe('1,194');
+    expect(formatPrice({cents: -1510})).toBe('-15.10');
+  });
+});
+
+describe('displayPrice', () => {
+  it('formats price correctly', () => {
+    expect(displayPrice({cents: 0})).toBe('$0');
+    expect(displayPrice({cents: 1500})).toBe('$15');
+    expect(displayPrice({cents: 92430})).toBe('$924.30');
+    expect(displayPrice({cents: 119499})).toBe('$1,194.99');
+    expect(displayPrice({cents: -92430})).toBe('-$924.30');
+  });
+});
+
+describe('displayPriceWithCents', () => {
+  it('formats price correctly', () => {
+    expect(displayPriceWithCents({cents: 0})).toBe('$0.00');
+    expect(displayPriceWithCents({cents: 1500})).toBe('$15.00');
+    expect(displayPriceWithCents({cents: 92430})).toBe('$924.30');
+    expect(displayPriceWithCents({cents: 119499})).toBe('$1,194.99');
+    expect(displayPriceWithCents({cents: -92430})).toBe('-$924.30');
+  });
+});
+
+describe('displayUnitPrice', () => {
+  it('formats unit price correctly', () => {
+    expect(displayUnitPrice({cents: 24, minDigits: 2, maxDigits: 2})).toBe('$0.24');
+    expect(displayUnitPrice({cents: 24.5, minDigits: 2, maxDigits: 2})).toBe('$0.25');
+    expect(displayUnitPrice({cents: 245, minDigits: 2, maxDigits: 2})).toBe('$2.45');
+    expect(displayUnitPrice({cents: 0.0167})).toBe('$0.000167');
+    expect(displayUnitPrice({cents: 0.528})).toBe('$0.00528');
+  });
+});
 
 describe('formatReservedWithUnits', () => {
   it('returns correct string for Errors', () => {
@@ -213,14 +258,6 @@ describe('formatReservedWithUnits', () => {
         isAbbreviated: true,
       })
     ).toBe('1K');
-  });
-
-  it('returns correct string for reserved budget', () => {
-    expect(formatReservedWithUnits(1000, DataCategory.SPANS, {}, true)).toBe('$10.00');
-    expect(formatReservedWithUnits(1500_00, DataCategory.SPANS, {}, true)).toBe(
-      '$1,500.00'
-    );
-    expect(formatReservedWithUnits(0, DataCategory.SPANS, {}, true)).toBe('$0.00');
   });
 
   it('returns correct string for logs', () => {
@@ -398,7 +435,7 @@ describe('formatUsageWithUnits', () => {
       formatUsageWithUnits(1000, DataCategory.ATTACHMENTS, {
         useUnitScaling: true,
       })
-    ).toBe('1 KB');
+    ).toBe('1 kB');
     expect(
       formatUsageWithUnits(MILLION, DataCategory.ATTACHMENTS, {
         useUnitScaling: true,
@@ -1002,7 +1039,7 @@ describe('isNewPayingCustomer', () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am3_team',
-      isTrial: true,
+      trialPlan: 'am3_team',
       isFree: false,
     });
     expect(isNewPayingCustomer(subscription, organization)).toBe(false);

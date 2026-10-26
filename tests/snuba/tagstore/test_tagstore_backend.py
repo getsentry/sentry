@@ -176,7 +176,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             self.user.id,
             [f"{ProfileFileIOGroupType.type_id}-group1"],
             env.name,
-            timezone.now().replace(hour=0, minute=0, second=0) + timedelta(minutes=1),
+            before_now(minutes=1),
             [("foo", "bar"), ("biz", "baz")],
             "releaseme",
         )
@@ -311,16 +311,24 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             )
         )
         tags = [r.key for r in result]
-        assert set(tags) == {"foo", "biz", "environment", "sentry:user", "level", "sentry:release"}
+        assert set(tags) == {
+            "foo",
+            "biz",
+            "environment",
+            "sentry:user",
+            "level",
+            "sentry:release",
+            "interface_type",
+        }
 
         result.sort(key=lambda r: r.key)
         assert result[0].key == "biz"
         assert result[0].top_values[0].value == "baz"
         assert result[0].count == 1
 
-        assert result[4].key == "sentry:release"
-        assert result[4].count == 1
-        top_release_values = result[4].top_values
+        release = {r.key: r for r in result}["sentry:release"]
+        assert release.count == 1
+        top_release_values = release.top_values
         assert len(top_release_values) == 1
         assert {v.value for v in top_release_values} == {"releaseme"}
         assert all(v.times_seen == 1 for v in top_release_values)
@@ -454,37 +462,6 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
         }
         assert set(keys) == expected_keys
 
-    def test_get_tag_keys_removed_from_denylist(self) -> None:
-        denylist_keys = frozenset(["browser", "sentry:release"])
-        expected_keys = {
-            "baz",
-            "environment",
-            "foo",
-            "sentry:user",
-            "level",
-            "interface_type",
-        }
-        keys = {
-            k.key: k
-            for k in self.ts.get_tag_keys(
-                project_id=self.proj1.id,
-                environment_id=self.proj1env1.id,
-                denylist=denylist_keys,
-                tenant_ids={"referrer": "r", "organization_id": 1234},
-            )
-        }
-        assert set(keys) == expected_keys
-        keys = {
-            k.key: k
-            for k in self.ts.get_tag_keys(
-                project_id=self.proj1.id,
-                environment_id=self.proj1env1.id,
-                tenant_ids={"referrer": "r", "organization_id": 1234},
-            )
-        }
-        expected_keys |= {"browser", "sentry:release"}
-        assert set(keys) == expected_keys
-
     def test_get_group_tag_key(self) -> None:
         with pytest.raises(GroupTagKeyNotFound):
             self.ts.get_group_tag_key(
@@ -597,7 +574,15 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
                 group, [env.id], tenant_ids={"referrer": "r", "organization_id": 1234}
             )
         }
-        assert set(keys) == {"biz", "environment", "foo", "sentry:user", "level", "sentry:release"}
+        assert set(keys) == {
+            "biz",
+            "environment",
+            "foo",
+            "sentry:user",
+            "level",
+            "sentry:release",
+            "interface_type",
+        }
 
     def test_get_tag_key(self) -> None:
         with pytest.raises(TagKeyNotFound):
@@ -1105,6 +1090,45 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
                 last_seen=self.now - timedelta(seconds=2),
             ),
         ]
+
+    @mock.patch.object(
+        SnubaTagStorage.get_group_tag_value_iter,
+        "__defaults__",
+        ("-first_seen", 1, 0, None),
+    )
+    def test_get_group_tag_value_paginator_sorts_by_count_before_limit(self) -> None:
+        # Lower the query limit instead of creating 1000 distinct values. The
+        # existing "bar" value is more frequent, but "quux" was seen more recently.
+        self.store_event(
+            data={
+                "message": "message 1",
+                "platform": "python",
+                "environment": "test",
+                "fingerprint": ["group-1"],
+                "timestamp": self.now.isoformat(),
+                "tags": {"foo": "quux"},
+                "exception": exception,
+            },
+            project_id=self.proj1.id,
+        )
+
+        def get_top_value():
+            result = self.ts.get_group_tag_value_paginator(
+                self.proj1group1,
+                [self.proj1env1.id],
+                "foo",
+                order_by="-times_seen",
+                tenant_ids={"organization_id": self.proj1.organization_id},
+            ).get_result(1)
+            assert len(result) == 1
+            return result[0]
+
+        assert get_top_value().value == "quux"
+
+        with self.feature("organizations:tag-values-sort-before-limit"):
+            top_value = get_top_value()
+        assert top_value.value == "bar"
+        assert top_value.times_seen == 2
 
     # mock default value only for "limit" argument of get_group_tag_value_iter()
     # it is set to 1 to avoid creating 1000+ tags for the test

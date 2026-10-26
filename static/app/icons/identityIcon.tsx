@@ -46,27 +46,20 @@ const IDENTITY_ICONS = {
 
 export interface IdentityIconProps extends React.RefAttributes<HTMLDivElement> {
   providerId: string | keyof typeof IDENTITY_ICONS;
-  /**
-   * @default 36
-   */
-  size?: number;
+  className?: string;
 }
 
-export function IdentityIcon({providerId, size = 36, ref}: IdentityIconProps) {
+export function IdentityIcon({className, providerId, ref}: IdentityIconProps) {
   return (
-    <StyledIdentityIconContainer size={size}>
-      <StyledIdentityIcon
-        ref={ref}
-        size={size}
-        identitySrc={getIdentityIconSource(providerId)}
-      />
+    <StyledIdentityIconContainer ref={ref} className={className}>
+      <StyledIdentityIcon identitySrc={getIdentityIconSource(providerId)} />
     </StyledIdentityIconContainer>
   );
 }
 
-const StyledIdentityIconContainer = styled('div')<{size: number}>`
-  height: ${p => p.size}px;
-  width: ${p => p.size}px;
+const StyledIdentityIconContainer = styled('div')`
+  height: 36px;
+  width: 36px;
   background-color: ${p => p.theme.colors.white};
   border-radius: 2px;
   display: flex;
@@ -74,10 +67,12 @@ const StyledIdentityIconContainer = styled('div')<{size: number}>`
   justify-content: center;
 `;
 
-const StyledIdentityIcon = styled('div')<{identitySrc: string; size: number}>`
+const StyledIdentityIcon = styled('div')<{
+  identitySrc: string;
+}>`
   position: relative;
-  height: ${p => p.size - p.size * 0.2}px;
-  width: ${p => p.size - p.size * 0.2}px;
+  height: 80%;
+  width: 80%;
   border-radius: 2px;
   border: 0;
   display: inline-block;

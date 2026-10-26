@@ -1,4 +1,4 @@
-import {Component, useContext} from 'react';
+import {Component} from 'react';
 import {useQuery, type UseQueryOptions} from '@tanstack/react-query';
 import type {Location} from 'history';
 
@@ -12,9 +12,7 @@ import type {
   LocationQuery,
 } from 'sentry/utils/discover/eventView';
 import {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
-import {PerformanceEventViewContext} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import {useApi} from 'sentry/utils/useApi';
-import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface DiscoverQueryExtras {
   useOnDemandMetrics?: boolean;
@@ -53,11 +51,6 @@ export type GenericChildrenProps<T> = {
    * Data / result.
    */
   tableData: T | null;
-};
-
-type OptionalContextProps = {
-  eventView?: EventView | ImmutableEventView;
-  orgSlug?: string;
 };
 
 type BaseDiscoverQueryProps = {
@@ -103,14 +96,10 @@ type BaseDiscoverQueryProps = {
   skipAbort?: boolean;
 };
 
-type DiscoverQueryPropsWithContext = BaseDiscoverQueryProps & OptionalContextProps;
 export type DiscoverQueryProps = BaseDiscoverQueryProps & {
   eventView: EventView | ImmutableEventView;
   orgSlug: string;
 };
-
-type InnerRequestProps<P> = DiscoverQueryProps & P;
-type OuterRequestProps<P> = DiscoverQueryPropsWithContext & P;
 
 type ReactProps<T> = {
   children?: (props: GenericChildrenProps<T>) => React.ReactNode;
@@ -148,8 +137,7 @@ type ComponentProps<T, P> = {
   shouldRefetchData?: (prevProps: Props<T, P>, props: Props<T, P>) => boolean;
 };
 
-type Props<T, P> = InnerRequestProps<P> & ReactProps<T> & ComponentProps<T, P>;
-type OuterProps<T, P> = OuterRequestProps<P> & ReactProps<T> & ComponentProps<T, P>;
+type Props<T, P> = DiscoverQueryProps & P & ReactProps<T> & ComponentProps<T, P>;
 
 type State<T> = {
   api: Client;
@@ -281,83 +269,34 @@ class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
   }
 }
 
-// Shim to allow us to use generic discover query or any specialization with or without passing org slug or eventview, which are now contexts.
-// This will help keep tests working and we can remove extra uses of context-provided props and update tests as we go.
-export function GenericDiscoverQuery<T, P>(props: OuterProps<T, P>) {
-  const organizationSlug = useOrganization({allowNull: true})?.slug;
-  const performanceEventView = useContext(PerformanceEventViewContext)?.eventView;
-
-  const orgSlug = props.orgSlug ?? organizationSlug;
-  const eventView = props.eventView ?? performanceEventView;
-
-  if (orgSlug === undefined || eventView === undefined) {
-    throw new Error('GenericDiscoverQuery requires both an orgSlug and eventView');
-  }
-
-  const _props: Props<T, P> = {
-    ...props,
-    orgSlug,
-    eventView,
-  };
+export function GenericDiscoverQuery<T, P>(props: Props<T, P>) {
   // TODO(any): HoC prop types not working w/ emotion https://github.com/emotion-js/emotion/issues/3261
-  return <_GenericDiscoverQuery<T, P> {...(_props as any)} />;
+  return <_GenericDiscoverQuery<T, P> {...(props as any)} />;
 }
 
 export type DiscoverQueryRequestParams = Partial<
   EventQuery & LocationQuery & _DiscoverQueryExtras
 >;
 
-type RetryOptions = {
-  statusCodes: number[];
-  tries: number;
-  baseTimeout?: number;
-  timeoutMultiplier?: number;
-};
-
-const BASE_TIMEOUT = 500;
-const TIMEOUT_MULTIPLIER = 1.75;
-const wait = (duration: any) => new Promise(resolve => setTimeout(resolve, duration));
-
 export async function doDiscoverQuery<T>(
   api: Client,
   url: string,
   params: DiscoverQueryRequestParams,
   options: {
-    retry?: RetryOptions;
     skipAbort?: boolean;
   } = {}
 ): Promise<[T, string | undefined, ResponseMeta<T> | undefined]> {
-  const {retry, skipAbort} = options;
+  const {skipAbort} = options;
 
-  const baseTimeout = retry?.baseTimeout ?? BASE_TIMEOUT;
-  const timeoutMultiplier = retry?.timeoutMultiplier ?? TIMEOUT_MULTIPLIER;
-  const statusCodes = retry?.statusCodes ?? [];
-  const maxTries = retry?.tries ?? 1;
-  let tries = 0;
-  let timeout = 0;
-  let error: any;
-
-  while (tries < maxTries && (!error || statusCodes.includes(error.status))) {
-    if (timeout > 0) {
-      await wait(timeout);
-    }
-    try {
-      tries++;
-      return await api.requestPromise(url, {
-        method: 'GET',
-        includeAllArgs: true,
-        query: {
-          // marking params as any so as to not cause typescript errors
-          ...(params as any),
-        },
-        skipAbort,
-      });
-    } catch (err) {
-      error = err;
-      timeout = baseTimeout * timeoutMultiplier ** (tries - 1);
-    }
-  }
-  throw error;
+  return api.requestPromise(url, {
+    method: 'GET',
+    includeAllArgs: true,
+    query: {
+      // marking params as any so as to not cause typescript errors
+      ...(params as any),
+    },
+    skipAbort,
+  });
 }
 
 function getPayload<T, P>(props: Props<T, P>) {
@@ -429,3 +368,21 @@ export const parseError = (error: any): QueryError | null => {
 
   return new QueryError(t('An unknown error occurred.'), error);
 };
+
+export function getQueryErrorMessage(error: unknown): string | undefined {
+  if (!error || typeof error !== 'object' || !('message' in error)) {
+    return undefined;
+  }
+
+  const {message} = error;
+  if (typeof message !== 'string') {
+    return undefined;
+  }
+
+  const trimmed = message.trim();
+  if (!trimmed || trimmed === t('An unknown error occurred.')) {
+    return undefined;
+  }
+
+  return trimmed;
+}

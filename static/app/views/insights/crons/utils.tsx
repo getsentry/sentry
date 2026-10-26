@@ -3,37 +3,9 @@ import type {SelectValue} from '@sentry/scraps/select';
 import type {TickStyle} from 'sentry/components/checkInTimeline/types';
 import {t, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 
-import {CheckInStatus, type Monitor} from './types';
-
-export function monitorListApiOptions(
-  organization: Organization,
-  queryParams: Partial<
-    Record<
-      'asc' | 'cursor' | 'environment' | 'owner' | 'project' | 'query' | 'sort',
-      unknown
-    >
-  >
-) {
-  const {query, project, environment, owner, cursor, sort, asc} = queryParams;
-  return apiOptions.as<Monitor[]>()('/organizations/$organizationIdOrSlug/monitors/', {
-    path: {organizationIdOrSlug: organization.slug},
-    query: {
-      cursor,
-      query,
-      project,
-      environment,
-      owner,
-      includeNew: true,
-      per_page: 20,
-      sort,
-      asc,
-    },
-    staleTime: 0,
-  });
-}
+import {CheckInStatus} from './types';
 
 export function makeMonitorDetailsQueryKey(
   organization: Organization,

@@ -1,13 +1,8 @@
-import type {ProjectPageFilterProps} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 
-type Props = Omit<ProjectPageFilterProps, 'storageNamespace'>;
-
-export function InsightsProjectSelector(props: Props) {
+export function InsightsProjectSelector() {
   const {view} = useDomainViewFilters();
 
-  const storageNamespace = view;
-
-  return <ProjectPageFilter {...props} storageNamespace={storageNamespace} />;
+  return <ProjectPageFilter storageNamespace={view} />;
 }

@@ -23,6 +23,11 @@ def get_redis_db() -> int:
     return _TEST_REDIS_DB
 
 
+def get_redis_cluster_key_prefix() -> str:
+    # workers share redis-cluster, so each worker writes under its own prefix
+    return f"test-{_worker_id or 'main'}:"
+
+
 def get_kafka_topic(base_name: str) -> str:
     if _worker_id:
         return f"{base_name}-{_worker_id}"

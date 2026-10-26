@@ -2,7 +2,10 @@ from django.urls import reverse
 from django.utils import timezone
 
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
+from sentry.silo.base import SiloMode
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.silo import assume_test_silo_mode
+from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 from tests.sentry.issues.endpoints.test_organization_group_search_views import (
     GroupSearchViewAPITestCase,
 )
@@ -105,3 +108,32 @@ class OrganizationGroupSearchViewVisitTest(GroupSearchViewAPITestCase):
             group_search_view=view,
         )
         assert visited_view is not None
+
+    def test_requires_authenticated_user(self) -> None:
+        # Org auth tokens authenticate without a user. This endpoint stores
+        # last-visited state per user, so userless credentials must be rejected
+        # instead of writing a null user_id.
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+        token_str = generate_token(self.organization.slug, "")
+        self.create_org_auth_token(
+            organization_id=self.organization.id,
+            name="token 1",
+            token_hashed=hash_token(token_str),
+            token_last_characters="ABCD",
+            scope_list=["member:read"],
+            date_last_used=None,
+        )
+
+        response = self.client.post(
+            self.url,
+            HTTP_AUTHORIZATION=f"Bearer {token_str}",
+        )
+        assert response.status_code == 403
+        assert (
+            GroupSearchViewLastVisited.objects.filter(
+                organization=self.organization,
+                group_search_view=self.view,
+            ).count()
+            == 0
+        )

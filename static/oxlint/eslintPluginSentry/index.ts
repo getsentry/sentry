@@ -1,0 +1,62 @@
+import {definePlugin} from '@oxlint/plugins';
+
+import {
+  emotionStyledImport,
+  emotionSyntaxPreference,
+  noVanillaEmotion,
+} from './emotionRules.ts';
+import {namingConvention} from './namingConvention.ts';
+import {noCallingComponentsAsFunctions} from './noCallingComponentsAsFunctions.ts';
+import {noDefaultExports} from './noDefaultExports.ts';
+import {noDigitsInTn} from './noDigitsInTn.ts';
+import {noDynamicTranslations} from './noDynamicTranslations.ts';
+import {noFlagComments} from './noFlagComments.ts';
+import {noGlobalReact} from './noGlobalReact.ts';
+import {noLegacyRouterImports} from './noLegacyRouterImports.ts';
+import {noQueryDataTypeParameters} from './noQueryDataTypeParameters.ts';
+import {noRawCssInStyled} from './noRawCssInStyled.ts';
+import {noRedundantDefaultArgument} from './noRedundantDefaultArgument.ts';
+import {noRelativeImportPaths} from './noRelativeImportPaths.ts';
+import {noStaticTranslations} from './noStaticTranslations.ts';
+import {noStyledShortcut} from './noStyledShortcut.ts';
+import {noUnnecessaryUseCallback} from './noUnnecessaryUseCallback.ts';
+import {noUselessCssInterpolationSemicolon} from './noUselessCssInterpolationSemicolon.ts';
+import {preferFakeTimers} from './preferFakeTimers.ts';
+import {preferReactComponent} from './preferReactComponent.ts';
+import {requireFakeTimerCleanup} from './requireFakeTimerCleanup.ts';
+import {sortInterfaceKeys} from './sortInterfaceKeys.ts';
+
+export const rules = {
+  'emotion-styled-import': emotionStyledImport,
+  'emotion-syntax-preference': emotionSyntaxPreference,
+  'naming-convention': namingConvention,
+  'no-calling-components-as-functions': noCallingComponentsAsFunctions,
+  'no-default-exports': noDefaultExports,
+  'no-digits-in-tn': noDigitsInTn,
+  'no-dynamic-translations': noDynamicTranslations,
+  'no-flag-comments': noFlagComments,
+  'no-global-react': noGlobalReact,
+  'no-legacy-router-imports': noLegacyRouterImports,
+  'no-query-data-type-parameters': noQueryDataTypeParameters,
+  'no-raw-css-in-styled': noRawCssInStyled,
+  'no-redundant-default-argument': noRedundantDefaultArgument,
+  'no-relative-import-paths': noRelativeImportPaths,
+  'no-static-translations': noStaticTranslations,
+  'no-styled-shortcut': noStyledShortcut,
+  'no-unnecessary-use-callback': noUnnecessaryUseCallback,
+  'no-useless-css-interpolation-semicolon': noUselessCssInterpolationSemicolon,
+  'no-vanilla-emotion': noVanillaEmotion,
+  'prefer-fake-timers': preferFakeTimers,
+  'prefer-react-component': preferReactComponent,
+  'require-fake-timer-cleanup': requireFakeTimerCleanup,
+  'sort-interface-keys': sortInterfaceKeys,
+};
+
+const sentryPlugin = definePlugin({
+  meta: {
+    name: '@sentry-internal/eslint-plugin-sentry',
+  },
+  rules,
+});
+
+export default sentryPlugin;

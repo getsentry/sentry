@@ -1,5 +1,6 @@
 import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
+import {IconQuestion} from '@sentry/icons/question';
 import * as Sentry from '@sentry/react';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
@@ -13,7 +14,6 @@ import {TextOverflow} from 'sentry/components/textOverflow';
 import {TimeSince} from 'sentry/components/timeSince';
 import {Version} from 'sentry/components/version';
 import {VersionHoverCard} from 'sentry/components/versionHoverCard';
-import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Commit} from 'sentry/types/integrations';
 import type {AvatarProject} from 'sentry/types/project';
@@ -32,19 +32,12 @@ export function formatCommitMessage(message: string | null) {
 
 export interface CommitRowProps {
   commit: Commit;
-  customAvatar?: React.ReactNode;
   onCommitClick?: (commit: Commit) => void;
   onPullRequestClick?: () => void;
   project?: AvatarProject;
 }
 
-function CommitRow({
-  commit,
-  customAvatar,
-  onPullRequestClick,
-  onCommitClick,
-  project,
-}: CommitRowProps) {
+function CommitRow({commit, onPullRequestClick, onCommitClick, project}: CommitRowProps) {
   const user = useUser();
   const organization = useOrganization();
   const handleInviteClick = useCallback(() => {
@@ -87,11 +80,7 @@ function CommitRow({
         <Message>{formatCommitMessage(commit.message)}</Message>
       )}
       <MetaWrapper>
-        {customAvatar ? (
-          customAvatar
-        ) : commit.author ? (
-          <UserAvatar size={16} user={commit.author} />
-        ) : null}
+        {commit.author ? <UserAvatar size={16} user={commit.author} /> : null}
         <Meta>
           <Tooltip
             title={tct(
@@ -113,9 +102,8 @@ function CommitRow({
               }
             )}
             disabled={!commit.author || commit.author.id !== undefined}
-            overlayStyle={{maxWidth: '350px'}}
+            maxWidth={350}
             skipWrapper
-            isHoverable
           >
             <AuthorWrapper>
               {isUser ? t('You') : (commit.author?.name ?? t('Unknown author'))}

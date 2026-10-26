@@ -19,7 +19,7 @@ from sentry.models.artifactbundle import (
 from sentry.models.debugfile import ProguardArtifactRelease, ProjectDebugFile
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.objectstore import get_debug_files_session
+from sentry.objectstore import UsecaseId, get_session
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_objectstore
 
@@ -251,9 +251,9 @@ class SyncArtifactBundlesTest(TestCase):
         content = b"objectstore-backed-debug-file"
         content_type = "application/x-mach-binary"
         date_created = timezone.now()
-        source_storage_path = get_debug_files_session(
-            self.source_org.id, self.source_proj_foo.id
-        ).put(content, compression="none", content_type=content_type)
+        source_storage_path = get_session(UsecaseId.DEBUG_FILES, self.source_proj_foo).put(
+            content, compress="none", content_type=content_type
+        )
         source_project_debug_file = ProjectDebugFile.objects.create(
             project_id=self.source_proj_foo.id,
             file=None,
@@ -287,6 +287,11 @@ class SyncArtifactBundlesTest(TestCase):
         assert target_project_debug_file.file_size == len(content)
         assert target_project_debug_file.date_created == date_created
         assert target_project_debug_file.get_file().read() == content
+        target_metadata = get_session(UsecaseId.DEBUG_FILES, self.target_proj_foo).head(
+            target_project_debug_file.storage_path
+        )
+        assert target_metadata is not None
+        assert target_metadata.compression == "zstd"
 
         target_project_debug_file.delete()
         source_project_debug_file.refresh_from_db()
@@ -294,6 +299,35 @@ class SyncArtifactBundlesTest(TestCase):
 
         with pytest.raises(ProjectDebugFile.DoesNotExist):
             target_project_debug_file.refresh_from_db()
+
+    @requires_objectstore
+    def test_sync_dual_written_project_debug_files(self) -> None:
+        source_project_debug_file = self.create_dif_file(self.source_proj_foo)
+        source_storage_path = get_session(UsecaseId.DEBUG_FILES, self.source_proj_foo).put(
+            b"objectstore-backed-debug-file", compress="none"
+        )
+        source_project_debug_file.update(
+            storage_path=source_storage_path,
+            content_type=source_project_debug_file.file.headers["Content-Type"],
+            file_size=source_project_debug_file.file.size,
+            date_created=source_project_debug_file.file.timestamp,
+        )
+        source_project_debug_file.refresh_from_db()
+
+        _sync_project_debug_files(
+            source_org=self.source_org,
+            target_org=self.target_org,
+            cutoff_date=self.last_three_days(),
+        )
+
+        target_project_debug_file = ProjectDebugFile.objects.get(
+            project_id=self.target_proj_foo.id,
+            debug_id=source_project_debug_file.debug_id,
+        )
+
+        assert target_project_debug_file.file_id == source_project_debug_file.file_id
+        assert target_project_debug_file.storage_path is not None
+        assert target_project_debug_file.storage_path != source_storage_path
 
     def test_sync_project_debug_files_with_old_uploads(self) -> None:
         source_project_debug_file = self.create_dif_file(

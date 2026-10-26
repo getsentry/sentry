@@ -419,8 +419,8 @@ stack.abs_path:package:sentry_drift/** -app -group
 stack.abs_path:package:sentry_isar/** -app
 stack.abs_path:package:sentry_link/** -app
 stack.abs_path:package:sentry_firebase_remote_config/** -app
-# .pub-cache is the node_modules equivalent for Dart
-family:native stack.abs_path:**/.pub-cache/** -app
+# .pub-cache is the node_modules equivalent for Dart (native + Flutter web / dart2js)
+family:native,javascript stack.abs_path:**/.pub-cache/** -app
 
 # abort() and exception raising is technically the culprit for crashes, but not
 # the thing we want to show.

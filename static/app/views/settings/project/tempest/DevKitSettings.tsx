@@ -11,7 +11,7 @@ import devkitCrashesStep5 from 'sentry-images/tempest/devkit-crashes-step5.jpg';
 import windowToolImg from 'sentry-images/tempest/windows-tool-devkit.png';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
 import {Accordion} from 'sentry/components/container/accordion';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
@@ -54,19 +54,21 @@ export function DevKitSettings({organization, project}: Props) {
     <Fragment>
       <Panel>
         <PanelBody>
-          <div>
+          <Container>
             <HeaderWrapper>
               <Title>{t('Get Started with DevKit Crash Monitoring')}</Title>
-              <Description>
+              <Container>
                 {t(
                   'Set up your PlayStation development kit to send crash reports to Sentry.'
                 )}
-              </Description>
-              <Image src={waitingForEventImg} />
+              </Container>
+              <Container display={{zero: 'none', '2xl': 'contents'}}>
+                <Image src={waitingForEventImg} />
+              </Container>
             </HeaderWrapper>
             <Divider />
-            <Body>
-              <Setup>
+            <Container>
+              <Container padding="3xl">
                 <BodyTitle>{t('Setup Instructions')}</BodyTitle>
                 <GuidedSteps
                   initialStep={decodeInteger(location.query.guidedStep)}
@@ -83,7 +85,7 @@ export function DevKitSettings({organization, project}: Props) {
                     stepKey="step-1"
                     title={t('Copy PlayStation Ingestion URL')}
                   >
-                    <DescriptionWrapper>
+                    <Container marginBottom="md">
                       <p>
                         {t(
                           'This is the URL that the DevKit will use to communicate with Sentry.'
@@ -94,12 +96,12 @@ export function DevKitSettings({organization, project}: Props) {
                           {projectKeys?.[0]?.dsn?.playstation || ''}
                         </OnboardingCodeSnippet>
                       </CodeSnippetWrapper>
-                    </DescriptionWrapper>
+                    </Container>
                     <GuidedSteps.StepButtons />
                   </GuidedSteps.Step>
 
                   <GuidedSteps.Step stepKey="step-2" title={t('Configure URL')}>
-                    <DescriptionWrapper>
+                    <Container marginBottom="md">
                       <IntroText>
                         {t(
                           'There are two ways to configure the URL on your DevKit. Choose one of the following methods:'
@@ -117,7 +119,7 @@ export function DevKitSettings({organization, project}: Props) {
                               </AccordionHeader>
                             ),
                             content: (
-                              <AccordionContentWrapper>
+                              <Container padding="xl">
                                 <Stack gap="2xl" width="100%">
                                   <Stack gap="md">
                                     <p>
@@ -133,7 +135,7 @@ export function DevKitSettings({organization, project}: Props) {
                                     />
                                   </Flex>
                                 </Stack>
-                              </AccordionContentWrapper>
+                              </Container>
                             ),
                           },
                           {
@@ -143,7 +145,7 @@ export function DevKitSettings({organization, project}: Props) {
                               </AccordionHeader>
                             ),
                             content: (
-                              <AccordionContentWrapper>
+                              <Container padding="xl">
                                 <Stack gap="2xl" width="100%">
                                   <Stack gap="md">
                                     <p>
@@ -183,17 +185,17 @@ export function DevKitSettings({organization, project}: Props) {
                                     />
                                   </Flex>
                                 </Stack>
-                              </AccordionContentWrapper>
+                              </Container>
                             ),
                           },
                         ]}
                       />
-                    </DescriptionWrapper>
+                    </Container>
                     <GuidedSteps.StepButtons />
                   </GuidedSteps.Step>
 
                   <GuidedSteps.Step stepKey="step-3" title={t('Important Notes')}>
-                    <DescriptionWrapper>
+                    <Container marginBottom="md">
                       <p>
                         {t(
                           'If you are trying to re-attempt the upload of a failed crash that occurred before entering the URL it might be that the DevKit still tries to send the crash to the previously specified URL.'
@@ -205,14 +207,14 @@ export function DevKitSettings({organization, project}: Props) {
                           'There is currently a limit on the size of files we support, as such, uploading large dumps or long videos may fail. During the first setup it is recommended to not send any videos, and once you made sure everything works, you can start sending larger attachments.'
                         )}
                       </p>
-                    </DescriptionWrapper>
+                    </Container>
                     <GuidedSteps.StepButtons>
                       <Button
                         size="sm"
                         variant="primary"
                         onClick={() => {
                           navigate({
-                            pathname: '/issues/',
+                            pathname: `/organizations/${organization.slug}/issues/`,
                             query: {
                               query: 'os.name:PlayStation',
                             },
@@ -224,9 +226,9 @@ export function DevKitSettings({organization, project}: Props) {
                     </GuidedSteps.StepButtons>
                   </GuidedSteps.Step>
                 </GuidedSteps>
-              </Setup>
-            </Body>
-          </div>
+              </Container>
+            </Container>
+          </Container>
         </PanelBody>
       </Panel>
     </Fragment>
@@ -237,8 +239,6 @@ const Title = styled('div')`
   font-size: 26px;
   font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
-
-const Description = styled('div')``;
 
 const HeaderWrapper = styled('div')`
   border-radius: ${p => p.theme.radius.md};
@@ -251,12 +251,6 @@ const BodyTitle = styled('div')`
   margin-bottom: ${p => p.theme.space.md};
 `;
 
-const Setup = styled('div')`
-  padding: ${p => p.theme.space['3xl']};
-`;
-
-const Body = styled('div')``;
-
 const Image = styled('img')`
   position: absolute;
   display: block;
@@ -265,16 +259,12 @@ const Image = styled('img')`
   pointer-events: none;
   height: 120px;
   overflow: hidden;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: none;
-  }
 `;
 
 const Divider = styled('hr')`
   height: 1px;
   width: 95%;
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   background: ${p => p.theme.tokens.border.primary};
   border: none;
   margin-top: 0;
@@ -284,10 +274,6 @@ const Divider = styled('hr')`
 const CodeSnippetWrapper = styled('div')`
   margin-bottom: ${p => p.theme.space.xl};
   margin-top: ${p => p.theme.space.xl};
-`;
-
-const DescriptionWrapper = styled('div')`
-  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const CardIllustration = styled('img')`
@@ -306,8 +292,4 @@ const IntroText = styled('p')`
 
 const AccordionHeader = styled('span')`
   font-weight: ${p => p.theme.font.weight.sans.medium};
-`;
-
-const AccordionContentWrapper = styled('div')`
-  padding: ${p => p.theme.space.xl};
 `;

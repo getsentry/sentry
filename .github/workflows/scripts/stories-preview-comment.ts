@@ -92,13 +92,17 @@ export const STORIES_COMMENT_MARKER = '<!-- STORIES_PREVIEW -->';
 // (static/app/stories/view/useStoriesLoader.tsx).
 const STORY_FILE_RE = /^static\/app\/.*(\.stories\.tsx|\.mdx)$/;
 
-// A component source file (not a story, test, or spec) whose edit should also
+// Snapshot, test, and spec files exercise components without changing their
+// implementation, so they should not surface story previews on their own.
+const TEST_FILE_RE = /\.(snapshots?|spec|test)\.[jt]sx?$/;
+
+// A component source file (not a story or test file) whose edit should also
 // surface its colocated story, if one exists.
 function isComponentFile(path: string): boolean {
   return (
     /^static\/app\/.*\.tsx$/.test(path) &&
     !/\.stories\.tsx$/.test(path) &&
-    !/\.(spec|test)\.tsx$/.test(path)
+    !TEST_FILE_RE.test(path)
   );
 }
 
@@ -293,6 +297,31 @@ async function findAssociatedStories(
   return [...new Set(matches)];
 }
 
+// Some stories render content derived from files that neither live beside them
+// nor share their name, so the colocation heuristic in findAssociatedStories
+// can't reach them. seerMarkdown.mdx is the canonical case: it renders a live
+// catalog of every embed in the embed registry (embeds/schemas.ts plus the
+// components under embeds/ it drives), so editing an embed changes the story
+// without the PR ever touching the .mdx. Map each such dependency directory to
+// the story it feeds so the preview still surfaces it. Prefixes match by
+// directory boundary, so a sibling like `embeds-foo/` won't match `embeds/`.
+const STORY_DEPENDENCIES: ReadonlyArray<{prefix: string; story: string}> = [
+  {
+    prefix: 'static/app/components/seer/markdown/embeds/',
+    story: 'static/app/components/seer/markdown/seerMarkdown.mdx',
+  },
+];
+
+// Surface a dependency's story when any file under its directory changed, even
+// though the story itself wasn't edited.
+function findDependencyStories(changed: string[]): string[] {
+  const implementationChanges = changed.filter(file => !TEST_FILE_RE.test(file));
+  const matches = STORY_DEPENDENCIES.filter(({prefix}) =>
+    implementationChanges.some(file => file.startsWith(prefix))
+  ).map(({story}) => story);
+  return [...new Set(matches)];
+}
+
 export async function syncStoriesPreviewComment({
   github,
   context,
@@ -353,7 +382,10 @@ export async function syncStoriesPreviewComment({
     sha,
     changed.filter(isComponentFile)
   );
-  const stories = [...new Set([...directStories, ...associatedStories])].sort();
+  const dependencyStories = findDependencyStories(changed);
+  const stories = [
+    ...new Set([...directStories, ...associatedStories, ...dependencyStories]),
+  ].sort();
 
   const comments = await github.paginate<IssueComment>(github.rest.issues.listComments, {
     owner,

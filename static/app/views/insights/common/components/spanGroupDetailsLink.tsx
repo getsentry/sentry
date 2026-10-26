@@ -7,28 +7,17 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
-import {SpanFields, type ModuleName} from 'sentry/views/insights/types';
-
-const {SPAN_OP} = SpanFields;
+import {type ModuleName} from 'sentry/views/insights/types';
 
 interface Props {
   description: React.ReactNode;
   // extra query params to add to the link
   moduleName: ModuleName.DB | ModuleName.RESOURCE;
   projectId: number;
-  extraLinkQueryParams?: Record<string, string>;
   group?: string | null;
-  spanOp?: string;
 }
 
-export function SpanGroupDetailsLink({
-  moduleName,
-  group,
-  projectId,
-  spanOp,
-  description,
-  extraLinkQueryParams,
-}: Props) {
+export function SpanGroupDetailsLink({moduleName, group, projectId, description}: Props) {
   const location = useLocation();
 
   const moduleURL = useModuleURL(moduleName);
@@ -36,8 +25,6 @@ export function SpanGroupDetailsLink({
   const queryString = {
     ...location.query,
     project: projectId,
-    ...(spanOp ? {[SPAN_OP]: spanOp} : {}),
-    ...(extraLinkQueryParams ? extraLinkQueryParams : {}),
   };
 
   return (

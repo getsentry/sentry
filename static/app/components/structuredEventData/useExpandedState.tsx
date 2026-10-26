@@ -45,6 +45,7 @@ export function ExpandedStateContextProvider({
   );
 
   const value = useMemo(
+    // oxlint-disable-next-line react/refs
     () => ({collapse, expand, expandedPaths: expandedRef.current}),
     [collapse, expand]
   );

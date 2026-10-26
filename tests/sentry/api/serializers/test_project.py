@@ -28,10 +28,10 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.userreport import UserReport
-from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.snuba import metrics_enhanced_performance
+from sentry.testutils.cases import SnubaTestCase, SpanTestCase, TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now
-from sentry.utils.samples import load_data
 
 TEAM_CONTRIBUTOR = settings.SENTRY_TEAM_ROLES[0]
 TEAM_ADMIN = settings.SENTRY_TEAM_ROLES[1]
@@ -307,7 +307,7 @@ class ProjectWithTeamSerializerTest(TestCase):
         }
 
 
-class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
+class ProjectSummarySerializerTest(SnubaTestCase, SpanTestCase, TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.date = datetime.datetime(2018, 1, 12, 3, 8, 25, tzinfo=UTC)
@@ -659,8 +659,9 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
             data={"event_id": "d" * 32, "message": "oh no", "timestamp": two_min_ago.isoformat()},
             project_id=self.project.id,
         )
-        transaction = load_data("transaction", timestamp=two_min_ago)
-        self.store_event(data=transaction, project_id=self.project.id)
+        self.store_span(
+            self.create_span({"is_segment": True}, project=self.project, start_ts=two_min_ago)
+        )
         serializer = ProjectSummarySerializer(stats_period="24h", expand=["transaction_stats"])
         results = serialize([self.project], self.user, serializer)
         assert "stats" in results[0]
@@ -671,6 +672,28 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
         assert "transactionStats" in results[0]
         assert 24 == len(results[0]["transactionStats"])
         assert [1] == [v[1] for v in results[0]["transactionStats"] if v[1] > 0]
+
+    def test_stats_with_transactions_ignores_dataset(self) -> None:
+        self.store_span(
+            self.create_span(
+                {"is_segment": True}, project=self.project, start_ts=before_now(minutes=2)
+            )
+        )
+        serializer = ProjectSummarySerializer(
+            stats_period="24h",
+            expand=["transaction_stats"],
+            dataset=metrics_enhanced_performance,
+        )
+        results = serialize([self.project], self.user, serializer)
+
+        assert [1] == [v[1] for v in results[0]["transactionStats"] if v[1] > 0]
+
+    def test_stats_with_transactions_no_spans(self) -> None:
+        serializer = ProjectSummarySerializer(stats_period="24h", expand=["transaction_stats"])
+        results = serialize([self.project], self.user, serializer)
+
+        assert 24 == len(results[0]["transactionStats"])
+        assert 0 == sum(v[1] for v in results[0]["transactionStats"])
 
     @mock.patch(
         "sentry.api.serializers.models.project.release_health.backend.check_has_health_data"

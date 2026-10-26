@@ -20,6 +20,7 @@ import {PanelItem} from 'sentry/components/panels/panelItem';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useUser} from 'sentry/utils/useUser';
@@ -29,6 +30,11 @@ import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 const BYE_URL = '/';
 const leaveRedirect = () => (window.location.href = BYE_URL);
+
+const HookedCustomConfirmAccountClose = OverrideOrDefault({
+  overrideName: 'component:confirm-account-close',
+  defaultComponent: props => <ConfirmAccountClose {...props} />,
+});
 
 function GoodbyeModalContent({Header, Body, Footer}: ModalRenderProps) {
   return (
@@ -67,6 +73,7 @@ function AccountClose() {
 
   // Load all organizations the current user is an owner of.
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setIsLoading(true);
     fetchOrganizations(api, {owner: 1}).then((response: OwnedOrg[]) => {
       const singleOwnerOrgs = response
@@ -109,7 +116,7 @@ function AccountClose() {
     mutationFn: (orgs: string[]) =>
       fetchMutation({
         method: 'DELETE',
-        url: '/users/me/',
+        url: getApiUrl('/users/$userId/', {path: {userId: 'me'}}),
         data: {organizations: orgs},
       }),
     onMutate: () => {
@@ -133,11 +140,6 @@ function AccountClose() {
   const handleRemoveAccount = () => {
     removeAccount(Array.from(orgsToRemove));
   };
-
-  const HookedCustomConfirmAccountClose = OverrideOrDefault({
-    overrideName: 'component:confirm-account-close',
-    defaultComponent: props => <ConfirmAccountClose {...props} />,
-  });
 
   if (isLoading) {
     return <LoadingIndicator />;
@@ -186,7 +188,6 @@ function AccountClose() {
                   {organization.slug}
                 </Text>
                 <Switch
-                  size="sm"
                   id={`delete-organization-${organization.slug}`}
                   checked={orgsToRemove.has(organization.slug)}
                   value={organization.slug}

@@ -7,5 +7,5 @@ export type ReplayBulkDeleteAuditLog = {
   query: string;
   rangeEnd: string;
   rangeStart: string;
-  status: 'pending' | 'in-progress' | 'completed';
+  status: 'pending' | 'in-progress' | 'completed' | 'failed';
 };

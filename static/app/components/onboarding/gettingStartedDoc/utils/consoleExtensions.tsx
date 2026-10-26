@@ -6,6 +6,7 @@ import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {RequestSdkAccessButton} from 'sentry/components/gameConsole/RequestSdkAccessButton';
 import {CONSOLE_PLATFORM_INSTRUCTIONS} from 'sentry/components/onboarding/consoleModal';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
+import {docsFlowGamingOrigin} from 'sentry/components/onboarding/gettingStartedDoc/docsFlowAnalytics';
 import type {
   ContentBlock,
   DocsParams,
@@ -98,7 +99,7 @@ function getEnabledPlayStationContent(params: DocsParams): ContentBlock[] {
           gamingPlatform="playstation"
           organization={params.organization}
           projectId={params.project.id}
-          origin={params.newOrg ? 'onboarding' : 'project-creation'}
+          origin={docsFlowGamingOrigin(params.docsFlow)}
         />
       ),
     },
@@ -150,7 +151,7 @@ function getEnabledNintendoSwitchContent(params: DocsParams): ContentBlock[] {
           gamingPlatform="nintendo-switch"
           organization={params.organization}
           projectId={params.project.id}
-          origin={params.newOrg ? 'onboarding' : 'project-creation'}
+          origin={docsFlowGamingOrigin(params.docsFlow)}
         />
       ),
     },
@@ -197,7 +198,7 @@ function getEnabledXboxContent(params: DocsParams): ContentBlock[] {
           gamingPlatform="xbox"
           organization={params.organization}
           projectId={params.project.id}
-          origin={params.newOrg ? 'onboarding' : 'project-creation'}
+          origin={docsFlowGamingOrigin(params.docsFlow)}
         />
       ),
     },

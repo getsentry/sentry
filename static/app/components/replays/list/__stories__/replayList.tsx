@@ -1,10 +1,10 @@
-import styled from '@emotion/styled';
 import type {InfiniteData, UseInfiniteQueryResult} from '@tanstack/react-query';
 import uniqBy from 'lodash/uniqBy';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
-import {Container} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -58,29 +58,18 @@ export function ReplayList({onSelect, queryResult}: Props) {
 
 function NoReplays() {
   return (
-    <NoReplaysWrapper>
-      <img src={waitingForEventImg} alt={t('A person waiting for a phone to ring')} />
-      <NoReplaysMessage>{t('Inbox Zero')}</NoReplaysMessage>
-      <p>{t('You have two options: take a nap or be productive.')}</p>
-    </NoReplaysWrapper>
+    <Container padding="3xl">
+      <Stack align="center">
+        <img src={waitingForEventImg} alt={t('A person waiting for a phone to ring')} />
+        <Stack align="center" gap="md">
+          <Text as="div" size="xl" bold variant="secondary">
+            {t('Inbox Zero')}
+          </Text>
+          <Text as="p" size="md" variant="secondary">
+            {t('You have two options: take a nap or be productive.')}
+          </Text>
+        </Stack>
+      </Stack>
+    </Container>
   );
 }
-
-const NoReplaysWrapper = styled('div')`
-  padding: ${p => p.theme.space['3xl']};
-  text-align: center;
-  color: ${p => p.theme.tokens.content.secondary};
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    font-size: ${p => p.theme.font.size.md};
-  }
-`;
-
-const NoReplaysMessage = styled('div')`
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  color: ${p => p.theme.colors.gray500};
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    font-size: ${p => p.theme.font.size.xl};
-  }
-`;

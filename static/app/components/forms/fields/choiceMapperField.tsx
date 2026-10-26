@@ -1,6 +1,9 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
+import {IconAdd} from '@sentry/icons/add';
+import {IconDelete} from '@sentry/icons/delete';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 import {useQuery} from '@tanstack/react-query';
 import type {DistributedOmit} from 'type-fest';
 
@@ -17,11 +20,9 @@ import {Select} from '@sentry/scraps/select';
 
 import {Client} from 'sentry/api';
 import {FormField} from 'sentry/components/forms/formField';
-import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
 import type {InputFieldProps} from './inputField';
@@ -158,7 +159,7 @@ function AsyncCompactSelectForIntegrationConfig<Value extends string = string>({
   ...compactSelectProps
 }: AsyncCompactSelectProps<Value>) {
   const [query, setQuery] = useState('');
-  const debouncedQuery = useDebouncedValue(query, 250);
+  const [debouncedQuery] = useDebouncedValue(query, {wait: 250});
 
   // Use empty baseUrl since /extensions/ endpoints are not under /api/0/
   const [api] = useState(() => new Client({baseUrl: '', headers: {}}));

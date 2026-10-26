@@ -8,8 +8,10 @@ and perform RPC calls to propagate changes to Control Silo.
 
 from __future__ import annotations
 
+import contextlib
 import json  # noqa: S003 - urllib3 raises stdlib JSONDecodeError, not simplejson's
 import logging
+from datetime import datetime
 from typing import Any, assert_never, cast
 
 from django.db import IntegrityError, router, transaction
@@ -37,7 +39,6 @@ from sentry.receivers.outbox import maybe_process_tombstone
 from sentry.seer.agent.client import (
     _trigger_explorer_indexes_if_needed,
     get_available_monitoring_providers,
-    get_monitoring_provider_connections,
 )
 from sentry.seer.agent.client_utils import (
     AgentChatRequest,
@@ -45,11 +46,20 @@ from sentry.seer.agent.client_utils import (
     make_agent_chat_request,
     make_feature_run_request,
 )
+from sentry.seer.agent.monitoring_providers import get_monitoring_provider_connections
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.signed_seer_api import SearchAgentStartRequest, make_search_agent_start_request
 from sentry.sentry_apps.services.app.service import app_service
+from sentry.service_accounts.services.service_account import service_account_service
 from sentry.types.cell import get_local_cell
 from sentry.utils.env import in_test_environment
+from sentry.viewer_context import (
+    Actor,
+    ActorType,
+    ViewerContext,
+    get_viewer_context,
+    viewer_context_scope,
+)
 from sentry.workflow_engine.models import Action
 
 logger = logging.getLogger(__name__)
@@ -193,10 +203,21 @@ def process_user_ip_event(payload: Any, **kwds: Any):
 
 
 @receiver(process_cell_outbox, sender=OutboxCategory.PROJECT_UPDATE)
-def process_project_updates(object_identifier: int, **kwds: Any):
+def process_project_updates(
+    object_identifier: int, shard_identifier: int, payload: Any, **kwds: Any
+):
     if (proj := maybe_process_tombstone(Project, object_identifier)) is None:
         return
-    proj
+    if not payload or "transferred_at" not in payload:
+        return
+    # Written by a transfer out of the shard's org. The project may have moved again since,
+    # so its current org alone doesn't say which links the transfer revoked.
+    service_account_service.remove_project_links_after_transfer(
+        project_id=proj.id,
+        organization_id=proj.organization_id,
+        previous_organization_id=shard_identifier,
+        transferred_at=datetime.fromisoformat(payload["transferred_at"]),
+    )
 
 
 @receiver(process_cell_outbox, sender=OutboxCategory.ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE)
@@ -245,48 +266,72 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
         _mark_seer_run_failed(run, "seer_run_create.invalid_payload", error=str(e))
         return
 
-    match run_type:
-        case SeerRunType.EXPLORER:
-            # Add connected and available monitoring providers for runs with user context.
-            if run.user_id is not None:
+    scope: contextlib.AbstractContextManager[None] = contextlib.nullcontext()
+    if get_viewer_context() is None:
+        scope = viewer_context_scope(
+            ViewerContext(
+                actor=Actor(
+                    type=ActorType.USER if run.user_id is not None else ActorType.SYSTEM,
+                    actor_id=run.user_id,
+                ),
+                organization_id=run.organization_id,
+            )
+        )
+
+    with scope:
+        match run_type:
+            case SeerRunType.EXPLORER:
                 try:
                     organization = Organization.objects.get_from_cache(id=run.organization_id)
                     monitoring_provider_connections = get_monitoring_provider_connections(
                         organization, run.user_id
                     )
                     if monitoring_provider_connections:
-                        body["monitoring_providers"] = monitoring_provider_connections
+                        body["monitoring_providers"] = [
+                            connection.dict() for connection in monitoring_provider_connections
+                        ]
 
-                    available_monitoring_providers = get_available_monitoring_providers(
-                        organization, run.user_id
-                    )
-                    if available_monitoring_providers:
-                        body["available_monitoring_providers"] = available_monitoring_providers
+                    if run.user_id is not None:
+                        available_monitoring_providers = get_available_monitoring_providers(
+                            organization, run.user_id
+                        )
+                        if available_monitoring_providers:
+                            body["available_monitoring_providers"] = available_monitoring_providers
                 except Organization.DoesNotExist:
                     logger.warning(
                         "seer_run_create.organization_dne",
                         extra={"organization_id": run.organization_id, "run_id": run.id},
                     )
-            response = make_agent_chat_request(
-                cast(AgentChatRequest, body), viewer_context=viewer_context
-            )
-        case SeerRunType.PR_REVIEW:
-            # TODO(telkins): support PR review runs. Until then, mark the
-            # run FAILED rather than raising — the failure is permanent and
-            # raising would stall the org's outbox shard on every drain.
-            _mark_seer_run_failed(run, "seer_run_create.pr_review_unsupported")
-            return
-        case SeerRunType.ASSISTED_QUERY:
-            response = make_search_agent_start_request(
-                cast(SearchAgentStartRequest, body), viewer_context=viewer_context
-            )
-        case SeerRunType.FEATURE_RUN:
-            wire_body = {**body, "ref": str(run.uuid)}
-            response = make_feature_run_request(
-                cast(SeerFeatureRunWireRequest, wire_body), viewer_context=viewer_context
-            )
-        case unknown:
-            assert_never(unknown)
+                response = make_agent_chat_request(
+                    cast(AgentChatRequest, body), viewer_context=viewer_context
+                )
+            case SeerRunType.PR_REVIEW:
+                # TODO(telkins): support PR review runs. Until then, mark the
+                # run FAILED rather than raising — the failure is permanent and
+                # raising would stall the org's outbox shard on every drain.
+                _mark_seer_run_failed(run, "seer_run_create.pr_review_unsupported")
+                return
+            case SeerRunType.INVESTIGATION:
+                # Investigation orchestration runs are not started through this
+                # outbox. Seer creates its own run and Sentry adopts the id, so a
+                # SeerRun of this type is a mirror with nothing to dispatch. Nothing
+                # enqueues one today; log rather than drop it silently if that changes.
+                logger.warning(
+                    "seer_run_create.investigation_not_dispatched",
+                    extra={"organization_id": run.organization_id, "run_id": run.id},
+                )
+                return
+            case SeerRunType.ASSISTED_QUERY:
+                response = make_search_agent_start_request(
+                    cast(SearchAgentStartRequest, body), viewer_context=viewer_context
+                )
+            case SeerRunType.FEATURE_RUN:
+                wire_body = {**body, "ref": str(run.uuid)}
+                response = make_feature_run_request(
+                    cast(SeerFeatureRunWireRequest, wire_body), viewer_context=viewer_context
+                )
+            case unknown:
+                assert_never(unknown)
 
     if response.status >= 500:
         raise RuntimeError(f"Seer returned transient error {response.status}")
@@ -365,7 +410,8 @@ def process_group_action_log_event(payload: GroupActionLogPayload, **kwds: Any) 
                 )
         except IntegrityError:
             # Idempotency conflict; we treat this as a no-op.
-            pass
+            # Return to skip the trigger_group_log_processing call.
+            return
 
         # This receiver runs inside the outbox drain transaction
         # (process_shard → transaction.atomic), so the GALE is not yet committed.

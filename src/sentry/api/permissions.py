@@ -4,11 +4,14 @@ import logging
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
+from django.conf import settings
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import SAFE_METHODS, BasePermission, IsAuthenticated  # noqa: S012
 from rest_framework.request import Request
 
 from sentry.api.exceptions import (
     INSUFFICIENT_SCOPE_ATTR,
+    InsufficientScope,
     MemberDisabledOverLimit,
     SsoRequired,
     SuperuserRequired,
@@ -20,12 +23,14 @@ from sentry.auth.superuser import SUPERUSER_ORG_ID, is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.demo_mode.utils import get_readonly_scopes, is_demo_mode_enabled, is_demo_user
 from sentry.hybridcloud.rpc import extract_id_from
+from sentry.models.apiscopes import add_scope_hierarchy
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
 from sentry.organizations.services.organization import (
     RpcOrganization,
     RpcUserOrganizationContext,
     organization_service,
 )
+from sentry.seer import agent_token
 from sentry.utils import auth
 
 logger = logging.getLogger(__name__)
@@ -34,6 +39,48 @@ if TYPE_CHECKING:
     from rest_framework.views import APIView
 
     from sentry.models.organization import Organization
+    from sentry.models.project import Project
+
+
+def _least_privileged_scope(allowed_scopes: set[str]) -> str | None:
+    """Choose the weakest user-grantable scope; break unrelated ties deterministically."""
+    grantable_scopes = allowed_scopes - settings.SENTRY_TOKEN_ONLY_SCOPES - settings.GRANULAR_SCOPES
+    for scope in sorted(grantable_scopes):
+        implied = set(settings.SENTRY_SCOPE_HIERARCHY_MAPPING.get(scope, ()))
+        if not implied.intersection(grantable_scopes - {scope}):
+            return scope
+    return min(grantable_scopes) if grantable_scopes else None
+
+
+def enforce_scope(
+    request: Request, required_scope: str, *, projects: Sequence[Project] = ()
+) -> None:
+    """
+    Require a scope and distinguish token failures from other denials.
+
+    When projects are provided, require that the requestor be able to obtain
+    the scope for every project. If not, raise PermissionDenied instead of an
+    insufficient-scope challenge since new scopes won't give them project access
+    """
+    if request.access.has_scope(required_scope):
+        return
+    if required_scope in add_scope_hierarchy(list(request.access.scopes)):
+        return
+    if (
+        agent_token.is_agent_auth(request.auth)
+        and required_scope not in settings.SENTRY_TOKEN_ONLY_SCOPES
+    ):
+        scope_can_be_granted = request.access.would_have_scope_with_added_auth_scope(required_scope)
+        if projects:
+            scope_can_be_granted = all(
+                request.access.would_have_project_scope_with_added_auth_scope(
+                    project, required_scope
+                )
+                for project in projects
+            )
+        if scope_can_be_granted:
+            raise InsufficientScope([required_scope])
+    raise PermissionDenied
 
 
 class RelayPermission(BasePermission):
@@ -129,7 +176,15 @@ class ScopedPermission(BasePermission):
             # scopes so permission_denied can advertise them via RFC 6750 insufficient_scope;
             # has_permission itself stays a plain bool. (Skipped when no scope could satisfy
             # the method, e.g. an unset scope_map entry, to avoid an empty challenge.)
-            setattr(request, INSUFFICIENT_SCOPE_ATTR, allowed_scopes)
+            unsatisfied_scopes = allowed_scopes
+            if agent_token.is_agent_auth(request.auth):
+                required_scope = _least_privileged_scope(allowed_scopes)
+                if required_scope is None:
+                    unsatisfied_scopes = set()
+                else:
+                    unsatisfied_scopes = {required_scope}
+            if unsatisfied_scopes:
+                setattr(request, INSUFFICIENT_SCOPE_ATTR, unsatisfied_scopes)
         return False
 
     def has_object_permission(self, request: Request, view: APIView, obj: Any) -> bool:
@@ -165,6 +220,8 @@ class SentryPermission(ScopedPermission):
         from sentry.api.base import logger
 
         user_id = request.user.id if request.user else None
+        agent_auth = request.auth if agent_token.is_agent_auth(request.auth) else None
+
         org_context: RpcUserOrganizationContext | None
         if isinstance(organization, RpcUserOrganizationContext):
             org_context = organization
@@ -180,13 +237,19 @@ class SentryPermission(ScopedPermission):
         extra = {"organization_id": organization.id, "user_id": user_id}
 
         if request.auth:
-            if request.user and request.user.is_authenticated:
+            if agent_auth is not None:
+                request.access = access.from_rpc_auth(
+                    auth=agent_auth, rpc_user_org_context=org_context
+                )
+            elif request.user and request.user.is_authenticated:
                 request.access = access.from_request_org_and_scopes(
                     request=request,
                     rpc_user_org_context=org_context,
                     scopes=request.auth.get_scopes(),
                 )
             else:
+                # Userless credential (org token, or agent token acting on behalf of a
+                # member). from_rpc_auth dispatches the agent to member-derived access.
                 request.access = access.from_rpc_auth(
                     auth=request.auth, rpc_user_org_context=org_context
                 )
@@ -380,6 +443,11 @@ class DisallowImpersonatedTokenCreation(BasePermission):
             )
             return False
         return True
+
+
+class DisallowAgentToken(BasePermission):
+    def has_permission(self, request: Request, view: object) -> bool:
+        return not agent_token.is_agent_auth(request.auth)
 
 
 class SentryIsAuthenticated(IsAuthenticated):

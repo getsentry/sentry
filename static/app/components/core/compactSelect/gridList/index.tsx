@@ -5,19 +5,18 @@ import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {CollectionChildren} from '@react-types/shared';
 
+import {ControlContext} from '@sentry/scraps/compactSelect/controlContext';
+import {SelectFilterContext} from '@sentry/scraps/compactSelect/selectFilterContext';
 import {
-  ControlContext,
   ListLabel,
   ListSeparator,
   ListWrap,
-  SelectFilterContext,
   SizeLimitMessage,
-  useVirtualizedItems,
-} from '@sentry/scraps/compactSelect';
+} from '@sentry/scraps/compactSelect/styles';
 import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
+import {useVirtualizedItems} from '@sentry/scraps/compactSelect/useVirtualizedItems';
 import {Container} from '@sentry/scraps/layout';
-
-import {t} from 'sentry/locale';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {GridListOption, type GridListOptionProps} from './option';
 import {GridListSection} from './section';
@@ -80,6 +79,7 @@ function GridList<T extends ListItemBase>({
   virtualized,
   ...props
 }: GridListProps<T>) {
+  const {t} = useTranslation();
   const ref = useRef<HTMLUListElement>(null);
   const labelId = useId();
   const {gridProps} = useGridList(
@@ -124,6 +124,7 @@ function GridList<T extends ListItemBase>({
       {listItems.length !== 0 && label && <ListLabel id={labelId}>{label}</ListLabel>}
       {overlayIsOpen && (
         <Container ref={virtualizer.scrollElementRef} height="100%" overflowY="auto">
+          {/* oxlint-disable-next-line react/refs */}
           <Container {...virtualizer.wrapperProps}>
             <ListWrap
               {...mergedProps}
@@ -131,6 +132,7 @@ function GridList<T extends ListItemBase>({
               onKeyDown={onKeyDown}
               ref={ref}
             >
+              {/* oxlint-disable-next-line react/refs */}
               {virtualizer.items.map(row => {
                 const item = listItems[row.index];
                 if (!item) {

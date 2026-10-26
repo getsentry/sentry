@@ -8,7 +8,7 @@ from types import FrameType
 
 import pytest
 
-from sentry.taskworker.timeout import timeout_alarm
+from sentry.taskworker.timeout import InnerTimeoutError, timeout_alarm
 
 
 class AlarmFired(Exception):
@@ -67,7 +67,7 @@ class TestTimeoutAlarm:
         assert called == [signal.SIGALRM]
 
     def test_raises_if_inner_geq_outer(self) -> None:
-        """Raises ValueError when inner timeout >= outer remaining, fully restores outer timer and handler."""
+        """Raises InnerTimeoutError when inner timeout >= outer remaining, fully restores outer timer and handler."""
         outer_called = []
 
         def outer_handler(signum: int, frame: FrameType | None) -> None:
@@ -76,13 +76,15 @@ class TestTimeoutAlarm:
         signal.signal(signal.SIGALRM, outer_handler)
         signal.setitimer(signal.ITIMER_REAL, 10)
 
-        with pytest.raises(ValueError, match="Inner timeout.*must be less than.*outer alarm"):
+        with pytest.raises(
+            InnerTimeoutError, match="Inner timeout.*must be less than.*outer alarm"
+        ):
             with timeout_alarm(10, self.noop):
                 pass
 
         # Outer timer must still be active
         remaining, _ = signal.getitimer(signal.ITIMER_REAL)
-        assert remaining > 0, "Outer timer should have been restored after ValueError"
+        assert remaining > 0, "Outer timer should have been restored after InnerTimeoutError"
 
         # Outer handler must be restored
         assert signal.getsignal(signal.SIGALRM) is outer_handler

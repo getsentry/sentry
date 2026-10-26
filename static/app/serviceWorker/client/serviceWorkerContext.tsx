@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 import {useFrontendVersion} from 'sentry/components/frontendVersionContext';
 import {isServiceWorkerSupported} from 'sentry/serviceWorker/client/isServiceWorkerSupported';
 import {ServiceWorkerController} from 'sentry/serviceWorker/client/serviceWorkerInterface';
+import {trustedScriptUrl} from 'sentry/utils/trustedTypes';
 
 const DEBUG_LOGGING = false;
 
@@ -11,15 +12,20 @@ function log(message: string, options?: Sentry.metrics.MetricOptions) {
   Sentry.metrics.count(`service-worker.register.${message}`, 1, options);
   if (DEBUG_LOGGING) {
     // eslint-disable-next-line no-console
-    console.log(`service-worker.register.${message}`);
+    console.log(`service-worker.register.${message}`, options);
   }
 }
 
-function getWorkerUrl(): string {
-  return window.__SENTRY_DEV_UI ? '/entrypoints/service-worker.js' : '/service-worker.js';
+function getWorkerUrl(): TrustedScriptURL {
+  const url = window.__SENTRY_DEV_UI
+    ? '/entrypoints/service-worker.js'
+    : '/service-worker.js';
+
+  return trustedScriptUrl(url);
 }
 
 const Context = createContext({
+  isServiceWorkerSupported: isServiceWorkerSupported(),
   controller: new ServiceWorkerController(),
 });
 
@@ -56,10 +62,19 @@ function useRegisterServiceWorker() {
       return;
     }
 
+    log('is-supported');
     navigator.serviceWorker
       // https://rspack.rs/guide/features/web-workers
-      .register(getWorkerUrl(), {scope: '/'})
+      // type: 'module' is required because the bundle is output as an ES module.
+      // Safari 26 (WebKit 26) strictly rejects classic service worker registrations
+      // that contain ES module syntax; Chrome/Firefox are more lenient. Module
+      // service workers are supported since Safari 16.4.
+      .register(getWorkerUrl(), {scope: '/', type: 'module'})
       .then(registration => {
+        if (!registration) {
+          log('registered-undefined');
+          return;
+        }
         log('registered', {
           attributes: {
             // An old version could be active while the new instance is incoming
@@ -84,6 +99,12 @@ function useRegisterServiceWorker() {
         // AbortErrors from registration are expected (e.g. user navigates away
         // during the initial register call) and produce no stack trace.
         if (error instanceof Error && error.name === 'AbortError') {
+          return;
+        }
+        // InvalidStateError occurs when the document is in an invalid state
+        // during registration (e.g. the page is being unloaded or navigated
+        // away from) — unactionable.
+        if (error instanceof Error && error.name === 'InvalidStateError') {
           return;
         }
         log('error');
@@ -115,6 +136,11 @@ function useServiceWorkerUpdateCheck() {
           // AbortErrors are expected when the user navigates away during an
           // update check — they are not actionable and produce no stack trace.
           if (error instanceof Error && error.name === 'AbortError') {
+            return;
+          }
+          // InvalidStateError occurs when the service worker registration
+          // becomes stale/invalid while the tab was backgrounded — unactionable.
+          if (error instanceof Error && error.name === 'InvalidStateError') {
             return;
           }
           Sentry.captureException(error);

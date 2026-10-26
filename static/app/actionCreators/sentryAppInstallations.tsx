@@ -7,6 +7,7 @@ import {
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {SentryApp, SentryAppInstallation} from 'sentry/types/integrations';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 
 /**
  * Install a sentry application
@@ -22,7 +23,9 @@ export function installSentryApp(
 ): Promise<SentryAppInstallation> {
   addLoadingMessage();
   const promise = client.requestPromise(
-    `/organizations/${orgId}/sentry-app-installations/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/sentry-app-installations/', {
+      path: {organizationIdOrSlug: orgId},
+    }),
     {
       method: 'POST',
       data: {slug: app.slug},

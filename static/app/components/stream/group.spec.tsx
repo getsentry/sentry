@@ -1,9 +1,11 @@
+import type {ComponentProps} from 'react';
 import {GroupFixture} from 'sentry-fixture/group';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {StreamGroup} from 'sentry/components/stream/group';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {GuideStore} from 'sentry/stores/guideStore';
 import {EventOrGroupType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -12,6 +14,14 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {IssueSelectionProvider} from 'sentry/views/issueList/issueSelectionContext';
 
 jest.mock('sentry/utils/analytics');
+
+function StreamGroupInTable(props: ComponentProps<typeof StreamGroup>) {
+  return (
+    <SimpleTable>
+      <StreamGroup {...props} />
+    </SimpleTable>
+  );
+}
 
 describe('StreamGroup', () => {
   let group1!: Group;
@@ -51,16 +61,16 @@ describe('StreamGroup', () => {
     jest.mocked(trackAnalytics).mockClear();
   });
 
-  it('renders with anchors', async () => {
-    render(<StreamGroup group={group1} hasGuideAnchor />);
+  it('registers the issue stream guide anchor', async () => {
+    render(<StreamGroupInTable group={group1} hasGuideAnchor />);
 
     expect(await screen.findByTestId('group')).toBeInTheDocument();
-    expect(GuideStore.state.anchors).toEqual(new Set(['dynamic_counts', 'issue_stream']));
+    expect(GuideStore.state.anchors).toEqual(new Set(['issue_stream']));
   });
 
   it('shows not reviewed when group has inbox reason', async () => {
     render(
-      <StreamGroup
+      <StreamGroupInTable
         group={group1}
         query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
       />
@@ -83,7 +93,7 @@ describe('StreamGroup', () => {
       body: {priority: PriorityLevel.HIGH},
     });
 
-    render(<StreamGroup group={group1} query="is:unresolved" />);
+    render(<StreamGroupInTable group={group1} query="is:unresolved" />);
 
     const priorityDropdown = screen.getByRole('button', {name: 'Modify issue priority'});
     expect(within(priorityDropdown).getByText('Med')).toBeInTheDocument();
@@ -101,7 +111,7 @@ describe('StreamGroup', () => {
 
   it('tracks clicks from issues stream', async () => {
     render(
-      <StreamGroup
+      <StreamGroupInTable
         group={group1}
         query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
       />
@@ -114,7 +124,7 @@ describe('StreamGroup', () => {
   it('can select row', async () => {
     render(
       <IssueSelectionProvider visibleGroupIds={['1337']}>
-        <StreamGroup group={group1} query="is:unresolved" />
+        <StreamGroupInTable group={group1} query="is:unresolved" />
       </IssueSelectionProvider>
     );
 
@@ -129,7 +139,7 @@ describe('StreamGroup', () => {
 
   it('shows first/last seen column', () => {
     render(
-      <StreamGroup
+      <StreamGroupInTable
         group={group1}
         query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
         withColumns={['firstSeen', 'lastSeen']}
@@ -142,7 +152,7 @@ describe('StreamGroup', () => {
 
   it('navigates to issue with correct params when clicked', async () => {
     const {router} = render(
-      <StreamGroup
+      <StreamGroupInTable
         group={group1}
         query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
       />
@@ -159,36 +169,12 @@ describe('StreamGroup', () => {
     });
   });
 
-  it('calls onGroupClick instead of navigating when the row is clicked', async () => {
-    const onGroupClick = jest.fn();
-    const {router} = render(
-      <StreamGroup group={group1} query="is:unresolved" onGroupClick={onGroupClick} />
-    );
-
-    await userEvent.click(await screen.findByTestId('group'));
-
-    expect(onGroupClick).toHaveBeenCalledWith(group1);
-    expect(router.location.pathname).not.toBe('/organizations/org-slug/issues/1337/');
-  });
-
-  it('calls onGroupClick on a plain left-click of the title', async () => {
-    const onGroupClick = jest.fn();
-    const {router} = render(
-      <StreamGroup group={group1} query="is:unresolved" onGroupClick={onGroupClick} />
-    );
-
-    await userEvent.click(screen.getByText('RequestError'), {skipHover: true});
-
-    expect(onGroupClick).toHaveBeenCalledWith(group1);
-    expect(router.location.pathname).not.toBe('/organizations/org-slug/issues/1337/');
-  });
-
   it('displays unread indicator when issue is unread', async () => {
     const unreadGroup = GroupFixture({id: '1337', hasSeen: false});
 
     render(
       <IssueSelectionProvider visibleGroupIds={['1337']}>
-        <StreamGroup group={unreadGroup} query="is:unresolved" />
+        <StreamGroupInTable group={unreadGroup} query="is:unresolved" />
       </IssueSelectionProvider>
     );
 
@@ -202,7 +188,7 @@ describe('StreamGroup', () => {
       statusDetails: {},
     });
 
-    render(<StreamGroup group={resolvedGroup} query="is:unresolved" />);
+    render(<StreamGroupInTable group={resolvedGroup} query="is:unresolved" />);
 
     expect(await screen.findByTestId('resolved-issue')).toBeInTheDocument();
   });

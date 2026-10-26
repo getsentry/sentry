@@ -93,7 +93,7 @@ interface ReleaseData {
   lastEvent: string;
   // TODO(ts)
   newGroups: number;
-  versionInfo: VersionInfo;
+  versionInfo: VersionInfo | null;
   adoptionStages?: Record<
     string,
     {
@@ -138,7 +138,7 @@ export type ReleaseMeta = {
   releaseFileCount: number;
   released: string;
   version: string;
-  versionInfo: VersionInfo;
+  versionInfo: VersionInfo | null;
 };
 
 /**

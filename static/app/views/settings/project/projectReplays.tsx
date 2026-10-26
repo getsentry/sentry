@@ -11,9 +11,8 @@ import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {ReplayBulkDeleteAuditLog} from 'sentry/components/replays/bulkDelete/replayBulkDeleteAuditLog';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {ProjectsStore} from 'sentry/stores/projectsStore';
-import type {Project} from 'sentry/types/project';
-import {fetchMutation} from 'sentry/utils/queryClient';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
+import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
@@ -33,21 +32,19 @@ const ReplaySettingsAlert = OverrideOrDefault({
 
 export default function ProjectReplaySettings() {
   const organization = useOrganization();
-  const {project} = useProjectSettingsOutlet();
+  const {project: outletProject} = useProjectSettingsOutlet();
+  const {data: project = outletProject} = useDetailedProject({
+    orgSlug: organization.slug,
+    projectSlug: outletProject.slug,
+  });
+  const updateProject = useUpdateProject(project);
   const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
   const hasAdminAccess = hasEveryAccess(['project:admin'], {organization, project});
   const hasAccess = hasWriteAccess || hasAdminAccess;
 
-  const projectEndpoint = `/projects/${organization.slug}/${project.slug}/`;
-
   const mutationOptions = {
     mutationFn: (data: Partial<ReplaySchema>) =>
-      fetchMutation<Project>({
-        url: projectEndpoint,
-        method: 'PUT',
-        data: {options: data},
-      }),
-    onSuccess: (response: Project) => ProjectsStore.onUpdateSuccess(response),
+      updateProject.mutateAsync({options: data}),
   };
 
   const [tab, setTab] = useQueryState(
@@ -62,12 +59,14 @@ export default function ProjectReplaySettings() {
       <SentryDocumentTitle title={t('Replays')} projectSlug={project.slug}>
         <SettingsPageHeader title={t('Replays')} />
         <TabsWithGap
-          value={tab}
+          value={hasAccess ? tab : 'replay-issues'}
           onChange={value => setTab(value as 'replay-issues' | 'bulk-delete')}
         >
           <TabList>
             <TabList.Item key="replay-issues">{t('Replay Issues')}</TabList.Item>
-            <TabList.Item key="bulk-delete">{t('Bulk Delete')}</TabList.Item>
+            {hasAccess ? (
+              <TabList.Item key="bulk-delete">{t('Bulk Delete')}</TabList.Item>
+            ) : null}
           </TabList>
           <TabPanels>
             <TabPanels.Item key="replay-issues">
@@ -129,14 +128,16 @@ export default function ProjectReplaySettings() {
                 </AutoSaveForm>
               </FieldGroup>
             </TabPanels.Item>
-            <TabPanels.Item key="bulk-delete">
-              <p>
-                {t(
-                  'Deleting replays requires us to remove data from multiple storage locations which can take some time. You can monitor progress and audit requests here.'
-                )}
-              </p>
-              <ReplayBulkDeleteAuditLog projectSlug={project.slug} />
-            </TabPanels.Item>
+            {hasAccess ? (
+              <TabPanels.Item key="bulk-delete">
+                <p>
+                  {t(
+                    'Deleting replays requires us to remove data from multiple storage locations which can take some time. You can monitor progress and audit requests here.'
+                  )}
+                </p>
+                <ReplayBulkDeleteAuditLog projectSlug={project.slug} />
+              </TabPanels.Item>
+            ) : null}
           </TabPanels>
         </TabsWithGap>
       </SentryDocumentTitle>

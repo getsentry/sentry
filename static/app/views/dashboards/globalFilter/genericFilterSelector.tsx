@@ -11,29 +11,24 @@ export type GenericFilterSelectorProps = {
   onUpdateFilter: (filter: GlobalFilter) => void;
   searchBarData: SearchBarData;
   disableRemoveFilter?: boolean;
+  /**
+   * Show the filter's dataset inline in the trigger. Used when another filter
+   * on the dashboard has the same key but a different dataset.
+   */
+  showDatasetLabel?: boolean;
 };
-
-function getFilterSelector(
-  globalFilter: GlobalFilter
-): React.ComponentType<GenericFilterSelectorProps> {
-  const fieldDefinition = getFieldDefinitionForDataset(
-    globalFilter.tag,
-    globalFilter.dataset
-  );
-  switch (fieldDefinition?.valueType) {
-    case FieldValueType.NUMBER:
-    case FieldValueType.DURATION:
-      return NumericFilterSelector;
-    case FieldValueType.STRING:
-    default:
-      return FilterSelector;
-  }
-}
 
 export function GenericFilterSelector({
   globalFilter,
   ...props
 }: GenericFilterSelectorProps) {
-  const FilterSelectorForType = getFilterSelector(globalFilter);
-  return <FilterSelectorForType globalFilter={globalFilter} {...props} />;
+  const fieldDefinition = getFieldDefinitionForDataset(
+    globalFilter.tag,
+    globalFilter.dataset
+  );
+  const isNumericType =
+    fieldDefinition?.valueType === FieldValueType.NUMBER ||
+    fieldDefinition?.valueType === FieldValueType.DURATION;
+  const Component = isNumericType ? NumericFilterSelector : FilterSelector;
+  return <Component globalFilter={globalFilter} {...props} />;
 }

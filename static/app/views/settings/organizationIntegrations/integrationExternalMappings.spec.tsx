@@ -9,6 +9,8 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+
 import {IntegrationExternalMappings} from './integrationExternalMappings';
 
 describe('IntegrationExternalMappings', () => {
@@ -105,7 +107,11 @@ describe('IntegrationExternalMappings', () => {
         onCreate={onCreateMock}
         onDelete={onDeleteMock}
         defaultOptions={[]}
-        getBaseFormEndpoint={() => '/organizations/org-slug/codeowners-associations/'}
+        getBaseFormEndpoint={() =>
+          getApiUrl('/organizations/$organizationIdOrSlug/codeowners-associations/', {
+            path: {organizationIdOrSlug: organization.slug},
+          })
+        }
       />
     );
 
@@ -123,7 +129,11 @@ describe('IntegrationExternalMappings', () => {
         onCreate={onCreateMock}
         onDelete={onDeleteMock}
         defaultOptions={[]}
-        getBaseFormEndpoint={() => '/organizations/org-slug/codeowners-associations/'}
+        getBaseFormEndpoint={() =>
+          getApiUrl('/organizations/$organizationIdOrSlug/codeowners-associations/', {
+            path: {organizationIdOrSlug: organization.slug},
+          })
+        }
       />
     );
 
@@ -131,7 +141,7 @@ describe('IntegrationExternalMappings', () => {
     for (const user of MOCK_USER_SUGGESTIONS) {
       expect(screen.getByText(user)).toBeInTheDocument();
     }
-    expect(screen.getAllByTestId('more-information')).toHaveLength(3);
+    expect(screen.getAllByRole('img', {name: 'More information'})).toHaveLength(3);
   });
 
   it('renders suggestions along with the provided mappings', async () => {
@@ -144,7 +154,11 @@ describe('IntegrationExternalMappings', () => {
         onCreate={onCreateMock}
         onDelete={onDeleteMock}
         defaultOptions={[]}
-        getBaseFormEndpoint={() => '/organizations/org-slug/codeowners-associations/'}
+        getBaseFormEndpoint={() =>
+          getApiUrl('/organizations/$organizationIdOrSlug/codeowners-associations/', {
+            path: {organizationIdOrSlug: organization.slug},
+          })
+        }
       />
     );
 
@@ -161,7 +175,7 @@ describe('IntegrationExternalMappings', () => {
     for (const team of MOCK_TEAMS) {
       expect(await screen.findByText(team.slug)).toBeInTheDocument();
     }
-    expect(screen.getAllByTestId('more-information')).toHaveLength(3);
+    expect(screen.getAllByRole('img', {name: 'More information'})).toHaveLength(3);
   });
 
   it('uses the methods passed down from props appropriately', async () => {
@@ -174,7 +188,11 @@ describe('IntegrationExternalMappings', () => {
         onCreate={onCreateMock}
         onDelete={onDeleteMock}
         defaultOptions={[]}
-        getBaseFormEndpoint={() => '/organizations/org-slug/codeowners-associations/'}
+        getBaseFormEndpoint={() =>
+          getApiUrl('/organizations/$organizationIdOrSlug/codeowners-associations/', {
+            path: {organizationIdOrSlug: organization.slug},
+          })
+        }
       />
     );
     renderGlobalModal();

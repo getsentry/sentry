@@ -1,15 +1,16 @@
-import {createContext, Fragment, useContext, useState} from 'react';
+import {createContext, Fragment, useContext, useMemo, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
+import {IconClose} from '@sentry/icons/close';
 
 import {Button} from '@sentry/scraps/button';
 import type {DrawerOptions} from '@sentry/scraps/drawer';
+import {ContainerQueryProvider} from '@sentry/scraps/layout';
 import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 import {TooltipContext} from '@sentry/scraps/tooltip';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
-import {IconClose} from 'sentry/icons/iconClose';
-import {t} from 'sentry/locale';
 import {PRIMARY_HEADER_HEIGHT} from 'sentry/views/navigation/constants';
 
 import {
@@ -35,12 +36,12 @@ export function useDrawerContentContext() {
 /**
  * Rendering props for the inner DrawerPanel component. Inherits the shared
  * panel-configuration props directly from DrawerOptions so the two interfaces
- * can't drift. GlobalDrawer-only options (onOpen, shouldClose*, onClose
+ * can't drift. GlobalDrawer-only options (shouldClose*, onClose
  * callback) are consumed before reaching this component.
  */
 interface DrawerPanelProps extends Pick<
   DrawerOptions,
-  'ariaLabel' | 'drawerKey' | 'drawerWidth' | 'resizable' | 'onClose'
+  'ariaLabel' | 'drawerKey' | 'drawerWidth' | 'drawerMaxWidth' | 'resizable' | 'onClose'
 > {
   children: React.ReactNode;
   /** Required — GlobalDrawer applies the default before passing it down. */
@@ -55,6 +56,7 @@ function DrawerPanel({
   children,
   onClose,
   drawerWidth,
+  drawerMaxWidth,
   drawerKey,
   resizable = true,
 }: DrawerPanelProps) {
@@ -62,6 +64,7 @@ function DrawerPanel({
     useDrawerResizing({
       drawerKey,
       drawerWidth,
+      drawerMaxWidth,
       enabled: resizable,
     });
   const [tooltipContainer, setTooltipContainer] = useState<HTMLDivElement | null>(null);
@@ -136,6 +139,7 @@ export function DrawerHeader({
   hideCloseButtonText = false,
 }: DrawerHeaderProps) {
   const {onClose} = useDrawerContentContext();
+  const {t} = useTranslation();
 
   return (
     <Header
@@ -185,7 +189,7 @@ const Header = styled('header')<{
   flex-shrink: 0;
   gap: ${p => (p.hideBar ? p.theme.space.md : 0)};
   padding: ${p => p.theme.space.lg};
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: ${p => p.theme.tokens.border.primary} 0 1px;
   padding-left: ${p => p.theme.space.lg};
   padding-top: ${p => (p.hideCloseButton ? p.theme.space.lg : p.theme.space.sm)};
@@ -202,7 +206,19 @@ const Header = styled('header')<{
     `}
 `;
 
-export const DrawerBody = styled('aside')`
+export function DrawerBody({ref, ...props}: React.ComponentProps<'aside'>) {
+  const bodyRef = useRef<HTMLElement>(null);
+  const refs = useMemo(() => mergeRefs(ref, bodyRef), [ref]);
+
+  return (
+    <ContainerQueryProvider elementRef={bodyRef}>
+      <DrawerBodyElement ref={refs} {...props} />
+    </ContainerQueryProvider>
+  );
+}
+
+const DrawerBodyElement = styled('aside')`
+  container-type: inline-size;
   padding: ${p => p.theme.space.xl} 24px;
   font-size: ${p => p.theme.font.size.md};
 `;
@@ -229,6 +245,7 @@ const DrawerSlidePanel = styled(SlideOverPanel)`
      overshoot doesn't briefly expose the page beneath. A box-shadow is used
      (vs. a pseudo-element) because the panel's own overflow: auto would clip
      anything positioned outside its bounds. */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token -- Extend the drawer background beyond its scrollable bounds. */
   box-shadow:
     20px 0 0 ${p => p.theme.tokens.background.overlay},
     ${p => p.theme.shadow.high};

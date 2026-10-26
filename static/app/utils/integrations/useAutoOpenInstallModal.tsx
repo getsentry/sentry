@@ -1,18 +1,28 @@
 import {useEffect, useRef} from 'react';
 import {useQueryState} from 'nuqs';
 
-import {t} from 'sentry/locale';
-import type {IntegrationProvider} from 'sentry/types/integrations';
+import type {
+  IntegrationProvider,
+  OrganizationIntegration,
+} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getSlackUpgradeModalParams} from 'sentry/utils/integrations/slackUpgradeModalParams';
 import type {AddIntegrationParams} from 'sentry/utils/integrations/useAddIntegration';
-import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
+import {integrationRequiresUpgrade} from 'sentry/utils/integrationUtil';
 
 interface Props {
   onInstall: AddIntegrationParams['onInstall'];
   organization: Organization;
   provider: IntegrationProvider;
+  /**
+   * The caller's `startFlow` from `useAddIntegration`. Accepting it here rather
+   * than creating a second hook instance means the auto-open and button-click
+   * paths share one hook, keeping install state observable in one place.
+   */
+  startFlow: (params: AddIntegrationParams) => void;
   analyticsParams?: AddIntegrationParams['analyticsParams'];
+  configurations?: OrganizationIntegration[];
   suppressSuccessMessage?: boolean;
 }
 
@@ -36,11 +46,12 @@ export function useAutoOpenInstallModal({
   provider,
   organization,
   onInstall,
+  startFlow,
   analyticsParams,
   suppressSuccessMessage,
+  configurations,
 }: Props) {
   const [showInstallModal, setShowInstallModal] = useQueryState('showInstallModal');
-  const {startFlow} = useAddIntegration();
   const autoOpenedForRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -51,6 +62,19 @@ export function useAutoOpenInstallModal({
       return;
     }
     if (autoOpenedForRef.current === provider.key) {
+      return;
+    }
+
+    // Only the detail page's gated install button has loaded configurations.
+    // Row update buttons must not race it or choose an arbitrary workspace.
+    if (provider.key === 'slack' && !configurations) {
+      return;
+    }
+    const outdatedConfigurations = configurations?.filter(integrationRequiresUpgrade);
+    const upgradeConfiguration =
+      outdatedConfigurations?.length === 1 ? outdatedConfigurations[0] : undefined;
+    if (provider.key === 'slack' && !upgradeConfiguration) {
+      setShowInstallModal(null);
       return;
     }
 
@@ -75,18 +99,14 @@ export function useAutoOpenInstallModal({
       analyticsParams,
       suppressSuccessMessage,
       ...(provider.key === 'slack' && {
-        modalParams: {
-          title: t('Upgrade Slack Integration'),
-          description: t(
-            'Reauthorize the Sentry app in your Slack Workspace so you can chat with Seer directly.'
-          ),
-        },
+        modalParams: getSlackUpgradeModalParams(upgradeConfiguration?.missingFeatures),
       }),
     });
 
     setShowInstallModal(null);
   }, [
     showInstallModal,
+    configurations,
     provider,
     organization,
     onInstall,

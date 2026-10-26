@@ -3,7 +3,7 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
+import {AutoSaveForm, DisplayField, FieldGroup} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -20,6 +20,7 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {ProjectKeyCredentials} from 'sentry/views/settings/project/projectKeys/credentials';
@@ -41,7 +42,6 @@ type Props = {
 const keySettingsSchema = z.object({
   name: z.string(),
   isActive: z.boolean(),
-  dateCreated: z.string(),
 });
 
 export function KeySettings({
@@ -55,7 +55,16 @@ export function KeySettings({
   const api = useApi();
 
   const {keyId, projectId} = params;
-  const apiEndpoint = `/projects/${organization.slug}/${projectId}/keys/${keyId}/`;
+  const apiEndpoint = getApiUrl(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/',
+    {
+      path: {
+        organizationIdOrSlug: organization.slug,
+        projectIdOrSlug: projectId,
+        keyId,
+      },
+    }
+  );
 
   const mutationOptions = {
     mutationFn: (fieldData: Partial<ProjectKey>) =>
@@ -74,7 +83,13 @@ export function KeySettings({
 
     try {
       await api.requestPromise(
-        `/projects/${organization.slug}/${projectId}/keys/${keyId}/`,
+        getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/', {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: projectId,
+            keyId,
+          },
+        }),
         {
           method: 'DELETE',
         }
@@ -131,20 +146,11 @@ export function KeySettings({
                   </field.Layout.Row>
                 )}
               </AutoSaveForm>
-              <AutoSaveForm
-                name="dateCreated"
-                schema={keySettingsSchema}
-                initialValue={data.dateCreated}
-                mutationOptions={mutationOptions}
-              >
-                {field => (
-                  <field.Layout.Row label={t('Created')}>
-                    <Text>
-                      <DateTime date={field.state.value} />
-                    </Text>
-                  </field.Layout.Row>
-                )}
-              </AutoSaveForm>
+              <DisplayField.Row label={t('Created')}>
+                <Text>
+                  <DateTime date={data.dateCreated} />
+                </Text>
+              </DisplayField.Row>
             </FieldGroup>
 
             <KeyRateLimitsForm

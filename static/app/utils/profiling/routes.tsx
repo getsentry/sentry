@@ -11,6 +11,8 @@ import {
 
 const PROFILING_BASE_PATHNAME = 'explore/profiles';
 
+export const PROFILE_CONTEXT_WINDOW_MS = 100;
+
 function generateProfilingRoute({organization}: {organization: Organization}): Path {
   return `/organizations/${organization.slug}/${PROFILING_BASE_PATHNAME}/`;
 }
@@ -143,14 +145,12 @@ export function generateProfileRouteFromProfileReference({
   frameName,
   framePackage,
   reference,
-  query,
 }: {
   organization: Organization;
   projectSlug: Project['slug'];
   reference: Profiling.BaseProfileReference | Profiling.ProfileReference;
   frameName?: string;
   framePackage?: string;
-  query?: Location['query'];
 }): LocationDescriptor {
   if (typeof reference === 'string') {
     return generateProfileFlamechartRouteWithQuery({
@@ -158,7 +158,6 @@ export function generateProfileRouteFromProfileReference({
       projectSlug,
       profileId: reference,
       query: {
-        ...query,
         frameName,
         framePackage,
       },
@@ -179,11 +178,10 @@ export function generateProfileRouteFromProfileReference({
       start: new Date(Math.floor(reference.start * 1e3)).toISOString(),
       end: new Date(Math.ceil(reference.end * 1e3)).toISOString(),
       query: dropUndefinedKeys({
-        ...query,
         frameName,
         framePackage,
         eventId,
-        tid: reference.thread_id as unknown as string,
+        tid: reference.thread_id,
       }),
     });
   }
@@ -193,7 +191,7 @@ export function generateProfileRouteFromProfileReference({
       organization,
       projectSlug,
       profileId: reference.profile_id,
-      query: dropUndefinedKeys({...query, frameName, framePackage}),
+      query: dropUndefinedKeys({frameName, framePackage}),
     });
   }
 

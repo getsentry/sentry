@@ -2,11 +2,9 @@ import {createContext, useContext} from 'react';
 
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import type {EventView} from 'sentry/utils/discover/eventView';
 import type {TransactionThresholdMetric} from 'sentry/views/performance/transactionSummary/transactionThresholdModal';
 
 export type TransactionSummaryContext = {
-  eventView: EventView;
   organization: Organization;
   projectId: string;
   projects: Project[];

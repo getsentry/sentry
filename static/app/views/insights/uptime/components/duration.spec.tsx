@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import type {UptimeSummary} from 'sentry/views/alerts/rules/uptime/types';
+import type {UptimeSummary} from 'sentry/views/detectors/components/uptime/types';
 import {UptimeDuration} from 'sentry/views/insights/uptime/components/duration';
 
 describe('UptimeDuration', () => {

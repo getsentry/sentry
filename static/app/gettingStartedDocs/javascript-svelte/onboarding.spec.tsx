@@ -88,16 +88,6 @@ describe('javascript-svelte onboarding docs', () => {
     ).toBeInTheDocument();
   });
 
-  it('enables logs by setting enableLogs to true', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
-    });
-
-    expect(
-      screen.getByText(textWithMarkupMatcher(/enableLogs: true/))
-    ).toBeInTheDocument();
-  });
-
   it('shows Logging Integrations in next steps when logs is selected', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [

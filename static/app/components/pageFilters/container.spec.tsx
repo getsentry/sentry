@@ -119,6 +119,7 @@ describe('PageFiltersContainer', () => {
     await waitFor(() =>
       expect(PageFiltersStore.getState()).toEqual({
         isReady: true,
+        adjustments: {},
         pinnedFilters: new Set(['projects', 'environments', 'datetime']),
         shouldPersist: true,
         selection: {
@@ -150,6 +151,7 @@ describe('PageFiltersContainer', () => {
     await waitFor(() =>
       expect(PageFiltersStore.getState()).toEqual({
         isReady: true,
+        adjustments: {},
         pinnedFilters: new Set(['projects', 'environments', 'datetime']),
         shouldPersist: true,
         selection: {
@@ -184,6 +186,7 @@ describe('PageFiltersContainer', () => {
     await waitFor(() =>
       expect(PageFiltersStore.getState()).toEqual({
         isReady: true,
+        adjustments: {},
         pinnedFilters: new Set(['projects', 'environments', 'datetime']),
         shouldPersist: true,
         selection: {
@@ -229,6 +232,7 @@ describe('PageFiltersContainer', () => {
 
     expect(PageFiltersStore.getState()).toEqual({
       isReady: true,
+      adjustments: {},
       pinnedFilters: new Set(['projects', 'environments', 'datetime']),
       shouldPersist: true,
       selection: {
@@ -462,6 +466,30 @@ describe('PageFiltersContainer', () => {
       );
     });
 
+    it('records an adjustment when the period is reset by a maxPickableDays decrease', async () => {
+      const {rerender} = render(<PageFiltersContainer maxPickableDays={30} />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/test/',
+            query: {statsPeriod: '14d'},
+          },
+          route: '/organizations/:orgId/test/',
+        },
+      });
+
+      await waitFor(() => expect(PageFiltersStore.getState().isReady).toBe(true));
+      expect(PageFiltersStore.getState().adjustments).toEqual({});
+
+      rerender(<PageFiltersContainer maxPickableDays={7} />);
+
+      await waitFor(() =>
+        expect(PageFiltersStore.getState().adjustments).toEqual({
+          datetime: {reason: 'max_pickable_days', days: 7},
+        })
+      );
+    });
+
     it('keeps absolute range when within maxPickableDays on decrease', async () => {
       const start = moment().subtract(2, 'days').format('YYYY-MM-DDTHH:mm:ss');
       const end = moment().subtract(1, 'days').format('YYYY-MM-DDTHH:mm:ss');
@@ -561,6 +589,70 @@ describe('PageFiltersContainer', () => {
       );
     });
 
+    describe('when the account timezone differs from the browser timezone', () => {
+      const accountTimezone = moment().tz();
+
+      beforeEach(() => {
+        moment.tz.setDefault('Pacific/Auckland');
+      });
+
+      afterEach(() => {
+        moment.tz.setDefault(accountTimezone);
+      });
+
+      it('keeps an absolute range that starts inside the window', async () => {
+        const start = moment()
+          .utc()
+          .subtract(30, 'days')
+          .add(6, 'hours')
+          .format('YYYY-MM-DDTHH:mm:ss');
+        const end = moment().utc().subtract(29, 'days').format('YYYY-MM-DDTHH:mm:ss');
+
+        const {router} = render(<PageFiltersContainer maxPickableDays={30} />, {
+          organization,
+          initialRouterConfig: {
+            location: {
+              pathname: '/organizations/org-slug/test/',
+              query: {start, end},
+            },
+            route: '/organizations/:orgId/test/',
+          },
+        });
+
+        await waitFor(() =>
+          expect(PageFiltersStore.getState().selection.datetime).toEqual({
+            period: null,
+            utc: null,
+            start: getUtcToLocalDateObject(start),
+            end: getUtcToLocalDateObject(end),
+          })
+        );
+        expect(router.location.query).toEqual({start, end});
+      });
+
+      it('keeps a relative period equal to maxPickableDays', async () => {
+        render(<PageFiltersContainer maxPickableDays={30} />, {
+          organization,
+          initialRouterConfig: {
+            location: {
+              pathname: '/organizations/org-slug/test/',
+              query: {statsPeriod: '30d'},
+            },
+            route: '/organizations/:orgId/test/',
+          },
+        });
+
+        await waitFor(() =>
+          expect(PageFiltersStore.getState().selection.datetime).toEqual({
+            period: '30d',
+            utc: null,
+            start: null,
+            end: null,
+          })
+        );
+      });
+    });
+
     it('applies maxPickableDays when mounted route changes to absolute params in the past', async () => {
       const {router} = render(<PageFiltersContainer maxPickableDays={30} />, {
         organization,
@@ -600,6 +692,71 @@ describe('PageFiltersContainer', () => {
           end: null,
         })
       );
+    });
+
+    describe('when a range starts less than a day before the window', () => {
+      const start = moment()
+        .utc()
+        .subtract(30, 'days')
+        .subtract(3, 'hours')
+        .format('YYYY-MM-DDTHH:mm:ss');
+      const end = moment().utc().subtract(20, 'days').format('YYYY-MM-DDTHH:mm:ss');
+
+      it('keeps the range when it is loaded from the URL', async () => {
+        const {router} = render(<PageFiltersContainer maxPickableDays={30} />, {
+          organization,
+          initialRouterConfig: {
+            location: {
+              pathname: '/organizations/org-slug/test/',
+              query: {start, end},
+            },
+            route: '/organizations/:orgId/test/',
+          },
+        });
+
+        await waitFor(() =>
+          expect(PageFiltersStore.getState().selection.datetime).toEqual({
+            period: null,
+            utc: null,
+            start: getUtcToLocalDateObject(start),
+            end: getUtcToLocalDateObject(end),
+          })
+        );
+        expect(router.location.query).toEqual({start, end});
+      });
+
+      it('keeps the range when the mounted route changes to it', async () => {
+        const {router} = render(<PageFiltersContainer maxPickableDays={30} />, {
+          organization,
+          initialRouterConfig: {
+            location: {
+              pathname: '/organizations/org-slug/test/',
+              query: {statsPeriod: '30d'},
+            },
+            route: '/organizations/:orgId/test/',
+          },
+        });
+
+        await waitFor(() => expect(PageFiltersStore.getState().isReady).toBe(true));
+
+        act(() => {
+          router.navigate({
+            pathname: '/organizations/org-slug/test/',
+            search: `start=${start}&end=${end}`,
+          });
+        });
+
+        await waitFor(() =>
+          expect(PageFiltersStore.getState().selection.datetime).toEqual({
+            period: null,
+            utc: null,
+            start: getUtcToLocalDateObject(start),
+            end: getUtcToLocalDateObject(end),
+          })
+        );
+        expect(router.location.query).toEqual({start, end});
+        expect(PageFiltersStore.getState().adjustments).toEqual({});
+      });
     });
   });
 

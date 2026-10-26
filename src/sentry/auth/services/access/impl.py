@@ -22,7 +22,7 @@ class ControlAccessService(AccessService):
         user = user_service.get_user(user_id)
         if user is None:
             return frozenset()
-        return user.roles | user.permissions
+        return user.permissions
 
     def get_auth_provider(self, organization_id: int) -> RpcAuthProvider | None:
         try:
@@ -65,7 +65,7 @@ class ControlAccessService(AccessService):
                 organization_id=member.organization_id,
                 user__is_active=True,
             )
-            .exclude(id=member.id)
+            .exclude(organizationmember_id=member.id)
             .values_list("user_id")
         )
         return not AuthIdentity.objects.filter(
@@ -121,4 +121,4 @@ class CellAccessService(AccessService):
         user = user_service.get_user(user_id)
         if user is None:
             return frozenset()
-        return user.roles | user.permissions
+        return user.permissions

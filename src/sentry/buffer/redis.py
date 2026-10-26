@@ -208,6 +208,9 @@ class RedisBuffer(Buffer):
     key_expire = 60 * 60  # 1 hour
     pending_key = "b:p"
 
+    # Super generous expiry guarantees zset will always outlive every row it points to
+    pending_key_expire = 60 * 60 * 24  # 1 day
+
     def __init__(self, incr_batch_size: int = 2, **options: object):
         self.is_redis_cluster, self.cluster, options = get_dynamic_cluster_from_options(
             "SENTRY_BUFFER_OPTIONS", options
@@ -269,10 +272,10 @@ class RedisBuffer(Buffer):
     @classmethod
     def _dump_value(
         cls,
-        value: str | datetime | date | int | float | dict[str, Any] | None,
+        value: str | datetime | date | int | float | dict[str, Any] | list[Any] | None,
         depth: int = 0,
     ) -> tuple[str, str]:
-        if depth > 3:
+        if depth > 5:
             raise Exception("Depth limit exceeded in _dump_value")
         if value is None:
             type_ = "n"
@@ -294,6 +297,9 @@ class RedisBuffer(Buffer):
         elif isinstance(value, dict):
             type_ = "di"
             value = json.dumps({k: cls._dump_value(v, depth + 1) for k, v in value.items()})
+        elif isinstance(value, list):
+            type_ = "l"
+            value = json.dumps([cls._dump_value(item, depth + 1) for item in value])
         else:
             raise TypeError(type(value))
         return type_, str(value)
@@ -301,7 +307,7 @@ class RedisBuffer(Buffer):
     @classmethod
     def _load_values(
         cls, payload: dict[str, tuple[str, Any]]
-    ) -> dict[str, str | datetime | date | int | float | dict[str, Any] | None]:
+    ) -> dict[str, str | datetime | date | int | float | dict[str, Any] | list[Any] | None]:
         result = {}
         for k, (t, v) in payload.items():
             result[k] = cls._load_value((t, v))
@@ -310,7 +316,7 @@ class RedisBuffer(Buffer):
     @classmethod
     def _load_value(
         cls, payload: tuple[str, Any]
-    ) -> dict[str, Any] | str | datetime | date | int | float | None:
+    ) -> dict[str, Any] | list[Any] | str | datetime | date | int | float | None:
         (type_, value) = payload
         if type_ == "n":
             return None
@@ -329,6 +335,8 @@ class RedisBuffer(Buffer):
         elif type_ == "di":
             value = json.loads(value)
             return {k: cls._load_value(v) for k, v in value.items()}
+        elif type_ == "l":
+            return [cls._load_value(item) for item in json.loads(value)]
         else:
             raise TypeError(f"invalid type: {type_}")
 
@@ -411,6 +419,7 @@ class RedisBuffer(Buffer):
 
         pipe.expire(key, self.key_expire)
         pipe.zadd(self.pending_key, {key: time()})
+        pipe.expire(self.pending_key, self.pending_key_expire)
         pipe.execute()
 
         metrics.incr(

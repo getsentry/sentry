@@ -8,7 +8,7 @@ import requests
 from django.utils import timezone
 from sentry_relay.auth import SecretKey, generate_key_pair
 
-from sentry.models.eventattachment import EventAttachment
+from sentry.models.eventattachment import EventAttachment, PendingEventAttachment
 from sentry.tasks.relay import invalidate_project_config
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -80,79 +80,6 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
         event = self.post_and_retrieve_security_report(event_data)
         assert event.message == "Blocked 'default-src' from 'evilhackerscripts.com'"
 
-    def test_hpkp(self) -> None:
-        event_data = {
-            "date-time": "2014-04-06T13:00:50Z",
-            "hostname": "www.example.com",
-            "port": 443,
-            "effective-expiration-date": "2014-05-01T12:40:50Z",
-            "include-subdomains": False,
-            "served-certificate-chain": [
-                "-----BEGIN CERTIFICATE-----\n MIIEBDCCAuygBQUAMEIxCzAJBgNVBAYTAlVT\n -----END CERTIFICATE-----"
-            ],
-            "validated-certificate-chain": [
-                "-----BEGIN CERTIFICATE-----\n MIIEBDCCAuygAwIBAgIDCzAJBgNVBAYTAlVT\n -----END CERTIFICATE-----"
-            ],
-            "known-pins": [
-                'pin-sha256="d6qzRu9zOECb90Uez27xWltNsj0e1Md7GkYYkVoZWmM="',
-                'pin-sha256="E9CZ9INDbd+2eRQozYqqbQ2yXLVKB9+xcprMF+44U1g="',
-            ],
-        }
-
-        event = self.post_and_retrieve_security_report(event_data)
-        assert event.message == "Public key pinning validation failed for 'www.example.com'"
-        assert event.group.title == "Public key pinning validation failed for 'www.example.com'"
-
-    def test_expect_ct(self) -> None:
-        event_data = {
-            "expect-ct-report": {
-                "date-time": "2014-04-06T13:00:50Z",
-                "hostname": "www.example.com",
-                "port": 443,
-                "effective-expiration-date": "2014-05-01T12:40:50Z",
-                "served-certificate-chain": [
-                    "-----BEGIN CERTIFICATE-----\nABC\n-----END CERTIFICATE-----"
-                ],
-                "validated-certificate-chain": [
-                    "-----BEGIN CERTIFICATE-----\nCDE\n-----END CERTIFICATE-----"
-                ],
-                "scts": [
-                    {
-                        "version": 1,
-                        "status": "invalid",
-                        "source": "embedded",
-                        "serialized_sct": "ABCD==",
-                    }
-                ],
-            }
-        }
-
-        event = self.post_and_retrieve_security_report(event_data)
-        assert event.message == "Expect-CT failed for 'www.example.com'"
-        assert event.group.title == "Expect-CT failed for 'www.example.com'"
-
-    def test_expect_staple(self) -> None:
-        event_data = {
-            "expect-staple-report": {
-                "date-time": "2014-04-06T13:00:50Z",
-                "hostname": "www.example.com",
-                "port": 443,
-                "response-status": "ERROR_RESPONSE",
-                "cert-status": "REVOKED",
-                "effective-expiration-date": "2014-05-01T12:40:50Z",
-                "served-certificate-chain": [
-                    "-----BEGIN CERTIFICATE-----\nABC\n-----END CERTIFICATE-----"
-                ],
-                "validated-certificate-chain": [
-                    "-----BEGIN CERTIFICATE-----\nCDE\n-----END CERTIFICATE-----"
-                ],
-            }
-        }
-
-        event = self.post_and_retrieve_security_report(event_data)
-        assert event.message == "Expect-Staple failed for 'www.example.com'"
-        assert event.group.title == "Expect-Staple failed for 'www.example.com'"
-
     def test_standalone_attachment(self) -> None:
         event_id = uuid4().hex
         retention_days = 66
@@ -184,10 +111,10 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
         files = {"some_file": ("hello.txt", BytesIO(b"Hello World! default"))}
         self.post_and_retrieve_attachment(event_id, files)
 
-        attachments = EventAttachment.objects.filter(project_id=self.project.id)
+        attachments = PendingEventAttachment.objects.filter(project_id=self.project.id)
         assert len(attachments) == 1
 
-        attachment = EventAttachment.objects.get(event_id=event_id)
+        attachment = PendingEventAttachment.objects.get(event_id=event_id)
         with attachment.getfile() as blob:
             assert blob.read() == b"Hello World! default"
         assert attachment.blob_path is not None

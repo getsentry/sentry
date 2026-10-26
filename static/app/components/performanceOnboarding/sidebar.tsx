@@ -6,15 +6,13 @@ import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IdBadge} from 'sentry/components/idBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {
-  OnboardingCopyMarkdownButton,
-  useCopySetupInstructionsEnabled,
-} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {TabSelectionScope} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -131,6 +129,7 @@ function SidebarContent() {
         projectsForOnboarding.includes(project)
       );
       if (maybeProject) {
+        // oxlint-disable-next-line react/set-state-in-effect
         setCurrentProject(maybeProject);
         return;
       }
@@ -155,6 +154,7 @@ function SidebarContent() {
     // Otherwise, pick a first project that has not sent a first transaction event.
     setCurrentProject(projectsWithoutFirstTransactionEvent[0]);
   }, [
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     selection.projects,
     projects,
     projectsForOnboarding,
@@ -211,15 +211,16 @@ function SidebarContent() {
         <Heading>{t('Boost Performance')}</Heading>
         <DropdownMenu
           items={items}
-          triggerLabel={
-            <StyledIdBadge
-              project={currentProject}
-              avatarSize={16}
-              hideOverflow
-              disableLink
-            />
-          }
-          triggerProps={{'aria-label': currentProject.slug}}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} aria-label={currentProject.slug}>
+              <StyledIdBadge
+                project={currentProject}
+                avatarSize={16}
+                hideOverflow
+                disableLink
+              />
+            </OverlayTrigger.Button>
+          )}
           position="bottom-end"
         />
         <OnboardingContent currentProject={currentProject} />
@@ -232,7 +233,6 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   const api = useApi();
   const organization = useOrganization();
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
-  const copyEnabled = useCopySetupInstructionsEnabled();
   const firstIssue = useEventWaiter({
     eventType: 'transaction',
     organization,
@@ -322,7 +322,6 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
       data: registryData,
     },
     platformOptions: [ProductSolution.PERFORMANCE_MONITORING],
-    newOrg: false,
     feedbackOptions: {},
     urlPrefix,
     isSelfHosted,
@@ -347,7 +346,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
               stepIndex={index}
               {...step}
               trailingItems={
-                index === 0 && copyEnabled ? (
+                index === 0 ? (
                   <OnboardingCopyMarkdownButton
                     borderless
                     steps={steps}

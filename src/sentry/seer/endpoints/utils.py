@@ -7,11 +7,22 @@ from typing import TYPE_CHECKING, Any, NamedTuple, TypeVar
 from rest_framework import status
 from rest_framework.response import Response
 
+from sentry.api.bases.organization import OrganizationPermission
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus
 from sentry.utils.numbers import validate_bigint
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
+
+
+SEER_PERMISSION_DENIED = "You are not authorized to perform this action"
+
+
+class OrganizationTraceExplorerAIPermission(OrganizationPermission):
+    scope_map = {
+        "GET": ["org:read"],
+        "POST": ["org:read"],
+    }
 
 
 class ResolvedSeerRun(NamedTuple):
@@ -28,15 +39,28 @@ def get_seer_run(seer_run_state_id: int, organization: Organization) -> SeerRun 
     ).first()
 
 
+_NO_ACCESS_DETAIL = "You do not have access to this run."
+
+
+def _owner_mismatch_response() -> Response:
+    return Response(
+        {"detail": _NO_ACCESS_DETAIL},
+        status=status.HTTP_403_FORBIDDEN,
+    )
+
+
 def resolve_seer_run(
     run_id: str | int,
     organization: Organization,
     *,
     for_continue: bool = False,
+    user_id: int | None = None,
 ) -> ResolvedSeerRun | Response:
     """Resolve a client-facing run id (numeric ``seer_run_state_id`` or
     ``SeerRun.uuid``) to a :class:`ResolvedSeerRun`, or an error ``Response``
-    (narrow with ``isinstance``). For a not-ready run, a poll gets the 200
+    (narrow with ``isinstance``). When ``user_id`` is supplied, the mirrored run
+    must belong to that user. A numeric id with no ``SeerRun`` row is rejected
+    in that case. For a not-ready run, a poll gets the 200
     ``{"session": {"status": ...}}`` shape; ``for_continue`` instead gets 409
     (still mirroring) or 422 (mirror failed).
     """
@@ -49,6 +73,8 @@ def resolve_seer_run(
         if not validate_bigint(seer_run_state_id):
             return Response({"detail": "Invalid run_id"}, status=status.HTTP_400_BAD_REQUEST)
         run = get_seer_run(seer_run_state_id, organization)
+        if user_id is not None and (run is None or run.user_id != user_id):
+            return _owner_mismatch_response()
         return ResolvedSeerRun(seer_run_state_id, str(run.uuid) if run else None)
 
     try:
@@ -59,6 +85,8 @@ def resolve_seer_run(
     run = SeerRun.objects.filter(uuid=run_uuid, organization=organization).first()
     if run is None:
         return Response({"session": None}, status=status.HTTP_404_NOT_FOUND)
+    if user_id is not None and run.user_id != user_id:
+        return _owner_mismatch_response()
     if run.mirror_status == SeerRunMirrorStatus.FAILED:
         if for_continue:
             return Response(

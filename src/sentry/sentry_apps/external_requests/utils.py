@@ -1,7 +1,7 @@
 import logging
 import re
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, Literal
 from urllib.parse import urlparse
 
 from jsonschema import Draft7Validator
@@ -10,9 +10,7 @@ from requests.exceptions import ConnectionError, Timeout
 from requests.models import Response
 from rest_framework import serializers
 
-from sentry import features
 from sentry.http import safe_urlopen
-from sentry.organizations.services.organization.service import organization_service
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.metrics import (
     SentryAppExternalRequestFailureReason,
@@ -96,29 +94,8 @@ ISSUE_LINKER_SCHEMA = {
 SCHEMA_LIST = {"select": SELECT_OPTIONS_SCHEMA, "issue_link": ISSUE_LINKER_SCHEMA}
 
 
-def validate(instance, schema_type):
-    schema = SCHEMA_LIST[schema_type]
-    v = Draft7Validator(schema)
-
-    if not v.is_valid(instance):
-        return False
-
-    return True
-
-
-def _custom_request_headers(sentry_app: SentryApp | RpcSentryApp) -> dict[str, str]:
-    if not sentry_app.webhook_headers:
-        return {}
-    owner_context = organization_service.get_organization_by_id(
-        id=sentry_app.owner_id,
-        include_projects=False,
-        include_teams=False,
-    )
-    if owner_context is None or not features.has(
-        "organizations:sentry-apps-custom-webhook-headers", owner_context.organization
-    ):
-        return {}
-    return parse_custom_headers(sentry_app.webhook_headers)
+def validate(instance: object, schema_type: Literal["select", "issue_link"]) -> bool:
+    return Draft7Validator(SCHEMA_LIST[schema_type]).is_valid(instance)
 
 
 def send_and_save_sentry_app_request(
@@ -144,7 +121,7 @@ def send_and_save_sentry_app_request(
         buffer = SentryAppWebhookRequestsBuffer(sentry_app)
         slug = sentry_app.slug_for_metrics
 
-        custom_headers = _custom_request_headers(sentry_app)
+        custom_headers = parse_custom_headers(sentry_app.webhook_headers)
         send_headers = {**custom_headers, **headers}
         # Since some headers may carry secrets, we mask them to avoid logging them
         loggable_headers = {**mask_header_values(custom_headers), **headers}

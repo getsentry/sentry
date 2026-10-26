@@ -5,22 +5,111 @@ import {FeatureBadge} from '@sentry/scraps/badge';
 import Feature from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
+import {EXPLORE_AGENTS_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import {
   MAX_STARRED_SAVED_QUERIES_IN_NAV,
   useGetSavedQueries,
+  getSavedQueryDatasetLabel,
+  isExploreSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {
+  getInvestigationsPath,
+  useInvestigationsEnabled,
+} from 'sentry/views/investigations/utils';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {ExploreSavedQueryNavigationItems} from 'sentry/views/navigation/secondary/sections/explore/exploreSavedQueryNavigationItems';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+import {
+  getAutomationsPath,
+  useAutomationsEnabled,
+} from 'sentry/views/seerWorkflows/utils';
 
-export function ExploreSecondaryNavigation() {
+function ExploreSecondaryNavigationImpl() {
   const organization = useOrganization();
 
   const baseUrl = `/organizations/${organization.slug}/explore`;
+  // Seer tabs live here until Seer primary nav release.
+  const showSeerTabs = !organization.features.includes('seer-primary-nav');
+  const automationsEnabled = useAutomationsEnabled() && showSeerTabs;
+  const investigationsEnabled = useInvestigationsEnabled() && showSeerTabs;
+  const automationsPath = getAutomationsPath(organization.slug);
+  const investigationsPath = getInvestigationsPath(organization.slug);
 
   const {data: starredQueries} = useGetSavedQueries({
     starred: true,
     perPage: MAX_STARRED_SAVED_QUERIES_IN_NAV,
+  });
+
+  // Mirrors the <Feature> gates below so the reported nav items match what's
+  // actually rendered — including any beta/new/alpha badge shown on them.
+  // `to` disambiguates items that can share a label (e.g. "Errors" from both
+  // the explore-errors and discover-basic branches) but point elsewhere.
+  const navItems: Array<{label: string; to: string; badge?: 'new' | 'beta' | 'alpha'}> =
+    [];
+  if (
+    organization.features.includes('performance-view') &&
+    organization.features.includes('visibility-explore-view')
+  ) {
+    navItems.push({label: 'Traces', to: `${baseUrl}/traces/`});
+  }
+  if (organization.features.includes('ourlogs-enabled')) {
+    navItems.push({label: 'Logs', to: `${baseUrl}/logs/`});
+  }
+  if (organization.features.includes('tracemetrics-enabled')) {
+    navItems.push({label: 'Metrics', to: `${baseUrl}/metrics/`});
+  }
+  if (organization.features.includes('explore-errors')) {
+    navItems.push({label: 'Errors', badge: 'alpha', to: `${baseUrl}/errors-v2/`});
+  }
+  if (organization.features.includes('discover-basic')) {
+    navItems.push({
+      label: 'Errors',
+      to: `${baseUrl}/errors/`,
+    });
+  }
+  if (organization.features.includes('profiling')) {
+    navItems.push({label: 'Profiles', to: `${baseUrl}/profiles/`});
+  }
+  if (organization.features.includes('session-replay-ui')) {
+    navItems.push({label: 'Replays', to: `${baseUrl}/replays/`});
+  }
+  navItems.push({label: 'Releases', to: `${baseUrl}/releases/`});
+  if (organization.features.includes('gen-ai-conversations')) {
+    navItems.push({
+      label: 'Agents',
+      badge: 'new',
+      to: `${baseUrl}/${EXPLORE_AGENTS_SUB_PATH}/`,
+    });
+  }
+  if (automationsEnabled) {
+    navItems.push({label: 'Automations', badge: 'alpha', to: automationsPath});
+  }
+  if (investigationsEnabled) {
+    navItems.push({label: 'Investigations', badge: 'alpha', to: investigationsPath});
+  }
+  if (organization.features.includes('explore-saved-formulas')) {
+    navItems.push({
+      label: 'Saved Formulas',
+      badge: 'alpha',
+      to: `${baseUrl}/saved-formulas/`,
+    });
+  }
+
+  useLLMContext({
+    contextHint:
+      'The Explore secondary nav panel — data-type shortcuts (Traces, Logs, ' +
+      'Metrics, ...), some behind a beta/new/alpha badge, plus the starred ' +
+      'saved queries list.',
+    navItems,
+    starredQueries: (starredQueries ?? []).map(query => ({
+      id: query.id,
+      name: query.name,
+      dataset: isExploreSavedQuery(query)
+        ? getSavedQueryDatasetLabel(query.dataset)
+        : 'Errors',
+      queryType: query.queryType,
+    })),
   });
 
   return (
@@ -56,7 +145,6 @@ export function ExploreSecondaryNavigation() {
                 <SecondaryNavigation.Link
                   to={`${baseUrl}/metrics/`}
                   analyticsItemName="explore_metrics"
-                  trailingItems={<FeatureBadge type="new" />}
                 >
                   {t('Metrics')}
                 </SecondaryNavigation.Link>
@@ -65,8 +153,8 @@ export function ExploreSecondaryNavigation() {
             <Feature features="organizations:explore-errors">
               <SecondaryNavigation.ListItem>
                 <SecondaryNavigation.Link
-                  to={`${baseUrl}/errors/`}
-                  activeTo={`${baseUrl}/errors/`}
+                  to={`${baseUrl}/errors-v2/`}
+                  activeTo={`${baseUrl}/errors-v2/`}
                   analyticsItemName="explore_errors"
                   trailingItems={<FeatureBadge type="alpha" />}
                 >
@@ -80,11 +168,11 @@ export function ExploreSecondaryNavigation() {
             >
               <SecondaryNavigation.ListItem>
                 <SecondaryNavigation.Link
-                  to={`${baseUrl}/discover/homepage/`}
-                  activeTo={`${baseUrl}/discover/`}
+                  to={`${baseUrl}/errors/`}
+                  activeTo={`${baseUrl}/errors/`}
                   analyticsItemName="explore_discover"
                 >
-                  {t('Discover')}
+                  {t('Errors')}
                 </SecondaryNavigation.Link>
               </SecondaryNavigation.ListItem>
             </Feature>
@@ -117,6 +205,10 @@ export function ExploreSecondaryNavigation() {
             <SecondaryNavigation.ListItem>
               <SecondaryNavigation.Link
                 to={`${baseUrl}/releases/`}
+                activeTo={[
+                  `${baseUrl}/releases/`,
+                  `/organizations/${organization.slug}/preprod/`,
+                ]}
                 analyticsItemName="explore_releases"
               >
                 {t('Releases')}
@@ -127,16 +219,38 @@ export function ExploreSecondaryNavigation() {
                 <SecondaryNavigation.Link
                   // TODO: Remove once query performance is improved - defaults to 24h to avoid slow loads
                   to={{
-                    pathname: `${baseUrl}/${CONVERSATIONS_LANDING_SUB_PATH}/`,
+                    pathname: `${baseUrl}/${EXPLORE_AGENTS_SUB_PATH}/`,
                     search: '?statsPeriod=24h&referrer=sidebar',
                   }}
                   analyticsItemName="explore_conversations"
-                  trailingItems={<FeatureBadge type="beta" />}
+                  trailingItems={<FeatureBadge type="new" />}
                 >
-                  {t('Conversations')}
+                  {t('Agents')}
                 </SecondaryNavigation.Link>
               </SecondaryNavigation.ListItem>
             </Feature>
+            {automationsEnabled && (
+              <SecondaryNavigation.ListItem>
+                <SecondaryNavigation.Link
+                  to={automationsPath}
+                  analyticsItemName="explore_automations"
+                  trailingItems={<FeatureBadge type="alpha" />}
+                >
+                  {t('Automations')}
+                </SecondaryNavigation.Link>
+              </SecondaryNavigation.ListItem>
+            )}
+            {investigationsEnabled && (
+              <SecondaryNavigation.ListItem>
+                <SecondaryNavigation.Link
+                  to={investigationsPath}
+                  analyticsItemName="explore_investigations"
+                  trailingItems={<FeatureBadge type="alpha" />}
+                >
+                  {t('Investigations')}
+                </SecondaryNavigation.Link>
+              </SecondaryNavigation.ListItem>
+            )}
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
         <Feature features={['visibility-explore-view', 'performance-view']}>
@@ -149,6 +263,17 @@ export function ExploreSecondaryNavigation() {
                     {t('All Queries')}
                   </SecondaryNavigation.Link>
                 </SecondaryNavigation.ListItem>
+                <Feature features="organizations:explore-saved-formulas">
+                  <SecondaryNavigation.ListItem>
+                    <SecondaryNavigation.Link
+                      to={`${baseUrl}/saved-formulas/`}
+                      analyticsItemName="explore_saved_formulas"
+                      trailingItems={<FeatureBadge type="alpha" />}
+                    >
+                      {t('Saved Formulas')}
+                    </SecondaryNavigation.Link>
+                  </SecondaryNavigation.ListItem>
+                </Feature>
               </SecondaryNavigation.List>
             </SecondaryNavigation.Section>
             {starredQueries && starredQueries.length > 0 && (
@@ -168,3 +293,8 @@ export function ExploreSecondaryNavigation() {
     </Fragment>
   );
 }
+
+export const ExploreSecondaryNavigation = registerLLMContext(
+  'navigation',
+  ExploreSecondaryNavigationImpl
+);

@@ -15,6 +15,10 @@ from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.apidocs.constants import RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import GlobalParams
 from sentry.constants import ObjectStatus
+from sentry.issues.action_log import (
+    action_context_scope,
+)
+from sentry.issues.action_log.request import resolve_action_actor, resolve_action_source
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.notifications.notification_action.grouptype import get_test_notification_event_data
@@ -116,7 +120,10 @@ class OrganizationTestFireActionsEndpoint(OrganizationEndpoint):
                 status=HTTP_400_BAD_REQUEST,
             )
 
-        status, response_data = test_fire_actions(data.get("actions", []), project)
+        with action_context_scope(
+            source=resolve_action_source(request), actor=resolve_action_actor(request)
+        ):
+            status, response_data = test_fire_actions(data.get("actions", []), project)
 
         return Response(status=status, data=response_data)
 

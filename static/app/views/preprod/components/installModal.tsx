@@ -1,11 +1,11 @@
 import {css} from '@emotion/react';
+import {IconClose} from '@sentry/icons/close';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Stack, Grid} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {InstallDetailsContent} from 'sentry/views/preprod/components/installDetailsContent';
 
@@ -34,11 +34,7 @@ function InstallModal({artifactId, closeModal, projectSlug}: InstallModalProps) 
         </Container>
       </Grid>
       <Container padding="xl">
-        <InstallDetailsContent
-          artifactId={artifactId}
-          size="sm"
-          projectSlug={projectSlug}
-        />
+        <InstallDetailsContent artifactId={artifactId} projectSlug={projectSlug} />
       </Container>
     </Stack>
   );

@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {Container, Stack} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
@@ -16,6 +17,7 @@ import {PreprodQuotaAlert} from 'sentry/views/preprod/components/preprodQuotaAle
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import {FeatureFilter} from './featureFilter';
+import {PrCommentRules} from './prCommentRules';
 import {PrCommentsToggle} from './prCommentsToggle';
 import {StatusCheckRules} from './statusCheckRules';
 
@@ -50,7 +52,11 @@ export default function PreprodSettings() {
     <Fragment>
       <SentryDocumentTitle title={t('Mobile Builds')} />
       <SettingsPageHeader
-        title={t('Mobile Builds')}
+        title={{
+          type: 'page-title',
+          label: t('Mobile Builds'),
+          trailingActions: {type: 'badge', element: <FeatureBadge type="new" />},
+        }}
         subtitle={t(
           'Configure status checks and thresholds for your mobile build size analysis.'
         )}
@@ -85,6 +91,9 @@ export default function PreprodSettings() {
               docsUrl="https://docs.sentry.io/product/size-analysis/#configuring-size-analysis-uploads"
             />
             <StatusCheckRules />
+            <Feature features="organizations:preprod-size-analysis-pr-comments">
+              <PrCommentRules />
+            </Feature>
           </Fragment>
         )}
         {tab === 'distribution' && (
@@ -99,9 +108,7 @@ export default function PreprodSettings() {
               docsUrl="https://docs.sentry.io/product/build-distribution/"
               display={PreprodBuildsDisplay.DISTRIBUTION}
             />
-            <Feature features="organizations:preprod-build-distribution-pr-comments">
-              <PrCommentsToggle />
-            </Feature>
+            <PrCommentsToggle />
           </Fragment>
         )}
       </Stack>

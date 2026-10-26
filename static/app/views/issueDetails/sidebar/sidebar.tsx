@@ -1,19 +1,19 @@
 import {Fragment, useMemo} from 'react';
-import {useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {useResponsivePropValue} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
-import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {DemoTourStep, SharedTourElement} from 'sentry/utils/demoMode/demoTours';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {useMedia} from 'sentry/utils/useMedia';
+import {areAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
@@ -29,12 +29,10 @@ import {FirstLastSeenSection} from 'sentry/views/issueDetails/sidebar/firstLastS
 import {MergedIssuesSidebarSection} from 'sentry/views/issueDetails/sidebar/mergedSidebarSection';
 import {PeopleSection} from 'sentry/views/issueDetails/sidebar/peopleSection';
 import {SimilarIssuesSidebarSection} from 'sentry/views/issueDetails/sidebar/similarIssuesSidebarSection';
-import {SupergroupSection} from 'sentry/views/issueDetails/sidebar/supergroupSection';
 
 type Props = {group: Group; project: Project; event?: Event};
 
 export function IssueDetailsSidebar({group, event, project}: Props) {
-  const theme = useTheme();
   const activeUser = useUser();
   const organization = useOrganization();
   const {isSidebarOpen} = useIssueDetails();
@@ -53,13 +51,16 @@ export function IssueDetailsSidebar({group, event, project}: Props) {
 
   const showPeopleSection = group.participants.length > 0 || viewers.length > 0;
   const issueTypeConfig = getConfigForIssueType(group, group.project);
-  const isBottomSidebar = useMedia(`(max-width: ${theme.breakpoints.lg})`);
+  // Mirror groupDetailsLayout's container-query flip (`{zero, '4xl'}`) so sidebar
+  // placement resolves against the same query container and flips at the same
+  // point — otherwise placement and the grid/border layout disagree at boundaries.
+  const isBottomSidebar =
+    useResponsivePropValue({zero: 'bottom', '4xl': 'side'}) === 'bottom';
   const shouldDisplaySidebar = isSidebarOpen || isBottomSidebar;
   // Check if Seer (AI features) will be shown - must match SeerSection's logic
   // SeerSection shows "Seer" title when the issue type supports it AND AI features are allowed
   const hasSeerFeatures =
-    organization.features.includes('gen-ai-features') &&
-    !organization.hideAiFeatures &&
+    areAiFeaturesAllowed(organization) &&
     (issueTypeConfig.issueSummary.enabled || issueTypeConfig.autofix);
   const showSeerSection = hasSeerFeatures || issueTypeConfig.resources;
 
@@ -90,7 +91,7 @@ export function IssueDetailsSidebar({group, event, project}: Props) {
       position={isBottomSidebar ? 'top' : 'left-start'}
     >
       {tourProps => (
-        <Side {...tourProps}>
+        <Side {...tourProps} isBottomSidebar={isBottomSidebar}>
           <FirstLastSeenSection group={group} event={event} />
           <StyledBreak />
           {showSeerSection && (
@@ -98,11 +99,9 @@ export function IssueDetailsSidebar({group, event, project}: Props) {
               <AutofixSection group={group} project={project} />
             </ErrorBoundary>
           )}
-          {event && (
-            <ErrorBoundary mini>
-              <ExternalIssueSidebarList group={group} event={event} />
-            </ErrorBoundary>
-          )}
+          <ErrorBoundary mini>
+            <ExternalIssueSidebarList group={group} event={event} />
+          </ErrorBoundary>
           <ErrorBoundary mini>
             <ActivitySection group={group} />
           </ErrorBoundary>
@@ -128,9 +127,6 @@ export function IssueDetailsSidebar({group, event, project}: Props) {
           {issueTypeConfig.detector.enabled && (
             <DetectorSection group={group} project={project} />
           )}
-          <ErrorBoundary mini>
-            <SupergroupSection group={group} />
-          </ErrorBoundary>
         </Side>
       )}
     </SharedTourElement>
@@ -143,17 +139,14 @@ const StyledBreak = styled('hr')`
   border-color: ${p => p.theme.tokens.border.primary};
 `;
 
-export const SidebarSectionTitle = styled(SidebarSection.Title)`
-  margin-bottom: ${p => p.theme.space.md};
-  color: ${p => p.theme.tokens.content.primary};
-`;
-
-const Side = styled(Layout.Side)`
+const Side = styled(Layout.Side)<{isBottomSidebar: boolean}>`
   position: relative;
   padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
-  @media (max-width: ${p => p.theme.breakpoints.lg}) {
-    border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  }
+  ${p =>
+    p.isBottomSidebar &&
+    css`
+      border-top: 1px solid ${p.theme.tokens.border.primary};
+    `}
 
   > div {
     margin-left: ${p => p.theme.space.xl};

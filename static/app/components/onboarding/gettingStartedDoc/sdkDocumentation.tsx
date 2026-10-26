@@ -3,7 +3,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {DeprecatedPlatformInfo} from 'sentry/components/onboarding/gettingStartedDoc/deprecatedPlatformInfo';
 import {OnboardingLayout} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
 import type {
-  ConfigType,
+  DocsFlow,
   ProductSolution,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
@@ -16,9 +16,7 @@ type SdkDocumentationProps = {
   organization: Organization;
   platform: PlatformIntegration;
   project: Project;
-  configType?: ConfigType;
-  hasScmOnboarding?: boolean;
-  newOrg?: boolean;
+  docsFlow?: DocsFlow;
   onProductSelectionSync?: (products: ProductSolution[]) => void;
 };
 
@@ -27,11 +25,9 @@ export function SdkDocumentation({
   platform,
   project,
   activeProductSelection,
-  newOrg,
-  configType,
+  docsFlow,
   organization,
   onProductSelectionSync,
-  hasScmOnboarding,
 }: SdkDocumentationProps) {
   const {isLoading, isError, dsn, docs, refetch, projectKeyId} = useLoadGettingStarted({
     orgSlug: organization.slug,
@@ -94,11 +90,9 @@ export function SdkDocumentation({
       docsConfig={docs}
       dsn={dsn}
       activeProductSelection={activeProductSelection}
-      newOrg={newOrg}
-      hasScmOnboarding={hasScmOnboarding}
+      docsFlow={docsFlow}
       platformKey={platform.id}
       project={project}
-      configType={configType}
       projectKeyId={projectKeyId}
       onProductSelectionSync={onProductSelectionSync}
     />

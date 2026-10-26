@@ -7,7 +7,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import UpdatedEmptyState from 'sentry/components/updatedEmptyState';
 
-function renderMockRequests({firstIssue}: {firstIssue?: string} = {}) {
+function setupMockRequests({firstIssue}: {firstIssue?: string} = {}) {
   MockApiClient.addMockResponse({
     url: '/projects/org-slug/project-slug/keys/',
     method: 'GET',
@@ -34,7 +34,7 @@ function renderMockRequests({firstIssue}: {firstIssue?: string} = {}) {
 
 describe('UpdatedEmptyState', () => {
   it('Empty state without first error event', async () => {
-    renderMockRequests();
+    setupMockRequests();
 
     render(<UpdatedEmptyState project={ProjectFixture({platform: 'python-django'})} />);
 
@@ -76,7 +76,7 @@ describe('UpdatedEmptyState', () => {
   it('Empty state with first error event', async () => {
     const firstIssue = new Date().toISOString();
 
-    renderMockRequests({firstIssue});
+    setupMockRequests({firstIssue});
     render(<UpdatedEmptyState project={ProjectFixture({platform: 'python-django'})} />);
 
     expect(await screen.findByText('Get Started with Sentry Issues')).toBeInTheDocument();

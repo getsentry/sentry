@@ -35,6 +35,7 @@ class GroupOwnerType(Enum):
     SUSPECT_COMMIT = 0
     OWNERSHIP_RULE = 1
     CODEOWNERS = 2
+    SEER_SUGGESTED = 3
 
 
 class OwnerRuleType(Enum):
@@ -46,6 +47,7 @@ GROUP_OWNER_TYPE = {
     GroupOwnerType.SUSPECT_COMMIT: "suspectCommit",
     GroupOwnerType.OWNERSHIP_RULE: "ownershipRule",
     GroupOwnerType.CODEOWNERS: "codeowners",
+    GroupOwnerType.SEER_SUGGESTED: "seerSuggested",
 }
 
 
@@ -117,6 +119,7 @@ class GroupOwner(Model):
             (GroupOwnerType.SUSPECT_COMMIT, "Suspect Commit"),
             (GroupOwnerType.OWNERSHIP_RULE, "Ownership Rule"),
             (GroupOwnerType.CODEOWNERS, "Codeowners"),
+            (GroupOwnerType.SEER_SUGGESTED, "Seer Suggested"),
         )
     )
     context = LegacyTextJSONField(null=True)

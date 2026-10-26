@@ -15,9 +15,13 @@ import type {SelectValue} from '@sentry/scraps/select';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {BackendJsonSubmitForm} from 'sentry/components/backendJsonFormAdapter/backendJsonSubmitForm';
-import type {JsonFormAdapterFieldConfig} from 'sentry/components/backendJsonFormAdapter/types';
+import type {
+  JsonFormAdapterChoiceValue,
+  JsonFormAdapterFieldConfig,
+} from 'sentry/components/backendJsonFormAdapter/types';
 import {t} from 'sentry/locale';
 import type {Choices, Choice} from 'sentry/types/core';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {unreachable} from 'sentry/utils/unreachable';
@@ -187,10 +191,13 @@ function getTriggerFieldValues(
 function useSerializedValueMemo<T>(value: T, serializedValue: string): T {
   const ref = useRef<{serializedValue: string; value: T} | null>(null);
 
+  // oxlint-disable-next-line react/refs
   if (ref.current?.serializedValue !== serializedValue) {
+    // oxlint-disable-next-line react/refs
     ref.current = {serializedValue, value};
   }
 
+  // oxlint-disable-next-line react/refs
   return ref.current.value;
 }
 
@@ -280,9 +287,11 @@ function mergeFieldChoices(
   return choices;
 }
 
-function toSelectValues(choices: Choices): Array<SelectValue<string>> {
+function toSelectValues(
+  choices: Choices
+): Array<SelectValue<JsonFormAdapterChoiceValue>> {
   return choices.map(([value, label]) => ({
-    value: value as unknown as string,
+    value,
     label: choiceLabelToString(label),
   }));
 }
@@ -596,15 +605,18 @@ export function SentryAppExternalForm({
 
     dependentFetchVersionRef.current += 1;
     currentFormValuesRef.current = nextInitialValues;
+    // oxlint-disable-next-line react/set-state-in-effect
     setFieldGroups(nextFieldGroups);
     setDynamicFieldValues(
       getTriggerFieldValues(nextInitialValues, nextTriggerFieldNames)
     );
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
     setFormInitialValues(nextInitialValues);
     setExternalDefaultValues({});
     setAsyncOptionsCache({});
     setIsFetchingDependentFields(false);
     setIsFetchingInitialCascade(willCascade);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [action, element, normalizedResetValues, resolvedFieldGroups]);
 
   // After the reset above, cascade-fetch dependent fields starting from any
@@ -638,6 +650,7 @@ export function SentryAppExternalForm({
     let isCancelled = false;
 
     const runPrefetch = async () => {
+      // oxlint-disable-next-line react/todo
       try {
         const cascadeResult = await cascadeFetchDependents({
           seedTriggers,
@@ -695,6 +708,7 @@ export function SentryAppExternalForm({
   }, [
     action,
     appName,
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     cascadeFetchDependents,
     config.uri,
     element,
@@ -764,15 +778,9 @@ export function SentryAppExternalForm({
           };
         case 'select':
           return {
-            // The adapter types choices as [string, string], but react-select
-            // round-trips the original value type at runtime — see
-            // BackendJsonSubmitForm's transformChoices which only renames
-            // tuple positions to {value, label}. Cast so a schema choice with
-            // a numeric value (e.g. an integration's project/board ID) reaches
-            // the wire with its type preserved.
-            choices: mergeFieldChoices(field, normalizedResetValues) as Array<
-              [string, string]
-            >,
+            choices: mergeFieldChoices(field, normalizedResetValues).map(
+              ([value, label]) => [value, choiceLabelToString(label)] as const
+            ),
             default: defaultValue,
             disabled,
             help: field.help,
@@ -828,7 +836,7 @@ export function SentryAppExternalForm({
             fetchFieldChoices,
             fieldGroups,
           ],
-          queryFn: async (): Promise<Array<SelectValue<string>>> => {
+          queryFn: async (): Promise<Array<SelectValue<JsonFormAdapterChoiceValue>>> => {
             if (!debouncedInput) {
               return toSelectValues(mergeFieldChoices(field, normalizedResetValues));
             }
@@ -960,6 +968,7 @@ export function SentryAppExternalForm({
             impactedFields: [...allImpactedNames],
           },
         });
+        // oxlint-disable-next-line react/todo
       } finally {
         if (requestVersion === dependentFetchVersionRef.current) {
           setIsFetchingDependentFields(false);
@@ -1017,7 +1026,9 @@ export function SentryAppExternalForm({
   >({
     mutationFn: values =>
       fetchMutation({
-        url: `/sentry-app-installations/${sentryAppInstallationUuid}/external-issue-actions/`,
+        url: getApiUrl('/sentry-app-installations/$uuid/external-issue-actions/', {
+          path: {uuid: sentryAppInstallationUuid},
+        }),
         method: 'POST',
         data: {
           ...normalizedExtraFields,
@@ -1035,17 +1046,6 @@ export function SentryAppExternalForm({
       if (!(error instanceof RequestError)) {
         addErrorMessage(t('Unable to %s %s issue.', action, appName));
       }
-      Sentry.captureException(error, {
-        tags: {
-          sentry_app: appName,
-          form_element: element,
-          form_action: action,
-        },
-        extra: {
-          sentryAppInstallationUuid,
-          configUri: config.uri,
-        },
-      });
     },
   });
 

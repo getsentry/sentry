@@ -4,9 +4,9 @@ import {defined} from 'sentry/utils/defined';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import {MetricQueryRows} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/metricQueryRows';
 import {prepareQueriesForEquationMode} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/utils';
-import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/useWidgetBuilderContext';
 import type {EquationModeSnapshot} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricsVisualizeModeState';
-import {getTraceMetricAggregateSource} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
+import {getTraceMetricAggregates} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {assignSequentialLabels} from 'sentry/views/explore/metrics/hooks/useStableLabels';
 import {defaultMetricQuery} from 'sentry/views/explore/metrics/metricQuery';
@@ -33,7 +33,7 @@ export function MetricsEquationVisualize({
 }: MetricsEquationVisualizeProps) {
   const {state} = useWidgetBuilderContext();
 
-  const aggregateSource = getTraceMetricAggregateSource(
+  const aggregateSource = getTraceMetricAggregates(
     state.displayType,
     state.yAxis,
     state.fields
@@ -96,7 +96,7 @@ export function MetricsEquationVisualize({
   });
 
   return (
-    <LocalMultiMetricsQueryParamsProvider initialQueries={initialQueries} hasEquations>
+    <LocalMultiMetricsQueryParamsProvider initialQueries={initialQueries}>
       <MetricQueryRows
         selectedLabel={selectedLabel}
         setSelectedLabel={setSelectedLabel}

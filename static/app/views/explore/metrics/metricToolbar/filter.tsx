@@ -79,12 +79,7 @@ export function Filter({
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  const hasTranslateEndpoint = organization.features.includes(
-    'gen-ai-search-agent-translate'
-  );
-  const hasMetricsAISearch = organization.features.includes(
-    'gen-ai-explore-metrics-search'
-  );
+  const supportsArrays = organization.features.includes('trace-item-array-query-support');
 
   const traceMetricFilter = createTraceMetricFilter(traceMetric);
   const attributeQuery = skipTraceMetricFilter ? undefined : traceMetricFilter;
@@ -177,12 +172,25 @@ export function Filter({
     };
   }, [data?.booleanAttributes]);
 
+  const visibleArrayTags = useMemo(() => {
+    if (!supportsArrays) {
+      return {};
+    }
+    return Object.fromEntries(
+      Object.entries(data?.arrayAttributes ?? {}).filter(
+        ([key]) => !HiddenTraceMetricSearchFields.includes(key)
+      )
+    );
+  }, [data?.arrayAttributes, supportsArrays]);
+
   const {
+    validatedArrayTags,
     validatedNumberTags,
     validatedStringTags,
     validatedBooleanTags,
     invalidFilterKeys,
   } = useMemo(() => {
+    const localArrayTags: TagCollection = {...visibleArrayTags};
     const localBooleanTags: TagCollection = {...visibleBooleanTags};
     const localNumberTags: TagCollection = {...visibleNumberTags};
     const localStringTags: TagCollection = {...visibleStringTags};
@@ -195,6 +203,7 @@ export function Filter({
 
       if (item.valid) {
         if (item.attrType === 'boolean') {
+          // oxlint-disable-next-line react/todo
           localBooleanTags[item.name] ??= {
             key: item.name,
             name: prettifyAttributeName(item.name),
@@ -203,6 +212,7 @@ export function Filter({
         }
 
         if (item.attrType === 'number') {
+          // oxlint-disable-next-line react/todo
           localNumberTags[item.name] ??= {
             key: item.name,
             name: prettifyAttributeName(item.name),
@@ -211,10 +221,20 @@ export function Filter({
         }
 
         if (item.attrType === 'string') {
+          // oxlint-disable-next-line react/todo
           localStringTags[item.name] ??= {
             key: item.name,
             name: prettifyAttributeName(item.name),
             kind: FieldKind.TAG,
+          };
+        }
+
+        if (supportsArrays && item.attrType === 'array') {
+          // oxlint-disable-next-line react/todo
+          localArrayTags[item.name] ??= {
+            key: item.name,
+            name: prettifyAttributeName(item.name),
+            kind: FieldKind.ARRAY,
           };
         }
 
@@ -225,13 +245,16 @@ export function Filter({
     }
 
     return {
+      validatedArrayTags: localArrayTags,
       validatedNumberTags: localNumberTags,
       validatedStringTags: localStringTags,
       validatedBooleanTags: localBooleanTags,
       invalidFilterKeys: localInvalidFilterKeys,
     };
   }, [
+    supportsArrays,
     validatedSearchQueryData?.query.fields,
+    visibleArrayTags,
     visibleBooleanTags,
     visibleNumberTags,
     visibleStringTags,
@@ -241,9 +264,11 @@ export function Filter({
     useMemo(() => {
       return {
         itemType: TraceItemDataset.TRACEMETRICS,
+        arrayAttributes: validatedArrayTags,
         booleanAttributes: validatedBooleanTags,
         numberAttributes: validatedNumberTags,
         stringAttributes: validatedStringTags,
+        arraySecondaryAliases: EMPTY_ALIASES,
         booleanSecondaryAliases: EMPTY_ALIASES,
         numberSecondaryAliases: EMPTY_ALIASES,
         stringSecondaryAliases: EMPTY_ALIASES,
@@ -275,6 +300,7 @@ export function Filter({
       setQuery,
       skipTraceMetricFilter,
       traceMetric.name,
+      validatedArrayTags,
       validatedBooleanTags,
       validatedNumberTags,
       validatedStringTags,
@@ -290,8 +316,7 @@ export function Filter({
       // This prevents race conditions when navigating between different metrics
       key={traceMetric.name}
       {...searchQueryBuilderProviderProps}
-      enableAISearch={hasTranslateEndpoint && hasMetricsAISearch}
-      aiSearchBadgeType="alpha"
+      enableAISearch
     >
       <MetricsSearchBar
         tracesItemSearchQueryBuilderProps={tracesItemSearchQueryBuilderProps}

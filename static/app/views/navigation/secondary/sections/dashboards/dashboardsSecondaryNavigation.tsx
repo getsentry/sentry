@@ -12,14 +12,20 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {useGetStarredDashboards} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import {DEFAULT_PREBUILT_SORT} from 'sentry/views/dashboards/manage/settings';
-import {DashboardsTab} from 'sentry/views/dashboards/manage/types';
-import {getDashboardsTab} from 'sentry/views/dashboards/manage/utils/getDashboardsTab';
-import {DashboardFilter, PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
+import {getIsOnlyPrebuilt} from 'sentry/views/dashboards/manage/utils/getIsOnlyPrebuilt';
+import {
+  CUSTOM_DASHBOARD_LABEL,
+  DashboardFilter,
+  PREBUILT_DASHBOARD_LABEL,
+} from 'sentry/views/dashboards/types';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
 import {isPrimaryNavigationLinkActive} from 'sentry/views/navigation/primary/components';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
+import {DashboardsNavigationItems} from 'sentry/views/navigation/secondary/sections/dashboards/dashboardsNavigationItems';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
-export function DashboardsSecondaryNavigation() {
+function DashboardsSecondaryNavigationImpl() {
   const organization = useOrganization();
   const baseUrl = `/organizations/${organization.slug}/dashboards`;
   const {projects} = useProjects();
@@ -30,8 +36,13 @@ export function DashboardsSecondaryNavigation() {
   const hasPrebuiltDashboards = organization.features.includes(
     'dashboards-prebuilt-insights-dashboards'
   );
+  const hasUserLastVisited = organization.features.includes(
+    'dashboards-user-last-visited'
+  );
   const urlFilter = decodeScalar(location.query.filter) as DashboardFilter | undefined;
-  const dashboardsTab = getDashboardsTab(hasPrebuiltDashboards, urlFilter);
+  const isOnlyPrebuilt = getIsOnlyPrebuilt(hasPrebuiltDashboards, urlFilter);
+  const isOnlyCustom =
+    hasPrebuiltDashboards && urlFilter === DashboardFilter.EXCLUDE_PREBUILT;
   const isOnDashboardsList = isPrimaryNavigationLinkActive(
     `${baseUrl}/`,
     location.pathname,
@@ -40,47 +51,55 @@ export function DashboardsSecondaryNavigation() {
     }
   );
 
+  useLLMContext({
+    contextHint: 'The Dashboards secondary nav panel and the starred dashboard list.',
+    hasPrebuiltDashboards,
+    starredDashboards: starredDashboards.map(dashboard => ({
+      id: dashboard.id,
+      title: dashboard.title,
+      projects: dashboard.projects ?? [],
+    })),
+  });
+
   return (
     <Fragment>
       <SecondaryNavigation.Header>{t('Dashboards')}</SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
         <SecondaryNavigation.Section id="dashboards-all">
           <SecondaryNavigation.List>
-            {hasPrebuiltDashboards ? (
-              <SecondaryNavigation.ListItem>
-                <SecondaryNavigation.Link
-                  to={`${baseUrl}/?filter=${DashboardFilter.ALL}`}
-                  isActive={isOnDashboardsList && dashboardsTab === DashboardsTab.ALL}
-                  analyticsItemName="dashboards_all_combined"
-                >
-                  {t('All Dashboards')}
-                </SecondaryNavigation.Link>
-              </SecondaryNavigation.ListItem>
-            ) : null}
             <SecondaryNavigation.ListItem>
               <SecondaryNavigation.Link
                 to={`${baseUrl}/`}
                 end
-                isActive={
-                  hasPrebuiltDashboards
-                    ? isOnDashboardsList && dashboardsTab === DashboardsTab.CUSTOM
-                    : undefined
-                }
-                analyticsItemName="dashboards_all"
+                isActive={isOnDashboardsList && !isOnlyPrebuilt && !isOnlyCustom}
+                analyticsItemName="dashboards_all_combined"
               >
-                {hasPrebuiltDashboards ? t('Custom Dashboards') : t('All Dashboards')}
+                {t('All Dashboards')}
               </SecondaryNavigation.Link>
             </SecondaryNavigation.ListItem>
             {hasPrebuiltDashboards ? (
               <SecondaryNavigation.ListItem>
                 <SecondaryNavigation.Link
-                  to={`${baseUrl}/?filter=${DashboardFilter.ONLY_PREBUILT}&sort=${DEFAULT_PREBUILT_SORT}`}
-                  isActive={
-                    isOnDashboardsList && dashboardsTab === DashboardsTab.PREBUILT
+                  to={
+                    hasUserLastVisited
+                      ? `${baseUrl}/?filter=${DashboardFilter.ONLY_PREBUILT}`
+                      : `${baseUrl}/?filter=${DashboardFilter.ONLY_PREBUILT}&sort=${DEFAULT_PREBUILT_SORT}`
                   }
+                  isActive={isOnDashboardsList && isOnlyPrebuilt}
                   analyticsItemName="dashboards_sentry_built"
                 >
                   {PREBUILT_DASHBOARD_LABEL}
+                </SecondaryNavigation.Link>
+              </SecondaryNavigation.ListItem>
+            ) : null}
+            {hasPrebuiltDashboards ? (
+              <SecondaryNavigation.ListItem>
+                <SecondaryNavigation.Link
+                  to={`${baseUrl}/?filter=${DashboardFilter.EXCLUDE_PREBUILT}`}
+                  isActive={isOnDashboardsList && isOnlyCustom}
+                  analyticsItemName="dashboards_custom"
+                >
+                  {CUSTOM_DASHBOARD_LABEL}
                 </SecondaryNavigation.Link>
               </SecondaryNavigation.ListItem>
             ) : null}
@@ -94,13 +113,17 @@ export function DashboardsSecondaryNavigation() {
               title={t('Starred Dashboards')}
             >
               <ErrorBoundary mini>
-                <StarredDashboardItems
-                  dashboards={starredDashboards}
-                  projects={projects}
-                  organizationSlug={organization.slug}
-                  organizationId={organization.id}
-                  userId={user.id}
-                />
+                {organization.features.includes('dashboards-starred') ? (
+                  <DashboardsNavigationItems dashboards={starredDashboards} />
+                ) : (
+                  <StarredDashboardItems
+                    dashboards={starredDashboards}
+                    projects={projects}
+                    organizationSlug={organization.slug}
+                    organizationId={organization.id}
+                    userId={user.id}
+                  />
+                )}
               </ErrorBoundary>
             </SecondaryNavigation.Section>
           </Fragment>
@@ -109,6 +132,11 @@ export function DashboardsSecondaryNavigation() {
     </Fragment>
   );
 }
+
+export const DashboardsSecondaryNavigation = registerLLMContext(
+  'navigation',
+  DashboardsSecondaryNavigationImpl
+);
 
 function StarredDashboardItems({
   dashboards,

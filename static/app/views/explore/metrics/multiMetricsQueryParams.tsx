@@ -23,6 +23,7 @@ import {
   useMetricQueriesController,
   type MetricQueriesControllerValue,
 } from 'sentry/views/explore/metrics/useMetricQueriesController';
+import {hasVisualizeTransformations} from 'sentry/views/explore/queryParams/visualize';
 
 export const MAX_METRICS_ALLOWED = 8;
 
@@ -49,21 +50,17 @@ function useMultiMetricsQueryParamsContext(): MetricQueriesControllerValue {
 
 interface MultiMetricsQueryParamsProviderProps {
   children: ReactNode;
-  allowUpTo?: number;
-  hasEquations?: boolean;
 }
 
 export function MultiMetricsQueryParamsProvider({
   children,
-  allowUpTo,
-  hasEquations,
 }: MultiMetricsQueryParamsProviderProps) {
   const location = useLocation();
   const navigate = useNavigate();
 
   const queries = useMemo(
-    () => getMultiMetricsQueryParamsFromLocation(location, allowUpTo),
-    [location, allowUpTo]
+    () => getMultiMetricsQueryParamsFromLocation(location),
+    [location]
   );
 
   const setQueries = useCallback(
@@ -75,7 +72,7 @@ export function MultiMetricsQueryParamsProvider({
     [location, navigate]
   );
 
-  const value = useMetricQueriesController({queries, setQueries, hasEquations});
+  const value = useMetricQueriesController({queries, setQueries});
 
   return (
     <MultiMetricsQueryParamsContext value={value}>
@@ -84,10 +81,7 @@ export function MultiMetricsQueryParamsProvider({
   );
 }
 
-function getMultiMetricsQueryParamsFromLocation(
-  location: Location,
-  limit?: number
-): BaseMetricQuery[] {
+function getMultiMetricsQueryParamsFromLocation(location: Location): BaseMetricQuery[] {
   const rawQueryParams = decodeList(location.query.metric);
 
   const metricQueries = rawQueryParams
@@ -96,7 +90,7 @@ function getMultiMetricsQueryParamsFromLocation(
 
   const queries = metricQueries.length ? metricQueries : [defaultMetricQuery()];
 
-  return limit ? queries.slice(0, limit) : queries;
+  return queries;
 }
 
 interface LocalMultiMetricsQueryParamsProviderProps {
@@ -108,10 +102,6 @@ interface LocalMultiMetricsQueryParamsProviderProps {
    * provider's behavior on an empty URL).
    */
   initialQueries: BaseMetricQuery[];
-  /**
-   * Gates insert-before-equation behavior in `addMetricQuery`.
-   */
-  hasEquations?: boolean;
 }
 
 /**
@@ -130,13 +120,12 @@ interface LocalMultiMetricsQueryParamsProviderProps {
 export function LocalMultiMetricsQueryParamsProvider({
   children,
   initialQueries,
-  hasEquations,
 }: LocalMultiMetricsQueryParamsProviderProps) {
   const [queries, setQueries] = useState<BaseMetricQuery[]>(() =>
     initialQueries.length > 0 ? initialQueries : [defaultMetricQuery()]
   );
 
-  const value = useMetricQueriesController({queries, setQueries, hasEquations});
+  const value = useMetricQueriesController({queries, setQueries});
 
   return (
     <MultiMetricsQueryParamsContext value={value}>
@@ -148,6 +137,12 @@ export function LocalMultiMetricsQueryParamsProvider({
 export function useMultiMetricsQueryParams() {
   const {metricQueries} = useMultiMetricsQueryParamsContext();
   return metricQueries;
+}
+
+export function useMetricsQueryParamsHasTransformations(): boolean {
+  return useMultiMetricsQueryParams().some(query =>
+    hasVisualizeTransformations(query.queryParams.visualizes)
+  );
 }
 
 export function useAddMetricQuery({

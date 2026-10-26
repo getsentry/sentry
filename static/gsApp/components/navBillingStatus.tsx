@@ -1,19 +1,20 @@
 import type React from 'react';
 import {Fragment, useCallback, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
+import {IconWarning} from '@sentry/icons/warning';
 import snakeCase from 'lodash/snakeCase';
 import moment from 'moment-timezone';
 
 import {Button, LinkButton, type ButtonProps} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import type {PromptData} from 'sentry/actionCreators/prompts';
 import {usePrompts} from 'sentry/actionCreators/prompts';
-import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {
   PrimaryNavigation,
   usePrimaryNavigationButtonOverlay,
@@ -146,7 +147,7 @@ function QuotaExceededContent({
   // If ONLY PAYG-ineligible categories are exceeded, show Contact Sales content
   if (paygIneligibleCategories.length > 0 && otherCategories.length === 0) {
     return (
-      <Container>
+      <Container background="primary">
         <Header>
           <HeaderTitle>{t('Billing Status')}</HeaderTitle>
         </Header>
@@ -190,7 +191,7 @@ function QuotaExceededContent({
   // If BOTH PAYG-ineligible and other categories are exceeded, show both sections
   if (paygIneligibleCategories.length > 0 && otherCategories.length > 0) {
     return (
-      <Container>
+      <Container background="primary">
         <Header>
           <HeaderTitle>{t('Billing Status')}</HeaderTitle>
         </Header>
@@ -282,7 +283,7 @@ function QuotaExceededContent({
 
   // Standard content for PAYG-eligible categories only
   return (
-    <Container>
+    <Container background="primary">
       <Header>
         <HeaderTitle>{t('Billing Status')}</HeaderTitle>
       </Header>
@@ -437,18 +438,20 @@ export function PrimaryNavigationQuotaExceeded({
     return Object.values(isPromptDismissed).every(Boolean);
   }, [isPromptDismissed]);
 
+  const [lastShownCategories, setLastShownCategories] = useLocalStorageState<
+    string | null
+  >(`billing-status-last-shown-categories-${organization.id}`, null);
+  const [lastShownDate, setLastShownDate] = useLocalStorageState<string | null>(
+    `billing-status-last-shown-date-${organization.id}`,
+    null
+  );
+
   const hasAutoOpenedAlertRef = useRef(false);
   useEffect(() => {
     // auto open the alert if it hasn't been explicitly dismissed, and
     // either it has been more than a day since the last shown date,
     // the categories have changed, or
     // the last time it was shown was before the current usage cycle started
-    const lastShownCategories = localStorage.getItem(
-      `billing-status-last-shown-categories-${organization.id}`
-    );
-    const lastShownDate = localStorage.getItem(
-      `billing-status-last-shown-date-${organization.id}`
-    );
     const daysSinceLastShown = lastShownDate ? getDaysSinceDate(lastShownDate) : 0;
     const currentCategories = exceededCategories.join('-');
     const lastShownBeforeCurrentPeriod = moment(subscription?.onDemandPeriodStart)
@@ -463,21 +466,20 @@ export function PrimaryNavigationQuotaExceeded({
     ) {
       hasAutoOpenedAlertRef.current = true;
       overlayState.open();
-      localStorage.setItem(
-        `billing-status-last-shown-categories-${organization.id}`,
-        currentCategories
-      );
-      localStorage.setItem(
-        `billing-status-last-shown-date-${organization.id}`,
-        moment().utc().toISOString()
-      );
+      setLastShownCategories(currentCategories);
+      setLastShownDate(moment().utc().toISOString());
     }
   }, [
     exceededCategories,
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     organization.id,
     hasSnoozedAllPrompts,
     overlayState,
     subscription?.onDemandPeriodStart,
+    lastShownCategories,
+    lastShownDate,
+    setLastShownCategories,
+    setLastShownDate,
   ]);
 
   const shouldShow = exceededCategories.length > 0 && subscription?.canSelfServe;
@@ -541,10 +543,6 @@ export function PrimaryNavigationQuotaExceeded({
     </Fragment>
   );
 }
-
-const Container = styled('div')`
-  background: ${p => p.theme.tokens.background.primary};
-`;
 
 const Header = styled('div')`
   background: ${p => p.theme.tokens.background.primary};

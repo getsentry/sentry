@@ -94,11 +94,12 @@ class TestGetEventSeverity(TestCase):
             assert "Authorization" in headers
             assert "X-Viewer-Context-Signature" not in headers
             # ViewerContext is now a JWT
-            from sentry.viewer_context import decode_viewer_context
+            from sentry.viewer_context import ViewerContext, decode_viewer_context
 
             vc = decode_viewer_context(headers["X-Viewer-Context"], key="some-secret")
+            assert isinstance(vc, ViewerContext)
             assert vc.organization_id == self.project.organization_id
-            assert vc.actor_type.value == "unknown"
+            assert vc.actor.type.value == "unknown"
 
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",

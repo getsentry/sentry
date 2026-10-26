@@ -89,15 +89,13 @@ export function StackTracePreviewContent({
 type StackTracePreviewProps = {
   children: React.ReactNode;
   groupId: string;
-  eventId?: string;
   groupingCurrentLevel?: number;
-  projectSlug?: string;
   query?: string;
 };
 
 interface StackTracePreviewBodyProps extends Pick<
   StackTracePreviewProps,
-  'groupId' | 'eventId' | 'groupingCurrentLevel' | 'projectSlug' | 'query'
+  'groupId' | 'groupingCurrentLevel' | 'query'
 > {
   onRequestBegin: () => void;
   onRequestEnd: () => void;

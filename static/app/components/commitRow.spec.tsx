@@ -46,11 +46,6 @@ const baseCommit: Commit = {
 
 // static/app/components/hovercard.tsx
 describe('commitRow', () => {
-  it('renders custom avatar', () => {
-    render(<CommitRow commit={baseCommit} customAvatar="Custom Avatar" />);
-    expect(screen.getByText(/Custom Avatar/)).toBeInTheDocument();
-  });
-
   it('renders invite flow for non associated users', async () => {
     const commit = {
       ...baseCommit,

@@ -36,7 +36,7 @@ const MOCKED_COMPLETED_SESSION = {
                 {
                   title: 'Error Count',
                   display_type: 'line',
-                  widget_type: 'discover',
+                  widget_type: 'error-events',
                   queries: [
                     {
                       name: '',
@@ -69,7 +69,7 @@ const MOCKED_PROCESSING_SESSION = {
 
 describe('CreateFromSeer', () => {
   const organization = OrganizationFixture({
-    features: ['dashboards-edit', 'dashboards-ai-generate'],
+    features: ['dashboards-edit'],
   });
 
   beforeEach(() => {
@@ -106,6 +106,10 @@ describe('CreateFromSeer', () => {
       url: '/organizations/org-slug/events-stats/',
       method: 'GET',
       body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: []},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/stats/',

@@ -2,9 +2,9 @@ import {useEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 
+import {Overlay} from '@sentry/scraps/overlay';
 import {Text} from '@sentry/scraps/text';
 
-import {Overlay} from 'sentry/components/overlay';
 import {getFormattedDate, shouldUse24Hours} from 'sentry/utils/dates';
 import {formatDuration} from 'sentry/utils/duration/formatDuration';
 import {divide} from 'sentry/utils/number/divide';
@@ -42,6 +42,7 @@ export function TimelineTooltip({container}: Props) {
         window.clearTimeout(timeoutRef.current);
         timeoutRef.current = undefined;
       }
+      // oxlint-disable-next-line react/set-state-in-effect
       setLastHoverTime(currentHoverTime);
     }
 

@@ -11,8 +11,8 @@ from urllib.parse import urlparse
 from django.db.models import Prefetch
 from django.http.request import QueryDict
 
-from sentry import analytics, features
-from sentry.api import client
+from sentry import analytics, features, options
+from sentry.api.client import client
 from sentry.api.endpoints.timeseries import TimeSeries
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.dashboard import DashboardWidgetSerializer
@@ -119,7 +119,8 @@ def _unfurl_dashboards(
     user: User | RpcUser | None = None,
 ) -> UnfurledUrl:
     org_integrations = integration_service.get_organization_integrations(
-        integration_id=integration.id
+        integration_id=integration.id,
+        using_replica=options.get("integration_service.get_integration.using_replica"),
     )
     organizations = Organization.objects.filter(
         id__in=[oi.organization_id for oi in org_integrations]

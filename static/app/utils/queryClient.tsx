@@ -1,43 +1,18 @@
 import type {
   QueryClient,
-  QueryClientConfig,
-  SetDataOptions,
   Updater,
   UseQueryOptions,
   UseQueryResult,
 } from '@tanstack/react-query';
 import {useQuery} from '@tanstack/react-query';
 
-import {Client} from 'sentry/api';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
-import {apiFetch} from 'sentry/utils/api/apiFetch';
+import {apiFetch, QUERY_API_CLIENT} from 'sentry/utils/api/apiFetch';
 import {selectJson} from 'sentry/utils/api/apiOptions';
 import {normalizeQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {ApiQueryKey, QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
+import type {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {RequestError} from 'sentry/utils/requestError/requestError';
-
-const nonRetryCodes = new Set<number | undefined>([400, 401, 403, 404]);
-
-// Overrides to the default react-query options.
-// See https://tanstack.com/query/v5/docs/framework/react/guides/important-defaults
-export const DEFAULT_QUERY_CLIENT_CONFIG: QueryClientConfig = {
-  defaultOptions: {
-    queries: {
-      refetchOnReconnect: false,
-      refetchOnWindowFocus: false,
-      retry: (failureCount, err) => {
-        // Disable retries for client errors that won't succeed on retry
-        if (err instanceof RequestError && nonRetryCodes.has(err.status)) {
-          return false;
-        }
-
-        return failureCount < 3;
-      },
-    },
-  },
-};
-
-export const QUERY_API_CLIENT = new Client();
 
 export interface UseApiQueryOptions<TApiResponse, TError = RequestError> extends Omit<
   UseQueryOptions<ApiResponse<TApiResponse>, TError, TApiResponse, ApiQueryKey>,
@@ -122,8 +97,7 @@ export function getApiQueryData<TResponseData>(
 export function setApiQueryData<TResponseData>(
   queryClient: QueryClient,
   queryKey: ApiQueryKey,
-  updater: Updater<TResponseData | undefined, TResponseData | undefined>,
-  options?: SetDataOptions
+  updater: Updater<TResponseData | undefined, TResponseData | undefined>
 ): TResponseData | undefined {
   // eslint-disable-next-line @sentry/no-query-data-type-parameters
   const updateResult = queryClient.setQueryData<ApiResponse<TResponseData>>(
@@ -139,16 +113,15 @@ export function setApiQueryData<TResponseData>(
         return previous;
       }
       return {json: newData, headers: previous?.headers ?? {}};
-    },
-    options
+    }
   );
 
   return updateResult?.json;
 }
 
 type ApiMutationVariables = {
-  method: 'PUT' | 'POST' | 'DELETE';
-  url: string;
+  method: 'PUT' | 'POST' | 'PATCH' | 'DELETE';
+  url: ReturnType<typeof getApiUrl>;
   data?: Record<string, unknown>;
   options?: Pick<
     QueryKeyEndpointOptions,

@@ -19,9 +19,6 @@ export type FeedbackEventParameters = {
   'feedback.summary.summary-error': Record<string, unknown>;
   'feedback.summary.summary-rendered': Record<string, unknown>;
   'feedback.summary.summary-too-few-feedbacks': Record<string, unknown>;
-  'feedback.trace-section.crash-report-dup': Record<string, unknown>;
-  'feedback.trace-section.error': Record<string, unknown>;
-  'feedback.trace-section.loaded': {numEvents: number};
   'feedback.whats-new-banner-dismissed': Record<string, unknown>;
   'feedback.whats-new-banner-viewed': Record<string, unknown>;
 };
@@ -40,10 +37,6 @@ export const feedbackEventMap: Record<FeedbackEventKey, string | null> = {
   'feedback.whats-new-banner-viewed': 'Viewed Feedback Whats New Banner',
   'feedback.mark-spam-clicked': 'Marked Feedback as Spam',
   'feedback.list-view-setup-sidebar': 'Viewed Feedback Onboarding Sidebar',
-  'feedback.trace-section.crash-report-dup':
-    'The Only Same-trace Issue Matches Associated Event ID',
-  'feedback.trace-section.error': 'Error Fetching Trace Data in Feedback Details',
-  'feedback.trace-section.loaded': 'Fetched Same-trace Issue Data in Feedback Details',
   'feedback.no_associated_event_found': 'Associated Event Not Found in Feedback',
   'feedback.summary.categories-empty': 'No Feedback Categories To Render',
   'feedback.summary.categories-error': 'Error Rendering Feedback Categories',

@@ -4,8 +4,9 @@ import {Alert} from '@sentry/scraps/alert';
 
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
-import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
+import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
 import type {UseInfiniteLogsQueryResult} from 'sentry/views/explore/logs/useLogsQuery';
+import {useLogsQueryHighFidelity} from 'sentry/views/explore/logs/useLogsQueryHighFidelity';
 import {useQueryParamsTopEventsLimit} from 'sentry/views/explore/queryParams/context';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
@@ -20,6 +21,7 @@ export function LogsDownSamplingAlert({
 }: LogsDownSamplingAlertProps) {
   const topEventsLimit = useQueryParamsTopEventsLimit();
   const isTopEvents = defined(topEventsLimit);
+  const highFidelity = useLogsQueryHighFidelity();
 
   const timeseriesSamples = useMemo(() => {
     for (const series of Object.values(timeseriesResult.data || {})) {
@@ -41,6 +43,18 @@ export function LogsDownSamplingAlert({
 
   const tableDataScanned = tableResult.dataScanned;
   const tableSamples = tableResult.data.length;
+
+  if (!highFidelity && (tableDataScanned === 'partial' || tableResult.isEmpty)) {
+    return (
+      <Alert.Container>
+        <Alert variant="warning">
+          {t(
+            'These results may be incomplete: we only scan your full log volume when sorting by timestamp in descending order. Try changing the sort, shortening the date range, or selecting fewer projects.'
+          )}
+        </Alert>
+      </Alert.Container>
+    );
+  }
 
   if (
     // It's possible that the timeseries data and table data are produced using

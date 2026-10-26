@@ -41,10 +41,14 @@ from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
 from sentry.db.models.paranoia import ParanoidModel
 from sentry.explore.models import (
+    ExploreSavedFormula,
     ExploreSavedQuery,
     ExploreSavedQueryLastVisited,
     ExploreSavedQueryProject,
     ExploreSavedQueryStarred,
+    ExploreSavedVariable,
+    KindItemTypes,
+    ParamItemTypes,
     TraceItemAttributeContext,
     TraceItemAttributeTypes,
     TraceItemAttributeValueContext,
@@ -52,7 +56,6 @@ from sentry.explore.models import (
     TraceMetricTypes,
 )
 from sentry.incidents.grouptype import MetricIssue
-from sentry.incidents.models.incident import IncidentActivity
 from sentry.insights.models import InsightsStarredSegment
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
@@ -68,10 +71,15 @@ from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.code_review_event import CodeReviewEvent, CodeReviewEventStatus
 from sentry.models.counter import Counter
-from sentry.models.custominboundfilter import CustomInboundFilter
+from sentry.models.custominboundfilter import (
+    CustomInboundFilter,
+    DataType,
+    LegacyFilter,
+)
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
+    DashboardLastVisited,
     DashboardRevision,
 )
 from sentry.models.dashboard_permissions import DashboardPermissions
@@ -105,7 +113,6 @@ from sentry.models.projectsdk import EventType, ProjectSDK
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.relay import Relay, RelayUsage
 from sentry.models.repositorysettings import CodeReviewTrigger
-from sentry.models.rule import RuleActivity, RuleActivityType
 from sentry.models.search_common import SearchType
 from sentry.monitors.models import Monitor, ScheduleType
 from sentry.replays.models import OrganizationMemberReplayAccess
@@ -113,15 +120,17 @@ from sentry.seer.models.project_repository import (
     SeerProjectRepository,
     SeerProjectRepositoryBranchOverride,
 )
+from sentry.seer.models.workflow import SeerWorkflowStrategy
 from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.service_accounts.models import ServiceAccount
 from sentry.services.nodestore.django.models import Node
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.snuba.models import QuerySubscriptionDataSourceHandler
 from sentry.tempest.models import TempestCredentials
 from sentry.testutils.cases import TestCase, TransactionTestCase
-from sentry.testutils.factories import get_fixture_path
+from sentry.testutils.factories import Factories, get_fixture_path
 from sentry.testutils.fixtures import Fixtures
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.token import AuthTokenType
@@ -507,21 +516,25 @@ class ExhaustiveFixtures(Fixtures):
         CustomInboundFilter.objects.create(
             project=project,
             name=f"custom-inbound-filter-{slug}",
-            conditions=[{"op": "eq", "name": "event.release", "value": ["1.0.0"]}],
+            data_type=DataType.ALL,
+            conditions=[{"type": "release", "value": ["1.0.0"]}],
+        )
+        CustomInboundFilter.objects.create(
+            project=project,
+            name=f"legacy-releases-{slug}",
+            data_type=DataType.ALL,
+            conditions=[{"type": "release", "value": ["2.0.0"]}],
+            legacy_filter=LegacyFilter.RELEASE_VERSION,
         )
 
         # Auth*
-        self.create_exhaustive_organization_auth(owner, org, project)
+        service_account = self.create_exhaustive_organization_auth(owner, org, project)
 
         # Integration*
         org_integration = self.create_exhaustive_organization_integration(org)
         integration_id = org_integration.integration.id
         # Rule*
-        rule = self.create_project_rule(project=project, owner_user_id=owner_id)
-        RuleActivity.objects.create(
-            rule=rule, type=RuleActivityType.CREATED.value, user_id=owner_id
-        )
-        self.snooze_rule(user_id=owner_id, owner_id=owner_id, rule=rule)
+        self.create_project_rule(project=project, owner_user_id=owner_id)
 
         # Environment*
         self.create_environment(project=project)
@@ -546,13 +559,7 @@ class ExhaustiveFixtures(Fixtures):
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
 
         # Incident*
-        incident = self.create_incident(org, [project])
-        IncidentActivity.objects.create(
-            incident=incident,
-            type=1,
-            comment=f"hello {slug}",
-            user_id=owner_id,
-        )
+        self.create_incident(org, [project])
 
         # Dashboard
         dashboard = Dashboard.objects.create(
@@ -569,6 +576,11 @@ class ExhaustiveFixtures(Fixtures):
             dashboard=dashboard,
             user_id=owner_id,
             organization=org,
+        )
+        DashboardLastVisited.objects.create(
+            user_id=owner_id,
+            dashboard=dashboard,
+            last_visited=timezone.now(),
         )
         permissions = DashboardPermissions.objects.create(
             is_editable_by_everyone=True, dashboard=dashboard
@@ -640,6 +652,13 @@ class ExhaustiveFixtures(Fixtures):
             tag_value="production",
             branch_name="release",
         )
+        seer_workflow_config = Factories.create_seer_workflow_config(
+            org,
+            service_account_id=service_account.id,
+            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+            filters={"environments": ["production"]},
+        )
+        Factories.create_seer_workflow_config_project(seer_workflow_config, project)
 
         CodeReviewEvent.objects.create(
             organization=org,
@@ -790,6 +809,23 @@ class ExhaustiveFixtures(Fixtures):
             last_visited=timezone.now(),
         )
 
+        explore_saved_formula = ExploreSavedFormula.objects.create(
+            organization=org,
+            created_by_id=owner_id,
+            updated_by_id=owner_id,
+            name="formula.apdex",
+            formula="count()",
+        )
+        ExploreSavedVariable.objects.create(
+            organization=org,
+            explore_saved_formula=explore_saved_formula,
+            name="duration",
+            value="",
+            kind=KindItemTypes.PARAM,
+            param_type=ParamItemTypes.COLUMN,
+            order=0,
+        )
+
         TraceItemAttributeContext.objects.create(
             organization=org,
             project=project,
@@ -804,7 +840,6 @@ class ExhaustiveFixtures(Fixtures):
 
         TraceItemAttributeValueContext.objects.create(
             organization=org,
-            project=project,
             attribute_name="metric.name",
             attribute_value="my.custom.counter",
             attribute_type=TraceMetricTypes.COUNTER,
@@ -838,7 +873,9 @@ class ExhaustiveFixtures(Fixtures):
         return org
 
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_exhaustive_organization_auth(self, owner: User, org: Organization, project: Project):
+    def create_exhaustive_organization_auth(
+        self, owner: User, org: Organization, project: Project
+    ) -> ServiceAccount:
         ApiKey.objects.create(key=uuid4().hex, organization_id=org.id)
         auth_provider = AuthProvider.objects.create(organization_id=org.id, provider="sentry")
         AuthIdentity.objects.create(
@@ -861,6 +898,13 @@ class ExhaustiveFixtures(Fixtures):
             scope_list=["org:ci"],
             date_last_used=None,
             project_last_used_id=project.id,
+        )
+        return Factories.create_service_account(
+            org,
+            name=f"service account for {org.slug}",
+            scope_list=["org:read", "project:read"],
+            created_by=owner,
+            project_ids=[project.id],
         )
 
     @assume_test_silo_mode(SiloMode.CONTROL)

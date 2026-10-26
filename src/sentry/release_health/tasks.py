@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 from typing import Any, TypedDict
 
 from django.core.exceptions import ValidationError
-from django.db import IntegrityError
 from django.db.models import F, Q
 from django.utils import timezone
 from sentry_sdk import capture_exception
@@ -19,6 +18,7 @@ from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.release_health import release_monitor
 from sentry.release_health.release_monitor.base import Totals
+from sentry.releases.auto_creation import should_auto_create_releases
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import release_health_tasks
 from sentry.utils import metrics
@@ -72,6 +72,23 @@ def process_projects_with_sessions(org_id, project_ids) -> None:
     # Takes a single org id and a list of project ids
 
     with metrics.timer("sentry.tasks.monitor_release_adoption.process_projects_with_sessions.core"):
+        # Session data has a 6h lookback, so it can still reference projects that
+        # have since been deleted. Skip those instead of failing per release later.
+        existing_project_ids = list(
+            Project.objects.filter(organization_id=org_id, id__in=project_ids).values_list(
+                "id", flat=True
+            )
+        )
+        missing_count = len(set(project_ids)) - len(existing_project_ids)
+        if missing_count:
+            metrics.incr(
+                "sentry.tasks.process_projects_with_sessions.missing_projects",
+                amount=missing_count,
+            )
+        if not existing_project_ids:
+            return
+        project_ids = existing_project_ids
+
         # Set the `has_sessions` flag for these projects
         Project.objects.filter(
             organization_id=org_id,
@@ -196,19 +213,28 @@ def _handle_release_adoption(
     except (Release.DoesNotExist, ReleaseProjectEnvironment.DoesNotExist):
         metrics.incr("sentry.tasks.process_projects_with_sessions.creating_rpe")
         try:
+            project = Project.objects.select_related("organization").get(id=project_id)
+            create_release = should_auto_create_releases(project)
+
             env = Environment.objects.get_or_create(name=environment_name, organization_id=org_id)[
                 0
             ]
             try:
-                release = Release.objects.get_or_create(
-                    organization_id=org_id,
-                    version=release_version,
-                    defaults={
-                        "status": ReleaseStatus.OPEN,
-                    },
-                )[0]
-            except IntegrityError:
-                release = Release.objects.get(organization_id=org_id, version=release_version)
+                if create_release:
+                    release = Release.objects.get_or_create(
+                        organization_id=org_id,
+                        version=release_version,
+                        defaults={
+                            "status": ReleaseStatus.OPEN,
+                        },
+                    )[0]
+                else:
+                    release = Release.objects.get(organization_id=org_id, version=release_version)
+            except Release.DoesNotExist:
+                release = None
+                metrics.incr(
+                    "sentry.tasks.process_projects_with_sessions.release_autocreation_skipped"
+                )
             except ValidationError:
                 release = None
                 logger.exception(
@@ -220,7 +246,7 @@ def _handle_release_adoption(
                 )
 
             if release:
-                release.add_project(Project.objects.get(id=project_id))
+                release.add_project(project)
 
                 ReleaseEnvironment.objects.get_or_create(
                     environment=env, organization_id=org_id, release=release
@@ -233,8 +259,10 @@ def _handle_release_adoption(
                     adopted=current_time,
                     last_seen=current_time,
                 )
+        except Project.DoesNotExist:
+            # The project was deleted while this task was running; nothing to adopt.
+            metrics.incr("sentry.tasks.process_projects_with_sessions.project_not_found")
         except (
-            Project.DoesNotExist,
             Environment.DoesNotExist,
             Release.DoesNotExist,
             ReleaseEnvironment.DoesNotExist,

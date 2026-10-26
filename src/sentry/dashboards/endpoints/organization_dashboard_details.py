@@ -10,7 +10,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import audit_log, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -38,6 +38,8 @@ from sentry.apidocs.response_types import (
 from sentry.dashboards.endpoints.organization_dashboards import OrganizationDashboardsPermission
 from sentry.models.dashboard import (
     Dashboard,
+    DashboardFavoriteUser,
+    DashboardLastVisited,
     DashboardRevision,
 )
 from sentry.models.organization import Organization
@@ -151,6 +153,14 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         if dashboard.prebuilt_id is not None:
             return self.respond({"detail": "Cannot delete prebuilt Dashboards."}, status=409)
 
+        audit_data = dashboard.get_audit_log_data()
+        self.create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=audit_data["id"],
+            event=audit_log.get_event_id("DASHBOARD_REMOVE"),
+            data=audit_data,
+        )
         dashboard.delete()
 
         return self.respond(status=204)
@@ -192,13 +202,17 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
 
         is_prebuilt = dashboard.prebuilt_id is not None
 
+        projects = self.get_projects(request, organization)
         serializer = DashboardDetailsSerializer(
             data=request.data,
             instance=dashboard,
             context={
                 "organization": organization,
                 "request": request,
-                "projects": self.get_projects(request, organization),
+                "projects": projects,
+                # allow_joinleave grants project access without team membership.
+                "validation_projects": projects
+                or self.get_projects(request, organization, include_all_accessible=True),
                 "environment": self.request.GET.getlist("environment"),
             },
         )
@@ -235,7 +249,17 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         except IntegrityError:
             return self.respond({"detail": "Dashboard with that title already exists."}, status=409)
 
-        body: DashboardDetailsResponse = serialize(serializer.instance, request.user)
+        updated_dashboard = serializer.instance
+        assert updated_dashboard is not None
+        self.create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=updated_dashboard.id,
+            event=audit_log.get_event_id("DASHBOARD_EDIT"),
+            data=updated_dashboard.get_audit_log_data(),
+        )
+
+        body: DashboardDetailsResponse = serialize(updated_dashboard, request.user)
         return self.respond(body, status=200)
 
 
@@ -255,6 +279,19 @@ class OrganizationDashboardVisitEndpoint(OrganizationDashboardBase):
         dashboard.visits = F("visits") + 1
         dashboard.last_visited = timezone.now()
         dashboard.save(update_fields=["visits", "last_visited"])
+
+        # TODO: Only keep the last_visited per user logic once `dashboards-user-last-visited` is fully rolled out
+        if (
+            features.has(
+                "organizations:dashboards-user-last-visited", organization, actor=request.user
+            )
+            and request.user.is_authenticated
+        ):
+            DashboardLastVisited.objects.update_or_create(
+                user_id=request.user.id,
+                dashboard=dashboard,
+                defaults={"last_visited": timezone.now()},
+            )
 
         return Response(status=204)
 
@@ -280,13 +317,28 @@ class OrganizationDashboardFavoriteEndpoint(OrganizationDashboardBase):
         if not request.user.is_authenticated:
             return Response(status=401)
 
-        is_favorited = request.data.get("isFavorited")
+        should_favorite = request.data.get("shouldFavorite", request.data.get("isFavorited"))
+
+        if features.has("organizations:dashboards-starred", organization, actor=request.user):
+            if should_favorite:
+                DashboardFavoriteUser.objects.insert_favorite_dashboard(
+                    organization=organization,
+                    user_id=request.user.id,
+                    dashboard=dashboard,
+                )
+            else:
+                DashboardFavoriteUser.objects.unfavorite_dashboard(
+                    organization=organization,
+                    user_id=request.user.id,
+                    dashboard=dashboard,
+                )
+            return Response(status=204)
 
         current_favorites = set(dashboard.favorited_by)
 
-        if is_favorited and request.user.id not in current_favorites:
+        if should_favorite and request.user.id not in current_favorites:
             current_favorites.add(request.user.id)
-        elif not is_favorited and request.user.id in current_favorites:
+        elif not should_favorite and request.user.id in current_favorites:
             current_favorites.remove(request.user.id)
         else:
             return Response(status=204)

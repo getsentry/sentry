@@ -1,7 +1,11 @@
 import {createContext} from 'react';
 
-import type {IntegrationProvider, IntegrationType} from 'sentry/types/integrations';
-import type {MessagingIntegrationAnalyticsView} from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
+import type {MessagingIntegrationAnalyticsView} from 'sentry/components/messagingIntegrations/setupMessagingIntegrationButton';
+import type {
+  IntegrationProvider,
+  IntegrationType,
+  OrganizationIntegration,
+} from 'sentry/types/integrations';
 
 type IntegrationContextProps = {
   analyticsParams: {
@@ -11,17 +15,20 @@ type IntegrationContextProps = {
       | 'integrations_directory_integration_detail'
       | 'integrations_directory'
       | 'onboarding'
-      | 'onboarding_scm'
       | 'project_creation'
       | 'seer_onboarding_github'
       | 'seer_onboarding_code_review'
       | 'test_analytics_onboarding'
       | 'test_analytics_org_selector';
     referrer?: string;
+    // Keep the experience variant separate from the flow-specific view value.
+    variant?: 'scm' | 'legacy';
   };
   installStatus: string;
   provider: IntegrationProvider;
   type: IntegrationType;
+  /** Loaded workspaces for choosing a single upgrade on a deep link. */
+  configurations?: OrganizationIntegration[];
   onAddIntegration?: () => void;
   /**
    * When true, the "%s added" success toast is not shown on install.

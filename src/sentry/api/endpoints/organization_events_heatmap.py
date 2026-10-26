@@ -5,8 +5,8 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import traces
 
-from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
@@ -19,7 +19,6 @@ from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.utils.tracing import set_span_data, start_span
 
 MAX_BUCKETS = 1_000
 HEATMAP_DATASETS = {TraceMetrics}
@@ -99,13 +98,13 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
         """
         Retrieves explore data for a given organization as a heatmap.
         """
-        if not features.has(
-            "organizations:data-browsing-heat-map-widget", organization, actor=request.user
+        with traces.start_span(
+            name="filter_params",
+            attributes={
+                "sentry.op": "discover.endpoint",
+                "organization": repr(organization),
+            },
         ):
-            return Response(status=404)
-        with start_span(op="discover.endpoint", name="filter_params") as span:
-            set_span_data(span, "organization", organization)
-
             dataset = self.get_dataset(request, organization)
             if dataset not in HEATMAP_DATASETS:
                 raise ParseError(f"{dataset} is not supported on this endpoint")

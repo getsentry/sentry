@@ -1,5 +1,7 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconFlag} from '@sentry/icons/flag';
+import {IconSubtract} from '@sentry/icons/subtract';
 import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
@@ -18,15 +20,16 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelItem} from 'sentry/components/panels/panelItem';
-import {IconFlag, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import {ProjectItem as ProjectListItem} from 'sentry/views/settings/components/settingsProjectItem';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {useTeamDetailsOutlet} from 'sentry/views/settings/organizationTeams/teamDetails';
@@ -72,7 +75,16 @@ export default function TeamProjects() {
   const {mutate: mutateLinkProject} = useMutation({
     mutationFn: ({project, action}: {action: string; project: Project}) =>
       fetchMutation<Project>({
-        url: `/projects/${organization.slug}/${project.slug}/teams/${team.slug}/`,
+        url: getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/teams/$teamIdOrSlug/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              projectIdOrSlug: project.slug,
+              teamIdOrSlug: team.slug,
+            },
+          }
+        ),
         method: action === 'add' ? 'POST' : 'DELETE',
       }),
     onSuccess: (resp, {action}) => {
@@ -109,6 +121,7 @@ export default function TeamProjects() {
 
   return (
     <Fragment>
+      <BreadcrumbTitle title={t('Projects')} />
       <TextBlock>
         {t(
           'If you have Team Admin permissions for other projects, you can associate them with this team.'

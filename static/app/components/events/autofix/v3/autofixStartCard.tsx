@@ -1,16 +1,17 @@
-import {type CSSProperties, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
+import {IconBug} from '@sentry/icons/bug';
 
 import seerConfigConnectImg from 'sentry-images/spot/seer-config-connect-2.svg';
 
 import {Button} from '@sentry/scraps/button';
+import type {CSS} from '@sentry/scraps/cssTypes';
 import {Image} from '@sentry/scraps/image';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import type {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconBug} from 'sentry/icons';
+import {useForceBashMode} from 'sentry/components/events/autofix/v3/useForceBashMode';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 
@@ -35,13 +36,17 @@ export function AutofixStartCard({
   // extract startStep first here so we can depend on it directly as `autofix` itself is unstable.
   const startStep = autofix.startStep;
 
+  const [enableBashMode] = useForceBashMode();
+
   const [startingRun, setStartingRun] = useState(false);
+  const isStarting = startingRun || autofix.isWaitingForRun;
   const handleStartRootCause = async () => {
     setStartingRun(true);
     try {
-      await startStep('root_cause');
+      await startStep('root_cause', {enableBashMode: enableBashMode || undefined});
     } catch {
       return;
+      // oxlint-disable-next-line react/todo
     } finally {
       setStartingRun(false);
     }
@@ -50,41 +55,18 @@ export function AutofixStartCard({
 
   return (
     <Stack gap="md">
-      <Flex
-        border="muted"
-        radius="md"
-        padding="lg"
-        gap="lg"
-        align="center"
-        justify="between"
-      >
-        <Container>
-          <Text>{t('Have Seer...')}</Text>
-          <Container as="ol" margin="0">
-            <li>{t('Determine the root cause of your issue')}</li>
-            <li>{t('Outline a plan')}</li>
-            <li>{t('Create a code fix')}</li>
-          </Container>
-        </Container>
-        <ImageContainer
-          justify="end"
-          align="center"
-          aspectRatio="9 / 16"
-          height={{'screen:2xs': '78px', 'screen:lg': '98px'}}
-        >
-          <Image src={seerConfigConnectImg} alt="" width="auto" height="100%" />
-        </ImageContainer>
-      </Flex>
+      <AutofixStartCardContent />
       <Button
         size="md"
-        icon={startingRun ? <LoadingIndicator size={16} /> : <IconBug />}
+        icon={<IconBug />}
         aria-label={t('Start Analysis')}
         variant="primary"
         onClick={handleStartRootCause}
         analyticsEventKey="autofix.start_fix_clicked"
         analyticsEventName="Autofix: Start Fix Clicked"
         analyticsParams={{group_id: group.id, mode: 'explorer', referrer}}
-        disabled={startingRun}
+        busy={isStarting}
+        disabled={isStarting}
       >
         {t('Start Analysis')}
       </Button>
@@ -92,8 +74,38 @@ export function AutofixStartCard({
   );
 }
 
+function AutofixStartCardContent() {
+  return (
+    <Flex
+      border="muted"
+      radius="md"
+      padding="lg"
+      gap="lg"
+      align="center"
+      justify="between"
+    >
+      <Container>
+        <Text>{t('Have Seer...')}</Text>
+        <Container as="ol" margin="0">
+          <li>{t('Determine the root cause of your issue')}</li>
+          <li>{t('Outline a plan')}</li>
+          <li>{t('Create a code fix')}</li>
+        </Container>
+      </Container>
+      <ImageContainer
+        justify="end"
+        align="center"
+        aspectRatio="9 / 16"
+        height={{zero: '78px', '4xl': '98px'}}
+      >
+        <Image src={seerConfigConnectImg} alt="" width="auto" height="100%" />
+      </ImageContainer>
+    </Flex>
+  );
+}
+
 const ImageContainer = styled(Flex)<{
-  aspectRatio?: CSSProperties['aspectRatio'];
+  aspectRatio?: CSS['aspectRatio'];
 }>`
   ${p => p.aspectRatio && `aspect-ratio: ${p.aspectRatio}`};
 `;

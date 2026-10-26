@@ -3,6 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ReplayTableHeader} from 'sentry/components/replays/table/replayTableHeader';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {type ListItemCheckboxState} from 'sentry/utils/list/useListItemCheckboxState';
 
 jest.mock('sentry/components/replays/table/replayBulkViewedActions', () => ({
@@ -38,20 +39,21 @@ function baseListCheckboxState(overrides: Partial<ListItemCheckboxState>) {
   };
 }
 
-function renderWithOrganization() {
-  render(
-    <ReplayTableHeader
-      columns={[
-        {
-          Header: 'Test',
-          Component: () => null,
-          interactive: false,
-          sortKey: undefined,
-        },
-      ]}
-      replays={[]}
-    />,
-    {organization: OrganizationFixture()}
+function ExampleReplayTableHeader() {
+  return (
+    <SimpleTable>
+      <ReplayTableHeader
+        columns={[
+          {
+            Header: 'Test',
+            Component: () => null,
+            interactive: false,
+            sortKey: undefined,
+          },
+        ]}
+        replays={[]}
+      />
+    </SimpleTable>
   );
 }
 
@@ -61,7 +63,7 @@ describe('ReplayTableHeader', () => {
       baseListCheckboxState({isAnySelected: false, selectedIds: []})
     );
 
-    renderWithOrganization();
+    render(<ExampleReplayTableHeader />, {organization: OrganizationFixture()});
 
     expect(screen.queryByTestId('replay-bulk-viewed-actions')).not.toBeInTheDocument();
     expect(screen.queryByTestId('delete-replays')).not.toBeInTheDocument();
@@ -77,7 +79,7 @@ describe('ReplayTableHeader', () => {
       })
     );
 
-    renderWithOrganization();
+    render(<ExampleReplayTableHeader />, {organization: OrganizationFixture()});
 
     expect(screen.queryByTestId('replay-bulk-viewed-actions')).not.toBeInTheDocument();
     expect(screen.getByTestId('delete-replays')).toBeInTheDocument();
@@ -93,7 +95,7 @@ describe('ReplayTableHeader', () => {
       })
     );
 
-    renderWithOrganization();
+    render(<ExampleReplayTableHeader />, {organization: OrganizationFixture()});
 
     expect(screen.getByTestId('replay-bulk-viewed-actions')).toBeInTheDocument();
     expect(screen.getByTestId('delete-replays')).toBeInTheDocument();

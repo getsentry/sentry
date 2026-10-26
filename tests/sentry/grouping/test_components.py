@@ -125,6 +125,28 @@ class ComponentTest(TestCase):
 
             assert [frame_component.in_app for frame_component in frame_components] == [False, True]
 
+    def test_exception_enhancements_apply_during_grouping(self) -> None:
+        self.event.data["exception"]["values"][0].update(
+            {
+                "mechanism": {"type": "signal"},
+                "stacktrace": {"frames": [self.contributing_in_app_frame]},
+            }
+        )
+        self.project.update_option(
+            "sentry:grouping_enhancements",
+            "error.type:FailedToFetchError error.value:Charlie* error.mechanism:signal -group",
+        )
+
+        variants = self.event.get_grouping_variants(normalize_stacktraces=True)
+
+        for variant_name in ["app", "system"]:
+            exception_component = variants[variant_name].root_component.values[0]
+            assert isinstance(exception_component, ExceptionGroupingComponent)
+            stacktrace_component = find_given_child_component(
+                exception_component, StacktraceGroupingComponent
+            )
+            assert stacktrace_component.contributes is False
+
     def test_stacktrace_component_tallies_frame_types_simple(self) -> None:
         self.event.data["exception"]["values"][0]["stacktrace"] = {
             "frames": (

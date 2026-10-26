@@ -133,6 +133,7 @@ export function useSeerDashboardSession({
     // Update states when transitioning from non-terminal to terminal session
     if (prevUpdatedAt !== sessionUpdatedAt && isTerminal && !wasTerminal) {
       if (isUpdating) {
+        // oxlint-disable-next-line react/set-state-in-effect
         setIsUpdating(false);
       }
       const dashboardData = extractDashboardFromSession(session);
@@ -166,6 +167,7 @@ export function useSeerDashboardSession({
             dashboard
           );
           if (!runId) {
+            // oxlint-disable-next-line react/todo
             throw new Error('Failed to start dashboard editing session');
           }
           setInternalRunId(runId);

@@ -1,9 +1,3 @@
-import {
-  EventType,
-  IncrementalSource,
-  MouseInteractions,
-  type eventWithTime as TEventWithTime,
-} from '@sentry-internal/rrweb';
 import type {
   ReplayBreadcrumbFrameEvent as TBreadcrumbFrameEvent,
   ReplayOptionFrameEvent as TOptionFrameEvent,
@@ -11,13 +5,19 @@ import type {
   ReplaySpanFrame as TRawSpanFrame,
   ReplaySpanFrameEvent as TSpanFrameEvent,
 } from '@sentry/react';
+import {
+  EventType,
+  IncrementalSource,
+  MouseInteractions,
+  type eventWithTime as TEventWithTime,
+} from '@sentry/rrweb';
 import invariant from 'invariant';
 
-export type {serializedNodeWithId} from '@sentry-internal/rrweb-snapshot';
-export type {fullSnapshotEvent, incrementalSnapshotEvent} from '@sentry-internal/rrweb';
+export type {serializedNodeWithId} from '@sentry/rrweb-snapshot';
+export type {fullSnapshotEvent, incrementalSnapshotEvent} from '@sentry/rrweb';
 
-export {NodeType} from '@sentry-internal/rrweb-snapshot';
-export {EventType, IncrementalSource} from '@sentry-internal/rrweb';
+export {NodeType} from '@sentry/rrweb-snapshot';
+export {EventType, IncrementalSource} from '@sentry/rrweb';
 
 export type Dimensions = {
   height: number;
@@ -263,21 +263,31 @@ export function isPaintFrame(frame: SpanFrame): frame is PaintFrame {
   return frame.op === 'paint';
 }
 
-export function isDeadClick(frame: SlowClickFrame) {
+export function isSlowClickFrame(frame: BreadcrumbFrame): frame is SlowClickFrame {
   return (
-    ['a', 'button', 'input'].includes(frame.data.node?.tagName.toLowerCase() ?? '') &&
-    frame.data.endReason === 'timeout'
+    frame.category === 'ui.slowClickDetected' &&
+    typeof frame.data === 'object' &&
+    frame.data !== null
+  );
+}
+
+export function isDeadClick(frame: SlowClickFrame) {
+  const node: ClickFrameNode | undefined = frame.data?.node;
+
+  return (
+    ['a', 'button', 'input'].includes(node?.tagName?.toLowerCase() ?? '') &&
+    frame.data?.endReason === 'timeout'
   );
 }
 
 export function isDeadRageClick(frame: SlowClickFrame) {
   return Boolean(
-    isDeadClick(frame) && frame.data.clickCount && frame.data.clickCount >= 5
+    isDeadClick(frame) && frame.data?.clickCount && frame.data.clickCount >= 5
   );
 }
 
 export function isRageClick(frame: MultiClickFrame) {
-  return frame.data.clickCount >= 5;
+  return (frame.data?.clickCount ?? 0) >= 5;
 }
 
 export function isHydrationErrorFrame(
@@ -303,8 +313,14 @@ type HydratedTimestamp = {
   timestampMs: number;
 };
 
+/**
+ * SDKs sometimes send frames without `data`, even for categories and ops where
+ * the SDK types say it is required.
+ */
+type OptionalData<T> = T extends {data: infer Data} ? Omit<T, 'data'> & {data?: Data} : T;
+
 type HydratedBreadcrumb<Category extends string> = Overwrite<
-  Extract<TRawBreadcrumbFrame | ExtraBreadcrumbTypes, {category: Category}>,
+  OptionalData<Extract<TRawBreadcrumbFrame | ExtraBreadcrumbTypes, {category: Category}>>,
   HydratedTimestamp
 >;
 
@@ -335,7 +351,7 @@ type HydratedStartEndDate = {
   timestampMs: number;
 };
 type HydratedSpan<Op extends string> = Overwrite<
-  Extract<TRawSpanFrame, {op: Op}>,
+  OptionalData<Extract<TRawSpanFrame, {op: Op}>>,
   HydratedStartEndDate // TODO: do we need `{id:string}` added too?
 >;
 
@@ -361,6 +377,10 @@ export type FeedbackFrame = {
   timestampMs: number;
   type: string;
 };
+
+export type ClickFrameNode = Partial<
+  NonNullable<NonNullable<SlowClickFrame['data']>['node']>
+>;
 
 export type ClickFrame = HydratedBreadcrumb<'ui.click'>;
 export type TapFrame = HydratedBreadcrumb<'ui.tap'>;

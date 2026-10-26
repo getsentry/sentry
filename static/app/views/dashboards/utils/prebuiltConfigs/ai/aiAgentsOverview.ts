@@ -1,4 +1,3 @@
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, MAX_TABLE_LIMIT, WidgetType} from 'sentry/views/dashboards/types';
@@ -6,18 +5,26 @@ import type {
   PrebuiltDashboard,
   PrebuiltWidget,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {AI_AGENTS_OVERVIEW_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/settings';
+import {
+  AI_AGENTS_OVERVIEW_DASHBOARD_DESCRIPTION,
+  AI_AGENTS_OVERVIEW_DASHBOARD_TITLE,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/settings';
 import {
   WIDGET_COLUMN_LABELS,
   TABLE_MIN_HEIGHT,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
+import {
+  getAgentRunsFilter,
+  getAiClientSpansFilter,
+  getToolSpansFilter,
+} from 'sentry/views/insights/pages/agents/utils/query';
 import {SpanFields} from 'sentry/views/insights/types';
 
-const AGENT_FILTER = `${SpanFields.GEN_AI_OPERATION_TYPE}:agent`;
-const AI_CLIENT_FILTER = `${SpanFields.GEN_AI_OPERATION_TYPE}:ai_client`;
-const AGENT_AND_AI_CLIENT_FILTER = `${SpanFields.GEN_AI_OPERATION_TYPE}:[agent, ai_client]`;
-const TOOL_FILTER = `${SpanFields.GEN_AI_OPERATION_TYPE}:tool`;
+const AGENT_FILTER = getAgentRunsFilter();
+const AI_CLIENT_FILTER = getAiClientSpansFilter();
+const AGENT_AND_AI_CLIENT_FILTER = `(${getAgentRunsFilter()} OR ${getAiClientSpansFilter()})`;
+const TOOL_FILTER = getToolSpansFilter();
 
 const DEFAULT_GLOBAL_FILTERS = [
   {
@@ -29,18 +36,6 @@ const DEFAULT_GLOBAL_FILTERS = [
     },
     value: '',
   },
-];
-
-export const DEFAULT_TRACES_TABLE_WIDTHS = [
-  110,
-  COL_WIDTH_UNDEFINED,
-  140,
-  110,
-  110,
-  110,
-  120,
-  110,
-  110,
 ];
 
 const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
@@ -214,8 +209,8 @@ const AGENTS_TRACES_TABLE: PrebuiltWidget = {
   title: t('Traces'),
   description: t('Agent traces with duration, token, cost, and tool usage.'),
   displayType: DisplayType.AGENTS_TRACES_TABLE,
+  widgetType: WidgetType.SPANS,
   interval: '1h',
-  tableWidths: DEFAULT_TRACES_TABLE_WIDTHS,
   limit: MAX_TABLE_LIMIT,
   queries: [
     {
@@ -240,6 +235,7 @@ export const AI_AGENTS_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
   title: AI_AGENTS_OVERVIEW_DASHBOARD_TITLE,
+  description: AI_AGENTS_OVERVIEW_DASHBOARD_DESCRIPTION,
   filters: {
     globalFilter: DEFAULT_GLOBAL_FILTERS,
   },

@@ -149,4 +149,4 @@ class SearchResolverQueryTest(TestCase):
             label="count_unique(event_id)",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
-        assert virtual_context is None
+        assert virtual_context == [None]

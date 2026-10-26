@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 
 import type {RenderProps} from 'sentry/components/charts/eventsRequest';
 import {EventsRequest} from 'sentry/components/charts/eventsRequest';
@@ -19,8 +20,8 @@ import {defined} from 'sentry/utils/defined';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
+import {useMEPSettingContext} from 'sentry/utils/performance/contexts/useMEPSettingContext';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
@@ -199,7 +200,7 @@ export function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps)
           const currentSeriesNames = [field];
           const includePreviousParam = false;
           const yAxis = provided.yAxis;
-          const interval = getInterval(pageFilterDatetime, 'medium');
+          const interval = getInterval(pageFilterDatetime);
           const partialDataParam = true;
 
           eventView.additionalConditions.setFilterValues('transaction', [
@@ -253,10 +254,7 @@ export function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps)
     chart: chartQuery,
   };
 
-  const assembleAccordionItems = (provided: ComponentData) =>
-    getItems(provided).map(item => ({header: item, content: getChart(provided)}));
-
-  const getChart = (provided: ComponentData) => {
+  const assembleAccordionItems = (provided: ComponentData) => {
     const transformedReleaseSeries: Record<string, Series> = {};
 
     const series = provided.widgetData.chart.data;
@@ -283,29 +281,32 @@ export function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps)
       });
     }
 
-    return (
-      <Chart
-        height={props.chartHeight}
-        data={Object.values(transformedReleaseSeries)}
-        loading={provided.widgetData.chart.isLoading}
-        grid={{
-          left: '0',
-          right: '0',
-          top: '8px',
-          bottom: '0',
-        }}
-        type={ChartType.LINE}
-        aggregateOutputFormat="duration"
-        tooltipFormatterOptions={{
-          valueFormatter: value =>
-            tooltipFormatterUsingAggregateOutputType(value, 'duration'),
-        }}
-        // @ts-expect-error TS(2339): Property 'error' does not exist on type 'WidgetDat... Remove this comment to see the full error message
-        error={provided.widgetData.chart.error}
-        disableXAxis
-        showLegend={false}
-      />
-    );
+    return getItems(provided).map(item => ({
+      header: item,
+      content: (
+        <Chart
+          height={props.chartHeight}
+          data={Object.values(transformedReleaseSeries)}
+          loading={provided.widgetData.chart.isLoading}
+          grid={{
+            left: '0',
+            right: '0',
+            top: '8px',
+            bottom: '0',
+          }}
+          type={ChartType.LINE}
+          aggregateOutputFormat="duration"
+          tooltipFormatterOptions={{
+            valueFormatter: value =>
+              tooltipFormatterUsingAggregateOutputType(value, 'duration'),
+          }}
+          // @ts-expect-error TS(2339): Property 'error' does not exist on type 'WidgetDat... Remove this comment to see the full error message
+          error={provided.widgetData.chart.error}
+          disableXAxis
+          showLegend={false}
+        />
+      ),
+    }));
   };
 
   const moduleURLBuilder = useModuleURLBuilder();
@@ -345,10 +346,10 @@ export function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps)
             <Truncate value={transaction} maxLength={40} />
           </GrowLink>
           <RightAlignedCell>
-            <StyledDurationWrapper>
+            <Container padding="0 md">
               {/* milliseconds expects a number */}
               <PerformanceDuration milliseconds={listItem[field] as any} abbreviation />
-            </StyledDurationWrapper>
+            </Container>
           </RightAlignedCell>
         </Fragment>
       );
@@ -409,10 +410,6 @@ export function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps)
     />
   );
 }
-
-const StyledDurationWrapper = styled('div')`
-  padding: 0 ${p => p.theme.space.md};
-`;
 
 const LoadingWrapper = styled('div')<{height?: number}>`
   height: ${p => p.height}px;

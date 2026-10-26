@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
-from datetime import datetime, timedelta
+from datetime import datetime
 from re import Match
 from typing import Any, Union, cast
 
 import sentry_sdk
-from django.utils.functional import cached_property
 from parsimonious.exceptions import ParseError
+from sentry_sdk import traces
 from snuba_sdk import (
     AliasedExpression,
     And,
@@ -29,7 +29,6 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry import features
 from sentry.api import event_search
 from sentry.discover.arithmetic import (
     OperandType,
@@ -57,7 +56,6 @@ from sentry.search.events.types import (
     WhereType,
 )
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.metrics.utils import MetricMeta
 from sentry.snuba.query_sources import QuerySource
 from sentry.users.services.user.service import user_service
 from sentry.utils.dates import outside_retention_with_modified_start
@@ -74,7 +72,6 @@ from sentry.utils.snuba import (
     raw_snql_query,
     resolve_column,
 )
-from sentry.utils.tracing import set_span_data, start_span
 from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCARD_NOT_ALLOWED
 
 DATASET_TO_ENTITY_MAP: Mapping[Dataset, EntityKey] = {
@@ -334,20 +331,30 @@ class BaseQueryBuilder:
         equations: list[str] | None = None,
         orderby: list[str] | str | None = None,
     ) -> None:
-        with start_span(op="QueryBuilder", name="resolve_query"):
-            with start_span(op="QueryBuilder", name="resolve_time_conditions"):
+        with traces.start_span(name="resolve_query", attributes={"sentry.op": "QueryBuilder"}):
+            with traces.start_span(
+                name="resolve_time_conditions", attributes={"sentry.op": "QueryBuilder"}
+            ):
                 # Has to be done early, since other conditions depend on start and end
                 self.resolve_time_conditions()
-            with start_span(op="QueryBuilder", name="resolve_conditions"):
+            with traces.start_span(
+                name="resolve_conditions", attributes={"sentry.op": "QueryBuilder"}
+            ):
                 self.where, self.having = self.resolve_conditions(query)
-            with start_span(op="QueryBuilder", name="resolve_params"):
+            with traces.start_span(name="resolve_params", attributes={"sentry.op": "QueryBuilder"}):
                 # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
                 self.where += self.resolve_params()
-            with start_span(op="QueryBuilder", name="resolve_columns"):
+            with traces.start_span(
+                name="resolve_columns", attributes={"sentry.op": "QueryBuilder"}
+            ):
                 self.columns = self.resolve_select(selected_columns, equations)
-            with start_span(op="QueryBuilder", name="resolve_orderby"):
+            with traces.start_span(
+                name="resolve_orderby", attributes={"sentry.op": "QueryBuilder"}
+            ):
                 self.orderby = self.resolve_orderby(orderby)
-            with start_span(op="QueryBuilder", name="resolve_groupby"):
+            with traces.start_span(
+                name="resolve_groupby", attributes={"sentry.op": "QueryBuilder"}
+            ):
                 self.groupby = self.resolve_groupby(groupby_columns)
 
     def parse_config(self) -> None:
@@ -650,7 +657,6 @@ class BaseQueryBuilder:
                     if self.builder_config.equation_config
                     else {}
                 ),
-                custom_measurements=self.get_custom_measurement_names_set(),
             )
             for index, parsed_equation in enumerate(parsed_equations):
                 resolved_equation = self.resolve_equation(
@@ -855,7 +861,14 @@ class BaseQueryBuilder:
 
             orderby = [orderby]
 
-        orderby_columns: list[str] = orderby if orderby else []
+        # An empty orderby means "no sort", not "sort by the column named ''". The str form is
+        # handled above, but endpoints pass the raw request value as a list, so `?orderby=`
+        # arrives here as [""].
+        orderby_columns: list[str] = [
+            orderby_column
+            for orderby_column in (orderby or [])
+            if orderby_column.lstrip("-").strip()
+        ]
 
         resolved_orderby: str | SelectType | None
         for orderby in orderby_columns:
@@ -989,53 +1002,6 @@ class BaseQueryBuilder:
 
         return flattened
 
-    @cached_property
-    def custom_measurement_map(self) -> Sequence[MetricMeta]:
-        # Both projects & org are required, but might be missing for the search parser
-        if self.organization_id is None or not self.builder_config.has_metrics:
-            return []
-
-        from sentry.snuba.metrics.datasource import get_custom_measurements
-
-        should_use_user_time_range = self.params.organization is not None and features.has(
-            "organizations:performance-discover-get-custom-measurements-reduced-range",
-            self.params.organization,
-            actor=None,
-        )
-
-        start = (
-            self.params.start
-            if should_use_user_time_range
-            else datetime.today() - timedelta(days=90)
-        )
-        end = self.params.end if should_use_user_time_range else datetime.today()
-
-        try:
-            result = get_custom_measurements(
-                project_ids=self.params.project_ids,
-                organization_id=self.organization_id,
-                start=start,
-                end=end,
-            )
-        # Don't fully fail if we can't get the CM, but still capture the exception
-        except Exception as error:
-            sentry_sdk.capture_exception(error)
-            return []
-        return result
-
-    def get_custom_measurement_names_set(self) -> set[str]:
-        return {measurement["name"] for measurement in self.custom_measurement_map}
-
-    def get_measurement_by_name(self, name: str) -> MetricMeta | None:
-        # Skip the iteration if its not a measurement, which can save a custom measurement query entirely
-        if not is_measurement(name):
-            return None
-
-        for measurement in self.custom_measurement_map:
-            if measurement["name"] == name:
-                return measurement
-        return None
-
     def get_field_type(self, field: str) -> str | None:
         if field in self.meta_resolver_map:
             return self.meta_resolver_map[field]
@@ -1054,20 +1020,8 @@ class BaseQueryBuilder:
         if unit := self.size_fields.get(field):
             return unit
 
-        measurement = self.get_measurement_by_name(field)
         # let the caller decide what to do
-        if measurement is None:
-            return None
-
-        unit = measurement["unit"]
-        if unit in constants.SIZE_UNITS or unit in constants.DURATION_UNITS:
-            return unit
-        elif unit == "none":
-            return "integer"
-        elif unit in constants.PERCENT_UNITS:
-            return "percentage"
-        else:
-            return "number"
+        return None
 
     def validate_having_clause(self) -> None:
         """Validate that the functions in having are selected columns
@@ -1381,11 +1335,6 @@ class BaseQueryBuilder:
         if is_tag or is_attr:
             subscriptable = lhs.subscriptable
             if operator not in ["IN", "NOT IN"] and not isinstance(value, str):
-                sentry_sdk.set_tag("query.lhs", lhs)
-                sentry_sdk.set_attribute("query.lhs", lhs)
-                sentry_sdk.set_tag("query.rhs", value)
-                sentry_sdk.set_attribute("query.rhs", value)
-                sentry_sdk.capture_message("Tag value was not a string", level="error")
                 value = str(value)
             lhs = Function("ifNull", [lhs, ""])
         else:
@@ -1626,8 +1575,13 @@ class BaseQueryBuilder:
         return raw_snql_query(self.get_snql_query(), referrer, use_cache, query_source)
 
     def process_results(self, results: Any) -> EventsResponse:
-        with start_span(op="QueryBuilder", name="process_results") as span:
-            set_span_data(span, "result_count", len(results.get("data", [])))
+        with traces.start_span(
+            name="process_results",
+            attributes={
+                "sentry.op": "QueryBuilder",
+                "result_count": len(results.get("data", [])),
+            },
+        ):
             translated_columns = self.alias_to_typed_tag_map
             if self.builder_config.transform_alias_to_input_format:
                 translated_columns.update(

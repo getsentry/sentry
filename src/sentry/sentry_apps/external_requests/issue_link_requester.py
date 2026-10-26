@@ -23,7 +23,9 @@ from sentry.sentry_apps.metrics import (
     SentryAppInteractionEvent,
     SentryAppInteractionType,
 )
+from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
+from sentry.sentry_apps.services.app.model import RpcSentryApp
 from sentry.sentry_apps.utils.errors import SentryAppIntegratorError
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -185,7 +187,7 @@ class IssueLinkRequester:
         }
 
     @cached_property
-    def body(self):
+    def body(self) -> str:
         body: dict[str, Any] = {
             "fields": {},
             "issueId": self.group.id,
@@ -199,5 +201,5 @@ class IssueLinkRequester:
         return json.dumps(body)
 
     @cached_property
-    def sentry_app(self):
+    def sentry_app(self) -> SentryApp | RpcSentryApp:
         return self.install.sentry_app

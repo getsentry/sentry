@@ -24,8 +24,6 @@ class IncrMultiOptions(TypedDict):
 
 
 class TSDBModel(Enum):
-    internal = 0
-
     # number of events seen specific to grouping
     project = 1
     group = 4
@@ -40,8 +38,6 @@ class TSDBModel(Enum):
     project_total_rejected = 101
     # the number of events blocked due to being blacklisted
     project_total_blacklisted = 104
-    # the number of events forwarded to third party processors (data forwarding)
-    project_total_forwarded = 105
 
     # the number of events sent to the server
     organization_total_received = 200
@@ -103,8 +99,6 @@ class TSDBModel(Enum):
     # the number of events filtered because they refer to a healthcheck endpoint
     project_total_healthcheck = 611
 
-    servicehook_fired = 700
-
     # the number of views that a Sentry App receives
     sentry_app_viewed = 800
     # the number of interactions a Sentry App UI Component receives
@@ -133,9 +127,6 @@ class BaseTSDB(Service):
             "record_multi",
             "merge_distinct_counts",
             "delete_distinct_counts",
-            "record_frequency_multi",
-            "merge_frequencies",
-            "delete_frequencies",
             "flush",
         ]
     )
@@ -643,20 +634,6 @@ class BaseTSDB(Service):
         """
         raise NotImplementedError
 
-    def record_frequency_multi(
-        self,
-        requests: Sequence[tuple[TSDBModel, Mapping[str, Mapping[str, int | float]]]],
-        timestamp: datetime | None = None,
-        environment_id: int | None = None,
-    ) -> None:
-        """
-        Record items in a frequency table.
-
-        Metrics to increment should be passed as sequence pairs, using this
-        structure: ``(model, {key: {item: score, ...}, ...})``
-        """
-        raise NotImplementedError
-
     def get_frequency_series(
         self,
         model: TSDBModel,
@@ -678,34 +655,6 @@ class BaseTSDB(Service):
         Results are returned as a mapping, where the key is the key requested
         and the value is a list of ``(timestamp, {item: score, ...})`` pairs
         over the series.
-        """
-        raise NotImplementedError
-
-    def merge_frequencies(
-        self,
-        model: TSDBModel,
-        destination: str,
-        sources: Sequence[TSDBKey],
-        timestamp: datetime | None = None,
-        environment_ids: Iterable[int] | None = None,
-    ) -> None:
-        """
-        Transfer all frequency tables from the source keys to the destination
-        key.
-        """
-        raise NotImplementedError
-
-    def delete_frequencies(
-        self,
-        models: list[TSDBModel],
-        keys: Iterable[str],
-        start: datetime | None = None,
-        end: datetime | None = None,
-        timestamp: datetime | None = None,
-        environment_ids: Iterable[int] | None = None,
-    ) -> None:
-        """
-        Delete all frequency tables.
         """
         raise NotImplementedError
 

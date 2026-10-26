@@ -11,6 +11,7 @@ import {Access} from 'sentry/components/acl/access';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import type {Project, ProjectKey} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 
 const loaderSchema = z.object({
@@ -31,7 +32,16 @@ type Props = {
 };
 
 export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Props) {
-  const endpoint = `/projects/${orgSlug}/${project.slug}/keys/${keyId}/`;
+  const endpoint = getApiUrl(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/',
+    {
+      path: {
+        organizationIdOrSlug: orgSlug,
+        projectIdOrSlug: project.slug,
+        keyId,
+      },
+    }
+  );
 
   // Every form on this page shares one mutation key, so any in-flight save
   // disables all fields. This prevents editing an option while a (possibly
@@ -82,6 +92,26 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
     data.browserSdkVersion
   );
   const supportsLogs = sdkVersionSupportsLogsAndMetrics(data.browserSdkVersion);
+  const logsHint =
+    data.browserSdkVersion === '11.x'
+      ? tct(
+          'Logs are sent when you call [codeLogger:Sentry.logger] or add a logging integration. [configDocs:Read the docs] to learn how to configure this.',
+          {
+            codeLogger: <code />,
+            configDocs: (
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/logs" />
+            ),
+          }
+        )
+      : tct(
+          'The default config is [codeEnableLogs:enableLogs: true]. [configDocs:Read the docs] to learn how to configure this.',
+          {
+            codeEnableLogs: <code />,
+            configDocs: (
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/logs" />
+            ),
+          }
+        );
 
   return (
     <Access access={['project:write']} project={project}>
@@ -286,15 +316,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                 hintText={
                   supportsLogs
                     ? data.dynamicSdkLoaderOptions.hasLogsAndMetrics
-                      ? tct(
-                          'The default config is [codeEnableLogs:enableLogs: true]. [configDocs:Read the docs] to learn how to configure this.',
-                          {
-                            codeEnableLogs: <code />,
-                            configDocs: (
-                              <ExternalLink href="https://docs.sentry.io/platforms/javascript/logs" />
-                            ),
-                          }
-                        )
+                      ? logsHint
                       : undefined
                     : t('Only available in SDK version 10.x and above')
                 }
@@ -420,10 +442,11 @@ function sdkVersionSupportsPerformanceAndReplay(sdkVersion: string): boolean {
     sdkVersion === '7.x' ||
     sdkVersion === '8.x' ||
     sdkVersion === '9.x' ||
-    sdkVersion === '10.x'
+    sdkVersion === '10.x' ||
+    sdkVersion === '11.x'
   );
 }
 
 function sdkVersionSupportsLogsAndMetrics(sdkVersion: string): boolean {
-  return sdkVersion === '10.x';
+  return sdkVersion === '10.x' || sdkVersion === '11.x';
 }

@@ -1,36 +1,40 @@
 import {useMemo} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-// eslint-disable-next-line no-restricted-imports
-import color from 'color';
+import {IconCheckmark} from '@sentry/icons/checkmark';
 import type {Location} from 'history';
 import partition from 'lodash/partition';
 import moment from 'moment-timezone';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {COL_WIDTH_MINIMUM, Table, type TableColumnConfig} from '@sentry/scraps/table';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Collapsible} from 'sentry/components/collapsible';
 import {Panel} from 'sentry/components/panels/panel';
-import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {TimeSince} from 'sentry/components/timeSince';
 import {Version} from 'sentry/components/version';
-import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {t, tct, tn} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
 import {useUser} from 'sentry/utils/useUser';
+import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {useFinalizeRelease} from 'sentry/views/explore/releases/components/useFinalizeRelease';
 import type {ReleasesDisplayOption} from 'sentry/views/explore/releases/list/releasesDisplayOptions';
 import type {ReleasesRequestRenderProps} from 'sentry/views/explore/releases/list/releasesRequest';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
+import type {ReleaseSdkVersion} from 'sentry/views/explore/releases/utils/releaseSdkVersionsApiOptions';
 
 import {ReleaseCardCommits} from './releaseCardCommits';
 import {ReleaseCardProjectRow} from './releaseCardProjectRow';
+import {ReleaseCardSdkVersion} from './releaseCardSdkVersion';
 import ReleaseCardStatsPeriod from './releaseCardStatsPeriod';
 
 function getReleaseProjectId(release: Release, selection: PageFilters) {
@@ -59,6 +63,7 @@ type Props = {
   organization: Organization;
   release: Release;
   reloading: boolean;
+  sdkVersions: ReleaseSdkVersion[];
   selection: PageFilters;
   showHealthPlaceholders: boolean;
   showReleaseAdoptionStages: boolean;
@@ -70,6 +75,7 @@ export function ReleaseCard({
   activeDisplay,
   location,
   reloading,
+  sdkVersions,
   selection,
   showHealthPlaceholders,
   isTopRelease,
@@ -116,8 +122,16 @@ export function ReleaseCard({
   };
 
   return (
-    <StyledPanel reloading={reloading ? 1 : 0} data-test-id="release-panel">
-      <ReleaseInfo>
+    <ResponsivePanel reloading={reloading} data-test-id="release-panel">
+      <Stack
+        borderRight={{zero: 'none', '3xl': 'primary'}}
+        flexShrink={1}
+        gap={{zero: 'md', '3xl': '0'}}
+        maxWidth={{zero: 'none', '3xl': '300px'}}
+        minWidth={{zero: '0', '3xl': '260px'}}
+        padding="lg xl"
+        width={{zero: 'auto', '3xl': '22%'}}
+      >
         {/* Header/info is the table sidecard */}
         <ReleaseInfoHeader>
           <Link
@@ -156,11 +170,11 @@ export function ReleaseCard({
               />
               {lastDeploy?.dateFinished && ` \u007C ${lastDeploy.environment}`}
               &nbsp;
+              <ReleaseCardSdkVersion sdkVersions={sdkVersions} />
             </Container>
             <FinalizeWrapper>
               {release.dateReleased ? (
                 <Tooltip
-                  isHoverable
                   title={tct('This release was finalized on [date]. [docs:Read More].', {
                     date: moment(release.dateReleased).format(
                       options?.clock24Hours
@@ -176,7 +190,6 @@ export function ReleaseCard({
                 </Tooltip>
               ) : (
                 <Tooltip
-                  isHoverable
                   title={tct(
                     'Set release date to [date].[br]Finalizing a release means that we populate a second timestamp on the release record, which is prioritized over [code:date_created] when sorting releases. [docs:Read more].',
                     {
@@ -210,41 +223,53 @@ export function ReleaseCard({
             </FinalizeWrapper>
           </Flex>
         </ReleaseInfoSubheader>
-      </ReleaseInfo>
+      </Stack>
 
-      <ReleaseProjects>
-        {/* projects is the table */}
-        <ReleaseProjectsHeader lightText>
-          <ReleaseProjectsLayout showReleaseAdoptionStages={showReleaseAdoptionStages}>
-            <ReleaseProjectColumn>{t('Project Slug')}</ReleaseProjectColumn>
-            {showReleaseAdoptionStages && (
-              <AdoptionStageColumn>{t('Adoption Stage')}</AdoptionStageColumn>
-            )}
-            <AdoptionColumn>
-              <span>{t('Adoption')}</span>
-              <ReleaseCardStatsPeriod location={location} />
-            </AdoptionColumn>
-            <CrashFreeRateColumn>{t('Crash Free Rate')}</CrashFreeRateColumn>
-            <DisplaySmallCol>{t('Crashes')}</DisplaySmallCol>
-            <NewIssuesColumn>{t('New Issues')}</NewIssuesColumn>
-          </ReleaseProjectsLayout>
-        </ReleaseProjectsHeader>
-
-        <Container position="relative">
+      <Container borderTop={{zero: 'primary', '3xl': 'none'}} flexGrow={1}>
+        <ProjectsTable
+          aria-label={t('Projects in release %s', formatVersion(version))}
+          columns={getProjectColumns(showReleaseAdoptionStages)}
+          header={
+            <SimpleTable.HeaderRow>
+              <SimpleTable.HeaderCell>{t('Project Slug')}</SimpleTable.HeaderCell>
+              {showReleaseAdoptionStages && (
+                <SimpleTable.HeaderCell>{t('Adoption Stage')}</SimpleTable.HeaderCell>
+              )}
+              <AdoptionHeaderCell scope="col" aria-label={t('Adoption')}>
+                {t('Adoption')}
+                <ReleaseCardStatsPeriod location={location} />
+              </AdoptionHeaderCell>
+              <SimpleTable.HeaderCell align="right">
+                {t('Crash Free Rate')}
+              </SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell align="right">
+                {t('Crashes')}
+              </SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell align="right">
+                {t('New Issues')}
+              </SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell aria-label={t('View release')} />
+            </SimpleTable.HeaderRow>
+          }
+        >
           <Collapsible
             expandButton={({onExpand, numberOfHiddenItems}) => (
-              <ExpandButtonWrapper>
-                <Button variant="primary" size="xs" onClick={onExpand}>
-                  {tct('Show [numberOfHiddenItems] More', {numberOfHiddenItems})}
-                </Button>
-              </ExpandButtonWrapper>
+              <SimpleTable.FullWidthRow>
+                <Flex justify="center" padding="md">
+                  <Button variant="primary" size="xs" onClick={onExpand}>
+                    {tct('Show [numberOfHiddenItems] More', {numberOfHiddenItems})}
+                  </Button>
+                </Flex>
+              </SimpleTable.FullWidthRow>
             )}
             collapseButton={({onCollapse}) => (
-              <Flex justify="center" align="center" height="41px">
-                <Button variant="primary" size="xs" onClick={onCollapse}>
-                  {t('Collapse')}
-                </Button>
-              </Flex>
+              <SimpleTable.FullWidthRow>
+                <Flex justify="center" padding="md">
+                  <Button variant="primary" size="xs" onClick={onCollapse}>
+                    {t('Collapse')}
+                  </Button>
+                </Flex>
+              </SimpleTable.FullWidthRow>
             )}
           >
             {projectsToShow.map((project, index) => {
@@ -267,23 +292,27 @@ export function ReleaseCard({
               );
             })}
           </Collapsible>
-        </Container>
 
-        {projectsToHide.length > 0 && (
-          <HiddenProjectsMessage data-test-id="hidden-projects">
-            <Tooltip title={getHiddenProjectsTooltip()}>
-              <TextOverflow>
-                {projectsToHide.length === 1
-                  ? tct('[number:1] hidden project', {number: <strong />})
-                  : tct('[number] hidden projects', {
-                      number: <strong>{projectsToHide.length}</strong>,
-                    })}
-              </TextOverflow>
-            </Tooltip>
-          </HiddenProjectsMessage>
-        )}
-      </ReleaseProjects>
-    </StyledPanel>
+          {projectsToHide.length > 0 && (
+            <SimpleTable.FullWidthRow>
+              <Container padding="md xl">
+                <Text size="sm" variant="muted">
+                  <Tooltip title={getHiddenProjectsTooltip()}>
+                    <TextOverflow>
+                      {projectsToHide.length === 1
+                        ? tct('[number:1] hidden project', {number: <strong />})
+                        : tct('[number] hidden projects', {
+                            number: <strong>{projectsToHide.length}</strong>,
+                          })}
+                    </TextOverflow>
+                  </Tooltip>
+                </Text>
+              </Container>
+            </SimpleTable.FullWidthRow>
+          )}
+        </ProjectsTable>
+      </Container>
+    </ResponsivePanel>
   );
 }
 
@@ -295,29 +324,25 @@ const StyledVersion = styled(Version)`
   text-overflow: ellipsis;
 `;
 
-const StyledPanel = styled(Panel)<{reloading: number}>`
-  opacity: ${p => (p.reloading ? 0.5 : 1)};
-  pointer-events: ${p => (p.reloading ? 'none' : 'auto')};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    display: flex;
-  }
-`;
-
-const ReleaseInfo = styled('div')`
-  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
-  flex-shrink: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: stretch;
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    border-right: 1px solid ${p => p.theme.tokens.border.primary};
-    min-width: 260px;
-    width: 22%;
-    max-width: 300px;
-  }
-`;
+function ResponsivePanel({
+  reloading,
+  ...props
+}: React.ComponentProps<typeof Panel> & {reloading: boolean}) {
+  return (
+    <Container display={{zero: 'block', '3xl': 'flex'}}>
+      {containerProps => (
+        <Panel
+          {...props}
+          {...containerProps}
+          css={css`
+            opacity: ${reloading ? 0.5 : 1};
+            pointer-events: ${reloading ? 'none' : 'auto'};
+          `}
+        />
+      )}
+    </Container>
+  );
+}
 
 const ReleaseInfoSubheader = styled('div')`
   font-size: ${p => p.theme.font.size.sm};
@@ -349,16 +374,6 @@ const PackageName = styled('div')`
   max-width: 100%;
 `;
 
-const ReleaseProjects = styled('div')`
-  border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  flex-grow: 1;
-  display: grid;
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    border-top: none;
-  }
-`;
-
 const ReleaseInfoHeader = styled('div')`
   font-size: ${p => p.theme.font.size.xl};
   display: grid;
@@ -367,138 +382,44 @@ const ReleaseInfoHeader = styled('div')`
   align-items: center;
 `;
 
-const ReleaseProjectsHeader = styled(PanelHeader)`
-  border-top-left-radius: 0;
-  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
-  font-size: ${p => p.theme.font.size.sm};
+const ProjectsTable = styled(SimpleTable)`
+  border: 0;
 `;
 
-const ExpandButtonWrapper = styled('div')`
-  position: absolute;
-  width: 100%;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-image: linear-gradient(
-    180deg,
-    ${p => color(p.theme.tokens.background.primary).alpha(0).string()} 0,
-    ${p => p.theme.tokens.background.primary}
-  );
-  background-repeat: repeat-x;
-  border-bottom: ${p => p.theme.space.md} solid ${p => p.theme.tokens.background.primary};
-  border-top: ${p => p.theme.space.md} solid transparent;
-  border-bottom-right-radius: ${p => p.theme.radius.md};
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    border-bottom-left-radius: ${p => p.theme.radius.md};
-  }
-`;
-
-export const ReleaseProjectsLayout = styled('div')<{
-  showReleaseAdoptionStages?: boolean;
-}>`
-  display: grid;
-  grid-template-columns: 1fr 1.4fr 0.6fr 0.7fr;
-
-  grid-column-gap: ${p => p.theme.space.md};
-  align-items: center;
-  width: 100%;
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.xl}) {
-    ${p => {
-      const adoptionStagesSize = p.showReleaseAdoptionStages ? '0.7fr' : '';
-      return `grid-template-columns: 1fr ${adoptionStagesSize} 1fr 1fr 0.7fr 0.7fr 0.5fr`;
-    }}
-  }
-`;
-
-export const ReleaseProjectColumn = styled('div')`
-  display: block;
-  width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 20px;
-`;
-
-export const NewIssuesColumn = styled(ReleaseProjectColumn)`
-  font-variant-numeric: tabular-nums;
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    text-align: right;
-  }
-`;
-
-export const AdoptionColumn = styled(ReleaseProjectColumn)`
-  display: none;
-  font-variant-numeric: tabular-nums;
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    display: flex;
-    /* Chart tooltips need overflow */
-    overflow: visible;
-  }
-
-  & > * {
-    flex: 1;
-  }
-`;
-
-export const AdoptionStageColumn = styled(ReleaseProjectColumn)`
-  display: none;
-  font-variant-numeric: tabular-nums;
-
-  @media (min-width: ${p => p.theme.breakpoints.xl}) {
-    display: flex;
-
-    /* Need to show the edges of the tags */
-    overflow: visible;
-  }
-`;
-
-export const CrashFreeRateColumn = styled(ReleaseProjectColumn)`
-  font-variant-numeric: tabular-nums;
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    text-align: center;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.xl}) {
-    text-align: right;
-  }
-`;
-
-export const DisplaySmallCol = styled(ReleaseProjectColumn)`
-  display: none;
-  font-variant-numeric: tabular-nums;
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    display: block;
-    text-align: right;
-  }
-`;
-
-const HiddenProjectsMessage = styled('div')`
-  display: flex;
-  align-items: center;
-  font-size: ${p => p.theme.font.size.sm};
+const AdoptionHeaderCell = styled(Table.HeadCell)`
   padding: 0 ${p => p.theme.space.xl};
-  border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  overflow: hidden;
-  height: 24px;
-  line-height: 24px;
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   color: ${p => p.theme.tokens.content.secondary};
-  background-color: ${p => p.theme.tokens.background.secondary};
-  border-bottom-right-radius: ${p => p.theme.radius.md};
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    border-bottom-left-radius: ${p => p.theme.radius.md};
-  }
 `;
+
+function getProjectColumns(showReleaseAdoptionStages: boolean): TableColumnConfig[] {
+  return [
+    {key: 'project', width: `minmax(${COL_WIDTH_MINIMUM}px, 1.2fr)`},
+    ...(showReleaseAdoptionStages
+      ? [{key: 'adoptionStage', visible: {'5xl': true}, width: atLeastContent('0.7fr')}]
+      : []),
+    {key: 'adoption', visible: {xl: true}, width: '1.2fr'},
+    {
+      key: 'crashFreeRate',
+      width: {zero: atLeastContent('1.4fr'), xl: atLeastContent('1fr')},
+    },
+    {
+      key: 'crashes',
+      visible: {xl: true},
+      width: {xl: atLeastContent('0.5fr'), '5xl': atLeastContent('0.7fr')},
+    },
+    {
+      key: 'newIssues',
+      width: {
+        zero: atLeastContent('0.6fr'),
+        xl: atLeastContent('0.5fr'),
+        '5xl': atLeastContent('0.7fr'),
+      },
+    },
+    {key: 'view', width: {zero: '0.7fr', xl: '0.5fr'}},
+  ];
+}
+
+function atLeastContent(fraction: string) {
+  return `minmax(max-content, ${fraction})`;
+}

@@ -1,4 +1,4 @@
-import {useCallback, useRef, useState} from 'react';
+import {useCallback, useMemo, useRef, useState} from 'react';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {useModal} from '@sentry/scraps/modal';
@@ -9,13 +9,19 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import {AutofixCursorGithubAccessModal} from 'sentry/components/events/autofix/autofixCursorGithubAccessModal';
-import {AutofixGithubAppPermissionsModal} from 'sentry/components/events/autofix/autofixGithubAppPermissionsModal';
+import {CodingAgentHandoffPermissionsModal} from 'sentry/components/events/autofix/autofixGithubAppPermissionsModal';
 import {AutofixGithubCopilotPurchaseModal} from 'sentry/components/events/autofix/autofixGithubCopilotPurchaseModal';
+import {
+  continueRunData,
+  getAutofixRunId,
+} from 'sentry/components/events/autofix/autofixRunId';
 import {CodingAgentStatus} from 'sentry/components/events/autofix/types';
 import {
   needsGitHubAuth,
   type CodingAgentIntegration,
 } from 'sentry/components/events/autofix/useAutofix';
+import {useServiceWorker} from 'sentry/serviceWorker/client/serviceWorkerContext';
+import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {isArrayOf, isString} from 'sentry/types/utils';
@@ -23,10 +29,11 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
-import {getGithubPermissionsUpdateUrl} from 'sentry/utils/integrationUtil';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
+import {makeSeerPathname, makeSeerQuery} from 'sentry/views/issueDetails/autofix/utils';
+import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
 import {
   isArtifact,
   isExplorerCodingAgentState,
@@ -37,7 +44,9 @@ import {
   type ExplorerCodingAgentState,
   type ExplorerFilePatch,
   type RepoPRState,
+  type SeerExplorerRunId,
 } from 'sentry/views/seerExplorer/types';
+import {collectArtifacts} from 'sentry/views/seerExplorer/utils';
 
 /**
  * Available autofix steps that can be triggered via the Explorer.
@@ -79,7 +88,7 @@ export function isRootCauseArtifact(
   );
 }
 
-interface SolutionStep {
+export interface SolutionStep {
   description: string;
   title: string;
 }
@@ -126,14 +135,70 @@ export function isCodingAgentsArtifact(
  * State returned from the Explorer autofix endpoint.
  * This extends the SeerExplorer types with autofix-specific data.
  */
+/**
+ * Feedback source wire types, mirroring the pydantic discriminated union in
+ * `src/sentry/seer/autofix/pr_iteration/types.py` (`FeedbackSource`). Each
+ * member is keyed by `type`; narrow on it before reading member fields.
+ */
+interface UserUiFeedbackSource {
+  type: 'user-ui';
+  user?: User;
+  user_feedback?: string;
+  user_id?: number;
+}
+
+interface GithubPrCommentFeedbackSource {
+  type: 'github-pr-comment';
+  comment?: {html_url?: string; user?: {login: string}};
+}
+
+interface GithubPrReviewCommentFeedbackSource {
+  type: 'github-pr-review-comment';
+  author_is_bot?: boolean;
+  comment?: {html_url?: string; user?: {login: string}};
+  // The review this inline comment was submitted as part of. Shared with the
+  // review body's `review_id` so the UI can group a review's body and its inline
+  // comments under one parent. Optional: absent on feedback serialized before
+  // the backend began emitting it, and on comments left outside a review.
+  review_id?: number;
+}
+
+interface GithubPrReviewBodyFeedbackSource {
+  type: 'github-pr-review-body';
+  // The review's summary body is its own feedback item, keyed by `review_id` and
+  // labelled by `review_state` (approved / changes_requested / commented / …).
+  author_is_bot?: boolean;
+  body?: string;
+  html_url?: string;
+  review_id?: number;
+  review_state?: string;
+  // The review author, carried the same way an inline comment carries its author
+  // on `comment.user`, so the UI can render the reviewer's avatar on the review
+  // header. Absent on feedback serialized before the backend began emitting it.
+  user?: {login?: string};
+}
+
+interface CheckSuiteFeedbackSource {
+  app_name: string;
+  event: {
+    check_suite: {head_sha: string; id: number};
+    repository: {html_url: string};
+  };
+  type: 'check-suite';
+}
+
+type RawFeedbackSource =
+  | UserUiFeedbackSource
+  | GithubPrCommentFeedbackSource
+  | GithubPrReviewCommentFeedbackSource
+  | GithubPrReviewBodyFeedbackSource
+  | CheckSuiteFeedbackSource;
 export interface RawFeedback {
   text: string;
-  source?: {
-    type: string;
-    comment?: {html_url?: string; user?: {login: string}};
-    user?: User;
-  };
+  source?: RawFeedbackSource;
   timestamp?: string;
+  // Short display label derived from the source, serialized on `Feedback`.
+  ui_text?: string;
 }
 
 export interface ExplorerAutofixState {
@@ -147,8 +212,10 @@ export interface ExplorerAutofixState {
     id: string;
     input_type: 'file_change_approval' | 'ask_user_question';
   } | null;
+  pr_iteration_paused?: boolean;
   queued_feedback?: RawFeedback[];
   repo_pr_states?: Record<string, RepoPRState>;
+  sentry_run_id?: string | null;
   warnings?: Array<{
     warning_type: string;
     installation_id?: string;
@@ -159,19 +226,31 @@ export interface ExplorerAutofixState {
 /**
  * Response from the autofix endpoint.
  */
-interface ExplorerAutofixResponse {
+export interface ExplorerAutofixResponse {
   autofix: ExplorerAutofixState | null;
+  formatted?: {content: string; format: string};
 }
 
-const POLL_INTERVAL = 1000;
+/**
+ * Poll interval while a run is active, so streaming blocks show up promptly in
+ * the drawer.
+ */
+const ACTIVE_POLL_INTERVAL = 1000;
 
-function explorerAutofixApiOptions(orgSlug: string, groupId: string) {
+/**
+ * Poll interval while idle and only watching an already created PR. These are
+ * slow external events (automated CI iteration pushes, review comments), so
+ * polling stays cheap rather than matching the active-run rate.
+ */
+const PR_POLL_INTERVAL = 10000;
+
+export function explorerAutofixApiOptions(orgSlug: string, groupId: string) {
   return apiOptions.as<ExplorerAutofixResponse>()(
     '/organizations/$organizationIdOrSlug/issues/$issueId/autofix/',
     {
       path: {organizationIdOrSlug: orgSlug, issueId: groupId},
-      query: {mode: 'explorer'},
-      staleTime: 0,
+      query: {mode: 'explorer', llmFormat: 'markdown'},
+      staleTime: 30_000,
     }
   );
 }
@@ -179,6 +258,63 @@ function explorerAutofixApiOptions(orgSlug: string, groupId: string) {
 const makeInitialExplorerAutofixData = (): ExplorerAutofixResponse => ({
   autofix: null,
 });
+
+/**
+ * Pulls a readable message out of an API error, falling back to `fallback`.
+ * Only `{detail: "..."}` is surfaced; serializer validation errors are for us,
+ * not for the user, so they fall back too.
+ */
+function getApiErrorMessage(e: unknown, fallback = 'An error occurred'): string {
+  const detail = (e as {responseJSON?: {detail?: unknown}} | null | undefined)
+    ?.responseJSON?.detail;
+  return isString(detail) ? detail : fallback;
+}
+
+/**
+ * A step refused because another one is still running on the same run.
+ *
+ * The endpoint returns several different 409s, and only this one is
+ * recoverable, so the machine-readable code decides — the detail text is free
+ * to be reworded. The body carries the live run's ids in the shape a success
+ * response uses.
+ */
+function isRunInFlightError(
+  e: unknown
+): e is {responseJSON: {run_id: number; sentry_run_id?: string | null}} {
+  const error = e as
+    | {responseJSON?: {code?: unknown; run_id?: unknown}; status?: number}
+    | null
+    | undefined;
+  return (
+    error?.status === 409 &&
+    error.responseJSON?.code === 'run_in_flight' &&
+    defined(error.responseJSON.run_id)
+  );
+}
+
+/**
+ * A new run refused because the organization is missing a supported SCM
+ * integration or the project has no connected repositories.
+ *
+ * Kickoffs are gated on the same Seer setup checks AutofixContent renders, so
+ * this 409 should be rare; the machine-readable code decides which check
+ * failed, and the detail text is user-facing copy telling the user what to set
+ * up. Unlike isRunInFlightError there is no live run to recover by refetching —
+ * setup must be completed first.
+ */
+function isAutofixSetupRequiredError(
+  e: unknown
+): e is {responseJSON: {code: 'scm_integration_required' | 'repos_not_linked'}} {
+  const error = e as
+    | {responseJSON?: {code?: unknown}; status?: number}
+    | null
+    | undefined;
+  const code = error?.responseJSON?.code;
+  return (
+    error?.status === 409 &&
+    (code === 'scm_integration_required' || code === 'repos_not_linked')
+  );
+}
 
 const makeErrorExplorerAutofixData = (errorMessage: string): ExplorerAutofixResponse => ({
   autofix: {
@@ -221,16 +357,16 @@ const isActivelyProcessing = (
       codingAgent.status === CodingAgentStatus.RUNNING
   );
 
-  const hasQueuedFeedback = (autofixState.queued_feedback ?? []).length > 0;
-
   return (
     autofixState.status === 'processing' ||
     autofixState.blocks.some(block => block.loading) ||
     anyPRCreating ||
-    anyCodingAgentsRunning ||
-    hasQueuedFeedback
+    anyCodingAgentsRunning
   );
 };
+
+const hasQueuedFeedback = (autofixState: ExplorerAutofixState | null): boolean =>
+  (autofixState?.queued_feedback ?? []).length > 0;
 
 const hasCreatedPullRequest = (autofixState: ExplorerAutofixState | null): boolean =>
   Object.values(autofixState?.repo_pr_states ?? {}).some(
@@ -250,10 +386,15 @@ export const getPollInterval = ({
   pollPR?: boolean;
 }): number | false => {
   const shouldPollPR = pollPR && hasCreatedPullRequest(autofixState);
-  const shouldPollProcessing = isActivelyProcessing(autofixState, runStarted);
+  const shouldPollProcessing =
+    isActivelyProcessing(autofixState, runStarted) || hasQueuedFeedback(autofixState);
 
-  if (shouldPollPR || shouldPollProcessing) {
-    return POLL_INTERVAL;
+  if (shouldPollProcessing) {
+    return ACTIVE_POLL_INTERVAL;
+  }
+
+  if (shouldPollPR) {
+    return PR_POLL_INTERVAL;
   }
 
   return false;
@@ -262,7 +403,7 @@ export const getPollInterval = ({
 export interface AutofixSection {
   artifacts: AutofixArtifact[];
   blocks: Block[];
-  status: 'processing' | 'completed';
+  status: 'processing' | 'completed' | 'error';
   step: string;
   index?: number;
 }
@@ -290,11 +431,14 @@ function mergeFilePatches(blocks: Block[]): ExplorerFilePatch[] {
  */
 function buildSection(
   step: string,
+  currentStep: boolean,
   index: number,
   blocks: Block[],
   runState: ExplorerAutofixState | null
 ): AutofixSection {
-  const artifacts: AutofixArtifact[] = blocks.flatMap(block => block.artifacts ?? []);
+  // Both channels: the classic block field and Code Mode's structuredContent
+  // (codemode-structured-content-only).
+  const artifacts: AutofixArtifact[] = collectArtifacts(blocks);
 
   const section: AutofixSection = {
     index,
@@ -304,8 +448,10 @@ function buildSection(
     status: 'processing',
   };
 
-  if (
-    runState?.status !== 'processing' ||
+  if (currentStep && runState?.status === 'error') {
+    section.status = 'error';
+  } else if (
+    (!currentStep && runState?.status !== 'processing') ||
     isLastBlockOfSection(blocks[blocks.length - 1]) ||
     artifacts.length > 0
   ) {
@@ -347,6 +493,7 @@ export function getOrderedAutofixSections(runState: ExplorerAutofixState | null)
   // The section a step-less block belongs to. The first block always carries a
   // step, so this is set before any block is bucketed.
   let currentStep = '';
+  let lastStepIndex = -1;
 
   for (let i = 0; i < blocks.length; i++) {
     const block = blocks[i]!;
@@ -359,13 +506,14 @@ export function getOrderedAutofixSections(runState: ExplorerAutofixState | null)
     if (bucket) {
       bucket.blocks.push(block);
     } else {
+      lastStepIndex = i;
       buckets.set(currentStep, {blocks: [block], index: i});
     }
   }
 
   const sections: AutofixSection[] = Array.from(buckets.entries()).map(
     ([step, {blocks: sectionBlocks, index}]) =>
-      buildSection(step, index, sectionBlocks, runState)
+      buildSection(step, index === lastStepIndex, index, sectionBlocks, runState)
   );
 
   // If there are any PR states, append a synthetic "pull_request" section.
@@ -427,7 +575,11 @@ export function isCodingAgentsSection(section: AutofixSection): boolean {
 }
 
 export function isRunValidForPrIteration(organization: Organization): boolean {
-  return organization.features.includes('autofix-pr-iteration');
+  return organization.features.includes('autofix-pr-iteration-manual');
+}
+
+export function isPrIterationPaused(runState: ExplorerAutofixState | null): boolean {
+  return runState?.pr_iteration_paused === true;
 }
 
 export function isLastStepPrIteration(runState: ExplorerAutofixState | null): boolean {
@@ -438,6 +590,71 @@ export function isLastStepPrIteration(runState: ExplorerAutofixState | null): bo
     defined(block.message.metadata?.step)
   );
   return defined(lastBlock) && isPrIterationBlock(lastBlock);
+}
+
+function parseBlockFeedback(raw: string | undefined): RawFeedback[] {
+  if (!raw) {
+    return [];
+  }
+  try {
+    const parsed: RawFeedback | RawFeedback[] = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [parsed];
+  } catch {
+    return [];
+  }
+}
+
+// True when the last pr_iteration was driven only by failing check suites.
+// Bot reviews and human feedback (user-ui, comments) do not count.
+function lastPrIterationIsCheckSuite(blocks: Block[], start: number): boolean {
+  const items = blocks
+    .slice(start)
+    .flatMap(block => parseBlockFeedback(block.message.metadata?.feedback));
+  return items.length > 0 && items.every(item => item.source?.type === 'check-suite');
+}
+
+/**
+ * If the run died on a CI-driven PR iteration after a successful earlier
+ * step, drop that iteration and present the run as completed so the last
+ * good code changes stay on screen.
+ *
+ * Manual failures (user-ui, GitHub comments/reviews — including bots) and a
+ * failed PR push are left as `error`. A run whose only step is the failed
+ * iteration is also left alone — there is nothing earlier to fall back to.
+ */
+export function hideErroredPrIteration(
+  runState: ExplorerAutofixState | null
+): ExplorerAutofixState | null {
+  if (runState?.status !== 'error') {
+    return runState;
+  }
+
+  const pushFailed = Object.values(runState.repo_pr_states ?? {}).some(
+    prState => prState.pr_creation_status === 'error'
+  );
+  if (pushFailed) {
+    return runState;
+  }
+
+  const blocks = runState.blocks;
+  let start: number | null = null;
+  for (let i = blocks.length - 1; i >= 0; i--) {
+    if (!defined(blocks[i]!.message.metadata?.step)) {
+      continue;
+    }
+    start = isPrIterationBlock(blocks[i]!) ? i : null;
+    break;
+  }
+
+  if (start === null || start === 0) {
+    return runState;
+  }
+
+  if (!lastPrIterationIsCheckSuite(blocks, start)) {
+    return runState;
+  }
+
+  return {...runState, status: 'completed', blocks: blocks.slice(0, start)};
 }
 
 export type AutofixArtifact =
@@ -480,11 +697,20 @@ function isLastBlockOfSection(block?: Block): boolean {
 
 interface UseExplorerAutofixOptions {
   /**
-   * Whether to enable the hook and make API calls.
-   * When false, the hook returns null state and no-op functions.
-   * Defaults to true.
+   * The `source` reported on coding agent handoff analytics.
+   * Defaults to 'explorer'.
+   */
+  codingAgentAnalyticsSource?: 'explorer' | 'overview';
+  /**
+   * Whether to fetch and poll run state. Action callbacks (startStep, createPR,
+   * triggerCodingAgentHandoff) stay live even when false — used by the overview.
    */
   enabled?: boolean;
+  /**
+   * Called with coding agent launch failure messages. Defaults to
+   * accumulating them in `codingAgentErrors` for inline display.
+   */
+  onCodingAgentError?: (messages: string[]) => void;
   /**
    * Force fast polling while the drawer is mounted. Other observers can keep
    * their processing-aware intervals.
@@ -501,17 +727,24 @@ interface UseExplorerAutofixOptions {
  * - Creating pull requests from code changes
  */
 export function useExplorerAutofix(
-  groupId: string,
+  group: Pick<Group, 'id' | 'shortId'>,
   options: UseExplorerAutofixOptions = {}
 ) {
+  const groupId = group.id;
   const {openModal} = useModal();
 
-  const {enabled = true, pollPR = false} = options;
+  const {
+    enabled = true,
+    pollPR = false,
+    codingAgentAnalyticsSource = 'explorer',
+    onCodingAgentError,
+  } = options;
   const api = useApi();
   const queryClient = useQueryClient();
   const organization = useOrganization();
   const user = useUser();
   const orgSlug = organization.slug;
+  const serviceWorker = useServiceWorker();
 
   const [waitingForResponse, setWaitingForResponse] = useState(false);
 
@@ -530,8 +763,13 @@ export function useExplorerAutofix(
       ...messages.map(message => ({id: nextCodingAgentErrorId.current++, message})),
     ]);
   }, []);
+  const reportCodingAgentErrors = onCodingAgentError ?? appendCodingAgentErrors;
 
-  const {data: apiData, isPending} = useQuery({
+  const {
+    data: apiData,
+    isFetching,
+    isPending,
+  } = useQuery({
     ...explorerAutofixApiOptions(orgSlug, groupId),
     retry: false,
     enabled,
@@ -545,12 +783,19 @@ export function useExplorerAutofix(
     },
   });
 
-  const runState = apiData?.autofix ?? null;
+  const runState = useMemo(
+    () => hideErroredPrIteration(apiData?.autofix ?? null),
+    [apiData?.autofix]
+  );
 
   const startStep = useCallback(
     async (
       step: AutofixExplorerStep,
       startStepOptions?: {
+        /**
+         * Whether to enable bash mode for the autofix run. Defaults to false.
+         */
+        enableBashMode?: boolean;
         /**
          * The index of the block to start the step. If specified, existing blocks from this index onwards is reset.
          */
@@ -558,7 +803,7 @@ export function useExplorerAutofix(
         /**
          * The run id where we want to start the step. If not specified, a new run is created
          */
-        runId?: number;
+        runId?: SeerExplorerRunId;
         /**
          * Additional context from the user. If specified, it is added to the builtin prompt
          */
@@ -575,11 +820,15 @@ export function useExplorerAutofix(
         }
 
         if (defined(startStepOptions?.runId)) {
-          data.run_id = startStepOptions.runId;
+          Object.assign(data, continueRunData(startStepOptions.runId));
         }
 
         if (startStepOptions?.userContext) {
           data.user_context = startStepOptions.userContext;
+        }
+
+        if (defined(startStepOptions?.enableBashMode)) {
+          data.enable_bash_mode = startStepOptions.enableBashMode;
         }
 
         const response = await api.requestPromise(
@@ -597,27 +846,99 @@ export function useExplorerAutofix(
         const invalidation = queryClient.invalidateQueries({
           queryKey: explorerAutofixApiOptions(orgSlug, groupId).queryKey,
         });
+        queryClient.invalidateQueries({
+          queryKey: groupQueryKey({organizationSlug: orgSlug, groupId}),
+        });
 
         if (step === 'pr_iteration') {
           await invalidation;
         }
 
-        return response.run_id as number;
+        if (
+          organization.features.includes('autofix-browser-notifications') &&
+          serviceWorker.isServiceWorkerSupported
+        ) {
+          serviceWorker.controller
+            .postMessage({
+              type: 'event',
+              name: 'autofix.startStep',
+              data: {
+                issueId: groupId,
+                notification: {
+                  navigateTo: {
+                    pathname: makeSeerPathname(organization, groupId),
+                    query: makeSeerQuery(organization),
+                  },
+                  project: {
+                    avatar: 'https://sentry.io/favicon.ico', // TODO(ryan953): Use the project avatar url or base64 encoded bytes
+                  },
+                  title: {
+                    success: `${group.shortId} - ${step.replace('_', ' ')} completed`,
+                    error: `${group.shortId} - ${step.replace('_', ' ')} had a problem`,
+                  },
+                  body: {
+                    success: `Click to see the ${step.replace('_', ' ')} results.`,
+                    error: 'The autofix run ended with an error.',
+                  },
+                },
+                organizationIdOrSlug: orgSlug,
+                step,
+                stepOptions: startStepOptions ?? {},
+              },
+            })
+            .catch(error => {
+              addErrorMessage(error instanceof Error ? error.message : String(error));
+            });
+        }
+
+        return getAutofixRunId(response)!;
       } catch (e: any) {
         setWaitingForResponse(false);
-        queryClient.setQueryData(
-          explorerAutofixApiOptions(orgSlug, groupId).queryKey,
-          prev => ({
+        const queryKey = explorerAutofixApiOptions(orgSlug, groupId).queryKey;
+
+        // The step lost a race against one that is already running. Nothing is
+        // wrong from the user's side, so say nothing: refetch and let the live
+        // run take the view over. Returning its id keeps the callers that await
+        // startStep on their success path, which is what stops them from
+        // undoing the UI they just put into a loading state.
+        if (isRunInFlightError(e)) {
+          await queryClient.invalidateQueries({queryKey});
+          queryClient.invalidateQueries({
+            queryKey: groupQueryKey({organizationSlug: orgSlug, groupId}),
+          });
+          return getAutofixRunId(e.responseJSON)!;
+        }
+
+        // The kickoff was refused because Seer setup is incomplete. There is no
+        // failed run to paint, and unlike the in-flight race there is nothing to
+        // recover by refetching — surface the backend's setup copy (it names the
+        // check that failed) and rethrow so callers keep their error paths. The
+        // sidebar renders the setup UI in AutofixContent; this covers the
+        // surfaces that don't (drawer, previews, command palette).
+        if (isAutofixSetupRequiredError(e)) {
+          addErrorMessage(
+            getApiErrorMessage(
+              e,
+              'Seer Autofix requires additional setup before starting a run'
+            )
+          );
+          throw e;
+        }
+
+        const errorMessage = getApiErrorMessage(e);
+        // Replacing the cached run would wipe out the blocks of a run that already exists.
+        if (defined(queryClient.getQueryData(queryKey)?.json?.autofix)) {
+          addErrorMessage(errorMessage);
+        } else {
+          queryClient.setQueryData(queryKey, prev => ({
             headers: prev?.headers ?? {},
-            json: makeErrorExplorerAutofixData(
-              e?.responseJSON?.detail ?? 'An error occurred'
-            ),
-          })
-        );
+            json: makeErrorExplorerAutofixData(errorMessage),
+          }));
+        }
         throw e;
       }
     },
-    [api, orgSlug, groupId, queryClient]
+    [api, group.shortId, groupId, orgSlug, organization, queryClient, serviceWorker]
   );
 
   /**
@@ -627,12 +948,12 @@ export function useExplorerAutofix(
    * @param repoName - Optional specific repo to create PR for
    */
   const createPR = useCallback(
-    async (runId: number, repoName?: string) => {
+    async (runId: SeerExplorerRunId, repoName?: string) => {
       try {
         const data: Record<string, any> = {
           step: 'open_pr',
-          run_id: runId,
           referrer: 'api.web',
+          ...continueRunData(runId),
         };
         if (repoName) {
           data.repo_name = repoName;
@@ -653,7 +974,7 @@ export function useExplorerAutofix(
           queryKey: explorerAutofixApiOptions(orgSlug, groupId).queryKey,
         });
       } catch (e: any) {
-        addErrorMessage(e?.responseJSON?.detail ?? 'Failed to create PR');
+        addErrorMessage(getApiErrorMessage(e, 'Failed to create PR'));
         throw e;
       }
     },
@@ -676,14 +997,14 @@ export function useExplorerAutofix(
    * Trigger coding agent handoff for an existing run.
    */
   const triggerCodingAgentHandoff = useCallback(
-    async (runId: number, integration: CodingAgentIntegration) => {
+    async (runId: SeerExplorerRunId, integration: CodingAgentIntegration) => {
       setWaitingForCodingAgent(true);
 
       trackAnalytics('coding_integration.send_to_agent_clicked', {
         organization,
         group_id: groupId,
         provider: integration.provider,
-        source: 'explorer',
+        source: codingAgentAnalyticsSource,
         user_id: user.id,
       });
 
@@ -691,8 +1012,8 @@ export function useExplorerAutofix(
 
       const data: Record<string, string | number> = {
         step: 'coding_agent_handoff',
-        run_id: runId,
         referrer: 'api.web',
+        ...continueRunData(runId),
       };
 
       if (integration.id === null) {
@@ -707,7 +1028,7 @@ export function useExplorerAutofix(
             error_message: string;
             repo_name: string;
             failure_type?: string;
-            github_installation_id?: string;
+            github_installation_url?: string;
           }>;
           successes: unknown[];
         } = await api.requestPromise(
@@ -740,12 +1061,9 @@ export function useExplorerAutofix(
           );
 
           if (permissionFailures.length > 0) {
-            const installationId = permissionFailures[0]?.github_installation_id;
-            const installationUrl = installationId
-              ? getGithubPermissionsUpdateUrl(installationId)
-              : undefined;
+            const installationUrl = permissionFailures[0]?.github_installation_url;
             openModal(deps => (
-              <AutofixGithubAppPermissionsModal
+              <CodingAgentHandoffPermissionsModal
                 {...deps}
                 installationUrl={installationUrl}
               />
@@ -761,7 +1079,7 @@ export function useExplorerAutofix(
           }
 
           if (otherFailures.length > 0) {
-            appendCodingAgentErrors(
+            reportCodingAgentErrors(
               otherFailures.map(f => f.error_message ?? 'Failed to launch coding agent')
             );
           }
@@ -777,10 +1095,9 @@ export function useExplorerAutofix(
           window.location.href = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;
           return;
         }
-        appendCodingAgentErrors([
-          e?.responseJSON?.detail ?? 'Failed to launch coding agent',
-        ]);
+        reportCodingAgentErrors([getApiErrorMessage(e, 'Failed to launch coding agent')]);
         throw e;
+        // oxlint-disable-next-line react/todo
       } finally {
         clearIndicators();
         setWaitingForCodingAgent(false);
@@ -793,7 +1110,8 @@ export function useExplorerAutofix(
       queryClient,
       organization,
       user.id,
-      appendCodingAgentErrors,
+      codingAgentAnalyticsSource,
+      reportCodingAgentErrors,
       openModal,
     ]
   );
@@ -811,13 +1129,30 @@ export function useExplorerAutofix(
      */
     runState,
     /**
-     * Whether the initial data fetch is pending.
+     * Formatted markdown for LLM prompts
      */
-    isLoading: isPending,
+    autofixFormatted: apiData?.formatted?.content ?? null,
+    /**
+     * Whether we're fetching without an existing run to display.
+     * This includes background refetches of a cached null response so callers do not
+     * treat that stale response as confirmation that no run exists.
+     */
+    isLoading: isPending || (isFetching && !runState),
+    /**
+     * Whether a step was started but the backend has not returned its first run state yet.
+     */
+    isWaitingForRun: waitingForResponse && !runState,
     /**
      * Whether we're actively processing (used for UI indicators).
      */
     isPolling:
+      isActivelyProcessing(runState, waitingForResponse) ||
+      hasQueuedFeedback(runState) ||
+      waitingForCodingAgent,
+    /**
+     * Whether a user-initiated action is actively processing.
+     */
+    isProcessing:
       isActivelyProcessing(runState, waitingForResponse) || waitingForCodingAgent,
     /**
      * Start or continue an autofix step.

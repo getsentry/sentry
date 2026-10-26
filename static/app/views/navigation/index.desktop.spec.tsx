@@ -32,7 +32,6 @@ const ALL_AVAILABLE_FEATURES = [
   'performance-view',
   'profiling',
   'visibility-explore-view',
-  'workflow-engine-ui',
 ];
 
 const mockUsingCustomerDomain = jest.fn();
@@ -132,7 +131,7 @@ function setupMocks() {
     body: {},
   });
   MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/explore/saved/',
+    url: '/organizations/org-slug/explore/all-queries/',
     body: [],
   });
   MockApiClient.addMockResponse({
@@ -160,7 +159,7 @@ function setupMocks() {
 describe('desktop navigation', () => {
   beforeEach(setupMocks);
 
-  it('renders user-only navigation when there is no organization', () => {
+  it('shows account settings as the active group without an organization', () => {
     render(
       <PrimaryNavigationContextProvider>
         <Navigation />
@@ -171,14 +170,78 @@ describe('desktop navigation', () => {
       }
     );
 
-    // Primary nav sidebar renders but contains no nav links
-    const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
-    expect(within(primaryNav).queryByRole('link')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Settings'})).toHaveAttribute(
+      'data-active-group',
+      'true'
+    );
+    expect(screen.getByRole('link', {name: 'Security'})).toBeInTheDocument();
+  });
 
-    // No secondary navigation
-    expect(
-      screen.queryByRole('navigation', {name: 'Secondary Navigation'})
-    ).not.toBeInTheDocument();
+  it('navigates account settings when there is no organization', async () => {
+    const {router} = render(
+      <PrimaryNavigationContextProvider>
+        <Navigation />
+      </PrimaryNavigationContextProvider>,
+      {
+        organization: null,
+        initialRouterConfig: {location: {pathname: '/settings/account/details/'}},
+      }
+    );
+
+    const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
+    expect(within(primaryNav).getByRole('link', {name: 'Settings'})).toHaveAttribute(
+      'href',
+      '/settings/account/'
+    );
+
+    const secondaryNav = screen.getByRole('navigation', {name: 'Secondary Navigation'});
+    const links = within(secondaryNav).getAllByRole('link');
+    expect(links).toHaveLength(10);
+    links.forEach(link => {
+      expect(link).toHaveAttribute(
+        'href',
+        expect.stringMatching(/^\/settings\/account\//)
+      );
+    });
+    assertActiveSecondaryNavLink(
+      within(secondaryNav).getByRole('link', {name: 'Account Details'})
+    );
+
+    await userEvent.click(within(secondaryNav).getByRole('link', {name: 'Security'}));
+    expect(router.location.pathname).toBe('/settings/account/security/');
+    assertActiveSecondaryNavLink(
+      within(secondaryNav).getByRole('link', {name: 'Security'})
+    );
+
+    await userEvent.click(
+      within(secondaryNav).getByRole('link', {name: 'Email Addresses'})
+    );
+    expect(router.location.pathname).toBe('/settings/account/emails/');
+    assertActiveSecondaryNavLink(
+      within(secondaryNav).getByRole('link', {name: 'Email Addresses'})
+    );
+  });
+
+  it('reopens collapsed account navigation without an organization', async () => {
+    localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
+
+    render(
+      <PrimaryNavigationContextProvider>
+        <Navigation />
+      </PrimaryNavigationContextProvider>,
+      {
+        organization: null,
+        initialRouterConfig: {location: {pathname: '/settings/account/details/'}},
+      }
+    );
+
+    await userEvent.hover(screen.getByRole('link', {name: 'Settings'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
+
+    expect(localStorage.getItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY)).toBe(
+      'false'
+    );
+    expect(screen.getByRole('link', {name: 'Security'})).toBeInTheDocument();
   });
 
   describe('accessibility', () => {
@@ -200,7 +263,7 @@ describe('desktop navigation', () => {
           <Navigation />
         </PrimaryNavigationContextProvider>,
         navigationContext({
-          organization: {features: [...ALL_AVAILABLE_FEATURES, 'workflow-engine-ui']},
+          organization: {features: [...ALL_AVAILABLE_FEATURES]},
         })
       );
 
@@ -371,13 +434,13 @@ describe('desktop navigation', () => {
           // Explore
           [`${ORG}/explore/traces/`, 'Explore', 'Traces'],
           [`${ORG}/explore/logs/`, 'Explore', 'Logs'],
-          [`${ORG}/explore/discover/homepage/`, 'Explore', 'Discover'],
+          [`${ORG}/explore/errors/`, 'Explore', 'Errors'],
           [`${ORG}/explore/profiles/`, 'Explore', 'Profiles'],
           [`${ORG}/explore/replays/`, 'Explore', 'Replays'],
           [`${ORG}/explore/releases/`, 'Explore', 'Releases'],
           [`${ORG}/explore/saved-queries/`, 'Explore', 'All Queries'],
           // Dashboards
-          [`${ORG}/dashboards/`, 'Dashboards', 'Custom Dashboards'],
+          [`${ORG}/dashboards/`, 'Dashboards', 'All Dashboards'],
           // Insights
           [`${ORG}/insights/frontend/`, 'Insights', 'Frontend'],
           [`${ORG}/insights/backend/`, 'Insights', 'Backend'],
@@ -478,7 +541,7 @@ describe('desktop navigation', () => {
           ['/explore/logs/', 'Explore', 'Logs'],
           ['/explore/replays/', 'Explore', 'Replays'],
           // Dashboards
-          ['/dashboards/', 'Dashboards', 'Custom Dashboards'],
+          ['/dashboards/', 'Dashboards', 'All Dashboards'],
           // Insights
           ['/insights/frontend/', 'Insights', 'Frontend'],
           ['/insights/backend/', 'Insights', 'Backend'],
@@ -509,6 +572,90 @@ describe('desktop navigation', () => {
           );
         }
       });
+    });
+  });
+
+  describe('seer', () => {
+    function renderSeerNavigation(
+      organization: Parameters<typeof OrganizationFixture>[0],
+      pathname = '/organizations/org-slug/issues/'
+    ) {
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({organization, initialRouterConfig: {location: {pathname}}})
+      );
+      return screen.getByRole('navigation', {name: 'Primary Navigation'});
+    }
+
+    it('shows Seer between Issues and Explore with seer-primary-nav', () => {
+      const primaryNav = renderSeerNavigation({
+        features: [...ALL_AVAILABLE_FEATURES, 'seer-primary-nav', 'seer-automations'],
+      });
+
+      const links = within(primaryNav).getAllByRole('link');
+      expect(links[0]).toHaveAccessibleName('Issues');
+      expect(links[1]).toHaveAccessibleName('Seer');
+      expect(links[2]).toHaveAccessibleName('Explore');
+    });
+
+    it('hides Seer without seer-primary-nav, even with investigations and automations', () => {
+      const primaryNav = renderSeerNavigation({
+        features: [...ALL_AVAILABLE_FEATURES, 'investigations', 'seer-automations'],
+        openMembership: true,
+      });
+
+      expect(
+        within(primaryNav).queryByRole('link', {name: 'Seer'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('hides Seer with seer-primary-nav but neither investigations nor automations', () => {
+      const primaryNav = renderSeerNavigation({
+        features: [...ALL_AVAILABLE_FEATURES, 'seer-primary-nav', 'investigations'],
+        openMembership: false,
+      });
+
+      expect(
+        within(primaryNav).queryByRole('link', {name: 'Seer'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('links Seer to automations when automations is enabled', () => {
+      const primaryNav = renderSeerNavigation({
+        features: [...ALL_AVAILABLE_FEATURES, 'seer-primary-nav', 'seer-automations'],
+      });
+
+      expect(within(primaryNav).getByRole('link', {name: 'Seer'})).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/seer/automations/'
+      );
+    });
+
+    it('links Seer to investigations when automations is disabled', () => {
+      const primaryNav = renderSeerNavigation({
+        features: [...ALL_AVAILABLE_FEATURES, 'seer-primary-nav', 'investigations'],
+        openMembership: true,
+      });
+
+      expect(within(primaryNav).getByRole('link', {name: 'Seer'})).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/seer/investigations/'
+      );
+    });
+
+    it('marks Seer as active on seer routes', () => {
+      const primaryNav = renderSeerNavigation(
+        {
+          features: [...ALL_AVAILABLE_FEATURES, 'seer-primary-nav', 'investigations'],
+          openMembership: true,
+        },
+        '/organizations/org-slug/seer/investigations/investigation-1/'
+      );
+
+      assertActivePrimaryNavLink(within(primaryNav).getByRole('link', {name: 'Seer'}));
+      assertInactiveNavLink(within(primaryNav).getByRole('link', {name: 'Explore'}));
     });
   });
 

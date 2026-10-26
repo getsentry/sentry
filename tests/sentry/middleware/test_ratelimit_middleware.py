@@ -142,7 +142,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
             patch.object(RatelimitMiddlewareTest.TestEndpoint, "enforce_rate_limit", True),
             patch("sentry.ratelimits.concurrent.rate_limit_info") as rate_limit_info,
         ):
-            rate_limit_info.return_value = (1, False, 0)
+            rate_limit_info.return_value = (1, False)
 
             default_rate_limit_mock.return_value = RateLimit(
                 limit=0, window=100, concurrent_limit=1
@@ -235,10 +235,14 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
         impersonator = self.create_user(email="impersonator@example.com")
         request.actual_user = impersonator
 
-        # Call this endpoint multiple times get hit by rate limit
-        self.middleware.process_view(request, self._test_endpoint_no_rate_limits, [], {})
-        self.middleware.process_view(request, self._test_endpoint_no_rate_limits, [], {})
-        response = self.middleware.process_view(request, self._test_endpoint_no_rate_limits, [], {})
+        # Call this endpoint multiple times get hit by rate limit. Freeze time so all calls land
+        # in the same 1s impersonation window.
+        with freeze_time("2000-01-01"):
+            self.middleware.process_view(request, self._test_endpoint_no_rate_limits, [], {})
+            self.middleware.process_view(request, self._test_endpoint_no_rate_limits, [], {})
+            response = self.middleware.process_view(
+                request, self._test_endpoint_no_rate_limits, [], {}
+            )
 
         assert response is not None
         assert isinstance(response, HttpResponse)
@@ -289,10 +293,12 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
         impersonator = self.create_user(email="impersonator@example.com")
         request.actual_user = impersonator
 
-        # Call with an endpoint that normally doesn't enforce rate limits multiple times to get hit by rate limit
-        self.middleware.process_view(request, high_limit_view, [], {})
-        self.middleware.process_view(request, high_limit_view, [], {})
-        response = self.middleware.process_view(request, high_limit_view, [], {})
+        # Call with an endpoint that normally doesn't enforce rate limits multiple times to get hit by rate limit.
+        # Freeze time so all calls land in the same 1s impersonation window.
+        with freeze_time("2000-01-01"):
+            self.middleware.process_view(request, high_limit_view, [], {})
+            self.middleware.process_view(request, high_limit_view, [], {})
+            response = self.middleware.process_view(request, high_limit_view, [], {})
 
         # During impersonation, should get a 429 response
         assert response is not None

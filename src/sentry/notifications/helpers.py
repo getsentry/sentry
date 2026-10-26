@@ -5,11 +5,7 @@ from collections import defaultdict
 from collections.abc import Iterable, Mapping, MutableMapping
 from typing import TYPE_CHECKING, Any, TypedDict, TypeGuard
 
-from django.db.models import Subquery
-
 from sentry.integrations.types import ExternalProviderEnum
-from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamReplica
 from sentry.notifications.defaults import (
     DEFAULT_ENABLED_PROVIDERS_VALUES,
     NOTIFICATION_SETTINGS_TYPE_DEFAULTS,
@@ -21,7 +17,7 @@ from sentry.notifications.types import (
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
 )
-from sentry.types.actor import Actor, ActorType
+from sentry.types.actor import Actor
 from sentry.users.services.user.model import RpcUser
 
 if TYPE_CHECKING:
@@ -128,34 +124,3 @@ def recipient_is_team(recipient: Actor | Team | RpcUser | User) -> TypeGuard[Act
     if isinstance(recipient, Actor) and recipient.is_team:
         return True
     return isinstance(recipient, Team)
-
-
-def get_team_members(team: Team | Actor) -> list[Actor]:
-    if recipient_is_team(team):  # handles type error below
-        team_id = team.id
-    else:  # team is either Team or Actor, so if recipient_is_team returns false it is because Actor has a different type
-        raise Exception(
-            "Actor team has ActorType %s, expected ActorType Team",
-            team.actor_type,  # type: ignore[union-attr]
-        )
-
-    # get organization member IDs of all members in the team
-    team_members = OrganizationMemberTeamReplica.objects.filter(team_id=team_id)
-
-    # use the first member to get the org id + determine if there are any members to begin with
-    first_member = team_members.first()
-    if not first_member:
-        return []
-    org_id = first_member.organization_id
-
-    # get user IDs for all members in the team
-    members = OrganizationMemberMapping.objects.filter(
-        organization_id=org_id,
-        organizationmember_id__in=Subquery(team_members.values("organizationmember_id")),
-    )
-
-    return [
-        Actor(id=user_id, actor_type=ActorType.USER)
-        for user_id in members.values_list("user_id", flat=True)
-        if user_id
-    ]

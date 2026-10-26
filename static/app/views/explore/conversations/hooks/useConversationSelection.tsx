@@ -1,29 +1,20 @@
-import {useCallback, useMemo, useEffect} from 'react';
+import {useCallback, useMemo} from 'react';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useFocusedToolSpan} from 'sentry/views/explore/conversations/hooks/useFocusedToolSpan';
-import {extractMessagesFromNodes} from 'sentry/views/explore/conversations/utils/conversationMessages';
-import {getDefaultSelectedNode} from 'sentry/views/insights/pages/agents/utils/getDefaultSelectedNode';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 
 interface UseConversationSelectionOptions {
   isLoading: boolean;
   nodes: AITraceSpanNode[];
-  /**
-   * Auto-select the first assistant span (and any deep-linked span) on load.
-   * Disabled by the redesign, where the span detail only opens on user action.
-   */
-  autoSelectDefaultNode?: boolean;
   focusedTool?: string | null;
   onSelectSpan?: (spanId: string) => void;
   selectedSpanId?: string | null;
 }
 
 /**
- * Manages node selection state for conversation views.
- * Handles default selection, focused tool auto-selection,
- * and keeping selection in sync when nodes change.
+ * Resolves explicit span selection and handles focused-tool links and user clicks.
  */
 export function useConversationSelection({
   nodes,
@@ -31,7 +22,6 @@ export function useConversationSelection({
   onSelectSpan,
   focusedTool,
   isLoading,
-  autoSelectDefaultNode = true,
 }: UseConversationSelectionOptions) {
   const organization = useOrganization();
 
@@ -59,40 +49,10 @@ export function useConversationSelection({
     [onSelectSpan, organization]
   );
 
-  const defaultNodeId = useMemo(() => {
-    const messages = extractMessagesFromNodes(nodes);
-    const firstAssistant = messages.find(m => m.role === 'assistant');
-    return firstAssistant?.nodeId ?? getDefaultSelectedNode(nodes)?.id;
-  }, [nodes]);
-
-  const selectedNode = useMemo(() => {
-    const explicitNode = nodes.find(node => node.id === selectedSpanId);
-    if (explicitNode || !autoSelectDefaultNode) {
-      return explicitNode;
-    }
-    return nodes.find(node => node.id === defaultNodeId);
-  }, [nodes, selectedSpanId, defaultNodeId, autoSelectDefaultNode]);
-
-  useEffect(() => {
-    if (isLoading || !defaultNodeId || focusedTool || !autoSelectDefaultNode) {
-      return;
-    }
-
-    const isCurrentSpanValid =
-      selectedSpanId && nodes.some(node => node.id === selectedSpanId);
-
-    if (!isCurrentSpanValid) {
-      onSelectSpan?.(defaultNodeId);
-    }
-  }, [
-    isLoading,
-    defaultNodeId,
-    selectedSpanId,
-    nodes,
-    onSelectSpan,
-    focusedTool,
-    autoSelectDefaultNode,
-  ]);
+  const selectedNode = useMemo(
+    () => nodes.find(node => node.id === selectedSpanId),
+    [nodes, selectedSpanId]
+  );
 
   return {selectedNode, handleSelectNode};
 }
