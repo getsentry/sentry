@@ -1,6 +1,6 @@
 import enum
 
-CODING_PAYLOAD_TYPES = frozenset({"select_solution", "create_branch", "create_pr"})
+CODING_PAYLOAD_TYPES = frozenset({"select_solution", "create_branch"})
 
 # ``Repository.provider`` values for the GitHub integrations Seer PR iteration
 # supports. Use with ``provider__in=`` when filtering repositories; for a Seer

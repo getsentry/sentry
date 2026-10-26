@@ -21,7 +21,6 @@ from sentry.seer.agent.client_utils import (
     agent_connection_pool,
     has_seer_agent_access_with_detail,
 )
-from sentry.seer.autofix.commit_author import commit_author_for_user
 from sentry.seer.autofix.constants import CODING_PAYLOAD_TYPES
 from sentry.seer.endpoints.utils import resolve_seer_run
 from sentry.seer.models import SeerApiError
@@ -81,6 +80,13 @@ class OrganizationSeerAgentUpdateEndpoint(OrganizationEndpoint):
 
         payload = request.data.get("payload", {})
         payload_type = payload.get("type") if isinstance(payload, dict) else None
+        if payload_type == "create_pr":
+            # Seer Agent opens its own PRs now, and callers that push changes go through
+            # SeerAgentClient.push_changes, which sends an idempotency key.
+            return Response(
+                status=400,
+                data={"detail": "Creating pull requests through this endpoint is not supported"},
+            )
         if payload_type in CODING_PAYLOAD_TYPES:
             if not organization.get_option(
                 "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
@@ -101,14 +107,6 @@ class OrganizationSeerAgentUpdateEndpoint(OrganizationEndpoint):
             # Never trust a client-supplied commit author.
             payload = {k: v for k, v in payload.items() if k != "author"}
             data["payload"] = payload
-
-        if payload_type == "create_pr":
-            author = commit_author_for_user(
-                request.user, organization.id, referrer="seer_agent_update_create_pr"
-            )
-            if author is not None:
-                payload = {**payload, "author": author}
-                data["payload"] = payload
 
         body = orjson.dumps(
             {

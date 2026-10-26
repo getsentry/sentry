@@ -4,7 +4,6 @@ import orjson
 from django.test import override_settings
 from rest_framework import status
 
-from sentry.integrations.types import ExternalProviders
 from sentry.seer.models.run import SeerRunMirrorStatus
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
@@ -277,7 +276,7 @@ class TestOrganizationSeerAgentUpdateCodingDisabled(APITestCase):
         mock_has_access.return_value = (True, None)
         self.organization.update_option("sentry:enable_seer_coding", False)
 
-        for payload_type in ("select_solution", "create_branch", "create_pr"):
+        for payload_type in ("select_solution", "create_branch"):
             response = self.client.post(
                 self.url, data={"payload": {"type": payload_type}}, format="json"
             )
@@ -317,43 +316,49 @@ class TestOrganizationSeerAgentUpdateCommitAuthor(APITestCase):
             organization=self.organization, seer_run_state_id=123, user_id=self.user.id
         )
 
-    def _sent_payload(self, mock_request: MagicMock, payload_type: str) -> dict:
+    @patch("sentry.seer.endpoints.organization_seer_agent_update.has_seer_agent_access_with_detail")
+    @patch("sentry.seer.endpoints.organization_seer_agent_update.make_signed_seer_api_request")
+    def test_client_supplied_author_is_never_forwarded(
+        self, mock_request: MagicMock, mock_has_access: MagicMock
+    ) -> None:
+        mock_has_access.return_value = (True, None)
         mock_request.return_value.status = 200
         mock_request.return_value.json.return_value = {}
         spoofed = {"name": "Someone Else", "email": "victim@example.com"}
 
         response = self.client.post(
-            self.url, data={"payload": {"type": payload_type, "author": spoofed}}, format="json"
+            self.url, data={"payload": {"type": "interrupt", "author": spoofed}}, format="json"
         )
 
         assert response.status_code == status.HTTP_202_ACCEPTED
-        return orjson.loads(mock_request.call_args[0][2])["payload"]
+        assert "author" not in orjson.loads(mock_request.call_args[0][2])["payload"]
+
+
+@with_feature("organizations:seer-explorer")
+@override_settings(SENTRY_SELF_HOSTED=False)
+class TestOrganizationSeerAgentUpdateCreatePR(APITestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+        self.organization = self.create_organization(owner=self.user)
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+        self.url = f"/api/0/organizations/{self.organization.slug}/seer/explorer-update/123/"
+        self.create_seer_run(
+            organization=self.organization, seer_run_state_id=123, user_id=self.user.id
+        )
 
     @patch("sentry.seer.endpoints.organization_seer_agent_update.has_seer_agent_access_with_detail")
     @patch("sentry.seer.endpoints.organization_seer_agent_update.make_signed_seer_api_request")
-    def test_client_supplied_author_is_never_forwarded_on_create_pr(
+    def test_create_pr_is_rejected(
         self, mock_request: MagicMock, mock_has_access: MagicMock
     ) -> None:
         mock_has_access.return_value = (True, None)
+        self.organization.update_option("sentry:enable_seer_coding", True)
 
-        # No GitHub identity for the acting user, so the spoofed author is dropped.
-        assert "author" not in self._sent_payload(mock_request, "create_pr")
-
-        self.create_external_user(
-            user=self.user,
-            organization=self.organization,
-            provider=ExternalProviders.GITHUB.value,
-            external_name="@octocat",
-            external_id="583231",
-            integration=self.create_integration(
-                organization=self.organization, provider="github", external_id="gh:1"
-            ),
+        response = self.client.post(
+            self.url, data={"payload": {"type": "create_pr"}}, format="json"
         )
-        assert self._sent_payload(mock_request, "create_pr")["author"] == {
-            "name": self.user.get_display_name(),
-            "email": "583231+octocat@users.noreply.github.com",
-            "scm_login": "octocat",
-        }
 
-        # A spoofed author is stripped on every payload type, not just create_pr.
-        assert "author" not in self._sent_payload(mock_request, "interrupt")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        mock_request.assert_not_called()
