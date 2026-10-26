@@ -30,7 +30,7 @@ type Options = {
 };
 
 export function transformTimeSeriesResponse(
-  response: EventsTimeSeriesResponse,
+  response: Pick<EventsTimeSeriesResponse, 'timeSeries'>,
   widget: Widget,
   queryIndex: number,
   {getSeriesName, meta}: Options = {}
