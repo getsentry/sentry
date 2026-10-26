@@ -7,7 +7,7 @@ from scm.providers.github.provider import GitHubProvider
 from scm.types import ProviderName, Repository
 
 from sentry.constants import ObjectStatus
-from sentry.hybridcloud.rpc.service import RpcRemoteException
+from sentry.hybridcloud.rpc.service import RpcRemoteException, RpcResponseException
 from sentry.integrations.services.integration import integration_service
 from sentry.models.repository import Repository as RepositoryModel
 from sentry.scm.private.helpers import (
@@ -517,6 +517,19 @@ class TestFetchAccessToken(TestCase):
         side_effect=RpcRemoteException("integration", "get_access_token", "timed out"),
     )
     def test_returns_none_when_control_cannot_be_reached(
+        self, mock_get_access_token: MagicMock, mock_capture_exception: MagicMock
+    ) -> None:
+        token = fetch_access_token(self.scm_repository(1), "fetch")
+
+        assert token is None
+        mock_capture_exception.assert_called_once_with()
+
+    @patch("sentry.scm.private.helpers.sentry_sdk.capture_exception")
+    @patch(
+        "sentry.scm.private.helpers.integration_service.get_access_token",
+        side_effect=RpcResponseException("integration", "get_access_token", "not JSON"),
+    )
+    def test_returns_none_when_control_answers_with_something_else(
         self, mock_get_access_token: MagicMock, mock_capture_exception: MagicMock
     ) -> None:
         token = fetch_access_token(self.scm_repository(1), "fetch")

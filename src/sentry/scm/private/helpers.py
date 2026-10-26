@@ -12,7 +12,7 @@ from scm.providers.gitlab.provider import GitLabProvider
 from scm.types import Provider, Repository, RepositoryId
 
 from sentry.constants import ObjectStatus
-from sentry.hybridcloud.rpc.service import RpcRemoteException
+from sentry.hybridcloud.rpc.service import RpcRemoteException, RpcResponseException
 from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
@@ -100,9 +100,10 @@ def fetch_access_token(repository: Repository, operation: GitOperation) -> str |
             integration_id=repository["integration_id"],
             organization_id=repository["organization_id"],
         )
-    except RpcRemoteException:
-        # Control couldn't be reached. Answered as a 500, git would show only "HTTP 500";
-        # GitServer turns None into a 502 that says why.
+    except (RpcRemoteException, RpcResponseException):
+        # Control couldn't be reached, or answered with something other than an RPC response,
+        # such as a load balancer's error page. Answered as a 500, git would show only
+        # "HTTP 500"; GitServer turns None into a 502 that says why.
         sentry_sdk.capture_exception()
         return None
     return access_token.token if access_token is not None else None
