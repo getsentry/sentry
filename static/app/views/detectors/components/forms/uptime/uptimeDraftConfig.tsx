@@ -1,11 +1,16 @@
 import omit from 'lodash/omit';
 import {z} from 'zod';
 
+import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import type {DetectorDraftConfig} from 'sentry/views/detectors/components/forms/common/detectorDraft';
-import {draftNumber} from 'sentry/views/detectors/components/forms/common/detectorDraft';
+import {
+  draftNumber,
+  parseDetectorDraftValues,
+} from 'sentry/views/detectors/components/forms/common/detectorDraft';
 import {
   UPTIME_HTTP_METHOD_OPTIONS,
   UPTIME_VALID_INTERVALS_SEC,
+  uptimeSavedDetectorToFormData,
   type UptimeDetectorFormData,
 } from 'sentry/views/detectors/components/forms/uptime/fields';
 import {
@@ -120,3 +125,29 @@ export const UPTIME_DETECTOR_DRAFT_CONFIG: DetectorDraftConfig<UptimeDetectorFor
       ? omit(values, 'url')
       : values,
 };
+
+function isSameOrigin(a: string, b: string) {
+  try {
+    return new URL(a.trim()).origin === new URL(b.trim()).origin;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * A shared draft can point a duplicated monitor at another host, which mustn't
+ * receive the source monitor's headers and body.
+ */
+export function getUptimeDuplicateFormData(
+  duplicateDetector: UptimeDetector,
+  draftValues: Record<string, unknown> | undefined
+): UptimeDetectorFormData {
+  const formData = uptimeSavedDetectorToFormData(duplicateDetector);
+  const draftUrl = draftValues
+    ? parseDetectorDraftValues(UPTIME_DETECTOR_DRAFT_CONFIG, draftValues).url
+    : undefined;
+  if (draftUrl === undefined || isSameOrigin(draftUrl, formData.url)) {
+    return formData;
+  }
+  return {...formData, body: '', headers: []};
+}
