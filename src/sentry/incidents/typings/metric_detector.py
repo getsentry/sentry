@@ -10,7 +10,6 @@ from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleDetectionType,
     AlertRuleThresholdType,
-    AlertRuleTriggerAction,
 )
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.models.group import Group, GroupStatus
@@ -162,18 +161,6 @@ class NotificationContext:
     # sent through the workflow engine.
     workflow_id: int | None = None
     workflow_name: str | None = None
-
-    @classmethod
-    def from_alert_rule_trigger_action(cls, action: AlertRuleTriggerAction) -> NotificationContext:
-        return cls(
-            id=action.id,
-            integration_id=action.integration_id,
-            target_identifier=action.target_identifier,
-            target_display=action.target_display,
-            sentry_app_config=action.sentry_app_config,
-            sentry_app_id=str(action.sentry_app_id) if action.sentry_app_id else None,
-            target_type=ActionTarget(action.target_type),
-        )
 
     @classmethod
     def from_action_model(cls, action: Action) -> NotificationContext:

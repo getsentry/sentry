@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Collection, Iterable
 from enum import Enum, IntEnum, StrEnum
-from typing import TYPE_CHECKING, Any, ClassVar, Self
+from typing import Any, ClassVar, Self
 
 from django.conf import settings
 from django.db import models
@@ -32,10 +31,6 @@ from sentry.notifications.models.notificationaction import (
     ActionTarget,
 )
 from sentry.types.actor import Actor
-
-if TYPE_CHECKING:
-    from sentry.incidents.action_handlers import ActionHandler
-
 
 logger = logging.getLogger(__name__)
 
@@ -232,37 +227,6 @@ class AlertRuleTriggerActionManager(BaseManager["AlertRuleTriggerAction"]):
         return super().get_queryset().exclude(status=ObjectStatus.PENDING_DELETION)
 
 
-class ActionHandlerFactory:
-    """Metadata for an incident action service: slug, supported target types, and integration provider."""
-
-    def __init__(
-        self,
-        slug: str,
-        service_type: ActionService,
-        supported_target_types: Iterable[ActionTarget],
-        integration_provider: str | None,
-    ) -> None:
-        self.slug = slug
-        self.service_type = service_type
-        self.supported_target_types = frozenset(supported_target_types)
-        self.integration_provider = integration_provider
-
-
-class _FactoryRegistry:
-    def __init__(self) -> None:
-        # Two kinds of index. The value sets should be equal at all times.
-        self.by_action_service: dict[ActionService, ActionHandlerFactory] = {}
-        self.by_slug: dict[str, ActionHandlerFactory] = {}
-
-    def register(self, factory: ActionHandlerFactory) -> None:
-        if factory.service_type in self.by_action_service:
-            raise Exception(f"Handler already registered for type {factory.service_type}")
-        if factory.slug in self.by_slug:
-            raise Exception(f"Handler already registered with slug={factory.slug!r}")
-        self.by_action_service[factory.service_type] = factory
-        self.by_slug[factory.slug] = factory
-
-
 @cell_silo_model
 class AlertRuleTriggerAction(AbstractNotificationAction):
     """
@@ -276,8 +240,6 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
 
     Type = ActionService
     TargetType = ActionTarget
-
-    _factory_registrations = _FactoryRegistry()
 
     INTEGRATION_TYPES = frozenset(
         (
@@ -347,50 +309,3 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
         if isinstance(value, list):
             raise ValueError("Sentry app actions have a list of configs")
         return value
-
-    @classmethod
-    def register_factory(cls, factory: ActionHandlerFactory) -> None:
-        cls._factory_registrations.register(factory)
-
-    @classmethod
-    def register_type(
-        cls,
-        slug: str,
-        service_type: ActionService,
-        supported_target_types: Collection[ActionTarget],
-        integration_provider: str | None = None,
-    ) -> Callable[[type[ActionHandler]], type[ActionHandler]]:
-        """
-        Register a metadata factory for the decorated ActionHandler class, for a given service type.
-
-        :param slug: A string representing the name of this type registration
-        :param service_type: The action service type the decorated handler supports.
-        :param supported_target_types: The target types the decorated handler supports.
-        :param integration_provider: String representing the integration provider
-               related to this type.
-        """
-
-        def inner(handler: type[ActionHandler]) -> type[ActionHandler]:
-            factory = ActionHandlerFactory(
-                slug, service_type, supported_target_types, integration_provider
-            )
-            cls.register_factory(factory)
-            return handler
-
-        return inner
-
-    @classmethod
-    def get_registered_factory(cls, service_type: ActionService) -> ActionHandlerFactory:
-        return cls._factory_registrations.by_action_service[service_type]
-
-    @classmethod
-    def get_registered_factories(cls) -> list[ActionHandlerFactory]:
-        return list(cls._factory_registrations.by_action_service.values())
-
-    @classmethod
-    def look_up_factory_by_slug(cls, slug: str) -> ActionHandlerFactory | None:
-        return cls._factory_registrations.by_slug.get(slug)
-
-    @classmethod
-    def get_all_slugs(cls) -> list[str]:
-        return list(cls._factory_registrations.by_slug)
