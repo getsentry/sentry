@@ -32,6 +32,19 @@ export const ComposerTextArea = styled(InputTextArea)`
     -webkit-text-fill-color: transparent;
   }
 
+  /* The placeholder has no mirror twin, so it paints in its own color. */
+  &::placeholder {
+    -webkit-text-fill-color: currentColor;
+  }
+
+  /* Selected text would otherwise paint in the highlight color under the
+     mirror's text, and an opaque highlight would hide the mirror's text. */
+  &::selection {
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    background: ${p => p.theme.tokens.interactive.transparent.accent.selected.background.rest};
+  }
+
   /* iOS Safari zooms the page when focusing an editable element with text
      smaller than 16px, which can push adjacent controls such as a send button
      off-screen. */
