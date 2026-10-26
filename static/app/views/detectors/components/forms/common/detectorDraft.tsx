@@ -65,6 +65,7 @@ export interface DetectorDraftConfig<TFormData> {
    * is validated on its own.
    */
   normalize?: (values: Partial<TFormData>) => Partial<TFormData>;
+  redact?: (values: Record<string, unknown>) => Record<string, unknown>;
 }
 
 /**
@@ -127,7 +128,8 @@ const PREFILL_PARAMS = ['aggregate', 'dataset', 'environment', 'project', 'query
  * doesn't re-render the form on every edit. (nuqs's test adapter turns shallow
  * updates into router navigations, which made form tests flaky.) As with any
  * shallow update, useLocation() won't see the draft, so links on this page
- * shouldn't be built by spreading it.
+ * shouldn't be built by spreading it: that would also bring back values that
+ * redact removed from an opened link.
  */
 function replaceDraftInUrl(draft: DetectorDraft) {
   const url = new URL(window.location.href);
@@ -167,6 +169,9 @@ export function DetectorDraftUrlSync<TFormData>({
 
   useEffect(() => {
     const {pathname} = window.location;
+    // Rewrite an opened draft right away, so values that aren't drafted or are
+    // redacted don't linger in the address bar until the next edit.
+    const hasDraftInUrl = new URLSearchParams(window.location.search).has('draft');
     // The delay batches keystrokes, and lets a name edit's hasSetDetectorName
     // update land before the draft reads it.
     return reaction(
@@ -176,14 +181,15 @@ export function DetectorDraftUrlSync<TFormData>({
         if (window.location.pathname !== pathname) {
           return;
         }
+        const values = pickDetectorDraftValues(draftConfig, data);
         replaceDraftInUrl({
           version: DETECTOR_DRAFT_VERSION,
           detectorType,
           hasSetName: hasSetNameRef.current,
-          values: pickDetectorDraftValues(draftConfig, data),
+          values: draftConfig.redact?.(values) ?? values,
         });
       },
-      {delay: 300}
+      {delay: 300, fireImmediately: hasDraftInUrl}
     );
   }, [detectorType, draftConfig, formModel]);
 

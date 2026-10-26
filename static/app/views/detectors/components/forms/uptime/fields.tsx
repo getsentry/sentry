@@ -12,7 +12,27 @@ import {getDetectorEnvironment} from 'sentry/views/detectors/utils/getDetectorEn
 export const UPTIME_DEFAULT_RECOVERY_THRESHOLD = 1;
 export const UPTIME_DEFAULT_DOWNTIME_THRESHOLD = 3;
 
-interface UptimeDetectorFormData {
+export const UPTIME_HTTP_METHOD_OPTIONS = [
+  'GET',
+  'POST',
+  'HEAD',
+  'PUT',
+  'DELETE',
+  'PATCH',
+  'OPTIONS',
+] as const;
+
+const MINUTE = 60;
+export const UPTIME_VALID_INTERVALS_SEC = [
+  MINUTE * 1,
+  MINUTE * 5,
+  MINUTE * 10,
+  MINUTE * 20,
+  MINUTE * 30,
+  MINUTE * 60,
+];
+
+export interface UptimeDetectorFormData {
   assertion: UptimeAssertion | null;
   body: string;
   description: string | null;

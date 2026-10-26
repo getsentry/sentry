@@ -24,6 +24,7 @@ import {formatUptimeUrl} from 'sentry/views/detectors/components/forms/uptime/fo
 import {PreviewSection} from 'sentry/views/detectors/components/forms/uptime/previewSection';
 import {UptimeRegionWarning} from 'sentry/views/detectors/components/forms/uptime/regionWarning';
 import {UptimeDetectorResolveSection} from 'sentry/views/detectors/components/forms/uptime/resolve';
+import {UPTIME_DETECTOR_DRAFT_CONFIG} from 'sentry/views/detectors/components/forms/uptime/uptimeDraftConfig';
 import {UptimeIssuePreview} from 'sentry/views/detectors/components/forms/uptime/uptimeIssuePreview';
 import {UptimeDetectorVerificationSection} from 'sentry/views/detectors/components/forms/uptime/verification';
 import {createMapFormErrors} from 'sentry/views/detectors/components/uptime/formErrors';
@@ -96,6 +97,7 @@ function NewUptimeDetectorFormContent({
   return (
     <NewDetectorLayout
       detectorType="uptime_domain_failure"
+      draftConfig={UPTIME_DETECTOR_DRAFT_CONFIG}
       formDataToEndpointPayload={uptimeFormDataToEndpointPayload}
       initialFormData={
         duplicateDetector ? uptimeSavedDetectorToFormData(duplicateDetector) : {}

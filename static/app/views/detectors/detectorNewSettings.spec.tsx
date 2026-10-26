@@ -1734,6 +1734,117 @@ describe('DetectorEdit', () => {
       expect(screen.queryByText('staging')).not.toBeInTheDocument();
     });
 
+    async function fillUptimeRequest() {
+      await userEvent.type(
+        await screen.findByRole('textbox', {name: 'URL'}),
+        'https://uptime.example.com'
+      );
+      await selectEvent.select(screen.getByRole('textbox', {name: 'Method'}), 'POST');
+      await userEvent.type(
+        screen.getByRole('textbox', {name: 'Name of header 1'}),
+        'Authorization'
+      );
+      await userEvent.type(
+        screen.getByRole('textbox', {name: 'Value of Authorization'}),
+        'Bearer secret'
+      );
+      await userEvent.click(screen.getByRole('textbox', {name: 'Body'}));
+      await userEvent.paste('{"token": "secret"}');
+    }
+
+    function getWindowDraftValues() {
+      const draft = new URLSearchParams(window.location.search).get('draft');
+      return draft ? JSON.parse(draft).values : undefined;
+    }
+
+    it('leaves headers and body out of the URL draft', async () => {
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: uptimeRouterConfig,
+      });
+
+      await fillUptimeRequest();
+      // A last edit, so the asserted draft is written after the headers and body.
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Allow Sampling'}));
+
+      await waitFor(() => {
+        expect(getWindowDraftValues()?.traceSampling).toBe(true);
+      });
+      const values = getWindowDraftValues();
+      expect(values).toEqual(
+        expect.objectContaining({method: 'POST', url: 'https://uptime.example.com'})
+      );
+      expect(JSON.stringify(values)).not.toContain('secret');
+    });
+
+    it('removes headers from the address bar as soon as a link is opened', async () => {
+      const query = {
+        ...uptimeRouterConfig.location.query,
+        draft: JSON.stringify({
+          version: 1,
+          detectorType: 'uptime_domain_failure',
+          hasSetName: true,
+          values: {
+            headers: [['Authorization', 'Bearer secret']],
+            name: 'Shared uptime',
+            url: 'https://user:secret@shared.example.com',
+          },
+        }),
+      };
+      window.history.replaceState(
+        null,
+        '',
+        `${uptimeRouterConfig.location.pathname}?${new URLSearchParams(query)}`
+      );
+
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: {
+          ...uptimeRouterConfig,
+          location: {...uptimeRouterConfig.location, query},
+        },
+      });
+
+      expect(await screen.findByRole('textbox', {name: 'URL'})).toHaveValue(
+        'https://user:secret@shared.example.com'
+      );
+      expect(screen.getByRole('textbox', {name: 'Name of header 1'})).toHaveValue('');
+      expect(getWindowDraftValues()).toEqual(
+        expect.objectContaining({url: 'https://shared.example.com'})
+      );
+      expect(JSON.stringify(getWindowDraftValues())).not.toContain('secret');
+    });
+
+    it('restores an uptime draft from the URL', async () => {
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: {
+          ...uptimeRouterConfig,
+          location: {
+            ...uptimeRouterConfig.location,
+            query: {
+              ...uptimeRouterConfig.location.query,
+              draft: JSON.stringify({
+                version: 1,
+                detectorType: 'uptime_domain_failure',
+                hasSetName: true,
+                values: {
+                  method: 'POST',
+                  name: 'Shared uptime',
+                  url: 'https://shared.example.com',
+                },
+              }),
+            },
+          },
+        },
+      });
+
+      expect(await screen.findByRole('textbox', {name: 'URL'})).toHaveValue(
+        'https://shared.example.com'
+      );
+      expect(screen.getByRole('heading', {name: 'Shared uptime'})).toBeInTheDocument();
+    });
+
     it('submits custom thresholds when changed', async () => {
       const mockCreateDetector = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
