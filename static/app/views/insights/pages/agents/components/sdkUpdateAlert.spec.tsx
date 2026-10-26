@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -99,8 +100,8 @@ describe('SdkUpdateAlert', () => {
   });
 
   it('does not render for an outdated package outside the list', async () => {
-    const request = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/sdk-updates/`,
+    renderMockSdkUpdateRequest({
+      organization,
       body: [
         {
           projectId: project.id,
@@ -110,17 +111,33 @@ describe('SdkUpdateAlert', () => {
       ],
     });
 
-    const {container} = render(
-      <SdkUpdateAlert
-        projectId={project.id}
-        minVersion="10.0.0"
-        packageName={['@sentry/nextjs', '@sentry/cloudflare']}
-      />,
+    render(
+      <Fragment>
+        <div data-test-id="outside-list">
+          <SdkUpdateAlert
+            projectId={project.id}
+            minVersion="10.0.0"
+            packageName={['@sentry/nextjs', '@sentry/cloudflare']}
+          />
+        </div>
+        {/* Lists the outdated package, so it shows once the updates have loaded */}
+        <SdkUpdateAlert
+          projectId={project.id}
+          minVersion="10.0.0"
+          packageName="@sentry/node"
+        />
+      </Fragment>,
       {organization}
     );
 
-    await waitFor(() => expect(request).toHaveBeenCalled());
-    expect(container).toBeEmptyDOMElement();
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(
+          'Your @sentry/node version is below the minimum required for agent monitoring. Update to 10.0.0 or later.'
+        )
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('outside-list')).toBeEmptyDOMElement();
   });
 
   it('does not render when there is an error', async () => {
