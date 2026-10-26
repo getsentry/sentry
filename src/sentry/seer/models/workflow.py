@@ -223,7 +223,7 @@ class SeerWorkflowRun(DefaultFieldsModel):
     # Cron window (e.g. 2024-07-22T22:00) or event identity (e.g. issue_created:123).
     trigger_key = models.CharField(max_length=256, null=True, db_column="schedule_id")
     # Null for historical runs that have not adopted the shared lifecycle.
-    status = models.CharField(max_length=16, choices=SeerWorkflowRunStatus.choices, null=True)
+    status = models.CharField(max_length=256, choices=SeerWorkflowRunStatus.choices, null=True)
     date_completed = models.DateTimeField(null=True)
     # Shared lifecycle metadata has the shape of SeerWorkflowRunExtras.
     extras = models.JSONField(db_default={}, default=dict)
@@ -263,7 +263,9 @@ class SeerWorkflowRunExecution(DefaultFieldsModel):
     seer_run = models.OneToOneField(
         "seer.SeerRun", on_delete=models.SET_NULL, null=True, related_name="workflow_execution"
     )
-    status = models.CharField(max_length=16, choices=SeerWorkflowExecutionStatus.choices, null=True)
+    status = models.CharField(
+        max_length=256, choices=SeerWorkflowExecutionStatus.choices, null=True
+    )
     date_completed = models.DateTimeField(null=True)
     # Shared lifecycle metadata has the shape of SeerWorkflowExecutionExtras.
     extras = models.JSONField(db_default={}, default=dict)

@@ -30,7 +30,7 @@ class Migration(CheckedMigration):
         migrations.AddField(
             model_name="seerworkflowrun",
             name="status",
-            field=models.CharField(max_length=16, null=True),
+            field=models.CharField(max_length=256, null=True),
         ),
         migrations.AddField(
             model_name="seerworkflowrunexecution",
@@ -40,7 +40,7 @@ class Migration(CheckedMigration):
         migrations.AddField(
             model_name="seerworkflowrunexecution",
             name="status",
-            field=models.CharField(max_length=16, null=True),
+            field=models.CharField(max_length=256, null=True),
         ),
         migrations.AlterField(
             model_name="seerworkflowrun",
