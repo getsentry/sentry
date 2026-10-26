@@ -1257,6 +1257,59 @@ describe('Modals -> DataWidgetViewerModal', () => {
       expect(await screen.findByText('Open in Explore')).toBeInTheDocument();
     });
 
+    it.each([
+      {widgetType: WidgetType.SPANS, aggregate: 'count(span.duration)'},
+      {widgetType: WidgetType.LOGS, aggregate: 'count(message)'},
+    ])(
+      'disables Open in Explore for multi-query $widgetType widgets',
+      async ({widgetType, aggregate}) => {
+        const widget = WidgetFixture({
+          widgetType,
+          queries: ['http.status_code:200', 'http.status_code:500'].map(conditions => ({
+            fields: [],
+            aggregates: [aggregate],
+            columns: [],
+            conditions,
+            orderby: '',
+            name: '',
+          })),
+        });
+        await renderModal({initialData, widget});
+
+        const action = screen.getByRole('button', {name: 'Open in Explore'});
+        expect(action).toBeDisabled();
+        expect(action).not.toHaveAttribute('href');
+        await userEvent.hover(action);
+        expect(
+          await screen.findByText(
+            'Explore does not support multiple queries for this dataset'
+          )
+        ).toBeInTheDocument();
+      }
+    );
+
+    it('links multi-query metrics widgets to the metrics explorer', async () => {
+      const widget = WidgetFixture({
+        widgetType: WidgetType.TRACEMETRICS,
+        queries: ['http.status_code:200', 'http.status_code:500'].map(conditions => ({
+          fields: [],
+          aggregates: ['avg(value,duration,d,none)'],
+          columns: [],
+          conditions,
+          orderby: '',
+          name: '',
+        })),
+      });
+      await renderModal({initialData, widget});
+
+      const action = screen.getByRole('button', {name: 'Open in Explore'});
+      const url = new URL(action.getAttribute('href')!, 'https://example.com');
+      expect(url.pathname).toBe('/organizations/org-slug/explore/metrics/');
+      expect(
+        url.searchParams.getAll('metric').map(metric => JSON.parse(metric).query)
+      ).toEqual(['http.status_code:200', 'http.status_code:500']);
+    });
+
     it('does not make an events-timeseries request with an arbitrary table sort as a y-axis', async () => {
       const eventsTimeseriesMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-timeseries/',

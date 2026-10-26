@@ -103,7 +103,7 @@ describe('ExploreSavedQueryBreadcrumbs', () => {
       }
     );
 
-    it('keeps Compare Queries in the trail so compare mode is not lost', async () => {
+    it('links saved compare queries back to Traces', async () => {
       renderBreadcrumbs('compare');
 
       const trail = await screen.findByRole('list');
@@ -111,7 +111,7 @@ describe('ExploreSavedQueryBreadcrumbs', () => {
         within(trail)
           .getAllByRole('link')
           .map(link => link.textContent)
-      ).toEqual(['Traces', 'Compare Queries']);
+      ).toEqual(['Traces']);
     });
 
     it('shows the project badge for the saved query projects', async () => {
@@ -222,7 +222,7 @@ describe('ExploreSavedQueryBreadcrumbs', () => {
   describe('delete', () => {
     const destinations: Array<{surface: ExploreSurface; to: string}> = [
       {surface: 'traces', to: '/organizations/org-slug/explore/traces/'},
-      {surface: 'compare', to: '/organizations/org-slug/explore/traces/compare/'},
+      {surface: 'compare', to: '/organizations/org-slug/explore/traces/'},
       {surface: 'logs', to: '/organizations/org-slug/explore/logs/'},
       {surface: 'metrics', to: '/organizations/org-slug/explore/metrics/'},
       {surface: 'replays', to: '/organizations/org-slug/explore/replays/'},

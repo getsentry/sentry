@@ -83,30 +83,13 @@ function useSurfaceConfig(surface: ExploreSurface): SurfaceConfig {
   const organization = useOrganization();
 
   switch (surface) {
+    case 'compare':
     case 'traces': {
       const to = makeTracesPathname({organization, path: '/'});
       return {
         analytics: 'trace_explorer',
         items: [{type: 'link', label: t('Traces'), to}],
         landingTo: to,
-        saveQueryModalSource: 'explorer',
-      };
-    }
-    case 'compare': {
-      // Compare mode lives under Traces but has its own landing page, so it
-      // stays in the trail as a real parent rather than being dropped.
-      const comparePath = makeTracesPathname({organization, path: '/compare/'});
-      return {
-        analytics: 'trace_explorer',
-        items: [
-          {
-            type: 'link',
-            label: t('Traces'),
-            to: makeTracesPathname({organization, path: '/'}),
-          },
-          {type: 'link', label: t('Compare Queries'), to: comparePath},
-        ],
-        landingTo: comparePath,
         saveQueryModalSource: 'explorer',
       };
     }
