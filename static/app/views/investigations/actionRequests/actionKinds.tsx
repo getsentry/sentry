@@ -24,6 +24,8 @@ export type ActionKindApplyProps<A> = KindProps<A> & {
   finishing: boolean;
   message: string | null;
   onApply: () => void;
+  onRecheck: () => void;
+  rechecking: boolean;
 };
 
 export type ActionKindDetailsProps<A> = KindProps<A> & {

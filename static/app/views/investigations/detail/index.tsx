@@ -44,6 +44,7 @@ import {
   investigationListQueryOptions,
   investigationOrchestrationQueryOptions,
   investigationTitleGenerationQueryOptions,
+  isFollowUpPending,
   useDeleteInvestigationMutation,
   useDuplicateInvestigationMutation,
   useRenameInvestigationMutation,
@@ -219,6 +220,7 @@ export function InvestigationBootstrapPage({investigationId}: {investigationId: 
         data?.orchestration && shouldPollInvestigationRun(data.orchestration.status);
       return isSeerWorking ||
         orchestrationActive ||
+        data?.actionRequests?.some(isFollowUpPending) ||
         shouldPollInvestigationBlocks(data?.blocks ?? []) ||
         isTitleGenerationActive(data?.titleGeneration?.status)
         ? 2000
@@ -304,6 +306,11 @@ function InvestigationPageContentInner({
   const {data: orchestration, isPending: orchestrationPending} = useQuery({
     ...investigationOrchestrationQueryOptions(organization.slug, investigation.id),
     enabled: Boolean(investigation.orchestration),
+    refetchInterval:
+      investigation.orchestration &&
+      shouldPollInvestigationRun(investigation.orchestration.status)
+        ? 2000
+        : false,
   });
   const actionRequestsStale = useRefetchStaleActionRequests(
     investigation.id,

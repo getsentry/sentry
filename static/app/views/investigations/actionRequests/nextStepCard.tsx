@@ -52,6 +52,7 @@ export function NextStepCard({
         finishing={orchestration?.report.nextStep?.status === 'generating'}
         heading={heading}
         investigationId={investigationId}
+        runProcessing={orchestration?.status === 'processing'}
         source={source}
       />
     );

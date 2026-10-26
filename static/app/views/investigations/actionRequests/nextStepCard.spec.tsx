@@ -15,7 +15,10 @@ import {
   getPrimaryActionRequest,
   NextStepCard,
 } from 'sentry/views/investigations/actionRequests/nextStepCard';
-import {getInvestigationDetailQueryOptions} from 'sentry/views/investigations/api';
+import {
+  getInvestigationDetailQueryOptions,
+  type ActionRequestFollowUp,
+} from 'sentry/views/investigations/api';
 import {
   InvestigationActionRequestFixture,
   InvestigationDetailFixture,
@@ -99,6 +102,8 @@ const finishingRun = runWith(
 
 const applyUrl =
   '/organizations/org-slug/investigations/investigation-1/action-requests/312/apply/';
+const recheckUrl =
+  '/organizations/org-slug/investigations/investigation-1/action-requests/312/recheck/';
 
 type MockResponse = Parameters<typeof MockApiClient.addMockResponse>[0];
 
@@ -1435,10 +1440,200 @@ describe('NextStepCard', () => {
     expect(screen.getAllByRole('status')[0]).toHaveTextContent(
       'The monitor changed since Seer suggested this.'
     );
-    expect(screen.getByRole('button', {name: 'Update monitor'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Recheck suggestion'})).toBeEnabled();
     expect(
       screen.getAllByText(/The monitor changed since Seer suggested this/)
     ).toHaveLength(1);
+  });
+
+  it('rechecks a stale suggestion without applying it', async () => {
+    mockDryRun({statusCode: 409, body: staleBody});
+    const apply = mockApply({body: {actionRequest: staleRequest}});
+    const recheck = MockApiClient.addMockResponse({
+      url: recheckUrl,
+      method: 'POST',
+      body: {
+        actionRequest: {
+          ...staleRequest,
+          followUp: {status: 'accepted', reason: null, rerun: null},
+        },
+      },
+    });
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[InvestigationActionRequestFixture()]}
+      />
+    );
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Recheck suggestion'})
+    );
+
+    expect(recheck).toHaveBeenCalledWith(
+      recheckUrl,
+      expect.objectContaining({data: {action: staleRequest.action}})
+    );
+    expect(apply).not.toHaveBeenCalled();
+  });
+
+  it('checks the change again when nothing changed after all', async () => {
+    mockDryRun({statusCode: 409, body: staleBody});
+    MockApiClient.addMockResponse({
+      url: recheckUrl,
+      method: 'POST',
+      statusCode: 409,
+      body: {detail: 'This still matches the monitor.', code: 'not_stale'},
+    });
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[InvestigationActionRequestFixture()]}
+      />
+    );
+    const recheck = await screen.findByRole('button', {name: 'Recheck suggestion'});
+    await waitFor(() => expect(recheck).toBeEnabled());
+    const check = mockDryRun();
+
+    await userEvent.click(recheck);
+
+    expect(
+      await screen.findByText('Nothing changed since Seer suggested this.')
+    ).toBeInTheDocument();
+    await waitFor(() => expect(check).toHaveBeenCalled());
+    expect(await findApplyButton()).toBeEnabled();
+  });
+
+  describe('when Seer re-checks a stale suggestion', () => {
+    function recheckedRequest(followUp: ActionRequestFollowUp) {
+      return InvestigationActionRequestFixture({...staleRequest, followUp});
+    }
+
+    it.each(['accepted', 'dispatched'] as const)(
+      'waits while the re-check is %s',
+      status => {
+        render(
+          <NextStepCard
+            investigationId="investigation-1"
+            orchestration={completedRun}
+            actionRequests={[recheckedRequest({status, reason: null, rerun: null})]}
+          />
+        );
+
+        const notice = screen.getByRole('status');
+        expect(notice).toHaveTextContent(
+          'The monitor changed since Seer suggested this. Seer is checking the suggestion again…'
+        );
+        expect(notice).not.toHaveTextContent('Ask Seer');
+      }
+    );
+
+    it('points to Ask Seer once Seer has the re-check', () => {
+      render(
+        <NextStepCard
+          investigationId="investigation-1"
+          orchestration={completedRun}
+          actionRequests={[
+            recheckedRequest({status: 'acknowledged', reason: null, rerun: null}),
+          ]}
+        />
+      );
+
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'The monitor changed since Seer suggested this. Ask Seer about this investigation for a new suggestion.'
+      );
+    });
+
+    it('says Seer is updating its suggestion while the run works on it', () => {
+      render(
+        <NextStepCard
+          investigationId="investigation-1"
+          orchestration={runWith(
+            {status: 'generating', error: null},
+            {phase: 'metadata', status: 'processing'}
+          )}
+          actionRequests={[
+            recheckedRequest({status: 'acknowledged', reason: null, rerun: null}),
+          ]}
+        />
+      );
+
+      const notice = screen.getByRole('status');
+      expect(notice).toHaveTextContent(
+        'The monitor changed since Seer suggested this. Seer is updating its suggestion…'
+      );
+      expect(notice).not.toHaveTextContent('Ask Seer');
+    });
+
+    it('says the re-check failed when Seer gives no reason', () => {
+      render(
+        <NextStepCard
+          investigationId="investigation-1"
+          orchestration={completedRun}
+          actionRequests={[
+            recheckedRequest({status: 'failed', reason: null, rerun: null}),
+          ]}
+        />
+      );
+
+      expect(screen.getByRole('status')).toHaveTextContent(
+        "The monitor changed since Seer suggested this. Seer couldn't check it again."
+      );
+    });
+
+    it('tries a failed re-check again', async () => {
+      const recheck = MockApiClient.addMockResponse({
+        url: recheckUrl,
+        method: 'POST',
+        body: {
+          actionRequest: recheckedRequest({
+            status: 'accepted',
+            reason: null,
+            rerun: null,
+          }),
+        },
+      });
+      const apply = mockApply({body: {actionRequest: staleRequest}});
+      render(
+        <NextStepCard
+          investigationId="investigation-1"
+          orchestration={completedRun}
+          actionRequests={[
+            recheckedRequest({status: 'failed', reason: null, rerun: null}),
+          ]}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Try again'}));
+
+      expect(recheck).toHaveBeenCalledWith(
+        recheckUrl,
+        expect.objectContaining({data: {action: staleRequest.action}})
+      );
+      expect(apply).not.toHaveBeenCalled();
+    });
+
+    it('says why Seer could not check it again', () => {
+      render(
+        <NextStepCard
+          investigationId="investigation-1"
+          orchestration={completedRun}
+          actionRequests={[
+            recheckedRequest({
+              status: 'failed',
+              reason: 'action_requests_report_changed',
+              rerun: null,
+            }),
+          ]}
+        />
+      );
+
+      expect(screen.getByRole('status')).toHaveTextContent(
+        "The monitor changed since Seer suggested this. Seer couldn't check it again because the report changed. Ask Seer about this investigation for a new suggestion."
+      );
+    });
   });
 
   it('shows only the settings that moved', () => {

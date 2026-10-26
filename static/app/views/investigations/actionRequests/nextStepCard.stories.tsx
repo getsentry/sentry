@@ -221,6 +221,22 @@ export default Storybook.story('Investigations — Recommended Action', story =>
     />
   ));
 
+  story('Re-checking', () => (
+    <CardStory
+      id="rechecking"
+      actionRequests={[
+        {
+          ...intervalChange,
+          state: 'superseded',
+          canApply: false,
+          cannotApplyReason: 'not_suggested',
+          error: {code: 'stale', current: {timeWindowSeconds: 120}},
+          followUp: {status: 'accepted', reason: null, rerun: null},
+        },
+      ]}
+    />
+  ));
+
   story('Withdrawn', () => (
     <CardStory
       id="withdrawn"

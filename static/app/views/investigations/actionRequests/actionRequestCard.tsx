@@ -22,9 +22,11 @@ import {
 } from 'sentry/views/investigations/actionRequests/actionRequestDetails';
 import type {ApplyCheck} from 'sentry/views/investigations/actionRequests/applyButton';
 import {
+  isFollowUpPending,
   parseApplyError,
+  useInvestigationActionRequestMutation,
   type ActionRequestError,
-  useApplyInvestigationActionRequestMutation,
+  type ActionRequestFollowUp,
 } from 'sentry/views/investigations/api';
 import {ensureSentenceEnd} from 'sentry/views/investigations/sentence';
 import type {
@@ -45,6 +47,7 @@ type ActionRequestCardProps = {
   investigationId: string;
   finishing?: boolean;
   heading?: string;
+  runProcessing?: boolean;
   source?: InvestigationDetail['source'];
 };
 
@@ -53,14 +56,16 @@ export function ActionRequestCard({
   finishing = false,
   heading,
   investigationId,
+  runProcessing = false,
   source,
 }: ActionRequestCardProps) {
   const headingId = useId();
   const organization = useOrganization();
   const check = useApplyCheck(investigationId, actionRequest);
-  const applyMutation = useApplyInvestigationActionRequestMutation(
+  const applyMutation = useInvestigationActionRequestMutation(
     organization.slug,
     investigationId,
+    'apply',
     {
       onSuccess: (_response, applied) => {
         const message = getApplySuccessMessage(applied.action);
@@ -77,6 +82,26 @@ export function ActionRequestCard({
           applyError
             ? getCannotApplyMessage(applied.action, applyError.code)
             : t('Unable to apply this change.')
+        );
+      },
+    }
+  );
+
+  const recheckMutation = useInvestigationActionRequestMutation(
+    organization.slug,
+    investigationId,
+    'recheck',
+    {
+      onError: (error, rechecked) => {
+        const recheckError = parseApplyError(error);
+        if (recheckError?.code === 'not_stale') {
+          toast.message(getCannotApplyMessage(rechecked.action, recheckError.code));
+          return;
+        }
+        toast.error(
+          recheckError
+            ? getCannotApplyMessage(rechecked.action, recheckError.code)
+            : t('Unable to recheck this suggestion.')
         );
       },
     }
@@ -118,6 +143,8 @@ export function ActionRequestCard({
       ? parseApplyError(applyMutation.error)
       : null;
   const staleError = getStaleError(actionRequest, check, applyError);
+  const rechecking =
+    recheckMutation.isPending && recheckMutation.variables?.id === actionRequest.id;
   const appliedSummary =
     actionRequest.state === 'applied' ? getAppliedSummary(actionRequest, source) : null;
 
@@ -138,9 +165,25 @@ export function ActionRequestCard({
       </Stack>
       {staleError ? (
         <Alert.Container>
-          <Alert variant="warning" role="status">
+          <Alert
+            variant="warning"
+            role="status"
+            trailingItems={
+              actionRequest.followUp?.status === 'failed' ? (
+                <Button
+                  size="xs"
+                  busy={rechecking}
+                  onClick={() => recheckMutation.mutate(actionRequest)}
+                >
+                  {t('Try again')}
+                </Button>
+              ) : undefined
+            }
+          >
             <StaleSuggestionMessage
+              actionRequest={actionRequest}
               message={getApplyErrorMessage(actionRequest.action, staleError)}
+              runProcessing={runProcessing}
             />
           </Alert>
         </Alert.Container>
@@ -166,6 +209,8 @@ export function ActionRequestCard({
         check={check}
         finishing={finishing}
         onApply={() => applyMutation.mutate(actionRequest)}
+        onRecheck={() => recheckMutation.mutate(actionRequest)}
+        rechecking={rechecking}
       />
     </Stack>
   );
@@ -217,20 +262,43 @@ function getStaleError(
   return null;
 }
 
-function StaleSuggestionMessage({message}: {message: string}) {
+function StaleSuggestionMessage({
+  actionRequest,
+  message,
+  runProcessing,
+}: {
+  actionRequest: InvestigationActionRequest;
+  message: string;
+  runProcessing: boolean;
+}) {
   const organization = useOrganization();
   const {openSeerExplorer} = useSeerExplorerContext();
+  const {followUp} = actionRequest;
+  if (isFollowUpPending(actionRequest)) {
+    return tct('[message] Seer is checking the suggestion again…', {message});
+  }
+  if (followUp?.status === 'acknowledged' && runProcessing) {
+    return tct('[message] Seer is updating its suggestion…', {message});
+  }
+  const notice =
+    followUp?.status === 'failed' ? getRecheckFailedNotice(message, followUp) : message;
   if (!isSeerExplorerEnabled(organization)) {
     return tct('[message] Ask Seer about this investigation for a new suggestion.', {
-      message,
+      message: notice,
     });
   }
   return tct('[message] [ask:Ask Seer about this investigation] for a new suggestion.', {
-    message,
+    message: notice,
     ask: (
       <Button variant="link" size="zero" onClick={() => openSeerExplorer()}>
         {null}
       </Button>
     ),
   });
+}
+
+function getRecheckFailedNotice(message: string, followUp: ActionRequestFollowUp) {
+  return followUp.reason === 'action_requests_report_changed'
+    ? t("%s Seer couldn't check it again because the report changed.", message)
+    : t("%s Seer couldn't check it again.", message);
 }
