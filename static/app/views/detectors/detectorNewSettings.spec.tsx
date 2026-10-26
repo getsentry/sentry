@@ -550,6 +550,44 @@ describe('DetectorEdit', () => {
       });
     });
 
+    it('opens an uptime draft when its duplicated monitor cannot be loaded', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/missing-uptime/`,
+        statusCode: 404,
+        body: {},
+      });
+      const duplicateRouterConfig = getDuplicateRouterConfig(
+        'uptime_domain_failure',
+        'missing-uptime'
+      );
+
+      render(<DetectorNewSettings />, {
+        organization: organizationWithMonitorDuplication,
+        initialRouterConfig: {
+          ...duplicateRouterConfig,
+          location: {
+            ...duplicateRouterConfig.location,
+            query: {
+              ...duplicateRouterConfig.location.query,
+              draft: JSON.stringify({
+                version: 1,
+                detectorType: 'uptime_domain_failure',
+                hasSetName: true,
+                values: {name: 'Shared copy', url: 'https://shared.example.com'},
+              }),
+            },
+          },
+        },
+      });
+
+      expect(await screen.findByRole('textbox', {name: 'URL'})).toHaveValue(
+        'https://shared.example.com'
+      );
+      expect(
+        screen.queryByText('The monitor to duplicate could not be loaded.')
+      ).not.toBeInTheDocument();
+    });
+
     it('rejects a source monitor whose type does not match the create form', async () => {
       const sourceDetector = CronDetectorFixture({id: 'source-cron'});
       MockApiClient.addMockResponse({
