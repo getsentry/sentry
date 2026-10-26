@@ -13,6 +13,7 @@ from django.db.models import Count
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationFeatures, IntegrationProvider
 from sentry.integrations.manager import default_manager as integrations
 from sentry.integrations.services.integration import integration_service
@@ -211,7 +212,12 @@ def has_alert_integration(project: Project) -> bool:
     provider_keys = [
         provider.key for provider in integrations.all() if is_alert_rule_integration(provider)
     ]
-    if integration_service.get_integrations(organization_id=org.id, providers=provider_keys):
+    if integration_service.get_integrations(
+        organization_id=org.id,
+        providers=provider_keys,
+        status=ObjectStatus.ACTIVE,
+        org_integration_status=ObjectStatus.ACTIVE,
+    ):
         return True
 
     return False

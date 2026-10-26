@@ -102,6 +102,20 @@ class ProjectDetailsTest(APITestCase):
         )
         assert response.data["hasAlertIntegrationInstalled"]
 
+    def test_disabled_org_alert_integration(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_provider_integration(provider="msteams")
+            org_integration = integration.add_organization(self.organization)
+            assert org_integration is not None
+            org_integration.update(status=ObjectStatus.DISABLED)
+
+        response = self.get_success_response(
+            self.project.organization.slug,
+            self.project.slug,
+            qs_params={"expand": "hasAlertIntegration"},
+        )
+        assert not response.data["hasAlertIntegrationInstalled"]
+
     def test_no_alert_integration(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             integration = self.create_provider_integration(provider="jira")
