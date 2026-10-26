@@ -1,4 +1,5 @@
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from '@sentry/scraps/loadingIndicator';
+
 import * as Storybook from 'sentry/stories';
 
 import {NegativeSpaceContainer} from './container/negativeSpaceContainer';

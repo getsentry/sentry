@@ -12,6 +12,7 @@ import {Badge} from '@sentry/scraps/badge';
 import {useBoundaryContext} from '@sentry/scraps/boundaryContext';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {LoadingIndicator} from '@sentry/scraps/loadingIndicator';
 import {Footer, Header, Search, Title} from '@sentry/scraps/menu';
 import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
@@ -19,8 +20,6 @@ import type {FormSize} from '@sentry/scraps/theme';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 import type {UseOverlayProps} from '@sentry/scraps/useOverlay';
 import {useOverlay} from '@sentry/scraps/useOverlay';
-
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 
 import {ControlContext} from './controlContext';
 import type {SingleListProps} from './list';

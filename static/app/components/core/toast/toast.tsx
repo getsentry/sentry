@@ -5,11 +5,11 @@ import {IconWarning} from '@sentry/icons/warning';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
+import {LoadingIndicator} from '@sentry/scraps/loadingIndicator';
 import {Text} from '@sentry/scraps/text';
 import type {Theme} from '@sentry/scraps/theme';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {unreachable} from 'sentry/utils/unreachable';
 
 import type {ToastAction, ToastVariant} from './types';

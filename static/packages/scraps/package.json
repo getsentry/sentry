@@ -218,6 +218,10 @@
     "./dragHandle": {
       "types": "./dist/dragHandle/index.d.ts",
       "import": "./dist/dragHandle/index.js"
+    },
+    "./loadingIndicator": {
+      "types": "./dist/loadingIndicator/index.d.ts",
+      "import": "./dist/loadingIndicator/index.js"
     }
   },
   "publishConfig": {
