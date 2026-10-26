@@ -53,7 +53,7 @@ from sentry.seer.agent.on_completion_hook import (
     AgentOnCompletionHook,
     extract_hook_definition,
 )
-from sentry.seer.autofix.commit_author import SeerCommitAuthor
+from sentry.seer.autofix.commit_author import SeerCommitAuthor, commit_author_for_user
 from sentry.seer.models import (
     UNKNOWN_RUN_ID_FOR_GROUP,
     SeerApiError,
@@ -389,6 +389,14 @@ class SeerAgentClient:
         if not has_access:
             raise SeerPermissionError(error or "Access denied")
 
+    def _commit_author(self) -> SeerCommitAuthor | None:
+        """The requester's GitHub identity, which Seer credits on PRs the agent opens itself."""
+        if not (self.enable_write_pull_request and self.enable_coding):
+            return None
+        return commit_author_for_user(
+            self.user, self.organization.id, referrer="seer_agent_write_pull_request"
+        )
+
     def _build_viewer_context(self) -> SeerViewerContext:
         context = SeerViewerContext(organization_id=self.organization.id)
         if self.user and hasattr(self.user, "id") and self.user.id is not None:
@@ -471,6 +479,10 @@ class SeerAgentClient:
 
         if self.max_iterations is not None:
             chat_body["max_iterations"] = self.max_iterations
+
+        commit_author = self._commit_author()
+        if commit_author is not None:
+            chat_body["commit_author"] = commit_author
 
         if self.project:
             chat_body["project_id"] = self.project.id
@@ -829,6 +841,11 @@ class SeerAgentClient:
 
         if ui_tools:
             chat_body["ui_tools"] = ui_tools
+
+        # Sent every turn: Seer replaces the run's author with it, so a PR credits whoever asked.
+        commit_author = self._commit_author()
+        if commit_author is not None:
+            chat_body["commit_author"] = commit_author
 
         monitoring_user_id = (
             self.user.id
