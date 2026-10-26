@@ -1465,6 +1465,37 @@ describe('DetectorEdit', () => {
     }, 10000);
   });
 
+  describe('Mobile Build Detector URL draft', () => {
+    it('restores a mobile build draft from the URL', async () => {
+      render(<DetectorNewSettings />, {
+        organization: OrganizationFixture({
+          ...organization,
+          features: [...organization.features, 'preprod-size-monitors-frontend'],
+        }),
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              detectorType: 'preprod_size_analysis',
+              draft: JSON.stringify({
+                version: 1,
+                detectorType: 'preprod_size_analysis',
+                hasSetName: true,
+                values: {measurement: 'download_size', name: 'Shared app size'},
+              }),
+            },
+          },
+        },
+      });
+
+      expect(
+        await screen.findByRole('heading', {name: 'Shared app size'})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('radio', {name: 'Download Size'})).toBeChecked();
+    });
+  });
+
   describe('Metric Detector with Metrics dataset', () => {
     it('shows metrics dataset option', async () => {
       const metricsOrganization = OrganizationFixture({
@@ -1791,6 +1822,12 @@ describe('DetectorEdit', () => {
   });
 
   describe('Cron Detector', () => {
+    function getSpinbuttonByName(name: string) {
+      return screen
+        .getAllByRole('spinbutton')
+        .find(element => element.getAttribute('name') === name)!;
+    }
+
     const cronRouterConfig = {
       ...initialRouterConfig,
       location: {
@@ -1845,6 +1882,65 @@ describe('DetectorEdit', () => {
           }),
         })
       );
+    });
+
+    it('restores an edited cron draft when the URL is reopened', async () => {
+      const {unmount} = render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: cronRouterConfig,
+      });
+      await screen.findByText('Set margins');
+      expect(screen.getByText('Select Instrumentation Method')).toBeInTheDocument();
+      const gracePeriod = getSpinbuttonByName('checkinMargin');
+      await userEvent.clear(gracePeriod);
+      await userEvent.type(gracePeriod, '7');
+      await waitFor(() => {
+        expect(new URLSearchParams(window.location.search).has('draft')).toBe(true);
+      });
+      const sharedQuery = {
+        ...cronRouterConfig.location.query,
+        ...Object.fromEntries(new URLSearchParams(window.location.search)),
+      };
+      unmount();
+
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: {
+          ...cronRouterConfig,
+          location: {...cronRouterConfig.location, query: sharedQuery},
+        },
+      });
+
+      await screen.findByText('Set margins');
+      expect(getSpinbuttonByName('checkinMargin')).toHaveValue(7);
+      expect(screen.queryByText('Select Instrumentation Method')).not.toBeInTheDocument();
+    });
+
+    it('shows the form when a draft link also has auto-instrumentation guide params', async () => {
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: {
+          ...cronRouterConfig,
+          location: {
+            ...cronRouterConfig.location,
+            query: {
+              ...cronRouterConfig.location.query,
+              platform: 'php',
+              guide: 'upsert',
+              draft: JSON.stringify({
+                version: 1,
+                detectorType: 'monitor_check_in_failure',
+                hasSetName: false,
+                values: {checkinMargin: ''},
+              }),
+            },
+          },
+        },
+      });
+
+      expect(await screen.findByTestId('form-sections')).toBeVisible();
+      expect(screen.getByRole('button', {name: 'Create Monitor'})).toBeEnabled();
+      expect(getSpinbuttonByName('checkinMargin')).toHaveValue(null);
     });
 
     it('submits crons config with changes', async () => {

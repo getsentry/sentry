@@ -6,8 +6,10 @@ import {Stack} from '@sentry/scraps/layout';
 import {t} from 'sentry/locale';
 import type {CronDetector} from 'sentry/types/workflowEngine/detectors';
 import {AutomateSectionDeprecated} from 'sentry/views/detectors/components/forms/automateSection';
+import {useInitialDetectorDraft} from 'sentry/views/detectors/components/forms/common/detectorDraft';
 import {IssueOwnershipSection} from 'sentry/views/detectors/components/forms/common/issueOwnershipSection';
 import {ProjectSection} from 'sentry/views/detectors/components/forms/common/projectSection';
+import {CRON_DETECTOR_DRAFT_CONFIG} from 'sentry/views/detectors/components/forms/cron/cronDraftConfig';
 import {CronDetectorFormDetectSection} from 'sentry/views/detectors/components/forms/cron/detect';
 import {
   CRON_DEFAULT_SCHEDULE_TYPE,
@@ -71,18 +73,18 @@ const mapCronDetectorFormErrors = (error: unknown) => {
 
 function CronDetectorForm({
   detector,
-  isDuplicate = false,
+  hideInstrumentationGuide = false,
 }: {
   detector?: CronDetector;
-  isDuplicate?: boolean;
+  hideInstrumentationGuide?: boolean;
 }) {
   const dataSource = detector?.dataSources[0];
   const theme = useTheme();
-  const showingPlatformGuide = useIsShowingPlatformGuide();
+  const showingPlatformGuide = useIsShowingPlatformGuide() && !hideInstrumentationGuide;
 
   return (
     <Stack gap="2xl" maxWidth={theme.breakpoints.xl}>
-      {!detector && !isDuplicate && <InstrumentationGuide />}
+      {!detector && !hideInstrumentationGuide && <InstrumentationGuide />}
       <Stack
         data-test-id="form-sections"
         style={showingPlatformGuide ? {display: 'none'} : undefined}
@@ -109,11 +111,15 @@ export function NewCronDetectorForm({
 }: {
   duplicateDetector?: CronDetector;
 }) {
-  const showingPlatformGuide = useIsShowingPlatformGuide();
+  const hasDraft = Boolean(useInitialDetectorDraft('monitor_check_in_failure'));
+  const hideInstrumentationGuide = Boolean(duplicateDetector) || hasDraft;
+  // Guide params can outlive the guide, e.g. in a draft link.
+  const showingPlatformGuide = useIsShowingPlatformGuide() && !hideInstrumentationGuide;
 
   return (
     <NewDetectorLayout
       detectorType="monitor_check_in_failure"
+      draftConfig={CRON_DETECTOR_DRAFT_CONFIG}
       formDataToEndpointPayload={cronFormDataToEndpointPayload}
       initialFormData={
         duplicateDetector
@@ -129,7 +135,7 @@ export function NewCronDetectorForm({
           : undefined
       }
     >
-      <CronDetectorForm isDuplicate={Boolean(duplicateDetector)} />
+      <CronDetectorForm hideInstrumentationGuide={hideInstrumentationGuide} />
     </NewDetectorLayout>
   );
 }

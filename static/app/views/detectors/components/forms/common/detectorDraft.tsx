@@ -38,6 +38,22 @@ export const draftNumericString = z
   .string()
   .refine(value => value === '' || Number.isFinite(Number(value)));
 
+// Number inputs hold strings once edited, so accept those too.
+export const draftNumber = z.union([
+  z.number(),
+  z
+    .string()
+    .refine(value => value !== '' && Number.isFinite(Number(value)))
+    .transform(Number),
+]);
+
+// A cleared optional number input holds ''.
+export const draftOptionalNumber = z.union([
+  draftNumber,
+  z.null(),
+  z.literal('').transform(() => null),
+]);
+
 export interface DetectorDraftConfig<TFormData> {
   /**
    * Validators for the form fields stored in the URL draft. Fields left out
