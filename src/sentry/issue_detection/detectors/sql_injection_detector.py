@@ -6,7 +6,10 @@ from collections.abc import Sequence
 from typing import Any
 
 from sentry.issue_detection.base import DetectorType, PerformanceDetector
-from sentry.issue_detection.detectors.utils import get_notification_attachment_body
+from sentry.issue_detection.detectors.utils import (
+    get_notification_attachment_body,
+    get_span_description,
+)
 from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issue_detection.types import Span
 from sentry.issues.grouptype import QueryInjectionVulnerabilityGroupType
@@ -140,7 +143,7 @@ class SQLInjectionDetector(PerformanceDetector):
     def visit_span(self, span: Span) -> None:
         if not self._is_span_eligible(span) or not self.request_parameters:
             return
-        description = span.get("description") or ""
+        description = get_span_description(span)
         op = span.get("op") or ""
         spans_involved = [span["span_id"]]
         vulnerable_parameters = []
@@ -247,7 +250,7 @@ class SQLInjectionDetector(PerformanceDetector):
         if span_data and span_data.get("db.sql.bindings"):
             return False
 
-        description = span.get("description", None)
+        description = get_span_description(span)
         if not description:
             return False
 

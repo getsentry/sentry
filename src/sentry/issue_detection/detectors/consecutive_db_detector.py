@@ -12,6 +12,7 @@ from sentry.issue_detection.detectors.utils import (
     fingerprint_spans,
     get_max_span_duration,
     get_notification_attachment_body,
+    get_span_description,
     get_span_duration,
     get_span_evidence_value,
     get_total_span_duration,
@@ -181,7 +182,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         if not self.independent_db_spans or len(self.independent_db_spans) < 1:
             return [""]
 
-        return [span.get("description", "") for span in self.independent_db_spans]
+        return [get_span_description(span) for span in self.independent_db_spans]
 
     def _get_starting_span(self) -> str:
         if not self.consecutive_db_spans or len(self.consecutive_db_spans) < 1:
@@ -196,7 +197,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         """
         independent_spans = []
         for span in spans[1:]:
-            query = span.get("description", None)
+            query = get_span_description(span)
             if (
                 query
                 and contains_complete_query(span)
@@ -240,7 +241,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
 
     def _is_db_query(self, span: Span) -> bool:
         op: str = span.get("op", "") or ""
-        description: str = span.get("description", "") or ""
+        description = get_span_description(span)
         is_db_op = op.startswith("db")
         is_query = description.strip().upper().startswith("SELECT")
         return is_db_op and is_query
@@ -276,7 +277,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
 
 def contains_complete_query(span: Span, is_source: bool | None = False) -> bool:
     # Remove the truncation check from the n_plus_one db detector.
-    query = span.get("description")
+    query = get_span_description(span)
     if is_source and query:
         return True
     else:
