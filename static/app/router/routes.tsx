@@ -2749,7 +2749,7 @@ function buildRoutes(): RouteObject[] {
       children: [
         {
           index: true,
-          component: make(() => import('sentry/views/seerWorkflows/configuration')),
+          component: make(() => import('sentry/views/seerWorkflows/automations')),
         },
         {
           path: 'runs/',
