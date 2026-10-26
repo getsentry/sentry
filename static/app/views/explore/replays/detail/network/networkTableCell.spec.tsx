@@ -7,6 +7,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {hydrateSpans} from 'sentry/utils/replays/hydrateSpans';
+import type {RawSpanFrame} from 'sentry/utils/replays/types';
 
 import {NetworkTableCell} from './networkTableCell';
 
@@ -78,4 +79,37 @@ describe('NetworkTableCell', () => {
       addEventListener.mockRestore();
     }
   });
+
+  it.each(['resource.script', 'resource.fetch'] as const)(
+    'renders an empty size cell when a %s frame has no data',
+    op => {
+      const record = ReplayRecordFixture();
+      const [frame] = hydrateSpans(record, [
+        {
+          op,
+          description: 'https://example.com/asset',
+          startTimestamp: record.started_at.getTime() / 1000,
+          endTimestamp: (record.started_at.getTime() + 100) / 1000,
+        } as RawSpanFrame,
+      ]);
+
+      render(
+        <NetworkTableCell
+          columnIndex={4}
+          frame={frame!}
+          isSelected={false}
+          onClickCell={() => {}}
+          onClickTimestamp={() => {}}
+          onMouseEnter={() => {}}
+          onMouseLeave={() => {}}
+          rowIndex={1}
+          startTimestampMs={0}
+          style={{}}
+        />,
+        {additionalWrapper: NuqsAdapter}
+      );
+
+      expect(screen.getByText('--')).toBeInTheDocument();
+    }
+  );
 });
