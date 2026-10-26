@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import Any, TypedDict, override
+from typing import Any, TypedDict, cast, override
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -13,12 +13,13 @@ from sentry.investigations.models import (
     Investigation,
     InvestigationActionRequest,
     InvestigationActionRequestAnchorType,
-    InvestigationActionRequestState,
     InvestigationBlock,
-    InvestigationStatus,
 )
-from sentry.investigations.services.action_kinds import get_action_kind
-from sentry.investigations.services.action_kinds.base import CannotApplyReason
+from sentry.investigations.services.action_kinds import (
+    get_action_kind,
+    shared_cannot_apply_reason,
+)
+from sentry.investigations.services.action_kinds.base import ActionRequestError, CannotApplyReason
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -61,7 +62,7 @@ class InvestigationActionRequestSerializerResponse(TypedDict):
     appliedBy: UserSerializerResponse | None
     appliedDetails: dict[str, Any] | None
     dateApplied: datetime | None
-    error: dict[str, Any] | None
+    error: ActionRequestError | None
     dateCreated: datetime
 
 
@@ -99,12 +100,9 @@ class InvestigationActionRequestSerializer(
         reasons: dict[int, CannotApplyReason | None] = {}
         by_kind: dict[str, list[InvestigationActionRequest]] = defaultdict(list)
         for item in item_list:
-            if investigations[item.investigation_id].status == InvestigationStatus.ARCHIVED:
-                reasons[item.id] = CannotApplyReason.INVESTIGATION_ARCHIVED
-            elif item.state != InvestigationActionRequestState.SUGGESTED:
-                reasons[item.id] = CannotApplyReason.NOT_SUGGESTED
-            elif get_action_kind(item.action_kind) is None:
-                reasons[item.id] = CannotApplyReason.UNSUPPORTED_ACTION
+            reason = shared_cannot_apply_reason(investigations[item.investigation_id], item)
+            if reason is not None:
+                reasons[item.id] = reason
             elif access is None:
                 reasons[item.id] = CannotApplyReason.NO_ACCESS
             else:
@@ -203,6 +201,7 @@ class InvestigationActionRequestSerializer(
             "appliedBy": attrs["applied_by"],
             "appliedDetails": obj.applied_details,
             "dateApplied": obj.date_applied,
-            "error": obj.error,
+            # Only the shared apply path writes this column.
+            "error": cast(ActionRequestError | None, obj.error),
             "dateCreated": obj.date_added,
         }
