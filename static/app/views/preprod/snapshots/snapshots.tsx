@@ -785,7 +785,6 @@ export default function SnapshotsPage() {
           overflow="auto"
           borderRight="primary"
           display={{zero: 'none', xl: 'flex'}}
-          maxWidth={{zero: '300px', '3xl': 'none'}}
           style={{
             width: sidebarWidth,
             height: 'calc(100dvh - var(--top-bar-height, 53px))',
@@ -804,7 +803,7 @@ export default function SnapshotsPage() {
           />
         </Flex>
         <DragHandle
-          display={{zero: 'none', '3xl': 'grid'}}
+          display={{zero: 'none', xl: 'grid'}}
           align="center"
           justifyItems="center"
           position="relative"
