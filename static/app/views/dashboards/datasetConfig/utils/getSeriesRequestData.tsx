@@ -68,8 +68,6 @@ function getSeriesQueryFields(
   fields.topEvents = limit ?? TOP_N;
   fields.field = [...widgetQuery.columns, ...widgetQuery.aggregates];
 
-  // Compare field and orderby as aliases to ensure the request has the orderby
-  // selected. If the orderby is an equation alias, do not inject it.
   const orderby = trimStart(widgetQuery.orderby, '-');
   if (
     widgetQuery.orderby &&
