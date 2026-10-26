@@ -368,6 +368,31 @@ class NotificationServiceRecordSentTest(TestCase):
             self.expected_context(), links={NotificationLink.OTHER}
         )
 
+    @mock.patch(
+        "sentry.notifications.platform.email.provider.EmailNotificationProvider.track_actions",
+        return_value={"tracked_action"},
+    )
+    @mock.patch("sentry.notifications.platform.email.provider.EmailNotificationProvider.send")
+    def test_records_tracked_actions(
+        self,
+        mock_send: mock.MagicMock,
+        mock_track_actions: mock.MagicMock,
+        mock_record_sent: mock.MagicMock,
+    ) -> None:
+        mock_send.return_value = SendSuccessResult()
+
+        NotificationService(data=self.data).notify_target(target=self.target)
+        with self.tasks():
+            NotificationService(data=self.data).notify_async(targets=[self.target])
+
+        assert mock_track_actions.call_count == 2
+        for track_call in mock_track_actions.call_args_list:
+            assert track_call.kwargs["context"] == self.expected_context()
+        assert mock_record_sent.call_args_list == [
+            mock.call(self.expected_context(), links={"tracked_action"}),
+            mock.call(self.expected_context(), links={"tracked_action"}),
+        ]
+
     @mock.patch("sentry.notifications.platform.email.provider.EmailNotificationProvider.send")
     def test_does_not_record_failed_send(
         self, mock_send: mock.MagicMock, mock_record_sent: mock.MagicMock

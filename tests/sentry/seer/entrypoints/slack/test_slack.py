@@ -4,10 +4,14 @@ from unittest.mock import ANY, Mock, patch
 
 import pytest
 from slack_sdk.errors import SlackApiError
-from slack_sdk.models.blocks import LinkButtonElement, SectionBlock
+from slack_sdk.models.blocks import ActionsBlock, ButtonElement, LinkButtonElement, SectionBlock
 from slack_sdk.web import SlackResponse
 
 from fixtures.seer.webhooks import MOCK_RUN_ID, MOCK_SEER_WEBHOOKS
+from sentry.integrations.slack.message_builder.routing import (
+    SlackActionTracking,
+    decode_action_id,
+)
 from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.investigations.models import InvestigationOrchestrationRun
@@ -276,6 +280,66 @@ class SlackAutofixEntrypointTest(TestCase):
             renderable=ANY,
             slack_user_id=self.slack_user_id,
         )
+
+    @override_options({"notifications.tracking.sources": [NotificationSource.SEER_AUTOFIX_UPDATE]})
+    @patch(
+        "sentry.notifications.platform.templates.seer.organization_service.get_option",
+        return_value=True,
+    )
+    @patch("sentry.seer.entrypoints.slack.messaging.record_sent")
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.send_threaded_message",
+        return_value={"ok": True, "ts": "1234567890.000100"},
+    )
+    def test_send_thread_update_tracks_buttons_and_records_sent(
+        self, mock_send_threaded_message, mock_record_sent, _mock_get_option
+    ):
+        data = self._create_update(AutofixStoppingPoint.ROOT_CAUSE)
+        install = self.integration.get_installation(organization_id=self.organization.id)
+
+        send_thread_update(install=install, thread=self.thread, data=data)
+
+        context = NotificationTrackingContext(
+            source=NotificationSource.SEER_AUTOFIX_UPDATE,
+            provider=NotificationProviderKey.SLACK,
+            category=NotificationCategory.SEER,
+            notification_uuid=data.notification_uuid,
+            organization_id=self.organization.id,
+        )
+        mock_record_sent.assert_called_once_with(
+            context, links={NotificationLink.ISSUE, SlackAction.SEER_AUTOFIX_START}
+        )
+        renderable: SlackRenderable = mock_send_threaded_message.call_args.kwargs["renderable"]
+        tracked_actions = [
+            routing_data
+            for block in renderable["blocks"]
+            if isinstance(block, ActionsBlock)
+            for element in block.elements
+            if isinstance(element, ButtonElement)
+            and element.action_id
+            and (routing_data := decode_action_id(element.action_id)).tracking is not None
+        ]
+        assert [routing_data.action for routing_data in tracked_actions] == [
+            SlackAction.SEER_AUTOFIX_START
+        ]
+        assert tracked_actions[0].tracking == SlackActionTracking(
+            notification_uuid=data.notification_uuid,
+            source=NotificationSource.SEER_AUTOFIX_UPDATE,
+        )
+
+    @patch("sentry.seer.entrypoints.slack.messaging.record_sent")
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.send_threaded_message",
+        return_value=None,
+    )
+    def test_send_thread_update_without_response_does_not_record_sent(
+        self, _mock_send_threaded_message, mock_record_sent
+    ):
+        install = self.integration.get_installation(organization_id=self.organization.id)
+
+        send_thread_update(install=install, thread=self.thread, data=self._create_update())
+
+        mock_record_sent.assert_not_called()
 
     @patch(
         "sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message",

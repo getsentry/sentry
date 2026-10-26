@@ -84,6 +84,17 @@ def send_thread_update(
         renderable, links = NotificationService.render_template(
             data=data, template=template_cls(), provider=provider
         )
+        tracking_context = NotificationTrackingContext(
+            source=data.source,
+            provider=NotificationProviderKey.SLACK,
+            category=template_cls.category,
+            notification_uuid=data.notification_uuid,
+            organization_id=data.organization_id,
+        )
+        tracked = {
+            *links,
+            *provider.track_actions(renderable=renderable, context=tracking_context),
+        }
         try:
             if ephemeral_user_id:
                 response = install.send_threaded_ephemeral_message(
@@ -101,16 +112,7 @@ def send_thread_update(
                 )
                 message_ts = response.get("ts") if response else None
             if response is not None:
-                record_sent(
-                    NotificationTrackingContext(
-                        source=data.source,
-                        provider=NotificationProviderKey.SLACK,
-                        category=template_cls.category,
-                        notification_uuid=data.notification_uuid,
-                        organization_id=data.organization_id,
-                    ),
-                    links=links,
-                )
+                record_sent(tracking_context, links=tracked)
             run_id = getattr(data, "run_id", None)
             if (
                 message_ts
