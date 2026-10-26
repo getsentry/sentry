@@ -1,12 +1,17 @@
 from django.urls import reverse
 
+from sentry import audit_log
 from sentry.constants import ObjectStatus
+from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.repository import Repository
 from sentry.seer.models.project_repository import (
     SeerProjectRepository,
     SeerProjectRepositoryBranchOverride,
 )
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 class ProjectSeerRepoGetTest(APITestCase):
@@ -355,6 +360,39 @@ class ProjectSeerReposGetTest(APITestCase):
     def test_empty(self):
         response = self.get_success_response()
         assert len(response.data) == 0
+
+    def test_get_creates_audit_log_entry(self):
+        self.create_seer_project_repository(self.project, repository=self.repo1)
+        self.create_seer_project_repository(self.project, repository=self.repo2)
+
+        with outbox_runner():
+            self.get_success_response(qs_params={"query": "relay"})
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            entry = AuditLogEntry.objects.get(
+                organization_id=self.organization.id,
+                event=audit_log.get_event_id("SEER_PROJECT_REPOSITORIES_VIEW"),
+            )
+            assert entry.actor_id == self.user.id
+            assert entry.target_object == self.project.id
+            assert entry.data == {
+                "project_id": self.project.id,
+                "project_slug": self.project.slug,
+                "repository_ids": [str(self.repo2.id)],
+            }
+            assert audit_log.get(entry.event).render(entry) == (
+                f"viewed Seer repository configurations for project {self.project.slug}"
+            )
+
+    def test_invalid_get_does_not_create_audit_log_entry(self):
+        with outbox_runner():
+            self.get_error_response(qs_params={"sortBy": "invalid"}, status_code=400)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert not AuditLogEntry.objects.filter(
+                organization_id=self.organization.id,
+                event=audit_log.get_event_id("SEER_PROJECT_REPOSITORIES_VIEW"),
+            ).exists()
 
     def test_returns_connected_repos(self):
         self.create_seer_project_repository(
@@ -731,11 +769,74 @@ class ProjectSeerReposPutTest(APITestCase):
         )
         assert new_repo.branch_name == "develop"
 
+    def test_put_creates_audit_log_entry(self):
+        repos = [
+            {
+                "repositoryId": self.repo1.id,
+                "branchName": "main",
+                "instructions": "run tests",
+                "branchOverrides": [
+                    {"tagName": "environment", "tagValue": "production", "branchName": "release"}
+                ],
+            }
+        ]
+
+        with outbox_runner():
+            self.get_success_response(repos=repos, status_code=204)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            entry = AuditLogEntry.objects.get(
+                organization_id=self.organization.id,
+                event=audit_log.get_event_id("SEER_PROJECT_REPOSITORIES_REPLACE"),
+            )
+            assert entry.actor_id == self.user.id
+            assert entry.target_object == self.project.id
+            assert entry.data == {
+                "project_id": self.project.id,
+                "project_slug": self.project.slug,
+                "repos": [
+                    {
+                        "repository_id": self.repo1.id,
+                        "branch_name": "main",
+                        "instructions": "run tests",
+                        "branch_overrides": [
+                            {
+                                "tag_name": "environment",
+                                "tag_value": "production",
+                                "branch_name": "release",
+                            }
+                        ],
+                    }
+                ],
+            }
+            assert audit_log.get(entry.event).render(entry) == (
+                f"replaced active Seer repository configurations for project {self.project.slug}"
+            )
+
+    def test_invalid_put_does_not_create_audit_log_entry(self):
+        with outbox_runner():
+            self.get_error_response(repos=[{"repositoryId": 99999}], status_code=400)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert not AuditLogEntry.objects.filter(
+                organization_id=self.organization.id,
+                event=audit_log.get_event_id("SEER_PROJECT_REPOSITORIES_REPLACE"),
+            ).exists()
+
     def test_replace_with_empty_clears_all(self):
         self.create_seer_project_repository(self.project, repository=self.repo1)
         self.create_seer_project_repository(self.project, repository=self.repo2)
 
-        self.get_success_response(repos=[], status_code=204)
+        with outbox_runner():
+            self.get_success_response(repos=[], status_code=204)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            entry = AuditLogEntry.objects.get(
+                organization_id=self.organization.id,
+                event=audit_log.get_event_id("SEER_PROJECT_REPOSITORIES_REPLACE"),
+            )
+            assert entry.data["repos"] == []
+
         assert (
             SeerProjectRepository.objects.filter(project_repository__project=self.project).count()
             == 0

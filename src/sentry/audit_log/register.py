@@ -722,6 +722,22 @@ default_manager.add(events.RepoDisabledAuditLogEvent())
 default_manager.add(events.RepoEnabledAuditLogEvent())
 default_manager.add(
     AuditLogEvent(
+        event_id=1173,
+        name="SEER_PROJECT_REPOSITORIES_VIEW",
+        api_name="seer-project-repositories.view",
+        template="viewed Seer repository configurations for project {project_slug}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=1174,
+        name="SEER_PROJECT_REPOSITORIES_REPLACE",
+        api_name="seer-project-repositories.replace",
+        template="replaced active Seer repository configurations for project {project_slug}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
         event_id=219,
         name="DASHBOARD_ADD",
         api_name="dashboard.create",
