@@ -4,11 +4,14 @@ from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import pytest
-from django.db import router, transaction
+from django.db import IntegrityError, router, transaction
 from django.utils import timezone
 
 from sentry.buffer.base import Buffer
-from sentry.integrations.source_code_management.metrics import SCMIntegrationInteractionType
+from sentry.integrations.source_code_management.metrics import (
+    SCMIntegrationInteractionType,
+    SCMResolutionHaltReason,
+)
 from sentry.integrations.types import ExternalProviders
 from sentry.issues.action_log.types import (
     PullRequestClosedAction,
@@ -31,6 +34,7 @@ from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
 from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
+from sentry.receivers.releases import _capture_pull_request_link
 from sentry.signals import buffer_incr_complete, receivers_raise_on_send
 from sentry.silo.base import SiloMode
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
@@ -458,6 +462,50 @@ class ResolvedInPullRequestTest(TestCase):
         mock_lifecycle_event.return_value.capture.assert_called_once_with(assume_success=False)
         lifecycle = mock_lifecycle_event.return_value.capture.return_value.__enter__.return_value
         lifecycle.record_success.assert_called_once_with()
+
+    @receivers_raise_on_send()
+    def test_link_race_records_halt(self) -> None:
+        group = self.create_group()
+        pull_request_id = 123
+        GroupLink.objects.create(
+            group=group,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.pull_request,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=pull_request_id,
+        )
+        event = MagicMock()
+
+        with _capture_pull_request_link(
+            event,
+            group_id=group.id,
+            pull_request_id=pull_request_id,
+        ):
+            MagicMock(side_effect=IntegrityError)()
+
+        lifecycle = event.capture.return_value.__enter__.return_value
+        lifecycle.record_halt.assert_called_once_with(
+            SCMResolutionHaltReason.GROUP_LINK_ALREADY_EXISTS
+        )
+        lifecycle.record_success.assert_not_called()
+
+    @receivers_raise_on_send()
+    def test_non_duplicate_integrity_error_records_failure_and_is_suppressed(self) -> None:
+        group = self.create_group()
+        event = MagicMock()
+        error = IntegrityError()
+
+        with _capture_pull_request_link(
+            event,
+            group_id=group.id,
+            pull_request_id=123,
+        ):
+            MagicMock(side_effect=error)()
+
+        lifecycle = event.capture.return_value.__enter__.return_value
+        lifecycle.record_halt.assert_not_called()
+        lifecycle.record_failure.assert_called_once_with(error)
+        lifecycle.record_success.assert_not_called()
 
     @receivers_raise_on_send()
     def test_existing_link_does_not_record_another_attempt(self) -> None:

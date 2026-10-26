@@ -63,6 +63,10 @@ class SCMIntegrationInteractionType(StrEnum):
     GET_REPO_TREE = "get_repo_tree"
 
 
+class SCMResolutionHaltReason(StrEnum):
+    GROUP_LINK_ALREADY_EXISTS = "group_link_already_exists"
+
+
 @dataclass
 class SCMIntegrationInteractionEvent(IntegrationEventLifecycleMetric):
     """

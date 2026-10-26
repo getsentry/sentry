@@ -1,6 +1,7 @@
 import logging
-from collections.abc import Iterable, Sequence
-from contextlib import nullcontext
+from collections.abc import Iterable, Iterator, Sequence
+from contextlib import contextmanager, nullcontext
+from dataclasses import dataclass
 
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, router, transaction
@@ -13,6 +14,7 @@ from sentry.integrations.analytics import IntegrationResolveCommitEvent, Integra
 from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
+    SCMResolutionHaltReason,
 )
 from sentry.integrations.utils.scm_actors import find_user_for_scm_actor
 from sentry.issues.action_log import (
@@ -53,6 +55,41 @@ from sentry.utils.cache import cache
 from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class _PullRequestLinkOutcome:
+    succeeded: bool = False
+
+
+@contextmanager
+def _capture_pull_request_link(
+    event: SCMIntegrationInteractionEvent | None,
+    *,
+    group_id: int,
+    pull_request_id: int,
+) -> Iterator[_PullRequestLinkOutcome]:
+    outcome = _PullRequestLinkOutcome()
+    lifecycle_context = event.capture(assume_success=False) if event is not None else nullcontext()
+
+    with lifecycle_context as lifecycle:
+        try:
+            yield outcome
+        except IntegrityError as error:
+            link_exists = GroupLink.objects.filter(
+                group_id=group_id,
+                linked_type=GroupLink.LinkedType.pull_request,
+                linked_id=pull_request_id,
+            ).exists()
+            if lifecycle is not None:
+                if link_exists:
+                    lifecycle.record_halt(SCMResolutionHaltReason.GROUP_LINK_ALREADY_EXISTS)
+                else:
+                    lifecycle.record_failure(error)
+        else:
+            if lifecycle is not None:
+                lifecycle.record_success()
+            outcome.succeeded = True
 
 
 def validate_release_empty_version(instance: Release, **kwargs):
@@ -337,66 +374,60 @@ def resolved_in_pull_request(instance: PullRequest, created, **kwargs):
             if repo is not None and repo.provider is not None
             else None
         )
-        lifecycle_context = (
-            event.capture(assume_success=False) if event is not None else nullcontext()
-        )
-        try:
-            with (
-                transaction.atomic(router.db_for_write(GroupLink)),
-                lifecycle_context as lifecycle,
-            ):
-                GroupLink.objects.create(
-                    group_id=group.id,
-                    project_id=group.project_id,
-                    linked_type=GroupLink.LinkedType.pull_request,
-                    relationship=GroupLink.Relationship.resolves,
-                    linked_id=instance.id,
-                )
-                if acting_user:
-                    with (
-                        viewer_context_scope(
-                            ViewerContext(
-                                actor=Actor(type=ActorType.USER, actor_id=acting_user.id),
-                                organization_id=group.project.organization_id,
-                                project_id=group.project_id,
-                            )
-                        ),
-                        action_context_scope(
-                            source=ActionSource.SYSTEM,
-                            actor=GroupActionActor.user(acting_user.id),
-                        ),
-                    ):
-                        GroupAssignee.objects.assign(
-                            group=group, assigned_to=acting_user, acting_user=acting_user
+        with (
+            _capture_pull_request_link(
+                event,
+                group_id=group.id,
+                pull_request_id=instance.id,
+            ) as outcome,
+            transaction.atomic(router.db_for_write(GroupLink)),
+        ):
+            GroupLink.objects.create(
+                group_id=group.id,
+                project_id=group.project_id,
+                linked_type=GroupLink.LinkedType.pull_request,
+                relationship=GroupLink.Relationship.resolves,
+                linked_id=instance.id,
+            )
+            if acting_user:
+                with (
+                    viewer_context_scope(
+                        ViewerContext(
+                            actor=Actor(type=ActorType.USER, actor_id=acting_user.id),
+                            organization_id=group.project.organization_id,
+                            project_id=group.project_id,
                         )
-
-                pr_action_context = get_action_context()
-                if pr_action_context is not None:
-                    pr_source = pr_action_context.source
-                    pr_actor = pr_action_context.actor
-                else:
-                    pr_source = ActionSource.SYSTEM
-                    pr_actor = (
-                        GroupActionActor.user(acting_user.id) if acting_user else SYSTEM_ACTOR
+                    ),
+                    action_context_scope(
+                        source=ActionSource.SYSTEM,
+                        actor=GroupActionActor.user(acting_user.id),
+                    ),
+                ):
+                    GroupAssignee.objects.assign(
+                        group=group, assigned_to=acting_user, acting_user=acting_user
                     )
 
-                with action_context_scope(source=pr_source, actor=pr_actor):
-                    Activity.objects.create(
-                        project_id=group.project_id,
-                        group=group,
-                        type=ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value,
-                        ident=instance.id,
-                        user_id=acting_user.id if acting_user else None,
-                        data={"pull_request": instance.id},
-                    )
-                record_group_history(
-                    group, GroupHistoryStatus.SET_RESOLVED_IN_PULL_REQUEST, actor=acting_user
+            pr_action_context = get_action_context()
+            if pr_action_context is not None:
+                pr_source = pr_action_context.source
+                pr_actor = pr_action_context.actor
+            else:
+                pr_source = ActionSource.SYSTEM
+                pr_actor = GroupActionActor.user(acting_user.id) if acting_user else SYSTEM_ACTOR
+
+            with action_context_scope(source=pr_source, actor=pr_actor):
+                Activity.objects.create(
+                    project_id=group.project_id,
+                    group=group,
+                    type=ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value,
+                    ident=instance.id,
+                    user_id=acting_user.id if acting_user else None,
+                    data={"pull_request": instance.id},
                 )
-                if lifecycle is not None:
-                    lifecycle.record_success()
-        except IntegrityError:
-            pass
-        else:
+            record_group_history(
+                group, GroupHistoryStatus.SET_RESOLVED_IN_PULL_REQUEST, actor=acting_user
+            )
+        if outcome.succeeded:
             if repo is not None and repo.integration_id is not None:
                 analytics.record(
                     IntegrationResolvePREvent(
