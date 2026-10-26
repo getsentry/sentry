@@ -60,7 +60,8 @@ class ServiceAccountViewerContextResponse(TypedDict):
 class SeerSystemViewerContextPermission(BasePermission):
     """
     Only Seer, calling with an org-only ViewerContext for this organization. A
-    service account can't use its own context to get one for another account.
+    service account can't use its own context to get one for another account,
+    since `SeerRpcViewerContextAuthentication` rejects service-account contexts.
     """
 
     def has_permission(self, request: Request, view: object) -> bool:
@@ -72,7 +73,6 @@ class SeerSystemViewerContextPermission(BasePermission):
             return False
         return (
             get_acting_user_id(vc) is None
-            and vc.actor.type != ActorType.SERVICE_ACCOUNT
             and vc.actor.delegated_user_id is None
             and vc.organization_id == obj.id
         )
