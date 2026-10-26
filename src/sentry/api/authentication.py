@@ -48,6 +48,7 @@ from sentry.seer import agent_token
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.token_exchange.util import GrantTypes
+from sentry.service_accounts.auth import authenticate_service_account
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.types.superuser import from_viewer_context_superuser
 from sentry.users.models.user import User
@@ -968,10 +969,13 @@ class ViewerContextAuthentication(BaseAuthentication):
     Identity-only contexts derive access from organization membership. An optional
     Sentry-signed superuser context instead produces an org-bound credential;
     shared access checks validate it again and cap it to read-only scopes.
+    A service account context produces a userless credential bound to the
+    account's organization and current scopes.
     """
 
     def authenticate(self, request: Request) -> tuple[Any, Any] | None:
         from sentry.viewer_context import (
+            ActorType,
             _get_verification_keys,
             get_acting_user_id,
             viewer_context_from_header,
@@ -983,6 +987,14 @@ class ViewerContextAuthentication(BaseAuthentication):
 
         verification_keys = _get_verification_keys()
         vc = viewer_context_from_header(header)
+
+        if vc is not None and vc.actor.type == ActorType.SERVICE_ACCOUNT:
+            service_account_auth = authenticate_service_account(vc)
+            if service_account_auth is None:
+                return None
+            sentry_sdk.get_isolation_scope().set_tag("viewer_context_auth", True)
+            sentry_sdk.get_isolation_scope().set_attribute("viewer_context_auth", True)
+            return (AnonymousUser(), service_account_auth)
 
         user_id = get_acting_user_id(vc)
         superuser = from_viewer_context_superuser(vc.actor.superuser) if vc is not None else None

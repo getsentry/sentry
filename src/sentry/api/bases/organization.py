@@ -49,6 +49,7 @@ from sentry.organizations.services.organization import (
     organization_service,
 )
 from sentry.seer.agent_token import is_agent_auth
+from sentry.service_accounts.auth import is_service_account_auth
 from sentry.types.cell import subdomain_is_locality
 from sentry.utils import auth
 from sentry.utils.hashlib import hash_values
@@ -916,11 +917,12 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
 
         Results are cached for 60s per actor/org/release/effective-project-scope/mode.
         Agent requests bypass the cache so every call rechecks live project membership.
+        Service accounts bypass it too, since their IDs would share `apikey:` keys.
         """
         actor_id = None
         has_perms = None
         key = None
-        if not is_agent_auth(request.auth):
+        if not is_agent_auth(request.auth) and not is_service_account_auth(request.auth):
             if request.user.is_authenticated:
                 actor_id = "user:%s" % request.user.id
             elif request.auth is not None:
