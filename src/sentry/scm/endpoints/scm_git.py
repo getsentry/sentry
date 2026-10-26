@@ -120,8 +120,10 @@ class ScmGitEndpoint(Endpoint):
                 body=_request_body(request._request),
             )
         except RestrictedIPAddress as e:
-            # A 503, like the ApiHostError Sentry's API clients raise for it, and without the
-            # address. GitServer has already counted it.
+            # The provider host resolves to an internal address. GitServer counts that as an
+            # unhandled_exception and doesn't log it, so the log is what names the repository. The
+            # client gets a 503 without the address, like the ApiHostError Sentry's API clients raise.
+            _log_failure("restricted_ip_address", str(e), context)
             return _plain_text(ApiHostError.from_exception(e).text, 503)
         return StreamingHttpResponse(
             response.content, status=response.status_code, headers=response.headers
