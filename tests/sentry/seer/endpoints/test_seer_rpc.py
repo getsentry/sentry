@@ -56,7 +56,7 @@ from sentry.testutils.silo import assume_test_silo_mode_of, cell_silo_test
 from sentry.types.activity import ActivityType
 from sentry.users.models.identity import Identity
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
-from sentry.viewer_context import ActorType, ViewerContext, encode_viewer_context
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 TEST_FERNET_KEY = Fernet.generate_key().decode("utf-8")
 
@@ -1144,9 +1144,10 @@ class TestSeerRpcViewerContextAuth(APITestCase):
 
     def _vc_header(self, *, organization_id: int | None, user_id: int | None = None) -> str:
         vc = ViewerContext(
+            actor=Actor(type=ActorType.USER, actor_id=user_id)
+            if user_id is not None
+            else Actor(type=ActorType.SYSTEM),
             organization_id=organization_id,
-            user_id=user_id,
-            actor_type=ActorType.USER,
         )
         return encode_viewer_context(vc)
 

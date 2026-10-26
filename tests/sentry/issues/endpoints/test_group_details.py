@@ -181,8 +181,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         entry = GroupActionLogEntry.objects.get(
             group_id=group.id, type=GroupActionType.COMMENT.value
         )
-        entry_id = str(entry.id)
-        assert response.data["id"] == entry_id
+        assert response.data["id"] == comment_id
         assert int(comment_id) == entry.data["comment_id"]
 
         # Put the comment at the oldest edge of the 99-item mixed feed.
@@ -204,7 +203,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             f"{comments_url}{comment_id}/", format="json", data={"text": "edited"}
         )
         assert response.status_code == 200, response.content
-        assert response.data["id"] == entry_id
+        assert response.data["id"] == comment_id
         assert response.data["commentId"] == comment_id
         assert response.data["data"]["text"] == "edited"
 

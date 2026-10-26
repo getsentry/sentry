@@ -14,8 +14,13 @@ import {
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {SavedEntityTable} from 'sentry/components/savedEntityTable';
+import {getNextSort} from 'sentry/components/tables/getNextSort';
 import {t} from 'sentry/locale';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {userDisplayName} from 'sentry/utils/formatters';
+import {encodeSort} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useDeleteFormula} from 'sentry/views/explore/hooks/useDeleteFormula';
 import type {
@@ -50,9 +55,24 @@ type Props = {
   formulas: SavedFormula[] | undefined;
   isError: boolean;
   isPending: boolean;
+  sort: Sort;
 };
 
-export function SavedFormulasTable({formulas, isError, isPending}: Props) {
+export function SavedFormulasTable({formulas, isError, isPending, sort}: Props) {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  function handleSort(field: string) {
+    navigate({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        sort: encodeSort(getNextSort(field, sort, 'asc')),
+        cursor: undefined,
+      },
+    });
+  }
+
   return (
     <SavedEntityTable
       columns={COLUMNS}
@@ -62,7 +82,11 @@ export function SavedFormulasTable({formulas, isError, isPending}: Props) {
       emptyMessage={t('No saved formulas found')}
       header={
         <SavedEntityTable.Header>
-          <SavedEntityTable.HeaderCell divider={false}>
+          <SavedEntityTable.HeaderCell
+            divider={false}
+            sort={sort.field === 'name' ? sort.kind : undefined}
+            handleSortClick={() => handleSort('name')}
+          >
             {t('Name')}
           </SavedEntityTable.HeaderCell>
           <SavedEntityTable.HeaderCell>{t('Dataset')}</SavedEntityTable.HeaderCell>

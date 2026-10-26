@@ -36,7 +36,7 @@ from sentry.types.group import PriorityLevel
 from sentry.utils import json, metrics, redis
 from sentry.utils.strings import truncatechars
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
-from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
+from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 from sentry.workflow_engine.models import IncidentGroupOpenPeriod
 from sentry.workflow_engine.processors.detector import (
     associate_new_group_with_detector,
@@ -306,9 +306,9 @@ def save_issue_from_occurrence(
                 with (
                     viewer_context_scope(
                         ViewerContext(
+                            actor=Actor(type=ActorType.SYSTEM),
                             organization_id=project.organization_id,
                             project_id=project.id,
-                            actor_type=ActorType.SYSTEM,
                         )
                     ),
                     action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR),

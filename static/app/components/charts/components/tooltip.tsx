@@ -89,6 +89,28 @@ function getSeriesValue(series: any, offset: number) {
   return;
 }
 
+/**
+ * Orders tooltip series from the highest value to the lowest. Zero values go
+ * last, since they carry the least information, followed by series without a
+ * numeric value.
+ */
+function sortSeriesParamsByValue(
+  seriesParams: CallbackDataParams[]
+): CallbackDataParams[] {
+  const rank = (value: unknown) =>
+    typeof value !== 'number' || Number.isNaN(value) ? 2 : value === 0 ? 1 : 0;
+
+  return [...seriesParams].sort((a, b) => {
+    const aValue = getSeriesValue(a, 1);
+    const bValue = getSeriesValue(b, 1);
+    const rankDifference = rank(aValue) - rank(bValue);
+    if (rankDifference !== 0 || rank(aValue) !== 0) {
+      return rankDifference;
+    }
+    return bValue - aValue;
+  });
+}
+
 type NeededChartProps = 'isGroupedByDate' | 'showTimeInTooltip' | 'utc' | 'bucketSize';
 
 type TooltipFormatters =
@@ -116,6 +138,8 @@ export type FormatterOptions = Pick<
     addSecondsToTimeFormat?: boolean;
     /**
      * Limit the number of series rendered in the tooltip and display "+X more".
+     * Series are listed from the highest value to the lowest, with zero values
+     * last, so the limit drops zeros before anything else.
      */
     limit?: number;
     /**
@@ -230,19 +254,10 @@ export function getFormatter({
         seriesParamsOrParam
       );
 
+    let hiddenSeriesCount = 0;
     if (limit) {
-      const originalLength = seriesParams.length;
-      seriesParams = seriesParams
-        .sort((a, b) => getSeriesValue(b, 1) - getSeriesValue(a, 1))
-        .slice(0, limit);
-      if (originalLength > limit) {
-        // Not a real series, only the fields the rendering below reads are set.
-        seriesParams.push({
-          seriesName: `+${originalLength - limit} more`,
-          value: '',
-          color: 'transparent',
-        } as CallbackDataParams);
-      }
+      hiddenSeriesCount = Math.max(seriesParams.length - limit, 0);
+      seriesParams = sortSeriesParamsByValue(seriesParams).slice(0, limit);
     }
 
     const visibleSeriesParams = seriesParams.filter(getFilter);
@@ -310,6 +325,14 @@ export function getFormatter({
         total: 0,
       }
     );
+
+    if (hiddenSeriesCount > 0) {
+      // Rendered as its own row rather than as a series, so the value and name
+      // formatters never see a series that doesn't exist on the chart.
+      series.push(
+        `<div><span class="tooltip-label"><strong>${t('+%s more', hiddenSeriesCount)}</strong></span></div>`
+      );
+    }
 
     const seriesDetails =
       renderSeriesDetails?.(

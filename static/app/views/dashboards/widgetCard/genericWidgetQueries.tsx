@@ -7,11 +7,7 @@ import type {ResponseMeta} from 'sentry/types/api';
 import type {PageFilters} from 'sentry/types/core';
 import type {Confidence} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import {
-  isAggregateField,
-  type AggregationOutputType,
-  type DataUnit,
-} from 'sentry/utils/discover/fields';
+import {isAggregateField} from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
 import type {IngestionMeta} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -51,8 +47,6 @@ export type OnDataFetchedProps = {
   sampleCount?: number;
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: WidgetTimeSeries[];
-  timeseriesResultsTypes?: Record<string, AggregationOutputType>;
-  timeseriesResultsUnits?: Record<string, DataUnit>;
   totalIssuesCount?: string;
 };
 
@@ -70,8 +64,6 @@ export type GenericWidgetQueriesResult = {
   tableResults?: TableDataWithTitle[];
   timeseriesInterval?: string;
   timeseriesResults?: WidgetTimeSeries[];
-  timeseriesResultsTypes?: Record<string, AggregationOutputType>;
-  timeseriesResultsUnits?: Record<string, DataUnit>;
   totalCount?: string;
 };
 
@@ -103,7 +95,6 @@ type UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
     timeseriesResults,
     totalIssuesCount,
     pageLinks,
-    timeseriesResultsTypes,
   }: OnDataFetchedProps) => void;
   samplingMode?: SamplingMode;
   // Optional selection override - if not provided, usePageFilters hook will be used
@@ -291,8 +282,6 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
       // Call onDataFetched with transformed results
       onDataFetched?.({
         timeseriesResults: (hookResults as any).timeseriesResults,
-        timeseriesResultsTypes: (hookResults as any).timeseriesResultsTypes,
-        timeseriesResultsUnits: (hookResults as any).timeseriesResultsUnits,
       });
     } else {
       // Collect any results from afterFetchTableData callbacks

@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment} from 'react';
 import {IconBroadcast} from '@sentry/icons/broadcast';
 import {IconBuilding} from '@sentry/icons/building';
 import {IconDiscord} from '@sentry/icons/discord';
@@ -45,10 +45,6 @@ export function PrimaryNavigationHelpMenu({
   const contactSupportItem = getContactSupportItem(organization);
   const openForm = useFeedbackForm();
   const {privacyUrl, termsUrl} = useLegacyStore(ConfigStore);
-
-  useEffect(() => {
-    trackAnalytics('intercom_link.viewed', {organization, source: 'sidebar'});
-  }, [organization]);
 
   const items: MenuItemProps[] = [
     ...additionalItems,

@@ -10,7 +10,6 @@ import type {
   TableData,
   TableDataWithTitle,
 } from 'sentry/utils/discover/discoverQuery';
-import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {
   getEquationAliasIndex,
   isEquation,
@@ -282,8 +281,6 @@ export function useSpansSeriesQuery(
     }
 
     const timeseriesResults: WidgetTimeSeries[] = [];
-    const timeseriesResultsTypes: Record<string, AggregationOutputType> = {};
-    const timeseriesResultsUnits: Record<string, DataUnit> = {};
 
     // Iterate active queries only and append densely so skipped invalid-_if
     // queries do not leave undefined holes in series/raw arrays (charts map
@@ -300,7 +297,6 @@ export function useSpansSeriesQuery(
         filteredWidget,
         requestIndex
       );
-      const queryForTransform = widgetForTransform.queries[requestIndex]!;
 
       timeseriesResults.push(
         ...spansResponseTransforms.transformTimeSeries!(
@@ -309,31 +305,12 @@ export function useSpansSeriesQuery(
           requestIndex
         )
       );
-
-      // Get result types and units from config
-      const resultTypes = spansResponseTransforms.getSeriesResultType?.(
-        responseData,
-        queryForTransform
-      );
-      const resultUnits = spansResponseTransforms.getSeriesResultUnit?.(
-        responseData,
-        queryForTransform
-      );
-
-      if (resultTypes) {
-        Object.assign(timeseriesResultsTypes, resultTypes);
-      }
-      if (resultUnits) {
-        Object.assign(timeseriesResultsUnits, resultUnits);
-      }
     });
 
     return {
       loading: false,
       errorMessage: undefined,
       timeseriesResults,
-      timeseriesResultsTypes,
-      timeseriesResultsUnits,
       ingestion: combineIngestionMeta(queryResults.map(q => q?.data)),
       rawData,
     };
