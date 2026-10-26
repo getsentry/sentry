@@ -17,6 +17,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.conditional_get import ConditionalGetResponseMixin
 from sentry.api.exceptions import BadRequest
 from sentry.api.utils import get_date_range_from_params
 from sentry.auth.staff import is_active_staff
@@ -422,11 +423,13 @@ class ProjectTraceItemDetailsEndpointSerializer(serializers.Serializer):
 
 
 @cell_silo_endpoint
-class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
+class ProjectTraceItemDetailsEndpoint(ConditionalGetResponseMixin, ProjectEndpoint):
     owner = ApiOwner.DATA_BROWSING
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
+    # Deletion, retention, and flag rollouts can still change a written item.
+    cache_max_age = 300
 
     @staticmethod
     def get(request: Request, project: Project, item_id: str) -> Response:
