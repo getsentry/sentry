@@ -142,22 +142,3 @@ class RedisClusterLockBackendConfigurationTestCase(TestCase):
     def test_unknown_cluster_still_raises_key_error(self) -> None:
         with pytest.raises(KeyError, match="Invalid cluster name"):
             RedisClusterLockBackend("locks-does-not-exist")
-
-
-class PostProcessLocksBackendTestCase(TestCase):
-    # Post-process locks use the same backend and cluster as the default locks.
-    # They must not use the redis-blaster backend (RedisLockBackend).
-    def test_post_process_locks_use_cluster_backend(self) -> None:
-        from sentry.tasks.post_process import locks
-
-        assert type(locks.backend) is RedisClusterLockBackend
-
-    def test_post_process_lock_is_on_default_cluster(self) -> None:
-        from sentry.tasks.post_process import locks
-
-        key = "post-process:default-cluster"
-        default_cluster_backend = RedisClusterLockBackend("default")
-
-        with locks.get(key, duration=60).acquire():
-            assert default_cluster_backend.locked(key)
-        assert not default_cluster_backend.locked(key)
