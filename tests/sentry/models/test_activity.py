@@ -477,3 +477,27 @@ class ActivityTest(TestCase):
 
         activity.refresh_from_db()
         assert activity.ident is None
+
+    @patch("sentry.issues.attributes.produce_snapshot_to_kafka")
+    def test_creating_note_emits_snapshot(self, produce_snapshot: MagicMock) -> None:
+        group = self.create_group()
+
+        produce_snapshot.reset_mock()
+
+        self.create_group_activity(group=group, type=ActivityType.NOTE.value, data={"text": "hi"})
+
+        assert produce_snapshot.called
+
+    @patch("sentry.issues.attributes.produce_snapshot_to_kafka")
+    def test_deleting_note_emits_snapshot(self, produce_snapshot: MagicMock) -> None:
+        group = self.create_group()
+
+        note = self.create_group_activity(
+            group=group, type=ActivityType.NOTE.value, data={"text": "hi"}
+        )
+
+        produce_snapshot.reset_mock()
+
+        note.delete()
+
+        assert produce_snapshot.called
