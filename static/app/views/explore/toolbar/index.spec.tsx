@@ -141,7 +141,7 @@ describe('ExploreToolbar', () => {
     });
   });
 
-  it('edits transformations in the URL for one span series and excludes equations', async () => {
+  it('keeps existing transformations out of the visualize toolbar', async () => {
     const {router} = render(<ExploreToolbar />, {
       organization: OrganizationFixture({
         ...organization,
@@ -163,28 +163,26 @@ describe('ExploreToolbar', () => {
       },
     });
 
-    const addButtons = screen.getAllByRole('button', {name: 'Add Transformation'});
-    expect(addButtons).toHaveLength(2);
-    await userEvent.click(addButtons[1]!);
-    await userEvent.click(screen.getByRole('option', {name: 'Smooth'}));
-    await waitFor(() =>
-      expect(router.location.query.aggregateField).toEqual([
-        JSON.stringify({groupBy: 'span.op'}),
-        JSON.stringify({
-          yAxes: ['count(span.duration)'],
-          transformations: ['fill(locf)'],
-        }),
-        JSON.stringify({
-          yAxes: ['avg(span.duration)'],
-          transformations: ['smooth(sma,3)'],
-        }),
-        JSON.stringify({yAxes: ['equation|$a + $b']}),
-      ])
-    );
+    expect(await screen.findByRole('button', {name: 'avg'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Add Transformation'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('group', {name: 'Transformation 1'})
+    ).not.toBeInTheDocument();
+    expect(router.location.query.aggregateField).toEqual([
+      JSON.stringify({groupBy: 'span.op'}),
+      JSON.stringify({
+        yAxes: ['count(span.duration)'],
+        transformations: ['fill(locf)'],
+      }),
+      JSON.stringify({yAxes: ['avg(span.duration)']}),
+      JSON.stringify({yAxes: ['equation|$a + $b']}),
+    ]);
   });
 
   it.each([false, true])(
-    'aligns an unfiltered visualize row with transformations enabled=%s',
+    'keeps transformation controls out of unfiltered visualize rows with the flag enabled=%s',
     async enabled => {
       render(<ExploreToolbar />, {
         organization: OrganizationFixture({
@@ -208,17 +206,9 @@ describe('ExploreToolbar', () => {
       });
 
       expect(await screen.findByRole('button', {name: 'epm'})).toBeInTheDocument();
-      const row = screen.getByRole('button', {name: 'Clear Visualize'}).parentElement;
-      expect(row?.style.alignItems).toBe(enabled ? 'flex-start' : '');
-      if (enabled) {
-        expect(
-          screen.getByRole('button', {name: 'Add Transformation'})
-        ).toBeInTheDocument();
-      } else {
-        expect(
-          screen.queryByRole('button', {name: 'Add Transformation'})
-        ).not.toBeInTheDocument();
-      }
+      expect(
+        screen.queryByRole('button', {name: 'Add Transformation'})
+      ).not.toBeInTheDocument();
     }
   );
 
