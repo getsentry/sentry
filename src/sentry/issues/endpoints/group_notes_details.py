@@ -10,8 +10,10 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.deprecation import deprecated
-from sentry.api.serializers import serialize
-from sentry.api.serializers.models.activity import ActivitySerializerResponse, serialize_group_notes
+from sentry.api.serializers.models.activity import (
+    GroupNoteSerializerResponse,
+    serialize_group_notes,
+)
 from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
 from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.constants import RESPONSE_NO_CONTENT
@@ -105,7 +107,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
     @extend_schema(
         request=NoteSerializer,
         responses={
-            200: inline_sentry_response_serializer("UpdateGroupNote", ActivitySerializerResponse)
+            200: inline_sentry_response_serializer("UpdateGroupNote", GroupNoteSerializerResponse)
         },
     )
     @deprecated(
@@ -164,9 +166,6 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
                 else None,
             )
 
-            if serve_from_log and original_comment_log_action is not None:
-                return Response(serialize_group_notes(group, [note], request.user)[0], status=200)
-
-            return Response(serialize(note, request.user), status=200)
+            return Response(serialize_group_notes(group, [note], request.user)[0], status=200)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
