@@ -3708,6 +3708,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Notifications for a curated set of customer organizations in limited access
+register(
+    "notifications.platform-rollout.limited-access",
+    type=Dict,
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Notifications for early adopter organizations
 register(
     "notifications.platform-rollout.early-adopter",
