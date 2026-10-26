@@ -33,6 +33,7 @@ from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializer
 from sentry.grouping.grouptype import ErrorGroupType
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.issues.action_log import ActionSource, GroupActionActor, action_context_scope
 from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.issues.issue_search import parse_search_query
@@ -62,6 +63,13 @@ from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
+from sentry.viewer_context import Actor as ContextActor
+from sentry.viewer_context import (
+    ActorType,
+    ViewerContext,
+    get_viewer_context,
+    viewer_context_scope,
+)
 from sentry.workflow_engine.models import Detector
 
 pytestmark = [requires_snuba]
@@ -868,6 +876,10 @@ class UpdateGroupsTest(TestCase):
     def test_resolve_in_next_release_activity_from_action_log(self) -> None:
         self.create_release(project=self.project, version="test@1.0.0.0")
         group = self.create_group(status=GroupStatus.UNRESOLVED)
+        with self.feature({"projects:issue-action-log-write-to-db": False}):
+            note = self.create_group_activity(
+                group=group, type=ActivityType.NOTE.value, data={"text": "no GAL event"}
+            )
         GroupActionLogEntry.objects.create(
             group_id=group.id,
             project_id=group.project_id,
@@ -891,6 +903,10 @@ class UpdateGroupsTest(TestCase):
         # the action log was served rather than Activity
         assert "set_resolved" in [entry["type"] for entry in activity]
         assert activity[-1]["id"] == "0"
+        notes = [item for item in activity if item["type"] == "note"]
+        assert len(notes) == 1
+        assert notes[0]["id"] == notes[0]["commentId"] == str(note.id)
+        assert notes[0]["data"]["text"] == "no GAL event"
 
     def test_resolve_in_next_release_falls_back_when_action_log_is_empty(self) -> None:
         # A gated project can still read an empty log: the GALE write for this
@@ -906,7 +922,7 @@ class UpdateGroupsTest(TestCase):
         group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
         with (
             action_log_activity_enabled(),
-            patch.object(GroupActionLogEntry.objects, "get_actions_for_group", return_value=[]),
+            outbox_context(flush=False),
             self.assertLogs(
                 "sentry.api.serializers.models.groupactionlogentry", level="INFO"
             ) as logs,
@@ -917,8 +933,8 @@ class UpdateGroupsTest(TestCase):
             record.message == "issues.action_log.activity_read.not_found" for record in logs.records
         )
         assert response is not None
-        # the log read is patched to return nothing, so anything here came from Activity
-        assert "activity" in response.data
+        assert not GroupActionLogEntry.objects.filter(group_id=group.id).exists()
+        assert "set_resolved_in_release" in [item["type"] for item in response.data["activity"]]
 
     def test_resolve_in_next_release_ignores_action_log_when_disabled(self) -> None:
         # With the gate closed the log may cover only part of this project's history,
@@ -1950,6 +1966,19 @@ class DeleteGroupsTest(TestCase):
         self, send_robust: Mock, mock_delete_seer_grouping_records_by_hash: MagicMock
     ) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
+        request_context = ViewerContext(
+            actor=ContextActor(type=ActorType.USER, actor_id=self.user.id)
+        )
+
+        def assert_viewer_context(*_args: object, **_kwargs: object) -> None:
+            viewer_context = get_viewer_context()
+            assert isinstance(viewer_context, ViewerContext)
+            assert viewer_context.organization_id == self.organization.id
+            assert viewer_context.project_id == self.project.id
+            assert viewer_context.actor.actor_id == self.user.id
+            assert viewer_context.actor.type == ActorType.USER
+
+        mock_delete_seer_grouping_records_by_hash.side_effect = assert_viewer_context
 
         groups = [self.create_group(), self.create_group()]
         group_ids = [group.id for group in groups]
@@ -1961,7 +1990,7 @@ class DeleteGroupsTest(TestCase):
             GroupHash.objects.create(project=self.project, group=group, hash=hashes[i])
             add_group_to_inbox(group, GroupInboxReason.NEW)
 
-        with self.tasks():
+        with self.tasks(), viewer_context_scope(request_context):
             schedule_tasks_to_delete_groups(request, [self.project], self.organization.id)
 
         assert (

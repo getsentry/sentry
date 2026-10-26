@@ -1,28 +1,15 @@
 import {useCallback, useMemo} from 'react';
-import {
-  keepPreviousData,
-  queryOptions,
-  useQueries,
-  type UseQueryResult,
-} from '@tanstack/react-query';
+import {queryOptions, useQueries, type UseQueryResult} from '@tanstack/react-query';
 import trimStart from 'lodash/trimStart';
 
-import type {Series} from 'sentry/types/echarts';
-import type {
-  EventsStats,
-  GroupedMultiSeriesEventsStats,
-  MultiSeriesEventsStats,
-} from 'sentry/types/organization';
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {toArray} from 'sentry/utils/array/toArray';
-import {getUtcDateString} from 'sentry/utils/dates';
 import type {
   EventsTableData,
   TableData,
   TableDataWithTitle,
 } from 'sentry/utils/discover/discoverQuery';
-import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {
   getEquationAliasIndex,
   isEquation,
@@ -31,7 +18,6 @@ import {
 import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {encodeSort} from 'sentry/utils/queryString';
-import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {
@@ -41,8 +27,10 @@ import {
 import {spansResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/spansResponseTransforms';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
-import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
-import {shouldUseEventsTimeseries} from 'sentry/views/dashboards/utils/shouldUseEventsTimeseries';
+import {
+  combineIngestionMeta,
+  type WidgetTimeSeries,
+} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
@@ -55,7 +43,6 @@ import {
 } from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
 import {getTimeseriesWidgetQueryOptions} from 'sentry/views/dashboards/widgetCard/hooks/utils/getTimeseriesWidgetQueryOptions';
-import {useEventsTimeseriesSpotCheck} from 'sentry/views/dashboards/widgetCard/hooks/utils/useEventsTimeseriesSpotCheck';
 import {
   getConditionalFilterInvalidSeriesMessageForAggregates,
   getValidAggregatesForRequest,
@@ -65,11 +52,6 @@ import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/comp
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 import {SpanFields} from 'sentry/views/insights/types';
 
-type SpansSeriesResponse =
-  | EventsStats
-  | MultiSeriesEventsStats
-  | GroupedMultiSeriesEventsStats
-  | EventsTimeSeriesResponse;
 type SpansTableResponse = TableData | EventsTableData;
 
 /**
@@ -196,7 +178,6 @@ export function useSpansSeriesQuery(
   } = params;
 
   const {queue} = useWidgetQueryQueue();
-  const isEventsTimeseriesEnabled = shouldUseEventsTimeseries(organization);
 
   // Apply dashboard filters
   const filteredWidget = useMemo(
@@ -237,7 +218,6 @@ export function useSpansSeriesQuery(
     return {
       requestData,
       skippedForInvalidConditionalFilter,
-      widgetQuery: widgetForRequest.queries[queryIndex]!,
     };
   });
 
@@ -245,7 +225,7 @@ export function useSpansSeriesQuery(
   // structurally shares `combine` output, so `data` keeps its reference while the
   // responses are unchanged, even when this callback is recreated.
   const combine = useCallback(
-    (results: Array<UseQueryResult<SpansSeriesResponse>>) => {
+    (results: Array<UseQueryResult<EventsTimeSeriesResponse>>) => {
       const combined = combineWidgetQueryResults(results);
       return {
         ...combined,
@@ -258,89 +238,16 @@ export function useSpansSeriesQuery(
   );
 
   const {results: queryResults, data: rawData} = useQueries({
-    queries: seriesRequests.map(({requestData, skippedForInvalidConditionalFilter}) => {
-      if (!isEventsTimeseriesEnabled) {
-        // Transform requestData into proper query params
-        const {
-          organization: _org,
-          includeAllArgs: _includeAllArgs,
-          includePrevious: _includePrevious,
-          generatePathname: _generatePathname,
-          period,
-          ...restParams
-        } = requestData;
-
-        const queryParams = {
-          ...restParams,
-          ...(period ? {statsPeriod: period} : {}),
-          excludeOther: restParams.excludeOther ? '1' : undefined,
-          partial: restParams.partial ? '1' : undefined,
-        };
-
-        if (queryParams.start) {
-          queryParams.start = getUtcDateString(queryParams.start);
-        }
-        if (queryParams.end) {
-          queryParams.end = getUtcDateString(queryParams.end);
-        }
-
-        return queryOptions({
-          ...apiOptions.as<SpansSeriesResponse>()(
-            '/organizations/$organizationIdOrSlug/events-stats/',
-            {
-              path: {organizationIdOrSlug: organization.slug},
-              method: 'GET' as const,
-              query: queryParams,
-              staleTime: getWidgetStaleTime(pageFilters),
-            }
-          ),
-          queryFn: (context): Promise<ApiResponse<SpansSeriesResponse>> => {
-            if (queue) {
-              return new Promise((resolve, reject) => {
-                const fetchFnRef = {
-                  current: () =>
-                    apiFetch<SpansSeriesResponse>(context).then(resolve, reject),
-                };
-                queue.addItem({fetchDataRef: fetchFnRef});
-              });
-            }
-            return apiFetch<SpansSeriesResponse>(context);
-          },
-          enabled: enabled && !skippedForInvalidConditionalFilter,
-          retry: false,
-          retryDelay: getRetryDelay,
-          placeholderData: keepPreviousData,
-        });
-      }
-
-      return getTimeseriesWidgetQueryOptions({
+    queries: seriesRequests.map(({requestData, skippedForInvalidConditionalFilter}) =>
+      getTimeseriesWidgetQueryOptions({
         organization,
         pageFilters,
         queue,
         enabled: enabled && !skippedForInvalidConditionalFilter,
         query: convertEventStatsRequestDataToEventTimeseriesQueryParams(requestData),
-      });
-    }),
-    combine,
-  });
-
-  useEventsTimeseriesSpotCheck({
-    config: spansResponseTransforms,
-    enabled,
-    statsQueryResults: queryResults,
-    organization,
-    pageFilters,
-    widget: filteredWidget,
-    timeSeriesQueries: seriesRequests.map(
-      ({requestData, skippedForInvalidConditionalFilter, widgetQuery}) =>
-        skippedForInvalidConditionalFilter
-          ? undefined
-          : {
-              params:
-                convertEventStatsRequestDataToEventTimeseriesQueryParams(requestData),
-              widgetQuery,
-            }
+      })
     ),
+    combine,
   });
 
   const transformedData = (() => {
@@ -373,9 +280,7 @@ export function useSpansSeriesQuery(
       };
     }
 
-    const timeseriesResults: Series[] = [];
-    const timeseriesResultsTypes: Record<string, AggregationOutputType> = {};
-    const timeseriesResultsUnits: Record<string, DataUnit> = {};
+    const timeseriesResults: WidgetTimeSeries[] = [];
 
     // Iterate active queries only and append densely so skipped invalid-_if
     // queries do not leave undefined holes in series/raw arrays (charts map
@@ -388,49 +293,25 @@ export function useSpansSeriesQuery(
 
       const responseData = q.data;
 
-      const queryForTransform = withValidConditionalAggregates(
+      const widgetForTransform = withValidConditionalAggregates(
         filteredWidget,
         requestIndex
-      ).queries[requestIndex]!;
-
-      const transformedResult = spansResponseTransforms.transformSeries!(
-        responseData,
-        queryForTransform,
-        organization
-      );
-      const seriesQueryPrefix = getSeriesQueryPrefix(queryForTransform, filteredWidget);
-
-      transformedResult.forEach((result: Series) => {
-        if (seriesQueryPrefix) {
-          result.seriesName = `${seriesQueryPrefix}${SERIES_QUERY_DELIMITER}${result.seriesName}`;
-        }
-        timeseriesResults.push(result);
-      });
-
-      // Get result types and units from config
-      const resultTypes = spansResponseTransforms.getSeriesResultType?.(
-        responseData,
-        queryForTransform
-      );
-      const resultUnits = spansResponseTransforms.getSeriesResultUnit?.(
-        responseData,
-        queryForTransform
       );
 
-      if (resultTypes) {
-        Object.assign(timeseriesResultsTypes, resultTypes);
-      }
-      if (resultUnits) {
-        Object.assign(timeseriesResultsUnits, resultUnits);
-      }
+      timeseriesResults.push(
+        ...spansResponseTransforms.transformTimeSeries!(
+          responseData,
+          widgetForTransform,
+          requestIndex
+        )
+      );
     });
 
     return {
       loading: false,
       errorMessage: undefined,
       timeseriesResults,
-      timeseriesResultsTypes,
-      timeseriesResultsUnits,
+      ingestion: combineIngestionMeta(queryResults.map(q => q?.data)),
       rawData,
     };
   })();

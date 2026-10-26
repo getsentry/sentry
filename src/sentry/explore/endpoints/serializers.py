@@ -1,3 +1,4 @@
+import logging
 from datetime import timedelta
 
 from rest_framework import serializers
@@ -11,6 +12,8 @@ from sentry.utils.dates import parse_stats_period, validate_interval
 
 MAX_CROSS_EVENT_QUERIES = 2
 MAX_CROSS_EVENT_RANGE = timedelta(days=7)
+
+logger = logging.getLogger(__name__)
 
 
 class VisualizeSerializer(serializers.Serializer):
@@ -201,7 +204,7 @@ class ExploreSavedQuerySerializer(serializers.Serializer):
         allow_null=True,
         help_text="The saved end time for this saved query.",
     )
-    range = serializers.CharField(
+    statsPeriod = serializers.CharField(
         required=False,
         allow_null=True,
         help_text="The saved time range period for this saved query.",
@@ -250,7 +253,7 @@ class ExploreSavedQuerySerializer(serializers.Serializer):
         query = {}
         query_keys = [
             "environment",
-            "range",
+            "statsPeriod",
             "start",
             "end",
             "interval",

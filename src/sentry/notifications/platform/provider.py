@@ -83,17 +83,17 @@ def integration_error_result(e: IntegrationError, *, is_threaded: bool = False) 
     )
 
 
-class IntegrationNotificationClient[RenderableT, ThreadingResponseT = dict[str, Any]](Protocol):
+class IntegrationNotificationClient[RenderableT, ResponseT = dict[str, Any]](Protocol):
     def send_notification(
         self, target: IntegrationNotificationTarget, payload: RenderableT
-    ) -> None: ...
+    ) -> ResponseT | None: ...
 
     def send_notification_with_threading(
         self,
         target: IntegrationNotificationTarget,
         payload: RenderableT,
         threading_context: ProviderThreadingContext,
-    ) -> ThreadingResponseT: ...
+    ) -> ResponseT: ...
 
 
 class NotificationProvider[RenderableT](Protocol):

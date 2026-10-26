@@ -13,7 +13,13 @@ from sentry.taskworker.adapters import (
     ViewerContextHook,
     make_producer,
 )
-from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context, viewer_context_scope
+from sentry.viewer_context import (
+    Actor,
+    ActorType,
+    ViewerContext,
+    get_viewer_context,
+    viewer_context_scope,
+)
 
 
 @pytest.mark.django_db
@@ -89,14 +95,14 @@ class TestViewerContextHook:
     def test_on_dispatch_with_context(self) -> None:
         hook = ViewerContextHook()
         headers: dict[str, str] = {}
-        ctx = ViewerContext(organization_id=42, user_id=7, actor_type=ActorType.USER)
+        ctx = ViewerContext(actor=Actor(type=ActorType.USER, actor_id=7), organization_id=42)
         with viewer_context_scope(ctx):
             hook.on_dispatch(headers)
 
         payload = orjson.loads(headers["sentry-viewer-context"])
         assert payload["organization_id"] == 42
-        assert payload["user_id"] == 7
-        assert payload["actor_type"] == "user"
+        assert payload["actor"]["id"] == 7
+        assert payload["actor"]["type"] == "user"
 
     def test_on_dispatch_without_context(self) -> None:
         hook = ViewerContextHook()
@@ -108,28 +114,28 @@ class TestViewerContextHook:
     def test_on_dispatch_partial_context(self) -> None:
         hook = ViewerContextHook()
         headers: dict[str, str] = {}
-        ctx = ViewerContext(organization_id=42, actor_type=ActorType.SYSTEM)
+        ctx = ViewerContext(actor=Actor(type=ActorType.SYSTEM), organization_id=42)
         with viewer_context_scope(ctx):
             hook.on_dispatch(headers)
 
         payload = orjson.loads(headers["sentry-viewer-context"])
         assert payload["organization_id"] == 42
         assert "user_id" not in payload
-        assert payload["actor_type"] == "system"
+        assert payload["actor"]["type"] == "system"
 
     def test_on_execute_restores_context(self) -> None:
         hook = ViewerContextHook()
         headers = {
             "sentry-viewer-context": orjson.dumps(
-                {"organization_id": 42, "user_id": 7, "actor_type": "user"}
+                {"version": 2, "organization_id": 42, "actor": {"type": "user", "id": 7}}
             ).decode(),
         }
         with hook.on_execute(headers):
             ctx = get_viewer_context()
-            assert ctx is not None
+            assert isinstance(ctx, ViewerContext)
             assert ctx.organization_id == 42
-            assert ctx.user_id == 7
-            assert ctx.actor_type == ActorType.USER
+            assert ctx.actor.id == (ActorType.USER, 7)
+            assert ctx.actor.type == ActorType.USER
 
         assert get_viewer_context() is None
 
@@ -142,31 +148,33 @@ class TestViewerContextHook:
         hook = ViewerContextHook()
         headers = {
             "sentry-viewer-context": orjson.dumps(
-                {"organization_id": 99, "actor_type": "integration"}
+                {"version": 2, "organization_id": 99, "actor": {"type": "integration"}}
             ).decode(),
         }
         with hook.on_execute(headers):
             ctx = get_viewer_context()
-            assert ctx is not None
+            assert isinstance(ctx, ViewerContext)
             assert ctx.organization_id == 99
-            assert ctx.user_id is None
-            assert ctx.actor_type == ActorType.INTEGRATION
+            assert ctx.actor.id == (ActorType.INTEGRATION, None)
+            assert ctx.actor.type == ActorType.INTEGRATION
 
     def test_roundtrip(self) -> None:
         """Dispatch then execute produces the same ViewerContext."""
         hook = ViewerContextHook()
         headers: dict[str, str] = {}
 
-        original = ViewerContext(organization_id=123, user_id=456, actor_type=ActorType.USER)
+        original = ViewerContext(
+            actor=Actor(type=ActorType.USER, actor_id=456), organization_id=123
+        )
         with viewer_context_scope(original):
             hook.on_dispatch(headers)
 
         with hook.on_execute(headers):
             restored = get_viewer_context()
-            assert restored is not None
+            assert isinstance(restored, ViewerContext)
             assert restored.organization_id == original.organization_id
-            assert restored.user_id == original.user_id
-            assert restored.actor_type == original.actor_type
+            assert restored.actor.actor_id == original.actor.actor_id
+            assert restored.actor.type == original.actor.type
 
     def test_on_execute_malformed_json(self) -> None:
         hook = ViewerContextHook()

@@ -5,7 +5,7 @@ import type {Location} from 'history';
 
 import {Tag, type TagProps} from '@sentry/scraps/badge';
 import {InfoText} from '@sentry/scraps/info';
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Container, Stack, type ContainerProps} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -17,6 +17,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {PerformanceDuration} from 'sentry/components/performanceDuration';
+import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct, tn} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
@@ -42,13 +43,9 @@ import {
   isPartialSpanOrTraceData,
 } from './utils';
 
-export const ProjectBadgeWrapper = styled('span')`
-  /**
-   * Max of 2 visible projects, 16px each, 2px border, 8px overlap.
-   */
-  width: 32px;
-  min-width: 32px;
-`;
+export function ProjectBadgeWrapper(props: ContainerProps<'span'>) {
+  return <Container as="span" width="32px" minWidth="32px" {...props} />;
+}
 
 export function SpanDescriptionRenderer({
   span,
@@ -447,6 +444,7 @@ export function SpanIdRenderer({
   const location = useLocation();
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const [caseInsensitive] = useCaseInsensitivity();
 
   const shortSpanId = getShortEventId(spanId);
 
@@ -474,6 +472,7 @@ export function SpanIdRenderer({
               similarSpans: (
                 <Link
                   to={getSimilarEventsUrl({
+                    caseInsensitive,
                     queryString: search.formatString(),
                     organization,
                     projectIds,
@@ -532,6 +531,7 @@ export function TraceIdRenderer({
 }: TraceIdRendererProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const [caseInsensitive] = useCaseInsensitivity();
 
   const shortId = getShortEventId(traceId);
 
@@ -561,6 +561,7 @@ export function TraceIdRenderer({
               similarTraces: (
                 <Link
                   to={getSimilarEventsUrl({
+                    caseInsensitive,
                     queryString: search.formatString(),
                     table: 'trace',
                     organization,

@@ -5,7 +5,7 @@ import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {Grid, type GridProps, Stack} from '@sentry/scraps/layout';
+import {Grid, type GridProps, Stack, Container} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
 
 import {bulkUpdate} from 'sentry/actionCreators/group';
@@ -193,7 +193,7 @@ export function ShareIssueModal({
           {hasPublicShare && (
             <Fragment>
               <SectionDivider orientation="horizontal" />
-              <SwitchWrapper>
+              <Grid align="center" gap="xl" columns="1fr max-content max-content">
                 <div>
                   <Title>{t('Create a public link')}</Title>
                   <SubText>
@@ -207,7 +207,7 @@ export function ShareIssueModal({
                   size="lg"
                   onChange={handlePublicShare}
                 />
-              </SwitchWrapper>
+              </Grid>
               {group && !loading && isPublished && shareUrl && (
                 <Fragment>
                   <UrlContainer>
@@ -227,7 +227,7 @@ export function ShareIssueModal({
                       analyticsEventName="Issue Details: Publish Issue Modal Generate New URL"
                     />
                   </UrlContainer>
-                  <ButtonContainer>
+                  <Container alignSelf="flex-end">
                     <Button
                       size="sm"
                       variant="primary"
@@ -242,7 +242,7 @@ export function ShareIssueModal({
                     >
                       {t('Copy Public Link')}
                     </Button>
-                  </ButtonContainer>
+                  </Container>
                 </Fragment>
               )}
             </Fragment>
@@ -293,13 +293,6 @@ const StyledButtonBar = styled((props: GridProps) => (
   justify-content: flex-end;
 `;
 
-const SwitchWrapper = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr max-content max-content;
-  align-items: center;
-  gap: ${p => p.theme.space.xl};
-`;
-
 const Title = styled('div')`
   padding-right: ${p => p.theme.space['3xl']};
   white-space: nowrap;
@@ -314,8 +307,4 @@ const ReshareButton = styled(Button)`
   border-radius: 0;
   height: 100%;
   flex-shrink: 0;
-`;
-
-const ButtonContainer = styled('div')`
-  align-self: flex-end;
 `;

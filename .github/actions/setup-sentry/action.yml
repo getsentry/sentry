@@ -10,7 +10,7 @@ inputs:
   python-version:
     description: 'python version to install'
     required: false
-    default: '3.13.15'
+    default: '3.13.17'
   mode:
     description: 'Mode to bring up by new devservices'
     required: false
@@ -103,7 +103,7 @@ runs:
 
     - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
       with:
-        version: '0.12.10'
+        version: '0.13.5'
         # we just cache the venv-dir directly in action-setup-venv
         enable-cache: false
 

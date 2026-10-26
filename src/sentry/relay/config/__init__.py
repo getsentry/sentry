@@ -17,6 +17,7 @@ from sentry.constants import (
 )
 from sentry.dynamic_sampling import generate_rules
 from sentry.grouping.api import get_grouping_config_dict_for_project
+from sentry.ingest import legacy_filter_lists
 from sentry.ingest.inbound_filters import (
     FilterStatKeys,
     FilterTypes,
@@ -149,11 +150,11 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
     )
 
     if filter_features.custom_inbound_filters:
-        invalid_releases = project.get_option(f"sentry:{FilterTypes.RELEASES}")
+        invalid_releases = legacy_filter_lists.get_applied_lines(project, FilterTypes.RELEASES)
         if invalid_releases:
             filter_settings["releases"] = {"releases": invalid_releases}
 
-        error_messages = project.get_option(f"sentry:{FilterTypes.ERROR_MESSAGES}")
+        error_messages = legacy_filter_lists.get_applied_lines(project, FilterTypes.ERROR_MESSAGES)
         if error_messages:
             filter_settings["errorMessages"] = {"patterns": error_messages}
 

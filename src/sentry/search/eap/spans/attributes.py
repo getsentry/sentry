@@ -30,6 +30,7 @@ from sentry.search.utils import DEVICE_CLASS, validate_event_id, validate_span_i
 from sentry.utils.validators import (
     is_empty_string,
     normalize_event_id_strict,
+    normalize_span_id,
 )
 
 logger = logging.getLogger(__name__)
@@ -46,6 +47,8 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             internal_name="sentry.item_id",
             search_type="string",
             validator=validate_span_id,
+            normalizer=normalize_span_id,
+            canonical_case=True,
         ),
         ResolvedAttribute(
             public_alias="parent_span",
@@ -151,6 +154,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
             validator=validate_event_id,
             normalizer=normalize_event_id_strict,
+            canonical_case=True,
             context=AttributeContext(
                 brief=(
                     "A trace represents the record of the entire operation you want to "
@@ -247,6 +251,11 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
         ),
         ResolvedAttribute(
+            public_alias="gen_ai.tool.call.result.size",
+            internal_name="gen_ai.tool.call.result.size",
+            search_type="byte",
+        ),
+        ResolvedAttribute(
             public_alias="gen_ai.usage.input_tokens",
             internal_name="gen_ai.usage.input_tokens",
             search_type="integer",
@@ -299,6 +308,21 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         ResolvedAttribute(
             public_alias="gen_ai.cost.total_tokens",
             internal_name="gen_ai.cost.total_tokens",
+            search_type="currency",
+        ),
+        ResolvedAttribute(
+            public_alias="gen_ai.cost.cache_read.input_tokens",
+            internal_name="gen_ai.cost.cache_read.input_tokens",
+            search_type="currency",
+        ),
+        ResolvedAttribute(
+            public_alias="gen_ai.cost.cache_creation.input_tokens",
+            internal_name="gen_ai.cost.cache_creation.input_tokens",
+            search_type="currency",
+        ),
+        ResolvedAttribute(
+            public_alias="gen_ai.cost.reasoning.output_tokens",
+            internal_name="gen_ai.cost.reasoning.output_tokens",
             search_type="currency",
         ),
         ResolvedAttribute(

@@ -19,7 +19,6 @@ import {
   INPUT_STORAGE_KEY_PREFIX,
   SeerExplorerContent,
 } from 'sentry/views/seerExplorer/components/seerExplorerContent';
-import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/seerExplorerHeader';
 import * as useSeerExplorerModule from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
@@ -42,7 +41,6 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   isTimedOut: false,
   runId: null,
   overrideBashModeEnabled: false,
-  overrideCtxEngEnable: true,
   overrideCodeModeEnable: 'off',
   hasSentInterrupt: false,
   sendMessage: jest.fn(),
@@ -52,7 +50,6 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   interruptRun: jest.fn(),
   respondToUserInput: jest.fn(),
   setOverrideBashModeEnabled: jest.fn(),
-  setOverrideCtxEngEnable: jest.fn(),
   setOverrideCodeModeEnable: jest.fn(),
 };
 
@@ -1623,13 +1620,7 @@ describe('SeerExplorerContent', () => {
     });
   });
 
-  describe('Context Engine Toggle', () => {
-    const orgWithFlag = OrganizationFixture({
-      openMembership: true,
-      hideAiFeatures: false,
-      features: ['seer-explorer', 'seer-explorer-context-engine-fe-override-ui-flag'],
-    });
-
+  describe('Debug menu', () => {
     beforeEach(() => {
       ConfigStore.set(
         'user',
@@ -1655,37 +1646,6 @@ describe('SeerExplorerContent', () => {
       );
       await screen.findByTestId('seer-explorer-input');
       expect(screen.queryByRole('button', {name: 'Debug'})).not.toBeInTheDocument();
-    });
-
-    it('shows the context engine toggle in the debug menu when the flag is enabled', async () => {
-      render(
-        <SeerExplorerSessionsProvider>
-          <SeerExplorerHeader
-            onNewChatClick={() => {}}
-            onChangeSession={() => {}}
-            onCopySessionClick={undefined}
-            onCopyLinkClick={undefined}
-            overrideCtxEngEnable
-            onOverrideCtxEngEnableToggle={() => {}}
-            overrideBashModeEnabled={false}
-            onOverrideBashModeToggle={() => {}}
-            showThinking={false}
-            onShowThinkingToggle={() => {}}
-            isPipSupported={false}
-            isPoppedOut={false}
-            onTogglePictureInPicture={() => {}}
-          />
-        </SeerExplorerSessionsProvider>,
-        {
-          organization: orgWithFlag,
-        }
-      );
-
-      await screen.findByText('Seer Agent');
-      await userEvent.click(await screen.findByRole('button', {name: 'Debug'}));
-      expect(
-        await screen.findByRole('option', {name: /Context Engine/})
-      ).toBeInTheDocument();
     });
   });
 

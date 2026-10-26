@@ -1,0 +1,146 @@
+---
+title: Activity Timeline Layout
+description: A vertical timeline for events and related content.
+category: patterns
+source: sentry/views/issueDetails/activitySection/timeline
+---
+
+import {IconChat} from '@sentry/icons/chat';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import * as Storybook from 'sentry/stories';
+import {GroupActivityType} from 'sentry/types/group';
+import {ActivityLineHeadline} from 'sentry/views/issueDetails/activitySection/activityLineItem/layout';
+import {
+  ActivityLineDotMarker,
+  ActivityLineMarker,
+} from 'sentry/views/issueDetails/activitySection/activityLineItem/marker';
+import {Timeline} from 'sentry/views/issueDetails/activitySection/timeline';
+
+Use `Timeline.Container` to group items. Each `Timeline.Item` takes a `marker`,
+a `headline`, and optional children.
+
+export function TimelineExample() {
+  return (
+    <Timeline.Container>
+      <Timeline.Item
+        marker={
+          <Flex
+            width="22px"
+            height="22px"
+            paddingTop="2xs"
+            align="center"
+            justify="center"
+            position="relative"
+            background="secondary"
+          >
+            <IconChat />
+          </Flex>
+        }
+        headline={<Text bold>Investigation update</Text>}
+      >
+        <Stack gap="sm" paddingTop="md">
+          <Text bold>Context</Text>
+          <Text>The latest release reproduces the issue.</Text>
+        </Stack>
+      </Timeline.Item>
+      <Timeline.Item
+        marker={
+          <Flex
+            width="22px"
+            height="22px"
+            paddingTop="2xs"
+            align="center"
+            justify="center"
+            position="relative"
+            background="secondary"
+          >
+            <IconChat />
+          </Flex>
+        }
+        headline={<Text bold>Follow-up requested</Text>}
+      />
+    </Timeline.Container>
+  );
+}
+
+<Storybook.Demo resizable direction="column" align="stretch" standalone>
+  <TimelineExample />
+</Storybook.Demo>
+
+```jsx
+<TimelineExample />
+```
+
+## Card rows
+
+Use `variant="card"` to frame an event's marker, headline, and related content
+together. The default variant leaves the marker on the timeline and places content
+beneath the headline. Both variants can appear in the same timeline.
+
+Resize this example to check headline wrapping and alignment between card rows and
+ordinary rows. Leave space to the left of the timeline for the card's padding.
+
+export function CardTimelineExample() {
+  return (
+    <Stack paddingLeft="lg">
+      <Timeline.Container>
+        <Timeline.Item
+          marker={<ActivityLineDotMarker />}
+          headline={
+            <ActivityLineHeadline title="Issue regressed" timestamp="5 minutes ago" />
+          }
+        />
+        <Timeline.Item
+          variant="card"
+          marker={
+            <ActivityLineMarker
+              item={{
+                id: 'plan-completed',
+                type: GroupActivityType.SEER_SOLUTION_COMPLETED,
+                data: {run_id: 1},
+                dateCreated: '2026-10-01T12:00:00Z',
+                user: null,
+              }}
+            />
+          }
+          headline={
+            <ActivityLineHeadline
+              title="Plan created"
+              timestamp="October 1, 2026 at 12:00 PM"
+            />
+          }
+        >
+          <Text>
+            Validate the search query before scheduling the background task, and return a
+            helpful error when the query is invalid so one malformed request cannot
+            interrupt processing for the remaining tasks.
+          </Text>
+        </Timeline.Item>
+        <Timeline.Item
+          marker={<ActivityLineDotMarker />}
+          headline={
+            <ActivityLineHeadline title="Issue first seen" timestamp="2 hours ago" />
+          }
+        />
+      </Timeline.Container>
+    </Stack>
+  );
+}
+
+<Storybook.Demo resizable direction="column" align="stretch" standalone>
+  <CardTimelineExample />
+</Storybook.Demo>
+
+```jsx
+<CardTimelineExample />
+```
+
+## Timeline.Item props
+
+| Prop       | Type                  | Default     | Description                                              |
+| ---------- | --------------------- | ----------- | -------------------------------------------------------- |
+| `marker`   | `React.ReactNode`     | Required    | Avatar, icon, or dot identifying the event.              |
+| `headline` | `React.ReactNode`     | Required    | Event title and related metadata.                        |
+| `children` | `React.ReactNode`     | —           | Content associated with the event.                       |
+| `variant`  | `'default' \| 'card'` | `'default'` | Arrange the event as an ordinary row or a bordered card. |
