@@ -87,6 +87,42 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
         )
 
 
+@cell_silo_endpoint
+@extend_schema(tags=["Seer"])
+class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.ML_AI
+    publish_status = {"GET": ApiPublishStatus.PRIVATE}
+    permission_classes = (OrganizationPermission,)
+
+    @extend_schema(
+        operation_id="Retrieve a Seer automation workflow",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        responses={200: SeerWorkflowConfigResponse},
+    )
+    def get(self, request: Request, organization: Organization, config_id: str) -> Response:
+        """Retrieve a saved Seer automation workflow by ID.
+
+        The response has the same shape as an item in the list endpoint's ``configs``.
+        """
+        if not features.has("organizations:seer-automations", organization, actor=request.user):
+            raise NotFound
+
+        try:
+            config = SeerWorkflowConfig.objects.get(
+                id=int(config_id),
+                organization=organization,
+                strategy__in=SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
+            )
+        except (ValueError, SeerWorkflowConfig.DoesNotExist):
+            raise NotFound
+
+        projects = self.get_projects(request, organization, include_all_accessible=True)
+        response = serialize_workflow_configs(
+            [config], accessible_project_ids=[p.id for p in projects]
+        )
+        return Response(response["configs"][0])
+
+
 def serialize_workflow_configs(
     configs: Sequence[SeerWorkflowConfig], *, accessible_project_ids: Sequence[int]
 ) -> SeerWorkflowConfigsResponse:
