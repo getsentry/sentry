@@ -46,7 +46,7 @@ class DeleteAlertRuleTest(BaseWorkflowTest, HybridCloudTestMixin):
         group = event.group
         assert group
         group_open_period = GroupOpenPeriod.objects.get(project=self.project, group=group)
-        IncidentGroupOpenPeriod.objects.create(
+        self.create_incident_group_open_period(
             incident_id=incident.id,
             incident_identifier=incident.identifier,
             group_open_period=group_open_period,
@@ -66,12 +66,12 @@ class DeleteAlertRuleTest(BaseWorkflowTest, HybridCloudTestMixin):
         assert not AlertRule.objects.filter(id=alert_rule.id).exists()
         assert not AlertRuleTrigger.objects.filter(id=alert_rule_trigger.id).exists()
         assert not Incident.objects.filter(id=incident.id).exists()
-        assert not IncidentGroupOpenPeriod.objects.filter(
+        assert IncidentGroupOpenPeriod.objects.filter(
             incident_id=incident.id,
             incident_identifier=incident.identifier,
             group_open_period=group_open_period,
         ).exists()
-        assert not GroupOpenPeriod.objects.filter(project=self.project, group=group)
+        assert GroupOpenPeriod.objects.filter(project=self.project, group=group).exists()
         assert not AlertRuleDetector.objects.filter(alert_rule_id=alert_rule.id).exists()
         assert not AlertRuleWorkflow.objects.filter(alert_rule_id=alert_rule.id).exists()
 

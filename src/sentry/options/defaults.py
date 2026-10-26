@@ -947,6 +947,11 @@ register("vercel.integration-slug", default="sentry", flags=FLAG_AUTOMATOR_MODIF
 # MsTeams Integration
 register("msteams.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("msteams.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+register(
+    "msteams.client-secret-expires-at",
+    default="",
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 register("msteams.app-id")
 register(
     "msteams.personal-installation-link.enabled",
@@ -3456,13 +3461,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Enable sending a post update signal after we update groups using a queryset update
-register(
-    "groups.enable-post-update-signal",
-    default=False,
-    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 
 # TODO: For now, only a small number of projects are going through a grouping config transition at
 # any given time, so we're sampling at 100% in order to be able to get good signal. Once we've fully
@@ -3705,6 +3703,14 @@ register(
 # Notifications for Sentry organizations
 register(
     "notifications.platform-rollout.is-sentry",
+    type=Dict,
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Notifications for a curated set of customer organizations in limited access
+register(
+    "notifications.platform-rollout.limited-access",
     type=Dict,
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,

@@ -79,7 +79,7 @@ describe('useIssuesSeriesQuery', () => {
     expect(result.current.timeseriesResults).toEqual([
       expect.objectContaining({
         queryIndex: 0,
-        seriesName: 'test : count(new_issues)',
+        seriesName: 'count(new_issues)',
         timeSeries: expect.objectContaining({
           yAxis: 'count(new_issues)',
           values: [{timestamp: 1, value: 10}],

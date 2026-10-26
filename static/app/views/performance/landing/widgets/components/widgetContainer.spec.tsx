@@ -29,7 +29,6 @@ const DEFAULT_ALLOWED_CHARTS = [
   PerformanceWidgetSetting.TPM_AREA,
   PerformanceWidgetSetting.FAILURE_RATE_AREA,
   PerformanceWidgetSetting.USER_MISERY_AREA,
-  PerformanceWidgetSetting.DURATION_HISTOGRAM,
 ];
 
 function WrappedComponent({data, withStaticFilters = false, ...rest}: any) {
@@ -320,40 +319,6 @@ describe('Performance > Widgets > WidgetContainer', () => {
         }),
       })
     );
-  });
-
-  it('LCP Histogram Widget', async () => {
-    const data = initializeData();
-
-    wrapper = render(
-      <WrappedComponent
-        data={data}
-        defaultChartSetting={PerformanceWidgetSetting.LCP_HISTOGRAM}
-      />
-    );
-
-    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
-      'LCP Distribution'
-    );
-
-    // TODO(k-fish): Add histogram mock
-  });
-
-  it('FCP Histogram Widget', async () => {
-    const data = initializeData();
-
-    wrapper = render(
-      <WrappedComponent
-        data={data}
-        defaultChartSetting={PerformanceWidgetSetting.FCP_HISTOGRAM}
-      />
-    );
-
-    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
-      'FCP Distribution'
-    );
-
-    // TODO(k-fish): Add histogram mock
   });
 
   it('Most errors widget', async () => {
