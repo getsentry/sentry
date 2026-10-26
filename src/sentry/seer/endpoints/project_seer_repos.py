@@ -419,27 +419,13 @@ class ProjectSeerReposEndpoint(ProjectEndpoint):
         if order_by is None:
             return Response({"detail": f"Invalid sortBy: {sort_by}"}, status=400)
 
-        response = self.paginate(
+        return self.paginate(
             request=request,
             queryset=queryset,
             order_by=order_by,
             on_results=lambda results: [_serialize_project_repo(r) for r in results],
             paginator_cls=OffsetPaginator,
         )
-
-        self.create_audit_entry(
-            request=request,
-            organization=project.organization,
-            target_object=project.id,
-            event=audit_log.get_event_id("SEER_PROJECT_REPOSITORIES_VIEW"),
-            data={
-                "project_id": project.id,
-                "project_slug": project.slug,
-                "repository_ids": [repo["repositoryId"] for repo in response.data],
-            },
-        )
-
-        return response
 
     @extend_schema(
         operation_id="addProjectSeerRepositories",

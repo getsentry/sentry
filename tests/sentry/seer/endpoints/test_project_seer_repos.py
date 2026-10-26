@@ -361,39 +361,6 @@ class ProjectSeerReposGetTest(APITestCase):
         response = self.get_success_response()
         assert len(response.data) == 0
 
-    def test_get_creates_audit_log_entry(self):
-        self.create_seer_project_repository(self.project, repository=self.repo1)
-        self.create_seer_project_repository(self.project, repository=self.repo2)
-
-        with outbox_runner():
-            self.get_success_response(qs_params={"query": "relay"})
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            entry = AuditLogEntry.objects.get(
-                organization_id=self.organization.id,
-                event=audit_log.get_event_id("SEER_PROJECT_REPOSITORIES_VIEW"),
-            )
-            assert entry.actor_id == self.user.id
-            assert entry.target_object == self.project.id
-            assert entry.data == {
-                "project_id": self.project.id,
-                "project_slug": self.project.slug,
-                "repository_ids": [str(self.repo2.id)],
-            }
-            assert audit_log.get(entry.event).render(entry) == (
-                f"viewed Seer repository configurations for project {self.project.slug}"
-            )
-
-    def test_invalid_get_does_not_create_audit_log_entry(self):
-        with outbox_runner():
-            self.get_error_response(qs_params={"sortBy": "invalid"}, status_code=400)
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            assert not AuditLogEntry.objects.filter(
-                organization_id=self.organization.id,
-                event=audit_log.get_event_id("SEER_PROJECT_REPOSITORIES_VIEW"),
-            ).exists()
-
     def test_returns_connected_repos(self):
         self.create_seer_project_repository(
             self.project,
