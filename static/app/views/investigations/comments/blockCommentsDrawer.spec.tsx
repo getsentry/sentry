@@ -45,10 +45,10 @@ function renderPage(query: Record<string, string> = {}, extra?: React.ReactNode)
       organization,
       initialRouterConfig: {
         location: {
-          pathname: '/organizations/org-slug/explore/investigations/investigation-1/',
+          pathname: '/organizations/org-slug/seer/investigations/investigation-1/',
           query,
         },
-        route: '/organizations/:orgId/explore/investigations/:investigationId/',
+        route: '/organizations/:orgId/seer/investigations/:investigationId/',
       },
     }
   );
@@ -83,7 +83,7 @@ describe('BlockCommentsDrawer', () => {
     renderPage();
 
     await userEvent.click(
-      await screen.findByRole('button', {name: 'Cell actions for Summary'})
+      await screen.findByRole('button', {name: 'Block actions for Summary'})
     );
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Comment'}));
 
@@ -245,7 +245,7 @@ describe('BlockCommentsDrawer', () => {
     });
     renderPage();
 
-    await screen.findByRole('button', {name: 'Cell actions for Summary'});
+    await screen.findByRole('button', {name: 'Block actions for Summary'});
     await waitFor(() => expect(counts).toHaveBeenCalled());
     expect(
       screen.queryByRole('button', {name: 'Comment on Summary'})

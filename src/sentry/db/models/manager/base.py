@@ -15,7 +15,6 @@ from django.db.models.fields import Field
 from django.db.models.manager import Manager as DjangoBaseManager
 from django.db.models.signals import class_prepared, post_delete, post_init, post_save
 
-from sentry import options
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.db.models.manager.types import M
 from sentry.db.postgres.transactions import django_test_transaction_water_mark
@@ -252,9 +251,6 @@ class BaseManager(_base_manager_base[M]):
         Entries are invalidated on transaction commit, or immediately outside
         of a transaction, to prevent simultaneous reads from reading stale data
         """
-        if not options.get("groups.post-update-invalidates-cache"):
-            return
-
         pk_name = self.model._meta.pk.name
 
         cache_keys = [self.__get_lookup_cache_key(**{pk_name: model_id}) for model_id in model_ids]

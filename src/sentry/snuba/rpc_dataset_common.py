@@ -835,6 +835,9 @@ class RPCBase:
         series_by_label = {series.label: series for series in timeseries_list}
         output_timestamps = [row["time"] for row in result.timeseries]
         for axis_index, pipeline in transformations.items():
+            has_fill = any(
+                isinstance(transformation, FillTransformation) for transformation in pipeline
+            )
             series = series_by_label.get(y_axes[axis_index])
             timestamps = (
                 [bucket.seconds for bucket in series.buckets]
@@ -843,7 +846,7 @@ class RPCBase:
             )
             values = (
                 [
-                    process_value(point.data if point.data_present else None)
+                    process_value(point.data if point.data_present or not has_fill else None)
                     for point in series.data_points
                 ]
                 if series is not None

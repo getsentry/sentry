@@ -1,6 +1,9 @@
 from datetime import datetime
 from typing import Any, NotRequired, TypedDict
 
+from sentry.investigations.endpoints.serializers.action_request import (
+    InvestigationActionRequestSerializerResponse,
+)
 from sentry.investigations.endpoints.serializers.investigation import (
     InvestigationOrchestrationSerializerResponse,
 )
@@ -258,3 +261,7 @@ class InvestigationPresenceResponse(TypedDict):
 class InvestigationTitlePreviewResponse(TypedDict):
     status: str | None
     preview: str | None
+
+
+class InvestigationActionRequestApplyResponse(TypedDict):
+    actionRequest: InvestigationActionRequestSerializerResponse

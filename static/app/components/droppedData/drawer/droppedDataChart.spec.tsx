@@ -5,6 +5,7 @@ import {act, render} from 'sentry-test/reactTestingLibrary';
 
 import {BaseChart} from 'sentry/components/charts/baseChart';
 import type {EChartDataZoomHandler} from 'sentry/types/echarts';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 
 import {DroppedDataChart, droppedEventsToSeries} from './droppedDataChart';
 
@@ -18,6 +19,8 @@ describe('DroppedDataChart', () => {
       <DroppedDataChart
         droppedEvents={[DroppedEventFixture({outcome: 'filtered', count: 5})]}
         colors={{filtered: '#000'}}
+        dataset={DiscoverDatasets.SPANS}
+        hasAskSeer={false}
         selection={{}}
         onSelectionChange={jest.fn()}
       />,
@@ -70,7 +73,7 @@ describe('droppedEventsToSeries', () => {
 
     expect(Object.values(series).map(s => s.yAxis)).toEqual([
       'Client Discard',
-      'Inbound Filter',
+      'Inbound Filters',
       'Invalid or Malformed',
     ]);
   });

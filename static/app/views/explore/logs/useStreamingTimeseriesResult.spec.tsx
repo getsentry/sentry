@@ -7,6 +7,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {getTimeSeriesForQuery} from 'sentry/utils/timeSeries/getTimeSeriesForQuery';
 import {LOGS_AUTO_REFRESH_KEY} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {LOGS_GROUP_BY_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
@@ -524,6 +525,96 @@ describe('useStreamingTimeseriesResult', () => {
   });
 
   describe('single axis', () => {
+    it('streams into raw counts without changing smoothed values', () => {
+      const mockTimeseriesData = getMockSingleAxisTimeseries();
+      const raw = {
+        ...mockTimeseriesData.data['count(message)'][0],
+        requestedTransformations: [],
+      };
+      const transformed = {
+        ...raw,
+        requestedTransformations: ['smooth(sma,3)'],
+        values: [{timestamp: 100000, value: 999}],
+      };
+      mockTimeseriesData.data['count(message)'] = [transformed, raw];
+      const {result, rerender} = renderHookWithProviders(
+        (tableData: UseInfiniteLogsQueryResult) =>
+          useStreamingTimeseriesResult(tableData, mockTimeseriesData, 0n),
+        {
+          additionalWrapper: Wrapper,
+          initialProps: createMockTableData([]),
+          initialRouterConfig: defaultRouterConfig,
+          organization,
+        }
+      );
+
+      rerender(
+        createMockTableData([
+          LogFixture({
+            id: 'streamed-log',
+            [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+            [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
+            [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(9000),
+          }),
+        ])
+      );
+
+      expect(
+        getTimeSeriesForQuery(result.current.data, 'count(message)', ['smooth(sma,3)'])[0]
+          ?.values
+      ).toEqual([{timestamp: 100000, value: 999}]);
+      const rawValues = getTimeSeriesForQuery(result.current.data, 'count(message)')[0]!
+        .values;
+      expect(rawValues[0]?.timestamp).toBe(2000);
+      expect(rawValues.at(-1)).toEqual({timestamp: 9000, value: 1, incomplete: true});
+    });
+
+    it('annotates new streamed groups as raw beside a transformed group', () => {
+      const mockTimeseriesData = getMockMultiGroupTimeseries();
+      const raw = {
+        ...mockTimeseriesData.data['count(message)'][0],
+        requestedTransformations: [],
+      };
+      const transformed = {...raw, requestedTransformations: ['fill(zero)']};
+      mockTimeseriesData.data['count(message)'] = [transformed, raw];
+      const {result, rerender} = renderHookWithProviders(
+        (tableData: UseInfiniteLogsQueryResult) =>
+          useStreamingTimeseriesResult(tableData, mockTimeseriesData, 0n),
+        {
+          additionalWrapper: Wrapper,
+          initialProps: createMockTableData([]),
+          initialRouterConfig: severityGroupByRouterConfig,
+          organization,
+        }
+      );
+
+      rerender(
+        createMockTableData([
+          LogFixture({
+            id: 'streamed-group-log',
+            [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+            [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
+            severity: 'new-severity',
+            [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(9000),
+          }),
+        ])
+      );
+
+      expect(
+        getTimeSeriesForQuery(result.current.data, 'count(message)', ['fill(zero)'])
+      ).toEqual([transformed]);
+      expect(
+        getTimeSeriesForQuery(result.current.data, 'count(message)').find(
+          row => row.yAxis === 'new-severity'
+        )
+      ).toEqual(
+        expect.objectContaining({
+          requestedTransformations: [],
+          values: expect.arrayContaining([{timestamp: 9000, value: 1, incomplete: true}]),
+        })
+      );
+    });
+
     it('should create buckets from table data and merge with timeseries', async () => {
       const mockTimeseriesData = getMockSingleAxisTimeseries();
 

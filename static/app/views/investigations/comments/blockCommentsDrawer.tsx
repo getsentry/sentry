@@ -30,7 +30,7 @@ import {
   COMMENTS_DRAWER_PARSERS,
   isCommentEdited,
 } from 'sentry/views/investigations/comments/utils';
-import {getBlockDisplayTitle} from 'sentry/views/investigations/detail/cell';
+import {getBlockDisplayTitle} from 'sentry/views/investigations/detail/block';
 import type {InvestigationComment} from 'sentry/views/investigations/types';
 
 export function BlockCommentsDrawer({investigationId}: {investigationId: string}) {
