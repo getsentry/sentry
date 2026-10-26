@@ -1097,6 +1097,8 @@ class ServiceAccountAccessTest(TestCase):
         assert not result.has_project_access(self.unlinked)
         assert result.has_project_scope(self.linked, "project:read")
         assert result.accessible_project_ids == {self.linked.id}
+        assert result.has_project_membership(self.linked)
+        assert not result.has_project_membership(self.unlinked)
         assert not result.has_team_access(self.team)
         assert result.accessible_team_ids == frozenset()
         assert result.role is None

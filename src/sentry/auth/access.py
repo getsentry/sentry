@@ -830,6 +830,12 @@ class ServiceAccountAccess(DbAccess):
         return self.has_global_access or project.id in self.accessible_project_ids
 
     @cached_property
+    def project_ids_with_team_membership(self) -> frozenset[int]:
+        # With no teams, the account's project links stand in for membership, so
+        # endpoints that default to "my projects" see the projects it can reach.
+        return self.accessible_project_ids
+
+    @cached_property
     def accessible_team_ids(self) -> frozenset[int]:
         if not self.has_global_access:
             return frozenset()

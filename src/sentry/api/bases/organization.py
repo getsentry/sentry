@@ -878,10 +878,15 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         has_valid_agent_auth = (
             agent_auth is not None and agent_auth.organization_id == organization.id
         )
+        has_valid_service_account_auth = (
+            is_service_account_auth(request.auth)
+            and request.auth.organization_id == organization.id
+        )
 
         if not (
             has_valid_api_key
             or has_valid_agent_auth
+            or has_valid_service_account_auth
             or (getattr(request, "user", None) and request.user.is_authenticated)
         ):
             return []
