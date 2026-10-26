@@ -10,6 +10,7 @@ function SavedFormulaFixture(params: Partial<SavedFormula> = {}): SavedFormula {
     id: '2',
     name: 'formula.apdex',
     dataset: 'spans',
+    description: null,
     formula: '{count_satisfied} / count()',
     params: [{name: 'threshold', order: 0, type: 'number', value: ''}],
     references: [{name: 'count_satisfied', value: 'count_if(`span.duration:<100`)'}],

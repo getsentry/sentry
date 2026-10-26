@@ -10,6 +10,7 @@ function SavedFormulaFixture(params: Partial<SavedFormula> = {}): SavedFormula {
     id: '1',
     name: 'formula.apdex',
     dataset: 'spans',
+    description: null,
     formula: '{count_satisfied} / count()',
     params: [],
     references: [{name: 'count_satisfied', value: 'count_if(`span.duration:<100`)'}],
@@ -30,6 +31,7 @@ describe('SavedFormulasTable', () => {
         formulas={[SavedFormulaFixture({createdBy: user, updatedBy: user})]}
         isError={false}
         isPending={false}
+        sort={{field: 'name', kind: 'asc'}}
       />
     );
 
@@ -43,6 +45,7 @@ describe('SavedFormulasTable', () => {
         formulas={[SavedFormulaFixture({prebuilt: true})]}
         isError={false}
         isPending={false}
+        sort={{field: 'name', kind: 'asc'}}
       />
     );
 
@@ -58,6 +61,7 @@ describe('SavedFormulasTable', () => {
         ]}
         isError={false}
         isPending={false}
+        sort={{field: 'name', kind: 'asc'}}
       />
     );
 
