@@ -551,15 +551,17 @@ describe('DetectorEdit', () => {
     });
 
     it.each([
-      ['another host', 'https://attacker.example/collect', []],
+      ['another host', {url: 'https://attacker.example/collect'}, []],
+      ['another path', {url: 'https://example.com/v1/projects/prod'}, []],
+      ['another method', {method: 'DELETE'}, []],
       [
-        'the same host',
-        'https://example.com/health',
+        'the same request',
+        {url: 'https://example.com', method: 'GET'},
         [['Authorization', 'Bearer secret']],
       ],
     ])(
-      'only keeps the source headers when an uptime copy draft points at %s',
-      async (_, draftUrl, expectedHeaders) => {
+      'only keeps the source headers when an uptime copy draft sets %s',
+      async (_, draftRequest, expectedHeaders) => {
         const sourceDetector = UptimeDetectorFixture({
           id: 'source-uptime',
           projectId: project.id,
@@ -593,7 +595,7 @@ describe('DetectorEdit', () => {
                   version: 1,
                   detectorType: sourceDetector.type,
                   hasSetName: true,
-                  values: {name: 'Edited copy', url: draftUrl},
+                  values: {name: 'Edited copy', ...draftRequest},
                 }),
               },
             },
@@ -609,9 +611,7 @@ describe('DetectorEdit', () => {
             expect.any(String),
             expect.objectContaining({
               data: expect.objectContaining({
-                dataSources: [
-                  expect.objectContaining({headers: expectedHeaders, url: draftUrl}),
-                ],
+                dataSources: [expect.objectContaining({headers: expectedHeaders})],
               }),
             })
           );
