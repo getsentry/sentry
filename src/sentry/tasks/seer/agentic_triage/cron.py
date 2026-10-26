@@ -884,13 +884,7 @@ def _dispatch_pending_shards(
         return ShardDispatchStatus.NO_SEER_ACCESS
 
     using = router.db_for_write(SeerWorkflowRunExecution)
-    agent_run_options: AgentRunOptions = {
-        "enable_code_mode_tools": (
-            "only"
-            if features.has("organizations:seer-night-shift-code-mode", organization)
-            else "off"
-        )
-    }
+    agent_run_options: AgentRunOptions = {"enable_code_mode_tools": "only"}
     planned_shards = list(run.executions.order_by("id"))
     dispatched = 0
     for shard_index, planned_shard in enumerate(planned_shards):
