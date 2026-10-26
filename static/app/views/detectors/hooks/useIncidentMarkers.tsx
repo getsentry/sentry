@@ -138,17 +138,6 @@ function findClickedIncidentPeriod(
   return undefined;
 }
 
-function findIncidentPeriodAtTimestamp(
-  incidentPeriods: IncidentPeriod[],
-  timestamp: number
-): IncidentPeriod | undefined {
-  // Use find last because later markers are drawn on top of earlier ones where they overlap.
-  // The start is exclusive because chart data points sit at the end of their bucket.
-  return incidentPeriods.findLast(
-    period => period.start < timestamp && timestamp <= period.end
-  );
-}
-
 /**
  * Creates a custom series that renders incident highlights underneath the main chart
  */
