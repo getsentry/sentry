@@ -822,7 +822,7 @@ describe('NextStepCard', () => {
 
     expect(apply).toHaveBeenCalledWith(
       applyUrl,
-      expect.objectContaining({method: 'POST', data: {}})
+      expect.objectContaining({method: 'POST', data: {action: actionRequest.action}})
     );
     expect(await screen.findByText('Monitor updated.')).toBeInTheDocument();
     const cached = queryClient.getQueryData(detailKey)?.json;

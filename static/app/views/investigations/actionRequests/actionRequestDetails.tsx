@@ -159,6 +159,8 @@ function getSharedCannotApplyMessage(reason: ApplyBlockReason) {
       return t('This was already applied.');
     case 'withdrawn':
       return t('Seer no longer suggests this.');
+    case 'action_changed':
+      return t('Seer changed this suggestion. Check the new one.');
     case 'validation_failed':
       return t("This change wasn't valid.");
     default:

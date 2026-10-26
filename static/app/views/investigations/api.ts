@@ -694,6 +694,7 @@ const actionRequestErrorSchema = z.discriminatedUnion('code', [
       'already_applied',
       'withdrawn',
       'stale',
+      'action_changed',
     ]),
   }),
   z.object({code: z.literal('validation_failed'), messages: z.array(z.string())}),
@@ -735,9 +736,12 @@ export function actionRequestDryRunQueryOptions(
     investigationId,
     actionRequest.id
   );
-  const endpoint = {method: 'POST', data: {dryRun: true}} as const;
+  const endpoint = {
+    method: 'POST',
+    data: {dryRun: true, action: actionRequest.action},
+  } as const;
   return queryOptions({
-    queryKey: [url, endpoint, {action: actionRequest.action}] as const,
+    queryKey: [url, endpoint] as const,
     queryFn: async (): Promise<ActionRequestError | null> => {
       try {
         await apiFetch<InvestigationActionRequestApplyResponse>({
@@ -785,7 +789,7 @@ export function useApplyInvestigationActionRequestMutation(
           actionRequest.id
         ),
         method: 'POST',
-        data: {},
+        data: {action: actionRequest.action},
       }),
     onSuccess: async (response, variables, onMutateResult, context) => {
       await queryClient.cancelQueries({queryKey: detailOptions.queryKey});
