@@ -4,7 +4,7 @@ import {mergeProps} from '@react-aria/utils';
 import * as Sentry from '@sentry/react';
 
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
-import {Container, Grid} from '@sentry/scraps/layout';
+import {Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {
@@ -281,33 +281,29 @@ export function ToolbarSaveAs() {
   }
 
   return (
-    <SaveStyledToolbarSection data-test-id="section-save-as">
-      <Grid flow="column" align="center" gap="md">
-        <DropdownMenu
-          items={items}
-          trigger={triggerProps => (
-            <Container width="100%">
-              {containerProps => (
-                <OverlayTrigger.Button
-                  {...mergeProps(triggerProps, containerProps)}
-                  showChevron={false}
-                  variant="primary"
-                  disabled={hasTransformations}
-                  tooltipProps={
-                    hasTransformations
-                      ? {title: t('Queries with transformations cannot be saved yet.')}
-                      : undefined
-                  }
-                  aria-label={t('Save as')}
-                >
-                  {shouldHighlightSaveButton ? t('Save') : t('Save as')}
-                </OverlayTrigger.Button>
-              )}
-            </Container>
+    <DropdownMenu
+      items={items}
+      trigger={triggerProps => (
+        <Container width={{zero: '100%', sm: 'auto'}}>
+          {containerProps => (
+            <OverlayTrigger.Button
+              {...mergeProps(triggerProps, containerProps)}
+              showChevron={false}
+              variant="primary"
+              disabled={hasTransformations}
+              tooltipProps={
+                hasTransformations
+                  ? {title: t('Queries with transformations cannot be saved yet.')}
+                  : undefined
+              }
+              aria-label={t('Save as')}
+            >
+              {shouldHighlightSaveButton ? t('Save') : t('Save as')}
+            </OverlayTrigger.Button>
           )}
-        />
-      </Grid>
-    </SaveStyledToolbarSection>
+        </Container>
+      )}
+    />
   );
 }
 

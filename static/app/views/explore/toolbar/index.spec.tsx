@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import {Fragment, type ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -30,6 +30,7 @@ import {
 } from 'sentry/views/explore/queryParams/visualize';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
+import {ToolbarSaveAs} from 'sentry/views/explore/toolbar/toolbarSaveAs';
 
 /**
  * Returns the y axes of each chart written to the URL, one entry per chart.
@@ -1460,7 +1461,7 @@ describe('ExploreToolbar', () => {
 
   it('opens the right alert', async () => {
     function Component() {
-      return <ExploreToolbar />;
+      return <ToolbarSaveAs />;
     }
     const {router} = render(<Component />, {
       additionalWrapper: Wrapper,
@@ -1477,14 +1478,10 @@ describe('ExploreToolbar', () => {
       },
     });
 
-    const section = screen.getByTestId('section-save-as');
-
-    await userEvent.click(within(section).getByRole('button', {name: /save as/i}));
-    await userEvent.hover(
-      within(section).getByRole('menuitemradio', {name: 'Monitor for'})
-    );
+    await userEvent.click(screen.getByRole('button', {name: /save as/i}));
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Monitor for'}));
     await userEvent.click(
-      await within(section).findByRole('menuitemradio', {name: 'count(spans)'})
+      await screen.findByRole('menuitemradio', {name: 'count(spans)'})
     );
     expect(router.location.pathname).toBe(
       '/organizations/org-slug/monitors/new/settings'
@@ -1500,7 +1497,7 @@ describe('ExploreToolbar', () => {
 
   it('add to dashboard options correctly', async () => {
     function Component() {
-      return <ExploreToolbar />;
+      return <ToolbarSaveAs />;
     }
     render(<Component />, {
       additionalWrapper: Wrapper,
@@ -1517,10 +1514,8 @@ describe('ExploreToolbar', () => {
       },
     });
 
-    const section = screen.getByTestId('section-save-as');
-
-    await userEvent.click(within(section).getByRole('button', {name: /save as/i}));
-    await userEvent.click(within(section).getByText('Dashboard widget'));
+    await userEvent.click(screen.getByRole('button', {name: /save as/i}));
+    await userEvent.click(screen.getByText('Dashboard widget'));
     await waitFor(() =>
       expect(openAddToDashboardModal).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -1574,7 +1569,12 @@ describe('ExploreToolbar', () => {
     });
 
     function Component() {
-      return <ExploreToolbar />;
+      return (
+        <Fragment>
+          <ExploreToolbar />
+          <ToolbarSaveAs />
+        </Fragment>
+      );
     }
 
     const {router} = render(<Component />, {
@@ -1609,8 +1609,8 @@ describe('ExploreToolbar', () => {
     expect(await screen.findByText(/^save$/i)).toBeInTheDocument();
   });
 
-  it('allows save as when cross events are present', async () => {
-    render(<ExploreToolbar />, {
+  it('allows save as when cross events are present', () => {
+    render(<ToolbarSaveAs />, {
       organization,
       additionalWrapper: Wrapper,
       initialRouterConfig: {
@@ -1623,8 +1623,6 @@ describe('ExploreToolbar', () => {
       },
     });
 
-    const section = await screen.findByTestId('section-save-as');
-
-    expect(within(section).getByRole('button', {name: 'Save as'})).toBeEnabled();
+    expect(screen.getByRole('button', {name: 'Save as'})).toBeEnabled();
   });
 });

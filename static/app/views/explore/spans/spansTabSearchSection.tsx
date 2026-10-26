@@ -44,6 +44,7 @@ import {SamplesModeAggregateFilterWarning} from 'sentry/views/explore/spans/samp
 import {SPANS_BREAKDOWN_CURSOR_KEY} from 'sentry/views/explore/spans/spansQueryParams';
 import {SpansTabSeerComboBox} from 'sentry/views/explore/spans/spansTabSeerComboBox';
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
+import {ToolbarSaveAs} from 'sentry/views/explore/toolbar/toolbarSaveAs';
 import {findSuggestedColumns} from 'sentry/views/explore/utils';
 
 function SpansSearchBar({
@@ -208,9 +209,11 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
                   <Flex
                     area="actions"
                     align="start"
-                    justifySelf={{zero: 'stretch', md: 'end'}}
+                    gap="md"
+                    justifySelf={{zero: 'stretch', sm: 'end'}}
                   >
                     <CrossEventQueryingDropdown />
+                    <ToolbarSaveAs />
                   </Flex>
                 </Grid>
                 {hasCrossEvents ? <SpansTabCrossEventSearchBars /> : null}
