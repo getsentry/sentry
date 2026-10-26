@@ -3,11 +3,11 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 from django.db import router, transaction
 from django.utils import timezone
-from pydantic import BaseModel, PositiveInt, ValidationError
+from pydantic import BaseModel, Field, PositiveInt, ValidationError
 
 from sentry import features
 from sentry.incidents.grouptype import MetricIssue
@@ -18,7 +18,6 @@ from sentry.seer.models.workflow import (
     SeerWorkflowFilters,
     SeerWorkflowRun,
     SeerWorkflowRunExtras,
-    SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
     SeerWorkflowTriggerBinding,
     WorkflowRunError,
@@ -70,10 +69,22 @@ class MetricBreachTrigger(BaseModel):
     action_id: int
 
 
-class MetricBreachAdmission(BaseModel):
-    status: Literal["accepted", "rejected"]
-    reason: MetricBreachRejectionReason | None
+class AcceptedMetricBreachAdmission(BaseModel):
+    status: Literal["accepted"] = "accepted"
+    reason: None = None
     decided_at: datetime
+
+
+class RejectedMetricBreachAdmission(BaseModel):
+    status: Literal["rejected"] = "rejected"
+    reason: MetricBreachRejectionReason
+    decided_at: datetime
+
+
+MetricBreachAdmission = Annotated[
+    AcceptedMetricBreachAdmission | RejectedMetricBreachAdmission,
+    Field(discriminator="status"),
+]
 
 
 class MetricBreachRunExtras(SeerWorkflowRunExtras):
@@ -173,26 +184,27 @@ class BreachedMetricWorkflow(SeerWorkflow):
         trigger_key = f"issue_created:{group.id}"
         existing = self.get_runs().filter(trigger_key=trigger_key).first()
         if existing is not None:
-            if existing.status == SeerWorkflowRunStatus.REJECTED:
-                reason = MetricBreachRunExtras.parse_obj(existing.extras).admission.reason
-                assert reason is not None
-                return RejectedMetricBreach(run=existing, reason=reason, created=False)
+            admission = MetricBreachRunExtras.parse_obj(existing.extras).admission
+            if isinstance(admission, RejectedMetricBreachAdmission):
+                return RejectedMetricBreach(run=existing, reason=admission.reason, created=False)
             return AcceptedMetricBreach(run=existing, created=False)
 
-        reason = None if self.has_quota_available() else "quota_exceeded"
-        admission = MetricBreachAdmission(
-            status="rejected" if reason is not None else "accepted",
-            reason=reason,
-            decided_at=timezone.now(),
+        decided_at = timezone.now()
+        admission = (
+            AcceptedMetricBreachAdmission(decided_at=decided_at)
+            if self.has_quota_available()
+            else RejectedMetricBreachAdmission(reason="quota_exceeded", decided_at=decided_at)
         )
         workflow_run, created = self.get_or_create_run(
             trigger_key=trigger_key, inputs=trigger, extras={"admission": admission.dict()}
         )
-        if reason is not None:
+        if isinstance(admission, RejectedMetricBreachAdmission):
             workflow_run.reject(
-                error=WorkflowRunError(code=reason, message="Automation quota exceeded.")
+                error=WorkflowRunError(code=admission.reason, message="Automation quota exceeded.")
             )
-            return RejectedMetricBreach(run=workflow_run.run, reason=reason, created=created)
+            return RejectedMetricBreach(
+                run=workflow_run.run, reason=admission.reason, created=created
+            )
 
         workflow_run.start()
         # TODO(telkins): Replace this no-op execution with investigation dispatch.
