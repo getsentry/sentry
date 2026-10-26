@@ -10,7 +10,7 @@ describe('AutomationConfiguration', () => {
       organization: OrganizationFixture({features: ['seer-automations']}),
     });
 
-    expect(screen.getByText('Instructions')).toBeInTheDocument();
+    expect(screen.getByText('Description')).toBeInTheDocument();
     expect(screen.queryByText('Page Not Found')).not.toBeInTheDocument();
   });
 
@@ -18,6 +18,6 @@ describe('AutomationConfiguration', () => {
     render(<AutomationConfiguration />, {organization: OrganizationFixture()});
 
     expect(screen.getByText('Page Not Found')).toBeInTheDocument();
-    expect(screen.queryByText('Instructions')).not.toBeInTheDocument();
+    expect(screen.queryByText('Description')).not.toBeInTheDocument();
   });
 });

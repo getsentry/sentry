@@ -128,7 +128,7 @@ export default function AutomationConfiguration() {
 
   return (
     <Stack gap="xl" maxWidth="960px">
-      <ConfigSection title={t('Instructions')}>
+      <ConfigSection title={t('Description')}>
         <Container padding="md">
           <TextArea value={MOCK_INSTRUCTIONS} autosize disabled readOnly />
         </Container>
