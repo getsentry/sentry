@@ -107,6 +107,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:explore-data-fidelity-annotations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable explore -> errors ui
     manager.add("organizations:explore-errors", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Incrementally load Explore timeseries charts
+    manager.add("organizations:explore-incremental-timeseries", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable interpolation and smoothing for Explore charts
     manager.add("organizations:explore-interpolation-and-smoothing", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable plotting multiple aggregates on one chart in Explore
