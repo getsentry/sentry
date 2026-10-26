@@ -724,7 +724,7 @@ class SlackAgentEntrypoint(
             if status_hash == posted["pr_status_hash"]:
                 continue
             try:
-                edited = edit_thread_message(
+                edit_thread_message(
                     install=install,
                     channel_id=thread["channel_id"],
                     message_ts=posted["message_ts"],
@@ -740,10 +740,9 @@ class SlackAgentEntrypoint(
                 # Keep editing the other answers, then raise so the refresh retries this one.
                 edit_error = edit_error or e
                 continue
-            if edited:
-                SlackSeerAgentReplyCache.set(
-                    run_id=run_id, key=answer.id, reply={**posted, "pr_status_hash": status_hash}
-                )
+            SlackSeerAgentReplyCache.set(
+                run_id=run_id, key=answer.id, reply={**posted, "pr_status_hash": status_hash}
+            )
         if edit_error:
             raise edit_error
 
