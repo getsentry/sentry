@@ -66,10 +66,6 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleSeasonality,
     AlertRuleThresholdType,
 )
-from sentry.incidents.models.incident import (
-    Incident,
-    IncidentType,
-)
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.doc_integration import DocIntegration
@@ -2081,43 +2077,6 @@ class Factories:
         return IntegrationExternalProject.objects.create(
             organization_integration_id=oi.id, *args, **kwargs
         )
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
-    def create_incident(
-        organization,
-        projects,
-        detection_uuid=None,
-        status=1,
-        title=None,
-        query="test query",
-        date_started=None,
-        date_detected=None,
-        date_closed=None,
-        alert_rule=None,
-        subscription=None,
-    ):
-        if not title:
-            title = petname.generate(2, " ", letters=10).title()
-        # Projects configure the default alert rule, not an incident-project relation.
-        if alert_rule is None:
-            alert_rule = Factories.create_alert_rule(
-                organization, projects, query=query, time_window=1
-            )
-
-        incident = Incident.objects.create(
-            organization=organization,
-            detection_uuid=detection_uuid,
-            status=status,
-            title=title,
-            alert_rule=alert_rule,
-            date_started=date_started or timezone.now(),
-            date_detected=date_detected or timezone.now(),
-            date_closed=timezone.now() if date_closed is not None else date_closed,
-            type=IncidentType.ALERT_TRIGGERED.value,
-            subscription=subscription,
-        )
-        return incident
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)

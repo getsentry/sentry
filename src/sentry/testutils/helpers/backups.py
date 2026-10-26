@@ -556,9 +556,6 @@ class ExhaustiveFixtures(Fixtures):
         alert.user_id = owner_id
         alert.save()
 
-        # Incident*
-        self.create_incident(org, [project])
-
         # Dashboard
         dashboard = Dashboard.objects.create(
             title=f"Dashboard 1 for {slug}",
