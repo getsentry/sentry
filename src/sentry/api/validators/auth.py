@@ -14,9 +14,6 @@ from sentry.utils.email.address import is_valid_email_address
 
 MISSING_PASSWORD_OR_U2F_CODE = "missing_password_or_u2f"
 EMAIL_ALREADY_REGISTERED = _("An account is already registered with that email address.")
-INVITE_EMAIL_MISMATCH = _(
-    "Use the email address this invitation was sent to, or sign in to an existing account."
-)
 
 
 class RegistrationRequest(TypedDict):
