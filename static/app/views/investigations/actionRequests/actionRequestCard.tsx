@@ -1,12 +1,14 @@
 import {useId} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
+import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {
@@ -18,6 +20,7 @@ import {
   getCannotApplyMessage,
   useApplyCheck,
 } from 'sentry/views/investigations/actionRequests/actionRequestDetails';
+import type {ApplyCheck} from 'sentry/views/investigations/actionRequests/applyButton';
 import {
   parseApplyError,
   useApplyInvestigationActionRequestMutation,
@@ -27,6 +30,7 @@ import type {
   InvestigationActionRequest,
   InvestigationDetail,
 } from 'sentry/views/investigations/types';
+import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 const SHOWN_STATES = new Set<InvestigationActionRequest['state']>([
   'suggested',
@@ -37,12 +41,14 @@ const SHOWN_STATES = new Set<InvestigationActionRequest['state']>([
 type ActionRequestCardProps = {
   actionRequest: InvestigationActionRequest;
   investigationId: string;
+  finishing?: boolean;
   heading?: string;
   source?: InvestigationDetail['source'];
 };
 
 export function ActionRequestCard({
   actionRequest,
+  finishing = false,
   heading,
   investigationId,
   source,
@@ -62,7 +68,7 @@ export function ActionRequestCard({
       },
       onError: (error, applied) => {
         const applyError = parseApplyError(error);
-        if (applyError?.code === 'validation_failed') {
+        if (applyError?.code === 'validation_failed' || applyError?.code === 'stale') {
           return;
         }
         toast.error(
@@ -109,6 +115,7 @@ export function ActionRequestCard({
     applyMutation.variables?.id === actionRequest.id
       ? parseApplyError(applyMutation.error)
       : null;
+  const staleError = getStaleError(actionRequest, check);
   const appliedSummary =
     actionRequest.state === 'applied' ? getAppliedSummary(actionRequest, source) : null;
 
@@ -127,7 +134,20 @@ export function ActionRequestCard({
           <AppliedBy actionRequest={actionRequest} />
         ) : null}
       </Stack>
-      <ActionRequestDetails actionRequest={actionRequest} source={source} />
+      {staleError ? (
+        <Alert.Container>
+          <Alert variant="warning" role="status">
+            <StaleSuggestionMessage
+              message={getApplyErrorMessage(actionRequest.action, staleError)}
+            />
+          </Alert>
+        </Alert.Container>
+      ) : null}
+      <ActionRequestDetails
+        actionRequest={actionRequest}
+        error={staleError}
+        source={source}
+      />
       {applyError?.code === 'validation_failed' ? (
         <Alert.Container>
           <Alert variant="danger" role="alert">
@@ -142,6 +162,7 @@ export function ActionRequestCard({
         actionRequest={actionRequest}
         applying={applying}
         check={check}
+        finishing={finishing}
         onApply={() => applyMutation.mutate(actionRequest)}
       />
     </Stack>
@@ -170,5 +191,37 @@ function AppliedBy({actionRequest}: {actionRequest: InvestigationActionRequest})
 }
 
 function isShownActionRequest(actionRequest: InvestigationActionRequest) {
-  return SHOWN_STATES.has(actionRequest.state);
+  return SHOWN_STATES.has(actionRequest.state) || isStaleActionRequest(actionRequest);
+}
+
+export function isStaleActionRequest(actionRequest: InvestigationActionRequest) {
+  return actionRequest.state === 'superseded' && actionRequest.error?.code === 'stale';
+}
+
+function getStaleError(actionRequest: InvestigationActionRequest, check: ApplyCheck) {
+  if (actionRequest.error?.code === 'stale') {
+    return actionRequest.error;
+  }
+  if (check.status === 'blocked' && check.error.code === 'stale') {
+    return check.error;
+  }
+  return null;
+}
+
+function StaleSuggestionMessage({message}: {message: string}) {
+  const organization = useOrganization();
+  const {openSeerExplorer} = useSeerExplorerContext();
+  if (!isSeerExplorerEnabled(organization)) {
+    return tct('[message] Ask Seer about this investigation for a new suggestion.', {
+      message,
+    });
+  }
+  return tct('[message] [ask:Ask Seer about this investigation] for a new suggestion.', {
+    message,
+    ask: (
+      <Button variant="link" size="zero" onClick={() => openSeerExplorer()}>
+        {null}
+      </Button>
+    ),
+  });
 }

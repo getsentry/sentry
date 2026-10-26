@@ -121,6 +121,7 @@ export default Storybook.story('Investigations — Recommended Action', story =>
           body: {
             detail: 'This changed since Seer suggested it.',
             code: 'stale',
+            current: {timeWindowSeconds: 600},
           },
         },
       }}
@@ -200,6 +201,21 @@ export default Storybook.story('Investigations — Recommended Action', story =>
           cannotApplyReason: 'not_suggested',
           appliedBy: commentStoryAuthors.GRACE,
           dateApplied: '2026-08-27T15:00:00Z',
+        },
+      ]}
+    />
+  ));
+
+  story('Stale', () => (
+    <CardStory
+      id="stale"
+      actionRequests={[
+        {
+          ...intervalChange,
+          state: 'superseded',
+          canApply: false,
+          cannotApplyReason: 'not_suggested',
+          error: {code: 'stale', current: {timeWindowSeconds: 120}},
         },
       ]}
     />

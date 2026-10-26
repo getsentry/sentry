@@ -4,6 +4,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import {formatElapsedDuration} from 'sentry/utils/duration/formatElapsedDuration';
+import {isOnlyNextStepPending} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
 import type {InvestigationOrchestration} from 'sentry/views/investigations/types';
 
 export function InvestigationRunTimer({
@@ -19,8 +20,9 @@ export function InvestigationRunTimer({
     serverTime,
     status,
   } = orchestration;
-  const terminal = ['completed', 'failed', 'cancelled'].includes(status);
-  const active = status === 'processing' || status === 'pending';
+  const settled = Boolean(finishedAt) && isOnlyNextStepPending(orchestration);
+  const terminal = settled || ['completed', 'failed', 'cancelled'].includes(status);
+  const active = !settled && (status === 'processing' || status === 'pending');
   if (
     !startedAt ||
     !Number.isFinite(Date.parse(startedAt)) ||

@@ -23,16 +23,22 @@ import type {
 
 type ActionRequestDetailsProps = {
   actionRequest: InvestigationActionRequest;
+  error: ActionRequestError | null;
   source?: InvestigationDetail['source'];
 };
 
-export function ActionRequestDetails({actionRequest, source}: ActionRequestDetailsProps) {
+export function ActionRequestDetails({
+  actionRequest,
+  error,
+  source,
+}: ActionRequestDetailsProps) {
   const kind = getActionKind(actionRequest.action);
   if (kind?.ui.Details) {
     return (
       <kind.ui.Details
         action={kind.action}
         actionRequest={actionRequest}
+        error={error}
         source={source}
       />
     );
@@ -48,6 +54,7 @@ type ActionRequestApplyProps = {
   actionRequest: InvestigationActionRequest;
   applying: boolean;
   check: ApplyCheck;
+  finishing: boolean;
   onApply: () => void;
 };
 
@@ -55,6 +62,7 @@ export function ActionRequestApply({
   actionRequest,
   applying,
   check,
+  finishing,
   onApply,
 }: ActionRequestApplyProps) {
   const kind = getActionKind(actionRequest.action);
@@ -67,7 +75,8 @@ export function ActionRequestApply({
       actionRequest={actionRequest}
       applying={applying}
       check={check}
-      message={getApplyMessage(actionRequest, check)}
+      finishing={finishing}
+      message={getApplyMessage(actionRequest, check, finishing)}
       onApply={onApply}
     />
   );
@@ -97,13 +106,22 @@ export function useApplyCheck(
   return data ? {status: 'blocked', error: data} : {status: 'passed'};
 }
 
-function getApplyMessage(actionRequest: InvestigationActionRequest, check: ApplyCheck) {
+function getApplyMessage(
+  actionRequest: InvestigationActionRequest,
+  check: ApplyCheck,
+  finishing: boolean
+) {
   if (!actionRequest.canApply) {
     return getCannotApplyMessage(actionRequest.action, actionRequest.cannotApplyReason);
   }
+  if (finishing) {
+    return t('Seer is finishing its suggestions…');
+  }
   switch (check.status) {
     case 'blocked':
-      return getApplyErrorMessage(actionRequest.action, check.error);
+      return check.error.code === 'stale'
+        ? null
+        : getApplyErrorMessage(actionRequest.action, check.error);
     case 'unavailable':
       return t("Couldn't check this change in advance. Applying it checks it again.");
     default:

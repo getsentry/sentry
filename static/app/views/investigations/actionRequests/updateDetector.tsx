@@ -57,6 +57,7 @@ export const updateDetectorUI: ActionKindUI<InvestigationUpdateDetectorAction> =
 function UpdateDetectorDetails({
   action,
   actionRequest,
+  error,
   source,
 }: ActionKindDetailsProps<InvestigationUpdateDetectorAction>) {
   const monitor = getSourceMonitor(source, action.detectorId);
@@ -64,6 +65,7 @@ function UpdateDetectorDetails({
     <MonitorChanges
       action={action}
       applied={actionRequest.state === 'applied'}
+      current={error?.code === 'stale' ? error.current : undefined}
       impact={actionRequest.impact}
       monitor={monitor}
       name={getMonitorName(actionRequest, monitor)}
@@ -76,6 +78,7 @@ function UpdateDetectorApply({
   actionRequest,
   applying,
   check,
+  finishing,
   message,
   onApply,
 }: ActionKindApplyProps<InvestigationUpdateDetectorAction>) {
@@ -87,6 +90,7 @@ function UpdateDetectorApply({
           canApply={actionRequest.canApply}
           applying={applying}
           check={check}
+          disabled={finishing}
           message={message}
           onApply={onApply}
           icon={<IconSiren />}

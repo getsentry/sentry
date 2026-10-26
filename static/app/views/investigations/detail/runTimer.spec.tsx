@@ -112,6 +112,25 @@ describe('InvestigationRunTimer', () => {
     }
   );
 
+  it('stays frozen while Seer only refreshes the next step', () => {
+    const completed = InvestigationOrchestrationFixture();
+    render(
+      <InvestigationRunTimer
+        orchestration={InvestigationOrchestrationFixture({
+          ...timing,
+          status: 'processing',
+          phase: 'metadata',
+          activeSince: null,
+          activeTimeElapsedSeconds: 72,
+          finishedAt: '2025-01-01T00:06:00Z',
+          report: {...completed.report, status: 'completed'},
+        })}
+      />
+    );
+    act(() => jest.advanceTimersByTime(60_000));
+    expect(screen.getByRole('timer')).toHaveTextContent('1m 12s');
+  });
+
   it.each([
     {},
     {...timing, startedAt: null},

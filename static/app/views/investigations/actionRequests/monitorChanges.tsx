@@ -14,6 +14,7 @@ import {getDuration} from 'sentry/utils/duration/getDuration';
 import {getConditionDescription} from 'sentry/views/detectors/components/details/metric/detect';
 import {getStaticDetectorThresholdSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 import {percentThresholdAbsoluteToDelta} from 'sentry/views/detectors/utils/percentThreshold';
+import type {InvestigationDetectorValues} from 'sentry/views/investigations/api';
 import type {SourceMonitor} from 'sentry/views/investigations/source';
 import type {
   InvestigationDetectorChangeKey,
@@ -48,23 +49,28 @@ type MonitorChangesProps = {
   impact: string | null;
   monitor: SourceMonitor | null;
   name: string | null;
+  current?: InvestigationDetectorValues;
 };
 
 export function MonitorChanges({
   action,
   applied,
+  current,
   impact,
   monitor,
   name,
 }: MonitorChangesProps) {
   const changedKeys = CHANGE_KEYS.filter(key => action.changes[key] !== undefined);
+  const shownKeys = current
+    ? CHANGE_KEYS.filter(key => current[key] !== undefined)
+    : changedKeys;
   const subtitle = [
     monitor?.projectSlug,
-    changedKeys.includes('environment') ? null : monitor?.environment,
+    shownKeys.includes('environment') ? null : monitor?.environment,
   ].filter(Boolean);
   const measures = [
-    changedKeys.includes('aggregate') ? null : monitor?.aggregate,
-    changedKeys.includes('query') ? null : monitor?.query,
+    shownKeys.includes('aggregate') ? null : monitor?.aggregate,
+    shownKeys.includes('query') ? null : monitor?.query,
   ].filter(Boolean);
   const opensAnIssue = getOpensAnIssueDescription(action, monitor);
   const currentAggregate = monitor?.aggregate ?? null;
@@ -72,6 +78,8 @@ export function MonitorChanges({
     typeof action.changes.aggregate === 'string'
       ? action.changes.aggregate
       : currentAggregate;
+  const nowAggregate =
+    typeof current?.aggregate === 'string' ? current.aggregate : currentAggregate;
 
   return (
     <Container border="primary" radius="md" padding="lg">
@@ -105,7 +113,7 @@ export function MonitorChanges({
               <Text monospace>{measures.join(' • ')}</Text>
             </SettingRow>
           ) : null}
-          {changedKeys.map(key => {
+          {shownKeys.map(key => {
             const {getLabel, monospace} = CHANGE_FIELDS[key];
             const before = formatChangeValue(
               key,
@@ -129,6 +137,24 @@ export function MonitorChanges({
                     </Text>{' '}
                     <Text size="sm" variant="muted" monospace={monospace}>
                       {t('was %s', before)}
+                    </Text>
+                  </Text>
+                ) : current ? (
+                  <Text>
+                    <Text variant="muted" monospace={monospace}>
+                      {t('When suggested: %s', before)}
+                    </Text>
+                    {' · '}
+                    <Text bold monospace={monospace}>
+                      {t(
+                        'Now: %s',
+                        formatChangeValue(
+                          key,
+                          current[key],
+                          monitor?.detectionType,
+                          nowAggregate
+                        )
+                      )}
                     </Text>
                   </Text>
                 ) : (

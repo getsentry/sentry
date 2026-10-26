@@ -21,11 +21,13 @@ type KindProps<A> = {action: A; actionRequest: InvestigationActionRequest};
 export type ActionKindApplyProps<A> = KindProps<A> & {
   applying: boolean;
   check: ApplyCheck;
+  finishing: boolean;
   message: string | null;
   onApply: () => void;
 };
 
 export type ActionKindDetailsProps<A> = KindProps<A> & {
+  error: ActionRequestError | null;
   source: InvestigationDetail['source'] | undefined;
 };
 
