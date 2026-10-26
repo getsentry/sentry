@@ -1,3 +1,6 @@
+import os
+
+import click
 from django.db import migrations
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
@@ -8,19 +11,34 @@ from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
 
 BATCH_SIZE = 1000
+BATCHES_PER_CHECKPOINT = 1000
+START_ID_ENV_VAR = "GROUPRELEASE_BACKFILL_START_ID"
 
 
 def backfill_new_release_id(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     GroupRelease = apps.get_model("sentry", "GroupRelease")
+
+    start_id_value = os.environ.get(START_ID_ENV_VAR)
+    if start_id_value:
+        start_id = int(start_id_value)
+    else:
+        start_id = None
+
     rows = RangeQuerySetWrapperWithProgressBarApprox(
         GroupRelease.objects.all().values_list("id", "release_id", "new_release_id", named=True),
         step=BATCH_SIZE,
+        min_id=start_id,
         result_value_getter=lambda row: row.id,
     )
-    for batch in chunked(rows, BATCH_SIZE):
+    batches = chunked(rows, BATCH_SIZE)
+    for batch_number, batch in enumerate(batches, start=1):
         pending_ids = [row.id for row in batch if row.new_release_id != row.release_id]
         if pending_ids:
             GroupRelease.objects.filter(id__in=pending_ids).update(new_release_id=F("release_id"))
+
+        if batch_number % BATCHES_PER_CHECKPOINT == 0:
+            next_id = batch[-1].id + 1
+            click.echo(f"\nCheckpoint: to resume from here, set {START_ID_ENV_VAR}={next_id}")
 
 
 class Migration(CheckedMigration):

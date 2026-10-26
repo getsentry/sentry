@@ -1,4 +1,5 @@
 import importlib
+import os
 from unittest import mock
 
 from sentry.testutils.cases import TestMigrations
@@ -45,3 +46,36 @@ class BackfillGroupReleaseNewReleaseIdTest(TestMigrations):
         for row in rows:
             row.refresh_from_db()
             assert row.new_release_id == row.release_id
+
+
+class BackfillGroupReleaseNewReleaseIdResumeTest(TestMigrations):
+    app = "sentry"
+    migrate_from = "1232_backfill_commit_new_repository_id"
+    migrate_to = "1233_backfill_grouprelease_new_release_id"
+
+    def setUp(self):
+        with (
+            mock.patch.object(migration, "BATCH_SIZE", 2),
+            mock.patch.dict(os.environ),
+        ):
+            super().setUp()
+
+    def setup_initial_state(self):
+        self.project = self.create_project()
+        self.group = self.create_group(project=self.project)
+
+    def setup_before_migration(self, apps):
+        GroupRelease = apps.get_model("sentry", "GroupRelease")
+        self.rows = [
+            GroupRelease.objects.create(
+                project_id=self.project.id, group_id=self.group.id, release_id=release_id
+            )
+            for release_id in range(1, 6)
+        ]
+        os.environ[migration.START_ID_ENV_VAR] = str(self.rows[2].id)
+
+    def test_resumes_from_the_start_id(self):
+        for row in self.rows:
+            row.refresh_from_db()
+
+        assert [row.new_release_id for row in self.rows] == [None, None, 3, 4, 5]
