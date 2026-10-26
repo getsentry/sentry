@@ -72,9 +72,9 @@ class BackfillGroupReleaseNewReleaseIdResumeTest(TestMigrations):
             )
             for release_id in range(1, 6)
         ]
-        os.environ[migration.START_ID_ENV_VAR] = str(self.rows[2].id)
+        os.environ[migration.RESUME_FROM_ID_ENV_VAR] = str(self.rows[2].id)
 
-    def test_resumes_from_the_start_id(self):
+    def test_resumes_from_the_given_id(self):
         for row in self.rows:
             row.refresh_from_db()
 

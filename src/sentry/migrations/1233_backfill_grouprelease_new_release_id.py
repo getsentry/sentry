@@ -12,22 +12,23 @@ from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
 
 BATCH_SIZE = 1000
 BATCHES_PER_CHECKPOINT = 1000
-START_ID_ENV_VAR = "GROUPRELEASE_BACKFILL_START_ID"
+RESUME_FROM_ID_ENV_VAR = "GROUPRELEASE_BACKFILL_RESUME_FROM_ID"
 
 
 def backfill_new_release_id(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     GroupRelease = apps.get_model("sentry", "GroupRelease")
 
-    start_id_value = os.environ.get(START_ID_ENV_VAR)
-    if start_id_value:
-        start_id = int(start_id_value)
+    resume_from_value = os.environ.get(RESUME_FROM_ID_ENV_VAR)
+    if resume_from_value:
+        resume_from_id = int(resume_from_value)
+        click.echo(f"Resuming from id {resume_from_id} ({RESUME_FROM_ID_ENV_VAR} is set)")
     else:
-        start_id = None
+        resume_from_id = None
 
     rows = RangeQuerySetWrapperWithProgressBarApprox(
         GroupRelease.objects.all().values_list("id", "release_id", "new_release_id", named=True),
         step=BATCH_SIZE,
-        min_id=start_id,
+        min_id=resume_from_id,
         result_value_getter=lambda row: row.id,
     )
     batches = chunked(rows, BATCH_SIZE)
@@ -37,8 +38,10 @@ def backfill_new_release_id(apps: StateApps, schema_editor: BaseDatabaseSchemaEd
             GroupRelease.objects.filter(id__in=pending_ids).update(new_release_id=F("release_id"))
 
         if batch_number % BATCHES_PER_CHECKPOINT == 0:
-            next_id = batch[-1].id + 1
-            click.echo(f"\nCheckpoint: to resume from here, set {START_ID_ENV_VAR}={next_id}")
+            first_unprocessed_id = batch[-1].id + 1
+            click.echo(
+                f"\nCheckpoint: to resume from here, set {RESUME_FROM_ID_ENV_VAR}={first_unprocessed_id}"
+            )
 
 
 class Migration(CheckedMigration):
