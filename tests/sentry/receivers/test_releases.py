@@ -8,6 +8,7 @@ from django.db import router, transaction
 from django.utils import timezone
 
 from sentry.buffer.base import Buffer
+from sentry.integrations.source_code_management.metrics import SCMIntegrationInteractionType
 from sentry.integrations.types import ExternalProviders
 from sentry.issues.action_log.types import (
     PullRequestClosedAction,
@@ -429,6 +430,57 @@ class ResolvedInPullRequestTest(TestCase):
             message=f"Foo Biz\n\nFixes {group.qualified_short_id}",
             author=author,
         )
+
+    @patch("sentry.receivers.releases.SCMIntegrationInteractionEvent")
+    @receivers_raise_on_send()
+    def test_link_records_lifecycle_outcome(self, mock_lifecycle_event: MagicMock) -> None:
+        group = self.create_group()
+        integration = self.create_integration(
+            organization=group.organization,
+            external_id="github:1",
+            provider="github",
+        )
+        repo = self.create_repo(
+            project=group.project,
+            provider="integrations:github",
+            integration_id=integration.id,
+        )
+        author = self._create_pull_request_author("newdev", group.organization.id)
+
+        self._create_resolving_pull_request(group, repo, author)
+
+        mock_lifecycle_event.assert_called_once_with(
+            interaction_type=SCMIntegrationInteractionType.LINK_ISSUE_TO_PR,
+            provider_key="github",
+            organization_id=group.organization.id,
+            integration_id=integration.id,
+        )
+        mock_lifecycle_event.return_value.capture.assert_called_once_with(assume_success=False)
+        lifecycle = mock_lifecycle_event.return_value.capture.return_value.__enter__.return_value
+        lifecycle.record_success.assert_called_once_with()
+
+    @receivers_raise_on_send()
+    def test_existing_link_does_not_record_another_attempt(self) -> None:
+        group = self.create_group()
+        integration = self.create_integration(
+            organization=group.organization,
+            external_id="github:1",
+            provider="github",
+        )
+        repo = self.create_repo(
+            project=group.project,
+            provider="integrations:github",
+            integration_id=integration.id,
+        )
+        author = self._create_pull_request_author("newdev", group.organization.id)
+        pull_request = self._create_resolving_pull_request(group, repo, author)
+
+        with patch(
+            "sentry.receivers.releases.SCMIntegrationInteractionEvent"
+        ) as mock_lifecycle_event:
+            pull_request.save()
+
+        mock_lifecycle_event.assert_not_called()
 
     @receivers_raise_on_send()
     def test_matching_external_actor_sets_activity_user(self) -> None:

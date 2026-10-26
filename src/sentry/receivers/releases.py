@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Iterable, Sequence
+from contextlib import nullcontext
 
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, router, transaction
@@ -9,6 +10,10 @@ from django.db.models.signals import post_save, pre_save
 from sentry import analytics, features
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.integrations.analytics import IntegrationResolveCommitEvent, IntegrationResolvePREvent
+from sentry.integrations.source_code_management.metrics import (
+    SCMIntegrationInteractionEvent,
+    SCMIntegrationInteractionType,
+)
 from sentry.integrations.utils.scm_actors import find_user_for_scm_actor
 from sentry.issues.action_log import (
     SYSTEM_ACTOR,
@@ -289,11 +294,14 @@ def resolved_in_pull_request(instance: PullRequest, created, **kwargs):
 
     # Delete GroupLinks where message may have changed
     group_ids = {g.id for g in groups}
-    group_links = GroupLink.objects.filter(
-        linked_type=GroupLink.LinkedType.pull_request,
-        relationship=GroupLink.Relationship.resolves,
-        linked_id=instance.id,
+    group_links = list(
+        GroupLink.objects.filter(
+            linked_type=GroupLink.LinkedType.pull_request,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=instance.id,
+        )
     )
+    existing_group_ids = {link.group_id for link in group_links}
     for link in group_links:
         if link.group_id not in group_ids:
             remove_resolved_pull_request_link(link, instance)
@@ -316,8 +324,27 @@ def resolved_in_pull_request(instance: PullRequest, created, **kwargs):
     )
 
     for group in groups:
+        if group.id in existing_group_ids:
+            continue
+
+        event = (
+            SCMIntegrationInteractionEvent(
+                interaction_type=SCMIntegrationInteractionType.LINK_ISSUE_TO_PR,
+                provider_key=repo.provider.removeprefix("integrations:"),
+                organization_id=repo.organization_id,
+                integration_id=repo.integration_id,
+            )
+            if repo is not None and repo.provider is not None
+            else None
+        )
+        lifecycle_context = (
+            event.capture(assume_success=False) if event is not None else nullcontext()
+        )
         try:
-            with transaction.atomic(router.db_for_write(GroupLink)):
+            with (
+                transaction.atomic(router.db_for_write(GroupLink)),
+                lifecycle_context as lifecycle,
+            ):
                 GroupLink.objects.create(
                     group_id=group.id,
                     project_id=group.project_id,
@@ -365,6 +392,8 @@ def resolved_in_pull_request(instance: PullRequest, created, **kwargs):
                 record_group_history(
                     group, GroupHistoryStatus.SET_RESOLVED_IN_PULL_REQUEST, actor=acting_user
                 )
+                if lifecycle is not None:
+                    lifecycle.record_success()
         except IntegrityError:
             pass
         else:
