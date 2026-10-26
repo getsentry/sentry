@@ -43,7 +43,11 @@ from sentry.seer.entrypoints.cache import (
     SeerOperatorInvestigationCache,
 )
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
-from sentry.seer.entrypoints.slack.cache import SlackSeerAgentMessageCache
+from sentry.seer.entrypoints.slack.cache import (
+    SlackSeerAgentMessageCache,
+    SlackSeerAgentReply,
+    SlackSeerAgentReplyCache,
+)
 from sentry.seer.entrypoints.slack.entrypoint import (
     EntrypointSetupError,
     SlackAgentCachePayload,
@@ -64,7 +68,7 @@ from sentry.seer.entrypoints.slack.messaging import (
 from sentry.seer.entrypoints.types import SeerEntrypointKey
 from sentry.seer.models import SeerAutomationHandoffConfiguration, SeerProjectPreference
 from sentry.sentry_apps.event_types import SentryAppEventType
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationConfigurationError, IntegrationError
 from sentry.testutils.asserts import assert_halt_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
@@ -1228,6 +1232,126 @@ class SlackAgentEntrypointTest(TestCase):
                 ),
             ),
         ]
+
+    def _two_posted_answers_with_stale_footers(self) -> SeerRunState:
+        state = _agent_state("First answer.")
+        state.blocks += [
+            MemoryBlock(
+                id="b3",
+                message=Message(role="user", content="Open a PR."),
+                timestamp="2024-01-01T00:00:02Z",
+            ),
+            MemoryBlock(
+                id="b4",
+                message=Message(role="assistant", content="Second answer."),
+                timestamp="2024-01-01T00:00:03Z",
+            ),
+        ]
+        state.repo_pr_states["acme/web"] = RepoPRState(
+            repo_name="acme/web", pr_creation_status="creating"
+        )
+        for key, ts in (("b2", "1.1"), ("b4", "2.2")):
+            SlackSeerAgentReplyCache.set(
+                run_id=state.run_id,
+                key=key,
+                reply=SlackSeerAgentReply(message_ts=ts, pr_status_hash="stale"),
+            )
+        return state
+
+    @patch("slack_sdk.web.client.WebClient.chat_postMessage")
+    @patch("slack_sdk.web.client.WebClient.chat_update")
+    def test_on_agent_update_failed_edit_does_not_block_other_answers(
+        self, update: Mock, post: Mock
+    ) -> None:
+        state = self._two_posted_answers_with_stale_footers()
+        update.side_effect = [
+            SlackApiError("error", _slack_response({"ok": False, "error": "invalid_blocks"})),
+            _slack_response({"ok": True}),
+        ]
+
+        with pytest.raises(IntegrationError):
+            SlackAgentEntrypoint.on_agent_update(
+                cache_payload=self._get_entrypoint().create_agent_cache_payload(),
+                run_id=state.run_id,
+                state=state,
+            )
+
+        post.assert_not_called()
+        assert [call.kwargs["ts"] for call in update.call_args_list] == ["1.1", "2.2"]
+        replies = SlackSeerAgentReplyCache.get(run_id=state.run_id)
+        assert replies["b2"]["pr_status_hash"] == "stale"
+        assert replies["b4"]["pr_status_hash"] != "stale"
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch("slack_sdk.web.client.WebClient.chat_update")
+    def test_on_agent_update_deleted_answer_halts_edit(
+        self, update: Mock, mock_record: Mock
+    ) -> None:
+        state = self._two_posted_answers_with_stale_footers()
+        update.side_effect = [
+            SlackApiError("error", _slack_response({"ok": False, "error": "message_not_found"})),
+            _slack_response({"ok": True}),
+        ]
+
+        SlackAgentEntrypoint.on_agent_update(
+            cache_payload=self._get_entrypoint().create_agent_cache_payload(),
+            run_id=state.run_id,
+            state=state,
+        )
+
+        assert update.call_count == 2
+        assert_halt_metric(mock_record, IntegrationError())
+        replies = SlackSeerAgentReplyCache.get(run_id=state.run_id)
+        assert replies["b2"]["pr_status_hash"] == "stale"
+        assert replies["b4"]["pr_status_hash"] != "stale"
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch("slack_sdk.web.client.WebClient.chat_update")
+    def test_on_agent_update_archived_channel_halts_edits(
+        self, update: Mock, mock_record: Mock
+    ) -> None:
+        state = self._two_posted_answers_with_stale_footers()
+        update.side_effect = SlackApiError(
+            "error", _slack_response({"ok": False, "error": "is_archived"})
+        )
+
+        SlackAgentEntrypoint.on_agent_update(
+            cache_payload=self._get_entrypoint().create_agent_cache_payload(),
+            run_id=state.run_id,
+            state=state,
+        )
+
+        assert update.call_count == 2
+        halts = [
+            call for call in mock_record.mock_calls if call.args[0] == EventLifecycleOutcome.HALTED
+        ]
+        assert len(halts) == 2
+        assert all(isinstance(call.args[1], IntegrationConfigurationError) for call in halts)
+
+    @patch("sentry.seer.entrypoints.slack.entrypoint.logger")
+    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value=None)
+    def test_on_agent_update_logs_reply_not_posted(
+        self, mock_send: Mock, mock_logger: Mock
+    ) -> None:
+        state = _agent_state("Test summary")
+
+        SlackAgentEntrypoint.on_agent_update(
+            cache_payload=self._get_entrypoint().create_agent_cache_payload(),
+            run_id=state.run_id,
+            state=state,
+        )
+
+        mock_send.assert_called_once()
+        mock_logger.warning.assert_called_once_with(
+            "seer.entrypoint.slack.agent_update.reply_not_posted",
+            extra={
+                "organization_id": self.organization.id,
+                "integration_id": self.integration.id,
+                "run_id": state.run_id,
+                "reply_key": "b2",
+            },
+        )
+        assert SlackSeerAgentReplyCache.get(run_id=state.run_id) == {}
 
 
 def _slack_response(data: dict[str, Any]) -> SlackResponse:
