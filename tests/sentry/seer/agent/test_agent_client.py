@@ -7,7 +7,6 @@ from pydantic import BaseModel
 
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
-from sentry.integrations.types import ExternalProviders
 from sentry.models.promptsactivity import PromptsActivity
 from sentry.seer.agent.client import (
     SeerAgentClient,
@@ -686,71 +685,6 @@ class TestSeerAgentClient(TestCase):
         body = mock_post.call_args[0][0]
         assert body["agent_run_options"]["enable_write_pull_request"] is True
         assert body["agent_run_options"]["enable_bash_mode"] is True
-
-    def _link_github_identity(self) -> None:
-        self.create_external_user(
-            user=self.user,
-            organization=self.organization,
-            provider=ExternalProviders.GITHUB.value,
-            external_name="@octocat",
-            external_id="583231",
-            integration=self.create_integration(
-                organization=self.organization, provider="github", external_id="gh:1"
-            ),
-        )
-
-    def _write_pr_client(self, enable_write_pull_request: bool = True) -> SeerAgentClient:
-        return SeerAgentClient(
-            self.organization,
-            self.user,
-            enable_coding=True,
-            enable_write_pull_request=enable_write_pull_request,
-        )
-
-    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
-    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
-    def test_start_run_sends_the_requesters_commit_author(self, mock_post, mock_access):
-        mock_access.return_value = (True, None)
-        mock_post.return_value = self._mock_run_response()
-        self._link_github_identity()
-
-        self._write_pr_client().start_run("Open a PR")
-
-        body = mock_post.call_args[0][0]
-        assert body["commit_author"] == {
-            "name": self.user.get_display_name(),
-            "email": "583231+octocat@users.noreply.github.com",
-            "scm_login": "octocat",
-        }
-
-    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
-    @patch("sentry.seer.agent.client.make_agent_chat_request")
-    def test_continue_run_sends_the_requesters_commit_author(self, mock_post, mock_access):
-        mock_access.return_value = (True, None)
-        mock_post.return_value = self._mock_run_response(run_id=789)
-        self.create_seer_run(organization=self.organization, seer_run_state_id=789)
-        self._link_github_identity()
-
-        self._write_pr_client().continue_run(789, "Open a PR")
-
-        body = mock_post.call_args[0][0]
-        assert body["commit_author"]["scm_login"] == "octocat"
-
-    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
-    @patch("sentry.seer.agent.client.make_agent_chat_request")
-    def test_commit_author_needs_write_pull_request_and_a_github_identity(
-        self, mock_post, mock_access
-    ):
-        mock_access.return_value = (True, None)
-        mock_post.return_value = self._mock_run_response(run_id=789)
-        self.create_seer_run(organization=self.organization, seer_run_state_id=789)
-
-        self._write_pr_client().continue_run(789, "Open a PR")
-        assert "commit_author" not in mock_post.call_args[0][0]
-
-        self._link_github_identity()
-        self._write_pr_client(enable_write_pull_request=False).continue_run(789, "Open a PR")
-        assert "commit_author" not in mock_post.call_args[0][0]
 
     @with_feature("organizations:investigations")
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")

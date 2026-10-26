@@ -11,7 +11,7 @@ import logging
 import re
 import time
 from collections.abc import Callable, Mapping, Sequence
-from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 import orjson
 from django.conf import settings
@@ -47,10 +47,6 @@ from sentry.users.services.user_option import user_option_service
 from sentry.users.services.user_option.service import get_option_from_list
 from sentry.utils import metrics
 from sentry.utils.strings import strip_lone_surrogates
-
-if TYPE_CHECKING:
-    # Runtime import cycles through sentry.seer.autofix.pr_iteration.
-    from sentry.seer.autofix.commit_author import SeerCommitAuthor
 
 logger = logging.getLogger(__name__)
 
@@ -121,7 +117,6 @@ class AgentChatRequest(TypedDict):
     ui_tools: NotRequired[str | None]
     monitoring_providers: NotRequired[list[dict[str, Any]]]
     available_monitoring_providers: NotRequired[list[dict[str, Any]]]
-    commit_author: NotRequired[SeerCommitAuthor]
 
 
 class AgentUpdateRequest(TypedDict):

@@ -116,6 +116,19 @@ class OrganizationSlugResponse(BaseModel):
     slug: str
 
 
+class CommitAuthor(BaseModel):
+    """Wire-compatible with ``SeerCommitAuthor``; ``scm_login`` is the GitHub handle behind ``email``."""
+
+    name: str
+    email: str
+    scm_login: str | None = None
+
+
+class CommitAuthorResponse(BaseModel):
+    # None when the viewer has no github.com identity Sentry can credit.
+    author: CommitAuthor | None = None
+
+
 class ReferencedFixStatementsResponse(BaseModel):
     statements: list[str]
     short_ids: list[str]
