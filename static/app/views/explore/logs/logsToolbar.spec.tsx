@@ -105,7 +105,7 @@ describe('LogsToolbar', () => {
   });
 
   describe('visualize section', () => {
-    it('restores and edits per-series transformations through the log URL', async () => {
+    it('keeps existing transformations out of the visualize toolbar', async () => {
       const {router} = render(<LogsToolbar />, {
         organization: OrganizationFixture({
           ...organization,
@@ -126,15 +126,18 @@ describe('LogsToolbar', () => {
         },
       });
 
-      await userEvent.click(screen.getByRole('button', {name: 'Max Window Size'}));
-      await userEvent.click(screen.getByRole('option', {name: '3'}));
-      await waitFor(() =>
-        expect(router.location.query.aggregateField).toEqual([
-          JSON.stringify({groupBy: 'severity'}),
-          JSON.stringify({yAxes: ['count(message)'], transformations: ['fill(zero)']}),
-          JSON.stringify({yAxes: ['avg(foo)'], transformations: ['smooth(asap,3)']}),
-        ])
-      );
+      expect(await screen.findByRole('button', {name: 'avg'})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Add Transformation'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('group', {name: 'Transformation 1'})
+      ).not.toBeInTheDocument();
+      expect(router.location.query.aggregateField).toEqual([
+        JSON.stringify({groupBy: 'severity'}),
+        JSON.stringify({yAxes: ['count(message)'], transformations: ['fill(zero)']}),
+        JSON.stringify({yAxes: ['avg(foo)'], transformations: ['smooth(asap,10)']}),
+      ]);
     });
 
     it('options disabled', async () => {
