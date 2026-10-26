@@ -31,6 +31,10 @@ from sentry.investigations.services import (
     mark_block_execution_dispatch_failed,
     mark_block_execution_dispatch_started,
 )
+from sentry.investigations.services.orchestration import (
+    INTERNAL_COMMAND_TYPES,
+    schedule_orchestration_commands,
+)
 from sentry.investigations.services.orchestration_events import (
     InvestigationOrchestrationEventConflict,
     reconcile_orchestration_projection,
@@ -97,6 +101,32 @@ def _mark_create_dispatch_failed(run_id: int) -> None:
         schedule_investigation_updates(run.investigation_id, database)
 
 
+def _fail_commands_after(
+    run: InvestigationOrchestrationRun,
+    command: InvestigationOrchestrationCommand,
+    error: dict[str, str],
+) -> None:
+    """Fail the user commands queued behind a failed one. Internal commands still go out."""
+
+    later = InvestigationOrchestrationCommand.objects.filter(
+        orchestration_run=run, id__gt=command.id
+    )
+    later.filter(
+        status__in=(
+            InvestigationOrchestrationCommandStatus.ACCEPTED,
+            InvestigationOrchestrationCommandStatus.DISPATCHED,
+        )
+    ).exclude(type__in=INTERNAL_COMMAND_TYPES).update(
+        status=InvestigationOrchestrationCommandStatus.FAILED,
+        error=error,
+        date_updated=timezone.now(),
+    )
+    if later.filter(
+        type__in=INTERNAL_COMMAND_TYPES, status=InvestigationOrchestrationCommandStatus.ACCEPTED
+    ).exists():
+        schedule_orchestration_commands(run.id)
+
+
 def _mark_command_dispatch_failed(command_id: int) -> None:
     database = router.db_for_write(InvestigationOrchestrationCommand)
     with transaction.atomic(using=database):
@@ -126,20 +156,17 @@ def _mark_command_dispatch_failed(command_id: int) -> None:
         command.status = InvestigationOrchestrationCommandStatus.FAILED
         command.error = detail
         command.save(update_fields=["status", "error", "date_updated"])
-        InvestigationOrchestrationCommand.objects.filter(
-            orchestration_run=run,
-            id__gt=command.id,
-            status__in=(
-                InvestigationOrchestrationCommandStatus.ACCEPTED,
-                InvestigationOrchestrationCommandStatus.DISPATCHED,
-            ),
-        ).update(
-            status=InvestigationOrchestrationCommandStatus.FAILED,
-            error={
+        if command.type in INTERNAL_COMMAND_TYPES:
+            # Losing it isn't a run error, and no other command waits on it.
+            schedule_orchestration_commands(run.id)
+            return
+        _fail_commands_after(
+            run,
+            command,
+            {
                 "code": "earlier_command_failed",
                 "message": "An earlier workflow command could not be delivered.",
             },
-            date_updated=timezone.now(),
         )
         errors = run.projection.setdefault("errors", [])
         if isinstance(errors, list):
@@ -178,20 +205,17 @@ def _mark_command_version_conflicted(command_id: int) -> None:
         command.status = InvestigationOrchestrationCommandStatus.FAILED
         command.error = detail
         command.save(update_fields=["status", "error", "date_updated"])
-        InvestigationOrchestrationCommand.objects.filter(
-            orchestration_run=run,
-            id__gt=command.id,
-            status__in=(
-                InvestigationOrchestrationCommandStatus.ACCEPTED,
-                InvestigationOrchestrationCommandStatus.DISPATCHED,
-            ),
-        ).update(
-            status=InvestigationOrchestrationCommandStatus.FAILED,
-            error={
+        if command.type in INTERNAL_COMMAND_TYPES:
+            # Losing it isn't a run error, and no other command waits on it.
+            schedule_orchestration_commands(run.id)
+            return
+        _fail_commands_after(
+            run,
+            command,
+            {
                 "code": "earlier_command_conflicted",
                 "message": "An earlier workflow update conflicted with Seer's current state.",
             },
-            date_updated=timezone.now(),
         )
         errors = run.projection.setdefault("errors", [])
         if isinstance(errors, list):
@@ -415,6 +439,9 @@ def dispatch_investigation_orchestration_commands(orchestration_run_id: int) -> 
                         "expected_workflow_version": command.expected_workflow_version,
                     },
                 )
+                if command.type in INTERNAL_COMMAND_TYPES:
+                    _mark_command_version_conflicted(command.id)
+                    return
                 try:
                     _reconcile_command_version_conflict(run, command, viewer_context)
                 except (SeerApiError, HTTPError):
