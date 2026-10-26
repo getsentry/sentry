@@ -126,28 +126,28 @@ export const UPTIME_DETECTOR_DRAFT_CONFIG: DetectorDraftConfig<UptimeDetectorFor
       : values,
 };
 
-function isSameOrigin(a: string, b: string) {
+function isSameUrl(a: string, b: string) {
   try {
-    return new URL(a.trim()).origin === new URL(b.trim()).origin;
+    return new URL(a.trim()).href === new URL(b.trim()).href;
   } catch {
     return false;
   }
 }
 
 /**
- * A shared draft can point a duplicated monitor at another host, which mustn't
- * receive the source monitor's headers and body.
+ * A shared draft can change a duplicated monitor's request, which mustn't then
+ * be sent with the source monitor's headers and body (often credentials).
  */
 export function getUptimeDuplicateFormData(
   duplicateDetector: UptimeDetector,
   draftValues: Record<string, unknown> | undefined
 ): UptimeDetectorFormData {
   const formData = uptimeSavedDetectorToFormData(duplicateDetector);
-  const draftUrl = draftValues
-    ? parseDetectorDraftValues(UPTIME_DETECTOR_DRAFT_CONFIG, draftValues).url
-    : undefined;
-  if (draftUrl === undefined || isSameOrigin(draftUrl, formData.url)) {
-    return formData;
-  }
-  return {...formData, body: '', headers: []};
+  const {method, url} = draftValues
+    ? parseDetectorDraftValues(UPTIME_DETECTOR_DRAFT_CONFIG, draftValues)
+    : {};
+  const isSameRequest =
+    (url === undefined || isSameUrl(url, formData.url)) &&
+    (method === undefined || method === formData.method);
+  return isSameRequest ? formData : {...formData, body: '', headers: []};
 }
