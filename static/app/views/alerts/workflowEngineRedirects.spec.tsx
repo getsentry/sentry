@@ -1,7 +1,9 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, waitFor, type RouterConfig} from 'sentry-test/reactTestingLibrary';
 
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {
   MonitorCreateRedirect,
   UptimeMonitorCreateRedirect,
@@ -287,28 +289,180 @@ describe('workflowEngineRedirects', () => {
   });
 
   describe('MonitorCreateRedirect', () => {
-    it('redirects detector create with a detector type', async () => {
-      const organization = OrganizationFixture({
-        slug: 'org-slug',
-      });
+    const organization = OrganizationFixture({slug: 'org-slug'});
+    const project = ProjectFixture({id: '42', slug: 'my-project'});
 
-      const initialRouterConfig: RouterConfig = {
-        route: '/organizations/:orgId/alerts/create/:alertType/',
-        location: {pathname: `/organizations/${organization.slug}/alerts/create/crons/`},
-      };
+    beforeEach(() => {
+      ProjectsStore.loadInitialData([project]);
+    });
 
-      const {router} = render(<MonitorCreateRedirect />, {
+    afterEach(() => {
+      ProjectsStore.reset();
+    });
+
+    function renderRedirect(location: RouterConfig['location'], route: string) {
+      return render(<MonitorCreateRedirect />, {
         organization,
-        initialRouterConfig,
+        initialRouterConfig: {route, location},
       });
+    }
+
+    it('redirects detector create with a detector type', async () => {
+      const {router} = renderRedirect(
+        {pathname: `/organizations/${organization.slug}/alerts/new/crons/`},
+        '/organizations/:orgId/alerts/new/:alertType/'
+      );
 
       await waitFor(() => {
         expect(router.location.pathname).toBe(
           makeMonitorCreatePathname(organization.slug)
         );
       });
-
       expect(router.location.search).toBe('?detectorType=monitor_check_in_failure');
+    });
+
+    it('redirects to metric monitor settings when given legacy metric alert params', async () => {
+      const {router} = renderRedirect(
+        {
+          pathname: `/organizations/${organization.slug}/alerts/new/metric/`,
+          query: {
+            aggregate: 'count()',
+            dataset: 'events',
+            environment: 'prod',
+            project: 'my-project',
+            query: 'is:unresolved',
+            referrer: 'discover',
+          },
+        },
+        '/organizations/:orgId/alerts/new/:alertType/'
+      );
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe(
+          `${makeMonitorCreatePathname(organization.slug)}settings`
+        );
+      });
+      expect(router.location.query).toEqual({
+        aggregate: 'count()',
+        dataset: 'errors',
+        detectorType: 'metric_issue',
+        environment: 'prod',
+        project: '42',
+        query: 'is:unresolved',
+        referrer: 'discover',
+      });
+    });
+
+    it('keeps an explicitly empty query when given legacy metric alert params', async () => {
+      const {router} = renderRedirect(
+        {
+          pathname: `/organizations/${organization.slug}/alerts/new/metric/`,
+          query: {
+            aggregate: 'count(span.duration)',
+            dataset: 'events_analytics_platform',
+            query: '',
+          },
+        },
+        '/organizations/:orgId/alerts/new/:alertType/'
+      );
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe(
+          `${makeMonitorCreatePathname(organization.slug)}settings`
+        );
+      });
+      expect(router.location.query).toEqual(
+        expect.objectContaining({dataset: 'spans', query: ''})
+      );
+    });
+
+    it('maps legacy log alerts to the logs dataset when given log event types', async () => {
+      const {router} = renderRedirect(
+        {
+          pathname: `/organizations/${organization.slug}/alerts/new/metric/`,
+          query: {
+            aggregate: 'count(message)',
+            dataset: 'events_analytics_platform',
+            eventTypes: 'trace_item_log',
+          },
+        },
+        '/organizations/:orgId/alerts/new/:alertType/'
+      );
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe(
+          `${makeMonitorCreatePathname(organization.slug)}settings`
+        );
+      });
+      expect(router.location.query.dataset).toBe('logs');
+    });
+
+    it('forwards the project id when the legacy route has a project slug', async () => {
+      const {router} = renderRedirect(
+        {pathname: `/organizations/${organization.slug}/alerts/my-project/new/`},
+        '/organizations/:orgId/alerts/:projectId/new/'
+      );
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe(
+          makeMonitorCreatePathname(organization.slug)
+        );
+      });
+      expect(router.location.query).toEqual({project: '42'});
+    });
+
+    it('forwards the project with the detector type when given a cron alert type', async () => {
+      const {router} = renderRedirect(
+        {
+          pathname: `/organizations/${organization.slug}/alerts/new/crons/`,
+          query: {project: 'my-project'},
+        },
+        '/organizations/:orgId/alerts/new/:alertType/'
+      );
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe(
+          makeMonitorCreatePathname(organization.slug)
+        );
+      });
+      expect(router.location.query).toEqual({
+        detectorType: 'monitor_check_in_failure',
+        project: '42',
+      });
+    });
+
+    it('omits the project when the legacy project is not found', async () => {
+      const {router} = renderRedirect(
+        {
+          pathname: `/organizations/${organization.slug}/alerts/wizard/`,
+          query: {project: 'missing-project'},
+        },
+        '/organizations/:orgId/alerts/wizard/'
+      );
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe(
+          makeMonitorCreatePathname(organization.slug)
+        );
+      });
+      expect(router.location.query).toEqual({});
+    });
+
+    it('redirects to the type picker when the legacy dataset cannot be monitored', async () => {
+      const {router} = renderRedirect(
+        {
+          pathname: `/organizations/${organization.slug}/alerts/new/metric/`,
+          query: {aggregate: 'count()', dataset: 'replays'},
+        },
+        '/organizations/:orgId/alerts/new/:alertType/'
+      );
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe(
+          makeMonitorCreatePathname(organization.slug)
+        );
+      });
+      expect(router.location.query).toEqual({detectorType: 'metric_issue'});
     });
   });
 
