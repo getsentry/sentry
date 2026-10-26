@@ -397,7 +397,11 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
 
         response = self.apply(action_request)
 
-        assert response.status_code == 404
+        assert response.status_code == 409
+        assert response.data == {
+            "detail": "This monitor wasn't found.",
+            "code": "detector_not_found",
+        }
         action_request.refresh_from_db()
         assert action_request.state == InvestigationActionRequestState.SUGGESTED
 

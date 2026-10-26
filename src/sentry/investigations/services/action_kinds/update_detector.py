@@ -38,6 +38,7 @@ from sentry.investigations.services.action_kinds.base import (
     ActionKind,
     ActionStale,
     ApplyContext,
+    ApplyFailed,
     CannotApplyReason,
     SettingValue,
 )
@@ -343,6 +344,12 @@ def detector_cannot_apply_reason(
     return None
 
 
+def _detector_not_found() -> ApplyFailed:
+    return ApplyFailed(
+        {"detail": "This monitor wasn't found.", "code": CannotApplyReason.DETECTOR_NOT_FOUND}
+    )
+
+
 def _action_detector_id(action_request: InvestigationActionRequest) -> int:
     # The payload was validated when it arrived, and advice never reaches the kind.
     assert action_request.action_payload is not None
@@ -456,10 +463,10 @@ class UpdateDetectorKind(ActionKind):
         try:
             detector = detectors.get(id=int(action["detectorId"]))
         except Detector.DoesNotExist:
-            raise ResourceDoesNotExist
+            raise _detector_not_found()
         snuba_query = fetch_snuba_query(detector)
         if snuba_query is None:
-            raise ResourceDoesNotExist
+            raise _detector_not_found()
         if not dry_run:
             snuba_query = snuba_queries.get(id=snuba_query.id)
 
