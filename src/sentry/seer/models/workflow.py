@@ -18,6 +18,7 @@ class SeerWorkflowStrategy(models.TextChoices):
     AGENTIC_TRIAGE = "agentic_triage"
     DUPLICATE_MONITORS = "duplicate_monitors"
     AGENTIC_TRIAGE_V2 = "agentic_triage_v2"
+    BREACHED_METRIC_INVESTIGATION = "breached_metric_investigation"
 
 
 # Strategies with one config per organization, found or created by get_or_create_for_strategy.
@@ -27,7 +28,9 @@ SEER_LEGACY_WORKFLOW_STRATEGIES = frozenset(
 )
 
 # Strategies with any number of configs per organization. Each config is looked up by its id.
-SEER_CONFIGURABLE_WORKFLOW_STRATEGIES = frozenset({SeerWorkflowStrategy.AGENTIC_TRIAGE_V2})
+SEER_CONFIGURABLE_WORKFLOW_STRATEGIES = frozenset(
+    {SeerWorkflowStrategy.AGENTIC_TRIAGE_V2, SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION}
+)
 
 
 class SeerWorkflowConfigExtras(BaseModel):

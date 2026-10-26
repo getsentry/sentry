@@ -17,6 +17,7 @@ from sentry.viewer_context import (
     ActorType,
     ViewerContext,
     encode_viewer_context,
+    get_acting_user_id,
     get_viewer_context,
     observe_viewer_context_propagation,
 )
@@ -98,7 +99,7 @@ def _resolve_viewer_context(
 
     has_mismatch = False
     org_id = vc.organization_id
-    user_id = vc.actor.actor_id if vc.actor.type == ActorType.USER else vc.actor.delegated_user_id
+    user_id = get_acting_user_id(vc)
     actor = vc.actor
 
     if explicit_org_id is not None:

@@ -360,6 +360,11 @@ class Fixtures:
             project = self.project
         return Factories.create_repo(project, *args, **kwargs)
 
+    def create_project_repository(self, project=None, **kwargs):
+        if project is None:
+            project = self.project
+        return Factories.create_project_repository(project, **kwargs)
+
     def create_seer_project_repository(self, project=None, **kwargs):
         if project is None:
             project = self.project

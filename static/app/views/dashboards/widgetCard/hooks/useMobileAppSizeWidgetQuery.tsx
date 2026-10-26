@@ -1,7 +1,6 @@
 import {useMemo} from 'react';
 import {useQueries} from '@tanstack/react-query';
 
-import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {
@@ -96,8 +95,6 @@ export function useMobileAppSizeSeriesQuery(
     }
 
     const timeseriesResults: WidgetTimeSeries[] = [];
-    const timeseriesResultsTypes: Record<string, AggregationOutputType> = {};
-    const timeseriesResultsUnits: Record<string, DataUnit> = {};
 
     queryResults.forEach((q, requestIndex) => {
       if (!q?.data) {
@@ -113,32 +110,12 @@ export function useMobileAppSizeSeriesQuery(
       );
 
       timeseriesResults.push(...transformedResult);
-
-      const resultTypes = mobileAppSizeResponseTransforms.getSeriesResultType?.(
-        responseData,
-        filteredWidget.queries[requestIndex]!
-      );
-
-      if (resultTypes) {
-        Object.assign(timeseriesResultsTypes, resultTypes);
-      }
-
-      const resultUnits = mobileAppSizeResponseTransforms.getSeriesResultUnit?.(
-        responseData,
-        filteredWidget.queries[requestIndex]!
-      );
-
-      if (resultUnits) {
-        Object.assign(timeseriesResultsUnits, resultUnits);
-      }
     });
 
     return {
       loading: false,
       errorMessage: undefined,
       timeseriesResults,
-      timeseriesResultsTypes,
-      timeseriesResultsUnits,
       ingestion: combineIngestionMeta(queryResults.map(q => q?.data)),
       rawData,
     };
