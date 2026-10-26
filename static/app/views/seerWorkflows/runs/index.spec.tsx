@@ -6,7 +6,7 @@ import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLi
 import AutomationRunsList from 'sentry/views/seerWorkflows/runs';
 
 describe('SeerWorkflows', () => {
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({features: ['seer-automations']});
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -36,7 +36,7 @@ describe('SeerWorkflows', () => {
     jest.useFakeTimers();
     const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
     const scanOrganization = OrganizationFixture({
-      features: ['seer-workflows-monitor-cleanup'],
+      features: ['seer-automations', 'seer-workflows-monitor-cleanup'],
     });
     const url = `/organizations/${scanOrganization.slug}/seer/workflows/runs/`;
     const previousRun = {

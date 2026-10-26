@@ -11,6 +11,7 @@ import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {NotFound} from 'sentry/components/errors/notFound';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {ProjectList} from 'sentry/components/projectList';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -119,6 +120,10 @@ export default function AutomationsList() {
     }),
     ...(data?.configs ?? []),
   ];
+
+  if (!automationsEnabled) {
+    return <NotFound />;
+  }
 
   return (
     <Grid
