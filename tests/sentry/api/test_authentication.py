@@ -1,9 +1,7 @@
-import time
 import uuid
 from datetime import UTC, datetime, timedelta
 from unittest import mock
 
-import jwt as pyjwt
 import orjson
 import pytest
 from django.test import RequestFactory, override_settings
@@ -51,7 +49,6 @@ from sentry.viewer_context import (
     Actor,
     ActorType,
     ViewerContext,
-    _key_id,
     encode_viewer_context,
 )
 
@@ -1221,17 +1218,7 @@ class TestViewerContextAuthentication(TestCase):
             organization_id=self.organization.id,
         )
         request = self._make_request(
-            viewer_context=pyjwt.encode(
-                {
-                    **context.serialize(version=2),
-                    "iat": time.time(),
-                    "exp": time.time() + 300,
-                    "iss": "sentry",
-                },
-                self.SHARED_SECRET,
-                algorithm="HS256",
-                headers={"kid": _key_id(self.SHARED_SECRET)},
-            )
+            viewer_context=encode_viewer_context(context, key=self.SHARED_SECRET)
         )
         assert ViewerContextAuthentication().authenticate(request) is None
 
@@ -1245,17 +1232,7 @@ class TestViewerContextAuthentication(TestCase):
             organization_id=self.organization.id,
         )
         request = self._make_request(
-            viewer_context=pyjwt.encode(
-                {
-                    **context.serialize(version=2),
-                    "iat": time.time(),
-                    "exp": time.time() + 300,
-                    "iss": "sentry",
-                },
-                self.SHARED_SECRET,
-                algorithm="HS256",
-                headers={"kid": _key_id(self.SHARED_SECRET)},
-            )
+            viewer_context=encode_viewer_context(context, key=self.SHARED_SECRET)
         )
         result = ViewerContextAuthentication().authenticate(request)
         assert result is not None

@@ -76,7 +76,7 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWork
             assert viewer_context is not None
             assert viewer_context.organization_id == org.id
             assert viewer_context.project_id == project.id
-            assert viewer_context.user_id == self.user.id
+            assert viewer_context.actor.actor_id == self.user.id
             assert viewer_context.actor.type == ActorType.USER
 
         mock_delete_seer_grouping_records.side_effect = assert_viewer_context

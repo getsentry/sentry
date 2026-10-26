@@ -1240,7 +1240,7 @@ class PushEventWebhookTest(APITestCase):
         assert ctx is not None
         assert ctx.organization_id == self.project.organization.id
         assert ctx.actor.type == ActorType.INTEGRATION
-        assert ctx.user_id is None
+        assert ctx.actor.actor_id is None
 
     @responses.activate
     @patch("sentry.integrations.github.webhook.metrics")

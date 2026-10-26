@@ -9,12 +9,7 @@ from urllib3.response import HTTPResponse
 from sentry.deletions.tasks.seer import notify_seer_repository_deleted
 from sentry.seer.code_review.utils import SeerEndpoint
 from sentry.testutils.cases import TestCase
-from sentry.viewer_context import (
-    Actor,
-    ActorType,
-    ViewerContext,
-    decode_viewer_context,
-)
+from sentry.viewer_context import Actor, ActorType, ViewerContext, decode_viewer_context
 
 
 class NotifySeerRepositoryDeletedTest(TestCase):

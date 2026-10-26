@@ -296,6 +296,9 @@ from sentry.integrations.api.endpoints.organization_repository_platforms import 
 from sentry.integrations.api.endpoints.organization_repository_settings import (
     OrganizationRepositorySettingsEndpoint,
 )
+from sentry.investigations.endpoints.organization_investigation_action_request_apply import (
+    OrganizationInvestigationActionRequestApplyEndpoint,
+)
 from sentry.investigations.endpoints.organization_investigation_block_details import (
     OrganizationInvestigationBlockDetailsEndpoint,
 )
@@ -804,7 +807,6 @@ from .endpoints.organization_events import OrganizationEventsEndpoint
 from .endpoints.organization_events_dropped import OrganizationEventsDroppedEndpoint
 from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
 from .endpoints.organization_events_heatmap import OrganizationEventsHeatmapEndpoint
-from .endpoints.organization_events_histogram import OrganizationEventsHistogramEndpoint
 from .endpoints.organization_events_meta import OrganizationEventsMetaEndpoint
 from .endpoints.organization_events_sql import OrganizationEventsSqlEndpoint
 from .endpoints.organization_events_stats import OrganizationEventsStatsEndpoint
@@ -1928,11 +1930,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-missing-members",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/events-histogram/$",
-        OrganizationEventsHistogramEndpoint.as_view(),
-        name="sentry-api-0-organization-events-histogram",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/trace/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
         OrganizationTraceEndpoint.as_view(),
         name="sentry-api-0-organization-trace",
@@ -2451,6 +2448,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/duplicate/$",
         OrganizationInvestigationsDuplicateEndpoint.as_view(),
         name="sentry-api-0-organization-investigation-duplicate",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/action-requests/(?P<action_request_id>[^/]+)/apply/$",
+        OrganizationInvestigationActionRequestApplyEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-action-request-apply",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/presence/$",

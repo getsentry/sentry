@@ -65,8 +65,6 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleProjects,
     AlertRuleSeasonality,
     AlertRuleThresholdType,
-    AlertRuleTrigger,
-    AlertRuleTriggerAction,
 )
 from sentry.incidents.models.incident import (
     Incident,
@@ -1143,6 +1141,15 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
+    def create_project_repository(
+        project, repository, source=ProjectRepositorySource.MANUAL
+    ) -> ProjectRepository:
+        return ProjectRepository.objects.create(
+            project=project, repository=repository, source=source
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_seer_project_repository(project, repository=None, repository_id=None, **kwargs):
         if repository is None and repository_id is not None:
             repository = Repository.objects.get(id=repository_id)
@@ -2197,47 +2204,6 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
-    def create_alert_rule_trigger(alert_rule, label=None, alert_threshold=100):
-        if not label:
-            label = petname.generate(2, " ", letters=10).title()
-
-        return AlertRuleTrigger.objects.create(
-            alert_rule=alert_rule,
-            label=label,
-            alert_threshold=alert_threshold,
-        )
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
-    def create_alert_rule_trigger_action(
-        trigger,
-        type=AlertRuleTriggerAction.Type.EMAIL,
-        target_type=AlertRuleTriggerAction.TargetType.USER,
-        target_identifier=None,
-        target_display=None,
-        integration=None,
-        sentry_app=None,
-        sentry_app_config=None,
-    ):
-        return AlertRuleTriggerAction.objects.create(
-            alert_rule_trigger=trigger,
-            type=type.value,
-            target_type=target_type.value,
-            target_identifier=str(target_identifier) if target_identifier is not None else None,
-            target_display=(
-                target_display
-                if target_display is not None
-                else sentry_app.name
-                if sentry_app
-                else None
-            ),
-            integration_id=integration.id if integration else None,
-            sentry_app_id=sentry_app.id if sentry_app else None,
-            sentry_app_config=sentry_app_config,
-        )
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
     def create_external_user(user: User, **kwargs: Any) -> ExternalActor:
         kwargs.setdefault("provider", ExternalProviders.GITHUB.value)
         kwargs.setdefault("external_name", "")
@@ -2994,13 +2960,15 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
     def create_incident_group_open_period(
-        incident: Incident,
         group_open_period: GroupOpenPeriod,
+        *,
+        incident_id: int,
+        incident_identifier: int,
         **kwargs,
     ) -> IncidentGroupOpenPeriod:
         return IncidentGroupOpenPeriod.objects.create(
-            incident_id=incident.id,
-            incident_identifier=incident.identifier,
+            incident_id=incident_id,
+            incident_identifier=incident_identifier,
             group_open_period=group_open_period,
             **kwargs,
         )

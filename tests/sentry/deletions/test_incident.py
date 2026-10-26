@@ -13,7 +13,6 @@ class DeleteIncidentTest(BaseWorkflowTest, HybridCloudTestMixin):
     def test_simple(self) -> None:
         organization = self.create_organization()
         alert_rule = self.create_alert_rule(organization=organization)
-        self.create_alert_rule_trigger(alert_rule=alert_rule)
         incident = self.create_incident(
             organization,
             title="Incident #1",
@@ -30,7 +29,7 @@ class DeleteIncidentTest(BaseWorkflowTest, HybridCloudTestMixin):
         group = event.group
         assert group
         group_open_period = GroupOpenPeriod.objects.get(project=self.project, group=group)
-        IncidentGroupOpenPeriod.objects.create(
+        self.create_incident_group_open_period(
             incident_id=incident.id,
             incident_identifier=incident.identifier,
             group_open_period=group_open_period,
@@ -42,9 +41,9 @@ class DeleteIncidentTest(BaseWorkflowTest, HybridCloudTestMixin):
             run_scheduled_deletions()
 
         assert not Incident.objects.filter(id=incident.id).exists()
-        assert not IncidentGroupOpenPeriod.objects.filter(
+        assert IncidentGroupOpenPeriod.objects.filter(
             incident_id=incident.id,
             incident_identifier=incident.identifier,
             group_open_period=group_open_period,
         ).exists()
-        assert not GroupOpenPeriod.objects.filter(project=self.project, group=group)
+        assert GroupOpenPeriod.objects.filter(project=self.project, group=group).exists()

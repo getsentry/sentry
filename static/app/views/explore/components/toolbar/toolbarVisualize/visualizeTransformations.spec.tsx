@@ -5,13 +5,22 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
-import {VisualizeTransformations} from './visualizeTransformations';
+import {
+  AddTransformationButton,
+  VisualizeTransformationRows,
+} from './visualizeTransformations';
 
 function Example({initial = []}: {initial?: string[]}) {
   const [transformations, setTransformations] = useState<readonly string[]>(initial);
   return (
     <div>
-      <VisualizeTransformations
+      <VisualizeTransformationRows
+        traceItemDataset={TraceItemDataset.SPANS}
+        transformations={transformations}
+        onChange={setTransformations}
+        layout="inline"
+      />
+      <AddTransformationButton
         traceItemDataset={TraceItemDataset.SPANS}
         transformations={transformations}
         onChange={setTransformations}
@@ -129,16 +138,16 @@ describe('VisualizeTransformations', () => {
     expect(screen.getByRole('status')).toHaveTextContent(
       '["fill(locf)","smooth(ema,1)"]'
     );
-    await userEvent.click(screen.getByRole('button', {name: 'Smoothing Factor'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Smoothing Weight'}));
     await userEvent.click(screen.getByRole('option', {name: '75%'}));
     expect(screen.getByRole('status')).toHaveTextContent(
       '["fill(locf)","smooth(ema,1,0.75)"]'
     );
     expect(screen.getByRole('button', {name: 'Window Size'})).toBeDisabled();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Smoothing Factor'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Smoothing Weight'}));
     await userEvent.click(screen.getByRole('button', {name: 'Clear'}));
-    expect(screen.getByRole('button', {name: 'Smoothing Factor'})).toHaveTextContent(
+    expect(screen.getByRole('button', {name: 'Smoothing Weight'})).toHaveTextContent(
       'Auto'
     );
     expect(screen.getByRole('button', {name: 'Window Size'})).toBeEnabled();
@@ -158,7 +167,7 @@ describe('VisualizeTransformations', () => {
       'Auto'
     );
     expect(
-      screen.queryByRole('button', {name: 'Smoothing Factor'})
+      screen.queryByRole('button', {name: 'Smoothing Weight'})
     ).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Max Window Size'}));
     await userEvent.click(screen.getByRole('option', {name: '7'}));

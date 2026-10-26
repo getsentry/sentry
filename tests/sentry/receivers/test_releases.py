@@ -40,12 +40,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.users.models.user_option import UserOption
 from sentry.users.models.useremail import UserEmail
-from sentry.viewer_context import (
-    Actor,
-    ActorType,
-    ViewerContext,
-    get_viewer_context,
-)
+from sentry.viewer_context import Actor, ActorType, ViewerContext, get_viewer_context
 
 
 class InvalidateReleaseCacheTest(TestCase):

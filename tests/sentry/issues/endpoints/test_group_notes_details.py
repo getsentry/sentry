@@ -52,6 +52,44 @@ class GroupNotesDetailsTest(APITestCase):
     def url(self) -> str:
         return f"/api/0/issues/{self.group.id}/comments/{self.activity.id}/"
 
+    def test_mutation_outbox_failure_rolls_back(self) -> None:
+        self.login_as(user=self.user)
+        note = self.activity
+        group = self.group
+        original_data = dict(note.data)
+        group.refresh_from_db()
+        initial_count = group.num_comments
+        self.create_group_action_log_entry(
+            type=GroupActionType.COMMENT,
+            data={"comment_id": note.id, "text": note.data.get("text")},
+            idempotency_key=f"activity:{note.id}",
+        )
+        GroupSubscription.objects.subscribe(
+            group=group, subscriber=self.user, reason=GroupSubscriptionReason.comment
+        )
+        for method in (self.client.put, self.client.delete):
+            with (
+                self.feature("projects:issue-action-log-write-to-db"),
+                patch(
+                    "sentry.issues.models.groupactionlogoutbox.GroupActionLogOutbox.save",
+                    side_effect=RuntimeError("enqueue failed"),
+                ),
+                patch("sentry.issues.comments._sync_comment") as sync,
+                patch("sentry.issues.comments.comment_updated.send_robust") as updated,
+                patch("sentry.issues.comments.comment_deleted.send_robust") as deleted,
+                self.captureOnCommitCallbacks(execute=True),
+            ):
+                response = method(self.url, data={"text": "rollback"}, format="json")
+                assert response.status_code == 500
+            note.refresh_from_db()
+            group.refresh_from_db()
+            assert note.data == original_data
+            assert group.num_comments == initial_count
+            assert GroupSubscription.objects.filter(group=group, user_id=self.user.id).exists()
+            sync.assert_not_called()
+            updated.assert_not_called()
+            deleted.assert_not_called()
+
     def test_delete_invalid_note_id(self) -> None:
         self.login_as(user=self.user)
         url = f"/api/0/issues/{self.group.id}/comments/abc/"
@@ -191,6 +229,7 @@ class GroupNotesDetailsTest(APITestCase):
 
         activity = Activity.objects.get(id=response.data["id"])
         assert response.data["commentId"] == str(activity.id)
+        assert response.data["source"] is None
         assert activity.user_id == self.user.id
         assert activity.group == self.group
         assert activity.data == {"text": "hi haters", "external_id": "123"}
@@ -242,7 +281,11 @@ class GroupNotesDetailsTest(APITestCase):
         )
 
         put_url = f"{post_url}{comment_id}/"
-        response = self.client.put(put_url, format="json", data={"text": "updated text"})
+        response = self.client.put(
+            put_url,
+            format="json",
+            data={"text": "updated text", "mentions": [f"user:{self.user.id}"]},
+        )
         assert response.status_code == 200, response.content
 
         assert response.data["id"] == comment_id
@@ -259,6 +302,9 @@ class GroupNotesDetailsTest(APITestCase):
         # the edit references the original COMMENT entry by its GALE id and carries the new text
         assert edit_entry.data["comment_id"] == original_entry.id
         assert edit_entry.data["text"] == "updated text"
+        assert edit_entry.data["mentions"] == [
+            {"id": self.user.id, "actor_type": "User", "slug": None}
+        ]
 
         # the original COMMENT entry is left untouched
         original_entry.refresh_from_db()
@@ -295,7 +341,7 @@ class GroupNotesDetailsTest(APITestCase):
         self._assert_edit_and_delete_body_free_comment(True, "api")
 
     def test_edit_and_delete_body_free_comment_without_gal_serving(self) -> None:
-        self._assert_edit_and_delete_body_free_comment(False, None)
+        self._assert_edit_and_delete_body_free_comment(False, "api")
 
     def _assert_edit_and_delete_body_free_comment(
         self, serve_from_log: bool, expected_source: str | None
@@ -322,7 +368,7 @@ class GroupNotesDetailsTest(APITestCase):
             assert response.data["id"] == response.data["commentId"] == str(note.id)
             assert response.data["type"] == "note"
             assert response.data["data"]["text"] == "updated"
-            assert response.data.get("source") == expected_source
+            assert response.data["source"] == expected_source
             note.refresh_from_db()
             assert note.data["text"] == "updated"
 
