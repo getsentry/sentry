@@ -47,8 +47,14 @@ SLACK_SDK_HALT_ERROR_CATEGORIES = (
     FATAL_ERROR,
     INTERNAL_ERROR,
     INVALID_AUTH,
-    MESSAGE_NOT_FOUND,
     NON_JSON_RESPONSE,
+)
+
+# Errors that mean the message being edited no longer exists, so retrying can't succeed.
+SLACK_SDK_MESSAGE_GONE_ERROR_CATEGORIES = (
+    MESSAGE_NOT_FOUND,
+    CHANNEL_NOT_FOUND,
+    CHANNEL_ARCHIVED,
 )
 
 _CATEGORIES_BY_MESSAGE = {c.message: c for c in SLACK_SDK_ERROR_CATEGORIES}

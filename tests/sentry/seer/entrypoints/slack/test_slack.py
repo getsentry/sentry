@@ -68,7 +68,11 @@ from sentry.seer.entrypoints.slack.messaging import (
 from sentry.seer.entrypoints.types import SeerEntrypointKey
 from sentry.seer.models import SeerAutomationHandoffConfiguration, SeerProjectPreference
 from sentry.sentry_apps.event_types import SentryAppEventType
-from sentry.shared_integrations.exceptions import IntegrationConfigurationError, IntegrationError
+from sentry.shared_integrations.exceptions import (
+    IntegrationConfigurationError,
+    IntegrationError,
+    IntegrationResourceNotFoundError,
+)
 from sentry.testutils.asserts import assert_halt_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
@@ -1258,18 +1262,19 @@ class SlackAgentEntrypointTest(TestCase):
             )
         return state
 
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("slack_sdk.web.client.WebClient.chat_postMessage")
     @patch("slack_sdk.web.client.WebClient.chat_update")
-    def test_on_agent_update_failed_edit_does_not_block_other_answers(
-        self, update: Mock, post: Mock
+    def test_on_agent_update_rate_limited_edit_retries_without_blocking_other_answers(
+        self, update: Mock, post: Mock, mock_record: Mock
     ) -> None:
         state = self._two_posted_answers_with_stale_footers()
         update.side_effect = [
-            SlackApiError("error", _slack_response({"ok": False, "error": "invalid_blocks"})),
+            SlackApiError("error", _slack_response({"ok": False, "error": "ratelimited"})),
             _slack_response({"ok": True}),
         ]
 
-        with pytest.raises(IntegrationError):
+        with pytest.raises(IntegrationConfigurationError):
             SlackAgentEntrypoint.on_agent_update(
                 cache_payload=self._get_entrypoint().create_agent_cache_payload(),
                 run_id=state.run_id,
@@ -1278,13 +1283,14 @@ class SlackAgentEntrypointTest(TestCase):
 
         post.assert_not_called()
         assert [call.kwargs["ts"] for call in update.call_args_list] == ["1.1", "2.2"]
+        assert_halt_metric(mock_record, IntegrationConfigurationError())
         replies = SlackSeerAgentReplyCache.get(run_id=state.run_id)
         assert replies["b2"]["pr_status_hash"] == "stale"
         assert replies["b4"]["pr_status_hash"] != "stale"
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("slack_sdk.web.client.WebClient.chat_update")
-    def test_on_agent_update_deleted_answer_halts_edit(
+    def test_on_agent_update_deleted_answer_is_not_edited_again(
         self, update: Mock, mock_record: Mock
     ) -> None:
         state = self._two_posted_answers_with_stale_footers()
@@ -1292,17 +1298,17 @@ class SlackAgentEntrypointTest(TestCase):
             SlackApiError("error", _slack_response({"ok": False, "error": "message_not_found"})),
             _slack_response({"ok": True}),
         ]
+        cache_payload = self._get_entrypoint().create_agent_cache_payload()
 
-        SlackAgentEntrypoint.on_agent_update(
-            cache_payload=self._get_entrypoint().create_agent_cache_payload(),
-            run_id=state.run_id,
-            state=state,
-        )
+        for _ in range(2):
+            SlackAgentEntrypoint.on_agent_update(
+                cache_payload=cache_payload, run_id=state.run_id, state=state
+            )
 
         assert update.call_count == 2
-        assert_halt_metric(mock_record, IntegrationConfigurationError())
+        assert_halt_metric(mock_record, IntegrationResourceNotFoundError())
         replies = SlackSeerAgentReplyCache.get(run_id=state.run_id)
-        assert replies["b2"]["pr_status_hash"] == "stale"
+        assert replies["b2"]["pr_status_hash"] != "stale"
         assert replies["b4"]["pr_status_hash"] != "stale"
 
     @patch("sentry.seer.entrypoints.slack.entrypoint.logger")
