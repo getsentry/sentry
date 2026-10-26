@@ -9,18 +9,26 @@ import * as Storybook from 'sentry/stories';
 
 import {
   AsyncComposerDemo,
+  AtomicMentionsDemo,
   CommandComposerDemo,
   ComposerDemo,
+  InlineMentionsDemo,
   RestoredComposerDemo,
+  ScrollingComposerDemo,
+  SharedTriggerDemo,
+  SizesComposerDemo,
+  SubmitComposerDemo,
 } from './__stories__/demos';
 
 export const documentation = import('!!type-loader!@sentry/scraps/composer/composer');
 
 `<Composer>` keeps editable text and structured references in one controlled value. Behavior is attached with plugins: each plugin contributes suggestion sources that provide their own data, identity, inserted text, and suggestion presentation.
 
+A native `<textarea>` handles text, selection, undo, input methods, and mobile keyboards. Its own text is transparent: a mirror laid exactly over it draws the visible text and the inline mentions. The `ref` points at the textarea.
+
 ## Compose with multiple sources
 
-A plugin groups related sources under a stable `id`. This example combines local member and team sources. Selected references remain editable and are emphasized while their range is valid.
+A plugin groups related sources under a stable `id`. This example combines local member and team sources. Selected references render inline as mentions while their range is valid.
 
 Suggestion objects stay within their source. The controlled value stores only stable IDs and text ranges.
 
@@ -60,9 +68,65 @@ const mentionPlugin = {
 />;
 ```
 
+## Render mentions inline
+
+Sources can provide `renderMention` to draw a mention as a component, such as a member's avatar. Sources without it render mentions as highlighted text.
+
+The caret moves through the textarea's text, not through the component, so the component is drawn over the mention's text and clipped to it. It must fit the width of `mention.text` in the editor font: keep the text and swap glyphs instead of adding padding or margins. In the example, the avatar takes the place of the `@` glyph. When a mention wraps across lines, Composer shows its text instead. Narrow the editor to see the fallback.
+
+Mentions render behind `pointer-events: none`, so they cannot be interactive.
+
+<Storybook.Demo overflow="visible">
+  <InlineMentionsDemo />
+</Storybook.Demo>
+
+```jsx
+function MemberMention({mention}) {
+  return (
+    <span>
+      {/* The transparent `@` reserves exactly its own width for the avatar. */}
+      <TriggerSlot>
+        {mention.text.charAt(0)}
+        <UserAvatar size={12} user={getMember(mention.id)} />
+      </TriggerSlot>
+      {mention.text.slice(1)}
+    </span>
+  );
+}
+
+const memberSource = {
+  id: 'members',
+  label: 'Members',
+  trigger: '@',
+  getSuggestions: query => filterPeople(query),
+  getId: person => person.id,
+  getText: person => `@${person.label}`,
+  renderMention: mention => <MemberMention mention={mention} />,
+};
+```
+
+## Edit around mentions
+
+Mentions are atomic:
+
+- **Backspace** after a mention, or **Delete** before it, removes the whole mention.
+- Deleting or replacing a selection that covers part of a mention removes the whole mention.
+- The caret never rests inside a mention. Arrow keys skip over it, and a click inside it moves the caret to the nearest edge.
+- Undo and redo restore the mentions that existed when the text was last in that state.
+
+Edits the editor makes itself, such as inserting a selected suggestion or removing a whole mention with Backspace, join the browser's undo history.
+
+<Storybook.Demo overflow="visible">
+  <AtomicMentionsDemo />
+</Storybook.Demo>
+
 ## Share a trigger between sources
 
 Sources sharing a trigger character contribute suggestions to the same popup, and selecting an option resolves the source that owns it — so each source keeps its own inserted text and suggestion identity. Use this to offer several kinds of references under one affordance, such as members and teams on `@`.
+
+<Storybook.Demo overflow="visible">
+  <SharedTriggerDemo />
+</Storybook.Demo>
 
 ```jsx
 const mentionPlugin = {
@@ -129,7 +193,7 @@ const [value, setValue] = useState({
 
 ## Load queried suggestions
 
-Async sources provide TanStack Query options, sharing the application's loading, caching, cancellation, and error behavior.
+Async sources provide TanStack Query options, sharing the application's loading, caching, cancellation, and error behavior. In this example, queries take half a second, and queries starting with `fail` show the error state.
 
 <Storybook.Demo overflow="visible">
   <AsyncComposerDemo />
@@ -204,4 +268,54 @@ const commandPlugin = {
   value={value}
   onChange={setValue}
 />;
+```
+
+## Submit on Enter
+
+Composer passes `onKeyDown` through once its own keys are handled. Enter and Tab pick a suggestion while the popup is open, and keys pressed while an input method is composing never reach `onKeyDown`, so a handler can submit on Enter without checking either.
+
+<Storybook.Demo overflow="visible">
+  <SubmitComposerDemo />
+</Storybook.Demo>
+
+```jsx
+<Composer
+  aria-label="Message"
+  plugins={[mentionPlugin]}
+  value={value}
+  onChange={setValue}
+  onKeyDown={event => {
+    if (event.key === 'Enter' && !event.shiftKey && value.text.trim() !== '') {
+      event.preventDefault();
+      send(value);
+      setValue({text: '', mentions: []});
+    }
+  }}
+/>
+```
+
+## Sizes and states
+
+Composer accepts the form sizes and the native textarea attributes, such as `disabled` and `placeholder`. It grows with its text from `minHeight`.
+
+<Storybook.Demo overflow="visible">
+  <SizesComposerDemo />
+</Storybook.Demo>
+
+## Long content
+
+Constrain the height with `maxHeight`, and Composer scrolls its text and mentions together.
+
+<Storybook.Demo overflow="visible">
+  <ScrollingComposerDemo />
+</Storybook.Demo>
+
+```jsx
+<Composer
+  aria-label="Comment"
+  plugins={[mentionPlugin]}
+  style={{maxHeight: 140}}
+  value={value}
+  onChange={setValue}
+/>
 ```

@@ -19,7 +19,7 @@ interface SuggestionListItem {
 interface UseComposerSuggestionsOptions {
   activeSources: ReadonlyArray<ComposerSource<unknown>>;
   activeTrigger: ActiveTrigger | null;
-  inputRef: React.RefObject<HTMLDivElement | null>;
+  inputRef: React.RefObject<HTMLTextAreaElement | null>;
 }
 
 const MAX_SUGGESTIONS = 50;

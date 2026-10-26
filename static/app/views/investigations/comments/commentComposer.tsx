@@ -32,7 +32,7 @@ export function CommentComposer({
   investigationId: string;
   alwaysShowButton?: boolean;
   blockId?: string;
-  inputRef?: React.Ref<HTMLDivElement>;
+  inputRef?: React.Ref<HTMLTextAreaElement>;
 }) {
   const organization = useOrganization();
   const [value, setValue] = useState<ComposerValue>(() =>
@@ -111,7 +111,7 @@ export function EditCommentForm({
   onDone: () => void;
 }) {
   const organization = useOrganization();
-  const inputRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const [value, setValue] = useState<ComposerValue>({text: comment.body, mentions: []});
   const {isPending, mutate} = useUpdateInvestigationCommentMutation(
     organization.slug,
@@ -122,8 +122,7 @@ export function EditCommentForm({
     const input = inputRef.current;
     if (input) {
       input.focus();
-      window.getSelection()?.selectAllChildren(input);
-      window.getSelection()?.collapseToEnd();
+      input.setSelectionRange(input.value.length, input.value.length);
     }
   }, []);
 

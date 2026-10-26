@@ -2,16 +2,20 @@ import {MemberFixture} from 'sentry-fixture/member';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {MentionComposer} from 'sentry/components/activity/note/mentionComposer/mentionComposer';
 import {TeamStore} from 'sentry/stores/teamStore';
 
 function getEditor(name = 'Add a comment') {
-  const editor = screen.getByRole('combobox', {name});
-  // user-event does not yet recognize contenteditable="plaintext-only".
-  editor.setAttribute('contenteditable', 'true');
-  return editor;
+  return screen.getByRole('combobox', {name});
 }
 
 const noopSubmit = () => Promise.resolve();
@@ -214,15 +218,12 @@ describe('MentionComposer', () => {
 
     act(() => {
       editor.dispatchEvent(new CompositionEvent('compositionstart', {bubbles: true}));
-      editor.textContent = 'Draft日本語';
-      editor.dispatchEvent(
-        new InputEvent('input', {
-          bubbles: true,
-          data: '日本語',
-          inputType: 'insertCompositionText',
-          isComposing: true,
-        })
-      );
+      fireEvent.input(editor, {
+        target: {value: 'Draft日本語'},
+        data: '日本語',
+        inputType: 'insertCompositionText',
+        isComposing: true,
+      });
     });
 
     act(() => {

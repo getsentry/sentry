@@ -230,7 +230,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const {copy} = useCopyToClipboard();
-  const composerRef = useRef<HTMLDivElement>(null);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
   const activityRef = useRef<HTMLElement>(null);
   const {data: comments} = useInvestigationComments(investigation.id, {
     shouldPoll: investigation.status !== 'archived',

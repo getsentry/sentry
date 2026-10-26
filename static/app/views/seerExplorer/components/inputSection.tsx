@@ -33,13 +33,13 @@ interface QuestionActions {
 }
 
 interface InputSectionProps {
-  composerRef: React.RefObject<HTMLDivElement | null>;
+  composerRef: React.RefObject<HTMLTextAreaElement | null>;
   enabled: boolean;
   inputValue: ComposerValue;
   onInputChange: (value: ComposerValue) => void;
   onInputClick: () => void;
   onInterrupt: () => void;
-  onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => void;
+  onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   onSend: () => void;
   repoPRStates: Record<string, RepoPRState>;
   canSendMessage?: boolean;
@@ -313,7 +313,7 @@ const StyledComposer = styled(Composer, {
   flex: 1;
   max-height: 120px;
 
-  &:empty::before {
+  &::placeholder {
     color: ${p =>
       p.isWarningPlaceholder
         ? p.theme.tokens.content.warning

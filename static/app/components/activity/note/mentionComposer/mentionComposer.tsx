@@ -105,7 +105,7 @@ export function MentionComposer(props: MentionComposerProps) {
       <form.AppField name="value">
         {field =>
           editorMode === 'write' || isCompact ? (
-            <field.Base<HTMLDivElement>>
+            <field.Base<HTMLTextAreaElement>>
               {({ref, ...fieldProps}) => (
                 <Composer
                   {...fieldProps}

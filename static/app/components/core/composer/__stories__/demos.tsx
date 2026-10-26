@@ -1,14 +1,18 @@
 import {useState} from 'react';
+import styled from '@emotion/styled';
 import {queryOptions} from '@tanstack/react-query';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
 import {
   Composer,
   type ComposerActions,
   type ComposerPlugin,
-  type ComposerValue,
   type ComposerSource,
+  type ComposerValue,
+  type Mention,
 } from '@sentry/scraps/composer';
-import {Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 interface Suggestion {
   id: string;
@@ -28,41 +32,82 @@ const TEAMS = [
   {id: 'team:3', label: '#performance'},
 ];
 
-const SOURCES = [
-  {
-    id: 'members',
-    label: 'Members',
-    trigger: '@',
-    getSuggestions: query => filterSuggestions(PEOPLE, query),
-    getId: suggestion => suggestion.id,
-    getText: suggestion => `@${suggestion.label}`,
-  },
-  {
-    id: 'teams',
-    label: 'Teams',
-    trigger: '#',
-    getSuggestions: query => filterSuggestions(TEAMS, query),
-    getId: suggestion => suggestion.id,
-    getText: suggestion => suggestion.label,
-  },
-] satisfies ReadonlyArray<ComposerSource<Suggestion>>;
+function filterSuggestions(suggestions: readonly Suggestion[], query: string) {
+  const normalizedQuery = query.toLocaleLowerCase();
+  return suggestions.filter(suggestion =>
+    suggestion.label.toLocaleLowerCase().includes(normalizedQuery)
+  );
+}
+
+function makeMention(text: string, mentionText: string, id: string, sourceId: string) {
+  const start = text.indexOf(mentionText);
+  return {id, sourceId, start, end: start + mentionText.length, text: mentionText};
+}
+
+/**
+ * Keeps the `@` glyph so the avatar takes exactly its width, and the name
+ * keeps exactly the width of the rest of the mention.
+ */
+const TriggerSlot = styled('span')`
+  position: relative;
+  color: transparent;
+
+  & > * {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+  }
+`;
+
+function MemberMention({mention}: {mention: Mention}) {
+  const person = PEOPLE.find(item => item.id === mention.id);
+  return (
+    <span>
+      <TriggerSlot>
+        {mention.text.charAt(0)}
+        <UserAvatar
+          size={12}
+          hasTooltip={false}
+          user={{type: 'user', id: mention.id, name: person?.label ?? mention.text}}
+        />
+      </TriggerSlot>
+      {mention.text.slice(1)}
+    </span>
+  );
+}
+
+const MEMBER_SOURCE = {
+  id: 'members',
+  label: 'Members',
+  trigger: '@',
+  getSuggestions: query => filterSuggestions(PEOPLE, query),
+  getId: suggestion => suggestion.id,
+  getText: suggestion => `@${suggestion.label}`,
+  renderMention: mention => <MemberMention mention={mention} />,
+} satisfies ComposerSource<Suggestion>;
+
+const TEAM_SOURCE = {
+  id: 'teams',
+  label: 'Teams',
+  trigger: '#',
+  getSuggestions: query => filterSuggestions(TEAMS, query),
+  getId: suggestion => suggestion.id,
+  getText: suggestion => suggestion.label,
+} satisfies ComposerSource<Suggestion>;
 
 const MENTION_PLUGIN: ComposerPlugin = {
   id: 'mentions',
-  getSources: () => SOURCES,
+  getSources: () => [MEMBER_SOURCE, TEAM_SOURCE],
+};
+
+const SHARED_TRIGGER_PLUGIN: ComposerPlugin = {
+  id: 'shared-trigger',
+  getSources: () => [MEMBER_SOURCE, {...TEAM_SOURCE, trigger: '@'}],
 };
 
 const RESTORED_TEXT = 'Continue with @Alice Example on the checkout regression.';
-const RESTORED_MENTION_TEXT = '@Alice Example';
-const RESTORED_MENTION_START = RESTORED_TEXT.indexOf(RESTORED_MENTION_TEXT);
 const RESTORED_MENTIONS = [
-  {
-    id: ALICE.id,
-    sourceId: 'members',
-    start: RESTORED_MENTION_START,
-    end: RESTORED_MENTION_START + RESTORED_MENTION_TEXT.length,
-    text: RESTORED_MENTION_TEXT,
-  },
+  makeMention(RESTORED_TEXT, '@Alice Example', ALICE.id, 'members'),
 ];
 
 const REMOTE_SOURCES = [
@@ -75,8 +120,12 @@ const REMOTE_SOURCES = [
         queryKey: ['composer-story', 'remote-members', query],
         queryFn: async () => {
           await waitForDelay(500);
+          if (query.startsWith('fail')) {
+            throw new Error('Unable to reach the member directory');
+          }
           return filterSuggestions(PEOPLE, query);
         },
+        retry: false,
         staleTime: Infinity,
       }),
     getId: (suggestion: Suggestion) => suggestion.id,
@@ -88,13 +137,6 @@ const REMOTE_PLUGIN: ComposerPlugin = {
   id: 'remote-members',
   getSources: () => REMOTE_SOURCES,
 };
-
-function filterSuggestions(suggestions: readonly Suggestion[], query: string) {
-  const normalizedQuery = query.toLocaleLowerCase();
-  return suggestions.filter(suggestion =>
-    suggestion.label.toLocaleLowerCase().includes(normalizedQuery)
-  );
-}
 
 interface CommandSuggestion {
   description: string;
@@ -135,30 +177,120 @@ function waitForDelay(delay: number) {
   return new Promise<void>(resolve => window.setTimeout(resolve, delay));
 }
 
+/** Shows the controlled value so each demo's text and mention ranges are visible. */
+function ValueInspector({value}: {value: ComposerValue}) {
+  return (
+    <Container background="secondary" border="primary" radius="md" padding="sm md">
+      <Text as="div" monospace size="xs" variant="muted" wrap="pre-wrap">
+        {JSON.stringify(value, null, 2)}
+      </Text>
+    </Container>
+  );
+}
+
+function useComposerValue(text: string, mentions: readonly Mention[] = []) {
+  return useState<ComposerValue>({text, mentions});
+}
+
 export function ComposerDemo() {
-  const [value, setValue] = useState<ComposerValue>({
-    text: 'The regression is isolated to the checkout flow.\nAssign it to ',
-    mentions: [],
-  });
+  const [value, setValue] = useComposerValue(
+    'The regression is isolated to the checkout flow.\nAssign it to '
+  );
 
   return (
-    <Stack width="100%" maxWidth="720px">
+    <Stack width="100%" maxWidth="720px" gap="md">
       <Composer
         aria-label="Comment"
         minHeight={120}
+        placeholder="Type @ for people or # for teams"
         plugins={[MENTION_PLUGIN]}
         value={value}
         onChange={setValue}
       />
+      <ValueInspector value={value} />
+    </Stack>
+  );
+}
+
+const INLINE_TEXT =
+  'Ask @Alice Example and #design-systems to review, then loop in @Sam Designer.';
+
+export function InlineMentionsDemo() {
+  const [value, setValue] = useComposerValue(INLINE_TEXT, [
+    makeMention(INLINE_TEXT, '@Alice Example', 'user:1', 'members'),
+    makeMention(INLINE_TEXT, '#design-systems', 'team:2', 'teams'),
+    makeMention(INLINE_TEXT, '@Sam Designer', 'user:3', 'members'),
+  ]);
+
+  return (
+    <Flex gap="xl" wrap="wrap" width="100%">
+      <Stack gap="sm" width="100%" maxWidth="480px">
+        <Text size="sm" variant="muted">
+          Wide
+        </Text>
+        <Composer
+          aria-label="Inline mentions"
+          plugins={[MENTION_PLUGIN]}
+          value={value}
+          onChange={setValue}
+        />
+      </Stack>
+      <Stack gap="sm" width="220px">
+        <Text size="sm" variant="muted">
+          Narrow: wrapped mentions fall back to text
+        </Text>
+        <Composer
+          aria-label="Inline mentions in a narrow editor"
+          plugins={[MENTION_PLUGIN]}
+          value={value}
+          onChange={setValue}
+        />
+      </Stack>
+    </Flex>
+  );
+}
+
+const ATOMIC_TEXT = 'Pair @Alice Example with @Alex Engineer on #performance today.';
+
+export function AtomicMentionsDemo() {
+  const [value, setValue] = useComposerValue(ATOMIC_TEXT, [
+    makeMention(ATOMIC_TEXT, '@Alice Example', 'user:1', 'members'),
+    makeMention(ATOMIC_TEXT, '@Alex Engineer', 'user:2', 'members'),
+    makeMention(ATOMIC_TEXT, '#performance', 'team:3', 'teams'),
+  ]);
+
+  return (
+    <Stack width="100%" maxWidth="720px" gap="md">
+      <Composer
+        aria-label="Atomic mentions"
+        plugins={[MENTION_PLUGIN]}
+        value={value}
+        onChange={setValue}
+      />
+      <ValueInspector value={value} />
+    </Stack>
+  );
+}
+
+export function SharedTriggerDemo() {
+  const [value, setValue] = useComposerValue('Who owns this? ');
+
+  return (
+    <Stack width="100%" maxWidth="720px" gap="md">
+      <Composer
+        aria-label="Shared trigger"
+        placeholder="Type @ for people and teams"
+        plugins={[SHARED_TRIGGER_PLUGIN]}
+        value={value}
+        onChange={setValue}
+      />
+      <ValueInspector value={value} />
     </Stack>
   );
 }
 
 export function RestoredComposerDemo() {
-  const [value, setValue] = useState<ComposerValue>({
-    text: RESTORED_TEXT,
-    mentions: RESTORED_MENTIONS,
-  });
+  const [value, setValue] = useComposerValue(RESTORED_TEXT, RESTORED_MENTIONS);
 
   return (
     <Stack width="100%" maxWidth="720px">
@@ -174,10 +306,7 @@ export function RestoredComposerDemo() {
 }
 
 export function AsyncComposerDemo() {
-  const [value, setValue] = useState<ComposerValue>({
-    text: 'Search remote members with ',
-    mentions: [],
-  });
+  const [value, setValue] = useComposerValue('Search remote members with ');
 
   return (
     <Stack width="100%" maxWidth="720px">
@@ -192,7 +321,7 @@ export function AsyncComposerDemo() {
 }
 
 export function CommandComposerDemo() {
-  const [value, setValue] = useState<ComposerValue>({text: '', mentions: []});
+  const [value, setValue] = useComposerValue('');
 
   return (
     <Stack width="100%" maxWidth="720px">
@@ -203,6 +332,82 @@ export function CommandComposerDemo() {
         value={value}
         onChange={setValue}
       />
+    </Stack>
+  );
+}
+
+const LONG_TEXT = Array.from(
+  {length: 12},
+  (_, index) => `Line ${index + 1}: checkout latency is above the threshold.`
+).join('\n');
+
+export function ScrollingComposerDemo() {
+  const [value, setValue] = useComposerValue(`${LONG_TEXT}\nEscalate to `);
+
+  return (
+    <Stack width="100%" maxWidth="720px">
+      <Composer
+        aria-label="Scrolling comment"
+        plugins={[MENTION_PLUGIN]}
+        style={{maxHeight: 140}}
+        value={value}
+        onChange={setValue}
+      />
+    </Stack>
+  );
+}
+
+export function SizesComposerDemo() {
+  const [value, setValue] = useComposerValue('Ping @Alice Example', [
+    makeMention('Ping @Alice Example', '@Alice Example', 'user:1', 'members'),
+  ]);
+
+  return (
+    <Stack width="100%" maxWidth="480px" gap="md">
+      {(['xs', 'sm', 'md'] as const).map(size => (
+        <Composer
+          key={size}
+          aria-label={`Size ${size}`}
+          size={size}
+          plugins={[MENTION_PLUGIN]}
+          value={value}
+          onChange={setValue}
+        />
+      ))}
+      <Composer
+        aria-label="Disabled"
+        disabled
+        plugins={[MENTION_PLUGIN]}
+        value={value}
+        onChange={setValue}
+      />
+    </Stack>
+  );
+}
+
+export function SubmitComposerDemo() {
+  const [value, setValue] = useComposerValue('');
+  const [sent, setSent] = useState<readonly ComposerValue[]>([]);
+
+  return (
+    <Stack width="100%" maxWidth="720px" gap="md">
+      <Composer
+        aria-label="Message"
+        placeholder="Press Enter to send, Shift+Enter for a new line"
+        plugins={[MENTION_PLUGIN]}
+        value={value}
+        onChange={setValue}
+        onKeyDown={event => {
+          if (event.key === 'Enter' && !event.shiftKey && value.text.trim() !== '') {
+            event.preventDefault();
+            setSent(previous => [...previous, value]);
+            setValue({text: '', mentions: []});
+          }
+        }}
+      />
+      {sent.map((message, index) => (
+        <ValueInspector key={index} value={message} />
+      ))}
     </Stack>
   );
 }

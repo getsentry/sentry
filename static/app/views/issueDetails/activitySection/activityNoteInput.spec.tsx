@@ -4,10 +4,7 @@ import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {ActivityNoteInput} from 'sentry/views/issueDetails/activitySection/activityNoteInput';
 
 function getEditor() {
-  const editor = screen.getByRole('combobox', {name: 'Add a comment'});
-  // user-event does not yet recognize contenteditable="plaintext-only".
-  editor.setAttribute('contenteditable', 'true');
-  return editor;
+  return screen.getByRole('combobox', {name: 'Add a comment'});
 }
 
 describe('ActivityNoteInput', () => {

@@ -16,10 +16,7 @@ import {GroupActivityType, IssueCategory} from 'sentry/types/group';
 import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
 
 function getCommentEditor(name = 'Add a comment') {
-  const editor = screen.getByRole('combobox', {name});
-  // user-event does not yet recognize contenteditable="plaintext-only".
-  editor.setAttribute('contenteditable', 'true');
-  return editor;
+  return screen.getByRole('combobox', {name});
 }
 
 describe('FeedbackActivitySection', () => {
@@ -63,7 +60,7 @@ describe('FeedbackActivitySection', () => {
     const commentEditor = getCommentEditor();
 
     expect(commentEditor).toHaveAttribute(
-      'data-placeholder',
+      'placeholder',
       expect.stringContaining('Add details or updates to this feedback')
     );
     expect(screen.getByText('Existing feedback note')).toBeInTheDocument();

@@ -84,7 +84,7 @@ function BlockThread({
   const userId = useUser().id;
   const listRef = useRef<HTMLUListElement>(null);
   const composerRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const seenNewestId = useRef<string | null>(null);
   useEffect(() => {
     if (!data) {

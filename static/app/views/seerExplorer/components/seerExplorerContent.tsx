@@ -206,7 +206,7 @@ export function SeerExplorerContent({
   );
   const showThinking = hasCodeModeTools || showThinkingPreference;
 
-  const composerRef = useRef<HTMLDivElement>(null);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const userScrolledUpRef = useRef(false);
   /** A new chat was started and the composer should take focus once it is back. */
@@ -564,7 +564,7 @@ export function SeerExplorerContent({
     userScrolledUpRef.current = false;
   }, [canSendMessage, inputValue, sendMessage, blocks.length, clearInput]);
 
-  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.defaultPrevented || e.nativeEvent.isComposing) {
       return;
     }

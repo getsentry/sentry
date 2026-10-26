@@ -42,7 +42,7 @@ export function InvestigationActivity({
   ref,
 }: {
   investigation: InvestigationDetail;
-  composerRef?: React.RefObject<HTMLDivElement | null>;
+  composerRef?: React.RefObject<HTMLTextAreaElement | null>;
   ref?: React.Ref<HTMLElement>;
 }) {
   const {data, isPending, refetch} = useInvestigationComments(investigation.id, {

@@ -59,7 +59,7 @@ describe('InputSection', () => {
 
     const editor = screen.getByRole('combobox', {name: 'Ask Seer a question'});
     expect(editor).toHaveAttribute(
-      'data-placeholder',
+      'placeholder',
       'Interrupted. What should Seer do instead?'
     );
     const placeholderRules = Array.from(document.styleSheets)
@@ -67,8 +67,8 @@ describe('InputSection', () => {
       .filter(
         (rule): rule is CSSStyleRule =>
           rule instanceof CSSStyleRule &&
-          rule.selectorText.endsWith(':empty::before') &&
-          editor.matches(rule.selectorText.replace('::before', ''))
+          rule.selectorText.endsWith('::placeholder') &&
+          editor.matches(rule.selectorText.replace('::placeholder', ''))
       );
     const expectedStyle = document.createElement('div').style;
     expectedStyle.color = ThemeFixture().tokens.content.warning;

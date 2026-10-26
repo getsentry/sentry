@@ -3,7 +3,7 @@ import type {AnyUseQueryOptions} from '@tanstack/react-query';
 
 import type {FormSize} from '@sentry/scraps/theme';
 
-import type {ComposerValue} from './model';
+import type {ComposerValue, Mention} from './model';
 
 /**
  * Edits the value captured when a suggestion is selected. Call at most one action,
@@ -25,6 +25,15 @@ interface ComposerSourceBase<TSuggestion> {
   label: string;
   /** The character that activates this source. */
   trigger: string;
+  /**
+   * Renders an inserted mention inline in place of its text. The result is
+   * drawn over the mention's text and clipped to it, because the caret moves
+   * through the underlying text: it must fit within the width of
+   * `mention.text` in the editor font. Composer shows the plain text instead
+   * while the mention wraps across lines. Mentions render as highlighted text
+   * when this is omitted.
+   */
+  renderMention?(mention: Mention): React.ReactNode;
   /** Renders an option. The source text is used when this is omitted. */
   renderSuggestion?(suggestion: TSuggestion): React.ReactNode;
   /**
@@ -77,8 +86,8 @@ export interface ComposerPlugin {
 }
 
 export interface ComposerProps extends Omit<
-  React.HTMLAttributes<HTMLDivElement>,
-  'children' | 'contentEditable' | 'defaultValue' | 'onBeforeInput' | 'onChange'
+  React.TextareaHTMLAttributes<HTMLTextAreaElement>,
+  'children' | 'defaultValue' | 'onChange' | 'rows' | 'value'
 > {
   /** Called with plain text and structured mention ranges after an edit. */
   onChange: (value: ComposerValue) => void;
@@ -88,6 +97,6 @@ export interface ComposerProps extends Omit<
   value: ComposerValue;
   minHeight?: number;
   placeholder?: string;
-  ref?: React.Ref<HTMLDivElement>;
+  ref?: React.Ref<HTMLTextAreaElement>;
   size?: FormSize;
 }

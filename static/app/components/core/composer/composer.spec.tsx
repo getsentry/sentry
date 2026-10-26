@@ -1,6 +1,6 @@
 import {useState} from 'react';
 
-import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {act, fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {
   Composer,
@@ -114,30 +114,33 @@ function ControlledComposer({
 }
 
 function getEditor() {
-  const editor = screen.getByRole('combobox', {name: 'Comment'});
-  // user-event does not yet recognize contenteditable="plaintext-only".
-  editor.setAttribute('contenteditable', 'true');
-  return editor;
+  return screen.getByRole<HTMLTextAreaElement>('combobox', {name: 'Comment'});
+}
+
+function getMentionChip(text: string) {
+  return screen.getByText(text, {selector: '[data-mention-text]'}).parentElement!;
+}
+
+function getEditorValue() {
+  // Not a role query: an open suggestion popup hides the rest of the page from
+  // assistive technology.
+  return screen.getByLabelText('Editor value');
 }
 
 describe('Composer', () => {
-  it.each(['br', 'div'])('restores the placeholder after clearing to a %s', tag => {
-    render(<ControlledComposer initialValue="Draft" />);
-    const textbox = getEditor();
+  it('shows the placeholder while the editor is empty', () => {
+    render(
+      <Composer
+        aria-label="Comment"
+        placeholder="Add a comment"
+        plugins={[MENTION_PLUGIN]}
+        value={{text: '', mentions: []}}
+        onChange={jest.fn()}
+      />
+    );
 
-    act(() => {
-      const emptyLine = document.createElement(tag);
-      if (tag === 'div') {
-        emptyLine.append(document.createElement('br'));
-      }
-      textbox.replaceChildren(emptyLine);
-      textbox.dispatchEvent(
-        new InputEvent('input', {bubbles: true, inputType: 'deleteContentBackward'})
-      );
-    });
-
-    expect(screen.getByRole('status', {name: 'Editor value'})).toHaveTextContent('|');
-    expect(textbox.matches(':empty')).toBe(true);
+    expect(getEditor()).toHaveAttribute('placeholder', 'Add a comment');
+    expect(getEditor()).toHaveValue('');
   });
 
   it('keeps the editor aligned with a controlled value that rejects an edit', async () => {
@@ -156,48 +159,30 @@ describe('Composer', () => {
     await userEvent.keyboard('{End}!');
 
     expect(onChange).toHaveBeenCalledWith({text: 'Fixed!', mentions: []});
-    expect(textbox).toHaveTextContent('Fixed');
+    expect(textbox).toHaveValue('Fixed');
   });
 
-  it('allows typing with an input method', () => {
-    const onChange = jest.fn();
-    const renderInput = () => (
-      <Composer
-        aria-label="Comment"
-        plugins={[MENTION_PLUGIN]}
-        value={{text: '', mentions: []}}
-        onChange={onChange}
-      />
-    );
-    const {rerender} = render(renderInput());
+  it('keeps composed text and waits for the composition to end before suggesting', () => {
+    render(<ControlledComposer />);
     const textbox = getEditor();
 
     act(() => {
-      textbox.dispatchEvent(new CompositionEvent('compositionstart', {bubbles: true}));
-      textbox.textContent = '日本語';
-      textbox.dispatchEvent(
-        new InputEvent('input', {
-          bubbles: true,
-          data: '日本語',
-          inputType: 'insertCompositionText',
-          isComposing: true,
-        })
-      );
+      fireEvent.compositionStart(textbox);
+      fireEvent.input(textbox, {
+        target: {value: '@日本'},
+        inputType: 'insertCompositionText',
+        isComposing: true,
+      });
     });
 
-    expect(onChange).not.toHaveBeenCalled();
-    rerender(renderInput());
-    expect(textbox).toHaveTextContent('日本語');
+    expect(textbox).toHaveValue('@日本');
+    expect(getEditorValue()).toHaveTextContent('@日本|');
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
 
     act(() => {
-      textbox.dispatchEvent(
-        new CompositionEvent('compositionend', {
-          bubbles: true,
-          data: '日本語',
-        })
-      );
+      fireEvent.compositionEnd(textbox, {data: '@日本'});
     });
-    expect(onChange).toHaveBeenCalledWith({text: '日本語', mentions: []});
+    expect(screen.getByText('No suggestions found')).toBeInTheDocument();
   });
 
   it('selects a suggestion with the arrow keys', async () => {
@@ -215,11 +200,11 @@ describe('Composer', () => {
     expect(textbox).toHaveAttribute('aria-activedescendant', alexOption.id);
     await userEvent.keyboard('{Enter}');
 
-    expect(textbox).toHaveTextContent('@Alex Engineer');
+    expect(textbox).toHaveValue('@Alex Engineer ');
     expect(textbox).toHaveFocus();
-    expect(screen.getByRole('status', {name: 'Editor value'})).toHaveTextContent(
-      '@Alex Engineer |user:2'
-    );
+    expect(textbox.selectionStart).toBe('@Alex Engineer '.length);
+    expect(getEditorValue()).toHaveTextContent('@Alex Engineer |user:2');
+    expect(getMentionChip('@Alex Engineer')).toHaveAttribute('data-source-id', 'members');
   });
 
   it('dismisses suggestions without changing the draft', async () => {
@@ -232,7 +217,7 @@ describe('Composer', () => {
     ).toBeVisible();
     await userEvent.keyboard('{Escape}');
 
-    expect(textbox).toHaveTextContent('@al');
+    expect(textbox).toHaveValue('@al');
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
   });
 
@@ -244,22 +229,123 @@ describe('Composer', () => {
     await screen.findByRole('option', {name: 'Alice Example'});
     await userEvent.keyboard('{Tab}');
 
-    expect(textbox).toHaveTextContent('@Alice Example');
+    expect(textbox).toHaveValue('@Alice Example ');
     expect(textbox).toHaveFocus();
   });
 
-  it('turns a mention into ordinary text when its label is edited', async () => {
+  it('deletes a mention as a unit with Backspace', async () => {
+    render(<ControlledComposer />);
+
+    const textbox = getEditor();
+    await userEvent.type(textbox, 'Hi @ali');
+    await screen.findByRole('option', {name: 'Alice Example'});
+    await userEvent.keyboard('{Enter}{Backspace}');
+    expect(getEditorValue()).toHaveTextContent('Hi @Alice Example|user:1');
+
+    await userEvent.keyboard('{Backspace}');
+    expect(textbox).toHaveValue('Hi ');
+    expect(getEditorValue()).toHaveTextContent(/^Hi \|$/);
+  });
+
+  it('deletes a mention as a unit with Delete', async () => {
+    render(
+      <ControlledComposer
+        initialValue="@Alice Example done"
+        initialMentions={[
+          {id: 'user:1', sourceId: 'members', text: '@Alice Example', start: 0, end: 14},
+        ]}
+      />
+    );
+
+    const textbox = getEditor();
+    await userEvent.click(textbox);
+    await userEvent.keyboard('{Home}{Delete}');
+
+    expect(textbox).toHaveValue(' done');
+    expect(getEditorValue()).toHaveTextContent(/^done\|$/);
+  });
+
+  it('removes the whole mention when a selection covers part of it', async () => {
+    render(
+      <ControlledComposer
+        initialValue="See @Alice Example now"
+        initialMentions={[
+          {id: 'user:1', sourceId: 'members', text: '@Alice Example', start: 4, end: 18},
+        ]}
+      />
+    );
+
+    const textbox = getEditor();
+    await userEvent.click(textbox);
+    act(() => textbox.setSelectionRange(0, 8));
+    await userEvent.keyboard('{Backspace}');
+
+    expect(textbox).toHaveValue(' now');
+    expect(getEditorValue()).toHaveTextContent(/^now\|$/);
+  });
+
+  it('moves a caret placed inside a mention to its nearest edge', async () => {
+    render(
+      <ControlledComposer
+        initialValue="See @Alice Example now"
+        initialMentions={[
+          {id: 'user:1', sourceId: 'members', text: '@Alice Example', start: 4, end: 18},
+        ]}
+      />
+    );
+
+    const textbox = getEditor();
+    await userEvent.pointer({target: textbox, offset: 6, keys: '[MouseLeft]'});
+    expect(textbox.selectionStart).toBe(4);
+
+    await userEvent.pointer({target: textbox, offset: 15, keys: '[MouseLeft]'});
+    expect(textbox.selectionStart).toBe(18);
+
+    await userEvent.keyboard('!');
+    expect(getEditorValue()).toHaveTextContent('See @Alice Example! now|user:1');
+  });
+
+  it('does not reopen suggestions at the end of a mention', async () => {
+    const hashSource: TestComposerSource = {
+      ...TEAM_SOURCE,
+      trigger: '#',
+      getSuggestions: query =>
+        [{id: 'team:3', label: '#infra-alerts'}].filter(suggestion =>
+          suggestion.label.includes(query)
+        ),
+    };
+    render(<ControlledComposer sources={[hashSource]} />);
+
+    const textbox = getEditor();
+    await userEvent.type(textbox, '#inf');
+    await userEvent.click(await screen.findByRole('option', {name: '#infra-alerts'}));
+    await userEvent.keyboard('{Backspace}');
+
+    expect(getEditorValue()).toHaveTextContent('#infra-alerts|team:3');
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+  });
+
+  it('restores mentions when undo or redo brings their text back', async () => {
     render(<ControlledComposer />);
 
     const textbox = getEditor();
     await userEvent.type(textbox, '@ali');
     await screen.findByRole('option', {name: 'Alice Example'});
-    await userEvent.keyboard('{Enter}{Backspace}{Backspace}');
+    await userEvent.keyboard('{Enter}');
+    expect(getEditorValue()).toHaveTextContent('@Alice Example |user:1');
 
-    expect(textbox).toHaveTextContent('@Alice Exampl');
-    expect(screen.getByRole('status', {name: 'Editor value'})).toHaveTextContent(
-      '@Alice Exampl|'
-    );
+    act(() => {
+      fireEvent.input(textbox, {target: {value: '@ali'}, inputType: 'historyUndo'});
+    });
+    expect(getEditorValue()).toHaveTextContent(/^@ali\|$/);
+
+    act(() => {
+      fireEvent.input(textbox, {
+        target: {value: '@Alice Example '},
+        inputType: 'historyRedo',
+      });
+    });
+    expect(getEditorValue()).toHaveTextContent('@Alice Example |user:1');
   });
 
   it('renders a restored structured mention on the first render', () => {
@@ -279,12 +365,45 @@ describe('Composer', () => {
       />
     );
 
-    const textbox = getEditor();
-    expect(textbox).toHaveTextContent('Continue with @Alice Example');
-    expect(within(textbox).getByText('@Alice Example').tagName).toBe('STRONG');
-    expect(screen.getByRole('status', {name: 'Editor value'})).toHaveTextContent(
-      'Continue with @Alice Example|user:1'
+    expect(getEditor()).toHaveValue('Continue with @Alice Example');
+    expect(getMentionChip('@Alice Example')).toHaveAttribute('data-source-id', 'members');
+    expect(getEditorValue()).toHaveTextContent('Continue with @Alice Example|user:1');
+  });
+
+  it('renders plain text for a restored mention whose range is stale', () => {
+    render(
+      <ControlledComposer
+        initialValue="Continue with Alice"
+        initialMentions={[
+          {id: 'user:1', sourceId: 'members', start: 14, end: 28, text: '@Alice Example'},
+        ]}
+      />
     );
+
+    expect(
+      screen.queryByText('@Alice Example', {selector: '[data-mention-text]'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders custom inline content for a source that provides it', () => {
+    render(
+      <ControlledComposer
+        sources={[
+          {
+            ...MEMBER_SOURCE,
+            renderMention: mention => <span>Avatar for {mention.id}</span>,
+          },
+        ]}
+        initialValue="Ask @Alice Example"
+        initialMentions={[
+          {id: 'user:1', sourceId: 'members', start: 4, end: 18, text: '@Alice Example'},
+        ]}
+      />
+    );
+
+    const chip = getMentionChip('@Alice Example');
+    expect(chip).toHaveAttribute('data-custom');
+    expect(chip).toContainElement(screen.getByText('Avatar for user:1'));
   });
 
   it('merges suggestions from sources sharing a trigger', async () => {
@@ -300,10 +419,8 @@ describe('Composer', () => {
     const teamOption = screen.getByRole('option', {name: '#infra-alerts'});
     await userEvent.click(teamOption);
 
-    expect(textbox).toHaveTextContent('#infra-alerts');
-    expect(screen.getByRole('status', {name: 'Editor value'})).toHaveTextContent(
-      '#infra-alerts |team:3'
-    );
+    expect(textbox).toHaveValue('#infra-alerts ');
+    expect(getEditorValue()).toHaveTextContent('#infra-alerts |team:3');
   });
 
   it('shows an empty state when a source has no matches', async () => {
@@ -338,7 +455,7 @@ describe('Composer', () => {
     await userEvent.keyboard('{Enter}');
 
     expect(onKeyDown).not.toHaveBeenCalled();
-    expect(textbox).toHaveTextContent('@al');
+    expect(textbox).toHaveValue('@al');
   });
 
   it('only matches a restrictToStart trigger at the very start of the text', async () => {
@@ -373,18 +490,13 @@ describe('Composer', () => {
 
     const textbox = getEditor();
     await userEvent.click(textbox);
-    await userEvent.pointer({
-      target: textbox,
-      node: textbox.firstChild!,
-      offset: 4,
-      keys: '[MouseLeft]',
-    });
+    await userEvent.pointer({target: textbox, offset: 4, keys: '[MouseLeft]'});
     await userEvent.click(await screen.findByRole('option', {name: '/new'}));
 
-    expect(textbox).toBeEmptyDOMElement();
-    expect(screen.getByRole('status', {name: 'Editor value'})).toHaveTextContent(/^\|$/);
+    expect(textbox).toHaveValue('');
+    expect(getEditorValue()).toHaveTextContent(/^\|$/);
     await userEvent.keyboard('Fresh');
-    expect(textbox).toHaveTextContent('Fresh');
+    expect(textbox).toHaveValue('Fresh');
   });
 
   it('runs onSelect to insert a snippet at the trigger position', async () => {
@@ -394,7 +506,7 @@ describe('Composer', () => {
     await userEvent.type(textbox, '/sni');
     await userEvent.click(await screen.findByRole('option', {name: '/snippet'}));
 
-    expect(textbox).toHaveTextContent('Inserted snippet');
+    expect(textbox).toHaveValue('Inserted snippet ');
   });
 
   it('replaces only the selected trigger range with a synchronous action', async () => {
@@ -406,18 +518,11 @@ describe('Composer', () => {
     );
     const textbox = getEditor();
     await userEvent.click(textbox);
-    await userEvent.pointer({
-      target: textbox,
-      node: textbox.firstChild!,
-      offset: 11,
-      keys: '[MouseLeft]',
-    });
+    await userEvent.pointer({target: textbox, offset: 11, keys: '[MouseLeft]'});
     await userEvent.click(await screen.findByRole('option', {name: '/snippet'}));
     await userEvent.keyboard('here');
 
-    expect(screen.getByRole('status', {name: 'Editor value'})).toHaveTextContent(
-      'Before Inserted snippet here after|'
-    );
+    expect(getEditorValue()).toHaveTextContent('Before Inserted snippet here after|');
   });
 
   it('allows repeating a command after clearing the editor', async () => {
@@ -427,12 +532,12 @@ describe('Composer', () => {
     await userEvent.type(textbox, '/new');
     await screen.findByRole('option', {name: '/new'});
     await userEvent.keyboard('{Enter}');
-    expect(textbox).toBeEmptyDOMElement();
+    expect(textbox).toHaveValue('');
 
     await userEvent.keyboard('/new');
     expect(await screen.findByRole('option', {name: '/new'})).toBeVisible();
     await userEvent.keyboard('{Enter}');
-    expect(textbox).toBeEmptyDOMElement();
+    expect(textbox).toHaveValue('');
   });
 
   it('allows repeating a command after inserting a snippet', async () => {
@@ -442,12 +547,12 @@ describe('Composer', () => {
     await userEvent.type(textbox, '/sni');
     await screen.findByRole('option', {name: '/snippet'});
     await userEvent.keyboard('{Enter}');
-    expect(textbox).toHaveTextContent('Inserted snippet');
+    expect(textbox).toHaveValue('Inserted snippet ');
 
     await userEvent.keyboard('{Control>}a{/Control}/sni');
     expect(await screen.findByRole('option', {name: '/snippet'})).toBeVisible();
     await userEvent.keyboard('{Enter}');
-    expect(textbox).toHaveTextContent('Inserted snippet');
+    expect(textbox).toHaveValue('Inserted snippet ');
   });
 
   it('excludes restricted sources from a shared trigger after other text', async () => {
@@ -483,21 +588,14 @@ describe('Composer', () => {
     );
     const textbox = getEditor();
     await userEvent.click(textbox);
-    await userEvent.pointer({
-      target: textbox,
-      node: textbox.firstChild!,
-      offset: 4,
-      keys: '[MouseLeft]',
-    });
+    await userEvent.pointer({target: textbox, offset: 4, keys: '[MouseLeft]'});
     await userEvent.click(await screen.findByRole('option', {name: '/snippet'}));
     await userEvent.keyboard('Here');
 
-    expect(screen.getByRole('status', {name: 'Editor value'})).toHaveTextContent(
+    expect(getEditorValue()).toHaveTextContent(
       'Inserted snippet Here @Alice Example|user:1'
     );
-    expect(
-      within(textbox).getByText('@Alice Example', {selector: 'strong'})
-    ).toBeVisible();
+    expect(getMentionChip('@Alice Example')).toBeVisible();
   });
 
   it('dismisses suggestions after an action that leaves the editor unchanged', async () => {
@@ -509,7 +607,7 @@ describe('Composer', () => {
     await userEvent.keyboard('{Enter}');
 
     expect(onSelect).toHaveBeenCalledTimes(1);
-    expect(textbox).toHaveTextContent('/new');
+    expect(textbox).toHaveValue('/new');
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
   });
 
@@ -563,25 +661,13 @@ describe('Composer', () => {
     const textbox = getEditor();
 
     act(() => {
-      textbox.dispatchEvent(new CompositionEvent('compositionstart', {bubbles: true}));
-      textbox.textContent = '日本語';
-      textbox.dispatchEvent(
-        new InputEvent('input', {
-          bubbles: true,
-          data: '日本語',
-          inputType: 'insertCompositionText',
-          isComposing: true,
-        })
-      );
-    });
-
-    act(() => {
-      textbox.dispatchEvent(
-        new CompositionEvent('compositionend', {
-          bubbles: true,
-          data: '日本語',
-        })
-      );
+      fireEvent.compositionStart(textbox);
+      fireEvent.input(textbox, {
+        target: {value: '日本語'},
+        inputType: 'insertCompositionText',
+        isComposing: true,
+      });
+      fireEvent.compositionEnd(textbox, {data: '日本語'});
     });
 
     act(() => {

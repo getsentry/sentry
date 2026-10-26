@@ -25,10 +25,7 @@ import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplor
 const mockGetPageReferrer = jest.fn().mockReturnValue('/issues/');
 
 async function getSeerExplorerInput() {
-  const editor = await screen.findByRole('combobox', {name: 'Ask Seer a question'});
-  // user-event does not yet recognize contenteditable="plaintext-only".
-  editor.setAttribute('contenteditable', 'true');
-  return editor;
+  return screen.findByRole('combobox', {name: 'Ask Seer a question'});
 }
 
 const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer> = {
@@ -228,7 +225,7 @@ describe('SeerExplorerContent', () => {
         }
       );
       expect(await screen.findByTestId('seer-explorer-input')).toHaveAttribute(
-        'data-placeholder',
+        'placeholder',
         'Ask Seer a question, or press / for commands.'
       );
     });
@@ -1203,7 +1200,7 @@ describe('SeerExplorerContent', () => {
 
       expect(await screen.findByText('Response timed out.')).toBeInTheDocument();
       expect(screen.getByTestId('seer-explorer-input')).toHaveAttribute(
-        'data-placeholder',
+        'placeholder',
         'Ask Seer a question, or press / for commands.'
       );
 
@@ -1522,7 +1519,7 @@ describe('SeerExplorerContent', () => {
       const textarea = await screen.findByTestId('seer-explorer-input');
       await waitFor(() => expect(textarea).toBeEnabled());
       expect(textarea).toHaveAttribute(
-        'data-placeholder',
+        'placeholder',
         'Ask Seer a question, or press / for commands.'
       );
     });
