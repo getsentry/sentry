@@ -48,11 +48,15 @@ const DAILY_SCHEDULE_HOURS = [10, 22];
 const MAX_VISIBLE_PROJECTS = 3;
 
 // TODO: Missing fields from backend - to add to configs API
-type AdditionalConfigProps = {
+type AdditionalConfig = {
   /**
    * Estimated cost of a single run, in US dollars
    */
   costPerRun?: number;
+  /**
+   * When the automation last ran, in Unix seconds (UTC)
+   */
+  lastRun?: number;
   /**
    * Estimated tokens used per month
    */
@@ -64,7 +68,7 @@ type AdditionalConfigProps = {
 };
 
 // TODO: can just be Response type once API updated
-type AutomationConfig = SeerWorkflowConfigResponse & AdditionalConfigProps;
+export type AutomationConfig = SeerWorkflowConfigResponse & AdditionalConfig;
 
 function makePlaceholderConfig(
   id: string,
@@ -93,12 +97,14 @@ function makePlaceholderConfig(
 export const PLACEHOLDER_CONFIGS: AutomationConfig[] = [
   makePlaceholderConfig('placeholder-agentic-triage', {
     strategy: 'agentic_triage',
+    lastRun: Math.floor(Date.now() / 1000) - 4 * 60 * 60,
     schedule: 'daily',
     tokensPerMonth: 85_400_000,
     costPerRun: 2.5,
   }),
   makePlaceholderConfig('placeholder-breached-metrics', {
     strategy: 'breached_metrics',
+    lastRun: Math.floor(Date.now() / 1000) - 2 * 24 * 60 * 60,
     trigger: 'Triggered by metric exceptions',
     tokensPerMonth: 341_000,
     costPerRun: 0.052,

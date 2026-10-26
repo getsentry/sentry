@@ -14,7 +14,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {getNextUpdate, PLACEHOLDER_CONFIGS} from 'sentry/views/seerWorkflows/automations';
+import {
+  getNextUpdate,
+  PLACEHOLDER_CONFIGS,
+  type AutomationConfig,
+} from 'sentry/views/seerWorkflows/automations';
 import {STRATEGY_META} from 'sentry/views/seerWorkflows/strategies';
 import type {
   SeerWorkflowConfigsResponse,
@@ -49,9 +53,8 @@ export default function AutomationDetail() {
       }
     )
   );
-  const config = [...PLACEHOLDER_CONFIGS, ...(data?.configs ?? [])].find(
-    c => c.id === automationId
-  );
+  const configs: AutomationConfig[] = [...PLACEHOLDER_CONFIGS, ...(data?.configs ?? [])];
+  const config = configs.find(c => c.id === automationId);
   // TODO(aliu): Handle a config id that doesn't exist
   const strategy = config?.strategy ?? '';
   const strategyMeta = Object.hasOwn(STRATEGY_META, strategy)
@@ -80,20 +83,31 @@ export default function AutomationDetail() {
           </Heading>
           <Text>{strategyMeta?.description ?? t('No description')}</Text>
           <Stack direction="row" align="center" gap="md" wrap="wrap">
-            <Text size="sm" variant="muted">
-              {t('(MOCK TEXT) Last run 08:00 UTC')}
-            </Text>
+            {config?.lastRun !== undefined && (
+              <Fragment>
+                <Text size="sm" variant="muted">
+                  {tct('Last run [time]', {
+                    time: (
+                      <TimeSince
+                        date={new Date(config.lastRun * 1000)}
+                        tooltipPrefix={t('Last run')}
+                      />
+                    ),
+                  })}
+                </Text>
+                <Stack.Separator />
+              </Fragment>
+            )}
             {nextUpdate && (
               <Fragment>
-                <Stack.Separator />
                 <Text size="sm" variant="muted">
                   {tct('Next run [time]', {
                     time: <TimeSince date={nextUpdate} tooltipPrefix={t('Next run')} />,
                   })}
                 </Text>
+                <Stack.Separator />
               </Fragment>
             )}
-            <Stack.Separator />
             <Text size="sm" variant="muted">
               {t('All projects')}
             </Text>
