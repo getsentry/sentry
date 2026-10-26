@@ -221,6 +221,8 @@ export function useMetricDetectorThresholdSeries({
 
         return createLineSeries({
           name: seriesName,
+          // Don't block hovering the open periods drawn beneath the threshold area
+          silent: true,
           data: series.data.map(({name, value}) => [name, value]),
           lineStyle: {
             color: lineColor,

@@ -15,13 +15,10 @@ import {t} from 'sentry/locale';
 import type {
   EChartChartReadyHandler,
   EChartClickHandler,
-  EChartMouseOutHandler,
-  EChartMouseOverHandler,
   ECharts,
 } from 'sentry/types/echarts';
 
 const INCIDENT_MARKER_SERIES_ID = '__incident_marker__';
-const INCIDENT_MARKER_AREA_SERIES_ID = '__incident_marker_area__';
 const INCIDENT_MARKER_PERSISTENT_AREA_SERIES_ID = '__incident_marker_area_persistent__';
 const INCIDENT_MARKER_HEIGHT = 6;
 
@@ -193,20 +190,42 @@ function createIncidentMarkerSeries({
     });
 
     return {
-      type: 'rect',
-      transition: ['shape'],
-      shape,
-      style: {
-        fill:
-          dataItem.type === 'trigger-interval'
-            ? {
-                svgElement: makeStripeBackgroundSvgNode(color),
-                svgWidth: 2,
-                svgHeight: INCIDENT_MARKER_HEIGHT,
-              }
-            : color,
-        opacity: 1,
-      },
+      type: 'group',
+      children: [
+        {
+          type: 'rect',
+          transition: ['shape'],
+          shape,
+          style: {
+            fill:
+              dataItem.type === 'trigger-interval'
+                ? {
+                    svgElement: makeStripeBackgroundSvgNode(color),
+                    svgWidth: 2,
+                    svgHeight: INCIDENT_MARKER_HEIGHT,
+                  }
+                : color,
+            opacity: 1,
+          },
+        },
+        // Spans the main chart for the incident's time period. Hovering it or
+        // the marker puts the whole group into its emphasis state, which
+        // reveals the highlight.
+        {
+          type: 'rect',
+          // Keep showing the metric values tooltip instead of the incident tooltip
+          tooltipDisabled: true,
+          shape: {
+            x: clippedStartX,
+            y: coordSys.y ?? 0,
+            width: Math.max(clippedEndX - clippedStartX, 0),
+            height: coordSys.height ?? 0,
+          },
+          style: {fill: color, opacity: 0},
+          // The fill is repeated so ECharts doesn't apply its default color lift
+          emphasis: {style: {fill: color, opacity: 0.2}},
+        },
+      ],
     };
   };
 
@@ -391,67 +410,6 @@ export function useIncidentMarkers({
     echartsInstance => {
       chartRef.current = echartsInstance;
 
-      const handleMouseOver = (params: Parameters<EChartMouseOverHandler>[0]) => {
-        if (
-          params.seriesId !== seriesId ||
-          !echartsInstance ||
-          params.componentType !== 'series'
-        ) {
-          return;
-        }
-
-        const data = params.data as IncidentPeriod;
-
-        // Create an empty series that has a `markArea` which highlights the
-        // incident time period on the main chart so users can visualize the
-        // time block that has the incident.
-        const customSeries: CustomSeriesOption = {
-          id: INCIDENT_MARKER_AREA_SERIES_ID,
-          type: 'custom',
-          renderItem: () => null,
-          markArea: {
-            itemStyle: {
-              color: getPriorityColor({
-                priority: data.priority,
-                theme,
-              }),
-              opacity: 0.2,
-            },
-            data: [
-              [
-                {
-                  xAxis: data.start,
-                },
-                {
-                  xAxis: data.end,
-                },
-              ],
-            ],
-          },
-        };
-        echartsInstance.setOption({series: [customSeries]}, {lazyUpdate: true});
-      };
-
-      const handleMouseOut = (params: Parameters<EChartMouseOutHandler>[0]) => {
-        if (
-          params.seriesId !== seriesId ||
-          !echartsInstance ||
-          params.componentType !== 'series'
-        ) {
-          return;
-        }
-
-        // Clear the `markArea` that was drawn during mouse over
-        echartsInstance.setOption(
-          {
-            series: [{id: INCIDENT_MARKER_AREA_SERIES_ID, markArea: {data: []}}],
-          },
-          {
-            lazyUpdate: true,
-          }
-        );
-      };
-
       const handleClick = (params: Parameters<EChartClickHandler>[0]) => {
         const latestOnClick = latestOnClickRef.current;
 
@@ -459,7 +417,7 @@ export function useIncidentMarkers({
           return;
         }
 
-        // Click on the incident rectangle ("bubble")
+        // Click on the incident rectangle ("bubble") or anywhere in its time period
         if (params.componentType === 'series' && params.seriesId === seriesId) {
           const datum = params.data as IncidentPeriod;
           if (datum) {
@@ -488,10 +446,6 @@ export function useIncidentMarkers({
 
       if (echartsInstance) {
         // @ts-expect-error not sure what type echarts is expecting here
-        echartsInstance.on('mouseover', handleMouseOver);
-        // @ts-expect-error not sure what type echarts is expecting here
-        echartsInstance.on('mouseout', handleMouseOut);
-        // @ts-expect-error not sure what type echarts is expecting here
         echartsInstance.on('click', handleClick);
       }
 
@@ -499,12 +453,10 @@ export function useIncidentMarkers({
         if (!echartsInstance) {
           return;
         }
-        echartsInstance.off('mouseover', handleMouseOver);
-        echartsInstance.off('mouseout', handleMouseOut);
         echartsInstance.off('click', handleClick);
       };
     },
-    [seriesId, theme]
+    [seriesId]
   );
 
   const incidentMarkerSeries = useMemo(() => {
