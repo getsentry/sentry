@@ -292,8 +292,8 @@ def update_group_resolutions(release, commit_author_by_commit):
                 (
                     group_id,
                     pr_authors_dict.get(pr_id),
-                    None,
-                    None,
+                    SCMIntegrationInteractionType.RESOLVE_ISSUE_VIA_PR,
+                    pr_repo_ids.get(pr_id),
                 )
                 for group_id, pr_id in pull_request_resolutions
             ),

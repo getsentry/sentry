@@ -870,9 +870,12 @@ class SetCommitsTestCase(TestCase):
             actor=SYSTEM_ACTOR,
         )
 
+    @patch("sentry.models.releases.set_commits.SCMIntegrationInteractionEvent")
     @patch("sentry.analytics.record")
     @receivers_raise_on_send()
-    def test_resolution_via_pull_request_records_merge_commit(self, mock_record: MagicMock) -> None:
+    def test_resolution_via_pull_request_records_merge_commit(
+        self, mock_record: MagicMock, mock_lifecycle_event: MagicMock
+    ) -> None:
         """A group resolved by a pull request records the PR's merge commit id on
         the IssueResolvedEvent, resolved through the release's matching commit."""
         org = self.create_organization(owner=Factories.create_user())
@@ -880,7 +883,10 @@ class SetCommitsTestCase(TestCase):
         group = self.create_group(project=project)
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
         repo = Repository.objects.create(
-            organization_id=org.id, name="test/repo", provider="integrations:github"
+            organization_id=org.id,
+            name="test/repo",
+            provider="integrations:github",
+            integration_id=123,
         )
         commit = Commit.objects.create(organization_id=org.id, repository_id=repo.id, key="b" * 40)
         pull_request = self.create_pull_request(repository_id=repo.id, organization_id=org.id)
@@ -912,6 +918,15 @@ class SetCommitsTestCase(TestCase):
                 issue_category=group.issue_category.name.lower(),
             ),
         )
+        mock_lifecycle_event.assert_called_once_with(
+            interaction_type=SCMIntegrationInteractionType.RESOLVE_ISSUE_VIA_PR,
+            provider_key="github",
+            organization_id=org.id,
+            integration_id=repo.integration_id,
+        )
+        mock_lifecycle_event.return_value.capture.assert_called_once_with(assume_success=False)
+        lifecycle = mock_lifecycle_event.return_value.capture.return_value.__enter__.return_value
+        lifecycle.record_success.assert_called_once_with()
 
     @patch("sentry.integrations.example.integration.ExampleIntegration.sync_status_outbound")
     @receivers_raise_on_send()
