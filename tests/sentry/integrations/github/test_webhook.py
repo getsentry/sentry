@@ -1239,8 +1239,8 @@ class PushEventWebhookTest(APITestCase):
         ctx = captured_contexts[0]
         assert ctx is not None
         assert ctx.organization_id == self.project.organization.id
-        assert ctx.actor_type == ActorType.INTEGRATION
-        assert ctx.user_id is None
+        assert ctx.actor.type == ActorType.INTEGRATION
+        assert ctx.actor.actor_id is None
 
     @responses.activate
     @patch("sentry.integrations.github.webhook.metrics")
@@ -1989,24 +1989,23 @@ class PullRequestEventWebhookTest(APITestCase):
         repo = self._create_integration_and_repo()
         fixes_body = f"Fixes {group.qualified_short_id}"
 
-        with self.feature("organizations:pr-lifecycle-activity"):
-            opened = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
-            opened["pull_request"]["body"] = fixes_body
-            opened["pull_request"]["updated_at"] = "2015-05-05T23:40:00Z"
-            self._post_pull_request_event(json.dumps(opened).encode())
+        opened = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+        opened["pull_request"]["body"] = fixes_body
+        opened["pull_request"]["updated_at"] = "2015-05-05T23:40:00Z"
+        self._post_pull_request_event(json.dumps(opened).encode())
 
-            merged = json.loads(PULL_REQUEST_CLOSED_EVENT_EXAMPLE)
-            merged["pull_request"]["body"] = fixes_body
-            merged["pull_request"]["updated_at"] = "2015-05-05T23:45:00Z"
-            merged["pull_request"]["closed_at"] = "2015-05-05T23:45:00Z"
-            merged["pull_request"]["merged_at"] = "2015-05-05T23:45:00Z"
-            self._post_pull_request_event(json.dumps(merged).encode())
+        merged = json.loads(PULL_REQUEST_CLOSED_EVENT_EXAMPLE)
+        merged["pull_request"]["body"] = fixes_body
+        merged["pull_request"]["updated_at"] = "2015-05-05T23:45:00Z"
+        merged["pull_request"]["closed_at"] = "2015-05-05T23:45:00Z"
+        merged["pull_request"]["merged_at"] = "2015-05-05T23:45:00Z"
+        self._post_pull_request_event(json.dumps(merged).encode())
 
-            stale = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
-            stale["action"] = "synchronize"
-            stale["pull_request"]["body"] = "no issue reference yet"
-            stale["pull_request"]["updated_at"] = "2015-05-05T23:41:00Z"
-            self._post_pull_request_event(json.dumps(stale).encode())
+        stale = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+        stale["action"] = "synchronize"
+        stale["pull_request"]["body"] = "no issue reference yet"
+        stale["pull_request"]["updated_at"] = "2015-05-05T23:41:00Z"
+        self._post_pull_request_event(json.dumps(stale).encode())
 
         pr = PullRequest.objects.get(
             repository_id=repo.id, organization_id=self.project.organization.id, key="1"
@@ -2268,42 +2267,41 @@ class PullRequestEventWebhookTest(APITestCase):
     ) -> None:
         group = self.create_group(project=self.project, short_id=7)
 
-        with self.feature("organizations:pr-lifecycle-activity"):
-            integration = self._create_integration_and_send_pull_request_opened_event()
-            self.create_external_user(
-                user=self.user,
-                organization=self.organization,
-                integration=integration,
-                provider=ExternalProviders.GITHUB.value,
-                external_name="@octocat",
-                external_id="583231",
-            )
-            other_user = self.create_user(email="other@example.com")
-            self.create_member(organization=self.organization, user=other_user)
-            self.create_external_user(
-                user=other_user,
-                organization=self.organization,
-                integration=integration,
-                provider=ExternalProviders.GITHUB.value,
-                external_name="@octocat",
-                external_id="999999",
-            )
+        integration = self._create_integration_and_send_pull_request_opened_event()
+        self.create_external_user(
+            user=self.user,
+            organization=self.organization,
+            integration=integration,
+            provider=ExternalProviders.GITHUB.value,
+            external_name="@octocat",
+            external_id="583231",
+        )
+        other_user = self.create_user(email="other@example.com")
+        self.create_member(organization=self.organization, user=other_user)
+        self.create_external_user(
+            user=other_user,
+            organization=self.organization,
+            integration=integration,
+            provider=ExternalProviders.GITHUB.value,
+            external_name="@octocat",
+            external_id="999999",
+        )
 
-            closed = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
-            closed["action"] = "closed"
-            closed["pull_request"]["state"] = "closed"
-            closed["sender"] = {"id": 583231, "login": "octocat"}
-            self._post_pull_request_event(json.dumps(closed).encode())
+        closed = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+        closed["action"] = "closed"
+        closed["pull_request"]["state"] = "closed"
+        closed["sender"] = {"id": 583231, "login": "octocat"}
+        self._post_pull_request_event(json.dumps(closed).encode())
 
-            reopened = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
-            reopened["action"] = "reopened"
-            reopened["sender"] = {"id": 583231, "login": "octocat"}
-            self._post_pull_request_event(json.dumps(reopened).encode())
+        reopened = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+        reopened["action"] = "reopened"
+        reopened["sender"] = {"id": 583231, "login": "octocat"}
+        self._post_pull_request_event(json.dumps(reopened).encode())
 
-            merged = json.loads(PULL_REQUEST_CLOSED_EVENT_EXAMPLE)
-            merged["pull_request"]["body"] = f"Fixes {group.qualified_short_id}"
-            merged["pull_request"]["merged_by"] = {"id": 583231, "login": "octocat"}
-            self._post_pull_request_event(json.dumps(merged).encode())
+        merged = json.loads(PULL_REQUEST_CLOSED_EVENT_EXAMPLE)
+        merged["pull_request"]["body"] = f"Fixes {group.qualified_short_id}"
+        merged["pull_request"]["merged_by"] = {"id": 583231, "login": "octocat"}
+        self._post_pull_request_event(json.dumps(merged).encode())
 
         closed_activity = Activity.objects.get(
             group=group,

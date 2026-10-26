@@ -9,7 +9,7 @@ ai_monitoring: 0002_add_date_updated_index
 
 discover: 0004_discover_starred_and_last_visited
 
-explore: 0018_add_prebuilt_delete_to_formulas
+explore: 0019_move_saved_query_range_to_stats_period
 
 feedback: 0007_cleanup_failed_safe_deletes
 
@@ -25,7 +25,7 @@ monitors: 0023_drop_checkin_monitor
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
-notifications: 0013_add_notificationmessage_parent_lookup_index
+notifications: 0015_backfill_notificationthread_object
 
 preprod: 0001_squashed_0030_add_images_errored_to_snapshot_comparison
 
@@ -33,11 +33,11 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0001_squashed_0007_organizationmember_replay_access
 
-seer: 0039_seerprojectrepository_one_to_one
+seer: 0044_add_workflow_config_service_account
 
-sentry: 1232_backfill_commit_new_repository_id
+sentry: 1237_detach_incident_foreign_keys
 
-service_accounts: 0001_initial
+service_accounts: 0002_add_cell_replicas
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 

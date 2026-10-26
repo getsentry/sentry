@@ -211,6 +211,7 @@ function useSpans({query, trace}: UseSpansOptions): {
 } {
   const {selection} = usePageFilters();
   const dataset = useSpansDataset();
+  const [caseInsensitive] = useCaseInsensitivity();
 
   const eventView = useMemo(() => {
     const fields = [
@@ -258,6 +259,7 @@ function useSpans({query, trace}: UseSpansOptions): {
     referrer: 'api.trace-explorer.trace-spans-list',
     allowAggregateConditions: false,
     trackResponseAnalytics: false,
+    queryExtras: {caseInsensitive},
   });
 
   const data = useMemo(() => {

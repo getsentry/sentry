@@ -9,6 +9,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.db.models import Count, Q
 
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.auth.access import Access
 from sentry.investigations.endpoints.serializers.action_request import (
     InvestigationActionRequestSerializer,
     InvestigationActionRequestSerializerResponse,
@@ -196,8 +197,13 @@ class InvestigationDetailsSerializer(InvestigationSerializer):
     """
     Serializes an investigation along with its project selection, parameters,
     and blocks. Use this for single-investigation reads; the base serializer
-    omits the nested collections so list reads stay cheap.
+    omits the nested collections so list reads stay cheap. access decides which
+    action requests the viewer can apply; without it none can.
     """
+
+    def __init__(self, access: Access | None = None, **kwargs: Any) -> None:
+        self.access = access
+        super().__init__(**kwargs)
 
     def _blocks_by_investigation(
         self, item_list: Sequence[Investigation], user: User | RpcUser | AnonymousUser
@@ -248,7 +254,7 @@ class InvestigationDetailsSerializer(InvestigationSerializer):
         serialized = serialize(
             action_requests,
             user,
-            InvestigationActionRequestSerializer(),
+            InvestigationActionRequestSerializer(access=self.access, investigations=item_list),
         )
 
         by_investigation: MutableMapping[

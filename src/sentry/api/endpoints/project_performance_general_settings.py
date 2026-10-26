@@ -40,8 +40,9 @@ class ProjectPerformanceGeneralSettingsSerializer(serializers.Serializer):
 @cell_silo_endpoint
 class ProjectPerformanceGeneralSettingsEndpoint(ProjectEndpoint):
     """
-    Kept private: these settings only control what the Sentry UI displays (e.g. image
-    previews on resource spans) and aren't useful outside of it.
+    This endpoint is kept private (excluded from the public API docs) because these
+    settings only control what the Sentry UI displays (e.g. image previews on resource
+    spans) and aren't useful outside of it.
     """
 
     owner = ApiOwner.DATA_BROWSING

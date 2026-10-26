@@ -63,6 +63,7 @@ from sentry.types.group import GroupSubStatus
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.kafka_config import get_topic_definition
 from sentry.viewer_context import (
+    Actor,
     ActorType,
     ViewerContext,
     decode_viewer_context,
@@ -991,9 +992,7 @@ def test_process_function_change_points_groups_by_start(detect, timestamp):
 
 
 @mock.patch("sentry.tasks.statistical_detectors.metrics.incr")
-@mock.patch(
-    "sentry.tasks.statistical_detectors.emit_function_regression_issue", return_value=(2, 3)
-)
+@mock.patch("sentry.tasks.statistical_detectors.emit_function_regression_issue", return_value=3)
 @mock.patch("sentry.seer.breakpoints.seer_breakpoint_connection_pool.urlopen")
 @mock.patch("sentry.search.events.builder.base.raw_snql_query")
 @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
@@ -1064,12 +1063,6 @@ def test_detect_function_change_points(
         [
             mock.call(
                 "statistical_detectors.breakpoint.emitted",
-                amount=2,
-                tags={"source": "profile", "kind": "function", "producer": "vroom"},
-                sample_rate=1.0,
-            ),
-            mock.call(
-                "statistical_detectors.breakpoint.emitted",
                 amount=3,
                 tags={"source": "profile", "kind": "function", "producer": "sentry"},
                 sample_rate=1.0,
@@ -1081,8 +1074,7 @@ def test_detect_function_change_points(
         key="viewer-context-test-secret",
     )
     assert viewer_context == ViewerContext(
-        organization_id=project.organization_id,
-        actor_type=ActorType.SYSTEM,
+        actor=Actor(type=ActorType.SYSTEM), organization_id=project.organization_id
     )
 
 
@@ -1132,16 +1124,14 @@ def test_detect_function_change_points_groups_viewer_context_by_organization(
         (
             [project.id],
             ViewerContext(
-                organization_id=project.organization_id,
-                actor_type=ActorType.SYSTEM,
+                actor=Actor(type=ActorType.SYSTEM), organization_id=project.organization_id
             ),
             SeerViewerContext(organization_id=project.organization_id),
         ),
         (
             [other_project.id],
             ViewerContext(
-                organization_id=other_project.organization_id,
-                actor_type=ActorType.SYSTEM,
+                actor=Actor(type=ActorType.SYSTEM), organization_id=other_project.organization_id
             ),
             SeerViewerContext(organization_id=other_project.organization_id),
         ),
@@ -1725,14 +1715,13 @@ class EmitFunctionRegressionOccurrencesTest(TestCase):
             "breakpoint": 1690804800,
         }
 
-    def emit(self) -> tuple[int, int]:
+    def emit(self) -> int:
         return emit_function_regression_issue(
             {self.project.id: self.project}, [self.regression(self.project)], self.now
         )
 
-    def test_enabled_payload_compatibility(self) -> None:
-        with self.feature("organizations:profiling-sentry-regression-occurrences"):
-            assert self.emit() == (0, 1)
+    def test_payload_compatibility(self) -> None:
+        assert self.emit() == 1
         assert self.vroom.call_args.kwargs["path"] == "/regressed?produce=false"
         message = self.broker.consume(Partition(self.topic, 0), 0)
         assert message is not None
@@ -1761,14 +1750,7 @@ class EmitFunctionRegressionOccurrencesTest(TestCase):
         assert original["event_data"] == produced["event_data"]
         assert self.broker.consume(Partition(self.topic, 0), 1) is None
 
-    def test_disabled(self) -> None:
-        self.vroom.return_value = HTTPResponse(status=200, body=b'{"occurrences":1}')
-        with self.feature({"organizations:profiling-sentry-regression-occurrences": False}):
-            assert self.emit() == (1, 0)
-        assert self.vroom.call_args.kwargs["path"] == "/regressed"
-        assert self.broker.consume(Partition(self.topic, 0), 0) is None
-
-    def test_mixed_organizations(self) -> None:
+    def test_multiple_organizations(self) -> None:
         other_project = self.create_project(organization=self.create_organization())
         self.query.return_value["data"].append(
             {
@@ -1777,53 +1759,54 @@ class EmitFunctionRegressionOccurrencesTest(TestCase):
                 "all_examples()": [{"profile_id": "c" * 32}],
             }
         )
-        self.vroom.side_effect = [
-            self.vroom.return_value,
-            HTTPResponse(status=200, body=b'{"occurrences":1}'),
-        ]
-        with self.feature(
-            {"organizations:profiling-sentry-regression-occurrences": [self.organization.slug]}
-        ):
-            assert emit_function_regression_issue(
+        other_payload = deepcopy(self.payload)
+        other_payload["project_id"] = other_project.id
+        other_payload["event"]["project_id"] = other_project.id
+        other_payload["evidence_data"]["project_id"] = other_project.id
+        other_payload["evidence_data"]["organization_id"] = other_project.organization_id
+        self.vroom.return_value = HTTPResponse(
+            status=200,
+            body=orjson.dumps({"occurrence_payloads": [self.payload, other_payload]}),
+        )
+        assert (
+            emit_function_regression_issue(
                 {self.project.id: self.project, other_project.id: other_project},
                 [self.regression(self.project), self.regression(other_project)],
                 self.now,
-            ) == (1, 1)
-        assert self.vroom.call_count == 2
-        inline, legacy = self.vroom.call_args_list
-        assert inline.kwargs["path"] == "/regressed?produce=false"
-        assert [p["project_id"] for p in inline.kwargs["json_data"]] == [self.project.id]
-        assert legacy.kwargs["path"] == "/regressed"
-        assert [p["project_id"] for p in legacy.kwargs["json_data"]] == [other_project.id]
+            )
+            == 2
+        )
+        self.vroom.assert_called_once()
+        assert self.vroom.call_args.kwargs["path"] == "/regressed?produce=false"
+        assert [p["project_id"] for p in self.vroom.call_args.kwargs["json_data"]] == [
+            self.project.id,
+            other_project.id,
+        ]
         assert self.broker.consume(Partition(self.topic, 0), 0) is not None
-        assert self.broker.consume(Partition(self.topic, 0), 1) is None
+        assert self.broker.consume(Partition(self.topic, 0), 1) is not None
+        assert self.broker.consume(Partition(self.topic, 0), 2) is None
 
     def test_empty_response(self) -> None:
         self.vroom.return_value = HTTPResponse(
             status=200, body=b'{"occurrences":0,"emitted":[],"occurrence_payloads":[]}'
         )
-        with self.feature("organizations:profiling-sentry-regression-occurrences"):
-            assert self.emit() == (0, 0)
+        assert self.emit() == 0
         assert self.broker.consume(Partition(self.topic, 0), 0) is None
 
     def test_no_examples(self) -> None:
         self.query.return_value = {"data": []}
-        assert self.emit() == (0, 0)
+        assert self.emit() == 0
         self.vroom.assert_not_called()
         assert self.broker.consume(Partition(self.topic, 0), 0) is None
 
     def test_failed_response(self) -> None:
         self.vroom.return_value = HTTPResponse(status=500)
-        with self.feature("organizations:profiling-sentry-regression-occurrences"):
-            assert self.emit() == (0, 0)
+        assert self.emit() == 0
         assert self.broker.consume(Partition(self.topic, 0), 0) is None
 
     def test_missing_payloads_does_not_fall_back(self) -> None:
         self.vroom.return_value = HTTPResponse(status=200, body=b'{"occurrences":1}')
-        with (
-            self.feature("organizations:profiling-sentry-regression-occurrences"),
-            pytest.raises(KeyError, match="occurrence_payloads"),
-        ):
+        with pytest.raises(KeyError, match="occurrence_payloads"):
             self.emit()
         assert self.vroom.call_count == 1
         assert self.broker.consume(Partition(self.topic, 0), 0) is None
@@ -1934,7 +1917,7 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
     ):
         mock_value = mock.MagicMock()
         mock_value.status = 200
-        mock_value.data = b'{"occurrences":2}'
+        mock_value.data = b'{"occurrence_payloads":[]}'
         mock_get_from_profiling_service.return_value = mock_value
 
         fingerprint = self.function_fingerprint({"package": "foo", "function": "foo"})
@@ -1968,7 +1951,7 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
             [
                 mock.call(
                     method="POST",
-                    path="/regressed",
+                    path="/regressed?produce=false",
                     json_data=[
                         {
                             "organization_id": self.organization.id,
@@ -2015,7 +1998,7 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
 
         mock_value = mock.MagicMock()
         mock_value.status = 200
-        mock_value.data = b'{"occurrences":2}'
+        mock_value.data = b'{"occurrence_payloads":[]}'
         mock_get_from_profiling_service.return_value = mock_value
 
         fingerprint = self.function_fingerprint({"package": "bar", "function": "bar"})
@@ -2053,7 +2036,7 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
             [
                 mock.call(
                     method="POST",
-                    path="/regressed",
+                    path="/regressed?produce=false",
                     json_data=[
                         {
                             "organization_id": self.organization.id,
@@ -2081,7 +2064,7 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
     ) -> None:
         mock_value = mock.MagicMock()
         mock_value.status = 200
-        mock_value.data = b'{"occurrences":2}'
+        mock_value.data = b'{"occurrence_payloads":[]}'
         mock_get_from_profiling_service.return_value = mock_value
 
         fingerprint = self.function_fingerprint({"package": "foo", "function": "foo"})
@@ -2116,7 +2099,7 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
             [
                 mock.call(
                     method="POST",
-                    path="/regressed",
+                    path="/regressed?produce=false",
                     json_data=[
                         {
                             "organization_id": self.organization.id,

@@ -101,8 +101,19 @@ export const NODE_AGENT_INTEGRATIONS = [
   AgentIntegration.MANUAL,
 ];
 
+/**
+ * The agent SDKs the Deno SDK auto-instruments. Cloudflare-only SDKs don't run
+ * on Deno, and the Mastra, Flue, and Eve setups are Node-specific.
+ *
+ * @see https://docs.sentry.io/platforms/javascript/guides/deno/agent-tracing/
+ */
 export const DENO_AGENT_INTEGRATIONS = [
   AgentIntegration.VERCEL_AI,
+  AgentIntegration.ANTHROPIC,
+  AgentIntegration.GOOGLE_GENAI,
+  AgentIntegration.LANGCHAIN,
+  AgentIntegration.LANGGRAPH,
+  AgentIntegration.OPENAI,
   AgentIntegration.PI,
   AgentIntegration.MANUAL,
 ];

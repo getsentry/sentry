@@ -1,14 +1,17 @@
 import {useId} from 'react';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
-import {useFieldContext} from '@sentry/scraps/form/formContext';
+import {
+  useAutoSaveContext,
+  useFieldContext,
+  useLabelId,
+  GroupProvider,
+  useGroupItemContext,
+} from '@sentry/scraps/formPresentation';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {BaseField, type BaseFieldProps} from './baseField';
-import {useLabelId} from './fieldIds';
-import {GroupProvider, useGroupItemContext} from './groupContext';
 
 interface CheckboxGroupProps extends BaseFieldProps<HTMLDivElement> {
   children: React.ReactNode;
