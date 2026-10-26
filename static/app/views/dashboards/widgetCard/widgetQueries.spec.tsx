@@ -557,13 +557,13 @@ describe('Dashboards > WidgetQueries', () => {
         expect.objectContaining({
           timeseriesResults: [
             expect.objectContaining({
-              seriesName: 'errors : count()',
+              seriesName: '0 : count()',
               timeSeries: expect.objectContaining({
                 values: [expect.objectContaining({timestamp: 1000000, value: 200})],
               }),
             }),
             expect.objectContaining({
-              seriesName: 'default : count()',
+              seriesName: '1 : count()',
               timeSeries: expect.objectContaining({
                 values: [expect.objectContaining({timestamp: 1000000, value: 100})],
               }),
@@ -614,7 +614,7 @@ describe('Dashboards > WidgetQueries', () => {
     );
   });
 
-  it('does not re-query events and sets name in widgets', async () => {
+  it('does not re-query events and updates the widget query in results', async () => {
     const eventsStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-timeseries/',
       body: {timeSeries: [TimeSeriesFixture({yAxis: 'count()'})]},
@@ -666,8 +666,8 @@ describe('Dashboards > WidgetQueries', () => {
 
     // Did not re-query
     expect(eventsStatsMock).toHaveBeenCalledTimes(1);
-    expect(childProps.timeseriesResults![0]!.seriesName).toBe(
-      'this query alias changed : count()'
+    expect(childProps.timeseriesResults![0]!.widgetQuery.name).toBe(
+      'this query alias changed'
     );
   });
 
