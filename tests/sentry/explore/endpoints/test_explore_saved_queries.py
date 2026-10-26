@@ -1,3 +1,5 @@
+from itertools import product
+
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
@@ -1215,6 +1217,187 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.data["query"][0]["visualize"] == [
             {"yAxes": ["count(span.duration)"]},
         ]
+
+    def test_save_transformations(self) -> None:
+        for (dataset, query), transformations, visualization_field in product(
+            [
+                ("spans", {"mode": "aggregate"}),
+                ("logs", {"mode": "aggregate"}),
+                (
+                    "metrics",
+                    {
+                        "mode": "aggregate",
+                        "metric": {"name": "request.duration", "type": "distribution"},
+                    },
+                ),
+            ],
+            [
+                [],
+                ["fill(locf)", "smooth(sma,5)"],
+                ["smooth(ema,7,0.25)", "fill(linear)"],
+                ["smooth(asap,7)", "fill(zero)"],
+                ["smooth( ema , 7 , 0.25 )", "fill( linear )"],
+            ],
+            ["visualize", "aggregateField"],
+        ):
+            with self.feature(
+                {**self.features, "organizations:explore-interpolation-and-smoothing": True}
+            ):
+                response = self.client.post(
+                    self.url,
+                    {
+                        "name": "Transformed query",
+                        "projects": self.project_ids,
+                        "dataset": dataset,
+                        "query": [
+                            {
+                                **query,
+                                visualization_field: [
+                                    {"yAxes": ["count()"], "transformations": transformations}
+                                ],
+                            }
+                        ],
+                    },
+                )
+
+            assert response.status_code == 201, response.content
+            assert response.data["dataset"] == dataset
+            expected = [{"yAxes": ["count()"], "transformations": transformations}]
+            assert response.data["query"][0][visualization_field] == expected
+            saved_query = ExploreSavedQuery.objects.get(
+                id=response.data["id"], organization=self.org
+            )
+            assert saved_query.query["query"][0][visualization_field] == expected
+
+            with self.feature(
+                {**self.features, "organizations:explore-interpolation-and-smoothing": False}
+            ):
+                response = self.client.get(self.url, data={"query": "name:Transformed"})
+
+            assert response.status_code == 200, response.content
+            saved_queries = {query["id"]: query for query in response.data}
+            assert saved_queries[str(saved_query.id)]["query"][0][visualization_field] == expected
+
+    def test_save_transformations_requires_feature(self) -> None:
+        for visualization_field, transformations in product(
+            ["visualize", "aggregateField"], [[], ["fill(locf)"], ["unknown()"]]
+        ):
+            with self.feature(
+                {**self.features, "organizations:explore-interpolation-and-smoothing": False}
+            ):
+                response = self.client.post(
+                    self.url,
+                    {
+                        "name": "Transformed query",
+                        "projects": self.project_ids,
+                        "query": [
+                            {"mode": "aggregate"},
+                            {
+                                "mode": "aggregate",
+                                visualization_field: [
+                                    {"yAxes": ["count()"]},
+                                    {"yAxes": ["count()"], "transformations": transformations},
+                                ],
+                            },
+                        ],
+                    },
+                )
+
+            assert response.status_code == 400, response.content
+            assert response.data == {"detail": "You do not have access to query transformations."}
+            assert ExploreSavedQuery.objects.filter(organization=self.org).count() == 1
+
+    def test_save_invalid_transformation_pipeline(self) -> None:
+        for visualization_field, (transformations, expected_error) in product(
+            ["visualize", "aggregateField"],
+            [
+                (["unknown()"], "unknown is not a valid transformation function"),
+                (["fill(locf"], "fill(locf is not a valid transformation"),
+                (["fill(locf)\n"], "fill(locf)\n is not a valid transformation"),
+                (
+                    ["fill(sma)"],
+                    "fill(sma): mode argument invalid: expected one of locf, zero, linear",
+                ),
+                (["smooth(sma)"], "smooth(sma): argument count must be 2"),
+                (
+                    ["smooth(sma,0)"],
+                    "smooth(sma,0): window_size argument invalid: Window size must be positive.",
+                ),
+                (
+                    ["smooth(ema,7,0)"],
+                    "smooth(ema,7,0): smoothing_factor argument invalid: "
+                    "Smoothing factor must be greater than zero and at most one.",
+                ),
+                (
+                    ["smooth(asap,0)"],
+                    "smooth(asap,0): max_window_size argument invalid: "
+                    "Maximum window size must be positive.",
+                ),
+                (
+                    ["fill(locf)", "fill(zero)"],
+                    "Only one transformation per function type is allowed per yAxis",
+                ),
+                (
+                    ["smooth(sma,3)", "smooth(ema,5)"],
+                    "Only one transformation per function type is allowed per yAxis",
+                ),
+                (
+                    ["fill(locf)", "smooth(sma,3)", "fill(zero)"],
+                    "At most 2 transformations are allowed per yAxis",
+                ),
+            ],
+        ):
+            with self.feature(
+                {**self.features, "organizations:explore-interpolation-and-smoothing": True}
+            ):
+                response = self.client.post(
+                    self.url,
+                    {
+                        "name": "Invalid transformations",
+                        "projects": self.project_ids,
+                        "query": [
+                            {"mode": "aggregate"},
+                            {
+                                "mode": "aggregate",
+                                visualization_field: [
+                                    {"yAxes": ["count()"]},
+                                    {"yAxes": ["count()"], "transformations": transformations},
+                                ],
+                            },
+                        ],
+                    },
+                )
+
+            assert response.status_code == 400, response.content
+            assert response.data == {"detail": expected_error}
+            assert ExploreSavedQuery.objects.filter(organization=self.org).count() == 1
+
+    def test_save_invalid_transformations(self) -> None:
+        for visualization_field, transformations in product(
+            ["visualize", "aggregateField"], [None, "fill(zero)", [None], [{}]]
+        ):
+            with self.feature(
+                {**self.features, "organizations:explore-interpolation-and-smoothing": True}
+            ):
+                response = self.client.post(
+                    self.url,
+                    {
+                        "name": "Transformed query",
+                        "projects": self.project_ids,
+                        "query": [
+                            {
+                                "mode": "aggregate",
+                                visualization_field: [
+                                    {"yAxes": ["count()"], "transformations": transformations}
+                                ],
+                            }
+                        ],
+                    },
+                )
+
+            assert response.status_code == 400, response.content
+            assert "transformations" in response.data["query"][visualization_field]
+            assert ExploreSavedQuery.objects.filter(organization=self.org).count() == 1
 
     def test_save_aggregate_field_and_orderby(self) -> None:
         with self.feature(self.features):

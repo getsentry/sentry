@@ -1,3 +1,5 @@
+from itertools import product
+
 import pytest
 from django.urls import NoReverseMatch, reverse
 
@@ -291,6 +293,193 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
         assert response.data["query"] == [
             {"caseInsensitive": False, "fields": [], "mode": "samples"}
         ]
+
+    def test_put_transformations(self) -> None:
+        for (dataset, query), visualization_field in product(
+            [
+                ("spans", {"mode": "aggregate"}),
+                ("logs", {"mode": "aggregate"}),
+                (
+                    "metrics",
+                    {
+                        "mode": "aggregate",
+                        "metric": {"name": "request.duration", "type": "distribution"},
+                    },
+                ),
+            ],
+            ["visualize", "aggregateField"],
+        ):
+            url = reverse(
+                "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
+            )
+            with self.feature(
+                [self.feature_name, "organizations:explore-interpolation-and-smoothing"]
+            ):
+                response = self.client.put(
+                    url,
+                    {
+                        "name": "Transformed query",
+                        "projects": self.project_ids,
+                        "dataset": dataset,
+                        "query": [
+                            {
+                                **query,
+                                visualization_field: [
+                                    {
+                                        "yAxes": ["count()"],
+                                        "transformations": ["smooth(sma,5)", "fill(locf)"],
+                                    }
+                                ],
+                            }
+                        ],
+                    },
+                )
+
+            assert response.status_code == 200, response.content
+            assert response.data["dataset"] == dataset
+            expected = [{"yAxes": ["count()"], "transformations": ["smooth(sma,5)", "fill(locf)"]}]
+            assert response.data["query"][0][visualization_field] == expected
+            self.model.refresh_from_db()
+            assert self.model.query["query"][0][visualization_field] == expected
+
+            with self.feature(
+                {
+                    self.feature_name: True,
+                    "organizations:explore-interpolation-and-smoothing": False,
+                }
+            ):
+                response = self.client.get(url)
+
+            assert response.status_code == 200, response.content
+            assert response.data["query"][0][visualization_field] == expected
+
+    def test_put_transformations_requires_feature(self) -> None:
+        for visualization_field, transformations in product(
+            ["visualize", "aggregateField"], [[], ["fill(locf)"], ["unknown()"]]
+        ):
+            url = reverse(
+                "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
+            )
+            with self.feature(
+                {
+                    self.feature_name: True,
+                    "organizations:explore-interpolation-and-smoothing": False,
+                }
+            ):
+                response = self.client.put(
+                    url,
+                    {
+                        "name": "Transformed query",
+                        "projects": self.project_ids,
+                        "query": [
+                            {"mode": "aggregate"},
+                            {
+                                "mode": "aggregate",
+                                visualization_field: [
+                                    {"yAxes": ["count()"]},
+                                    {"yAxes": ["count()"], "transformations": transformations},
+                                ],
+                            },
+                        ],
+                    },
+                )
+
+            assert response.status_code == 400, response.content
+            assert response.data == {"detail": "You do not have access to query transformations."}
+            self.model.refresh_from_db()
+            assert self.model.name == "Test query"
+            assert self.model.query == {"query": [{"fields": ["span.op"], "mode": "samples"}]}
+
+    def test_put_invalid_transformation_pipeline(self) -> None:
+        for visualization_field, (transformations, expected_error) in product(
+            ["visualize", "aggregateField"],
+            [
+                (["fill(locf)\n"], "fill(locf)\n is not a valid transformation"),
+                (
+                    ["smooth(sma,0)"],
+                    "smooth(sma,0): window_size argument invalid: Window size must be positive.",
+                ),
+                (
+                    ["smooth(ema,7,0.25)", "smooth(asap)"],
+                    "Only one transformation per function type is allowed per yAxis",
+                ),
+                (
+                    ["fill(locf)", "smooth(sma,3)", "fill(zero)"],
+                    "At most 2 transformations are allowed per yAxis",
+                ),
+            ],
+        ):
+            url = reverse(
+                "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
+            )
+            with self.feature(
+                [self.feature_name, "organizations:explore-interpolation-and-smoothing"]
+            ):
+                response = self.client.put(
+                    url,
+                    {
+                        "name": "Invalid transformations",
+                        "projects": self.project_ids,
+                        "query": [
+                            {"mode": "aggregate"},
+                            {
+                                "mode": "aggregate",
+                                visualization_field: [
+                                    {"yAxes": ["count()"]},
+                                    {"yAxes": ["count()"], "transformations": transformations},
+                                ],
+                            },
+                        ],
+                    },
+                )
+
+            assert response.status_code == 400, response.content
+            assert response.data == {"detail": expected_error}
+            self.model.refresh_from_db()
+            assert self.model.name == "Test query"
+            assert self.model.query == {"query": [{"fields": ["span.op"], "mode": "samples"}]}
+
+    def test_put_clears_transformations(self) -> None:
+        for visualization_field, (visualization, transformations_enabled) in product(
+            ["visualize", "aggregateField"],
+            [
+                ({"yAxes": ["count()"], "transformations": []}, True),
+                ({"yAxes": ["count()"]}, False),
+            ],
+        ):
+            self.model.query = {
+                "query": [
+                    {
+                        "mode": "aggregate",
+                        visualization_field: [
+                            {"yAxes": ["count()"], "transformations": ["fill(locf)"]}
+                        ],
+                    }
+                ]
+            }
+            self.model.save()
+            url = reverse(
+                "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
+            )
+            with self.feature(
+                {
+                    self.feature_name: True,
+                    "organizations:explore-interpolation-and-smoothing": transformations_enabled,
+                }
+            ):
+                response = self.client.put(
+                    url,
+                    {
+                        "name": "Cleared transformations",
+                        "projects": self.project_ids,
+                        "query": [{"mode": "aggregate", visualization_field: [visualization]}],
+                    },
+                )
+
+            assert response.status_code == 200, response.content
+            assert response.data["query"][0][visualization_field] == [visualization]
+            self.model.refresh_from_db()
+            assert self.model.query["query"][0][visualization_field] == [visualization]
 
     def test_put_with_interval(self) -> None:
         with self.feature(self.feature_name):
