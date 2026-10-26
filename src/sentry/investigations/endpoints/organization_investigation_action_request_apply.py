@@ -90,6 +90,7 @@ class OrganizationInvestigationActionRequestApplyEndpoint(OrganizationInvestigat
                 request=request,
                 actor_id=actor_id,
                 dry_run=validator.validated_data["dry_run"],
+                expected_action=validator.validated_data.get("action"),
             )
         except ApplyFailed as failed:
             return Response(failed.error, status=_STATUS.get(failed.error["code"], 409))

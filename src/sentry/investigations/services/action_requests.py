@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 from django.db import router, transaction
 from django.db.models import Q, QuerySet
@@ -287,6 +288,7 @@ def _apply(
     request: Request,
     actor_id: int,
     dry_run: bool,
+    expected_action: Mapping[str, Any] | None,
 ) -> InvestigationActionRequest:
     investigations = Investigation.objects.select_related("organization")
     runs = InvestigationOrchestrationRun.objects.all()
@@ -300,6 +302,14 @@ def _apply(
     run = runs.get(investigation=locked)
     action_request = action_requests.get(id=action_request.id)
     kind = _check_can_apply(locked, action_request, request)
+    # Seer can rewrite a suggestion under the same id, so only apply the one the user saw.
+    if expected_action is not None and expected_action != action_request.action_payload:
+        raise ApplyFailed(
+            {
+                "detail": "Seer changed this suggestion. Check the new one.",
+                "code": ApplyErrorCode.ACTION_CHANGED,
+            }
+        )
 
     context = ApplyContext(
         investigation=locked,
@@ -354,6 +364,7 @@ def apply_action_request(
     request: Request,
     actor_id: int,
     dry_run: bool = False,
+    expected_action: Mapping[str, Any] | None = None,
 ) -> InvestigationActionRequest:
     """Apply a suggested action as the requesting user, or raise ApplyFailed. A dry run only
     says whether it would work, and doesn't take locks or change anything.
@@ -375,6 +386,7 @@ def apply_action_request(
                 request=request,
                 actor_id=actor_id,
                 dry_run=dry_run,
+                expected_action=expected_action,
             )
         except ApplyFailed as failed:
             error = failed
