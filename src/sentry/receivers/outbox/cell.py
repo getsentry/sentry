@@ -47,6 +47,7 @@ from sentry.seer.agent.client_utils import (
     make_feature_run_request,
 )
 from sentry.seer.agent.monitoring_providers import get_monitoring_provider_connections
+from sentry.seer.llm_proxy_debug import force_llm_proxy_402_scope
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.signed_seer_api import SearchAgentStartRequest, make_search_agent_start_request
 from sentry.sentry_apps.services.app.service import app_service
@@ -278,7 +279,7 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
             )
         )
 
-    with scope:
+    with scope, force_llm_proxy_402_scope(payload.get("force_llm_proxy_402") is True):
         match run_type:
             case SeerRunType.EXPLORER:
                 try:

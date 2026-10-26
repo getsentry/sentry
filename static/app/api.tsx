@@ -15,6 +15,7 @@ import type {ApiResult, ResponseMeta} from 'sentry/types/api';
 import {isSimilarOrigin} from 'sentry/utils/api/isSimilarOrigin';
 import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
+import {FeatureFlagOverrides} from 'sentry/utils/featureFlagOverrides';
 import {getCsrfToken} from 'sentry/utils/getCsrfToken';
 import {uniqueId} from 'sentry/utils/guid';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -506,6 +507,14 @@ export class Client {
     const body = method === 'GET' ? undefined : data;
 
     const requestHeaders = new Headers({...this.headers, ...options.headers});
+
+    if (
+      isSimilarOrigin(fullUrl, window.location.origin) &&
+      FeatureFlagOverrides.singleton().getStoredOverrides()['llm-proxy-force-402'] ===
+        true
+    ) {
+      requestHeaders.set('X-Sentry-Force-LLM-Proxy-402', 'true');
+    }
 
     // Do not set the X-CSRFToken header when making a request outside of the
     // current domain. Because we use subdomains we loosely compare origins

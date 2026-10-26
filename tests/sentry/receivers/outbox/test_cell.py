@@ -12,6 +12,7 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.receivers.outbox.cell import backfill_scm_integration_config, handle_seer_run_create
+from sentry.seer.llm_proxy_debug import should_force_llm_proxy_402
 from sentry.seer.models.run import SeerRunMirrorStatus, SeerRunType
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
@@ -166,6 +167,28 @@ class HandleSeerRunCreateTest(TestCase):
         assert observed_contexts == [
             ViewerContext(actor=Actor(type=ActorType.SYSTEM), organization_id=run.organization_id)
         ]
+
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    def test_restores_llm_proxy_debug_context(self, mock_request: Mock) -> None:
+        observed_values: list[bool] = []
+
+        def make_request(*args: Any, **kwargs: Any) -> Mock:
+            observed_values.append(should_force_llm_proxy_402())
+            return Mock(status=200, json=Mock(return_value={"run_id": 99}))
+
+        mock_request.side_effect = make_request
+        run = self.create_seer_run(type=SeerRunType.EXPLORER)
+        payload = self._make_payload()
+        payload["force_llm_proxy_402"] = True
+
+        handle_seer_run_create(
+            object_identifier=run.id,
+            payload=payload,
+            shard_identifier=run.id,
+        )
+
+        assert observed_values == [True]
+        assert should_force_llm_proxy_402() is False
 
     @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
     @patch("sentry.receivers.outbox.cell.make_agent_chat_request")

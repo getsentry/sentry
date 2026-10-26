@@ -7,6 +7,10 @@ from taskbroker_client.metrics import NoOpMetricsBackend
 from taskbroker_client.registry import TaskRegistry
 
 from sentry.conf.types.kafka_definition import Topic
+from sentry.seer.llm_proxy_debug import (
+    force_llm_proxy_402_scope,
+    should_force_llm_proxy_402,
+)
 from sentry.silo.base import SiloMode
 from sentry.taskworker.adapters import (
     SentryRouter,
@@ -92,6 +96,18 @@ def test_default_router_topic_override_ignored_in_control_silo() -> None:
 
 
 class TestViewerContextHook:
+    def test_roundtrips_llm_proxy_debug_override(self) -> None:
+        hook = ViewerContextHook()
+        headers: dict[str, str] = {}
+
+        with force_llm_proxy_402_scope(True):
+            hook.on_dispatch(headers)
+
+        assert headers["sentry-force-llm-proxy-402"] == "true"
+        with hook.on_execute(headers):
+            assert should_force_llm_proxy_402() is True
+        assert should_force_llm_proxy_402() is False
+
     def test_on_dispatch_with_context(self) -> None:
         hook = ViewerContextHook()
         headers: dict[str, str] = {}

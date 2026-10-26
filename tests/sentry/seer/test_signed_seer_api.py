@@ -2,9 +2,11 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from django.test import override_settings
+from django.test.client import RequestFactory
 from urllib3 import HTTPConnectionPool, HTTPResponse
 from urllib3.exceptions import ReadTimeoutError
 
+from sentry.app import env
 from sentry.seer.signed_seer_api import (
     MissingViewerContextError,
     SeerViewerContext,
@@ -63,6 +65,15 @@ def test_simple() -> None:
         == "Rpcsignature rpc0:d2e6070dfab955db6fc9f3bc0518f75f27ca93ae2e393072929e5f6cba26ff07"
     )
     assert headers["X-Viewer-Context"]
+
+
+@pytest.mark.django_db
+def test_forwards_llm_proxy_debug_header() -> None:
+    request = RequestFactory().get("/", headers={"X-Sentry-Force-LLM-Proxy-402": "true"})
+    with env.active_request(request):
+        mock_url_open = run_test_case()
+
+    assert mock_url_open.call_args.kwargs["headers"]["X-Seer-Force-402"] == "true"
 
 
 @pytest.mark.django_db
