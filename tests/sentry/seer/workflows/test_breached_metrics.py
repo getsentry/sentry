@@ -128,7 +128,7 @@ class BreachedMetricWorkflowTestCase(OccurrenceTestMixin, TestCase):
 
 
 @with_feature("organizations:seer-automations")
-class BreachedMetricWorkflowTest(BreachedMetricWorkflowTestCase):
+class BreachedMetricWorkflowAdmissionTest(BreachedMetricWorkflowTestCase):
     def test_creates_all_projects_config_preserving_environment_filter(self) -> None:
         workflow = BreachedMetricWorkflow.create(self.organization.id, environments=["production"])
 
@@ -232,7 +232,7 @@ class BreachedMetricWorkflowTest(BreachedMetricWorkflowTestCase):
 
 
 @with_feature("organizations:seer-automations")
-class BreachedMetricWorkflowIntegrationTest(BreachedMetricWorkflowTestCase):
+class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
     def setUp(self) -> None:
         super().setUp()
         triggers = self.create_data_condition_group(organization=self.organization)
