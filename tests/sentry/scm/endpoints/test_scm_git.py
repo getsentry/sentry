@@ -366,7 +366,10 @@ class ScmGitEndpointTest(TestCase):
 
         self.assert_refused(response, 404, b"A repository was found but it is inactive.")
 
-    def test_answers_a_provider_host_on_an_internal_address_with_a_host_error(self) -> None:
+    @mock.patch("sentry.scm.endpoints.scm_git.logger")
+    def test_answers_a_provider_host_on_an_internal_address_with_a_host_error(
+        self, mock_logger: mock.MagicMock
+    ) -> None:
         integration = self.create_integration(
             organization=self.organization,
             provider="github_enterprise",
@@ -393,6 +396,16 @@ class ScmGitEndpointTest(TestCase):
         assert response.status_code == 503
         assert response["Content-Type"] == "text/plain; charset=utf-8"
         assert b"".join(response) == b"Unable to reach host\n"
+        mock_logger.warning.assert_called_once_with(
+            "scm.git.request_failed",
+            extra={
+                "code": "restricted_ip_address",
+                "detail": "(127.0.0.1) matches the URL blocklist",
+                "repository_id": str(repo.id),
+                "organization_id": str(self.organization.id),
+                "referrer": REFERRER,
+            },
+        )
 
 
 @pytest.mark.parametrize(
