@@ -69,7 +69,17 @@ export default function AutomationDetail() {
   if (!config) {
     return (
       <Container padding="xl">
-        {automationsEnabled && isPending ? <LoadingIndicator /> : <NotFound />}
+        {automationsEnabled && isPending ? (
+          <Fragment>
+            <TopBar.Slot
+              name="breadcrumbs"
+              title={{type: 'page-title', label: t('Automations')}}
+            />
+            <LoadingIndicator />
+          </Fragment>
+        ) : (
+          <NotFound />
+        )}
       </Container>
     );
   }
@@ -120,11 +130,11 @@ export default function AutomationDetail() {
               </Fragment>
             )}
             <Text size="sm" variant="muted">
-              {t('All projects')}
+              {t('_ projects/monitors')}
             </Text>
             <Stack.Separator />
             <Text size="sm" variant="muted">
-              {t('Created by Sentry')}
+              {t('Created by _')}
             </Text>
           </Stack>
         </Stack>
