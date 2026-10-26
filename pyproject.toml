@@ -504,7 +504,6 @@ module = [
     "sentry.api.endpoints.organization_details",
     "sentry.api.endpoints.organization_events",
     "sentry.api.endpoints.organization_events_facets",
-    "sentry.api.endpoints.organization_events_histogram",
     "sentry.api.endpoints.organization_events_meta",
     "sentry.api.endpoints.organization_events_stats",
     "sentry.api.endpoints.organization_events_timeseries",
