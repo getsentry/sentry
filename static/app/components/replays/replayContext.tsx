@@ -372,6 +372,14 @@ export function Provider({
         return;
       }
 
+      // rrweb's Replayer throws with fewer than 2 events, which happens when
+      // navigating to a replay whose segments failed to load or are empty.
+      if (events.length < 2) {
+        replayerRef.current?.destroy();
+        replayerRef.current = null;
+        return;
+      }
+
       if (replayerRef.current) {
         if (!hasNewEvents) {
           return;

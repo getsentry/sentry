@@ -101,7 +101,7 @@ export function ReplayDetailsProviders({children, replay, projectSlug}: Props) {
               <ReplayContextProvider
                 analyticsContext="replay_details"
                 initialTimeOffsetMs={initialTimeOffsetMs}
-                isFetching={false}
+                isFetching={replay.isFetching()}
                 replay={replay}
               >
                 <ReplaySummaryContextProvider replay={replay} projectSlug={projectSlug}>
