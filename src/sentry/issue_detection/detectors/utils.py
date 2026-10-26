@@ -7,6 +7,7 @@ from datetime import timedelta
 from typing import Any, TypedDict
 from urllib.parse import ParseResult, parse_qs, urlparse
 
+from sentry.utils import metrics
 from sentry.utils.http import is_valid_ip
 from sentry.utils.safe import get_path
 
@@ -595,3 +596,24 @@ def get_browser_name(event: dict[str, Any]) -> str:
         ),
         "",
     )
+
+
+def get_span_description(span: Span, strip: bool = True, caller: str | None = None) -> str:
+    description = span.get("description") or ""
+    stripped = description.strip()
+
+    # TODO: In places where we use the description for fingerprinting, stripping could change the
+    # fingerprint value and erroneously create new issues. To determine whether this theoretical
+    # problem actually shows up in practice, for now we'll skip the stripping and just track how
+    # often doing it would change the description value.
+    if strip:
+        return stripped
+    else:
+        metrics.incr(
+            "issue_detection.description_stripping",
+            tags={
+                "value_changed": stripped != description,
+                "caller": caller,
+            },
+        )
+        return description
