@@ -9,7 +9,6 @@ import type {
   TableData,
   TableDataWithTitle,
 } from 'sentry/utils/discover/discoverQuery';
-import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
@@ -108,8 +107,6 @@ export function useLogsSeriesQuery(
     }
 
     const timeseriesResults: WidgetTimeSeries[] = [];
-    const timeseriesResultsTypes: Record<string, AggregationOutputType> = {};
-    const timeseriesResultsUnits: Record<string, DataUnit> = {};
 
     queryResults.forEach((q, requestIndex) => {
       if (!q?.data) {
@@ -125,30 +122,12 @@ export function useLogsSeriesQuery(
       );
 
       timeseriesResults.push(...transformedResult);
-
-      const resultTypes = eventsResponseTransforms.getSeriesResultType?.(
-        responseData,
-        filteredWidget.queries[requestIndex]!
-      );
-      const resultUnits = eventsResponseTransforms.getSeriesResultUnit?.(
-        responseData,
-        filteredWidget.queries[requestIndex]!
-      );
-
-      if (resultTypes) {
-        Object.assign(timeseriesResultsTypes, resultTypes);
-      }
-      if (resultUnits) {
-        Object.assign(timeseriesResultsUnits, resultUnits);
-      }
     });
 
     return {
       loading: false,
       errorMessage: undefined,
       timeseriesResults,
-      timeseriesResultsTypes,
-      timeseriesResultsUnits,
       ingestion: combineIngestionMeta(queryResults.map(q => q?.data)),
       rawData,
     };

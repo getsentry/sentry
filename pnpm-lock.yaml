@@ -518,9 +518,6 @@ importers:
       '@react-aria/menu':
         specifier: 3.22.1
         version: 3.22.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@react-aria/numberfield':
-        specifier: 3.13.1
-        version: 3.13.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@react-aria/overlays':
         specifier: 3.32.1
         version: 3.32.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -560,9 +557,6 @@ importers:
       '@react-stately/list':
         specifier: 3.14.1
         version: 3.14.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@react-stately/numberfield':
-        specifier: 3.12.1
-        version: 3.12.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@react-stately/overlays':
         specifier: 3.7.1
         version: 3.7.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -707,9 +701,6 @@ importers:
       idb-keyval:
         specifier: 6.2.2
         version: 6.2.2
-      input-otp:
-        specifier: ^1.5.0
-        version: 1.5.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       invariant:
         specifier: ^2.2.4
         version: 2.2.4
@@ -794,9 +785,6 @@ importers:
       react-select:
         specifier: 4.3.1
         version: 4.3.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
-      react-textarea-autosize:
-        specifier: 8.5.7
-        version: 8.5.7(@types/react@19.3.0)(react@19.3.0)
       reflux:
         specifier: 0.4.1
         version: 0.4.1(react@19.3.0)
@@ -1202,6 +1190,9 @@ importers:
       '@react-aria/interactions':
         specifier: 3.28.1
         version: 3.28.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-aria/numberfield':
+        specifier: 3.13.1
+        version: 3.13.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@react-aria/overlays':
         specifier: 3.32.1
         version: 3.32.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -1226,6 +1217,9 @@ importers:
       '@react-stately/list':
         specifier: 3.14.1
         version: 3.14.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-stately/numberfield':
+        specifier: 3.12.1
+        version: 3.12.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@react-stately/overlays':
         specifier: 3.7.1
         version: 3.7.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -1253,6 +1247,9 @@ importers:
       framer-motion:
         specifier: 12.38.0
         version: 12.38.0(@emotion/is-prop-valid@1.4.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      input-otp:
+        specifier: ^1.5.0
+        version: 1.5.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       query-string:
         specifier: 7.0.1
         version: 7.0.1
@@ -1262,6 +1259,9 @@ importers:
       react-dom:
         specifier: ^19.0.0
         version: 19.3.0(react@19.3.0)
+      react-textarea-autosize:
+        specifier: 8.5.7
+        version: 8.5.7(@types/react@19.3.0)(react@19.3.0)
       type-fest:
         specifier: ^5.10.0
         version: 5.10.0
@@ -1284,6 +1284,9 @@ importers:
       '@swc/jest':
         specifier: 0.2.39
         version: 0.2.39(@swc/core@1.16.13(@swc/helpers@0.5.23))
+      '@tanstack/react-form':
+        specifier: 1.28.6
+        version: 1.28.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@testing-library/dom':
         specifier: 10.4.1
         version: 10.4.1

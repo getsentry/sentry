@@ -51,12 +51,7 @@ from sentry.types.group import PriorityLevel
 from sentry.utils import json
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import raw_query
-from sentry.viewer_context import (
-    Actor,
-    ActorType,
-    ViewerContext,
-    get_viewer_context,
-)
+from sentry.viewer_context import Actor, ActorType, ViewerContext, get_viewer_context
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataPacket
 from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
 from sentry.workflow_engine.models.detector_group import DetectorGroup

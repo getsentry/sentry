@@ -1,7 +1,5 @@
 import logging
-from datetime import timedelta
 
-from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
@@ -21,7 +19,6 @@ from sentry.api.serializers.models.activity import (
 from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
-from sentry.issues.action_log import action_context_scope
 from sentry.issues.action_log.read_metrics import (
     ActivityReadFallbackReason,
     ActivityReadResult,
@@ -29,15 +26,13 @@ from sentry.issues.action_log.read_metrics import (
     record_activity_read,
 )
 from sentry.issues.action_log.request import resolve_action_source
-from sentry.issues.action_log.types import GroupActionActor, GroupActionType
+from sentry.issues.action_log.types import GroupActionType
+from sentry.issues.comments import create_comment
 from sentry.issues.derived.gate import should_serve_action_log_activity
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.group import Group
-from sentry.models.groupsubscription import GroupSubscription
-from sentry.notifications.types import GroupSubscriptionReason
-from sentry.signals import comment_created
 from sentry.types.activity import ActivityType
 from sentry.utils.action_log.activity_translator import activity_action_idempotency_key
 
@@ -107,46 +102,14 @@ class GroupNotesEndpoint(GroupEndpoint):
         if "mentions" in data:
             data["mentions"] = [m.dict() for m in data["mentions"]]
 
-        if Activity.objects.filter(
-            group=group,
-            type=ActivityType.NOTE.value,
-            user_id=request.user.id,
-            data=data,
-            datetime__gte=timezone.now() - timedelta(hours=1),
-        ).exists():
+        activity = create_comment(
+            group=group, user=request.user, data=data, source=resolve_action_source(request)
+        )
+        if activity is None:
             return Response(
                 {"detail": "You have already posted that comment."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
-        GroupSubscription.objects.subscribe(
-            group=group, subscriber=request.user, reason=GroupSubscriptionReason.comment
-        )
-
-        with action_context_scope(
-            source=resolve_action_source(request),
-            actor=GroupActionActor.user(request.user.id),
-        ):
-            activity = Activity.objects.create_group_activity(
-                group=group, type=ActivityType.NOTE, user_id=request.user.id, data=data
-            )
-
-            self.create_external_comment(request, group, activity)
-
-        webhook_data = {
-            "comment_id": activity.id,
-            "timestamp": activity.datetime,
-            "comment": activity.data.get("text"),
-            "project_slug": activity.project.slug,
-        }
-
-        comment_created.send_robust(
-            project=group.project,
-            user=request.user,
-            group=group,
-            data=webhook_data,
-            sender="post",
-        )
 
         endpoint = activity_read_endpoint(request)
         if should_serve_action_log_activity(group.project, request.user, endpoint=endpoint):

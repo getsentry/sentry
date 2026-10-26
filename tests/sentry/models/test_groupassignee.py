@@ -21,9 +21,7 @@ from sentry.viewer_context import (
     get_viewer_context,
     viewer_context_scope,
 )
-from sentry.viewer_context import (
-    ActorType as ViewerActorType,
-)
+from sentry.viewer_context import ActorType as ViewerActorType
 
 pytestmark = requires_snuba
 
