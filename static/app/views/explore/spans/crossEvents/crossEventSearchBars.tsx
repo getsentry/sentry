@@ -182,7 +182,7 @@ export function SpansTabCrossEventSearchBars() {
         </Container>
         <Container
           area="delete"
-          justifySelf={{zero: 'stretch', md: 'end'}}
+          justifySelf={{zero: 'stretch', md: 'start'}}
           width={{zero: '100%', md: 'auto'}}
         >
           {props => (
