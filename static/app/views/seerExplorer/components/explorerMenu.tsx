@@ -3,8 +3,6 @@ import styled from '@emotion/styled';
 
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 
-type MenuMode = 'slash-commands-keyboard' | 'hidden';
-
 interface SlashCommandHandlers {
   onFeedback: (() => void) | undefined;
   onNew: () => void;
@@ -47,11 +45,9 @@ export function useExplorerMenu({
   slashCommandHandlers,
   inputAnchorRef,
 }: ExplorerMenuProps) {
-  const [menuMode, setMenuMode] = useState<MenuMode>('hidden');
   const [menuPosition, setMenuPosition] = useState<{
     bottom?: string | number;
     left?: string | number;
-    right?: string | number;
     top?: string | number;
   }>({});
 
@@ -66,22 +62,20 @@ export function useExplorerMenu({
     return allSlashCommands.filter(cmd => cmd.title.toLowerCase().startsWith(query));
   }, [allSlashCommands, inputValue]);
 
-  // Menu items and select handlers change based on the mode.
-  const menuItems = useMemo(
-    () => (menuMode === 'slash-commands-keyboard' ? filteredSlashCommands : []),
-    [menuMode, filteredSlashCommands]
-  );
+  const menuItems = filteredSlashCommands;
+  const isVisible = menuItems.length > 0;
 
+  // The menu only shows while the input is a partial slash command, so
+  // clearing the input is what closes it.
   const close = useCallback(() => {
-    setMenuMode('hidden');
-    if (menuMode === 'slash-commands-keyboard') {
-      // Clear input and reset textarea height.
-      clearInput();
-      if (composerRef.current) {
-        composerRef.current.style.height = 'auto';
-      }
+    if (!isVisible) {
+      return;
     }
-  }, [menuMode, setMenuMode, clearInput, composerRef]);
+    clearInput();
+    if (composerRef.current) {
+      composerRef.current.style.height = 'auto';
+    }
+  }, [isVisible, clearInput, composerRef]);
 
   const closeAndFocusInput = useCallback(() => {
     close();
@@ -90,35 +84,11 @@ export function useExplorerMenu({
 
   const onSelect = useCallback(
     (item: MenuItemProps) => {
-      // Execute custom handler.
       item.handler();
-
-      if (menuMode === 'slash-commands-keyboard') {
-        // Clear input and reset textarea height.
-        clearInput();
-        if (composerRef.current) {
-          composerRef.current.style.height = 'auto';
-        }
-      }
-
-      // Default to closing the menu after an item is selected and handled.
       closeAndFocusInput();
     },
-    // clearInput and composerRef are both expected to be stable.
-    [menuMode, clearInput, composerRef, closeAndFocusInput]
+    [closeAndFocusInput]
   );
-
-  // Toggle between slash-commands-keyboard and hidden modes based on filteredSlashCommands.
-  useEffect(() => {
-    if (menuMode === 'slash-commands-keyboard' && filteredSlashCommands.length === 0) {
-      // oxlint-disable-next-line react/set-state-in-effect
-      setMenuMode('hidden');
-    } else if (menuMode === 'hidden' && filteredSlashCommands.length > 0) {
-      setMenuMode('slash-commands-keyboard');
-    }
-  }, [menuMode, setMenuMode, filteredSlashCommands]);
-
-  const isVisible = menuMode !== 'hidden';
 
   const [selectedIndex, setSelectedIndex] = useState(0);
   const menuItemRefs = useRef<Array<HTMLDivElement | null>>([]);
@@ -147,8 +117,6 @@ export function useExplorerMenu({
         return;
       }
 
-      const isPrintableChar = e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey;
-
       if (e.key === 'ArrowUp') {
         e.preventDefault();
         e.stopPropagation();
@@ -167,22 +135,9 @@ export function useExplorerMenu({
         e.preventDefault();
         e.stopPropagation();
         closeAndFocusInput();
-        if (menuMode === 'slash-commands-keyboard') {
-          clearInput();
-        }
-      } else if (isPrintableChar && menuMode !== 'slash-commands-keyboard') {
-        closeAndFocusInput();
       }
     },
-    [
-      isVisible,
-      selectedIndex,
-      menuItems,
-      onSelect,
-      clearInput,
-      menuMode,
-      closeAndFocusInput,
-    ]
+    [isVisible, selectedIndex, menuItems, onSelect, closeAndFocusInput]
   );
 
   useEffect(() => {
@@ -253,8 +208,7 @@ export function useExplorerMenu({
 
   return {
     menu,
-    menuMode,
-    isMenuOpen: menuMode !== 'hidden',
+    isMenuOpen: isVisible,
     closeMenu: close,
   };
 }
