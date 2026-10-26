@@ -58,6 +58,28 @@ describe('UPTIME_DETECTOR_DRAFT_CONFIG', () => {
     expect(values.assertion?.root.children).toEqual([{...statusCheck, value: 200}]);
   });
 
+  it('fills in a legacy JSON path assertion when it lacks an operator and operand', () => {
+    const values = parseDetectorDraftValues(UPTIME_DETECTOR_DRAFT_CONFIG, {
+      assertion: {
+        root: {
+          id: 'root',
+          op: 'and',
+          children: [{id: 'json', op: 'json_path', value: '$.status'}],
+        },
+      },
+    });
+
+    expect(values.assertion?.root.children).toEqual([
+      {
+        id: 'json',
+        op: 'json_path',
+        operand: {jsonpath_op: 'literal', value: ''},
+        operator: {cmp: 'equals'},
+        value: '$.status',
+      },
+    ]);
+  });
+
   it('drops methods and intervals the form does not offer', () => {
     const values = parseDetectorDraftValues(UPTIME_DETECTOR_DRAFT_CONFIG, {
       intervalSeconds: 7,
@@ -79,19 +101,30 @@ describe('UPTIME_DETECTOR_DRAFT_CONFIG', () => {
 
 describe('UPTIME_DETECTOR_DRAFT_CONFIG.redact', () => {
   it.each([
-    ['https://user:secret@example.com:99999/', 'https://example.com:99999/'],
-    ['user:secret@example.com/health', 'example.com/health'],
-    ['https://admin:p@ssw0rd@example.com/x', 'https://example.com/x'],
-    ['  https://user:secret@example.com', '  https://example.com'],
-    ['https:/user:secret@example.com', 'https:/example.com'],
-  ])('strips credentials from %s', (url, expected) => {
-    expect(UPTIME_DETECTOR_DRAFT_CONFIG.redact!({url})).toEqual({url: expected});
+    'https://user:secret@example.com/health',
+    'https://admin:p@ssw0rd@example.com/x',
+    '  https://user:secret@example.com',
+    'https:/user:secret@example.com',
+    'user:secret@example.com/health',
+    'https://user:secret',
+    'https://user:secretexample.com',
+    'https://user:pa/ss@example.com',
+    'https://user:pa?ss@example.com',
+    'https://user:pa#ss@example.com',
+  ])('leaves out the URL when it may hold credentials, like %s', url => {
+    expect(UPTIME_DETECTOR_DRAFT_CONFIG.redact!({name: 'Monitor', url})).toEqual({
+      name: 'Monitor',
+    });
   });
 
-  it.each(['https://example.com/a@b', 'https://example.com/health?email=a@b.com'])(
-    'keeps an @ after the host in %s',
-    url => {
-      expect(UPTIME_DETECTOR_DRAFT_CONFIG.redact!({url})).toEqual({url});
-    }
-  );
+  it.each([
+    'https://example.com/health',
+    'https://example.com:8080/health',
+    'https://example.com/a@b',
+    'https://example.com/health?email=a@b.com',
+    'https://exa',
+    'example.com/health',
+  ])('keeps the URL when it has no credentials, like %s', url => {
+    expect(UPTIME_DETECTOR_DRAFT_CONFIG.redact!({url})).toEqual({url});
+  });
 });

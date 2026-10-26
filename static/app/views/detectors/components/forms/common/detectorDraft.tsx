@@ -145,10 +145,24 @@ function replaceDraftInUrl(draft: DetectorDraft) {
     url.searchParams.set('draft', JSON.stringify({...draft, values}));
   }
   if (url.href.length > MAX_URL_LENGTH) {
-    // Better no draft than one that looks current but isn't.
-    url.searchParams.delete('draft');
+    // Better no draft than one that looks current but isn't. The link's own
+    // prefill params stay, since there's no draft to supersede them.
+    removeDetectorDraftFromUrl();
+    return;
   }
 
+  window.history.replaceState(window.history.state, '', url);
+}
+
+/**
+ * Once the monitor is created, so going back doesn't reopen the whole draft.
+ */
+export function removeDetectorDraftFromUrl() {
+  const url = new URL(window.location.href);
+  if (!url.searchParams.has('draft')) {
+    return;
+  }
+  url.searchParams.delete('draft');
   window.history.replaceState(window.history.state, '', url);
 }
 
