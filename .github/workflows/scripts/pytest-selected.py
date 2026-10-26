@@ -30,6 +30,9 @@ from pathlib import Path
 import pytest
 
 DURATIONS_FILE = Path(__file__).parent / "backend-test-durations.json"
+SERVICE_COLORS_FILE = Path(__file__).parent / "backend-test-service-colors.json"
+# Keep in sync with the full-run matrix in .github/workflows/backend.yml.
+SERVICE_COLOR_SHARDS = 22
 # Full runs split files slower than 1/PIECES_PER_SHARD of a shard by test.
 # Files run in collection order, so a big file that starts late on an xdist
 # worker holds up the whole shard; this bounds how big that can be.
@@ -83,7 +86,9 @@ def plan_shards(weights: dict[str, int], total: int) -> list[Shard]:
     return shards
 
 
-def plan_full_shards(weights: dict[str, float], total: int) -> list[Shard] | None:
+def plan_full_shards(
+    weights: dict[str, float], total: int, *, allow_empty: bool = False
+) -> list[Shard] | None:
     """Split every test file into `total` shards. Every shard must compute the same plan.
 
     Files slower than 1/PIECES_PER_SHARD of a shard are cut into equal parts of
@@ -105,12 +110,55 @@ def plan_full_shards(weights: dict[str, float], total: int) -> list[Shard] | Non
         shards[i][path] = (part, parts)
         loads[i] += weight
 
-    if not all(shards):
+    if not allow_empty and not all(shards):
         return None
     return [
         Shard(sorted(files), parts={path: pp for path, pp in files.items() if pp[1] > 1})
         for files in shards
     ]
+
+
+def read_service_colors() -> dict[str, set[str]]:
+    """Only explicitly audited files may run without Symbolicator.
+
+    New/renamed files default to the processing shard until their service
+    requirements have been reviewed. Never infer service requirements from a
+    path prefix or pytest markers: fixtures and base classes can add them.
+    """
+    manifest = json.loads(SERVICE_COLORS_FILE.read_text())
+    if not isinstance(manifest, dict) or set(manifest) != {"version", "processing", "general"}:
+        raise ValueError("invalid service-color manifest fields")
+    if type(manifest["version"]) is not int or manifest["version"] != 1:
+        raise ValueError("unsupported service-color manifest version")
+    colors = {}
+    for color in ("processing", "general"):
+        files = manifest[color]
+        if not isinstance(files, list) or not all(
+            isinstance(path, str)
+            and path.endswith(".py")
+            and not Path(path).is_absolute()
+            and ".." not in Path(path).parts
+            and path == Path(path).as_posix()
+            for path in files
+        ):
+            raise ValueError(f"invalid {color} paths in service-color manifest")
+        if len(set(files)) != len(files):
+            raise ValueError(f"duplicate {color} paths in service-color manifest")
+        colors[color] = set(files)
+    if colors["processing"] & colors["general"]:
+        raise ValueError("processing and general service colors overlap")
+    return colors
+
+
+def plan_service_colored_shards(
+    weights: dict[str, float], total: int, colors: dict[str, set[str]]
+) -> list[Shard]:
+    """Reserve shard zero for whole processing files; balance the rest independently."""
+    general = {path: weight for path, weight in weights.items() if path in colors["general"]}
+    processing = sorted(weights.keys() - general.keys())
+    general_plan = plan_full_shards(general, total - 1, allow_empty=True)
+    assert general_plan is not None
+    return [Shard(processing), *general_plan]
 
 
 def list_test_files(args: list[str]) -> list[str]:
@@ -176,9 +224,29 @@ def per_file_plan_applies(args: list[str], files: list[str]) -> bool:
     return not any(os.path.isabs(f) or f.startswith(os.pardir + os.sep) for f in files)
 
 
-def run_full_shard(args: list[str], total: int, group: int) -> int:
+def run_full_shard(args: list[str], total: int, group: int, service_color: str = "") -> int:
     files = list_test_files(args)
-    if not per_file_plan_applies(args, files):
+    if service_color:
+        # Falling back to the uncolored hash plan here would send processing
+        # tests to runners that deliberately do not start Symbolicator.
+        try:
+            if total != SERVICE_COLOR_SHARDS or not 0 <= group < total:
+                raise ValueError(f"service colors require {SERVICE_COLOR_SHARDS} valid shards")
+            expected_color = "processing" if group == 0 else "general"
+            if service_color != expected_color:
+                raise ValueError(
+                    f"shard {group} requires color {expected_color}, got {service_color}"
+                )
+            if not files:
+                raise ValueError("service colors require a nonempty test file inventory")
+            if not per_file_plan_applies(args, files):
+                raise ValueError("service colors do not support -m/-k or paths outside the rootdir")
+            colors = read_service_colors()
+            plan = plan_service_colored_shards(file_weights(files), total, colors)
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            print(f"pytest-selected: cannot safely plan service colors: {exc}", file=sys.stderr)
+            return int(pytest.ExitCode.USAGE_ERROR)
+    elif not per_file_plan_applies(args, files):
         # As before per-file sharding: every shard collects everything and the
         # sentry plugin keeps its hash share of the items.
         print(
@@ -187,16 +255,20 @@ def run_full_shard(args: list[str], total: int, group: int) -> int:
             file=sys.stderr,
         )
         return int(pytest.main(args))
-    plan = plan_full_shards(file_weights(files), total) if files else None
+    else:
+        plan = plan_full_shards(file_weights(files), total) if files else None
     if plan is None:
         return int(pytest.main(args))
     shard = plan[group]
 
+    color_label = f" ({service_color})" if service_color else ""
     print(
-        f"pytest-selected: shard {group + 1}/{total} runs {len(shard.files)} of "
+        f"pytest-selected: shard {group + 1}/{total}{color_label} runs {len(shard.files)} of "
         f"{len(files)} files, {len(shard.parts)} of them split",
         file=sys.stderr,
     )
+    if service_color and not shard.files:
+        return 0
     artifacts = Path(".artifacts")
     artifacts.mkdir(exist_ok=True)
     shard_file = artifacts / f"full-tests.shard-{group}.txt"
@@ -223,6 +295,15 @@ def main(args: list[str]) -> int:
     selected_file = os.environ.get("SELECTED_TESTS_FILE")
     total = int(os.environ.get("TOTAL_TEST_GROUPS", 1))
     group = int(os.environ.get("TEST_GROUP", 0))
+    service_color = os.environ.get("BACKEND_TEST_SERVICE_COLOR", "")
+    if service_color and selected_file:
+        print(
+            "pytest-selected: service colors cannot be combined with SELECTED_TESTS_FILE",
+            file=sys.stderr,
+        )
+        return int(pytest.ExitCode.USAGE_ERROR)
+    if service_color:
+        return run_full_shard(args, total, group, service_color)
     if not selected_file and total > 1 and DURATIONS_FILE.is_file():
         return run_full_shard(args, total, group)
     if not selected_file or not os.path.isfile(selected_file) or total <= 1:

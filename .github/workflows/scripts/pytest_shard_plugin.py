@@ -32,20 +32,34 @@ def pytest_configure(config: pytest.Config) -> None:
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     parts_file = os.environ.get("PYTEST_SHARD_PARTS")
-    if not parts_file:
-        return
-    with open(parts_file) as f:
-        parts: dict[str, list[int]] = json.load(f)
-    if not parts:
-        return
+    if parts_file:
+        with open(parts_file) as f:
+            parts: dict[str, list[int]] = json.load(f)
 
-    keep, discard = [], []
-    for item in items:
-        path = item.nodeid.split("::", 1)[0]
-        if path in parts and item_part(item.nodeid, parts[path][1]) != parts[path][0]:
-            discard.append(item)
-        else:
-            keep.append(item)
-    items[:] = keep
-    if discard:
-        config.hook.pytest_deselected(items=discard)
+        keep, discard = [], []
+        for item in items:
+            path = item.nodeid.split("::", 1)[0]
+            if path in parts and item_part(item.nodeid, parts[path][1]) != parts[path][0]:
+                discard.append(item)
+            else:
+                keep.append(item)
+        items[:] = keep
+        if discard:
+            config.hook.pytest_deselected(items=discard)
+
+    if os.environ.get("BACKEND_TEST_SERVICE_COLOR") == "general":
+        # Check the resolved fixture closure, including inherited/autouse
+        # dependencies. A new dependency in an already classified file must
+        # fail loudly rather than silently skipping its processing tests.
+        for item in items:
+            required = {
+                "relay_server",
+                "relay_server_setup",
+                "_requires_symbolicator",
+            }.intersection(getattr(item, "fixturenames", ()))
+            if required:
+                raise pytest.UsageError(
+                    f"pytest_shard_plugin: {item.nodeid} needs processing fixtures "
+                    f"{sorted(required)} on a general shard; move its whole file to "
+                    "processing in backend-test-service-colors.json"
+                )

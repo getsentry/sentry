@@ -202,6 +202,10 @@ x-sentry-service-config:
       ]
     backend-ci:
       [snuba, postgres, redis, bigtable, redis-cluster, symbolicator, objectstore]
+    # Full backend runs reserve shard 0 for Relay/Symbolicator integration
+    # tests. The remaining shards keep all other services until their service
+    # requirements have been audited. Relay itself is launched by pytest.
+    backend-ci-general: [snuba, postgres, redis, bigtable, redis-cluster, objectstore]
     symbolicator: [postgres, snuba, symbolicator, spotlight, objectstore]
     memcached: [postgres, snuba, memcached, spotlight]
     tracing:

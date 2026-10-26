@@ -61,6 +61,7 @@ def run_main(
     total: int,
     group: int,
     exit_code: pytest.ExitCode = pytest.ExitCode.OK,
+    service_color: str = "",
 ) -> tuple[int, list[tuple[object, ...]]]:
     selected_file = tmp_path / "selected-tests.txt"
     selected_file.write_text("".join(f"{path}\n" for path in selected))
@@ -77,6 +78,7 @@ def run_main(
         "SELECTED_TESTS_FILE": str(selected_file),
         "TOTAL_TEST_GROUPS": str(total),
         "TEST_GROUP": str(group),
+        "BACKEND_TEST_SERVICE_COLOR": service_color,
     }
     with mock.patch.dict(os.environ, env), mock.patch.object(pytest, "main", fake_main):
         return main(["tests", "-q"]), calls
@@ -204,11 +206,16 @@ def run_full_main(
     total: int,
     group: int,
     addopts: str = "",
+    service_color: str = "",
+    service_colors: dict[str, object] | None = None,
 ) -> tuple[int, list[tuple[object, ...]]]:
     write_files(tmp_path, files)
     durations_file = tmp_path / "durations.json"
     if durations is not None:
         durations_file.write_text(json.dumps(durations))
+    colors_file = tmp_path / "service-colors.json"
+    if service_colors is not None:
+        colors_file.write_text(json.dumps(service_colors))
     calls: list[tuple[object, ...]] = []
 
     def fake_main(args: list[str]) -> pytest.ExitCode:
@@ -221,11 +228,13 @@ def run_full_main(
         "TOTAL_TEST_GROUPS": str(total),
         "TEST_GROUP": str(group),
         "PYTEST_ADDOPTS": addopts,
+        "BACKEND_TEST_SERVICE_COLOR": service_color,
     }
     with (
         contextlib.chdir(tmp_path),
         mock.patch.dict(os.environ, env),
         mock.patch.object(_mod, "DURATIONS_FILE", durations_file),
+        mock.patch.object(_mod, "SERVICE_COLORS_FILE", colors_file),
         mock.patch.object(pytest, "main", fake_main),
     ):
         return main(["tests", "-q"]), calls
@@ -278,6 +287,209 @@ class TestFullRunMain:
             tmp_path, ["tests/test_a.py", "tests/test_b.py"], durations, 16, 12, "-m snuba_ci"
         )
         assert calls == [(["tests", "-q"], "", "16", "12", None)]
+
+
+class TestServiceColoredShards:
+    def test_empty_input_inventory_fails_before_pytest(self, tmp_path: Path) -> None:
+        code, calls = run_full_main(
+            tmp_path,
+            [],
+            {"seconds_per_test": 1.0, "files": {}},
+            22,
+            0,
+            service_color="processing",
+            service_colors={"version": 1, "processing": [], "general": []},
+        )
+        assert code == pytest.ExitCode.USAGE_ERROR
+        assert calls == []
+
+    def test_color_and_selective_inputs_are_rejected(self, tmp_path: Path) -> None:
+        code, calls = run_main(
+            tmp_path, ["tests/test_relay.py"], {}, 22, 1, service_color="general"
+        )
+        assert code == pytest.ExitCode.USAGE_ERROR
+        assert calls == []
+
+    def test_color_boundaries_and_exact_node_coverage(self) -> None:
+        tests = {f"t{i}.py": [f"t{i}.py::test_{j}" for j in range(50)] for i in range(50)}
+        tests["relay.py"] = [f"relay.py::test_{j}[{k}]" for j in range(5) for k in range(8)]
+        tests["new.py"] = ["new.py::test_new"]
+        colors = {"processing": {"relay.py"}, "general": {f"t{i}.py" for i in range(50)}}
+        weights = {path: float(len(ids)) for path, ids in tests.items()}
+        plan = _mod.plan_service_colored_shards(weights, 22, colors)
+        assert len(plan) == 22
+        assert plan[0] == Shard(["new.py", "relay.py"])
+        assert all(set(shard.files) <= colors["general"] for shard in plan[1:])
+        assert_runs_every_test_once(plan, tests)
+        assert plan == _mod.plan_service_colored_shards(dict(reversed(weights.items())), 22, colors)
+        assert plan[1:] == plan_full_shards(
+            {path: weights[path] for path in colors["general"]}, 21, allow_empty=True
+        )
+
+    def test_empty_general_shards_do_not_drop_zero_weight_files(self) -> None:
+        colors = {"processing": {"relay.py"}, "general": {"zero.py"}}
+        plan = _mod.plan_service_colored_shards({"relay.py": 0.0, "zero.py": 0.0}, 22, colors)
+        assert plan[0] == Shard(["relay.py"])
+        assert plan[1] == Shard(["zero.py"])
+        assert all(shard == Shard([]) for shard in plan[2:])
+
+    def test_unclassified_files_run_whole_on_processing_shard(self, tmp_path: Path) -> None:
+        files = ["tests/test_relay.py", "tests/test_general.py", "tests/test_new.py"]
+        colors = {"version": 1, "processing": [files[0]], "general": [files[1]]}
+        exit_code, calls = run_full_main(
+            tmp_path,
+            files,
+            {"seconds_per_test": 1.0, "files": {}},
+            22,
+            0,
+            service_color="processing",
+            service_colors=colors,
+        )
+        assert exit_code == 0
+        assert len(calls) == 1
+        assert (tmp_path / ".artifacts/full-tests.shard-0.txt").read_text() == (
+            "tests/test_new.py\ntests/test_relay.py\n"
+        )
+        assert json.loads((tmp_path / ".artifacts/full-tests.shard-0.json").read_text()) == {}
+
+    @pytest.mark.parametrize(
+        ("total", "group", "color", "addopts"),
+        [
+            (21, 0, "processing", ""),
+            (22, 22, "general", ""),
+            (22, 0, "general", ""),
+            (22, 1, "processing", ""),
+            (22, 1, "unexpected", ""),
+            (22, 1, "general", "-m snuba_ci"),
+            (22, 1, "general", "-k test_one"),
+        ],
+    )
+    def test_invalid_coloring_never_falls_back_to_full_collection(
+        self, tmp_path: Path, total: int, group: int, color: str, addopts: str
+    ) -> None:
+        code, calls = run_full_main(
+            tmp_path,
+            ["tests/test_a.py"],
+            {"seconds_per_test": 1.0, "files": {}},
+            total,
+            group,
+            addopts=addopts,
+            service_color=color,
+            service_colors={"version": 1, "processing": [], "general": ["tests/test_a.py"]},
+        )
+        assert code == pytest.ExitCode.USAGE_ERROR
+        assert calls == []
+
+    @pytest.mark.parametrize("missing", ["durations", "colors"])
+    def test_missing_metadata_never_falls_back_to_full_collection(
+        self, tmp_path: Path, missing: str
+    ) -> None:
+        code, calls = run_full_main(
+            tmp_path,
+            ["tests/test_a.py"],
+            None if missing == "durations" else {"seconds_per_test": 1.0, "files": {}},
+            22,
+            1,
+            service_color="general",
+            service_colors=None
+            if missing == "colors"
+            else {"version": 1, "processing": [], "general": ["tests/test_a.py"]},
+        )
+        assert code == pytest.ExitCode.USAGE_ERROR
+        assert calls == []
+
+    def test_empty_colored_shard_does_not_invoke_pytest(self, tmp_path: Path) -> None:
+        code, calls = run_full_main(
+            tmp_path,
+            ["tests/test_new.py"],
+            {"seconds_per_test": 1.0, "files": {}},
+            22,
+            1,
+            service_color="general",
+            service_colors={"version": 1, "processing": [], "general": []},
+        )
+        assert code == 0
+        assert calls == []
+
+    @pytest.mark.parametrize(
+        "manifest",
+        [
+            None,
+            {},
+            {"version": 2, "processing": [], "general": []},
+            {"version": 1, "processing": ["a.py"], "general": ["a.py"]},
+            {"version": 1, "processing": [], "general": ["a.py", "a.py"]},
+            {"version": 1, "processing": [], "general": ["../a.py"]},
+            {"version": 1, "processing": [], "general": ["/a.py"]},
+            {"version": 1, "processing": [], "general": ["./a.py"]},
+            {"version": 1, "processing": [], "general": [1]},
+        ],
+    )
+    def test_invalid_manifest_is_rejected(self, tmp_path: Path, manifest: object) -> None:
+        manifest_file = tmp_path / "colors.json"
+        manifest_file.write_text(json.dumps(manifest))
+        with (
+            mock.patch.object(_mod, "SERVICE_COLORS_FILE", manifest_file),
+            pytest.raises(ValueError),
+        ):
+            _mod.read_service_colors()
+
+
+class TestServiceColorFixtureGuard:
+    @pytest.mark.parametrize(
+        "fixture", ["relay_server", "relay_server_setup", "_requires_symbolicator"]
+    )
+    def test_general_shard_rejects_resolved_processing_fixtures(self, fixture: str) -> None:
+        item = mock.Mock(nodeid="tests/test_added_dependency.py::test_case", fixturenames=[fixture])
+        with (
+            mock.patch.dict(
+                os.environ, {"BACKEND_TEST_SERVICE_COLOR": "general", "PYTEST_SHARD_PARTS": ""}
+            ),
+            pytest.raises(pytest.UsageError, match="move its whole file to processing"),
+        ):
+            importlib.import_module("pytest_shard_plugin").pytest_collection_modifyitems(
+                mock.Mock(), [item]
+            )
+
+    @pytest.mark.parametrize("color", ["", "processing"])
+    def test_processing_and_uncolored_runs_keep_processing_fixtures(self, color: str) -> None:
+        item = mock.Mock(nodeid="tests/test_relay.py::test_case", fixturenames=["relay_server"])
+        with mock.patch.dict(
+            os.environ, {"BACKEND_TEST_SERVICE_COLOR": color, "PYTEST_SHARD_PARTS": ""}
+        ):
+            importlib.import_module("pytest_shard_plugin").pytest_collection_modifyitems(
+                mock.Mock(), [item]
+            )
+
+    def test_general_shard_allows_non_processing_fixtures(self) -> None:
+        item = mock.Mock(nodeid="tests/test_query.py::test_case", fixturenames=["_requires_snuba"])
+        with mock.patch.dict(
+            os.environ, {"BACKEND_TEST_SERVICE_COLOR": "general", "PYTEST_SHARD_PARTS": ""}
+        ):
+            importlib.import_module("pytest_shard_plugin").pytest_collection_modifyitems(
+                mock.Mock(), [item]
+            )
+
+    def test_guard_only_checks_items_retained_after_hash_partition(self, tmp_path: Path) -> None:
+        discarded = mock.Mock(
+            nodeid="tests/test_split.py::test_relay", fixturenames=["relay_server"]
+        )
+        retained = mock.Mock(nodeid="tests/test_general.py::test_case", fixturenames=[])
+        parts_file = tmp_path / "parts.json"
+        parts_file.write_text(
+            json.dumps({"tests/test_split.py": [1 - item_part(discarded.nodeid, 2), 2]})
+        )
+        items = [discarded, retained]
+        config = mock.Mock()
+        with mock.patch.dict(
+            os.environ,
+            {"BACKEND_TEST_SERVICE_COLOR": "general", "PYTEST_SHARD_PARTS": str(parts_file)},
+        ):
+            importlib.import_module("pytest_shard_plugin").pytest_collection_modifyitems(
+                config, items
+            )
+        assert items == [retained]
+        config.hook.pytest_deselected.assert_called_once_with(items=[discarded])
 
 
 @pytest.mark.parametrize(
