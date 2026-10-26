@@ -448,6 +448,108 @@ describe('workflowEngineRedirects', () => {
       expect(router.location.query).toEqual({});
     });
 
+    it('fills in the wizard template when given only a legacy alert option', async () => {
+      const {router} = renderRedirect(
+        {
+          pathname: `/organizations/${organization.slug}/alerts/wizard/`,
+          query: {alert_option: 'trans_duration', project: 'my-project'},
+        },
+        '/organizations/:orgId/alerts/wizard/'
+      );
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe(
+          `${makeMonitorCreatePathname(organization.slug)}settings`
+        );
+      });
+      expect(router.location.query).toEqual(
+        expect.objectContaining({
+          aggregate: 'p95(transaction.duration)',
+          dataset: 'transactions',
+          project: '42',
+        })
+      );
+    });
+
+    it('picks the monitor type when given a cron alert option', async () => {
+      const {router} = renderRedirect(
+        {
+          pathname: `/organizations/${organization.slug}/alerts/wizard/`,
+          query: {alert_option: 'crons_monitor'},
+        },
+        '/organizations/:orgId/alerts/wizard/'
+      );
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe(
+          makeMonitorCreatePathname(organization.slug)
+        );
+      });
+      expect(router.location.query).toEqual({detectorType: 'monitor_check_in_failure'});
+    });
+
+    it('ignores the alert option when the legacy alert type is an issue alert', async () => {
+      const {router} = renderRedirect(
+        {
+          pathname: `/organizations/${organization.slug}/alerts/new/issue/`,
+          query: {alert_option: 'issues', project: 'my-project'},
+        },
+        '/organizations/:orgId/alerts/new/:alertType/'
+      );
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe(
+          makeMonitorCreatePathname(organization.slug)
+        );
+      });
+      expect(router.location.query).toEqual({project: '42'});
+    });
+
+    it('forwards the project id when the legacy wizard route has a project slug', async () => {
+      const {router} = renderRedirect(
+        {pathname: `/organizations/${organization.slug}/alerts/my-project/wizard/`},
+        '/organizations/:orgId/alerts/:projectId/wizard/'
+      );
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe(
+          makeMonitorCreatePathname(organization.slug)
+        );
+      });
+      expect(router.location.query).toEqual({project: '42'});
+    });
+
+    it('accepts a project id when the legacy project param is numeric', async () => {
+      const {router} = renderRedirect(
+        {
+          pathname: `/organizations/${organization.slug}/alerts/wizard/`,
+          query: {project: '42'},
+        },
+        '/organizations/:orgId/alerts/wizard/'
+      );
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe(
+          makeMonitorCreatePathname(organization.slug)
+        );
+      });
+      expect(router.location.query).toEqual({project: '42'});
+    });
+
+    it('redirects to the metric type picker when a metric alert has no dataset', async () => {
+      const {router} = renderRedirect(
+        {pathname: `/organizations/${organization.slug}/alerts/new/metric/`},
+        '/organizations/:orgId/alerts/new/:alertType/'
+      );
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe(
+          makeMonitorCreatePathname(organization.slug)
+        );
+      });
+      expect(router.location.query).toEqual({detectorType: 'metric_issue'});
+    });
+
     it('redirects to the type picker when the legacy dataset cannot be monitored', async () => {
       const {router} = renderRedirect(
         {

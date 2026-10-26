@@ -57,9 +57,6 @@ export function loadQueryParamsFromLocation<Parsers extends ParserMap>(
   return createLoader(parsers)(qs.stringify(location.query));
 }
 
-/**
- * Builds a link target from the same parsers the page reads its params with.
- */
 export function applyQueryParamsUpdates<Parsers extends ParserMap>(
   parsers: Parsers,
   location: Location,

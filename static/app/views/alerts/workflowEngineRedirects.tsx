@@ -8,6 +8,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {defined} from 'sentry/utils/defined';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -16,6 +17,10 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import {
+  AlertWizardRuleTemplates,
+  type MetricAlertType,
+} from 'sentry/views/alerts/wizard/options';
 import {
   makeAutomationBasePathname,
   makeAutomationDetailsPathname,
@@ -386,6 +391,15 @@ function isEventType(value: string): value is EventTypes {
   return Object.values<string>(EventTypes).includes(value);
 }
 
+function isMetricAlertType(value: string | undefined): value is MetricAlertType {
+  return defined(value) && Object.hasOwn(AlertWizardRuleTemplates, value);
+}
+
+const LEGACY_ALERT_TYPES_BY_WIZARD_OPTION: Record<string, string> = {
+  crons_monitor: 'crons',
+  uptime_monitor: 'uptime',
+};
+
 function makeLegacyCreateRedirectPath({
   alertType,
   organization,
@@ -397,22 +411,38 @@ function makeLegacyCreateRedirectPath({
   project: Project | undefined;
   query: Query;
 }) {
-  const dataset = decodeScalar(query.dataset);
-  const isMetricAlert = alertType === undefined || alertType === 'metric';
+  // The legacy wizard preselected an alert type from `alert_option`, filling
+  // in the dataset and aggregate from its template when none were given.
+  const alertOption = decodeScalar(query.alert_option);
+  const resolvedAlertType =
+    alertType ??
+    (alertOption && Object.hasOwn(LEGACY_ALERT_TYPES_BY_WIZARD_OPTION, alertOption)
+      ? LEGACY_ALERT_TYPES_BY_WIZARD_OPTION[alertOption]
+      : undefined);
+  const template = isMetricAlertType(alertOption)
+    ? AlertWizardRuleTemplates[alertOption]
+    : undefined;
+
+  const dataset = decodeScalar(query.dataset) ?? template?.dataset;
+  const isMetricAlert = resolvedAlertType === undefined || resolvedAlertType === 'metric';
 
   if (!isMetricAlert || !isMonitorableDataset(dataset)) {
-    return makeCreateRedirectPath(organization.slug, alertType, project);
+    return makeCreateRedirectPath(organization.slug, resolvedAlertType, project);
   }
 
   const eventTypes = decodeList(query.eventTypes).filter(isEventType);
   const target = getMetricMonitorUrl({
-    aggregate: decodeScalar(query.aggregate, ''),
+    aggregate: decodeScalar(query.aggregate) ?? template?.aggregate ?? '',
     dataset,
     environment: decodeScalar(query.environment),
-    eventTypes: eventTypes.length ? eventTypes : undefined,
+    eventTypes: eventTypes.length
+      ? eventTypes
+      : template
+        ? [template.eventTypes]
+        : undefined,
     organization,
     project,
-    query: query.query === '' ? '' : decodeScalar(query.query),
+    query: query.query === '' ? '' : (decodeScalar(query.query) ?? template?.query),
     referrer: decodeScalar(query.referrer),
   });
   return `${target.pathname}?${qs.stringify(target.query)}`;

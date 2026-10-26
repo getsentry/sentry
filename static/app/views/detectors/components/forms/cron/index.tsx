@@ -74,9 +74,11 @@ const mapCronDetectorFormErrors = (error: unknown) => {
 function CronDetectorForm({
   detector,
   hideInstrumentationGuide = false,
+  isDraft = false,
 }: {
   detector?: CronDetector;
   hideInstrumentationGuide?: boolean;
+  isDraft?: boolean;
 }) {
   const dataSource = detector?.dataSources[0];
   const theme = useTheme();
@@ -84,7 +86,9 @@ function CronDetectorForm({
 
   return (
     <Stack gap="2xl" maxWidth={theme.breakpoints.xl}>
-      {!detector && !hideInstrumentationGuide && <InstrumentationGuide />}
+      {!detector && !hideInstrumentationGuide && (
+        <InstrumentationGuide skipDetectionForInitialProject={isDraft} />
+      )}
       <Stack
         data-test-id="form-sections"
         style={showingPlatformGuide ? {display: 'none'} : undefined}
@@ -112,8 +116,8 @@ export function NewCronDetectorForm({
   duplicateDetector?: CronDetector;
 }) {
   const hasDraft = Boolean(useInitialDetectorDraft('monitor_check_in_failure'));
-  const hideInstrumentationGuide = Boolean(duplicateDetector) || hasDraft;
-  // Guide params can outlive the guide, e.g. in a draft link.
+  const hideInstrumentationGuide = Boolean(duplicateDetector);
+  // Guide params can outlive the guide, e.g. when duplicating.
   const showingPlatformGuide = useIsShowingPlatformGuide() && !hideInstrumentationGuide;
 
   return (
@@ -135,7 +139,10 @@ export function NewCronDetectorForm({
           : undefined
       }
     >
-      <CronDetectorForm hideInstrumentationGuide={hideInstrumentationGuide} />
+      <CronDetectorForm
+        hideInstrumentationGuide={hideInstrumentationGuide}
+        isDraft={hasDraft}
+      />
     </NewDetectorLayout>
   );
 }

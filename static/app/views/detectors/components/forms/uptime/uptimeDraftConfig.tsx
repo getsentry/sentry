@@ -1,3 +1,4 @@
+import omit from 'lodash/omit';
 import {z} from 'zod';
 
 import type {DetectorDraftConfig} from 'sentry/views/detectors/components/forms/common/detectorDraft';
@@ -53,8 +54,9 @@ const op: z.ZodType<UptimeOp> = z.lazy(() =>
     z.object({
       id: z.string(),
       op: z.literal(UptimeOpType.JSON_PATH),
-      operand: jsonPathOperand,
-      operator: comparison,
+      // Legacy ops may lack these, matching normalizeJsonPathOp.
+      operand: jsonPathOperand.default({jsonpath_op: 'literal', value: ''}),
+      operator: comparison.default({cmp: UptimeComparisonType.EQUALS}),
       value: z.string(),
     }),
     z.object({
@@ -68,12 +70,26 @@ const op: z.ZodType<UptimeOp> = z.lazy(() =>
   ])
 );
 
-// Matched as text rather than with URL(), which rejects half-typed URLs. Like
-// browsers, treats everything before the last @ in the authority as credentials.
-function withoutUserInfo(url: unknown) {
-  return typeof url === 'string'
-    ? url.replace(/^(\s*(?:[a-z][\w+.-]*:)?[/\\]+)?[^/?#\\]*@/i, '$1')
-    : url;
+function parseHttpUrl(url: string) {
+  try {
+    const parsed = new URL(url.trim());
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Half-typed URLs don't parse, so those are checked as text: an `@` or a
+ * non-numeric port in the authority may be part of a username and password.
+ */
+function mayHoldCredentials(url: string) {
+  const parsed = parseHttpUrl(url);
+  if (parsed) {
+    return Boolean(parsed.username || parsed.password);
+  }
+  const authority = /^\s*(?:[a-z][\w+.-]*:)?[/\\]*([^/?#\\]*)/i.exec(url)?.[1] ?? '';
+  return authority.includes('@') || /:(?!\d*$)/.test(authority);
 }
 
 export const UPTIME_DETECTOR_DRAFT_CONFIG: DetectorDraftConfig<UptimeDetectorFormData> = {
@@ -95,7 +111,10 @@ export const UPTIME_DETECTOR_DRAFT_CONFIG: DetectorDraftConfig<UptimeDetectorFor
     url: z.string(),
     workflowIds: z.array(z.string()),
   },
-  // Headers and body aren't in the shape since they often hold credentials;
-  // this strips any username and password from the URL for the same reason.
-  redact: values => ({...values, url: withoutUserInfo(values.url)}),
+  // Headers and body aren't in the shape since they often hold credentials,
+  // and a URL that may hold them is left out for the same reason.
+  redact: values =>
+    typeof values.url === 'string' && mayHoldCredentials(values.url)
+      ? omit(values, 'url')
+      : values,
 };
