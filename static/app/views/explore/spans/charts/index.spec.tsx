@@ -1,6 +1,6 @@
 import {useMemo, useState} from 'react';
-import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
@@ -489,7 +489,7 @@ describe('ExploreCharts', () => {
     it('hides the Layers control without the feature flag', async () => {
       const request = renderCharts({
         organizationFeatures: [],
-        droppedEvents: [DroppedEventFixture()],
+        droppedEvents: [OutcomeRowFixture()],
       });
 
       expect(await screen.findByLabelText('Collapse chart')).toBeInTheDocument();
@@ -499,7 +499,7 @@ describe('ExploreCharts', () => {
 
     it('hides the Layers control when only accepted annotations are present', async () => {
       const request = renderCharts({
-        acceptedEvents: [DroppedEventFixture({outcome: 'accepted', count: 8000})],
+        acceptedEvents: [OutcomeRowFixture({outcome: 'accepted', count: 8000})],
       });
 
       await waitFor(() => expect(request).toHaveBeenCalled());
@@ -509,7 +509,7 @@ describe('ExploreCharts', () => {
 
     it('hides the Layers control when every drop is intentional', async () => {
       const request = renderCharts({
-        droppedEvents: [DroppedEventFixture({tags: ['intentional']})],
+        droppedEvents: [OutcomeRowFixture({tags: ['intentional']})],
       });
 
       await waitFor(() => expect(request).toHaveBeenCalled());
@@ -519,15 +519,15 @@ describe('ExploreCharts', () => {
 
     it('shows the Layers control when a drop ratio is below 5%', async () => {
       renderCharts({
-        droppedEvents: [DroppedEventFixture({count: 4})],
-        acceptedEvents: [DroppedEventFixture({outcome: 'accepted', count: 96})],
+        droppedEvents: [OutcomeRowFixture({count: 4})],
+        acceptedEvents: [OutcomeRowFixture({outcome: 'accepted', count: 96})],
       });
 
       expect(await screen.findByLabelText('Chart layers')).toBeInTheDocument();
     });
 
     it('shows the Layers control and toggles the dropped-data layer', async () => {
-      renderCharts({droppedEvents: [DroppedEventFixture()]});
+      renderCharts({droppedEvents: [OutcomeRowFixture()]});
 
       await userEvent.click(await screen.findByLabelText('Chart layers'));
 

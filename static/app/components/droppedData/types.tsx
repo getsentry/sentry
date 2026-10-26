@@ -1,6 +1,6 @@
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 
-type DroppedEventTag = 'intentional' | 'unintentional';
+type OutcomeTag = 'intentional' | 'unintentional';
 
 export interface OutcomeRow {
   category: string;
@@ -9,7 +9,7 @@ export interface OutcomeRow {
   outcome: string;
   reason: string;
   start: number;
-  tags: DroppedEventTag[];
+  tags: OutcomeTag[];
   type: string;
 }
 

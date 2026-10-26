@@ -1,6 +1,6 @@
-import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 import {initializeLogsTest} from 'sentry-fixture/log';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {
@@ -946,7 +946,7 @@ describe('LogsTabContent', () => {
         ],
         body: {
           meta: {dataset: 'logs', start: 0, end: 0, interval: 0},
-          droppedEvents: [DroppedEventFixture()],
+          droppedEvents: [OutcomeRowFixture()],
           acceptedEvents: [],
         },
       });

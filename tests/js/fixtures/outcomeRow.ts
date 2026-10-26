@@ -1,6 +1,6 @@
 import type {OutcomeRow} from 'sentry/components/droppedData/types';
 
-export function DroppedEventFixture(params: Partial<OutcomeRow> = {}): OutcomeRow {
+export function OutcomeRowFixture(params: Partial<OutcomeRow> = {}): OutcomeRow {
   return {
     type: 'system',
     category: 'span',

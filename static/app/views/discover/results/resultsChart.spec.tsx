@@ -1,6 +1,6 @@
-import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -185,7 +185,7 @@ describe('Discover > ResultsChart', () => {
         ],
         body: {
           meta: {dataset: 'errors', start: 0, end: 0, interval: 0},
-          droppedEvents: [DroppedEventFixture({category: 'error'})],
+          droppedEvents: [OutcomeRowFixture({category: 'error'})],
           acceptedEvents: [],
         },
       });
