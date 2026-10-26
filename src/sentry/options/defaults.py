@@ -2755,6 +2755,15 @@ register(
     default=5.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Response statuses that count as failures. Plain 500s usually come from one method or
+# one bad input, so they're left out by default; add them during an outage that shows
+# up as 500s.
+register(
+    "hybridcloud.rpc.circuit-breaker.failure-status-codes",
+    type=Sequence,
+    default=[502, 503, 504],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "hybridcloud.apigateway.use_pooling.rate",
     default=0.0,

@@ -406,7 +406,7 @@ class RpcCircuitBreakerTest(TestCase):
             "hybridcloud.rpc.circuit-breaker.config": _BREAKER_CONFIG,
         }
     )
-    @mock.patch("sentry.hybridcloud.rpc.service.metrics.incr")
+    @mock.patch("sentry.hybridcloud.rpc.circuit_breaker.metrics.incr")
     def test_log_only_mode_still_sends(self, mock_incr: mock.MagicMock) -> None:
         with override_cells([self.failing_cell]):
             self._fail_calls(self.failing_cell, 2)
@@ -464,9 +464,28 @@ class RpcCircuitBreakerTest(TestCase):
             "hybridcloud.rpc.circuit-breaker.enabled": True,
             "hybridcloud.rpc.circuit-breaker.enforce": True,
             "hybridcloud.rpc.circuit-breaker.config": _BREAKER_CONFIG,
+            "hybridcloud.rpc.circuit-breaker.failure-status-codes": [500],
         }
     )
-    def test_breaker_errors_do_not_fail_the_call(self) -> None:
+    def test_failure_status_codes_are_configurable(self) -> None:
+        with override_cells([self.failing_cell]):
+            self._fail_calls(self.failing_cell, 2, status=500)
+
+            with pytest.raises(RpcCircuitBreakerOpenException):
+                self._call(self.failing_cell)
+
+    @responses.activate
+    @override_options(
+        {
+            "hybridcloud.rpc.circuit-breaker.enabled": True,
+            "hybridcloud.rpc.circuit-breaker.enforce": True,
+            "hybridcloud.rpc.circuit-breaker.config": _BREAKER_CONFIG,
+        }
+    )
+    @mock.patch("sentry.hybridcloud.rpc.circuit_breaker.metrics.incr")
+    def test_breaker_errors_are_counted_and_do_not_fail_the_call(
+        self, mock_incr: mock.MagicMock
+    ) -> None:
         with (
             override_cells([self.failing_cell]),
             mock.patch.object(CircuitBreaker, "should_allow_request", side_effect=Exception),
@@ -477,6 +496,13 @@ class RpcCircuitBreakerTest(TestCase):
                 self.failing_cell, body=json.dumps({"meta": {}, "value": serial.dict()})
             )
             assert self._call(self.failing_cell) == serial
+
+        error_kinds = [
+            call.kwargs["tags"]["kind"]
+            for call in mock_incr.call_args_list
+            if call.args[0] == "hybrid_cloud.dispatch_rpc.circuit_breaker.error"
+        ]
+        assert error_kinds == ["check", "record"]
 
     @responses.activate
     @mock.patch("sentry.utils.circuit_breaker2.CircuitBreaker.__init__")

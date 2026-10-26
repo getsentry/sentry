@@ -33,6 +33,7 @@ from sentry_sdk import traces
 
 from sentry import options
 from sentry.hybridcloud.rpc import ArgumentDict, DelegatedBySiloMode, RpcModel
+from sentry.hybridcloud.rpc.circuit_breaker import RpcCircuitBreaker
 from sentry.hybridcloud.rpc.sig import SerializableFunctionSignature
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.types.cell import Cell, CellMappingNotFound
@@ -42,7 +43,6 @@ from sentry.viewer_context import get_viewer_context
 
 if TYPE_CHECKING:
     from sentry.hybridcloud.rpc.resolvers import CellResolutionStrategy
-    from sentry.utils.circuit_breaker2 import CircuitBreaker, RateBasedTripStrategyConfig
 
 logger = logging.getLogger(__name__)
 
@@ -639,21 +639,21 @@ class _RemoteSiloCall:
             if use_test_client:
                 response = self._fire_test_request(headers, data)
             else:
-                breaker = self._get_circuit_breaker()
-                self._check_circuit_breaker(breaker)
+                destination = self.cell.name if self.cell else "control"
+                breaker = RpcCircuitBreaker(destination, self._metrics_tags())
+                if breaker.should_reject():
+                    raise RpcCircuitBreakerOpenException(
+                        self.service_name,
+                        self.method_name,
+                        f"Circuit breaker open for {destination}",
+                    )
                 start = time.monotonic()
                 try:
                     response = self._fire_request(headers, data)
                 except RpcRemoteException:
-                    self._record_circuit_breaker_outcome(breaker, failed=True)
+                    breaker.record_failure()
                     raise
-                slow = time.monotonic() - start > options.get(
-                    "hybridcloud.rpc.circuit-breaker.slow-call-seconds"
-                )
-                self._record_circuit_breaker_outcome(
-                    breaker,
-                    failed=slow or response.status_code in _CIRCUIT_BREAKER_FAILURE_STATUSES,
-                )
+                breaker.record_response(response.status_code, time.monotonic() - start)
             tags = self._metrics_tags(status=response.status_code)
             metrics.incr(
                 "hybrid_cloud.dispatch_rpc.response_code",
@@ -794,71 +794,6 @@ class _RemoteSiloCall:
             service_method = f"{self.service_name}.{self.method_name}"
             if service_method in disabled_service_methods:
                 raise RpcDisabledException(f"RPC {service_method} disabled")
-
-    def _get_circuit_breaker(self) -> CircuitBreaker | None:
-        if not options.get("hybridcloud.rpc.circuit-breaker.enabled"):
-            return None
-
-        from sentry.utils.circuit_breaker2 import CircuitBreaker, RateBasedTripStrategy
-
-        base_config: RateBasedTripStrategyConfig = options.get(
-            "hybridcloud.rpc.circuit-breaker.config"
-        )
-        config: RateBasedTripStrategyConfig = {**base_config, "metrics_key": "hybridcloud.rpc"}
-        try:
-            # One breaker per destination, so a failing cell doesn't block calls to the others.
-            return CircuitBreaker(
-                key=f"hybridcloud.rpc.{self._destination_name}",
-                config=config,
-                trip_strategy=RateBasedTripStrategy.from_config(config),
-            )
-        except Exception:
-            logger.warning("hybridcloud.rpc.invalid_circuit_breaker_config", exc_info=True)
-            return None
-
-    def _check_circuit_breaker(self, breaker: CircuitBreaker | None) -> None:
-        if breaker is None:
-            return
-
-        try:
-            allowed = breaker.should_allow_request()
-        except Exception:
-            logger.exception("hybridcloud.rpc.circuit_breaker_check_failure")
-            return
-        if allowed:
-            return
-
-        metrics.incr(
-            "hybrid_cloud.dispatch_rpc.circuit_breaker.rejected", tags=self._metrics_tags()
-        )
-        if options.get("hybridcloud.rpc.circuit-breaker.enforce"):
-            raise RpcCircuitBreakerOpenException(
-                self.service_name,
-                self.method_name,
-                f"Circuit breaker open for {self._destination_name}",
-            )
-
-    def _record_circuit_breaker_outcome(self, breaker: CircuitBreaker | None, failed: bool) -> None:
-        if breaker is None:
-            return
-
-        # A redis failure in the breaker must never fail the RPC itself.
-        try:
-            if failed:
-                breaker.record_error()
-            else:
-                breaker.record_success()
-        except Exception:
-            logger.exception("hybridcloud.rpc.circuit_breaker_record_failure")
-
-    @property
-    def _destination_name(self) -> str:
-        return self.cell.name if self.cell else "control"
-
-
-# Statuses that mean the destination itself is unhealthy. Plain 500s usually come from
-# one method or one bad input, so they don't count against the whole destination.
-_CIRCUIT_BREAKER_FAILURE_STATUSES = frozenset((502, 503, 504))
 
 
 class RpcCircuitBreakerOpenException(RpcRemoteException):
