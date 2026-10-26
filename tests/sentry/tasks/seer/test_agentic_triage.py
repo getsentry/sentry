@@ -77,7 +77,7 @@ def _dispatched_feature_body(organization):
 
 @override_settings(SENTRY_SELF_HOSTED=False)
 @django_db_all
-def test_code_mode_applies_to_every_dispatched_shard(default_organization):
+def test_dispatch_leaves_tool_mode_to_seer(default_organization):
     run = Factories.create_seer_workflow_run(organization=default_organization)
     plan = AgenticTriageShardPlan(payload={"candidates": []}, title="Triage")
     shards = [
@@ -90,12 +90,12 @@ def test_code_mode_applies_to_every_dispatched_shard(default_organization):
     assert status == ShardDispatchStatus.COMPLETE
     for shard in shards:
         shard.refresh_from_db()
-        assert shard.extras == {**plan.to_extras(), "enable_code_mode_tools": "only"}
+        assert shard.extras == plan.to_extras()
         outbox = CellOutbox.objects.get(
             category=OutboxCategory.SEER_RUN_CREATE, object_identifier=shard.seer_run_id
         )
         assert outbox.payload is not None
-        assert outbox.payload["body"]["agent_run_options"]["enable_code_mode_tools"] == "only"
+        assert "enable_code_mode_tools" not in outbox.payload["body"]["agent_run_options"]
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
@@ -120,8 +120,6 @@ def test_redispatch_preserves_original_request(default_organization):
     shard.refresh_from_db()
     assert seer_run.id == original_run.id == shard.seer_run_id
     assert body == original_body
-    assert body["agent_run_options"]["enable_code_mode_tools"] == "only"
-    assert shard.extras["enable_code_mode_tools"] == "only"
 
 
 class AgenticTriageFixtures(Fixtures):
