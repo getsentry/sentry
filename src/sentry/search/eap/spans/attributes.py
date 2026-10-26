@@ -736,15 +736,16 @@ def _update_attribute_definitions_with_deprecations(
                 )
         else:
             current_attr_type = _normalize_convention_attribute_type(metadata.type.value)
+
+            if current_attr_type is None:
+                continue
+
             replacement_metadata = convention_attributes.get(replacement)
             replacement_attr_type = (
                 _normalize_convention_attribute_type(replacement_metadata.type.value)
                 if replacement_metadata is not None
                 else None
             ) or current_attr_type
-
-            if current_attr_type is None:
-                continue
 
             attribute_definitions[key] = ResolvedAttribute(
                 public_alias=key,
