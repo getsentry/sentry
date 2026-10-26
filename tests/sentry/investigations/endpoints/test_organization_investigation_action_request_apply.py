@@ -4,24 +4,36 @@ from collections.abc import Sequence
 from datetime import timedelta
 from typing import Any
 
+from django.test import override_settings
 from django.urls import reverse
+from rest_framework.test import APIClient
 
+from sentry import audit_log
+from sentry.constants import ObjectStatus
 from sentry.incidents.grouptype import MetricIssue
+from sentry.incidents.metric_issue_detector import TRANSACTION_UPDATES_DISABLED
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.subscription_limits import METRIC_SUBSCRIPTION_FEATURE_FLAGS
 from sentry.investigations.models import (
     InvestigationActionRequest,
     InvestigationActionRequestState,
+    InvestigationBlock,
     InvestigationStatus,
 )
 from sentry.investigations.services.action_kinds import ACTION_KINDS
 from sentry.investigations.services.action_kinds.base import ActionInvalid, ActionStale
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.environment import Environment
+from sentry.seer import agent_token
 from sentry.seer.models.run import SeerRunMirrorStatus, SeerRunType
+from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import ExtrapolationMode, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_kafka, requires_snuba
 from sentry.workflow_engine.models import DataConditionGroup, Detector
 from sentry.workflow_engine.models.data_condition import Condition
@@ -153,6 +165,98 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
         data_source = (detector or self.detector).data_sources.get()
         return SnubaQuery.objects.get(subscriptions__id=int(data_source.source_id))
 
+    def conditions(self) -> dict[int, tuple[int, float]]:
+        assert self.detector.workflow_condition_group is not None
+        return {
+            condition.id: (condition.condition_result, condition.comparison)
+            for condition in self.detector.workflow_condition_group.conditions.all()
+        }
+
+    def test_applies_a_threshold_change(self) -> None:
+        action_request = self.suggest(
+            before={"highThreshold": 500}, changes={"highThreshold": 800.0}
+        )
+        conditions = self.conditions()
+
+        response = self.apply(action_request)
+
+        assert response.status_code == 200, response.data
+        assert set(response.data) == {"actionRequest"}
+        serialized = response.data["actionRequest"]
+        assert serialized["id"] == str(action_request.id)
+        assert serialized["state"] == "applied"
+        assert serialized["appliedBy"]["id"] == str(self.user.id)
+        assert serialized["cannotApplyReason"] == "not_suggested"
+        updated = self.conditions()
+        assert set(updated) == set(conditions)
+        assert sorted(updated.values()) == [
+            (DetectorPriorityLevel.OK, 500.0),
+            (DetectorPriorityLevel.HIGH, 800.0),
+        ]
+        action_request.refresh_from_db()
+        assert action_request.state == InvestigationActionRequestState.APPLIED
+        assert action_request.applied_by_id == self.user.id
+        assert action_request.date_applied is not None
+        assert self.snuba_query().time_window == 300
+
+    def test_applies_a_time_window_change_to_an_errors_detector(self) -> None:
+        action_request = self.suggest()
+        conditions = self.conditions()
+
+        response = self.apply(action_request)
+
+        assert response.status_code == 200, response.data
+        snuba_query = self.snuba_query()
+        assert snuba_query.time_window == 900
+        assert snuba_query.query == "level:error"
+        assert snuba_query.environment == self.environment
+        assert self.conditions() == conditions
+
+    def test_applies_a_time_window_change_to_an_eap_detector(self) -> None:
+        self.detector = self.create_metric_detector(dataset=Dataset.EventsAnalyticsPlatform)
+        self.orchestration_run.update(
+            source={"type": "breached_metric", "detectorId": str(self.detector.id)}
+        )
+        action_request = self.suggest()
+
+        response = self.apply(action_request)
+
+        assert response.status_code == 200, response.data
+        snuba_query = self.snuba_query()
+        assert snuba_query.time_window == 900
+        assert snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value
+        assert snuba_query.event_types == [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN]
+        assert snuba_query.extrapolation_mode == ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED.value
+
+    def test_applies_query_and_environment_changes(self) -> None:
+        staging = self.create_environment(project=self.project, name="staging")
+        action_request = self.suggest(
+            before={"query": "level:error", "environment": "production"},
+            changes={"query": "level:error !transaction:/health", "environment": "staging"},
+        )
+        conditions = self.conditions()
+
+        response = self.apply(action_request)
+
+        assert response.status_code == 200, response.data
+        snuba_query = self.snuba_query()
+        assert snuba_query.query == "level:error !transaction:/health"
+        assert snuba_query.environment == staging
+        assert snuba_query.time_window == 300
+        assert self.conditions() == conditions
+
+    def test_a_changed_query_is_stale(self) -> None:
+        action_request = self.suggest(
+            before={"query": "level:warning"}, changes={"query": "level:warning !logger:health"}
+        )
+
+        response = self.apply(action_request)
+
+        assert response.status_code == 409
+        assert response.data["code"] == "stale"
+        assert response.data["current"] == {"query": "level:error"}
+        assert self.snuba_query().query == "level:error"
+
     def details_request(self) -> dict[str, Any]:
         response = self.client.get(
             reverse(
@@ -199,6 +303,18 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
         assert response.status_code == 409
         assert response.data["code"] == "not_suggested"
 
+    def test_a_second_apply_conflicts(self) -> None:
+        action_request = self.suggest()
+        assert self.apply(action_request).status_code == 200
+
+        response = self.apply(action_request)
+
+        assert response.status_code == 409
+        assert response.data == {
+            "detail": "This action was already applied.",
+            "code": "already_applied",
+        }
+
     def test_a_dry_run_runs_the_same_checks(self) -> None:
         action_request = self.suggest(state=InvestigationActionRequestState.SUPERSEDED)
 
@@ -212,6 +328,167 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
 
         assert response.status_code == 400
         assert response.data == {"dryRn": "Unknown field."}
+
+    def test_a_setting_seer_relied_on_but_did_not_change_counts_as_stale(self) -> None:
+        action_request = self.suggest(
+            before={"timeWindowSeconds": 300, "aggregate": "p95(transaction.duration)"},
+            changes={"timeWindowSeconds": 900},
+        )
+
+        response = self.apply(action_request)
+
+        assert response.status_code == 409
+        assert response.data["current"] == {"aggregate": "count()"}
+        assert self.snuba_query().time_window == 300
+
+    def test_a_stale_monitor_conflicts_and_supersedes_the_suggestion(self) -> None:
+        action_request = self.suggest(before={"timeWindowSeconds": 600})
+
+        response = self.apply(action_request)
+
+        assert response.status_code == 409
+        assert response.data == {
+            "detail": "This changed since Seer suggested it.",
+            "code": "stale",
+            "current": {"timeWindowSeconds": 300},
+        }
+        action_request.refresh_from_db()
+        assert action_request.state == InvestigationActionRequestState.SUPERSEDED
+        assert action_request.error == {"code": "stale", "current": {"timeWindowSeconds": 300}}
+        assert self.snuba_query().time_window == 300
+        assert self.apply(action_request).data["code"] == "not_suggested"
+
+    def test_a_missing_threshold_is_stale(self) -> None:
+        action_request = self.suggest(
+            before={"mediumThreshold": 400}, changes={"mediumThreshold": 450}
+        )
+
+        response = self.apply(action_request)
+
+        assert response.status_code == 409
+        assert response.data["code"] == "stale"
+        assert response.data["current"] == {"mediumThreshold": None}
+
+    def test_only_the_source_monitor_can_change(self) -> None:
+        other = self.create_metric_detector()
+        action_request = self.suggest(detector_id=other.id)
+
+        response = self.apply(action_request)
+
+        assert response.status_code == 409
+        assert response.data == {
+            "detail": "This action can't be applied.",
+            "code": "not_target_detector",
+        }
+        assert self.snuba_query(other).time_window == 300
+
+    def test_a_deleted_monitor_is_not_found(self) -> None:
+        action_request = self.suggest()
+        self.detector.update(status=ObjectStatus.PENDING_DELETION)
+
+        response = self.apply(action_request)
+
+        assert response.status_code == 409
+        assert response.data["code"] == "detector_not_found"
+
+    def test_a_monitor_without_a_query_is_not_found(self) -> None:
+        action_request = self.suggest()
+        self.detector.data_sources.get().delete()
+
+        response = self.apply(action_request)
+
+        assert response.status_code == 409
+        assert response.data == {
+            "detail": "This monitor wasn't found.",
+            "code": "detector_not_found",
+        }
+        action_request.refresh_from_db()
+        assert action_request.state == InvestigationActionRequestState.SUGGESTED
+
+    def test_another_organizations_monitor_is_not_found(self) -> None:
+        foreign = self.create_detector(
+            project=self.create_project(organization=self.create_organization()),
+            type=MetricIssue.slug,
+        )
+        self.orchestration_run.update(
+            source={"type": "breached_metric", "detectorId": str(foreign.id)}
+        )
+        action_request = self.suggest(detector_id=foreign.id)
+
+        response = self.apply(action_request)
+
+        assert response.status_code == 409
+        assert response.data["code"] == "detector_not_found"
+
+    def test_members_without_alerts_write_cannot_apply(self) -> None:
+        self.organization.update_option("sentry:alerts_member_write", False)
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization, role="member")
+        self.login_as(member)
+        action_request = self.suggest()
+
+        response = self.apply(action_request)
+
+        assert response.status_code == 403
+        action_request.refresh_from_db()
+        assert action_request.state == InvestigationActionRequestState.SUGGESTED
+        assert self.snuba_query().time_window == 300
+
+    def test_an_invalid_change_is_rejected_and_can_be_tried_again(self) -> None:
+        self.detector = self.create_metric_detector(dataset=Dataset.EventsAnalyticsPlatform)
+        self.orchestration_run.update(
+            source={"type": "breached_metric", "detectorId": str(self.detector.id)}
+        )
+        action_request = self.suggest(changes={"timeWindowSeconds": 450})
+        version = self.investigation.version
+
+        response = self.apply(action_request)
+
+        assert response.status_code == 400
+        assert response.data["detail"] == "The change wasn't valid."
+        assert response.data["code"] == "validation_failed"
+        assert any("Invalid Time Window" in message for message in response.data["messages"])
+        action_request.refresh_from_db()
+        assert action_request.state == InvestigationActionRequestState.SUGGESTED
+        assert action_request.error is None
+        assert self.snuba_query().time_window == 300
+        self.investigation.refresh_from_db()
+        assert self.investigation.version == version
+
+    def test_a_dry_run_of_a_valid_change_leaves_the_monitor_alone(self) -> None:
+        action_request = self.suggest()
+
+        response = self.apply(action_request, dryRun=True)
+
+        assert response.status_code == 200, response.data
+        assert response.data["actionRequest"]["state"] == "suggested"
+        assert self.snuba_query().time_window == 300
+
+    def test_a_dry_run_reports_an_invalid_change_without_failing_it(self) -> None:
+        self.detector = self.create_metric_detector(dataset=Dataset.EventsAnalyticsPlatform)
+        self.orchestration_run.update(
+            source={"type": "breached_metric", "detectorId": str(self.detector.id)}
+        )
+        action_request = self.suggest(changes={"timeWindowSeconds": 450})
+
+        response = self.apply(action_request, dryRun=True)
+
+        assert response.status_code == 400
+        assert response.data["code"] == "validation_failed"
+        assert any("Invalid Time Window" in message for message in response.data["messages"])
+        action_request.refresh_from_db()
+        assert action_request.state == InvestigationActionRequestState.SUGGESTED
+        assert action_request.error is None
+
+    def test_a_dry_run_reports_a_stale_monitor_without_superseding_it(self) -> None:
+        action_request = self.suggest(before={"timeWindowSeconds": 600})
+
+        response = self.apply(action_request, dryRun=True)
+
+        assert response.status_code == 409
+        assert response.data["code"] == "stale"
+        action_request.refresh_from_db()
+        assert action_request.state == InvestigationActionRequestState.SUGGESTED
 
     def test_archived_investigations_are_read_only(self) -> None:
         action_request = self.suggest()
@@ -289,6 +566,233 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
             response = self.client.post(self.apply_url(action_request.id), data={}, format="json")
 
         assert response.status_code == 404
+
+    def set_detector(self, **kwargs: Any) -> None:
+        self.detector = self.create_metric_detector(**kwargs)
+        self.orchestration_run.update(
+            source={"type": "breached_metric", "detectorId": str(self.detector.id)}
+        )
+
+    def test_applies_a_high_and_resolution_change_together(self) -> None:
+        action_request = self.suggest(
+            before={"highThreshold": 500, "resolutionThreshold": 500},
+            changes={"highThreshold": 400, "resolutionThreshold": 400},
+        )
+
+        response = self.apply(action_request)
+
+        assert response.status_code == 200, response.data
+        assert sorted(self.conditions().values()) == [
+            (DetectorPriorityLevel.OK, 400.0),
+            (DetectorPriorityLevel.HIGH, 400.0),
+        ]
+
+    def test_applies_a_medium_threshold_change_and_keeps_every_condition(self) -> None:
+        self.set_detector(
+            conditions=[
+                (Condition.GREATER, 800.0, DetectorPriorityLevel.HIGH),
+                (Condition.GREATER, 500.0, DetectorPriorityLevel.MEDIUM),
+                (Condition.LESS_OR_EQUAL, 500.0, DetectorPriorityLevel.OK),
+            ]
+        )
+        conditions = self.conditions()
+        action_request = self.suggest(
+            before={"mediumThreshold": 500, "resolutionThreshold": 500},
+            changes={"mediumThreshold": 600, "resolutionThreshold": 600},
+        )
+
+        response = self.apply(action_request)
+
+        assert response.status_code == 200, response.data
+        updated = self.conditions()
+        assert set(updated) == set(conditions)
+        assert sorted(updated.values()) == [
+            (DetectorPriorityLevel.OK, 600.0),
+            (DetectorPriorityLevel.MEDIUM, 600.0),
+            (DetectorPriorityLevel.HIGH, 800.0),
+        ]
+
+    def test_applies_a_raw_threshold_to_a_percent_monitor(self) -> None:
+        self.set_detector(high=110.0, config={"detection_type": "static", "comparison_delta": 3600})
+        action_request = self.suggest(
+            before={"highThreshold": 110, "resolutionThreshold": 110},
+            changes={"highThreshold": 130, "resolutionThreshold": 130},
+        )
+
+        response = self.apply(action_request)
+
+        assert response.status_code == 200, response.data
+        assert sorted(self.conditions().values()) == [
+            (DetectorPriorityLevel.OK, 130.0),
+            (DetectorPriorityLevel.HIGH, 130.0),
+        ]
+        self.detector.refresh_from_db()
+        assert self.detector.config["comparison_delta"] == 3600
+
+    def test_two_conditions_for_one_level_are_stale(self) -> None:
+        self.set_detector(
+            conditions=[
+                (Condition.GREATER, 500.0, DetectorPriorityLevel.HIGH),
+                (Condition.LESS, 10.0, DetectorPriorityLevel.HIGH),
+                (Condition.LESS_OR_EQUAL, 500.0, DetectorPriorityLevel.OK),
+            ]
+        )
+        conditions = self.conditions()
+        action_request = self.suggest(before={"highThreshold": 500}, changes={"highThreshold": 800})
+
+        response = self.apply(action_request)
+
+        assert response.status_code == 409
+        assert response.data["code"] == "stale"
+        assert response.data["current"] == {"highThreshold": None}
+        assert self.conditions() == conditions
+
+    def test_dynamic_monitors_are_not_changed(self) -> None:
+        self.set_detector(config={"detection_type": "dynamic"})
+        action_request = self.suggest()
+
+        response = self.apply(action_request)
+
+        assert response.status_code == 409
+        assert response.data == {
+            "detail": "This action can't be applied.",
+            "code": "dynamic_detector",
+        }
+        action_request.refresh_from_db()
+        assert action_request.state == InvestigationActionRequestState.SUGGESTED
+        assert self.snuba_query().time_window == 300
+
+    def test_a_dataset_the_plan_no_longer_allows_is_not_found(self) -> None:
+        self.set_detector(dataset=Dataset.EventsAnalyticsPlatform)
+        action_request = self.suggest()
+
+        with self.feature({"organizations:visibility-explore-view": False}):
+            response = self.apply(action_request)
+
+        assert response.status_code == 409
+        assert response.data["code"] == "detector_not_found"
+        assert self.snuba_query().time_window == 300
+
+    def test_an_unknown_environment_is_invalid_and_not_created(self) -> None:
+        action_request = self.suggest(
+            before={"environment": "production"}, changes={"environment": "made-up"}
+        )
+
+        dry_run = self.apply(action_request, dryRun=True)
+
+        assert dry_run.status_code == 400
+        assert dry_run.data["messages"] == ["The project has no made-up environment."]
+        assert not Environment.objects.filter(name="made-up").exists()
+
+    def test_a_transaction_monitor_change_fails_before_saving(self) -> None:
+        snuba_query = self.snuba_query()
+        snuba_query.update(
+            type=SnubaQuery.Type.PERFORMANCE.value, dataset=Dataset.Transactions.value, query=""
+        )
+        snuba_query.snubaqueryeventtype_set.update(
+            type=SnubaQueryEventType.EventType.TRANSACTION.value
+        )
+        action_request = self.suggest(
+            before={"timeWindowSeconds": 300, "highThreshold": 500},
+            changes={"timeWindowSeconds": 900, "highThreshold": 800},
+        )
+        conditions = self.conditions()
+
+        with self.feature("organizations:discover-saved-queries-deprecation"):
+            dry_run = self.apply(action_request, dryRun=True)
+            response = self.apply(action_request)
+
+        assert dry_run.status_code == 400
+        assert dry_run.data["code"] == "validation_failed"
+
+        assert response.status_code == 400
+        assert response.data["code"] == "validation_failed"
+        assert response.data["messages"] == [TRANSACTION_UPDATES_DISABLED]
+        assert self.conditions() == conditions
+        assert self.snuba_query().time_window == 300
+        action_request.refresh_from_db()
+        assert action_request.state == InvestigationActionRequestState.SUGGESTED
+
+    @override_settings(SEER_API_SHARED_SECRET="test-seer-api-shared-secret-thirty-two-bytes!")
+    def test_an_agent_token_without_alerts_write_cannot_apply(self) -> None:
+        action_request = self.suggest()
+        token, _ = agent_token.encode_agent_token(
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            scopes=["org:read"],
+            session_id="investigation-apply",
+        )
+        client = APIClient()
+        client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+
+        with self.feature(agent_token.FEATURE_FLAG):
+            response = client.post(self.apply_url(action_request.id), data={}, format="json")
+
+        assert response.status_code == 403, response.content
+        assert response.data["code"] == "permission_denied"
+        action_request.refresh_from_db()
+        assert action_request.state == InvestigationActionRequestState.SUGGESTED
+
+    def test_applying_records_activity_and_an_audit_entry(self) -> None:
+        self.detector.update(name="Checkout [p95]")
+        action_request = self.suggest(
+            title="Widen the window",
+            before={"timeWindowSeconds": 300, "highThreshold": 500},
+            changes={"timeWindowSeconds": 3600, "highThreshold": 800.5},
+            report_revision=2,
+        )
+        blocks = InvestigationBlock.objects.filter(investigation=self.investigation).count()
+        version = self.investigation.version
+
+        with outbox_runner():
+            response = self.apply(action_request)
+
+        assert response.status_code == 200, response.data
+        assert "blockId" not in response.data
+        serialized = response.data["actionRequest"]
+        assert serialized["appliedBy"]["id"] == str(self.user.id)
+        # Reads look up the applier, so renaming them afterwards shows the new name.
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.user.update(name="Renamed after the apply")
+        details = self.client.get(
+            reverse(
+                "sentry-api-0-organization-investigation-details",
+                kwargs={
+                    "organization_id_or_slug": self.organization.slug,
+                    "investigation_id": self.investigation.id,
+                },
+            )
+        )
+        [read] = details.data["actionRequests"]
+        assert read["appliedBy"]["id"] == str(self.user.id)
+        assert read["appliedBy"]["name"] == "Renamed after the apply"
+        assert serialized["appliedDetails"] == {
+            "detectorId": str(self.detector.id),
+            "detectorName": "Checkout [p95]",
+            "fields": ["timeWindowSeconds", "highThreshold"],
+        }
+        assert InvestigationBlock.objects.filter(investigation=self.investigation).count() == blocks
+        self.investigation.refresh_from_db()
+        assert self.investigation.version == version
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            entry = AuditLogEntry.objects.get(event=audit_log.get_event_id("DETECTOR_EDIT"))
+        assert entry.actor_id == self.user.id
+        assert entry.data["name"] == "Checkout [p95]"
+
+    def test_activity_shows_query_and_environment_changes(self) -> None:
+        self.create_environment(project=self.project, name="staging")
+        action_request = self.suggest(
+            before={"query": "level:error", "environment": "production"},
+            changes={"query": "", "environment": "staging"},
+        )
+
+        with outbox_runner():
+            response = self.apply(action_request)
+
+        assert response.status_code == 200, response.data
+        details = response.data["actionRequest"]["appliedDetails"]
+        assert details["fields"] == ["query", "environment"]
 
 
 @with_feature(FEATURE)
