@@ -2097,11 +2097,6 @@
       "count": 2
     }
   },
-  "views/explore/exploreLocationQueryParamsProvider.spec.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 3
-    }
-  },
   "views/explore/hooks/useAddToDashboard.spec.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1

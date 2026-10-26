@@ -67,6 +67,28 @@ describe('getReadableQueryParamsFromLocation', () => {
     );
   });
 
+  it('treats a blank extrapolate as on', () => {
+    const location = locationFixture({extrapolate: ''});
+    const queryParams = getReadableQueryParamsFromLocation(location);
+    expect(queryParams).toEqual(
+      new ReadableQueryParams(readableQueryParamOptions({extrapolate: true}))
+    );
+  });
+
+  it('treats a blank saved query id and title as absent', () => {
+    const location = locationFixture({id: '', title: ''});
+    const queryParams = getReadableQueryParamsFromLocation(location);
+    expect(queryParams.id).toBeUndefined();
+    expect(queryParams.title).toBeUndefined();
+  });
+
+  it('ignores cross events when the param is repeated', () => {
+    const crossEvent = JSON.stringify([{query: '', type: 'logs'}]);
+    const location = locationFixture({crossEvents: [crossEvent, crossEvent]});
+    const queryParams = getReadableQueryParamsFromLocation(location);
+    expect(queryParams.crossEvents).toBeUndefined();
+  });
+
   it('decodes samples mode correctly', () => {
     const location = locationFixture({mode: 'samples'});
     const queryParams = getReadableQueryParamsFromLocation(location);
@@ -490,6 +512,12 @@ describe('getReadableQueryParamsFromLocation', () => {
 });
 
 describe('getTargetWithReadableQueryParams', () => {
+  it('leaves a blank cursor in place when resetting cursors', () => {
+    const location = locationFixture({aggregateCursor: ''});
+    const target = getTargetWithReadableQueryParams(location, {aggregateCursor: null});
+    expect(target.query).toEqual({aggregateCursor: ''});
+  });
+
   it('removes the aggregate cursor when it is reset', () => {
     const location = locationFixture({aggregateCursor: '0:50:0'});
 
