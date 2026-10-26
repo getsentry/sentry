@@ -496,8 +496,8 @@ function isSupportedStrategy(strategy: string): strategy is WorkflowStrategy {
 }
 
 const SOURCE_LABELS: Record<WorkflowRunSource, string> = {
-  cron: 'Automated',
-  manual: 'Manual',
+  cron: t('Automated'),
+  manual: t('Manual'),
 };
 
 const SOURCE_ICONS: Record<

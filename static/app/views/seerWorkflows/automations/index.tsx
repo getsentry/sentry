@@ -7,6 +7,7 @@ import {IconSentry} from '@sentry/icons/sentry';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
+import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -14,13 +15,14 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {ProjectList} from 'sentry/components/projectList';
 import {TimeSince} from 'sentry/components/timeSince';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {STRATEGY_META} from 'sentry/views/seerWorkflows/strategies';
 import type {
+  SeerWorkflowConfigResponse,
   SeerWorkflowConfigsResponse,
   WorkflowStrategy,
 } from 'sentry/views/seerWorkflows/types';
@@ -40,37 +42,55 @@ const MIN_CARD_WIDTH = '280px';
  */
 const DAILY_SCHEDULE_HOURS = [10, 22];
 
-type AutomationCardProps = {
-  /**
-   * Paused automations show a "Paused" tag in place of their schedule or trigger
-   */
-  enabled: boolean;
-  id: string;
-  /**
-   * ['all'] when the automation covers all projects, [] when it covers none
-   */
-  projectSlugs: string[];
-  title: string;
+/**
+ * How many project avatars/slugs a card shows before collapsing the rest.
+ */
+const MAX_VISIBLE_PROJECTS = 3;
+
+// TODO: Missing fields from backend - to add to configs API
+type AdditionalConfigProps = {
   /**
    * Estimated cost of a single run, in US dollars
    */
   costPerRun?: number;
   description?: string;
-  nextUpdate?: Date;
-  /**
-   * Shown in place of the "Next run" tag, e.g. for automations triggered by events
-   */
-  subtitleOverride?: {icon: React.ReactNode; text: string};
+  title?: string;
   /**
    * Estimated tokens used per month
    */
   tokensPerMonth?: number;
+  /**
+   * What triggers the automation, shown in place of its schedule
+   */
+  trigger?: string;
 };
+
+type AutomationConfig = SeerWorkflowConfigResponse & AdditionalConfigProps;
+
+function makePlaceholderConfig(
+  id: string,
+  overrides: Partial<AutomationConfig>
+): AutomationConfig {
+  return {
+    id,
+    dateAdded: '',
+    dateUpdated: '',
+    enabled: true,
+    environments: [],
+    filters: {},
+    outputPolicy: {},
+    projects: [ALL_ACCESS_PROJECTS],
+    schedule: '',
+    seededDefault: null,
+    strategy: id,
+    version: 0,
+    ...overrides,
+  };
+}
 
 export default function AutomationsList() {
   const organization = useOrganization();
   const automationsEnabled = useAutomationsEnabled();
-  const {projects} = useProjects();
 
   const {data} = useQuery(
     apiOptions.as<SeerWorkflowConfigsResponse>()(
@@ -82,46 +102,25 @@ export default function AutomationsList() {
     )
   );
 
-  const cards: AutomationCardProps[] = [
+  const configs: AutomationConfig[] = [
     // Placeholders for automations the configs endpoint doesn't return yet
-    {
-      id: 'placeholder-agentic-triage',
-      enabled: true,
+    makePlaceholderConfig('placeholder-agentic-triage', {
       title: 'Agentic Triage',
       description: 'Automatically triage and fix the most fixable issues.',
-      projectSlugs: ['all'],
-      nextUpdate: getNextUpdate('daily'),
+      schedule: 'daily',
       tokensPerMonth: 85_400_000,
       costPerRun: 2.5,
-    },
-    {
-      id: 'placeholder-breached-metrics',
-      enabled: true,
+    }),
+    makePlaceholderConfig('placeholder-breached-metrics', {
       title: 'Breached Metrics',
       description:
         'Monitors backend metrics and investigates why certain key metrics were breached.',
-      projectSlugs: ['seer', 'javascript', 'sentry-evals-framework'],
-      subtitleOverride: {icon: <IconFire />, text: 'Triggered by metric exceptions'},
+      projects: [6178942, 11276, 4511418012073984],
+      trigger: 'Triggered by metric exceptions',
       tokensPerMonth: 341_000,
       costPerRun: 0.052,
-    },
-    ...(data?.configs ?? []).map(config => {
-      const meta = Object.hasOwn(STRATEGY_META, config.strategy)
-        ? STRATEGY_META[config.strategy as WorkflowStrategy]
-        : undefined;
-      return {
-        id: config.id,
-        enabled: config.enabled,
-        title: meta?.label ?? config.strategy,
-        description: meta?.description ?? t('No description'),
-        projectSlugs: config.projects.includes(ALL_ACCESS_PROJECTS)
-          ? ['all']
-          : config.projects
-              .map(id => projects.find(p => p.id === String(id))?.slug)
-              .filter((slug): slug is string => slug !== undefined),
-        nextUpdate: getNextUpdate(config.schedule),
-      };
     }),
+    ...(data?.configs ?? []),
   ];
 
   return (
@@ -132,25 +131,31 @@ export default function AutomationsList() {
       margin="0"
       padding="0"
     >
-      {cards.map(card => (
-        <AutomationCard key={card.id} {...card} />
+      {configs.map(config => (
+        <AutomationCard key={config.id} config={config} />
       ))}
     </Grid>
   );
 }
 
-function AutomationCard({
-  id,
-  title,
-  enabled,
-  description,
-  projectSlugs,
-  nextUpdate,
-  subtitleOverride,
-  tokensPerMonth,
-  costPerRun,
-}: AutomationCardProps) {
+function AutomationCard({config}: {config: AutomationConfig}) {
   const organization = useOrganization();
+  const {projects} = useProjects();
+  const strategyMeta = Object.hasOwn(STRATEGY_META, config.strategy)
+    ? STRATEGY_META[config.strategy as WorkflowStrategy]
+    : undefined;
+
+  const {enabled, trigger, tokensPerMonth, costPerRun} = config;
+  const title = config.title ?? strategyMeta?.label ?? config.strategy;
+  const description =
+    config.description ?? strategyMeta?.description ?? t('No description');
+  const projectSlugs = config.projects.includes(ALL_ACCESS_PROJECTS)
+    ? ['all']
+    : config.projects
+        .map(id => projects.find(p => p.id === String(id))?.slug)
+        .filter((slug): slug is string => slug !== undefined);
+  const nextUpdate = getNextUpdate(config.schedule);
+
   const usage = [
     tokensPerMonth === undefined
       ? null
@@ -171,7 +176,7 @@ function AutomationCard({
 
   return (
     <Container as="li" display="grid">
-      <CardLink to={getAutomationDetailPath(organization.slug, id)}>
+      <CardLink to={getAutomationDetailPath(organization.slug, config.id)}>
         <CardStack
           gap="lg"
           height="100%"
@@ -188,10 +193,10 @@ function AutomationCard({
               <IconSentry size="xs" variant="muted" />
             </Flex>
             {enabled ? (
-              subtitleOverride ? (
+              trigger ? (
                 <Flex>
-                  <Tag variant="muted" icon={subtitleOverride.icon}>
-                    {subtitleOverride.text}
+                  <Tag variant="muted" icon={<IconFire />}>
+                    {trigger}
                   </Tag>
                 </Flex>
               ) : (
@@ -213,8 +218,6 @@ function AutomationCard({
               </Flex>
             )}
             {description && <Text as="p">{description}</Text>}
-          </Stack>
-          <Stack gap="lg">
             {usage.length > 0 && (
               <Text size="sm" variant="muted">
                 {usage.map((part, index) => (
@@ -225,29 +228,46 @@ function AutomationCard({
                 ))}
               </Text>
             )}
-            {projectSlugs[0] === 'all' ? (
-              <Flex align="center" gap="sm">
-                <IconAllProjects size="sm" variant="muted" />
-                <Text size="sm" variant="muted">
-                  {t('All projects')}
-                </Text>
-              </Flex>
-            ) : projectSlugs.length === 0 ? (
-              <Text size="sm" variant="muted">
-                {t('No projects')}
-              </Text>
-            ) : (
-              <Flex align="center" gap="sm">
-                <ProjectList projectSlugs={projectSlugs} disableLinks />
-                {/* TODO(aliu): Limit the length of this list */}
-                <Container flex="1" minWidth={0}>
-                  <Text size="sm" variant="muted">
-                    {projectSlugs.join(', ')}
-                  </Text>
-                </Container>
-              </Flex>
-            )}
           </Stack>
+          {projectSlugs[0] === 'all' ? (
+            <Flex align="center" gap="sm">
+              <IconAllProjects size="sm" variant="muted" />
+              <Text size="sm" variant="muted">
+                {t('All projects')}
+              </Text>
+            </Flex>
+          ) : projectSlugs.length === 0 ? (
+            <Text size="sm" variant="muted">
+              {t('No projects')}
+            </Text>
+          ) : (
+            <Flex align="center" gap="sm">
+              <ProjectList
+                projectSlugs={projectSlugs}
+                maxVisibleProjects={MAX_VISIBLE_PROJECTS}
+                disableLinks
+              />
+              <Container flex="1" minWidth={0}>
+                <Text size="sm" variant="muted" wordBreak="break-word">
+                  {projectSlugs.slice(0, MAX_VISIBLE_PROJECTS).join(', ')}
+                  {projectSlugs.length > MAX_VISIBLE_PROJECTS && (
+                    <Fragment>
+                      {' '}
+                      <InfoText
+                        title={projectSlugs.slice(MAX_VISIBLE_PROJECTS).join(', ')}
+                      >
+                        {tn(
+                          '+%s more',
+                          '+%s more',
+                          projectSlugs.length - MAX_VISIBLE_PROJECTS
+                        )}
+                      </InfoText>
+                    </Fragment>
+                  )}
+                </Text>
+              </Container>
+            </Flex>
+          )}
         </CardStack>
       </CardLink>
     </Container>

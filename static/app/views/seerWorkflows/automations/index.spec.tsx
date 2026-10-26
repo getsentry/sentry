@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import AutomationsList, {getNextUpdate} from 'sentry/views/seerWorkflows/automations';
@@ -34,11 +34,10 @@ function getCard(title: string) {
 describe('AutomationsList', () => {
   const organization = OrganizationFixture({features: ['seer-automations']});
   const configsUrl = `/organizations/${organization.slug}/seer/workflows/configs/`;
-  let projectsRequest: jest.Mock;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    projectsRequest = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,
       body: [],
     });
@@ -57,8 +56,7 @@ describe('AutomationsList', () => {
 
     render(<AutomationsList />, {organization: OrganizationFixture()});
 
-    await waitFor(() => expect(projectsRequest).toHaveBeenCalled());
-    expect(screen.getAllByRole('listitem')).toHaveLength(2);
+    expect(await screen.findAllByRole('listitem')).toHaveLength(2);
     expect(request).not.toHaveBeenCalled();
   });
 

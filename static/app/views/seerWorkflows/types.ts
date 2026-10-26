@@ -128,7 +128,7 @@ export type MonitorCleanupFinding = z.infer<
   typeof monitorCleanupOutputSchema
 >['findings'][number];
 
-type SeerWorkflowConfigResponse = {
+export type SeerWorkflowConfigResponse = {
   dateAdded: string;
   dateUpdated: string;
   enabled: boolean;
