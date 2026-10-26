@@ -4,9 +4,10 @@ import {
 } from '@sentry/scraps/trackingContext';
 
 import {getOverride} from 'sentry/overrideRegistry';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 
 function logButtonClick(props: TrackingProps) {
-  const hasAnalyticsDebug = window.localStorage?.getItem('DEBUG_ANALYTICS') === '1';
+  const hasAnalyticsDebug = localStorageWrapper.getItem('DEBUG_ANALYTICS') === '1';
   const hasCustomAnalytics =
     props.analyticsEventName || props.analyticsEventKey || props.analyticsParams;
   if (hasCustomAnalytics && hasAnalyticsDebug) {

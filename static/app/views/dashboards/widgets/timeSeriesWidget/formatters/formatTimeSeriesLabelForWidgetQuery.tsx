@@ -20,6 +20,13 @@ export function formatTimeSeriesLabelForWidgetQuery(
   widget: Widget,
   widgetQuery: WidgetQuery
 ): string {
+  if (widgetQuery.seriesLabel === 'query') {
+    return widgetQuery.name;
+  }
+  if (widgetQuery.seriesLabel === 'group') {
+    return formatTimeSeriesLabel(timeSeries);
+  }
+
   // The conditions prefix that ``getSeriesQueryPrefix`` adds in the
   // widget-query hooks for the FE — rebuilt here so callers that already
   // have a ``TimeSeries`` (chartcuterie) don't need their own copy.

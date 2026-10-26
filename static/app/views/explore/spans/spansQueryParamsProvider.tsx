@@ -1,7 +1,9 @@
 import {useCallback, type ReactNode} from 'react';
 import type {Location} from 'history';
 
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExploreLocationQueryParamsProvider} from 'sentry/views/explore/exploreLocationQueryParamsProvider';
+import {hasMultiAggregateCharts} from 'sentry/views/explore/spans/sharedChartAggregates';
 import {
   getReadableQueryParamsFromLocation,
   getTargetWithReadableQueryParams,
@@ -17,9 +19,14 @@ export function SpansQueryParamsProvider({
   children,
   fields,
 }: SpansQueryParamsProviderProps) {
+  const organization = useOrganization({allowNull: true});
+  const multiAggregateCharts = organization
+    ? hasMultiAggregateCharts(organization)
+    : false;
   const getQueryParams = useCallback(
-    (location: Location) => getReadableQueryParamsFromLocation(location, fields),
-    [fields]
+    (location: Location) =>
+      getReadableQueryParamsFromLocation(location, fields, {multiAggregateCharts}),
+    [fields, multiAggregateCharts]
   );
 
   return (

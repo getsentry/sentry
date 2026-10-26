@@ -67,7 +67,7 @@ class OrganizationInvestigationsDuplicateEndpoint(OrganizationInvestigationEndpo
             serialize(
                 duplicate,
                 request.user,
-                InvestigationDetailsSerializer(),
+                InvestigationDetailsSerializer(access=request.access),
             ),
             status=status.HTTP_201_CREATED,
         )

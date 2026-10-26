@@ -540,6 +540,12 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
         )
         self.assert_expected_versions(response, [release_4, release_2, release_1])
 
+        # IN operator (list value) is unsupported for build and must 400, not 500
+        response = self.get_response(
+            self.organization.slug, query=f"{SEMVER_BUILD_ALIAS}:[124,125]"
+        )
+        assert response.status_code == 400
+
     def test_release_stage_filter(self) -> None:
         self.login_as(user=self.user)
 

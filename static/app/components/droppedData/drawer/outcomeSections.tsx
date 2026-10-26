@@ -8,6 +8,8 @@ export interface ReasonRow {
   shareRatio: number;
 }
 
+export type AskSeerHandler = (row: ReasonRow) => void;
+
 export interface OutcomeSection {
   events: number;
   label: string;

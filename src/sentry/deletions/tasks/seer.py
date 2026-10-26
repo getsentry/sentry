@@ -10,6 +10,7 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import deletion_tasks
 from sentry.viewer_context import (
+    Actor,
     ActorType,
     ViewerContext,
     get_viewer_context,
@@ -47,7 +48,7 @@ def notify_seer_repository_deleted(
     scope: contextlib.AbstractContextManager[None] = contextlib.nullcontext()
     if get_viewer_context() is None:
         scope = viewer_context_scope(
-            ViewerContext(organization_id=organization_id, actor_type=ActorType.SYSTEM)
+            ViewerContext(actor=Actor(type=ActorType.SYSTEM), organization_id=organization_id)
         )
 
     with scope:

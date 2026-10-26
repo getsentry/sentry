@@ -17,12 +17,11 @@ export const noLegacyRouterImports = defineRule({
   meta: {
     type: 'problem',
     docs: {
-      description: 'Require React Router V8 package paths while using the V6 runtime.',
+      description: 'Require React Router V8 package paths.',
     },
     schema: [],
     messages: {
-      legacyPath:
-        'Use react-router or react-router/dom instead of {{path}}. V8 package paths resolve to the V6 compatibility implementation.',
+      legacyPath: 'Use react-router or react-router/dom instead of {{path}}.',
     },
   },
   create(context) {

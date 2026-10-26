@@ -201,6 +201,14 @@ class TestEnsureDefaultWorkflows(TestCase):
         assert isinstance(workflows, list)
         assert all(isinstance(w, Workflow) for w in workflows)
 
+    def test_project_created_receiver_connects_issue_stream_detector(self) -> None:
+        project = self.create_project(create_default_detectors=False, fire_project_created=True)
+
+        connection = DetectorWorkflow.objects.get(
+            workflow__organization=project.organization, detector__project=project
+        )
+        assert connection.detector.type == IssueStreamGroupType.slug
+
 
 class TestCreateAndConnectPullRequestWorkflow(TestCase):
     def setUp(self) -> None:
