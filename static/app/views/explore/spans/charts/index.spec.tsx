@@ -465,7 +465,7 @@ describe('ExploreCharts', () => {
     }
 
     it('notes that dropped spans ignore the search while the layer is on', async () => {
-      renderCharts({droppedEvents: [DroppedEventFixture()], query: 'span.op:db'});
+      renderCharts({droppedEvents: [OutcomeRowFixture()], query: 'span.op:db'});
 
       expect(
         await screen.findByText('Dropped spans are not filtered by search')
@@ -480,7 +480,7 @@ describe('ExploreCharts', () => {
     });
 
     it('omits the filter note without a search or environment', async () => {
-      renderCharts({droppedEvents: [DroppedEventFixture()]});
+      renderCharts({droppedEvents: [OutcomeRowFixture()]});
 
       expect(await screen.findByLabelText('Chart layers')).toBeInTheDocument();
       expect(screen.queryByText(/are not filtered by/)).not.toBeInTheDocument();
