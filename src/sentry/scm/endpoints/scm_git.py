@@ -5,6 +5,7 @@ from collections.abc import Generator
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse, HttpResponseBase, StreamingHttpResponse
 from rest_framework.request import Request
+from scm import Secret
 from scm.errors import SCMCodedError
 from scm.git.grant import verify_grant
 from scm.git.relay import GitRelay
@@ -38,7 +39,7 @@ def report_git_error(error: Exception, context: dict[str, str]) -> None:
 def make_git_server() -> GitServer:
     fetchers = make_fetchers()
     return GitServer(
-        secrets=settings.SCM_GIT_GRANT_SECRETS or [],
+        secrets=_grant_secrets(),
         fetch_repository=fetchers.fetch_repository,
         fetch_provider=fetchers.fetch_provider,
         get_token=fetch_access_token,
@@ -79,12 +80,12 @@ class ScmGitEndpoint(Endpoint):
     def _relay(self, request: Request, repository_id: int, route: str) -> HttpResponseBase:
         # The grant names the organization whose flag gates the endpoint, and it's verified before
         # the organization is looked up, so a request without a valid grant never reaches the
-        # database. GitServer verifies it again, which costs one HMAC.
+        # database. GitServer verifies it again, which costs one HMAC. With no secret configured,
+        # every grant is refused here as unknown, before GitServer, which can't be built without
+        # one.
         context = {"repository_id": str(repository_id)}
         try:
-            grant = verify_grant(
-                settings.SCM_GIT_GRANT_SECRETS or [], request.headers.get(GRANT_HEADER, "")
-            )
+            grant = verify_grant(_grant_secrets(), request.headers.get(GRANT_HEADER, ""))
         except SCMCodedError as e:
             return _refuse(e.code, 403, e.detail, context, tags={})
 
@@ -125,6 +126,10 @@ class ScmGitEndpoint(Endpoint):
         return StreamingHttpResponse(
             response.content, status=response.status_code, headers=response.headers
         )
+
+
+def _grant_secrets() -> list[Secret]:
+    return [Secret(secret) for secret in settings.SCM_GIT_GRANT_SECRETS or []]
 
 
 def _request_body(request: HttpRequest) -> Readable | None:

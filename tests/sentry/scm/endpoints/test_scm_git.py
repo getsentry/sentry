@@ -12,6 +12,7 @@ from django.http import HttpResponseBase
 from django.test import override_settings
 from django.urls import resolve, reverse
 from responses import matchers
+from scm import Secret
 from scm.git.grant import sign_grant
 from scm.git.types import GRANT_HEADER, GitOperation, Grant
 from scm.types import RepositoryId
@@ -45,7 +46,7 @@ def sign(
         expires_at=int(time.time()) + expires_in,
         referrer=REFERRER,
     )
-    return sign_grant(secret, grant)
+    return sign_grant(Secret(secret), grant)
 
 
 @cell_silo_test
