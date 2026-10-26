@@ -12,6 +12,7 @@ from sentry.integrations.msteams.metrics import record_lifecycle_termination_lev
 from sentry.integrations.msteams.spec import MsTeamsMessagingSpec
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.notifications.additional_attachment_manager import msteams_attachment_manager
 from sentry.notifications.platform.shadow.capture import record_legacy_render
 from sentry.notifications.platform.types import NotificationProviderKey
 from sentry.notifications.types import RuleFuture
@@ -61,6 +62,12 @@ class MsTeamsNotifyServiceAction(IntegrationEventAction):
             card = MSTeamsIssueMessageBuilder(
                 event.group, event, rules, integration
             ).build_group_card(notification_uuid=notification_uuid)
+            card["body"].extend(
+                msteams_attachment_manager.get_additional_attachment(
+                    integration, self.project.organization
+                )
+                or []
+            )
             record_legacy_render(NotificationProviderKey.MSTEAMS, card)
 
             client = MsTeamsClient(integration)

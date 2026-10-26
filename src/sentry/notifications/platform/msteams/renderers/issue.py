@@ -50,6 +50,8 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
             raise ValueError(f"IssueMSTeamsRenderer does not support {data.__class__.__name__}")
 
         from sentry.integrations.msteams.card_builder.base import MSTeamsMessageBuilder
+        from sentry.integrations.services.integration import integration_service
+        from sentry.notifications.additional_attachment_manager import msteams_attachment_manager
 
         # Retrieving Group and Event data is an anti-pattern, do not do this
         # in permanent renderers.
@@ -82,10 +84,24 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
             cls.build_actions(group=group, data=data, rules=rules),
         ]
 
-        return MSTeamsMessageBuilder().build(
+        card = MSTeamsMessageBuilder().build(
             title=cls.build_title(group=group, issue_url=issue_url),
             fields=fields,
         )
+
+        integration = (
+            integration_service.get_integration(integration_id=data.integration_id)
+            if data.integration_id
+            else None
+        )
+        if integration is not None:
+            card["body"].extend(
+                msteams_attachment_manager.get_additional_attachment(
+                    integration, group.organization
+                )
+                or []
+            )
+        return card
 
     @classmethod
     def build_issue_url(cls, *, group: Group, notification_uuid: str) -> str:

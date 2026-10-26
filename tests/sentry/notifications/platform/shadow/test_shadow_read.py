@@ -20,6 +20,10 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.projectownership import ProjectOwnership
+from sentry.notifications.additional_attachment_manager import (
+    discord_attachment_manager,
+    msteams_attachment_manager,
+)
 from sentry.notifications.additional_attachment_manager import manager as attachment_manager
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.utils import (
@@ -395,6 +399,20 @@ class ShadowReadIssueAlertTest(ShadowReadTestBase, OccurrenceTestMixin):
 
         self.assert_match(observation)
 
+    def test_discord_additional_attachment_matches(self) -> None:
+        attachment = {"title": "extra", "description": "more"}
+        action = self.create_shadow_action("discord")
+
+        with mock.patch.dict(
+            discord_attachment_manager.attachment_generators,
+            {ExternalProviders.DISCORD: lambda integration, organization: [attachment]},
+        ):
+            observation, _ = self.send(self.invocation(action))
+
+        self.assert_match(observation)
+        legacy, _ = observation.payloads
+        assert legacy["embeds"][-1] == attachment
+
     def test_msteams_matches(self) -> None:
         action = self.create_shadow_action("msteams")
 
@@ -402,6 +420,20 @@ class ShadowReadIssueAlertTest(ShadowReadTestBase, OccurrenceTestMixin):
 
         client.return_value.send_card.assert_called_once()
         self.assert_match(observation)
+
+    def test_msteams_additional_attachment_matches(self) -> None:
+        attachment = {"type": "TextBlock", "text": "extra"}
+        action = self.create_shadow_action("msteams")
+
+        with mock.patch.dict(
+            msteams_attachment_manager.attachment_generators,
+            {ExternalProviders.MSTEAMS: lambda integration, organization: [attachment]},
+        ):
+            observation, _ = self.send(self.invocation(action))
+
+        self.assert_match(observation)
+        legacy, _ = observation.payloads
+        assert legacy["body"][-1] == attachment
 
     def test_msteams_occurrence_matches(self) -> None:
         action = self.create_shadow_action("msteams")
