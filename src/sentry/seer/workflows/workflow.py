@@ -114,13 +114,15 @@ class SeerWorkflow:
                 id=self.config.id, organization_id=self.config.organization_id
             )
             if service_account_id is not None:
-                replica = ServiceAccountReplica.objects.filter(
-                    service_account_id=service_account_id, organization_id=config.organization_id
-                ).first()
-                if replica is None:
+                try:
+                    replica = ServiceAccountReplica.objects.get(
+                        service_account_id=service_account_id,
+                        organization_id=config.organization_id,
+                    )
+                except ServiceAccountReplica.DoesNotExist as exc:
                     raise ValueError(
                         "Service account is unavailable in the workflow's organization"
-                    )
+                    ) from exc
                 if not replica.is_active:
                     raise ValueError("Service account is inactive")
 
@@ -135,12 +137,15 @@ class SeerWorkflow:
         """Resolve authoritative identity against current cell state on every call."""
         if self.config.service_account_id is None:
             raise ValueError("Workflow has no service account")
-        replica = ServiceAccountReplica.objects.filter(
-            service_account_id=self.config.service_account_id,
-            organization_id=self.config.organization_id,
-        ).first()
-        if replica is None:
-            raise ValueError("Service account is unavailable in the workflow's organization")
+        try:
+            replica = ServiceAccountReplica.objects.get(
+                service_account_id=self.config.service_account_id,
+                organization_id=self.config.organization_id,
+            )
+        except ServiceAccountReplica.DoesNotExist as exc:
+            raise ValueError(
+                "Service account is unavailable in the workflow's organization"
+            ) from exc
         if not replica.is_active:
             raise ValueError("Service account is inactive")
         return replica
