@@ -51,7 +51,7 @@ class MoveSavedQueryRangeToStatsPeriodTest(TestMigrations):
         assert explore_null_range.query == {}
 
         discover_range = DiscoverSavedQuery.objects.get(id=self.discover_range)
-        assert discover_range.query == {"statsPeriod": "30d"}
+        assert discover_range.query == {"range": "30d"}
 
         discover_stats_period = DiscoverSavedQuery.objects.get(id=self.discover_stats_period)
         assert discover_stats_period.query == {"statsPeriod": "6h"}

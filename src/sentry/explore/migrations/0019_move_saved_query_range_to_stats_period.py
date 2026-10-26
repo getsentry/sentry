@@ -33,24 +33,21 @@ def _move_range_to_stats_period(query: Any) -> dict[str, Any] | None:
 def move_saved_query_range_to_stats_period(
     apps: StateApps, schema_editor: BaseDatabaseSchemaEditor
 ) -> None:
-    for app_label, model_name in (
-        ("explore", "ExploreSavedQuery"),
-        ("discover", "DiscoverSavedQuery"),
-    ):
-        SavedQuery = apps.get_model(app_label, model_name)
-        queryset = SavedQuery.objects.filter(query__has_key="range")
-        for saved_query in RangeQuerySetWrapperWithProgressBar(queryset):
-            try:
-                updated = _move_range_to_stats_period(saved_query.query)
-                if updated is None:
-                    continue
-                saved_query.query = updated
-                saved_query.save(update_fields=["query"])
-            except Exception:
-                logger.exception(
-                    "saved_query.range_to_stats_period.failed",
-                    extra={"saved_query_id": saved_query.id, "model": model_name},
-                )
+    # Discover still stores and reads the relative period as `range`.
+    ExploreSavedQuery = apps.get_model("explore", "ExploreSavedQuery")
+    queryset = ExploreSavedQuery.objects.filter(query__has_key="range")
+    for saved_query in RangeQuerySetWrapperWithProgressBar(queryset):
+        try:
+            updated = _move_range_to_stats_period(saved_query.query)
+            if updated is None:
+                continue
+            saved_query.query = updated
+            saved_query.save(update_fields=["query"])
+        except Exception:
+            logger.exception(
+                "saved_query.range_to_stats_period.failed",
+                extra={"saved_query_id": saved_query.id},
+            )
 
 
 class Migration(CheckedMigration):
@@ -70,18 +67,12 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("explore", "0018_add_prebuilt_delete_to_formulas"),
-        ("discover", "0004_discover_starred_and_last_visited"),
     ]
 
     operations = [
         migrations.RunPython(
             code=move_saved_query_range_to_stats_period,
             reverse_code=migrations.RunPython.noop,
-            hints={
-                "tables": [
-                    "explore_exploresavedquery",
-                    "sentry_discoversavedquery",
-                ]
-            },
+            hints={"tables": ["explore_exploresavedquery"]},
         ),
     ]
