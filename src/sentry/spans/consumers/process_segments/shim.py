@@ -34,6 +34,8 @@ TOP_LEVEL_FIELDS_BY_ATTRIBUTE_NAME = {
     ATTRIBUTE_NAMES.SENTRY_DIST: "dist",
     ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT: "environment",
     ATTRIBUTE_NAMES.SENTRY_PLATFORM: "platform",
+    ATTRIBUTE_NAMES.SENTRY_EVENT_SERIALIZED_EXTRA: "extra",
+    ATTRIBUTE_NAMES.SENTRY_EVENT_SERIALIZED_BREADCRUMBS: "breadcrumbs",
 }
 
 # A few of these have multiple entries per field, because which one of these attributes we get is
