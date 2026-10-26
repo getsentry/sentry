@@ -152,8 +152,6 @@ def edit_thread_message(
     Re-render a message we already posted from new data.
     Returns whether the message was edited. Raises IntegrationError when a retry may succeed.
     """
-    from sentry.integrations.slack.utils.errors import MESSAGE_NOT_FOUND
-
     with SlackEntrypointEventLifecycleMetric(
         interaction_type=SlackEntrypointInteractionType.EDIT_THREAD_MESSAGE,
         integration_id=install.model.id,
@@ -178,10 +176,6 @@ def edit_thread_message(
             lifecycle.record_failure(failure_reason=e)
             raise IntegrationError("Slack request timed out") from e
         except IntegrationError as e:
-            if e.message == MESSAGE_NOT_FOUND.message:
-                # Someone deleted the message, so retrying can't succeed.
-                lifecycle.record_halt(halt_reason=e)
-                return False
             lifecycle.record_failure(failure_reason=e)
             raise
     return True

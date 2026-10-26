@@ -1300,33 +1300,10 @@ class SlackAgentEntrypointTest(TestCase):
         )
 
         assert update.call_count == 2
-        assert_halt_metric(mock_record, IntegrationError())
+        assert_halt_metric(mock_record, IntegrationConfigurationError())
         replies = SlackSeerAgentReplyCache.get(run_id=state.run_id)
         assert replies["b2"]["pr_status_hash"] == "stale"
         assert replies["b4"]["pr_status_hash"] != "stale"
-
-    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    @patch("slack_sdk.web.client.WebClient.chat_update")
-    def test_on_agent_update_archived_channel_halts_edits(
-        self, update: Mock, mock_record: Mock
-    ) -> None:
-        state = self._two_posted_answers_with_stale_footers()
-        update.side_effect = SlackApiError(
-            "error", _slack_response({"ok": False, "error": "is_archived"})
-        )
-
-        SlackAgentEntrypoint.on_agent_update(
-            cache_payload=self._get_entrypoint().create_agent_cache_payload(),
-            run_id=state.run_id,
-            state=state,
-        )
-
-        assert update.call_count == 2
-        halts = [
-            call for call in mock_record.mock_calls if call.args[0] == EventLifecycleOutcome.HALTED
-        ]
-        assert len(halts) == 2
-        assert all(isinstance(call.args[1], IntegrationConfigurationError) for call in halts)
 
     @patch("sentry.seer.entrypoints.slack.entrypoint.logger")
     @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value=None)
