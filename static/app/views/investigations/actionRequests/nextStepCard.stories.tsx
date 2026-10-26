@@ -6,6 +6,7 @@ import {Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {commentStoryAuthors} from 'sentry/views/investigations/__stories__/commentStoryFixtures';
 import {InvestigationFixtureApi} from 'sentry/views/investigations/__stories__/investigationFixtureApi';
 import {NextStepCard} from 'sentry/views/investigations/actionRequests/nextStepCard';
 import {getInvestigationDetailQueryOptions} from 'sentry/views/investigations/api';
@@ -186,6 +187,22 @@ export default Storybook.story('Investigations — Recommended Action', story =>
         ]}
       />
     </Fragment>
+  ));
+
+  story('Applied', () => (
+    <CardStory
+      id="applied"
+      actionRequests={[
+        {
+          ...intervalChange,
+          state: 'applied',
+          canApply: false,
+          cannotApplyReason: 'not_suggested',
+          appliedBy: commentStoryAuthors.GRACE,
+          dateApplied: '2026-08-27T15:00:00Z',
+        },
+      ]}
+    />
   ));
 
   story('Withdrawn', () => (

@@ -1,4 +1,4 @@
-import type {ComponentType} from 'react';
+import type {ComponentType, ReactNode} from 'react';
 
 import type {ApplyCheck} from 'sentry/views/investigations/actionRequests/applyButton';
 import {updateDetectorUI} from 'sentry/views/investigations/actionRequests/updateDetector';
@@ -32,6 +32,9 @@ export type ActionKindDetailsProps<A> = KindProps<A> & {
 export type ActionKindUI<A extends InvestigationAction> = {
   Apply: ComponentType<ActionKindApplyProps<A>>;
   checksBeforeApply: boolean;
+  getAppliedSummary: (
+    props: KindProps<A> & {source: InvestigationDetail['source'] | undefined}
+  ) => ReactNode;
   getCannotApplyMessage: (reason: ApplyBlockReason) => string | null;
   Details?: ComponentType<ActionKindDetailsProps<A>>;
   getSuccessMessage?: () => string;
