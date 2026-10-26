@@ -10,7 +10,6 @@ import type {Location} from 'history';
 
 import {defined} from 'sentry/utils/defined';
 import {navigateIfQueryChanged} from 'sentry/utils/navigateIfQueryChanged';
-import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {
@@ -23,9 +22,16 @@ import {
   useMetricQueriesController,
   type MetricQueriesControllerValue,
 } from 'sentry/views/explore/metrics/useMetricQueriesController';
+import {
+  applyQueryParamsUpdates,
+  loadQueryParamsFromLocation,
+  parseAsFieldList,
+} from 'sentry/views/explore/queryParams/parsers';
 import {hasVisualizeTransformations} from 'sentry/views/explore/queryParams/visualize';
 
 export const MAX_METRICS_ALLOWED = 8;
+
+const METRICS_QUERY_PARSERS = {metric: parseAsFieldList};
 
 function encodeMetricQueries(metricQueries: BaseMetricQuery[]): string[] {
   return metricQueries
@@ -65,8 +71,9 @@ export function MultiMetricsQueryParamsProvider({
 
   const setQueries = useCallback(
     (nextQueries: BaseMetricQuery[]) => {
-      const target = {...location, query: {...location.query}};
-      target.query.metric = encodeMetricQueries(nextQueries);
+      const target = applyQueryParamsUpdates(METRICS_QUERY_PARSERS, location, {
+        metric: encodeMetricQueries(nextQueries),
+      });
       navigateIfQueryChanged(navigate, location, target);
     },
     [location, navigate]
@@ -82,7 +89,10 @@ export function MultiMetricsQueryParamsProvider({
 }
 
 function getMultiMetricsQueryParamsFromLocation(location: Location): BaseMetricQuery[] {
-  const rawQueryParams = decodeList(location.query.metric);
+  const rawQueryParams = loadQueryParamsFromLocation(
+    METRICS_QUERY_PARSERS,
+    location
+  ).metric;
 
   const metricQueries = rawQueryParams
     .map(value => decodeMetricsQueryParams(value))

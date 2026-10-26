@@ -5,7 +5,7 @@ import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import {parseFunction, type Sort} from 'sentry/utils/discover/fields';
-import {decodeList, decodeSorts, encodeSort} from 'sentry/utils/queryString';
+import {decodeSorts, encodeSort} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -16,6 +16,11 @@ import {
   DEFAULT_VISUALIZATION,
   DEFAULT_VISUALIZATION_FIELD,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {
+  applyQueryParamsUpdates,
+  loadQueryParamsFromLocation,
+  parseAsRawList,
+} from 'sentry/views/explore/queryParams/parsers';
 import {buildConditionalAggregate} from 'sentry/views/explore/utils/conditionalAggregate';
 import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -201,18 +206,18 @@ function parseQuery(raw: string): ReadableExploreQueryParts {
   }
 }
 
+const MULTI_QUERY_PARSERS = {queries: parseAsRawList};
+
 export function useReadQueriesFromLocation(): ReadableExploreQueryParts[] {
   const location = useLocation();
-  const rawQueries = decodeList(location.query.queries);
 
-  const parsedQueries = useMemo(() => {
-    if (!defined(rawQueries) || rawQueries.length === 0) {
+  return useMemo(() => {
+    const rawQueries = loadQueryParamsFromLocation(MULTI_QUERY_PARSERS, location).queries;
+    if (rawQueries.length === 0) {
       return [DEFAULT_QUERY];
     }
     return rawQueries.map(parseQuery);
-  }, [rawQueries]);
-
-  return parsedQueries;
+  }, [location]);
 }
 
 // Read utils end
@@ -245,16 +250,11 @@ function getQueriesAsUrlParam(queries: WritableExploreQueryParts[]): string[] {
 
 function getUpdatedLocationWithQueries(
   location: Location,
-  queries: WritableExploreQueryParts[] | null | undefined
+  queries: WritableExploreQueryParts[]
 ) {
-  const targetQueries = defined(queries) ? getQueriesAsUrlParam(queries) : null;
-  return {
-    ...location,
-    query: {
-      ...location.query,
-      queries: targetQueries,
-    },
-  };
+  return applyQueryParamsUpdates(MULTI_QUERY_PARSERS, location, {
+    queries: getQueriesAsUrlParam(queries),
+  });
 }
 
 export function useUpdateQueryAtIndex(index: number) {
