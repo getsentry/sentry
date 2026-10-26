@@ -7,13 +7,14 @@ import {IconSentry} from '@sentry/icons/sentry';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
+import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {ProjectList} from 'sentry/components/projectList';
 import {TimeSince} from 'sentry/components/timeSince';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -35,6 +36,11 @@ const MIN_CARD_WIDTH = '280px';
  * and 22:00 UTC (see TASKWORKER_SCHEDULES in src/sentry/conf/server.py).
  */
 const DAILY_SCHEDULE_HOURS = [10, 22];
+
+/**
+ * How many project avatars/slugs a card shows before collapsing the rest.
+ */
+const MAX_VISIBLE_PROJECTS = 3;
 
 type AutomationCardProps = {
   /**
@@ -230,11 +236,27 @@ function AutomationCard({
             </Text>
           ) : (
             <Flex align="center" gap="sm">
-              <ProjectList projectSlugs={projectSlugs} />
-              {/* TODO(aliu): Limit the length of this list */}
+              <ProjectList
+                projectSlugs={projectSlugs}
+                maxVisibleProjects={MAX_VISIBLE_PROJECTS}
+              />
               <Container flex="1" minWidth={0}>
-                <Text size="sm" variant="muted">
-                  {projectSlugs.join(', ')}
+                <Text size="sm" variant="muted" wordBreak="break-word">
+                  {projectSlugs.slice(0, MAX_VISIBLE_PROJECTS).join(', ')}
+                  {projectSlugs.length > MAX_VISIBLE_PROJECTS && (
+                    <Fragment>
+                      {' '}
+                      <InfoText
+                        title={projectSlugs.slice(MAX_VISIBLE_PROJECTS).join(', ')}
+                      >
+                        {tn(
+                          '+%s more',
+                          '+%s more',
+                          projectSlugs.length - MAX_VISIBLE_PROJECTS
+                        )}
+                      </InfoText>
+                    </Fragment>
+                  )}
                 </Text>
               </Container>
             </Flex>
