@@ -255,7 +255,6 @@ class SQLInjectionDetector(PerformanceDetector):
             return False
 
         # Only look at SELECT queries that have a WHERE clause and don't have any parameterized keywords
-        description = description.strip()
         if (
             description[:6].upper() != "SELECT"
             or "WHERE" not in description.upper()
