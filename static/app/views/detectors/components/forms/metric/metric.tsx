@@ -42,6 +42,7 @@ import {AutomateSectionDeprecated} from 'sentry/views/detectors/components/forms
 import {IssueOwnershipSection} from 'sentry/views/detectors/components/forms/common/issueOwnershipSection';
 import {ProjectEnvironmentSection} from 'sentry/views/detectors/components/forms/common/projectEnvironmentSection';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
+import {METRIC_DETECTOR_DRAFT_CONFIG} from 'sentry/views/detectors/components/forms/metric/metricDraftConfig';
 import {
   metricDetectorFormDataToEndpointPayload,
   metricSavedDetectorToFormData,
@@ -118,6 +119,7 @@ export function NewMetricDetectorForm({
   return (
     <NewDetectorLayout
       detectorType="metric_issue"
+      draftConfig={METRIC_DETECTOR_DRAFT_CONFIG}
       previewChart={<MetricDetectorPreviewChart />}
       formDataToEndpointPayload={metricDetectorFormDataToEndpointPayload}
       initialFormData={
@@ -698,7 +700,10 @@ function MigratedAlertWarningListener() {
                   aria-label="Go to thresholds"
                   preventScrollReset
                   to={{...location, hash: '#thresholds-warning-icon'}}
-                  onClick={() => {
+                  onClick={event => {
+                    // Navigating would rebuild the URL from a location that
+                    // predates the draft, dropping it.
+                    event.preventDefault();
                     requestAnimationFrame(() => {
                       document
                         .getElementById('thresholds-warning-icon')

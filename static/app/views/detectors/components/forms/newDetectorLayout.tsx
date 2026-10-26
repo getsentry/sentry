@@ -16,6 +16,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {DetectorFormBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
+import {
+  DetectorDraftUrlSync,
+  parseDetectorDraftValues,
+  useInitialDetectorDraft,
+  type DetectorDraftConfig,
+} from 'sentry/views/detectors/components/forms/common/detectorDraft';
 import {NewDetectorFooter} from 'sentry/views/detectors/components/forms/common/footer';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {useCreateDetectorFormSubmit} from 'sentry/views/detectors/hooks/useCreateDetectorFormSubmit';
@@ -27,6 +33,11 @@ type NewDetectorLayoutProps<TFormData, TUpdatePayload> = {
   formDataToEndpointPayload: (formData: TFormData) => TUpdatePayload;
   initialFormData: Partial<TFormData>;
   disabledCreate?: string;
+  /**
+   * Syncs the in-progress monitor to the URL so it can be shared.
+   * Must be a stable reference.
+   */
+  draftConfig?: DetectorDraftConfig<TFormData>;
   extraFooterButton?: React.ReactNode;
   mapFormErrors?: (error: any) => any;
   previewChart?: React.ReactNode;
@@ -44,6 +55,7 @@ export function NewDetectorLayout<
   extraFooterButton,
   previewChart,
   detectorType,
+  draftConfig,
 }: NewDetectorLayoutProps<TFormData, TUpdatePayload>) {
   const location = useLocation();
   const theme = useTheme();
@@ -51,10 +63,12 @@ export function NewDetectorLayout<
   const organization = useOrganization();
   const {projects} = useProjects();
 
+  const writableProjects = useMemo(
+    () => projects.filter(project => hasDetectorWriteAccess({organization, project})),
+    [organization, projects]
+  );
+
   const initialProjectId = useMemo(() => {
-    const writableProjects = projects.filter(project =>
-      hasDetectorWriteAccess({organization, project})
-    );
     const queryProjectId = decodeScalar(location.query.project);
     if (queryProjectId) {
       const match = writableProjects.find(p => p.id === queryProjectId);
@@ -68,7 +82,22 @@ export function NewDetectorLayout<
       ['desc', 'desc']
     );
     return sorted[0]?.id ?? '';
-  }, [location.query.project, organization, projects]);
+  }, [location.query.project, writableProjects]);
+
+  const draft = useInitialDetectorDraft(detectorType);
+  const [draftFormData] = useState(() => {
+    if (!draftConfig || !draft) {
+      return;
+    }
+    const values = parseDetectorDraftValues(draftConfig, draft.values);
+    if (
+      values.projectId !== undefined &&
+      !writableProjects.some(p => p.id === values.projectId)
+    ) {
+      delete values.projectId;
+    }
+    return values;
+  });
 
   const formSubmitHandler = useCreateDetectorFormSubmit({
     detectorType,
@@ -87,8 +116,9 @@ export function NewDetectorLayout<
       owner: '',
       workflowIds: [],
       ...initialFormData,
+      ...draftFormData,
     };
-  }, [initialProjectId, initialEnvironment, initialFormData]);
+  }, [initialProjectId, initialEnvironment, initialFormData, draftFormData]);
 
   const formProps: FormProps = {
     model: formModel,
@@ -117,6 +147,14 @@ export function NewDetectorLayout<
       <EditLayoutDeprecated.Body maxWidth={maxWidth}>
         {children}
       </EditLayoutDeprecated.Body>
+
+      {draftConfig && (
+        <DetectorDraftUrlSync
+          detectorType={detectorType}
+          draftConfig={draftConfig}
+          formModel={formModel}
+        />
+      )}
 
       <NewDetectorFooter
         maxWidth={maxWidth}

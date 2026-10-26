@@ -11,6 +11,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useDetectorTypeQueryState} from 'sentry/views/detectors/components/detectorTypeForm';
 import {NewDetectorForm} from 'sentry/views/detectors/components/forms';
+import {useInitialDetectorDraft} from 'sentry/views/detectors/components/forms/common/detectorDraft';
 import {DetectorFormProvider} from 'sentry/views/detectors/components/forms/context';
 import {
   detectorTypeIsAvailableForCreation,
@@ -25,7 +26,11 @@ export default function DetectorNewSettings() {
   const organization = useOrganization();
   const {fetching: isFetchingProjects} = useProjects();
   const [detectorType] = useDetectorTypeQueryState();
-  const [duplicateFrom] = useQueryState('duplicateFrom', parseAsString);
+  const [duplicateFromParam] = useQueryState('duplicateFrom', parseAsString);
+  const draft = useInitialDetectorDraft(detectorType);
+  // A draft already holds every field, so it doesn't need the source monitor
+  // (which whoever opens a shared draft may not be able to read).
+  const duplicateFrom = draft ? null : duplicateFromParam;
   const canCreateDetector = useCanCreateDetector(detectorType);
   const canDuplicateMonitors = organization.features.includes('monitor-duplication');
   const isDetectorTypeAvailable =
@@ -97,6 +102,9 @@ export default function DetectorNewSettings() {
     <DetectorFormProvider
       detectorType={detectorType}
       duplicateDetector={duplicateDetector}
+      initialHasSetDetectorName={
+        draft?.hasSetName === true && typeof draft.values.name === 'string'
+      }
     >
       <SentryDocumentTitle
         title={

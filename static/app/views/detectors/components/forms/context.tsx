@@ -20,15 +20,17 @@ export function DetectorFormProvider({
   detectorType,
   detector,
   duplicateDetector,
+  initialHasSetDetectorName = false,
   children,
 }: {
   children: React.ReactNode;
   detectorType: DetectorType;
   detector?: Detector;
   duplicateDetector?: Detector;
+  initialHasSetDetectorName?: boolean;
 }) {
   const [hasSetDetectorName, setHasSetDetectorName] = useState(
-    Boolean(duplicateDetector)
+    Boolean(duplicateDetector) || initialHasSetDetectorName
   );
 
   return (
