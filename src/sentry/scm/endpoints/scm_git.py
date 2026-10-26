@@ -80,9 +80,9 @@ class ScmGitEndpoint(Endpoint):
     def _relay(self, request: Request, repository_id: int, route: str) -> HttpResponseBase:
         # The grant names the organization whose flag gates the endpoint, and it's verified before
         # the organization is looked up, so a request without a valid grant never reaches the
-        # database. GitServer verifies it again, which costs one HMAC. With no secret configured,
-        # every grant is refused here as unknown, before GitServer, which can't be built without
-        # one.
+        # database. GitServer verifies the JWT again, which costs one HMAC-SHA256. With no secret
+        # configured, every grant is refused here as unknown, before GitServer, which can't be built
+        # without one.
         context = {"repository_id": str(repository_id)}
         try:
             grant = verify_grant(_grant_secrets(), request.headers.get(GRANT_HEADER, ""))
