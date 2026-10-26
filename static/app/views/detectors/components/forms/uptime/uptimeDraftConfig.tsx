@@ -82,13 +82,15 @@ function parseHttpUrl(url: string) {
 /**
  * Half-typed URLs don't parse, so those are checked as text: an `@` or a
  * non-numeric port in the authority may be part of a username and password.
+ * (A password of only digits can't be told apart from a port until the `@`.)
  */
 function mayHoldCredentials(url: string) {
   const parsed = parseHttpUrl(url);
   if (parsed) {
     return Boolean(parsed.username || parsed.password);
   }
-  const authority = /^\s*(?:[a-z][\w+.-]*:)?[/\\]*([^/?#\\]*)/i.exec(url)?.[1] ?? '';
+  const authority =
+    /^\s*(?:[a-z][\w+.-]*:(?=[/\\]))?[/\\]*([^/?#\\]*)/i.exec(url)?.[1] ?? '';
   return authority.includes('@') || /:(?!\d*$)/.test(authority);
 }
 

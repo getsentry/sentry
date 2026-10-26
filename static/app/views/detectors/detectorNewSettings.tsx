@@ -30,9 +30,10 @@ export default function DetectorNewSettings() {
   const draft = useInitialDetectorDraft(detectorType);
   // A draft holds every field, so it doesn't need the source monitor (which
   // whoever opens a shared draft may not be able to read). Uptime drafts leave
-  // out headers, body, and URLs with credentials, so they still do.
+  // out headers, body, and URLs with credentials, so they use it when they can.
   const duplicateFrom =
     draft && detectorType !== 'uptime_domain_failure' ? null : duplicateFromParam;
+  const isDuplicateOptional = Boolean(draft);
   const canCreateDetector = useCanCreateDetector(detectorType);
   const canDuplicateMonitors = organization.features.includes('monitor-duplication');
   const isDetectorTypeAvailable =
@@ -57,13 +58,23 @@ export default function DetectorNewSettings() {
     ),
     retry: false,
   });
-  const duplicateDetector = duplicateQuery.data;
+  const loadedDuplicate = duplicateQuery.data;
   const canDuplicateDetector = useCanEditDetector({
-    detectorType: duplicateDetector?.type ?? detectorType,
-    projectId: duplicateDetector?.projectId ?? null,
+    detectorType: loadedDuplicate?.type ?? detectorType,
+    projectId: loadedDuplicate?.projectId ?? null,
   });
+  const isDuplicateUsable =
+    loadedDuplicate?.type === detectorType &&
+    detectorTypeIsAvailableForCreation(loadedDuplicate.type, organization) &&
+    canDuplicateDetector;
+  const duplicateDetector =
+    isDuplicateOptional && !isDuplicateUsable ? undefined : loadedDuplicate;
 
-  if (duplicateFrom && (!canDuplicateMonitors || !isDetectorTypeAvailable)) {
+  if (
+    duplicateFrom &&
+    !isDuplicateOptional &&
+    (!canDuplicateMonitors || !isDetectorTypeAvailable)
+  ) {
     return <LoadingError message={t('This monitor cannot be duplicated.')} />;
   }
 
@@ -71,11 +82,15 @@ export default function DetectorNewSettings() {
     return <LoadingError message={t('Invalid detector type: %s', detectorType ?? '')} />;
   }
 
-  if (isFetchingProjects || (duplicateFrom && duplicateQuery.isPending)) {
+  if (
+    isFetchingProjects ||
+    (duplicateFrom &&
+      (isDuplicateOptional ? duplicateQuery.isLoading : duplicateQuery.isPending))
+  ) {
     return <LoadingIndicator />;
   }
 
-  if (duplicateFrom && duplicateQuery.isError) {
+  if (duplicateFrom && duplicateQuery.isError && !isDuplicateOptional) {
     return (
       <LoadingError
         message={t('The monitor to duplicate could not be loaded.')}

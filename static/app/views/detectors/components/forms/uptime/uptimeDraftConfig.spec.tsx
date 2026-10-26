@@ -111,6 +111,8 @@ describe('UPTIME_DETECTOR_DRAFT_CONFIG.redact', () => {
     'https://user:pa/ss@example.com',
     'https://user:pa?ss@example.com',
     'https://user:pa#ss@example.com',
+    'user:secret',
+    'user:pa/ss@example.com',
   ])('leaves out the URL when it may hold credentials, like %s', url => {
     expect(UPTIME_DETECTOR_DRAFT_CONFIG.redact!({name: 'Monitor', url})).toEqual({
       name: 'Monitor',
@@ -124,6 +126,7 @@ describe('UPTIME_DETECTOR_DRAFT_CONFIG.redact', () => {
     'https://example.com/health?email=a@b.com',
     'https://exa',
     'example.com/health',
+    'localhost:8080/health',
   ])('keeps the URL when it has no credentials, like %s', url => {
     expect(UPTIME_DETECTOR_DRAFT_CONFIG.redact!({url})).toEqual({url});
   });
