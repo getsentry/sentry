@@ -180,20 +180,30 @@ class WorkflowRunSnapshot(BaseModel):
 
 
 class WorkflowRunError(BaseModel):
+    # Stable snake_case failure category chosen by the caller, e.g. "dispatch_failed".
     code: str
+    # Explanation safe to display, e.g. "Could not start the execution."
     message: str
 
 
-class WorkflowLifecycleExtras(BaseModel):
+class SeerWorkflowRunExtras(BaseModel):
+    """Run JSON metadata: the invocation's configuration/input snapshot and error."""
+
+    snapshot: WorkflowRunSnapshot
     error: WorkflowRunError | None = None
 
     class Config:
-        # Preserve strategy-specific inputs, trigger context, and results.
+        # Preserve strategy-specific metadata when updating shared fields.
         extra = "allow"
 
 
-class ConfiguredWorkflowRunExtras(WorkflowLifecycleExtras):
-    snapshot: WorkflowRunSnapshot
+class SeerWorkflowExecutionExtras(BaseModel):
+    """Execution JSON metadata; the shared snapshot belongs to the parent run."""
+
+    error: WorkflowRunError | None = None
+
+    class Config:
+        extra = "allow"
 
 
 @cell_silo_model
@@ -215,7 +225,7 @@ class SeerWorkflowRun(DefaultFieldsModel):
     # Null for historical runs that have not adopted the shared lifecycle.
     status = models.CharField(max_length=16, choices=SeerWorkflowRunStatus.choices, null=True)
     date_completed = models.DateTimeField(null=True)
-    # Invocation snapshots and errors are stored in typed extras.
+    # Shared lifecycle metadata has the shape of SeerWorkflowRunExtras.
     extras = models.JSONField(db_default={}, default=dict)
 
     class Meta:
@@ -255,6 +265,7 @@ class SeerWorkflowRunExecution(DefaultFieldsModel):
     )
     status = models.CharField(max_length=16, choices=SeerWorkflowExecutionStatus.choices, null=True)
     date_completed = models.DateTimeField(null=True)
+    # Shared lifecycle metadata has the shape of SeerWorkflowExecutionExtras.
     extras = models.JSONField(db_default={}, default=dict)
 
     class Meta:

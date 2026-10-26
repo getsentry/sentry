@@ -12,12 +12,12 @@ from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.models.workflow import (
-    ConfiguredWorkflowRunExtras,
     SeerWorkflowConfig,
     SeerWorkflowConfigExtras,
     SeerWorkflowConfigProject,
     SeerWorkflowFilters,
     SeerWorkflowRun,
+    SeerWorkflowRunExtras,
     SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
     WorkflowRunSnapshot,
@@ -112,9 +112,7 @@ class SeerWorkflow:
                 output_policy=self.config.output_policy,
                 inputs=json.loads(inputs.json()),
             )
-            run_extras = ConfiguredWorkflowRunExtras.parse_obj(
-                {**(extras or {}), "snapshot": snapshot}
-            )
+            run_extras = SeerWorkflowRunExtras.parse_obj({**(extras or {}), "snapshot": snapshot})
             run = SeerWorkflowRun.objects.create(
                 organization_id=self.config.organization_id,
                 workflow_config=self.config,

@@ -13,14 +13,14 @@ from sentry import features
 from sentry.incidents.grouptype import MetricIssue
 from sentry.models.group import Group
 from sentry.seer.models.workflow import (
-    ConfiguredWorkflowRunExtras,
     SeerWorkflowConfig,
+    SeerWorkflowExecutionExtras,
     SeerWorkflowFilters,
     SeerWorkflowRun,
+    SeerWorkflowRunExtras,
     SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
     SeerWorkflowTriggerBinding,
-    WorkflowLifecycleExtras,
     WorkflowRunError,
 )
 from sentry.seer.workflows.workflow import SeerWorkflow
@@ -76,11 +76,11 @@ class MetricBreachAdmission(BaseModel):
     decided_at: datetime
 
 
-class MetricBreachRunExtras(ConfiguredWorkflowRunExtras):
+class MetricBreachRunExtras(SeerWorkflowRunExtras):
     admission: MetricBreachAdmission
 
 
-class MetricBreachExecutionExtras(WorkflowLifecycleExtras):
+class MetricBreachExecutionExtras(SeerWorkflowExecutionExtras):
     result: Literal["noop"] = "noop"
 
 

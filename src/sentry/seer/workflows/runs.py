@@ -15,14 +15,14 @@ from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.types import FeatureRunStatus
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunMirrorStatus
 from sentry.seer.models.workflow import (
-    ConfiguredWorkflowRunExtras,
     SeerWorkflowConfig,
+    SeerWorkflowExecutionExtras,
     SeerWorkflowExecutionStatus,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
+    SeerWorkflowRunExtras,
     SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
-    WorkflowLifecycleExtras,
     WorkflowRunError,
 )
 from sentry.seer.workflows.schemas import WorkflowResult, WorkflowResultError, WorkflowRunExtras
@@ -47,8 +47,8 @@ class WorkflowRun:
         )
 
     @property
-    def extras(self) -> ConfiguredWorkflowRunExtras:
-        return ConfiguredWorkflowRunExtras.parse_obj(self.run.extras)
+    def extras(self) -> SeerWorkflowRunExtras:
+        return SeerWorkflowRunExtras.parse_obj(self.run.extras)
 
     def start(self) -> SeerWorkflowRun:
         """Mark the start of orchestration, including work selection."""
@@ -60,7 +60,7 @@ class WorkflowRun:
         return self.run
 
     def create_execution(
-        self, *, extras: WorkflowLifecycleExtras | None = None
+        self, *, extras: SeerWorkflowExecutionExtras | None = None
     ) -> SeerWorkflowRunExecution:
         """Plan all executions before dispatching any of them."""
         with transaction.atomic(router.db_for_write(SeerWorkflowRun)):
@@ -70,7 +70,7 @@ class WorkflowRun:
             execution = SeerWorkflowRunExecution.objects.create(
                 run=self.run,
                 status=SeerWorkflowExecutionStatus.QUEUED,
-                extras=json.loads((extras or WorkflowLifecycleExtras()).json()),
+                extras=json.loads((extras or SeerWorkflowExecutionExtras()).json()),
             )
         return execution
 
@@ -128,7 +128,7 @@ class WorkflowRun:
                 if error
                 else SeerWorkflowExecutionStatus.COMPLETE
             )
-            execution_extras = WorkflowLifecycleExtras.parse_obj(execution.extras)
+            execution_extras = SeerWorkflowExecutionExtras.parse_obj(execution.extras)
             execution_extras.error = error
             execution.extras = json.loads(execution_extras.json())
             execution.date_completed = timezone.now()
@@ -146,7 +146,7 @@ class WorkflowRun:
                 ).first()
                 self._finish(
                     SeerWorkflowRunStatus.FAILED if failed else SeerWorkflowRunStatus.COMPLETE,
-                    error=WorkflowLifecycleExtras.parse_obj(failed.extras).error
+                    error=SeerWorkflowExecutionExtras.parse_obj(failed.extras).error
                     if failed
                     else None,
                     completed_at=execution.date_completed,

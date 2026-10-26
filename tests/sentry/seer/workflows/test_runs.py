@@ -12,12 +12,12 @@ from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunMirrorStatus
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
+    SeerWorkflowExecutionExtras,
     SeerWorkflowExecutionStatus,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
     SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
-    WorkflowLifecycleExtras,
     WorkflowRunError,
 )
 from sentry.seer.workflows.runs import (
@@ -443,8 +443,8 @@ def test_run_finishes_after_all_executions(
 
     finished = run.complete_execution(second.id, error=second_error)
     first.refresh_from_db()
-    assert WorkflowLifecycleExtras.parse_obj(first.extras).error == first_error
-    assert WorkflowLifecycleExtras.parse_obj(finished.extras).error == second_error
+    assert SeerWorkflowExecutionExtras.parse_obj(first.extras).error == first_error
+    assert SeerWorkflowExecutionExtras.parse_obj(finished.extras).error == second_error
     completed_run = WorkflowRun.get(organization_id=organization.id, run_id=run.run.id)
     assert completed_run.run.status == expected_status
     assert completed_run.extras.error == expected_error
