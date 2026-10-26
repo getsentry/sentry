@@ -550,6 +550,75 @@ describe('DetectorEdit', () => {
       });
     });
 
+    it.each([
+      ['another host', 'https://attacker.example/collect', []],
+      [
+        'the same host',
+        'https://example.com/health',
+        [['Authorization', 'Bearer secret']],
+      ],
+    ])(
+      'only keeps the source headers when an uptime copy draft points at %s',
+      async (_, draftUrl, expectedHeaders) => {
+        const sourceDetector = UptimeDetectorFixture({
+          id: 'source-uptime',
+          projectId: project.id,
+        });
+        sourceDetector.dataSources[0].queryObj.headers = [
+          ['Authorization', 'Bearer secret'],
+        ];
+        MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/detectors/${sourceDetector.id}/`,
+          body: sourceDetector,
+        });
+        const mockCreateDetector = MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
+          method: 'POST',
+          body: UptimeDetectorFixture({id: 'copied-uptime'}),
+        });
+        const duplicateRouterConfig = getDuplicateRouterConfig(
+          sourceDetector.type,
+          sourceDetector.id
+        );
+
+        render(<DetectorNewSettings />, {
+          organization: organizationWithMonitorDuplication,
+          initialRouterConfig: {
+            ...duplicateRouterConfig,
+            location: {
+              ...duplicateRouterConfig.location,
+              query: {
+                ...duplicateRouterConfig.location.query,
+                draft: JSON.stringify({
+                  version: 1,
+                  detectorType: sourceDetector.type,
+                  hasSetName: true,
+                  values: {name: 'Edited copy', url: draftUrl},
+                }),
+              },
+            },
+          },
+        });
+
+        await userEvent.click(
+          await screen.findByRole('button', {name: 'Create Monitor'})
+        );
+
+        await waitFor(() => {
+          expect(mockCreateDetector).toHaveBeenCalledWith(
+            expect.any(String),
+            expect.objectContaining({
+              data: expect.objectContaining({
+                dataSources: [
+                  expect.objectContaining({headers: expectedHeaders, url: draftUrl}),
+                ],
+              }),
+            })
+          );
+        });
+      }
+    );
+
     it('opens an uptime draft when its duplicated monitor cannot be loaded', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/detectors/missing-uptime/`,
