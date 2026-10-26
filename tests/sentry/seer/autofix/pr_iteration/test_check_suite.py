@@ -364,7 +364,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
     @patch(f"{CHECK_PATH}.enqueue_autofix_feedback")
     @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
     @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
-    def test_ignores_ask_seer_run_without_opt_in(
+    def test_ignores_ad_hoc_run_without_ad_hoc_flag(
         self,
         mock_resolve: MagicMock,
         mock_get_state: MagicMock,

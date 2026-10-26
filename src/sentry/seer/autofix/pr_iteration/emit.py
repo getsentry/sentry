@@ -87,8 +87,8 @@ class PrIterationOutcome(StrEnum):
     # The drain popped the batch but failed to hand it to the agent.
     DRAIN_FAILED = "drain_failed"
     MISSING_GROUP_ID = "missing_group_id"
-    # Feedback was consumed, but background Ask Seer execution is not wired yet.
-    CONSUMER_NOT_IMPLEMENTED = "consumer_not_implemented"
+    # A background chat ended; this does not assert that its PR push finished.
+    CHAT_COMPLETED = "chat_completed"
 
     # technically we can recover from this
     # but an iteration is stuck until then
@@ -180,7 +180,7 @@ def bootstrap_iteration(
 
     group_id = identity.group_id if isinstance(identity, AutofixIterationIdentity) else None
     if create:
-        # Ask Seer runs have no issue or project context. Still open a row so
+        # Ad-hoc runs have no issue or project context. Still open a row so
         # feedback from SCM has the same iteration identity and deduplication.
         project_id = None
         if isinstance(identity, AutofixIterationIdentity):
@@ -486,12 +486,17 @@ def complete_pr_iteration_details(
         return
     set_pr_iteration_attributes(iteration_id=iteration_id)
 
-    _complete_iteration(
+    finish_pr_iteration_details(
         log_ctx=log_ctx,
-        run_state=run_state,
+        run_id=run_state.run_id,
         organization_id=organization_id,
         iteration_id=iteration_id,
         outcome=outcome,
+        head_shas=(
+            _pushed_head_shas(run_state)
+            if outcome == PrIterationOutcome.ALREADY_PUSHED.value
+            else []
+        ),
     )
 
 
@@ -508,25 +513,27 @@ def fail_pr_iteration_details(
     The agent never saw this batch, so the run state carries no id for it and
     the completion hook will never come; the drain passes the id it claimed.
     """
-    _complete_iteration(
+    finish_pr_iteration_details(
         log_ctx=log_ctx,
-        run_state=run_state,
+        run_id=run_state.run_id,
         organization_id=organization_id,
         iteration_id=iteration_id,
         outcome=outcome,
     )
 
 
-def _complete_iteration(
+def finish_pr_iteration_details(
     *,
     log_ctx: PrIterationLogContext,
-    run_state: SeerRunState,
+    run_id: int,
     organization_id: int,
     iteration_id: int,
     outcome: str,
+    head_shas: list[str] | None = None,
 ) -> None:
+    """Emit a terminal batch from either a run-state hook or a feature result."""
     try:
-        seer_run = _seer_run(run_id=run_state.run_id, organization_id=organization_id)
+        seer_run = _seer_run(run_id=run_id, organization_id=organization_id)
         if seer_run is None:
             log_ctx.error(
                 "autofix.pr_iteration.details.unresolved", exc_info=False, reason="no_seer_run"
@@ -538,17 +545,12 @@ def _complete_iteration(
             log_ctx.info("autofix.pr_iteration.details.skipped", reason="already_emitted")
             return
 
-        head_shas = (
-            _pushed_head_shas(run_state)
-            if outcome == PrIterationOutcome.ALREADY_PUSHED.value
-            else []
-        )
         event = build_iteration_event(
             log_ctx,
             iteration,
             AiAutofixPrIterationFeedbackBatchCompletedEvent,
             outcome=outcome,
-            head_shas=head_shas,
+            head_shas=head_shas or [],
         )
         if event is None:
             return

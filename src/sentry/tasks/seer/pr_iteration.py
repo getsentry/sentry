@@ -52,6 +52,10 @@ from sentry.seer.agent.client_utils import fetch_run_status, get_agent_state_fro
 from sentry.seer.autofix.autofix_agent import trigger_autofix_agent
 from sentry.seer.autofix.commit_author import commit_author_for_feedback
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.pr_iteration.ad_hoc import (
+    ad_hoc_iteration_running,
+    consume_ad_hoc_pr_iteration_feedback,
+)
 from sentry.seer.autofix.pr_iteration.bot_identity import bot_logins_for_feedback
 from sentry.seer.autofix.pr_iteration.cap_exhausted import assign_user_for_exhausted_cap
 from sentry.seer.autofix.pr_iteration.constants import PR_ITERATION_PROVIDER
@@ -90,7 +94,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPullRequestReviewComment,
 )
 from sentry.seer.autofix.pr_iteration.identity import (
-    AskSeerIterationIdentity,
+    AdHocIterationIdentity,
     AutofixIterationIdentity,
     IterationIdentity,
     iteration_identity_from_run,
@@ -541,7 +545,7 @@ def consume_queued_autofix_feedback(
             return
 
         # Resolve from fresh state, not the identity captured when feedback was
-        # queued: turning off Ask Seer's flag must also stop pending consumption.
+        # queued: turning off ad-hoc PR iteration's flag must also stop pending consumption.
         identity = iteration_identity_from_run(state, organization_id)
         if identity is None:
             log_ctx.info(
@@ -549,6 +553,17 @@ def consume_queued_autofix_feedback(
                 trigger_id=trigger_id,
                 trigger_source=trigger_source,
                 reason="not_enabled",
+            )
+            return
+
+        if isinstance(identity, AdHocIterationIdentity) and ad_hoc_iteration_running(
+            organization_id, run_id
+        ):
+            log_ctx.info(
+                "autofix.pr_iteration.consume_feedback.skipped",
+                trigger_id=trigger_id,
+                trigger_source=trigger_source,
+                reason="iteration_running",
             )
             return
 
@@ -568,42 +583,6 @@ def consume_queued_autofix_feedback(
                 error_type=type(e).__name__,
             )
             raise
-
-
-def _consume_ask_seer_pr_iteration_feedback(
-    *,
-    log_ctx: PrIterationLogContext,
-    state: SeerRunState,
-    organization_id: int,
-    feedback: Sequence[Feedback],
-    iteration_id: int | None,
-    trigger_id: str | None,
-    trigger_source: str | None,
-) -> None:
-    """Consume a batch without claiming that an agent has acted on it yet.
-
-    TODO: Start a fresh background chat pinned to the existing PR, with its own
-    completion hook. For this checkpoint, explicitly close out the bookkeeping
-    as unimplemented rather than leaving a triggered iteration dangling.
-    """
-    log_ctx.info(
-        "autofix.pr_iteration.consume_feedback.skipped",
-        reason="ask_seer_consumer_not_implemented",
-        iteration_type="ask_seer",
-        feedback_count=len(feedback),
-        run_status=state.status,
-        trigger_id=trigger_id,
-        trigger_source=trigger_source,
-    )
-    if iteration_id is not None:
-        fail_pr_iteration_details(
-            log_ctx=log_ctx,
-            run_state=state,
-            organization_id=organization_id,
-            iteration_id=iteration_id,
-            outcome=PrIterationOutcome.CONSUMER_NOT_IMPLEMENTED.value,
-        )
-    _record_drain_outcome(PrIterationOutcome.CONSUMER_NOT_IMPLEMENTED.value, trigger_source)
 
 
 def _dropped_drain_reason(dropped: list[dict[str, Any]]) -> str:
@@ -873,20 +852,7 @@ def _drain_queued_pr_iteration_feedback(
             feedback_bot_logins=bot_logins_for_feedback([item.source for item in feedback_items]),
         )
 
-    if isinstance(identity, AskSeerIterationIdentity):
-        _consume_ask_seer_pr_iteration_feedback(
-            log_ctx=log_ctx,
-            state=state,
-            organization_id=organization_id,
-            feedback=feedback_items,
-            iteration_id=iteration_id,
-            trigger_id=trigger_id,
-            trigger_source=trigger_source,
-        )
-        return
-
-    assert group is not None
-    # a drain (from the log above) with no trigger autofix agent below it means this call never came back.
+    # A drain with no trigger log below it means this call never came back.
     try:
         metrics.incr(
             "autofix.pr_iteration.step",
@@ -897,17 +863,28 @@ def _drain_queued_pr_iteration_feedback(
             },
             sample_rate=1.0,
         )
-        trigger_autofix_agent(
-            group=group,
-            step=AutofixStep.PR_ITERATION,
-            referrer=referrer,
-            run_id=run_id,
-            user_context="\n\n".join(item.text for item in feedback_items),
-            feedback=feedback_items,
-            actor_user_id=actor_user_id,
-            commit_author=commit_author_for_feedback(feedback_items, organization_id),
-            iteration_id=iteration_id,
-        )
+        if isinstance(identity, AdHocIterationIdentity):
+            consume_ad_hoc_pr_iteration_feedback(
+                log_ctx=log_ctx,
+                state=state,
+                organization_id=organization_id,
+                feedback=feedback_items,
+                iteration_id=iteration_id,
+                referrer=referrer,
+            )
+        else:
+            assert group is not None
+            trigger_autofix_agent(
+                group=group,
+                step=AutofixStep.PR_ITERATION,
+                referrer=referrer,
+                run_id=run_id,
+                user_context="\n\n".join(item.text for item in feedback_items),
+                feedback=feedback_items,
+                actor_user_id=actor_user_id,
+                commit_author=commit_author_for_feedback(feedback_items, organization_id),
+                iteration_id=iteration_id,
+            )
     except (PrIterationNoPullRequestException, SeerPermissionError) as error:
         log_ctx.info(
             "autofix.pr_iteration.consume_feedback.trigger_agent",

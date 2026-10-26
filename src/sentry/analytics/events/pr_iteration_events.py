@@ -25,7 +25,7 @@ class AiAutofixPrIterationFeedbackBatchCompletedEvent(analytics.Event):
 
     Accumulated on a ``SeerRunPrIteration`` row from the first queued feedback
     item and flushed by the completion hook or an explicit terminal drain
-    outcome. ``consumer_not_implemented`` means no agent was started.
+    outcome.
     """
 
     iteration_id: int
@@ -50,7 +50,7 @@ class AiAutofixPrIterationFeedbackBatchCompletedEvent(analytics.Event):
     outcome: str
 
     # Absent on older buffered rows, which were all Autofix iterations.
-    iteration_type: Literal["autofix", "ask_seer"] = "autofix"
+    iteration_type: Literal["autofix", "ad_hoc"] = "autofix"
 
     # Every ``AutofixReferrer`` behind the feedback the drain consumed, sorted,
     # deduped and joined with ``,``: ``github.check_suite,github.pr_comment``.
@@ -90,7 +90,7 @@ class AiAutofixPrIterationFeedbackBatchBlockedEvent(analytics.Event):
     # How long the batch had been waiting when the gate stopped it.
     duration_ms: int
     outcome: str
-    iteration_type: Literal["autofix", "ask_seer"] = "autofix"
+    iteration_type: Literal["autofix", "ad_hoc"] = "autofix"
 
 
 analytics.register(AiAutofixPrIterationMissingPermissionsEvent)
