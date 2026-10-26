@@ -2400,7 +2400,9 @@ describe('Investigation detail', () => {
     expect(screen.getByRole('button', {name: 'Stop'})).toBeInTheDocument();
 
     // Only offered while the panel is closed.
-    await userEvent.click(screen.getByRole('button', {name: 'Block actions for Summary'}));
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Block actions for Summary'})
+    );
     expect(
       screen.queryByRole('menuitemradio', {name: 'Show Seer activity'})
     ).not.toBeInTheDocument();
