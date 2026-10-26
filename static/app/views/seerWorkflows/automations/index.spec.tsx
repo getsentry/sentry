@@ -4,7 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import AutomationsList, {getNextUpdate} from 'sentry/views/seerWorkflows/configuration';
+import AutomationsList, {getNextUpdate} from 'sentry/views/seerWorkflows/automations';
 import type {SeerWorkflowConfigsResponse} from 'sentry/views/seerWorkflows/types';
 
 type Config = SeerWorkflowConfigsResponse['configs'][number];
