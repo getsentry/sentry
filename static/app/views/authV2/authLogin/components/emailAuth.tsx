@@ -209,7 +209,7 @@ export function EmailAuth({onAuthResult, organizationSlug}: EmailAuthProps) {
                 size="xs"
                 onClick={() => setPasswordRecoveryMode(true)}
               >
-                {t('Forgot password?')}
+                {t('Forgot your password?')}
               </ForgotPasswordButton>
             )}
           </Flex>

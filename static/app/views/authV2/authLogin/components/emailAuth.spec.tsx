@@ -166,7 +166,7 @@ describe('EmailAuth', () => {
       )
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Forgot password?'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Forgot your password?'}));
 
     expect(screen.queryByText('Invalid email or password')).not.toBeInTheDocument();
   });
@@ -191,7 +191,7 @@ describe('EmailAuth', () => {
   it('enters and exits password recovery', async () => {
     render(<EmailAuth onAuthResult={jest.fn()} />);
 
-    await userEvent.click(screen.getByRole('button', {name: 'Forgot password?'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Forgot your password?'}));
 
     expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Back to Login'})).toBeInTheDocument();
@@ -199,7 +199,9 @@ describe('EmailAuth', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Back to Login'}));
 
     expect(screen.getByLabelText('Password')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Forgot password?'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Forgot your password?'})
+    ).toBeInTheDocument();
   });
 
   it('shows password recovery errors', async () => {
@@ -211,7 +213,7 @@ describe('EmailAuth', () => {
     });
     render(<EmailAuth onAuthResult={jest.fn()} />);
 
-    await userEvent.click(screen.getByRole('button', {name: 'Forgot password?'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Forgot your password?'}));
     await userEvent.type(
       screen.getByRole('textbox', {name: 'Email'}),
       'user@example.com'
@@ -235,7 +237,7 @@ describe('EmailAuth', () => {
     });
     render(<EmailAuth onAuthResult={jest.fn()} />);
 
-    await userEvent.click(screen.getByRole('button', {name: 'Forgot password?'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Forgot your password?'}));
     await userEvent.type(
       screen.getByRole('textbox', {name: 'Email'}),
       'user@example.com'
