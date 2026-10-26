@@ -147,14 +147,44 @@ def send_thread_update(
 
 def edit_thread_message(
     *, install: SlackIntegration, channel_id: str, message_ts: str, data: NotificationData
-) -> None:
-    """Re-render a message we already posted from new data."""
-    renderable, _ = NotificationService.render_template(
-        data=data,
-        template=template_registry.get(data.source)(),
-        provider=provider_registry.get(NotificationProviderKey.SLACK),
-    )
-    install.update_message(channel_id=channel_id, message_ts=message_ts, renderable=renderable)
+) -> bool:
+    """
+    Re-render a message we already posted from new data.
+    Returns whether the message was edited. Raises IntegrationError when a retry may succeed.
+    """
+    from sentry.integrations.slack.utils.errors import MESSAGE_NOT_FOUND
+
+    with SlackEntrypointEventLifecycleMetric(
+        interaction_type=SlackEntrypointInteractionType.EDIT_THREAD_MESSAGE,
+        integration_id=install.model.id,
+        organization_id=install.organization_id,
+    ).capture() as lifecycle:
+        lifecycle.add_extras(
+            {"channel_id": channel_id, "message_ts": message_ts, "data_source": data.source}
+        )
+        renderable, _ = NotificationService.render_template(
+            data=data,
+            template=template_registry.get(data.source)(),
+            provider=provider_registry.get(NotificationProviderKey.SLACK),
+        )
+        try:
+            install.update_message(
+                channel_id=channel_id, message_ts=message_ts, renderable=renderable
+            )
+        except IntegrationConfigurationError as e:
+            lifecycle.record_halt(halt_reason=e)
+            return False
+        except TimeoutError as e:
+            lifecycle.record_failure(failure_reason=e)
+            raise IntegrationError("Slack request timed out") from e
+        except IntegrationError as e:
+            if e.message == MESSAGE_NOT_FOUND.message:
+                # Someone deleted the message, so retrying can't succeed.
+                lifecycle.record_halt(halt_reason=e)
+                return False
+            lifecycle.record_failure(failure_reason=e)
+            raise
+    return True
 
 
 @instrumented_task(
