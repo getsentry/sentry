@@ -1,9 +1,8 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 import {z} from 'zod';
 
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {
   addErrorMessage,
@@ -12,14 +11,14 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
+import {LegacyOnRouteLeave} from 'sentry/router/legacy/onRouteLeave';
 import {mapArrayToObject} from 'sentry/utils/array/mapArrayToObject';
-import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
-import {sampleRateField} from 'sentry/views/settings/dynamicSampling/organizationSampling';
 import {ProjectionPeriodControl} from 'sentry/views/settings/dynamicSampling/projectionPeriodControl';
 import {ProjectsEditTable} from 'sentry/views/settings/dynamicSampling/projectsEditTable';
 import {SamplingModeSwitch} from 'sentry/views/settings/dynamicSampling/samplingModeSwitch';
 import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
 import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
+import {sampleRateField} from 'sentry/views/settings/dynamicSampling/utils/schemas';
 import {
   useProjectSampleCounts,
   type ProjectionSamplePeriod,
@@ -143,7 +142,7 @@ export function ProjectSampling() {
 
           return (
             <Fragment>
-              <OnRouteLeave
+              <LegacyOnRouteLeave
                 message={UNSAVED_CHANGES_MESSAGE}
                 when={locationChange =>
                   locationChange.currentLocation.pathname !==
@@ -183,7 +182,12 @@ export function ProjectSampling() {
                   }
                 />
               )}
-              <FormActions />
+              <Grid
+                justify="end"
+                paddingBottom="3xl"
+                gap="md"
+                columns="repeat(2, max-content)"
+              />
             </Fragment>
           );
         }}
@@ -191,11 +195,3 @@ export function ProjectSampling() {
     </form.AppForm>
   );
 }
-
-const FormActions = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(2, max-content);
-  gap: ${p => p.theme.space.md};
-  justify-content: flex-end;
-  padding-bottom: ${p => p.theme.space['3xl']};
-`;

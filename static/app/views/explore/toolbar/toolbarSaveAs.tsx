@@ -1,10 +1,12 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import {mergeProps} from '@react-aria/utils';
 import * as Sentry from '@sentry/react';
 
-import {Button, LinkButton} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
-import {Grid} from '@sentry/scraps/layout';
+import {Container, Grid} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {
   addErrorMessage,
@@ -37,6 +39,7 @@ import {
   useQueryParamsCrossEvents,
   useQueryParamsFields,
   useQueryParamsGroupBys,
+  useQueryParamsHasTransformations,
   useQueryParamsId,
   useQueryParamsMode,
   useQueryParamsQuery,
@@ -44,7 +47,10 @@ import {
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
-import {isVisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {
+  isVisualizeFunction,
+  serializeVisualizes,
+} from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   hasConditionalAggregateFilter,
@@ -65,6 +71,7 @@ export function ToolbarSaveAs() {
   const query = useQueryParamsQuery();
   const groupBys = useQueryParamsGroupBys();
   const visualizes = useQueryParamsVisualizes();
+  const hasTransformations = useQueryParamsHasTransformations();
   const fields = useQueryParamsFields();
   const sampleSortBys = useQueryParamsSortBys();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
@@ -245,11 +252,7 @@ export function ToolbarSaveAs() {
       ),
       !valueIsEqual(locationSortByString, singleQuery?.orderby),
       !valueIsEqual(fields, singleQuery?.fields),
-      !valueIsEqual(
-        visualizes.map(visualize => visualize.serialize()),
-        singleQuery?.visualize,
-        true
-      ),
+      !valueIsEqual(serializeVisualizes(visualizes), singleQuery?.visualize, true),
       !valueIsEqual(savedQuery.crossEvents ?? [], crossEvents ?? [], true),
       !valueIsEqual(savedQuery.projects, pageFilters.selection.projects),
       !valueIsEqual(savedQuery.environment, pageFilters.selection.environments),
@@ -261,7 +264,7 @@ export function ToolbarSaveAs() {
         (pageFilters.selection.datetime.end
           ? new Date(pageFilters.selection.datetime.end).getTime()
           : null),
-      (savedQuery.range ?? null) !== pageFilters.selection.datetime.period,
+      (savedQuery.statsPeriod ?? null) !== pageFilters.selection.datetime.period,
     ];
     return hasChangesArray.some(Boolean);
   }, [
@@ -292,19 +295,24 @@ export function ToolbarSaveAs() {
         <DropdownMenu
           items={items}
           trigger={triggerProps => (
-            <SaveAsButton
-              {...triggerProps}
-              variant="primary"
-              aria-label={t('Save as')}
-              onClick={e => {
-                e.stopPropagation();
-                e.preventDefault();
-
-                triggerProps.onClick?.(e);
-              }}
-            >
-              {shouldHighlightSaveButton ? t('Save') : t('Save as')}
-            </SaveAsButton>
+            <Container width="100%">
+              {containerProps => (
+                <OverlayTrigger.Button
+                  {...mergeProps(triggerProps, containerProps)}
+                  showChevron={false}
+                  variant="primary"
+                  disabled={hasTransformations}
+                  tooltipProps={
+                    hasTransformations
+                      ? {title: t('Queries with transformations cannot be saved yet.')}
+                      : undefined
+                  }
+                  aria-label={t('Save as')}
+                >
+                  {shouldHighlightSaveButton ? t('Save') : t('Save as')}
+                </OverlayTrigger.Button>
+              )}
+            </Container>
           )}
         />
 
@@ -355,8 +363,4 @@ const DisabledText = styled('span')`
 export const SaveStyledToolbarSection = styled(ToolbarSection)`
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
   padding-top: ${p => p.theme.space['2xl']};
-`;
-
-const SaveAsButton = styled(Button)`
-  width: 100%;
 `;

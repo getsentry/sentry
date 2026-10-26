@@ -40,7 +40,7 @@ function syncUpdatedMetricQueries(
 }
 
 export interface MetricQueriesControllerValue {
-  addMetricQuery: (options?: {type?: 'aggregate' | 'equation'}) => void;
+  addMetricQuery: (options?: {type?: 'aggregate' | 'equation'}) => string;
   metricQueries: MetricQuery[];
   reorderMetricQueries: (
     reorderedQueries: BaseMetricQuery[],
@@ -182,6 +182,7 @@ export function useMetricQueriesController({
 
       labels.insert(insertAt, nextLabel);
       setQueries(labeledQueries.toSpliced(insertAt, 0, newQuery));
+      return nextLabel;
     }
 
     function reorderMetricQueries(

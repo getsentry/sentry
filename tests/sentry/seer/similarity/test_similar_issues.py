@@ -24,7 +24,7 @@ from sentry.seer.similarity.types import (
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.utils import json
-from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
+from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 
 class GetSimilarityDataFromSeerTest(TestCase):
@@ -33,9 +33,9 @@ class GetSimilarityDataFromSeerTest(TestCase):
         self.enterContext(
             viewer_context_scope(
                 ViewerContext(
+                    actor=Actor(type=ActorType.SYSTEM),
                     organization_id=self.organization.id,
                     project_id=self.project.id,
-                    actor_type=ActorType.SYSTEM,
                 )
             )
         )

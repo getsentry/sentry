@@ -20,6 +20,7 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
             validator=validate_event_id,
             normalizer=normalize_event_id_strict,
+            canonical_case=True,
         ),
         ResolvedAttribute(
             public_alias="severity_number",
@@ -53,6 +54,7 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
             validator=validate_event_id,
             normalizer=normalize_event_id_strict,
+            canonical_case=True,
             context=AttributeContext(
                 brief=(
                     "A trace represents the record of the entire operation you want to "
@@ -64,6 +66,7 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
         ResolvedAttribute(
             public_alias=constants.TIMESTAMP_PRECISE_ALIAS,
             internal_name="sentry.timestamp_precise",
+            internal_type=constants.INT,
             search_type="number",
         ),
         ResolvedAttribute(

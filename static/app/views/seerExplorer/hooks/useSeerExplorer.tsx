@@ -114,10 +114,6 @@ export const useSeerExplorer = () => {
   const capturePageContext = usePageContextCapture();
   const {getPageReferrer} = usePageReferrer();
   const timezone = useTimezone();
-  const [overrideCtxEngEnable, setOverrideCtxEngEnable] = useLocalStorageState(
-    'seer-explorer.override.ctx-eng',
-    true
-  );
   type CodeModeValue = 'off' | 'on' | 'only';
   const [overrideCodeModeEnable, setOverrideCodeModeEnable] =
     useLocalStorageState<CodeModeValue>(
@@ -264,7 +260,6 @@ export const useSeerExplorer = () => {
       orgSlug: string;
       overrideBashModeEnabled: boolean;
       overrideCodeModeEnable: 'off' | 'on' | 'only';
-      overrideCtxEngEnable: boolean;
       pageLocation: LLMContextLocation | undefined;
       pageName: string;
       /** The pending prompt this send took from chat state, put back if it fails. */
@@ -294,7 +289,6 @@ export const useSeerExplorer = () => {
           page_name: params.pageName,
           page_location: params.pageLocation,
           sent_at: params.sentAt,
-          override_ce_enable: params.overrideCtxEngEnable,
           override_bash_mode_enabled: params.overrideBashModeEnabled,
           override_code_mode_enable: params.overrideCodeModeEnable,
           chat_prompt: params.chatPrompt?.text,
@@ -511,7 +505,7 @@ export const useSeerExplorer = () => {
 
   /** Switches to a different run and fetches its latest state. */
   const switchToRun = useCallback(
-    (newRunId: SeerExplorerRunId | null, {onSuccess}: {onSuccess?: () => void} = {}) => {
+    (newRunId: SeerExplorerRunId | null) => {
       if (newRunId === runId) {
         return;
       }
@@ -527,19 +521,14 @@ export const useSeerExplorer = () => {
           queryKey: makeSeerExplorerQueryKey(orgSlug, newRunId),
         });
       }
-
-      onSuccess?.();
     },
     [orgSlug, queryClient, runId, dispatch]
   );
 
   /** Resets the hook state. The session isn't actually created until the user sends a message. */
-  const startNewSession = useCallback(
-    ({onSuccess}: {onSuccess?: () => void} = {}) => {
-      switchToRun(null, {onSuccess});
-    },
-    [switchToRun]
-  );
+  const startNewSession = useCallback(() => {
+    switchToRun(null);
+  }, [switchToRun]);
 
   const sendMessage = useCallback(
     (
@@ -573,7 +562,7 @@ export const useSeerExplorer = () => {
 
       const {snapshot, screenshot} = capturePageContext({
         route: pageName,
-        allowStructured: overrideCtxEngEnable,
+        allowStructured: true,
       });
 
       trackAnalytics('seer.explorer.message_sent', {
@@ -638,7 +627,6 @@ export const useSeerExplorer = () => {
         ],
         screenshot,
         overrideBashModeEnabled,
-        overrideCtxEngEnable,
         overrideCodeModeEnable,
       });
     },
@@ -651,7 +639,6 @@ export const useSeerExplorer = () => {
       getPageReferrer,
       organization,
       overrideBashModeEnabled,
-      overrideCtxEngEnable,
       overrideCodeModeEnable,
       pendingChatPrompt,
       sendMessageMutate,
@@ -810,6 +797,7 @@ export const useSeerExplorer = () => {
     const baseSession = rawSessionData ?? {
       blocks: [],
       status: 'processing' as const,
+      // oxlint-disable-next-line react/purity -- The optimistic session stays fresh until the server returns one.
       updated_at: new Date().toISOString(),
     };
 
@@ -841,8 +829,6 @@ export const useSeerExplorer = () => {
     createPR,
     overrideBashModeEnabled,
     setOverrideBashModeEnabled,
-    overrideCtxEngEnable,
-    setOverrideCtxEngEnable,
     overrideCodeModeEnable,
     setOverrideCodeModeEnable,
   };

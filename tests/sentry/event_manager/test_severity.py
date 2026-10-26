@@ -26,7 +26,7 @@ from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.skips import requires_snuba
-from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
+from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 pytestmark = [requires_snuba]
 
@@ -45,9 +45,9 @@ class TestGetEventSeverity(TestCase):
         self.enterContext(
             viewer_context_scope(
                 ViewerContext(
+                    actor=Actor(type=ActorType.SYSTEM),
                     organization_id=self.organization.id,
                     project_id=self.project.id,
-                    actor_type=ActorType.SYSTEM,
                 )
             )
         )
@@ -108,11 +108,12 @@ class TestGetEventSeverity(TestCase):
             assert "Authorization" in headers
             assert "X-Viewer-Context-Signature" not in headers
             # ViewerContext is now a JWT
-            from sentry.viewer_context import decode_viewer_context
+            from sentry.viewer_context import ViewerContext, decode_viewer_context
 
             vc = decode_viewer_context(headers["X-Viewer-Context"], key="some-secret")
+            assert isinstance(vc, ViewerContext)
             assert vc.organization_id == self.project.organization_id
-            assert vc.actor_type == ActorType.SYSTEM
+            assert vc.actor.type == ActorType.SYSTEM
 
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",

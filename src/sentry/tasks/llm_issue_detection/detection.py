@@ -34,7 +34,7 @@ from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.utils import json
-from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
+from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 logger = logging.getLogger("sentry.tasks.llm_issue_detection")
 
@@ -304,9 +304,7 @@ def detect_llm_issues_for_org(org_id: int, plan_tier: str = "business") -> None:
         return
 
     system_viewer_context = ViewerContext(
-        organization_id=org_id,
-        project_id=project_id,
-        actor_type=ActorType.SYSTEM,
+        actor=Actor(type=ActorType.SYSTEM), organization_id=org_id, project_id=project_id
     )
     with viewer_context_scope(system_viewer_context):
         budget_response = make_signed_seer_api_request(

@@ -13,6 +13,7 @@ import sentry_sdk
 from django.conf import settings
 from django.http import HttpResponse
 from django.http.request import HttpRequest
+from django.utils.module_loading import import_string
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import status
 from rest_framework.authentication import BaseAuthentication, SessionAuthentication
@@ -111,6 +112,7 @@ CURSOR_LINK_HEADER = (
 )
 
 DEFAULT_AUTHENTICATION = (
+    *map(import_string, settings.SENTRY_EXTRA_API_AUTHENTICATION),
     UserAuthTokenAuthentication,
     OrgAuthTokenAuthentication,
     AgentTokenAuthentication,
@@ -659,6 +661,10 @@ class Endpoint(APIView):
                 attributes={"sentry.op": "base.paginate.on_results"},
             ):
                 results = on_results(cursor_result.results)
+            # Skip None items as that generally isn't comformant with API
+            # specs, and None often points to serialization failures.
+            if isinstance(results, list):
+                results = [item for item in results if item is not None]
         else:
             results = cursor_result.results
 

@@ -23,16 +23,16 @@ from sentry.analytics.events.manual_issue_assignment import ManualIssueAssignmen
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.api.serializers.models.groupactionlogentry import get_serialized_activity_items
+from sentry.exceptions import InvalidSearchQuery
 from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.action_log import (
     action_context_scope,
     get_action_context,
     publish_action,
-    resolve_action_actor,
-    resolve_action_source,
 )
 from sentry.issues.action_log.read_metrics import activity_read_endpoint
+from sentry.issues.action_log.request import resolve_action_actor, resolve_action_source
 from sentry.issues.action_log.types import MergeIntoOtherAction
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
@@ -218,7 +218,7 @@ def update_groups(
     organization = projects[0].organization if projects else None
 
     if not groups:
-        return Response({"detail": "No groups found"}, status=204)
+        return Response(status=204)
 
     serializer = validate_request(request, projects, data, user)
 
@@ -333,11 +333,15 @@ def update_groups_with_search_fn(
             return Response(
                 {"detail": "Invalid query. Error getting group ids and group list"}, status=400
             )
+        except InvalidSearchQuery:
+            # Raised while building the Snuba query (e.g. `issue:` with an
+            # invalid short ID). This is a client error; don't report it.
+            return Response({"detail": "Invalid search query."}, status=400)
 
         group_list = list(cursor_result)
 
     if not group_list:
-        return Response({"detail": "No groups found"}, status=204)
+        return Response(status=204)
 
     return update_groups(request, group_list)
 

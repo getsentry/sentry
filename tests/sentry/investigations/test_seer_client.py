@@ -17,7 +17,7 @@ from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerRunType
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.testutils.cases import TestCase
-from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
+from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 
 class InvestigationOrchestrationSeerClientTest(TestCase):
@@ -25,10 +25,9 @@ class InvestigationOrchestrationSeerClientTest(TestCase):
         self.enterContext(
             viewer_context_scope(
                 ViewerContext(
+                    actor=Actor(type=ActorType.USER, actor_id=self.user.id),
                     organization_id=self.organization.id,
                     project_id=self.project.id,
-                    user_id=self.user.id,
-                    actor_type=ActorType.USER,
                 )
             )
         )

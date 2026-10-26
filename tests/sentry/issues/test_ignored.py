@@ -76,7 +76,7 @@ class HandleArchiveUntilEscalating(TestCase):
         assert not GroupSnooze.objects.filter(group=self.group).exists()
         assert status_details == {"ignoreUntilEscalating": True}
 
-        fetched_forecast = EscalatingGroupForecast.fetch(self.group.project.id, self.group.id)
+        fetched_forecast = EscalatingGroupForecast.fetch(self.group)
         assert fetched_forecast and fetched_forecast.forecast == ONE_EVENT_FORECAST
         assert mock_generate_and_save_missing_forecasts.call_count == 1
 
@@ -103,7 +103,7 @@ class HandleArchiveUntilEscalating(TestCase):
         assert not GroupSnooze.objects.filter(group=self.group).exists()
         assert status_details == {"ignoreUntilEscalating": True}
 
-        fetched_forecast = EscalatingGroupForecast.fetch(self.group.project.id, self.group.id)
+        fetched_forecast = EscalatingGroupForecast.fetch(self.group)
         assert fetched_forecast is not None
         assert fetched_forecast.project_id == self.group.project.id
         assert fetched_forecast.group_id == self.group.id

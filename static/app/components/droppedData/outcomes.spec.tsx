@@ -1,6 +1,79 @@
 import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {getOutcomeColors, reasonDescription, reasonTitle} from './outcomes';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+
+import {
+  buildAskSeerPrompt,
+  datasetNoun,
+  droppedAndFilteredLabel,
+  droppedDataLabel,
+  getOutcomeColors,
+  reasonDocsUrl,
+  reasonTitle,
+} from './outcomes';
+
+describe('droppedDataLabel', () => {
+  it('names the telemetry type', () => {
+    expect(droppedDataLabel(DiscoverDatasets.SPANS)).toBe('Dropped Spans');
+    expect(droppedDataLabel(DiscoverDatasets.OURLOGS)).toBe('Dropped Logs');
+    expect(droppedDataLabel(DiscoverDatasets.TRACEMETRICS)).toBe('Dropped Metrics');
+    expect(droppedDataLabel(DiscoverDatasets.ERRORS)).toBe('Dropped Errors');
+  });
+
+  it('falls back to events for other datasets', () => {
+    expect(droppedDataLabel(DiscoverDatasets.TRANSACTIONS)).toBe('Dropped Events');
+  });
+});
+
+describe('droppedAndFilteredLabel', () => {
+  it('names the telemetry type', () => {
+    expect(droppedAndFilteredLabel(DiscoverDatasets.SPANS)).toBe(
+      'Dropped and Filtered Spans'
+    );
+    expect(droppedAndFilteredLabel(DiscoverDatasets.OURLOGS)).toBe(
+      'Dropped and Filtered Logs'
+    );
+    expect(droppedAndFilteredLabel(DiscoverDatasets.TRACEMETRICS)).toBe(
+      'Dropped and Filtered Metrics'
+    );
+    expect(droppedAndFilteredLabel(DiscoverDatasets.ERRORS)).toBe(
+      'Dropped and Filtered Errors'
+    );
+  });
+
+  it('falls back to events for other datasets', () => {
+    expect(droppedAndFilteredLabel(DiscoverDatasets.TRANSACTIONS)).toBe(
+      'Dropped and Filtered Events'
+    );
+  });
+});
+
+describe('datasetNoun', () => {
+  it('pluralizes the telemetry type by count', () => {
+    expect(datasetNoun(DiscoverDatasets.SPANS, 1)).toBe('span');
+    expect(datasetNoun(DiscoverDatasets.SPANS, 0)).toBe('spans');
+    expect(datasetNoun(DiscoverDatasets.OURLOGS, 2)).toBe('logs');
+    expect(datasetNoun(DiscoverDatasets.TRACEMETRICS, 2)).toBe('metrics');
+    expect(datasetNoun(DiscoverDatasets.ERRORS, 1)).toBe('error');
+  });
+
+  it('falls back to events for other datasets', () => {
+    expect(datasetNoun(DiscoverDatasets.TRANSACTIONS, 2)).toBe('events');
+  });
+});
+
+describe('buildAskSeerPrompt', () => {
+  it('uses customer-facing dataset names, never the internal enum value', () => {
+    const prompt = buildAskSeerPrompt({
+      dataset: DiscoverDatasets.OURLOGS,
+      outcome: 'client_discard',
+      reason: 'buffer_overflow',
+    });
+
+    expect(prompt).toContain('My log data');
+    expect(prompt).not.toContain('ourlogs');
+  });
+});
 
 describe('getOutcomeColors', () => {
   it('assigns the same colors regardless of input order', () => {
@@ -33,40 +106,50 @@ describe('reasonTitle', () => {
     expect(reasonTitle('log_bytes_usage_exceeded')).toBe('Quota exceeded');
   });
 
+  it('titles the localhost filter and invalid timestamp reasons', () => {
+    expect(reasonTitle('localhost')).toBe('Localhost filter');
+    expect(reasonTitle('timestamp')).toBe('Invalid timestamp');
+  });
+
+  it("maps the JavaScript SDK's ignored reason to the ignored spans title", () => {
+    expect(reasonTitle('ignored')).toBe('Dropped by ignored spans');
+  });
+
+  it('titles the cors reason', () => {
+    expect(reasonTitle('cors')).toBe('Disallowed origin');
+  });
+
+  it('maps dynamic-sampling reasons that carry a rule-id suffix', () => {
+    expect(reasonTitle('Sampled:3000')).toBe('Dynamic sampling');
+  });
+
+  it('distinguishes legacy dynamic sampling from current dynamic sampling', () => {
+    expect(reasonTitle('transaction_sampled')).toBe('Dynamic sampling (legacy)');
+  });
+
   it('falls back to the raw code for an unknown reason', () => {
     expect(reasonTitle('some_new_reason')).toBe('some_new_reason');
   });
 });
 
-describe('reasonDescription', () => {
-  it('returns the short description for a known reason', () => {
-    expect(reasonDescription('queue_overflow', 'span')).toBe(
-      "SDK's send queue was full."
+describe('reasonDocsUrl', () => {
+  const docsUrl = 'https://docs.sentry.io/product/explore/dropped-data/';
+
+  it("anchors to the reason's docs section", () => {
+    expect(reasonDocsUrl('ratelimit_backoff')).toBe(`${docsUrl}#sdk-rate-limit-backoff`);
+    expect(reasonDocsUrl('chunk-load-error')).toBe(`${docsUrl}#chunkloaderror-filter`);
+    expect(reasonDocsUrl('transaction_sampled')).toBe(
+      `${docsUrl}#dynamic-sampling-legacy`
     );
   });
 
-  it('names the data type from the event category', () => {
-    expect(reasonDescription('project_abuse_limit', 'log_item')).toBe(
-      'Your log events exceeded the project abuse limit.'
-    );
-    expect(reasonDescription('usage_exceeded', 'trace_metric')).toBe(
-      'Your organization hit its quota for the application metric event type.'
-    );
+  it('normalizes reason codes before linking', () => {
+    expect(reasonDocsUrl('ignored')).toBe(`${docsUrl}#dropped-by-ignored-spans`);
+    expect(reasonDocsUrl('Sampled:3000')).toBe(`${docsUrl}#dynamic-sampling`);
+    expect(reasonDocsUrl('error_usage_exceeded')).toBe(`${docsUrl}#quota-exceeded`);
   });
 
-  it('describes category-prefixed quota reasons', () => {
-    expect(reasonDescription('span_usage_exceeded', 'span')).toBe(
-      'Your organization hit its quota for the span event type.'
-    );
-  });
-
-  it('drops the data type for an unknown category', () => {
-    expect(reasonDescription('too_large:event', 'unknown')).toBe(
-      'The event exceeded maximum payload size.'
-    );
-  });
-
-  it('returns undefined for an unknown reason', () => {
-    expect(reasonDescription('some_new_reason', 'span')).toBeUndefined();
+  it('links an unknown reason to the docs page without an anchor', () => {
+    expect(reasonDocsUrl('some_new_reason')).toBe(docsUrl);
   });
 });

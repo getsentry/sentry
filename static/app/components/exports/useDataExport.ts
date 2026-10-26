@@ -44,6 +44,7 @@ export interface ExploreQueryInfo {
   project: number[];
   query: string;
   sort: string[];
+  caseInsensitive?: '1';
   end?: string;
   environment?: string[];
   sampling?: EventsQuerySamplingMode;

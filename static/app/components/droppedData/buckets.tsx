@@ -1,137 +1,98 @@
 import type {
   DroppedDataBucket,
   DroppedEventsBucket,
-  EventVolume,
   OutcomeVolume,
 } from 'sentry/components/droppedData/types';
 import {defined} from 'sentry/utils/defined';
 
-const CONFIGURED_CLIENT_DISCARD_REASONS = new Set(['before_send', 'sample_rate']);
-
-function isConfiguredDrop({outcome, reason}: DroppedEventsBucket): boolean {
-  if (outcome === 'filtered') {
-    return true;
-  }
-
-  return outcome === 'client_discard' && CONFIGURED_CLIENT_DISCARD_REASONS.has(reason);
-}
+const MIN_HIGHLIGHT_RATIO = 0.001;
 
 interface BucketDraft {
+  accepted: number;
   byOutcome: Map<string, OutcomeVolume>;
-  dropped: EventVolume;
+  dropped: number;
   end: number;
-  events: DroppedEventsBucket[];
   start: number;
 }
 
-function emptyVolume(): EventVolume {
-  return {count: 0};
-}
+function getOrCreateDraft(
+  drafts: Map<number, BucketDraft>,
+  {start, end}: DroppedEventsBucket
+): BucketDraft {
+  let draft = drafts.get(start);
 
-function addCount(volume: EventVolume, event: DroppedEventsBucket): void {
-  volume.count += event.count;
+  if (!draft) {
+    draft = {start, end, byOutcome: new Map(), dropped: 0, accepted: 0};
+    drafts.set(start, draft);
+  }
+
+  return draft;
 }
 
 function addDroppedEvent(
-  drafts: Map<string, BucketDraft>,
+  drafts: Map<number, BucketDraft>,
   event: DroppedEventsBucket
 ): void {
-  if (isConfiguredDrop(event)) {
+  const draft = getOrCreateDraft(drafts, event);
+
+  if (!event.tags.includes('unintentional')) {
     return;
   }
 
-  const key = `${event.start}-${event.end}`;
-  let draft = drafts.get(key);
-
-  if (!draft) {
-    draft = {
-      start: event.start,
-      end: event.end,
-      events: [],
-      byOutcome: new Map(),
-      dropped: emptyVolume(),
-    };
-    drafts.set(key, draft);
-  }
-
-  draft.events.push(event);
-  addCount(draft.dropped, event);
+  draft.dropped += event.count;
 
   let outcomeVolume = draft.byOutcome.get(event.outcome);
   if (!outcomeVolume) {
-    outcomeVolume = {
-      outcome: event.outcome,
-      ...emptyVolume(),
-    };
+    outcomeVolume = {outcome: event.outcome, count: 0};
     draft.byOutcome.set(event.outcome, outcomeVolume);
   }
-  addCount(outcomeVolume, event);
+  outcomeVolume.count += event.count;
 }
 
-function acceptedVolumeByStart(events: DroppedEventsBucket[]): Map<number, EventVolume> {
-  const volumes = new Map<number, EventVolume>();
-
-  for (const event of events) {
-    const accepted = volumes.get(event.start) ?? emptyVolume();
-    addCount(accepted, event);
-    volumes.set(event.start, accepted);
-  }
-
-  return volumes;
-}
-
-function toBucket(
-  draft: BucketDraft,
-  acceptedByStart: Map<number, EventVolume>
-): DroppedDataBucket {
-  const accepted = acceptedByStart.get(draft.start) ?? emptyVolume();
-  const total = draft.dropped.count + accepted.count;
-  const ratio = total > 0 ? draft.dropped.count / total : 0;
+function toBucket(draft: BucketDraft): DroppedDataBucket {
+  const total = draft.dropped + draft.accepted;
+  const ratio = total > 0 ? draft.dropped / total : 0;
 
   return {
     start: draft.start,
     end: draft.end,
-    events: draft.events,
     byOutcome: Array.from(draft.byOutcome.values()).sort((a, b) => b.count - a.count),
     dropped: draft.dropped,
-    accepted,
+    accepted: draft.accepted,
     ratio,
   };
 }
 
 /**
- * Group dropped events by their `(start, end)` time bucket, joining the
- * accepted volume for the same bucket so every total has a denominator.
+ * Group events into one bucket per time range, joining dropped and accepted
+ * events so every total has a denominator.
  */
 export function groupIntoBuckets(
   droppedEvents: DroppedEventsBucket[],
   acceptedEvents: DroppedEventsBucket[] = []
 ): DroppedDataBucket[] {
-  const drafts = new Map<string, BucketDraft>();
+  const drafts = new Map<number, BucketDraft>();
 
+  for (const event of acceptedEvents) {
+    getOrCreateDraft(drafts, event).accepted += event.count;
+  }
   for (const event of droppedEvents) {
     addDroppedEvent(drafts, event);
   }
 
-  const acceptedByStart = acceptedVolumeByStart(acceptedEvents);
-
-  return Array.from(drafts.values()).map(draft => toBucket(draft, acceptedByStart));
+  return Array.from(drafts.values()).map(toBucket);
 }
 
-export function highlightedBuckets(
-  droppedEvents: DroppedEventsBucket[],
-  acceptedEvents?: DroppedEventsBucket[]
-): DroppedDataBucket[] {
-  return groupIntoBuckets(droppedEvents, acceptedEvents).filter(
-    bucket => bucket.ratio > 0
-  );
+export function isHighlighted(bucket: DroppedDataBucket): boolean {
+  return bucket.ratio >= MIN_HIGHLIGHT_RATIO;
 }
 
 export function hasDroppedData(
   droppedEvents: DroppedEventsBucket[] | undefined,
   acceptedEvents?: DroppedEventsBucket[]
-): droppedEvents is DroppedEventsBucket[] {
+): boolean {
   return (
-    defined(droppedEvents) && highlightedBuckets(droppedEvents, acceptedEvents).length > 0
+    defined(droppedEvents) &&
+    groupIntoBuckets(droppedEvents, acceptedEvents).some(isHighlighted)
   );
 }

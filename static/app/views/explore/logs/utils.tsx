@@ -18,7 +18,9 @@ import {
   fieldAlignment,
   type Sort,
 } from 'sentry/utils/discover/fields';
+import {AggregationKey} from 'sentry/utils/fields';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
+import {getTimeSeriesForQuery} from 'sentry/utils/timeSeries/getTimeSeriesForQuery';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {getBodySearchTerms} from 'sentry/views/explore/bodySearchTerms';
@@ -355,7 +357,10 @@ export function calculateAverageLogsPerSecond(
     return 0;
   }
 
-  const allSeries = Object.values(timeseriesResult.data)[0];
+  const allSeries = getTimeSeriesForQuery(
+    timeseriesResult.data,
+    `${AggregationKey.COUNT}(${OurLogKnownFieldKey.MESSAGE})`
+  );
   if (!Array.isArray(allSeries) || allSeries.length === 0) {
     return 0;
   }
@@ -506,7 +511,7 @@ export function getLogsUrlFromSavedQueryUrl({
     selection: {
       datetime: {
         end: savedQuery.end ?? null,
-        period: savedQuery.range ?? null,
+        period: savedQuery.statsPeriod ?? null,
         start: savedQuery.start ?? null,
         utc: null,
       },

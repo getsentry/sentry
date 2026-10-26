@@ -300,6 +300,49 @@ _REDIS_TRANSACTION_CALLSTACK_ALLOWLIST_RATCHET = frozenset(
     }
 )
 
+# INFRENG-727: Existing lock calls inside DB transactions. The redis-blaster lock backend was not
+# wrapped by this check, so these stayed hidden until default locks moved to RedisClusterLockBackend.
+_REDIS_TRANSACTION_LOCK_ALLOWLIST_RATCHET = frozenset(
+    {
+        # --------------------------------
+        # Getsentry stacks. Getsentry tests use the same default lock backend and the same check.
+        # --------------------------------
+        #
+        # INFRENG-811: reserved_budget_subscription_lock in tally_usage
+        (
+            "getsentry.billing.reserved_budgets.reserved_budget_subscription_lock.<locals>.get_decorator.<locals>.lock_wrapper",
+            "getsentry.billing.reserved_budgets.recompute_all_reserved_budget_spends",
+        ),
+        # INFRENG-812: subscription_lock during org provisioning (start_trial, and the legacy
+        # on-demand max spend upgrade from switch_performance_plan)
+        (
+            "getsentry.models.subscription.subscription_lock.<locals>.wrapper",
+            "getsentry.billing.trial.start_trial",
+            "getsentry.billing.provision_new_org_for_billing._finalize_channel_subscription",
+        ),
+        (
+            "getsentry.models.subscription.subscription_lock.<locals>.wrapper",
+            "getsentry.billing.ondemand_budgets.legacy_upgrade_ondemand_max_spend",
+            "getsentry.billing.switch_plan.switch_performance_plan",
+        ),
+        # INFRENG-813: platform trial locks in TrialService._create_product_trial and
+        # _create_subscription_trial
+        (
+            "getsentry.billing.platform.services.engagement.services.trial.service.TrialService._create_product_trial",
+        ),
+        (
+            "getsentry.billing.platform.services.engagement.services.trial.service.TrialService._create_subscription_trial",
+        ),
+        # INFRENG-814: customer model_lock in MissingCustomerRelation.repair
+        (
+            "getsentry.models.customer.model_lock.<locals>.inner.<locals>.wrapped",
+            "getsentry.accounts.repair.missing_data.MissingCustomerRelation.repair",
+        ),
+        # INFRENG-804: platform charge lock in ChargeService.capture_charge (needs its own ticket)
+        ("getsentry.billing.platform.services.charge.service.ChargeService.capture_charge",),
+    }
+)
+
 
 def _add_transaction_checks(
     client: RedisCluster[T] | StrictRedis[T],
@@ -347,12 +390,45 @@ def _assert_redis_transaction_allowed(message: str) -> None:
             return
         if _matches_redis_transaction_ratchet(callers):
             return
+        if _matches_redis_transaction_lock_ratchet(callers):
+            return
+
         raise AssertionError(f"{message} (Redis caller: {caller or 'unknown'})") from None
 
 
 def _matches_redis_transaction_ratchet(callers: tuple[str, ...]) -> bool:
     for signature in _REDIS_TRANSACTION_CALLSTACK_ALLOWLIST_RATCHET:
         remaining_callers = iter(callers)
+        if all(caller in remaining_callers for caller in signature):
+            return True
+    return False
+
+
+_REDIS_LOCK_BACKEND_CALLERS = (
+    "sentry.utils.locking.backends.redis.BaseRedisLockBackend.acquire",
+    "sentry.utils.locking.backends.redis.BaseRedisLockBackend.release",
+)
+_REDIS_LOCK_INTERNAL_PREFIXES = ("sentry.utils.locking.", "sentry.utils.retries.", "contextlib.")
+
+
+def _matches_redis_transaction_lock_ratchet(
+    callers: tuple[str, ...],
+    allowlist: frozenset[tuple[str, ...]] = _REDIS_TRANSACTION_LOCK_ALLOWLIST_RATCHET,
+) -> bool:
+    if not callers or callers[0] not in _REDIS_LOCK_BACKEND_CALLERS:
+        return False
+    owner_index = 0
+    while owner_index < len(callers) and callers[owner_index].startswith(
+        _REDIS_LOCK_INTERNAL_PREFIXES
+    ):
+        owner_index += 1
+    if owner_index == len(callers):
+        return False
+    owner = callers[owner_index]
+    for owner_signature, *signature in allowlist:
+        if owner_signature != owner:
+            continue
+        remaining_callers = iter(callers[owner_index + 1 :])
         if all(caller in remaining_callers for caller in signature):
             return True
     return False

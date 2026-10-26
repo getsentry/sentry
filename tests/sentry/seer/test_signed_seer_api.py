@@ -5,7 +5,6 @@ from django.test import override_settings
 from urllib3 import HTTPConnectionPool, HTTPResponse
 from urllib3.exceptions import ReadTimeoutError
 
-from sentry.auth.services.auth import AuthenticatedToken
 from sentry.seer.signed_seer_api import (
     MissingViewerContextError,
     SeerViewerContext,
@@ -13,7 +12,13 @@ from sentry.seer.signed_seer_api import (
     make_delete_grouping_records_by_project_request,
     make_signed_seer_api_request,
 )
-from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
+from sentry.viewer_context import (
+    Actor,
+    ActorType,
+    SuperuserAccess,
+    ViewerContext,
+    viewer_context_scope,
+)
 
 REQUEST_BODY = b'{"b": 12, "thing": "thing"}'
 PATH = "/v0/some/url"
@@ -35,7 +40,7 @@ def run_test_case(
     mock.port = None
     mock.scheme = "http"
     mock.urlopen.return_value = HTTPResponse(status=200)
-    context = ViewerContext(organization_id=1, user_id=1, actor_type=ActorType.USER)
+    context = ViewerContext(actor=Actor(type=ActorType.USER, actor_id=1), organization_id=1)
     with (
         override_settings(SEER_API_SHARED_SECRET=shared_secret),
         viewer_context_scope(context),
@@ -83,7 +88,7 @@ def test_uses_given_retries() -> None:
 @pytest.mark.django_db
 def test_missing_secret_does_not_send_request() -> None:
     pool = Mock(host="localhost", port=None, scheme="http")
-    context = ViewerContext(organization_id=1, user_id=1, actor_type=ActorType.USER)
+    context = ViewerContext(actor=Actor(type=ActorType.USER, actor_id=1), organization_id=1)
 
     with (
         override_settings(SEER_API_SHARED_SECRET=""),
@@ -100,7 +105,7 @@ def test_viewer_context_encoding_failure_does_not_send_request(
     mock_encode_viewer_context: MagicMock,
 ) -> None:
     pool = Mock(host="localhost", port=None, scheme="http")
-    context = ViewerContext(organization_id=1, user_id=1, actor_type=ActorType.USER)
+    context = ViewerContext(actor=Actor(type=ActorType.USER, actor_id=1), organization_id=1)
 
     with viewer_context_scope(context), pytest.raises(RuntimeError, match="boom"):
         make_signed_seer_api_request(pool, path=PATH, body=REQUEST_BODY)
@@ -131,7 +136,7 @@ def test_times_request(mock_metrics_timer: MagicMock, path: str, endpoint: str) 
 @pytest.mark.django_db
 @patch("sentry.seer.signed_seer_api._resolve_viewer_context")
 def test_resolves_viewer_context_with_endpoint(mock_resolve: MagicMock) -> None:
-    mock_resolve.return_value = ViewerContext(user_id=1, actor_type=ActorType.USER)
+    mock_resolve.return_value = ViewerContext(actor=Actor(type=ActorType.USER, actor_id=1))
 
     run_test_case(path=f"{DYNAMIC_PATH}?plan_tier=business")
 
@@ -141,7 +146,7 @@ def test_resolves_viewer_context_with_endpoint(mock_resolve: MagicMock) -> None:
 @pytest.mark.django_db
 @patch("sentry.seer.signed_seer_api._resolve_viewer_context")
 def test_resolves_viewer_context_with_metrics_endpoint(mock_resolve: MagicMock) -> None:
-    mock_resolve.return_value = ViewerContext(user_id=1, actor_type=ActorType.USER)
+    mock_resolve.return_value = ViewerContext(actor=Actor(type=ActorType.USER, actor_id=1))
 
     run_test_case(
         path=f"{DYNAMIC_PATH}?plan_tier=business",
@@ -177,7 +182,7 @@ def test_times_request_with_status_class(
     pool = Mock(host="localhost", port=None, scheme="http")
     pool.urlopen.return_value = HTTPResponse(status=status)
 
-    context = ViewerContext(user_id=1, actor_type=ActorType.USER)
+    context = ViewerContext(actor=Actor(type=ActorType.USER, actor_id=1))
     with viewer_context_scope(context):
         response = make_signed_seer_api_request(pool, path=PATH, body=REQUEST_BODY)
 
@@ -193,7 +198,7 @@ def test_times_failed_request_with_error_status_class(mock_timing: MagicMock) ->
     pool = Mock(host="localhost", port=None, scheme="http")
     pool.urlopen.side_effect = ReadTimeoutError(HTTPConnectionPool("localhost"), PATH, "timed out")
 
-    context = ViewerContext(user_id=1, actor_type=ActorType.USER)
+    context = ViewerContext(actor=Actor(type=ActorType.USER, actor_id=1))
     with viewer_context_scope(context), pytest.raises(ReadTimeoutError):
         make_signed_seer_api_request(pool, path=PATH, body=REQUEST_BODY)
 
@@ -230,19 +235,31 @@ def test_delete_grouping_records_uses_generic_metrics_endpoint(
 
 
 class TestResolveViewerContext:
+    def test_changing_viewer_strips_elevation(self) -> None:
+        ctx = ViewerContext(
+            actor=Actor(
+                type=ActorType.USER, actor_id=7, superuser=SuperuserAccess(expires_at=1234567890)
+            ),
+            organization_id=42,
+        )
+        with viewer_context_scope(ctx):
+            result = _resolve_viewer_context(SeerViewerContext(organization_id=43, user_id=7))
+        assert isinstance(result, ViewerContext)
+        assert result.actor.superuser is None
+
     def test_both_none(self) -> None:
         with pytest.raises(MissingViewerContextError):
             _resolve_viewer_context(None)
 
     def test_contextvar_only(self) -> None:
-        ctx = ViewerContext(organization_id=42, user_id=7, actor_type=ActorType.USER)
+        ctx = ViewerContext(actor=Actor(type=ActorType.USER, actor_id=7), organization_id=42)
         with viewer_context_scope(ctx):
             result = _resolve_viewer_context(None)
 
-        assert result is not None
+        assert isinstance(result, ViewerContext)
         assert result.organization_id == 42
-        assert result.user_id == 7
-        assert result.actor_type == ActorType.USER
+        assert result.actor.actor_id == 7
+        assert result.actor.type == ActorType.USER
 
     @patch("sentry.seer.signed_seer_api.metrics")
     @patch("sentry.seer.signed_seer_api.logger")
@@ -283,50 +300,36 @@ class TestResolveViewerContext:
             tags={"outcome": "contextvar_missing", "endpoint": "unknown"},
         )
 
-    def test_contextvar_with_token(self) -> None:
-        token = AuthenticatedToken(
-            kind="api_token",
-            scopes=["org:read", "project:write"],
-            allowed_origins=[],
-        )
-        ctx = ViewerContext(organization_id=42, user_id=7, actor_type=ActorType.USER, token=token)
-        with viewer_context_scope(ctx):
-            result = _resolve_viewer_context(None)
-
-        assert result is not None
-        assert result.token is not None
-        assert result.token.kind == "api_token"
-        assert set(result.token.get_scopes()) == {"org:read", "project:write"}
-
     def test_explicit_overrides_contextvar(self) -> None:
-        ctx = ViewerContext(organization_id=42, user_id=7, actor_type=ActorType.USER)
+        ctx = ViewerContext(actor=Actor(type=ActorType.USER, actor_id=7), organization_id=42)
         with viewer_context_scope(ctx):
             result = _resolve_viewer_context(SeerViewerContext(organization_id=42, user_id=99))
 
-        assert result is not None
+        assert isinstance(result, ViewerContext)
         assert result.organization_id == 42
-        assert result.user_id == 99
-        assert result.actor_type == ActorType.USER
+        assert result.actor.actor_id == 99
+        assert result.actor.type == ActorType.USER
 
     @patch("sentry.seer.signed_seer_api.metrics")
     @patch("sentry.seer.signed_seer_api.logger")
-    def test_mismatch_warns_and_strips_token(
+    def test_mismatch_warns_and_clears_elevation(
         self, mock_logger: MagicMock, mock_metrics: MagicMock
     ) -> None:
-        token = AuthenticatedToken(
-            kind="api_token",
-            scopes=["org:read"],
-            allowed_origins=[],
+        ctx = ViewerContext(
+            actor=Actor(
+                type=ActorType.USER, actor_id=7, superuser=SuperuserAccess(expires_at=1234567890)
+            ),
+            organization_id=42,
         )
-        ctx = ViewerContext(organization_id=42, user_id=7, actor_type=ActorType.USER, token=token)
         with viewer_context_scope(ctx):
             result = _resolve_viewer_context(
                 SeerViewerContext(organization_id=999), endpoint="/v1/automation/summarize"
             )
 
-        assert result is not None
+        assert isinstance(result, ViewerContext)
         assert result.organization_id == 999
-        assert result.token is None
+        assert result.actor.superuser is None
+
         mock_logger.warning.assert_called_once()
         assert mock_logger.warning.call_args[0][0] == "seer.viewer_context_mismatch"
         assert mock_logger.warning.call_args[1]["extra"]["endpoint"] == "/v1/automation/summarize"
@@ -339,15 +342,39 @@ class TestResolveViewerContext:
             },
         )
 
+    @patch("sentry.seer.signed_seer_api.logger")
+    def test_agent_mismatch_warns_and_keeps_agent(self, mock_logger: MagicMock) -> None:
+        ctx = ViewerContext(
+            actor=Actor(
+                type=ActorType.AGENT,
+                delegated_user_id=7,
+                superuser=SuperuserAccess(expires_at=1234567890),
+            ),
+            organization_id=42,
+        )
+        with viewer_context_scope(ctx):
+            result = _resolve_viewer_context(SeerViewerContext(organization_id=43, user_id=99))
+
+        assert isinstance(result, ViewerContext)
+        assert result.organization_id == 43
+        assert result.actor.type == ActorType.AGENT
+        assert result.actor.delegated_user_id == 99
+        assert result.actor.superuser is None
+        assert mock_logger.warning.call_count == 2
+        assert {c[1]["extra"]["field"] for c in mock_logger.warning.call_args_list} == {
+            "organization_id",
+            "user_id",
+        }
+
     @patch("sentry.seer.signed_seer_api.metrics")
     def test_match_emits_metric_with_project_id(self, mock_metrics: MagicMock) -> None:
         ctx = ViewerContext(
-            organization_id=42, user_id=7, project_id=100, actor_type=ActorType.USER
+            actor=Actor(type=ActorType.USER, actor_id=7), organization_id=42, project_id=100
         )
         with viewer_context_scope(ctx):
             result = _resolve_viewer_context(SeerViewerContext(organization_id=42, user_id=7))
 
-        assert result is not None
+        assert isinstance(result, ViewerContext)
         assert result.project_id == 100
         mock_metrics.incr.assert_called_once_with(
             "seer.viewer_context_resolution",
@@ -356,26 +383,13 @@ class TestResolveViewerContext:
 
     @patch("sentry.seer.signed_seer_api.metrics")
     def test_match_emits_metric_without_project_id(self, mock_metrics: MagicMock) -> None:
-        ctx = ViewerContext(organization_id=42, user_id=7, actor_type=ActorType.USER)
+        ctx = ViewerContext(actor=Actor(type=ActorType.USER, actor_id=7), organization_id=42)
         with viewer_context_scope(ctx):
             result = _resolve_viewer_context(SeerViewerContext(organization_id=42, user_id=7))
 
-        assert result is not None
+        assert isinstance(result, ViewerContext)
         assert result.project_id is None
         mock_metrics.incr.assert_called_once_with(
             "seer.viewer_context_resolution",
             tags={"outcome": "match", "has_project": "false", "endpoint": "unknown"},
         )
-
-    def test_no_mismatch_keeps_token(self) -> None:
-        token = AuthenticatedToken(
-            kind="api_token",
-            scopes=["org:read"],
-            allowed_origins=[],
-        )
-        ctx = ViewerContext(organization_id=42, user_id=7, actor_type=ActorType.USER, token=token)
-        with viewer_context_scope(ctx):
-            result = _resolve_viewer_context(SeerViewerContext(organization_id=42, user_id=7))
-
-        assert result is not None
-        assert result.token is not None

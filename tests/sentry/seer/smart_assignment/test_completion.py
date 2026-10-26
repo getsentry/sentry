@@ -8,7 +8,7 @@ from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.projectownership import ProjectOwnership
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunType
 from sentry.seer.smart_assignment.completion import process_smart_assignment_completion
-from sentry.seer.smart_assignment.models import SEER_FEATURE_ID
+from sentry.seer.smart_assignment.models import RESOLUTION_ACTIVITIES, SEER_FEATURE_ID
 from sentry.testutils.cases import TestCase
 from sentry.types.activity import ActivityType
 from sentry.users.models.user import User
@@ -157,6 +157,24 @@ class ProcessSmartAssignmentCompletionTest(TestCase):
         # We record the suggestion but never override a manual assignment.
         assert len(self._suggested_owners()) == 1
         assert GroupAssignee.objects.get(group=self.group).user_id == existing.id
+
+    def test_suggests_without_assigning_when_triggered_by_resolution(self) -> None:
+        alice = self._member()
+        self._set_project_auto_assignment(True)
+        for activity_type in RESOLUTION_ACTIVITIES:
+            with self.subTest(trigger=activity_type.name):
+                self.mirror.extras = {"trigger": activity_type.name}
+                self.mirror.save()
+                with self.feature(ASSIGN_FEATURES):
+                    process_smart_assignment_completion(self.group, self._activity([alice.id]))
+
+                # The prediction is still recorded so it can be scored against the resolver...
+                assert self._extras()["predicted_assignee_user_ids"] == [alice.id]
+                # ...and suggested as an owner, but the already-resolved issue isn't assigned.
+                owners = self._suggested_owners()
+                assert len(owners) == 1
+                assert owners[0].user_id == alice.id
+                assert not GroupAssignee.objects.filter(group=self.group).exists()
 
     def test_suggests_resolvable_alternate_when_top_pick_unlinked(self) -> None:
         # The agent's first choice mapped to nobody (an unlinked commit author), so the

@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 from django.test import override_settings
+from urllib3.exceptions import TimeoutError
 
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.seer.models import SeerApiError
@@ -13,7 +14,13 @@ PAYLOAD = {
 }
 
 
-@with_feature(["organizations:seer-explorer", "organizations:seer-chat-suggestions"])
+@with_feature(
+    [
+        "organizations:seer-explorer",
+        "organizations:seer-chat-suggestions",
+        "organizations:seer-chat-suggestions-actions",
+    ]
+)
 @override_settings(SENTRY_SELF_HOSTED=False)
 class OrganizationSeerChatSuggestionsEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-seer-chat-suggestions"
@@ -51,9 +58,30 @@ class OrganizationSeerChatSuggestionsEndpointTest(APITestCase):
             **PAYLOAD,
             "projects": [{"slug": "frontend-web", "platform": "javascript-react"}],
             "code_mode": False,
+            "actions_enabled": True,
             "can_create_alerts": True,
             "can_edit_node_type": None,
         }
+
+    @with_feature({"organizations:seer-chat-suggestions-actions": False})
+    @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")
+    def test_omits_permissions_when_actions_flag_is_off(self, mock_run_oneshot: MagicMock) -> None:
+        mock_run_oneshot.return_value = {"suggestions": []}
+        dashboard = self.create_dashboard(organization=self.organization)
+
+        self.get_success_response(
+            self.organization.slug,
+            **{
+                **PAYLOAD,
+                "route": "/dashboard/:dashboardId/",
+                "route_params": {"dashboardId": str(dashboard.id)},
+            },
+        )
+
+        payload = mock_run_oneshot.call_args.args[1]
+        assert payload["actions_enabled"] is False
+        assert "can_create_alerts" not in payload
+        assert "can_edit_node_type" not in payload
 
     @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")
     def test_passes_no_alert_access_when_org_disallows_member_alerts(
@@ -94,9 +122,11 @@ class OrganizationSeerChatSuggestionsEndpointTest(APITestCase):
 
     @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")
     def test_returns_502_when_seer_errors(self, mock_run_oneshot: MagicMock) -> None:
-        mock_run_oneshot.side_effect = SeerApiError("Seer request failed", 500)
+        for seer_status in (400, 500):
+            with self.subTest(seer_status=seer_status):
+                mock_run_oneshot.side_effect = SeerApiError("Seer request failed", seer_status)
 
-        self.get_error_response(self.organization.slug, status_code=502, **PAYLOAD)
+                self.get_error_response(self.organization.slug, status_code=502, **PAYLOAD)
 
     @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")
     def test_returns_502_when_seer_times_out(self, mock_run_oneshot: MagicMock) -> None:

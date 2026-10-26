@@ -23,7 +23,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
-from sentry.viewer_context import ActorType, decode_viewer_context
+from sentry.viewer_context import ActorType, ViewerContext, decode_viewer_context
 
 
 @freeze_time()
@@ -124,9 +124,10 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
             mock_seer_request.call_args.kwargs["headers"]["X-Viewer-Context"],
             key="viewer-context-test-secret",
         )
+        assert isinstance(viewer_context, ViewerContext)
         assert viewer_context.organization_id == self.organization.id
-        assert viewer_context.user_id == self.user.id
-        assert viewer_context.actor_type == ActorType.USER
+        assert viewer_context.actor.actor_id == self.user.id
+        assert viewer_context.actor.type == ActorType.USER
 
         assert mock_seer_request.call_count == 1
         assert resp.data == seer_return_value["timeseries"]

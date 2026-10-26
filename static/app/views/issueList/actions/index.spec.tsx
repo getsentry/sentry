@@ -1,4 +1,4 @@
-import {Fragment, useLayoutEffect} from 'react';
+import {Fragment, useLayoutEffect, type ComponentProps} from 'react';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -14,15 +14,20 @@ import {
 import {Container} from '@sentry/scraps/layout';
 import {GlobalModal} from '@sentry/scraps/modal';
 
+import {
+  StreamGroupTable,
+  useStreamGroupColumns,
+} from 'sentry/components/stream/groupColumns';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {IssueCategory} from 'sentry/types/group';
 import * as analytics from 'sentry/utils/analytics';
 import {IssueListActions} from 'sentry/views/issueList/actions';
+import {ISSUE_LIST_COLUMNS} from 'sentry/views/issueList/groupListBody';
 import {
   IssueSelectionProvider,
   useIssueSelectionActions,
 } from 'sentry/views/issueList/issueSelectionContext';
-import {DEFAULT_QUERY} from 'sentry/views/issueList/utils';
+import {DEFAULT_QUERY, IssueSortOptions} from 'sentry/views/issueList/utils';
 
 const organization = OrganizationFixture();
 
@@ -30,6 +35,7 @@ const defaultProps = {
   allResultsVisible: false,
   query: '',
   queryCount: 15,
+  sort: IssueSortOptions.DATE,
   projectId: 'project-slug',
   selection: {
     projects: [1],
@@ -66,6 +72,27 @@ function SelectionInitializer({
   return null;
 }
 
+function IssueListActionsTable(
+  props: Omit<ComponentProps<typeof IssueListActions>, 'columns' | 'selectionEnabled'>
+) {
+  const {columns, selectionEnabled} = useStreamGroupColumns({
+    canSelect: true,
+    displayReprocessingLayout: props.displayReprocessingActions,
+    withChart: true,
+    withColumns: ISSUE_LIST_COLUMNS,
+  });
+
+  return (
+    <StreamGroupTable columns={columns}>
+      <IssueListActions
+        {...props}
+        columns={columns}
+        selectionEnabled={selectionEnabled}
+      />
+    </StreamGroupTable>
+  );
+}
+
 function WrappedComponent({
   selectedIds,
   allSelected,
@@ -83,7 +110,7 @@ function WrappedComponent({
       <Container containerType="inline-size">
         <IssueSelectionProvider visibleGroupIds={groupIds}>
           <SelectionInitializer selectedIds={selectedIds} allSelected={allSelected} />
-          <IssueListActions {...defaultProps} {...props} groupIds={groupIds} />
+          <IssueListActionsTable {...defaultProps} {...props} groupIds={groupIds} />
         </IssueSelectionProvider>
       </Container>
     </Fragment>
@@ -91,10 +118,6 @@ function WrappedComponent({
 }
 
 describe('IssueListActions', () => {
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
-
   beforeEach(() => {
     GroupStore.reset();
     jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(1000);
@@ -103,6 +126,10 @@ describe('IssueListActions', () => {
       url: `/organizations/${organization.slug}/projects/`,
       body: [ProjectFixture({id: '1'})],
     });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   describe('selection state', () => {
@@ -143,13 +170,23 @@ describe('IssueListActions', () => {
         await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
       });
 
-      it('bulk resolves', async () => {
+      it('bulk resolves with the current search filters and sort', async () => {
         const apiMock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/issues/',
           method: 'PUT',
         });
 
-        render(<WrappedComponent queryCount={1500} />);
+        render(
+          <WrappedComponent
+            queryCount={1500}
+            sort={IssueSortOptions.FREQ}
+            selection={{
+              projects: [1],
+              environments: ['production'],
+              datetime: {start: null, end: null, period: '24h', utc: true},
+            }}
+          />
+        );
         await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
 
         await userEvent.click(
@@ -167,6 +204,11 @@ describe('IssueListActions', () => {
           expect.objectContaining({
             query: {
               project: [1],
+              query: '',
+              environment: ['production'],
+              statsPeriod: '24h',
+              utc: true,
+              sort: IssueSortOptions.FREQ,
             },
             data: {status: 'resolved', statusDetails: {}, substatus: null},
           })
@@ -203,6 +245,10 @@ describe('IssueListActions', () => {
           expect.objectContaining({
             query: {
               project: [1],
+              query: '',
+              environment: [],
+              utc: true,
+              sort: IssueSortOptions.DATE,
             },
             data: {priority: 'high'},
           })
@@ -249,6 +295,10 @@ describe('IssueListActions', () => {
           expect.objectContaining({
             query: {
               project: [1],
+              query: '',
+              environment: [],
+              utc: true,
+              sort: IssueSortOptions.DATE,
             },
             data: {status: 'resolved', statusDetails: {}, substatus: null},
           })
@@ -583,9 +633,14 @@ describe('IssueListActions', () => {
           method: 'DELETE',
         });
 
-        render(<WrappedComponent query={DEFAULT_QUERY} queryCount={100} />, {
-          organization: orgWithPerformanceIssues,
-        });
+        render(
+          <WrappedComponent
+            query={DEFAULT_QUERY}
+            queryCount={100}
+            sort={IssueSortOptions.FREQ}
+          />,
+          {organization: orgWithPerformanceIssues}
+        );
 
         await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
 
@@ -613,6 +668,7 @@ describe('IssueListActions', () => {
           expect.objectContaining({
             query: expect.objectContaining({
               query: DEFAULT_QUERY + ' issue.category:error',
+              sort: IssueSortOptions.FREQ,
             }),
           })
         );
@@ -629,9 +685,14 @@ describe('IssueListActions', () => {
           .spyOn(GroupStore, 'get')
           .mockReturnValue(GroupFixture({project: ProjectFixture({slug: 'project-1'})}));
 
-        render(<WrappedComponent query={DEFAULT_QUERY} queryCount={100} />, {
-          organization: orgWithPerformanceIssues,
-        });
+        render(
+          <WrappedComponent
+            query={DEFAULT_QUERY}
+            queryCount={100}
+            sort={IssueSortOptions.FREQ}
+          />,
+          {organization: orgWithPerformanceIssues}
+        );
 
         await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
 
@@ -656,6 +717,7 @@ describe('IssueListActions', () => {
           expect.objectContaining({
             query: expect.objectContaining({
               query: DEFAULT_QUERY + ' issue.category:error',
+              sort: IssueSortOptions.FREQ,
             }),
           })
         );

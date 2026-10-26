@@ -12,6 +12,7 @@ from sentry.seer.run_questions import QUESTIONS, get_run_questions
 from sentry.seer.signed_seer_api import MissingViewerContextError
 from sentry.testutils.cases import TestCase
 from sentry.viewer_context import (
+    Actor,
     ActorType,
     ViewerContext,
     get_viewer_context,
@@ -70,10 +71,9 @@ class CallSeerOneShotTest(TestCase):
 
     def test_preserves_existing_viewer_context(self) -> None:
         existing_context = ViewerContext(
+            actor=Actor(type=ActorType.USER, actor_id=self.user.id),
             organization_id=self.organization.id,
             project_id=self.project.id,
-            user_id=self.user.id,
-            actor_type=ActorType.USER,
         )
         observed_contexts: list[ViewerContext | None] = []
 
