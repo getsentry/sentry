@@ -9,6 +9,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -1285,14 +1286,17 @@ describe('DetectorEdit', () => {
     });
 
     it('restores the written draft when the URL is reopened', async () => {
+      const query = {detectorType: 'metric_issue', project: project.id};
+      window.history.replaceState(
+        null,
+        '',
+        `${initialRouterConfig.location.pathname}?${new URLSearchParams(query)}`
+      );
       const {unmount} = render(<DetectorNewSettings />, {
         organization,
         initialRouterConfig: {
           ...initialRouterConfig,
-          location: {
-            ...initialRouterConfig.location,
-            query: {detectorType: 'metric_issue', project: project.id},
-          },
+          location: {...initialRouterConfig.location, query},
         },
       });
       await userEvent.type(
@@ -1316,6 +1320,95 @@ describe('DetectorEdit', () => {
       expect(await screen.findByRole('spinbutton', {name: 'High threshold'})).toHaveValue(
         120
       );
+    });
+
+    it('does not write a draft after leaving the page', async () => {
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {detectorType: 'metric_issue', project: project.id},
+          },
+        },
+      });
+      await userEvent.type(
+        await screen.findByRole('spinbutton', {name: 'High threshold'}),
+        '120'
+      );
+      window.history.replaceState(null, '', '/organizations/org-slug/monitors/1/');
+
+      await act(() => new Promise(resolve => setTimeout(resolve, 500)));
+
+      expect(window.location.search).toBe('');
+    });
+
+    it('removes the draft from the URL when the monitor is created', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
+        method: 'POST',
+        body: MetricDetectorFixture({id: '123'}),
+      });
+      const query = {
+        detectorType: 'metric_issue',
+        draft: JSON.stringify({
+          version: 1,
+          detectorType: 'metric_issue',
+          hasSetName: true,
+          values: {highThreshold: '75', name: 'Created', projectId: project.id},
+        }),
+      };
+      window.history.replaceState(
+        null,
+        '',
+        `${initialRouterConfig.location.pathname}?${new URLSearchParams(query)}`
+      );
+      const {router} = render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {...initialRouterConfig.location, query},
+        },
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Create Monitor'}));
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe('/organizations/org-slug/monitors/123/');
+      });
+      expect(new URLSearchParams(window.location.search).has('draft')).toBe(false);
+    });
+
+    it('keeps the link prefill when the draft would be too long for the URL', async () => {
+      const prefillQuery = {
+        detectorType: 'metric_issue',
+        project: project.id,
+        dataset: 'errors',
+        query: 'a'.repeat(7000),
+      };
+      window.history.replaceState(
+        null,
+        '',
+        `${initialRouterConfig.location.pathname}?${new URLSearchParams(prefillQuery)}`
+      );
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {...initialRouterConfig.location, query: prefillQuery},
+        },
+      });
+
+      await userEvent.type(
+        await screen.findByRole('spinbutton', {name: 'High threshold'}),
+        '90'
+      );
+      await act(() => new Promise(resolve => setTimeout(resolve, 500)));
+
+      const searchParams = new URLSearchParams(window.location.search);
+      expect(searchParams.has('draft')).toBe(false);
+      expect(searchParams.get('dataset')).toBe('errors');
     });
 
     it.each([
@@ -2083,10 +2176,10 @@ describe('DetectorEdit', () => {
 
       await screen.findByText('Set margins');
       expect(getSpinbuttonByName('checkinMargin')).toHaveValue(7);
-      expect(screen.queryByText('Select Instrumentation Method')).not.toBeInTheDocument();
+      expect(screen.getByTestId('form-sections')).toBeVisible();
     });
 
-    it('shows the form when a draft link also has auto-instrumentation guide params', async () => {
+    it('shows the guide when a draft link also has auto-instrumentation guide params', async () => {
       render(<DetectorNewSettings />, {
         organization,
         initialRouterConfig: {
@@ -2108,8 +2201,43 @@ describe('DetectorEdit', () => {
         },
       });
 
-      expect(await screen.findByTestId('form-sections')).toBeVisible();
-      expect(screen.getByRole('button', {name: 'Create Monitor'})).toBeEnabled();
+      expect(
+        await screen.findByText('Select Instrumentation Method')
+      ).toBeInTheDocument();
+      expect(screen.getByTestId('form-sections')).not.toBeVisible();
+      expect(screen.getByRole('button', {name: 'Create Monitor'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+    });
+
+    it('does not open a guide for the restored project when given a draft link', async () => {
+      const phpProject = ProjectFixture({id: '3', slug: 'php-project', platform: 'php'});
+      ProjectsStore.loadInitialData([project, phpProject]);
+
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: {
+          ...cronRouterConfig,
+          location: {
+            ...cronRouterConfig.location,
+            query: {
+              detectorType: 'monitor_check_in_failure',
+              draft: JSON.stringify({
+                version: 1,
+                detectorType: 'monitor_check_in_failure',
+                hasSetName: false,
+                values: {checkinMargin: '', projectId: phpProject.id},
+              }),
+            },
+          },
+        },
+      });
+
+      expect(
+        await screen.findByText('Select Instrumentation Method')
+      ).toBeInTheDocument();
+      expect(screen.getByTestId('form-sections')).toBeVisible();
       expect(getSpinbuttonByName('checkinMargin')).toHaveValue(null);
     });
 
