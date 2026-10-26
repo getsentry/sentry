@@ -9,6 +9,7 @@ from unittest.mock import patch
 import orjson
 from slack_sdk.web import SlackResponse
 
+from sentry.constants import ObjectStatus
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, AlertRuleThresholdType
 from sentry.incidents.models.incident import IncidentStatus, TriggerStatus
 from sentry.incidents.typings.metric_detector import (
@@ -27,9 +28,11 @@ from sentry.notifications.notification_action.metric_alert_registry.handlers.uti
     get_detector_serializer,
 )
 from sentry.notifications.notification_action.utils import metric_alert_notification_data_factory
+from sentry.silo.base import SiloMode
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import ActionInvocation, DetectorPriorityLevel, WorkflowEventData
@@ -144,6 +147,17 @@ class TestSlackMetricAlertHandlerSendAlert(MetricAlertHandlerBase):
         client.chat_postMessage.assert_called_once()
         blocks = orjson.loads(client.chat_postMessage.call_args.kwargs["attachments"])[0]["blocks"]
         assert len(blocks) == 1
+
+    @patch("sentry.integrations.slack.utils.notifications.SlackSdkClient")
+    def test_send_alert_skips_disabled_org_integration(
+        self, mock_slack_client: mock.MagicMock
+    ) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.org_integration.update(status=ObjectStatus.DISABLED)
+
+        self.handler.send_alert(**self._make_send_alert_kwargs())
+
+        mock_slack_client.return_value.chat_postMessage.assert_not_called()
 
     def _make_send_alert_kwargs_with_workflow(self) -> dict[str, Any]:
         kwargs = self._make_send_alert_kwargs()

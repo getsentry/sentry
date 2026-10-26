@@ -53,7 +53,7 @@ class MetricAlertPlatformDispatchTest(MetricAlertHandlerBase):
             )
         )
         self.create_models()
-        self.integration, _ = self.create_provider_integration_for(
+        self.integration, self.org_integration = self.create_provider_integration_for(
             provider=IntegrationProviderSlug.SLACK,
             organization=self.organization,
             user=self.user,
@@ -207,3 +207,20 @@ class MetricAlertPlatformDispatchTest(MetricAlertHandlerBase):
         assert call_args[1]["extra"]["provider"] == "slack"
         assert call_args[1]["extra"]["has_integration"] is True
         assert call_args[1]["extra"]["integration_status"] == 1
+
+    @mock.patch("sentry.integrations.slack.integration.SlackSdkClient")
+    @mock.patch(f"{PLATFORM_DISPATCH_PATH}.logger")
+    def test_skips_disabled_org_integration(
+        self, mock_logger: mock.MagicMock, mock_slack_client: mock.MagicMock
+    ) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.org_integration.update(status=ObjectStatus.DISABLED)
+
+        SlackMetricAlertHandler.invoke_legacy_registry(self.invocation(self.action))
+
+        mock_slack_client.return_value.chat_postMessage.assert_not_called()
+        mock_logger.warning.assert_called_once()
+        call_args = mock_logger.warning.call_args
+        assert call_args[0][0] == "notification_action.platform_dispatch.integration_inactive"
+        assert call_args[1]["extra"]["integration_status"] == ObjectStatus.ACTIVE
+        assert call_args[1]["extra"]["org_integration_status"] == ObjectStatus.DISABLED

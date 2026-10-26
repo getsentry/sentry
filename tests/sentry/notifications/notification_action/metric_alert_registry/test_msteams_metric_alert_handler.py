@@ -1,7 +1,9 @@
 import uuid
 from dataclasses import asdict
+from typing import Any
 from unittest import mock
 
+from sentry.constants import ObjectStatus
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, AlertRuleThresholdType
 from sentry.incidents.models.incident import IncidentStatus, TriggerStatus
 from sentry.incidents.typings.metric_detector import (
@@ -10,10 +12,14 @@ from sentry.incidents.typings.metric_detector import (
     NotificationContext,
     OpenPeriodContext,
 )
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.activity import Activity
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.metric_alert_registry import MSTeamsMetricAlertHandler
+from sentry.silo.base import SiloMode
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import ActionInvocation, DetectorPriorityLevel, WorkflowEventData
@@ -233,3 +239,59 @@ class TestMsteamsMetricAlertHandler(MetricAlertHandlerBase):
 
         assert organization == self.detector.linked_project.organization
         assert isinstance(notification_uuid, str)
+
+
+class TestMsteamsMetricAlertSendIntegrationStatus(MetricAlertHandlerBase):
+    def setUp(self) -> None:
+        self.create_models()
+        self.integration = self.create_integration(
+            organization=self.organization,
+            provider=IntegrationProviderSlug.MSTEAMS,
+            external_id="team-123",
+            metadata={"service_url": "https://smba.trafficmanager.net/amer/"},
+        )
+        self.action = self.create_action(
+            type=Action.Type.MSTEAMS,
+            integration_id=self.integration.id,
+            config={
+                "target_identifier": "channel123",
+                "target_display": "Channel 123",
+                "target_type": ActionTarget.SPECIFIC,
+            },
+        )
+
+    def _send_alert_kwargs(self) -> dict[str, Any]:
+        assert self.group_event.occurrence is not None
+        assert self.group_event.occurrence.priority is not None
+        priority = DetectorPriorityLevel(self.group_event.occurrence.priority)
+        return dict(
+            notification_context=NotificationContext.from_action_model(self.action),
+            alert_context=AlertContext.from_workflow_engine_models(
+                self.detector, self.evidence_data, self.group_event.group.status, priority
+            ),
+            metric_issue_context=MetricIssueContext.from_group_event(
+                self.group, self.evidence_data, priority
+            ),
+            open_period_context=OpenPeriodContext.from_group(self.group),
+            trigger_status=TriggerStatus.ACTIVE,
+            project=self.detector.linked_project,
+            organization=self.detector.linked_project.organization,
+            notification_uuid=str(uuid.uuid4()),
+        )
+
+    @mock.patch("sentry.integrations.services.integration.impl.MsTeamsClient")
+    def test_sends_with_active_org_integration(self, mock_client: mock.MagicMock) -> None:
+        MSTeamsMetricAlertHandler.send_alert(**self._send_alert_kwargs())
+
+        mock_client.return_value.send_card.assert_called_once()
+
+    @mock.patch("sentry.integrations.services.integration.impl.MsTeamsClient")
+    def test_skips_disabled_org_integration(self, mock_client: mock.MagicMock) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            OrganizationIntegration.objects.filter(
+                integration_id=self.integration.id, organization_id=self.organization.id
+            ).update(status=ObjectStatus.DISABLED)
+
+        MSTeamsMetricAlertHandler.send_alert(**self._send_alert_kwargs())
+
+        mock_client.return_value.send_card.assert_not_called()

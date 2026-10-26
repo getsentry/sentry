@@ -3,6 +3,7 @@ from __future__ import annotations
 import enum
 import logging
 
+from sentry.constants import ObjectStatus
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
     MetricIssueContext,
@@ -121,6 +122,21 @@ def send_incident_alert_notification(
 
     if notification_context.target_identifier is None:
         raise ValueError("Can't send without `target_identifier`")
+    if notification_context.integration_id is None:
+        return False
+
+    result = integration_service.organization_context(
+        organization_id=organization.id, integration_id=notification_context.integration_id
+    )
+    integration = result.integration
+    org_integration = result.organization_integration
+    if (
+        org_integration is None
+        or integration is None
+        or integration.status != ObjectStatus.ACTIVE
+        or org_integration.status != ObjectStatus.ACTIVE
+    ):
+        return False
 
     attachment = build_incident_attachment(
         alert_context=alert_context,
