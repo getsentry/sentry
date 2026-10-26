@@ -135,8 +135,14 @@ def _build_target(
     integration = integration_context.integration
     org_integration = integration_context.organization_integration
 
-    if org_integration is None or integration is None or integration.status != ObjectStatus.ACTIVE:
+    if (
+        org_integration is None
+        or integration is None
+        or integration.status != ObjectStatus.ACTIVE
+        or org_integration.status != ObjectStatus.ACTIVE
+    ):
         integration_status = integration.status if integration is not None else None
+        org_integration_status = org_integration.status if org_integration is not None else None
         logger.warning(
             "notification_action.platform_dispatch.integration_inactive",
             extra={
@@ -147,6 +153,7 @@ def _build_target(
                 "has_integration": integration is not None,
                 "has_org_integration": org_integration is not None,
                 "integration_status": integration_status,
+                "org_integration_status": org_integration_status,
             },
         )
         return None

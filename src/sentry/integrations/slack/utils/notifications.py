@@ -302,8 +302,13 @@ def send_incident_alert_notification(
     )
     integration = result.integration
     org_integration = result.organization_integration
-    if org_integration is None or integration is None or integration.status != ObjectStatus.ACTIVE:
-        # Integration removed, but rule is still active.
+    if (
+        org_integration is None
+        or integration is None
+        or integration.status != ObjectStatus.ACTIVE
+        or org_integration.status != ObjectStatus.ACTIVE
+    ):
+        # Integration removed or disabled, but rule is still active.
         return False
 
     channel = notification_context.target_identifier
