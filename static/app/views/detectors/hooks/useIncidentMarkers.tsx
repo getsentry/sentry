@@ -18,6 +18,8 @@ import type {EChartChartReadyHandler, ECharts} from 'sentry/types/echarts';
 const INCIDENT_MARKER_SERIES_ID = '__incident_marker__';
 const INCIDENT_MARKER_PERSISTENT_AREA_SERIES_ID = '__incident_marker_area_persistent__';
 const INCIDENT_MARKER_HEIGHT = 6;
+const INCIDENT_MARKER_PADDING = 2;
+const INCIDENT_MARKER_PADDING_Y = INCIDENT_MARKER_PADDING * 2;
 // ECharts lifts emphasized elements above their neighbours by default. Keeping
 // them in place lets the mouse move from a wide highlight to a thin one it overlaps.
 const EMPHASIS_Z2 = 0;
@@ -26,6 +28,14 @@ const EMPHASIS_Z2 = 0;
 const DEFAULT_INCIDENT_MARKER_X_AXIS_CONFIG = {
   axisLine: {onZero: true},
   offset: 0,
+};
+
+// X-axis configuration for when incidents are shown (moves axis down to make space)
+const INCIDENT_MARKER_X_AXIS_CONFIG = {
+  // configure `axisLine` and `offset` to move axis line below 0 so that
+  // incidents sit between bottom of the main chart and the axis line
+  axisLine: {onZero: false},
+  offset: INCIDENT_MARKER_HEIGHT + INCIDENT_MARKER_PADDING_Y - 1,
 };
 
 /**
@@ -191,12 +201,10 @@ function createIncidentMarkerSeries({
     // Width between two timestamps, adjusted for clipping
     const width = Math.max(clippedEndX - clippedStartX, 2);
 
-    const renderMarkerPadding = 2;
-
     const shape = {
       // Position the rectangle using clipped coordinates to prevent overflow
       x: clippedStartX,
-      y: incidentStartY + renderMarkerPadding - 1,
+      y: incidentStartY + INCIDENT_MARKER_PADDING - 1,
       width,
       height: INCIDENT_MARKER_HEIGHT,
       r:
@@ -385,20 +393,6 @@ export function useIncidentMarkers({
     latestOnClickRef.current = onClick;
   }, [incidentPeriods, onClick]);
 
-  const markerPadding = 2;
-  const totalMarkerPaddingY = markerPadding * 2; // 2px padding on top and bottom
-
-  // X-axis configuration for when incidents are shown (moves axis down to make space)
-  const incidentMarkerXAxis = useMemo(
-    () => ({
-      // configure `axisLine` and `offset` to move axis line below 0 so that
-      // incidents sit between bottom of the main chart and the axis line
-      axisLine: {onZero: false},
-      offset: INCIDENT_MARKER_HEIGHT + totalMarkerPaddingY - 1,
-    }),
-    [totalMarkerPaddingY]
-  );
-
   // Hidden Y-axis for incident bubbles
   const incidentMarkerYAxis: YAXisComponentOption | null = useMemo(() => {
     if (!incidentPeriods.length) {
@@ -425,9 +419,9 @@ export function useIncidentMarkers({
 
     return {
       // Moves bottom of grid "up" to make space for incident bubbles
-      bottom: INCIDENT_MARKER_HEIGHT + totalMarkerPaddingY + 2,
+      bottom: INCIDENT_MARKER_HEIGHT + INCIDENT_MARKER_PADDING_Y + 2,
     };
-  }, [incidentPeriods.length, totalMarkerPaddingY]);
+  }, [incidentPeriods.length]);
 
   // Chart ref handler
   const onChartReady = useCallback<EChartChartReadyHandler>(
@@ -538,7 +532,7 @@ export function useIncidentMarkers({
     incidentMarkerYAxis,
     incidentMarkerGrid,
     incidentMarkerXAxis: incidentPeriods.length
-      ? incidentMarkerXAxis
+      ? INCIDENT_MARKER_X_AXIS_CONFIG
       : DEFAULT_INCIDENT_MARKER_X_AXIS_CONFIG,
     highlightedIncidentAreaSeries,
   };
