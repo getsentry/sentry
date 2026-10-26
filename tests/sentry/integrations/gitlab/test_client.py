@@ -136,6 +136,44 @@ class GitLabGetAccessTokenTest(GitLabClientTest):
         assert self.get_stored_identity_data()["expires"] == int(time()) + 7200
 
     @responses.activate
+    def test_keeps_a_short_lived_token_for_half_its_lifetime(self) -> None:
+        self.store_identity_data(expires_in=300)
+        self.gitlab_client.identity.data["expires_in"] = 300
+        self.set_expires(int(time()) + 200)
+
+        result = self.gitlab_client.get_access_token()
+
+        assert result == {
+            "access_token": "123456789",
+            "expires_at": "2025-01-01T05:22:50+00:00",
+            "permissions": None,
+        }
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    def test_refreshes_a_short_lived_token_only_once(self) -> None:
+        """A margin as long as the lifetime would refresh the new token again on every call."""
+        self.set_expires(int(time()) + 60)
+        responses.add(
+            responses.POST, self.refresh_url, json={**self.refresh_response, "expires_in": 300}
+        )
+
+        first = self.gitlab_client.get_access_token()
+        second = self.gitlab_client.get_access_token()
+
+        assert (
+            first
+            == second
+            == {
+                "access_token": "123432sfh29uhs29347",
+                "expires_at": "2025-01-01T05:24:30+00:00",
+                "permissions": None,
+            }
+        )
+        assert len(responses.calls) == 1
+        assert self.get_stored_identity_data()["expires_in"] == 300
+
+    @responses.activate
     def test_returns_the_stored_token_without_a_refresh_token(self) -> None:
         self.set_expires(int(time()) + 60)
         del self.gitlab_client.identity.data["refresh_token"]

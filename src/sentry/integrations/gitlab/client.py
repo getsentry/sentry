@@ -11,6 +11,7 @@ from urllib.parse import quote
 from django.urls import reverse
 from requests import PreparedRequest
 
+from sentry.identity.gitlab.provider import ACCESS_TOKEN_LIFETIME_S
 from sentry.identity.services.identity import identity_service
 from sentry.identity.services.identity.model import RpcIdentity
 from sentry.integrations.gitlab.blame import fetch_file_blames
@@ -48,10 +49,17 @@ REFRESH_LOCK_DURATION_S = 90
 REFRESH_LOCK_WAIT_S = 10
 
 
+def _refresh_margin_s(identity_data: Mapping[str, Any]) -> int:
+    # An instance can shorten the token lifetime. Capping the margin at half of it still leaves
+    # a usable token, where a fixed margin as long as the lifetime would refresh on every call.
+    lifetime = int(identity_data.get("expires_in", ACCESS_TOKEN_LIFETIME_S))
+    return min(TOKEN_MINIMUM_VALIDITY_S, lifetime // 2)
+
+
 def _expires_soon(identity_data: Mapping[str, Any]) -> bool:
     # A token stored before Sentry recorded GitLab's expiry has none; refreshing records one.
     expires = identity_data.get("expires")
-    return expires is None or int(expires) < time() + TOKEN_MINIMUM_VALIDITY_S
+    return expires is None or int(expires) < time() + _refresh_margin_s(identity_data)
 
 
 class GitLabApiRequestType(StrEnum):
@@ -156,7 +164,9 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
             # Within the margin any request may refresh the token, which revokes it, so a caller
             # holding it should get a new one by then.
             "expires_at": (
-                datetime.fromtimestamp(int(expires) - TOKEN_MINIMUM_VALIDITY_S, UTC).isoformat()
+                datetime.fromtimestamp(
+                    int(expires) - _refresh_margin_s(self.identity.data), UTC
+                ).isoformat()
                 if expires is not None
                 else None
             ),
