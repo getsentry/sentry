@@ -3249,6 +3249,20 @@ class OrganizationDashboardTransformationsTest(APITestCase):
             "1": ["fill(zero)"],
         }
 
+    def test_create_and_read_latest_smoothing_pipelines(self) -> None:
+        transformations = {
+            "0": ["fill( linear )", "smooth( ema , 7 , 0.25 )"],
+            "1": ["smooth(asap,7)", "fill(zero)"],
+        }
+        self.data["widgets"][0]["queries"][0]["transformations"] = transformations
+        response = self.client.post(self.url, self.data)
+        assert response.status_code == 201, response.data
+        assert response.data["widgets"][0]["queries"][0]["transformations"] == transformations
+
+        response = self.client.get(self.details_url(response.data["id"]))
+        assert response.status_code == 200, response.data
+        assert response.data["widgets"][0]["queries"][0]["transformations"] == transformations
+
     def test_rejects_invalid_transformations(self) -> None:
         invalid_transformations: list[object] = [
             None,
@@ -3278,6 +3292,60 @@ class OrganizationDashboardTransformationsTest(APITestCase):
         assert not Dashboard.objects.filter(
             organization=self.organization, title="Transformed dashboard"
         ).exists()
+
+    def test_rejects_invalid_pipeline_on_create_and_update(self) -> None:
+        response = self.client.post(self.url, self.data)
+        assert response.status_code == 201, response.data
+        dashboard_id = response.data["id"]
+        widget = response.data["widgets"][0]
+        query_id = widget["queries"][0]["id"]
+
+        invalid_pipelines: list[tuple[list[str], str]] = [
+            (
+                ["fill(locf)", "fill(zero)"],
+                "Only one transformation per function type is allowed per yAxis",
+            ),
+            (
+                ["smooth(sma,3)", "smooth(sma,5)"],
+                "Only one transformation per function type is allowed per yAxis",
+            ),
+            (
+                ["smooth(asap,7)", "smooth(ema,3)"],
+                "Only one transformation per function type is allowed per yAxis",
+            ),
+            (
+                ["fill(zero)", "smooth(sma,3)", "fill(locf)"],
+                "At most 2 transformations are allowed per yAxis",
+            ),
+            (
+                ["fill(locf)", "fill(invalid)"],
+                "fill(invalid): mode argument invalid: expected one of locf, zero, linear",
+            ),
+        ]
+        for pipeline, message in invalid_pipelines:
+            self.data["widgets"][0]["queries"][0]["transformations"] = {"0": pipeline}
+            response = self.client.post(self.url, self.data)
+            assert response.status_code == 400, response.data
+            assert response.data["widgets"][0]["queries"][0]["transformations"] == {"0": [message]}
+            assert Dashboard.objects.filter(organization=self.organization).count() == 1
+
+            response = self.client.put(
+                self.details_url(dashboard_id),
+                {
+                    "widgets": [
+                        {
+                            "id": widget["id"],
+                            "queries": [{"id": query_id, "transformations": {"0": pipeline}}],
+                        }
+                    ]
+                },
+            )
+            assert response.status_code == 400, response.data
+            assert response.data["widgets"][0]["queries"][0]["transformations"] == {"0": [message]}
+        assert DashboardWidgetQuery.objects.get(id=query_id).transformations == {
+            "0": ["fill(locf)", "smooth(sma,3)"],
+            "1": ["fill(zero)"],
+        }
 
     def test_partial_update_preserves_replaces_and_clears(self) -> None:
         response = self.client.post(self.url, self.data)

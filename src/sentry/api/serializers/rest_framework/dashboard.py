@@ -11,7 +11,7 @@ from rest_framework import serializers
 from sentry_sdk import traces
 
 from sentry import features, options
-from sentry.api.helpers.timeseries_transformations import parse_transformation
+from sentry.api.helpers.timeseries_transformations import parse_transformations
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.apidocs.omissions import sentry_schema_serializer
@@ -256,12 +256,19 @@ class TransformationField(serializers.CharField):
     def to_internal_value(self, data):
         if not isinstance(data, str):
             self.fail("invalid")
-        value = super().to_internal_value(data)
+        return super().to_internal_value(data)
+
+
+class TransformationListField(serializers.ListField):
+    child = TransformationField(trim_whitespace=False)
+
+    def to_internal_value(self, data):
+        values = super().to_internal_value(data)
         try:
-            parse_transformation(value)
+            parse_transformations(values)
         except InvalidSearchQuery as error:
             raise serializers.ValidationError(str(error))
-        return value
+        return values
 
 
 def validate_transformation_indices(
@@ -284,7 +291,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
         child=serializers.CharField(), required=False, allow_null=True
     )
     transformations = serializers.DictField(
-        child=serializers.ListField(child=TransformationField(trim_whitespace=False)),
+        child=TransformationListField(),
         required=False,
     )
     columns = serializers.ListField(child=serializers.CharField(), required=False, allow_null=True)
