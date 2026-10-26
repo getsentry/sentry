@@ -1913,10 +1913,10 @@ describe('DetectorEdit', () => {
 
       await screen.findByText('Set margins');
       expect(getSpinbuttonByName('checkinMargin')).toHaveValue(7);
-      expect(screen.queryByText('Select Instrumentation Method')).not.toBeInTheDocument();
+      expect(screen.getByTestId('form-sections')).toBeVisible();
     });
 
-    it('shows the form when a draft link also has auto-instrumentation guide params', async () => {
+    it('shows the guide when a draft link also has auto-instrumentation guide params', async () => {
       render(<DetectorNewSettings />, {
         organization,
         initialRouterConfig: {
@@ -1938,8 +1938,43 @@ describe('DetectorEdit', () => {
         },
       });
 
-      expect(await screen.findByTestId('form-sections')).toBeVisible();
-      expect(screen.getByRole('button', {name: 'Create Monitor'})).toBeEnabled();
+      expect(
+        await screen.findByText('Select Instrumentation Method')
+      ).toBeInTheDocument();
+      expect(screen.getByTestId('form-sections')).not.toBeVisible();
+      expect(screen.getByRole('button', {name: 'Create Monitor'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+    });
+
+    it('does not open a guide for the restored project when given a draft link', async () => {
+      const phpProject = ProjectFixture({id: '3', slug: 'php-project', platform: 'php'});
+      ProjectsStore.loadInitialData([project, phpProject]);
+
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: {
+          ...cronRouterConfig,
+          location: {
+            ...cronRouterConfig.location,
+            query: {
+              detectorType: 'monitor_check_in_failure',
+              draft: JSON.stringify({
+                version: 1,
+                detectorType: 'monitor_check_in_failure',
+                hasSetName: false,
+                values: {checkinMargin: '', projectId: phpProject.id},
+              }),
+            },
+          },
+        },
+      });
+
+      expect(
+        await screen.findByText('Select Instrumentation Method')
+      ).toBeInTheDocument();
+      expect(screen.getByTestId('form-sections')).toBeVisible();
       expect(getSpinbuttonByName('checkinMargin')).toHaveValue(null);
     });
 
