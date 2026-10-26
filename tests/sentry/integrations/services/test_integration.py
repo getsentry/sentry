@@ -841,6 +841,34 @@ class GetAccessTokenTest(TestCase):
         )
 
     @responses.activate
+    def test_gitlab_refreshes_a_short_lived_token_only_once(self) -> None:
+        """An instance can configure 5-minute tokens, which the RPC's 5-minute margin would
+        count as expiring as soon as they're issued, refreshing on every call."""
+        integration, _ = self.create_gitlab(
+            expires_in=300,
+            expires=int(datetime(2025, 1, 1, 5, 23, tzinfo=timezone.utc).timestamp()),
+        )
+        responses.add(
+            responses.POST,
+            "https://gitlab.example.com/oauth/token",
+            json={"access_token": "gl-token-2", "refresh_token": "gl-refresh-2", "expires_in": 300},
+        )
+
+        first = self.get_token(integration)
+        second = self.get_token(integration)
+
+        # Handed out until half its lifetime before it expires, rather than five minutes.
+        assert (
+            first
+            == second
+            == RpcAccessToken(
+                token="gl-token-2",
+                expires_at=datetime(2025, 1, 1, 5, 24, 30, tzinfo=timezone.utc),
+            )
+        )
+        assert len(responses.calls) == 1
+
+    @responses.activate
     def test_gitlab_token_without_a_known_expiry(self) -> None:
         """Stored before Sentry recorded GitLab's expiry, with no refresh token to get one."""
         integration, _ = self.create_gitlab(refresh_token=None)
