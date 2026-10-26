@@ -323,6 +323,32 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
         assert response.status_code == 409
         assert response.data["code"] == "not_suggested"
 
+    def test_applies_the_action_the_user_saw(self) -> None:
+        action_request = self.suggest()
+        assert action_request.action_payload is not None
+
+        response = self.apply(action_request, action=action_request.action_payload)
+
+        assert response.status_code == 200, response.data
+        assert self.snuba_query().time_window == 900
+
+    def test_an_action_seer_changed_since_the_user_saw_it_conflicts(self) -> None:
+        action_request = self.suggest()
+        assert action_request.action_payload is not None
+        seen = {**action_request.action_payload, "changes": {"timeWindowSeconds": 600}}
+
+        for data in ({"action": seen}, {"action": seen, "dryRun": True}):
+            response = self.apply(action_request, **data)
+
+            assert response.status_code == 409
+            assert response.data == {
+                "detail": "Seer changed this suggestion. Check the new one.",
+                "code": "action_changed",
+            }
+        action_request.refresh_from_db()
+        assert action_request.state == InvestigationActionRequestState.SUGGESTED
+        assert self.snuba_query().time_window == 300
+
     def test_rejects_an_unknown_field(self) -> None:
         response = self.apply(self.suggest(), dryRn=True)
 
