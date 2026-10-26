@@ -6,6 +6,7 @@ from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
 from sentry.spans.consumers.process_segments.shim import (
+    SENTRY_EVENT_SERIALIZED_TAGS,
     build_shim_event_data,
     make_compatible,
 )
@@ -559,7 +560,7 @@ class TestBuildShimEventData:
         # Invalid request body was dropped, but the rest of the request data made it through
         assert event["request"] == {"url": "/dogpark", "method": "GET"}
 
-    def test_reinflates_serialized_extra_and_breadcrumbs(self) -> None:
+    def test_reinflates_serialized_values(self) -> None:
         segment_span = build_segment_span(
             attributes={
                 ATTRIBUTE_NAMES.SENTRY_EVENT_SERIALIZED_EXTRA: {
@@ -570,15 +571,37 @@ class TestBuildShimEventData:
                     "value": '{"values": [{"type": "default", "message": "dogs are great!"}]}',
                     "type": "string",
                 },
+                ATTRIBUTE_NAMES.SENTRY_EVENT_SERIALIZED_CONTEXTS: {
+                    "value": (
+                        "{"
+                        + '"browser": {"name": "Chrome", "version": "120", "type": "browser"}, '
+                        + '"response": {"status_code": 200, "type": "response"}'
+                        + "}"
+                    ),
+                    "type": "string",
+                },
+                SENTRY_EVENT_SERIALIZED_TAGS: {  # Not yet in sentry-conventions
+                    "value": '{"dog.name": "charlie", "dog.type": "goofy"}',
+                    "type": "string",
+                },
             }
         )
 
         event = build_shim_event_data(segment_span, [segment_span])
+        contexts = event["contexts"]
 
         assert event["extra"] == {"num_dogs": 2, "co_best_dogs": ["maisey", "charlie"]}
         assert event["breadcrumbs"] == {
             "values": [{"type": "default", "message": "dogs are great!"}]
         }
+        assert contexts["browser"] == {"name": "Chrome", "version": "120", "type": "browser"}
+        assert contexts["response"] == {"status_code": 200, "type": "response"}
+        # Context types the serialized value doesn't include are still rederived from attributes
+        assert contexts["profile"] == {
+            "profile_id": "dbae2b82559649a1a34a2878134a007b",
+            "type": "profile",
+        }
+        assert contexts["trace"]["trace_id"] == segment_span["trace_id"]
 
     def test_handles_malformed_serialized_values(self) -> None:
         # Unlike a request body, which legitimately isn't always JSON, these are written by Relay

@@ -2444,7 +2444,6 @@
     "tests/snuba/api/endpoints/test_organization_events_facets_performance_histogram.py": 19.9,
     "tests/snuba/api/endpoints/test_organization_events_has_measurements.py": 7.1,
     "tests/snuba/api/endpoints/test_organization_events_heatmap_trace_metrics.py": 44.8,
-    "tests/snuba/api/endpoints/test_organization_events_histogram.py": 26.1,
     "tests/snuba/api/endpoints/test_organization_events_meta.py": 7.4,
     "tests/snuba/api/endpoints/test_organization_events_occurrences.py": 168.9,
     "tests/snuba/api/endpoints/test_organization_events_ourlogs.py": 23.2,
