@@ -50,7 +50,7 @@ export function ManualSetupCard({onSetupInBrowser}: ManualSetupCardProps) {
         <Container area="body" paddingTop="xs">
           <Text variant="muted" size="md" density="comfortable" textWrap="pretty">
             {t(
-              'Connect a repo, choose what to instrument and where alerts land, then follow the instructions for your project'
+              'Connect a repo, choose what to instrument and configure alerts, then follow the instructions for your project'
             )}
           </Text>
         </Container>
