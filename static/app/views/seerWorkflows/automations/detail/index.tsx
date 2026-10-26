@@ -2,10 +2,12 @@ import {Fragment} from 'react';
 import {Outlet} from 'react-router';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {NotFound} from 'sentry/components/errors/notFound';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
@@ -44,7 +46,7 @@ export default function AutomationDetail() {
   const {automationId} = useParams<{automationId: string}>();
 
   // TODO(aliu): Fetch the single config once the API supports it
-  const {data} = useQuery(
+  const {data, isPending} = useQuery(
     apiOptions.as<SeerWorkflowConfigsResponse>()(
       '/organizations/$organizationIdOrSlug/seer/workflows/configs/',
       {
@@ -53,15 +55,24 @@ export default function AutomationDetail() {
       }
     )
   );
-  const configs: AutomationConfig[] = [...PLACEHOLDER_CONFIGS, ...(data?.configs ?? [])];
+  const configs: AutomationConfig[] = automationsEnabled
+    ? [...PLACEHOLDER_CONFIGS, ...(data?.configs ?? [])]
+    : [];
   const config = configs.find(c => c.id === automationId);
-  // TODO(aliu): Handle a config id that doesn't exist
   const strategy = config?.strategy ?? '';
   const strategyMeta = Object.hasOwn(STRATEGY_META, strategy)
     ? STRATEGY_META[strategy as WorkflowStrategy]
     : undefined;
   const title = strategyMeta?.label ?? strategy;
   const nextUpdate = config ? getNextUpdate(config.schedule) : undefined;
+
+  if (!config) {
+    return (
+      <Container padding="xl">
+        {automationsEnabled && isPending ? <LoadingIndicator /> : <NotFound />}
+      </Container>
+    );
+  }
 
   return (
     <SentryDocumentTitle title={title} orgSlug={organization.slug}>
