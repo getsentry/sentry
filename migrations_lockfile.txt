@@ -25,7 +25,7 @@ monitors: 0023_drop_checkin_monitor
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
-notifications: 0013_add_notificationmessage_parent_lookup_index
+notifications: 0015_backfill_notificationthread_object
 
 preprod: 0001_squashed_0030_add_images_errored_to_snapshot_comparison
 
@@ -33,9 +33,9 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0001_squashed_0007_organizationmember_replay_access
 
-seer: 0041_remove_seerprojectrepository_enabled
+seer: 0043_drop_seerprojectrepository_enabled
 
-sentry: 1233_backfill_grouprelease_new_release_id
+sentry: 1234_grouprelease_new_release_id_indexes
 
 service_accounts: 0002_add_cell_replicas
 

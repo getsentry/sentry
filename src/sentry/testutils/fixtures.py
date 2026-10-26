@@ -57,6 +57,7 @@ from sentry.preprod.models import (
     PreprodSnapshotMetrics,
 )
 from sentry.replays.models import ReplayDeletionJobModel
+from sentry.service_accounts.models import ServiceAccount
 from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloMode
 from sentry.tempest.models import TempestCredentials
@@ -358,6 +359,11 @@ class Fixtures:
         if project is None:
             project = self.project
         return Factories.create_repo(project, *args, **kwargs)
+
+    def create_project_repository(self, project=None, **kwargs):
+        if project is None:
+            project = self.project
+        return Factories.create_project_repository(project, **kwargs)
 
     def create_seer_project_repository(self, project=None, **kwargs):
         if project is None:
@@ -727,6 +733,9 @@ class Fixtures:
 
     def create_gcp_service_account(self, *args: Any, **kwargs: Any) -> GcpServiceAccount:
         return Factories.create_gcp_service_account(*args, **kwargs)
+
+    def create_service_account(self, *args: Any, **kwargs: Any) -> ServiceAccount:
+        return Factories.create_service_account(*args, **kwargs)
 
     def create_organization_contributor(
         self,

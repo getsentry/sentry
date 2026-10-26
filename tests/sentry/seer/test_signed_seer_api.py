@@ -11,10 +11,10 @@ from sentry.seer.signed_seer_api import (
     make_delete_grouping_records_by_project_request,
     make_signed_seer_api_request,
 )
-from sentry.types.superuser import SuperuserAccess
 from sentry.viewer_context import (
     Actor,
     ActorType,
+    SuperuserAccess,
     ViewerContext,
     viewer_context_scope,
 )

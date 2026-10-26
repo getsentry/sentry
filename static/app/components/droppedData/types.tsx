@@ -1,3 +1,5 @@
+import type {DiscoverDatasets} from 'sentry/utils/discover/types';
+
 type DroppedEventTag = 'intentional' | 'unintentional';
 
 export interface DroppedEventsBucket {
@@ -12,6 +14,7 @@ export interface DroppedEventsBucket {
 }
 
 export interface DroppedDataProps {
+  dataset: DiscoverDatasets;
   acceptedEvents?: DroppedEventsBucket[];
   droppedEvents?: DroppedEventsBucket[];
   onClick?: () => void;

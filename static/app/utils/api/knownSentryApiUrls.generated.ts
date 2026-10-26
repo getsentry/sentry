@@ -322,7 +322,6 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/prompts-activity/'
   | '/organizations/$organizationIdOrSlug/pull-requests/$pullRequestId/files/'
   | '/organizations/$organizationIdOrSlug/recent-searches/'
-  | '/organizations/$organizationIdOrSlug/related-issues/'
   | '/organizations/$organizationIdOrSlug/relay_usage/'
   | '/organizations/$organizationIdOrSlug/release-threshold-statuses/'
   | '/organizations/$organizationIdOrSlug/release-thresholds/'

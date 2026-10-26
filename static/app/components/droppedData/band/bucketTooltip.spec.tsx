@@ -5,6 +5,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {DroppedDataTooltip} from 'sentry/components/droppedData/band/bucketTooltip';
 import {groupIntoBuckets} from 'sentry/components/droppedData/buckets';
 import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 
 const START = Date.UTC(2024, 0, 12, 15, 0);
 const END = Date.UTC(2024, 0, 12, 15, 5);
@@ -12,13 +13,15 @@ const END = Date.UTC(2024, 0, 12, 15, 5);
 function ExampleDroppedDataTooltip({
   dropped,
   accepted = [],
+  dataset = DiscoverDatasets.SPANS,
 }: {
   dropped: DroppedEventsBucket[];
   accepted?: DroppedEventsBucket[];
+  dataset?: DiscoverDatasets;
 }) {
   const [bucket] = groupIntoBuckets(dropped, accepted);
 
-  return <DroppedDataTooltip bucket={bucket!} timezone="UTC" />;
+  return <DroppedDataTooltip bucket={bucket!} dataset={dataset} timezone="UTC" />;
 }
 
 describe('DroppedDataTooltip', () => {
@@ -50,7 +53,7 @@ describe('DroppedDataTooltip', () => {
       />
     );
 
-    expect(screen.getByText('Total Dropped')).toBeInTheDocument();
+    expect(screen.getByText('Dropped Spans')).toBeInTheDocument();
     expect(screen.getByText('25%')).toBeInTheDocument();
 
     expect(screen.getByText('Rate Limited')).toBeInTheDocument();
@@ -60,6 +63,17 @@ describe('DroppedDataTooltip', () => {
     expect(screen.getAllByText('/240K')).toHaveLength(2);
 
     expect(screen.getByText('Jan 12, 2024 3:00 PM - 3:05 PM UTC')).toBeInTheDocument();
+  });
+
+  it('names the telemetry type in the header', () => {
+    render(
+      <ExampleDroppedDataTooltip
+        dataset={DiscoverDatasets.OURLOGS}
+        dropped={[DroppedEventFixture({start: START, end: END, count: 10})]}
+      />
+    );
+
+    expect(screen.getByText('Dropped Logs')).toBeInTheDocument();
   });
 
   it('shows <0.01% for a drop ratio at or below 0.01%', () => {
@@ -95,7 +109,7 @@ describe('DroppedDataTooltip', () => {
       />
     );
 
-    expect(screen.getByText('Total Dropped')).toBeInTheDocument();
+    expect(screen.getByText('Dropped Spans')).toBeInTheDocument();
     expect(screen.getByText('0%')).toBeInTheDocument();
     expect(screen.getByText('Jan 12, 2024 3:00 PM - 3:05 PM UTC')).toBeInTheDocument();
   });

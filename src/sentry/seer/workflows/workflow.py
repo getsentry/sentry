@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import assert_never
 
 from django.db import router, transaction
+from django.db.models import QuerySet
 
 from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
@@ -76,8 +77,24 @@ class SeerWorkflow:
     def filters(self) -> SeerWorkflowFilters:
         return SeerWorkflowFilters.parse_obj(self.config.filters)
 
+    def matches_scope(self, project_id: int, environment: str | None) -> bool:
+        """Check the automation's scope before recording an admission decision."""
+        return (
+            self.config.enabled
+            and (not self.filters.environments or environment in self.filters.environments)
+            and self._get_projects().filter(id=project_id).exists()
+        )
+
+    def has_quota_available(self) -> bool:
+        """Allow runs until automation quota enforcement is implemented."""
+        # TODO(telkins): Enforce automation quota before accepting a new run.
+        return True
+
     def get_project_ids(self) -> list[int]:
         """Return active project IDs matching this workflow's filters, in ascending order."""
+        return list(self._get_projects().order_by("id").values_list("id", flat=True))
+
+    def _get_projects(self) -> QuerySet[Project]:
         projects = Project.objects.filter(
             organization_id=self.config.organization_id, status=ObjectStatus.ACTIVE
         )
@@ -87,7 +104,7 @@ class SeerWorkflow:
                     "project_id"
                 )
             )
-        return list(projects.order_by("id").values_list("id", flat=True))
+        return projects
 
     def set_project_selection(self, selection: ProjectSelection) -> None:
         match selection:
@@ -104,6 +121,11 @@ class SeerWorkflow:
             config = SeerWorkflowConfig.objects.select_for_update().get(
                 id=self.config.id, organization_id=self.config.organization_id
             )
+            if (
+                config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
+                and not all_projects
+            ):
+                raise ValueError("Breached metric projects are selected by connecting monitors")
             valid_project_ids = set(
                 Project.objects.filter(
                     organization_id=config.organization_id, id__in=project_ids
