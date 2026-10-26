@@ -25,17 +25,18 @@ from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.threading import ThreadingOptions, ThreadKey
 from sentry.notifications.platform.types import (
     SHADOW_PROVIDERS,
+    SLACK_PROVIDERS,
     NotificationData,
     NotificationProviderKey,
     NotificationSource,
     NotificationTargetResourceType,
 )
 from sentry.notifications.types import TEST_NOTIFICATION_ID
-from sentry.seer.entrypoints.operator import SeerAutofixOperator
-from sentry.seer.entrypoints.slack.entrypoint import prepare_slack_thread_for_autofix_updates
-from sentry.seer.types import SeerEntrypointKey
 from sentry.notifications.utils.issue_notification_context import IssueNotificationContext
 from sentry.notifications.utils.open_period import open_period_start_for_group
+from sentry.seer.entrypoints.operator import SeerAutofixOperator
+from sentry.seer.entrypoints.slack.entrypoint import prepare_slack_thread_for_autofix_updates
+from sentry.seer.entrypoints.types import SeerEntrypointKey
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.workflow_engine.types import ActionInvocation
 
@@ -130,10 +131,9 @@ def _should_thread(
     provider: NotificationProviderKey, organization: Organization, key: str, default: bool
 ) -> bool:
     # for notifications that have threads (just slack)
-    return provider in (
-        NotificationProviderKey.SLACK,
-        NotificationProviderKey.SLACK_STAGING,
-    ) and OrganizationOption.objects.get_value(organization=organization, key=key, default=default)
+    return provider in SLACK_PROVIDERS and OrganizationOption.objects.get_value(
+        organization=organization, key=key, default=default
+    )
 
 
 def _send(
@@ -143,15 +143,9 @@ def _send(
     action_id: int,
     group_id: int,
 ) -> SendSuccessResult | SendFailure:
-    """
-    Send a notification and return the result.
-    
-    Returns:
-        SendResult: The result of the send operation (SendSuccessResult or SendFailure)
-    """
     service = NotificationService(data=data)
     result = service.notify_target(target=target, threading_options=threading_options)
-    
+
     if isinstance(result, SendFailure):
         logger.warning(
             "notification_action.platform_dispatch.send_failed",
@@ -162,7 +156,7 @@ def _send(
                 "status": result.status.value,
             },
         )
-    
+
     return result
 
 
@@ -257,20 +251,24 @@ def send_issue_alert(invocation: ActionInvocation, provider: NotificationProvide
         invocation.action.id,
         group.id,
     )
-    
+
     # Cache the thread for Seer autofix updates
-    if (
+    if not (
         isinstance(result, SendSuccessResult)
         and result.provider_message_id
-        and provider in (NotificationProviderKey.SLACK, NotificationProviderKey.SLACK_STAGING)
+        and provider in SLACK_PROVIDERS
         and SeerAutofixOperator.has_access(
             organization=organization, entrypoint_key=SeerEntrypointKey.SLACK
         )
     ):
-        prepare_slack_thread_for_autofix_updates(
-            thread_ts=result.provider_message_id,
-            channel_id=target.resource_id,
-            group=group,
-            organization_id=organization.id,
-            integration_id=target.integration_id,
-        )
+        return
+
+    # A threaded reply returns its own ts; Seer needs the root ts, like the legacy send.
+    thread_ts = result.thread_identifier or result.provider_message_id
+    prepare_slack_thread_for_autofix_updates(
+        thread_ts=thread_ts,
+        channel_id=target.resource_id,
+        group=group,
+        organization_id=organization.id,
+        integration_id=target.integration_id,
+    )
