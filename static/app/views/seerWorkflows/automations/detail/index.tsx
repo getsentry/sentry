@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {Outlet} from 'react-router';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
@@ -6,13 +7,14 @@ import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {t} from 'sentry/locale';
+import {TimeSince} from 'sentry/components/timeSince';
+import {t, tct} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {PLACEHOLDER_CONFIGS} from 'sentry/views/seerWorkflows/automations';
+import {getNextUpdate, PLACEHOLDER_CONFIGS} from 'sentry/views/seerWorkflows/automations';
 import {STRATEGY_META} from 'sentry/views/seerWorkflows/strategies';
 import type {
   SeerWorkflowConfigsResponse,
@@ -56,6 +58,7 @@ export default function AutomationDetail() {
     ? STRATEGY_META[strategy as WorkflowStrategy]
     : undefined;
   const title = strategyMeta?.label ?? strategy;
+  const nextUpdate = config ? getNextUpdate(config.schedule) : undefined;
 
   return (
     <SentryDocumentTitle title={title} orgSlug={organization.slug}>
@@ -80,10 +83,16 @@ export default function AutomationDetail() {
             <Text size="sm" variant="muted">
               {t('(MOCK TEXT) Last run 08:00 UTC')}
             </Text>
-            <Stack.Separator />
-            <Text size="sm" variant="muted">
-              {t('Next run in 2 hours')}
-            </Text>
+            {nextUpdate && (
+              <Fragment>
+                <Stack.Separator />
+                <Text size="sm" variant="muted">
+                  {tct('Next run [time]', {
+                    time: <TimeSince date={nextUpdate} tooltipPrefix={t('Next run')} />,
+                  })}
+                </Text>
+              </Fragment>
+            )}
             <Stack.Separator />
             <Text size="sm" variant="muted">
               {t('All projects')}
