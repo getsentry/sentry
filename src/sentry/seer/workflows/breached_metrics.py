@@ -12,6 +12,7 @@ from pydantic import BaseModel, PositiveInt, ValidationError
 from sentry import features
 from sentry.incidents.grouptype import MetricIssue
 from sentry.models.group import Group
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
     SeerWorkflowFilters,
@@ -62,6 +63,7 @@ class MetricBreachTrigger(BaseModel):
     environment: str | None = None
     group_id: int
     project_id: int
+    open_period_id: PositiveInt
     invocation_source: Literal["wfe"] = "wfe"
     binding_id: int
     workflow_id: int
@@ -112,10 +114,14 @@ class BreachedMetricWorkflow(SeerWorkflow):
         group: Group,
         event: GroupEvent,
         *,
+        open_period: GroupOpenPeriod,
         binding: SeerWorkflowTriggerBinding,
         workflow_id: int,
     ) -> AcceptedMetricBreach | RejectedMetricBreach | IgnoredMetricBreach:
-        """Check eligibility, then record one admission decision per issue and config."""
+        """Record one admission per period and config.
+
+        Callers must supply the event's exact, persisted period.
+        """
         if not features.has("organizations:seer-automations", group.organization):
             return IgnoredMetricBreach("feature_disabled")
         if binding.workflow_config_id != self.config.id:
@@ -130,6 +136,8 @@ class BreachedMetricWorkflow(SeerWorkflow):
             or occurrence.type != MetricIssue
             or occurrence.project_id != group.project_id
             or occurrence.event_id != event.event_id
+            or open_period.group_id != group.id
+            or open_period.project_id != group.project_id
         ):
             return IgnoredMetricBreach("invalid_source")
         try:
@@ -142,6 +150,7 @@ class BreachedMetricWorkflow(SeerWorkflow):
                 environment=event.get_tag("environment"),
                 group_id=group.id,
                 project_id=group.project_id,
+                open_period_id=open_period.id,
                 binding_id=binding.id,
                 workflow_id=workflow_id,
                 action_id=binding.trigger_action_id,
@@ -173,7 +182,7 @@ class BreachedMetricWorkflow(SeerWorkflow):
         trigger: MetricBreachTrigger,
     ) -> AcceptedMetricBreach | RejectedMetricBreach:
         config = self.config
-        trigger_key = f"issue_created:{group.id}"
+        trigger_key = f"metric_open_period:{group.id}:{trigger.open_period_id}"
         run = SeerWorkflowRun.objects.filter(
             organization_id=group.organization.id,
             workflow_config=config,

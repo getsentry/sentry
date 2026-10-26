@@ -1,6 +1,10 @@
 import logging
 from typing import Literal, override
 
+from django.db.models import Q
+
+from sentry.models.groupopenperiod import GroupOpenPeriod
+from sentry.models.groupopenperiodactivity import OpenPeriodActivityType
 from sentry.seer.models.workflow import SeerWorkflowTriggerBinding
 from sentry.seer.workflows.breached_metrics import (
     AcceptedMetricBreach,
@@ -57,9 +61,26 @@ class SeerWorkflowActionHandler(ActionHandler):
             return
 
         extra.update(workflow_config_id=binding.workflow_config_id, binding_id=binding.id)
+        periods = GroupOpenPeriod.objects.filter(group=group, project_id=group.project_id)
+        # Opening events carry an exact association even when detection and ingestion times differ.
+        open_period = periods.filter(
+            groupopenperiodactivity__event_id=event.event_id,
+            groupopenperiodactivity__type=OpenPeriodActivityType.OPENED,
+        ).first()
+        if open_period is None:
+            # Other events must be resolved at their event time, including delayed action retries.
+            open_period = (
+                periods.filter(date_started__lte=event.datetime)
+                .filter(Q(date_ended__isnull=True) | Q(date_ended__gte=event.datetime))
+                .first()
+            )
+        if open_period is None:
+            _record_trigger_outcome("ignored", extra, reason="invalid_source")
+            return
         admission = BreachedMetricWorkflow(binding.workflow_config).accept(
             group,
             event,
+            open_period=open_period,
             binding=binding,
             workflow_id=invocation.workflow_id,
         )
