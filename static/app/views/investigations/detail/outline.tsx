@@ -403,9 +403,9 @@ const OutlineMarker = styled('span')<{depth: number; isActive: boolean}>`
       : p.theme.tokens.graphics.neutral.moderate};
 `;
 
-/** Lines up with the entries' text, inside the rail. */
+/** Lines up with the entries' text. */
 const OutlineTitle = styled(Text)`
-  padding-left: calc(${p => p.theme.space.lg} + 1px);
+  padding-left: ${p => p.theme.space.lg};
   letter-spacing: 0.06em;
 `;
 
@@ -413,7 +413,6 @@ const OutlineList = styled('ul')`
   list-style: none;
   margin: 0;
   padding: 0;
-  border-left: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 /** Long headings stop at two lines. */
@@ -427,19 +426,15 @@ const OutlineLabel = styled(Text)`
 
 const OutlineLink = styled('a')<{nested: boolean}>`
   display: block;
-  /* Overlaps the list's border, so the current entry's marker stands in for it. */
-  margin-left: -1px;
   padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
   padding-left: ${p => (p.nested ? p.theme.space['2xl'] : p.theme.space.lg)};
-  border-left: 2px solid transparent;
-  border-radius: 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0;
+  border-radius: ${p => p.theme.radius.md};
 
   &:hover {
     background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 
   &[aria-current] {
-    border-left-color: ${p => p.theme.tokens.graphics.accent.vibrant};
     background: ${p => p.theme.tokens.background.transparent.accent.muted};
 
     &:hover {
