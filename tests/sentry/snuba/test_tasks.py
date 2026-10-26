@@ -345,15 +345,12 @@ class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest):
             delete_subscription_from_snuba(sub.id)
             assert not QuerySubscription.objects.filter(id=sub.id).exists()
 
-    def test_invalid_subscription_query(self) -> None:
-        """Updating a subscription whose query references a deleted issue should not raise."""
+    def test_invalid_old_subscription_query(self) -> None:
         subscription_id = f"1/{uuid4().hex}"
         sub = self.create_subscription(
-            QuerySubscription.Status.UPDATING,
-            subscription_id=subscription_id,
-            query="issue:INVALID-1",
+            QuerySubscription.Status.UPDATING, subscription_id=subscription_id
         )
-        update_subscription_in_snuba(sub.id)
+        update_subscription_in_snuba(sub.id, old_query="issue:INVALID-1")
         sub = QuerySubscription.objects.get(id=sub.id)
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
