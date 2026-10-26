@@ -443,6 +443,32 @@ class GroupNoteTest(APITestCase):
 
 
 class GroupNoteCreateTest(APITestCase):
+    def test_outbox_failure_rolls_back_comment_and_subscription(self) -> None:
+        self.login_as(user=self.user)
+        group = self.group
+        initial_count = group.num_comments
+        with (
+            self.feature("projects:issue-action-log-write-to-db"),
+            patch("sentry.models.activity.in_test_environment", return_value=False),
+            patch(
+                "sentry.issues.models.groupactionlogoutbox.GroupActionLogOutbox.save",
+                side_effect=RuntimeError("enqueue failed"),
+            ),
+            patch("sentry.issues.comments._sync_comment") as sync,
+            patch("sentry.issues.comments.comment_created.send_robust") as webhook,
+            self.captureOnCommitCallbacks(execute=True),
+        ):
+            response = self.client.post(
+                f"/api/0/issues/{group.id}/comments/", data={"text": "rollback"}, format="json"
+            )
+            assert response.status_code == 500
+        assert not Activity.objects.filter(group=group, type=ActivityType.NOTE.value).exists()
+        assert not GroupSubscription.objects.filter(group=group, user_id=self.user.id).exists()
+        group.refresh_from_db()
+        assert group.num_comments == initial_count
+        sync.assert_not_called()
+        webhook.assert_not_called()
+
     def test_simple(self) -> None:
         group = self.group
 
