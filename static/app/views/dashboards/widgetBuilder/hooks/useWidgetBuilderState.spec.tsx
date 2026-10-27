@@ -1470,6 +1470,186 @@ describe('useWidgetBuilderState', () => {
     });
   });
 
+  describe('transformations', () => {
+    it('updates or clears one aggregate across filters without changing sibling pipelines', () => {
+      const {result} = renderWidgetBuilderState({
+        dataset: WidgetType.SPANS,
+        displayType: DisplayType.LINE,
+        yAxis: ['count()', 'avg(span.duration)'],
+        query: ['environment:prod', 'environment:staging'],
+        transformations: '[{"0":["fill(zero)"]},{"0":["fill(linear)"]}]',
+      });
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_AGGREGATE_TRANSFORMATIONS,
+          payload: {index: 1, transformations: ['fill(locf)', 'smooth(sma,5)']},
+        });
+      });
+      expect(result.current.state.transformations).toEqual([
+        {0: ['fill(zero)'], 1: ['fill(locf)', 'smooth(sma,5)']},
+        {0: ['fill(linear)'], 1: ['fill(locf)', 'smooth(sma,5)']},
+      ]);
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_AGGREGATE_TRANSFORMATIONS,
+          payload: {index: 1, transformations: []},
+        });
+      });
+      expect(result.current.state.transformations).toEqual([
+        {0: ['fill(zero)']},
+        {0: ['fill(linear)']},
+      ]);
+    });
+
+    it('keeps pipelines aligned through duplicate-axis moves, edits, additions, and deletion', () => {
+      const {result} = renderWidgetBuilderState({
+        dataset: WidgetType.SPANS,
+        displayType: DisplayType.LINE,
+        yAxis: ['count()', 'count()', 'avg(span.duration)'],
+        query: ['environment:prod', 'environment:staging'],
+        transformations:
+          '[{"0":["fill(zero)"],"1":["fill(locf)"],"2":["smooth(sma,3)"]},{"0":["fill(linear)"],"1":["smooth(ema,4,0.5)"]}]',
+      });
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_Y_AXIS,
+          payload: [
+            {kind: FieldValueKind.FUNCTION, function: ['count', '']},
+            {kind: FieldValueKind.FUNCTION, function: ['avg', 'span.duration']},
+            {kind: FieldValueKind.FUNCTION, function: ['count', '']},
+          ],
+          sourceIndices: [1, 2, 0],
+        });
+      });
+      expect(result.current.state.transformations).toEqual([
+        {0: ['fill(locf)'], 1: ['smooth(sma,3)'], 2: ['fill(zero)']},
+        {0: ['smooth(ema,4,0.5)'], 2: ['fill(linear)']},
+      ]);
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_Y_AXIS,
+          payload: [
+            {kind: FieldValueKind.FUNCTION, function: ['p95', 'span.duration']},
+            ...(result.current.state.yAxis ?? []).slice(1),
+            {kind: FieldValueKind.FUNCTION, function: ['count', '']},
+          ],
+        });
+      });
+      expect(result.current.state.transformations).toEqual([
+        {0: ['fill(locf)'], 1: ['smooth(sma,3)'], 2: ['fill(zero)']},
+        {0: ['smooth(ema,4,0.5)'], 2: ['fill(linear)']},
+      ]);
+      act(() => {
+        result.current.dispatch({type: BuilderStateAction.DELETE_AGGREGATE, payload: 1});
+      });
+      expect(serializeFields(result.current.state.yAxis ?? [])).toEqual([
+        'p95(span.duration)',
+        'count()',
+        'count()',
+      ]);
+      expect(result.current.state.transformations).toEqual([
+        {0: ['fill(locf)'], 1: ['fill(zero)']},
+        {0: ['smooth(ema,4,0.5)'], 1: ['fill(linear)']},
+      ]);
+    });
+
+    it('removes a filter pipeline and copies the first pipeline for an appended filter', () => {
+      const {result} = renderWidgetBuilderState({
+        yAxis: ['count()'],
+        query: ['environment:prod', 'environment:staging', 'environment:dev'],
+        transformations:
+          '[{"0":["fill(zero)"]},{"0":["fill(locf)"]},{"0":["smooth(sma,3)"]}]',
+      });
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_QUERY,
+          payload: ['environment:prod', 'environment:dev'],
+          removedQueryIndex: 1,
+        });
+      });
+      expect(result.current.state.transformations).toEqual([
+        {0: ['fill(zero)']},
+        {0: ['smooth(sma,3)']},
+      ]);
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_QUERY,
+          payload: ['environment:prod', 'environment:dev', 'environment:test'],
+        });
+      });
+      expect(result.current.state.transformations).toEqual([
+        {0: ['fill(zero)']},
+        {0: ['smooth(sma,3)']},
+        {0: ['fill(zero)']},
+      ]);
+    });
+
+    it('clears previous pipelines when loading a widget without transformations', () => {
+      const {result} = renderWidgetBuilderState({
+        transformations: '[{"0":["fill(zero)"]}]',
+      });
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_STATE,
+          payload: {
+            dataset: WidgetType.LOGS,
+            displayType: DisplayType.LINE,
+            yAxis: ['count()'],
+          },
+        });
+      });
+      expect(result.current.state.dataset).toBe(WidgetType.LOGS);
+      expect(result.current.state.transformations).toBeUndefined();
+    });
+
+    it.each([
+      'not json',
+      '{"0":["fill(zero)"]}',
+      '[null]',
+      '[["fill(zero)"]]',
+      '[{"-1":["fill(zero)"]}]',
+      '[{"1.5":["fill(zero)"]}]',
+      '[{"0":"fill(zero)"}]',
+      '[{"0":[1]}]',
+    ])('ignores malformed transformation URL data %s', transformations => {
+      const {result} = renderWidgetBuilderState({yAxis: ['count()'], transformations});
+      expect(serializeFields(result.current.state.yAxis ?? [])).toEqual(['count()']);
+      expect(result.current.state.transformations).toBeUndefined();
+    });
+
+    it('normalizes non-canonical transformation indices from the URL', () => {
+      const {result} = renderWidgetBuilderState({
+        yAxis: ['count()', 'count()'],
+        transformations: '[{"01":["fill(zero)"]}]',
+      });
+      expect(result.current.state.transformations).toEqual([{1: ['fill(zero)']}]);
+    });
+
+    it('retains pipelines for timeseries chart changes and clears them on dataset changes', () => {
+      const {result} = renderWidgetBuilderState({
+        dataset: WidgetType.SPANS,
+        displayType: DisplayType.LINE,
+        yAxis: ['count()'],
+        transformations: '[{"0":["fill(zero)"]}]',
+      });
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.AREA,
+        });
+      });
+      expect(result.current.state.transformations).toEqual([{0: ['fill(zero)']}]);
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DATASET,
+          payload: WidgetType.LOGS,
+        });
+      });
+      expect(result.current.state.dataset).toBe(WidgetType.LOGS);
+      expect(result.current.state.transformations).toBeUndefined();
+    });
+  });
+
   describe('yAxis', () => {
     it('does not conflict with fields when setting the state', () => {
       const {result} = renderWidgetBuilderState({

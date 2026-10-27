@@ -29,6 +29,11 @@ import {
   usesTimeSeriesData,
 } from 'sentry/views/dashboards/utils';
 import {getAxisRange, type AxisRange} from 'sentry/views/dashboards/utils/axisRange';
+import {
+  deserializeTransformations,
+  remapTransformations,
+  type QueryTransformations,
+} from 'sentry/views/dashboards/utils/transformations';
 import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholds';
 import {
   MAX_NUM_Y_AXES,
@@ -91,6 +96,7 @@ export type WidgetBuilderStateQueryParams = {
   sort?: string[];
   thresholds?: string;
   title?: string;
+  transformations?: string;
   yAxis?: string[];
 };
 
@@ -108,8 +114,24 @@ type WidgetAction =
   | {payload: DisplayType; type: typeof BuilderStateAction.SET_DISPLAY_TYPE}
   | {payload: WidgetType; type: typeof BuilderStateAction.SET_DATASET}
   | {payload: Column[]; type: typeof BuilderStateAction.SET_FIELDS}
-  | {payload: Column[]; type: typeof BuilderStateAction.SET_Y_AXIS}
-  | {payload: string[]; type: typeof BuilderStateAction.SET_QUERY}
+  | {
+      payload: Column[];
+      type: typeof BuilderStateAction.SET_Y_AXIS;
+      sourceIndices?: number[];
+    }
+  | {
+      payload: QueryTransformations[] | undefined;
+      type: typeof BuilderStateAction.SET_TRANSFORMATIONS;
+    }
+  | {
+      payload: {index: number; transformations: readonly string[]};
+      type: typeof BuilderStateAction.SET_AGGREGATE_TRANSFORMATIONS;
+    }
+  | {
+      payload: string[];
+      type: typeof BuilderStateAction.SET_QUERY;
+      removedQueryIndex?: number;
+    }
   | {payload: Sort[]; type: typeof BuilderStateAction.SET_SORT}
   | {payload: LinkedDashboard[]; type: typeof BuilderStateAction.SET_LINKED_DASHBOARDS}
   | {payload: number; type: typeof BuilderStateAction.SET_LIMIT}
@@ -182,6 +204,7 @@ export interface WidgetBuilderState {
   textContent?: string;
   thresholds?: ThresholdsConfig | null;
   title?: string;
+  transformations?: QueryTransformations[];
   /**
    * Y-axis aggregates for time-series charts (area, bar, line).
    * Not used by tables, big numbers, categorical bar, or heat map widgets.
@@ -377,6 +400,10 @@ export function useWidgetBuilderState(): {
 
   const [fields, setFields] = useSeededQueryState('field', parseAsColumns);
   const [yAxis, setYAxis] = useSeededQueryState('yAxis', parseAsColumns);
+  const [transformations, setTransformations] = useSeededQueryState(
+    'transformations',
+    parseAsTransformations
+  );
   const [query, setQuery] = useSeededQueryState('query', parseAsQueries);
   // oxlint-disable-next-line react/refs
   const [sort, setRawSort] = useSeededQueryState('sort', parseAsWidgetSorts(datasetRef));
@@ -424,6 +451,7 @@ export function useWidgetBuilderState(): {
       dataset,
       fields,
       yAxis,
+      transformations,
       query,
       sort,
       limit,
@@ -461,6 +489,7 @@ export function useWidgetBuilderState(): {
       dataset,
       fields,
       yAxis,
+      transformations,
       query,
       sort,
       limit,
@@ -485,6 +514,13 @@ export function useWidgetBuilderState(): {
           break;
         case BuilderStateAction.SET_DISPLAY_TYPE: {
           setDisplayType(action.payload, options);
+          if (
+            ![DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(
+              action.payload
+            )
+          ) {
+            setTransformations(undefined, options);
+          }
           // When leaving the text widget type, clear local text content
           if (displayType === DisplayType.TEXT && action.payload !== DisplayType.TEXT) {
             setTextContent(undefined);
@@ -505,6 +541,7 @@ export function useWidgetBuilderState(): {
           }));
           const yAxisWithoutAlias = yAxis?.map(axis => ({...axis, alias: undefined}));
           if (action.payload === DisplayType.TABLE) {
+            setQuery(query?.slice(0, 1), options);
             setLinkedDashboards([], options);
             setLimit(undefined, options);
             setYAxis([], options);
@@ -748,6 +785,7 @@ export function useWidgetBuilderState(): {
         }
         case BuilderStateAction.SET_DATASET: {
           const config = getDatasetConfig(action.payload);
+          setTransformations(undefined, options);
 
           let nextDisplayType = displayType;
           if (action.payload === WidgetType.ISSUE) {
@@ -974,6 +1012,19 @@ export function useWidgetBuilderState(): {
         }
         case BuilderStateAction.SET_Y_AXIS: {
           setYAxis(action.payload, options);
+          if (transformations) {
+            const sourceIndices = action.payload.map((field, index) =>
+              field.kind === FieldValueKind.FUNCTION
+                ? (action.sourceIndices?.[index] ?? index)
+                : undefined
+            );
+            setTransformations(
+              transformations.map(pipelines =>
+                remapTransformations(pipelines, sourceIndices)
+              ),
+              options
+            );
+          }
 
           if (fields?.length && fields.length > 0) {
             // Check if we need to update the limit for a Top N query
@@ -995,8 +1046,36 @@ export function useWidgetBuilderState(): {
           }
           break;
         }
+        case BuilderStateAction.SET_TRANSFORMATIONS:
+          setTransformations(action.payload, options);
+          break;
+        case BuilderStateAction.SET_AGGREGATE_TRANSFORMATIONS: {
+          const {index, transformations: pipeline} = action.payload;
+          setTransformations(
+            (query?.length ? query : ['']).map((_, queryIndex) => {
+              const pipelines = {...transformations?.[queryIndex]};
+              if (pipeline.length) {
+                pipelines[index] = [...pipeline];
+              } else {
+                delete pipelines[index];
+              }
+              return pipelines;
+            }),
+            options
+          );
+          break;
+        }
         case BuilderStateAction.SET_QUERY:
           setQuery(action.payload, options);
+          if (transformations) {
+            const remaining = transformations.filter(
+              (_, index) => index !== action.removedQueryIndex
+            );
+            setTransformations(
+              action.payload.map((_, index) => remaining[index] ?? remaining[0] ?? {}),
+              options
+            );
+          }
           break;
         case BuilderStateAction.SET_SORT: {
           if (dataset === WidgetType.ISSUE) {
@@ -1058,6 +1137,12 @@ export function useWidgetBuilderState(): {
           }
           break;
         case BuilderStateAction.SET_STATE:
+          setTransformations(
+            action.payload.transformations
+              ? (deserializeTransformations(action.payload.transformations) ?? undefined)
+              : undefined,
+            options
+          );
           setDataset(action.payload.dataset, options);
           setDisplayType(action.payload.displayType, options);
           if (action.payload.displayType === DisplayType.TEXT) {
@@ -1202,6 +1287,17 @@ export function useWidgetBuilderState(): {
             // Time series: aggregates are in yAxis
             const newYAxis = yAxis?.filter((_, i) => i !== deleteIndex) ?? [];
             setYAxis(newYAxis, options);
+            if (transformations) {
+              const sourceIndices =
+                yAxis?.flatMap((_, index) => (index === deleteIndex ? [] : [index])) ??
+                [];
+              setTransformations(
+                transformations.map(pipelines =>
+                  remapTransformations(pipelines, sourceIndices)
+                ),
+                options
+              );
+            }
 
             // Replicate SET_Y_AXIS limit check
             if (fields?.length && fields.length > 0) {
@@ -1288,6 +1384,8 @@ export function useWidgetBuilderState(): {
       setLinkedDashboards,
       setTextContent,
       setYAxis,
+      transformations,
+      setTransformations,
       setFields,
       sort,
       query,
@@ -1445,6 +1543,11 @@ const parseAsColumns = createMultiParser({
   serialize: serializeFields,
   eq: bothEmpty,
 }).withDefault([]);
+
+const parseAsTransformations = createParser({
+  parse: deserializeTransformations,
+  serialize: (value: QueryTransformations[]) => JSON.stringify(value),
+});
 
 const parseAsQueries = createMultiParser({
   parse: (values: readonly string[]) => deserializeQuery([...values]),
