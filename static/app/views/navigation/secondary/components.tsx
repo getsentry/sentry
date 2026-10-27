@@ -410,7 +410,9 @@ function SectionTitle(props: SectionTitleProps) {
 interface SecondaryNavigationSectionProps {
   children: ReactNode;
   id: string;
-  collapsible?: boolean;
+  /**
+   * The title is the collapse toggle, so only titled sections can collapse.
+   */
   title?: ReactNode;
 }
 
@@ -420,7 +422,7 @@ function SecondaryNavigationSection(props: SecondaryNavigationSectionProps) {
     `secondary-nav-section-${props.id}-collapsed`,
     false
   );
-  const canCollapse = layout === 'sidebar' && (props.collapsible ?? true);
+  const canCollapse = layout === 'sidebar' && !!props.title;
   const isCollapsed = canCollapse ? isCollapsedState : false;
 
   return (
