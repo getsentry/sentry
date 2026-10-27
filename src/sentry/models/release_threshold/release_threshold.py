@@ -14,7 +14,7 @@ class ReleaseThreshold(Model):
     NOTE:
     To transition to utilizing AlertRules, there are some duplicated attrs we'll want to dedup.
     AlertRule model should house metadata on the AlertRule itself (eg. type of alert rule)
-    AlertRuleTrigger model should house the trigger requirements (eg. value, over/under trigger type)
+    DataCondition can represent the threshold requirements (eg. value, over/under comparison).
         - TODO: Will need to determine how this translates to release_threshold evaluation
     QuerySubscription model subscribes the AlertRule to specific query in Snuba
     SnubaQuery model represents the actual query run in Snuba

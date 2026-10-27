@@ -221,7 +221,7 @@ def test_unknown_permission_group() -> None:
 @pytest.mark.parametrize(
     "scope, expected",
     [
-        ("dashboard:write", ["read", "create", "write"]),
+        ("dashboard:update", ["read", "create", "write"]),
         ("dashboard:delete", ["read", "create", "write", "delete"]),
     ],
 )
@@ -242,3 +242,6 @@ def test_resource_access_descriptions() -> None:
     (ci,) = get_permission_groups(["org:ci"])
     assert ci["accessDescriptions"] == {}
     assert ci["description"]
+    (tokens,) = get_permission_groups(["org:tokens"])
+    assert tokens["accessDescriptions"] == {}
+    assert tokens["description"]

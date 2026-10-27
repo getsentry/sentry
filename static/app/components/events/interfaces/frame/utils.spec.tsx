@@ -1,5 +1,6 @@
 import {
   hasFileExtension,
+  isUnlinkableFilename,
   isPotentiallyThirdPartyFrame,
 } from 'sentry/components/events/interfaces/frame/utils';
 import type {Event, Frame} from 'sentry/types/event';
@@ -25,6 +26,36 @@ describe('hasFileExtension', () => {
     expect(hasFileExtension('example.tar.gz')).toBe(true); // Multi-part extension
     expect(hasFileExtension('')).toBe(false); // Empty string
     expect(hasFileExtension('example@.py')).toBe(true); // Special characters
+  });
+});
+
+describe('isUnlinkableFilename', () => {
+  it.each([
+    '<anonymous>',
+    '<string>',
+    '[native code]',
+    'node:internal/process/task_queues',
+    'app:///main.jsbundle',
+    'app:///index.android.bundle',
+    'il2cpp-codegen.h',
+    'Assembly-CSharp__34.cpp',
+    'App.g.i.cs',
+    'DaggerExampleApp_HiltComponents_SingletonC.java',
+    'LoginActivity_GeneratedInjector.java',
+  ])('returns true for %s', filename => {
+    expect(isUnlinkableFilename(filename)).toBe(true);
+  });
+
+  it.each([
+    'src/app.tsx',
+    'app:///src/app.js',
+    'sentry/app.py',
+    'node_modules/foo.js',
+    'LoggerMessage.g.cs',
+    'DaggerWorkerFactory.kt',
+    'src/my-il2cpp-codegen.h',
+  ])('returns false for %s', filename => {
+    expect(isUnlinkableFilename(filename)).toBe(false);
   });
 });
 

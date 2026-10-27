@@ -172,7 +172,7 @@ const inputItemSchema = z.object({
   type: z.literal('evaluation'),
   // The evaluated content is the core of the input, so it must be present.
   state: evaluatedStateSchema,
-  questions: z.unknown(),
+  questions: z.unknown().optional(),
 });
 
 const outputItemSchema = z.object({

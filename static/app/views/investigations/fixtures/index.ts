@@ -244,6 +244,8 @@ export function InvestigationActionRequestFixture(
     },
     appliedBy: null,
     appliedDetails: null,
+    canApply: true,
+    cannotApplyReason: null,
     dateApplied: null,
     error: null,
     dateCreated: '2026-08-27T11:10:00Z',
