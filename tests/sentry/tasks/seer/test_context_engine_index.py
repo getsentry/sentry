@@ -59,15 +59,15 @@ class TestIndexOrgProjectKnowledge(TestCase):
                     index_org_project_knowledge(self.org.id)
                     mock_request.assert_not_called()
 
-    def test_calls_seer_endpoint_with_correct_payload(self):
-        self._assert_system_index_request(Actor(type=ActorType.UNKNOWN))
+    def test_calls_seer_endpoint_with_correct_payload(self) -> None:
+        self._assert_system_index_request(Actor(type=ActorType.SYSTEM))
 
-    def test_replaces_inherited_user_with_system(self):
+    def test_replaces_inherited_user_with_system(self) -> None:
         self._assert_system_index_request(Actor(type=ActorType.USER, actor_id=123))
 
     @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
     @mock.patch("sentry.seer.signed_seer_api.seer_autofix_default_connection_pool.urlopen")
-    def _assert_system_index_request(self, inherited_actor, mock_urlopen):
+    def _assert_system_index_request(self, inherited_actor: Actor, mock_urlopen: mock.Mock) -> None:
         mock_urlopen.return_value = HTTPResponse(b"", status=200)
 
         event_counts = {
