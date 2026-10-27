@@ -274,14 +274,13 @@ class SeerWorkflowRunLifecycleTest(TestCase):
         run.start()
         with pytest.raises(InvalidWorkflowTransition):
             run.start()
-        (execution,) = run.create_executions([SeerWorkflowExecutionExtras()])
+        (execution,) = self.create_executions(run)
         run.start_execution(execution.id)
         with pytest.raises(InvalidWorkflowTransition):
             run.start_execution(execution.id)
 
     def test_empty_plan_completes_the_run_and_allows_exact_retries(self) -> None:
-        run = self.create_run()
-        run.start()
+        run = self.create_running_run()
         assert run.create_executions([]) == []
         assert run.run.status == SeerWorkflowRunStatus.COMPLETE
         assert run.run.date_completed is not None
@@ -311,9 +310,8 @@ class SeerWorkflowRunLifecycleTest(TestCase):
         assert run.run.date_completed == completed_at
 
     def test_run_failure_cannot_replace_execution_results(self) -> None:
-        run = self.create_run()
-        run.start()
-        run.create_executions([SeerWorkflowExecutionExtras()])
+        run = self.create_running_run()
+        self.create_executions(run)
         with pytest.raises(InvalidWorkflowTransition):
             run.fail(WorkflowRunError(code="selection_failed", message="Selection failed"))
         run.run.refresh_from_db()
@@ -321,11 +319,9 @@ class SeerWorkflowRunLifecycleTest(TestCase):
         assert run.run.date_completed is None
 
     def test_execution_transitions_are_scoped_to_run(self) -> None:
-        run = self.create_run()
-        run.start()
-        (execution,) = run.create_executions([SeerWorkflowExecutionExtras()])
-        other = self.create_run(trigger_key="manual:other")
-        other.start()
+        run = self.create_running_run()
+        (execution,) = self.create_executions(run)
+        other = self.create_running_run(trigger_key="manual:other")
         with pytest.raises(SeerWorkflowRunExecution.DoesNotExist):
             other.start_execution(execution.id)
         with pytest.raises(SeerWorkflowRunExecution.DoesNotExist):
@@ -336,11 +332,8 @@ class SeerWorkflowRunLifecycleTest(TestCase):
         assert other.run.date_completed is None
 
     def test_queued_execution_keeps_parent_running(self) -> None:
-        run = self.create_run()
-        run.start()
-        first, queued = run.create_executions(
-            [SeerWorkflowExecutionExtras(), SeerWorkflowExecutionExtras()]
-        )
+        run = self.create_running_run()
+        first, queued = self.create_executions(run, count=2)
         run.start_execution(first.id)
         run.complete_execution(first.id)
         assert run.run.status == SeerWorkflowRunStatus.RUNNING
@@ -356,8 +349,7 @@ class SeerWorkflowRunLifecycleTest(TestCase):
         assert run.run.date_completed is not None
 
     def test_execution_plan_creates_queued_work_once(self) -> None:
-        run = self.create_run()
-        run.start()
+        run = self.create_running_run()
         first, second = run.create_executions(
             [SeerWorkflowExecutionExtras(project_id=1), SeerWorkflowExecutionExtras(project_id=2)]
         )
@@ -372,11 +364,8 @@ class SeerWorkflowRunLifecycleTest(TestCase):
         assert run.run.executions.count() == 2
 
     def test_run_completes_when_all_executions_succeed(self) -> None:
-        run = self.create_run()
-        run.start()
-        first, second = run.create_executions(
-            [SeerWorkflowExecutionExtras(), SeerWorkflowExecutionExtras()]
-        )
+        run = self.create_running_run()
+        first, second = self.create_executions(run, count=2)
         run.start_execution(first.id)
         run.start_execution(second.id)
 
@@ -403,11 +392,8 @@ class SeerWorkflowRunLifecycleTest(TestCase):
         assert run.run.date_completed == completed_at
 
     def test_run_waits_for_remaining_executions_before_failing(self) -> None:
-        run = self.create_run()
-        run.start()
-        first, second = run.create_executions(
-            [SeerWorkflowExecutionExtras(), SeerWorkflowExecutionExtras()]
-        )
+        run = self.create_running_run()
+        first, second = self.create_executions(run, count=2)
         run.start_execution(first.id)
         run.start_execution(second.id)
         original_extras = run.run.extras.copy()
@@ -427,8 +413,18 @@ class SeerWorkflowRunLifecycleTest(TestCase):
         assert first.status == SeerWorkflowExecutionStatus.FAILED
         assert SeerWorkflowExecutionExtras.parse_obj(first.extras).error == failure
 
+    def create_running_run(self, *, trigger_key: str = "manual:first") -> SeerWorkflowRunLifecycle:
+        run = self.create_run(trigger_key=trigger_key)
+        run.start()
+        return run
+
     def create_run(self, *, trigger_key: str = "manual:first") -> SeerWorkflowRunLifecycle:
         result = self.workflow.get_or_create_run(
             trigger_key=trigger_key, inputs=RunInputs(issue_limit=10)
         )
         return result.lifecycle
+
+    def create_executions(
+        self, run: SeerWorkflowRunLifecycle, *, count: int = 1
+    ) -> list[SeerWorkflowRunExecution]:
+        return run.create_executions([SeerWorkflowExecutionExtras() for _ in range(count)])
