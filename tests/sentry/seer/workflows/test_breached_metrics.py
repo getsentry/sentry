@@ -7,6 +7,7 @@ from unittest import mock
 from uuid import uuid4
 
 import pytest
+from pydantic import ValidationError
 
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
@@ -157,6 +158,32 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
         assert stored_trigger.observed_at == event.occurrence.detection_time
         assert stored_trigger.binding_id == self.action.seer_workflow_binding.id
         assert stored.admission.decided_at <= run.date_completed
+        assert SeerWorkflowRun.objects.count() == 1
+
+    def test_replaying_old_metadata_logs_validation_error_without_replacing_run(self) -> None:
+        event = self.breach_event()
+        run = self.accept(event)
+        assert run is not None
+        old_extras = {
+            "status": "complete",
+            "config_version": run.extras["snapshot"]["config_version"],
+            "trigger": run.extras["snapshot"]["inputs"],
+            "admission": run.extras["admission"],
+        }
+        run.update(extras=old_extras, status=None)
+
+        with (
+            mock.patch("sentry.seer.workflows.runs.logger.exception") as capture_error,
+            pytest.raises(ValidationError, match="snapshot"),
+        ):
+            self.accept(event)
+
+        capture_error.assert_called_once_with(
+            "seer.workflow.invalid_run_extras",
+            extra={"run_id": run.id, "organization_id": self.organization.id},
+        )
+        run.refresh_from_db()
+        assert run.extras == old_extras
         assert SeerWorkflowRun.objects.count() == 1
 
     def test_accept_uses_latest_scope_from_the_locked_config(self) -> None:

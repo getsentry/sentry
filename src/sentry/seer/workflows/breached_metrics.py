@@ -22,6 +22,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowTriggerBinding,
     WorkflowRunError,
 )
+from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
 from sentry.seer.workflows.workflow import SeerWorkflow
 from sentry.services.eventstore.models import GroupEvent
 
@@ -184,7 +185,9 @@ class BreachedMetricWorkflow(SeerWorkflow):
         trigger_key = f"issue_created:{group.id}"
         existing = self.get_runs().filter(trigger_key=trigger_key).first()
         if existing is not None:
-            admission = MetricBreachRunExtras.parse_obj(existing.extras).admission
+            admission = (
+                SeerWorkflowRunLifecycle(existing).parse_extras(MetricBreachRunExtras).admission
+            )
             if isinstance(admission, RejectedMetricBreachAdmission):
                 return RejectedMetricBreach(run=existing, reason=admission.reason, created=False)
             return AcceptedMetricBreach(run=existing, created=False)

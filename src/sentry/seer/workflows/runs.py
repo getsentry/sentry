@@ -9,6 +9,7 @@ from uuid import UUID
 
 from django.db import router, transaction
 from django.utils import timezone
+from pydantic import ValidationError
 
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.types import FeatureRunStatus
@@ -49,7 +50,17 @@ class SeerWorkflowRunLifecycle:
 
     @property
     def extras(self) -> SeerWorkflowRunExtras:
-        return SeerWorkflowRunExtras.parse_obj(self.run.extras)
+        return self.parse_extras(SeerWorkflowRunExtras)
+
+    def parse_extras[Extras: SeerWorkflowRunExtras](self, extras_type: type[Extras]) -> Extras:
+        try:
+            return extras_type.parse_obj(self.run.extras)
+        except ValidationError:
+            logger.exception(
+                "seer.workflow.invalid_run_extras",
+                extra={"run_id": self.run.id, "organization_id": self.run.organization_id},
+            )
+            raise
 
     def start(self) -> SeerWorkflowRun:
         with transaction.atomic(router.db_for_write(SeerWorkflowRun)):
