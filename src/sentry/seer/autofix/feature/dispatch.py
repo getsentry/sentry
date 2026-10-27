@@ -235,6 +235,9 @@ def _start_single_run(group: Group, args: AutofixFeatureArgs, skip_quota: bool) 
     enable_coding = group.organization.get_option(
         "sentry:enable_seer_coding", ENABLE_SEER_CODING_DEFAULT
     ) and stopping_point not in (AutofixStoppingPoint.ROOT_CAUSE, AutofixStoppingPoint.SOLUTION)
+    enable_bash_mode = enable_coding and features.has(
+        "organizations:seer-explorer-allow-bash-mode", group.organization, actor=args.user
+    )
     enable_write_pull_request = (
         args.can_open_pr
         and enable_coding
@@ -250,13 +253,14 @@ def _start_single_run(group: Group, args: AutofixFeatureArgs, skip_quota: bool) 
         intelligence_level=args.step_args.intelligence_level,
         reasoning_effort=args.step_args.reasoning_effort,
         repo_pins=args.step_args.repo_pins,
+        user_context=args.user_context,
     )
     client = SeerAgentClient(
         organization=group.organization,
         project=group.project,
         group=group,
         user=args.user,
-        enable_bash_mode=enable_coding,
+        enable_bash_mode=enable_bash_mode,
         enable_coding=enable_coding,
     )
     extras: dict[str, Any] = {"referrer": args.referrer.value}
@@ -273,7 +277,7 @@ def _start_single_run(group: Group, args: AutofixFeatureArgs, skip_quota: bool) 
             is_context_engine_enabled=False,
             enable_frontend_code_search=False,
             enable_coding=enable_coding,
-            enable_bash_mode=enable_coding,
+            enable_bash_mode=enable_bash_mode,
             enable_write_pull_request=enable_write_pull_request,
             enable_code_mode_tools="only",
         ),

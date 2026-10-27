@@ -413,10 +413,17 @@ class TestTriggerAutofixFeature(TestCase):
         stopping_point: AutofixStoppingPoint | None,
         step_args: RCAStepArgs | None = None,
         can_open_pr: bool = True,
+        user_context: str | None = None,
+        bash_mode: bool = True,
     ) -> dict[str, Any]:
         fake_run = self.create_seer_run(organization=self.organization, type="feature_run")
         with (
-            self.feature("organizations:autofix-single-run"),
+            self.feature(
+                {
+                    "organizations:autofix-single-run": True,
+                    "organizations:seer-explorer-allow-bash-mode": bash_mode,
+                }
+            ),
             patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as mock_client_cls,
             patch("sentry.seer.autofix.feature.dispatch.quotas") as mock_quotas,
         ):
@@ -431,6 +438,7 @@ class TestTriggerAutofixFeature(TestCase):
                     step_args=step_args or RCAStepArgs(),
                     stopping_point=stopping_point,
                     can_open_pr=can_open_pr,
+                    user_context=user_context,
                 ),
             )
 
@@ -464,6 +472,7 @@ class TestTriggerAutofixFeature(TestCase):
                     "base_branch": "main",
                 }
             },
+            "user_context": None,
         }
         assert kwargs["agent_run_options"] == {
             "is_context_engine_enabled": False,
@@ -533,6 +542,17 @@ class TestTriggerAutofixFeature(TestCase):
 
         assert options["enable_coding"] is True
         assert options["enable_write_pull_request"] is False
+
+    def test_single_run_passes_user_context(self) -> None:
+        payload = self._start_single_run(None, user_context="try the other repo")["payload"]
+
+        assert payload["user_context"] == "try the other repo"
+
+    def test_single_run_without_bash_mode_flag_gets_no_bash_mode(self) -> None:
+        options = self._start_single_run(None, bash_mode=False)["agent_run_options"]
+
+        assert options["enable_coding"] is True
+        assert options["enable_bash_mode"] is False
 
     def test_single_run_records_last_triggered(self) -> None:
         self._start_single_run(None)

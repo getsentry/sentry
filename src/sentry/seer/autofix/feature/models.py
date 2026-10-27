@@ -105,3 +105,4 @@ class AutofixSingleRunPayload(BaseModel):
     intelligence_level: Literal["low", "medium", "high"] = "medium"
     reasoning_effort: Literal["low", "medium", "high"] = "medium"
     repo_pins: RepoPins | None = None
+    user_context: str | None = None
