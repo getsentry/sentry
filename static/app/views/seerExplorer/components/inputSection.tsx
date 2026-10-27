@@ -359,7 +359,7 @@ const StyledComposer = styled(Composer, {
       inset;
   }
 
-  &:empty::before {
+  &[data-empty]::before {
     color: ${p =>
       p.isWarningPlaceholder
         ? p.theme.tokens.content.warning
