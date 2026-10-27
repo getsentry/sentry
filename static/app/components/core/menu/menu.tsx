@@ -1,4 +1,4 @@
-import {useEffect, useId, useRef} from 'react';
+import {createContext, useContext, useEffect, useId, useRef} from 'react';
 import {createPortal} from 'react-dom';
 import isPropValid from '@emotion/is-prop-valid';
 import {css, useTheme} from '@emotion/react';
@@ -7,6 +7,7 @@ import {autoUpdate, hide, offset, useFloating} from '@floating-ui/react-dom';
 import {mergeRefs} from '@react-aria/utils';
 import {IconSearch} from '@sentry/icons/search';
 
+import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
@@ -19,18 +20,41 @@ import type {FormSize, Theme} from '@sentry/scraps/theme';
 import type {TooltipProps} from '@sentry/scraps/tooltip';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+/** Caps a requested menu height by the space available to its overlay. */
+export function calculateMenuMinHeight(
+  first: string | number | undefined,
+  second: string | number | undefined
+): string | undefined {
+  if (first === undefined) {
+    return typeof second === 'number' ? `${second}px` : second;
+  }
+  if (second === undefined) {
+    return typeof first === 'number' ? `${first}px` : first;
+  }
+  const firstHeight = typeof first === 'number' ? `${first}px` : first;
+  const secondHeight = typeof second === 'number' ? `${second}px` : second;
+  return `min(${firstHeight}, ${secondHeight})`;
+}
+
 /** Container for a menu header, with a divider below it. */
 export function MenuHeaderLayout(props: FlexProps) {
   return <Stack borderBottom="muted" gap="0" {...props} />;
 }
 
 /** Text style for the menu's main heading. */
-export function MenuHeading({children}: {children: React.ReactNode}) {
-  return (
+export function MenuHeading({
+  children,
+  padding,
+}: {
+  children: React.ReactNode;
+  padding?: ContainerProps['padding'];
+}) {
+  const heading = (
     <Text size="sm" density="fixed" bold tabular>
       {children}
     </Text>
   );
+  return padding ? <Container padding={padding}>{heading}</Container> : heading;
 }
 
 /** Text style for a heading within a menu section. */
@@ -113,12 +137,42 @@ export function SearchInput({padding = 'xs', ...props}: SearchInputProps) {
   );
 }
 
+const ReserveLeadingSlotContext = createContext(false);
+
+/**
+ * When `reserve` is true, items without leading items render an empty leading
+ * slot, so their labels line up with items that have an icon. Menus should set
+ * it whenever any of their items renders leading items.
+ */
+export function ReserveLeadingSlot({
+  reserve,
+  children,
+}: {
+  children: React.ReactNode;
+  reserve: boolean;
+}) {
+  return (
+    <ReserveLeadingSlotContext value={reserve}>{children}</ReserveLeadingSlotContext>
+  );
+}
+
+/** Whether the surrounding menu reserves a leading slot for every item. */
+export function useReserveLeadingSlot() {
+  return useContext(ReserveLeadingSlotContext);
+}
+
 /**
  * Menu item priority. Determines the text and background color.
  */
 type Priority = 'primary' | 'danger' | 'default';
 
 // Padding order: top, right, bottom, left.
+// The trailing action is a single icon button that sits in the same right-hand
+// column as a submenu chevron. `TRAILING_ACTION_INSET` places it from the item's
+// right edge, and `TRAILING_ACTION_SPACE` keeps the label clear of it.
+const TRAILING_ACTION_INSET = 'lg';
+const TRAILING_ACTION_SPACE = '3xl';
+
 const ITEM_PADDING_BY_SIZE = {
   xs: 'xs md xs lg',
   sm: 'sm md sm lg',
@@ -160,10 +214,11 @@ const StyledInnerWrap = styled(Flex, {
   shouldForwardProp: prop =>
     typeof prop === 'string' &&
     (isPropValid(prop) ||
-      ['padding', 'paddingLeft', 'align', 'alignSelf'].includes(prop)) &&
-    !['disabled', 'isFocused', 'priority'].includes(prop),
+      ['padding', 'paddingLeft', 'paddingRight', 'align', 'alignSelf'].includes(prop)) &&
+    !['disabled', 'isFocused', 'hasTrailingAction', 'priority'].includes(prop),
 })<{
   disabled: boolean;
+  hasTrailingAction: boolean;
   isFocused: boolean;
   priority: Priority;
   size?: FormSize;
@@ -198,7 +253,7 @@ const StyledInnerWrap = styled(Flex, {
   ${p =>
     p.isFocused &&
     css`
-      z-index: 1;
+      ${!p.hasTrailingAction && 'z-index: 1;'}
       /* Background to hide the previous item's divider */
       ::before {
         background: ${p.theme.tokens.background.overlay};
@@ -265,6 +320,18 @@ type ExtraContent =
       isSelected: boolean;
     }) => React.ReactNode);
 
+/**
+ * An icon-only button rendered beside, rather than inside, the focusable menu
+ * item. The item reserves space for exactly one button, so the shape is limited
+ * to what that button needs.
+ */
+export interface MenuItemTrailingAction {
+  icon: React.ReactNode;
+  /** Accessible name for the button, also shown as its tooltip. */
+  label: string;
+  onAction: () => void;
+}
+
 export type ListItemProps = {
   /**
    * Optional descriptive text. Like 'label', should preferably be a string or
@@ -321,6 +388,11 @@ interface OtherProps<T extends React.ElementType> {
   isPressed?: boolean;
   isSelected?: boolean;
   labelProps?: {as?: 'div' | 'p'; id?: string};
+  trailingAction?: MenuItemTrailingAction;
+  /** Ref to the trailing action's button. */
+  trailingActionRef?: React.Ref<HTMLButtonElement>;
+  /** Props for the wrapper around the trailing action. */
+  trailingActionWrapperProps?: React.ComponentPropsWithRef<'div'>;
 }
 
 interface MenuListItemProps<T extends React.ElementType = 'li'>
@@ -338,6 +410,7 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
   disabled = false,
   leadingItems = false,
   trailingItems = false,
+  trailingAction,
   isFocused = false,
   isSelected = false,
   isPressed,
@@ -348,15 +421,22 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
   tooltip,
   tooltipOptions,
   ref,
+  trailingActionRef,
+  trailingActionWrapperProps,
   ...props
 }: MenuListItemProps<T>) {
   const itemRef = useRef<HTMLElement>(null);
+  const theme = useTheme();
   const labelId = useId();
   const detailId = useId();
   const hasInlineDetails = Boolean(details && !showDetailsInOverlay);
+  const reserveLeadingSlot = useReserveLeadingSlot();
+  const hasLeadingSlot = Boolean(leadingItems) || reserveLeadingSlot;
 
   return (
     <MenuItemWrap
+      hasTrailingAction={Boolean(trailingAction)}
+      isFocused={isFocused}
       aria-disabled={disabled}
       aria-labelledby={labelId}
       aria-describedby={detailId}
@@ -380,8 +460,10 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
           // The leading slot is 2xl wide and centers its content, so a 16px icon
           // gets 4px of space on each side. A `md` inset keeps leading items where
           // they sat before the slot existed, at every size.
-          paddingLeft={leadingItems ? 'md' : undefined}
+          paddingLeft={hasLeadingSlot ? 'md' : undefined}
+          paddingRight={trailingAction ? TRAILING_ACTION_SPACE : undefined}
           isFocused={isFocused}
+          hasTrailingAction={Boolean(trailingAction)}
           disabled={disabled}
           priority={priority}
           size={size}
@@ -392,7 +474,7 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
             isPressed={isPressed}
             higherOpacity={priority !== 'default'}
           />
-          {leadingItems && (
+          {hasLeadingSlot && (
             <StyledLeadingItems
               disabled={disabled}
               hasDetails={hasInlineDetails}
@@ -455,6 +537,26 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
           </StyledContentWrap>
         </StyledInnerWrap>
       </Tooltip>
+      {trailingAction && (
+        <Flex
+          position="absolute"
+          right={theme.space[TRAILING_ACTION_INSET]}
+          top="0"
+          height="100%"
+          align="center"
+          {...trailingActionWrapperProps}
+        >
+          <Button
+            ref={trailingActionRef}
+            size="zero"
+            variant="transparent"
+            icon={trailingAction.icon}
+            aria-label={trailingAction.label}
+            tooltipProps={{title: trailingAction.label}}
+            onClick={trailingAction.onAction}
+          />
+        </Flex>
+      )}
       {showDetailsInOverlay && details && isFocused && (
         <DetailsOverlay size={size} id={detailId} itemRef={itemRef}>
           {typeof details === 'function'
@@ -539,8 +641,9 @@ const StyledOverlay = styled(Overlay)<{
   overflow: auto;
 `;
 
-const MenuItemWrap = styled('li')`
-  position: static;
+const MenuItemWrap = styled('li')<{hasTrailingAction: boolean; isFocused: boolean}>`
+  position: ${p => (p.hasTrailingAction ? 'relative' : 'static')};
+  ${p => p.hasTrailingAction && p.isFocused && 'z-index: 1;'}
   list-style-type: none;
   margin: 0;
   padding: 0 ${p => p.theme.space.xs};

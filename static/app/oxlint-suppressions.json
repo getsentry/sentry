@@ -570,14 +570,6 @@
       "count": 1
     }
   },
-  "components/forms/fields/segmentedRadioField.tsx": {
-    "@sentry/scraps/prefer-container-responsive-props": {
-      "count": 1
-    },
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
   "components/forms/fields/tableField.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -857,16 +849,6 @@
   "components/onboarding/onboardingContext.spec.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 3
-    }
-  },
-  "components/onboarding/scm/scmAlertOptionCard.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "components/onboarding/scm/scmCardButton.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
     }
   },
   "components/onboarding/scm/scmPlatformFeaturesCore.spec.tsx": {
@@ -1198,9 +1180,6 @@
     }
   },
   "components/resultGrid.tsx": {
-    "@sentry/scraps/no-manual-table": {
-      "count": 8
-    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
@@ -1293,7 +1272,7 @@
   },
   "components/searchQueryBuilder/tokens/filter/valueCombobox.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 6
+      "count": 5
     }
   },
   "components/searchQueryBuilder/tokens/filter/valueListBox.tsx": {
@@ -1730,11 +1709,6 @@
   "views/admin/adminPackages.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
-    }
-  },
-  "views/admin/adminRelays.tsx": {
-    "@sentry/scraps/no-manual-table": {
-      "count": 5
     }
   },
   "views/admin/adminWarnings.tsx": {
@@ -2822,11 +2796,6 @@
       "count": 3
     }
   },
-  "views/performance/landing/widgets/widgets/histogramWidget.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
   "views/performance/landing/widgets/widgets/mobileReleaseComparisonListWidget.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -3155,11 +3124,6 @@
       "count": 1
     }
   },
-  "views/seerWorkflows/index.spec.tsx": {
-    "@sentry/require-fake-timer-cleanup": {
-      "count": 2
-    }
-  },
   "views/seerWorkflows/overview/index.spec.tsx": {
     "@sentry/prefer-fake-timers": {
       "count": 2
@@ -3423,11 +3387,6 @@
   },
   "views/settings/organizationTeams/teamMembers.tsx": {
     "@sentry/scraps/no-manual-table": {
-      "count": 1
-    }
-  },
-  "views/settings/organizationTeams/teamMembersRow.tsx": {
-    "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
   },

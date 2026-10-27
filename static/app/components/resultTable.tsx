@@ -1,40 +1,45 @@
 import styled from '@emotion/styled';
 
+/**
+ * The cell that names its row. On narrow containers it becomes the title of
+ * the row's card, above the row's labelled `data-label` cells.
+ */
+export function ResultTableRowHeader(props: React.ComponentProps<'td'>) {
+  return <td data-row-header {...props} />;
+}
+
 export const ResultTable = styled('table')`
   margin: 0;
   width: 100%;
   line-height: 1;
 
-  thead th {
-    font-size: ${p => p.theme.font.size.sm};
-    text-transform: uppercase;
-  }
-
-  thead tr:last-child > th,
-  tbody tr:not(:last-child) > td {
+  thead,
+  tbody tr:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 
-  th {
-    padding: ${p => p.theme.space.xl} ${p => p.theme.space.lg};
-  }
-
-  td {
-    padding: ${p => p.theme.space.lg} ${p => p.theme.space.lg};
-  }
-
-  td small {
+  tbody small {
     font-size: ${p => p.theme.font.size.xs};
   }
 
-  td br + small {
+  tbody br + small {
     display: inline-block;
     margin-top: ${p => p.theme.space.xs};
   }
 
+  thead th {
+    font-size: ${p => p.theme.font.size.sm};
+    text-transform: uppercase;
+    padding: ${p => p.theme.space.xl} ${p => p.theme.space.lg};
+  }
+
+  td {
+    padding: ${p => p.theme.space.lg};
+  }
+
   th,
   td {
-    &:first-of-type {
+    &:first-child {
       padding-left: ${p => p.theme.space['2xl']};
     }
     &:last-child {
@@ -42,7 +47,7 @@ export const ResultTable = styled('table')`
     }
   }
 
-  @container (max-width: ${p => p.theme.container.xl}) {
+  @container (width <= ${p => p.theme.container.xl}) {
     display: block;
 
     thead {
@@ -53,12 +58,7 @@ export const ResultTable = styled('table')`
       display: block;
     }
 
-    /* Move row separator from td to tr */
-    tbody tr:not(:last-child) > td {
-      border-bottom: none;
-    }
-
-    tbody tr {
+    tr {
       display: grid;
       grid-template-columns: 1fr 1fr;
       column-gap: ${p => p.theme.space.xl};
@@ -66,28 +66,23 @@ export const ResultTable = styled('table')`
       padding: ${p => p.theme.space.lg} ${p => p.theme.space['2xl']};
     }
 
-    tbody tr:not(:last-child) {
-      border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-    }
-
-    /* ColSpan-only rows (loading, error, empty-state, collapsed expansion rows):
+    /* ColSpan-only rows (loading, error, empty-state):
        bypass card grid layout so they don't render as empty padded strips. */
-    tbody tr:has(> td[colspan]) {
+    tr:has(> td[colspan]) {
       display: block;
       padding: 0;
-      border-bottom: none;
     }
 
-    /* All cells: reset padding and alignment */
     td {
       display: flex;
       flex-direction: column;
       gap: ${p => p.theme.space['2xs']};
-      padding: 0;
       text-align: left !important;
 
+      &,
+      &:first-child,
       &:last-child {
-        padding-right: 0;
+        padding: 0;
       }
 
       /* The column already stacks children; a <br> would become a blank flex item. */
@@ -96,57 +91,20 @@ export const ResultTable = styled('table')`
       }
     }
 
-    /* Primary cell spans full width, acts as card title.
-       data-mobile-primary is injected by ResultGrid on the first non-control column;
-       falls back to first-of-type for tables rendered without ResultGrid. */
-    td[data-mobile-primary],
-    tr:not(:has(td[data-mobile-primary])) > td:first-of-type {
+    td[data-row-header] {
+      display: block;
       grid-column: 1 / -1;
-      padding-left: 0;
       padding-bottom: ${p => p.theme.space.sm};
       border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
     }
 
-    /* Secondary label styles: positions 2+ (and position 1 when it's a control cell
-       and data-mobile-primary sits on a later column). */
-    td:nth-of-type(n + 2):not([data-mobile-primary])::before {
+    td[data-label]::before {
+      content: attr(data-label);
       font-size: ${p => p.theme.font.size.xs};
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.04em;
       color: ${p => p.theme.tokens.content.secondary};
-    }
-
-    /* Per-column label content. CSS vars (--cl-N set on <tr> by ResultGrid) are
-       inherited by all descendants including ::before, so they work even when cells
-       are rendered inside wrapper components. Falls back to data-label for tables
-       rendered without ResultGrid (userEmails, billingPlans, invoiceDetails, etc.). */
-    td:nth-of-type(2):not([data-mobile-primary])::before {
-      content: var(--cl-2, attr(data-label));
-    }
-    td:nth-of-type(3):not([data-mobile-primary])::before {
-      content: var(--cl-3, attr(data-label));
-    }
-    td:nth-of-type(4):not([data-mobile-primary])::before {
-      content: var(--cl-4, attr(data-label));
-    }
-    td:nth-of-type(5):not([data-mobile-primary])::before {
-      content: var(--cl-5, attr(data-label));
-    }
-    td:nth-of-type(6):not([data-mobile-primary])::before {
-      content: var(--cl-6, attr(data-label));
-    }
-    td:nth-of-type(7):not([data-mobile-primary])::before {
-      content: var(--cl-7, attr(data-label));
-    }
-    td:nth-of-type(8):not([data-mobile-primary])::before {
-      content: var(--cl-8, attr(data-label));
-    }
-    td:nth-of-type(9):not([data-mobile-primary])::before {
-      content: var(--cl-9, attr(data-label));
-    }
-    td:nth-of-type(10):not([data-mobile-primary])::before {
-      content: var(--cl-10, attr(data-label));
     }
   }
 `;

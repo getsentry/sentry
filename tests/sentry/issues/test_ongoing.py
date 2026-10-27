@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock, patch
+
 from sentry.issues.ongoing import bulk_transition_group_to_ongoing
 from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
@@ -60,3 +62,15 @@ class TransitionNewToOngoingTest(TestCase):
             group=group, status=GroupHistoryStatus.PRIORITY_MEDIUM
         ).exists()
         assert Activity.objects.filter(group=group, type=ActivityType.SET_PRIORITY.value).exists()
+
+
+@patch("sentry.issues.attributes.produce_snapshot_to_kafka")
+class TransitionToOngoingSnapshotTest(TestCase):
+    def test_emits_snapshot(self, produce_snapshot: MagicMock) -> None:
+        group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW)
+
+        produce_snapshot.reset_mock()
+
+        bulk_transition_group_to_ongoing(GroupStatus.UNRESOLVED, GroupSubStatus.NEW, [group.id])
+
+        assert produce_snapshot.called

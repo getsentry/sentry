@@ -4,6 +4,7 @@ from unittest import mock
 
 from django.urls import reverse
 
+from sentry.incidents.grouptype import MetricIssue
 from sentry.investigations.models import (
     Investigation,
     InvestigationBlockExecutionStatus,
@@ -267,6 +268,51 @@ class OrganizationInvestigationDetailsTest(APITestCase):
         assert stale_response.status_code == 409
         investigation.refresh_from_db()
         assert investigation.title == "My incident title"
+
+    def test_detail_includes_action_requests(self) -> None:
+        detector = self.create_detector(project=self.project, type=MetricIssue.slug)
+        investigation = self.create_investigation(
+            organization=self.organization, created_by=self.user, title="Breach"
+        )
+        self.create_investigation_orchestration_run(
+            investigation=investigation,
+            source={"type": "breached_metric", "detectorId": str(detector.id)},
+        )
+        action_request = self.create_investigation_action_request(
+            investigation=investigation,
+            key="widen-window",
+            action_kind="update_detector",
+            action_payload={
+                "kind": "update_detector",
+                "detectorId": str(detector.id),
+                "before": {"timeWindowSeconds": 300},
+                "changes": {"timeWindowSeconds": 900},
+            },
+        )
+        url = reverse(
+            "sentry-api-0-organization-investigation-details",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "investigation_id": investigation.id,
+            },
+        )
+
+        response = self.client.get(url)
+
+        assert response.status_code == 200
+        [serialized] = response.data["actionRequests"]
+        assert serialized["id"] == str(action_request.id)
+        assert serialized["action"] == action_request.action_payload
+        assert (serialized["canApply"], serialized["cannotApplyReason"]) == (True, None)
+
+        updated = self.client.put(
+            url,
+            data={"investigationVersion": investigation.version, "title": "Renamed"},
+            format="json",
+        )
+
+        assert updated.status_code == 200
+        assert updated.data["actionRequests"][0]["canApply"] is True
 
     def test_metadata_update_persists_and_stale_version_rolls_back(self) -> None:
         created = self.client.post(

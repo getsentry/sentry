@@ -875,6 +875,12 @@ urlpatterns += [
         react_page_view,
         name="explore",
     ),
+    # Seer
+    re_path(
+        r"^seer/",
+        react_page_view,
+        name="seer",
+    ),
     # Traces
     re_path(
         r"^traces/",

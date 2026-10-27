@@ -273,11 +273,6 @@ const mockGroupApis = (
   });
 
   MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/sentry-app-installations/`,
-    body: [],
-  });
-
-  MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/sentry-app-components/`,
     body: [],
     match: [MockApiClient.matchQuery({projectId: project.id})],

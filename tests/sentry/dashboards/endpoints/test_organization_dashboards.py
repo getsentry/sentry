@@ -3134,9 +3134,9 @@ class OrganizationDashboardsCreateScopeTest(OrganizationDashboardWidgetTestCase)
         response = self.client.post(self.url, data={"title": "Created"})
         assert response.status_code == 403
 
-    def test_write_scope_can_create_and_update(self) -> None:
-        # Tokens issued before `dashboard:create` existed only store `dashboard:write`.
-        self._use_token(["dashboard:read", "dashboard:write"])
+    def test_update_scope_can_create_and_update(self) -> None:
+        # `dashboard:update` implies `dashboard:create`, so the saved token holds both.
+        self._use_token(["dashboard:read", "dashboard:update"])
         with outbox_runner():
             response = self.client.post(self.url, data={"title": "Created"})
         assert response.status_code == 201, response.content
@@ -3147,3 +3147,9 @@ class OrganizationDashboardsCreateScopeTest(OrganizationDashboardWidgetTestCase)
             format="json",
         )
         assert response.status_code == 200, response.content
+
+    def test_update_scope_cannot_delete(self) -> None:
+        self._use_token(["dashboard:read", "dashboard:update"])
+        response = self.client.delete(self._details_url(self.dashboard.id))
+        assert response.status_code == 403
+        assert Dashboard.objects.filter(id=self.dashboard.id).exists()

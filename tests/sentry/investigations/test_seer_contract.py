@@ -10,6 +10,7 @@ import pytest
 from sentry.investigations.contracts import (
     ActionRequestedPayloadSerializer,
     ActionWithdrawnPayloadSerializer,
+    RerunUpdatedPayloadSerializer,
     valid_action_requests,
 )
 from sentry.investigations.models import InvestigationActionRequest
@@ -29,6 +30,21 @@ def fixture(name: str) -> Any:
 
 
 ACTION_REQUESTED = sorted(path.stem for path in FIXTURES.glob("action_requested_*.json"))
+RERUN_REJECTION_CODES = (
+    "run_cancelled",
+    "run_failed",
+    "provider_not_connected",
+    "provider_already_used",
+)
+RERUN_FIXTURES = [
+    "command_rerun_after_connection",
+    "rerun_after_connection_started",
+    "rerun_after_connection_held",
+    *(f"rejected_rerun_after_connection_{code}" for code in RERUN_REJECTION_CODES),
+    "duplicate_rerun_after_connection_started",
+    "duplicate_rerun_after_connection_skipped",
+]
+RERUN_UPDATED = sorted(path.stem for path in FIXTURES.glob("rerun_updated_*.json"))
 
 
 def test_every_fixture_is_covered() -> None:
@@ -36,6 +52,12 @@ def test_every_fixture_is_covered() -> None:
         *ACTION_REQUESTED,
         "action_withdrawn",
         "state_snapshot_action_requests",
+        "command_record_action_outcome",
+        "rejected_record_action_outcome",
+        "command_recheck_action_requests",
+        "rejected_recheck_action_requests",
+        *RERUN_FIXTURES,
+        *RERUN_UPDATED,
     }
 
 
@@ -54,6 +76,16 @@ def test_action_withdrawn_payload_is_valid() -> None:
 
     assert validator.is_valid(), validator.errors
     assert dict(validator.validated_data) == payload
+
+
+@pytest.mark.parametrize("name", RERUN_UPDATED)
+def test_rerun_updated_payloads_are_valid(name: str) -> None:
+    payload = fixture(name)
+    validator = RerunUpdatedPayloadSerializer(data=payload)
+
+    assert validator.is_valid(), validator.errors
+    validated = validator.validated_data
+    assert {**validated, "requestId": str(validated["requestId"])} == payload
 
 
 def test_snapshot_action_requests_are_kept_whole() -> None:

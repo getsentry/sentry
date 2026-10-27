@@ -13,13 +13,11 @@ import {
 
 import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
-import {DiffFileType} from 'sentry/components/events/autofix/types';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {
   INPUT_STORAGE_KEY_PREFIX,
   SeerExplorerContent,
 } from 'sentry/views/seerExplorer/components/seerExplorerContent';
-import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/seerExplorerHeader';
 import * as useSeerExplorerModule from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
@@ -42,7 +40,6 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   isTimedOut: false,
   runId: null,
   overrideBashModeEnabled: false,
-  overrideCtxEngEnable: true,
   overrideCodeModeEnable: 'off',
   hasSentInterrupt: false,
   sendMessage: jest.fn(),
@@ -51,9 +48,7 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   startNewSession: jest.fn(),
   interruptRun: jest.fn(),
   respondToUserInput: jest.fn(),
-  createPR: jest.fn(),
   setOverrideBashModeEnabled: jest.fn(),
-  setOverrideCtxEngEnable: jest.fn(),
   setOverrideCodeModeEnable: jest.fn(),
 };
 
@@ -1463,67 +1458,6 @@ describe('SeerExplorerContent', () => {
     });
   });
 
-  describe('PR widget', () => {
-    function renderWithCodeChanges(features: string[]) {
-      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
-        ...defaultHookReturn,
-        sessionData: {
-          blocks: [
-            {
-              id: 'msg-1',
-              message: {role: 'assistant', content: 'Made the fix.'},
-              timestamp: '2024-01-01T00:00:00Z',
-              loading: false,
-              merged_file_patches: [
-                {
-                  repo_name: 'org/repo',
-                  diff: '',
-                  patch: {
-                    added: 1,
-                    removed: 0,
-                    hunks: [],
-                    path: 'file.py',
-                    source_file: 'file.py',
-                    target_file: 'file.py',
-                    type: DiffFileType.MODIFIED,
-                  },
-                },
-              ],
-            },
-          ],
-          status: 'completed',
-          updated_at: '2024-01-01T00:01:00Z',
-        },
-      });
-
-      render(
-        <PictureInPictureProvider>
-          <SeerExplorerSessionsProvider>
-            <SeerExplorerContent
-              getPageReferrer={mockGetPageReferrer}
-              onClose={() => {}}
-            />
-          </SeerExplorerSessionsProvider>
-        </PictureInPictureProvider>,
-        {organization: OrganizationFixture({...organization, features})}
-      );
-    }
-
-    it('shows the Create PR button when there are code changes', async () => {
-      renderWithCodeChanges(['seer-explorer']);
-
-      expect(await screen.findByText('Made the fix.')).toBeInTheDocument();
-      expect(screen.getByText('Create PR')).toBeInTheDocument();
-    });
-
-    it('hides the Create PR button with ask-seer-create-pr', async () => {
-      renderWithCodeChanges(['seer-explorer', 'ask-seer-create-pr']);
-
-      expect(await screen.findByText('Made the fix.')).toBeInTheDocument();
-      expect(screen.queryByText('Create PR')).not.toBeInTheDocument();
-    });
-  });
-
   describe('Read-only State', () => {
     it('disables input when session owner differs from current user', async () => {
       ConfigStore.set('user', UserFixture({id: '1'}));
@@ -1624,13 +1558,7 @@ describe('SeerExplorerContent', () => {
     });
   });
 
-  describe('Context Engine Toggle', () => {
-    const orgWithFlag = OrganizationFixture({
-      openMembership: true,
-      hideAiFeatures: false,
-      features: ['seer-explorer', 'seer-explorer-context-engine-fe-override-ui-flag'],
-    });
-
+  describe('Debug menu', () => {
     beforeEach(() => {
       ConfigStore.set(
         'user',
@@ -1656,37 +1584,6 @@ describe('SeerExplorerContent', () => {
       );
       await screen.findByTestId('seer-explorer-input');
       expect(screen.queryByRole('button', {name: 'Debug'})).not.toBeInTheDocument();
-    });
-
-    it('shows the context engine toggle in the debug menu when the flag is enabled', async () => {
-      render(
-        <SeerExplorerSessionsProvider>
-          <SeerExplorerHeader
-            onNewChatClick={() => {}}
-            onChangeSession={() => {}}
-            onCopySessionClick={undefined}
-            onCopyLinkClick={undefined}
-            overrideCtxEngEnable
-            onOverrideCtxEngEnableToggle={() => {}}
-            overrideBashModeEnabled={false}
-            onOverrideBashModeToggle={() => {}}
-            showThinking={false}
-            onShowThinkingToggle={() => {}}
-            isPipSupported={false}
-            isPoppedOut={false}
-            onTogglePictureInPicture={() => {}}
-          />
-        </SeerExplorerSessionsProvider>,
-        {
-          organization: orgWithFlag,
-        }
-      );
-
-      await screen.findByText('Seer Agent');
-      await userEvent.click(await screen.findByRole('button', {name: 'Debug'}));
-      expect(
-        await screen.findByRole('option', {name: /Context Engine/})
-      ).toBeInTheDocument();
     });
   });
 

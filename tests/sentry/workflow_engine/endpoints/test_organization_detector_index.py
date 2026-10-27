@@ -26,7 +26,6 @@ from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscrip
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.metric_alert_migration import dual_write_alert_rule
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import cell_silo_test
 from sentry.testutils.skips import requires_kafka, requires_snuba
@@ -2134,8 +2133,22 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
             organization=self.organization,
             projects=[self.project],
         )
-        self.create_alert_rule_trigger(alert_rule=alert_rule)
-        dual_write_alert_rule(alert_rule)
+        detector = self.create_detector(
+            project=self.project,
+            type=MetricIssue.slug,
+            workflow_condition_group=self.create_data_condition_group(
+                organization=self.organization
+            ),
+        )
+        self.create_alert_rule_detector(alert_rule_id=alert_rule.id, detector=detector)
+        workflow = self.create_workflow(organization=self.organization)
+        self.create_alert_rule_workflow(alert_rule_id=alert_rule.id, workflow=workflow)
+        self.create_detector_workflow(detector=detector, workflow=workflow)
+        subscription = QuerySubscription.objects.get(snuba_query=alert_rule.snuba_query)
+        source = self.create_data_source(
+            organization=self.organization, source_id=str(subscription.id)
+        )
+        self.create_data_source_detector(data_source=source, detector=detector)
 
         detector = AlertRuleDetector.objects.get(alert_rule_id=alert_rule.id).detector
         snuba_query = alert_rule.snuba_query

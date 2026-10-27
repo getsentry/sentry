@@ -9,7 +9,7 @@ from sentry.api.endpoints.project_custom_inbound_filters import (
 )
 from sentry.seer.models import SeerApiError
 from sentry.testutils.cases import APITestCase
-from sentry.viewer_context import ActorType, ViewerContext, decode_viewer_context
+from sentry.viewer_context import Actor, ActorType, ViewerContext, decode_viewer_context
 
 SEER_PATH = "sentry.api.endpoints.project_custom_inbound_filter_validate.run_oneshot"
 
@@ -72,10 +72,9 @@ class CustomInboundFilterValidateTest(APITestCase):
             key="viewer-context-test-secret",
         )
         assert viewer_context == ViewerContext(
+            actor=Actor(type=ActorType.USER, actor_id=self.user.id),
             organization_id=self.organization.id,
             project_id=self.project.id,
-            user_id=self.user.id,
-            actor_type=ActorType.USER,
         )
 
     @patch(SEER_PATH, return_value={"name": "  Padded name  "})
@@ -118,7 +117,7 @@ class CustomInboundFilterValidateTest(APITestCase):
                 dataType="error",
                 conditions=[
                     {"type": "error_message", "operator": "contains", "value": ["Error"]},
-                    {"type": "ip_address", "operator": "equals", "value": ["not-an-address"]},
+                    {"type": "ip_address", "operator": "cidr", "value": ["not-an-address"]},
                 ],
             )
 

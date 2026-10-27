@@ -102,11 +102,6 @@ describe('Dashboards > Dashboard', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      method: 'GET',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-timeseries/',
       body: {timeSeries: []},
     });

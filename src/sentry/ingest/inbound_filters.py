@@ -1,13 +1,16 @@
 import re
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from typing import Any, Literal, cast
 
 from django.conf import settings
 from rest_framework import serializers
 
+from sentry.ingest import legacy_filter_lists
+from sentry.ingest.legacy_filter_lists import FilterTypes as FilterTypes
 from sentry.models.custominboundfilter import (
     COMPARISON_OPERATORS,
+    IP_OPERATORS,
     MAX_FILTERS_PER_PROJECT,
     TEXT_OPERATORS,
     ConditionOperator,
@@ -18,6 +21,7 @@ from sentry.models.custominboundfilter import (
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.relay.types import GenericFilter, GenericFiltersConfig, RuleCondition
+from sentry.relay.types.rule_condition import NotCondition
 from sentry.relay.utils import to_camel_case_name
 from sentry.signals import inbound_filter_toggled
 from sentry.tsdb.base import TSDBModel
@@ -58,13 +62,6 @@ FILTER_STAT_KEYS_TO_VALUES = {
     FilterStatKeys.DISCARDED_HASH: TSDBModel.project_total_received_discarded,
     FilterStatKeys.HEALTH_CHECK: TSDBModel.project_total_healthcheck,
 }
-
-
-class FilterTypes:
-    ERROR_MESSAGES = "error_messages"
-    RELEASES = "releases"
-    LOG_MESSAGES = "log_messages"
-    TRACE_METRIC_NAMES = "trace_metric_names"
 
 
 def get_filter_key(flt):
@@ -455,7 +452,7 @@ def _generic_filter(filter_id: str, condition: RuleCondition) -> GenericFilter:
 
 
 def _log_messages_generic_filters(project: Project) -> list[GenericFilter]:
-    globs = project.get_option(f"sentry:{FilterTypes.LOG_MESSAGES}")
+    globs = legacy_filter_lists.get_applied_lines(project, FilterTypes.LOG_MESSAGES)
     if not globs:
         return []
 
@@ -464,7 +461,7 @@ def _log_messages_generic_filters(project: Project) -> list[GenericFilter]:
 
 
 def _trace_metric_names_generic_filters(project: Project) -> list[GenericFilter]:
-    globs = project.get_option(f"sentry:{FilterTypes.TRACE_METRIC_NAMES}")
+    globs = legacy_filter_lists.get_applied_lines(project, FilterTypes.TRACE_METRIC_NAMES)
     if not globs:
         return []
 
@@ -481,7 +478,7 @@ def _ip_denylist_generic_filters(project: Project) -> list[GenericFilter]:
     if not ips:
         return []
 
-    return [_generic_filter(FilterStatKeys.IP_ADDRESS, _client_ip_matcher.match(ips))]
+    return [_generic_filter(FilterStatKeys.IP_ADDRESS, _client_ip_matcher.match(None, ips))]
 
 
 @dataclass(frozen=True)
@@ -589,48 +586,91 @@ ReleaseComparator = Literal["gt", "gte", "lt", "lte"]
 @dataclass(frozen=True)
 class _ConditionMatcher:
     """
-    Builds the Relay conditions for one condition type on one data type.
+    Builds the Relay condition for one field.
 
-    ``match`` matches an item whose field matches any of the glob patterns. ``operators``
-    are the operators the field takes: the text operators where the field is text, and
-    the comparison operators where it is a release. ``compare`` compares the field as a
-    release version, and is None for a field that is not a release.
+    ``operators`` are the operators the field takes. ``match`` builds the condition that
+    compares the field to the values with one of them, or without one against glob
+    patterns. The values act as OR.
     """
 
-    match: Callable[[list[str]], RuleCondition]
     operators: frozenset[ConditionOperator]
-    compare: Callable[[ReleaseComparator, str], RuleCondition] | None = None
+    match: Callable[[ConditionOperator | None, list[str]], RuleCondition]
 
 
 # The matcher for each condition type a data type supports.
 _ConditionMatchers = Mapping[ConditionType, _ConditionMatcher]
 
 
+# Relay reads `\\` as an escape for the character after it, special or not.
+_GLOB_SPECIAL_CHARS = re.compile(r"[\\*?\[\]{}]")
+
+
+def _text_glob(operator: ConditionOperator, value: str) -> str:
+    """The glob pattern that matches a field the way the literal `operator` compares it to `value`."""
+    literal = _GLOB_SPECIAL_CHARS.sub(r"\\\g<0>", value)
+    if operator is ConditionOperator.STARTS_WITH:
+        return f"{literal}*"
+    if operator is ConditionOperator.CONTAINS:
+        return f"*{literal}*"
+    if operator is ConditionOperator.ENDS_WITH:
+        return f"*{literal}"
+    return literal
+
+
+def _text_matcher(build: Callable[[list[str]], RuleCondition]) -> _ConditionMatcher:
+    """
+    A text field. ``build`` matches the values as glob patterns, which is what ``glob`` and
+    no operator pass; a literal operator turns each value into the pattern that compares
+    it the way the operator does. A negated operator is matched as the operator it
+    negates, see ``_NEGATED_OPERATORS``.
+    """
+
+    def match(operator: ConditionOperator | None, values: list[str]) -> RuleCondition:
+        if operator is None or operator is ConditionOperator.GLOB:
+            return build(values)
+        return build([_text_glob(operator, value) for value in values])
+
+    return _ConditionMatcher(TEXT_OPERATORS, match)
+
+
 def _field_matcher(name: str) -> _ConditionMatcher:
-    def match(values: list[str]) -> RuleCondition:
-        return {"op": "glob", "name": name, "value": values}
-
-    return _ConditionMatcher(match, TEXT_OPERATORS)
-
-
-def _release_matcher(name: str) -> _ConditionMatcher:
-    def compare(comparator: ReleaseComparator, value: str) -> RuleCondition:
-        return {"op": "release", "name": name, "comparator": comparator, "value": value}
-
-    return replace(
-        _field_matcher(name), operators=TEXT_OPERATORS | COMPARISON_OPERATORS, compare=compare
-    )
+    return _text_matcher(lambda values: {"op": "glob", "name": name, "value": values})
 
 
 def _cidr_matcher(name: str) -> _ConditionMatcher:
-    def match(values: list[str]) -> RuleCondition:
-        return {"op": "cidr", "name": name, "value": values}
+    return _ConditionMatcher(
+        IP_OPERATORS, lambda operator, values: {"op": "cidr", "name": name, "value": values}
+    )
 
-    # An address or range holds no glob character, so escaping it for `equals` is a no-op.
-    return _ConditionMatcher(match, frozenset({ConditionOperator.EQUALS}))
+
+def _release_matcher(name: str) -> _ConditionMatcher:
+    patterns = _field_matcher(name)
+
+    # A comparison takes one value, which `_custom_filter_condition` guarantees.
+    def match(operator: ConditionOperator | None, values: list[str]) -> RuleCondition:
+        if operator not in COMPARISON_OPERATORS:
+            return patterns.match(operator, values)
+        return {
+            "op": "release",
+            "name": name,
+            "comparator": cast(ReleaseComparator, operator.value),
+            "value": values[0],
+        }
+
+    return _ConditionMatcher(TEXT_OPERATORS | COMPARISON_OPERATORS, match)
 
 
 _client_ip_matcher = _cidr_matcher("envelope.client_ip")
+
+
+# Each negated operator and the operator it negates. The negation wraps the whole match of
+# the field, so that a catch-all drops an item only when none of its fields match.
+_NEGATED_OPERATORS: Mapping[ConditionOperator, ConditionOperator] = {
+    ConditionOperator.DOES_NOT_START_WITH: ConditionOperator.STARTS_WITH,
+    ConditionOperator.DOES_NOT_CONTAIN: ConditionOperator.CONTAINS,
+    ConditionOperator.DOES_NOT_END_WITH: ConditionOperator.ENDS_WITH,
+    ConditionOperator.NOT_CIDR: ConditionOperator.CIDR,
+}
 
 
 _CONDITION_MATCHERS: Mapping[
@@ -638,10 +678,10 @@ _CONDITION_MATCHERS: Mapping[
     _ConditionMatcher | Mapping[DataType, _ConditionMatcher],
 ] = {
     ConditionType.ERROR_TYPE: {
-        DataType.ERROR: _ConditionMatcher(_custom_error_type_condition, TEXT_OPERATORS),
+        DataType.ERROR: _text_matcher(_custom_error_type_condition),
     },
     ConditionType.ERROR_MESSAGE: {
-        DataType.ERROR: _ConditionMatcher(_custom_error_message_condition, TEXT_OPERATORS),
+        DataType.ERROR: _text_matcher(_custom_error_message_condition),
     },
     ConditionType.LOG_MESSAGE: {
         DataType.LOG: _field_matcher("log.body"),
@@ -668,20 +708,11 @@ _SINGLE_DATA_TYPES = frozenset(DataType) - {DataType.ALL}
 def _any_condition_matcher(matchers: Sequence[_ConditionMatcher]) -> _ConditionMatcher:
     # Relay reads a field the item does not carry as no match, so the OR reduces to the
     # item's own field.
-    def match(values: list[str]) -> RuleCondition:
-        return {"op": "or", "inner": [matcher.match(values) for matcher in matchers]}
-
-    def compare(comparator: ReleaseComparator, value: str) -> RuleCondition:
-        return {
-            "op": "or",
-            "inner": [
-                matcher.compare(comparator, value) for matcher in matchers if matcher.compare
-            ],
-        }
+    def match(operator: ConditionOperator | None, values: list[str]) -> RuleCondition:
+        return {"op": "or", "inner": [matcher.match(operator, values) for matcher in matchers]}
 
     operators = frozenset.intersection(*(matcher.operators for matcher in matchers))
-    comparable = all(matcher.compare is not None for matcher in matchers)
-    return _ConditionMatcher(match, operators, compare if comparable else None)
+    return _ConditionMatcher(operators, match)
 
 
 def _matcher(condition_type: ConditionType, data_type: DataType) -> _ConditionMatcher | None:
@@ -693,56 +724,6 @@ def _matcher(condition_type: ConditionType, data_type: DataType) -> _ConditionMa
     if set(spec) != _SINGLE_DATA_TYPES:
         return None
     return _any_condition_matcher(list(spec.values()))
-
-
-# Relay reads `\` as an escape for the character after it, special or not.
-_GLOB_SPECIAL_CHARS = re.compile(r"[\\*?\[\]{}]")
-
-
-_NEGATED_OPERATORS: Mapping[ConditionOperator, ConditionOperator] = {
-    ConditionOperator.DOES_NOT_START_WITH: ConditionOperator.STARTS_WITH,
-    ConditionOperator.DOES_NOT_CONTAIN: ConditionOperator.CONTAINS,
-    ConditionOperator.DOES_NOT_END_WITH: ConditionOperator.ENDS_WITH,
-}
-
-
-def _text_glob(operator: ConditionOperator, value: str) -> str:
-    """The glob pattern that matches a field the way the literal `operator` compares it to `value`."""
-    literal = _GLOB_SPECIAL_CHARS.sub(r"\\\g<0>", value)
-    if operator is ConditionOperator.STARTS_WITH:
-        return f"{literal}*"
-    if operator is ConditionOperator.CONTAINS:
-        return f"*{literal}*"
-    if operator is ConditionOperator.ENDS_WITH:
-        return f"*{literal}"
-    return literal
-
-
-def _operator_condition(
-    matcher: _ConditionMatcher,
-    operator: ConditionOperator | None,
-    values: list[str],
-) -> RuleCondition | None:
-    """
-    The Relay condition for one filter condition. Without an operator the values are raw
-    glob patterns, as with ``glob``. None when the operator does not fit the condition
-    or a version comparison does not take exactly one value.
-    """
-    if operator is None:
-        return matcher.match(values)
-    if operator not in matcher.operators:
-        return None
-    if operator is ConditionOperator.GLOB:
-        return matcher.match(values)
-    if operator in COMPARISON_OPERATORS:
-        if matcher.compare is None or len(values) != 1:
-            return None
-        return matcher.compare(cast(ReleaseComparator, operator.value), values[0])
-    if operator in _NEGATED_OPERATORS:
-        # A field the item does not carry matches no glob, so the negation drops the item.
-        globs = [_text_glob(_NEGATED_OPERATORS[operator], value) for value in values]
-        return {"op": "not", "inner": matcher.match(globs)}
-    return matcher.match([_text_glob(operator, value) for value in values])
 
 
 _MATCHERS_BY_DATA_TYPE: Mapping[DataType, _ConditionMatchers] = {
@@ -778,11 +759,11 @@ def _custom_filter_condition(
     Conditions are combined with AND. Returns None if the filter cannot be translated
     (a missing data type, a data type, condition type, operator, or value shape unknown
     to this revision, a condition type whose field the filter's data type does not
-    carry, or an operator the condition type does not take): since every condition
-    narrows the match, dropping only the broken condition would filter more data than
-    configured.
+    carry, an operator the field does not take, or a version comparison that does not
+    take exactly one value): since every condition narrows the match, dropping only the
+    broken condition would filter more data than configured.
 
-    A condition without an operator holds raw glob patterns, see ``ConditionOperator``.
+    A condition without an operator holds raw values, see ``ConditionOperator``.
     """
     if not conditions or data_type is None:
         return None
@@ -805,12 +786,17 @@ def _custom_filter_condition(
             return None
 
         matcher = matchers.get(condition_type)
-        if matcher is None:
+        if matcher is None or (operator is not None and operator not in matcher.operators):
             return None
-        rule_condition = _operator_condition(matcher, operator, values)
-        if rule_condition is None:
+        if operator in COMPARISON_OPERATORS and len(values) != 1:
             return None
-        rule_conditions.append(rule_condition)
+        negated = _NEGATED_OPERATORS.get(operator) if operator is not None else None
+        if negated is None:
+            rule_conditions.append(matcher.match(operator, values))
+        else:
+            # A field the item does not carry matches no glob, so the negation drops the item.
+            negation: NotCondition = {"op": "not", "inner": matcher.match(negated, values)}
+            rule_conditions.append(negation)
 
     if len(rule_conditions) == 1:
         return rule_conditions[0]
@@ -820,8 +806,6 @@ def _custom_filter_condition(
 
 def get_custom_inbound_filter_generic_filters(project: Project) -> list[GenericFilter]:
     generic_filters: list[GenericFilter] = []
-    # A row with legacy_filter set is the double write of a legacy list that Relay still receives
-    # through the legacy path, so serving it here would filter the same data twice.
     custom_filters = CustomInboundFilter.objects.filter(
         project_id=project.id, active=True, legacy_filter__isnull=True
     ).order_by("id")[:MAX_FILTERS_PER_PROJECT]

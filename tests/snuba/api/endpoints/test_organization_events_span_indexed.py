@@ -7921,3 +7921,25 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
 
         assert response.status_code == 400, response.content
         assert "Maximum Number Of Boolean Conditions" in response.data["detail"].title()
+
+    def test_has_filter_on_span_id(self) -> None:
+        spans = [
+            self.create_span(
+                {"description": "foo", "sentry_tags": {"status": "success"}},
+                start_ts=self.ten_mins_ago,
+            )
+        ]
+        self.store_spans(spans)
+        response = self.do_request(
+            {
+                "field": ["span.status", "description", "count()"],
+                "query": "has:span_id",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["description"] == "foo"

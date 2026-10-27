@@ -16,7 +16,19 @@ type SeerWorkflowRunBase = {
   seerRunId?: string;
 };
 
-export type SeerWorkflowRun = SeerAgenticTriageRun | SeerMonitorCleanupRun;
+// TODO(aliu): Add run types for the other backend strategies (e.g. agentic_triage_v2), so
+// WorkflowStrategy covers every strategy the API can return.
+export type SeerWorkflowRun =
+  | SeerAgenticTriageRun
+  | SeerBreachedMetricsRun
+  | SeerMonitorCleanupRun;
+
+export type WorkflowStrategy = SeerWorkflowRun['strategy'];
+
+type SeerBreachedMetricsRun = SeerWorkflowRunBase & {
+  extras: {status: WorkflowRunStatus};
+  strategy: 'breached_metrics';
+};
 
 export type SeerMonitorCleanupRun = SeerWorkflowRunBase & {
   extras: {status: WorkflowRunStatus};
@@ -67,10 +79,8 @@ export type SeerAgenticTriageRun = SeerWorkflowRunBase & {
   extras: {options?: SeerAgenticTriageRunOptions; status?: WorkflowRunStatus};
   issues: SeerAgenticTriageRunIssue[];
   seerRuns: SeerAgenticTriageSeerRun[];
-  strategy: 'agentic_triage';
+  strategy: 'agentic_triage' | 'agentic_triage_v2'; // TODO: branch to new type when needed
 };
-
-export type WorkflowStrategy = SeerWorkflowRun['strategy'];
 
 export type WorkflowRunCreateRequest = {
   strategy: WorkflowStrategy;
@@ -125,3 +135,28 @@ export const monitorCleanupOutputSchema = z.object({
 export type MonitorCleanupFinding = z.infer<
   typeof monitorCleanupOutputSchema
 >['findings'][number];
+
+export type SeerWorkflowConfigResponse = {
+  dateAdded: string;
+  dateUpdated: string;
+  enabled: boolean;
+  /**
+   * Empty means all environments
+   */
+  environments: string[];
+  filters: Record<string, unknown>;
+  id: string;
+  outputPolicy: Record<string, unknown>;
+  /**
+   * [-1] for all projects, [] for none, otherwise selected project IDs
+   */
+  projects: number[];
+  schedule: string;
+  seededDefault: string | null;
+  strategy: string;
+  version: number;
+};
+
+export type SeerWorkflowConfigsResponse = {
+  configs: SeerWorkflowConfigResponse[];
+};

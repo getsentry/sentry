@@ -65,7 +65,7 @@ export interface ConversationApiSpan {
   'gen_ai.response.object'?: string;
   'gen_ai.tool.call.arguments'?: string;
   'gen_ai.tool.call.result'?: string;
-  'gen_ai.tool.call.result.size'?: number;
+  'gen_ai.tool.call.result.size'?: number | null;
   'gen_ai.tool.name'?: string;
   'gen_ai.usage.cache_creation.input_tokens'?: number;
   'gen_ai.usage.cache_read.input_tokens'?: number;
@@ -207,7 +207,7 @@ function createNodeFromApiSpan(
       [SpanFields.GEN_AI_TOOL_NAME]: apiSpan['gen_ai.tool.name'] ?? '',
       'gen_ai.tool.call.arguments': apiSpan['gen_ai.tool.call.arguments'] ?? '',
       'gen_ai.tool.call.result': apiSpan['gen_ai.tool.call.result'] ?? '',
-      ...(apiSpan['gen_ai.tool.call.result.size'] !== undefined && {
+      ...(typeof apiSpan['gen_ai.tool.call.result.size'] === 'number' && {
         'gen_ai.tool.call.result.size': apiSpan['gen_ai.tool.call.result.size'],
       }),
       ...(apiSpan['gen_ai.usage.input_tokens'] !== undefined && {

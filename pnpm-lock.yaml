@@ -199,7 +199,6 @@ patchedDependencies:
   css-tree@3.2.1: ec4e8a1e54e91be1bbca26a0c6047f0832c2fd45d01795becd6cc0144334a489
   jest-resolve@30.5.1: f2282b64ef6129c114392d79cc5894368f2712b69b366cc01b8f5fe8e683773f
   jest-runtime@30.5.1: 36dce404d135697664f0f47961ef7b7df4963b97984d55155c6719f3e2c5205b
-  zod@4.3.5: 2bb6d33b2c713a7a2c559c18ad0aa6cfb261f01d935ee1288dfec6c84411aa76
   zrender@6.1.0: 183ccabb66e5590ca8a810519f1df210e5a87bb8e48b4bae25e76a619954a193
 
 importers:
@@ -231,8 +230,8 @@ importers:
         specifier: 2.0.2
         version: 2.0.2(@rspack/core@2.2.8(@swc/helpers@0.5.23))(react-refresh@0.19.0)
       '@sentry/conventions':
-        specifier: ^0.27.0
-        version: 0.27.0
+        specifier: ^0.29.0
+        version: 0.29.0
       '@sentry/sqlish':
         specifier: 1.0.1
         version: 1.0.1(react@19.3.0)
@@ -284,9 +283,6 @@ importers:
       react:
         specifier: 19.3.0
         version: 19.3.0
-      react-router-v8:
-        specifier: npm:react-router@8.4.0
-        version: react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       reflux:
         specifier: 0.4.1
         version: 0.4.1(react@19.3.0)
@@ -309,8 +305,8 @@ importers:
         specifier: 4.0.0
         version: 4.0.0
       swc-plugin-component-annotate:
-        specifier: 1.18.0
-        version: 1.18.0
+        specifier: 1.18.4
+        version: 1.18.4
       ts-checker-rspack-plugin:
         specifier: 1.7.1
         version: 1.7.1(@rspack/core@2.2.8(@swc/helpers@0.5.23))(@typescript/typescript6@6.0.2)
@@ -521,9 +517,6 @@ importers:
       '@react-aria/menu':
         specifier: 3.22.1
         version: 3.22.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@react-aria/numberfield':
-        specifier: 3.13.1
-        version: 3.13.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@react-aria/overlays':
         specifier: 3.32.1
         version: 3.32.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -563,9 +556,6 @@ importers:
       '@react-stately/list':
         specifier: 3.14.1
         version: 3.14.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@react-stately/numberfield':
-        specifier: 3.12.1
-        version: 3.12.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@react-stately/overlays':
         specifier: 3.7.1
         version: 3.7.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -581,9 +571,6 @@ importers:
       '@react-types/shared':
         specifier: 3.36.0
         version: 3.36.0(react@19.3.0)
-      '@remix-run/router':
-        specifier: 1.23.4
-        version: 1.23.4
       '@rspack/core':
         specifier: 2.2.8
         version: 2.2.8(@swc/helpers@0.5.23)
@@ -594,8 +581,8 @@ importers:
         specifier: 11.7.0
         version: 11.7.0
       '@sentry/conventions':
-        specifier: ^0.27.0
-        version: 0.27.0
+        specifier: ^0.29.0
+        version: 0.29.0
       '@sentry/core':
         specifier: 11.7.0
         version: 11.7.0
@@ -604,7 +591,7 @@ importers:
         version: link:../packages/icons
       '@sentry/react':
         specifier: 11.7.0
-        version: 11.7.0(react-router@6.30.6(react@19.3.0))(react@19.3.0)
+        version: 11.7.0(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
       '@sentry/release-parser':
         specifier: ^1.3.1
         version: 1.3.1
@@ -693,8 +680,8 @@ importers:
         specifier: 8.0.3
         version: 8.0.3
       dompurify:
-        specifier: 3.4.16
-        version: 3.4.16
+        specifier: 3.4.17
+        version: 3.4.17
       echarts:
         specifier: 6.1.0
         version: 6.1.0
@@ -716,9 +703,6 @@ importers:
       idb-keyval:
         specifier: 6.2.2
         version: 6.2.2
-      input-otp:
-        specifier: ^1.5.0
-        version: 1.5.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       invariant:
         specifier: ^2.2.4
         version: 2.2.4
@@ -757,7 +741,7 @@ importers:
         version: 0.6.2
       nuqs:
         specifier: 2.10.2
-        version: 2.10.2(react-router-dom@6.30.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-router@6.30.6(react@19.3.0))(react@19.3.0)
+        version: 2.10.2(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
       papaparse:
         specifier: ^5.3.2
         version: 5.3.2
@@ -798,17 +782,11 @@ importers:
         specifier: ^3.2.1
         version: 3.2.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       react-router:
-        specifier: 6.30.6
-        version: 6.30.6(react@19.3.0)
-      react-router-dom:
-        specifier: 6.30.6
-        version: 6.30.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+        specifier: 8.4.0
+        version: 8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       react-select:
         specifier: 4.3.1
         version: 4.3.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
-      react-textarea-autosize:
-        specifier: 8.5.7
-        version: 8.5.7(@types/react@19.3.0)(react@19.3.0)
       reflux:
         specifier: 0.4.1
         version: 0.4.1(react@19.3.0)
@@ -828,8 +806,8 @@ importers:
         specifier: ^5.10.0
         version: 5.10.0
       zod:
-        specifier: 4.3.5
-        version: 4.3.5(patch_hash=2bb6d33b2c713a7a2c559c18ad0aa6cfb261f01d935ee1288dfec6c84411aa76)
+        specifier: 4.6.7
+        version: 4.6.7
       zxcvbn:
         specifier: ^4.4.2
         version: 4.4.2
@@ -917,7 +895,7 @@ importers:
         version: link:../packages/icons
       '@sentry/react':
         specifier: 11.7.0
-        version: 11.7.0(react-router@6.30.6(react@19.3.0))(react@19.3.0)
+        version: 11.7.0(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
       '@sentry/scraps':
         specifier: workspace:*
         version: link:../packages/scraps
@@ -947,7 +925,7 @@ importers:
         version: 0.6.2
       nuqs:
         specifier: 2.10.2
-        version: 2.10.2(react-router-dom@6.30.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-router@6.30.6(react@19.3.0))(react@19.3.0)
+        version: 2.10.2(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
       papaparse:
         specifier: ^5.3.2
         version: 5.3.2
@@ -961,14 +939,14 @@ importers:
         specifier: 19.3.0
         version: 19.3.0(react@19.3.0)
       react-router:
-        specifier: 6.30.6
-        version: 6.30.6(react@19.3.0)
+        specifier: 8.4.0
+        version: 8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       sentry:
         specifier: workspace:@sentry-internal/app@*
         version: link:../app
       zod:
-        specifier: 4.3.5
-        version: 4.3.5(patch_hash=2bb6d33b2c713a7a2c559c18ad0aa6cfb261f01d935ee1288dfec6c84411aa76)
+        specifier: 4.6.7
+        version: 4.6.7
     devDependencies:
       '@testing-library/jest-dom':
         specifier: 7.0.1
@@ -1008,7 +986,7 @@ importers:
         version: link:../packages/icons
       '@sentry/react':
         specifier: 11.7.0
-        version: 11.7.0(react-router@6.30.6(react@19.3.0))(react@19.3.0)
+        version: 11.7.0(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
       '@sentry/scraps':
         specifier: workspace:*
         version: link:../packages/scraps
@@ -1028,8 +1006,8 @@ importers:
         specifier: 3.45.0
         version: 3.45.0
       dompurify:
-        specifier: 3.4.16
-        version: 3.4.16
+        specifier: 3.4.17
+        version: 3.4.17
       echarts:
         specifier: 6.1.0
         version: 6.1.0
@@ -1055,8 +1033,8 @@ importers:
         specifier: 19.3.0
         version: 19.3.0
       react-router:
-        specifier: 6.30.6
-        version: 6.30.6(react@19.3.0)
+        specifier: 8.4.0
+        version: 8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       reflux:
         specifier: 0.4.1
         version: 0.4.1(react@19.3.0)
@@ -1064,8 +1042,8 @@ importers:
         specifier: workspace:@sentry-internal/app@*
         version: link:../app
       zod:
-        specifier: 4.3.5
-        version: 4.3.5(patch_hash=2bb6d33b2c713a7a2c559c18ad0aa6cfb261f01d935ee1288dfec6c84411aa76)
+        specifier: 4.6.7
+        version: 4.6.7
     devDependencies:
       '@types/history':
         specifier: ^3.2.5
@@ -1214,6 +1192,9 @@ importers:
       '@react-aria/interactions':
         specifier: 3.28.1
         version: 3.28.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-aria/numberfield':
+        specifier: 3.13.1
+        version: 3.13.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@react-aria/overlays':
         specifier: 3.32.1
         version: 3.32.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -1238,6 +1219,9 @@ importers:
       '@react-stately/list':
         specifier: 3.14.1
         version: 3.14.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-stately/numberfield':
+        specifier: 3.12.1
+        version: 3.12.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@react-stately/overlays':
         specifier: 3.7.1
         version: 3.7.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -1265,6 +1249,9 @@ importers:
       framer-motion:
         specifier: 12.38.0
         version: 12.38.0(@emotion/is-prop-valid@1.4.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      input-otp:
+        specifier: ^1.5.0
+        version: 1.5.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       query-string:
         specifier: 7.0.1
         version: 7.0.1
@@ -1274,6 +1261,9 @@ importers:
       react-dom:
         specifier: ^19.0.0
         version: 19.3.0(react@19.3.0)
+      react-textarea-autosize:
+        specifier: 8.5.7
+        version: 8.5.7(@types/react@19.3.0)(react@19.3.0)
       type-fest:
         specifier: ^5.10.0
         version: 5.10.0
@@ -1296,6 +1286,9 @@ importers:
       '@swc/jest':
         specifier: 0.2.39
         version: 0.2.39(@swc/core@1.16.13(@swc/helpers@0.5.23))
+      '@tanstack/react-form':
+        specifier: 1.28.6
+        version: 1.28.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@testing-library/dom':
         specifier: 10.4.1
         version: 10.4.1
@@ -1412,7 +1405,7 @@ importers:
         version: 11.7.0(@babel/core@7.29.7(supports-color@8.1.1))
       '@sentry/react':
         specifier: 11.7.0
-        version: 11.7.0(react-router@6.30.6(react@19.3.0))(react@19.3.0)
+        version: 11.7.0(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
       '@sentry/scraps':
         specifier: workspace:*
         version: link:../../static/packages/scraps
@@ -1502,7 +1495,7 @@ importers:
         version: 0.6.2
       nuqs:
         specifier: 2.10.2
-        version: 2.10.2(react-router-dom@6.30.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-router@6.30.6(react@19.3.0))(react@19.3.0)
+        version: 2.10.2(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
       peggy:
         specifier: 5.1.1
         version: 5.1.1
@@ -1519,8 +1512,8 @@ importers:
         specifier: 19.3.0
         version: 19.3.0(react@19.3.0)
       react-router:
-        specifier: 6.30.6
-        version: 6.30.6(react@19.3.0)
+        specifier: 8.4.0
+        version: 8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       sentry:
         specifier: workspace:@sentry-internal/app@*
         version: link:../../static/app
@@ -3816,10 +3809,6 @@ packages:
   '@remix-run/route-pattern@0.22.1':
     resolution: {integrity: sha512-czdGJWh09Lapvcqt7Vb09KlrU2PhRJ8xQaI+AItTuD9aDJ5MAgxnS38lnys6Ll+6RJEqPiaUqTwIQhVLwFvv+w==}
 
-  '@remix-run/router@1.23.4':
-    resolution: {integrity: sha512-q7j5geK7xs3UJSdm9/iytUNclBnLmYx1EnSeCFXHPeutdqgIMeFeHtUZgS3EhlKxdBEAu8OwtJCwmLrEzpSs7Q==}
-    engines: {node: '>=14.0.0'}
-
   '@rsbuild/core@2.2.12':
     resolution: {integrity: sha512-SnJ81Jf9ZGms8hUq0FGxrqlUxdHKV76VK9gxrEdtWLbTic+qRt0SIAsk5NdIr1tXFzqzQ6Fqeffs+K1EUuZEHw==}
     engines: {node: ^20.19.0 || >=22.12.0}
@@ -4085,6 +4074,10 @@ packages:
 
   '@sentry/conventions@0.27.0':
     resolution: {integrity: sha512-Mrqd/o7n/z7qWSYfQQA7x4fFTA0IqOG6JNsbBpnC97khPwZk7n6DPtOO7YgaYplSl8R8QLRbBz9Xv2lVhToSAg==}
+    engines: {node: '>=14'}
+
+  '@sentry/conventions@0.29.0':
+    resolution: {integrity: sha512-kYq9/HJ/l6MYP/srIc20dy1W4mWyJfCF0OWFF+RhBGZwyr/wCmtabRFKyw7kqM+DTwZXQOjSTSZUcJhDowcInQ==}
     engines: {node: '>=14'}
 
   '@sentry/core@10.76.0':
@@ -5868,8 +5861,8 @@ packages:
     resolution: {integrity: sha512-zk7sgt970kzPks2Bf+dwT/PLzghLnsivb9CcxkvR8Mzr66Olr0Ofd8neSbglHJHaHa2MadfoSdNlKYAaafmWfA==}
     engines: {node: '>= 4'}
 
-  dompurify@3.4.16:
-    resolution: {integrity: sha512-sqo+pNp3qRhCIpbgRi1y8Tgk27Bo2Ry7w0dC1NBeNTdZChWjz9Xb/KOoZbRP/R6pQZ80Qw8YhXw13hWWBbMRnQ==}
+  dompurify@3.4.17:
+    resolution: {integrity: sha512-B/pSlYVHQ58kqISD/yDjuJ1yfzI34m1gF4lAod2bwSRhiN4K5Cl3H8Af7hqB2PmTL911tdEudnnXn5FnhRoz0w==}
 
   domutils@2.7.0:
     resolution: {integrity: sha512-8eaHa17IwJUPAiB+SoTYBo5mCdeMgdcAoXJ59m6DT1vw+5iLS3gNoqYaRowaBKtGVrOF1Jz4yDTgYKLK2kvfJg==}
@@ -8201,19 +8194,6 @@ packages:
       react: '>= 16.3'
       react-dom: '>= 16.3'
 
-  react-router-dom@6.30.6:
-    resolution: {integrity: sha512-0RHKZz7wwffvkU+2MFVT2NnjK44ssLEV+m0CAJaS2Ksmorrwj7WxH00jO0SOCW26/tINUnJHToXblDs33I38YQ==}
-    engines: {node: '>=14.0.0'}
-    peerDependencies:
-      react: '>=16.8'
-      react-dom: '>=16.8'
-
-  react-router@6.30.6:
-    resolution: {integrity: sha512-5HfK7k5im7LTOB0EqCQmfvy4C13G92Ssj1VTmouTK3AJvyjKTnFuCV0vcMAD/JS+JC4DvDIBRrlAeJIFjh5VWg==}
-    engines: {node: '>=14.0.0'}
-    peerDependencies:
-      react: '>=16.8'
-
   react-router@8.4.0:
     resolution: {integrity: sha512-JtydAkBvU9UTEe5qNC+POhu+ZBNM7rlKY2IegwXc7Idj7xfRG16x5RZrw3mju+XlqBxfvb2ky9P3jUp9WyWC1g==}
     engines: {node: '>=22.22.0'}
@@ -8848,8 +8828,8 @@ packages:
   svg-tags@1.0.0:
     resolution: {integrity: sha512-ovssysQTa+luh7A5Weu3Rta6FJlFBBbInjOh722LIt6klpU2/HtdUbszju/G4devcvk8PGt7FCLv5wftu3THUA==}
 
-  swc-plugin-component-annotate@1.18.0:
-    resolution: {integrity: sha512-haLdgKD2a4ur5U/WVhkyVoDK+UXXKVbHsiAt+m4agnhJEUCfZCH2sCl/1oplFFBKf1MRL8XLXziWo9/HhNTnGw==}
+  swc-plugin-component-annotate@1.18.4:
+    resolution: {integrity: sha512-+X3AvJ6kxMwpYcdyXfN2R8gIzTe/YV2kEXUph1Ro5vG0CRQeRGn8OJAzIBVqeFp8WPEyFNUPaa7k7cuWGjStwA==}
 
   synckit@0.11.13:
     resolution: {integrity: sha512-eNRKgb3z66Yp3D2CixVujOUvXLFUTij/zVnV8KRyvFdQwpz7I5DS8UfRkTeLzb64u+dkzDSdelE24izu+zSSUg==}
@@ -9316,9 +9296,6 @@ packages:
   yocto-queue@0.1.0:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
-
-  zod@4.3.5:
-    resolution: {integrity: sha512-k7Nwx6vuWx1IJ9Bjuf4Zt1PEllcwe7cls3VNzm4CQ1/hgtFUK2bRNG3rvnpPUhFjmqJKAKtjV576KnUkHocg/g==}
 
   zod@4.6.7:
     resolution: {integrity: sha512-g8W2D2kU6a8untc053fX1uVBKzM7yqAxW/3zwk83+6RyF2+SKOuV+c0wBDhUwzV1PaGapmZH+rmcUzPf+3CGwg==}
@@ -11450,8 +11427,6 @@ snapshots:
 
   '@remix-run/route-pattern@0.22.1': {}
 
-  '@remix-run/router@1.23.4': {}
-
   '@rsbuild/core@2.2.12(core-js@3.45.0)':
     dependencies:
       '@rspack/core': 2.2.8(@swc/helpers@0.5.23)
@@ -11596,7 +11571,7 @@ snapshots:
       algoliasearch: 4.13.1
       css-select: 4.1.3
       domhandler: 4.2.0
-      dompurify: 3.4.16
+      dompurify: 3.4.17
       htmlparser2: 4.1.0
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
@@ -11690,6 +11665,8 @@ snapshots:
 
   '@sentry/conventions@0.27.0': {}
 
+  '@sentry/conventions@0.29.0': {}
+
   '@sentry/core@10.76.0':
     dependencies:
       '@sentry/conventions': 0.16.0
@@ -11732,15 +11709,6 @@ snapshots:
       '@opentelemetry/api': 1.9.1
       '@sentry/conventions': 0.27.0
       '@sentry/core': 11.7.0
-
-  '@sentry/react@11.7.0(react-router@6.30.6(react@19.3.0))(react@19.3.0)':
-    dependencies:
-      '@sentry/browser': 11.7.0
-      '@sentry/conventions': 0.27.0
-      '@sentry/core': 11.7.0
-      react: 19.3.0
-    optionalDependencies:
-      react-router: 6.30.6(react@19.3.0)
 
   '@sentry/react@11.7.0(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)':
     dependencies:
@@ -13409,7 +13377,7 @@ snapshots:
     dependencies:
       domelementtype: 2.3.0
 
-  dompurify@3.4.16:
+  dompurify@3.4.17:
     optionalDependencies:
       '@types/trusted-types': 2.0.7
 
@@ -15976,13 +15944,12 @@ snapshots:
     dependencies:
       boolbase: 1.0.0
 
-  nuqs@2.10.2(react-router-dom@6.30.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-router@6.30.6(react@19.3.0))(react@19.3.0):
+  nuqs@2.10.2(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0):
     dependencies:
       '@standard-schema/spec': 1.1.0
       react: 19.3.0
     optionalDependencies:
-      react-router: 6.30.6(react@19.3.0)
-      react-router-dom: 6.30.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react-router: 8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
 
   object-assign@4.1.1: {}
 
@@ -16600,18 +16567,6 @@ snapshots:
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
       react-draggable: 4.5.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-
-  react-router-dom@6.30.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
-    dependencies:
-      '@remix-run/router': 1.23.4
-      react: 19.3.0
-      react-dom: 19.3.0(react@19.3.0)
-      react-router: 6.30.6(react@19.3.0)
-
-  react-router@6.30.6(react@19.3.0):
-    dependencies:
-      '@remix-run/router': 1.23.4
-      react: 19.3.0
 
   react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
     dependencies:
@@ -17405,7 +17360,7 @@ snapshots:
 
   svg-tags@1.0.0: {}
 
-  swc-plugin-component-annotate@1.18.0: {}
+  swc-plugin-component-annotate@1.18.4: {}
 
   synckit@0.11.13:
     dependencies:
@@ -17934,8 +17889,6 @@ snapshots:
     optional: true
 
   yocto-queue@0.1.0: {}
-
-  zod@4.3.5(patch_hash=2bb6d33b2c713a7a2c559c18ad0aa6cfb261f01d935ee1288dfec6c84411aa76): {}
 
   zod@4.6.7: {}
 

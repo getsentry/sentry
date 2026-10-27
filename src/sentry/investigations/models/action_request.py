@@ -72,11 +72,8 @@ class InvestigationActionRequest(DefaultFieldsModel):
         null=True
     )
     error: models.Field[dict[str, Any] | None, dict[str, Any] | None] = models.JSONField(null=True)
-    # The action kind's check of this request, made once when it arrives. Null until
-    # checked. Only the kind reads inside it.
-    precheck: models.Field[dict[str, Any] | None, dict[str, Any] | None] = models.JSONField(
-        null=True
-    )
+    # The request_id of the re-check or re-run Sentry last sent Seer for this request.
+    followup_request_id = models.UUIDField(null=True)
 
     class Meta:
         app_label = "investigations"

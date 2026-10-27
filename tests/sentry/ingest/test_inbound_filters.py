@@ -574,9 +574,18 @@ def release_version_rule_condition(comparator: str, release: str) -> dict:
         ),
         pytest.param(
             "error",
-            [{"type": "ip_address", "operator": "equals", "value": ["10.0.0.0/8"]}],
+            [{"type": "ip_address", "operator": "cidr", "value": ["10.0.0.0/8"]}],
             {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8"]},
-            id="equals_on_ip_address_is_the_cidr_match",
+            id="cidr_on_ip_address",
+        ),
+        pytest.param(
+            "error",
+            [{"type": "ip_address", "operator": "not_cidr", "value": ["10.0.0.0/8"]}],
+            {
+                "op": "not",
+                "inner": {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8"]},
+            },
+            id="not_cidr_on_ip_address",
         ),
         pytest.param(
             "all",
@@ -589,7 +598,7 @@ def release_version_rule_condition(comparator: str, release: str) -> dict:
             [
                 {"type": "error_message", "operator": "contains", "value": ["timeout"]},
                 {"type": "release", "operator": "gte", "value": ["2.0"]},
-                {"type": "ip_address", "operator": "equals", "value": ["10.0.0.0/8"]},
+                {"type": "ip_address", "operator": "cidr", "value": ["10.0.0.0/8"]},
             ],
             {
                 "op": "and",

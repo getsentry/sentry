@@ -16,7 +16,7 @@ interface Props {
 //
 // In this special case, we re-create the error object
 function isSerializedError(frame: ConsoleFrame) {
-  const args = frame.data.arguments;
+  const args = frame.data?.arguments;
   return (
     frame.message &&
     typeof frame.message === 'string' &&
@@ -42,7 +42,7 @@ export function MessageFormatter({frame, expandPaths, onExpand}: Props) {
     );
   }
 
-  const args = frame.data.arguments;
+  const args = frame.data?.arguments;
 
   // Turn this back into an Error object so <Format> can pretty print it
   if (args && isSerializedError(frame)) {

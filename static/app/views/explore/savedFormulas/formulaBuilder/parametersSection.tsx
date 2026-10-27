@@ -17,6 +17,7 @@ import {
   FIELD_MAX_WIDTH,
 } from 'sentry/views/explore/savedFormulas/formulaBuilder/builderSection';
 import {
+  MAX_INPUT_PARAMS,
   MAX_PARAMS,
   newParam,
   type DraftParam,
@@ -41,6 +42,7 @@ export function ParametersSection({
   // A calculation is derived from the other params, so there has to be one first.
   const valueParams = params.filter(param => param.type !== 'calculation');
   const isFull = params.length >= MAX_PARAMS;
+  const isInputFull = valueParams.length >= MAX_INPUT_PARAMS;
 
   function update(key: string, changes: Partial<DraftParam>) {
     onChange(params.map(param => (param.key === key ? {...param, ...changes} : param)));
@@ -102,13 +104,20 @@ export function ParametersSection({
         ))}
         <Flex gap="md">
           <Tooltip
-            title={t('Formulas take at most %s parameters', MAX_PARAMS)}
-            disabled={!isFull}
+            title={
+              isFull
+                ? t('Formulas take at most %s parameters', MAX_PARAMS)
+                : t(
+                    'Formulas take at most %s non-calculated parameters',
+                    MAX_INPUT_PARAMS
+                  )
+            }
+            disabled={!isFull && !isInputFull}
           >
             <Button
               size="sm"
               icon={<IconAdd />}
-              disabled={isFull}
+              disabled={isFull || isInputFull}
               onClick={() => onChange([...params, newParam('number')])}
             >
               {t('Add Parameter')}

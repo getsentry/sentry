@@ -2,6 +2,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
+import {ensureSentenceEnd} from 'sentry/views/investigations/sentence';
 
 type InvestigationSummaryCardProps = {
   summary: string | null;
@@ -27,7 +28,7 @@ export function InvestigationSummaryCard({
   const paragraph = [summary, ...summaryDescription.split('\n')]
     .map(sentence => sentence.trim())
     .filter(Boolean)
-    .map(sentence => (/[.!?]$/.test(sentence) ? sentence : `${sentence}.`))
+    .map(ensureSentenceEnd)
     .join(' ');
 
   return (

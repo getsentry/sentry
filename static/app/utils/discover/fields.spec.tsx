@@ -25,6 +25,18 @@ describe('parseFunction', () => {
     expect(parseFunction('foo.bar.is-Enterprise_42')).toBeNull();
   });
 
+  it('handles saved formulas', () => {
+    expect(parseFunction('formula.apdex(span.duration,300)')).toEqual({
+      name: 'formula.apdex',
+      arguments: ['span.duration', '300'],
+    });
+    expect(parseFunction('formula.my-apdex v2(span.duration)')).toEqual({
+      name: 'formula.my-apdex v2',
+      arguments: ['span.duration'],
+    });
+    expect(parseFunction('other.apdex(span.duration)')).toBeNull();
+  });
+
   it('handles 0 arg functions', () => {
     expect(parseFunction('count()')).toEqual({
       name: 'count',

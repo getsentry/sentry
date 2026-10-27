@@ -259,14 +259,14 @@ const ESM_NODE_MODULES = [
 const config: Config.InitialOptions = {
   rootDir,
   verbose: false,
-  cacheDirectory: `.cache/jest/router-v${process.env.SENTRY_REACT_ROUTER_VERSION ?? '6'}`,
+  cacheDirectory: '.cache/jest',
   collectCoverageFrom: [
     'static/app/**/*.{js,jsx,ts,tsx}',
     '!static/app/**/*.spec.{js,jsx,ts,tsx}',
   ],
   coverageReporters: ['html', 'cobertura'],
   coverageDirectory: '.artifacts/coverage',
-  resolver: '<rootDir>/tests/js/jestReactRouterResolver.cjs',
+  resolver: '<rootDir>/tests/js/jestWorkspaceResolver.cjs',
   moduleNameMapper: {
     '\\.(css|less|png|gif|jpg|avif|webp|woff|mp4)$':
       '<rootDir>/tests/js/sentry-test/mocks/importStyleMock.js',
@@ -334,7 +334,8 @@ const config: Config.InitialOptions = {
   ],
 
   moduleFileExtensions: ['js', 'ts', 'jsx', 'tsx', 'pegjs'],
-  globals: {},
+  // Matches setupStatics, so tests run Zod's jitless parsers like production does.
+  globals: {__zod_globalConfig: {jitless: true}},
 
   reporters: ['default'],
   /**

@@ -4,7 +4,7 @@ import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
@@ -96,6 +96,48 @@ describe('spansWidgetQueries', () => {
     );
 
     expect(await screen.findByText('low:partial')).toBeInTheDocument();
+  });
+
+  it('reports the confidence through onDataFetched', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {
+        timeSeries: [
+          TimeSeriesFixture({
+            yAxis: 'count()',
+            meta: {
+              valueType: 'integer',
+              valueUnit: null,
+              interval: 1000,
+              dataScanned: 'partial',
+            },
+            values: [{timestamp: 1000, value: 1, confidence: 'low'}],
+          }),
+        ],
+      },
+    });
+    const onDataFetched = jest.fn();
+
+    render(
+      <SpansWidgetQueries
+        widget={widget}
+        dashboardFilters={{}}
+        onDataFetched={onDataFetched}
+      >
+        {() => <div />}
+      </SpansWidgetQueries>,
+      {organization}
+    );
+
+    await waitFor(() =>
+      expect(onDataFetched).toHaveBeenCalledWith(
+        expect.objectContaining({
+          confidence: 'low',
+          dataScanned: 'partial',
+          timeseriesResults: expect.any(Array),
+        })
+      )
+    );
   });
 
   it('triggers a normal mode request for charts', async () => {

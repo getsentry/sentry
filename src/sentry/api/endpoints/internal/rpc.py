@@ -69,7 +69,7 @@ class InternalRpcServiceEndpoint(Endpoint):
 
         meta = request.data.get("meta") or {}
         vc_data = meta.get("viewer_context")
-        vc = ViewerContext()
+        vc: ViewerContext | None = None
         if vc_data:
             try:
                 vc = ViewerContext.deserialize(vc_data)
@@ -77,14 +77,7 @@ class InternalRpcServiceEndpoint(Endpoint):
                 sentry_sdk.capture_exception()
                 raise ParseError from e
 
-        # Observe what the caller actually sent, not the empty default we fall back to.
-        # `vc` is always non-None (defaulted to ViewerContext()), so observing inside
-        # the scope below would always see actor_type=unknown and never trigger the
-        # missing-VC signal.
-        observe_viewer_context_propagation(
-            "rpc_inbound",
-            ctx=vc if vc_data else None,
-        )
+        observe_viewer_context_propagation("rpc_inbound", ctx=vc)
 
         try:
             with viewer_context_scope(vc), auth_context.applied_to_request(request):

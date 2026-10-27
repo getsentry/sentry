@@ -43,6 +43,10 @@ def is_span_id(value: object) -> TypeGuard[str]:
     return bool(HEXADECIMAL_16_DIGITS.search(force_str(value)))
 
 
+def normalize_span_id(value):
+    return force_str(value).lower()
+
+
 def is_span_id_or_list(value):
     if isinstance(value, list):
         return all(is_span_id(item) for item in value)

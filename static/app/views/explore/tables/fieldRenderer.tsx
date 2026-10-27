@@ -11,6 +11,10 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {
+  type CaseInsensitive,
+  useCaseInsensitivity,
+} from 'sentry/components/searchQueryBuilder/hooks';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
@@ -121,6 +125,7 @@ export function MultiQueryFieldRenderer({
       tooltipTitle={tooltipTitle}
       userQuery={userQuery}
       setUserQuery={(query: string) => updateQuerySearch({query})}
+      caseInsensitive={queries[index]?.caseInsensitive === '1' ? true : null}
     />
   );
 }
@@ -128,6 +133,7 @@ export function MultiQueryFieldRenderer({
 interface BaseFieldProps extends FieldProps {
   setUserQuery: (query: string) => void;
   userQuery: string;
+  caseInsensitive?: CaseInsensitive;
 }
 
 function BaseExploreFieldRenderer({
@@ -142,12 +148,15 @@ function BaseExploreFieldRenderer({
   setUserQuery,
   tooltipTitle,
   usePortalOnDropdown,
+  caseInsensitive: queryCaseInsensitive,
 }: BaseFieldProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
   const theme = useTheme();
   const {selection} = usePageFilters();
+  const [pageCaseInsensitive] = useCaseInsensitivity();
+  const caseInsensitive = queryCaseInsensitive ?? pageCaseInsensitive;
   const dateSelection = EventView.fromLocation(location).normalizeDateSelection(location);
   const query = new MutableSearch(userQuery);
   const {projects} = useProjects();
@@ -204,6 +213,7 @@ function BaseExploreFieldRenderer({
                     similarTraces: (
                       <Link
                         to={getSimilarEventsUrl({
+                          caseInsensitive,
                           queryString: queryString.formatString(),
                           table: 'trace',
                           organization,
@@ -267,6 +277,7 @@ function BaseExploreFieldRenderer({
                   similarSpans: (
                     <Link
                       to={getSimilarEventsUrl({
+                        caseInsensitive,
                         queryString: queryString.formatString(),
                         organization,
                         projectIds: defined(project?.id)

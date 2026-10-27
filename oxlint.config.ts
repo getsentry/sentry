@@ -616,19 +616,11 @@ const config = defineConfig({
   overrides: [
     {
       files: [
-        'tests/js/jestReactRouterResolver.cjs',
-        'tests/js/jestReactRouterResolver.spec.ts',
+        'tests/js/jestWorkspaceResolver.cjs',
+        'tests/js/jestWorkspaceResolver.spec.ts',
       ],
       env: {node: true},
       rules: {'import/no-nodejs-modules': 'off'},
-    },
-    {
-      files: [
-        'static/app/utils/reactRouterV6/index.ts',
-        'static/app/utils/reactRouterV6/dom.ts',
-        'static/app/utils/reactRouterV6/types.d.ts',
-      ],
-      rules: {'@sentry/no-legacy-router-imports': 'off'},
     },
     typescriptOverride,
     {
