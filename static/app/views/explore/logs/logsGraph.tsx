@@ -15,6 +15,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import Feature from 'sentry/components/acl/feature';
 import {hasDroppedData} from 'sentry/components/droppedData/buckets';
 import {useDroppedDataDrawer} from 'sentry/components/droppedData/drawer/useDroppedDataDrawer';
+import {DroppedDataFilterNote} from 'sentry/components/droppedData/droppedDataFilterNote';
 import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
 import {DroppedDataLLMContext} from 'sentry/components/droppedData/droppedDataLLMContext';
 import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
@@ -395,13 +396,21 @@ function Graph({
                   !hasValidConditionalFilter || (tableIsPending ? false : tableIsEmpty)
                 }
               />
-              {showTransformationControls ? (
-                <AddTransformationButton
-                  traceItemDataset={TraceItemDataset.LOGS}
-                  transformations={visualize.transformations}
-                  onChange={onTransformationsChange}
-                />
-              ) : null}
+              <Flex align="center" gap="md">
+                {showDroppedDataBand ? (
+                  <DroppedDataFilterNote
+                    dataset={DiscoverDatasets.OURLOGS}
+                    hasUserQuery={!!userQuery}
+                  />
+                ) : null}
+                {showTransformationControls ? (
+                  <AddTransformationButton
+                    traceItemDataset={TraceItemDataset.LOGS}
+                    transformations={visualize.transformations}
+                    onChange={onTransformationsChange}
+                  />
+                ) : null}
+              </Flex>
             </Flex>
           )
         }

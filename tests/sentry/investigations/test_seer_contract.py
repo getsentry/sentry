@@ -36,6 +36,10 @@ def test_every_fixture_is_covered() -> None:
         *ACTION_REQUESTED,
         "action_withdrawn",
         "state_snapshot_action_requests",
+        "command_record_action_outcome",
+        "rejected_record_action_outcome",
+        "command_recheck_action_requests",
+        "rejected_recheck_action_requests",
     }
 
 

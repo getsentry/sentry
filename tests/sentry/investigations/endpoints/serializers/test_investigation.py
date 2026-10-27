@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
+from uuid import uuid4
 
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
@@ -8,6 +9,7 @@ from django.utils import timezone
 
 from sentry.api.serializers import serialize
 from sentry.auth.access import from_user
+from sentry.constants import ObjectStatus
 from sentry.incidents.grouptype import MetricIssue
 from sentry.investigations.endpoints.serializers import (
     InvestigationDetailsSerializer,
@@ -19,10 +21,12 @@ from sentry.investigations.models import (
     InvestigationActionRequest,
     InvestigationActionRequestState,
     InvestigationBlockExecutionStatus,
+    InvestigationOrchestrationCommandStatus,
     InvestigationStatus,
 )
 from sentry.investigations.services.action_kinds import ACTION_KINDS
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 from tests.sentry.investigations.test_contracts import RecordingKind, fake_action, fake_action_kind
 
 
@@ -295,7 +299,7 @@ class InvestigationActionRequestSerializationTest(TestCase):
         self.investigation = self.create_investigation(
             organization=self.organization, created_by=self.user, title="Investigation"
         )
-        self.create_investigation_orchestration_run(
+        self.orchestration_run = self.create_investigation_orchestration_run(
             investigation=self.investigation,
             source={"type": "breached_metric", "detectorId": str(self.detector.id)},
         )
@@ -343,15 +347,68 @@ class InvestigationActionRequestSerializationTest(TestCase):
                 "state": "suggested",
                 "reason": None,
                 "action": self.action(),
-                "canApply": False,
-                "cannotApplyReason": "unsupported_action",
+                "canApply": True,
+                "cannotApplyReason": None,
                 "appliedBy": None,
                 "appliedDetails": None,
                 "dateApplied": None,
                 "error": None,
+                "followUp": None,
                 "dateCreated": action_request.date_added,
             }
         ]
+
+    def add_followed_up_request(self, key: str = "widen-window", **command: Any) -> None:
+        sent = self.create_investigation_orchestration_command(
+            orchestration_run=self.orchestration_run,
+            request_id=uuid4(),
+            actor_id=self.user.id,
+            expected_workflow_version=1,
+            resulting_workflow_version=2,
+            type="recheck_action_requests",
+            payload={"reportRevision": 0, "source": {"type": "manual"}},
+            **command,
+        )
+        self.add_request(
+            key,
+            state=InvestigationActionRequestState.SUPERSEDED,
+            error={"code": "stale", "current": {"timeWindowSeconds": 600}},
+            followup_request_id=sent.request_id,
+        )
+
+    def test_shows_the_follow_up_sentry_sent(self) -> None:
+        self.add_followed_up_request()
+
+        (serialized,) = self.serialize_requests()
+
+        assert serialized["followUp"] == {"status": "accepted", "reason": None}
+
+    def test_a_follow_up_seer_turned_down_has_seers_code(self) -> None:
+        self.add_followed_up_request(
+            status=InvestigationOrchestrationCommandStatus.FAILED,
+            error={
+                "code": "seer_command_dispatch_failed",
+                "reason": "action_requests_report_changed",
+                "retryable": False,
+            },
+        )
+
+        (serialized,) = self.serialize_requests()
+
+        assert serialized["followUp"] == {
+            "status": "failed",
+            "reason": "action_requests_report_changed",
+        }
+
+    def test_an_undelivered_follow_up_has_no_reason(self) -> None:
+        self.add_followed_up_request(
+            status=InvestigationOrchestrationCommandStatus.FAILED,
+            error={"code": "seer_command_dispatch_failed", "retryable": True},
+        )
+
+        (serialized,) = self.serialize_requests()
+
+        assert serialized["followUp"] == {"status": "failed", "reason": None}
 
     def test_block_anchors_point_at_the_live_block(self) -> None:
         live = self.create_investigation_block(
@@ -396,6 +453,19 @@ class InvestigationActionRequestSerializationTest(TestCase):
         )
         older = self.add_request("older", report_revision=0)
         self.add_request("superseded", state=InvestigationActionRequestState.SUPERSEDED)
+        stale = self.add_request(
+            "stale",
+            report_revision=0,
+            state=InvestigationActionRequestState.SUPERSEDED,
+            error={"code": "stale", "current": {"timeWindowSeconds": 600}},
+            followup_request_id=uuid4(),
+        )
+        self.add_request(
+            "dropped-stale",
+            report_revision=0,
+            state=InvestigationActionRequestState.SUPERSEDED,
+            error={"code": "stale", "current": {"timeWindowSeconds": 600}},
+        )
         newer = self.add_request("newer", report_revision=1)
         primary = self.add_request("primary", report_revision=1, primary=True)
 
@@ -404,6 +474,7 @@ class InvestigationActionRequestSerializationTest(TestCase):
             str(newer.id),
             str(old_primary.id),
             str(older.id),
+            str(stale.id),
         ]
 
     def test_serializes_who_applied_it_failures_and_withdrawals(self) -> None:
@@ -456,6 +527,7 @@ class InvestigationActionRequestSerializationTest(TestCase):
             state=InvestigationActionRequestState.APPLIED,
             applied_by_id=self.user.id,
             date_applied=timezone.now(),
+            applied_details={"fields": ["highThreshold"]},
         )
         self.add_request("connect", action={"kind": "connect_telemetry", "provider": "datadog"})
         with CaptureQueriesContext(connection) as one:
@@ -468,6 +540,7 @@ class InvestigationActionRequestSerializationTest(TestCase):
             state=InvestigationActionRequestState.APPLIED,
             applied_by_id=other.id,
             date_applied=timezone.now(),
+            applied_details={"fields": ["highThreshold"]},
         )
         self.add_request("connect-gcp", action={"kind": "connect_telemetry", "provider": "gcp"})
         for index in range(3):
@@ -485,6 +558,13 @@ class InvestigationActionRequestSerializationTest(TestCase):
 
     def cannot_apply_reason(self, user: Any = None) -> str | None:
         return self.serialize_for(user or self.user)[0]["cannotApplyReason"]
+
+    def test_an_editor_can_apply_a_suggestion(self) -> None:
+        self.add_request()
+
+        (serialized,) = self.serialize_for(self.user)
+        assert serialized["action"] == self.action()
+        assert (serialized["canApply"], serialized["cannotApplyReason"]) == (True, None)
 
     def test_archived_investigations_cannot_apply(self) -> None:
         self.add_request()
@@ -529,3 +609,72 @@ class InvestigationActionRequestSerializationTest(TestCase):
 
         assert (serialized["canApply"], serialized["cannotApplyReason"]) == (False, "no_access")
         assert kind.checked == []
+
+    def test_dynamic_monitors_cannot_apply(self) -> None:
+        self.add_request()
+        self.detector.update(config={"detection_type": "dynamic"})
+
+        assert self.cannot_apply_reason() == "dynamic_detector"
+
+    def test_each_suggestion_gets_the_reason_for_its_own_monitor(self) -> None:
+        other = self.create_detector(project=self.project, type=MetricIssue.slug)
+        self.add_request("own-monitor")
+        self.add_request("other-monitor", action=self.action(detectorId=str(other.id)))
+
+        reasons = {row["key"]: row["cannotApplyReason"] for row in self.serialize_for(self.user)}
+
+        assert reasons == {"own-monitor": None, "other-monitor": "not_target_detector"}
+
+    def test_only_the_source_detector_can_be_changed(self) -> None:
+        other = self.create_detector(project=self.project, type=MetricIssue.slug)
+        self.add_request(action=self.action(detectorId=str(other.id)))
+
+        assert self.cannot_apply_reason() == "not_target_detector"
+
+    def test_missing_detectors_cannot_apply(self) -> None:
+        self.add_request()
+        self.detector.update(status=ObjectStatus.PENDING_DELETION)
+
+        assert self.cannot_apply_reason() == "detector_not_found"
+
+    def test_detectors_in_other_organizations_cannot_apply(self) -> None:
+        other_project = self.create_project(organization=self.create_organization())
+        foreign = self.create_detector(project=other_project, type=MetricIssue.slug)
+        self.investigation.orchestration_run.update(
+            source={"type": "breached_metric", "detectorId": str(foreign.id)}
+        )
+        self.add_request(action=self.action(detectorId=str(foreign.id)))
+
+        assert self.cannot_apply_reason() == "detector_not_found"
+
+    def test_users_who_cannot_edit_the_detector_cannot_apply(self) -> None:
+        self.organization.update_option("sentry:alerts_member_write", False)
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization, role="member")
+        self.add_request()
+
+        assert self.cannot_apply_reason(member) == "permission_denied"
+
+    @with_feature("organizations:team-roles")
+    def test_query_count_does_not_grow_with_suggestions(self) -> None:
+        self.organization.update_option("sentry:alerts_member_write", False)
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization, role="member")
+        team = self.create_team(organization=self.organization)
+        self.project.add_team(team)
+        self.create_team_membership(team=team, user=member, role="admin")
+        self.add_request()
+        self.add_followed_up_request("followed-up")
+        with CaptureQueriesContext(connection) as one:
+            serialized = {item["key"]: item for item in self.serialize_for(member)}
+        assert serialized["widen-window"]["canApply"] is True
+
+        self.add_followed_up_request("second-followed-up")
+        self.add_request("second")
+        self.add_request("third")
+        for index in range(5):
+            self.add_request(f"applied-{index}", state=InvestigationActionRequestState.APPLIED)
+        with CaptureQueriesContext(connection) as many:
+            assert len(self.serialize_for(member)) == 10
+
+        assert len(many.captured_queries) == len(one.captured_queries)

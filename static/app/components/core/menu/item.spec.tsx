@@ -4,7 +4,7 @@ import {expectTypeOf} from 'expect-type';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {ListItem} from '@sentry/scraps/menu';
+import {ListItem, ReserveLeadingSlot} from '@sentry/scraps/menu';
 
 jest.mock('@floating-ui/react-dom', () => ({
   ...jest.requireActual('@floating-ui/react-dom'),
@@ -80,6 +80,35 @@ describe('ListItem', () => {
     expectTypeOf<Parameters<typeof ListItem<'div'>>[0]['ref']>().toEqualTypeOf<
       React.Ref<HTMLDivElement> | undefined
     >();
+  });
+
+  it('reserves an empty leading slot so labels line up with items that have icons', () => {
+    function getContentChildCount(label: string) {
+      return screen
+        .getByText(label)
+        .closest('[data-menu-item-content]')
+        ?.querySelectorAll(':scope > *').length;
+    }
+
+    const {rerender} = render(
+      <Fragment>
+        <ListItem label="With icon" leadingItems={<span>icon</span>} />
+        <ListItem label="Plain" />
+      </Fragment>
+    );
+
+    expect(getContentChildCount('Plain')).toBeLessThan(
+      getContentChildCount('With icon')!
+    );
+
+    rerender(
+      <ReserveLeadingSlot reserve>
+        <ListItem label="With icon" leadingItems={<span>icon</span>} />
+        <ListItem label="Plain" />
+      </ReserveLeadingSlot>
+    );
+
+    expect(getContentChildCount('Plain')).toBe(getContentChildCount('With icon'));
   });
 
   it('positions the details overlay against an item that mounts focused', () => {

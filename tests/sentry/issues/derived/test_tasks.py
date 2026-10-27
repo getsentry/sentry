@@ -1697,6 +1697,14 @@ class RegenerateStaleDerivedDataBatchTest(DerivedDataTaskTestBase):
     def _stale() -> str:
         return "0" * 16 if PIPELINE.pipeline_hash != "0" * 16 else "z" * 16
 
+    @staticmethod
+    def _rows_found_calls(distribution: MagicMock) -> list[Any]:
+        return [
+            c
+            for c in distribution.call_args_list
+            if c.args[0] == "issues.derived.heal_range_rows_found"
+        ]
+
     def test_rebuilds_stale_rows(self) -> None:
         groups = self.create_unprocessed_groups(2)
         group_ids = sorted(g.id for g in groups)
@@ -1785,9 +1793,9 @@ class RegenerateStaleDerivedDataBatchTest(DerivedDataTaskTestBase):
             patch.object(regenerate_stale_derived_data_batch, "delay") as mock_delay,
         ):
             expired = BATCH_RETRIGGER_TIMEOUT.total_seconds() + 1
-            # Helper start(), iter 1 remaining, iter 1 deadline check
-            # (triggers reschedule after the first group).
-            mock_time.monotonic.side_effect = [0.0, 0.0, expired]
+            # Helper start(), iter 1 start, iter 1 metrics, iter 1 deadline
+            # check (triggers reschedule after the first group).
+            mock_time.monotonic.side_effect = [0.0, 0.0, 0.0, expired]
 
             regenerate_stale_derived_data_batch(
                 target_hash=stale,
@@ -1858,15 +1866,17 @@ class RegenerateStaleDerivedDataBatchTest(DerivedDataTaskTestBase):
                 group_id_end=group_ids[-1] + 1,
             )
 
-            distribution.assert_not_called()
+            assert not self._rows_found_calls(distribution)
             regenerate_stale_derived_data_batch(**mock_delay.call_args.kwargs)
 
-        distribution.assert_called_once_with(
-            "issues.derived.heal_range_rows_found",
-            3,
-            sample_rate=1.0,
-            tags={"hash_kind": "stale", "range_overflowed": "true"},
-        )
+        assert self._rows_found_calls(distribution) == [
+            call(
+                "issues.derived.heal_range_rows_found",
+                3,
+                sample_rate=1.0,
+                tags={"hash_kind": "stale", "range_overflowed": "true"},
+            )
+        ]
 
     def test_reschedules_on_group_log_timeout(self) -> None:
         groups = self.create_unprocessed_groups(2)
