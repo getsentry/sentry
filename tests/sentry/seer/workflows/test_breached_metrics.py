@@ -7,6 +7,7 @@ from unittest import mock
 from uuid import uuid4
 
 import pytest
+from pydantic import ValidationError
 
 from sentry.eventstream.base import GroupState
 from sentry.incidents.grouptype import MetricIssue
@@ -15,14 +16,18 @@ from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.models.project import Project
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
+    SeerWorkflowExecutionStatus,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
+    SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
 )
 from sentry.seer.workflows.breached_metrics import (
+    AcceptedMetricBreach,
     BreachedMetricWorkflow,
     IgnoredMetricBreach,
     MetricBreachRunExtras,
+    MetricBreachTrigger,
 )
 from sentry.seer.workflows.workflow import SeerWorkflow, SelectedProjects
 from sentry.services.eventstore.models import GroupEvent
@@ -101,6 +106,54 @@ class BreachedMetricWorkflowAdmissionTest(BreachedMetricWorkflowTestCase):
 
         self.config.refresh_from_db()
         assert self.config.filters["all_projects"] is True
+
+    def test_replaying_old_metadata_logs_validation_error_without_replacing_run(self) -> None:
+        event = self.breach_event(detector_id=1)
+        workflow = BreachedMetricWorkflow(self.config)
+        result = workflow.accept(
+            self.group, event, binding=self.action.seer_workflow_binding, workflow_id=1
+        )
+        assert isinstance(result, AcceptedMetricBreach)
+        run = result.run
+        old_extras = {
+            "status": "complete",
+            "config_version": run.extras["snapshot"]["config_version"],
+            "trigger": run.extras["snapshot"]["inputs"],
+            "admission": run.extras["admission"],
+        }
+        run.update(extras=old_extras, status=None)
+
+        with (
+            mock.patch("sentry.seer.workflows.runs.logger.exception") as capture_error,
+            pytest.raises(ValidationError, match="snapshot"),
+        ):
+            workflow.accept(
+                self.group, event, binding=self.action.seer_workflow_binding, workflow_id=1
+            )
+
+        capture_error.assert_called_once_with(
+            "seer.workflow.invalid_run_extras",
+            extra={"run_id": run.id, "organization_id": self.organization.id},
+        )
+        run.refresh_from_db()
+        assert run.extras == old_extras
+        assert SeerWorkflowRun.objects.count() == 1
+
+    def test_failed_execution_creation_rolls_back_admission(self) -> None:
+        event = self.breach_event(detector_id=1)
+        workflow = BreachedMetricWorkflow(self.config)
+        with (
+            mock.patch(
+                "sentry.seer.workflows.runs.SeerWorkflowRunExecution.objects.bulk_create",
+                side_effect=RuntimeError("Cannot create execution"),
+            ),
+            pytest.raises(RuntimeError, match="Cannot create execution"),
+        ):
+            workflow.accept(
+                self.group, event, binding=self.action.seer_workflow_binding, workflow_id=1
+            )
+        assert not SeerWorkflowRun.objects.exists()
+        assert not SeerWorkflowRunExecution.objects.exists()
 
     def test_accept_uses_latest_scope_from_the_locked_config(self) -> None:
         workflow = BreachedMetricWorkflow(self.config)
@@ -239,9 +292,11 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
         ):
             self.process_breach_workflow(event)
             run = SeerWorkflowRun.objects.get(workflow_config=self.config)
-            trigger = deepcopy(run.extras["trigger"])
+            trigger = deepcopy(run.extras["snapshot"]["inputs"])
             self.detector.update(name="Edited after breach")
             self.condition.update(comparison=200)
+            snapshot = deepcopy(run.extras["snapshot"])
+            self.config.update(version=2, output_policy={"review_required": True})
 
             self.process_breach_workflow(event)
             self.process_breach_workflow(self.breach_event(detector_id=self.detector.id, value=240))
@@ -249,25 +304,27 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
         assert list(SeerWorkflowRun.objects.values_list("id", flat=True)) == [run.id]
         run.refresh_from_db()
         assert run.trigger_key == f"issue_created:{self.group.id}"
-        assert run.extras["trigger"] == trigger
+        assert run.extras["snapshot"]["inputs"] == trigger
         assert trigger["evidence"]["value"] == 180
         assert trigger["event_id"] == event.event_id
         assert trigger["workflow_id"] == self.workflow.id
         assert trigger["action_id"] == self.action.id
-        assert run.extras["config_version"] == self.config.version
-        assert run.extras["status"] == "complete"
+        assert run.extras["snapshot"] == snapshot
+        assert run.extras["snapshot"]["config_version"] == 1
+        assert run.status == SeerWorkflowRunStatus.COMPLETE
         assert run.date_completed is not None
-        assert SeerWorkflowRunExecution.objects.get(run=run).extras == {
-            "status": "complete",
-            "result": "noop",
-        }
+        execution = SeerWorkflowRunExecution.objects.get(run=run)
+        assert execution.status == SeerWorkflowExecutionStatus.COMPLETE
+        assert execution.date_completed is not None
+        assert execution.extras == {"result": "noop", "error": None}
         stored = MetricBreachRunExtras.parse_obj(run.extras)
         assert event.occurrence is not None
-        assert stored.trigger.observed_at == event.occurrence.detection_time
-        assert stored.trigger.binding_id == self.action.seer_workflow_binding.id
+        stored_trigger = MetricBreachTrigger.parse_obj(stored.snapshot.inputs)
+        assert stored_trigger.observed_at == event.occurrence.detection_time
+        assert stored_trigger.binding_id == self.action.seer_workflow_binding.id
         assert stored.admission.status == "accepted"
         assert stored.admission.reason is None
-        assert stored.admission.decided_at == run.date_completed
+        assert stored.admission.decided_at <= run.date_completed
         incr.assert_any_call(
             "seer.workflow.trigger",
             tags={"outcome": "accepted", "reason": "none", "deduplicated": "false"},
@@ -426,11 +483,13 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
         assert list(SeerWorkflowRun.objects.values_list("id", flat=True)) == [run.id]
         run.refresh_from_db()
         assert run.extras == extras
-        assert run.extras["status"] == "rejected"
+        assert run.status == SeerWorkflowRunStatus.REJECTED
+        assert run.date_completed is not None
+        assert run.extras["error"]["code"] == "quota_exceeded"
         stored = MetricBreachRunExtras.parse_obj(run.extras)
         assert stored.admission.status == "rejected"
         assert stored.admission.reason == "quota_exceeded"
-        assert stored.admission.decided_at == run.date_completed
+        assert stored.admission.decided_at <= run.date_completed
         assert not SeerWorkflowRunExecution.objects.exists()
         incr.assert_any_call(
             "seer.workflow.trigger",
