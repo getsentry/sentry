@@ -120,7 +120,7 @@ class SeerWorkflow:
                 status=SeerWorkflowRunStatus.QUEUED,
                 extras=json.loads(run_extras.json()),
             )
-        return SeerWorkflowRunLifecycle(run), True
+            return SeerWorkflowRunLifecycle(run), True
 
     def get_runs(self) -> QuerySet[SeerWorkflowRun]:
         return SeerWorkflowRun.objects.filter(
