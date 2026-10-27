@@ -36,10 +36,9 @@ import type {
 import {getActorName} from 'sentry/views/investigations/utils';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
-const SHOWN_STATES = new Set<InvestigationActionRequest['state']>([
+const CURRENT_STATES = new Set<InvestigationActionRequest['state']>([
   'suggested',
   'applied',
-  'withdrawn',
 ]);
 
 type ActionRequestCardProps = {
@@ -246,8 +245,16 @@ function AppliedBy({actionRequest}: {actionRequest: InvestigationActionRequest})
   );
 }
 
-export function isShownActionRequest(actionRequest: InvestigationActionRequest) {
-  return SHOWN_STATES.has(actionRequest.state) || isStaleActionRequest(actionRequest);
+function isShownActionRequest(actionRequest: InvestigationActionRequest) {
+  return (
+    isCurrentActionRequest(actionRequest) ||
+    actionRequest.state === 'withdrawn' ||
+    isStaleActionRequest(actionRequest)
+  );
+}
+
+export function isCurrentActionRequest(actionRequest: InvestigationActionRequest) {
+  return CURRENT_STATES.has(actionRequest.state);
 }
 
 export function isStaleActionRequest(actionRequest: InvestigationActionRequest) {
