@@ -1,5 +1,6 @@
 __all__ = (
     "ActionRequestApplyValidator",
+    "ActionRequestRecheckValidator",
     "BlockCreateValidator",
     "BlockDeleteValidator",
     "BlockExecutionResumeValidator",
@@ -21,7 +22,7 @@ __all__ = (
 )
 
 
-from .action_request import ActionRequestApplyValidator
+from .action_request import ActionRequestApplyValidator, ActionRequestRecheckValidator
 from .base import StrictCamelSnakeValidator
 from .block import (
     BlockCreateValidator,

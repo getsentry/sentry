@@ -17,6 +17,8 @@ from sentry.investigations.models import (
     InvestigationActionRequest,
     InvestigationActionRequestAnchorType,
     InvestigationActionRequestState,
+    InvestigationOrchestrationCommand,
+    InvestigationOrchestrationCommandStatus,
     InvestigationOrchestrationPhase,
     InvestigationOrchestrationRun,
 )
@@ -35,6 +37,7 @@ from sentry.investigations.services.action_kinds.base import (
 )
 from sentry.investigations.services.orchestration import (
     accept_orchestration_command,
+    command_can_be_requeued,
     rebuild_orchestration_source,
 )
 
@@ -314,13 +317,21 @@ def _not_suggested_error(action_request: InvestigationActionRequest) -> ApplyErr
 
 
 def _check_can_apply(
-    investigation: Investigation, action_request: InvestigationActionRequest, request: Request
+    investigation: Investigation,
+    action_request: InvestigationActionRequest,
+    request: Request,
+    *,
+    retry: bool = False,
 ) -> ActionKind:
-    """Return the request's kind, or raise ApplyFailed if the viewer can't apply it."""
+    """Return the request's kind, or raise ApplyFailed if the viewer can't apply it. A retry of
+    a failed re-check is for a request that already went stale, so its state doesn't count.
+    """
 
     reason = shared_cannot_apply_reason(investigation, action_request)
     if reason == CannotApplyReason.NOT_SUGGESTED:
-        raise ApplyFailed(_not_suggested_error(action_request))
+        if not retry:
+            raise ApplyFailed(_not_suggested_error(action_request))
+        reason = None
     if reason is None:
         kind = get_action_kind(action_request.action_kind)
         assert kind is not None
@@ -407,6 +418,18 @@ def _record_stale(context: ApplyContext, current: dict[str, SettingValue]) -> No
         error=ActionRequestError(code=ApplyErrorCode.STALE, current=current),
         followup_request_id=_queue_recheck(context),
     )
+
+
+def _failed_recheck(
+    action_request: InvestigationActionRequest,
+) -> InvestigationOrchestrationCommand | None:
+    if not _is_stale(action_request) or action_request.followup_request_id is None:
+        return None
+    return InvestigationOrchestrationCommand.objects.filter(
+        orchestration_run__investigation_id=action_request.investigation_id,
+        request_id=action_request.followup_request_id,
+        status=InvestigationOrchestrationCommandStatus.FAILED,
+    ).first()
 
 
 def _check_without_writes(kind: ActionKind, context: ApplyContext) -> None:
@@ -506,6 +529,58 @@ def _apply(
     return context.action_request
 
 
+def _recheck(
+    *,
+    investigation: Investigation,
+    action_request: InvestigationActionRequest,
+    request: Request,
+    actor_id: int,
+    expected_action: Mapping[str, Any] | None,
+) -> InvestigationActionRequest:
+    context = _locked_context(investigation, action_request, request, actor_id, lock=True)
+    action_request = context.action_request
+    failed = _failed_recheck(action_request)
+    if failed is not None:
+        _check_can_apply(context.investigation, action_request, request, retry=True)
+        _check_action_unchanged(action_request, expected_action)
+        if command_can_be_requeued(failed):
+            # Seer never got it, and Sentry already moved the workflow version for it.
+            accept_orchestration_command(
+                investigation=context.investigation,
+                request_id=failed.request_id,
+                expected_workflow_version=failed.expected_workflow_version,
+                command_type=failed.type,
+                payload=failed.payload,
+                actor_id=_seer_actor(context.investigation, context.actor_id),
+            )
+        elif (
+            isinstance(failed.error, dict) and failed.error.get("code") == "earlier_command_failed"
+        ):
+            # A new command would expect the version of a command Seer never got.
+            raise ApplyFailed(
+                {
+                    "detail": "This goes to Seer once the command ahead of it does.",
+                    "code": ApplyErrorCode.NOT_RETRYABLE,
+                }
+            )
+        else:
+            assert action_request.error is not None
+            _record_stale(context, action_request.error["current"])
+        return action_request
+    kind = _check_can_apply(context.investigation, action_request, request)
+    _check_action_unchanged(action_request, expected_action)
+    try:
+        _check_without_writes(kind, context)
+    except ActionStale as stale:
+        _record_stale(context, stale.current)
+        return action_request
+    except ActionInvalid as invalid:
+        raise ApplyFailed(_invalid_error(invalid))
+    raise ApplyFailed(
+        {"detail": "Nothing changed since Seer suggested this.", "code": ApplyErrorCode.NOT_STALE}
+    )
+
+
 def _get_action_request(
     investigation: Investigation, action_request_id: str
 ) -> InvestigationActionRequest:
@@ -551,6 +626,31 @@ def apply_action_request(
             request=request,
             actor_id=actor_id,
             dry_run=dry_run,
+            expected_action=expected_action,
+        )
+    )
+
+
+def recheck_action_request(
+    *,
+    investigation: Investigation,
+    action_request_id: str,
+    request: Request,
+    actor_id: int,
+    expected_action: Mapping[str, Any] | None = None,
+) -> InvestigationActionRequest:
+    """If what the request changes moved since Seer suggested it, supersede it and ask Seer
+    to check again. Raise ApplyFailed with `not_stale` if nothing moved. A stale request whose
+    re-check failed is sent to Seer again. It never applies the change.
+    """
+
+    action_request = _get_action_request(investigation, action_request_id)
+    return _commit_then_raise(
+        lambda: _recheck(
+            investigation=investigation,
+            action_request=action_request,
+            request=request,
+            actor_id=actor_id,
             expected_action=expected_action,
         )
     )

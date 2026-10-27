@@ -39,6 +39,10 @@ _STATUS = {
 }
 
 
+def apply_error_response(failed: ApplyFailed) -> Response:
+    return Response(failed.error, status=_STATUS.get(failed.error["code"], 409))
+
+
 @extend_schema(tags=["Investigations"])
 @cell_silo_endpoint
 class OrganizationInvestigationActionRequestApplyEndpoint(OrganizationInvestigationEndpoint):
@@ -93,7 +97,7 @@ class OrganizationInvestigationActionRequestApplyEndpoint(OrganizationInvestigat
                 expected_action=validator.validated_data.get("action"),
             )
         except ApplyFailed as failed:
-            return Response(failed.error, status=_STATUS.get(failed.error["code"], 409))
+            return apply_error_response(failed)
         body: InvestigationActionRequestApplyResponse = {
             "actionRequest": serialize(
                 action_request,

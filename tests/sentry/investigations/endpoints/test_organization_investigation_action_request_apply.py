@@ -19,6 +19,7 @@ from sentry.investigations.models import (
     InvestigationActionRequestState,
     InvestigationBlock,
     InvestigationOrchestrationCommand,
+    InvestigationOrchestrationCommandStatus,
     InvestigationOrchestrationPhase,
     InvestigationOrchestrationRun,
     InvestigationStatus,
@@ -27,6 +28,7 @@ from sentry.investigations.services.action_kinds import ACTION_KINDS
 from sentry.investigations.services.action_kinds.base import ActionInvalid, ActionStale
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.environment import Environment
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.seer import agent_token
 from sentry.seer.models.run import SeerRunMirrorStatus, SeerRunType
 from sentry.silo.base import SiloMode
@@ -867,12 +869,177 @@ class SharedApplyPathTest(APITestCase):
         )
         return self.client.post(url, data=data, format="json")
 
+    def recheck(self, **data: Any) -> Any:
+        url = reverse(
+            "sentry-api-0-organization-investigation-action-request-recheck",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "investigation_id": self.investigation.id,
+                "action_request_id": self.action_request.id,
+            },
+        )
+        return self.client.post(url, data=data, format="json")
+
     def commands(self) -> list[InvestigationOrchestrationCommand]:
         return list(
             InvestigationOrchestrationCommand.objects.filter(
                 orchestration_run=self.orchestration_run
             )
         )
+
+    def test_a_recheck_of_a_stale_request_supersedes_it_and_asks_seer(self) -> None:
+        self.kind.raises = ActionStale({"window": 600})
+
+        response = self.recheck()
+
+        assert response.status_code == 200, response.data
+        assert self.kind.calls == ["check"]
+        [command] = self.commands()
+        assert command.type == "recheck_action_requests"
+        assert (command.expected_workflow_version, command.resulting_workflow_version) == (4, 5)
+        read = response.data["actionRequest"]
+        assert read["state"] == "superseded"
+        assert read["error"] == {"code": "stale", "current": {"window": 600}}
+        assert read["followUp"] == {"status": "accepted", "reason": None}
+        self.action_request.refresh_from_db()
+        assert self.action_request.followup_request_id == command.request_id
+
+    def test_a_recheck_with_nothing_moved_is_not_stale(self) -> None:
+        response = self.recheck()
+
+        assert response.status_code == 409
+        assert response.data == {
+            "detail": "Nothing changed since Seer suggested this.",
+            "code": "not_stale",
+        }
+        assert self.kind.calls == ["check"]
+        assert self.commands() == []
+        self.action_request.refresh_from_db()
+        assert self.action_request.state == InvestigationActionRequestState.SUGGESTED
+
+    def test_a_recheck_of_an_invalid_change_is_the_same_error_as_apply(self) -> None:
+        self.kind.raises = ActionInvalid(["Pick a supported window."])
+
+        response = self.recheck()
+
+        assert response.status_code == 400
+        assert response.data == {
+            "detail": "The change wasn't valid.",
+            "code": "validation_failed",
+            "messages": ["Pick a supported window."],
+        }
+        assert self.commands() == []
+
+    def test_a_recheck_keeps_nothing_a_check_writes(self) -> None:
+        title = self.action_request.title
+        self.kind.check_title = "Changed by the check"
+
+        assert self.recheck().data["code"] == "not_stale"
+
+        self.action_request.refresh_from_db()
+        assert self.action_request.title == title
+
+    def test_a_queued_recheck_is_not_sent_again(self) -> None:
+        self.kind.raises = ActionStale({"window": 600})
+        assert self.recheck().status_code == 200
+
+        response = self.recheck()
+
+        assert response.status_code == 409
+        assert response.data["code"] == "not_suggested"
+        assert len(self.commands()) == 1
+
+    def test_a_recheck_seer_never_got_goes_out_again_as_the_same_command(self) -> None:
+        self.kind.raises = ActionStale({"window": 600})
+        assert self.recheck().status_code == 200
+        [failed] = self.commands()
+        failed.update(
+            status=InvestigationOrchestrationCommandStatus.FAILED,
+            error={"code": "seer_command_dispatch_failed", "retryable": True},
+        )
+        self.kind.calls.clear()
+
+        response = self.recheck()
+
+        assert response.status_code == 200, response.data
+        assert self.kind.calls == []
+        [command] = self.commands()
+        assert command.request_id == failed.request_id
+        assert command.status == InvestigationOrchestrationCommandStatus.ACCEPTED
+        assert command.expected_workflow_version == 4
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.workflow_version == 5
+        read = response.data["actionRequest"]
+        assert read["error"] == {"code": "stale", "current": {"window": 600}}
+        assert read["followUp"] == {"status": "accepted", "reason": None}
+
+    def test_a_recheck_behind_an_undelivered_command_waits_for_it(self) -> None:
+        self.kind.raises = ActionStale({"window": 600})
+        assert self.recheck().status_code == 200
+        [failed] = self.commands()
+        failed.update(
+            status=InvestigationOrchestrationCommandStatus.FAILED,
+            error={"code": "earlier_command_failed"},
+        )
+
+        response = self.recheck()
+
+        assert response.status_code == 409
+        assert response.data["code"] == "not_retryable"
+        assert self.commands() == [failed]
+
+    def test_a_recheck_seer_turned_down_goes_out_as_a_new_command(self) -> None:
+        self.kind.raises = ActionStale({"window": 600})
+        assert self.recheck().status_code == 200
+        [failed] = self.commands()
+        failed.update(
+            status=InvestigationOrchestrationCommandStatus.FAILED,
+            error={
+                "code": "seer_command_dispatch_failed",
+                "reason": "workflow_version_conflict",
+                "retryable": False,
+            },
+        )
+        # The conflict reconcile moves Sentry back to Seer's version.
+        self.orchestration_run.update(workflow_version=4)
+        self.kind.calls.clear()
+
+        response = self.recheck()
+
+        assert response.status_code == 200, response.data
+        assert self.kind.calls == []
+        [command] = [command for command in self.commands() if command.id != failed.id]
+        assert command.type == "recheck_action_requests"
+        assert command.request_id != failed.request_id
+        assert command.expected_workflow_version == 4
+        read = response.data["actionRequest"]
+        assert read["error"] == {"code": "stale", "current": {"window": 600}}
+        assert read["followUp"] == {"status": "accepted", "reason": None}
+
+    def test_a_recheck_of_an_action_seer_changed_since_the_user_saw_it_conflicts(self) -> None:
+        self.kind.raises = ActionStale({"window": 600})
+        assert self.action_request.action_payload is not None
+        seen = {**self.action_request.action_payload, "seen": "an older suggestion"}
+
+        response = self.recheck(action=seen)
+
+        assert response.status_code == 409
+        assert response.data == {
+            "detail": "Seer changed this suggestion. Check the new one.",
+            "code": "action_changed",
+        }
+        assert self.kind.calls == []
+        assert self.commands() == []
+        assert self.recheck(action=self.action_request.action_payload).status_code == 200
+
+    def test_a_recheck_goes_through_the_apply_guard(self) -> None:
+        self.action_request.update(state=InvestigationActionRequestState.APPLIED)
+
+        response = self.recheck()
+
+        assert response.status_code == 409
+        assert response.data["code"] == "already_applied"
+        assert self.kind.calls == []
 
     def test_a_dry_run_only_checks(self) -> None:
         response = self.post(dryRun=True)
@@ -1071,3 +1238,46 @@ class BreachedMetricRecheckTest(BreachedMetricInvestigationTestCase):
         assert response.status_code == 409
         command = InvestigationOrchestrationCommand.objects.get(type="recheck_action_requests")
         assert command.payload["source"] == self.started_source(self.investigation)
+
+    def test_a_stale_request_seer_cannot_be_asked_about_is_not_listed(self) -> None:
+        self.login_as(self.user)
+        kind = fake_action_kind()
+        kind.start()
+        self.addCleanup(kind.stop)
+        recording = ACTION_KINDS["test_kind"]
+        assert isinstance(recording, RecordingKind)
+        recording.raises = ActionStale({"window": 600})
+        action_request = self.create_investigation_action_request(
+            investigation=self.investigation,
+            key="widen-time-window",
+            action_kind="test_kind",
+            action_payload=fake_action(),
+        )
+        GroupOpenPeriod.objects.filter(id=self.investigation.source_ref["openPeriodId"]).delete()
+
+        response = self.client.post(
+            reverse(
+                "sentry-api-0-organization-investigation-action-request-recheck",
+                kwargs={
+                    "organization_id_or_slug": self.organization.slug,
+                    "investigation_id": self.investigation.id,
+                    "action_request_id": action_request.id,
+                },
+            ),
+            format="json",
+        )
+
+        assert response.status_code == 200
+        assert not InvestigationOrchestrationCommand.objects.filter(
+            type="recheck_action_requests"
+        ).exists()
+        details = self.client.get(
+            reverse(
+                "sentry-api-0-organization-investigation-details",
+                kwargs={
+                    "organization_id_or_slug": self.organization.slug,
+                    "investigation_id": self.investigation.id,
+                },
+            )
+        )
+        assert details.json()["actionRequests"] == []
