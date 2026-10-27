@@ -33,11 +33,12 @@ export default Storybook.story('Investigations — Seer status block', story => 
         appears beside the investigation title in the page header.
       </p>
       <p>
-        Every running block also carries a thinking block, drawn exactly as the Seer agent
-        draws its own: the spinning Seer, what the agent is doing right now as a live
-        title, and the run's clock, counting up from <code>startTime</code>. Before any
-        tool call has landed the title is "Thinking", so the block holds its place through
-        phases that make no calls.
+        Every running block also carries a thinking block, drawn as the Seer agent draws
+        its own: what the agent is doing right now as a live title, and the run's clock,
+        counting up from <code>startTime</code>. It leaves out the agent's spinning Seer,
+        since the block's own icon already spins beside it. Before any tool call has
+        landed the title is "Thinking", so the block holds its place through phases that
+        make no calls.
       </p>
       <Storybook.Demo direction="column" align="stretch" maxHeight="none">
         <Stack gap="xl">

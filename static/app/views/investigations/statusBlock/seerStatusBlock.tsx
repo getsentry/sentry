@@ -105,6 +105,9 @@ function getToolCallStatus(status: InvestigationToolActivity['status']): ToolCal
  * Before any call has landed the title is "Thinking", as the agent's is before
  * its first tool runs, so the block holds its place through phases that make no
  * calls instead of appearing and disappearing between them.
+ *
+ * It leaves out the agent's spinning Seer: the status block's icon already
+ * spins beside it, and a second would show one loading state twice.
  */
 function SeerThinking({
   startTime,
@@ -123,6 +126,7 @@ function SeerThinking({
       <ThinkingBlock
         title={latest?.title ?? t('Thinking')}
         startTime={startTime ?? appearedAt}
+        showIcon={false}
       >
         {toolActivity?.length
           ? toolActivity.map(activity => (
