@@ -56,6 +56,39 @@ export function SeerDrawerContent({
     [autofix.runState]
   );
 
+  const isSingleRun = isSingleRunAutofix(autofix.runState);
+  const artifacts = (
+    <SeerDrawerArtifacts autofix={autofix} sections={sections} groupId={group.id} />
+  );
+  const codingAgentErrors = autofix.codingAgentErrors.map(({id, message}) => (
+    <Alert
+      key={id}
+      variant="danger"
+      trailingItems={
+        <Button
+          size="zero"
+          variant="transparent"
+          icon={<IconClose size="sm" />}
+          aria-label={t('Dismiss error')}
+          onClick={() => autofix.dismissCodingAgentError(id)}
+        />
+      }
+    >
+      {message}
+    </Alert>
+  ));
+  const notifications = <SeerEnableNotifications status={autofix.runState?.status} />;
+
+  if (isSingleRun) {
+    return (
+      <SingleRunChat autofix={autofix} groupId={group.id}>
+        {artifacts}
+        {codingAgentErrors}
+        {notifications}
+      </SingleRunChat>
+    );
+  }
+
   const isLoadingRun =
     autofix.isLoading || (autofix.isPolling && !autofix.runState?.blocks?.length);
 
@@ -71,46 +104,18 @@ export function SeerDrawerContent({
     return <AutofixStartCard autofix={autofix} group={group} />;
   }
 
-  const isSingleRun = isSingleRunAutofix(autofix.runState);
-  const artifacts = (
-    <SeerDrawerArtifacts autofix={autofix} sections={sections} groupId={group.id} />
-  );
-
   return (
     <Stack gap="lg">
-      {isSingleRun ? (
-        <SingleRunChat autofix={autofix} groupId={group.id}>
-          {artifacts}
-        </SingleRunChat>
-      ) : (
-        artifacts
+      {artifacts}
+      {(autofix.runState?.status === 'completed' ||
+        isLastStepPrIteration(autofix.runState)) && (
+        <NextStepWrap isSticky={stickyNextStep}>
+          <SeerDrawerNextStep group={group} autofix={autofix} sections={sections} />
+        </NextStepWrap>
       )}
-      {!isSingleRun &&
-        (autofix.runState?.status === 'completed' ||
-          isLastStepPrIteration(autofix.runState)) && (
-          <NextStepWrap isSticky={stickyNextStep}>
-            <SeerDrawerNextStep group={group} autofix={autofix} sections={sections} />
-          </NextStepWrap>
-        )}
-      {autofix.codingAgentErrors.map(({id, message}) => (
-        <Alert
-          key={id}
-          variant="danger"
-          trailingItems={
-            <Button
-              size="zero"
-              variant="transparent"
-              icon={<IconClose size="sm" />}
-              aria-label={t('Dismiss error')}
-              onClick={() => autofix.dismissCodingAgentError(id)}
-            />
-          }
-        >
-          {message}
-        </Alert>
-      ))}
+      {codingAgentErrors}
 
-      <SeerEnableNotifications status={autofix.runState?.status} />
+      {notifications}
     </Stack>
   );
 }
