@@ -373,7 +373,7 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
     def test_failed_execution_creation_rolls_back_admission(self) -> None:
         with (
             mock.patch(
-                "sentry.seer.workflows.runs.SeerWorkflowRunExecution.objects.create",
+                "sentry.seer.workflows.runs.SeerWorkflowRunExecution.objects.bulk_create",
                 side_effect=RuntimeError("Cannot create execution"),
             ),
             pytest.raises(RuntimeError, match="Cannot create execution"),

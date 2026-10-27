@@ -208,7 +208,7 @@ class BreachedMetricWorkflow(SeerWorkflow):
 
         workflow_run.start()
         # TODO(telkins): Replace this no-op execution with investigation dispatch.
-        execution = workflow_run.create_execution(extras=MetricBreachExecutionExtras())
+        (execution,) = workflow_run.create_executions([MetricBreachExecutionExtras()])
         workflow_run.start_execution(execution.id)
         workflow_run.complete_execution(execution.id)
         return AcceptedMetricBreach(run=workflow_run.run, created=created)
