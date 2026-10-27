@@ -102,6 +102,11 @@ type InvestigationHypothesesProps = {
    */
   enabled?: boolean;
   /**
+   * Adds "Ask Seer" to each hypothesis's menu. Left out where Seer Agent can't
+   * take the question.
+   */
+  onAskSeer?: (hypothesis: InvestigationHypothesis) => void;
+  /**
    * The run's phase from the investigation summary. Only used before the
    * projection arrives, so a finished run opens collapsed instead of showing a
    * placeholder that collapses a moment later. Optional: the projection
@@ -132,6 +137,7 @@ type InvestigationHypothesesProps = {
 export function InvestigationHypotheses({
   enabled = true,
   investigationId,
+  onAskSeer,
   phase: summaryPhase,
   status: summaryStatus,
 }: InvestigationHypothesesProps) {
@@ -251,6 +257,15 @@ export function InvestigationHypotheses({
     const decidedByUser = hypothesis.decisionSource === 'user';
 
     return [
+      ...(onAskSeer
+        ? [
+            {
+              key: 'ask-seer',
+              label: t('Ask Seer'),
+              onAction: () => onAskSeer(hypothesis),
+            },
+          ]
+        : []),
       {
         key: 'accept',
         label:

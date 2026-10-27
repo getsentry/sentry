@@ -1440,6 +1440,7 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ("sentry.api.permissions.NoPermission",),
     "EXCEPTION_HANDLER": "sentry.api.handlers.custom_exception_handler",
     "DEFAULT_SCHEMA_CLASS": "sentry.apidocs.schema.SentrySchema",
+    "LIST_SERIALIZER_ERRORS_AS_DICT": False,
 }
 
 
@@ -3290,8 +3291,6 @@ SEER_PREVENT_AI_URL = SEER_DEFAULT_URL  # for local development, these share a U
 SEER_FIXABILITY_TIMEOUT = 0.6  # 600 milliseconds
 
 SEER_GROUPING_URL = SEER_DEFAULT_URL  # for local development, these share a URL
-
-SEER_SCORING_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 
 SEER_ANOMALY_DETECTION_MODEL_VERSION = "v1"
 SEER_ANOMALY_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these share a URL

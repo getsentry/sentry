@@ -45,6 +45,8 @@ import {TagDetailsTable, type TagSort} from './tagDetailsTable';
 
 const DEFAULT_SORT: TagSort = 'count';
 
+type NullableTagValue = Omit<TagValue, 'value'> & {value: string | null};
+
 export function TagDetailsDrawerContent({group}: {group: Group}) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -67,7 +69,11 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
     }),
     select: selectJsonWithHeaders,
   });
-  const tagValues = tagValuesResponse?.json;
+  // The API can return `value: null` (e.g. the `user` tag for events without a
+  // user). Normalize to an empty string so rows render the "(empty)" state.
+  const tagValues = (tagValuesResponse?.json as NullableTagValue[] | undefined)?.map(
+    (tv): TagValue => ({...tv, value: tv.value ?? ''})
+  );
 
   const {
     data: tag,

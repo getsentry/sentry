@@ -49,6 +49,7 @@ const STRUCTURED_CONTEXT_ROUTES = new Set([
   '/monitors/mobile-builds/',
   '/monitors/my-monitors/',
   '/monitors/uptime/',
+  '/seer/investigations/:investigationId/',
 ]);
 
 /**
@@ -69,6 +70,7 @@ const PAGE_CONTEXT_READY_NODES = new Map<string, LLMContextNodeType[]>([
   ['/issues/:groupId/attachments/', ['issue-detail']],
   ['/issues/:groupId/distributions/', ['issue-detail']],
   ['/issues/:groupId/distributions/:tagKey/', ['issue-detail']],
+  ['/seer/investigations/:investigationId/', ['investigation']],
 ]);
 
 type CapturedPageContext = {

@@ -240,7 +240,7 @@ function useLogsAggregatesApiOptions({
         per_page: limit ? limit : undefined,
         cursor: aggregateCursor,
         referrer,
-        caseInsensitive,
+        caseInsensitive: caseInsensitive ? '1' : undefined,
         sampling: queryExtras?.samplingMode,
       },
       staleTime: getStaleTimeForEventView(eventView),

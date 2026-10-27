@@ -12,7 +12,7 @@ from datetime import UTC, datetime, timedelta
 from enum import Enum
 from io import BytesIO
 from typing import Any, Literal, TypedDict, Union
-from unittest import mock
+from unittest import TestLoader, mock
 from urllib.parse import urlencode
 from uuid import UUID, uuid4
 from zlib import compress
@@ -2665,6 +2665,20 @@ class TestMigrations(TransactionTestCase):
 
     app = "sentry"
     connection = "default"
+    # Every test method reruns the whole migration, so set this only when the cases can't
+    # share one run.
+    allow_multiple_tests = False
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        tests = TestLoader().getTestCaseNames(cls)
+        if len(tests) > 1 and not cls.allow_multiple_tests:
+            raise TypeError(
+                f"{cls.__name__} has {len(tests)} test methods, and each one reruns the migration. "
+                "Seed every case in setup_before_migration and check them in one test, using "
+                "self.subTest() to keep cases separate. Set allow_multiple_tests = True if they "
+                "really can't share a run."
+            )
 
     @property
     def migrate_from(self):
@@ -2708,9 +2722,9 @@ class TestMigrations(TransactionTestCase):
         # `ExecutorStateTest` in tests/sentry/new_migrations/test_migrations.py.
         self.setup_before_migration(self._project_state_cache.apps)
 
-        # Run the migration to test
+        # A fresh executor loads the graph and applied migrations in its constructor.
+        # Run the migration to test without rebuilding the same graph a second time.
         executor = MigrationExecutor(conn)
-        executor.loader.build_graph()  # reload.
         self._project_state_cache = executor.migrate(migrate_to, state=self._project_state_cache)
 
         self.apps = self._project_state_cache.apps
@@ -2718,7 +2732,6 @@ class TestMigrations(TransactionTestCase):
     def tearDown(self):
         super().tearDownClass()
         executor = MigrationExecutor(connections[self.connection])
-        executor.loader.build_graph()  # reload.
         self._project_state_cache = executor.migrate(
             self.current_migration, state=self._project_state_cache
         )

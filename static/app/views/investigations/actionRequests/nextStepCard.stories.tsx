@@ -92,6 +92,15 @@ function FixtureCard({
   );
 }
 
+const connectSuggestion: InvestigationActionRequest = {
+  ...intervalChange,
+  key: 'connect-telemetry-datadog-r1',
+  title: 'Connect Datadog',
+  rationale: 'The payment processor logs to Datadog, which Seer cannot read yet.',
+  impact: null,
+  action: {kind: 'connect_telemetry', provider: 'datadog'},
+};
+
 export default Storybook.story('Investigations — Recommended Action', story => {
   story('Suggested', () => (
     <Fragment>
@@ -121,6 +130,7 @@ export default Storybook.story('Investigations — Recommended Action', story =>
           body: {
             detail: 'This changed since Seer suggested it.',
             code: 'stale',
+            current: {timeWindowSeconds: 600},
           },
         },
       }}
@@ -203,6 +213,72 @@ export default Storybook.story('Investigations — Recommended Action', story =>
         },
       ]}
     />
+  ));
+
+  story('Stale', () => (
+    <CardStory
+      id="stale"
+      actionRequests={[
+        {
+          ...intervalChange,
+          state: 'superseded',
+          canApply: false,
+          cannotApplyReason: 'not_suggested',
+          error: {code: 'stale', current: {timeWindowSeconds: 120}},
+        },
+      ]}
+    />
+  ));
+
+  story('Re-checking', () => (
+    <CardStory
+      id="rechecking"
+      actionRequests={[
+        {
+          ...intervalChange,
+          state: 'superseded',
+          canApply: false,
+          cannotApplyReason: 'not_suggested',
+          error: {code: 'stale', current: {timeWindowSeconds: 120}},
+          followUp: {status: 'accepted', reason: null, rerun: null, retryable: false},
+        },
+      ]}
+    />
+  ));
+
+  story('Connect a provider', () => (
+    <Fragment>
+      <Text as="p">
+        When the run cannot confirm a cause because telemetry is missing, Seer asks to
+        connect the provider. The button opens its integration settings. Once the
+        integration is connected, Sentry applies the request and Seer re-runs the
+        investigation.
+      </Text>
+      <CardStory
+        id="connect"
+        actionRequests={[connectSuggestion]}
+        dryRunErrors={{
+          [connectSuggestion.id]: {
+            status: 400,
+            body: {
+              detail: "The change wasn't valid.",
+              code: 'validation_failed',
+              messages: ["This provider isn't connected yet."],
+            },
+          },
+        }}
+      />
+    </Fragment>
+  ));
+
+  story('Provider connected', () => (
+    <Fragment>
+      <Text as="p">
+        When the user comes back from connecting the provider before Sentry has applied
+        the request, the card offers to re-run the investigation with it.
+      </Text>
+      <CardStory id="connected" actionRequests={[connectSuggestion]} />
+    </Fragment>
   ));
 
   story('Withdrawn', () => (

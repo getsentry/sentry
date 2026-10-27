@@ -9,6 +9,7 @@ import {skipToken, useQuery} from '@tanstack/react-query';
 import {Tag} from '@sentry/scraps/badge';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {NotFound} from 'sentry/components/errors/notFound';
@@ -26,7 +27,10 @@ import type {
   SeerWorkflowConfigsResponse,
   WorkflowStrategy,
 } from 'sentry/views/seerWorkflows/types';
-import {useAutomationsEnabled} from 'sentry/views/seerWorkflows/utils';
+import {
+  getAutomationDetailPath,
+  useAutomationsEnabled,
+} from 'sentry/views/seerWorkflows/utils';
 
 /**
  * The narrowest a card may get before the grid drops to fewer columns per row.
@@ -45,13 +49,15 @@ const DAILY_SCHEDULE_HOURS = [10, 22];
 const MAX_VISIBLE_PROJECTS = 3;
 
 // TODO: Missing fields from backend - to add to configs API
-type AdditionalConfigProps = {
+type AdditionalConfig = {
   /**
    * Estimated cost of a single run, in US dollars
    */
   costPerRun?: number;
-  description?: string;
-  title?: string;
+  /**
+   * When the automation last ran, in Unix seconds (UTC)
+   */
+  lastRun?: number;
   /**
    * Estimated tokens used per month
    */
@@ -63,7 +69,7 @@ type AdditionalConfigProps = {
 };
 
 // TODO: can just be Response type once API updated
-type AutomationConfig = SeerWorkflowConfigResponse & AdditionalConfigProps;
+export type AutomationConfig = SeerWorkflowConfigResponse & AdditionalConfig;
 
 function makePlaceholderConfig(
   id: string,
@@ -80,11 +86,32 @@ function makePlaceholderConfig(
     projects: [ALL_ACCESS_PROJECTS],
     schedule: '',
     seededDefault: null,
-    strategy: id,
+    strategy: '',
     version: 0,
     ...overrides,
   };
 }
+
+/**
+ * Temporary mock data for configs endpoint
+ */
+export const PLACEHOLDER_CONFIGS: AutomationConfig[] = [
+  makePlaceholderConfig('placeholder-agentic-triage', {
+    strategy: 'agentic_triage',
+    lastRun: Math.floor(Date.now() / 1000) - 4 * 60 * 60,
+    schedule: 'daily',
+    tokensPerMonth: 85_400_000,
+    costPerRun: 2.5,
+  }),
+  makePlaceholderConfig('placeholder-breached-metrics', {
+    strategy: 'breached_metrics',
+    lastRun: Math.floor(Date.now() / 1000) - 2 * 24 * 60 * 60,
+    trigger: 'Triggered by metric exceptions',
+    tokensPerMonth: 341_000,
+    costPerRun: 0.052,
+    projects: [6178942, 11276, 4511418012073984],
+  }),
+];
 
 export default function AutomationsList() {
   const organization = useOrganization();
@@ -100,26 +127,7 @@ export default function AutomationsList() {
     )
   );
 
-  const configs: AutomationConfig[] = [
-    // Placeholders for automations the configs endpoint doesn't return yet
-    makePlaceholderConfig('placeholder-agentic-triage', {
-      title: 'Agentic Triage',
-      description: 'Automatically triage and fix the most fixable issues.',
-      schedule: 'daily',
-      tokensPerMonth: 85_400_000,
-      costPerRun: 2.5,
-    }),
-    makePlaceholderConfig('placeholder-breached-metrics', {
-      title: 'Breached Metrics',
-      description:
-        'Monitors backend metrics and investigates why certain key metrics were breached.',
-      projects: [6178942, 11276, 4511418012073984],
-      trigger: 'Triggered by metric exceptions',
-      tokensPerMonth: 341_000,
-      costPerRun: 0.052,
-    }),
-    ...(data?.configs ?? []),
-  ];
+  const configs: AutomationConfig[] = [...PLACEHOLDER_CONFIGS, ...(data?.configs ?? [])];
 
   if (!automationsEnabled) {
     return <NotFound />;
@@ -141,15 +149,15 @@ export default function AutomationsList() {
 }
 
 function AutomationCard({config}: {config: AutomationConfig}) {
+  const organization = useOrganization();
   const {projects} = useProjects();
   const strategyMeta = Object.hasOwn(STRATEGY_META, config.strategy)
     ? STRATEGY_META[config.strategy as WorkflowStrategy]
     : undefined;
 
   const {enabled, trigger, tokensPerMonth, costPerRun} = config;
-  const title = config.title ?? strategyMeta?.label ?? config.strategy;
-  const description =
-    config.description ?? strategyMeta?.description ?? t('No description');
+  const title = strategyMeta?.label ?? config.strategy;
+  const description = strategyMeta?.description ?? t('No description');
   const projectSlugs = config.projects.includes(ALL_ACCESS_PROJECTS)
     ? ['all']
     : config.projects
@@ -177,97 +185,112 @@ function AutomationCard({config}: {config: AutomationConfig}) {
 
   return (
     <Container as="li" display="grid">
-      {/* TODO(aliu): Link to the automation's page once it exists */}
-      <CardStack
-        gap="lg"
-        height="100%"
-        padding="xl"
-        border="primary"
-        radius="md"
-        background="primary"
-      >
-        <Stack gap="lg" flex="1">
-          <Flex align="center" gap="lg">
-            <Heading as="h3" size="md">
-              {title}
-            </Heading>
-            <IconSentry size="xs" variant="muted" />
-          </Flex>
-          {enabled ? (
-            trigger ? (
-              <Flex>
-                <Tag variant="muted" icon={<IconFire />}>
-                  {trigger}
-                </Tag>
-              </Flex>
-            ) : (
-              nextUpdate && (
+      <CardLink to={getAutomationDetailPath(organization.slug, config.id)}>
+        <CardStack
+          gap="lg"
+          height="100%"
+          padding="xl"
+          border="primary"
+          radius="md"
+          background="primary"
+        >
+          <Stack gap="lg" flex="1">
+            <Flex align="center" gap="lg">
+              <Heading as="h3" size="md">
+                {title}
+              </Heading>
+              <IconSentry size="xs" variant="muted" />
+            </Flex>
+            {enabled ? (
+              trigger ? (
                 <Flex>
-                  <Tag variant="muted" icon={<IconClock />}>
-                    {tct('Next run [time]', {
-                      time: <TimeSince date={nextUpdate} tooltipPrefix={t('Next run')} />,
-                    })}
+                  <Tag variant="muted" icon={<IconFire />}>
+                    {trigger}
                   </Tag>
                 </Flex>
+              ) : (
+                nextUpdate && (
+                  <Flex>
+                    <Tag variant="muted" icon={<IconClock />}>
+                      {tct('Next run [time]', {
+                        time: (
+                          <TimeSince date={nextUpdate} tooltipPrefix={t('Next run')} />
+                        ),
+                      })}
+                    </Tag>
+                  </Flex>
+                )
               )
-            )
+            ) : (
+              <Flex>
+                <Tag variant="warning">{t('Paused')}</Tag>
+              </Flex>
+            )}
+            {description && <Text as="p">{description}</Text>}
+            {usage.length > 0 && (
+              <Text size="sm" variant="muted">
+                {usage.map((part, index) => (
+                  <Fragment key={index}>
+                    {index > 0 && ' | '}
+                    {part}
+                  </Fragment>
+                ))}
+              </Text>
+            )}
+          </Stack>
+          {projectSlugs[0] === 'all' ? (
+            <Flex align="center" gap="sm">
+              <IconAllProjects size="sm" variant="muted" />
+              <Text size="sm" variant="muted">
+                {t('All projects')}
+              </Text>
+            </Flex>
+          ) : projectSlugs.length === 0 ? (
+            <Text size="sm" variant="muted">
+              {t('No projects')}
+            </Text>
           ) : (
-            <Flex>
-              <Tag variant="warning">{t('Paused')}</Tag>
+            <Flex align="center" gap="sm">
+              <ProjectList
+                projectSlugs={projectSlugs}
+                maxVisibleProjects={MAX_VISIBLE_PROJECTS}
+                disableLinks
+              />
+              <Container flex="1" minWidth={0}>
+                <Text size="sm" variant="muted" wordBreak="break-word">
+                  {projectSlugs.slice(0, MAX_VISIBLE_PROJECTS).join(', ')}
+                  {projectSlugs.length > MAX_VISIBLE_PROJECTS && (
+                    <Fragment>
+                      {' '}
+                      <InfoText
+                        title={projectSlugs.slice(MAX_VISIBLE_PROJECTS).join(', ')}
+                      >
+                        {tn(
+                          '+%s more',
+                          '+%s more',
+                          projectSlugs.length - MAX_VISIBLE_PROJECTS
+                        )}
+                      </InfoText>
+                    </Fragment>
+                  )}
+                </Text>
+              </Container>
             </Flex>
           )}
-          {description && <Text as="p">{description}</Text>}
-          {usage.length > 0 && (
-            <Text size="sm" variant="muted">
-              {usage.map((part, index) => (
-                <Fragment key={index}>
-                  {index > 0 && ' | '}
-                  {part}
-                </Fragment>
-              ))}
-            </Text>
-          )}
-        </Stack>
-        {projectSlugs[0] === 'all' ? (
-          <Flex align="center" gap="sm">
-            <IconAllProjects size="sm" variant="muted" />
-            <Text size="sm" variant="muted">
-              {t('All projects')}
-            </Text>
-          </Flex>
-        ) : projectSlugs.length === 0 ? (
-          <Text size="sm" variant="muted">
-            {t('No projects')}
-          </Text>
-        ) : (
-          <Flex align="center" gap="sm">
-            <ProjectList
-              projectSlugs={projectSlugs}
-              maxVisibleProjects={MAX_VISIBLE_PROJECTS}
-            />
-            <Container flex="1" minWidth={0}>
-              <Text size="sm" variant="muted" wordBreak="break-word">
-                {projectSlugs.slice(0, MAX_VISIBLE_PROJECTS).join(', ')}
-                {projectSlugs.length > MAX_VISIBLE_PROJECTS && (
-                  <Fragment>
-                    {' '}
-                    <InfoText title={projectSlugs.slice(MAX_VISIBLE_PROJECTS).join(', ')}>
-                      {tn(
-                        '+%s more',
-                        '+%s more',
-                        projectSlugs.length - MAX_VISIBLE_PROJECTS
-                      )}
-                    </InfoText>
-                  </Fragment>
-                )}
-              </Text>
-            </Container>
-          </Flex>
-        )}
-      </CardStack>
+        </CardStack>
+      </CardLink>
     </Container>
   );
 }
+
+const CardLink = styled(Link)`
+  display: grid;
+  color: inherit;
+
+  &:hover {
+    color: inherit;
+  }
+`;
 
 const CardStack = styled(Stack)`
   &:hover {

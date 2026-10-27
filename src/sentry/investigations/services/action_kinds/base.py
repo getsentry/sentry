@@ -4,7 +4,7 @@ import abc
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 from rest_framework.request import Request
@@ -45,6 +45,8 @@ class ApplyErrorCode(StrEnum):
     STALE = "stale"
     VALIDATION_FAILED = "validation_failed"
     ACTION_CHANGED = "action_changed"
+    NOT_STALE = "not_stale"
+    NOT_RETRYABLE = "not_retryable"
 
 
 class ApplyError(TypedDict):
@@ -83,6 +85,16 @@ class ApplyContext:
     actor_id: int
 
 
+FollowUpCommandType = Literal["recheck_action_requests", "rerun_after_connection"]
+
+
+class FollowUpCommand(TypedDict):
+    """A command Sentry sends Seer for an action request."""
+
+    type: FollowUpCommandType
+    payload: dict[str, Any]
+
+
 class ActionStale(Exception):
     """What the action changes moved since Seer suggested it."""
 
@@ -116,6 +128,14 @@ class ActionKind(abc.ABC):
         """For each suggested request, why the viewer can't apply it, or None if they can."""
         return {item.id: CannotApplyReason.UNSUPPORTED_ACTION for item in action_requests}
 
+    def check_remote(
+        self, investigation: Investigation, action_request: InvestigationActionRequest
+    ) -> None:
+        """Checks that ask another silo, for a request the viewer can apply. They run before
+        apply and its dry run take locks, since a silo call can't run in a transaction. Raise
+        ActionInvalid where apply would.
+        """
+
     def check(self, context: ApplyContext) -> None:
         """Run the checks apply would, without changing anything. Raise ActionStale or
         ActionInvalid where apply would. Kinds with nothing to check beyond
@@ -127,6 +147,12 @@ class ActionKind(abc.ABC):
         ActionStale or ActionInvalid instead of updating the request; the caller records it.
         """
         raise NotImplementedError
+
+    def follow_up_command(
+        self, action_request: InvestigationActionRequest
+    ) -> FollowUpCommand | None:
+        """What to ask Seer to do once the request is applied, if anything."""
+        return None
 
     def after_upsert(self, action_request: InvestigationActionRequest) -> None:
         """Runs when Seer creates or changes a request, in the same transaction. Only requests

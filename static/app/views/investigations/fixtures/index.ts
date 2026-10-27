@@ -248,6 +248,7 @@ export function InvestigationActionRequestFixture(
     cannotApplyReason: null,
     dateApplied: null,
     error: null,
+    followUp: null,
     dateCreated: '2026-08-27T11:10:00Z',
     ...overrides,
   };

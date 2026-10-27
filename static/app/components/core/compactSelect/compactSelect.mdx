@@ -107,6 +107,40 @@ const options = [
 > [!NOTE]
 > Options can include an optional `details` property to provide additional context shown in the dropdown.
 
+### Icons on some options
+
+When any option has `leadingItems`, options without them are indented to match, so every label lines up.
+
+export function PartialIconsDemo() {
+  const [value, setValue] = useState('all');
+  const options = [
+    {value: 'all', label: 'All environments', leadingItems: <IconGlobe size="sm" />},
+    {value: 'production', label: 'production'},
+    {value: 'staging', label: 'staging'},
+    {value: 'development', label: 'development'},
+  ];
+  return (
+    <CompactSelect
+      value={value}
+      onChange={newValue => setValue(newValue.value)}
+      options={options}
+      menuWidth={200}
+    />
+  );
+}
+
+<Storybook.Demo minHeight="260px" align="start">
+  <PartialIconsDemo />
+</Storybook.Demo>
+
+```jsx
+const options = [
+  {value: 'all', label: 'All environments', leadingItems: <IconGlobe size="sm" />},
+  {value: 'production', label: 'production'},
+  {value: 'staging', label: 'staging'},
+];
+```
+
 ## Sections
 
 Group related options into sections using nested option objects. Each section has a `key`, `label`, and an array of `options`.

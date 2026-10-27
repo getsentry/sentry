@@ -1,8 +1,10 @@
 from unittest.mock import patch
 
 from django.test import override_settings
+from django.utils import timezone
 
 from sentry.constants import ObjectStatus
+from sentry.db.models.fields.bounded import I64_MAX
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.models.pullrequest import PullRequestLifecycleState
@@ -22,6 +24,7 @@ from sentry.seer.monitor_cleanup.runs import deliver_monitor_cleanup_result
 from sentry.seer.workflows.runs import create_workflow_run
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import Factories
+from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.features import with_feature
 
 
@@ -354,6 +357,161 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(own_run.id)
 
+    @with_feature(
+        ["organizations:seer-night-shift", "organizations:seer-workflows-monitor-cleanup"]
+    )
+    def test_filter_by_workflow_config(self) -> None:
+        config = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE
+        )
+        matching = Factories.create_seer_workflow_run(self.organization, workflow_config=config)
+        cleanup = self.create_agent_workflow(
+            SeerWorkflowStrategy.DUPLICATE_MONITORS, "monitor_cleanup"
+        )
+        historical = Factories.create_seer_workflow_run(self.organization)
+
+        unfiltered = self.get_success_response(self.organization.slug)
+        assert [run["id"] for run in unfiltered.data] == [
+            str(historical.id),
+            str(cleanup.id),
+            str(matching.id),
+        ]
+        for config_id in [str(config.id), f"{config.id}.0", f" {config.id} "]:
+            response = self.get_success_response(
+                self.organization.slug, workflow_config_id=config_id
+            )
+            assert response.data == [unfiltered.data[2]]
+        response = self.get_success_response(
+            self.organization.slug, workflow_config_id=cleanup.workflow_config_id
+        )
+        assert response.data == [unfiltered.data[1]]
+
+    @with_feature("organizations:seer-night-shift")
+    def test_filter_by_config_without_runs(self) -> None:
+        config = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE
+        )
+        Factories.create_seer_workflow_run(self.organization)
+        response = self.get_success_response(self.organization.slug, workflow_config_id=config.id)
+        assert response.data == []
+
+    @with_feature("organizations:seer-night-shift")
+    def test_invalid_workflow_config_filter(self) -> None:
+        for config_id in ["", "invalid", "1.5", "0", "-1", str(I64_MAX + 1)]:
+            response = self.get_error_response(
+                self.organization.slug, workflow_config_id=config_id, status_code=400
+            )
+            assert "workflow_config_id" in response.data["detail"]
+
+    @with_feature("organizations:seer-night-shift")
+    def test_repeated_workflow_config_filter(self) -> None:
+        for config_ids in [["1", "1"], ["1", "2"]]:
+            response = self.get_error_response(
+                self.organization.slug, workflow_config_id=config_ids, status_code=400
+            )
+            assert response.data == {"detail": "Supply only one workflow_config_id."}
+
+    @with_feature("organizations:seer-night-shift")
+    def test_filter_by_foreign_or_nonexistent_config(self) -> None:
+        foreign_org = self.create_organization()
+        config = Factories.create_seer_workflow_config(
+            foreign_org, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE
+        )
+        Factories.create_seer_workflow_run(foreign_org, workflow_config=config)
+        Factories.create_seer_workflow_run(self.organization)
+
+        foreign = self.get_success_response(self.organization.slug, workflow_config_id=config.id)
+        nonexistent = self.get_success_response(self.organization.slug, workflow_config_id=I64_MAX)
+        assert foreign.data == nonexistent.data == []
+
+    def test_filter_preserves_feature_gates(self) -> None:
+        config = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE
+        )
+        Factories.create_seer_workflow_run(self.organization, workflow_config=config)
+        self.get_error_response(
+            self.organization.slug, workflow_config_id=config.id, status_code=404
+        )
+        self.get_error_response(
+            self.organization.slug, workflow_config_id="invalid", status_code=404
+        )
+        with self.feature("organizations:seer-workflows-monitor-cleanup"):
+            response = self.get_success_response(
+                self.organization.slug, workflow_config_id=config.id
+            )
+        assert response.data == []
+
+    @with_feature("organizations:seer-night-shift")
+    def test_filter_preserves_strategy_eligibility(self) -> None:
+        for strategy in [
+            SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+            SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
+        ]:
+            config = Factories.create_seer_workflow_config(self.organization, strategy=strategy)
+            Factories.create_seer_workflow_run(self.organization, workflow_config=config)
+            response = self.get_success_response(
+                self.organization.slug, workflow_config_id=config.id
+            )
+            assert response.data == []
+
+    @with_feature("organizations:seer-night-shift")
+    def test_filtered_triage_respects_project_access(self) -> None:
+        project = self.project
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, role="member")
+        team = self.create_team(organization=self.organization, members=[member])
+        accessible_project = self.create_project(organization=self.organization, teams=[team])
+        config = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE
+        )
+        Factories.create_seer_workflow_run(
+            self.organization, workflow_config=config, extras={"target_project_ids": [project.id]}
+        )
+        visible = Factories.create_seer_workflow_run(
+            self.organization,
+            workflow_config=config,
+            extras={"target_project_ids": [accessible_project.id]},
+        )
+        self.login_as(member)
+
+        response = self.get_success_response(self.organization.slug, workflow_config_id=config.id)
+        assert [run["id"] for run in response.data] == [str(visible.id)]
+
+    @with_feature("organizations:seer-night-shift")
+    def test_filter_applies_before_pagination(self) -> None:
+        config = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE
+        )
+        now = timezone.now()
+        first = Factories.create_seer_workflow_run(
+            self.organization, workflow_config=config, date_added=now
+        )
+        Factories.create_seer_workflow_run(self.organization, date_added=now)
+        second = Factories.create_seer_workflow_run(
+            self.organization, workflow_config=config, date_added=now
+        )
+        Factories.create_seer_workflow_run(self.organization, date_added=now)
+        third = Factories.create_seer_workflow_run(
+            self.organization, workflow_config=config, date_added=now
+        )
+        response = self.get_success_response(
+            self.organization.slug, workflow_config_id=config.id, per_page=2
+        )
+        assert [run["id"] for run in response.data] == [str(third.id), str(second.id)]
+        links = parse_link_header(response.headers["Link"])
+        next_url, next_link = next(
+            (url, link) for url, link in links.items() if link["rel"] == "next"
+        )
+        assert next_link["results"] == "true"
+        assert f"workflow_config_id={config.id}" in next_url
+        response = self.client.get(next_url)
+        assert response.status_code == 200
+        assert [run["id"] for run in response.data] == [str(first.id)]
+        links = parse_link_header(response.headers["Link"])
+        assert next(link for link in links.values() if link["rel"] == "next")["results"] == "false"
+
     def test_history_combines_workflows_and_respects_feature_flags(self) -> None:
         older = Factories.create_seer_workflow_run(
             organization=self.organization, extras={"options": {"source": None}}
@@ -427,24 +585,32 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         self.create_project(organization=self.organization, teams=[other_team])
 
         with self.feature("organizations:seer-workflows-monitor-cleanup"):
-            response = self.get_success_response(self.organization.slug)
+            response = self.get_success_response(
+                self.organization.slug, workflow_config_id=workflow.workflow_config_id
+            )
         assert [item["id"] for item in response.data] == [str(workflow.id)]
 
         self.login_as(member)
         with self.feature("organizations:seer-workflows-monitor-cleanup"):
-            response = self.get_success_response(self.organization.slug)
+            response = self.get_success_response(
+                self.organization.slug, workflow_config_id=workflow.workflow_config_id
+            )
         assert response.data == []
 
         run.agent.update(
             extras={**run.agent.extras, "status": "complete", "project_ids": [str(project.id)]}
         )
         with self.feature("organizations:seer-workflows-monitor-cleanup"):
-            response = self.get_success_response(self.organization.slug)
+            response = self.get_success_response(
+                self.organization.slug, workflow_config_id=workflow.workflow_config_id
+            )
         assert response.data == []
 
         self.create_team_membership(team=self.team, user=member)
         with self.feature("organizations:seer-workflows-monitor-cleanup"):
-            response = self.get_success_response(self.organization.slug)
+            response = self.get_success_response(
+                self.organization.slug, workflow_config_id=workflow.workflow_config_id
+            )
         assert [item["id"] for item in response.data] == [str(workflow.id)]
 
     def test_history_hides_triage_runs_outside_user_access(self) -> None:
@@ -800,6 +966,70 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
 
         assert len(response.data["configs"]) == 1
         assert response.data["configs"][0]["projects"] == [accessible.id]
+
+    def create_config(self, **kwargs) -> SeerWorkflowConfig:
+        return Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2, **kwargs
+        )
+
+
+@override_settings(SENTRY_SELF_HOSTED=False)
+@with_feature("organizations:seer-automations")
+class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
+    endpoint = "sentry-api-0-organization-seer-workflow-config-details"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+
+    def test_feature_disabled_returns_404(self) -> None:
+        config = self.create_config()
+        with self.feature({"organizations:seer-automations": False}):
+            self.get_error_response(self.organization.slug, config.id, status_code=404)
+
+    def test_returns_config(self) -> None:
+        project = self.create_project()
+        config = self.create_config(
+            enabled=False,
+            version=4,
+            filters={"environments": ["production"], "min_event_count": 10},
+            output_policy={"review_mode": "manual"},
+            extras={"seeded_default": "agentic_triage_v2"},
+        )
+        Factories.create_seer_workflow_config_project(config, project)
+
+        response = self.get_success_response(self.organization.slug, config.id)
+
+        assert response.data == {
+            "id": str(config.id),
+            "strategy": "agentic_triage_v2",
+            "enabled": False,
+            "schedule": "daily",
+            "version": 4,
+            "projects": [project.id],
+            "environments": ["production"],
+            "filters": {"minEventCount": 10},
+            "outputPolicy": {"review_mode": "manual"},
+            "seededDefault": "agentic_triage_v2",
+            "dateAdded": config.date_added,
+            "dateUpdated": config.date_updated,
+        }
+
+    def test_missing_config_returns_404(self) -> None:
+        self.get_error_response(self.organization.slug, 999999, status_code=404)
+
+    def test_other_organization_config_returns_404(self) -> None:
+        config = Factories.create_seer_workflow_config(
+            self.create_organization(owner=self.user),
+            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+        )
+        self.get_error_response(self.organization.slug, config.id, status_code=404)
+
+    def test_non_configurable_strategy_returns_404(self) -> None:
+        config = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE
+        )
+        self.get_error_response(self.organization.slug, config.id, status_code=404)
 
     def create_config(self, **kwargs) -> SeerWorkflowConfig:
         return Factories.create_seer_workflow_config(

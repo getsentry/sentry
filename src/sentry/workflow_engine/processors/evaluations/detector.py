@@ -1,6 +1,6 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import StrEnum
-from typing import Any, TypedDict
+from typing import Any, Self, TypedDict
 
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
@@ -17,7 +17,8 @@ from .condition_group import DataConditionGroupEvaluation, DataConditionGroupEva
 
 class DetectorEvaluationData(TypedDict):
     group_key: DetectorGroupKey
-    trigger_group_evaluation: DataConditionGroupEvaluation
+    # Only set for detectors that evaluate a data condition group
+    trigger_group_evaluation: DataConditionGroupEvaluation | None
     event_data: dict[str, Any] | None  # TODO - improve this typing, for now migrating
 
 
@@ -36,7 +37,7 @@ class DetectorEvaluationArtifact(BaseWorkflowEngineEvaluationArtifact):
     group_key: DetectorGroupKey
     outcome: DetectorEvaluationOutcome
     priority: int
-    trigger_evaluation: DataConditionGroupEvaluationArtifact
+    trigger_evaluation: DataConditionGroupEvaluationArtifact | None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -50,14 +51,27 @@ class DetectorEvaluation(
     """
     Defines the Evaluation of a Detector.
 
+    Detector handlers SHOULD build evaluations with the named constructors, which state the
+    intended outcome and keep `triggered`, `priority`, and `result` consistent:
+
+    - `DetectorEvaluation.create_issue(...)`: the group triggered at a non-OK priority. The
+      handler attaches the `IssueOccurrence` it builds with `with_result`.
+    - `evaluation.with_result(...)`: a copy carrying a built `IssueOccurrence` or
+      `StatusChangeMessage`, e.g. a resolution from a stateful detector.
+    - `DetectorEvaluation.ok(...)`: the group evaluated as OK. It carries no result unless a
+      handler attaches a resolution with `with_result`.
+
+    Evaluations with a result are passed to the detector handler's `on_complete`, which decides
+    what to do with them. The default, `DetectorOutcome.ISSUE_PLATFORM`, sends them to the Issue Platform.
+
     Properties
     - priority: DetectorPriorityLevel - The resulting priority for the detector
 
     Inherited properties
-    - result: DetectorResult - The information to send to the issue platforms Kafka topic,
-        each individual DetectorHandler will determine if they should create a new issue (IssueOccurrence)
-        or if it will send an update to an existing Issue (StatusChangeMessage). Set to None when the detector
-        is not triggered. By default this is set to None, to signify a detector's not expected to be triggered.
+    - result: DetectorResult - An occurrence (IssueOccurrence) or a status change for an existing issue
+        (StatusChangeMessage), passed to the detector handler's `on_complete`.
+        None when there is no result yet: a `create_issue` evaluation before its occurrence is attached,
+        or an `ok` evaluation without a resolution.
     - data: DetectorEvaluationData - This data includes the group key (DetectorGroupKey), the evaluation of the Detector
         triggers (DataConditionGroupEvaluation), and the event data (dict) that triggered the detector evaluation.
     - error: ConditionError - An error during the processing of the conditions in the trigger group.
@@ -66,6 +80,75 @@ class DetectorEvaluation(
 
     result: DetectorResult = None
     priority: DetectorPriorityLevel
+
+    @classmethod
+    def create_issue(
+        cls,
+        group_key: DetectorGroupKey,
+        priority: DetectorPriorityLevel,
+        trigger_group_evaluation: DataConditionGroupEvaluation | None = None,
+    ) -> Self:
+        """
+        The group triggered at `priority`. The handler attaches the `IssueOccurrence` it builds
+        with `with_result`.
+
+        `trigger_group_evaluation` is the condition group evaluation that decided the
+        priority, or None for detectors that do not evaluate one.
+        """
+        if priority == DetectorPriorityLevel.OK:
+            raise ValueError("An OK priority cannot trigger; use `DetectorEvaluation.ok` instead")
+
+        return cls(
+            result=None,
+            data=DetectorEvaluationData(
+                group_key=group_key,
+                trigger_group_evaluation=trigger_group_evaluation,
+                event_data=None,
+            ),
+            triggered=True,
+            priority=priority,
+        )
+
+    @classmethod
+    def ok(
+        cls,
+        group_key: DetectorGroupKey,
+        trigger_group_evaluation: DataConditionGroupEvaluation | None = None,
+    ) -> Self:
+        """
+        The group evaluated as OK. The evaluation carries no result; a handler that resolves
+        the issue, e.g. `StatefulDetectorHandler`, attaches the resolution with `with_result`.
+        """
+        return cls(
+            result=None,
+            data=DetectorEvaluationData(
+                group_key=group_key,
+                trigger_group_evaluation=trigger_group_evaluation,
+                event_data=None,
+            ),
+            triggered=False,
+            priority=DetectorPriorityLevel.OK,
+        )
+
+    def with_result(
+        self,
+        result: IssueOccurrence | StatusChangeMessage,
+        *,
+        event_data: dict[str, Any] | None = None,
+    ) -> Self:
+        """
+        Returns a copy of this evaluation carrying a built result. `event_data` replaces the
+        evaluation's event data when given.
+        """
+        return replace(
+            self,
+            result=result,
+            data=DetectorEvaluationData(
+                group_key=self.data["group_key"],
+                trigger_group_evaluation=self.data["trigger_group_evaluation"],
+                event_data=event_data if event_data is not None else self.data["event_data"],
+            ),
+        )
 
     @property
     def outcome(self) -> DetectorEvaluationOutcome:
@@ -82,6 +165,7 @@ class DetectorEvaluation(
         # We only need to extract the top level detector items for tracking here.
         event_data = self.data["event_data"] or {}
         event_id = event_data.get("event_id")
+        trigger_group_evaluation = self.data["trigger_group_evaluation"]
         return DetectorEvaluationArtifact(
             triggered=triggered,
             error=error,
@@ -89,7 +173,9 @@ class DetectorEvaluation(
             group_key=self.data["group_key"],
             outcome=self.outcome,
             priority=self.priority.value,
-            trigger_evaluation=self.data["trigger_group_evaluation"].to_artifact(),
+            trigger_evaluation=(
+                trigger_group_evaluation.to_artifact() if trigger_group_evaluation else None
+            ),
         )
 
 

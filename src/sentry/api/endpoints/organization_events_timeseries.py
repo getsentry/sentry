@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Mapping, Sequence
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import sentry_sdk
@@ -37,6 +37,7 @@ from sentry.apidocs import constants as api_constants
 from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPerformanceExamples
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.cache import default_cache
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.explore.models import ExploreSavedFormula, ExploreSavedQueryDataset
 from sentry.ingestion_delay.status import IngestionDelayStatus
@@ -93,6 +94,12 @@ DATASET_TO_FORMULA_DATASET = {
 logger = logging.getLogger(__name__)
 
 INGESTION_DELAY_TIMEOUT = 1.0  # p99 returns in less than 1 second
+INCREMENTAL_CACHE_KEY = "timeseries:{dataset_label}:{query_string}:{columns}:{rollup}:{projects}"
+# chosen arbitrarily, can tune later
+INCREMENTAL_CACHE_TTL = int(timedelta(hours=24).total_seconds())
+# We can only store 50mb in cache, a timestamp & 1 aggregate is about 52 bytes, s o the actual max is closer to one
+# million, doing 500k so we have room to grow
+MAX_CACHE_LENGTH = 500_000
 
 
 def _get_ingestion_delay_status_in_thread(
@@ -110,6 +117,100 @@ def null_zero(value: float) -> float | None:
         return None
     else:
         return value
+
+
+def cache_candidate(
+    dataset: Any,
+    snuba_params: SnubaParams,
+    query: str,
+    query_columns: list[str],
+    rollup: int,
+    top_events: int,
+) -> bool:
+    """Check if this query is a good candidate for caching
+
+    We're starting very conservatively so we only want to cache the homepage query for the explore page basically
+    We want to go off the shape of the query since it can be made throughout the application
+    """
+    if (
+        dataset == Spans
+        and query == ""
+        and query_columns == ["count(span.duration)"]
+        and rollup in [1800, 10_800]
+        and top_events == 0
+    ):
+        return True
+    return False
+
+
+def create_cache_key(
+    dataset: Any, snuba_params: SnubaParams, query: str, query_columns: list[str], rollup: int
+) -> str:
+    """Create a cache key, currently this assumes we're only caching the home page query on explore"""
+    return INCREMENTAL_CACHE_KEY.format(
+        dataset_label=type(dataset).__name__,
+        query_string=query,
+        columns=",".join(query_columns),
+        rollup=rollup,
+        projects=",".join([str(pid) for pid in snuba_params.project_ids]),
+    )
+
+
+def update_result_with_cache(
+    cache_key: str,
+    cached: Any,
+    result: Any,
+    cached_timestamps: list[int] | None,
+    original_start: datetime | None,
+    snuba_params: SnubaParams,
+    axis: str,
+) -> None:
+    final_result = []
+    to_update = {}
+    if cached and cached_timestamps:
+        for row in result.data["data"]:
+            if row["time"] in cached_timestamps:
+                to_update[row["time"]] = row
+            else:
+                cached.append(row)
+    else:
+        cached = result.data["data"]
+
+    processed = result.data["processed_timeseries"]
+    for row, sample_count, sampling_rate, confidence in zip(
+        result.data["data"],
+        processed.sample_count,
+        processed.sampling_rate,
+        processed.confidence,
+    ):
+        label = next(key for key in sample_count if key != "time")
+        row["sampleCount"] = sample_count.get(label)
+        row["sampleRate"] = sampling_rate.get(label)
+        row["confidence"] = confidence.get(label)
+
+    for index, row in enumerate(cached):
+        if row["time"] in to_update:
+            cached[index].update(to_update[row["time"]])
+    start = original_start if original_start is not None else snuba_params.start_date
+    for row in cached:
+        if start.timestamp() <= row["time"] <= snuba_params.end_date.timestamp():
+            final_result.append(row)
+    processed.sample_count = [
+        {"time": row["time"], axis: row.get("sampleCount")} for row in final_result
+    ]
+    processed.sampling_rate = [
+        {"time": row["time"], axis: row.get("sampleRate")} for row in final_result
+    ]
+    processed.confidence = [
+        {"time": row["time"], axis: row.get("confidence")} for row in final_result
+    ]
+    if len(cached) > MAX_CACHE_LENGTH:
+        cached = cached[MAX_CACHE_LENGTH:]
+    default_cache.set(cache_key, cached, timeout=INCREMENTAL_CACHE_TTL)
+    result.data["data"] = final_result
+    # Retore the original_start
+    if original_start:
+        snuba_params.start = original_start
 
 
 @extend_schema(tags=["Explore"])
@@ -422,6 +523,36 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                     "endpoint_name": "organization-events-timeseries",
                 },
             )
+        incremental_loading = features.has(
+            "organizations:explore-incremental-timeseries",
+            organization,
+            actor=request.user,
+        )
+        # skipCache only applies while incremental caching is enabled.
+        skip_cache = incremental_loading and request.GET.get("skipCache") == "1"
+        is_cache_candidate = False
+        if incremental_loading and not skip_cache:
+            with traces.start_span("get_cache"):
+                if is_cache_candidate := cache_candidate(
+                    dataset, snuba_params, query, query_columns, rollup, top_events
+                ):
+                    original_start = None
+                    cached_timestamps = None
+                    cache_key = create_cache_key(
+                        dataset, snuba_params, query, query_columns, rollup
+                    )
+                    if cached := default_cache.get(cache_key):
+                        cached_timestamps = sorted([item["time"] for item in cached])
+                        # Don't use the cache if we haven't queried the start before
+                        # If this works well we can fork two queries in the future but keeping it simple for now
+                        if cached_timestamps[0] > snuba_params.start_date.timestamp():
+                            is_cache_candidate = False
+                        # still query the last 3 timestamps
+                        elif len(cached_timestamps) > 3:
+                            original_start = snuba_params.start_date
+                            snuba_params.start = datetime.fromtimestamp(
+                                cached_timestamps[-3], tz=timezone.utc
+                            )
 
         self._emit_analytics_event(organization, referrer)
 
@@ -471,7 +602,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             )
 
         if dataset in RPC_DATASETS:
-            return dataset.run_timeseries_query(
+            result = dataset.run_timeseries_query(
                 params=snuba_params,
                 query_string=query,
                 y_axes=query_columns,
@@ -482,6 +613,19 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 additional_queries=additional_queries,
                 transformations=transformations,
             )
+            if incremental_loading and not skip_cache and is_cache_candidate:
+                with traces.start_span("set_cache"):
+                    # Query columns 0 is fine here since we only have 1 cache candidate right now
+                    update_result_with_cache(
+                        cache_key,
+                        cached,
+                        result,
+                        cached_timestamps,
+                        original_start,
+                        snuba_params,
+                        query_columns[0],
+                    )
+            return result
 
         return dataset.timeseries_query(
             selected_columns=query_columns,

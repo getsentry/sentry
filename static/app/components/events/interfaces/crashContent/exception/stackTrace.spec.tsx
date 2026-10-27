@@ -90,6 +90,13 @@ const props: React.ComponentProps<typeof ExceptionStacktraceContent> = {
 };
 
 describe('ExceptionStacktraceContent', () => {
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sentry-app-components/',
+      body: [],
+    });
+  });
+
   it('default behaviour', () => {
     render(<ExceptionStacktraceContent {...props} />);
   });

@@ -3,9 +3,11 @@ import {IconSiren} from '@sentry/icons/siren';
 import {z} from 'zod';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
+import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 import type {
@@ -14,7 +16,10 @@ import type {
   ActionKindUI,
 } from 'sentry/views/investigations/actionRequests/actionKinds';
 import {ApplyButton} from 'sentry/views/investigations/actionRequests/applyButton';
-import {MonitorChanges} from 'sentry/views/investigations/actionRequests/monitorChanges';
+import {
+  getChangedFieldLabels,
+  MonitorChanges,
+} from 'sentry/views/investigations/actionRequests/monitorChanges';
 import {getSourceMonitor, type SourceMonitor} from 'sentry/views/investigations/source';
 import type {
   InvestigationActionRequest,
@@ -35,6 +40,30 @@ export const updateDetectorUI: ActionKindUI<InvestigationUpdateDetectorAction> =
       )}
     </Fragment>
   ),
+  getActivityTitle: ({actionRequest, actorName, organizationSlug}) => {
+    const details = getAppliedDetails(actionRequest);
+    if (!details) {
+      return null;
+    }
+    const fields = oxfordizeArray(getChangedFieldLabels(details.fields));
+    const monitor = (
+      <Link to={makeMonitorDetailsPathname(organizationSlug, details.detectorId)}>
+        {details.detectorName}
+      </Link>
+    );
+    if (!fields) {
+      return actorName
+        ? tct('[actor] updated [monitor]', {actor: actorName, monitor})
+        : tct('[monitor] was updated', {monitor});
+    }
+    return actorName
+      ? tct('[actor] updated the [fields] for [monitor]', {
+          actor: actorName,
+          fields,
+          monitor,
+        })
+      : tct('The [fields] for [monitor] changed', {fields, monitor});
+  },
   getCannotApplyMessage: reason => {
     switch (reason) {
       case 'permission_denied':
@@ -57,6 +86,7 @@ export const updateDetectorUI: ActionKindUI<InvestigationUpdateDetectorAction> =
 function UpdateDetectorDetails({
   action,
   actionRequest,
+  error,
   source,
 }: ActionKindDetailsProps<InvestigationUpdateDetectorAction>) {
   const monitor = getSourceMonitor(source, action.detectorId);
@@ -64,6 +94,7 @@ function UpdateDetectorDetails({
     <MonitorChanges
       action={action}
       applied={actionRequest.state === 'applied'}
+      current={error?.code === 'stale' ? error.current : undefined}
       impact={actionRequest.impact}
       monitor={monitor}
       name={getMonitorName(actionRequest, monitor)}
@@ -76,8 +107,11 @@ function UpdateDetectorApply({
   actionRequest,
   applying,
   check,
+  finishing,
   message,
   onApply,
+  onRecheck,
+  rechecking,
 }: ActionKindApplyProps<InvestigationUpdateDetectorAction>) {
   const organization = useOrganization();
   switch (actionRequest.state) {
@@ -87,8 +121,11 @@ function UpdateDetectorApply({
           canApply={actionRequest.canApply}
           applying={applying}
           check={check}
+          disabled={finishing}
           message={message}
           onApply={onApply}
+          onRecheck={onRecheck}
+          rechecking={rechecking}
           icon={<IconSiren />}
           label={t('Update monitor')}
           busyLabel={t('Updating monitor…')}
@@ -109,15 +146,19 @@ function UpdateDetectorApply({
   }
 }
 
-const appliedDetailsSchema = z.object({detectorName: z.string()});
+const appliedDetailsSchema = z.object({
+  detectorId: z.string(),
+  detectorName: z.string(),
+  fields: z.array(z.string()),
+});
+
+function getAppliedDetails(actionRequest: InvestigationActionRequest) {
+  return appliedDetailsSchema.safeParse(actionRequest.appliedDetails).data ?? null;
+}
 
 function getMonitorName(
   actionRequest: InvestigationActionRequest,
   monitor: SourceMonitor | null
 ) {
-  return (
-    appliedDetailsSchema.safeParse(actionRequest.appliedDetails).data?.detectorName ??
-    monitor?.name ??
-    null
-  );
+  return getAppliedDetails(actionRequest)?.detectorName ?? monitor?.name ?? null;
 }
