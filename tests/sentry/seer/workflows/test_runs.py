@@ -189,40 +189,40 @@ class WorkflowRunTest(TestCase):
 
 
 class ConfiguredWorkflowRunTest(TestCase):
-    def test_retries_keep_original_snapshot_and_new_invocations_capture_edits(self) -> None:
-        first = self.create_project()
+    def test_config_changes_only_apply_to_new_runs(self) -> None:
+        original_project = self.create_project()
         workflow = self.create_configured_workflow()
-        result = workflow.get_or_create_run(
+        original_result = workflow.get_or_create_run(
             trigger_key="manual:first", inputs=RunInputs(issue_limit=10)
         )
-        run = result.lifecycle
-        assert result.created is True
-        assert run.run.status == SeerWorkflowRunStatus.QUEUED
-        assert not run.run.executions.exists()
-        snapshot = run.extras.snapshot
+        original_run = original_result.lifecycle
+        assert original_result.created is True
+        assert original_run.run.status == SeerWorkflowRunStatus.QUEUED
+        assert not original_run.run.executions.exists()
+        snapshot = original_run.extras.snapshot
         assert snapshot.config_version == 1
-        assert snapshot.project_ids == (first.id,)
+        assert snapshot.project_ids == (original_project.id,)
         assert snapshot.inputs == {"issue_limit": 10}
 
-        later = self.create_project()
-        workflow.set_project_selection(SelectedProjects(project_ids=(later.id,)))
-        result = workflow.get_or_create_run(
+        new_project = self.create_project()
+        workflow.set_project_selection(SelectedProjects(project_ids=(new_project.id,)))
+        retry_result = workflow.get_or_create_run(
             trigger_key="manual:first", inputs=RunInputs(issue_limit=20)
         )
-        retry = result.lifecycle
-        assert result.created is False
-        assert retry.run.id == run.run.id
-        assert retry.extras.snapshot == snapshot
+        retried_run = retry_result.lifecycle
+        assert retry_result.created is False
+        assert retried_run.run.id == original_run.run.id
+        assert retried_run.extras.snapshot == snapshot
 
-        result = workflow.get_or_create_run(
+        new_result = workflow.get_or_create_run(
             trigger_key="manual:next", inputs=RunInputs(issue_limit=20)
         )
-        next_run = result.lifecycle
-        assert result.created is True
-        assert next_run.run.id != run.run.id
-        assert next_run.extras.snapshot.config_version == 2
-        assert next_run.extras.snapshot.project_ids == (later.id,)
-        assert next_run.extras.snapshot.inputs == {"issue_limit": 20}
+        new_run = new_result.lifecycle
+        assert new_result.created is True
+        assert new_run.run.id != original_run.run.id
+        assert new_run.extras.snapshot.config_version == 2
+        assert new_run.extras.snapshot.project_ids == (new_project.id,)
+        assert new_run.extras.snapshot.inputs == {"issue_limit": 20}
 
     def test_request_identity_and_history_are_scoped_to_config_and_organization(self) -> None:
         workflow, other_workflow = (
