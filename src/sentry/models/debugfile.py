@@ -97,6 +97,40 @@ def _dif_file_extension(file_format: str, file_type: str | None) -> str:
     return ""
 
 
+def wasm_legacy_code_id(code_id: str) -> str | None:
+    """For a 32-character debug ID, computes the "legacy" code ID by
+    prepending `"10"`.
+
+    32 characters is the length of the unhyphenated representation of
+    a UUID. The "legacy" code ID is how any `symbolic` version before
+    14.0.0a4 would have read the code ID of a WASM file.
+    See INGEST-1282 and https://github.com/getsentry/symbolic/pull/1093.
+    """
+    if len(code_id) != 32:
+        return None
+    try:
+        return normalize_code_id(f"10{code_id}")
+    except SymbolicError:
+        return None
+
+
+def wasm_legacy_debug_id(debug_id: str) -> str | None:
+    """For a 36-character debug ID, computes the "legacy" debug ID by
+    discarding the last two characters and prepending `"10"`.
+
+    36 characters is the length of the hyphenated representation of
+    a UUID. The "legacy" debug ID is how any `symbolic` version before
+    14.0.0a4 would have read the debug ID of a WASM file.
+    See INGEST-1282 and https://github.com/getsentry/symbolic/pull/1093.
+    """
+    if len(debug_id) != 36:
+        return None
+    try:
+        return normalize_debug_id(f"10{normalize_code_id(debug_id)[:-2]}")
+    except SymbolicError:
+        return None
+
+
 class BadDif(Exception):
     pass
 
@@ -796,8 +830,8 @@ class DifMeta:
             #
             # These "legacy" IDs exist because of a longstanding bug in WASM build ID
             # parsing that was fixed in https://github.com/getsentry/symbolic/pull/1093.
-            legacy_code_id = normalize_code_id(f"10{obj.code_id}")
-            legacy_debug_id = normalize_debug_id(legacy_code_id[:32])
+            legacy_code_id = wasm_legacy_code_id(obj.code_id)
+            legacy_debug_id = wasm_legacy_debug_id(obj.debug_id)
 
         return cls(
             file_format=obj.file_format,
