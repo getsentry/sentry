@@ -83,6 +83,11 @@ export function PrimaryNavigationContextProvider(
   // An override only lasts for the route group it was set under. Otherwise it
   // sticks after navigating elsewhere (e.g. tapping Explore on mobile, then
   // opening Settings from the org menu), leaving a stale secondary navigation.
+  // Clear it rather than ignore it, so it cannot come back when the user
+  // returns to the route group it was set under.
+  if (activeGroupOverride && activeGroupOverride.routeGroup !== activeRouteGroup) {
+    setActiveGroupOverride(null);
+  }
   const activeGroupOverrideForRoute =
     activeGroupOverride?.routeGroup === activeRouteGroup
       ? activeGroupOverride.group
