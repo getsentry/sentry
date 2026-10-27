@@ -397,11 +397,13 @@ function SectionTitle(props: SectionTitleProps) {
       );
     }
 
+    // Like the trailing title below, the grid stretches the button's inner
+    // wrapper to the full row so the content starts at the left edge.
     return (
-      <Container width="100%">
-        {containerProps => (
+      <Grid columns="1fr" align="center" width="100%">
+        {gridProps => (
           <Button
-            {...containerProps}
+            {...gridProps}
             size="sm"
             variant="transparent"
             aria-expanded={!props.isCollapsed}
@@ -412,7 +414,7 @@ function SectionTitle(props: SectionTitleProps) {
             </Flex>
           </Button>
         )}
-      </Container>
+      </Grid>
     );
   }
 

@@ -45,9 +45,6 @@ function SettingsNavBadge({badge}: {badge: string | number | null | ReactElement
 export function SettingsNavItem({badge, label, id, to, index, ...props}: Props) {
   const settingsV3 = useSettingsV3();
   const badgeElement = badge ? <SettingsNavBadge badge={badge} /> : null;
-  // In v3, feature badges move into the leading slot; other badges stay trailing.
-  const hasLeadingBadge =
-    settingsV3 && (badge === 'new' || badge === 'beta' || badge === 'alpha');
 
   return (
     <SecondaryNavigation.ListItem>
@@ -57,11 +54,11 @@ export function SettingsNavItem({badge, label, id, to, index, ...props}: Props) 
         leadingItems={
           settingsV3 ? (
             <SecondaryNavigation.LeadingSlot>
-              {hasLeadingBadge ? badgeElement : null}
+              {badgeElement}
             </SecondaryNavigation.LeadingSlot>
           ) : null
         }
-        trailingItems={hasLeadingBadge ? null : badgeElement}
+        trailingItems={settingsV3 ? null : badgeElement}
         analyticsItemName={id ? `settings_${id}` : undefined}
         {...props}
       >
