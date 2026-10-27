@@ -525,3 +525,12 @@ class TestTriggerAutofixFeature(TestCase):
 
         mock_client_cls.return_value.continue_feature_run.assert_called_once()
         mock_client_cls.return_value.start_feature_run.assert_not_called()
+
+    def test_single_run_stops_at_root_cause_when_coding_disabled(self) -> None:
+        self.organization.update_option("sentry:enable_seer_coding", False)
+
+        options = self._start_single_run(None)["agent_run_options"]
+
+        assert options["enable_coding"] is False
+        assert options["enable_bash_mode"] is False
+        assert options["enable_write_pull_request"] is False

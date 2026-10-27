@@ -8,7 +8,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q, QuerySet
 
 from sentry import features, quotas
-from sentry.constants import DataCategory
+from sentry.constants import ENABLE_SEER_CODING_DEFAULT, DataCategory
 from sentry.models.group import Group
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_utils import (
@@ -231,11 +231,13 @@ def _start_single_run(group: Group, args: AutofixFeatureArgs, skip_quota: bool) 
     assert isinstance(args.step_args, RCAStepArgs)
     stopping_point = args.stopping_point
     # No stopping point means no stop: a set-up project goes straight to a PR.
-    enable_coding = stopping_point not in (
-        AutofixStoppingPoint.ROOT_CAUSE,
-        AutofixStoppingPoint.SOLUTION,
+    enable_coding = group.organization.get_option(
+        "sentry:enable_seer_coding", ENABLE_SEER_CODING_DEFAULT
+    ) and stopping_point not in (AutofixStoppingPoint.ROOT_CAUSE, AutofixStoppingPoint.SOLUTION)
+    enable_write_pull_request = enable_coding and stopping_point in (
+        None,
+        AutofixStoppingPoint.OPEN_PR,
     )
-    enable_write_pull_request = stopping_point in (None, AutofixStoppingPoint.OPEN_PR)
 
     payload = AutofixSingleRunPayload(
         group_id=group.id,
