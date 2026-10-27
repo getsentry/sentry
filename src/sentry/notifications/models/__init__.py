@@ -1,3 +1,5 @@
+from sentry.notifications.models.inboxitem import InboxItem
+from sentry.notifications.models.inboxitemevent import InboxActorType, InboxItemEvent
 from sentry.notifications.models.notificationaction import (
     ActionRegistration,
     ActionService,
@@ -14,6 +16,9 @@ from sentry.notifications.models.notificationsettingprovider import Notification
 from sentry.notifications.models.notificationthread import NotificationThread
 
 __all__ = (
+    "InboxActorType",
+    "InboxItem",
+    "InboxItemEvent",
     "NotificationActionProject",
     "NotificationAction",
     "ActionService",

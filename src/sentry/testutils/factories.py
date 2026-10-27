@@ -163,6 +163,8 @@ from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.models.userreport import UserReport
 from sentry.models.weeklyreportprojectexclusion import WeeklyReportProjectExclusion
+from sentry.notifications.models.inboxitem import InboxItem
+from sentry.notifications.models.inboxitemevent import InboxActorType, InboxItemEvent
 from sentry.notifications.models.notificationaction import (
     ActionService,
     ActionTarget,
@@ -2438,6 +2440,40 @@ class Factories:
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_notification_settings_provider(*args, **kwargs) -> NotificationSettingProvider:
         return NotificationSettingProvider.objects.create(*args, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_inbox_item(
+        organization: Organization,
+        user: User | RpcUser,
+        object_type: str = "issue",
+        object_id: str = "1",
+        **kwargs,
+    ) -> InboxItem:
+        kwargs.setdefault("last_activity_at", timezone.now())
+        return InboxItem.objects.create(
+            organization=organization,
+            user_id=user.id,
+            object_type=object_type,
+            object_id=object_id,
+            **kwargs,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_inbox_item_event(
+        item: InboxItem,
+        type: str = "issue.assigned",
+        actor: User | RpcUser | None = None,
+        **kwargs,
+    ) -> InboxItemEvent:
+        return InboxItemEvent.objects.create(
+            item=item,
+            type=type,
+            actor_type=InboxActorType.USER if actor else InboxActorType.SYSTEM,
+            actor_id=actor.id if actor else None,
+            **kwargs,
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
