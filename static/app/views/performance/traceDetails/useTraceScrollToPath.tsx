@@ -3,7 +3,7 @@ import * as qs from 'query-string';
 
 import type {TraceTree} from './traceModels/traceTree';
 
-function decodeScrollQueue(maybePath: unknown): TraceTree.NodePath[] | null {
+export function decodeScrollQueue(maybePath: unknown): TraceTree.NodePath[] | null {
   if (Array.isArray(maybePath)) {
     return maybePath;
   }

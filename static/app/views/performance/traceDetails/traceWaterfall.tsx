@@ -73,7 +73,11 @@ import type {TraceReducer} from './traceState';
 import {TraceWaterfallState} from './traceWaterfallState';
 import {useTraceOnLoad} from './useTraceOnLoad';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
-import {useTraceScrollToPath, type UseTraceScrollToPath} from './useTraceScrollToPath';
+import {
+  decodeScrollQueue,
+  useTraceScrollToPath,
+  type UseTraceScrollToPath,
+} from './useTraceScrollToPath';
 import {useTraceTimelineChangeSync} from './useTraceTimelineChangeSync';
 
 // The settings trigger is the toolbar's last item and the search input beside it grows to
@@ -164,6 +168,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
   const previouslyFocusedNodeRef = useRef<BaseNode | null>(null);
   const previouslyScrolledToNodeRef = useRef<BaseNode | null>(null);
+  const loadedTreeRef = useRef<TraceTree | null>(null);
 
   useEffect(() => {
     if (!props.replayTraces?.length || props.tree?.type !== 'trace') {
@@ -457,6 +462,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     if (!traceNode) {
       throw new Error('Trace is initialized but no trace node is found');
     }
+    loadedTreeRef.current = props.tree;
 
     traceScheduler.dispatch('initialize trace space', [
       props.tree.root.space[0],
@@ -635,6 +641,41 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     tree: props.tree,
     manager: viewManager,
   });
+
+  // The load target above is read once per trace, so a later link to another node of this
+  // trace (e.g. Seer's "View span") only changes `?node=` and has to be revealed here.
+  const urlTargetPath =
+    disableUrlSync || props.scrollToNode !== undefined
+      ? null
+      : (decodeScrollQueue(qs.parse(routerLocation.search).node)?.[0] ?? null);
+  const handledUrlTargetPathRef = useRef(urlTargetPath);
+  useEffect(() => {
+    if (
+      onLoadScrollStatus !== 'success' ||
+      // A new tree is revealed by onTraceLoad once it finishes loading.
+      loadedTreeRef.current !== props.tree ||
+      handledUrlTargetPathRef.current === urlTargetPath
+    ) {
+      return;
+    }
+    handledUrlTargetPathRef.current = urlTargetPath;
+    if (!urlTargetPath) {
+      return;
+    }
+
+    // Selecting a row writes its path to the URL after activating its tab.
+    const activeNode = traceStateRef.current.tabs.current_tab?.node;
+    if (typeof activeNode === 'object' && activeNode.matchByPath(urlTargetPath)) {
+      return;
+    }
+
+    const node = props.tree.root.findChild(candidate =>
+      candidate.matchByPath(urlTargetPath)
+    );
+    if (node) {
+      void onTabScrollToNode(node);
+    }
+  }, [onLoadScrollStatus, onTabScrollToNode, props.tree, urlTargetPath]);
 
   const handledZoomQueryRef = useRef<string | null>(null);
   useEffect(() => {
