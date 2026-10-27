@@ -216,7 +216,9 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
                 f"All methods must declare a publish_status. Please add a valid publish status for Endpoint {callback.view_class} {method} method.",
             )
 
-        idempotent_methods = getattr(callback.view_class, "idempotent_methods", frozenset())
+        idempotent_methods: frozenset[str] = getattr(
+            callback.view_class, "idempotent_methods", frozenset()
+        )
         if not idempotent_methods <= callback.view_class.publish_status.keys():
             raise SentryApiBuildError(
                 f"Endpoint {callback.view_class} declares idempotent_methods that it does not implement: {sorted(idempotent_methods - callback.view_class.publish_status.keys())}.",
