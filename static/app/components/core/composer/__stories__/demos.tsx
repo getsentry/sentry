@@ -4,14 +4,18 @@ import {queryOptions} from '@tanstack/react-query';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {CodeBlock} from '@sentry/scraps/code';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {
   Composer,
   type ComposerActions,
+  type ComposerMentionActions,
   type ComposerPlugin,
   type ComposerSource,
   type ComposerValue,
+  type MentionData,
 } from '@sentry/scraps/composer';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 interface Suggestion {
@@ -90,6 +94,62 @@ const INLINE_COMPONENT_PLUGIN: ComposerPlugin = {
   getSources: () => [
     {...MEMBER_SOURCE, renderMention: mention => <MemberMention {...mention} />},
     {...TEAM_SOURCE, renderMention: mention => <TeamMention {...mention} />},
+  ],
+};
+
+function SwappableMemberMention({
+  actions,
+  mention,
+}: {
+  actions: ComposerMentionActions;
+  mention: MentionData;
+}) {
+  // The select's wrapper is a block, so an inline-flex parent keeps it in the line.
+  return (
+    <Flex as="span" display="inline-flex">
+      <CompactSelect
+        clearable
+        search
+        size="xs"
+        strategy="fixed"
+        value={mention.id}
+        options={PEOPLE.map(person => ({value: person.id, label: person.label}))}
+        trigger={props => (
+          <OverlayTrigger.Button
+            {...props}
+            size="zero"
+            variant="transparent"
+            aria-label={`Change mention: ${mention.text}`}
+          >
+            <MemberMention {...mention} />
+          </OverlayTrigger.Button>
+        )}
+        onChange={option => {
+          const person = PEOPLE.find(candidate => candidate.id === option?.value);
+          if (person) {
+            actions.replace({
+              id: person.id,
+              sourceId: 'members',
+              text: `@${person.label}`,
+            });
+          } else {
+            actions.remove();
+          }
+        }}
+      />
+    </Flex>
+  );
+}
+
+const INTERACTIVE_MENTION_PLUGIN: ComposerPlugin = {
+  id: 'swappable-mentions',
+  getSources: () => [
+    {
+      ...MEMBER_SOURCE,
+      renderMention: (mention, actions) => (
+        <SwappableMemberMention actions={actions} mention={mention} />
+      ),
+    },
   ],
 };
 
@@ -241,6 +301,28 @@ export function InlineComponentComposerDemo() {
         aria-label="Comment with avatars"
         minHeight={100}
         plugins={[INLINE_COMPONENT_PLUGIN]}
+        value={value}
+        onChange={setValue}
+      />
+      <ValuePreview value={value} />
+    </Stack>
+  );
+}
+
+export function InteractiveMentionComposerDemo() {
+  const [value, setValue] = useComposerValue({
+    text: 'Pairing with @Alice Example on the checkout regression.',
+    mentions: [
+      {id: ALICE.id, sourceId: 'members', text: '@Alice Example', start: 13, end: 27},
+    ],
+  });
+
+  return (
+    <Stack width="100%" maxWidth="720px" gap="md">
+      <Composer
+        aria-label="Comment with swappable mentions"
+        minHeight={80}
+        plugins={[INTERACTIVE_MENTION_PLUGIN]}
         value={value}
         onChange={setValue}
       />

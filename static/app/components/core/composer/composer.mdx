@@ -12,6 +12,7 @@ import {
   CommandComposerDemo,
   ComposerDemo,
   InlineComponentComposerDemo,
+  InteractiveMentionComposerDemo,
   RestoredComposerDemo,
   SharedTriggerComposerDemo,
   SizesComposerDemo,
@@ -99,6 +100,41 @@ const mentionPlugin = {
 ```
 
 Keep inline components close to the height of a line of text, so the caret and line wrapping stay predictable.
+
+## Edit a reference from inside it
+
+`renderMention` also receives `actions` for the mention it draws. Controls inside a mention, such as a menu's button and search field, keep their own keyboard and pointer input, and can swap the reference with `actions.replace()` or delete it with `actions.remove()`. Each action is one undoable edit, and the value reports the new text and range.
+
+Click the mention to choose someone else, or clear the selection to remove it. The menu renders inside the editor, which scrolls, so position it with `strategy="fixed"` to keep it from being clipped.
+
+<Storybook.Demo overflow="visible">
+  <InteractiveMentionComposerDemo />
+</Storybook.Demo>
+
+```jsx
+renderMention: (mention, actions) => (
+  <CompactSelect
+    clearable
+    search
+    strategy="fixed"
+    value={mention.id}
+    options={people.map(person => ({value: person.id, label: person.label}))}
+    trigger={props => (
+      <OverlayTrigger.Button {...props} size="zero" variant="transparent">
+        {mention.text}
+      </OverlayTrigger.Button>
+    )}
+    onChange={option => {
+      const person = getPerson(option?.value);
+      if (person) {
+        actions.replace({id: person.id, sourceId: 'members', text: `@${person.label}`});
+      } else {
+        actions.remove();
+      }
+    }}
+  />
+);
+```
 
 ## Share a trigger between sources
 
