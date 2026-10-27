@@ -3,6 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {NUM_DESKTOP_COLS} from 'sentry/views/dashboards/constants';
 import {
   getPrebuiltDashboardConfig,
+  PREBUILT_DASHBOARD_VARIANTS,
   PREBUILT_DASHBOARDS,
   PrebuiltDashboardId,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
@@ -13,9 +14,14 @@ const MAX_WIDGET_DESCRIPTION_LENGTH = 350;
 const MAX_WIDGET_TITLE_LENGTH = 255;
 const MAX_DASHBOARD_TITLE_LENGTH = 255;
 
-const entries = Object.entries(PREBUILT_DASHBOARDS) as Array<
-  [`${PrebuiltDashboardId}`, (typeof PREBUILT_DASHBOARDS)[PrebuiltDashboardId]]
->;
+const entries = [
+  ...(Object.entries(PREBUILT_DASHBOARDS) as Array<
+    [`${PrebuiltDashboardId}`, (typeof PREBUILT_DASHBOARDS)[PrebuiltDashboardId]]
+  >),
+  ...Object.entries(PREBUILT_DASHBOARD_VARIANTS).map(
+    ([id, variant]) => [`${id} (${variant.feature})`, variant.config] as const
+  ),
+];
 
 describe('PREBUILT_DASHBOARDS', () => {
   it.each(entries)('dashboard %s has a title within the backend limit', (_id, config) => {

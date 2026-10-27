@@ -5,6 +5,8 @@ import {type DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {transformEventsResponseToTable} from 'sentry/views/dashboards/datasetConfig/events';
 import {type WidgetQuery} from 'sentry/views/dashboards/types';
 import {transformTimeSeriesResponse} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
+import {isPerformanceScoreBreakdownChart} from 'sentry/views/dashboards/widgetBuilder/utils/isPerformanceScoreBreakdownChart';
+import {transformPerformanceScoreBreakdownTimeSeries} from 'sentry/views/dashboards/widgetBuilder/utils/transformPerformanceScoreBreakdownSeries';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 
@@ -16,9 +18,14 @@ function formatMetricsTimeseriesLabel({
   widgetQuery: WidgetQuery;
 }): string {
   const func = parseFunction(timeSeries.yAxis);
-  const formattedYAxis = func
-    ? `${func.name}(${func.arguments[1] ?? '…'})`
-    : timeSeries.yAxis;
+  // Metric aggregates are `fn(value,metric,type,unit)` and read best as
+  // `fn(metric)`. Formulas like the web vital scores take other arguments and
+  // keep their full name, or every series would get the same label.
+  const isMetricAggregate = func?.arguments[0] === 'value';
+  const formattedYAxis =
+    func && isMetricAggregate
+      ? `${func.name}(${func.arguments[1] ?? '…'})`
+      : timeSeries.yAxis;
 
   const multiYAxis = new Set(widgetQuery.aggregates).size > 1;
   const hasGroupings = new Set(widgetQuery.columns).size > 0;
@@ -27,7 +34,7 @@ function formatMetricsTimeseriesLabel({
 
   // When we have both multiple aggregates and groupings, append function name for uniqueness
   if (multiYAxis && hasGroupings && func) {
-    baseName = `${baseName} : ${func.name}(${func.arguments[1] ?? '…'})`;
+    baseName = `${baseName} : ${formattedYAxis}`;
   }
 
   // Add query name prefix with appropriate separator if an alias is present
@@ -61,8 +68,15 @@ export const traceMetricsResponseTransforms: Pick<
     return transformedData;
   },
   transformTimeSeries: (data, widget, queryIndex) =>
-    transformTimeSeriesResponse(data, widget, queryIndex, {
-      getSeriesName: (timeSeries, widgetQuery) =>
-        formatMetricsTimeseriesLabel({widgetQuery, timeSeries}),
-    }),
+    transformTimeSeriesResponse(
+      isPerformanceScoreBreakdownChart(widget.queries[queryIndex]!)
+        ? transformPerformanceScoreBreakdownTimeSeries(data)
+        : data,
+      widget,
+      queryIndex,
+      {
+        getSeriesName: (timeSeries, widgetQuery) =>
+          formatMetricsTimeseriesLabel({widgetQuery, timeSeries}),
+      }
+    ),
 };
