@@ -1228,6 +1228,9 @@ describe('trace view', () => {
         'SpanID: second-transaction'
       );
       await userEvent.click(screen.getByRole('button', {name: 'Close Drawer'}));
+      await waitFor(() =>
+        expect(screen.queryByTestId('trace-drawer-title')).not.toBeInTheDocument()
+      );
       act(() =>
         router.navigate(
           '/organizations/org-slug/performance/trace/trace-id/?node=span-third-transaction'
