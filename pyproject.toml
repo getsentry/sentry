@@ -96,7 +96,7 @@ dependencies = [
   "sentry-ophio>=1.3.1",
   # sentry-options is only used in getsentry for now
   "sentry-options>=1.2.15",
-  "sentry-protos>=0.94.0",
+  "sentry-protos>=0.95.0",
   "sentry-redis-tools>=0.5.0",
   "sentry-viewercontext>=0.3.0",
   "sentry-relay>=0.10.1",
