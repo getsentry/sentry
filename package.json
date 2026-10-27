@@ -86,7 +86,6 @@
     "less-loader": "^13.0.0",
     "peggy": "5.1.1",
     "react": "19.3.0",
-    "reflux": "0.4.1",
     "rehype-expressive-code": "^0.44.2",
     "remark-frontmatter": "^5.0.0",
     "remark-gfm": "^4.0.1",
@@ -97,7 +96,8 @@
     "ts-checker-rspack-plugin": "1.7.1",
     "tslib": "^2.8.1",
     "yaml": "2.9.0",
-    "zrender": "6.1.0"
+    "zrender": "6.1.0",
+    "zustand": "5.0.16"
   },
   "devDependencies": {
     "@boundaries/eslint-plugin": "7.2.0",

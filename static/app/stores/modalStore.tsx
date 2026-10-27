@@ -1,9 +1,7 @@
 import type {FocusTrap} from 'focus-trap';
-import {createStore} from 'reflux';
 
 import type {ModalOptions, ModalRenderProps} from 'sentry/actionCreators/modal';
-
-import type {StrictStoreDefinition} from './types';
+import {createLegacyStore} from 'sentry/stores/createLegacyStore';
 
 type Renderer = (renderProps: ModalRenderProps) => React.ReactNode;
 
@@ -14,53 +12,40 @@ type State = {
   triggerElement?: HTMLElement | null;
 };
 
-interface ModalStoreDefinition extends StrictStoreDefinition<State> {
-  closeModal(): void;
-  init(): void;
-  openModal(renderer: Renderer, options: ModalOptions): void;
-  reset(): void;
-  setFocusTrap(focusTrap: FocusTrap): void;
-}
+const store = createLegacyStore<State>(() => ({renderer: null, options: {}}));
 
-const storeConfig: ModalStoreDefinition = {
-  state: {renderer: null, options: {}},
+export const ModalStore = {
+  ...store,
+
   init() {
-    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
-    // listeners due to their leaky nature in tests.
-
-    this.reset();
-  },
-
-  getState() {
-    return this.state;
+    ModalStore.reset();
   },
 
   reset() {
-    this.state = {
+    store.resetState({
       renderer: null,
       options: {},
-      focusTrap: this.state.focusTrap,
-    };
+      focusTrap: store.getState().focusTrap,
+    });
   },
 
   closeModal() {
-    this.reset();
-    this.trigger(this.state);
+    store.setState(
+      {renderer: null, options: {}, focusTrap: store.getState().focusTrap},
+      true
+    );
   },
 
   openModal(renderer: Renderer, options: ModalOptions) {
     const triggerElement =
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    this.state = {renderer, options, focusTrap: this.state.focusTrap, triggerElement};
-    this.trigger(this.state);
+    store.setState(
+      {renderer, options, focusTrap: store.getState().focusTrap, triggerElement},
+      true
+    );
   },
 
   setFocusTrap(focusTrap: FocusTrap) {
-    this.state = {
-      ...this.state,
-      focusTrap,
-    };
+    store.resetState({...store.getState(), focusTrap});
   },
 };
-
-export const ModalStore = createStore(storeConfig);

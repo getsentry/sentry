@@ -1,10 +1,8 @@
-import {createStore} from 'reflux';
-
+import {createLegacyStore} from 'sentry/stores/createLegacyStore';
 import type {Team} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 
 import {ProjectsStore} from './projectsStore';
-import type {StrictStoreDefinition} from './types';
 
 type State = {
   cursor: string | null;
@@ -14,91 +12,78 @@ type State = {
   teams: Team[];
 };
 
-interface TeamStoreDefinition extends StrictStoreDefinition<State> {
-  getAll(): Team[];
-  getById(id: string): Team | null;
-  getBySlug(slug: string): Team | null;
-  initialized: boolean;
-  loadInitialData(items: Team[], hasMore?: boolean | null, cursor?: string | null): void;
-  loadUserTeams(userTeams: Team[]): void;
-  onCreateSuccess(team: Team): void;
-  onRemoveSuccess(slug: string): void;
-  onUpdateSuccess(itemId: string, response: Team): void;
-  reset(): void;
-  setTeams(teams: Team[], hasMore?: boolean | null, cursor?: string | null): void;
-  updateTeams(teams: Team[]): Team[];
+const initialState: State = {
+  teams: [],
+  loadedUserTeams: false,
+  loading: true,
+  hasMore: null,
+  cursor: null,
+};
+
+const store = createLegacyStore<State>(() => initialState);
+
+function updateTeams(teams: Team[]) {
+  const teamIdMap = store
+    .getState()
+    .teams.reduce((acc: Record<string, Team>, team: Team) => {
+      acc[team.id] = team;
+      return acc;
+    }, {});
+
+  // Replace or insert new user teams
+  teams.reduce((acc: Record<string, Team>, userTeam: Team) => {
+    acc[userTeam.id] = userTeam;
+    return acc;
+  }, teamIdMap);
+
+  return Object.values(teamIdMap).sort((a, b) => a.slug.localeCompare(b.slug));
 }
 
-const teamStoreConfig: TeamStoreDefinition = {
+export const TeamStore = {
+  ...store,
   initialized: false,
-  state: {
-    teams: [],
-    loadedUserTeams: false,
-    loading: true,
-    hasMore: null,
-    cursor: null,
-  },
 
   init() {
-    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
-    // listeners due to their leaky nature in tests.
-
-    this.reset();
+    TeamStore.reset();
   },
 
   reset() {
-    this.state = {
-      teams: [],
-      loadedUserTeams: false,
-      loading: true,
-      hasMore: null,
-      cursor: null,
-    };
+    store.resetState(initialState);
   },
 
-  setTeams(teams, hasMore, cursor) {
-    this.initialized = true;
-    this.state = {
-      teams,
-      loadedUserTeams: defined(hasMore) ? !hasMore : this.state.loadedUserTeams,
-      loading: false,
-      hasMore: hasMore ?? this.state.hasMore,
-      cursor: cursor ?? this.state.cursor,
-    };
-    this.trigger(new Set(teams.map(team => team.id)));
+  setTeams(teams: Team[], hasMore?: boolean | null, cursor?: string | null) {
+    TeamStore.initialized = true;
+    const state = store.getState();
+    store.setState(
+      {
+        teams,
+        loadedUserTeams: defined(hasMore) ? !hasMore : state.loadedUserTeams,
+        loading: false,
+        hasMore: hasMore ?? state.hasMore,
+        cursor: cursor ?? state.cursor,
+      },
+      true
+    );
   },
 
-  loadInitialData(items, hasMore, cursor) {
-    const teams = this.updateTeams(items);
-    this.setTeams(teams, hasMore, cursor);
+  loadInitialData(items: Team[], hasMore?: boolean | null, cursor?: string | null) {
+    TeamStore.setTeams(updateTeams(items), hasMore, cursor);
   },
 
   loadUserTeams(userTeams: Team[]) {
-    const teams = this.updateTeams(userTeams);
-
-    this.state = {
-      ...this.state,
-      loadedUserTeams: true,
-      teams,
-    };
-
-    this.trigger(new Set(teams.map(team => team.id)));
+    store.setState({loadedUserTeams: true, teams: updateTeams(userTeams)});
   },
 
-  onUpdateSuccess(itemId, response) {
+  onUpdateSuccess(itemId: string, response: Team) {
     if (!response) {
       return;
     }
 
-    const item = this.getBySlug(itemId);
+    const {teams} = store.getState();
+    const item = TeamStore.getBySlug(itemId);
 
     if (!item) {
-      this.state = {
-        ...this.state,
-        teams: [...this.state.teams, response],
-      };
-
-      this.trigger(new Set([itemId]));
+      store.setState({teams: [...teams, response]});
       return;
     }
 
@@ -107,63 +92,37 @@ const teamStoreConfig: TeamStoreDefinition = {
     // components use stores correctly. To be safe reload browser :((
     if (response.slug !== itemId) {
       // Replace the team
-      const teams = [...this.state.teams.filter(({slug}) => slug !== itemId), response];
-
-      this.state = {...this.state, teams};
-      this.trigger(new Set([response.slug]));
+      store.setState({teams: [...teams.filter(({slug}) => slug !== itemId), response]});
       return;
     }
 
-    const newTeams = [...this.state.teams];
+    const newTeams = [...teams];
     const index = newTeams.findIndex(team => team.slug === response.slug);
     newTeams[index] = response;
 
-    this.state = {...this.state, teams: newTeams};
-    this.trigger(new Set([itemId]));
+    store.setState({teams: newTeams});
   },
 
   onRemoveSuccess(slug: string) {
-    const teams = this.state.teams.filter(team => team.slug !== slug);
-    this.setTeams(teams);
+    TeamStore.setTeams(store.getState().teams.filter(team => team.slug !== slug));
     ProjectsStore.onDeleteTeam(slug);
   },
 
   onCreateSuccess(team: Team) {
-    this.loadInitialData([team]);
-  },
-
-  getState() {
-    return this.state;
+    TeamStore.loadInitialData([team]);
   },
 
   getById(id: string) {
-    const {teams} = this.state;
-    return teams.find(item => item.id.toString() === id.toString()) || null;
+    return (
+      store.getState().teams.find(item => item.id.toString() === id.toString()) || null
+    );
   },
 
   getBySlug(slug: string) {
-    const {teams} = this.state;
-    return teams.find(item => item.slug === slug) || null;
+    return store.getState().teams.find(item => item.slug === slug) || null;
   },
 
   getAll() {
-    return this.state.teams;
-  },
-
-  updateTeams(teams: Team[]) {
-    const teamIdMap = this.state.teams.reduce((acc: Record<string, Team>, team: Team) => {
-      acc[team.id] = team;
-      return acc;
-    }, {});
-
-    // Replace or insert new user teams
-    teams.reduce((acc: Record<string, Team>, userTeam: Team) => {
-      acc[userTeam.id] = userTeam;
-      return acc;
-    }, teamIdMap);
-
-    return Object.values(teamIdMap).sort((a, b) => a.slug.localeCompare(b.slug));
+    return store.getState().teams;
   },
 };
-
-export const TeamStore = createStore(teamStoreConfig);

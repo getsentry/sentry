@@ -111,9 +111,8 @@ function TrialStartedSidebarItem({subscription, organization, children}: Props) 
   );
 
   useEffect(() => {
-    const unsubscribe = TrialRequestedStore.listen(
-      () => setTrialRequested(TrialRequestedStore.getTrialRequstedState()),
-      undefined
+    const unsubscribe = TrialRequestedStore.subscribe(() =>
+      setTrialRequested(TrialRequestedStore.getTrialRequstedState())
     );
     return () => {
       unsubscribe();

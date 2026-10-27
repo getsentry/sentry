@@ -29,9 +29,9 @@
     "query-string": "7.0.1",
     "react": "19.3.0",
     "react-router": "8.4.0",
-    "reflux": "0.4.1",
     "sentry": "workspace:@sentry-internal/app@*",
-    "zod": "4.6.7"
+    "zod": "4.6.7",
+    "zustand": "5.0.16"
   },
   "devDependencies": {
     "@types/history": "^3.2.5",

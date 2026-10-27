@@ -77,10 +77,12 @@ export function withSubscription<P extends InjectedSubscriptionProps>(
       this.unsubscribe();
     }
 
-    unsubscribe = SubscriptionStore.listen(
-      (subscription: Subscription) => this.onSubscriptionChange(subscription),
-      undefined
-    );
+    unsubscribe = SubscriptionStore.subscribe((subscriptions, prevSubscriptions) => {
+      const orgSlug = this.getOrgSlug();
+      if (orgSlug !== null && subscriptions[orgSlug] !== prevSubscriptions[orgSlug]) {
+        this.onSubscriptionChange(subscriptions[orgSlug]!);
+      }
+    });
     private mounted = false;
 
     configureScopeWithSubscriptionData(subscription: Subscription) {

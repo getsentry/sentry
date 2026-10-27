@@ -15,6 +15,9 @@ const g = (id: string, params?: Partial<Group>): Group => {
 };
 
 describe('GroupStore', () => {
+  let listener: jest.Mock;
+  let unsubscribe: () => void;
+
   beforeEach(() => {
     GroupStore.reset();
   });
@@ -114,10 +117,12 @@ describe('GroupStore', () => {
     const stats: Record<string, TimeseriesValue[]> = {auto: [[1611576000, 10]]};
 
     beforeEach(() => {
-      jest.spyOn(GroupStore, 'trigger');
+      listener = jest.fn();
+      unsubscribe = GroupStore.subscribe(listener);
       GroupStore.items = [g('1'), g('2'), g('3')];
     });
     afterEach(() => {
+      unsubscribe();
       jest.restoreAllMocks();
     });
 
@@ -134,7 +139,7 @@ describe('GroupStore', () => {
       const group = GroupStore.getAllItems()[0] as Group;
 
       expect(group.stats).toEqual(stats);
-      expect(GroupStore.trigger).toHaveBeenCalledWith(new Set(['1', '2', '3']));
+      expect(listener).toHaveBeenCalled();
     });
 
     it('should not change current item ids', () => {
@@ -146,7 +151,7 @@ describe('GroupStore', () => {
       const group1 = GroupStore.getAllItems()[0] as Group;
       const group2 = GroupStore.getAllItems()[1] as Group;
 
-      expect(GroupStore.trigger).toHaveBeenCalledWith(new Set(['2', '3']));
+      expect(listener).toHaveBeenCalled();
       expect(group1.stats).not.toEqual(stats);
       expect(group2.stats).toEqual(stats);
     });
@@ -175,10 +180,12 @@ describe('GroupStore', () => {
 
   describe('update methods', () => {
     beforeEach(() => {
-      jest.spyOn(GroupStore, 'trigger');
+      listener = jest.fn();
+      unsubscribe = GroupStore.subscribe(listener);
       GroupStore.items = [g('1'), g('2'), g('3')];
     });
     afterEach(() => {
+      unsubscribe();
       jest.restoreAllMocks();
     });
 
@@ -186,8 +193,7 @@ describe('GroupStore', () => {
       it("should treat undefined itemIds argument as 'all'", () => {
         GroupStore.onUpdate('1337', undefined, {});
 
-        expect(GroupStore.trigger).toHaveBeenCalledTimes(1);
-        expect(GroupStore.trigger).toHaveBeenCalledWith(new Set(['1', '2', '3']));
+        expect(listener).toHaveBeenCalledTimes(1);
       });
       it('should apply optimistic updates', () => {
         GroupStore.items = [g('1'), g('2')];
@@ -208,8 +214,7 @@ describe('GroupStore', () => {
       it("should treat undefined itemIds argument as 'all'", () => {
         GroupStore.onUpdateSuccess('1337', undefined, {});
 
-        expect(GroupStore.trigger).toHaveBeenCalledTimes(1);
-        expect(GroupStore.trigger).toHaveBeenCalledWith(new Set(['1', '2', '3']));
+        expect(listener).toHaveBeenCalledTimes(1);
       });
     });
 
@@ -217,8 +222,7 @@ describe('GroupStore', () => {
       it("should treat undefined itemIds argument as 'all'", () => {
         GroupStore.onUpdateError('1337', undefined, false);
 
-        expect(GroupStore.trigger).toHaveBeenCalledTimes(1);
-        expect(GroupStore.trigger).toHaveBeenCalledWith(new Set(['1', '2', '3']));
+        expect(listener).toHaveBeenCalledTimes(1);
       });
     });
 
@@ -226,8 +230,7 @@ describe('GroupStore', () => {
       it("should treat undefined itemIds argument as 'all'", () => {
         GroupStore.onDeleteSuccess('1337', undefined, {});
 
-        expect(GroupStore.trigger).toHaveBeenCalledTimes(1);
-        expect(GroupStore.trigger).toHaveBeenCalledWith(new Set(['1', '2', '3']));
+        expect(listener).toHaveBeenCalledTimes(1);
       });
 
       it('should show generic message when itemIds is undefined', () => {
@@ -266,8 +269,7 @@ describe('GroupStore', () => {
         const assignedGroup = g('1', {assignedTo: ActorFixture()});
         GroupStore.onAssignToSuccess('1337', '1', assignedGroup);
 
-        expect(GroupStore.trigger).toHaveBeenCalledTimes(1);
-        expect(GroupStore.trigger).toHaveBeenCalledWith(new Set(['1']));
+        expect(listener).toHaveBeenCalledTimes(1);
         expect(GroupStore.items[0]).toEqual(assignedGroup);
       });
     });

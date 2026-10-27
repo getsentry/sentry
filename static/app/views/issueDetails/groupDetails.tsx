@@ -207,7 +207,7 @@ function useSyncGroupStore(groupId: string, incomingEnvs: string[]) {
 
   // It's possible the overview page is still unloading the store
   useEffect(() => {
-    return GroupStore.listen(() => {
+    return GroupStore.subscribe(() => {
       const [storeGroup] = GroupStore.getState();
       if (
         defined(storeGroup) &&
@@ -226,7 +226,7 @@ function useSyncGroupStore(groupId: string, incomingEnvs: string[]) {
           prev => (prev ? {...prev, json: storeGroup as Group} : prev)
         );
       }
-    }, undefined) as () => void;
+    });
   }, [groupId, incomingEnvs, organization, queryClient]);
 }
 
