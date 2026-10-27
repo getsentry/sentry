@@ -188,7 +188,7 @@ class BreachedMetricWorkflow(SeerWorkflow):
             admission = (
                 SeerWorkflowRunLifecycle(existing).parse_extras(MetricBreachRunExtras).admission
             )
-            if isinstance(admission, RejectedMetricBreachAdmission):
+            if admission.status == "rejected":
                 return RejectedMetricBreach(run=existing, reason=admission.reason, created=False)
             return AcceptedMetricBreach(run=existing, created=False)
 
@@ -202,7 +202,7 @@ class BreachedMetricWorkflow(SeerWorkflow):
             trigger_key=trigger_key, inputs=trigger, extras={"admission": admission.dict()}
         )
         workflow_run = result.lifecycle
-        if isinstance(admission, RejectedMetricBreachAdmission):
+        if admission.status == "rejected":
             workflow_run.reject(
                 error=WorkflowRunError(code=admission.reason, message="Automation quota exceeded.")
             )
