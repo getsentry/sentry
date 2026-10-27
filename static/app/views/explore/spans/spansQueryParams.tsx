@@ -139,6 +139,7 @@ export function getReadableSpansQueryParams(
   });
 }
 
+/** @internal used in tests */
 export function getReadableQueryParamsFromLocation(
   location: Location,
   fieldsOverride?: string[],
