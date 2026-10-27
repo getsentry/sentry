@@ -874,7 +874,7 @@ class TestSeerRpcMethods(APITestCase):
 # each test deterministic instead of iterating all 100+ registered flags.
 _ORG_FEATURES_TEST_SET = {
     "organizations:seer-agent-source-code-search": object(),
-    "organizations:seer-explorer-chat-coding": object(),
+    "organizations:seer-explorer-chat-prompts": object(),
 }
 
 
@@ -899,13 +899,13 @@ class TestGetOrganizationFeatures(APITestCase):
         with self.feature(
             {
                 "organizations:seer-agent-source-code-search": True,
-                "organizations:seer-explorer-chat-coding": True,
+                "organizations:seer-explorer-chat-prompts": True,
             }
         ):
             result = get_organization_features(org_id=self.organization.id)
         # "seer-agent-..." < "seer-explorer-..." alphabetically
         assert result.dict() == {
-            "features": ["seer-agent-source-code-search", "seer-explorer-chat-coding"]
+            "features": ["seer-agent-source-code-search", "seer-explorer-chat-prompts"]
         }
 
     def test_org_not_found_returns_empty(self) -> None:
