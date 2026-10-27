@@ -86,6 +86,12 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "organization.provision-analytics-with-outbox",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Redis
 register(
@@ -4702,5 +4708,14 @@ register(
     "integrations.client.disable_retries",
     default=False,
     type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Whether to query legacy debug/code IDS during debug file lookup.
+# This is a per-request rollout rate.
+register(
+    "debug-files.query-legacy-ids.rollout-rate",
+    type=Float,
+    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

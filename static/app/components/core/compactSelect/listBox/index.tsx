@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import {getInteractionModality} from '@react-aria/interactions';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
 import {useListBox} from '@react-aria/listbox';
@@ -14,7 +14,9 @@ import {
 } from '@sentry/scraps/compactSelect/styles';
 import type {SelectKey, ListItemBase} from '@sentry/scraps/compactSelect/types';
 import {useVirtualizedItems} from '@sentry/scraps/compactSelect/useVirtualizedItems';
+import {hasVisibleLeadingItems} from '@sentry/scraps/compactSelect/utils';
 import {Container} from '@sentry/scraps/layout';
+import {ReserveLeadingSlot} from '@sentry/scraps/menu';
 import type {FormSize} from '@sentry/scraps/theme';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
@@ -182,6 +184,10 @@ export function ListBox<T extends ListItemBase>({
       }),
     [listState.collection, hiddenOptions]
   );
+  const reserveLeadingSlot = useMemo(
+    () => hasVisibleLeadingItems(listItems, hiddenOptions),
+    [listItems, hiddenOptions]
+  );
 
   const mergedProps = mergeProps(listBoxProps, props);
 
@@ -232,7 +238,7 @@ export function ListBox<T extends ListItemBase>({
   }, [hasEverOverflowed, virtualizer.scrollElementRef, listItems, scrollContainerRef]);
 
   return (
-    <Fragment>
+    <ReserveLeadingSlot reserve={reserveLeadingSlot}>
       {listItems.length !== 0 && <ListSeparator role="separator" />}
       {listItems.length !== 0 && label && <ListLabel {...labelProps}>{label}</ListLabel>}
       <Container
@@ -294,6 +300,6 @@ export function ListBox<T extends ListItemBase>({
           </ListWrap>
         </Container>
       </Container>
-    </Fragment>
+    </ReserveLeadingSlot>
   );
 }

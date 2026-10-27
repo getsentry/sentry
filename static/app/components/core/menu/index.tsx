@@ -9,8 +9,10 @@ export {
   MenuSectionGroup as SectionGroup,
   MenuSectionList as SectionList,
   MenuListItem as ListItem,
+  ReserveLeadingSlot,
   MenuSectionSeparator as SectionSeparator,
   SearchInput as Search,
+  useReserveLeadingSlot,
 } from './menu';
 
 export type {ListItemProps, MenuItemTrailingAction} from './menu';

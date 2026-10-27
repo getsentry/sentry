@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from typing import Any
+from uuid import UUID, uuid5
 
 from django.db import router, transaction
 from django.db.models import Q, QuerySet
@@ -30,8 +31,11 @@ from sentry.investigations.services.action_kinds.base import (
     ApplyFailed,
     CannotApplyReason,
 )
+from sentry.investigations.services.orchestration import accept_orchestration_command
 
 logger = logging.getLogger(__name__)
+
+_OUTCOME_NAMESPACE = UUID("3d84e9e2-ed0b-4707-8dfc-8fce87c899ae")
 
 
 LIVE_STATES = (
@@ -281,6 +285,88 @@ def _check_can_apply(
     )
 
 
+def _seer_actor(investigation: Investigation, user_id: int) -> int:
+    # Send commands as the creator, so Seer keeps the run's monitoring connections.
+    return investigation.created_by_id or user_id
+
+
+def _queue_outcome(context: ApplyContext) -> None:
+    """Tell Seer the request was applied."""
+
+    action_request = context.action_request
+    accept_orchestration_command(
+        investigation=context.investigation,
+        request_id=uuid5(_OUTCOME_NAMESPACE, f"{action_request.id}:applied"),
+        expected_workflow_version=context.run.workflow_version,
+        command_type="record_action_outcome",
+        payload={
+            "key": action_request.key,
+            "action": action_request.action_payload,
+            "reportRevision": action_request.report_revision,
+            "outcome": "applied",
+            "appliedBy": context.actor_id,
+        },
+        actor_id=_seer_actor(context.investigation, context.actor_id),
+    )
+
+
+def _check_without_writes(kind: ActionKind, context: ApplyContext) -> None:
+    """Run the kind's check, and undo anything it writes."""
+
+    using = router.db_for_write(InvestigationActionRequest)
+    with transaction.atomic(using=using):
+        kind.check(context)
+        transaction.set_rollback(True, using=using)
+
+
+def _invalid_error(invalid: ActionInvalid) -> ApplyError:
+    # The request stays suggested, so the user can try again.
+    return {
+        "detail": "The change wasn't valid.",
+        "code": ApplyErrorCode.VALIDATION_FAILED,
+        "messages": invalid.messages,
+    }
+
+
+def _check_action_unchanged(
+    action_request: InvestigationActionRequest, expected_action: Mapping[str, Any] | None
+) -> None:
+    # Seer can rewrite a suggestion under the same id, so only act on the one the user saw.
+    if expected_action is not None and expected_action != action_request.action_payload:
+        raise ApplyFailed(
+            {
+                "detail": "Seer changed this suggestion. Check the new one.",
+                "code": ApplyErrorCode.ACTION_CHANGED,
+            }
+        )
+
+
+def _locked_context(
+    investigation: Investigation,
+    action_request: InvestigationActionRequest,
+    request: Request,
+    actor_id: int,
+    *,
+    lock: bool,
+) -> ApplyContext:
+    investigations = Investigation.objects.select_related("organization")
+    runs = InvestigationOrchestrationRun.objects.all()
+    action_requests = InvestigationActionRequest.objects.all()
+    if lock:
+        investigations = investigations.select_for_update(of=("self",))
+        runs = runs.select_for_update()
+        action_requests = action_requests.select_for_update()
+
+    locked = investigations.get(id=investigation.id)
+    return ApplyContext(
+        investigation=locked,
+        run=runs.get(investigation=locked),
+        action_request=action_requests.get(id=action_request.id),
+        request=request,
+        actor_id=actor_id,
+    )
+
+
 def _apply(
     *,
     investigation: Investigation,
@@ -290,44 +376,19 @@ def _apply(
     dry_run: bool,
     expected_action: Mapping[str, Any] | None,
 ) -> InvestigationActionRequest:
-    investigations = Investigation.objects.select_related("organization")
-    runs = InvestigationOrchestrationRun.objects.all()
-    action_requests = InvestigationActionRequest.objects.all()
-    if not dry_run:
-        investigations = investigations.select_for_update(of=("self",))
-        runs = runs.select_for_update()
-        action_requests = action_requests.select_for_update()
-
-    locked = investigations.get(id=investigation.id)
-    run = runs.get(investigation=locked)
-    action_request = action_requests.get(id=action_request.id)
-    kind = _check_can_apply(locked, action_request, request)
-    # Seer can rewrite a suggestion under the same id, so only apply the one the user saw.
-    if expected_action is not None and expected_action != action_request.action_payload:
-        raise ApplyFailed(
-            {
-                "detail": "Seer changed this suggestion. Check the new one.",
-                "code": ApplyErrorCode.ACTION_CHANGED,
-            }
-        )
-
-    context = ApplyContext(
-        investigation=locked,
-        run=run,
-        action_request=action_request,
-        request=request,
-        actor_id=actor_id,
-    )
+    context = _locked_context(investigation, action_request, request, actor_id, lock=not dry_run)
+    kind = _check_can_apply(context.investigation, context.action_request, request)
+    _check_action_unchanged(context.action_request, expected_action)
     try:
         if dry_run:
-            kind.check(context)
-            return action_request
+            _check_without_writes(kind, context)
+            return context.action_request
         details = kind.apply(context)
     except ActionStale as stale:
         if not dry_run:
             # Keep the error on the row, so Seer sending the same suggestion again can't bring
             # it back.
-            action_request.update(
+            context.action_request.update(
                 state=InvestigationActionRequestState.SUPERSEDED,
                 error=ActionRequestError(code=ApplyErrorCode.STALE, current=stale.current),
             )
@@ -339,22 +400,40 @@ def _apply(
             }
         )
     except ActionInvalid as invalid:
-        # The request stays suggested, so the user can try again.
-        raise ApplyFailed(
-            {
-                "detail": "The change wasn't valid.",
-                "code": ApplyErrorCode.VALIDATION_FAILED,
-                "messages": invalid.messages,
-            }
-        )
-    action_request.update(
+        raise ApplyFailed(_invalid_error(invalid))
+    context.action_request.update(
         state=InvestigationActionRequestState.APPLIED,
         applied_by_id=actor_id,
         date_applied=timezone.now(),
         applied_details=details,
         error=None,
     )
-    return action_request
+    _queue_outcome(context)
+    return context.action_request
+
+
+def _get_action_request(
+    investigation: Investigation, action_request_id: str
+) -> InvestigationActionRequest:
+    try:
+        return InvestigationActionRequest.objects.get(
+            id=action_request_id, investigation=investigation
+        )
+    except (InvestigationActionRequest.DoesNotExist, ValueError):
+        raise ResourceDoesNotExist
+
+
+def _commit_then_raise(run: Callable[[], InvestigationActionRequest]) -> InvestigationActionRequest:
+    """Run `run` in a transaction. If it raises ApplyFailed, keep what it wrote, like a stale
+    request, and raise once the transaction commits.
+    """
+
+    with transaction.atomic(using=router.db_for_write(InvestigationActionRequest)):
+        try:
+            return run()
+        except ApplyFailed as failed:
+            error = failed
+    raise error
 
 
 def apply_action_request(
@@ -370,29 +449,14 @@ def apply_action_request(
     says whether it would work, and doesn't take locks or change anything.
     """
 
-    try:
-        action_request = InvestigationActionRequest.objects.get(
-            id=action_request_id, investigation=investigation
+    action_request = _get_action_request(investigation, action_request_id)
+    return _commit_then_raise(
+        lambda: _apply(
+            investigation=investigation,
+            action_request=action_request,
+            request=request,
+            actor_id=actor_id,
+            dry_run=dry_run,
+            expected_action=expected_action,
         )
-    except (InvestigationActionRequest.DoesNotExist, ValueError):
-        raise ResourceDoesNotExist
-
-    using = router.db_for_write(InvestigationActionRequest)
-    with transaction.atomic(using=using):
-        try:
-            return _apply(
-                investigation=investigation,
-                action_request=action_request,
-                request=request,
-                actor_id=actor_id,
-                dry_run=dry_run,
-                expected_action=expected_action,
-            )
-        except ApplyFailed as failed:
-            error = failed
-        finally:
-            if dry_run:
-                # The detector validator can create environments while validating.
-                transaction.set_rollback(True, using=using)
-    # Raise once the transaction commits, so a stale request stays superseded.
-    raise error
+    )
