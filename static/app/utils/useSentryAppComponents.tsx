@@ -25,11 +25,16 @@ export function useSentryAppComponents<
     | SentryAppSchemaElement,
 >({
   componentType,
+  enabled = true,
 }: {
   componentType: SentryAppComponent['type'];
+  enabled?: boolean;
 }): Array<SentryAppComponent<Schema>> {
   const organization = useOrganization();
-  const {data} = useQuery(sentryAppComponentsApiOptions({orgSlug: organization.slug}));
+  const {data} = useQuery({
+    ...sentryAppComponentsApiOptions({orgSlug: organization.slug}),
+    enabled,
+  });
 
   return useMemo(
     () =>

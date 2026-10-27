@@ -28,6 +28,7 @@ import type {PlatformKey} from 'sentry/types/platform';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useSentryAppComponents} from 'sentry/utils/useSentryAppComponents';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 
@@ -105,8 +106,13 @@ export function DeprecatedLine({
   onShowFramesToggle,
   registersMeta,
 }: DeprecatedLineProps) {
+  const {projects} = useProjects();
+  // Projects aren't loaded on the shared issue page, which can't make
+  // authenticated requests
+  const hasProject = projects.some(p => p.id === event.projectID);
   const components = useSentryAppComponents<SentryAppSchemaStacktraceLink>({
     componentType: 'stacktrace-link',
+    enabled: hasProject,
   });
   const {openModal} = useModal();
 
