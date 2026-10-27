@@ -26,7 +26,6 @@ from sentry.workflow_engine.handlers.detector.base import (
 from sentry.workflow_engine.handlers.detector.condition import DetectorHandler
 from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
 from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
-from sentry.workflow_engine.processors.evaluations import DetectorEvaluationData
 from sentry.workflow_engine.types import (
     DetectorGroupKey,
     DetectorPriorityLevel,
@@ -599,16 +598,12 @@ class StatefulDetectorHandler(
             event_data.setdefault("received", detector_result.detection_time)
             event_data.setdefault("tags", {})
 
-        return DetectorEvaluation(
-            result=detector_result,
-            data=DetectorEvaluationData(
-                group_key=group_key,
-                trigger_group_evaluation=group_evaluation,
-                event_data=event_data,
-            ),
-            triggered=new_priority != DetectorPriorityLevel.OK,
-            priority=new_priority,
-        )
+        if new_priority == DetectorPriorityLevel.OK:
+            evaluation = DetectorEvaluation.ok(group_key, group_evaluation)
+        else:
+            evaluation = DetectorEvaluation.create_issue(group_key, new_priority, group_evaluation)
+
+        return evaluation.with_result(detector_result, event_data=event_data)
 
     def _get_configured_detector_levels(self) -> list[DetectorPriorityLevel]:
         conditions = self.detector.get_conditions()

@@ -11,7 +11,6 @@ from sentry.workflow_engine.handlers.detector.base import (
 from sentry.workflow_engine.models import DataConditionGroup, DataPacket, Detector
 from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
 from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
-from sentry.workflow_engine.processors.evaluations import DetectorEvaluationData
 from sentry.workflow_engine.types import (
     DetectorGroupKey,
     DetectorPriorityLevel,
@@ -195,13 +194,6 @@ class DetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationTy
 
         event_data = self._build_event_data(event_data, issue_occurrence)
 
-        return DetectorEvaluation(
-            result=issue_occurrence,
-            data=DetectorEvaluationData(
-                group_key=group_key,
-                trigger_group_evaluation=trigger_evaluation,
-                event_data=event_data,
-            ),
-            triggered=True,
-            priority=priority,
+        return DetectorEvaluation.create_issue(group_key, priority, trigger_evaluation).with_result(
+            issue_occurrence, event_data=event_data
         )
