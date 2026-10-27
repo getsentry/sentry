@@ -274,3 +274,7 @@ class InvestigationTitlePreviewResponse(TypedDict):
 
 class InvestigationActionRequestApplyResponse(TypedDict):
     actionRequest: InvestigationActionRequestSerializerResponse
+
+
+class InvestigationActionRequestRecheckResponse(TypedDict):
+    actionRequest: InvestigationActionRequestSerializerResponse
