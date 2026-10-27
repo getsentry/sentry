@@ -9,7 +9,7 @@ This skill provides patterns for building forms using Sentry's new form system b
 
 ## Core Principle
 
-- Always use the new form system (`useScrapsForm`, `AutoSaveForm`) for new forms. Never create new forms with the legacy JsonForm or Reflux-based systems.
+- Always use the new form system (`useScrapsForm`, `AutoSaveForm`) for new forms. Never create new forms with the legacy JsonForm system.
 
 - All forms should be schema based. DO NOT create a form without schema validation.
 
