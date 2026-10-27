@@ -120,6 +120,7 @@ class IntegrationProxyClient(ApiClient):
 
     _should_proxy_to_control = False
     _use_proxy_url_for_tests = False
+    disable_proxy_retries = False
 
     def __init__(
         self,
@@ -160,7 +161,9 @@ class IntegrationProxyClient(ApiClient):
         if SiloMode.get_current_mode() == SiloMode.CELL:
             return build_session(
                 is_ipaddress_permitted=is_control_silo_ip_address,
-                max_retries=Retry(
+                max_retries=0
+                if self.disable_proxy_retries
+                else Retry(
                     total=options.get("hybridcloud.integrationproxy.retries"),
                     backoff_factor=0.1,
                     status_forcelist=[503],
