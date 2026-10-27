@@ -492,6 +492,11 @@ def get_token_based_billing_project_repos(
     )
 
 
+def get_seer_project_repo(project_repo: ProjectRepository) -> SeerProjectRepository | None:
+    """Avoid raising RelatedObjectDoesNotExist when ProjectRepository has no SeerProjectRepository."""
+    return getattr(project_repo, "seerprojectrepository", None)
+
+
 def build_seer_repo_definition(
     repo: Repository, seer_project_repo: SeerProjectRepository | None
 ) -> SeerRepoDefinition | None:
@@ -530,9 +535,8 @@ def _get_repo_definitions_by_project(
     repo_definitions_by_project: defaultdict[int, list[SeerRepoDefinition]] = defaultdict(list)
     if is_seer_token_based_billing_onboarding_enabled(organization):
         for project_repo in get_token_based_billing_project_repos(organization, project_ids):
-            # getattr since accessing a missing one-to-one raises RelatedObjectDoesNotExist.
             repo_def = build_seer_repo_definition(
-                project_repo.repository, getattr(project_repo, "seerprojectrepository", None)
+                project_repo.repository, get_seer_project_repo(project_repo)
             )
             if repo_def is not None:
                 repo_definitions_by_project[project_repo.project_id].append(repo_def)
@@ -742,6 +746,44 @@ class ProjectRepoCreateData(TypedDict):
     branch_name: NotRequired[str | None]
     instructions: NotRequired[str | None]
     branch_overrides: NotRequired[list[BranchOverrideData]]
+
+
+class ProjectRepoUpdateData(TypedDict):
+    branch_name: NotRequired[str | None]
+    instructions: NotRequired[str | None]
+    branch_overrides: NotRequired[list[BranchOverrideData]]
+
+
+def update_seer_project_repo(
+    seer_project_repo: SeerProjectRepository, data: ProjectRepoUpdateData
+) -> None:
+    """Update a Seer project repo's config. Fields missing from data are left unchanged."""
+    if "branch_name" in data:
+        seer_project_repo.branch_name = data["branch_name"]
+    if "instructions" in data:
+        seer_project_repo.instructions = data["instructions"]
+    if "branch_name" in data or "instructions" in data:
+        seer_project_repo.save()
+
+    if "branch_overrides" in data:
+        SeerProjectRepositoryBranchOverride.objects.filter(
+            seer_project_repository=seer_project_repo
+        ).delete()
+        if data["branch_overrides"]:
+            SeerProjectRepositoryBranchOverride.objects.bulk_create(
+                [
+                    SeerProjectRepositoryBranchOverride(
+                        seer_project_repository=seer_project_repo,
+                        tag_name=override["tag_name"],
+                        tag_value=override["tag_value"],
+                        branch_name=override["branch_name"],
+                    )
+                    for override in data["branch_overrides"]
+                ],
+                update_conflicts=True,
+                update_fields=["branch_name", "date_updated"],
+                unique_fields=["seer_project_repository", "tag_name", "tag_value"],
+            )
 
 
 def add_seer_project_repos(project: Project, repos_data: list[ProjectRepoCreateData]) -> list[int]:
