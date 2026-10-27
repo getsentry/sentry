@@ -4,7 +4,7 @@ from collections.abc import Iterable
 from typing import TYPE_CHECKING, ClassVar
 
 from django.conf import settings
-from django.db import IntegrityError, models, router, transaction
+from django.db import IntegrityError, OperationalError, models, router, transaction
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -128,9 +128,9 @@ class GroupSubscriptionManager(BaseManager["GroupSubscription"]):
 
             try:
                 with transaction.atomic(router.db_for_write(GroupSubscription)):
-                    self.bulk_create(subscriptions)
+                    self.bulk_create(subscriptions, ignore_conflicts=True)
                     return True
-            except IntegrityError:
+            except (IntegrityError, OperationalError):
                 if i == 0:
                     raise
         return False
