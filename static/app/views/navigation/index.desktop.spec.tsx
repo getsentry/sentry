@@ -464,6 +464,19 @@ describe('desktop navigation', () => {
         'Org Settings'
       )
     ).toBeInTheDocument();
+    // Account pages live under the Account scope, not in the Org sidebar.
+    expect(
+      within(screen.getByRole('navigation', {name: 'Secondary Navigation'})).getByRole(
+        'link',
+        {name: 'Organization Tokens'}
+      )
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('navigation', {name: 'Secondary Navigation'})).queryByRole(
+        'link',
+        {name: 'Personal Tokens'}
+      )
+    ).not.toBeInTheDocument();
     expect(
       within(screen.getByRole('navigation', {name: 'Secondary Navigation'})).getByRole(
         'button',
@@ -508,6 +521,12 @@ describe('desktop navigation', () => {
       within(screen.getByRole('navigation', {name: 'Secondary Navigation'})).getByRole(
         'link',
         {name: 'General'}
+      )
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('navigation', {name: 'Secondary Navigation'})).getByRole(
+        'link',
+        {name: 'Personal Tokens'}
       )
     ).toBeInTheDocument();
   });

@@ -11,7 +11,8 @@ const userSettingsPathPrefix = '/settings/account';
 type ConfigParams = {
   /**
    * Whether the `settings-v3` navigation is enabled. Index items are titled
-   * "General" instead of "General Settings".
+   * "General" instead of "General Settings", and the organization
+   * configuration leaves out account pages, which move to the Account scope.
    */
   settingsV3?: boolean;
 };
@@ -19,10 +20,17 @@ type ConfigParams = {
 export function getUserOrgNavigationConfiguration({
   settingsV3,
 }: ConfigParams = {}): NavigationSection[] {
+  if (settingsV3) {
+    return [
+      ...getOrganizationNavigationConfiguration({settingsV3}),
+      ...getDeveloperNavigationConfiguration({organization: true, account: false}),
+    ];
+  }
+
   return [
     ...getAccountNavigationConfiguration({settingsV3}),
     ...getOrganizationNavigationConfiguration({settingsV3}),
-    ...getDeveloperNavigationConfiguration(true),
+    ...getDeveloperNavigationConfiguration({organization: true, account: true}),
   ];
 }
 
@@ -31,7 +39,7 @@ export function getUserNavigationConfiguration({
 }: ConfigParams = {}): NavigationSection[] {
   return [
     ...getAccountNavigationConfiguration({settingsV3}),
-    ...getDeveloperNavigationConfiguration(false),
+    ...getDeveloperNavigationConfiguration({organization: false, account: true}),
   ];
 }
 
@@ -341,10 +349,14 @@ function getOrganizationNavigationConfiguration({
   ];
 }
 
-function getDeveloperNavigationConfiguration(
-  includeOrganization: boolean
-): NavigationSection[] {
-  const items: NavigationItem[] = [
+function getDeveloperNavigationConfiguration({
+  organization,
+  account,
+}: {
+  account: boolean;
+  organization: boolean;
+}): NavigationSection[] {
+  const accountItems: NavigationItem[] = [
     {
       path: `${userSettingsPathPrefix}/api/auth-tokens/`,
       title: t('Personal Tokens'),
@@ -371,7 +383,9 @@ function getDeveloperNavigationConfiguration(
     },
   ];
 
-  if (includeOrganization) {
+  const items: NavigationItem[] = account ? accountItems : [];
+
+  if (organization) {
     items.unshift({
       path: `${organizationSettingsPathPrefix}/auth-tokens/`,
       title: t('Organization Tokens'),
