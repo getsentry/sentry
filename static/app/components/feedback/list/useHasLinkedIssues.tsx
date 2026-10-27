@@ -1,6 +1,3 @@
-import {useQuery} from '@tanstack/react-query';
-
-import {sentryAppInstallationsApiOptions} from 'sentry/actionCreators/sentryAppInstallations';
 import type {ExternalIssueComponent} from 'sentry/components/group/externalIssuesList/types';
 import {useIssueTrackingFilter} from 'sentry/components/group/externalIssuesList/useIssueTrackingFilter';
 import type {Event} from 'sentry/types/event';
@@ -17,22 +14,15 @@ export function useHasLinkedIssues({group, event}: Props) {
   const organization = useOrganization();
   const issueTrackingFilter = useIssueTrackingFilter();
   const components = useSentryAppComponents({
-    projectId: group.project.id,
     componentType: 'issue-link',
   });
-  const {data: sentryAppInstallations = []} = useQuery(
-    sentryAppInstallationsApiOptions({orgSlug: organization.slug})
-  );
 
   const renderSentryAppIssues = (): ExternalIssueComponent[] => {
     return components
       .map<ExternalIssueComponent | null>(component => {
         const {sentryApp} = component;
         const disabled = Boolean(component.error);
-        const installation = sentryAppInstallations.find(
-          i => i.app.uuid === sentryApp.uuid
-        );
-        if (!installation) {
+        if (!component.installationUuid) {
           return null;
         }
 
@@ -51,7 +41,7 @@ export function useHasLinkedIssues({group, event}: Props) {
             organization,
             event,
             sentryAppComponent: component,
-            sentryAppInstallation: installation,
+            sentryAppInstallationUuid: component.installationUuid,
             externalIssue: issue,
             disabled,
           },

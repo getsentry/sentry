@@ -98,8 +98,6 @@ export function NativeFrame({
   isHoverPreviewed = false,
 }: Props) {
   const components = useSentryAppComponents<SentryAppSchemaStacktraceLink>({
-    projectId: event.projectID,
-    enabled: false,
     componentType: 'stacktrace-link',
   });
   const isDartAsyncSuspensionFrame =

@@ -1,5 +1,4 @@
 import {useMemo, type ComponentProps} from 'react';
-import {useQuery} from '@tanstack/react-query';
 import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
 import {EventFixture} from 'sentry-fixture/event';
 import {EventEntryStacktraceFixture} from 'sentry-fixture/eventEntryStacktrace';
@@ -20,12 +19,6 @@ import type {StackTraceViewStateProviderProps} from 'sentry/components/stackTrac
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
-import {sentryAppComponentsApiOptions} from 'sentry/utils/useSentryAppComponents';
-
-function FetchSentryAppComponents({projectId}: {projectId: string}) {
-  useQuery(sentryAppComponentsApiOptions({orgSlug: 'org-slug', projectId}));
-  return null;
-}
 
 type StacktraceWithFrames = StacktraceType & {
   frames: NonNullable<StacktraceType['frames']>;
@@ -105,6 +98,10 @@ function ExampleStackTrace() {
 describe('Core StackTrace', () => {
   const longFilename = `/source/${'long directory with spaces/'.repeat(10)}runner.py`;
   beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sentry-app-components/',
+      body: [],
+    });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/prompts-activity/',
       body: {
@@ -579,7 +576,6 @@ describe('Core StackTrace', () => {
 
     render(
       <TestStackTraceProvider event={event} stacktrace={stacktrace}>
-        <FetchSentryAppComponents projectId={event.projectID} />
         <DisplayOptions />
         <StackTraceFrames
           frameContextComponent={FrameContent}

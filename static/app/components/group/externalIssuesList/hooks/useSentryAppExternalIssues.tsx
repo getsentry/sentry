@@ -32,9 +32,10 @@ export function useSentryAppExternalIssues({
     organization,
   });
   const sentryAppComponents = useSentryAppComponents({
-    projectId: group.project.id,
     componentType: 'issue-link',
   });
+  // Tickets from installed apps without an issue-link component still show,
+  // components alone can't tell us those apps are installed
   const {data: sentryAppInstallations = []} = useQuery(
     sentryAppInstallationsApiOptions({orgSlug: organization.slug})
   );
@@ -47,11 +48,8 @@ export function useSentryAppExternalIssues({
 
   const displayedExternalIssues = new Set<string>();
   for (const component of sentryAppComponents) {
-    const installation = sentryAppInstallations.find(
-      i => i.app.uuid === component.sentryApp.uuid
-    );
-
-    if (!installation) {
+    const {installationUuid} = component;
+    if (!installationUuid) {
       continue;
     }
 
@@ -104,7 +102,7 @@ export function useSentryAppExternalIssues({
                 group,
                 event,
                 sentryAppComponent: component,
-                sentryAppInstallation: installation,
+                sentryAppInstallationUuid: installationUuid,
               });
             },
           },

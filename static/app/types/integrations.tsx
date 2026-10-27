@@ -335,6 +335,10 @@ export type SentryAppComponent<
   type: 'issue-link' | 'alert-rule-action' | 'issue-media' | 'stacktrace-link';
   uuid: string;
   error?: string | boolean;
+  /**
+   * Only returned by the organization sentry-app-components endpoint
+   */
+  installationUuid?: string;
 };
 
 export type SentryAppAvatar = Avatar & {

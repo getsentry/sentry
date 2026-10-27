@@ -5,7 +5,6 @@ import {JiraIntegrationFixture} from 'sentry-fixture/jiraIntegration';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PlatformExternalIssueFixture} from 'sentry-fixture/platformExternalIssue';
 import {SentryAppComponentFixture} from 'sentry-fixture/sentryAppComponent';
-import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation';
 
 import {
   render,
@@ -147,14 +146,6 @@ describe('ExternalIssueSidebarList', () => {
       url: `/organizations/${organization.slug}/sentry-app-components/`,
       body: [component],
     });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/sentry-app-installations/`,
-      body: [
-        SentryAppInstallationFixture({
-          app: component.sentryApp,
-        }),
-      ],
-    });
 
     render(<ExternalIssueSidebarList event={event} group={group} />);
 
@@ -221,14 +212,6 @@ describe('ExternalIssueSidebarList', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sentry-app-components/`,
       body: [asanaComponent],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/sentry-app-installations/`,
-      body: [
-        SentryAppInstallationFixture({
-          app: asanaComponent.sentryApp,
-        }),
-      ],
     });
     mockExternalLinkRequests([
       GitHubIntegrationFixture({

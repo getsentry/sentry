@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import {skipToken, useQuery} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 
 import type {
   SentryAppComponent,
@@ -9,18 +9,11 @@ import type {
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-export function sentryAppComponentsApiOptions({
-  orgSlug,
-  projectId,
-}: {
-  orgSlug: string;
-  projectId: string | undefined;
-}) {
+export function sentryAppComponentsApiOptions({orgSlug}: {orgSlug: string}) {
   return apiOptions.as<SentryAppComponent[]>()(
     '/organizations/$organizationIdOrSlug/sentry-app-components/',
     {
-      path: projectId ? {organizationIdOrSlug: orgSlug} : skipToken,
-      query: {projectId},
+      path: {organizationIdOrSlug: orgSlug},
       staleTime: Infinity,
     }
   );
@@ -31,29 +24,18 @@ export function useSentryAppComponents<
     | SentryAppSchemaStacktraceLink
     | SentryAppSchemaElement,
 >({
-  projectId,
   componentType,
-  enabled = true,
 }: {
-  componentType: undefined | SentryAppComponent['type'];
-  projectId: string | undefined;
-  /**
-   * Pass false to only read components that are already cached. Issue details
-   * prefetches them, so stack trace frames don't fetch on every surface.
-   */
-  enabled?: boolean;
+  componentType: SentryAppComponent['type'];
 }): Array<SentryAppComponent<Schema>> {
   const organization = useOrganization();
-  const {data} = useQuery({
-    ...sentryAppComponentsApiOptions({orgSlug: organization.slug, projectId}),
-    enabled: enabled && Boolean(projectId),
-  });
+  const {data} = useQuery(sentryAppComponentsApiOptions({orgSlug: organization.slug}));
 
-  return useMemo(() => {
-    const components = data ?? [];
-    const filtered = componentType
-      ? components.filter(item => item.type === componentType)
-      : components;
-    return filtered as Array<SentryAppComponent<Schema>>;
-  }, [data, componentType]);
+  return useMemo(
+    () =>
+      (data ?? []).filter(item => item.type === componentType) as Array<
+        SentryAppComponent<Schema>
+      >,
+    [data, componentType]
+  );
 }

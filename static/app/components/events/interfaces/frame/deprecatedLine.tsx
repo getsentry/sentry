@@ -106,8 +106,6 @@ export function DeprecatedLine({
   registersMeta,
 }: DeprecatedLineProps) {
   const components = useSentryAppComponents<SentryAppSchemaStacktraceLink>({
-    projectId: event.projectID,
-    enabled: false,
     componentType: 'stacktrace-link',
   });
   const {openModal} = useModal();

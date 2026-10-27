@@ -4,7 +4,6 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {JiraIntegrationFixture} from 'sentry-fixture/jiraIntegration';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {SentryAppComponentFixture} from 'sentry-fixture/sentryAppComponent';
-import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -17,11 +16,11 @@ describe('ExternalIssueList', () => {
 
   beforeEach(() => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/sentry-app-installations/`,
+      url: `/organizations/${organization.slug}/sentry-app-components/`,
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/sentry-app-components/`,
+      url: `/organizations/${organization.slug}/sentry-app-installations/`,
       body: [],
     });
   });
@@ -58,14 +57,6 @@ describe('ExternalIssueList', () => {
       body: [],
     });
     const component = SentryAppComponentFixture();
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/sentry-app-installations/`,
-      body: [
-        SentryAppInstallationFixture({
-          app: component.sentryApp,
-        }),
-      ],
-    });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sentry-app-components/`,
       body: [component],

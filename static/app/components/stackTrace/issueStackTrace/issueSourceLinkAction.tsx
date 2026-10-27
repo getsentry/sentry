@@ -25,8 +25,6 @@ export function IssueSourceLinkAction({isHovering = false}: IssueSourceLinkActio
   const {project} = useStackTraceContext();
 
   const storeComponents = useSentryAppComponents({
-    projectId: event.projectID,
-    enabled: false,
     componentType: 'stacktrace-link',
   });
   const components = useMemo(

@@ -21,6 +21,10 @@ describe('SharedGroupDetails', () => {
 
   beforeEach(() => {
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sentry-app-components/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,
       method: 'GET',
       body: [],
