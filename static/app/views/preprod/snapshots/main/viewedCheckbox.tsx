@@ -22,6 +22,7 @@ export function ViewedCheckbox({
   return (
     <Tooltip
       disabled={!showHotkey}
+      position="bottom"
       skipWrapper
       title={
         <Flex align="center" gap="sm">
