@@ -27,6 +27,7 @@ from sentry.api.base import StatsArgsDict, StatsMixin, cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.search.eap.constants import VALID_GRANULARITIES
 from sentry.uptime.endpoints.utils import (
     MAX_UPTIME_SUBSCRIPTION_IDS,
     authorize_and_map_uptime_detector_subscription_ids,
@@ -35,6 +36,21 @@ from sentry.uptime.types import IncidentStatus
 from sentry.utils.snuba_rpc import timeseries_rpc
 
 logger = logging.getLogger(__name__)
+
+
+def closest_valid_granularity_secs(rollup: int) -> int:
+    """Snap a rollup onto an EAP timeseries granularity.
+
+    The check-in timeline can request intervals Snuba rejects, such as 3 days
+    (259200s). When two allowed values are equally close, prefer the coarser
+    one so the request does not gain buckets.
+    """
+    if rollup in VALID_GRANULARITIES:
+        return rollup
+    return min(
+        VALID_GRANULARITIES,
+        key=lambda granularity: (abs(granularity - rollup), -granularity),
+    )
 
 
 @cell_silo_endpoint
@@ -102,6 +118,7 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         start_timestamp.FromDatetime(eap_query_start)
         end_timestamp = Timestamp()
         end_timestamp.FromDatetime(timerange_args["end"])
+        granularity_secs = closest_valid_granularity_secs(timerange_args["rollup"])
 
         subscription_filter = TraceItemFilter(
             comparison_filter=ComparisonFilter(
@@ -163,7 +180,7 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
                     type=AttributeKey.Type.TYPE_INT,
                 ),
             ],
-            granularity_secs=timerange_args["rollup"],
+            granularity_secs=granularity_secs,
             filter=query_filter,
         )
         responses = timeseries_rpc([request])

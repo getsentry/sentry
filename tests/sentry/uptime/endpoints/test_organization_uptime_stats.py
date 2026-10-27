@@ -3,8 +3,19 @@ from datetime import datetime, timedelta, timezone
 
 from sentry.testutils.cases import APITestCase, SnubaTestCase, UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.uptime.endpoints.organization_uptime_stats import closest_valid_granularity_secs
 from sentry.uptime.types import IncidentStatus
 from sentry.utils import json
+
+
+def test_closest_valid_granularity_secs() -> None:
+    assert closest_valid_granularity_secs(86400) == 86400
+    assert closest_valid_granularity_secs(259200) == 86400
+    assert closest_valid_granularity_secs(100) == 120
+    # 90s is equally close to 60s and 120s. Prefer the coarser bucket.
+    assert closest_valid_granularity_secs(90) == 120
+    assert closest_valid_granularity_secs(10) == 15
+
 
 MOCK_DATETIME = datetime.now(tz=timezone.utc) - timedelta(days=1)
 
@@ -74,6 +85,21 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
                 "success": 0,
                 "missed_window": 0,
             }
+
+    def test_invalid_eap_granularity_falls_back(self) -> None:
+        """A 3-day timeline interval is not a valid EAP granularity. Use 1 day."""
+        with self.feature(self.features):
+            response = self.get_success_response(
+                self.organization.slug,
+                project=[self.project.id],
+                uptimeDetectorId=[str(self.detector.id)],
+                since=(datetime.now(timezone.utc) - timedelta(days=7)).timestamp(),
+                until=datetime.now(timezone.utc).timestamp(),
+                resolution="259200s",
+            )
+            assert response.data is not None
+            data = json.loads(json.dumps(response.data))
+            assert len(data[str(self.detector.id)]) == 7
 
     def test_invalid_detector_id(self) -> None:
         """
