@@ -246,7 +246,7 @@ function AppliedBy({actionRequest}: {actionRequest: InvestigationActionRequest})
   );
 }
 
-function isShownActionRequest(actionRequest: InvestigationActionRequest) {
+export function isShownActionRequest(actionRequest: InvestigationActionRequest) {
   return SHOWN_STATES.has(actionRequest.state) || isStaleActionRequest(actionRequest);
 }
 

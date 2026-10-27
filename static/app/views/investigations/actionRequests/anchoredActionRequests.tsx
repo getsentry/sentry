@@ -1,6 +1,9 @@
 import {Stack} from '@sentry/scraps/layout';
 
-import {ActionRequestCard} from 'sentry/views/investigations/actionRequests/actionRequestCard';
+import {
+  ActionRequestCard,
+  isShownActionRequest,
+} from 'sentry/views/investigations/actionRequests/actionRequestCard';
 import type {
   InvestigationActionRequest,
   InvestigationActionRequestAnchor,
@@ -22,13 +25,14 @@ export function AnchoredActionRequests({
   runProcessing,
   source,
 }: AnchoredActionRequestsProps) {
-  if (actionRequests.length === 0) {
+  const shown = actionRequests.filter(isShownActionRequest);
+  if (shown.length === 0) {
     return null;
   }
 
   return (
     <Stack gap="xl">
-      {actionRequests.map(actionRequest => (
+      {shown.map(actionRequest => (
         <ActionRequestCard
           key={actionRequest.id}
           actionRequest={actionRequest}
