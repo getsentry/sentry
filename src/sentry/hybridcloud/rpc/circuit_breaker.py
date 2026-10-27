@@ -54,7 +54,7 @@ class RpcCircuitBreaker:
 
     def should_reject(self) -> bool:
         """
-        Whether to reject a call to this destination now. Calls to the open breaker 
+        Whether to reject a call to this destination now. Calls to the open breaker
         that would reject are counted even when it isn't enforcing.
         """
         if self.destination in options.get(
