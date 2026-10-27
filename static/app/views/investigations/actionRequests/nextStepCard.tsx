@@ -24,6 +24,7 @@ type NextStepCardProps = {
   actionRequestsStale?: boolean;
   orchestrationLoading?: boolean;
   source?: InvestigationDetail['source'];
+  waitingOnRun?: boolean;
 };
 
 export function NextStepCard({
@@ -33,6 +34,7 @@ export function NextStepCard({
   orchestration,
   orchestrationLoading = false,
   source,
+  waitingOnRun = false,
 }: NextStepCardProps) {
   const heading = t('Recommended action');
 
@@ -52,6 +54,7 @@ export function NextStepCard({
         finishing={orchestration?.report.nextStep?.status === 'generating'}
         heading={heading}
         investigationId={investigationId}
+        runProcessing={isRunWorking(orchestration) || waitingOnRun}
         source={source}
       />
     );
@@ -66,6 +69,10 @@ export function NextStepCard({
   }
 
   return null;
+}
+
+function isRunWorking(orchestration: InvestigationOrchestration | undefined) {
+  return orchestration?.status === 'pending' || orchestration?.status === 'processing';
 }
 
 export function getPrimaryActionRequest(

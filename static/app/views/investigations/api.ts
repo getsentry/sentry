@@ -635,6 +635,7 @@ const actionRequestErrorSchema = z.discriminatedUnion('code', [
       'already_applied',
       'withdrawn',
       'action_changed',
+      'not_stale',
     ]),
   }),
   z.object({
@@ -646,6 +647,30 @@ const actionRequestErrorSchema = z.discriminatedUnion('code', [
 
 export type ActionRequestError = z.infer<typeof actionRequestErrorSchema>;
 
+const actionRequestFollowUpSchema = z.object({
+  status: z.enum(['accepted', 'dispatched', 'acknowledged', 'failed']),
+  reason: z
+    .enum([
+      'workflow_version_conflict',
+      'idempotency_conflict',
+      'invalid_command_target',
+      'action_requests_report_changed',
+      'run_cancelled',
+      'run_failed',
+      'provider_not_connected',
+      'provider_already_used',
+    ])
+    .nullable(),
+  rerun: z.enum(['started', 'held', 'skipped']).nullable(),
+});
+
+export type ActionRequestFollowUp = z.infer<typeof actionRequestFollowUpSchema>;
+
+export function isFollowUpPending(actionRequest: InvestigationActionRequest) {
+  const status = actionRequest.followUp?.status;
+  return status === 'accepted' || status === 'dispatched';
+}
+
 export function parseApplyError(error: unknown): ActionRequestError | null {
   const parsed = actionRequestErrorSchema.safeParse(
     error instanceof RequestError ? error.responseJSON : undefined
@@ -653,21 +678,24 @@ export function parseApplyError(error: unknown): ActionRequestError | null {
   return parsed.success ? parsed.data : null;
 }
 
-function getActionRequestApplyUrl(
+type ActionRequestCommand = 'apply' | 'recheck';
+
+function getActionRequestUrl(
   organizationSlug: string,
   investigationId: string,
-  actionRequestId: string
+  actionRequestId: string,
+  command: ActionRequestCommand
 ) {
-  return getApiUrl(
-    '/organizations/$organizationIdOrSlug/investigations/$investigationId/action-requests/$actionRequestId/apply/',
-    {
-      path: {
-        organizationIdOrSlug: organizationSlug,
-        investigationId,
-        actionRequestId,
-      },
-    }
-  );
+  const path = {organizationIdOrSlug: organizationSlug, investigationId, actionRequestId};
+  return command === 'apply'
+    ? getApiUrl(
+        '/organizations/$organizationIdOrSlug/investigations/$investigationId/action-requests/$actionRequestId/apply/',
+        {path}
+      )
+    : getApiUrl(
+        '/organizations/$organizationIdOrSlug/investigations/$investigationId/action-requests/$actionRequestId/recheck/',
+        {path}
+      );
 }
 
 export function actionRequestDryRunQueryOptions(
@@ -675,10 +703,11 @@ export function actionRequestDryRunQueryOptions(
   investigationId: string,
   actionRequest: InvestigationActionRequest
 ) {
-  const url = getActionRequestApplyUrl(
+  const url = getActionRequestUrl(
     organizationSlug,
     investigationId,
-    actionRequest.id
+    actionRequest.id,
+    'apply'
   );
   const endpoint = {
     method: 'POST',
@@ -705,9 +734,10 @@ export function actionRequestDryRunQueryOptions(
   });
 }
 
-export function useApplyInvestigationActionRequestMutation(
+export function useInvestigationActionRequestMutation(
   organizationSlug: string,
   investigationId: string,
+  command: ActionRequestCommand,
   options?: MutationOptions<
     InvestigationActionRequestApplyResponse,
     InvestigationActionRequest
@@ -727,10 +757,11 @@ export function useApplyInvestigationActionRequestMutation(
     ...options,
     mutationFn: actionRequest =>
       fetchMutation<InvestigationActionRequestApplyResponse>({
-        url: getActionRequestApplyUrl(
+        url: getActionRequestUrl(
           organizationSlug,
           investigationId,
-          actionRequest.id
+          actionRequest.id,
+          command
         ),
         method: 'POST',
         data: {action: actionRequest.action},
@@ -756,6 +787,15 @@ export function useApplyInvestigationActionRequestMutation(
       await options?.onSuccess?.(response, variables, onMutateResult, context);
     },
     onError: async (error, variables, onMutateResult, context) => {
+      if (parseApplyError(error)?.code === 'not_stale') {
+        void queryClient.invalidateQueries({
+          queryKey: actionRequestDryRunQueryOptions(
+            organizationSlug,
+            investigationId,
+            variables
+          ).queryKey,
+        });
+      }
       await Promise.all([
         queryClient.invalidateQueries({queryKey: detailOptions.queryKey}),
         queryClient.invalidateQueries({queryKey: orchestrationOptions.queryKey}),

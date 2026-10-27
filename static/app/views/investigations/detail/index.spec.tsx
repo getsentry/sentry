@@ -374,6 +374,297 @@ describe('Investigation detail', () => {
     ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 
+  describe('while Seer re-checks a stale suggestion', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(async () => {
+      try {
+        await act(() => jest.runOnlyPendingTimersAsync());
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    function investigationWith(
+      status: 'accepted' | 'acknowledged',
+      runStatus: 'completed' | 'processing' = 'completed'
+    ) {
+      return InvestigationAgenticDetailFixture({
+        blocks: [],
+        orchestration: {
+          phase: runStatus === 'completed' ? 'completed' : 'metadata',
+          status: runStatus,
+          heartbeatAt: null,
+          notebookRevision: 5,
+        },
+        actionRequests: [
+          InvestigationActionRequestFixture({
+            state: 'superseded',
+            canApply: false,
+            cannotApplyReason: 'not_suggested',
+            error: {code: 'stale', current: {timeWindowSeconds: 600}},
+            followUp: {status, reason: null, rerun: null},
+          }),
+        ],
+      });
+    }
+
+    it('reads the investigation until Seer picks up the re-check', async () => {
+      MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: investigationWith('accepted'),
+      });
+      MockApiClient.addMockResponse({
+        url: orchestrationUrl,
+        body: InvestigationOrchestrationFixture({
+          phase: 'completed',
+          status: 'completed',
+        }),
+      });
+      renderView();
+
+      expect(
+        await screen.findByText(/Seer is checking the suggestion again…/)
+      ).toBeInTheDocument();
+
+      const acknowledged = MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: investigationWith('acknowledged'),
+      });
+      await act(() => jest.advanceTimersByTimeAsync(2000));
+
+      expect(acknowledged).toHaveBeenCalled();
+      await waitFor(() =>
+        expect(
+          screen.queryByText(/Seer is checking the suggestion again/)
+        ).not.toBeInTheDocument()
+      );
+      const later = MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: investigationWith('acknowledged'),
+      });
+      await act(() => jest.advanceTimersByTimeAsync(10_000));
+      expect(later).not.toHaveBeenCalled();
+    });
+
+    it('reads the run again while Seer works on the re-check', async () => {
+      MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: investigationWith('acknowledged', 'processing'),
+      });
+      MockApiClient.addMockResponse({
+        url: orchestrationUrl,
+        body: InvestigationOrchestrationFixture({
+          phase: 'completed',
+          status: 'completed',
+        }),
+      });
+      renderView();
+      expect(
+        await screen.findByText(/Ask Seer about this investigation/)
+      ).toBeInTheDocument();
+
+      const processing = MockApiClient.addMockResponse({
+        url: orchestrationUrl,
+        body: InvestigationOrchestrationFixture({
+          phase: 'metadata',
+          status: 'processing',
+        }),
+      });
+      await act(() => jest.advanceTimersByTimeAsync(2000));
+
+      expect(processing).toHaveBeenCalled();
+      expect(
+        await screen.findByText(/Seer is updating its suggestion…/)
+      ).toBeInTheDocument();
+    });
+
+    const completedRun = InvestigationOrchestrationFixture({
+      phase: 'completed',
+      status: 'completed',
+    });
+    const processingRun = InvestigationOrchestrationFixture({
+      phase: 'metadata',
+      status: 'processing',
+    });
+
+    async function acknowledgeRecheck(
+      body: ReturnType<typeof investigationWith> = investigationWith('acknowledged')
+    ) {
+      MockApiClient.addMockResponse({url: detailUrl, body});
+      await act(() => jest.advanceTimersByTimeAsync(2000));
+      await waitFor(() =>
+        expect(
+          screen.queryByText(/Seer is checking the suggestion again/)
+        ).not.toBeInTheDocument()
+      );
+    }
+
+    it('reads the run until it shows up after Seer picks up the re-check', async () => {
+      MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: investigationWith('accepted'),
+      });
+      MockApiClient.addMockResponse({url: orchestrationUrl, body: completedRun});
+      renderView();
+      expect(
+        await screen.findByText(/Seer is checking the suggestion again…/)
+      ).toBeInTheDocument();
+      await acknowledgeRecheck();
+      expect(screen.getByText(/Seer is updating its suggestion…/)).toBeInTheDocument();
+      expect(
+        screen.queryByText(/Ask Seer about this investigation/)
+      ).not.toBeInTheDocument();
+
+      const notLive = MockApiClient.addMockResponse({
+        url: orchestrationUrl,
+        body: completedRun,
+      });
+      await act(() => jest.advanceTimersByTimeAsync(4000));
+      expect(notLive).toHaveBeenCalled();
+
+      MockApiClient.addMockResponse({url: orchestrationUrl, body: processingRun});
+      await act(() => jest.advanceTimersByTimeAsync(2000));
+
+      expect(
+        await screen.findByText(/Seer is updating its suggestion…/)
+      ).toBeInTheDocument();
+    });
+
+    it('stops reading the run if the re-check never shows up', async () => {
+      MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: investigationWith('accepted'),
+      });
+      MockApiClient.addMockResponse({url: orchestrationUrl, body: completedRun});
+      renderView();
+      expect(
+        await screen.findByText(/Seer is checking the suggestion again…/)
+      ).toBeInTheDocument();
+      await acknowledgeRecheck();
+
+      await act(() => jest.advanceTimersByTimeAsync(60_000));
+      expect(
+        await screen.findByText(/Ask Seer about this investigation/)
+      ).toBeInTheDocument();
+      const later = MockApiClient.addMockResponse({
+        url: orchestrationUrl,
+        body: completedRun,
+      });
+      await act(() => jest.advanceTimersByTimeAsync(10_000));
+      expect(later).not.toHaveBeenCalled();
+    });
+
+    it('does not wait on a re-check that was over before the page opened', async () => {
+      MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: investigationWith('acknowledged'),
+      });
+      MockApiClient.addMockResponse({url: orchestrationUrl, body: completedRun});
+      renderView();
+      expect(
+        await screen.findByText(/Ask Seer about this investigation/)
+      ).toBeInTheDocument();
+
+      const later = MockApiClient.addMockResponse({
+        url: orchestrationUrl,
+        body: completedRun,
+      });
+      await act(() => jest.advanceTimersByTimeAsync(10_000));
+      expect(later).not.toHaveBeenCalled();
+    });
+
+    it('waits on the newest re-check next to an old one', async () => {
+      function withOldRecheck(status: 'accepted' | 'acknowledged') {
+        const body = investigationWith(status);
+        const requests = body.actionRequests ?? [];
+        return {
+          ...body,
+          actionRequests: [
+            InvestigationActionRequestFixture({
+              ...requests[0],
+              id: '310',
+              followUp: {status: 'acknowledged', reason: null, rerun: null},
+            }),
+            ...requests,
+          ],
+        };
+      }
+      MockApiClient.addMockResponse({url: detailUrl, body: withOldRecheck('accepted')});
+      MockApiClient.addMockResponse({url: orchestrationUrl, body: completedRun});
+      renderView();
+      expect(
+        await screen.findByText(/Seer is checking the suggestion again…/)
+      ).toBeInTheDocument();
+      await act(() => jest.advanceTimersByTimeAsync(60_000));
+      await acknowledgeRecheck(withOldRecheck('acknowledged'));
+
+      MockApiClient.addMockResponse({url: orchestrationUrl, body: processingRun});
+      await act(() => jest.advanceTimersByTimeAsync(2000));
+
+      expect(
+        await screen.findByText(/Seer is updating its suggestion…/)
+      ).toBeInTheDocument();
+    });
+  });
+
+  it('waits for the re-check after a stale suggestion is rechecked', async () => {
+    const staleBody = {
+      code: 'stale',
+      detail: 'This changed since Seer suggested it.',
+      current: {timeWindowSeconds: 600},
+    };
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationAgenticDetailFixture({
+        actionRequests: [InvestigationActionRequestFixture()],
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture({phase: 'completed', status: 'completed'}),
+    });
+    MockApiClient.addMockResponse({
+      url: `${detailUrl}action-requests/312/apply/`,
+      method: 'POST',
+      statusCode: 409,
+      match: [MockApiClient.matchData({dryRun: true})],
+      body: staleBody,
+    });
+    const rechecked = InvestigationActionRequestFixture({
+      state: 'superseded',
+      canApply: false,
+      cannotApplyReason: 'not_suggested',
+      error: {code: 'stale', current: {timeWindowSeconds: 600}},
+      followUp: {status: 'accepted', reason: null, rerun: null},
+    });
+    const recheckRequest = MockApiClient.addMockResponse({
+      url: `${detailUrl}action-requests/312/recheck/`,
+      method: 'POST',
+      body: {actionRequest: rechecked},
+    });
+    renderView();
+
+    const recheck = await screen.findByRole('button', {name: 'Recheck suggestion'});
+    await waitFor(() => expect(recheck).toBeEnabled());
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationAgenticDetailFixture({actionRequests: [rechecked]}),
+    });
+    await userEvent.click(recheck);
+
+    expect(recheckRequest).toHaveBeenCalledTimes(1);
+    expect(
+      await screen.findByText(/Seer is checking the suggestion again…/)
+    ).toBeInTheDocument();
+    expect(screen.getByText('Now: 10 minutes')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Recheck suggestion'})
+    ).not.toBeInTheDocument();
+  });
+
   it('shows a stale apply once the investigation is read again', async () => {
     MockApiClient.addMockResponse({
       url: detailUrl,
@@ -400,6 +691,7 @@ describe('Investigation detail', () => {
 
     const button = await screen.findByRole('button', {name: 'Update monitor'});
     await waitFor(() => expect(button).toBeEnabled());
+    let finishDetail!: () => void;
     MockApiClient.addMockResponse({
       url: detailUrl,
       body: InvestigationAgenticDetailFixture({
@@ -409,20 +701,33 @@ describe('Investigation detail', () => {
             canApply: false,
             cannotApplyReason: 'not_suggested',
             error: {code: 'stale', current: {timeWindowSeconds: 600}},
+            followUp: {status: 'accepted', reason: null, rerun: null},
           }),
         ],
+      }),
+      asyncDelay: new Promise<void>(resolve => {
+        finishDetail = resolve;
       }),
     });
     await userEvent.click(button);
 
-    expect(await screen.findByText('Now: 10 minutes')).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'Updating monitor…'})).toBeDisabled();
+    expect(
+      screen.queryByRole('button', {name: 'Recheck suggestion'})
+    ).not.toBeInTheDocument();
+    act(() => finishDetail());
+
+    expect(
+      await screen.findByText(/Seer is checking the suggestion again…/)
+    ).toBeInTheDocument();
+    expect(screen.getByText('Now: 10 minutes')).toBeInTheDocument();
     expect(
       within(screen.getByRole('region', {name: 'Recommended action'})).getAllByText(
         /The monitor changed since Seer suggested this/
       )
     ).toHaveLength(1);
     expect(
-      screen.queryByRole('button', {name: 'Update monitor'})
+      screen.queryByRole('button', {name: /Update monitor|Recheck suggestion/})
     ).not.toBeInTheDocument();
   });
 

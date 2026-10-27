@@ -56,6 +56,8 @@ type ActionRequestApplyProps = {
   check: ApplyCheck;
   finishing: boolean;
   onApply: () => void;
+  onRecheck: () => void;
+  rechecking: boolean;
 };
 
 export function ActionRequestApply({
@@ -64,6 +66,8 @@ export function ActionRequestApply({
   check,
   finishing,
   onApply,
+  onRecheck,
+  rechecking,
 }: ActionRequestApplyProps) {
   const kind = getActionKind(actionRequest.action);
   if (!kind) {
@@ -78,6 +82,8 @@ export function ActionRequestApply({
       finishing={finishing}
       message={getApplyMessage(actionRequest, check, finishing)}
       onApply={onApply}
+      onRecheck={onRecheck}
+      rechecking={rechecking}
     />
   );
 }
@@ -201,6 +207,8 @@ function getSharedCannotApplyMessage(reason: ApplyBlockReason) {
       return t('Seer changed this suggestion. Check the new one.');
     case 'validation_failed':
       return t("This change wasn't valid.");
+    case 'not_stale':
+      return t('Nothing changed since Seer suggested this.');
     default:
       return null;
   }

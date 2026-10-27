@@ -1,6 +1,7 @@
 import type {AvatarUser} from 'sentry/types/user';
 import type {
   ActionRequestError,
+  ActionRequestFollowUp,
   CannotApplyReason,
   InvestigationDetectorValues,
 } from 'sentry/views/investigations/api';
@@ -288,6 +289,7 @@ export type InvestigationActionRequest = {
   dateApplied: string | null;
   dateCreated: string;
   error: ActionRequestError | null;
+  followUp: ActionRequestFollowUp | null;
   id: string;
   impact: string | null;
   key: string;

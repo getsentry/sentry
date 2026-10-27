@@ -110,6 +110,8 @@ function UpdateDetectorApply({
   finishing,
   message,
   onApply,
+  onRecheck,
+  rechecking,
 }: ActionKindApplyProps<InvestigationUpdateDetectorAction>) {
   const organization = useOrganization();
   switch (actionRequest.state) {
@@ -122,6 +124,8 @@ function UpdateDetectorApply({
           disabled={finishing}
           message={message}
           onApply={onApply}
+          onRecheck={onRecheck}
+          rechecking={rechecking}
           icon={<IconSiren />}
           label={t('Update monitor')}
           busyLabel={t('Updating monitor…')}

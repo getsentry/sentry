@@ -44,6 +44,7 @@ import {
   investigationListQueryOptions,
   investigationOrchestrationQueryOptions,
   investigationTitleGenerationQueryOptions,
+  isFollowUpPending,
   useDeleteInvestigationMutation,
   useDuplicateInvestigationMutation,
   useRenameInvestigationMutation,
@@ -189,6 +190,58 @@ function useRefetchStaleActionRequests(
   return detailUpdates === refresh.detailUpdates;
 }
 
+const RECHECK_RUN_WAIT_MS = 60_000;
+
+type RecheckRunWait = {pending: string[]; waiting: string[]};
+
+/**
+ * Seer can acknowledge a re-check before the investigation shows its run, and then
+ * nothing would read the run again. Wait for the run only on re-checks this page saw
+ * pending, since an old acknowledged follow-up stays on the request after it's over.
+ */
+function useRecheckRunWait(actionRequests: InvestigationActionRequest[] = []) {
+  const [wait, setWait] = useState<RecheckRunWait>({pending: [], waiting: []});
+  const acknowledged = new Set(
+    actionRequests
+      .filter(
+        request =>
+          request.state !== 'withdrawn' && request.followUp?.status === 'acknowledged'
+      )
+      .map(request => request.id)
+  );
+  const next: RecheckRunWait = {
+    pending: actionRequests.filter(isFollowUpPending).map(request => request.id),
+    waiting: [...new Set([...wait.waiting, ...wait.pending])].filter(id =>
+      acknowledged.has(id)
+    ),
+  };
+  if (
+    next.pending.join() !== wait.pending.join() ||
+    next.waiting.join() !== wait.waiting.join()
+  ) {
+    setWait(next);
+  }
+  const waitingKey = next.waiting.join();
+  useEffect(() => {
+    if (!waitingKey) {
+      return;
+    }
+    const timer = setTimeout(
+      () => setWait(current => ({...current, waiting: []})),
+      RECHECK_RUN_WAIT_MS
+    );
+    return () => clearTimeout(timer);
+  }, [waitingKey]);
+  return {
+    waiting: next.waiting.length > 0,
+    stop: () => setWait(current => ({...current, waiting: []})),
+  };
+}
+
+function isRunLive(orchestration: InvestigationOrchestration | undefined) {
+  return orchestration !== undefined && shouldPollInvestigationRun(orchestration.status);
+}
+
 export function InvestigationBootstrapPage({investigationId}: {investigationId: string}) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
@@ -219,6 +272,7 @@ export function InvestigationBootstrapPage({investigationId}: {investigationId: 
         data?.orchestration && shouldPollInvestigationRun(data.orchestration.status);
       return isSeerWorking ||
         orchestrationActive ||
+        data?.actionRequests?.some(isFollowUpPending) ||
         shouldPollInvestigationBlocks(data?.blocks ?? []) ||
         isTitleGenerationActive(data?.titleGeneration?.status)
         ? 2000
@@ -301,10 +355,21 @@ function InvestigationPageContentInner({
       ? titleGenerationQuery.data?.preview
       : null;
   const displayedTitle = draftTitle ?? generatedTitlePreview ?? investigation.title;
+  const recheckRunWait = useRecheckRunWait(investigation.actionRequests);
   const {data: orchestration, isPending: orchestrationPending} = useQuery({
     ...investigationOrchestrationQueryOptions(organization.slug, investigation.id),
     enabled: Boolean(investigation.orchestration),
+    refetchInterval: query =>
+      (investigation.orchestration &&
+        shouldPollInvestigationRun(investigation.orchestration.status)) ||
+      isRunLive(query.state.data?.json) ||
+      recheckRunWait.waiting
+        ? 2000
+        : false,
   });
+  if (recheckRunWait.waiting && isRunLive(orchestration)) {
+    recheckRunWait.stop();
+  }
   const actionRequestsStale = useRefetchStaleActionRequests(
     investigation.id,
     orchestration,
@@ -656,6 +721,7 @@ function InvestigationPageContentInner({
                 orchestrationLoading={
                   Boolean(investigation.orchestration) && orchestrationPending
                 }
+                waitingOnRun={recheckRunWait.waiting}
               />
 
               {showDetailsHeading ? <Separator orientation="horizontal" /> : null}
