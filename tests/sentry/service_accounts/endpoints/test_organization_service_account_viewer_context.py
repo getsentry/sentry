@@ -109,7 +109,7 @@ class OrganizationServiceAccountViewerContextTest(APITestCase):
         other_org = self.create_organization()
 
         response = self._post(
-            ViewerContext(actor=Actor(type=ActorType.UNKNOWN), organization_id=other_org.id)
+            ViewerContext(actor=Actor(type=ActorType.SYSTEM), organization_id=other_org.id)
         )
 
         assert response.status_code == 403

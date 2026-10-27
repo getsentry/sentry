@@ -47,6 +47,7 @@ export type ActionKindUI<A extends InvestigationAction> = {
   Details?: ComponentType<ActionKindDetailsProps<A>>;
   getActivityNote?: (props: KindProps<A>) => string | null;
   getSuccessMessage?: () => string;
+  refreshOnFocus?: (actionRequest: InvestigationActionRequest) => boolean;
 };
 
 const ACTION_KIND_UI: {[K in ActionKind]: ActionKindUI<ActionByKind[K]>} = {
