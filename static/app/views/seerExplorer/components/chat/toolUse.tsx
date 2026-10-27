@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {IconLink} from '@sentry/icons/link';
 import type {LocationDescriptor} from 'history';
@@ -25,6 +25,7 @@ import {
 } from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {
@@ -640,6 +641,35 @@ export function ToolCallList({block, latestTodos, getPageReferrer}: ToolCallList
   );
 }
 
+const OPEN_TRACE_PATHNAME = /\/trace\/[^/]+\/$/;
+
+/**
+ * Rules build a trace link with only its target, so following one to the trace that is already open
+ * would drop the zoom, tab and filters the page has. Keep those and replace only the target.
+ */
+function useKeepOpenTraceQuery() {
+  const location = useLocation();
+  return useCallback(
+    (url: LocationDescriptor): LocationDescriptor => {
+      if (
+        typeof url === 'string' ||
+        url.pathname !== location.pathname ||
+        !OPEN_TRACE_PATHNAME.test(location.pathname)
+      ) {
+        return url;
+      }
+      const {
+        node: _node,
+        eventId: _eventId,
+        targetId: _targetId,
+        ...query
+      } = location.query;
+      return {...url, query: {...query, ...url.query}};
+    },
+    [location]
+  );
+}
+
 interface NavItem {
   /** The rule that resolved the link, for analytics. */
   kind: string;
@@ -671,6 +701,7 @@ function CallRow({
   row: RenderRow;
   onLinkClick?: (e: React.MouseEvent) => void;
 }) {
+  const keepOpenTraceQuery = useKeepOpenTraceQuery();
   const text = (
     <Tooltip title={row.failure ?? ''} disabled={!row.failure}>
       <ToolCallText size="xs" variant="muted" monospace>
@@ -679,7 +710,7 @@ function CallRow({
     </Tooltip>
   );
   const label = row.url ? (
-    <ToolCallLink to={row.url} onClick={onLinkClick}>
+    <ToolCallLink to={keepOpenTraceQuery(row.url)} onClick={onLinkClick}>
       {text}
       <ToolCallLinkIconWrapper>
         <ToolCallLinkIcon size="xs" />
@@ -733,6 +764,7 @@ function CodeModeCallRow({
   url: LocationDescriptor | null;
   onLinkClick?: (e: React.MouseEvent) => void;
 }) {
+  const keepOpenTraceQuery = useKeepOpenTraceQuery();
   const detail = callRecordDetail(record);
   const failure = callRecordFailure(record);
   const inputQuery = callRecordInputQuery(record);
@@ -749,7 +781,7 @@ function CodeModeCallRow({
         url && !isFailure
           ? {
               value: linkLabel ?? t('Open'),
-              to: url,
+              to: keepOpenTraceQuery(url),
               icon: <Icon />,
               onClick: onLinkClick,
             }
@@ -838,13 +870,17 @@ function NavLinks({
   navItems: NavItem[];
   onNavLinkClick?: (kind: string) => (e: React.MouseEvent) => void;
 }) {
+  const keepOpenTraceQuery = useKeepOpenTraceQuery();
   return (
     <Stack as="ul" gap="xs" padding="0">
       {navItems.map((item, idx) => (
         <Flex key={`${item.kind}-${idx}`} as="li" gap="sm" align="center">
           {/* ToolCallText (not plain Text) so ToolCallLink's hover rule, which targets it by
               class, colors the label the same way it does the positional row link. */}
-          <ToolCallLink to={item.url} onClick={onNavLinkClick?.(item.kind)}>
+          <ToolCallLink
+            to={keepOpenTraceQuery(item.url)}
+            onClick={onNavLinkClick?.(item.kind)}
+          >
             <ToolCallText size="xs" monospace>
               {item.label}
             </ToolCallText>
