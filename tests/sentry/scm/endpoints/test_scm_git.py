@@ -27,6 +27,7 @@ from sentry.testutils.silo import cell_silo_test
 
 SECRET = "a-long-value-that-is-hard-to-guess"
 TOKEN = "ghs_installation_token"
+GITLAB_TOKEN = "gitlab_oauth_token"
 FEATURE = "organizations:scm-git-endpoint"
 REFERRER = "seer.coding_job"
 # Far enough ahead that the GitHub client never refreshes the token over the network.
@@ -375,11 +376,13 @@ class ScmGitEndpointTest(TestCase):
         )
 
     @responses.activate
-    def test_refuses_a_gitlab_repository(self) -> None:
+    def test_relays_a_gitlab_fetch_with_the_identity_token(self) -> None:
         identity_provider = self.create_identity_provider(
             type="gitlab", external_id="gitlab.com:acme"
         )
-        identity = self.create_identity(self.user, identity_provider, "gitlab-user")
+        identity = self.create_identity(
+            self.user, identity_provider, "gitlab-user", data={"access_token": GITLAB_TOKEN}
+        )
         integration = self.create_integration(
             organization=self.organization,
             provider="gitlab",
@@ -399,11 +402,21 @@ class ScmGitEndpointTest(TestCase):
             external_id="gitlab.com:42",
         )
         repo.update(config={"path": "acme/widget"})
+        responses.add(
+            responses.GET,
+            "https://gitlab.com/acme/widget.git/info/refs",
+            match=[matchers.query_string_matcher("service=git-upload-pack")],
+            body=b"001e# service=git-upload-pack\n0000",
+            content_type="application/x-git-upload-pack-advertisement",
+        )
         grant = sign(self.organization.id, "fetch", [repo.id])
 
         response = self.fetch_refs(grant, repo.id)
 
-        self.assert_refused(response, 404, b"Sentry can't relay git for gitlab repositories yet.")
+        assert response.status_code == 200
+        assert b"".join(response) == b"001e# service=git-upload-pack\n0000"
+        credentials = base64.b64encode(f"oauth2:{GITLAB_TOKEN}".encode()).decode()
+        assert responses.calls[0].request.headers["Authorization"] == f"Basic {credentials}"
 
     @responses.activate
     def test_refuses_a_route_with_a_trailing_slash(self) -> None:
