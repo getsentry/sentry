@@ -171,14 +171,15 @@ class OrganizationEventsDroppedEndpoint(OrganizationEventsEndpointBase):
                 },
             ):
                 try:
-                    dropped_raw, accepted_raw, suppressed_drops = get_dropped_data_annotations(
+                    annotations = get_dropped_data_annotations(
                         dataset, snuba_params, rollup, outcome=outcome, reason=reason
                     )
-                    dropped_events = [_to_bucket(bucket) for bucket in dropped_raw]
+                    dropped_events = [_to_bucket(bucket) for bucket in annotations.dropped]
                     accepted_events = [
                         _to_bucket(bucket, outcome=_ACCEPTED, reason=_ACCEPTED)
-                        for bucket in accepted_raw
+                        for bucket in annotations.accepted
                     ]
+                    suppressed_drops = annotations.suppressed
                 except ParseError:
                     # ParseErrors should bubble up so we 400 to the user
                     raise

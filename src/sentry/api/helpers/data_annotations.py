@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 import logging
-from typing import Any, Literal, TypedDict
+from typing import Any, Literal, NamedTuple, TypedDict
 
 import sentry_sdk
 from packaging import version
@@ -44,6 +44,19 @@ class SuppressedDrop(TypedDict):
     outcome: str
     reason: str
     count: int
+
+
+@dataclasses.dataclass(frozen=True)
+class DroppedDataAnnotations:
+    dropped: list[Annotation] = dataclasses.field(default_factory=list)
+    accepted: list[Annotation] = dataclasses.field(default_factory=list)
+    suppressed: list[SuppressedDrop] = dataclasses.field(default_factory=list)
+
+
+class DropKey(NamedTuple):
+    bucket: float
+    outcome: str
+    reason: str
 
 
 def record_dropped_events_telemetry(
@@ -169,10 +182,10 @@ def _dropped_by_bucket_reason(
     *,
     outcome_filter: str | None = None,
     reason_filter: str | None = None,
-) -> dict[tuple[float, str, str], int]:
+) -> dict[DropKey, int]:
     """Sum dropped quantity keyed by (bucket, outcome, reason), keeping only the
     drops that match ``outcome_filter`` and ``reason_filter`` when given."""
-    dropped: dict[tuple[float, str, str], int] = {}
+    dropped: dict[DropKey, int] = {}
     accepted_name = Outcome.ACCEPTED.api_name()
     for row in rows:
         outcome = str(row.get("outcome", ""))
@@ -187,7 +200,7 @@ def _dropped_by_bucket_reason(
         reason_key = str(reason) if reason is not None else outcome
         if reason_filter is not None and reason_key != reason_filter:
             continue
-        key = (bucket, outcome, reason_key)
+        key = DropKey(bucket, outcome, reason_key)
         dropped[key] = dropped.get(key, 0) + int(row.get("quantity", 0) or 0)
     return dropped
 
@@ -228,15 +241,15 @@ def _has_affected_js_sdk(snuba_params: SnubaParams) -> bool:
 
 
 def _suppress_js_sdk_buffer_overflow(
-    dropped_by_key: dict[tuple[float, str, str], int],
+    dropped_by_key: dict[DropKey, int],
     category: DataCategory,
     snuba_params: SnubaParams,
-) -> tuple[dict[tuple[float, str, str], int], list[SuppressedDrop]]:
+) -> tuple[dict[DropKey, int], list[SuppressedDrop]]:
     """Withhold log `buffer_overflow` drops when an affected JavaScript SDK is
     seen in the selected projects. Drops are left untouched when no affected SDK
     is seen or the lookup fails, so only confirmed misreports are hidden."""
     if category != DataCategory.LOG_ITEM or not any(
-        _is_js_sdk_buffer_overflow(outcome, reason) for _, outcome, reason in dropped_by_key
+        _is_js_sdk_buffer_overflow(key.outcome, key.reason) for key in dropped_by_key
     ):
         return dropped_by_key, []
 
@@ -248,11 +261,10 @@ def _suppress_js_sdk_buffer_overflow(
     if not has_affected_sdk:
         return dropped_by_key, []
 
-    remaining: dict[tuple[float, str, str], int] = {}
+    remaining: dict[DropKey, int] = {}
     suppressed_count = 0
     for key, count in dropped_by_key.items():
-        _, outcome, reason = key
-        if _is_js_sdk_buffer_overflow(outcome, reason):
+        if _is_js_sdk_buffer_overflow(key.outcome, key.reason):
             suppressed_count += count
         else:
             remaining[key] = count
@@ -275,13 +287,12 @@ def get_dropped_data_annotations(
     threshold: int = DEFAULT_DROP_THRESHOLD,
     outcome: str | None = None,
     reason: str | None = None,
-) -> tuple[list[Annotation], list[Annotation], list[SuppressedDrop]]:
+) -> DroppedDataAnnotations:
     """Build dropped and accepted data-fidelity annotations for a timeseries query.
-    - ``dropped_annotations``: one per (bucket, outcome, reason) drop.
-    - ``accepted_annotations``: one per bucket, carrying that bucket's accepted
-      volume.
-    - ``suppressed_drops``: drop volume withheld from ``dropped_annotations``
-      because it is a known SDK misreport.
+    - ``dropped``: one per (bucket, outcome, reason) drop.
+    - ``accepted``: one per bucket, carrying that bucket's accepted volume.
+    - ``suppressed``: drop volume withheld from ``dropped`` because it is a
+      known SDK misreport.
 
     ``outcome`` and ``reason`` optionally narrow the *dropped* side to a single
     classification: ``outcome`` is the top-level drop class (e.g. ``rate_limited``)
@@ -295,10 +306,10 @@ def get_dropped_data_annotations(
     """
     category = DATASET_TO_CATEGORY.get(dataset)
     if category is None:
-        return [], [], []
+        return DroppedDataAnnotations()
     if snuba_params.organization_id is None:
         logger.warning("data_annotations.missing_organization", extra={"dataset": str(dataset)})
-        return [], [], []
+        return DroppedDataAnnotations()
     organization_id = snuba_params.organization_id
 
     with traces.start_span(
@@ -318,16 +329,16 @@ def get_dropped_data_annotations(
         )
 
         dropped_annotations: list[Annotation] = []
-        for (bucket_start_ms, bucket_outcome, reason_key), dropped in dropped_by_key.items():
+        for key, dropped in dropped_by_key.items():
             if dropped < threshold:
                 continue
             annotation = Annotation(
                 type="system",
                 category=category.api_name(),
-                outcome=bucket_outcome,
-                reason=reason_key,
-                start=bucket_start_ms,
-                end=bucket_start_ms + rollup * 1000,
+                outcome=key.outcome,
+                reason=key.reason,
+                start=key.bucket,
+                end=key.bucket + rollup * 1000,
                 eventCount=dropped,
             )
             dropped_annotations.append(annotation)
@@ -348,4 +359,8 @@ def get_dropped_data_annotations(
         span.set_attribute("dropped_annotation_count", len(dropped_annotations))
         span.set_attribute("accepted_annotation_count", len(accepted_annotations))
         span.set_attribute("suppressed_drop_count", sum(drop["count"] for drop in suppressed_drops))
-        return dropped_annotations, accepted_annotations, suppressed_drops
+        return DroppedDataAnnotations(
+            dropped=dropped_annotations,
+            accepted=accepted_annotations,
+            suppressed=suppressed_drops,
+        )

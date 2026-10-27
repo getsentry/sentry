@@ -59,7 +59,8 @@ class GetDroppedDataAnnotationsTest(OutcomesSnubaTest, SnubaTestCase, OurLogTest
             Outcome.RATE_LIMITED, DataCategory.SPAN, drop_at, reason="over_quota", quantity=2000
         )
 
-        dropped, accepted, _ = get_dropped_data_annotations(Spans, self._snuba_params(), ONE_HOUR)
+        annotations = get_dropped_data_annotations(Spans, self._snuba_params(), ONE_HOUR)
+        dropped, accepted = annotations.dropped, annotations.accepted
 
         assert len(dropped) == 1
         assert dropped[0]["category"] == DataCategory.SPAN.api_name()
@@ -80,11 +81,11 @@ class GetDroppedDataAnnotationsTest(OutcomesSnubaTest, SnubaTestCase, OurLogTest
         when = self.start + timedelta(minutes=30)
         self._store_drop(Outcome.ACCEPTED, DataCategory.SPAN, when, quantity=5000)
 
-        dropped, accepted, _ = get_dropped_data_annotations(Spans, self._snuba_params(), ONE_HOUR)
+        annotations = get_dropped_data_annotations(Spans, self._snuba_params(), ONE_HOUR)
 
-        assert dropped == []
-        assert len(accepted) == 1
-        assert accepted[0]["eventCount"] == 5000
+        assert annotations.dropped == []
+        assert len(annotations.accepted) == 1
+        assert annotations.accepted[0]["eventCount"] == 5000
 
     def _store_sdk_log(
         self, sdk_name: str, sdk_version: str, environment: str = "production"
@@ -119,14 +120,12 @@ class GetDroppedDataAnnotationsTest(OutcomesSnubaTest, SnubaTestCase, OurLogTest
         self._store_log_drops()
         self._store_sdk_log("sentry.javascript.browser", "10.5.0")
 
-        dropped, _, suppressed = get_dropped_data_annotations(
-            OurLogs, self._snuba_params(), ONE_HOUR
-        )
+        annotations = get_dropped_data_annotations(OurLogs, self._snuba_params(), ONE_HOUR)
 
-        assert [(d["outcome"], d["reason"]) for d in dropped] == [
+        assert [(d["outcome"], d["reason"]) for d in annotations.dropped] == [
             (Outcome.RATE_LIMITED.api_name(), "key_quota")
         ]
-        assert suppressed == [
+        assert annotations.suppressed == [
             {
                 "cause": "js_sdk_below_11",
                 "category": DataCategory.LOG_ITEM.api_name(),
@@ -146,12 +145,12 @@ class GetDroppedDataAnnotationsTest(OutcomesSnubaTest, SnubaTestCase, OurLogTest
         snuba_params = self._snuba_params()
         snuba_params.environments = [self.create_environment(name="production")]
 
-        dropped, _, suppressed = get_dropped_data_annotations(OurLogs, snuba_params, ONE_HOUR)
+        annotations = get_dropped_data_annotations(OurLogs, snuba_params, ONE_HOUR)
 
-        assert [(d["outcome"], d["reason"]) for d in dropped] == [
+        assert [(d["outcome"], d["reason"]) for d in annotations.dropped] == [
             (Outcome.RATE_LIMITED.api_name(), "key_quota")
         ]
-        assert [drop["count"] for drop in suppressed] == [300]
+        assert [drop["count"] for drop in annotations.suppressed] == [300]
 
     def test_keeps_log_buffer_overflow_without_old_js_sdk(self) -> None:
         # Neither an 11.x prerelease nor an older non-JavaScript SDK is affected.
@@ -159,9 +158,7 @@ class GetDroppedDataAnnotationsTest(OutcomesSnubaTest, SnubaTestCase, OurLogTest
         self._store_sdk_log("sentry.javascript.browser", "11.0.0-beta.1")
         self._store_sdk_log("sentry.python", "2.0.0")
 
-        dropped, _, suppressed = get_dropped_data_annotations(
-            OurLogs, self._snuba_params(), ONE_HOUR
-        )
+        annotations = get_dropped_data_annotations(OurLogs, self._snuba_params(), ONE_HOUR)
 
-        assert {d["reason"] for d in dropped} == {"buffer_overflow", "key_quota"}
-        assert suppressed == []
+        assert {d["reason"] for d in annotations.dropped} == {"buffer_overflow", "key_quota"}
+        assert annotations.suppressed == []
