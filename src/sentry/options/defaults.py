@@ -1549,8 +1549,8 @@ register(
 )
 
 # Deterministic % of gen_ai conversations that get Seer title generation, keyed
-# on conversation id. Requires organizations:gen-ai-conversation-title-generation.
-# 0.0 disables generation; 1.0 enables it for every conversation in flagged orgs.
+# on conversation id. 0.0 disables generation; 1.0 enables it for every
+# conversation in orgs that have not hidden AI features.
 register(
     "ai-monitoring.conversation-title-generation.rollout-rate",
     type=Float,
