@@ -805,3 +805,67 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
         return Factories.create_seer_workflow_config(
             self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2, **kwargs
         )
+
+
+@override_settings(SENTRY_SELF_HOSTED=False)
+@with_feature("organizations:seer-automations")
+class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
+    endpoint = "sentry-api-0-organization-seer-workflow-config-details"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+
+    def test_feature_disabled_returns_404(self) -> None:
+        config = self.create_config()
+        with self.feature({"organizations:seer-automations": False}):
+            self.get_error_response(self.organization.slug, config.id, status_code=404)
+
+    def test_returns_config(self) -> None:
+        project = self.create_project()
+        config = self.create_config(
+            enabled=False,
+            version=4,
+            filters={"environments": ["production"], "min_event_count": 10},
+            output_policy={"review_mode": "manual"},
+            extras={"seeded_default": "agentic_triage_v2"},
+        )
+        Factories.create_seer_workflow_config_project(config, project)
+
+        response = self.get_success_response(self.organization.slug, config.id)
+
+        assert response.data == {
+            "id": str(config.id),
+            "strategy": "agentic_triage_v2",
+            "enabled": False,
+            "schedule": "daily",
+            "version": 4,
+            "projects": [project.id],
+            "environments": ["production"],
+            "filters": {"minEventCount": 10},
+            "outputPolicy": {"review_mode": "manual"},
+            "seededDefault": "agentic_triage_v2",
+            "dateAdded": config.date_added,
+            "dateUpdated": config.date_updated,
+        }
+
+    def test_missing_config_returns_404(self) -> None:
+        self.get_error_response(self.organization.slug, 999999, status_code=404)
+
+    def test_other_organization_config_returns_404(self) -> None:
+        config = Factories.create_seer_workflow_config(
+            self.create_organization(owner=self.user),
+            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+        )
+        self.get_error_response(self.organization.slug, config.id, status_code=404)
+
+    def test_non_configurable_strategy_returns_404(self) -> None:
+        config = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE
+        )
+        self.get_error_response(self.organization.slug, config.id, status_code=404)
+
+    def create_config(self, **kwargs) -> SeerWorkflowConfig:
+        return Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2, **kwargs
+        )
