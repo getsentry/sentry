@@ -10,7 +10,12 @@ import {
 import {mockMatchMedia} from 'sentry-test/utils';
 
 import type {DrawerConfig} from '@sentry/scraps/drawer';
-import {useDrawer, DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
+import {
+  useDrawer,
+  useDrawerDockedPane,
+  DrawerBody,
+  DrawerHeader,
+} from '@sentry/scraps/drawer';
 
 function GlobalDrawerTestComponent({config}: {config: DrawerConfig}) {
   const {openDrawer, closeDrawer} = useDrawer();
@@ -386,5 +391,61 @@ describe('GlobalDrawer', () => {
 
     expect(drawer.style.getPropertyValue('--drawer-width')).toBe('50%');
     expect(drawer.style.getPropertyValue('--drawer-max-width')).toBe('85%');
+  });
+
+  it('covers a pane docked against the right edge', async () => {
+    function DockedPane({width}: {width: number}) {
+      const isCovered = useDrawerDockedPane(width);
+      return <div>{isCovered ? 'pane covered' : 'pane visible'}</div>;
+    }
+
+    render(
+      <Fragment>
+        <DockedPane width={420} />
+        <GlobalDrawerTestComponent
+          config={{
+            renderer: () => (
+              <DrawerBody data-test-id="drawer-test-content">docked</DrawerBody>
+            ),
+            options: {ariaLabel, mode: 'passive'},
+          }}
+        />
+      </Fragment>
+    );
+
+    expect(screen.getByText('pane visible')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByTestId('drawer-test-open'));
+    expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
+    expect(screen.getByText('pane covered')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByTestId('drawer-test-close'));
+    await waitForDrawerToHide(ariaLabel);
+    expect(screen.getByText('pane visible')).toBeInTheDocument();
+  });
+
+  it('leaves drawers alone without a docked pane', async () => {
+    function DockedPane() {
+      const isCovered = useDrawerDockedPane(0);
+      return <div>{isCovered ? 'pane covered' : 'pane visible'}</div>;
+    }
+
+    render(
+      <Fragment>
+        <DockedPane />
+        <GlobalDrawerTestComponent
+          config={{
+            renderer: () => (
+              <DrawerBody data-test-id="drawer-test-content">undocked</DrawerBody>
+            ),
+            options: {ariaLabel},
+          }}
+        />
+      </Fragment>
+    );
+
+    await userEvent.click(screen.getByTestId('drawer-test-open'));
+    expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
+    expect(screen.getByText('pane visible')).toBeInTheDocument();
   });
 });

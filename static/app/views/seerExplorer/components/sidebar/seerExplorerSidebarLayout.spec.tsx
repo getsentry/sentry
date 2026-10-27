@@ -3,7 +3,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {DRAWER_INSET_RIGHT_PROPERTY, GlobalDrawer} from '@sentry/scraps/drawer';
+import {Button} from '@sentry/scraps/button';
+import * as drawerModule from '@sentry/scraps/drawer';
+import {GlobalDrawer, useDrawer} from '@sentry/scraps/drawer';
 import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
 import * as analytics from 'sentry/utils/analytics';
@@ -74,6 +76,7 @@ function mockWideScreen(wide: boolean) {
 
 function OpenSeerControl({options}: {options?: OpenSeerExplorerDrawerOptions}) {
   const {openSeerExplorer, toggleSeerExplorer} = useSeerExplorerContext();
+  const {openDrawer} = useDrawer();
   return (
     <Fragment>
       <button type="button" onClick={() => openSeerExplorer(options)}>
@@ -82,6 +85,16 @@ function OpenSeerControl({options}: {options?: OpenSeerExplorerDrawerOptions}) {
       <button type="button" onClick={() => toggleSeerExplorer()}>
         toggle-seer
       </button>
+      <Button
+        onClick={() =>
+          openDrawer(() => <div>drawer content</div>, {
+            ariaLabel: 'Test drawer',
+            mode: 'passive',
+          })
+        }
+      >
+        open-drawer
+      </Button>
     </Fragment>
   );
 }
@@ -121,6 +134,11 @@ function renderSidebar(
 // Absent when there's no split (Seer closed / not yet measured).
 function splitOrientation() {
   return screen.queryByRole('separator')?.getAttribute('data-orientation') ?? undefined;
+}
+
+// While a drawer covers Seer, its layout hides the divider under the drawer.
+function isDividerCovered() {
+  return !!screen.getByRole('separator').closest('[data-covered-by-drawer]');
 }
 
 describe('SeerExplorerSidebarLayout', () => {
@@ -523,32 +541,42 @@ describe('SeerExplorerSidebarLayout', () => {
     expect(splitOrientation()).toBeUndefined();
   });
 
-  it('keeps drawers clear of Seer while it is docked right', async () => {
+  it('has drawers cover Seer while it is docked right', async () => {
     mockWideScreen(true);
+    const dockedPane = jest.spyOn(drawerModule, 'useDrawerDockedPane');
     renderSidebar(orgWithSidebar);
-    const insetRight = () =>
-      document.documentElement.style.getPropertyValue(DRAWER_INSET_RIGHT_PROPERTY);
-
-    expect(insetRight()).toBe('');
+    expect(dockedPane).toHaveBeenLastCalledWith(0);
 
     await userEvent.click(screen.getByText('open-seer'));
     expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
     // The default 420px Seer width, measured from the container's right edge.
-    expect(insetRight()).toBe('420px');
+    expect(dockedPane).toHaveBeenLastCalledWith(420);
+    expect(isDividerCovered()).toBe(false);
+
+    await userEvent.click(screen.getByText('open-drawer'));
+    expect(
+      await screen.findByRole('complementary', {name: 'Test drawer'})
+    ).toBeInTheDocument();
+    expect(isDividerCovered()).toBe(true);
 
     await userEvent.click(screen.getByRole('button', {name: 'Close Seer'}));
-    await waitFor(() => expect(insetRight()).toBe(''));
+    await waitFor(() => expect(dockedPane).toHaveBeenLastCalledWith(0));
   });
 
-  it('does not inset drawers while Seer is docked to the bottom', async () => {
+  it('does not have drawers cover Seer while it is docked to the bottom', async () => {
+    const dockedPane = jest.spyOn(drawerModule, 'useDrawerDockedPane');
     renderSidebar(orgWithSidebar);
 
     await userEvent.click(screen.getByText('open-seer'));
     expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
     expect(splitOrientation()).toBe('vertical');
+    expect(dockedPane).toHaveBeenLastCalledWith(0);
+
+    await userEvent.click(screen.getByText('open-drawer'));
     expect(
-      document.documentElement.style.getPropertyValue(DRAWER_INSET_RIGHT_PROPERTY)
-    ).toBe('');
+      await screen.findByRole('complementary', {name: 'Test drawer'})
+    ).toBeInTheDocument();
+    expect(isDividerCovered()).toBe(false);
   });
 
   describe('explorerRunId param', () => {
