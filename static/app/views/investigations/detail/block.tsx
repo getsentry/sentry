@@ -200,7 +200,7 @@ export function InvestigationNotebookBlock({
   const actionSize = block.kind === 'query' ? 'zero' : 'xs';
 
   const blockActions = (
-    <Flex align="center" gap="2xs" flexShrink={0}>
+    <BlockActionGroup align="center" gap="2xs" flexShrink={0} padding="2xs">
       <BlockActions>
         <DropdownMenu
           position="bottom-end"
@@ -236,7 +236,7 @@ export function InvestigationNotebookBlock({
           />
         </BlockActions>
       ) : null}
-    </Flex>
+    </BlockActionGroup>
   );
 
   const panel = panelOpen ? (
@@ -1311,6 +1311,18 @@ const BlockActions = styled(Flex)`
   }
 `;
 
+/**
+ * Frames a block's actions in one bordered group while the block is hovered.
+ * The border stays transparent at rest so a pinned comment button isn't boxed
+ * in with the hidden actions menu, and the negative margin keeps the group's
+ * padding and border from making a query card's header taller.
+ */
+const BlockActionGroup = styled(Flex)`
+  margin-block: calc(-1 * (${p => p.theme.space['2xs']} + 1px));
+  border: 1px solid transparent;
+  border-radius: ${p => p.theme.radius.md};
+`;
+
 const BlockHoverSurface = styled(Stack)`
   &:hover ${BlockActions},
   &:focus-within ${BlockActions} {
@@ -1318,10 +1330,21 @@ const BlockHoverSurface = styled(Stack)`
     pointer-events: auto;
   }
 
+  &:hover ${BlockActionGroup},
+  &:focus-within ${BlockActionGroup} {
+    border-color: ${p => p.theme.tokens.border.primary};
+    background: ${p => p.theme.tokens.background.primary};
+  }
+
   @media (hover: none) {
     ${BlockActions} {
       opacity: 1;
       pointer-events: auto;
+    }
+
+    ${BlockActionGroup} {
+      border-color: ${p => p.theme.tokens.border.primary};
+      background: ${p => p.theme.tokens.background.primary};
     }
   }
 `;
