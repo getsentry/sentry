@@ -7,6 +7,7 @@ import {autoUpdate, hide, offset, useFloating} from '@floating-ui/react-dom';
 import {mergeRefs} from '@react-aria/utils';
 import {IconSearch} from '@sentry/icons/search';
 
+import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
@@ -142,6 +143,12 @@ export function SearchInput({padding = 'xs', ...props}: SearchInputProps) {
 type Priority = 'primary' | 'danger' | 'default';
 
 // Padding order: top, right, bottom, left.
+// The trailing action is a single icon button that sits in the same right-hand
+// column as a submenu chevron. `TRAILING_ACTION_INSET` places it from the item's
+// right edge, and `TRAILING_ACTION_SPACE` keeps the label clear of it.
+const TRAILING_ACTION_INSET = 'lg';
+const TRAILING_ACTION_SPACE = '3xl';
+
 const ITEM_PADDING_BY_SIZE = {
   xs: 'xs md xs lg',
   sm: 'sm md sm lg',
@@ -289,6 +296,18 @@ type ExtraContent =
       isSelected: boolean;
     }) => React.ReactNode);
 
+/**
+ * An icon-only button rendered beside, rather than inside, the focusable menu
+ * item. The item reserves space for exactly one button, so the shape is limited
+ * to what that button needs.
+ */
+export interface MenuItemTrailingAction {
+  icon: React.ReactNode;
+  /** Accessible name for the button, also shown as its tooltip. */
+  label: string;
+  onAction: () => void;
+}
+
 export type ListItemProps = {
   /**
    * Optional descriptive text. Like 'label', should preferably be a string or
@@ -345,10 +364,9 @@ interface OtherProps<T extends React.ElementType> {
   isPressed?: boolean;
   isSelected?: boolean;
   labelProps?: {as?: 'div' | 'p'; id?: string};
-  /**
-   * An interactive control rendered beside, rather than inside, the focusable menu item.
-   */
-  trailingAction?: ExtraContent;
+  trailingAction?: MenuItemTrailingAction;
+  /** Ref to the trailing action's button. */
+  trailingActionRef?: React.Ref<HTMLButtonElement>;
   /** Props for the wrapper around the trailing action. */
   trailingActionWrapperProps?: React.ComponentPropsWithRef<'div'>;
 }
@@ -379,6 +397,7 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
   tooltip,
   tooltipOptions,
   ref,
+  trailingActionRef,
   trailingActionWrapperProps,
   ...props
 }: MenuListItemProps<T>) {
@@ -416,7 +435,7 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
           // gets 4px of space on each side. A `md` inset keeps leading items where
           // they sat before the slot existed, at every size.
           paddingLeft={leadingItems ? 'md' : undefined}
-          paddingRight={trailingAction ? '3xl' : undefined}
+          paddingRight={trailingAction ? TRAILING_ACTION_SPACE : undefined}
           isFocused={isFocused}
           hasTrailingAction={Boolean(trailingAction)}
           disabled={disabled}
@@ -495,15 +514,21 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
       {trailingAction && (
         <Flex
           position="absolute"
-          right={theme.space.lg}
+          right={theme.space[TRAILING_ACTION_INSET]}
           top="0"
           height="100%"
           align="center"
           {...trailingActionWrapperProps}
         >
-          {typeof trailingAction === 'function'
-            ? trailingAction({disabled, isFocused, isSelected})
-            : trailingAction}
+          <Button
+            ref={trailingActionRef}
+            size="zero"
+            variant="transparent"
+            icon={trailingAction.icon}
+            aria-label={trailingAction.label}
+            tooltipProps={{title: trailingAction.label}}
+            onClick={trailingAction.onAction}
+          />
         </Flex>
       )}
       {showDetailsInOverlay && details && isFocused && (

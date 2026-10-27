@@ -13,4 +13,4 @@ export {
   SearchInput as Search,
 } from './menu';
 
-export type {ListItemProps} from './menu';
+export type {ListItemProps, MenuItemTrailingAction} from './menu';

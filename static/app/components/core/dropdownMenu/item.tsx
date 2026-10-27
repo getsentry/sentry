@@ -9,8 +9,11 @@ import {IconChevron} from '@sentry/icons/chevron';
 import type {LocationDescriptor} from 'history';
 
 import {ExternalLink, Link} from '@sentry/scraps/link';
-import {ListItem, type ListItemProps} from '@sentry/scraps/menu';
-import {INTERACTIVE_SELECTOR} from '@sentry/scraps/useIsInsideInteractiveElement';
+import {
+  ListItem,
+  type ListItemProps,
+  type MenuItemTrailingAction,
+} from '@sentry/scraps/menu';
 import type {UseOverlayProps} from '@sentry/scraps/useOverlay';
 
 import {usePrevious} from 'sentry/utils/usePrevious';
@@ -91,9 +94,9 @@ export interface MenuItemProps extends ListItemProps {
    */
   to?: LocationDescriptor;
   /**
-   * An interactive control rendered beside, rather than inside, the focusable menu item.
+   * An icon-only button rendered beside, rather than inside, the focusable menu item.
    */
-  trailingAction?: ListItemProps['trailingItems'];
+  trailingAction?: MenuItemTrailingAction;
 }
 
 interface DropdownMenuItemProps<T extends React.ElementType = 'li'> {
@@ -143,7 +146,7 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
   ...props
 }: DropdownMenuItemProps<T>) {
   const innerWrapRef = useRef<HTMLElement | null>(null);
-  const trailingActionWrapperRef = useRef<HTMLDivElement>(null);
+  const trailingActionRef = useRef<HTMLButtonElement>(null);
   const lastPointerPosition = useRef<{x: number; y: number} | null>(null);
   const isDisabled = state.disabledKeys.has(node.key);
   const isFocused = state.selectionManager.focusedKey === node.key;
@@ -218,19 +221,17 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
         return;
       }
 
-      // The trailing action sits outside the focusable menu item. Move to its
-      // interactive control only when focus is still on the item itself.
-      if (e.key === 'ArrowRight' && document.activeElement === innerWrapRef.current) {
-        const interactiveActions =
-          trailingActionWrapperRef.current?.querySelectorAll<HTMLElement>(
-            INTERACTIVE_SELECTOR
-          ) ?? [];
-        for (const interactiveAction of interactiveActions) {
-          interactiveAction.focus();
-          if (document.activeElement === interactiveAction) {
-            e.preventDefault();
-            return;
-          }
+      // The trailing action sits outside the focusable menu item. Move to it
+      // only when focus is still on the item itself and the button can take focus.
+      if (
+        e.key === 'ArrowRight' &&
+        document.activeElement === innerWrapRef.current &&
+        trailingActionRef.current
+      ) {
+        trailingActionRef.current.focus();
+        if (document.activeElement === trailingActionRef.current) {
+          e.preventDefault();
+          return;
         }
       }
 
@@ -345,8 +346,8 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
       labelProps={labelProps}
       detailsProps={descriptionProps}
       trailingAction={trailingAction}
+      trailingActionRef={trailingActionRef}
       trailingActionWrapperProps={{
-        ref: trailingActionWrapperRef,
         onKeyDown: event => {
           if (event.key === 'ArrowLeft') {
             event.preventDefault();

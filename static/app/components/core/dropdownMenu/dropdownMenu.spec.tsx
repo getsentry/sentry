@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {IconStar} from '@sentry/icons/star';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -46,7 +47,11 @@ describe('DropdownMenu', () => {
               key: 'project',
               label: 'Project',
               onAction,
-              trailingAction: <button onClick={onTrailingClick}>Bookmark</button>,
+              trailingAction: {
+                icon: <IconStar />,
+                label: 'Bookmark',
+                onAction: onTrailingClick,
+              },
             },
           ]}
         />
@@ -81,14 +86,19 @@ describe('DropdownMenu', () => {
             key: 'project',
             label: 'Project',
             onAction,
-            trailingAction: <button onClick={onTrailingClick}>Bookmark</button>,
+            trailingAction: {
+              icon: <IconStar />,
+              label: 'Bookmark',
+              onAction: onTrailingClick,
+            },
           },
         ]}
       />
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
-    screen.getByRole('button', {name: 'Bookmark'}).focus();
+    await userEvent.keyboard('{ArrowRight}');
+    expect(screen.getByRole('button', {name: 'Bookmark'})).toHaveFocus();
     await userEvent.keyboard('{Enter}');
 
     expect(onTrailingClick).toHaveBeenCalled();
@@ -108,7 +118,11 @@ describe('DropdownMenu', () => {
             key: 'project',
             label: 'Project',
             onAction,
-            trailingAction: <button onClick={onTrailingClick}>Bookmark</button>,
+            trailingAction: {
+              icon: <IconStar />,
+              label: 'Bookmark',
+              onAction: onTrailingClick,
+            },
           },
         ]}
       />
@@ -129,58 +143,6 @@ describe('DropdownMenu', () => {
     expect(row).toHaveFocus();
     await userEvent.keyboard('{Enter}');
     expect(onAction).toHaveBeenCalledTimes(1);
-  });
-
-  it('moves keyboard focus to a trailing link', async () => {
-    render(
-      <DropdownMenu
-        triggerLabel="Projects"
-        items={[
-          {
-            key: 'project',
-            label: 'Project',
-            trailingAction: <a href="#project-details">Project details</a>,
-          },
-        ]}
-      />
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
-    const row = screen.getByRole('menuitemradio', {name: 'Project'});
-    expect(row).toHaveFocus();
-
-    await userEvent.keyboard('{ArrowRight}');
-    expect(screen.getByRole('link', {name: 'Project details'})).toHaveFocus();
-    await userEvent.keyboard('{ArrowLeft}');
-    expect(row).toHaveFocus();
-  });
-
-  it('skips a non-focusable trailing action when moving focus right', async () => {
-    render(
-      <DropdownMenu
-        triggerLabel="Projects"
-        items={[
-          {
-            key: 'project',
-            label: 'Project',
-            trailingAction: (
-              <Fragment>
-                <button disabled role="button">
-                  Disabled action
-                </button>
-                <a href="#project-details">Project details</a>
-              </Fragment>
-            ),
-          },
-        ]}
-      />
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
-    expect(screen.getByRole('menuitemradio', {name: 'Project'})).toHaveFocus();
-
-    await userEvent.keyboard('{ArrowRight}');
-    expect(screen.getByRole('link', {name: 'Project details'})).toHaveFocus();
   });
 
   it.each(['click', '{Enter}', ' '])(

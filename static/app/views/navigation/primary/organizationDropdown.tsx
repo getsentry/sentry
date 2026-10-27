@@ -1,8 +1,11 @@
-import {useEffect, useRef} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {IconAdd} from '@sentry/icons/add';
 import {IconBuilding} from '@sentry/icons/building';
 import {IconSettings} from '@sentry/icons/settings';
+import {IconStar} from '@sentry/icons/star';
+import {useMutation} from '@tanstack/react-query';
+import omit from 'lodash/omit';
 import orderBy from 'lodash/orderBy';
 import partition from 'lodash/partition';
 
@@ -19,11 +22,13 @@ import {
 } from '@sentry/scraps/dropdownMenu';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import type {MenuItemTrailingAction} from '@sentry/scraps/menu';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Text} from '@sentry/scraps/text';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {update} from 'sentry/actionCreators/projects';
 import {OrganizationBadge} from 'sentry/components/idBadge/organizationBadge';
-import {BookmarkStar} from 'sentry/components/projects/bookmarkStar';
 import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
 import {t, tn} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -34,6 +39,7 @@ import type {Project} from 'sentry/types/project';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
 import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
+import {useApi} from 'sentry/utils/useApi';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -73,6 +79,40 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   const {projects} = useProjects();
   const canCreateProject = useCanCreateProject();
   const [, setReferrer] = useSessionStorage<string | null>(CUSTOM_REFERRER_KEY, null);
+
+  const api = useApi({persistInFlight: true});
+  // Bookmark state for in-flight toggles, keyed by project ID. Cleared once the
+  // request settles: on success ProjectsStore has the new value, on error the
+  // project falls back to its previous state.
+  const [pendingBookmarks, setPendingBookmarks] = useState<Record<string, boolean>>({});
+  const {mutate: toggleBookmark} = useMutation({
+    mutationFn: ({project, isBookmarked}: {isBookmarked: boolean; project: Project}) =>
+      update(api, {
+        orgId: organization.slug,
+        projectId: project.slug,
+        data: {isBookmarked},
+      }),
+    onMutate: ({project, isBookmarked}) => {
+      setPendingBookmarks(prev => ({...prev, [project.id]: isBookmarked}));
+    },
+    onError: (_error, {project}) => {
+      addErrorMessage(t('Unable to toggle bookmark for %s', project.slug));
+    },
+    onSettled: (_data, _error, {project}) => {
+      setPendingBookmarks(prev => omit(prev, project.id));
+    },
+  });
+
+  const makeBookmarkAction = (project: Project): MenuItemTrailingAction => {
+    const isBookmarked = pendingBookmarks[project.id] ?? project.isBookmarked;
+    return {
+      icon: (
+        <IconStar variant={isBookmarked ? 'warning' : 'muted'} isSolid={isBookmarked} />
+      ),
+      label: isBookmarked ? t('Remove Bookmark') : t('Bookmark'),
+      onAction: () => toggleBookmark({project, isBookmarked: !isBookmarked}),
+    };
+  };
 
   const avatarProps = getOrganizationAvatarProps(organization);
 
@@ -154,7 +194,12 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
               ...sortProjects(projects.filter(project => project.isBookmarked))
                 .slice(0, 5)
                 .map(project =>
-                  makeProjectMenuItem(project, organization, 'starred-project')
+                  makeProjectMenuItem(
+                    project,
+                    organization,
+                    makeBookmarkAction(project),
+                    'starred-project'
+                  )
                 ),
               {
                 key: 'view-all-projects',
@@ -174,7 +219,11 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                     label: t('My Projects'),
                     hidden: memberProjects.length === 0,
                     children: memberProjects.map(project =>
-                      makeProjectMenuItem(project, organization)
+                      makeProjectMenuItem(
+                        project,
+                        organization,
+                        makeBookmarkAction(project)
+                      )
                     ),
                   },
                   {
@@ -182,7 +231,11 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                     label: t('Other Projects'),
                     hidden: otherProjects.length === 0,
                     children: otherProjects.map(project =>
-                      makeProjectMenuItem(project, organization)
+                      makeProjectMenuItem(
+                        project,
+                        organization,
+                        makeBookmarkAction(project)
+                      )
                     ),
                   },
                 ],
@@ -304,13 +357,14 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
 function makeProjectMenuItem(
   project: Project,
   organization: Organization,
+  trailingAction: MenuItemTrailingAction,
   keyPrefix = 'project'
 ): MenuItemProps {
   return {
     key: `${keyPrefix}-${project.id}`,
     label: project.slug,
     leadingItems: <ProjectAvatar project={project} size={16} />,
-    trailingAction: <BookmarkStar project={project} organization={organization} />,
+    trailingAction,
     to: `/settings/${organization.slug}/projects/${project.slug}/`,
   };
 }
