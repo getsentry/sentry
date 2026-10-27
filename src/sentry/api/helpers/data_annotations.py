@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import logging
 from typing import Any, Literal, TypedDict
 
@@ -206,7 +207,7 @@ def _is_js_sdk_buffer_overflow(outcome: str, reason: str) -> bool:
 def _has_affected_js_sdk(snuba_params: SnubaParams) -> bool:
     """Whether any selected project sent logs from a JavaScript SDK older than the fix."""
     result = OurLogs.run_table_query(
-        params=snuba_params,
+        params=dataclasses.replace(snuba_params, environments=[]),
         query_string="sdk.name:sentry.javascript.*",
         selected_columns=["sdk.version", "count()"],
         orderby=None,
