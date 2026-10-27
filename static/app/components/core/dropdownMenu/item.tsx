@@ -90,6 +90,10 @@ export interface MenuItemProps extends ListItemProps {
    * Destination if this menu item is a link.
    */
   to?: LocationDescriptor;
+  /**
+   * An interactive control rendered beside, rather than inside, the focusable menu item.
+   */
+  trailingAction?: ListItemProps['trailingItems'];
 }
 
 interface DropdownMenuItemProps<T extends React.ElementType = 'li'> {

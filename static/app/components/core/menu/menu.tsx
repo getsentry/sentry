@@ -332,10 +332,6 @@ export type ListItemProps = {
    */
   tooltipOptions?: Omit<TooltipProps, 'children' | 'title' | 'className'>;
   /**
-   * An interactive control rendered beside, rather than inside, the focusable menu item.
-   */
-  trailingAction?: ExtraContent;
-  /**
    * Items to be added to the right of the label.
    */
   trailingItems?: ExtraContent;
@@ -349,6 +345,10 @@ interface OtherProps<T extends React.ElementType> {
   isPressed?: boolean;
   isSelected?: boolean;
   labelProps?: {as?: 'div' | 'p'; id?: string};
+  /**
+   * An interactive control rendered beside, rather than inside, the focusable menu item.
+   */
+  trailingAction?: ExtraContent;
   /** Props for the wrapper around the trailing action. */
   trailingActionWrapperProps?: React.ComponentPropsWithRef<'div'>;
 }
