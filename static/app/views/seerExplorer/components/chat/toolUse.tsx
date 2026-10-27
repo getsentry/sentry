@@ -645,7 +645,8 @@ const OPEN_TRACE_PATHNAME = /\/trace\/[^/]+\/$/;
 
 /**
  * Rules build a trace link with only its target, so following one to the trace that is already open
- * would drop the zoom, tab and filters the page has. Keep those and replace only the target.
+ * would drop the zoom, tab and filters the page has. Keep those and replace only the target. The open
+ * waterfall only reads `node` on load, so the span target is passed as `revealNode`.
  */
 function useKeepOpenTraceQuery() {
   const location = useLocation();
@@ -664,7 +665,11 @@ function useKeepOpenTraceQuery() {
         targetId: _targetId,
         ...query
       } = location.query;
-      return {...url, query: {...query, ...url.query}};
+      const {node, ...target} = url.query ?? {};
+      return {
+        ...url,
+        query: {...query, ...target, ...(node ? {revealNode: node} : {})},
+      };
     },
     [location]
   );

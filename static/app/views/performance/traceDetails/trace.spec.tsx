@@ -1233,7 +1233,7 @@ describe('trace view', () => {
       );
       act(() =>
         router.navigate(
-          '/organizations/org-slug/performance/trace/trace-id/?node=span-third-transaction'
+          '/organizations/org-slug/performance/trace/trace-id/?revealNode=span-third-transaction'
         )
       );
 
@@ -1245,6 +1245,7 @@ describe('trace view', () => {
           .getByText('third transaction')
           .closest(VISIBLE_TRACE_ROW_SELECTOR)
       ).toHaveAttribute('tabindex', '0');
+      expect(router.location.query).toEqual({node: 'span-third-transaction'});
     });
 
     it('warns when an EAP node from the URL cannot be found', async () => {

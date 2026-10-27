@@ -298,7 +298,7 @@ describe('ToolUseBlock', () => {
     expect(Object.fromEntries(href.searchParams)).toEqual({
       fov: '1,2',
       tab: 'waterfall',
-      node: 'span-new-span',
+      revealNode: 'span-new-span',
     });
   });
 
