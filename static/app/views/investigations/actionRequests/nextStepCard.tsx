@@ -71,7 +71,7 @@ export function NextStepCard({
   return null;
 }
 
-function isRunWorking(orchestration: InvestigationOrchestration | undefined) {
+export function isRunWorking(orchestration: InvestigationOrchestration | undefined) {
   return orchestration?.status === 'pending' || orchestration?.status === 'processing';
 }
 

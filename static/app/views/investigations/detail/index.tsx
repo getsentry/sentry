@@ -34,7 +34,12 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {
+  AnchoredActionRequests,
+  groupActionRequestsByPlacement,
+} from 'sentry/views/investigations/actionRequests/anchoredActionRequests';
+import {
   getPrimaryActionRequest,
+  isRunWorking,
   NextStepCard,
 } from 'sentry/views/investigations/actionRequests/nextStepCard';
 import {InvestigationActivity} from 'sentry/views/investigations/activity/investigationActivity';
@@ -497,6 +502,25 @@ function InvestigationPageContentInner({
     shouldDisplayInvestigationBlock(block)
   );
   const awaitingReportBlock = isAwaitingReportBlock(investigation);
+  const runProcessing = isRunWorking(orchestration) || recheckRunWait.waiting;
+  const hypothesisStatements = new Map(
+    orchestration?.hypotheses.map(({id, statement}) => [id, statement])
+  );
+  const placedActionRequests = groupActionRequestsByPlacement(
+    investigation.actionRequests ?? [],
+    anchor => {
+      if (anchor?.type === 'hypothesis') {
+        return hypothesisStatements.has(anchor.id) ? 'hypotheses' : null;
+      }
+      if (
+        anchor?.type === 'block' &&
+        visibleBlocks.some(({id}) => id === anchor.blockId)
+      ) {
+        return `block:${anchor.blockId}`;
+      }
+      return null;
+    }
+  );
   const source = getInvestigationSource(investigation);
   const hasDetails =
     Boolean(investigation.orchestration) ||
@@ -748,6 +772,20 @@ function InvestigationPageContentInner({
                         onAskSeer={askSeerAboutHypothesis}
                       />
                     ) : null}
+                    <AnchoredActionRequests
+                      actionRequests={placedActionRequests.get('hypotheses')}
+                      investigationId={investigation.id}
+                      runProcessing={runProcessing}
+                      source={investigation.source}
+                      getLabel={anchor => {
+                        const statement = anchor
+                          ? hypothesisStatements.get(anchor.id)
+                          : undefined;
+                        return statement
+                          ? tct('About the possible cause: [statement]', {statement})
+                          : null;
+                      }}
+                    />
                     {visibleBlocks.length > 0 || awaitingReportBlock ? (
                       <Stack>
                         {visibleBlocks.map((block, index) => (
@@ -765,6 +803,14 @@ function InvestigationPageContentInner({
                                   ? undefined
                                   : openBlockComments
                               }
+                            />
+                            <AnchoredActionRequests
+                              actionRequests={placedActionRequests.get(
+                                `block:${block.id}`
+                              )}
+                              investigationId={investigation.id}
+                              runProcessing={runProcessing}
+                              source={investigation.source}
                             />
                           </Container>
                         ))}
