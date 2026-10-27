@@ -3,10 +3,7 @@ import {useQueries} from '@tanstack/react-query';
 
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
-import {
-  getSeriesRequestData,
-  convertEventStatsRequestDataToEventTimeseriesQueryParams,
-} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
+import {getTimeseriesRequestQuery} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {mobileAppSizeResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/mobileAppSizeResponseTransforms';
 import {
   combineIngestionMeta,
@@ -48,32 +45,24 @@ export function useMobileAppSizeSeriesQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  // Check if organization has the async queue feature
-  const seriesRequestData = filteredWidget.queries.map((_, queryIndex) => {
-    const requestData = getSeriesRequestData(
-      filteredWidget,
-      queryIndex,
-      organization,
-      pageFilters,
-      DiscoverDatasets.PREPROD_SIZE,
-      getReferrer(filteredWidget.displayType),
-      widgetInterval
-    );
-
-    if (samplingMode) {
-      requestData.sampling = samplingMode;
-    }
-    return requestData;
-  });
-
   const {results: queryResults, data: rawData} = useQueries({
-    queries: seriesRequestData.map(requestData =>
+    queries: filteredWidget.queries.map((_, queryIndex) =>
       getTimeseriesWidgetQueryOptions({
         organization,
         pageFilters,
         queue,
         enabled,
-        query: convertEventStatsRequestDataToEventTimeseriesQueryParams(requestData),
+        query: getTimeseriesRequestQuery(
+          filteredWidget,
+          queryIndex,
+          pageFilters,
+          DiscoverDatasets.PREPROD_SIZE,
+          {
+            referrer: getReferrer(filteredWidget.displayType),
+            widgetInterval,
+            sampling: samplingMode,
+          }
+        ),
       })
     ),
     combine: combineWidgetQueryResults,

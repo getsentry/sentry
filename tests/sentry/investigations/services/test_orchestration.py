@@ -25,7 +25,9 @@ from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
-class RebuildOrchestrationSourceTest(TestCase):
+class BreachedMetricInvestigationTestCase(TestCase):
+    """Starts a breached-metric investigation on a static metric monitor."""
+
     def setUp(self) -> None:
         super().setUp()
         group = self.create_group(project=self.project, type=MetricIssue.type_id)
@@ -85,6 +87,8 @@ class RebuildOrchestrationSourceTest(TestCase):
     def started_source(self, investigation: Investigation) -> dict[str, Any]:
         return InvestigationOrchestrationRun.objects.get(investigation=investigation).source
 
+
+class RebuildOrchestrationSourceTest(BreachedMetricInvestigationTestCase):
     def test_matches_the_source_the_run_started_with(self) -> None:
         assert rebuild_orchestration_source(self.investigation) == self.started_source(
             self.investigation
