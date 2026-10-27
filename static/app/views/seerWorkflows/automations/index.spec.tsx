@@ -33,7 +33,7 @@ describe('AutomationsList', () => {
   }
 
   it('renders not found without seer-automations', async () => {
-    const request = mockConfigs([makeConfig({id: '1'})]);
+    const request = mockConfigs([SeerWorkflowConfigFixture({id: '1'})]);
 
     render(<AutomationsList />, {organization: OrganizationFixture()});
 
