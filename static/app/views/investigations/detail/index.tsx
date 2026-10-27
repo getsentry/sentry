@@ -89,6 +89,7 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 import {RouteError} from 'sentry/views/routeError';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 const DEFAULT_INVESTIGATION_TITLE = 'Untitled investigation';
 
@@ -190,15 +191,22 @@ function useRefetchStaleActionRequests(
 
 export function InvestigationBootstrapPage({investigationId}: {investigationId: string}) {
   const organization = useOrganization();
+  const queryClient = useQueryClient();
   const detailOptions = getInvestigationDetailQueryOptions(
     organization.slug,
     investigationId
   );
+  // Seer Agent can write blocks, start their runs, and steer the investigation
+  // from a chat on this page. Its writes go to routes under the investigation,
+  // which the refresh after a Seer write doesn't tie to these queries, and a
+  // settled investigation has stopped polling.
+  const isSeerWorking = useSeerExplorerContext().sessionState === 'thinking';
   const {
     data: investigation,
     error,
     isError,
     isPending,
+    refetch,
   } = useQuery({
     ...detailOptions,
     refetchInterval: query => {
@@ -209,13 +217,29 @@ export function InvestigationBootstrapPage({investigationId}: {investigationId: 
       // has since finished.
       const orchestrationActive =
         data?.orchestration && shouldPollInvestigationRun(data.orchestration.status);
-      return orchestrationActive ||
+      return isSeerWorking ||
+        orchestrationActive ||
         shouldPollInvestigationBlocks(data?.blocks ?? []) ||
         isTitleGenerationActive(data?.titleGeneration?.status)
         ? 2000
         : false;
     },
   });
+
+  const wasSeerWorking = useRef(isSeerWorking);
+  useEffect(() => {
+    if (wasSeerWorking.current && !isSeerWorking) {
+      // Picks up what it wrote after the last poll, and a run it restarted.
+      void refetch();
+      void queryClient.invalidateQueries({
+        queryKey: investigationOrchestrationQueryOptions(
+          organization.slug,
+          investigationId
+        ).queryKey,
+      });
+    }
+    wasSeerWorking.current = isSeerWorking;
+  }, [investigationId, isSeerWorking, organization.slug, queryClient, refetch]);
 
   if (isPending && !investigation) {
     return <LoadingIndicator />;

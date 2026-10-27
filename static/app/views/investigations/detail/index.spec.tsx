@@ -1,4 +1,4 @@
-import {useEffect, type ReactNode} from 'react';
+import {useEffect, useState, type ReactNode} from 'react';
 import {QueryClientProvider} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
@@ -13,6 +13,8 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
+
+import {Button} from '@sentry/scraps/button';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import type {FeedbackIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
@@ -1516,6 +1518,81 @@ describe('Investigation detail', () => {
       expect(screen.queryByTestId('investigation-block-block-2')).not.toBeInTheDocument();
       await act(() => jest.advanceTimersByTimeAsync(2000));
       expect(request).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('refetches while Seer Agent works with fake timers', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(async () => {
+      try {
+        await act(() => jest.runOnlyPendingTimersAsync());
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    /** Seer Agent mid-turn, until "Seer finished" ends it. */
+    function SeerWorkingProvider({children}: {children: ReactNode}) {
+      const seerExplorer = useSeerExplorerContext();
+      const [sessionState, setSessionState] =
+        useState<SeerExplorerContextValue['sessionState']>('thinking');
+      return (
+        <SeerExplorerContext.Provider value={{...seerExplorer, sessionState}}>
+          <Button onClick={() => setSessionState('inactive')}>Seer finished</Button>
+          {children}
+        </SeerExplorerContext.Provider>
+      );
+    }
+
+    it('refetches a settled investigation while Seer Agent works and once it stops', async () => {
+      const detailRequest = MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: InvestigationAgenticDetailFixture({
+          orchestration: {
+            phase: 'completed',
+            status: 'completed',
+            heartbeatAt: '2026-08-27T11:06:30Z',
+            notebookRevision: 5,
+          },
+        }),
+      });
+      const orchestrationRequest = MockApiClient.addMockResponse({
+        url: orchestrationUrl,
+        body: InvestigationOrchestrationFixture({
+          phase: 'completed',
+          status: 'completed',
+        }),
+      });
+
+      render(<InvestigationDetailView />, {
+        additionalWrapper: SeerWorkingProvider,
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/seer/investigations/investigation-1/',
+          },
+          route: '/organizations/:orgId/seer/investigations/:investigationId/',
+        },
+      });
+
+      expect(await screen.findAllByTestId('investigation-hypothesis')).toHaveLength(3);
+      expect(detailRequest).toHaveBeenCalledTimes(1);
+      expect(orchestrationRequest).toHaveBeenCalledTimes(1);
+
+      // Seer Agent's writes go to the block routes, so the page keeps reading.
+      await act(() => jest.advanceTimersByTimeAsync(2000));
+      expect(detailRequest).toHaveBeenCalledTimes(2);
+
+      // One more read for what it wrote after the last poll, then it settles.
+      fireEvent.click(screen.getByRole('button', {name: 'Seer finished'}));
+      await act(() => jest.advanceTimersByTimeAsync(0));
+      expect(detailRequest).toHaveBeenCalledTimes(3);
+      expect(orchestrationRequest).toHaveBeenCalledTimes(2);
+      await act(() => jest.advanceTimersByTimeAsync(4000));
+      expect(detailRequest).toHaveBeenCalledTimes(3);
     });
   });
 
