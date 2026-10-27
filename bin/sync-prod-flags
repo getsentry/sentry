@@ -52,7 +52,9 @@ options = yaml.safe_load(source)["options"]
 with tempfile.TemporaryDirectory() as tmp:
     Path(tmp, "schemas").mkdir()
     Path(tmp, "values", NAMESPACE).mkdir(parents=True)
-    Path(tmp, "values", NAMESPACE, "values.json").write_text(json.dumps({"options": options}))
+    Path(tmp, "values", NAMESPACE, "values.json").write_text(
+        json.dumps({"options": options}, default=str)
+    )
     schema = {
         "version": "1.0",
         "type": "object",
