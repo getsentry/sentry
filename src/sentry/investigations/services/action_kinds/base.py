@@ -46,6 +46,7 @@ class ApplyErrorCode(StrEnum):
     VALIDATION_FAILED = "validation_failed"
     ACTION_CHANGED = "action_changed"
     NOT_STALE = "not_stale"
+    NOT_RETRYABLE = "not_retryable"
 
 
 class ApplyError(TypedDict):

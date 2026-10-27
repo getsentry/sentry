@@ -973,6 +973,21 @@ class SharedApplyPathTest(APITestCase):
         assert read["error"] == {"code": "stale", "current": {"window": 600}}
         assert read["followUp"] == {"status": "accepted", "reason": None}
 
+    def test_a_recheck_behind_an_undelivered_command_waits_for_it(self) -> None:
+        self.kind.raises = ActionStale({"window": 600})
+        assert self.recheck().status_code == 200
+        [failed] = self.commands()
+        failed.update(
+            status=InvestigationOrchestrationCommandStatus.FAILED,
+            error={"code": "earlier_command_failed"},
+        )
+
+        response = self.recheck()
+
+        assert response.status_code == 409
+        assert response.data["code"] == "not_retryable"
+        assert self.commands() == [failed]
+
     def test_a_recheck_seer_turned_down_goes_out_as_a_new_command(self) -> None:
         self.kind.raises = ActionStale({"window": 600})
         assert self.recheck().status_code == 200

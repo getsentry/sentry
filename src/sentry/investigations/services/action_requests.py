@@ -553,6 +553,16 @@ def _recheck(
                 payload=failed.payload,
                 actor_id=_seer_actor(context.investigation, context.actor_id),
             )
+        elif (
+            isinstance(failed.error, dict) and failed.error.get("code") == "earlier_command_failed"
+        ):
+            # A new command would expect the version of a command Seer never got.
+            raise ApplyFailed(
+                {
+                    "detail": "This goes to Seer once the command ahead of it does.",
+                    "code": ApplyErrorCode.NOT_RETRYABLE,
+                }
+            )
         else:
             assert action_request.error is not None
             _record_stale(context, action_request.error["current"])
