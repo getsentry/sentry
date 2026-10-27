@@ -332,9 +332,8 @@ def update_group_resolutions(release, commit_author_by_commit):
         lifecycle_context = (
             event.capture(assume_success=False) if event is not None else nullcontext()
         )
-        with (
-            lifecycle_context as lifecycle,
-            atomic_transaction(
+        with lifecycle_context as lifecycle:
+            with atomic_transaction(
                 using=(
                     router.db_for_write(GroupResolution),
                     router.db_for_write(Group),
@@ -342,43 +341,42 @@ def update_group_resolutions(release, commit_author_by_commit):
                     router.db_for_write(GroupInbox),
                     router.db_for_write(Activity),
                 )
-            ),
-        ):
-            resolution, _ = GroupResolution.objects.update_or_create(
-                group_id=group_id,
-                defaults={
-                    "release": release,
-                    "type": GroupResolution.Type.in_release,
-                    "status": GroupResolution.Status.resolved,
-                    "actor_id": actor.id if actor is not None else None,
-                },
-            )
-            group = Group.objects.get(id=group_id)
-            should_create_resolution_activity = group.status != GroupStatus.RESOLVED
-            group.update(status=GroupStatus.RESOLVED, substatus=None)
-            remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED, user=actor)
-            if should_create_resolution_activity:
-                activity_data: dict[str, Any] = {"version": release.version}
-                resolution_commit_id = commit_id_by_group.get(group_id)
-                if resolution_commit_id is not None:
-                    activity_data["commit"] = resolution_commit_id
-                Activity.objects.create(
-                    project_id=group.project_id,
-                    group=group,
-                    type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
-                    user_id=actor.id if actor is not None else None,
-                    ident=resolution.id,
-                    data=activity_data,
+            ):
+                resolution, _ = GroupResolution.objects.update_or_create(
+                    group_id=group_id,
+                    defaults={
+                        "release": release,
+                        "type": GroupResolution.Type.in_release,
+                        "status": GroupResolution.Status.resolved,
+                        "actor_id": actor.id if actor is not None else None,
+                    },
                 )
-            record_group_history(group, GroupHistoryStatus.RESOLVED, actor=actor)
+                group = Group.objects.get(id=group_id)
+                should_create_resolution_activity = group.status != GroupStatus.RESOLVED
+                group.update(status=GroupStatus.RESOLVED, substatus=None)
+                remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED, user=actor)
+                if should_create_resolution_activity:
+                    activity_data: dict[str, Any] = {"version": release.version}
+                    resolution_commit_id = commit_id_by_group.get(group_id)
+                    if resolution_commit_id is not None:
+                        activity_data["commit"] = resolution_commit_id
+                    Activity.objects.create(
+                        project_id=group.project_id,
+                        group=group,
+                        type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
+                        user_id=actor.id if actor is not None else None,
+                        ident=resolution.id,
+                        data=activity_data,
+                    )
+                record_group_history(group, GroupHistoryStatus.RESOLVED, actor=actor)
 
-            metrics.incr("group.resolved", instance="in_commit", skip_internal=True)
+                metrics.incr("group.resolved", instance="in_commit", skip_internal=True)
 
-        if lifecycle is not None:
-            if should_create_resolution_activity:
-                lifecycle.record_success()
-            else:
-                lifecycle.record_halt(SCMResolutionHaltReason.ISSUE_ALREADY_RESOLVED)
+            if lifecycle is not None:
+                if should_create_resolution_activity:
+                    lifecycle.record_success()
+                else:
+                    lifecycle.record_halt(SCMResolutionHaltReason.ISSUE_ALREADY_RESOLVED)
 
         issue_resolved.send_robust(
             organization_id=release.organization_id,

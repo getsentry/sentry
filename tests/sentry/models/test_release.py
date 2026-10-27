@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 from django.core.exceptions import ValidationError
@@ -745,8 +745,12 @@ class SetCommitsTestCase(TestCase):
             integration_id=repo.integration_id,
         )
         mock_lifecycle_event.return_value.capture.assert_called_once_with(assume_success=False)
-        lifecycle = mock_lifecycle_event.return_value.capture.return_value.__enter__.return_value
+        capture_context = mock_lifecycle_event.return_value.capture.return_value
+        lifecycle = capture_context.__enter__.return_value
         lifecycle.record_success.assert_called_once_with()
+        assert capture_context.mock_calls.index(
+            call.__enter__().record_success()
+        ) < capture_context.mock_calls.index(call.__exit__(None, None, None))
 
     @patch("sentry.analytics.record")
     @receivers_raise_on_send()
