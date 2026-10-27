@@ -350,47 +350,52 @@ function BlockResult({
     setActionsInEmbed(true);
     return () => setActionsInEmbed(false);
   }, []);
+  const actionsBesideFirstLine = actionsInEmbed ? null : (
+    <Grid area="1 / 2">
+      {/* A hidden line of text, so the actions sit on the content's first line. */}
+      <Container area="1 / 1">
+        <Text as="div" aria-hidden size="md" density="comfortable">
+          {'​'}
+        </Text>
+      </Container>
+      <Flex area="1 / 1" height="0" alignSelf="center" align="center">
+        {actions}
+      </Flex>
+    </Grid>
+  );
   return (
     <BlockHoverSurface
       flex={1}
       minWidth={0}
+      gap="sm"
       data-test-id="text-block-result"
       data-block-variant="unbordered"
     >
-      <TextBlockLayout
-        columns={actionsInEmbed ? 'minmax(0, 1fr)' : 'minmax(0, 1fr) auto'}
-        gap="lg sm"
-        align="start"
-      >
-        <BlockExecutionAlert block={block} />
-        {markdown ? (
-          <MarkdownRows>
-            <SeerMarkdown
-              raw={markdown}
-              leadingEmbedActions={{actions: headerActions, onClaim: claimActions}}
-            />
-          </MarkdownRows>
-        ) : isBlockWorking(block) ? (
-          <Container paddingBottom="xl">
-            <InvestigationBlockPlaceholder title={block.title} />
-          </Container>
-        ) : (
-          <BlockProgress state={progressState} />
-        )}
-        {actionsInEmbed ? null : (
-          <ActionsCell>
-            {/* A hidden line of text, so the actions sit on the block's first line. */}
-            <Container area="1 / 1">
-              <Text as="div" aria-hidden size="md" density="comfortable">
-                {'​'}
-              </Text>
+      <BlockExecutionAlert block={block} />
+      {markdown ? (
+        <MarkdownRows
+          columns={actionsInEmbed ? 'minmax(0, 1fr)' : 'minmax(0, 1fr) auto'}
+          gap="lg sm"
+          align="start"
+        >
+          <SeerMarkdown
+            raw={markdown}
+            leadingEmbedActions={{actions: headerActions, onClaim: claimActions}}
+          />
+          {actionsBesideFirstLine}
+        </MarkdownRows>
+      ) : (
+        <Grid columns="minmax(0, 1fr) auto" gap="sm" align="start">
+          {isBlockWorking(block) ? (
+            <Container paddingBottom="xl">
+              <InvestigationBlockPlaceholder title={block.title} />
             </Container>
-            <Flex area="1 / 1" height="0" alignSelf="center" align="center">
-              {actions}
-            </Flex>
-          </ActionsCell>
-        )}
-      </TextBlockLayout>
+          ) : (
+            <BlockProgress state={progressState} />
+          )}
+          {actionsBesideFirstLine}
+        </Grid>
+      )}
     </BlockHoverSurface>
   );
 }
@@ -1273,34 +1278,26 @@ const BlockHoverSurface = styled(Stack)`
   }
 `;
 
-const MarkdownRows = styled('div')``;
-const ActionsCell = styled(Grid)``;
-
 /**
- * The markdown's top-level elements are this grid's rows, so only the first
- * one shares its row with the actions and wraps short of them. Everything after
- * it runs the block's full width, which lines an embed's card up with a query
- * block's card wherever the embed sits, in a list included. `min-width: 0`
- * keeps a wide code block or table from widening the actions column it spans.
+ * Lays `SeerMarkdown`'s top-level blocks out as rows of this grid, beside the
+ * actions in the second column. The first block shares its row with them and
+ * wraps short of them; every block after it runs the full width, so an embed
+ * lines up with a query block's card wherever it sits, in a list included.
  */
-const TextBlockLayout = styled(Grid)`
-  > *,
-  > ${MarkdownRows} > div > * {
-    grid-column: 1 / -1;
-    min-width: 0;
-  }
-
-  > :first-child,
-  > ${MarkdownRows}:first-child > div > :first-child {
-    grid-column: 1;
-  }
-
-  > ${MarkdownRows}, > ${MarkdownRows} > div {
+const MarkdownRows = styled(Grid)`
+  /* SeerMarkdown's root, which steps aside so its blocks are this grid's. */
+  > :first-child {
     display: contents;
   }
 
-  > ${ActionsCell} {
-    grid-area: 1 / 2;
+  > :first-child > * {
+    grid-column: 1 / -1;
+    /* Spanning the actions column, a wide table or code block would widen it. */
+    min-width: 0;
+  }
+
+  > :first-child > :first-child {
+    grid-column: 1;
   }
 `;
 
