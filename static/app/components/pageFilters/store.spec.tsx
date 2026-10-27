@@ -53,7 +53,7 @@ describe('PageFiltersStore', () => {
 
   it('does not update if projects has same value', async () => {
     const triggerSpy = jest.fn();
-    const unsubscribe = PageFiltersStore.subscribe(triggerSpy);
+    const {unsubscribe} = PageFiltersStore.store.subscribe(triggerSpy);
     PageFiltersStore.updateProjects([1], []);
 
     await waitFor(() => PageFiltersStore.getState().selection.projects[0] === 1);
@@ -114,7 +114,7 @@ describe('PageFiltersStore', () => {
     const end = new Date(now + 1000);
 
     const triggerSpy = jest.fn();
-    const unsubscribe = PageFiltersStore.subscribe(triggerSpy);
+    const {unsubscribe} = PageFiltersStore.store.subscribe(triggerSpy);
     PageFiltersStore.updateDateTime({end, start, period: null, utc: null});
 
     await waitFor(() => PageFiltersStore.getState().selection.datetime.start === start);
@@ -140,7 +140,7 @@ describe('PageFiltersStore', () => {
 
   it('does not update if environments has same value', async () => {
     const triggerSpy = jest.fn();
-    const unsubscribe = PageFiltersStore.subscribe(triggerSpy);
+    const {unsubscribe} = PageFiltersStore.store.subscribe(triggerSpy);
     PageFiltersStore.updateEnvironments(['alpha']);
     await waitFor(
       () => PageFiltersStore.getState().selection.environments[0] === 'alpha'

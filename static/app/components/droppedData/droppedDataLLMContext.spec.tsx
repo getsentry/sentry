@@ -30,11 +30,8 @@ function findDroppedDataNode(snapshot: LLMContextSnapshot) {
 
 describe('DroppedDataLLMContext', () => {
   beforeEach(() => {
-    PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
-  });
-
-  afterEach(() => {
     PageFiltersStore.reset();
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
   });
 
   it('registers nothing without the feature flag', () => {

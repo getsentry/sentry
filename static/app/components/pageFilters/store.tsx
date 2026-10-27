@@ -1,6 +1,7 @@
+import {Store} from '@tanstack/react-store';
+
 import type {PageFilterAdjustments} from 'sentry/components/pageFilters/adjustments';
 import {getDefaultPageFilterSelection} from 'sentry/components/pageFilters/constants';
-import {createLegacyStore} from 'sentry/stores/createLegacyStore';
 import type {PageFilters, PinnedPageFilter, PageFilterDatetime} from 'sentry/types/core';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 
@@ -80,17 +81,17 @@ interface PageFiltersState {
   shouldPersist: boolean;
 }
 
-const store = createLegacyStore<PageFiltersState>({
+const store = new Store<PageFiltersState>({
   isReady: false,
   selection: getDefaultPageFilterSelection(),
-  pinnedFilters: new Set(),
+  pinnedFilters: new Set<PinnedPageFilter>(),
   shouldPersist: true,
   adjustments: {},
 });
 
 function getResetState(selection?: PageFilters): PageFiltersState {
   return {
-    ...store.getState(),
+    ...store.state,
     isReady: false,
     selection: selection || getDefaultPageFilterSelection(),
     pinnedFilters: new Set(),
@@ -99,14 +100,18 @@ function getResetState(selection?: PageFilters): PageFiltersState {
 }
 
 export const PageFiltersStore = {
-  ...store,
+  store,
+
+  getState() {
+    return store.state;
+  },
 
   init() {
-    PageFiltersStore.reset(store.getState().selection);
+    PageFiltersStore.reset(store.state.selection);
   },
 
   reset(selection?: PageFilters) {
-    store.resetState(getResetState(selection));
+    store.setState(() => getResetState(selection));
   },
 
   /**
@@ -128,7 +133,7 @@ export const PageFiltersStore = {
   },
 
   onReset() {
-    store.setState(() => getResetState());
+    PageFiltersStore.reset();
   },
 
   updatePersistence(shouldPersist: boolean) {
@@ -143,7 +148,7 @@ export const PageFiltersStore = {
     filter: F,
     adjustment: NonNullable<PageFilterAdjustments[F]>
   ) {
-    const {adjustments} = store.getState();
+    const {adjustments} = store.state;
     if (valueIsEqual(adjustments[filter], adjustment, true)) {
       return;
     }
@@ -158,7 +163,7 @@ export const PageFiltersStore = {
     projects: PageFilters['projects'] = [],
     environments: null | string[] = null
   ) {
-    const state = store.getState();
+    const state = store.state;
     if (valueIsEqual(state.selection.projects, projects)) {
       return;
     }
@@ -178,7 +183,7 @@ export const PageFiltersStore = {
   },
 
   updateDateTime(newDateTime: PageFilterDatetime) {
-    const state = store.getState();
+    const state = store.state;
     if (datetimeHasSameValue(state.selection.datetime, newDateTime)) {
       return;
     }
@@ -191,7 +196,7 @@ export const PageFiltersStore = {
   },
 
   updateEnvironments(environments: string[] | null) {
-    const state = store.getState();
+    const state = store.state;
     if (valueIsEqual(state.selection.environments, environments)) {
       return;
     }
@@ -204,7 +209,7 @@ export const PageFiltersStore = {
   },
 
   pin(filter: PinnedPageFilter, pin: boolean) {
-    const newPinnedFilters = new Set(store.getState().pinnedFilters);
+    const newPinnedFilters = new Set(store.state.pinnedFilters);
     if (pin) {
       newPinnedFilters.add(filter);
     } else {

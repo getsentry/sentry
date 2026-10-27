@@ -10,7 +10,7 @@ describe('TagStore', () => {
   describe('loadTagsSuccess()', () => {
     it('should add a new tag with empty values and trigger the new addition', () => {
       const listener = jest.fn();
-      const unsubscribe = TagStore.subscribe(listener);
+      const {unsubscribe} = TagStore.store.subscribe(listener);
 
       TagStore.loadTagsSuccess([
         {

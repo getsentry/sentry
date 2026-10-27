@@ -118,7 +118,7 @@ describe('GroupStore', () => {
 
     beforeEach(() => {
       listener = jest.fn();
-      unsubscribe = GroupStore.subscribe(listener);
+      unsubscribe = GroupStore.store.subscribe(listener).unsubscribe;
       GroupStore.items = [g('1'), g('2'), g('3')];
     });
     afterEach(() => {
@@ -181,7 +181,7 @@ describe('GroupStore', () => {
   describe('update methods', () => {
     beforeEach(() => {
       listener = jest.fn();
-      unsubscribe = GroupStore.subscribe(listener);
+      unsubscribe = GroupStore.store.subscribe(listener).unsubscribe;
       GroupStore.items = [g('1'), g('2'), g('3')];
     });
     afterEach(() => {

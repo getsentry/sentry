@@ -8,6 +8,7 @@ import {
   getDefaultIntegrations,
   makeFetchTransport,
 } from '@sentry/react';
+import {useSelector} from '@tanstack/react-store';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -24,7 +25,6 @@ import type {Data} from 'sentry/components/forms/types';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {defined} from 'sentry/utils/defined';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -205,7 +205,7 @@ export function FeedbackModal<T extends Data>({
   closeModal,
   ...props
 }: FeedbackModalProps<T> & ModalRenderProps) {
-  const {organization} = useLegacyStore(OrganizationStore);
+  const organization = useSelector(OrganizationStore.store, state => state.organization);
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const location = useLocation();
 

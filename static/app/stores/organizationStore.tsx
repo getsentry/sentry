@@ -1,5 +1,6 @@
+import {Store} from '@tanstack/react-store';
+
 import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';
-import {createLegacyStore} from 'sentry/stores/createLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {callSetOrganizationCallback} from 'sentry/utils/routeAnalytics/setOrganizationCallback';
@@ -20,13 +21,13 @@ const initialState: State = {
   errorType: null,
 };
 
-const store = createLegacyStore<State>(initialState);
+const store = new Store<State>(initialState);
 
 function onUpdate(org: Organization, options?: {replace: true}): void;
 function onUpdate(org: Partial<Organization>, options?: {replace?: false}): void;
 function onUpdate(updatedOrg: Partial<Organization>, {replace = false} = {}) {
   const organization = (
-    replace ? updatedOrg : {...store.getState().organization, ...updatedOrg}
+    replace ? updatedOrg : {...store.state.organization, ...updatedOrg}
   ) as Organization;
   store.setState(() => ({
     loading: false,
@@ -40,7 +41,11 @@ function onUpdate(updatedOrg: Partial<Organization>, {replace = false} = {}) {
 }
 
 export const OrganizationStore = {
-  ...store,
+  store,
+
+  getState() {
+    return store.state;
+  },
 
   init() {
     OrganizationStore.reset();
@@ -84,6 +89,6 @@ export const OrganizationStore = {
   },
 
   get() {
-    return store.getState();
+    return store.state;
   },
 };

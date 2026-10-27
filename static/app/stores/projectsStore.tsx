@@ -1,5 +1,6 @@
+import {Store} from '@tanstack/react-store';
+
 import {clearQueryCache} from 'sentry/appQueryClient';
-import {createLegacyStore} from 'sentry/stores/createLegacyStore';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 
@@ -8,7 +9,7 @@ type State = {
   projects: Project[];
 };
 
-const store = createLegacyStore<State>({projects: [], loading: true});
+const store = new Store<State>({projects: [], loading: true});
 
 function setProjects(projects: Project[]) {
   store.setState(prev => ({...prev, projects}));
@@ -18,19 +19,23 @@ function setProjects(projects: Project[]) {
 function removeTeamFromProject(teamSlug: string, project: Project) {
   const newTeams = project.teams.filter(({slug}) => slug !== teamSlug);
   const newProject = {...project, teams: newTeams};
-  setProjects(store.getState().projects.map(p => (p.id === project.id ? newProject : p)));
+  setProjects(store.state.projects.map(p => (p.id === project.id ? newProject : p)));
   clearQueryCache();
 }
 
 export const ProjectsStore = {
-  ...store,
+  store,
+
+  getState() {
+    return store.state;
+  },
 
   init() {
     ProjectsStore.reset();
   },
 
   reset() {
-    store.resetState({projects: [], loading: true});
+    store.setState(() => ({projects: [], loading: true}));
   },
 
   loadInitialData(items: Project[]) {
@@ -49,9 +54,8 @@ export const ProjectsStore = {
 
     const newProject = {...prevProject, slug: newSlug};
     setProjects(
-      store
-        .getState()
-        .projects.map(project => (project.slug === prevSlug ? newProject : project))
+      store.state.projects
+        .map(project => (project.slug === prevSlug ? newProject : project))
         .toSorted((a, b) => a.slug.localeCompare(b.slug))
     );
     clearQueryCache();
@@ -59,10 +63,7 @@ export const ProjectsStore = {
 
   onCreateSuccess(project: Project) {
     setProjects(
-      store
-        .getState()
-        .projects.concat([project])
-        .sort((a, b) => a.slug.localeCompare(b.slug))
+      store.state.projects.concat([project]).sort((a, b) => a.slug.localeCompare(b.slug))
     );
     clearQueryCache();
   },
@@ -75,9 +76,7 @@ export const ProjectsStore = {
     }
 
     const newProject = {...project, ...data};
-    setProjects(
-      store.getState().projects.map(p => (p.id === project.id ? newProject : p))
-    );
+    setProjects(store.state.projects.map(p => (p.id === project.id ? newProject : p)));
     clearQueryCache();
   },
 
@@ -86,7 +85,7 @@ export const ProjectsStore = {
     if (!project) {
       return;
     }
-    setProjects(store.getState().projects.filter(p => p.id !== project.id));
+    setProjects(store.state.projects.filter(p => p.id !== project.id));
     clearQueryCache();
   },
 
@@ -97,9 +96,9 @@ export const ProjectsStore = {
    */
   onDeleteTeam(teamSlug: string) {
     // Look for team in all projects
-    const projects = store
-      .getState()
-      .projects.filter(({teams}) => teams.find(({slug}) => slug === teamSlug));
+    const projects = store.state.projects.filter(({teams}) =>
+      teams.find(({slug}) => slug === teamSlug)
+    );
 
     projects.forEach(project => removeTeamFromProject(teamSlug, project));
     clearQueryCache();
@@ -125,21 +124,19 @@ export const ProjectsStore = {
     }
 
     const newProject = {...project, teams: [...project.teams, team]};
-    setProjects(
-      store.getState().projects.map(p => (p.id === project.id ? newProject : p))
-    );
+    setProjects(store.state.projects.map(p => (p.id === project.id ? newProject : p)));
     clearQueryCache();
   },
 
   isLoading() {
-    return store.getState().loading;
+    return store.state.loading;
   },
 
   getById(id?: string) {
-    return store.getState().projects.find(project => project.id === id);
+    return store.state.projects.find(project => project.id === id);
   },
 
   getBySlug(slug?: string) {
-    return store.getState().projects.find(project => project.slug === slug);
+    return store.state.projects.find(project => project.slug === slug);
   },
 };

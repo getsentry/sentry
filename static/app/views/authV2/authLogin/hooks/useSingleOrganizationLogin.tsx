@@ -1,7 +1,7 @@
 import {useEffect} from 'react';
+import {useSelector} from '@tanstack/react-store';
 
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 interface UseSingleOrganizationLoginOptions {
@@ -14,7 +14,10 @@ export function useSingleOrganizationLogin({
   singleOrganizationSlug,
 }: UseSingleOrganizationLoginOptions) {
   const navigate = useNavigate();
-  const isSingleOrganization = useLegacyStore(ConfigStore).singleOrganization;
+  const isSingleOrganization = useSelector(
+    ConfigStore.store,
+    state => state.singleOrganization
+  );
 
   useEffect(() => {
     if (!isSingleOrganization || !singleOrganizationSlug) {

@@ -1,6 +1,7 @@
 import {lazy, Suspense, useCallback, useEffect} from 'react';
 import {Outlet} from 'react-router';
 import styled from '@emotion/styled';
+import {useSelector} from '@tanstack/react-store';
 
 import {GlobalModal} from '@sentry/scraps/modal';
 
@@ -16,7 +17,6 @@ import {getOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {GuideStore} from 'sentry/stores/guideStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Config} from 'sentry/types/system';
 import {isValidOrgSlug} from 'sentry/utils/isValidOrgSlug';
 import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
@@ -41,8 +41,9 @@ const BeaconConsent = lazy(() => import('sentry/views/beaconConsent'));
 function AppAlerts() {
   const {addAlert} = useGlobalAlerts();
   const api = useApi();
-  const config = useLegacyStore(ConfigStore);
-  const preloadData = shouldPreloadData(config);
+  const isSelfHosted = useSelector(ConfigStore.store, state => state.isSelfHosted);
+  const messages = useSelector(ConfigStore.store, state => state.messages);
+  const preloadData = useSelector(ConfigStore.store, shouldPreloadData);
 
   useEffect(() => {
     displayDeployPreviewAlert(addAlert);
@@ -50,7 +51,7 @@ function AppAlerts() {
   }, [addAlert]);
 
   useEffect(() => {
-    if (!preloadData || !config.isSelfHosted) {
+    if (!preloadData || !isSelfHosted) {
       return;
     }
     api
@@ -65,14 +66,14 @@ function AppAlerts() {
       .catch(() => {
         // TODO: do something?
       });
-  }, [api, config.isSelfHosted, preloadData, addAlert]);
+  }, [api, isSelfHosted, preloadData, addAlert]);
 
   useEffect(() => {
     if (!preloadData) {
       return;
     }
     // Show system-level alerts that were forwarded by the initial client config request
-    config.messages.forEach(msg =>
+    messages.forEach(msg =>
       addAlert({
         message: msg.message,
         variant:
@@ -82,7 +83,7 @@ function AppAlerts() {
         neverExpire: true,
       })
     );
-  }, [config.messages, preloadData, addAlert]);
+  }, [messages, preloadData, addAlert]);
 
   return null;
 }
@@ -165,8 +166,18 @@ function AppBody({
 export function App() {
   const api = useApi();
   const user = useUser();
-  const config = useLegacyStore(ConfigStore);
-  const preloadData = shouldPreloadData(config);
+  const isSelfHosted = useSelector(ConfigStore.store, state => state.isSelfHosted);
+  const needsUpgrade = useSelector(ConfigStore.store, state => state.needsUpgrade);
+  const partnershipAgreementPrompt = useSelector(
+    ConfigStore.store,
+    state => state.partnershipAgreementPrompt
+  );
+  const shouldShowBeaconConsentPrompt = useSelector(
+    ConfigStore.store,
+    state => state.shouldShowBeaconConsentPrompt
+  );
+  const customerDomain = useSelector(ConfigStore.store, state => state.customerDomain);
+  const preloadData = useSelector(ConfigStore.store, shouldPreloadData);
 
   /**
    * Loads the users organization list into the OrganizationsStore
@@ -229,12 +240,10 @@ export function App() {
     ConfigStore.set('user', {...user, flags});
   }
 
-  const displayInstallWizard =
-    user?.isSuperuser && config.needsUpgrade && config.isSelfHosted;
+  const displayInstallWizard = user?.isSuperuser && needsUpgrade && isSelfHosted;
   const newsletterConsentPrompt = user?.flags?.newsletter_consent_prompt;
-  const partnershipAgreementPrompt = config.partnershipAgreementPrompt;
   const beaconConsentPrompt =
-    user?.isSuperuser && config.isSelfHosted && config.shouldShowBeaconConsentPrompt;
+    user?.isSuperuser && isSelfHosted && shouldShowBeaconConsentPrompt;
 
   return (
     <Profiler id="App" onRender={onRenderCallback}>
@@ -252,7 +261,7 @@ export function App() {
               displayInstallWizard={displayInstallWizard}
               isOrgSlugValid={isOrgSlugValid}
               newsletterConsentPrompt={newsletterConsentPrompt}
-              organizationSlug={config.customerDomain?.subdomain}
+              organizationSlug={customerDomain?.subdomain}
               partnershipAgreementPrompt={partnershipAgreementPrompt}
             />
           </ErrorBoundary>

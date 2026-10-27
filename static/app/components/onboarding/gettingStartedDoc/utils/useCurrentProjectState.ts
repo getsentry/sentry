@@ -1,10 +1,10 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useSelector} from '@tanstack/react-store';
 import partition from 'lodash/partition';
 import {parseAsString, useQueryState} from 'nuqs';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import type {OnboardingDrawerKey} from 'sentry/stores/onboardingDrawerStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {Project} from 'sentry/types/project';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
@@ -24,7 +24,8 @@ export function useCurrentProjectState({
   allPlatforms,
 }: Props) {
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
-  const {selection, isReady} = useLegacyStore(PageFiltersStore);
+  const selection = useSelector(PageFiltersStore.store, state => state.selection);
+  const isReady = useSelector(PageFiltersStore.store, state => state.isReady);
   const [projectId] = useQueryState('project', parseAsString);
   const isActive = currentPanel === targetPanel;
 

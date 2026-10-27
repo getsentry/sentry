@@ -1,4 +1,5 @@
-import {createLegacyStore} from 'sentry/stores/createLegacyStore';
+import {Store} from '@tanstack/react-store';
+
 import type {Team} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 
@@ -20,15 +21,13 @@ const initialState: State = {
   cursor: null,
 };
 
-const store = createLegacyStore<State>(initialState);
+const store = new Store<State>(initialState);
 
 function updateTeams(teams: Team[]) {
-  const teamIdMap = store
-    .getState()
-    .teams.reduce((acc: Record<string, Team>, team: Team) => {
-      acc[team.id] = team;
-      return acc;
-    }, {});
+  const teamIdMap = store.state.teams.reduce((acc: Record<string, Team>, team: Team) => {
+    acc[team.id] = team;
+    return acc;
+  }, {});
 
   // Replace or insert new user teams
   teams.reduce((acc: Record<string, Team>, userTeam: Team) => {
@@ -40,7 +39,11 @@ function updateTeams(teams: Team[]) {
 }
 
 export const TeamStore = {
-  ...store,
+  store,
+
+  getState() {
+    return store.state;
+  },
   initialized: false,
 
   init() {
@@ -48,12 +51,12 @@ export const TeamStore = {
   },
 
   reset() {
-    store.resetState(initialState);
+    store.setState(() => initialState);
   },
 
   setTeams(teams: Team[], hasMore?: boolean | null, cursor?: string | null) {
     TeamStore.initialized = true;
-    const state = store.getState();
+    const state = store.state;
     store.setState(() => ({
       teams,
       loadedUserTeams: defined(hasMore) ? !hasMore : state.loadedUserTeams,
@@ -80,7 +83,7 @@ export const TeamStore = {
       return;
     }
 
-    const {teams} = store.getState();
+    const {teams} = store.state;
     const item = TeamStore.getBySlug(itemId);
 
     if (!item) {
@@ -108,7 +111,7 @@ export const TeamStore = {
   },
 
   onRemoveSuccess(slug: string) {
-    TeamStore.setTeams(store.getState().teams.filter(team => team.slug !== slug));
+    TeamStore.setTeams(store.state.teams.filter(team => team.slug !== slug));
     ProjectsStore.onDeleteTeam(slug);
   },
 
@@ -117,16 +120,14 @@ export const TeamStore = {
   },
 
   getById(id: string) {
-    return (
-      store.getState().teams.find(item => item.id.toString() === id.toString()) || null
-    );
+    return store.state.teams.find(item => item.id.toString() === id.toString()) || null;
   },
 
   getBySlug(slug: string) {
-    return store.getState().teams.find(item => item.slug === slug) || null;
+    return store.state.teams.find(item => item.slug === slug) || null;
   },
 
   getAll() {
-    return store.getState().teams;
+    return store.state.teams;
   },
 };

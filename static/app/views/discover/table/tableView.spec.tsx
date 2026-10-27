@@ -99,6 +99,7 @@ describe('TableView > CellActions', () => {
   }
 
   beforeEach(() => {
+    ProjectsStore.reset();
     act(() => {
       ProjectsStore.loadInitialData(projects);
       TagStore.reset();
@@ -139,10 +140,6 @@ describe('TableView > CellActions', () => {
       statusCode: 204,
       body: '',
     });
-  });
-
-  afterEach(() => {
-    ProjectsStore.reset();
   });
 
   it('updates sort order on equation fields', () => {

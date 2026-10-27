@@ -1,14 +1,13 @@
 import {IconMoon} from '@sentry/icons/moon';
+import {useSelector} from '@tanstack/react-store';
 
 import {Button} from '@sentry/scraps/button';
 
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
 export function ThemeSwitcher() {
-  const config = useLegacyStore(ConfigStore);
-  const isDark = config.theme === 'dark';
+  const isDark = useSelector(ConfigStore.store, state => state.theme === 'dark');
 
   const handleClick = () => {
     ConfigStore.set('theme', isDark ? 'light' : 'dark');

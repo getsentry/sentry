@@ -1,13 +1,17 @@
-import {createLegacyStore} from 'sentry/stores/createLegacyStore';
+import {Store} from '@tanstack/react-store';
 
 type State = {
   requested: boolean;
 };
 
-const store = createLegacyStore<State>({requested: false});
+const store = new Store<State>({requested: false});
 
 export const TrialRequestedStore = {
-  ...store,
+  store,
+
+  getState() {
+    return store.state;
+  },
 
   onRequested() {
     store.setState(prev => ({...prev, requested: true}));
@@ -18,6 +22,6 @@ export const TrialRequestedStore = {
   },
 
   getTrialRequstedState() {
-    return store.getState().requested;
+    return store.state.requested;
   },
 };

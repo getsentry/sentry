@@ -1,25 +1,29 @@
+import {Store} from '@tanstack/react-store';
 import moment from 'moment-timezone';
 
-import {createLegacyStore} from 'sentry/stores/createLegacyStore';
 import type {Config} from 'sentry/types/system';
 
 // When the app is booted we will _immediately_ hydrate the config store,
 // effecively ensuring this is not empty.
-const store = createLegacyStore<Config>({} as Config);
+const store = new Store<Config>({} as Config);
 
 export const ConfigStore = {
-  ...store,
+  store,
+
+  getState() {
+    return store.state;
+  },
 
   init(): void {
-    store.resetState({} as Config);
+    store.setState(() => ({}) as Config);
   },
 
   get<K extends keyof Config>(key: K): Config[K] {
-    return store.getState()[key];
+    return store.state[key];
   },
 
   set<K extends keyof Config>(key: K, value: Config[K]): void {
-    store.setState(() => ({...store.getState(), [key]: value}));
+    store.setState(() => ({...store.state, [key]: value}));
   },
 
   loadInitialData(config: Config): void {

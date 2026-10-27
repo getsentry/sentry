@@ -33,6 +33,7 @@ describe('OrganizationStats', () => {
   let mockRequest: jest.Mock;
 
   beforeEach(() => {
+    PageFiltersStore.reset();
     MockApiClient.clearMockResponses();
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState(defaultSelection);
@@ -45,10 +46,6 @@ describe('OrganizationStats', () => {
     });
     ConfigStore.init();
     ConfigStore.set('user', UserFixture());
-  });
-
-  afterEach(() => {
-    PageFiltersStore.reset();
   });
 
   /**

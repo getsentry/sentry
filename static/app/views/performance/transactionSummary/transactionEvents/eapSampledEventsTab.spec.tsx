@@ -17,6 +17,7 @@ describe('EAPSampledEventsTab', () => {
   });
 
   beforeEach(() => {
+    ProjectsStore.reset();
     ProjectsStore.loadInitialData([project]);
     PageFiltersStore.onInitializeUrlState(
       PageFiltersFixture({projects: [Number(project.id)]})
@@ -101,7 +102,6 @@ describe('EAPSampledEventsTab', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    ProjectsStore.reset();
   });
 
   it('renders the filter bar and table', async () => {

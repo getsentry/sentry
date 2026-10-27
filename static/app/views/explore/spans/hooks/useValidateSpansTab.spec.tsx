@@ -29,6 +29,7 @@ const validationBody: EventValidationData = {
 
 describe('useValidateSpansTab', () => {
   beforeEach(() => {
+    PageFiltersStore.reset();
     PageFiltersStore.onInitializeUrlState(
       PageFiltersFixture({
         datetime: {period: '14d', start: null, end: null, utc: false},
@@ -39,7 +40,6 @@ describe('useValidateSpansTab', () => {
   });
 
   afterEach(() => {
-    PageFiltersStore.reset();
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
   });

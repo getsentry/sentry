@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {useSelector} from '@tanstack/react-store';
 
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -35,7 +36,6 @@ import {ProductSelection} from 'sentry/components/onboarding/productSelection';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {Project, ProjectKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -83,7 +83,8 @@ export function OnboardingLayout({
     useSourcePackageRegistries(organization);
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
   const {platformOptions} = docsConfig;
-  const {urlPrefix, isSelfHosted} = useLegacyStore(ConfigStore);
+  const urlPrefix = useSelector(ConfigStore.store, state => state.urlPrefix);
+  const isSelfHosted = useSelector(ConfigStore.store, state => state.isSelfHosted);
 
   const {
     introduction,

@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
+import {useSelector} from '@tanstack/react-store';
 
 import {t} from 'sentry/locale';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Scope} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -15,7 +15,8 @@ type NavProps = NavigationProps & {
 
 export function useBillingNavigationConfig(): NavigationSection | null {
   const organization = useOrganization();
-  const subscription = useLegacyStore(SubscriptionStore)[organization.slug] ?? null;
+  const subscription =
+    useSelector(SubscriptionStore.store, state => state[organization.slug]) ?? null;
 
   return useMemo(() => {
     if (!subscription) {

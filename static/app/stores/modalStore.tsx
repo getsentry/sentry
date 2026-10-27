@@ -1,7 +1,7 @@
+import {Store} from '@tanstack/react-store';
 import type {FocusTrap} from 'focus-trap';
 
 import type {ModalOptions, ModalRenderProps} from 'sentry/actionCreators/modal';
-import {createLegacyStore} from 'sentry/stores/createLegacyStore';
 
 type Renderer = (renderProps: ModalRenderProps) => React.ReactNode;
 
@@ -12,43 +12,39 @@ type State = {
   triggerElement?: HTMLElement | null;
 };
 
-const store = createLegacyStore<State>({renderer: null, options: {}});
+const store = new Store<State>({renderer: null, options: {}});
 
 export const ModalStore = {
-  ...store,
+  store,
+
+  getState() {
+    return store.state;
+  },
 
   init() {
     ModalStore.reset();
   },
 
   reset() {
-    store.resetState({
+    store.setState(prev => ({
+      ...prev,
       renderer: null,
       options: {},
-      focusTrap: store.getState().focusTrap,
-    });
+      triggerElement: undefined,
+    }));
   },
 
   closeModal() {
-    store.setState(() => ({
-      renderer: null,
-      options: {},
-      focusTrap: store.getState().focusTrap,
-    }));
+    ModalStore.reset();
   },
 
   openModal(renderer: Renderer, options: ModalOptions) {
     const triggerElement =
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    store.setState(() => ({
-      renderer,
-      options,
-      focusTrap: store.getState().focusTrap,
-      triggerElement,
-    }));
+    store.setState(prev => ({...prev, renderer, options, triggerElement}));
   },
 
   setFocusTrap(focusTrap: FocusTrap) {
-    store.resetState({...store.getState(), focusTrap});
+    store.setState(prev => ({...prev, focusTrap}));
   },
 };

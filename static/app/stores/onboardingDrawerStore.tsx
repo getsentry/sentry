@@ -1,4 +1,4 @@
-import {createLegacyStore} from 'sentry/stores/createLegacyStore';
+import {Store} from '@tanstack/react-store';
 
 type ActivePanelType = Readonly<OnboardingDrawerKey | ''>;
 
@@ -13,14 +13,18 @@ export enum OnboardingDrawerKey {
   FEATURE_FLAG_ONBOARDING = 'flag_onboarding',
 }
 
-const store = createLegacyStore<ActivePanelType>('');
+const store = new Store<ActivePanelType>('');
 
 /**
  * This store is used to hold local user preferences
  * Side-effects (like reading/writing to cookies) are done in associated actionCreators
  */
 export const OnboardingDrawerStore = {
-  ...store,
+  store,
+
+  getState() {
+    return store.state;
+  },
 
   init() {},
 
@@ -29,7 +33,7 @@ export const OnboardingDrawerStore = {
   },
 
   toggle(panel: OnboardingDrawerKey) {
-    if (store.getState() === panel) {
+    if (store.state === panel) {
       OnboardingDrawerStore.close();
     } else {
       OnboardingDrawerStore.open(panel);

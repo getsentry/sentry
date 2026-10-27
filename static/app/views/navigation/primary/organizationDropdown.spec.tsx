@@ -17,11 +17,8 @@ describe('OrganizationDropdown', () => {
   });
 
   beforeEach(() => {
-    ConfigStore.set('user', UserFixture());
-  });
-
-  afterEach(() => {
     ProjectsStore.reset();
+    ConfigStore.set('user', UserFixture());
   });
 
   it('displays org info and links', async () => {

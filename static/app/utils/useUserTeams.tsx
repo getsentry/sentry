@@ -1,8 +1,8 @@
 import {useEffect, useMemo} from 'react';
+import {useSelector} from '@tanstack/react-store';
 
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {TeamStore} from 'sentry/stores/teamStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Team} from 'sentry/types/organization';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -33,13 +33,15 @@ function buildUserTeamsQueryKey(orgSlug: string): ApiQueryKey {
  * ```
  */
 export function useUserTeams(): UseTeamsResult {
-  const {organization} = useLegacyStore(OrganizationStore);
-  const storeState = useLegacyStore(TeamStore);
+  const organization = useSelector(OrganizationStore.store, state => state.organization);
+  const storeTeams = useSelector(TeamStore.store, state => state.teams);
+  const storeLoading = useSelector(TeamStore.store, state => state.loading);
+  const loadedUserTeams = useSelector(TeamStore.store, state => state.loadedUserTeams);
 
   // Wait until the store has loaded to start fetching
-  const shouldConsiderFetching = !!organization?.slug && !storeState.loading;
+  const shouldConsiderFetching = !!organization?.slug && !storeLoading;
   // Only fetch if there are missing teams
-  const hasMissing = !storeState.loadedUserTeams;
+  const hasMissing = !loadedUserTeams;
   const queryEnabled = shouldConsiderFetching && hasMissing;
 
   const {
@@ -61,14 +63,12 @@ export function useUserTeams(): UseTeamsResult {
   const isSuperuser = isActiveSuperuser();
   const isOrgOwner = organization?.access.includes('org:admin');
   const teams = useMemo<Team[]>(() => {
-    return isSuperuser || isOrgOwner
-      ? storeState.teams
-      : storeState.teams.filter(t => t.isMember);
-  }, [isSuperuser, isOrgOwner, storeState.teams]);
+    return isSuperuser || isOrgOwner ? storeTeams : storeTeams.filter(t => t.isMember);
+  }, [isSuperuser, isOrgOwner, storeTeams]);
 
   return {
     teams,
-    isLoading: queryEnabled ? isPending : storeState.loading,
+    isLoading: queryEnabled ? isPending : storeLoading,
     isError: queryEnabled ? isError : null,
   };
 }

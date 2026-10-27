@@ -74,12 +74,9 @@ describe('ProjectDetail', () => {
   }
 
   beforeEach(() => {
+    ProjectsStore.reset();
     MockApiClient.clearMockResponses();
     ProjectsStore.init();
-  });
-
-  afterEach(() => {
-    ProjectsStore.reset();
   });
 
   it('Render an error if project not found', async () => {

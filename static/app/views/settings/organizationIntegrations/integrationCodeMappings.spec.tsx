@@ -59,6 +59,7 @@ describe('IntegrationCodeMappings', () => {
   });
 
   beforeEach(() => {
+    ProjectsStore.reset();
     ProjectsStore.loadInitialData(projects);
 
     MockApiClient.addMockResponse({
@@ -76,7 +77,6 @@ describe('IntegrationCodeMappings', () => {
   });
 
   afterEach(() => {
-    ProjectsStore.reset();
     MockApiClient.clearMockResponses();
   });
 

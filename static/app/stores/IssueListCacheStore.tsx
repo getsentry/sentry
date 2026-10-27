@@ -1,6 +1,6 @@
+import {Store} from '@tanstack/react-store';
 import isEqual from 'lodash/isEqual';
 
-import {createLegacyStore} from 'sentry/stores/createLegacyStore';
 import type {Group} from 'sentry/types/group';
 
 /**
@@ -34,21 +34,29 @@ interface IssueListCacheState {
 // 30 seconds
 const CACHE_EXPIRATION = 30 * 1000;
 
-const store = createLegacyStore<IssueListCacheState | null>(null);
+const store = new Store<IssueListCacheState | null>(null);
 
 export const IssueListCacheStore = {
-  ...store,
+  store,
+
+  getState() {
+    return store.state;
+  },
 
   reset() {
-    store.resetState(null);
+    store.setState(() => null);
   },
 
   save(params: LooseParamsType, data: IssueListCache) {
-    store.resetState({params, cache: data, expiration: Date.now() + CACHE_EXPIRATION});
+    store.setState(() => ({
+      params,
+      cache: data,
+      expiration: Date.now() + CACHE_EXPIRATION,
+    }));
   },
 
   getFromCache(params: LooseParamsType) {
-    const state = store.getState();
+    const state = store.state;
     if (state && state.expiration > Date.now() && isEqual(state.params, params)) {
       return state.cache;
     }
@@ -57,9 +65,7 @@ export const IssueListCacheStore = {
   },
 
   markGroupAsSeen(groupId: string) {
-    const matchingGroup = store
-      .getState()
-      ?.cache.groups.find(group => group.id === groupId);
+    const matchingGroup = store.state?.cache.groups.find(group => group.id === groupId);
     if (matchingGroup) {
       matchingGroup.hasSeen = true;
     }

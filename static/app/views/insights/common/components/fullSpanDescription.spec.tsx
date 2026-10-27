@@ -10,12 +10,9 @@ import {ModuleName} from 'sentry/views/insights/types';
 
 describe('FullSpanDescription', () => {
   beforeEach(() => {
+    PageFiltersStore.reset();
     jest.clearAllMocks();
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
-  });
-
-  afterEach(() => {
-    PageFiltersStore.reset();
   });
 
   const organization = OrganizationFixture();

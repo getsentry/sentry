@@ -1,3 +1,5 @@
+import {useSelector} from '@tanstack/react-store';
+
 import {Badge} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -9,7 +11,6 @@ import {useMailboxCounts} from 'sentry/components/feedback/list/useMailboxCounts
 import type {Mailbox} from 'sentry/components/feedback/useMailbox';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface Props {
@@ -20,7 +21,7 @@ interface Props {
 export function MailboxPicker({onChange, value}: Props) {
   const organization = useOrganization();
   const {data} = useMailboxCounts({organization});
-  const {isSelfHosted} = useLegacyStore(ConfigStore);
+  const isSelfHosted = useSelector(ConfigStore.store, state => state.isSelfHosted);
 
   const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
   const hasSpamFeature = organization.features.includes('user-feedback-spam-ingest');

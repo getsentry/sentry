@@ -5,6 +5,7 @@ import {
   useMutation,
   useQueryClient,
 } from '@tanstack/react-query';
+import {useSelector} from '@tanstack/react-store';
 import {z} from 'zod';
 
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
@@ -15,7 +16,6 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -132,7 +132,10 @@ function DefaultNotificationField({
 }
 
 export function NotificationSettingsByType({notificationType}: Props) {
-  const {organizations} = useLegacyStore(OrganizationsStore);
+  const organizations = useSelector(
+    OrganizationsStore.store,
+    state => state.organizations
+  );
   const queryClient = useQueryClient();
   const {data: notificationOptions = [], status: notificationOptionStatus} = useApiQuery<
     NotificationOptionsObject[]

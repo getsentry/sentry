@@ -57,6 +57,10 @@ describe('UnsupportedPlatformOnboarding', () => {
 });
 
 describe('Onboarding deployment target', () => {
+  beforeEach(() => {
+    ProjectsStore.reset();
+  });
+
   function setupProject(platform: PlatformKey) {
     const organization = OrganizationFixture();
     const project = ProjectFixture({platform, firstTransactionEvent: false});
@@ -89,7 +93,6 @@ describe('Onboarding deployment target', () => {
   }
 
   afterEach(() => {
-    ProjectsStore.reset();
     MockApiClient.clearMockResponses();
   });
 

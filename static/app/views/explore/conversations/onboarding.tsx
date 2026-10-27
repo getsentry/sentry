@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {IconBot} from '@sentry/icons/bot';
 import {IconCopy} from '@sentry/icons/copy';
 import {IconUser} from '@sentry/icons/user';
+import {useSelector} from '@tanstack/react-store';
 
 import agentTracingEmptyStateImg from 'sentry-images/spot/agent-tracing-empty-state.svg';
 
@@ -44,7 +45,6 @@ import {agentMonitoringPlatforms} from 'sentry/data/platformCategories';
 import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeInteger} from 'sentry/utils/queryString';
@@ -532,7 +532,8 @@ const INTEGRATIONS_WITH_AUTOMATIC_CONVERSATION_IDS = new Set<string>([
 
 export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
   const api = useApi();
-  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const isSelfHosted = useSelector(ConfigStore.store, state => state.isSelfHosted);
+  const urlPrefix = useSelector(ConfigStore.store, state => state.urlPrefix);
   const project = useOnboardingProject();
   const organization = useOrganization();
   const location = useLocation();

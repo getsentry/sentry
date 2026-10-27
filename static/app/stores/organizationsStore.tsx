@@ -1,4 +1,5 @@
-import {createLegacyStore} from 'sentry/stores/createLegacyStore';
+import {Store} from '@tanstack/react-store';
+
 import type {OrganizationSummary} from 'sentry/types/organization';
 
 interface State {
@@ -6,18 +7,22 @@ interface State {
   organizations: OrganizationSummary[];
 }
 
-const store = createLegacyStore<State>({organizations: [], loaded: false});
+const store = new Store<State>({organizations: [], loaded: false});
 
 export const OrganizationsStore = {
-  ...store,
+  store,
+
+  getState() {
+    return store.state;
+  },
 
   init() {
-    store.resetState({organizations: [], loaded: false});
+    store.setState(() => ({organizations: [], loaded: false}));
   },
 
   onUpdate(org: Partial<OrganizationSummary>) {
     let match = false;
-    const newOrgs = [...store.getState().organizations];
+    const newOrgs = [...store.state.organizations];
     newOrgs.forEach((existing, idx) => {
       if (existing.id === org.id) {
         newOrgs[idx] = {...existing, ...org};
@@ -46,23 +51,23 @@ export const OrganizationsStore = {
   },
 
   get(slug: string) {
-    return store.getState().organizations.find(item => item.slug === slug);
+    return store.state.organizations.find(item => item.slug === slug);
   },
 
   getAll() {
-    return store.getState().organizations;
+    return store.state.organizations;
   },
 
   remove(slug: string) {
     store.setState(prev => ({
       ...prev,
-      organizations: store.getState().organizations.filter(item => slug !== item.slug),
+      organizations: store.state.organizations.filter(item => slug !== item.slug),
     }));
   },
 
   addOrReplace(item: OrganizationSummary) {
     let match = false;
-    const newOrgs = [...store.getState().organizations];
+    const newOrgs = [...store.state.organizations];
     newOrgs.forEach((existing, idx) => {
       if (existing.id === item.id) {
         newOrgs[idx] = {...existing, ...item};

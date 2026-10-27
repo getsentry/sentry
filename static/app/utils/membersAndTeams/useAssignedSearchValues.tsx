@@ -1,17 +1,17 @@
 import {useMemo} from 'react';
 import {IconStar} from '@sentry/icons/star';
 import {IconUser} from '@sentry/icons/user';
+import {useSelector} from '@tanstack/react-store';
 
 import {ItemType, type SearchGroup} from 'sentry/components/searchBar/types';
 import {escapeTagValue} from 'sentry/components/searchBar/utils';
 import {t} from 'sentry/locale';
 import {TeamStore} from 'sentry/stores/teamStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {useMembers} from 'sentry/utils/members/useMembers';
 import {getUsername} from 'sentry/utils/membersAndTeams/userUtils';
 
 export function useAssignedSearchValues(): SearchGroup[] {
-  const {teams} = useLegacyStore(TeamStore);
+  const teams = useSelector(TeamStore.store, state => state.teams);
   const {data: members = []} = useMembers();
 
   const assignedValues: SearchGroup[] = useMemo(() => {

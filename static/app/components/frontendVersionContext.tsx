@@ -1,8 +1,8 @@
 import {createContext, useContext, useEffect, useState} from 'react';
+import {useSelector} from '@tanstack/react-store';
 
 import {DEPLOY_PREVIEW_CONFIG, NODE_ENV} from 'sentry/constants';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
@@ -76,7 +76,7 @@ const FrontendVersionContext = createContext<VersionStatus>({
  * and on tab focus to detect if the frontend version has changed.
  */
 export function FrontendVersionProvider({children, releaseVersion}: Props) {
-  const {sentryMode} = useLegacyStore(ConfigStore);
+  const sentryMode = useSelector(ConfigStore.store, state => state.sentryMode);
 
   // Version checking only applies to production SAAS builds
   const isSaas = sentryMode === 'SAAS';

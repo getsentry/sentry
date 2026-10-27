@@ -28,11 +28,8 @@ const aggregateFields = [
 
 describe('useLogsTimeseriesRequest', () => {
   beforeEach(() => {
-    PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
-  });
-
-  afterEach(() => {
     PageFiltersStore.reset();
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
   });
 
   it.each([false, true])(

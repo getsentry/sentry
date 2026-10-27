@@ -1,8 +1,9 @@
+import {Store} from '@tanstack/react-store';
+
 import {getGuidesContent} from 'sentry/components/assistant/getGuidesContent';
 import type {Guide, GuidesServerData} from 'sentry/components/assistant/types';
 import {getOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {createLegacyStore} from 'sentry/stores/createLegacyStore';
 import {ModalStore} from 'sentry/stores/modalStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -77,7 +78,7 @@ function isForceEnabled() {
   return window.location.hash === '#assistant';
 }
 
-const store = createLegacyStore<GuideStoreState>({...defaultState});
+const store = new Store<GuideStoreState>({...defaultState});
 
 let unsubscribeModalStore: (() => void) | null = null;
 
@@ -87,25 +88,29 @@ function onURLChange() {
 }
 
 export const GuideStore = {
-  ...store,
+  store,
+
+  getState() {
+    return store.state;
+  },
 
   /**
    * @deprecated Use `getState()`
    */
   get state() {
-    return store.getState();
+    return store.state;
   },
 
   init() {
-    store.resetState({...defaultState, forceShow: isForceEnabled()});
+    store.setState(() => ({...defaultState, forceShow: isForceEnabled()}));
 
     window.addEventListener('load', onURLChange, false);
 
     // Guides will show above modals, but are not interactable because
     // of the focus trap, so we force them to be hidden while a modal is open.
-    unsubscribeModalStore = ModalStore.subscribe(modalState => {
+    unsubscribeModalStore = ModalStore.store.subscribe(modalState => {
       GuideStore.setForceHide(typeof modalState.renderer === 'function');
-    });
+    }).unsubscribe;
   },
 
   teardown() {
@@ -153,7 +158,7 @@ export const GuideStore = {
   },
 
   closeGuide(dismissed?: boolean) {
-    const {currentGuide, guides} = store.getState();
+    const {currentGuide, guides} = store.state;
 
     const newGuides = guides.map(guide => {
       // update the current guide seen to true or all guides
@@ -175,16 +180,16 @@ export const GuideStore = {
   },
 
   nextStep() {
-    store.setState(prev => ({...prev, currentStep: store.getState().currentStep + 1}));
+    store.setState(prev => ({...prev, currentStep: store.state.currentStep + 1}));
   },
 
   registerAnchor(target: string) {
-    store.getState().anchors.add(target);
+    store.state.anchors.add(target);
     GuideStore.updateCurrentGuide();
   },
 
   unregisterAnchor(target: string) {
-    store.getState().anchors.delete(target);
+    store.state.anchors.delete(target);
     GuideStore.updateCurrentGuide();
   },
 
@@ -199,13 +204,13 @@ export const GuideStore = {
     }
 
     trackAnalytics('assistant.guide_cued', {
-      organization: store.getState().orgId,
+      organization: store.state.orgId,
       guide,
     });
   },
 
   updatePrevGuide(nextGuide: Guide | null) {
-    const {prevGuide} = store.getState();
+    const {prevGuide} = store.state;
     if (!nextGuide) {
       return;
     }
@@ -225,7 +230,7 @@ export const GuideStore = {
    *  - Otherwise show the guide
    */
   updateCurrentGuide(dismissed?: boolean) {
-    const {anchors, guides, forceShow} = store.getState();
+    const {anchors, guides, forceShow} = store.state;
 
     let guideOptions = guides
       .sort(guidePrioritySort)
@@ -266,7 +271,7 @@ export const GuideStore = {
         : null;
 
     GuideStore.updatePrevGuide(nextGuide);
-    const {currentGuide, currentStep} = store.getState();
+    const {currentGuide, currentStep} = store.state;
     store.setState(prev => ({
       ...prev,
       currentGuide: nextGuide,

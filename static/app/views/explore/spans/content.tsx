@@ -2,6 +2,7 @@ import {Fragment, useEffect, useMemo} from 'react';
 import type {ReactNode} from 'react';
 import * as Sentry from '@sentry/react';
 import {useQuery} from '@tanstack/react-query';
+import {useSelector} from '@tanstack/react-store';
 
 import {Stack} from '@sentry/scraps/layout';
 
@@ -17,7 +18,6 @@ import {TourContextProvider} from 'sentry/components/tours/components';
 import {useAssistant} from 'sentry/components/tours/useAssistant';
 import {t} from 'sentry/locale';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {DataCategory} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
@@ -76,7 +76,10 @@ function ExploreContentInner() {
   });
 
   const organization = useOrganization();
-  const {loading: organizationLoading} = useLegacyStore(OrganizationStore);
+  const organizationLoading = useSelector(
+    OrganizationStore.store,
+    state => state.loading
+  );
   const {data: bootstrapOrganization, isPending: isBootstrapOrganizationPending} =
     useQuery(getBootstrapOrganizationQueryOptions(organization.slug));
 

@@ -1,7 +1,8 @@
+import {Store} from '@tanstack/react-store';
+
 import {toast} from '@sentry/scraps/toast';
 
 import {t} from 'sentry/locale';
-import {createLegacyStore} from 'sentry/stores/createLegacyStore';
 import type {BaseGroup, Group, GroupStats} from 'sentry/types/group';
 import {toArray} from 'sentry/utils/array/toArray';
 import {parseApiError} from 'sentry/utils/parseApiError';
@@ -48,10 +49,14 @@ function mergePendingChanges(
   );
 }
 
-const store = createLegacyStore<readonly Item[]>([]);
+const store = new Store<readonly Item[]>([]);
 
 export const GroupStore = {
-  ...store,
+  store,
+
+  getState() {
+    return store.state;
+  },
   /**
    * Does not include pending changes
    * TODO: Remove mutation and replace state with items
@@ -68,7 +73,7 @@ export const GroupStore = {
     GroupStore.pendingChanges = new Map();
     GroupStore.items = [];
     GroupStore.statuses = {};
-    store.resetState([]);
+    store.setState(() => []);
   },
 
   loadInitialData(items: Item[]) {
@@ -174,7 +179,7 @@ export const GroupStore = {
   },
 
   getAllItems(): readonly Item[] {
-    return store.getState();
+    return store.state;
   },
 
   onAssignTo(_changeId: string, itemId: string, _data: any) {

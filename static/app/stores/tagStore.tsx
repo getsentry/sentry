@@ -1,13 +1,18 @@
-import {createLegacyStore} from 'sentry/stores/createLegacyStore';
+import {Store} from '@tanstack/react-store';
+
 import type {Tag, TagCollection} from 'sentry/types/group';
 
-const store = createLegacyStore<TagCollection>({});
+const store = new Store<TagCollection>({});
 
 export const TagStore = {
-  ...store,
+  store,
+
+  getState() {
+    return store.state;
+  },
 
   init() {
-    store.resetState({});
+    store.setState(() => ({}));
   },
 
   reset() {
@@ -28,7 +33,7 @@ export const TagStore = {
       };
     }
 
-    const previousState = store.getState();
+    const previousState = store.state;
     // We will iterate through the previous tags in reverse so that previously
     // added tags are carried over first. We rely on browser implementation
     // of Object.keys() to return keys in insertion order.

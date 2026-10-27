@@ -20,12 +20,9 @@ function Wrapper({children}: {children: ReactNode}) {
 
 describe('useExploreTimeseries', () => {
   beforeEach(() => {
+    PageFiltersStore.reset();
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
     jest.clearAllMocks();
-  });
-
-  afterEach(() => {
-    PageFiltersStore.reset();
   });
 
   it('keeps transformations aligned after sorting and deduplicating axes', async () => {

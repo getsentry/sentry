@@ -14,6 +14,7 @@ describe('TeamDetails', () => {
   const teamHasAccess = TeamFixture({id: '1337', slug: 'django', hasAccess: true});
 
   beforeEach(() => {
+    TeamStore.reset();
     TeamStore.init();
     TeamStore.loadInitialData([teamNoAccess, teamHasAccess]);
     joinMock = MockApiClient.addMockResponse({
@@ -24,7 +25,6 @@ describe('TeamDetails', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    TeamStore.reset();
   });
 
   it('can request membership', async () => {

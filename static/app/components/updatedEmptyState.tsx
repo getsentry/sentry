@@ -1,5 +1,6 @@
 import {useEffect} from 'react';
 import {useTheme} from '@emotion/react';
+import {useSelector} from '@tanstack/react-store';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
@@ -27,7 +28,6 @@ import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStarted
 import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -92,7 +92,8 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
 
-  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const isSelfHosted = useSelector(ConfigStore.store, state => state.isSelfHosted);
+  const urlPrefix = useSelector(ConfigStore.store, state => state.urlPrefix);
 
   const currentPlatformKey = project?.platform ?? 'other';
   const currentPlatform = platforms.find(p => p.id === currentPlatformKey)!;

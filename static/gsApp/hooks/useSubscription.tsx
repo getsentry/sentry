@@ -1,4 +1,5 @@
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {useSelector} from '@tanstack/react-store';
+
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
@@ -6,5 +7,5 @@ import type {Subscription} from 'getsentry/types';
 
 export function useSubscription(): Subscription | null {
   const organization = useOrganization();
-  return useLegacyStore(SubscriptionStore)[organization.slug] ?? null;
+  return useSelector(SubscriptionStore.store, state => state[organization.slug]) ?? null;
 }

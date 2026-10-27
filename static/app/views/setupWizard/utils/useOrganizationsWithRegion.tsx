@@ -1,8 +1,8 @@
 import * as Sentry from '@sentry/react';
 import {useQuery} from '@tanstack/react-query';
+import {useSelector} from '@tanstack/react-store';
 
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import type {Locality} from 'sentry/types/system';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -15,7 +15,7 @@ export function useOrganizationsWithRegion() {
     acc[l.url] = l;
     return acc;
   }, {});
-  const {links} = useLegacyStore(ConfigStore);
+  const links = useSelector(ConfigStore.store, state => state.links);
 
   const query = useQuery({
     ...apiOptions.as<OrganizationSummary[]>()('/organizations/', {

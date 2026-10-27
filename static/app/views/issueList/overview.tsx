@@ -2,6 +2,7 @@ import type {ReactNode} from 'react';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
+import {useSelector} from '@tanstack/react-store';
 import type {Location} from 'history';
 import Cookies from 'js-cookie';
 import isEqual from 'lodash/isEqual';
@@ -25,7 +26,6 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {PageFilterDatetime} from 'sentry/types/core';
 import type {BaseGroup, Group, PriorityLevel} from 'sentry/types/group';
 import {GroupStatus} from 'sentry/types/group';
@@ -178,7 +178,7 @@ function IssueListOverviewInner({
   const actionTakenRef = useRef(false);
   const {getRunIdForAnalytics} = useAiQueryContext();
 
-  const groups = useLegacyStore(GroupStore);
+  const groups = useSelector(GroupStore.store);
   useEffect(() => {
     const storeGroupIds = groups.map(group => group.id).slice(0, MAX_ISSUES_COUNT);
     if (!isEqual(groupIds, storeGroupIds)) {

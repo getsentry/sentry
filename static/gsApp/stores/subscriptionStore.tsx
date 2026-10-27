@@ -1,5 +1,6 @@
+import {Store} from '@tanstack/react-store';
+
 import {Client} from 'sentry/api';
-import {createLegacyStore} from 'sentry/stores/createLegacyStore';
 
 import type {Subscription} from 'getsentry/types';
 
@@ -14,10 +15,14 @@ type LoadOptions = {
  */
 type Subscriptions = Record<string, Subscription>;
 
-const store = createLegacyStore<Subscriptions>({});
+const store = new Store<Subscriptions>({});
 
 export const SubscriptionStore = {
-  ...store,
+  store,
+
+  getState() {
+    return store.state;
+  },
   api: new Client(),
   loadingData: {} as Record<string, boolean>,
   callbacks: {} as Record<string, GetCallback[]>,
@@ -26,12 +31,12 @@ export const SubscriptionStore = {
     SubscriptionStore.api = new Client();
     SubscriptionStore.loadingData = {};
     SubscriptionStore.callbacks = {};
-    store.resetState({});
+    store.setState(() => ({}));
   },
 
   set(orgSlug: string, data: Partial<Subscription>) {
     const subscription = {
-      ...store.getState()[orgSlug]!,
+      ...store.state[orgSlug]!,
       ...data,
       setAt: Date.now(), // Refetch usage data if Subscription is updated
     };
@@ -46,7 +51,7 @@ export const SubscriptionStore = {
   },
 
   get(orgSlug: string, callback: GetCallback) {
-    const subscription = store.getState()[orgSlug];
+    const subscription = store.state[orgSlug];
     if (subscription) {
       callback(subscription);
       return;
@@ -56,7 +61,7 @@ export const SubscriptionStore = {
   },
 
   clearStartedTrial(orgSlug: string) {
-    const current = store.getState()[orgSlug];
+    const current = store.state[orgSlug];
     if (!current) {
       return;
     }

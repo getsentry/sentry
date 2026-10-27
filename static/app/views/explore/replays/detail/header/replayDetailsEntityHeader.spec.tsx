@@ -60,16 +60,13 @@ function readerResultFixture(
 jest.useFakeTimers();
 describe('ReplayDetailsEntityHeader', () => {
   beforeEach(() => {
+    ProjectsStore.reset();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,
       body: [project],
     });
     ProjectsStore.loadInitialData([project]);
-  });
-
-  afterEach(() => {
-    ProjectsStore.reset();
   });
 
   function mockViewedBy(replayId: string) {

@@ -2,6 +2,7 @@ import {Fragment, useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
+import {useSelector} from '@tanstack/react-store';
 
 import emptyStateImg from 'sentry-images/spot/performance-empty-state.svg';
 import emptyTraceImg from 'sentry-images/spot/performance-empty-trace.svg';
@@ -56,7 +57,6 @@ import {
   OnboardingDrawerKey,
   OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -414,7 +414,8 @@ export function Onboarding({organization, project}: OnboardingProps) {
   const api = useApi();
   const location = useLocation();
   const navigate = useNavigate();
-  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const isSelfHosted = useSelector(ConfigStore.store, state => state.isSelfHosted);
+  const urlPrefix = useSelector(ConfigStore.store, state => state.urlPrefix);
 
   const noPerformanceSupport = doesNotSupportPerformance(project);
 

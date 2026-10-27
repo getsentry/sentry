@@ -16,6 +16,7 @@ type TestSpan = Pick<SpanResponse, DefaultDetailWidgetFields>;
 
 describe('DetailsWidgetVisualization', () => {
   beforeEach(() => {
+    PageFiltersStore.reset();
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
     const organization = OrganizationFixture();
     const project = ProjectFixture();
@@ -54,7 +55,6 @@ describe('DetailsWidgetVisualization', () => {
   });
 
   afterEach(() => {
-    PageFiltersStore.reset();
     MockApiClient.clearMockResponses();
   });
 

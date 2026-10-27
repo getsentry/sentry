@@ -9,6 +9,7 @@ import {useMetricSamplesTable} from 'sentry/views/explore/metrics/hooks/useMetri
 
 describe('useMetricSamplesTable', () => {
   beforeEach(() => {
+    PageFiltersStore.reset();
     PageFiltersStore.onInitializeUrlState(
       PageFiltersFixture({
         projects: [1, 2],
@@ -22,10 +23,6 @@ describe('useMetricSamplesTable', () => {
       })
     );
     jest.clearAllMocks();
-  });
-
-  afterEach(() => {
-    PageFiltersStore.reset();
   });
 
   it('triggers the high accuracy request when there is no data and a partial scan', async () => {

@@ -1,5 +1,6 @@
 import {useCallback, useMemo} from 'react';
 import {useMutation} from '@tanstack/react-query';
+import {useSelector} from '@tanstack/react-store';
 import {PlatformIcon} from 'platformicons';
 import {z} from 'zod';
 
@@ -42,7 +43,6 @@ import {consoles} from 'sentry/data/platformCategories';
 import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct, tn} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {DetailedProject} from 'sentry/types/project';
@@ -555,7 +555,7 @@ function SecurityTokenHeaderForm({
 export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
   const transferForm: Record<string, FieldValue> = {};
   const navigate = useNavigate();
-  const {isSelfHosted} = useLegacyStore(ConfigStore);
+  const isSelfHosted = useSelector(ConfigStore.store, state => state.isSelfHosted);
 
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});

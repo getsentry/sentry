@@ -118,6 +118,7 @@ describe('AggregatesTable', () => {
   };
 
   beforeEach(() => {
+    ProjectsStore.reset();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
@@ -140,10 +141,6 @@ describe('AggregatesTable', () => {
         utc: null,
       },
     });
-  });
-
-  afterEach(() => {
-    ProjectsStore.reset();
   });
 
   it('shows the query timeout message instead of a generic loading error', () => {

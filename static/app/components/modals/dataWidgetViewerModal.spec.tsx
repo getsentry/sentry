@@ -105,6 +105,7 @@ describe('Modals -> DataWidgetViewerModal', () => {
   let initialData: InitialData;
   let initialDataWithFlag: InitialData;
   beforeEach(() => {
+    ProjectsStore.reset();
     const projects = [ProjectFixture()];
     const organization = OrganizationFixture({
       features: ['discover-query'],
@@ -155,7 +156,6 @@ describe('Modals -> DataWidgetViewerModal', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    ProjectsStore.reset();
   });
 
   describe('Errors Widgets', () => {

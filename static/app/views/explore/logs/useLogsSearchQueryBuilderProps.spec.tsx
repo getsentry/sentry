@@ -45,6 +45,7 @@ const arrayFeatures = {features: ['trace-item-array-query-support']};
 
 describe('useLogsSearchQueryBuilderProps', () => {
   beforeEach(() => {
+    PageFiltersStore.reset();
     PageFiltersStore.onInitializeUrlState(
       PageFiltersFixture({
         datetime: {period: '14d', start: null, end: null, utc: false},
@@ -55,7 +56,6 @@ describe('useLogsSearchQueryBuilderProps', () => {
   });
 
   afterEach(() => {
-    PageFiltersStore.reset();
     jest.clearAllMocks();
   });
 

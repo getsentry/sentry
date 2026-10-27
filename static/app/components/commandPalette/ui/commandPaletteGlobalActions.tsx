@@ -28,6 +28,7 @@ import {IconTerminal} from '@sentry/icons/terminal';
 import {IconUser} from '@sentry/icons/user';
 import * as Sentry from '@sentry/react';
 import {skipToken, useMutation, useQuery} from '@tanstack/react-query';
+import {useSelector} from '@tanstack/react-store';
 import DOMPurify from 'dompurify';
 
 import {
@@ -57,7 +58,6 @@ import {DEPLOY_PREVIEW_CONFIG, NODE_ENV} from 'sentry/constants';
 import {t, toggleLocaleDebug} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {EventIdResponse} from 'sentry/types/event';
 import type {ShortIdResponse} from 'sentry/types/group';
 import type {Member, Team} from 'sentry/types/organization';
@@ -309,8 +309,15 @@ export function GlobalCommandPaletteActions() {
   const user = useUser();
   const isSentryEmployee = useIsSentryEmployee();
   const {projects} = useProjects();
-  const {organizations} = useLegacyStore(OrganizationsStore);
-  const sentryConfig = useLegacyStore(ConfigStore);
+  const organizations = useSelector(
+    OrganizationsStore.store,
+    state => state.organizations
+  );
+  const isSelfHosted = useSelector(ConfigStore.store, state => state.isSelfHosted);
+  const singleOrganization = useSelector(
+    ConfigStore.store,
+    state => state.singleOrganization
+  );
   const params = useParams();
   const location = useLocation();
   const {mutateAsync: mutateUserOptions} = useMutateUserOptions();
@@ -362,7 +369,7 @@ export function GlobalCommandPaletteActions() {
     const context: Omit<NavigationGroupProps, 'items' | 'name' | 'id'> = {
       access: new Set(organization.access),
       features: new Set(organization.features),
-      isSelfHosted: sentryConfig.isSelfHosted,
+      isSelfHosted,
       organization,
     };
     return getUserOrgNavigationConfiguration()
@@ -372,7 +379,7 @@ export function GlobalCommandPaletteActions() {
         )
       )
       .sort((a, b) => a.title.localeCompare(b.title));
-  }, [organization, sentryConfig.isSelfHosted]);
+  }, [organization, isSelfHosted]);
 
   const prefix = `/organizations/${organization.slug}`;
   const hasInsightsRollout = organization.features.includes(
@@ -638,7 +645,7 @@ export function GlobalCommandPaletteActions() {
           to={makeProjectsPathname({path: '/', organization})}
         />
 
-        {!sentryConfig.singleOrganization && !isDemoModeActive() && (
+        {!singleOrganization && !isDemoModeActive() && (
           <CMDKAction
             display={{label: t('Switch Organization'), icon: <IconBuilding />}}
             keywords={[t('organization'), t('change'), t('change organization')]}

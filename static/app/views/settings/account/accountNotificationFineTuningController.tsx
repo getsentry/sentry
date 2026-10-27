@@ -1,6 +1,7 @@
+import {useSelector} from '@tanstack/react-store';
+
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {useParams} from 'sentry/utils/useParams';
 import {NotificationSettingsByType} from 'sentry/views/settings/account/notifications/notificationSettingsByType';
 import {getNotificationTypeFromPathname} from 'sentry/views/settings/account/notifications/utils';
@@ -19,7 +20,7 @@ const accountNotifications = [
 ];
 
 export default function AccountNotificationFineTuningController() {
-  const {loaded} = useLegacyStore(OrganizationsStore);
+  const loaded = useSelector(OrganizationsStore.store, state => state.loaded);
   const {fineTuneType: pathnameType} = useParams<{fineTuneType: string}>();
   const fineTuneType = getNotificationTypeFromPathname(pathnameType);
 

@@ -25,11 +25,13 @@ jest.mock('sentry/actionCreators/modal', () => ({
 const TEAM_SEARCH = 'frontend';
 
 describe('OrganizationTeams', () => {
-  beforeEach(() => TeamStore.loadInitialData([], false, null));
+  beforeEach(() => {
+    TeamStore.reset();
+    TeamStore.loadInitialData([], false, null);
+  });
 
   afterEach(() => {
     jest.useRealTimers();
-    act(() => TeamStore.reset());
   });
 
   it('debounces team search requests', async () => {

@@ -1,5 +1,6 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useSelector} from '@tanstack/react-store';
 
 import emptyTraceImg from 'sentry-images/spot/profiling-empty-state.svg';
 
@@ -33,7 +34,6 @@ import {profiling as profilingPlatforms} from 'sentry/data/platformCategories';
 import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import type {Project} from 'sentry/types/project';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
@@ -200,7 +200,8 @@ function OnboardingPanel({
 
 export function Onboarding() {
   const api = useApi();
-  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const isSelfHosted = useSelector(ConfigStore.store, state => state.isSelfHosted);
+  const urlPrefix = useSelector(ConfigStore.store, state => state.urlPrefix);
   const project = useOnboardingProject();
   const organization = useOrganization();
 

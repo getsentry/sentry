@@ -1,4 +1,5 @@
-import {createLegacyStore} from 'sentry/stores/createLegacyStore';
+import {Store} from '@tanstack/react-store';
+
 import {OnboardingTaskKey} from 'sentry/types/onboarding';
 
 type State = {
@@ -6,7 +7,7 @@ type State = {
   sidebarGuideAnchor: boolean;
 };
 
-const store = createLegacyStore<State>({
+const store = new Store<State>({
   issueGuideAnchor: false,
   sidebarGuideAnchor: false,
 });
@@ -16,7 +17,11 @@ const store = createLegacyStore<State>({
  * Side-effects (like reading/writing to cookies) are done in associated actionCreators
  */
 export const DemoWalkthroughStore = {
-  ...store,
+  store,
+
+  getState() {
+    return store.state;
+  },
 
   activateGuideAnchor(task: OnboardingTaskKey) {
     switch (task) {
@@ -33,9 +38,9 @@ export const DemoWalkthroughStore = {
   get(guide: string) {
     switch (guide) {
       case 'issue':
-        return store.getState().issueGuideAnchor;
+        return store.state.issueGuideAnchor;
       case 'sidebar':
-        return store.getState().sidebarGuideAnchor;
+        return store.state.sidebarGuideAnchor;
       default:
         return false;
     }

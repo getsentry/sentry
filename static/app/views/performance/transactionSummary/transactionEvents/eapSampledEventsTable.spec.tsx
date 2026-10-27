@@ -70,6 +70,7 @@ describe('EAP SampledEventsTable', () => {
   );
 
   beforeEach(() => {
+    ProjectsStore.reset();
     ProjectsStore.loadInitialData([project]);
     PageFiltersStore.onInitializeUrlState(
       PageFiltersFixture({projects: [Number(project.id)]})
@@ -88,7 +89,6 @@ describe('EAP SampledEventsTable', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    ProjectsStore.reset();
   });
 
   it('renders the table with data', async () => {

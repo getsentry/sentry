@@ -45,6 +45,7 @@ describe('useSaveAsMetricItems', () => {
   }
 
   beforeEach(() => {
+    ProjectsStore.reset();
     jest.resetAllMocks();
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData([project]);
@@ -54,10 +55,6 @@ describe('useSaveAsMetricItems', () => {
       method: 'POST',
       body: {id: 'new-query-id', name: 'Test Query'},
     });
-  });
-
-  afterEach(() => {
-    ProjectsStore.reset();
   });
 
   it('should open save query modal when save as new query is clicked', () => {
