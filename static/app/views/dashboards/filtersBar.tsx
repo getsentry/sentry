@@ -42,7 +42,7 @@ import {useDatasetSearchBarData} from 'sentry/views/dashboards/hooks/useDatasetS
 import {useInvalidateStarredDashboards} from 'sentry/views/dashboards/hooks/useInvalidateStarredDashboards';
 import {getDashboardFiltersFromURL} from 'sentry/views/dashboards/utils';
 import {
-  PREBUILT_DASHBOARDS,
+  getPrebuiltDashboardConfig,
   type PrebuiltDashboardId,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
@@ -104,7 +104,8 @@ export function FiltersBar({
   const {getSearchBarData, onFilterKeySearch} = useDatasetSearchBarData();
   const isPrebuiltDashboard = defined(prebuiltDashboardId);
   const prebuiltDashboardFilters = prebuiltDashboardId
-    ? (PREBUILT_DASHBOARDS[prebuiltDashboardId].filters.globalFilter ?? [])
+    ? (getPrebuiltDashboardConfig(prebuiltDashboardId, organization).filters
+        .globalFilter ?? [])
     : [];
 
   const maxPickableDaysOptions = useDashboardMaxPickableDays(dashboard?.widgets);

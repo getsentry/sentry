@@ -1,3 +1,4 @@
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {
   type DashboardDetails,
@@ -151,3 +152,35 @@ export const PREBUILT_DASHBOARDS: Record<PrebuiltDashboardId, PrebuiltDashboard>
   [PrebuiltDashboardId.BACKEND_CACHES]: CACHES_PREBUILT_CONFIG,
   [PrebuiltDashboardId.NODE_RUNTIME_METRICS]: NODE_RUNTIME_METRICS_PREBUILT_CONFIG,
 };
+
+type PrebuiltDashboardVariant = {
+  config: PrebuiltDashboard;
+  /** Organization feature that selects this config over the default one. */
+  feature: string;
+};
+
+/**
+ * Alternate configs served in place of the defaults above while a change is
+ * rolled out behind a flag. Once the flag reaches 100% the variant should
+ * replace the default in `PREBUILT_DASHBOARDS` and be removed from here.
+ */
+export const PREBUILT_DASHBOARD_VARIANTS: Partial<
+  Record<PrebuiltDashboardId, PrebuiltDashboardVariant>
+> = {};
+
+/**
+ * Resolves the config for a prebuilt dashboard. Consumers should read configs
+ * through this rather than indexing `PREBUILT_DASHBOARDS` directly so that
+ * flagged variants are picked up everywhere.
+ */
+export function getPrebuiltDashboardConfig(
+  prebuiltId: PrebuiltDashboardId,
+  organization: Organization,
+  variants: typeof PREBUILT_DASHBOARD_VARIANTS = PREBUILT_DASHBOARD_VARIANTS
+): PrebuiltDashboard {
+  const variant = variants[prebuiltId];
+  if (variant && organization.features.includes(variant.feature)) {
+    return variant.config;
+  }
+  return PREBUILT_DASHBOARDS[prebuiltId];
+}
