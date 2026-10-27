@@ -23,6 +23,7 @@ import {
 import type {ApplyCheck} from 'sentry/views/investigations/actionRequests/applyButton';
 import {
   parseApplyError,
+  type ActionRequestError,
   useApplyInvestigationActionRequestMutation,
 } from 'sentry/views/investigations/api';
 import {ensureSentenceEnd} from 'sentry/views/investigations/sentence';
@@ -68,7 +69,7 @@ export function ActionRequestCard({
       },
       onError: (error, applied) => {
         const applyError = parseApplyError(error);
-        if (applyError?.code === 'validation_failed' || applyError?.code === 'stale') {
+        if (applyError?.code === 'validation_failed') {
           return;
         }
         toast.error(
@@ -115,7 +116,7 @@ export function ActionRequestCard({
     applyMutation.variables?.id === actionRequest.id
       ? parseApplyError(applyMutation.error)
       : null;
-  const staleError = getStaleError(actionRequest, check);
+  const staleError = getStaleError(actionRequest, check, applyError);
   const appliedSummary =
     actionRequest.state === 'applied' ? getAppliedSummary(actionRequest, source) : null;
 
@@ -198,9 +199,16 @@ export function isStaleActionRequest(actionRequest: InvestigationActionRequest) 
   return actionRequest.state === 'superseded' && actionRequest.error?.code === 'stale';
 }
 
-function getStaleError(actionRequest: InvestigationActionRequest, check: ApplyCheck) {
+function getStaleError(
+  actionRequest: InvestigationActionRequest,
+  check: ApplyCheck,
+  applyError: ActionRequestError | null
+) {
   if (actionRequest.error?.code === 'stale') {
     return actionRequest.error;
+  }
+  if (applyError?.code === 'stale') {
+    return applyError;
   }
   if (check.status === 'blocked' && check.error.code === 'stale') {
     return check.error;
