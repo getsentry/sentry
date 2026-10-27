@@ -251,7 +251,7 @@ export function ActionRequestCard({
 
 function TryAgainButton({busy, onClick}: {busy: boolean; onClick: () => void}) {
   return (
-    <Button size="xs" busy={busy} onClick={onClick}>
+    <Button size="xs" busy={busy} disabled={busy} onClick={onClick}>
       {t('Try again')}
     </Button>
   );

@@ -1437,7 +1437,9 @@ describe('NextStepCard', () => {
         <NextStepCard
           investigationId="investigation-1"
           orchestration={completedRun}
-          actionRequests={[connectedRequest({status, reason: null, rerun})]}
+          actionRequests={[
+            connectedRequest({status, reason: null, rerun, retryable: false}),
+          ]}
         />
       );
 
@@ -1455,7 +1457,12 @@ describe('NextStepCard', () => {
         investigationId="investigation-1"
         orchestration={rerunningRun}
         actionRequests={[
-          connectedRequest({status: 'acknowledged', reason: null, rerun: 'started'}),
+          connectedRequest({
+            status: 'acknowledged',
+            reason: null,
+            rerun: 'started',
+            retryable: false,
+          }),
         ]}
       />
     );
@@ -1485,7 +1492,12 @@ describe('NextStepCard', () => {
         investigationId="investigation-1"
         orchestration={completedRun}
         actionRequests={[
-          connectedRequest({status: 'failed', reason: 'run_cancelled', rerun: 'skipped'}),
+          connectedRequest({
+            status: 'failed',
+            reason: 'run_cancelled',
+            rerun: 'skipped',
+            retryable: false,
+          }),
         ]}
       />
     );
@@ -1501,7 +1513,12 @@ describe('NextStepCard', () => {
         investigationId="investigation-1"
         orchestration={completedRun}
         actionRequests={[
-          connectedRequest({status: 'acknowledged', reason: null, rerun: 'started'}),
+          connectedRequest({
+            status: 'acknowledged',
+            reason: null,
+            rerun: 'started',
+            retryable: false,
+          }),
         ]}
       />
     );
@@ -1516,7 +1533,14 @@ describe('NextStepCard', () => {
       <NextStepCard
         investigationId="investigation-1"
         orchestration={completedRun}
-        actionRequests={[connectedRequest({status: 'failed', reason: null, rerun: null})]}
+        actionRequests={[
+          connectedRequest({
+            status: 'failed',
+            reason: null,
+            rerun: null,
+            retryable: false,
+          }),
+        ]}
       />
     );
 
@@ -1530,10 +1554,20 @@ describe('NextStepCard', () => {
       url: retryFollowUpUrl,
       method: 'POST',
       body: {
-        actionRequest: connectedRequest({status: 'accepted', reason: null, rerun: null}),
+        actionRequest: connectedRequest({
+          status: 'accepted',
+          reason: null,
+          rerun: null,
+          retryable: false,
+        }),
       },
     });
-    const failed = connectedRequest({status: 'failed', reason: null, rerun: null});
+    const failed = connectedRequest({
+      status: 'failed',
+      reason: null,
+      rerun: null,
+      retryable: true,
+    });
     render(
       <NextStepCard
         investigationId="investigation-1"
@@ -1561,7 +1595,14 @@ describe('NextStepCard', () => {
       <NextStepCard
         investigationId="investigation-1"
         orchestration={completedRun}
-        actionRequests={[connectedRequest({status: 'failed', reason: null, rerun: null})]}
+        actionRequests={[
+          connectedRequest({
+            status: 'failed',
+            reason: null,
+            rerun: null,
+            retryable: true,
+          }),
+        ]}
       />
     );
 
@@ -1570,6 +1611,93 @@ describe('NextStepCard', () => {
     expect(
       await screen.findByText("This can't be sent to Seer again.")
     ).toBeInTheDocument();
+  });
+
+  it('sends a retry once when Try again is clicked twice', async () => {
+    let respond!: () => void;
+    const retry = MockApiClient.addMockResponse({
+      url: retryFollowUpUrl,
+      method: 'POST',
+      asyncDelay: new Promise<void>(resolve => {
+        respond = resolve;
+      }),
+      body: {
+        actionRequest: connectedRequest({
+          status: 'accepted',
+          reason: null,
+          rerun: null,
+          retryable: false,
+        }),
+      },
+    });
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[
+          connectedRequest({
+            status: 'failed',
+            reason: null,
+            rerun: null,
+            retryable: true,
+          }),
+        ]}
+      />
+    );
+
+    const button = within(getCard()).getByRole('button', {name: 'Try again'});
+    await userEvent.click(button);
+    await waitFor(() => expect(button).toBeDisabled());
+    await userEvent.click(button);
+    respond();
+
+    await waitFor(() => expect(retry).toHaveBeenCalled());
+    expect(retry).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not offer to retry a re-run that failed behind another command', () => {
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[
+          connectedRequest({
+            status: 'failed',
+            reason: null,
+            rerun: null,
+            retryable: false,
+          }),
+        ]}
+      />
+    );
+
+    expect(
+      within(getCard()).queryByRole('button', {name: 'Try again'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not offer to retry a re-run on an archived investigation', () => {
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[
+          {
+            ...connectedRequest({
+              status: 'failed',
+              reason: null,
+              rerun: null,
+              retryable: true,
+            }),
+            cannotApplyReason: 'investigation_archived',
+          },
+        ]}
+      />
+    );
+
+    expect(
+      within(getCard()).queryByRole('button', {name: 'Try again'})
+    ).not.toBeInTheDocument();
   });
 
   it('does not offer to retry a re-run Seer turned down', () => {
@@ -1582,6 +1710,7 @@ describe('NextStepCard', () => {
             status: 'failed',
             reason: 'provider_already_used',
             rerun: null,
+            retryable: false,
           }),
         ]}
       />
@@ -1759,7 +1888,7 @@ describe('NextStepCard', () => {
       body: {
         actionRequest: {
           ...staleRequest,
-          followUp: {status: 'accepted', reason: null, rerun: null},
+          followUp: {status: 'accepted', reason: null, rerun: null, retryable: false},
         },
       },
     });
@@ -1822,7 +1951,9 @@ describe('NextStepCard', () => {
           <NextStepCard
             investigationId="investigation-1"
             orchestration={completedRun}
-            actionRequests={[recheckedRequest({status, reason: null, rerun: null})]}
+            actionRequests={[
+              recheckedRequest({status, reason: null, rerun: null, retryable: false}),
+            ]}
           />
         );
 
@@ -1840,7 +1971,12 @@ describe('NextStepCard', () => {
           investigationId="investigation-1"
           orchestration={completedRun}
           actionRequests={[
-            recheckedRequest({status: 'acknowledged', reason: null, rerun: null}),
+            recheckedRequest({
+              status: 'acknowledged',
+              reason: null,
+              rerun: null,
+              retryable: false,
+            }),
           ]}
         />
       );
@@ -1861,7 +1997,12 @@ describe('NextStepCard', () => {
               {phase: 'metadata', status}
             )}
             actionRequests={[
-              recheckedRequest({status: 'acknowledged', reason: null, rerun: null}),
+              recheckedRequest({
+                status: 'acknowledged',
+                reason: null,
+                rerun: null,
+                retryable: false,
+              }),
             ]}
           />
         );
@@ -1880,7 +2021,12 @@ describe('NextStepCard', () => {
           investigationId="investigation-1"
           orchestration={completedRun}
           actionRequests={[
-            recheckedRequest({status: 'failed', reason: null, rerun: null}),
+            recheckedRequest({
+              status: 'failed',
+              reason: null,
+              rerun: null,
+              retryable: false,
+            }),
           ]}
         />
       );
@@ -1899,6 +2045,7 @@ describe('NextStepCard', () => {
             status: 'accepted',
             reason: null,
             rerun: null,
+            retryable: false,
           }),
         },
       });
@@ -1908,7 +2055,12 @@ describe('NextStepCard', () => {
           investigationId="investigation-1"
           orchestration={completedRun}
           actionRequests={[
-            recheckedRequest({status: 'failed', reason: null, rerun: null}),
+            recheckedRequest({
+              status: 'failed',
+              reason: null,
+              rerun: null,
+              retryable: false,
+            }),
           ]}
         />
       );
@@ -1932,6 +2084,7 @@ describe('NextStepCard', () => {
               status: 'failed',
               reason: 'action_requests_report_changed',
               rerun: null,
+              retryable: false,
             }),
           ]}
         />

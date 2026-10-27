@@ -663,6 +663,7 @@ const actionRequestFollowUpSchema = z.object({
     ])
     .nullable(),
   rerun: z.enum(['started', 'held', 'skipped']).nullable(),
+  retryable: z.boolean(),
 });
 
 export type ActionRequestFollowUp = z.infer<typeof actionRequestFollowUpSchema>;
@@ -675,8 +676,8 @@ export function isFollowUpPending(actionRequest: InvestigationActionRequest) {
 export function canRetryFollowUp(actionRequest: InvestigationActionRequest) {
   return (
     actionRequest.state === 'applied' &&
-    actionRequest.followUp?.status === 'failed' &&
-    actionRequest.followUp.reason === null
+    actionRequest.followUp?.retryable === true &&
+    actionRequest.cannotApplyReason !== 'investigation_archived'
   );
 }
 

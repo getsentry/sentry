@@ -406,7 +406,7 @@ describe('Investigation detail', () => {
             canApply: false,
             cannotApplyReason: 'not_suggested',
             error: {code: 'stale', current: {timeWindowSeconds: 600}},
-            followUp: {status, reason: null, rerun: null},
+            followUp: {status, reason: null, rerun: null, retryable: false},
           }),
         ],
       });
@@ -587,7 +587,12 @@ describe('Investigation detail', () => {
             InvestigationActionRequestFixture({
               ...requests[0],
               id: '310',
-              followUp: {status: 'acknowledged', reason: null, rerun: null},
+              followUp: {
+                status: 'acknowledged',
+                reason: null,
+                rerun: null,
+                retryable: false,
+              },
             }),
             ...requests,
           ],
@@ -639,7 +644,7 @@ describe('Investigation detail', () => {
       canApply: false,
       cannotApplyReason: 'not_suggested',
       error: {code: 'stale', current: {timeWindowSeconds: 600}},
-      followUp: {status: 'accepted', reason: null, rerun: null},
+      followUp: {status: 'accepted', reason: null, rerun: null, retryable: false},
     });
     const recheckRequest = MockApiClient.addMockResponse({
       url: `${detailUrl}action-requests/312/recheck/`,
@@ -702,7 +707,7 @@ describe('Investigation detail', () => {
             canApply: false,
             cannotApplyReason: 'not_suggested',
             error: {code: 'stale', current: {timeWindowSeconds: 600}},
-            followUp: {status: 'accepted', reason: null, rerun: null},
+            followUp: {status: 'accepted', reason: null, rerun: null, retryable: false},
           }),
         ],
       }),
@@ -1363,7 +1368,12 @@ describe('Investigation detail', () => {
               canApply: false,
               cannotApplyReason: 'not_suggested',
               error: {code: 'stale', current: {timeWindowSeconds: 600}},
-              followUp: {status: 'acknowledged', reason: null, rerun: null},
+              followUp: {
+                status: 'acknowledged',
+                reason: null,
+                rerun: null,
+                retryable: false,
+              },
             }),
           ],
         }),
