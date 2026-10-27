@@ -111,7 +111,9 @@ function SeerExplorerSidebarLayoutInSidebarMode({children}: {children: React.Rea
     }
     const root = document.documentElement;
     root.style.setProperty(DRAWER_INSET_RIGHT_PROPERTY, `${drawerInsetRight}px`);
-    return () => root.style.removeProperty(DRAWER_INSET_RIGHT_PROPERTY);
+    return () => {
+      root.style.removeProperty(DRAWER_INSET_RIGHT_PROPERTY);
+    };
   }, [drawerInsetRight]);
 
   // Persist Seer's size from a drag (the app pane shrinks → Seer grows). Fires
