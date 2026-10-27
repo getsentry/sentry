@@ -48,11 +48,6 @@ export function useSentryAppExternalIssues({
 
   const displayedExternalIssues = new Set<string>();
   for (const component of sentryAppComponents) {
-    const {installationUuid} = component;
-    if (!installationUuid) {
-      continue;
-    }
-
     const externalIssue = externalIssues.find(
       i => i.serviceType === component.sentryApp.slug
     );
@@ -102,7 +97,7 @@ export function useSentryAppExternalIssues({
                 group,
                 event,
                 sentryAppComponent: component,
-                sentryAppInstallationUuid: installationUuid,
+                sentryAppInstallationUuid: component.installationUuid,
               });
             },
           },
@@ -117,10 +112,11 @@ export function useSentryAppExternalIssues({
       continue;
     }
 
-    const installations = sentryAppInstallations.filter(
-      i => i.app.slug === externalIssue.serviceType
+    // Match the components endpoint, which only covers installed apps
+    const isInstalled = sentryAppInstallations.some(
+      i => i.status === 'installed' && i.app.slug === externalIssue.serviceType
     );
-    if (installations.length === 0) {
+    if (!isInstalled) {
       continue;
     }
 

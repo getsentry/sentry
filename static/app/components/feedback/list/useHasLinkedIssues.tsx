@@ -18,36 +18,30 @@ export function useHasLinkedIssues({group, event}: Props) {
   });
 
   const renderSentryAppIssues = (): ExternalIssueComponent[] => {
-    return components
-      .map<ExternalIssueComponent | null>(component => {
-        const {sentryApp} = component;
-        const disabled = Boolean(component.error);
-        if (!component.installationUuid) {
-          return null;
-        }
+    return components.map<ExternalIssueComponent>(component => {
+      const {sentryApp} = component;
+      const disabled = Boolean(component.error);
+      const issue = (group.sentryAppIssues || []).find(
+        i => i.serviceType === sentryApp.slug
+      );
 
-        const issue = (group.sentryAppIssues || []).find(
-          i => i.serviceType === sentryApp.slug
-        );
-
-        return {
-          type: 'sentry-app-issue',
-          key: sentryApp.slug,
+      return {
+        type: 'sentry-app-issue',
+        key: sentryApp.slug,
+        disabled,
+        hasLinkedIssue: !!issue,
+        props: {
+          sentryApp,
+          group,
+          organization,
+          event,
+          sentryAppComponent: component,
+          sentryAppInstallationUuid: component.installationUuid,
+          externalIssue: issue,
           disabled,
-          hasLinkedIssue: !!issue,
-          props: {
-            sentryApp,
-            group,
-            organization,
-            event,
-            sentryAppComponent: component,
-            sentryAppInstallationUuid: component.installationUuid,
-            externalIssue: issue,
-            disabled,
-          },
-        };
-      })
-      .filter((x): x is ExternalIssueComponent => x !== null);
+        },
+      };
+    });
   };
 
   const renderIntegrationIssues = (): ExternalIssueComponent[] => {

@@ -325,6 +325,7 @@ export type SentryAppComponent<
     | SentryAppSchemaStacktraceLink
     | SentryAppSchemaElement,
 > = {
+  installationUuid: string;
   schema: Schema;
   sentryApp: {
     avatars: Avatar[];
@@ -334,11 +335,10 @@ export type SentryAppComponent<
   };
   type: 'issue-link' | 'alert-rule-action' | 'issue-media' | 'stacktrace-link';
   uuid: string;
-  error?: string | boolean;
   /**
-   * Only returned by the organization sentry-app-components endpoint
+   * Empty string when the component prepared successfully
    */
-  installationUuid?: string;
+  error?: '' | {context?: Record<string, unknown>; detail?: string};
 };
 
 export type SentryAppAvatar = Avatar & {
