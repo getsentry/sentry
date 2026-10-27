@@ -69,7 +69,7 @@ export function SettingsNavigation({
   const settingsV3 = useSettingsV3();
   const {scope} = useSettingsScope();
   const showProjectSelector = settingsV3 && scope === 'project';
-  const title = settingsV3 ? getSettingsScopeTitle(scope) : t('Settings');
+  const title = settingsV3 && scope ? getSettingsScopeTitle(scope) : t('Settings');
 
   return (
     <ErrorBoundary customComponent={null}>

@@ -403,6 +403,26 @@ describe('desktop navigation', () => {
     expect(router.location.pathname).toBe('/organizations/org-slug/issues/');
   });
 
+  it('does not title the admin navigation as org settings with settings v3', async () => {
+    render(
+      <PrimaryNavigationContextProvider>
+        <Navigation />
+      </PrimaryNavigationContextProvider>,
+      navigationContext({
+        organization: {features: [...ALL_AVAILABLE_FEATURES, 'settings-v3']},
+        initialRouterConfig: {location: {pathname: '/manage/'}},
+      })
+    );
+
+    const secondaryNav = screen.getByRole('navigation', {name: 'Secondary Navigation'});
+    await waitFor(() => {
+      expect(
+        within(secondaryNav).getByRole('link', {name: 'Organizations'})
+      ).toBeInTheDocument();
+    });
+    expect(within(secondaryNav).queryByText('Org Settings')).not.toBeInTheDocument();
+  });
+
   it('shows settings scope navigation with settings v3', async () => {
     ProjectsStore.loadInitialData([ProjectFixture()]);
     const {router} = render(

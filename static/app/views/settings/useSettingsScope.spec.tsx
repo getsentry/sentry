@@ -17,6 +17,8 @@ describe('useSettingsScope', () => {
     ],
     ['/settings/account/', {scope: 'account', projectSlug: undefined}],
     ['/settings/account/security/', {scope: 'account', projectSlug: undefined}],
+    ['/manage/status/mail/', {scope: null, projectSlug: undefined}],
+    ['/organizations/org-slug/issues/', {scope: null, projectSlug: undefined}],
   ])('derives the scope for %s', (pathname, expected) => {
     const {result} = renderHookWithProviders(useSettingsScope, {
       initialRouterConfig: {location: {pathname}},
