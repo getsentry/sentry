@@ -35,7 +35,7 @@ import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
 import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
-import {useNavigate, type ReactRouter3Navigate} from 'sentry/utils/useNavigate';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
@@ -154,7 +154,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
               ...sortProjects(projects.filter(project => project.isBookmarked))
                 .slice(0, 5)
                 .map(project =>
-                  makeProjectMenuItem(project, organization, navigate, 'starred-project')
+                  makeProjectMenuItem(project, organization, 'starred-project')
                 ),
               {
                 key: 'view-all-projects',
@@ -174,7 +174,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                     label: t('My Projects'),
                     hidden: memberProjects.length === 0,
                     children: memberProjects.map(project =>
-                      makeProjectMenuItem(project, organization, navigate)
+                      makeProjectMenuItem(project, organization)
                     ),
                   },
                   {
@@ -182,7 +182,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                     label: t('Other Projects'),
                     hidden: otherProjects.length === 0,
                     children: otherProjects.map(project =>
-                      makeProjectMenuItem(project, organization, navigate)
+                      makeProjectMenuItem(project, organization)
                     ),
                   },
                 ],
@@ -304,7 +304,6 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
 function makeProjectMenuItem(
   project: Project,
   organization: Organization,
-  navigate: ReactRouter3Navigate,
   keyPrefix = 'project'
 ): MenuItemProps {
   return {
@@ -312,7 +311,7 @@ function makeProjectMenuItem(
     label: project.slug,
     leadingItems: <ProjectAvatar project={project} size={16} />,
     trailingAction: <BookmarkStar project={project} organization={organization} />,
-    onAction: () => navigate(`/settings/${organization.slug}/projects/${project.slug}/`),
+    to: `/settings/${organization.slug}/projects/${project.slug}/`,
   };
 }
 

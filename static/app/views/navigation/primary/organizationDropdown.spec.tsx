@@ -140,7 +140,10 @@ describe('OrganizationDropdown', () => {
     expect(search).toHaveFocus();
     expect(within(search.parentElement!).getByRole('img')).toBeInTheDocument();
     await userEvent.type(search, 'python');
-    expect(screen.getByRole('menuitemradio', {name: 'python'})).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'python'})).toHaveAttribute(
+      'href',
+      `/settings/${organization.slug}/projects/python/`
+    );
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'python'}));
     expect(router.location.pathname).toBe(
       `/settings/${organization.slug}/projects/python/`
