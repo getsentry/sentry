@@ -175,6 +175,31 @@ describe('Composer', () => {
     expect(textbox).toHaveAttribute('data-placeholder', 'Write something');
   });
 
+  it('keeps the editor attached when the owner passes a new ref on every render', async () => {
+    function RefChangingComposer() {
+      const [value, setValue] = useState<ComposerValue>({text: '', mentions: []});
+      return (
+        <Composer
+          // A new callback ref per render, like form fields that merge refs inline.
+          ref={element => void element}
+          aria-label="Comment"
+          plugins={[MENTION_PLUGIN]}
+          value={value}
+          onChange={setValue}
+        />
+      );
+    }
+    render(<RefChangingComposer />);
+    const textbox = getEditor();
+    const paragraph = textbox.querySelector('p');
+
+    await userEvent.type(textbox, 'abc');
+
+    expect(textbox).toHaveTextContent(/^abc$/);
+    // Reattaching the editor root rebuilds its DOM and resets the selection.
+    expect(paragraph).toBeInTheDocument();
+  });
+
   it('keeps the editor aligned with a controlled value that rejects an edit', async () => {
     const onChange = jest.fn();
     render(

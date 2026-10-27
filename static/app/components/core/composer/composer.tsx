@@ -87,7 +87,10 @@ function hasFocus(editor: LexicalEditor) {
   return root !== null && root.ownerDocument.activeElement === root;
 }
 
-function useComposerEditor(initialValue: ComposerValue) {
+function useComposerEditor(
+  initialValue: ComposerValue,
+  rootRef: React.RefObject<HTMLDivElement | null>
+) {
   const [editor] = useState(() => {
     const nextEditor = createEditor({
       namespace: 'Composer',
@@ -111,6 +114,16 @@ function useComposerEditor(initialValue: ComposerValue) {
     editor.getDecorators<React.ReactNode>()
   );
 
+  // Attach the root from an effect rather than a callback ref. Owners such as
+  // form fields pass a new ref on every render, and reattaching the root
+  // resets Lexical's selection, so each keystroke would land at the start.
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    // Lexical requires a window, which detached documents do not have.
+    editor.setRootElement(root?.ownerDocument.defaultView ? root : null);
+    return () => editor.setRootElement(null);
+  }, [editor, rootRef]);
+
   useLayoutEffect(() => {
     const cleanups = [
       registerPlainText(editor),
@@ -131,20 +144,12 @@ function useComposerEditor(initialValue: ComposerValue) {
     return () => cleanups.forEach(cleanup => cleanup());
   }, [editor]);
 
-  const setRootElement = useCallback(
-    (element: HTMLDivElement | null) => {
-      // Lexical requires a window, which detached documents do not have.
-      editor.setRootElement(element?.ownerDocument.defaultView ? element : null);
-    },
-    [editor]
-  );
-
   const portals = Object.entries(decorators).map(([key, decorator]) => {
     const element = editor.getElementByKey(key);
     return element ? createPortal(decorator, element, key) : null;
   });
 
-  return {editor, portals, setRootElement};
+  return {editor, portals};
 }
 
 /**
@@ -225,7 +230,7 @@ export function Composer({
   const theme = useTheme();
   const {t} = useTranslation();
   const inputRef = useRef<HTMLDivElement>(null);
-  const {editor, portals, setRootElement} = useComposerEditor(inputValue);
+  const {editor, portals} = useComposerEditor(inputValue, inputRef);
   const reportedValueRef = useRef<ComposerValue>(inputValue);
   const [reportVersion, markValueReported] = useReducer(version => version + 1, 0);
   const [isComposing, setIsComposing] = useState(false);
@@ -405,14 +410,7 @@ export function Composer({
     },
     [setOverlayElement]
   );
-  const editorRef = useCallback(
-    (element: HTMLDivElement | null) => {
-      inputRef.current = element;
-      setRootElement(element);
-    },
-    [setRootElement]
-  );
-  const mergeInputRef = useStableMergeRef(editorRef);
+  const mergeInputRef = useStableMergeRef(inputRef);
   const mergeCaretAnchorRef = useStableMergeRef(caretAnchorRef);
 
   const runEdit = (edit: () => void) => {
