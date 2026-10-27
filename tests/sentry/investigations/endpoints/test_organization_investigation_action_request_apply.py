@@ -980,7 +980,12 @@ class SharedApplyPathTest(APITestCase):
         assert self.orchestration_run.workflow_version == 5
         read = response.data["actionRequest"]
         assert read["error"] == {"code": "stale", "current": {"window": 600}}
-        assert read["followUp"] == {"status": "accepted", "reason": None}
+        assert read["followUp"] == {
+            "status": "accepted",
+            "reason": None,
+            "rerun": None,
+            "retryable": False,
+        }
 
     def test_a_recheck_behind_an_undelivered_command_waits_for_it(self) -> None:
         self.kind.raises = ActionStale({"window": 600})

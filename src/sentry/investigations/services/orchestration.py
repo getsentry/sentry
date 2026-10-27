@@ -289,6 +289,30 @@ def command_error_can_be_requeued(error: object) -> bool:
     )
 
 
+def command_can_be_resent(command_type: str, error: object) -> bool:
+    """Whether a failed command never reached Seer and can go out again as it is."""
+
+    if command_error_can_be_requeued(error):
+        return True
+    # A conflict ahead of it doesn't matter to Seer, since it doesn't check the version.
+    return (
+        command_type in UNVERSIONED_COMMAND_TYPES
+        and isinstance(error, dict)
+        and error.get("code") == "earlier_command_conflicted"
+    )
+
+
+def follow_up_can_be_retried(command_type: str, error: object) -> bool:
+    """Whether a failed follow-up can be tried again."""
+
+    if command_type == "recheck_action_requests":
+        # A retried re-check goes out as a new command, unless Seer said the report moved on.
+        return not (
+            isinstance(error, dict) and error.get("reason") == "action_requests_report_changed"
+        )
+    return command_can_be_resent(command_type, error)
+
+
 def _reset_create_dispatch_failure(run: InvestigationOrchestrationRun) -> None:
     awaiting_input = isinstance(run.projection.get("pendingInput"), dict)
     run.phase = (
@@ -315,6 +339,8 @@ def _reset_create_dispatch_failure(run: InvestigationOrchestrationRun) -> None:
 # Commands that only keep Seer's action requests in sync. Neither side checks or moves the
 # workflow version for them.
 INTERNAL_COMMAND_TYPES = frozenset({"record_action_outcome"})
+# Commands Seer runs whatever its workflow version is. Sentry still moves the version for them.
+UNVERSIONED_COMMAND_TYPES = frozenset({"rerun_after_connection"})
 # Commands Sentry sends for an action request, which shows how they went.
 FOLLOW_UP_COMMAND_TYPES: frozenset[str] = frozenset(get_args(FollowUpCommandType))
 
@@ -736,7 +762,7 @@ def accept_orchestration_command(
                 _schedule_orchestration_create(run.id)
             elif (
                 existing.status == InvestigationOrchestrationCommandStatus.FAILED
-                and command_can_be_requeued(existing)
+                and command_can_be_resent(existing.type, existing.error)
             ):
                 _requeue_failed_command(run, existing)
                 existing.refresh_from_db(fields=["status", "error"])

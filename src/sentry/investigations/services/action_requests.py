@@ -39,6 +39,7 @@ from sentry.investigations.services.action_kinds.base import (
 from sentry.investigations.services.orchestration import (
     accept_orchestration_command,
     command_can_be_requeued,
+    command_can_be_resent,
     rebuild_orchestration_source,
 )
 
@@ -521,8 +522,8 @@ def _undelivered_follow_up(
     action_request: InvestigationActionRequest,
 ) -> InvestigationOrchestrationCommand | None:
     """The applied request's follow-up, if Seer never got it and it can go out again. One Seer
-    turned down or dropped has a reason, and one that failed behind an earlier command goes out
-    again when that command does.
+    turned down or dropped has a reason, and one that failed behind an undelivered command goes
+    out again when that command does.
     """
 
     if (
@@ -535,7 +536,11 @@ def _undelivered_follow_up(
         request_id=action_request.followup_request_id,
         status=InvestigationOrchestrationCommandStatus.FAILED,
     ).first()
-    return command if command is not None and command_can_be_requeued(command) else None
+    return (
+        command
+        if command is not None and command_can_be_resent(command.type, command.error)
+        else None
+    )
 
 
 def _check_without_writes(kind: ActionKind, context: ApplyContext) -> None:
@@ -703,7 +708,7 @@ def _retry_follow_up(
         )
     _check_can_apply(context.investigation, action_request, request, retry=True)
     _check_action_unchanged(action_request, expected_action)
-    # Seer is still at the version the command expected, so send the same command again.
+    # Seer never got it, so send the same command again.
     accept_orchestration_command(
         investigation=context.investigation,
         request_id=command.request_id,

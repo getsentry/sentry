@@ -318,6 +318,21 @@ class ConnectTelemetryApplyTest(APITestCase, TelemetryFixtures):
         assert response.status_code == 409
         assert response.data["code"] == "not_retryable"
 
+    def test_a_re_run_blocked_by_an_earlier_conflict_goes_out_again(self) -> None:
+        failed = self.applied_rerun()
+        failed.update(
+            status=InvestigationOrchestrationCommandStatus.FAILED,
+            error={"code": "earlier_command_conflicted"},
+        )
+
+        response = self.retry_follow_up()
+
+        assert response.status_code == 200, response.data
+        failed.refresh_from_db()
+        assert failed.status == InvestigationOrchestrationCommandStatus.ACCEPTED
+        assert failed.error is None
+        assert self.reloaded().followup_request_id == failed.request_id
+
     def test_a_re_run_seer_turned_down_is_not_sent_again(self) -> None:
         # Seer would turn it down again for the same reason.
         failed = self.applied_rerun()

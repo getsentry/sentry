@@ -443,7 +443,7 @@ class InvestigationActionRequestSerializationTest(TestCase):
             "retryable": True,
         }
 
-    def test_a_follow_up_that_failed_behind_another_command_cannot_be_sent_again(self) -> None:
+    def test_a_re_check_that_failed_behind_another_command_can_be_tried_again(self) -> None:
         self.add_followed_up_request(
             status=InvestigationOrchestrationCommandStatus.FAILED,
             error={"code": "earlier_command_conflicted"},
@@ -455,7 +455,27 @@ class InvestigationActionRequestSerializationTest(TestCase):
             "status": "failed",
             "reason": None,
             "rerun": None,
-            "retryable": False,
+            "retryable": True,
+        }
+
+    def test_a_re_run_behind_a_conflict_can_be_tried_again_but_not_behind_a_failure(
+        self,
+    ) -> None:
+        for key, code, retryable in (
+            ("conflicted", "earlier_command_conflicted", True),
+            ("failed", "earlier_command_failed", False),
+        ):
+            self.add_followed_up_request(
+                key,
+                type="rerun_after_connection",
+                payload={"provider": "datadog"},
+                status=InvestigationOrchestrationCommandStatus.FAILED,
+                error={"code": code},
+            )
+
+        assert {row["key"]: row["followUp"]["retryable"] for row in self.serialize_requests()} == {
+            "conflicted": True,
+            "failed": False,
         }
 
     def test_block_anchors_point_at_the_live_block(self) -> None:
