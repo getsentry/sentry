@@ -1,4 +1,5 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
@@ -108,8 +109,14 @@ describe('normalizeCompareQueryParts', () => {
 });
 
 describe('useReadQueriesFromLocation', () => {
-  function readCaseInsensitive(queries: Array<Record<string, unknown>>) {
+  const organization = OrganizationFixture({features: ['explore-ignore-case-default']});
+
+  function readCaseInsensitive(
+    queries: Array<Record<string, unknown>>,
+    options: {organization?: typeof organization} = {}
+  ) {
     const {result} = renderHookWithProviders(useReadQueriesFromLocation, {
+      organization: options.organization ?? organization,
       initialRouterConfig: {
         location: {
           pathname: '/organizations/org-slug/explore/traces/compare/',
@@ -119,6 +126,32 @@ describe('useReadQueriesFromLocation', () => {
     });
     return result.current.map(query => query.caseInsensitive);
   }
+
+  it('ignores case when a compare query has no filters', () => {
+    expect(readCaseInsensitive([{yAxes: ['count(span.duration)'], query: ''}])).toEqual([
+      '1',
+    ]);
+  });
+
+  it('matches case when an existing compare query has a filter', () => {
+    expect(
+      readCaseInsensitive([{yAxes: ['count(span.duration)'], query: 'span.op:DB'}])
+    ).toEqual(['0']);
+  });
+
+  it('matches case when an existing compare query has a conditional filter', () => {
+    expect(
+      readCaseInsensitive([{yAxes: ['avg_if(`span.op:DB`,span.duration)'], query: ''}])
+    ).toEqual(['0']);
+  });
+
+  it('matches case when an existing compare query has a group by', () => {
+    expect(
+      readCaseInsensitive([
+        {yAxes: ['count(span.duration)'], query: '', groupBys: ['span.description']},
+      ])
+    ).toEqual(['0']);
+  });
 
   it('keeps an explicit compare query setting', () => {
     expect(
@@ -135,6 +168,14 @@ describe('useReadQueriesFromLocation', () => {
         {yAxes: ['count(span.duration)'], query: '', caseInsensitive: false},
       ])
     ).toEqual(['0']);
+  });
+
+  it('leaves compare queries alone when the feature is disabled', () => {
+    expect(
+      readCaseInsensitive([{yAxes: ['count(span.duration)'], query: ''}], {
+        organization: OrganizationFixture(),
+      })
+    ).toEqual([undefined]);
   });
 });
 
