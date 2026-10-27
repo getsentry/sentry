@@ -1,3 +1,4 @@
+import {Alert} from '@sentry/scraps/alert';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -5,9 +6,17 @@ import {openInsightInfoModal} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import {InlineCode} from 'sentry/views/preprod/buildDetails/main/insights/insightInfoModal';
 
-function getMainBinaryExportedSymbolsContent() {
+function getMainBinaryExportedSymbolsContent(hasAppExtension: boolean) {
   return (
     <Stack gap="2xl">
+      {hasAppExtension && (
+        <Alert variant="warning">
+          {tct(
+            'App extensions need their own exported symbols file, left empty. Do not add [symbol] to it: App Store Connect reports ITMS-90898 (Invalid Mach-O entry point) for extensions that export it.',
+            {symbol: <InlineCode>_NSExtensionMain</InlineCode>}
+          )}
+        </Alert>
+      )}
       <Stack gap="xl">
         <Stack gap="md">
           <Text>
@@ -64,9 +73,10 @@ function getMainBinaryExportedSymbolsContent() {
   );
 }
 
-export function openMainBinaryExportedSymbolsModal() {
+export function openMainBinaryExportedSymbolsModal(binaryPaths: string[]) {
+  const hasAppExtension = binaryPaths.some(path => path.includes('.appex/'));
   openInsightInfoModal({
     title: t('Main binary export metadata'),
-    children: getMainBinaryExportedSymbolsContent(),
+    children: getMainBinaryExportedSymbolsContent(hasAppExtension),
   });
 }

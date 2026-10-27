@@ -100,7 +100,7 @@ export function AppSizeInsightsSidebarRow({
     ) {
       openOptimizeImagesModal(platform);
     } else if (insight.key === 'main_binary_exported_symbols') {
-      openMainBinaryExportedSymbolsModal();
+      openMainBinaryExportedSymbolsModal(insight.files.map(file => file.path));
     } else if (insight.key === 'localized_strings_minify') {
       openMinifyLocalizedStringsModal();
     } else if (insight.key === 'strip_binary') {
