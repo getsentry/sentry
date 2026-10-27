@@ -3,6 +3,7 @@ import {
   memo,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   type ReactNode,
@@ -524,6 +525,28 @@ export function SeerExplorerContent({
 
   // - Pop-up menu component --------------------------------------------------
 
+  // The composer only keeps the caret for its own edits, so a command completed
+  // from the menu moves it after the new text once that has rendered.
+  const completedTextRef = useRef<string | null>(null);
+  const completeInput = useCallback(
+    (text: string) => {
+      completedTextRef.current = text;
+      setInputValue({text, mentions: []});
+    },
+    [setInputValue]
+  );
+  useLayoutEffect(() => {
+    const composer = composerRef.current;
+    if (completedTextRef.current !== inputValue.text || !composer) {
+      return;
+    }
+    completedTextRef.current = null;
+    composer.focus();
+    const selection = composer.ownerDocument.defaultView?.getSelection();
+    selection?.selectAllChildren(composer);
+    selection?.collapseToEnd();
+  }, [inputValue.text]);
+
   // Extract repo_pr_states from session
   const repoPRStates = useMemo(
     () => sessionData?.repo_pr_states ?? {},
@@ -533,13 +556,14 @@ export function SeerExplorerContent({
   // Menu component
   const {menu, closeMenu} = useExplorerMenu({
     clearInput,
+    completeInput,
     inputValue: inputValue.text,
     focusInput,
     composerRef,
     panelSize: 'max',
     slashCommandHandlers: {
       onNew: startNewSession,
-      onInvestigate: startInvestigation,
+      canInvestigate: startInvestigation !== undefined,
       onFeedback: openFeedbackForm ? handleFeedback : undefined,
       onConversations: conversationsUrl ? handleOpenConversations : undefined,
       onBashMode: organization?.features.includes('seer-explorer-allow-bash-mode')
@@ -561,13 +585,16 @@ export function SeerExplorerContent({
     !readOnly && !showLoadError && !isPolling && !!inputValue.text.trim();
   const handleSend = useCallback(() => {
     const text = inputValue.text.trim();
-    // The slash command menu only handles a bare `/investigate`, so one
-    // followed by a question lands here. Like the menu, it doesn't wait for
-    // Seer to finish responding.
+    // `/investigate` runs here whether or not a question follows it; the menu
+    // only completes it. It doesn't wait for Seer to finish responding.
     const investigateMatch = /^\/investigate(?:\s+(.*))?$/s.exec(text);
     if (startInvestigation && investigateMatch) {
-      startInvestigation(investigateMatch[1]);
-      clearInput();
+      // Keep the question if the investigation doesn't start.
+      void startInvestigation(investigateMatch[1]).then(started => {
+        if (started) {
+          clearInput();
+        }
+      });
       return;
     }
     if (!canSendMessage) {

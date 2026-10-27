@@ -6,16 +6,19 @@ import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 interface SlashCommandHandlers {
   onFeedback: (() => void) | undefined;
   onNew: () => void;
+  /** `/investigate` runs when sent, since it takes a question, so the menu only completes it. */
+  canInvestigate?: boolean;
   onBashMode?: (value: boolean) => void;
   onCodeMode?: (value: 'off' | 'on' | 'only') => void;
   onConversations?: () => void;
-  onInvestigate?: () => void;
   onMaxSize?: () => void;
   onMedSize?: () => void;
 }
 
 interface ExplorerMenuProps {
   clearInput: () => void;
+  /** Replaces the input with `text`, leaving the caret after it. */
+  completeInput: (text: string) => void;
   // Only used for `.style.height` resets and anchor positioning, both of
   // which work against any element, so this stays valid if the input is
   // ever backed by something other than a <textarea>.
@@ -29,9 +32,10 @@ interface ExplorerMenuProps {
 
 export interface MenuItemProps {
   description: string | React.ReactNode;
-  handler: () => void;
   key: string;
   title: string;
+  /** Omitted for a command that takes text after it: selecting it completes the input. */
+  handler?: () => void;
 }
 
 /**
@@ -39,6 +43,7 @@ export interface MenuItemProps {
  */
 export function useExplorerMenu({
   clearInput,
+  completeInput,
   inputValue,
   focusInput,
   composerRef,
@@ -85,10 +90,15 @@ export function useExplorerMenu({
 
   const onSelect = useCallback(
     (item: MenuItemProps) => {
+      if (!item.handler) {
+        // The trailing space hides the menu, as it does for anything typed after a command.
+        completeInput(`${item.title} `);
+        return;
+      }
       item.handler();
       closeAndFocusInput();
     },
-    [closeAndFocusInput]
+    [completeInput, closeAndFocusInput]
   );
 
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -222,7 +232,7 @@ function useSlashCommands({
   onFeedback,
   onConversations,
   onCodeMode,
-  onInvestigate,
+  canInvestigate,
 }: SlashCommandHandlers): MenuItemProps[] {
   const isSentryEmployee = useIsSentryEmployee();
 
@@ -234,14 +244,13 @@ function useSlashCommands({
         description: 'Start a new session',
         handler: onNew,
       },
-      ...(onInvestigate
+      ...(canInvestigate
         ? [
             {
               title: '/investigate',
               key: '/investigate',
               description:
                 'Start an investigation of this page. Add a question after the command to focus it',
-              handler: onInvestigate,
             },
           ]
         : []),
@@ -332,7 +341,7 @@ function useSlashCommands({
       onBashMode,
       onCodeMode,
       onConversations,
-      onInvestigate,
+      canInvestigate,
       isSentryEmployee,
     ]
   );
