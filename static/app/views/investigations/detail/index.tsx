@@ -64,6 +64,12 @@ import {
   shouldPollInvestigationRun,
 } from 'sentry/views/investigations/hypotheses/investigationHypotheses';
 import {updateInvestigationCache} from 'sentry/views/investigations/investigationCache';
+import {
+  getHypothesisLLMContext,
+  getInvestigationLLMContext,
+  getInvestigationReference,
+  useInvestigationAskSeer,
+} from 'sentry/views/investigations/investigationLLMContext';
 import {InvestigationSummaryCard} from 'sentry/views/investigations/investigationSummaryCard';
 import {getInvestigationSource} from 'sentry/views/investigations/source';
 import {getSeerStatusBlock} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
@@ -71,6 +77,7 @@ import type {
   InvestigationActionRequest,
   InvestigationBlock,
   InvestigationDetail,
+  InvestigationHypothesis,
   InvestigationOrchestration,
 } from 'sentry/views/investigations/types';
 import {
@@ -80,6 +87,9 @@ import {
 } from 'sentry/views/investigations/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {RouteError} from 'sentry/views/routeError';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 const DEFAULT_INVESTIGATION_TITLE = 'Untitled investigation';
 
@@ -181,15 +191,22 @@ function useRefetchStaleActionRequests(
 
 export function InvestigationBootstrapPage({investigationId}: {investigationId: string}) {
   const organization = useOrganization();
+  const queryClient = useQueryClient();
   const detailOptions = getInvestigationDetailQueryOptions(
     organization.slug,
     investigationId
   );
+  // Seer Agent can write blocks, start their runs, and steer the investigation
+  // from a chat on this page. Its writes go to routes under the investigation,
+  // which the refresh after a Seer write doesn't tie to these queries, and a
+  // settled investigation has stopped polling.
+  const isSeerWorking = useSeerExplorerContext().sessionState === 'thinking';
   const {
     data: investigation,
     error,
     isError,
     isPending,
+    refetch,
   } = useQuery({
     ...detailOptions,
     refetchInterval: query => {
@@ -200,13 +217,29 @@ export function InvestigationBootstrapPage({investigationId}: {investigationId: 
       // has since finished.
       const orchestrationActive =
         data?.orchestration && shouldPollInvestigationRun(data.orchestration.status);
-      return orchestrationActive ||
+      return isSeerWorking ||
+        orchestrationActive ||
         shouldPollInvestigationBlocks(data?.blocks ?? []) ||
         isTitleGenerationActive(data?.titleGeneration?.status)
         ? 2000
         : false;
     },
   });
+
+  const wasSeerWorking = useRef(isSeerWorking);
+  useEffect(() => {
+    if (wasSeerWorking.current && !isSeerWorking) {
+      // Picks up what it wrote after the last poll, and a run it restarted.
+      void refetch();
+      void queryClient.invalidateQueries({
+        queryKey: investigationOrchestrationQueryOptions(
+          organization.slug,
+          investigationId
+        ).queryKey,
+      });
+    }
+    wasSeerWorking.current = isSeerWorking;
+  }, [investigationId, isSeerWorking, organization.slug, queryClient, refetch]);
 
   if (isPending && !investigation) {
     return <LoadingIndicator />;
@@ -225,7 +258,11 @@ export function InvestigationBootstrapPage({investigationId}: {investigationId: 
   return <InvestigationPageContent investigation={investigation} />;
 }
 
-function InvestigationPageContent({investigation}: {investigation: InvestigationDetail}) {
+function InvestigationPageContentInner({
+  investigation,
+}: {
+  investigation: InvestigationDetail;
+}) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -404,6 +441,36 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   const showDetailsHeading =
     hasDetails && Boolean(investigation.summary && investigation.summaryDescription);
   const showActivity = isInvestigationRunDone(investigation);
+  // Push the investigation into the LLM context tree for Seer Explorer. Its
+  // hypotheses and blocks register their own nodes beneath it.
+  const {getLLMContext} = useLLMContext(
+    getInvestigationLLMContext(investigation, orchestration),
+    // Page context waits for the run, so its state and hypotheses come along.
+    {isLoading: Boolean(investigation.orchestration) && orchestrationPending}
+  );
+  const askSeer = useInvestigationAskSeer();
+  const askSeerAboutInvestigation = askSeer
+    ? () =>
+        askSeer({
+          prompt: t('What would you like to know about this investigation?'),
+          // This node with everything beneath it, so the hypotheses and blocks on
+          // screen come along.
+          context: getLLMContext(true).nodes[0],
+        })
+    : undefined;
+  const askSeerAboutHypothesis = askSeer
+    ? (hypothesis: InvestigationHypothesis) =>
+        askSeer({
+          prompt: t('What would you like to know about this hypothesis?'),
+          context: {
+            investigation: getInvestigationReference(investigation),
+            hypothesis: getHypothesisLLMContext(
+              hypothesis,
+              hypothesis.id === orchestration?.report.primaryHypothesisId
+            ),
+          },
+        })
+    : undefined;
 
   return (
     <SentryDocumentTitle title={displayedTitle} orgSlug={organization.slug}>
@@ -416,6 +483,15 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
             trailingActions: {
               type: 'menu',
               items: [
+                ...(askSeerAboutInvestigation
+                  ? [
+                      {
+                        key: 'ask-seer',
+                        label: t('Ask Seer'),
+                        onAction: askSeerAboutInvestigation,
+                      },
+                    ]
+                  : []),
                 {
                   key: 'copy-link',
                   label: t('Copy link'),
@@ -603,6 +679,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                         investigationId={investigation.id}
                         phase={investigation.orchestration.phase}
                         status={investigation.orchestration.status}
+                        onAskSeer={askSeerAboutHypothesis}
                       />
                     ) : null}
                     {visibleBlocks.length > 0 || awaitingReportBlock ? (
@@ -650,6 +727,11 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
     </SentryDocumentTitle>
   );
 }
+
+const InvestigationPageContent = registerLLMContext(
+  'investigation',
+  InvestigationPageContentInner
+);
 
 /**
  * Text blocks start a new section with a large gap. Query blocks sit close to the
