@@ -1421,7 +1421,7 @@ describe('Investigation detail', () => {
                 canApply: false,
                 cannotApplyReason: 'not_suggested',
                 error: {code: 'stale', current: {timeWindowSeconds: 600}},
-                followUp: {status, reason: null, rerun: null},
+                followUp: {status, reason: null, rerun: null, retryable: false},
               }),
             ],
           });
