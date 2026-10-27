@@ -1,5 +1,6 @@
 /** Shared presentation; consumers own state, keyboard behavior, and ARIA roles. */
 export {
+  calculateMenuMinHeight,
   MenuFooterLayout as Footer,
   MenuHeaderLayout as Header,
   MenuHeading as Title,
@@ -12,4 +13,4 @@ export {
   SearchInput as Search,
 } from './menu';
 
-export type {ListItemProps} from './menu';
+export type {ListItemProps, MenuItemTrailingAction} from './menu';
