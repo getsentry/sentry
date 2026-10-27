@@ -13,12 +13,14 @@ from django.test import override_settings
 from django.urls import resolve, reverse
 from responses import matchers
 from scm import Secret
+from scm.errors import SCMCodedError
 from scm.git.grant import sign_grant
 from scm.git.types import GRANT_HEADER, GitOperation, Grant
 from scm.types import RepositoryId
 from sentry_sdk.data_collection import _apply_key_value_collection_filtering
 
 from sentry.constants import ObjectStatus
+from sentry.exceptions import RestrictedIPAddress
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import cell_silo_test
@@ -102,8 +104,19 @@ class ScmGitEndpointTest(TestCase):
         assert message in b"".join(response)
         assert len(responses.calls) == 0
 
+    def assert_reported(self, mock_sdk: mock.MagicMock, code: str, tags: dict[str, str]) -> None:
+        scope = mock_sdk.new_scope.return_value.__enter__.return_value
+        assert scope.fingerprint == ["scm-git", code]
+        scope.set_tags.assert_called_once_with(tags)
+
+    def reported_exception(self, mock_sdk: mock.MagicMock) -> BaseException:
+        mock_sdk.capture_exception.assert_called_once()
+        mock_sdk.capture_message.assert_not_called()
+        return mock_sdk.capture_exception.call_args.args[0]
+
     @responses.activate
-    def test_relays_a_fetch_with_the_installation_token(self) -> None:
+    @mock.patch("sentry.scm.endpoints.scm_git.sentry_sdk")
+    def test_relays_a_fetch_with_the_installation_token(self, mock_sdk: mock.MagicMock) -> None:
         responses.add(
             responses.GET,
             "https://github.com/getsentry/sentry.git/info/refs",
@@ -121,6 +134,8 @@ class ScmGitEndpointTest(TestCase):
         credentials = base64.b64encode(f"x-access-token:{TOKEN}".encode()).decode()
         assert upstream.headers["Authorization"] == f"Basic {credentials}"
         assert GRANT_HEADER not in upstream.headers
+        mock_sdk.capture_exception.assert_not_called()
+        mock_sdk.capture_message.assert_not_called()
 
     @responses.activate
     def test_relays_a_push_body(self) -> None:
@@ -139,10 +154,14 @@ class ScmGitEndpointTest(TestCase):
         assert b"".join(responses.calls[0].request.body) == b"0000PACK-bytes"
 
     @responses.activate
+    @mock.patch("sentry.scm.endpoints.scm_git.sentry_sdk")
     @mock.patch("sentry.scm.endpoints.scm_git.logger")
     @mock.patch("sentry.scm.endpoints.scm_git.record_count_metric")
     def test_refuses_a_request_without_a_grant(
-        self, mock_record_count: mock.MagicMock, mock_logger: mock.MagicMock
+        self,
+        mock_record_count: mock.MagicMock,
+        mock_logger: mock.MagicMock,
+        mock_sdk: mock.MagicMock,
     ) -> None:
         response = self.fetch_refs("")
 
@@ -150,7 +169,7 @@ class ScmGitEndpointTest(TestCase):
         mock_record_count.assert_called_once_with(
             "sentry.scm.git.request.failed", 1, {"code": "git_invalid_grant"}
         )
-        mock_logger.warning.assert_called_once_with(
+        mock_logger.error.assert_called_once_with(
             "scm.git.request_failed",
             extra={
                 "code": "git_invalid_grant",
@@ -158,6 +177,10 @@ class ScmGitEndpointTest(TestCase):
                 "repository_id": str(self.repo.id),
             },
         )
+        error = self.reported_exception(mock_sdk)
+        assert isinstance(error, SCMCodedError)
+        assert error.code == "git_invalid_grant"
+        self.assert_reported(mock_sdk, "git_invalid_grant", {"repository_id": str(self.repo.id)})
 
     @responses.activate
     def test_refuses_a_grant_signed_with_an_unknown_secret(self) -> None:
@@ -183,10 +206,14 @@ class ScmGitEndpointTest(TestCase):
         self.assert_refused(response, 403, b"The git grant has expired.")
 
     @responses.activate
+    @mock.patch("sentry.scm.endpoints.scm_git.sentry_sdk")
     @mock.patch("sentry.scm.endpoints.scm_git.logger")
     @mock.patch("sentry.scm.endpoints.scm_git.record_count_metric")
     def test_refuses_an_organization_without_the_feature(
-        self, mock_record_count: mock.MagicMock, mock_logger: mock.MagicMock
+        self,
+        mock_record_count: mock.MagicMock,
+        mock_logger: mock.MagicMock,
+        mock_sdk: mock.MagicMock,
     ) -> None:
         with self.feature({FEATURE: False}):
             response = self.fetch_refs(self.fetch_grant())
@@ -197,11 +224,24 @@ class ScmGitEndpointTest(TestCase):
             1,
             {"code": "git_endpoint_disabled", "referrer": REFERRER},
         )
-        mock_logger.warning.assert_called_once_with(
+        mock_logger.error.assert_called_once_with(
             "scm.git.request_failed",
             extra={
                 "code": "git_endpoint_disabled",
                 "detail": "The git endpoint is not enabled for this organization.",
+                "repository_id": str(self.repo.id),
+                "organization_id": str(self.organization.id),
+                "referrer": REFERRER,
+            },
+        )
+        mock_sdk.capture_message.assert_called_once_with(
+            "The git endpoint is not enabled for this organization.", level="error"
+        )
+        mock_sdk.capture_exception.assert_not_called()
+        self.assert_reported(
+            mock_sdk,
+            "git_endpoint_disabled",
+            {
                 "repository_id": str(self.repo.id),
                 "organization_id": str(self.organization.id),
                 "referrer": REFERRER,
@@ -223,18 +263,31 @@ class ScmGitEndpointTest(TestCase):
         self.assert_refused(response, 403, b"The git grant allows fetch, not push.")
 
     @responses.activate
+    @mock.patch("sentry.scm.endpoints.scm_git.sentry_sdk")
     @mock.patch("sentry.scm.endpoints.scm_git.logger")
-    def test_logs_a_refusal_with_what_the_request_resolved(
-        self, mock_logger: mock.MagicMock
+    def test_reports_a_refusal_with_what_the_request_resolved(
+        self, mock_logger: mock.MagicMock, mock_sdk: mock.MagicMock
     ) -> None:
         response = self.git("GET", "info/refs", "service=git-receive-pack", self.fetch_grant())
 
         self.assert_refused(response, 403, b"The git grant allows fetch, not push.")
-        mock_logger.warning.assert_called_once_with(
+        mock_logger.error.assert_called_once_with(
             "scm.git.request_failed",
             extra={
                 "code": "git_operation_not_granted",
                 "detail": "The git grant allows fetch, not push.",
+                "repository_id": str(self.repo.id),
+                "organization_id": str(self.organization.id),
+                "referrer": REFERRER,
+            },
+        )
+        error = self.reported_exception(mock_sdk)
+        assert isinstance(error, SCMCodedError)
+        assert error.code == "git_operation_not_granted"
+        self.assert_reported(
+            mock_sdk,
+            "git_operation_not_granted",
+            {
                 "repository_id": str(self.repo.id),
                 "organization_id": str(self.organization.id),
                 "referrer": REFERRER,
@@ -366,9 +419,10 @@ class ScmGitEndpointTest(TestCase):
 
         self.assert_refused(response, 404, b"A repository was found but it is inactive.")
 
+    @mock.patch("sentry.scm.endpoints.scm_git.sentry_sdk")
     @mock.patch("sentry.scm.endpoints.scm_git.logger")
     def test_answers_a_provider_host_on_an_internal_address_with_a_host_error(
-        self, mock_logger: mock.MagicMock
+        self, mock_logger: mock.MagicMock, mock_sdk: mock.MagicMock
     ) -> None:
         integration = self.create_integration(
             organization=self.organization,
@@ -396,11 +450,21 @@ class ScmGitEndpointTest(TestCase):
         assert response.status_code == 503
         assert response["Content-Type"] == "text/plain; charset=utf-8"
         assert b"".join(response) == b"Unable to reach host\n"
-        mock_logger.warning.assert_called_once_with(
+        mock_logger.error.assert_called_once_with(
             "scm.git.request_failed",
             extra={
                 "code": "restricted_ip_address",
                 "detail": "(127.0.0.1) matches the URL blocklist",
+                "repository_id": str(repo.id),
+                "organization_id": str(self.organization.id),
+                "referrer": REFERRER,
+            },
+        )
+        assert isinstance(self.reported_exception(mock_sdk), RestrictedIPAddress)
+        self.assert_reported(
+            mock_sdk,
+            "restricted_ip_address",
+            {
                 "repository_id": str(repo.id),
                 "organization_id": str(self.organization.id),
                 "referrer": REFERRER,
