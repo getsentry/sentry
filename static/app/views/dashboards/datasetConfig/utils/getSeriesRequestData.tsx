@@ -14,10 +14,102 @@ import {
 import {DiscoverDatasets, TOP_N} from 'sentry/utils/discover/types';
 import {DisplayType, type Widget} from 'sentry/views/dashboards/types';
 import {getNumEquations, getWidgetInterval} from 'sentry/views/dashboards/utils';
+import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
+
+const RPC_DATASETS = [
+  DiscoverDatasets.OURLOGS,
+  DiscoverDatasets.SPANS,
+  DiscoverDatasets.TRACEMETRICS,
+];
+
+type SeriesQueryFields = {
+  yAxis: string | string[];
+  excludeOther?: boolean;
+  field?: string[];
+  orderby?: string;
+  topEvents?: number;
+};
 
 /**
- * This function is used to generate the request data for timeseries widgets
- * and is intended to be used eventually by doEventsRequest
+ * The parts of a series request that depend on the widget query: which
+ * aggregates to plot, how to group them, how many groups to return, and how
+ * to sort them. Shared by the `/events-stats/` and `/events-timeseries/`
+ * request builders below.
+ */
+function getSeriesQueryFields(
+  widget: Widget,
+  queryIndex: number,
+  dataset: DiscoverDatasets
+): SeriesQueryFields {
+  const widgetQuery = widget.queries[queryIndex]!;
+  const {displayType, limit} = widget;
+
+  if (displayType === DisplayType.TOP_N) {
+    const fields: SeriesQueryFields = {
+      yAxis: widgetQuery.aggregates[widgetQuery.aggregates.length - 1]!,
+      field: [...widgetQuery.columns, ...widgetQuery.aggregates],
+      topEvents: TOP_N,
+    };
+    if (widgetQuery.orderby) {
+      fields.orderby = widgetQuery.orderby;
+    }
+    return fields;
+  }
+
+  const fields: SeriesQueryFields = {
+    yAxis: widgetQuery.aggregates,
+    orderby: widgetQuery.orderby,
+  };
+
+  if (widgetQuery.columns?.length === 0) {
+    return fields;
+  }
+
+  fields.topEvents = limit ?? TOP_N;
+  fields.field = [...widgetQuery.columns, ...widgetQuery.aggregates];
+
+  const orderby = trimStart(widgetQuery.orderby, '-');
+  if (
+    widgetQuery.orderby &&
+    !isEquationAlias(orderby) &&
+    !fields.field.map(getAggregateAlias).includes(getAggregateAlias(orderby))
+  ) {
+    fields.field.push(orderby);
+  }
+
+  // The "Other" series is only included when there is one y-axis and one
+  // widget query
+  fields.excludeOther =
+    widgetQuery.aggregates.length !== 1 || widget.queries.length !== 1;
+
+  if (RPC_DATASETS.includes(dataset)) {
+    if (isEquation(orderby) && !fields.field.includes(orderby)) {
+      fields.field = [...widgetQuery.columns, ...widgetQuery.aggregates, orderby];
+    } else if (isEquationAlias(orderby)) {
+      const equations = widgetQuery.fields?.filter(isEquation) ?? [];
+      const equationOrderBy = equations[getEquationAliasIndex(orderby)];
+      if (equationOrderBy) {
+        fields.orderby = widgetQuery.orderby.startsWith('-')
+          ? `-${equationOrderBy}`
+          : equationOrderBy;
+      }
+    }
+  } else if (isEquation(orderby)) {
+    const nextEquationIndex = getNumEquations(widgetQuery.aggregates);
+    const prefix = widgetQuery.orderby.startsWith('-') ? '-' : '';
+
+    // Construct the alias form of the equation and inject it into the request
+    fields.orderby = `${prefix}equation[${nextEquationIndex}]`;
+    fields.field = [...widgetQuery.columns, ...widgetQuery.aggregates, orderby];
+  }
+
+  return fields;
+}
+
+/**
+ * Builds `/events-stats/` request data for a widget query. Only the
+ * transactions and issues widget hooks still use this shape; everything else
+ * requests `/events-timeseries/` through `getTimeseriesRequestQuery`.
  */
 export function getSeriesRequestData(
   widget: Widget,
@@ -29,157 +121,65 @@ export function getSeriesRequestData(
   widgetInterval?: string
 ): EventsStatsOptions<true> {
   const widgetQuery = widget.queries[queryIndex]!;
-  const {displayType, limit} = widget;
   const {environments, projects} = pageFilters;
   const {start, end, period: statsPeriod} = pageFilters.datetime;
   const interval =
     widgetInterval ?? getWidgetInterval(widget, {start, end, period: statsPeriod}, '1m');
 
-  let requestData: EventsStatsOptions<true>;
-  if (displayType === DisplayType.TOP_N) {
-    requestData = {
-      organization,
-      interval,
-      start,
-      end,
-      project: projects,
-      environment: environments,
-      period: statsPeriod,
-      query: widgetQuery.conditions,
-      yAxis: widgetQuery.aggregates[widgetQuery.aggregates.length - 1],
-      includePrevious: false,
-      referrer,
-      partial: true,
-      field: [...widgetQuery.columns, ...widgetQuery.aggregates],
-      includeAllArgs: true,
-      topEvents: TOP_N,
-      dataset,
-    };
-    if (widgetQuery.orderby) {
-      requestData.orderby = widgetQuery.orderby;
-    }
-  } else {
-    requestData = {
-      organization,
-      interval,
-      start,
-      end,
-      project: projects,
-      environment: environments,
-      period: statsPeriod,
-      query: widgetQuery.conditions,
-      yAxis: widgetQuery.aggregates,
-      orderby: widgetQuery.orderby,
-      includePrevious: false,
-      referrer,
-      partial: true,
-      includeAllArgs: true,
-      dataset,
-    };
-    if (widgetQuery.columns?.length !== 0) {
-      requestData.topEvents = limit ?? TOP_N;
-      requestData.field = [...widgetQuery.columns, ...widgetQuery.aggregates];
-
-      // Compare field and orderby as aliases to ensure requestData has
-      // the orderby selected
-      // If the orderby is an equation alias, do not inject it
-      const orderby = trimStart(widgetQuery.orderby, '-');
-      if (
-        widgetQuery.orderby &&
-        !isEquationAlias(orderby) &&
-        !requestData.field.map(getAggregateAlias).includes(getAggregateAlias(orderby))
-      ) {
-        requestData.field.push(orderby);
-      }
-
-      // The "Other" series is only included when there is one
-      // y-axis and one widgetQuery
-      requestData.excludeOther =
-        widgetQuery.aggregates.length !== 1 || widget.queries.length !== 1;
-
-      if (
-        [
-          DiscoverDatasets.OURLOGS,
-          DiscoverDatasets.SPANS,
-          DiscoverDatasets.TRACEMETRICS,
-        ].includes(dataset)
-      ) {
-        if (
-          isEquation(trimStart(widgetQuery.orderby, '-')) &&
-          !requestData.field?.includes(trimStart(widgetQuery.orderby, '-'))
-        ) {
-          requestData.field = [
-            ...widgetQuery.columns,
-            ...widgetQuery.aggregates,
-            trimStart(widgetQuery.orderby, '-'),
-          ];
-        } else if (isEquationAlias(trimStart(widgetQuery.orderby, '-'))) {
-          const equations = widgetQuery.fields?.filter(isEquation) ?? [];
-          const equationIndex = getEquationAliasIndex(
-            trimStart(widgetQuery.orderby, '-')
-          );
-
-          const equationOrderBy = equations[equationIndex];
-          if (equationOrderBy) {
-            requestData.orderby = widgetQuery.orderby.startsWith('-')
-              ? `-${equationOrderBy}`
-              : equationOrderBy;
-          }
-        }
-      } else {
-        if (isEquation(trimStart(widgetQuery.orderby, '-'))) {
-          const nextEquationIndex = getNumEquations(widgetQuery.aggregates);
-          const isDescending = widgetQuery.orderby.startsWith('-');
-          const prefix = isDescending ? '-' : '';
-
-          // Construct the alias form of the equation and inject it into the request
-          requestData.orderby = `${prefix}equation[${nextEquationIndex}]`;
-          requestData.field = [
-            ...widgetQuery.columns,
-            ...widgetQuery.aggregates,
-            trimStart(widgetQuery.orderby, '-'),
-          ];
-        }
-      }
-    }
-  }
-
-  return requestData;
-}
-
-// Converts `getSeriesRequestData` output, which is shaped for
-// `/events-stats/` into `/events-timeseries/` query params
-export function convertEventStatsRequestDataToEventTimeseriesQueryParams(
-  requestData: EventsStatsOptions<true>
-) {
-  const {
+  return {
+    organization,
     interval,
     start,
     end,
-    period,
-    project,
-    environment,
-    query,
-    yAxis,
-    field,
-    orderby,
-    topEvents,
-    excludeOther,
+    project: projects,
+    environment: environments,
+    period: statsPeriod,
+    query: widgetQuery.conditions,
+    includePrevious: false,
     referrer,
+    partial: true,
+    includeAllArgs: true,
     dataset,
-    sampling,
-    queryExtras,
-  } = requestData;
+    ...getSeriesQueryFields(widget, queryIndex, dataset),
+  };
+}
+
+type TimeseriesRequestOptions = {
+  referrer?: string;
+  sampling?: SamplingMode;
+  widgetInterval?: string;
+};
+
+/**
+ * Builds `/events-timeseries/` query params for a widget query.
+ */
+export function getTimeseriesRequestQuery(
+  widget: Widget,
+  queryIndex: number,
+  pageFilters: PageFilters,
+  dataset: DiscoverDatasets,
+  {referrer, sampling, widgetInterval}: TimeseriesRequestOptions = {}
+) {
+  const widgetQuery = widget.queries[queryIndex]!;
+  const {environments, projects} = pageFilters;
+  const {start, end, period} = pageFilters.datetime;
+  const interval =
+    widgetInterval ?? getWidgetInterval(widget, {start, end, period}, '1m');
+  const {yAxis, field, orderby, topEvents, excludeOther} = getSeriesQueryFields(
+    widget,
+    queryIndex,
+    dataset
+  );
 
   return {
     interval,
     ...(period ? {statsPeriod: period} : {}),
     ...(start ? {start: getUtcDateString(start)} : {}),
     ...(end ? {end: getUtcDateString(end)} : {}),
-    project,
-    environment,
-    query,
-    yAxis: yAxis ? [...new Set(toArray(yAxis))] : undefined,
+    project: projects,
+    environment: environments,
+    query: widgetQuery.conditions,
+    yAxis: [...new Set(toArray(yAxis))],
     groupBy: field,
     field,
     sort: orderby || undefined,
@@ -188,6 +188,7 @@ export function convertEventStatsRequestDataToEventTimeseriesQueryParams(
     referrer,
     dataset,
     sampling,
-    ...queryExtras,
   };
 }
+
+export type TimeseriesRequestQuery = ReturnType<typeof getTimeseriesRequestQuery>;

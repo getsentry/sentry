@@ -21,6 +21,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
+from tests.sentry.investigations.test_seer_contract import fixture
 
 FEATURE = "organizations:investigations"
 
@@ -388,6 +389,16 @@ class OrganizationInvestigationOrchestrationCommandsTest(APITestCase):
     def test_rejects_an_unsupported_command_type(self) -> None:
         response = self.client.post(
             self.command_url, data=self.command(command={"type": "explode"}), format="json"
+        )
+
+        assert response.status_code == 400
+        assert not InvestigationOrchestrationCommand.objects.exists()
+
+    def test_users_cannot_send_an_action_outcome(self) -> None:
+        response = self.client.post(
+            self.command_url,
+            data=self.command(command=fixture("command_record_action_outcome")),
+            format="json",
         )
 
         assert response.status_code == 400

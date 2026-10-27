@@ -18,6 +18,7 @@ from sentry.investigations.models import (
     InvestigationActionRequest,
     InvestigationActionRequestState,
     InvestigationBlock,
+    InvestigationOrchestrationCommand,
     InvestigationStatus,
 )
 from sentry.investigations.services.action_kinds import ACTION_KINDS
@@ -39,6 +40,7 @@ from sentry.workflow_engine.models import DataConditionGroup, Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.investigations.test_contracts import RecordingKind, fake_action, fake_action_kind
+from tests.sentry.investigations.test_seer_contract import fixture
 
 pytestmark = [requires_snuba, requires_kafka]
 
@@ -835,10 +837,15 @@ class SharedApplyPathTest(APITestCase):
         self.investigation = self.create_investigation(
             organization=self.organization, created_by=self.user
         )
-        self.create_investigation_orchestration_run(investigation=self.investigation)
+        self.orchestration_run = self.create_investigation_orchestration_run(
+            investigation=self.investigation,
+            workflow_version=4,
+            projection={"workflowVersion": 4, "report": {"revision": 2, "status": "completed"}},
+        )
         self.action_request = self.create_investigation_action_request(
             investigation=self.investigation,
-            key="test",
+            key="widen-time-window",
+            report_revision=2,
             action_kind="test_kind",
             action_payload=fake_action(),
         )
@@ -853,6 +860,13 @@ class SharedApplyPathTest(APITestCase):
             },
         )
         return self.client.post(url, data=data, format="json")
+
+    def commands(self) -> list[InvestigationOrchestrationCommand]:
+        return list(
+            InvestigationOrchestrationCommand.objects.filter(
+                orchestration_run=self.orchestration_run
+            )
+        )
 
     def test_a_dry_run_only_checks(self) -> None:
         response = self.post(dryRun=True)
@@ -881,6 +895,41 @@ class SharedApplyPathTest(APITestCase):
         assert self.action_request.state == InvestigationActionRequestState.APPLIED
         assert self.action_request.applied_by_id == self.user.id
         assert self.action_request.applied_details == {"target": "a"}
+
+    def test_applying_tells_seer_the_outcome(self) -> None:
+        response = self.post()
+
+        assert response.status_code == 200, response.data
+        [command] = self.commands()
+        assert {"type": command.type, **command.payload} == {
+            **fixture("command_record_action_outcome"),
+            "action": fake_action(),
+            "appliedBy": self.user.id,
+        }
+        assert command.actor_id == self.user.id
+        assert (command.expected_workflow_version, command.resulting_workflow_version) == (4, 4)
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.workflow_version == 4
+
+    def test_the_outcome_goes_to_seer_as_the_investigation_creator(self) -> None:
+        applier = self.create_user()
+        self.create_member(user=applier, organization=self.organization, role="owner")
+        self.login_as(applier)
+
+        assert self.post().status_code == 200
+
+        [command] = self.commands()
+        assert command.actor_id == self.user.id
+        assert command.payload["appliedBy"] == applier.id
+
+    def test_only_a_successful_apply_tells_seer(self) -> None:
+        assert self.post(dryRun=True).status_code == 200
+        self.kind.raises = ActionInvalid(["Pick a supported window."])
+        assert self.post().status_code == 400
+        self.kind.raises = ActionStale({"window": 600})
+        assert self.post().status_code == 409
+
+        assert self.commands() == []
 
     def test_a_stale_action_is_superseded_with_what_moved(self) -> None:
         self.kind.raises = ActionStale({"window": 600})
