@@ -1,5 +1,6 @@
 import {useEffect, useRef, useState} from 'react';
 import {reaction} from 'mobx';
+import {parseAsJson} from 'nuqs';
 import {z} from 'zod';
 
 import type {FormModel} from 'sentry/components/forms/model';
@@ -22,17 +23,7 @@ const detectorDraftSchema = z.object({
 
 type DetectorDraft = z.infer<typeof detectorDraftSchema>;
 
-function parseDetectorDraft(raw: string | undefined): DetectorDraft | null {
-  if (!raw) {
-    return null;
-  }
-  try {
-    const result = detectorDraftSchema.safeParse(JSON.parse(raw));
-    return result.success ? result.data : null;
-  } catch {
-    return null;
-  }
-}
+const parseAsDetectorDraft = parseAsJson(detectorDraftSchema);
 
 export const draftNumericString = z
   .string()
@@ -75,7 +66,8 @@ export interface DetectorDraftConfig<TFormData> {
 export function useInitialDetectorDraft(detectorType: DetectorType | null) {
   const location = useLocation();
   const [draft] = useState(() => {
-    const parsed = parseDetectorDraft(decodeScalar(location.query.draft));
+    const raw = decodeScalar(location.query.draft);
+    const parsed = raw ? parseAsDetectorDraft.parse(raw) : null;
     return parsed?.detectorType === detectorType ? parsed : null;
   });
   return draft;
@@ -137,12 +129,12 @@ function replaceDraftInUrl(draft: DetectorDraft) {
     url.searchParams.delete(param);
   }
 
-  url.searchParams.set('draft', JSON.stringify(draft));
+  url.searchParams.set('draft', parseAsDetectorDraft.serialize(draft));
   if (url.href.length > MAX_URL_LENGTH) {
     // A long description is the likeliest culprit, and the least costly to
     // drop: the rest of the draft still opens.
     const {description: _description, ...values} = draft.values;
-    url.searchParams.set('draft', JSON.stringify({...draft, values}));
+    url.searchParams.set('draft', parseAsDetectorDraft.serialize({...draft, values}));
   }
   if (url.href.length > MAX_URL_LENGTH) {
     // Better no draft than one that looks current but isn't. The link's own
