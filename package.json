@@ -72,7 +72,6 @@
     "@sentry/sqlish": "1.0.1",
     "@sentry/webpack-plugin": "5.4.1",
     "@swc/plugin-emotion": "19.0.0",
-    "@tanstack/react-store": "0.11.2",
     "@types/gtag.js": "^0.0.12",
     "@types/jest": "30.0.0",
     "@types/react": "19.3.0",
