@@ -4,13 +4,16 @@ import logging
 from typing import Any, Literal, TypedDict
 
 import sentry_sdk
+from packaging import version
 from sentry_sdk import traces
 
 from sentry.constants import DataCategory
+from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba import errors
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.outcomes import QueryDefinition, run_outcomes_query_timeseries
+from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.utils import metrics
@@ -30,6 +33,16 @@ class Annotation(TypedDict):
     start: float
     end: float
     eventCount: float
+
+
+class SuppressedDrop(TypedDict):
+    """Drop volume withheld from the dropped annotations as a known misreport."""
+
+    cause: str
+    category: str
+    outcome: str
+    reason: str
+    count: int
 
 
 def record_dropped_events_telemetry(
@@ -150,22 +163,107 @@ def _accepted_by_bucket(rows: list[dict[str, Any]]) -> dict[float, int]:
     return accepted
 
 
-def _dropped_by_bucket_reason(rows: list[dict[str, Any]]) -> dict[tuple[float, str, str], int]:
-    """Sum dropped quantity keyed by (bucket, outcome, reason)."""
+def _dropped_by_bucket_reason(
+    rows: list[dict[str, Any]],
+    *,
+    outcome_filter: str | None = None,
+    reason_filter: str | None = None,
+) -> dict[tuple[float, str, str], int]:
+    """Sum dropped quantity keyed by (bucket, outcome, reason), keeping only the
+    drops that match ``outcome_filter`` and ``reason_filter`` when given."""
     dropped: dict[tuple[float, str, str], int] = {}
     accepted_name = Outcome.ACCEPTED.api_name()
     for row in rows:
         outcome = str(row.get("outcome", ""))
         if outcome == accepted_name:
             continue
+        if outcome_filter is not None and outcome != outcome_filter:
+            continue
         bucket = _bucket_start_ms(row.get("time"))
         if bucket is None:
             continue
         reason = row.get("reason")
         reason_key = str(reason) if reason is not None else outcome
+        if reason_filter is not None and reason_key != reason_filter:
+            continue
         key = (bucket, outcome, reason_key)
         dropped[key] = dropped.get(key, 0) + int(row.get("quantity", 0) or 0)
     return dropped
+
+
+# JavaScript SDKs before 11.0.0 misreport log `buffer_overflow` client discards.
+# Remove this suppression once those SDK versions are no longer in use.
+_JS_SDK_BUFFER_OVERFLOW_CAUSE = "js_sdk_below_11"
+_BUFFER_OVERFLOW_REASON = "buffer_overflow"
+_JS_SDK_BUFFER_OVERFLOW_FIXED_MAJOR = 11
+_JS_SDK_VERSIONS_LIMIT = 1000
+
+
+def _is_js_sdk_buffer_overflow(outcome: str, reason: str) -> bool:
+    return outcome == Outcome.CLIENT_DISCARD.api_name() and reason == _BUFFER_OVERFLOW_REASON
+
+
+def _has_affected_js_sdk(snuba_params: SnubaParams) -> bool:
+    """Whether any selected project sent logs from a JavaScript SDK older than the fix."""
+    result = OurLogs.run_table_query(
+        params=snuba_params,
+        query_string="sdk.name:sentry.javascript.*",
+        selected_columns=["sdk.version", "count()"],
+        orderby=None,
+        offset=0,
+        limit=_JS_SDK_VERSIONS_LIMIT,
+        referrer=Referrer.API_EXPLORE_DROPPED_DATA_SDK_VERSIONS.value,
+        config=SearchResolverConfig(),
+        sampling_mode=None,
+    )
+    for row in result.get("data", []):
+        try:
+            sdk_version = version.parse(str(row.get("sdk.version")))
+        except version.InvalidVersion:
+            continue
+        if sdk_version.major < _JS_SDK_BUFFER_OVERFLOW_FIXED_MAJOR:
+            return True
+    return False
+
+
+def _suppress_js_sdk_buffer_overflow(
+    dropped_by_key: dict[tuple[float, str, str], int],
+    category: DataCategory,
+    snuba_params: SnubaParams,
+) -> tuple[dict[tuple[float, str, str], int], list[SuppressedDrop]]:
+    """Withhold log `buffer_overflow` drops when an affected JavaScript SDK is
+    seen in the selected projects. Drops are left untouched when no affected SDK
+    is seen or the lookup fails, so only confirmed misreports are hidden."""
+    if category != DataCategory.LOG_ITEM or not any(
+        _is_js_sdk_buffer_overflow(outcome, reason) for _, outcome, reason in dropped_by_key
+    ):
+        return dropped_by_key, []
+
+    try:
+        has_affected_sdk = _has_affected_js_sdk(snuba_params)
+    except Exception:
+        sentry_sdk.capture_exception()
+        return dropped_by_key, []
+    if not has_affected_sdk:
+        return dropped_by_key, []
+
+    remaining: dict[tuple[float, str, str], int] = {}
+    suppressed_count = 0
+    for key, count in dropped_by_key.items():
+        _, outcome, reason = key
+        if _is_js_sdk_buffer_overflow(outcome, reason):
+            suppressed_count += count
+        else:
+            remaining[key] = count
+    return remaining, [
+        SuppressedDrop(
+            cause=_JS_SDK_BUFFER_OVERFLOW_CAUSE,
+            category=category.api_name(),
+            outcome=Outcome.CLIENT_DISCARD.api_name(),
+            reason=_BUFFER_OVERFLOW_REASON,
+            count=suppressed_count,
+        )
+    ]
 
 
 def get_dropped_data_annotations(
@@ -176,11 +274,13 @@ def get_dropped_data_annotations(
     threshold: int = DEFAULT_DROP_THRESHOLD,
     outcome: str | None = None,
     reason: str | None = None,
-) -> tuple[list[Annotation], list[Annotation]]:
+) -> tuple[list[Annotation], list[Annotation], list[SuppressedDrop]]:
     """Build dropped and accepted data-fidelity annotations for a timeseries query.
     - ``dropped_annotations``: one per (bucket, outcome, reason) drop.
     - ``accepted_annotations``: one per bucket, carrying that bucket's accepted
       volume.
+    - ``suppressed_drops``: drop volume withheld from ``dropped_annotations``
+      because it is a known SDK misreport.
 
     ``outcome`` and ``reason`` optionally narrow the *dropped* side to a single
     classification: ``outcome`` is the top-level drop class (e.g. ``rate_limited``)
@@ -194,10 +294,10 @@ def get_dropped_data_annotations(
     """
     category = DATASET_TO_CATEGORY.get(dataset)
     if category is None:
-        return [], []
+        return [], [], []
     if snuba_params.organization_id is None:
         logger.warning("data_annotations.missing_organization", extra={"dataset": str(dataset)})
-        return [], []
+        return [], [], []
     organization_id = snuba_params.organization_id
 
     with traces.start_span(
@@ -209,16 +309,16 @@ def get_dropped_data_annotations(
     ) as span:
         item_rows = _run_category_query(category, snuba_params, rollup, organization_id)
         accepted_by_bucket = _accepted_by_bucket(item_rows)
-        dropped_by_key = _dropped_by_bucket_reason(item_rows)
+        dropped_by_key = _dropped_by_bucket_reason(
+            item_rows, outcome_filter=outcome, reason_filter=reason
+        )
+        dropped_by_key, suppressed_drops = _suppress_js_sdk_buffer_overflow(
+            dropped_by_key, category, snuba_params
+        )
 
         dropped_annotations: list[Annotation] = []
         for (bucket_start_ms, bucket_outcome, reason_key), dropped in dropped_by_key.items():
             if dropped < threshold:
-                continue
-
-            if outcome is not None and bucket_outcome != outcome:
-                continue
-            if reason is not None and reason_key != reason:
                 continue
             annotation = Annotation(
                 type="system",
@@ -246,4 +346,5 @@ def get_dropped_data_annotations(
 
         span.set_attribute("dropped_annotation_count", len(dropped_annotations))
         span.set_attribute("accepted_annotation_count", len(accepted_annotations))
-        return dropped_annotations, accepted_annotations
+        span.set_attribute("suppressed_drop_count", sum(drop["count"] for drop in suppressed_drops))
+        return dropped_annotations, accepted_annotations, suppressed_drops

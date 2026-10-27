@@ -58,7 +58,7 @@ class GetDroppedDataAnnotationsTest(OutcomesSnubaTest):
             Outcome.RATE_LIMITED, DataCategory.SPAN, drop_at, reason="over_quota", quantity=2000
         )
 
-        dropped, accepted = get_dropped_data_annotations(Spans, self._snuba_params(), ONE_HOUR)
+        dropped, accepted, _ = get_dropped_data_annotations(Spans, self._snuba_params(), ONE_HOUR)
 
         assert len(dropped) == 1
         assert dropped[0]["category"] == DataCategory.SPAN.api_name()
@@ -79,7 +79,7 @@ class GetDroppedDataAnnotationsTest(OutcomesSnubaTest):
         when = self.start + timedelta(minutes=30)
         self._store_drop(Outcome.ACCEPTED, DataCategory.SPAN, when, quantity=5000)
 
-        dropped, accepted = get_dropped_data_annotations(Spans, self._snuba_params(), ONE_HOUR)
+        dropped, accepted, _ = get_dropped_data_annotations(Spans, self._snuba_params(), ONE_HOUR)
 
         assert dropped == []
         assert len(accepted) == 1
