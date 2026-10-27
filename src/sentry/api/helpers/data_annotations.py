@@ -193,7 +193,7 @@ def _dropped_by_bucket_reason(
 
 
 # JavaScript SDKs before 11.0.0 misreport log `buffer_overflow` client discards.
-# Remove this suppression once those SDK versions are no longer in use.
+# Remove this suppression once those SDK versions are fixed.
 _JS_SDK_BUFFER_OVERFLOW_CAUSE = "js_sdk_below_11"
 _BUFFER_OVERFLOW_REASON = "buffer_overflow"
 _JS_SDK_BUFFER_OVERFLOW_FIXED_MAJOR = 11
