@@ -12,6 +12,43 @@ export function InvestigationRunTimer({
 }: {
   orchestration: InvestigationOrchestration;
 }) {
+  const [settledSeconds, setSettledSeconds] = useState<{
+    runKey: string;
+    seconds: number;
+  } | null>(null);
+  const runKey = `${orchestration.runId}:${orchestration.generation}`;
+  const settled = isOnlyNextStepPending(orchestration);
+  const active = !settled && ['processing', 'pending'].includes(orchestration.status);
+  let seconds = getActiveSeconds(orchestration, settled, active);
+
+  if (settled && seconds !== null) {
+    if (settledSeconds?.runKey === runKey) {
+      seconds = settledSeconds.seconds;
+    } else {
+      setSettledSeconds({runKey, seconds});
+    }
+  } else if (settledSeconds !== null) {
+    setSettledSeconds(null);
+  }
+
+  if (seconds === null) {
+    return null;
+  }
+
+  return (
+    <LiveDuration
+      key={`${runKey}:${orchestration.serverTime}:${seconds}:${active}`}
+      seconds={seconds}
+      active={active}
+    />
+  );
+}
+
+function getActiveSeconds(
+  orchestration: InvestigationOrchestration,
+  settled: boolean,
+  active: boolean
+): number | null {
   const {
     startedAt,
     finishedAt,
@@ -20,9 +57,7 @@ export function InvestigationRunTimer({
     serverTime,
     status,
   } = orchestration;
-  const settled = isOnlyNextStepPending(orchestration);
   const terminal = !settled && ['completed', 'failed', 'cancelled'].includes(status);
-  const active = !settled && (status === 'processing' || status === 'pending');
   if (
     !startedAt ||
     !Number.isFinite(Date.parse(startedAt)) ||
@@ -51,14 +86,7 @@ export function InvestigationRunTimer({
     // A partial or stale projection cannot authoritatively freeze an active interval.
     return null;
   }
-
-  return (
-    <LiveDuration
-      key={`${orchestration.runId}:${orchestration.generation}:${serverTime}:${seconds}:${active}`}
-      seconds={seconds}
-      active={active}
-    />
-  );
+  return seconds;
 }
 
 function LiveDuration({seconds, active}: {active: boolean; seconds: number}) {

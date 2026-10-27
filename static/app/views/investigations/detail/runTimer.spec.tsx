@@ -148,6 +148,31 @@ describe('InvestigationRunTimer', () => {
     expect(screen.getByRole('timer')).toHaveTextContent('34.5s');
   });
 
+  it('keeps the settled time while the next step polls', () => {
+    const completed = InvestigationOrchestrationFixture();
+    const writingNextStep = (serverTime: string) =>
+      InvestigationOrchestrationFixture({
+        ...timing,
+        serverTime,
+        status: 'processing',
+        phase: 'metadata',
+        report: {...completed.report, status: 'completed'},
+      });
+    const {rerender} = render(
+      <InvestigationRunTimer orchestration={writingNextStep(timing.serverTime)} />
+    );
+    expect(screen.getByRole('timer')).toHaveTextContent('34.5s');
+
+    rerender(
+      <InvestigationRunTimer
+        orchestration={writingNextStep(
+          new Date(Date.parse(timing.serverTime) + 4_000).toISOString()
+        )}
+      />
+    );
+    expect(screen.getByRole('timer')).toHaveTextContent('34.5s');
+  });
+
   it.each([
     {},
     {...timing, startedAt: null},
