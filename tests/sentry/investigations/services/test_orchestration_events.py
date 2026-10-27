@@ -30,6 +30,7 @@ from sentry.investigations.models import (
     InvestigationStatus,
 )
 from sentry.investigations.services.action_kinds import ACTION_KINDS
+from sentry.investigations.services.action_requests import STALE
 from sentry.investigations.services.investigations import (
     InvestigationConflictError,
     archive_investigation,
@@ -3121,7 +3122,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
     def stale_keys(self) -> set[str]:
         return set(
             InvestigationActionRequest.objects.filter(
-                investigation=self.investigation, error__code="stale"
+                STALE, investigation=self.investigation
             ).values_list("key", flat=True)
         )
 
@@ -3148,6 +3149,31 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
 
         self.deliver_request(2, self.action_request("new", primary=True))
 
+        assert self.stale_keys() == set()
+
+    def test_a_newer_primary_replaces_a_stale_primary_seer_demoted_first(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        anchor = {"type": "hypothesis", "id": "h-1"}
+        self.stale("old", primary=True, anchor_type="hypothesis", anchor_id="h-1")
+
+        self.deliver_request(2, self.action_request("old", primary=False, anchor=anchor))
+        self.deliver_request(3, self.action_request("new", primary=True))
+
+        assert self.stale_keys() == set()
+        assert self.request_states()["old"] == InvestigationActionRequestState.SUPERSEDED
+
+    def test_seer_sending_a_dropped_stale_request_again_keeps_it_superseded(self) -> None:
+        self.stale("old", anchor_type="hypothesis", anchor_id="h-1")
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 2}))
+
+        self.deliver_request(
+            2,
+            self.action_request(
+                "old", reportRevision=2, anchor={"type": "hypothesis", "id": "h-1"}
+            ),
+        )
+
+        assert self.request_states() == {"old": InvestigationActionRequestState.SUPERSEDED}
         assert self.stale_keys() == set()
 
     def test_seer_sending_a_stale_request_again_keeps_it_stale(self) -> None:

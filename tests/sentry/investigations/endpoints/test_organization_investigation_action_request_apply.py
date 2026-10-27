@@ -19,6 +19,8 @@ from sentry.investigations.models import (
     InvestigationActionRequestState,
     InvestigationBlock,
     InvestigationOrchestrationCommand,
+    InvestigationOrchestrationPhase,
+    InvestigationOrchestrationRun,
     InvestigationStatus,
 )
 from sentry.investigations.services.action_kinds import ACTION_KINDS
@@ -843,6 +845,7 @@ class SharedApplyPathTest(APITestCase):
         self.orchestration_run = self.create_investigation_orchestration_run(
             investigation=self.investigation,
             workflow_version=4,
+            phase=InvestigationOrchestrationPhase.COMPLETED,
             projection={"workflowVersion": 4, "report": {"revision": 2, "status": "completed"}},
         )
         self.action_request = self.create_investigation_action_request(
@@ -976,6 +979,34 @@ class SharedApplyPathTest(APITestCase):
         [read] = details.data["actionRequests"]
         assert read["followUp"] == {"status": "accepted", "reason": None}
 
+    def test_a_stale_action_seer_cant_recheck_stops_being_listed(self) -> None:
+        for phase, report in (
+            (InvestigationOrchestrationPhase.INVESTIGATING, {"revision": 2, "status": "completed"}),
+            (InvestigationOrchestrationPhase.COMPLETED, {"revision": 3, "status": "completed"}),
+            (InvestigationOrchestrationPhase.METADATA, {"revision": 2, "status": "composing"}),
+        ):
+            self.orchestration_run.update(phase=phase, projection={"report": report})
+            self.action_request.update(state=InvestigationActionRequestState.SUGGESTED, error=None)
+            self.kind.raises = ActionStale({"window": 600})
+
+            assert self.post().status_code == 409
+
+            assert self.commands() == []
+            self.action_request.refresh_from_db()
+            assert self.action_request.state == InvestigationActionRequestState.SUPERSEDED
+            assert self.action_request.error == {"code": "stale", "current": {"window": 600}}
+            assert self.action_request.followup_request_id is None
+            details = self.client.get(
+                reverse(
+                    "sentry-api-0-organization-investigation-details",
+                    kwargs={
+                        "organization_id_or_slug": self.organization.slug,
+                        "investigation_id": self.investigation.id,
+                    },
+                )
+            )
+            assert details.data["actionRequests"] == []
+
     def test_a_stale_dry_run_changes_nothing(self) -> None:
         self.kind.raises = ActionStale({"window": 600})
 
@@ -1013,8 +1044,13 @@ class BreachedMetricRecheckTest(BreachedMetricInvestigationTestCase):
         recording = ACTION_KINDS["test_kind"]
         assert isinstance(recording, RecordingKind)
         recording.raises = ActionStale({"window": 600})
+        InvestigationOrchestrationRun.objects.filter(investigation=self.investigation).update(
+            phase=InvestigationOrchestrationPhase.COMPLETED,
+            projection={"report": {"revision": 1, "status": "completed"}},
+        )
         action_request = self.create_investigation_action_request(
             investigation=self.investigation,
+            report_revision=1,
             key="widen-time-window",
             action_kind="test_kind",
             action_payload=fake_action(),

@@ -17,6 +17,7 @@ from sentry.investigations.models import (
     InvestigationActionRequest,
     InvestigationActionRequestAnchorType,
     InvestigationActionRequestState,
+    InvestigationOrchestrationPhase,
     InvestigationOrchestrationRun,
 )
 from sentry.investigations.services.action_kinds import get_action_kind, shared_cannot_apply_reason
@@ -49,11 +50,25 @@ LIVE_STATES = (
 
 
 # A request that went stale on apply. It's listed while Seer re-checks it.
-STALE = Q(state=InvestigationActionRequestState.SUPERSEDED, error__code=ApplyErrorCode.STALE)
+STALE = Q(
+    state=InvestigationActionRequestState.SUPERSEDED,
+    error__code=ApplyErrorCode.STALE,
+    followup_request_id__isnull=False,
+)
+
+
+def _is_stale(row: InvestigationActionRequest) -> bool:
+    return (
+        row.state == InvestigationActionRequestState.SUPERSEDED
+        and row.error is not None
+        and row.error["code"] == ApplyErrorCode.STALE
+        and row.followup_request_id is not None
+    )
 
 
 def _drop_stale(queryset: QuerySet[InvestigationActionRequest]) -> None:
-    queryset.filter(STALE).update(error=None, date_updated=timezone.now())
+    # Keep the error, so Seer sending the same suggestion again can't bring it back.
+    queryset.filter(STALE).update(followup_request_id=None, date_updated=timezone.now())
 
 
 def _supersede(queryset: QuerySet[InvestigationActionRequest]) -> int:
@@ -161,6 +176,9 @@ def _upsert(
     elif row.state == InvestigationActionRequestState.APPLIED:
         changed = False
     else:
+        if _is_stale(row) and row.action_payload == action:
+            # Seer demotes an old primary before it sends the new one, which drops this.
+            del display["primary"]
         update_fields = [*display, "date_updated"]
         for field, value in display.items():
             setattr(row, field, value)
@@ -345,11 +363,28 @@ def _queue_outcome(context: ApplyContext) -> None:
     )
 
 
+def _seer_can_recheck(
+    run: InvestigationOrchestrationRun, action_request: InvestigationActionRequest
+) -> bool:
+    # Seer turns a re-check down unless it's for the current report, and that report is done.
+    report = run.projection.get("report")
+    return (
+        run.phase
+        in (InvestigationOrchestrationPhase.METADATA, InvestigationOrchestrationPhase.COMPLETED)
+        and isinstance(report, dict)
+        and report.get("status") == "completed"
+        and report.get("revision") == action_request.report_revision
+    )
+
+
 def _queue_recheck(context: ApplyContext) -> UUID | None:
     """Ask Seer to check its requests for this report again against the current source, and
-    return the command's request ID. None if Sentry can't rebuild the source.
+    return the command's request ID. None if Seer would turn it down or Sentry can't rebuild
+    the source.
     """
 
+    if not _seer_can_recheck(context.run, context.action_request):
+        return None
     source = rebuild_orchestration_source(context.investigation)
     if source is None:
         return None
@@ -365,17 +400,12 @@ def _queue_recheck(context: ApplyContext) -> UUID | None:
 
 
 def _record_stale(context: ApplyContext, current: dict[str, SettingValue]) -> None:
-    request_id = _queue_recheck(context)
+    # It's listed while Seer re-checks, and the error stops Seer sending the same suggestion
+    # again from bringing it back.
     context.action_request.update(
         state=InvestigationActionRequestState.SUPERSEDED,
-        # The error keeps it listed while Seer re-checks, and stops Seer sending the same
-        # suggestion again from bringing it back.
-        error=(
-            ActionRequestError(code=ApplyErrorCode.STALE, current=current)
-            if request_id is not None
-            else None
-        ),
-        followup_request_id=request_id,
+        error=ActionRequestError(code=ApplyErrorCode.STALE, current=current),
+        followup_request_id=_queue_recheck(context),
     )
 
 

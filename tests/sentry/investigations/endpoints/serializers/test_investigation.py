@@ -458,6 +458,13 @@ class InvestigationActionRequestSerializationTest(TestCase):
             report_revision=0,
             state=InvestigationActionRequestState.SUPERSEDED,
             error={"code": "stale", "current": {"timeWindowSeconds": 600}},
+            followup_request_id=uuid4(),
+        )
+        self.add_request(
+            "dropped-stale",
+            report_revision=0,
+            state=InvestigationActionRequestState.SUPERSEDED,
+            error={"code": "stale", "current": {"timeWindowSeconds": 600}},
         )
         newer = self.add_request("newer", report_revision=1)
         primary = self.add_request("primary", report_revision=1, primary=True)
