@@ -30,7 +30,6 @@ class DecryptionError(ValueError):
 
 
 class EncryptionMethod(StrEnum):
-    PLAINTEXT = "plaintext"
     FERNET = "fernet"
 
 
