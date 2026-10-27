@@ -687,15 +687,34 @@ const cannotApplyReasonSchema = z.enum([
 
 export type CannotApplyReason = z.infer<typeof cannotApplyReasonSchema>;
 
+const detectorValueSchema = z.union([z.number(), z.string(), z.null()]);
+
+const detectorValuesSchema = z
+  .object({
+    query: detectorValueSchema,
+    aggregate: detectorValueSchema,
+    environment: detectorValueSchema,
+    timeWindowSeconds: detectorValueSchema,
+    highThreshold: detectorValueSchema,
+    mediumThreshold: detectorValueSchema,
+    resolutionThreshold: detectorValueSchema,
+  })
+  .partial();
+
+export type InvestigationDetectorValues = z.infer<typeof detectorValuesSchema>;
+
 const actionRequestErrorSchema = z.discriminatedUnion('code', [
   z.object({
     code: z.enum([
       ...cannotApplyReasonSchema.options,
       'already_applied',
       'withdrawn',
-      'stale',
       'action_changed',
     ]),
+  }),
+  z.object({
+    code: z.literal('stale'),
+    current: detectorValuesSchema,
   }),
   z.object({code: z.literal('validation_failed'), messages: z.array(z.string())}),
 ]);

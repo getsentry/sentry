@@ -4,8 +4,12 @@ import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
-import {ActionRequestCard} from 'sentry/views/investigations/actionRequests/actionRequestCard';
+import {
+  ActionRequestCard,
+  isStaleActionRequest,
+} from 'sentry/views/investigations/actionRequests/actionRequestCard';
 import {PlaceholderBar} from 'sentry/views/investigations/hypotheses/hypothesisPlaceholder';
+import {isWritingMetadata} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
 import type {
   InvestigationActionRequest,
   InvestigationDetail,
@@ -45,6 +49,7 @@ export function NextStepCard({
     return (
       <ActionRequestCard
         actionRequest={actionRequest}
+        finishing={orchestration?.report.nextStep?.status === 'generating'}
         heading={heading}
         investigationId={investigationId}
         source={source}
@@ -75,7 +80,7 @@ export function getPrimaryActionRequest(
       actionRequest =>
         actionRequest.primary &&
         actionRequest.reportRevision >= revision &&
-        actionRequest.state !== 'superseded'
+        (actionRequest.state !== 'superseded' || isStaleActionRequest(actionRequest))
     )
     .toSorted(
       (a, b) =>
@@ -92,9 +97,11 @@ function isNextStepPending(
   if (status === 'generating' || (status === 'completed' && actionRequestsStale)) {
     return true;
   }
-  const runningMetadata =
-    orchestration?.status === 'processing' && orchestration.phase === 'metadata';
-  return runningMetadata && (status === 'not_started' || status === 'completed');
+  return (
+    orchestration !== undefined &&
+    isWritingMetadata(orchestration) &&
+    (status === 'not_started' || status === 'completed')
+  );
 }
 
 function NextStepFailed({heading}: {heading: string}) {

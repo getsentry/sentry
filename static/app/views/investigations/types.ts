@@ -2,6 +2,7 @@ import type {AvatarUser} from 'sentry/types/user';
 import type {
   ActionRequestError,
   CannotApplyReason,
+  InvestigationDetectorValues,
 } from 'sentry/views/investigations/api';
 import type {ToolResult} from 'sentry/views/seerExplorer/types';
 
@@ -263,18 +264,7 @@ export type InvestigationHypothesisStatus = InvestigationOrchestrationOpenString
   | 'cancelled'
 >;
 
-export type InvestigationDetectorChangeKey =
-  | 'query'
-  | 'aggregate'
-  | 'environment'
-  | 'timeWindowSeconds'
-  | 'highThreshold'
-  | 'mediumThreshold'
-  | 'resolutionThreshold';
-
-type InvestigationDetectorValues = Partial<
-  Record<InvestigationDetectorChangeKey, number | string | null>
->;
+export type InvestigationDetectorChangeKey = keyof InvestigationDetectorValues;
 
 export type InvestigationUpdateDetectorAction = {
   before: InvestigationDetectorValues;

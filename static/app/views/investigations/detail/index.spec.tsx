@@ -316,6 +316,100 @@ describe('Investigation detail', () => {
     ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 
+  it('shows a stale apply once the investigation is read again', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationAgenticDetailFixture({
+        actionRequests: [InvestigationActionRequestFixture()],
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture({phase: 'completed', status: 'completed'}),
+    });
+    MockApiClient.addMockResponse({
+      url: `${detailUrl}action-requests/312/apply/`,
+      method: 'POST',
+      statusCode: 409,
+      match: [(_url, options) => !options.data?.dryRun],
+      body: {
+        code: 'stale',
+        detail: 'This changed since Seer suggested it.',
+        current: {timeWindowSeconds: 600},
+      },
+    });
+    renderView();
+
+    const button = await screen.findByRole('button', {name: 'Update monitor'});
+    await waitFor(() => expect(button).toBeEnabled());
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationAgenticDetailFixture({
+        actionRequests: [
+          InvestigationActionRequestFixture({
+            state: 'superseded',
+            canApply: false,
+            cannotApplyReason: 'not_suggested',
+            error: {code: 'stale', current: {timeWindowSeconds: 600}},
+          }),
+        ],
+      }),
+    });
+    await userEvent.click(button);
+
+    expect(await screen.findByText('Now: 10 minutes')).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('region', {name: 'Recommended action'})).getAllByText(
+        /The monitor changed since Seer suggested this/
+      )
+    ).toHaveLength(1);
+    expect(
+      screen.queryByRole('button', {name: 'Update monitor'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('says a stale apply failed when the investigation leaves the request out', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationAgenticDetailFixture({
+        actionRequests: [InvestigationActionRequestFixture()],
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture({phase: 'completed', status: 'completed'}),
+    });
+    MockApiClient.addMockResponse({
+      url: `${detailUrl}action-requests/312/apply/`,
+      method: 'POST',
+      statusCode: 409,
+      match: [(_url, options) => !options.data?.dryRun],
+      body: {
+        code: 'stale',
+        detail: 'This changed since Seer suggested it.',
+        current: {timeWindowSeconds: 600},
+      },
+    });
+    renderView();
+
+    const button = await screen.findByRole('button', {name: 'Update monitor'});
+    await waitFor(() => expect(button).toBeEnabled());
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationAgenticDetailFixture({actionRequests: []}),
+    });
+    await userEvent.click(button);
+
+    expect(
+      await screen.findByText('The monitor changed since Seer suggested this.')
+    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('region', {name: 'Recommended action'})
+      ).not.toBeInTheDocument()
+    );
+  });
+
   it('holds the next step placeholder until the investigation has its request', async () => {
     MockApiClient.addMockResponse({
       url: detailUrl,

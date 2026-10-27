@@ -17,6 +17,7 @@ type ApplyButtonProps = {
   busyLabel: string;
   canApply: boolean;
   check: ApplyCheck;
+  disabled: boolean;
   icon: React.ReactNode;
   label: string;
   message: string | null;
@@ -28,6 +29,7 @@ export function ApplyButton({
   busyLabel,
   canApply,
   check,
+  disabled,
   icon,
   label,
   message,
@@ -41,7 +43,9 @@ export function ApplyButton({
         variant="primary"
         icon={icon}
         busy={applying || checking}
-        disabled={applying || checking || !canApply || check.status === 'blocked'}
+        disabled={
+          applying || checking || disabled || !canApply || check.status === 'blocked'
+        }
         aria-describedby={message ? messageId : undefined}
         onClick={onApply}
       >

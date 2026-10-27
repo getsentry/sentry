@@ -1,4 +1,5 @@
 import {QueryClientProvider} from '@tanstack/react-query';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {
@@ -25,6 +26,10 @@ import type {
   InvestigationOrchestration,
   InvestigationUpdateDetectorAction,
 } from 'sentry/views/investigations/types';
+import {
+  SeerExplorerContext,
+  useSeerExplorerContext,
+} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 const latencyMonitor = {
   id: '789',
@@ -72,6 +77,25 @@ function runWith(
     report: {...completedRun.report, ...report, nextStep},
   });
 }
+
+const staleRequest = InvestigationActionRequestFixture({
+  state: 'superseded',
+  canApply: false,
+  cannotApplyReason: 'not_suggested',
+  error: {code: 'stale', current: {timeWindowSeconds: 600}},
+});
+
+const staleBody = {
+  code: 'stale',
+  detail: 'This changed since Seer suggested it.',
+  current: {timeWindowSeconds: 600},
+};
+
+const finishingRun = runWith(
+  {status: 'generating', error: null},
+  {phase: 'metadata', status: 'processing'},
+  {status: 'completed'}
+);
 
 const applyUrl =
   '/organizations/org-slug/investigations/investigation-1/action-requests/312/apply/';
@@ -859,15 +883,6 @@ describe('NextStepCard', () => {
       body: {detail: "This action can't be applied.", code: 'permission_denied'},
       message: "You don't have permission to edit this monitor.",
     },
-    {
-      status: 409,
-      body: {
-        detail: 'This changed since Seer suggested it.',
-        code: 'stale',
-        current: {timeWindowSeconds: 600},
-      },
-      message: 'The monitor changed since Seer suggested this.',
-    },
   ])('says when an apply fails with $status', async ({status, body, message}) => {
     mockApply({statusCode: status, body});
     render(
@@ -972,15 +987,6 @@ describe('NextStepCard', () => {
   });
 
   it.each([
-    {
-      status: 409,
-      body: {
-        detail: 'This changed since Seer suggested it.',
-        code: 'stale',
-        current: {timeWindowSeconds: 600},
-      },
-      message: 'The monitor changed since Seer suggested this.',
-    },
     {
       status: 403,
       body: {detail: "This action can't be applied.", code: 'permission_denied'},
@@ -1346,5 +1352,186 @@ describe('NextStepCard', () => {
     await userEvent.click(await findApplyButton());
 
     expect(await screen.findByText('This was already applied.')).toBeInTheDocument();
+  });
+
+  it('explains a suggestion that went stale', () => {
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[staleRequest]}
+      />
+    );
+
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'The monitor changed since Seer suggested this. Ask Seer about this investigation for a new suggestion.'
+    );
+    expect(screen.getByText('When suggested: 5 minutes')).toBeInTheDocument();
+    expect(screen.getByText('Now: 10 minutes')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Update monitor'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders nothing for a superseded request that did not go stale', () => {
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[InvestigationActionRequestFixture({state: 'superseded'})]}
+      />
+    );
+
+    expect(
+      screen.queryByRole('region', {name: 'Recommended action'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('opens Seer from a stale suggestion', async () => {
+    const openSeerExplorer = jest.fn();
+    function WithSeerExplorer({children}: {children: React.ReactNode}) {
+      const context = useSeerExplorerContext();
+      return (
+        <SeerExplorerContext.Provider value={{...context, openSeerExplorer}}>
+          {children}
+        </SeerExplorerContext.Provider>
+      );
+    }
+    render(
+      <WithSeerExplorer>
+        <NextStepCard
+          investigationId="investigation-1"
+          orchestration={completedRun}
+          actionRequests={[staleRequest]}
+        />
+      </WithSeerExplorer>,
+      {
+        organization: OrganizationFixture({
+          features: ['seer-explorer'],
+          openMembership: true,
+          hideAiFeatures: false,
+        }),
+      }
+    );
+
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Ask Seer about this investigation'})
+    );
+
+    expect(openSeerExplorer).toHaveBeenCalled();
+  });
+
+  it('shows a suggestion that went stale before it is applied', async () => {
+    mockDryRun({statusCode: 409, body: staleBody});
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[InvestigationActionRequestFixture()]}
+      />
+    );
+
+    expect(await screen.findByText('Now: 10 minutes')).toBeInTheDocument();
+    expect(screen.getAllByRole('status')[0]).toHaveTextContent(
+      'The monitor changed since Seer suggested this.'
+    );
+    expect(screen.getByRole('button', {name: 'Update monitor'})).toBeDisabled();
+    expect(
+      screen.getAllByText(/The monitor changed since Seer suggested this/)
+    ).toHaveLength(1);
+  });
+
+  it('shows only the settings that moved', () => {
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[
+          InvestigationActionRequestFixture({
+            ...staleRequest,
+            action: changeOf(
+              {timeWindowSeconds: 300, highThreshold: 500},
+              {timeWindowSeconds: 900, highThreshold: 800}
+            ),
+            error: {code: 'stale', current: {highThreshold: null}},
+          }),
+        ]}
+        source={sourceWith()}
+      />
+    );
+
+    expect(screen.getByText('High threshold')).toBeInTheDocument();
+    expect(screen.getByText('Now: —')).toBeInTheDocument();
+    expect(screen.queryByText('Interval')).not.toBeInTheDocument();
+  });
+
+  it('shows a moved query only in its own row', () => {
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[
+          InvestigationActionRequestFixture({
+            ...staleRequest,
+            action: changeOf(
+              {timeWindowSeconds: 300, query: 'transaction:/api/cart'},
+              {timeWindowSeconds: 900}
+            ),
+            error: {code: 'stale', current: {query: 'transaction:/api/checkout'}},
+          }),
+        ]}
+        source={sourceWith()}
+      />
+    );
+
+    expect(screen.getByText('When suggested: transaction:/api/cart')).toBeInTheDocument();
+    expect(screen.getByText('Now: transaction:/api/checkout')).toBeInTheDocument();
+    expect(screen.getAllByText(/transaction:\/api\/cart/)).toHaveLength(1);
+  });
+
+  it('holds the update while Seer finishes its suggestions', () => {
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={finishingRun}
+        actionRequests={[InvestigationActionRequestFixture()]}
+      />
+    );
+
+    expect(screen.getByText('Seer is finishing its suggestions…')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Update monitor'})).toBeDisabled();
+  });
+
+  it('keeps a fresh suggestion applicable while the run finishes', async () => {
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={runWith(
+          {status: 'completed', error: null},
+          {phase: 'metadata', status: 'processing'}
+        )}
+        actionRequests={[InvestigationActionRequestFixture()]}
+      />
+    );
+
+    expect(await findApplyButton()).toBeEnabled();
+    expect(
+      screen.queryByText('Seer is finishing its suggestions…')
+    ).not.toBeInTheDocument();
+  });
+
+  it('notes that Seer is finishing only on cards it can apply', () => {
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={finishingRun}
+        actionRequests={[InvestigationActionRequestFixture({state: 'applied'})]}
+      />
+    );
+
+    expect(getCard()).toBeInTheDocument();
+    expect(
+      screen.queryByText('Seer is finishing its suggestions…')
+    ).not.toBeInTheDocument();
   });
 });
