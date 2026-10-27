@@ -1,0 +1,13 @@
+diff --git a/dist/index.js b/dist/index.js
+index a37ab99cd7e8425a4516469165cff54a08d0ab60..b3c9e7845c1ff3e29c41d7d28b33c272d64cc5d5 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -5689,7 +5689,7 @@ async function runLoaders(compiler, context) {
+         name: 'run_js_loaders',
+         uuid: traceData.uuid,
+         args: traceData.args
+-    }), compiler.options?.cache && Object.keys(buildInfo = context._module.buildInfo).some((key)=>!knownBuildInfoFields.has(key)) && buildInfo[binding__default().COMMIT_CUSTOM_FIELDS_SYMBOL](), context;
++    }), !1 && compiler.options?.cache && Object.keys(buildInfo = context._module.buildInfo).some((key)=>!knownBuildInfoFields.has(key)) && buildInfo[binding__default().COMMIT_CUSTOM_FIELDS_SYMBOL](), context;
+ }
+ let JsLoaderRspackPlugin = base_create(binding_.BuiltinPluginName.JsLoaderRspackPlugin, (compiler)=>runLoaders.bind(null, compiler), 'thisCompilation'), JsonModulesPlugin = base_create(binding_.BuiltinPluginName.JsonModulesPlugin, ()=>{}, 'compilation'), LibManifestPlugin = base_create(binding_.BuiltinPluginName.LibManifestPlugin, (options)=>{
+     let { context, entryOnly, format, name, path, type } = options;

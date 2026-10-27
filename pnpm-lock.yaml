@@ -196,6 +196,7 @@ overrides:
 packageExtensionsChecksum: sha256-oxZpRfJ1dyf0c57tEzZt6sE7ZA1K4CC7SPWqZHbIs0s=
 
 patchedDependencies:
+  '@rspack/core@2.2.8': 22678462a59d6dd1fec277219e1dd978e553a1fb31cc7bf1b525d5516b3c0617
   css-tree@3.2.1: ec4e8a1e54e91be1bbca26a0c6047f0832c2fd45d01795becd6cc0144334a489
   jest-resolve@30.5.1: f2282b64ef6129c114392d79cc5894368f2712b69b366cc01b8f5fe8e683773f
   jest-runtime@30.5.1: 36dce404d135697664f0f47961ef7b7df4963b97984d55155c6719f3e2c5205b
@@ -222,13 +223,13 @@ importers:
         version: 2.0.0(@rsbuild/core@2.2.12(core-js@3.45.0))
       '@rsdoctor/core':
         specifier: 2.0.0
-        version: 2.0.0(@rspack/core@2.2.8(@swc/helpers@0.5.23))(@types/node@26.6.4)
+        version: 2.0.0(@rspack/core@2.2.8(patch_hash=22678462a59d6dd1fec277219e1dd978e553a1fb31cc7bf1b525d5516b3c0617)(@swc/helpers@0.5.23))(@types/node@26.6.4)
       '@rspack/core':
         specifier: 2.2.8
-        version: 2.2.8(@swc/helpers@0.5.23)
+        version: 2.2.8(patch_hash=22678462a59d6dd1fec277219e1dd978e553a1fb31cc7bf1b525d5516b3c0617)(@swc/helpers@0.5.23)
       '@rspack/plugin-react-refresh':
         specifier: 2.0.2
-        version: 2.0.2(@rspack/core@2.2.8(@swc/helpers@0.5.23))(react-refresh@0.19.0)
+        version: 2.0.2(@rspack/core@2.2.8(patch_hash=22678462a59d6dd1fec277219e1dd978e553a1fb31cc7bf1b525d5516b3c0617)(@swc/helpers@0.5.23))(react-refresh@0.19.0)
       '@sentry/conventions':
         specifier: ^0.29.0
         version: 0.29.0
@@ -261,7 +262,7 @@ importers:
         version: 3.45.0
       css-loader:
         specifier: 7.1.4
-        version: 7.1.4(@rspack/core@2.2.8(@swc/helpers@0.5.23))
+        version: 7.1.4(@rspack/core@2.2.8(patch_hash=22678462a59d6dd1fec277219e1dd978e553a1fb31cc7bf1b525d5516b3c0617)(@swc/helpers@0.5.23))
       esbuild:
         specifier: 0.28.1
         version: 0.28.1
@@ -270,13 +271,13 @@ importers:
         version: 9.1.1
       html-webpack-plugin:
         specifier: 5.6.3
-        version: 5.6.3(@rspack/core@2.2.8(@swc/helpers@0.5.23))
+        version: 5.6.3(@rspack/core@2.2.8(patch_hash=22678462a59d6dd1fec277219e1dd978e553a1fb31cc7bf1b525d5516b3c0617)(@swc/helpers@0.5.23))
       less:
         specifier: 4.9.1
         version: 4.9.1(supports-color@8.1.1)
       less-loader:
         specifier: ^13.0.0
-        version: 13.0.0(@rspack/core@2.2.8(@swc/helpers@0.5.23))(less@4.9.1(supports-color@8.1.1))
+        version: 13.0.0(@rspack/core@2.2.8(patch_hash=22678462a59d6dd1fec277219e1dd978e553a1fb31cc7bf1b525d5516b3c0617)(@swc/helpers@0.5.23))(less@4.9.1(supports-color@8.1.1))
       peggy:
         specifier: 5.1.1
         version: 5.1.1
@@ -309,7 +310,7 @@ importers:
         version: 1.18.4
       ts-checker-rspack-plugin:
         specifier: 1.7.1
-        version: 1.7.1(@rspack/core@2.2.8(@swc/helpers@0.5.23))(@typescript/typescript6@6.0.2)
+        version: 1.7.1(@rspack/core@2.2.8(patch_hash=22678462a59d6dd1fec277219e1dd978e553a1fb31cc7bf1b525d5516b3c0617)(@swc/helpers@0.5.23))(@typescript/typescript6@6.0.2)
       tslib:
         specifier: ^2.8.1
         version: 2.8.1
@@ -573,7 +574,7 @@ importers:
         version: 3.36.0(react@19.3.0)
       '@rspack/core':
         specifier: 2.2.8
-        version: 2.2.8(@swc/helpers@0.5.23)
+        version: 2.2.8(patch_hash=22678462a59d6dd1fec277219e1dd978e553a1fb31cc7bf1b525d5516b3c0617)(@swc/helpers@0.5.23)
       '@sentry-internal/global-search':
         specifier: ^1.0.0
         version: 1.0.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -1107,7 +1108,7 @@ importers:
         version: 30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.1(@noble/hashes@1.8.0))
       '@rsbuild/plugin-react':
         specifier: 2.1.1
-        version: 2.1.1(@rsbuild/core@2.2.12(core-js@3.45.0))(@rspack/core@2.2.8(@swc/helpers@0.5.23))
+        version: 2.1.1(@rsbuild/core@2.2.12(core-js@3.45.0))(@rspack/core@2.2.8(patch_hash=22678462a59d6dd1fec277219e1dd978e553a1fb31cc7bf1b525d5516b3c0617)(@swc/helpers@0.5.23))
       '@rslib/core':
         specifier: 1.0.3
         version: 1.0.3(@typescript/typescript6@6.0.2)(core-js@3.45.0)
@@ -1273,7 +1274,7 @@ importers:
         version: 30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.1(@noble/hashes@1.8.0))
       '@rsbuild/plugin-react':
         specifier: 2.1.1
-        version: 2.1.1(@rsbuild/core@2.2.12(core-js@3.45.0))(@rspack/core@2.2.8(@swc/helpers@0.5.23))
+        version: 2.1.1(@rsbuild/core@2.2.12(core-js@3.45.0))(@rspack/core@2.2.8(patch_hash=22678462a59d6dd1fec277219e1dd978e553a1fb31cc7bf1b525d5516b3c0617)(@swc/helpers@0.5.23))
       '@rslib/core':
         specifier: 1.0.3
         version: 1.0.3(@typescript/typescript6@6.0.2)(core-js@3.45.0)
@@ -11396,7 +11397,7 @@ snapshots:
 
   '@rsbuild/core@2.2.12(core-js@3.45.0)':
     dependencies:
-      '@rspack/core': 2.2.8(@swc/helpers@0.5.23)
+      '@rspack/core': 2.2.8(patch_hash=22678462a59d6dd1fec277219e1dd978e553a1fb31cc7bf1b525d5516b3c0617)(@swc/helpers@0.5.23)
       '@swc/helpers': 0.5.23
     optionalDependencies:
       core-js: 3.45.0
@@ -11409,9 +11410,9 @@ snapshots:
     optionalDependencies:
       '@rsbuild/core': 2.2.12(core-js@3.45.0)
 
-  '@rsbuild/plugin-react@2.1.1(@rsbuild/core@2.2.12(core-js@3.45.0))(@rspack/core@2.2.8(@swc/helpers@0.5.23))':
+  '@rsbuild/plugin-react@2.1.1(@rsbuild/core@2.2.12(core-js@3.45.0))(@rspack/core@2.2.8(patch_hash=22678462a59d6dd1fec277219e1dd978e553a1fb31cc7bf1b525d5516b3c0617)(@swc/helpers@0.5.23))':
     dependencies:
-      '@rspack/plugin-react-refresh': 2.0.2(@rspack/core@2.2.8(@swc/helpers@0.5.23))(react-refresh@0.19.0)
+      '@rspack/plugin-react-refresh': 2.0.2(@rspack/core@2.2.8(patch_hash=22678462a59d6dd1fec277219e1dd978e553a1fb31cc7bf1b525d5516b3c0617)(@swc/helpers@0.5.23))(react-refresh@0.19.0)
       react-refresh: 0.19.0
     optionalDependencies:
       '@rsbuild/core': 2.2.12(core-js@3.45.0)
@@ -11420,19 +11421,19 @@ snapshots:
 
   '@rsdoctor/client@2.0.0': {}
 
-  '@rsdoctor/core@2.0.0(@rspack/core@2.2.8(@swc/helpers@0.5.23))(@types/node@26.6.4)':
+  '@rsdoctor/core@2.0.0(@rspack/core@2.2.8(patch_hash=22678462a59d6dd1fec277219e1dd978e553a1fb31cc7bf1b525d5516b3c0617)(@swc/helpers@0.5.23))(@types/node@26.6.4)':
     dependencies:
       '@rsdoctor/client': 2.0.0
-      '@rsdoctor/shared': 2.0.0(@rspack/core@2.2.8(@swc/helpers@0.5.23))(@types/node@26.6.4)
+      '@rsdoctor/shared': 2.0.0(@rspack/core@2.2.8(patch_hash=22678462a59d6dd1fec277219e1dd978e553a1fb31cc7bf1b525d5516b3c0617)(@swc/helpers@0.5.23))(@types/node@26.6.4)
       caniuse-lite: 1.0.30001817
       sirv: 3.0.2
       source-map: 0.8.0
     optionalDependencies:
-      '@rspack/core': 2.2.8(@swc/helpers@0.5.23)
+      '@rspack/core': 2.2.8(patch_hash=22678462a59d6dd1fec277219e1dd978e553a1fb31cc7bf1b525d5516b3c0617)(@swc/helpers@0.5.23)
     transitivePeerDependencies:
       - '@types/node'
 
-  '@rsdoctor/shared@2.0.0(@rspack/core@2.2.8(@swc/helpers@0.5.23))(@types/node@26.6.4)':
+  '@rsdoctor/shared@2.0.0(@rspack/core@2.2.8(patch_hash=22678462a59d6dd1fec277219e1dd978e553a1fb31cc7bf1b525d5516b3c0617)(@swc/helpers@0.5.23))(@types/node@26.6.4)':
     dependencies:
       '@rspack/lite-tapable': 1.3.0
       '@types/estree': 1.0.5
@@ -11442,7 +11443,7 @@ snapshots:
       path-browserify: 1.0.1
       source-map: 0.8.0
     optionalDependencies:
-      '@rspack/core': 2.2.8(@swc/helpers@0.5.23)
+      '@rspack/core': 2.2.8(patch_hash=22678462a59d6dd1fec277219e1dd978e553a1fb31cc7bf1b525d5516b3c0617)(@swc/helpers@0.5.23)
 
   '@rslib/core@1.0.3(@typescript/typescript6@6.0.2)(core-js@3.45.0)':
     dependencies:
@@ -11517,7 +11518,7 @@ snapshots:
       '@rspack/binding-win32-ia32-msvc': 2.2.8
       '@rspack/binding-win32-x64-msvc': 2.2.8
 
-  '@rspack/core@2.2.8(@swc/helpers@0.5.23)':
+  '@rspack/core@2.2.8(patch_hash=22678462a59d6dd1fec277219e1dd978e553a1fb31cc7bf1b525d5516b3c0617)(@swc/helpers@0.5.23)':
     dependencies:
       '@rspack/binding': 2.2.8
     optionalDependencies:
@@ -11525,11 +11526,11 @@ snapshots:
 
   '@rspack/lite-tapable@1.3.0': {}
 
-  '@rspack/plugin-react-refresh@2.0.2(@rspack/core@2.2.8(@swc/helpers@0.5.23))(react-refresh@0.19.0)':
+  '@rspack/plugin-react-refresh@2.0.2(@rspack/core@2.2.8(patch_hash=22678462a59d6dd1fec277219e1dd978e553a1fb31cc7bf1b525d5516b3c0617)(@swc/helpers@0.5.23))(react-refresh@0.19.0)':
     dependencies:
       react-refresh: 0.19.0
     optionalDependencies:
-      '@rspack/core': 2.2.8(@swc/helpers@0.5.23)
+      '@rspack/core': 2.2.8(patch_hash=22678462a59d6dd1fec277219e1dd978e553a1fb31cc7bf1b525d5516b3c0617)(@swc/helpers@0.5.23)
 
   '@sentry-internal/global-search@1.0.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
@@ -13112,7 +13113,7 @@ snapshots:
 
   css-functions-list@3.3.3: {}
 
-  css-loader@7.1.4(@rspack/core@2.2.8(@swc/helpers@0.5.23)):
+  css-loader@7.1.4(@rspack/core@2.2.8(patch_hash=22678462a59d6dd1fec277219e1dd978e553a1fb31cc7bf1b525d5516b3c0617)(@swc/helpers@0.5.23)):
     dependencies:
       icss-utils: 5.1.0(postcss@8.5.28)
       postcss: 8.5.28
@@ -13123,7 +13124,7 @@ snapshots:
       postcss-value-parser: 4.2.0
       semver: 7.8.5
     optionalDependencies:
-      '@rspack/core': 2.2.8(@swc/helpers@0.5.23)
+      '@rspack/core': 2.2.8(patch_hash=22678462a59d6dd1fec277219e1dd978e553a1fb31cc7bf1b525d5516b3c0617)(@swc/helpers@0.5.23)
 
   css-select@4.1.3:
     dependencies:
@@ -14391,7 +14392,7 @@ snapshots:
 
   html-void-elements@3.0.0: {}
 
-  html-webpack-plugin@5.6.3(@rspack/core@2.2.8(@swc/helpers@0.5.23)):
+  html-webpack-plugin@5.6.3(@rspack/core@2.2.8(patch_hash=22678462a59d6dd1fec277219e1dd978e553a1fb31cc7bf1b525d5516b3c0617)(@swc/helpers@0.5.23)):
     dependencies:
       '@types/html-minifier-terser': 6.1.0
       html-minifier-terser: 6.1.0
@@ -14399,7 +14400,7 @@ snapshots:
       pretty-error: 4.0.0
       tapable: 2.3.3
     optionalDependencies:
-      '@rspack/core': 2.2.8(@swc/helpers@0.5.23)
+      '@rspack/core': 2.2.8(patch_hash=22678462a59d6dd1fec277219e1dd978e553a1fb31cc7bf1b525d5516b3c0617)(@swc/helpers@0.5.23)
 
   htmlparser2@4.1.0:
     dependencies:
@@ -15166,12 +15167,12 @@ snapshots:
 
   known-css-properties@0.37.0: {}
 
-  less-loader@13.0.0(@rspack/core@2.2.8(@swc/helpers@0.5.23))(less@4.9.1(supports-color@8.1.1)):
+  less-loader@13.0.0(@rspack/core@2.2.8(patch_hash=22678462a59d6dd1fec277219e1dd978e553a1fb31cc7bf1b525d5516b3c0617)(@swc/helpers@0.5.23))(less@4.9.1(supports-color@8.1.1)):
     dependencies:
       '@types/less': 3.0.8
       less: 4.9.1(supports-color@8.1.1)
     optionalDependencies:
-      '@rspack/core': 2.2.8(@swc/helpers@0.5.23)
+      '@rspack/core': 2.2.8(patch_hash=22678462a59d6dd1fec277219e1dd978e553a1fb31cc7bf1b525d5516b3c0617)(@swc/helpers@0.5.23)
 
   less@4.9.1(supports-color@8.1.1):
     dependencies:
@@ -17432,7 +17433,7 @@ snapshots:
     dependencies:
       typescript: '@typescript/typescript6@6.0.2'
 
-  ts-checker-rspack-plugin@1.7.1(@rspack/core@2.2.8(@swc/helpers@0.5.23))(@typescript/typescript6@6.0.2):
+  ts-checker-rspack-plugin@1.7.1(@rspack/core@2.2.8(patch_hash=22678462a59d6dd1fec277219e1dd978e553a1fb31cc7bf1b525d5516b3c0617)(@swc/helpers@0.5.23))(@typescript/typescript6@6.0.2):
     dependencies:
       '@rspack/lite-tapable': 1.3.0
       chokidar: 4.0.3
@@ -17440,7 +17441,7 @@ snapshots:
       picocolors: 1.1.1
       typescript: '@typescript/typescript6@6.0.2'
     optionalDependencies:
-      '@rspack/core': 2.2.8(@swc/helpers@0.5.23)
+      '@rspack/core': 2.2.8(patch_hash=22678462a59d6dd1fec277219e1dd978e553a1fb31cc7bf1b525d5516b3c0617)(@swc/helpers@0.5.23)
 
   ts-node@10.9.2(@swc/core@1.16.13(@swc/helpers@0.5.23))(@types/node@26.6.4)(@typescript/typescript6@6.0.2):
     dependencies:
