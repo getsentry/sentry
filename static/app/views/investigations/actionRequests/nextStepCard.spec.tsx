@@ -1546,26 +1546,29 @@ describe('NextStepCard', () => {
       );
     });
 
-    it('says Seer is updating its suggestion while the run works on it', () => {
-      render(
-        <NextStepCard
-          investigationId="investigation-1"
-          orchestration={runWith(
-            {status: 'generating', error: null},
-            {phase: 'metadata', status: 'processing'}
-          )}
-          actionRequests={[
-            recheckedRequest({status: 'acknowledged', reason: null, rerun: null}),
-          ]}
-        />
-      );
+    it.each(['pending', 'processing'] as const)(
+      'says Seer is updating its suggestion while the run is %s',
+      status => {
+        render(
+          <NextStepCard
+            investigationId="investigation-1"
+            orchestration={runWith(
+              {status: 'generating', error: null},
+              {phase: 'metadata', status}
+            )}
+            actionRequests={[
+              recheckedRequest({status: 'acknowledged', reason: null, rerun: null}),
+            ]}
+          />
+        );
 
-      const notice = screen.getByRole('status');
-      expect(notice).toHaveTextContent(
-        'The monitor changed since Seer suggested this. Seer is updating its suggestion…'
-      );
-      expect(notice).not.toHaveTextContent('Ask Seer');
-    });
+        const notice = screen.getByRole('status');
+        expect(notice).toHaveTextContent(
+          'The monitor changed since Seer suggested this. Seer is updating its suggestion…'
+        );
+        expect(notice).not.toHaveTextContent('Ask Seer');
+      }
+    );
 
     it('says the re-check failed when Seer gives no reason', () => {
       render(

@@ -54,7 +54,7 @@ export function NextStepCard({
         finishing={orchestration?.report.nextStep?.status === 'generating'}
         heading={heading}
         investigationId={investigationId}
-        runProcessing={orchestration?.status === 'processing' || waitingOnRun}
+        runProcessing={isRunWorking(orchestration) || waitingOnRun}
         source={source}
       />
     );
@@ -69,6 +69,10 @@ export function NextStepCard({
   }
 
   return null;
+}
+
+export function isRunWorking(orchestration: InvestigationOrchestration | undefined) {
+  return orchestration?.status === 'pending' || orchestration?.status === 'processing';
 }
 
 export function getPrimaryActionRequest(
