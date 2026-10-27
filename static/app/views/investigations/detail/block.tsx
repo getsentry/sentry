@@ -206,48 +206,12 @@ function InvestigationNotebookBlockInner({
     },
   ];
 
-  const hasComments = commentCount > 0;
-  const actionSize = block.kind === 'query' ? 'zero' : 'xs';
-
-  const blockActions = (
-    <Flex align="center" gap="2xs" flexShrink={0}>
-      <BlockActions>
-        <DropdownMenu
-          position="bottom-end"
-          usePortal
-          trigger={triggerProps => (
-            <OverlayTrigger.IconButton
-              {...triggerProps}
-              size={actionSize}
-              variant="transparent"
-              icon={<IconEllipsis size="xs" />}
-              aria-label={t('Block actions for %s', displayTitle)}
-            />
-          )}
-          items={actionItems}
-        />
-      </BlockActions>
-      {onComment ? (
-        <BlockActions data-pinned={hasComments || undefined}>
-          <Button
-            size={actionSize}
-            variant="transparent"
-            icon={<IconChat size="xs" variant={hasComments ? 'accent' : undefined} />}
-            aria-label={
-              hasComments
-                ? tn('%s comment on %s', '%s comments on %s', commentCount, displayTitle)
-                : t('Comment on %s', displayTitle)
-            }
-            data-block-comments-trigger
-            tooltipProps={{
-              title: hasComments ? t('View comments') : t('Add a comment'),
-            }}
-            onClick={() => onComment(block.id)}
-          />
-        </BlockActions>
-      ) : null}
-    </Flex>
-  );
+  const actionButtonProps = {
+    actionItems,
+    commentCount,
+    displayTitle,
+    onComment: onComment ? () => onComment(block.id) : undefined,
+  };
 
   const panel =
     panelOpen && traceExecutionId ? (
@@ -271,7 +235,7 @@ function InvestigationNotebookBlockInner({
       {block.kind === 'query' ? (
         <Fragment>
           <QueryResult
-            actions={blockActions}
+            actions={<BlockActionButtons {...actionButtonProps} size="zero" />}
             block={block}
             progressState={progressState}
           />
@@ -281,7 +245,8 @@ function InvestigationNotebookBlockInner({
         <Fragment>
           <BlockResult
             block={block}
-            actions={blockActions}
+            actions={<BlockActionButtons {...actionButtonProps} size="xs" />}
+            headerActions={<BlockActionButtons {...actionButtonProps} size="zero" />}
             progressState={progressState}
             streamedMarkdown={
               isExecutionActive(block.currentExecution?.status)
@@ -301,52 +266,130 @@ export const InvestigationNotebookBlock = registerLLMContext(
   InvestigationNotebookBlockInner
 );
 
+function BlockActionButtons({
+  actionItems,
+  commentCount,
+  displayTitle,
+  onComment,
+  size,
+}: {
+  actionItems: MenuItemProps[];
+  commentCount: number;
+  displayTitle: string;
+  /**
+   * `zero` keeps a card's header band its usual height; `xs` sits beside a
+   * text block's first line.
+   */
+  size: 'zero' | 'xs';
+  onComment?: () => void;
+}) {
+  const hasComments = commentCount > 0;
+  return (
+    <Flex align="center" gap="2xs" flexShrink={0}>
+      <BlockActions>
+        <DropdownMenu
+          position="bottom-end"
+          usePortal
+          trigger={triggerProps => (
+            <OverlayTrigger.IconButton
+              {...triggerProps}
+              size={size}
+              variant="transparent"
+              icon={<IconEllipsis size="xs" />}
+              aria-label={t('Block actions for %s', displayTitle)}
+            />
+          )}
+          items={actionItems}
+        />
+      </BlockActions>
+      {onComment ? (
+        <BlockActions data-pinned={hasComments || undefined}>
+          <Button
+            size={size}
+            variant="transparent"
+            icon={<IconChat size="xs" variant={hasComments ? 'accent' : undefined} />}
+            aria-label={
+              hasComments
+                ? tn('%s comment on %s', '%s comments on %s', commentCount, displayTitle)
+                : t('Comment on %s', displayTitle)
+            }
+            data-block-comments-trigger
+            tooltipProps={{
+              title: hasComments ? t('View comments') : t('Add a comment'),
+            }}
+            onClick={onComment}
+          />
+        </BlockActions>
+      ) : null}
+    </Flex>
+  );
+}
+
 function BlockResult({
   actions,
   block,
+  headerActions,
   progressState,
   streamedMarkdown,
 }: {
   actions: React.ReactNode;
   block: InvestigationBlock;
+  /** The same actions, sized for the header of an embed the markdown opens with. */
+  headerActions: React.ReactNode;
   progressState: BlockProgressState;
   streamedMarkdown?: string | null;
 }) {
   const markdown =
     streamedMarkdown ?? getTextOutput(block.output) ?? (block.content.trim() || null);
+  // An embed the markdown opens with takes the actions into its card's header,
+  // so the card can run the block's full width. Until one claims them -- or if
+  // that embed renders no card -- they sit beside the first line.
+  const [actionsInEmbed, setActionsInEmbed] = useState(false);
+  const claimActions = () => {
+    setActionsInEmbed(true);
+    return () => setActionsInEmbed(false);
+  };
   return (
     <BlockHoverSurface
       flex={1}
       minWidth={0}
-      containerType="inline-size"
       data-test-id="text-block-result"
       data-block-variant="unbordered"
     >
-      <Grid columns="minmax(0, 1fr) auto" gap="sm" align="start">
-        <TextBlockContent minWidth={0} gap="sm">
-          <BlockExecutionAlert block={block} />
-          {markdown ? (
-            <SeerMarkdown raw={markdown} />
-          ) : isBlockWorking(block) ? (
-            <Container paddingBottom="xl">
-              <InvestigationBlockPlaceholder title={block.title} />
-            </Container>
-          ) : (
-            <BlockProgress state={progressState} />
-          )}
-        </TextBlockContent>
-        {/* A hidden line of text, so the actions sit on the block's first line. */}
-        <Grid>
-          <Container area="1 / 1">
-            <Text as="div" aria-hidden size="md" density="comfortable">
-              {'​'}
-            </Text>
+      <TextBlockLayout
+        columns={actionsInEmbed ? 'minmax(0, 1fr)' : 'minmax(0, 1fr) auto'}
+        gap="lg sm"
+        align="start"
+      >
+        <BlockExecutionAlert block={block} />
+        {markdown ? (
+          <MarkdownRows>
+            <SeerMarkdown
+              raw={markdown}
+              leadingEmbedActions={{actions: headerActions, onClaim: claimActions}}
+            />
+          </MarkdownRows>
+        ) : isBlockWorking(block) ? (
+          <Container paddingBottom="xl">
+            <InvestigationBlockPlaceholder title={block.title} />
           </Container>
-          <Flex area="1 / 1" height="0" alignSelf="center" align="center">
-            {actions}
-          </Flex>
-        </Grid>
-      </Grid>
+        ) : (
+          <BlockProgress state={progressState} />
+        )}
+        {actionsInEmbed ? null : (
+          <ActionsCell>
+            {/* A hidden line of text, so the actions sit on the block's first line. */}
+            <Container area="1 / 1">
+              <Text as="div" aria-hidden size="md" density="comfortable">
+                {'​'}
+              </Text>
+            </Container>
+            <Flex area="1 / 1" height="0" alignSelf="center" align="center">
+              {actions}
+            </Flex>
+          </ActionsCell>
+        )}
+      </TextBlockLayout>
     </BlockHoverSurface>
   );
 }
@@ -1229,17 +1272,34 @@ const BlockHoverSurface = styled(Stack)`
   }
 `;
 
+const MarkdownRows = styled('div')``;
+const ActionsCell = styled(Grid)``;
+
 /**
- * Prose wraps short of the actions column, but a block embed after the
- * markdown's first element runs under it to the block's full width (`cqi`
- * resolves against `BlockHoverSurface`), so its card lines up with a query
- * block's card. An embed that opens the block keeps to the column so the
- * actions can't cover its header. Only the markdown's own top-level embeds
- * match, not ones nested in a list or inside another embed.
+ * The markdown's top-level elements are this grid's rows, so only the first
+ * one shares its row with the actions and wraps short of them. Everything after
+ * it runs the block's full width, which lines an embed's card up with a query
+ * block's card wherever the embed sits, in a list included. `min-width: 0`
+ * keeps a wide code block or table from widening the actions column it spans.
  */
-const TextBlockContent = styled(Stack)`
-  & > div > :not(:first-child) > [data-seer-embed-block] {
-    width: 100cqi;
+const TextBlockLayout = styled(Grid)`
+  > *,
+  > ${MarkdownRows} > div > * {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+
+  > :first-child,
+  > ${MarkdownRows}:first-child > div > :first-child {
+    grid-column: 1;
+  }
+
+  > ${MarkdownRows}, > ${MarkdownRows} > div {
+    display: contents;
+  }
+
+  > ${ActionsCell} {
+    grid-area: 1 / 2;
   }
 `;
 

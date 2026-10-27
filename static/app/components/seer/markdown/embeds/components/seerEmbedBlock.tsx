@@ -1,4 +1,11 @@
-import {useRef, type ComponentType, type ReactNode} from 'react';
+import {
+  createContext,
+  useContext,
+  useLayoutEffect,
+  useRef,
+  type ComponentType,
+  type ReactNode,
+} from 'react';
 import styled from '@emotion/styled';
 import {useDisclosure} from '@react-aria/disclosure';
 import {usePress} from '@react-aria/interactions';
@@ -75,6 +82,24 @@ interface SeerEmbedBlockOwnProps {
 type SeerEmbedBlockProps = SeerEmbedBlockOwnProps & SeerEmbedBlockLinkProps;
 
 /**
+ * Controls the surface around a message hands to the block embed that opens it,
+ * to sit at the end of that card's header instead of beside the card. See
+ * `leadingEmbedActions` on `SeerMarkdown`.
+ */
+export interface SeerEmbedBlockHostActions {
+  actions: ReactNode;
+  /**
+   * Called when a card takes the actions, so the host can drop its own copy.
+   * Returns the release, called when the card unmounts. An embed that renders
+   * no card never claims them, and the host keeps showing its own.
+   */
+  onClaim: () => () => void;
+}
+
+export const SeerEmbedBlockHostActionsContext =
+  createContext<SeerEmbedBlockHostActions | null>(null);
+
+/**
  * The chrome every Seer block embed shares: a bordered card whose header band
  * carries the resource's name and a collapse toggle on the left, and a link out
  * to the resource on the right. A block with no page of its own -- a chart the
@@ -116,6 +141,10 @@ export function SeerEmbedBlock({
     onExpandedChange,
   });
   const {buttonProps, panelProps} = useDisclosure({}, state, panelRef);
+  const hostActions = useContext(SeerEmbedBlockHostActionsContext);
+  const onClaim = hostActions?.onClaim;
+  // A layout effect, so the host drops its own copy before the first paint.
+  useLayoutEffect(() => onClaim?.(), [onClaim]);
   // `buttonProps` speaks react-aria's `onPress`; `usePress` turns that into the
   // DOM handlers a plain <button> understands. The two aria attributes are
   // forwarded by hand because `usePress` returns only press props.
@@ -127,7 +156,6 @@ export function SeerEmbedBlock({
       background="primary"
       border="primary"
       containerType="inline-size"
-      data-seer-embed-block=""
       data-test-id={testId}
       overflow="hidden"
       radius="md"
@@ -161,6 +189,7 @@ export function SeerEmbedBlock({
           {badge}
           {href ? <ResourceLink icon={icon} href={href} title={linkLabel} /> : null}
           {actions}
+          {hostActions?.actions}
         </Flex>
       </HeaderRow>
       {/* The panel's padding sits on an inner element, not on the element
@@ -170,7 +199,10 @@ export function SeerEmbedBlock({
           of every collapsed card. */}
       <Container {...panelProps} ref={panelRef}>
         <Stack gap={gap} padding={padding}>
-          {children}
+          {/* An embed nested in this card does not open the message. */}
+          <SeerEmbedBlockHostActionsContext.Provider value={null}>
+            {children}
+          </SeerEmbedBlockHostActionsContext.Provider>
         </Stack>
       </Container>
     </Container>
