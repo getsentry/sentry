@@ -8,7 +8,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {defined} from 'sentry/utils/defined';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -392,7 +391,7 @@ function isEventType(value: string): value is EventTypes {
 }
 
 function isMetricAlertType(value: string | undefined): value is MetricAlertType {
-  return defined(value) && Object.hasOwn(AlertWizardRuleTemplates, value);
+  return !!value && Object.hasOwn(AlertWizardRuleTemplates, value);
 }
 
 const LEGACY_ALERT_TYPES_BY_WIZARD_OPTION: Record<string, string> = {
