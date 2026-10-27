@@ -101,6 +101,8 @@ type InvestigationHypothesesProps = {
    * orchestration endpoint 404s for those, and there is nothing to poll.
    */
   enabled?: boolean;
+  /** Lets the page outline scroll to the hypotheses. */
+  id?: string;
   /**
    * Adds "Ask Seer" to each hypothesis's menu. Left out where Seer Agent can't
    * take the question.
@@ -136,6 +138,7 @@ type InvestigationHypothesesProps = {
  */
 export function InvestigationHypotheses({
   enabled = true,
+  id,
   investigationId,
   onAskSeer,
   phase: summaryPhase,
@@ -307,7 +310,7 @@ export function InvestigationHypotheses({
     !SETTLED_PHASES.has(projection.phase);
 
   return (
-    <Stack gap="3xl">
+    <Stack id={id} gap="3xl">
       {statusBlock ? <SeerStatusBlock {...statusBlock} /> : null}
       {hasHypotheses || awaitingFirstHypothesis ? (
         <HypothesesPanel
