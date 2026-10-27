@@ -421,6 +421,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:issue-inbox-seer-rollout", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # General use issue inbox flag
     manager.add("organizations:issue-inbox", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable the universal inbox
+    manager.add("organizations:universal-inbox", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Serve Autofix on its own /issues/<id>/autofix/ page instead of the issue details drawer.
     # Not for self-hosted yet. Roll this out to specific organizations; do not change the
     # default here and do not add it to SENTRY_FEATURES, either of which would turn it on
