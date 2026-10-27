@@ -3,6 +3,7 @@ import type {AnyUseQueryOptions} from '@tanstack/react-query';
 
 import type {FormSize} from '@sentry/scraps/theme';
 
+import type {MentionData} from './mentionNode';
 import type {ComposerValue} from './model';
 
 /**
@@ -25,6 +26,12 @@ interface ComposerSourceBase<TSuggestion> {
   label: string;
   /** The character that activates this source. */
   trigger: string;
+  /**
+   * Renders an inserted mention inside the editor. The mention is atomic: it
+   * cannot be edited, and one deletion removes it. Its `text` is still what
+   * the value and copied text contain. The text is shown when omitted.
+   */
+  renderMention?(mention: MentionData): React.ReactNode;
   /** Renders an option. The source text is used when this is omitted. */
   renderSuggestion?(suggestion: TSuggestion): React.ReactNode;
   /**

@@ -138,8 +138,6 @@ describe('SeerExplorerContent re-renders', () => {
 
     renderContent();
     const editor = await screen.findByRole('combobox');
-    // user-event does not yet recognize contenteditable="plaintext-only".
-    editor.setAttribute('contenteditable', 'true');
     expect(screen.getByText(`Answer ${TURNS - 1}`)).toBeInTheDocument();
 
     mockMarkdownRender.mockClear();

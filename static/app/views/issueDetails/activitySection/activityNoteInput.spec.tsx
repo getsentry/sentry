@@ -1,13 +1,11 @@
+import {placeCaret} from 'sentry-test/contentEditable';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {ActivityNoteInput} from 'sentry/views/issueDetails/activitySection/activityNoteInput';
 
 function getEditor() {
-  const editor = screen.getByRole('combobox', {name: 'Add a comment'});
-  // user-event does not yet recognize contenteditable="plaintext-only".
-  editor.setAttribute('contenteditable', 'true');
-  return editor;
+  return screen.getByRole('combobox', {name: 'Add a comment'});
 }
 
 describe('ActivityNoteInput', () => {
@@ -33,7 +31,8 @@ describe('ActivityNoteInput', () => {
     const editor = getEditor();
     expect(editor).toHaveTextContent('saved item');
     await userEvent.click(editor);
-    await userEvent.keyboard('{End} updated');
+    placeCaret(editor);
+    await userEvent.keyboard(' updated');
 
     await waitFor(() =>
       expect(localStorageWrapper.getItem('storage')).toBe(
@@ -57,7 +56,7 @@ describe('ActivityNoteInput', () => {
     await userEvent.type(editor, 'new comment{Enter}');
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalled());
-    await waitFor(() => expect(editor).toBeEmptyDOMElement());
+    await waitFor(() => expect(editor).toHaveTextContent(/^$/));
     expect(localStorageWrapper.getItem('storage')).toBe(
       JSON.stringify({item2: 'item2', item3: 'item3'})
     );

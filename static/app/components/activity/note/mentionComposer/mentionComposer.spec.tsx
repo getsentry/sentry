@@ -2,16 +2,14 @@ import {MemberFixture} from 'sentry-fixture/member';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
+import {placeCaret} from 'sentry-test/contentEditable';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {MentionComposer} from 'sentry/components/activity/note/mentionComposer/mentionComposer';
 import {TeamStore} from 'sentry/stores/teamStore';
 
 function getEditor(name = 'Add a comment') {
-  const editor = screen.getByRole('combobox', {name});
-  // user-event does not yet recognize contenteditable="plaintext-only".
-  editor.setAttribute('contenteditable', 'true');
-  return editor;
+  return screen.getByRole('combobox', {name});
 }
 
 const noopSubmit = () => Promise.resolve();
@@ -214,7 +212,12 @@ describe('MentionComposer', () => {
 
     act(() => {
       editor.dispatchEvent(new CompositionEvent('compositionstart', {bubbles: true}));
-      editor.textContent = 'Draft日本語';
+      // Mirror the browser, which writes composed text into the caret's text node.
+      const textNode = editor.querySelector('[data-lexical-text]')?.firstChild;
+      if (textNode instanceof Text) {
+        textNode.appendData('日本語');
+        document.getSelection()?.collapse(textNode, textNode.length);
+      }
       editor.dispatchEvent(
         new InputEvent('input', {
           bubbles: true,
@@ -291,7 +294,8 @@ describe('MentionComposer', () => {
 
     const editor = getEditor('Edit comment');
     await userEvent.click(editor);
-    await userEvent.keyboard('{End} updated');
+    placeCaret(editor);
+    await userEvent.keyboard(' updated');
     if (method === 'Enter') {
       await userEvent.keyboard('{Enter}');
     } else {

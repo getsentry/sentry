@@ -67,7 +67,7 @@ describe('InputSection', () => {
       .filter(
         (rule): rule is CSSStyleRule =>
           rule instanceof CSSStyleRule &&
-          rule.selectorText.endsWith(':empty::before') &&
+          rule.selectorText.endsWith('[data-empty]::before') &&
           editor.matches(rule.selectorText.replace('::before', ''))
       );
     const expectedStyle = document.createElement('div').style;
