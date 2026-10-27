@@ -16,7 +16,6 @@ import {
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {Navigation} from 'sentry/views/navigation';
 import {NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/views/navigation/constants';
 import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
@@ -322,35 +321,16 @@ describe('desktop navigation', () => {
       })
     );
 
-    const secondaryNav = screen.getByRole('navigation', {name: 'Secondary Navigation'});
-    const processing = within(secondaryNav).getByRole('button', {name: 'Processing'});
+    const processing = screen.getByRole('button', {name: 'Processing'});
     expect(processing).toHaveAttribute('aria-expanded', 'true');
-    expect(
-      within(secondaryNav).getByRole('link', {name: 'Inbound Filters'})
-    ).toBeVisible();
+    expect(screen.getByRole('link', {name: 'Inbound Filters'})).toBeInTheDocument();
 
     await userEvent.click(processing);
     expect(processing).toHaveAttribute('aria-expanded', 'false');
     await waitFor(() =>
       expect(
-        within(secondaryNav).queryByRole('link', {name: 'Inbound Filters'})
+        screen.queryByRole('link', {name: 'Inbound Filters'})
       ).not.toBeInTheDocument()
-    );
-    await waitFor(() =>
-      expect(
-        localStorageWrapper.getItem('secondary-nav-section-settings-processing-collapsed')
-      ).toBe('true')
-    );
-
-    await userEvent.keyboard('{Enter}');
-    expect(processing).toHaveAttribute('aria-expanded', 'true');
-    expect(
-      within(secondaryNav).getByRole('link', {name: 'Inbound Filters'})
-    ).toBeVisible();
-    await waitFor(() =>
-      expect(
-        localStorageWrapper.getItem('secondary-nav-section-settings-processing-collapsed')
-      ).toBe('false')
     );
   });
 

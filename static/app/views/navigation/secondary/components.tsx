@@ -397,22 +397,22 @@ function SectionTitle(props: SectionTitleProps) {
       );
     }
 
-    // The button's inner span inherits display, justify and gap, so these
-    // Flex props lay out its content.
     return (
-      <Flex align="center" justify="start" gap="sm" width="100%">
-        {flexProps => (
+      <Container width="100%">
+        {containerProps => (
           <Button
-            {...flexProps}
+            {...containerProps}
             size="sm"
             variant="transparent"
             aria-expanded={!props.isCollapsed}
             onClick={() => props.setIsCollapsed(!props.isCollapsed)}
           >
-            {content}
+            <Flex as="span" align="center" gap="sm" flex="1" minWidth="0">
+              {content}
+            </Flex>
           </Button>
         )}
-      </Flex>
+      </Container>
     );
   }
 
