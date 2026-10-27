@@ -538,7 +538,7 @@ describe('SnapshotListView', () => {
   it('does not carry a viewed mark from an added image to its removal', () => {
     localStorage.setItem(
       VIEWED_SNAPSHOTS_STORAGE_KEY,
-      JSON.stringify({[viewedKeyForImage(image(), 'added')]: Date.now()})
+      JSON.stringify({[viewedKeyForImage(image())]: Date.now()})
     );
     render(
       <ExampleSnapshotListView
@@ -555,6 +555,19 @@ describe('SnapshotListView', () => {
     );
 
     expect(screen.getByRole('checkbox', {name: 'Login screen viewed'})).not.toBeChecked();
+  });
+
+  it('keeps a viewed mark from the added image in solo view', async () => {
+    const group = {key: 'Login', name: 'Login', displayName: 'Login', images: [image()]};
+    const {unmount} = render(
+      <ExampleSnapshotListView items={[{...group, type: 'added'}]} />
+    );
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Login screen viewed'}));
+    unmount();
+
+    render(<ExampleSnapshotListView items={[{...group, type: 'solo'}]} />);
+
+    expect(screen.getByRole('checkbox', {name: 'Login screen viewed'})).toBeChecked();
   });
 
   it('ignores shortcuts while a modal is open', () => {

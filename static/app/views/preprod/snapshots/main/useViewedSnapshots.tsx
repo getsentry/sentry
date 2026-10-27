@@ -12,10 +12,7 @@ const VIEWED_MAX_ENTRIES = 4000;
 
 type ViewedEntries = Record<string, number>;
 
-const hashedKeys = new WeakMap<
-  SnapshotImage | SnapshotDiffPair,
-  {key: string; value: string}
->();
+const hashedKeys = new WeakMap<SnapshotImage | SnapshotDiffPair, string>();
 
 function cyrb53(value: string): string {
   let h1 = 0xdeadbeef;
@@ -33,20 +30,19 @@ function cyrb53(value: string): string {
 }
 
 function hashOnce(item: SnapshotImage | SnapshotDiffPair, value: string): string {
-  const cached = hashedKeys.get(item);
-  if (cached?.value === value) {
-    return cached.key;
+  let key = hashedKeys.get(item);
+  if (key === undefined) {
+    key = cyrb53(value);
+    hashedKeys.set(item, key);
   }
-  const key = cyrb53(value);
-  hashedKeys.set(item, {key, value});
   return key;
 }
 
-export function viewedKeyForImage(
-  image: SnapshotImage,
-  type: 'added' | 'removed' | 'skipped' | 'solo'
-): string {
-  return hashOnce(image, `${type}:${image.image_file_name}:${image.key}`);
+export function viewedKeyForImage(image: SnapshotImage, isRemoval = false): string {
+  return hashOnce(
+    image,
+    `${isRemoval ? 'removed:' : ''}${image.image_file_name}:${image.key}`
+  );
 }
 
 export function viewedKeyForPair(pair: SnapshotDiffPair): string {
