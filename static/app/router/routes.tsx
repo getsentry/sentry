@@ -757,6 +757,18 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+          switchTo: '/settings/:orgId/projects/:projectId/symbolication-errors/',
+        },
+      },
+      path: 'symbolication-errors/',
+      name: t('Symbolication Errors'),
+      component: make(() => import('sentry/views/settings/projectSymbolicationErrors')),
+    },
+    {
+      handle: {
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
           switchTo: '/settings/:orgId/projects/:projectId/proguard/',
         },
       },
