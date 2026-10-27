@@ -1633,6 +1633,46 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
         )
         assert "not supported for activity triggers" in str(response.data)
 
+    @mock.patch(
+        "sentry.notifications.notification_action.registry.action_validator_registry.get",
+        return_value=MockActionValidatorTranslator,
+    )
+    def test_create_workflow__resolved_trigger_rejects_ticketing_action(
+        self, mock_action_validator: mock.MagicMock
+    ) -> None:
+        self.valid_workflow["triggers"] = {
+            "logicType": "any-short",
+            "conditions": [
+                {
+                    "type": Condition.ISSUE_RESOLVED_TRIGGER,
+                    "comparison": True,
+                    "conditionResult": True,
+                }
+            ],
+        }
+        self.valid_workflow["actionFilters"] = [
+            {
+                "logicType": "all",
+                "conditions": [],
+                "actions": [
+                    {
+                        "type": Action.Type.JIRA,
+                        "config": {"targetType": "specific"},
+                        "data": {},
+                        "integrationId": self.integration.id,
+                    },
+                ],
+            }
+        ]
+
+        response = self.get_error_response(
+            self.organization.slug,
+            raw_data=self.valid_workflow,
+            status_code=400,
+        )
+        assert "not supported for activity triggers" in str(response.data)
+        assert not Workflow.objects.filter(name=self.valid_workflow["name"]).exists()
+
 
 @cell_silo_test
 class OrganizationWorkflowPutTest(OrganizationWorkflowAPITestCase):

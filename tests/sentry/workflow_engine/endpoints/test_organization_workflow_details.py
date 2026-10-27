@@ -1251,6 +1251,53 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         )
         assert "not supported for activity triggers" in str(response.data)
 
+    def test_update_rejects_resolved_trigger_when_existing_action_is_unsupported(self) -> None:
+        when_condition_group = self.create_data_condition_group(
+            organization=self.organization,
+            logic_type=DataConditionGroup.Type.ANY_SHORT_CIRCUIT,
+        )
+        self.create_data_condition(
+            condition_group=when_condition_group,
+            type=Condition.FIRST_SEEN_EVENT,
+            comparison=True,
+            condition_result=True,
+        )
+        workflow = self.create_workflow(
+            organization=self.organization,
+            when_condition_group=when_condition_group,
+        )
+        action_filter = self.create_data_condition_group(organization=self.organization)
+        self.create_workflow_data_condition_group(condition_group=action_filter, workflow=workflow)
+        self.create_data_condition_group_action(
+            condition_group=action_filter,
+            action=self.create_action(type=Action.Type.JIRA, integration_id=self.integration.id),
+        )
+
+        data = {
+            "name": workflow.name,
+            "triggers": {
+                "logicType": "any-short",
+                "conditions": [
+                    {
+                        "type": Condition.ISSUE_RESOLVED_TRIGGER,
+                        "comparison": True,
+                        "conditionResult": True,
+                    }
+                ],
+            },
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            workflow.id,
+            raw_data=data,
+            status_code=400,
+        )
+        assert "not supported for activity triggers" in str(response.data)
+        assert list(when_condition_group.conditions.values_list("type", flat=True)) == [
+            Condition.FIRST_SEEN_EVENT
+        ]
+
     """
     Ensure data integrity for
     1. data condition and data condition group updates
