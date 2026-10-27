@@ -184,12 +184,22 @@ class ScmGitEndpointTest(TestCase):
         self.assert_reported(mock_sdk, "git_invalid_grant", {"repository_id": str(self.repo.id)})
 
     @responses.activate
-    def test_refuses_a_grant_signed_with_an_unknown_secret(self) -> None:
+    @mock.patch("sentry.scm.endpoints.scm_git.sentry_sdk")
+    @mock.patch("sentry.scm.endpoints.scm_git.record_count_metric")
+    def test_refuses_a_grant_signed_with_an_unknown_secret_without_its_referrer(
+        self, mock_record_count: mock.MagicMock, mock_sdk: mock.MagicMock
+    ) -> None:
+        # Anyone can write a referrer into a grant they sign themselves, so only a verified one
+        # may tag metrics and issues.
         grant = sign(self.organization.id, "fetch", [self.repo.id], secret="some-other-secret")
 
         response = self.fetch_refs(grant)
 
         self.assert_refused(response, 403, b"not signed with a known secret")
+        mock_record_count.assert_called_once_with(
+            "sentry.scm.git.request.failed", 1, {"code": "git_invalid_grant"}
+        )
+        self.assert_reported(mock_sdk, "git_invalid_grant", {"repository_id": str(self.repo.id)})
 
     @responses.activate
     @override_settings(SCM_GIT_GRANT_SECRETS=None)
