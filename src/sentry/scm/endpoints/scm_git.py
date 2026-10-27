@@ -2,6 +2,7 @@ import io
 import logging
 from collections.abc import Generator
 
+import sentry_sdk
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse, HttpResponseBase, StreamingHttpResponse
 from rest_framework.request import Request
@@ -33,7 +34,7 @@ FAILED_METRIC = "sentry.scm.git.request.failed"
 def report_git_error(error: Exception, context: dict[str, str]) -> None:
     code = error.code if isinstance(error, SCMCodedError) else type(error).__name__
     detail = error.detail if isinstance(error, SCMCodedError) else str(error)
-    _log_failure(code, detail, context)
+    _report_failure(code, detail, context, error)
 
 
 def make_git_server() -> GitServer:
@@ -57,6 +58,10 @@ class ScmGitEndpoint(Endpoint):
     Serves git's smart-HTTP protocol to coding jobs, relaying each request to the repository's
     provider with the organization's integration credentials. A grant Seer signs authorizes each
     request, so the job never holds a provider credential.
+
+    Only the credential proxy Seer's jobs go through can reach this route, so every refusal is
+    reported as a Sentry issue: a refusal means Sentry or Seer is misconfigured, not that a
+    client misbehaved.
     """
 
     publish_status = {"GET": ApiPublishStatus.PRIVATE, "POST": ApiPublishStatus.PRIVATE}
@@ -87,7 +92,7 @@ class ScmGitEndpoint(Endpoint):
         try:
             grant = verify_grant(_grant_secrets(), request.headers.get(GRANT_HEADER, ""))
         except SCMCodedError as e:
-            return _refuse(e.code, 403, e.detail, context, tags={})
+            return _refuse(e.code, 403, e.detail, context, tags={}, error=e)
 
         context |= {"organization_id": str(grant.organization_id), "referrer": grant.referrer}
         tags = {"referrer": grant.referrer}
@@ -121,9 +126,10 @@ class ScmGitEndpoint(Endpoint):
             )
         except RestrictedIPAddress as e:
             # The provider host resolves to an internal address. GitServer counts that as an
-            # unhandled_exception and doesn't log it, so the log is what names the repository. The
-            # client gets a 503 without the address, like the ApiHostError Sentry's API clients raise.
-            _log_failure("restricted_ip_address", str(e), context)
+            # unhandled_exception and doesn't report it, so the report is what names the repository.
+            # The client gets a 503 without the address, like the ApiHostError Sentry's API clients
+            # raise.
+            _report_failure("restricted_ip_address", str(e), context, e)
             return _plain_text(ApiHostError.from_exception(e).text, 503)
         return StreamingHttpResponse(
             response.content, status=response.status_code, headers=response.headers
@@ -148,19 +154,34 @@ def _request_body(request: HttpRequest) -> Readable | None:
 
 
 def _refuse(
-    code: str, status: int, detail: str, context: dict[str, str], tags: dict[str, str]
+    code: str,
+    status: int,
+    detail: str,
+    context: dict[str, str],
+    tags: dict[str, str],
+    error: SCMCodedError | None = None,
 ) -> HttpResponse:
-    # Counted and logged like the refusals GitServer answers itself.
+    # Counted and reported like the refusals GitServer answers itself.
     record_count_metric(FAILED_METRIC, 1, {"code": code} | tags)
-    _log_failure(code, detail, context)
+    _report_failure(code, detail, context, error)
     # Never a 401: on a 401 git asks for credentials, which a coding job doesn't have.
     return _plain_text(detail, status)
 
 
-def _log_failure(code: str, detail: str, context: dict[str, str]) -> None:
+def _report_failure(
+    code: str, detail: str, context: dict[str, str], error: Exception | None
+) -> None:
     # git shows the client only the message, which leaves out the repository, organization and
-    # provider, so the log carries them.
-    logger.warning("scm.git.request_failed", extra={"code": code, "detail": detail, **context})
+    # provider, so the log and the issue's tags carry them. The detail can vary within a code, so
+    # the fingerprint groups by code alone.
+    logger.error("scm.git.request_failed", extra={"code": code, "detail": detail, **context})
+    with sentry_sdk.new_scope() as scope:
+        scope.fingerprint = ["scm-git", code]
+        scope.set_tags(context)
+        if error is None:
+            sentry_sdk.capture_message(detail, level="error")
+        else:
+            sentry_sdk.capture_exception(error)
 
 
 def _plain_text(message: str, status: int) -> HttpResponse:
