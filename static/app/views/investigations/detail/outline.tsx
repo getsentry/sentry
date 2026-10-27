@@ -1,7 +1,7 @@
-import {useEffect, useId, useRef, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {MarkedLexer, markdownToPlainText, type Token} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
@@ -269,10 +269,9 @@ function waitToSettle(pick: {settled: boolean; timeout: number}) {
  */
 export function InvestigationOutline({entries}: {entries: InvestigationOutlineEntry[]}) {
   const [activeKey, pickEntry] = useActiveEntry(entries);
-  const titleId = useId();
 
   return (
-    <OutlineRail aria-labelledby={titleId}>
+    <OutlineRail aria-label={t('Investigation outline')}>
       {/* Only a preview of the panel, which is what keyboards and screen readers reach. */}
       <Stack gap="md" padding="sm" aria-hidden>
         {entries.map(entry => (
@@ -284,10 +283,7 @@ export function InvestigationOutline({entries}: {entries: InvestigationOutlineEn
         ))}
       </Stack>
       <OutlinePanel>
-        <Stack gap="md" padding="md">
-          <OutlineTitle id={titleId} size="xs" variant="muted" bold uppercase>
-            {t('Investigation')}
-          </OutlineTitle>
+        <Container padding="md">
           <OutlineList>
             {entries.map(entry => (
               <li key={entry.key}>
@@ -299,7 +295,7 @@ export function InvestigationOutline({entries}: {entries: InvestigationOutlineEn
               </li>
             ))}
           </OutlineList>
-        </Stack>
+        </Container>
       </OutlinePanel>
     </OutlineRail>
   );
@@ -340,7 +336,6 @@ function OutlineEntryLink({
       <OutlineLabel
         ref={labelRef}
         variant={isActive ? 'accent' : 'muted'}
-        bold={isActive}
         density="comfortable"
       >
         {entry.label}
@@ -403,16 +398,14 @@ const OutlineMarker = styled('span')<{depth: number; isActive: boolean}>`
       : p.theme.tokens.graphics.neutral.moderate};
 `;
 
-/** Lines up with the entries' text. */
-const OutlineTitle = styled(Text)`
-  padding-left: ${p => p.theme.space.lg};
-  letter-spacing: 0.06em;
-`;
-
 const OutlineList = styled('ul')`
   list-style: none;
   margin: 0;
   padding: 0;
+
+  > li + li {
+    margin-top: ${p => p.theme.space.sm};
+  }
 `;
 
 /** Long headings stop at two lines. */
