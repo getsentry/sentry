@@ -903,6 +903,7 @@ class SharedApplyPathTest(APITestCase):
         [command] = self.commands()
         assert {"type": command.type, **command.payload} == {
             **fixture("command_record_action_outcome"),
+            "action": fake_action(),
             "appliedBy": self.user.id,
         }
         assert command.actor_id == self.user.id

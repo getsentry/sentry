@@ -23,6 +23,8 @@ from sentry.investigations.models import (
     InvestigationOrchestrationStatus,
 )
 from sentry.investigations.seer_client import (
+    CommandRejectionCode,
+    SeerCommandRejected,
     create_investigation_orchestration_run,
     dispatch_investigation_orchestration_command,
     get_investigation_orchestration_run,
@@ -57,6 +59,7 @@ COMMAND_VERSION_CONFLICT_MESSAGE = (
     "The investigation changed before this update could be applied. "
     "Progress was refreshed; try again."
 )
+INTERNAL_COMMAND_REJECTED_MESSAGE = "Seer turned down this update."
 
 
 def _is_last_dispatch_attempt() -> bool:
@@ -205,10 +208,6 @@ def _mark_command_version_conflicted(command_id: int) -> None:
         command.status = InvestigationOrchestrationCommandStatus.FAILED
         command.error = detail
         command.save(update_fields=["status", "error", "date_updated"])
-        if command.type in INTERNAL_COMMAND_TYPES:
-            # Losing it isn't a run error, and no other command waits on it.
-            schedule_orchestration_commands(run.id)
-            return
         _fail_commands_after(
             run,
             command,
@@ -223,6 +222,42 @@ def _mark_command_version_conflicted(command_id: int) -> None:
         if run.error is None:
             run.error = detail
         run.save(update_fields=["error", "projection", "date_updated"])
+
+
+def _mark_internal_command_rejected(command_id: int, code: CommandRejectionCode | None) -> None:
+    """Fail an internal command Seer turned down. It isn't a run error, and no other command
+    waits on it.
+    """
+
+    database = router.db_for_write(InvestigationOrchestrationCommand)
+    with transaction.atomic(using=database):
+        command_snapshot = InvestigationOrchestrationCommand.objects.filter(id=command_id).first()
+        if command_snapshot is None:
+            return
+        run = _lock_orchestration_run(command_snapshot.orchestration_run_id)
+        if run is None:
+            return
+        command = (
+            InvestigationOrchestrationCommand.objects.select_for_update()
+            .filter(id=command_id)
+            .first()
+        )
+        if (
+            command is None
+            or command.status == InvestigationOrchestrationCommandStatus.ACKNOWLEDGED
+        ):
+            return
+        command.status = InvestigationOrchestrationCommandStatus.FAILED
+        command.error = {
+            "code": "seer_command_rejected",
+            "message": INTERNAL_COMMAND_REJECTED_MESSAGE,
+            "requestId": str(command.request_id),
+            "commandType": command.type,
+            "reason": code,
+            "retryable": False,
+        }
+        command.save(update_fields=["status", "error", "date_updated"])
+        schedule_orchestration_commands(run.id)
 
 
 def _reconcile_command_version_conflict(
@@ -429,6 +464,20 @@ def dispatch_investigation_orchestration_commands(orchestration_run_id: int) -> 
                 projection=projection,
             )
         except SeerApiError as error:
+            if error.status == 409 and command.type in INTERNAL_COMMAND_TYPES:
+                code = error.code if isinstance(error, SeerCommandRejected) else None
+                logger.warning(
+                    "investigations.orchestration.internal_command_rejected",
+                    extra={
+                        "orchestration_run_id": run.id,
+                        "seer_run_id": run.seer_run_id,
+                        "command_id": command.id,
+                        "command_type": command.type,
+                        "code": code,
+                    },
+                )
+                _mark_internal_command_rejected(command.id, code)
+                return
             if error.status == 409:
                 logger.warning(
                     "investigations.orchestration.command_version_conflict",
@@ -439,9 +488,6 @@ def dispatch_investigation_orchestration_commands(orchestration_run_id: int) -> 
                         "expected_workflow_version": command.expected_workflow_version,
                     },
                 )
-                if command.type in INTERNAL_COMMAND_TYPES:
-                    _mark_command_version_conflicted(command.id)
-                    return
                 try:
                     _reconcile_command_version_conflict(run, command, viewer_context)
                 except (SeerApiError, HTTPError):

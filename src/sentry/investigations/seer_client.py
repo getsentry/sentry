@@ -41,6 +41,24 @@ class InvestigationCommandResponse(TypedDict):
     projection: dict[str, Any]
 
 
+# Why Seer turned down a command.
+CommandRejectionCode = Literal[
+    "workflow_version_conflict",
+    "idempotency_conflict",
+    "invalid_command_target",
+]
+
+
+class SeerCommandRejected(SeerApiError):
+    def __init__(self, code: CommandRejectionCode) -> None:
+        super().__init__("Seer rejected the command", 409)
+        self.code = code
+
+
+class _CommandRejectionModel(BaseModel):
+    code: CommandRejectionCode
+
+
 class _InvestigationRunResponseModel(BaseModel):
     run_id: StrictInt = Field(alias="runId")
     created: StrictBool
@@ -57,8 +75,10 @@ class _InvestigationCommandResponseModel(BaseModel):
 
 
 __all__ = [
+    "CommandRejectionCode",
     "InvestigationCommandResponse",
     "InvestigationRunResponse",
+    "SeerCommandRejected",
     "create_investigation_orchestration_run",
     "dispatch_investigation_orchestration_command",
     "get_investigation_orchestration_run",
@@ -66,6 +86,14 @@ __all__ = [
 
 
 def _decode_response(response: BaseHTTPResponse) -> dict[str, Any]:
+    if response.status == 409:
+        try:
+            rejection = _CommandRejectionModel.parse_raw(response.data)
+        except ValidationError:
+            # Without a code we know, it's a version conflict.
+            pass
+        else:
+            raise SeerCommandRejected(rejection.code)
     if response.status < 200 or response.status >= 300:
         raise SeerApiError("Investigation orchestration request failed", response.status)
     try:

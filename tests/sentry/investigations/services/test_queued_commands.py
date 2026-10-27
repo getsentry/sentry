@@ -18,7 +18,13 @@ from sentry.testutils.cases import TestCase
 from sentry.utils import json
 from tests.sentry.investigations.test_seer_contract import fixture
 
-OUTCOME = {"key": "k", "reportRevision": 1, "outcome": "applied", "appliedBy": None}
+OUTCOME = {
+    "key": "k",
+    "action": {"kind": "test_kind", "target": "a"},
+    "reportRevision": 1,
+    "outcome": "applied",
+    "appliedBy": None,
+}
 
 
 class QueuedCommandsTest(TestCase):
@@ -177,6 +183,14 @@ class QueuedCommandsTest(TestCase):
         user.refresh_from_db()
         self.orchestration_run.refresh_from_db()
         assert outcome.status == InvestigationOrchestrationCommandStatus.FAILED
+        assert outcome.error == {
+            "code": "seer_command_rejected",
+            "message": "Seer turned down this update.",
+            "requestId": str(outcome.request_id),
+            "commandType": "record_action_outcome",
+            "reason": "invalid_command_target",
+            "retryable": False,
+        }
         assert user.status == InvestigationOrchestrationCommandStatus.ACCEPTED
         # Seer's run is still at 10, but the queued steer moves Sentry's to 11.
         assert self.orchestration_run.workflow_version == 11

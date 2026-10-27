@@ -301,6 +301,7 @@ def _queue_outcome(context: ApplyContext) -> None:
         command_type="record_action_outcome",
         payload={
             "key": action_request.key,
+            "action": action_request.action_payload,
             "reportRevision": action_request.report_revision,
             "outcome": "applied",
             "appliedBy": context.actor_id,
