@@ -296,6 +296,13 @@ class ResolvedTraceMetricFormula(ResolvedFormula):
 
 
 @dataclass(frozen=True, kw_only=True)
+class ResolvedMultiTraceMetricFormula(ResolvedFormula):
+    """A formula that reads from several trace metrics at once, such as the web vital scores."""
+
+    trace_metrics: frozenset[TraceMetric]
+
+
+@dataclass(frozen=True, kw_only=True)
 class ResolvedAggregate(ResolvedFunction):
     """
     An aggregate is the most primitive type of function, these are the ones that are availble via the RPC directly and contain no logic
@@ -877,6 +884,50 @@ class TraceMetricFormulaDefinition(FormulaDefinition):
 class ConditionalTraceMetricFormulaDefinition(TraceMetricFormulaDefinition):
     offset = 1
     expected_args = 5
+
+
+@dataclass(kw_only=True)
+class MultiTraceMetricFormulaDefinition(FormulaDefinition):
+    """
+    A formula over several trace metrics at once.
+
+    Unlike `TraceMetricFormulaDefinition` the metric is not an argument of the function. Instead
+    `trace_metrics_resolver` derives the metrics the formula reads from its resolved arguments, so
+    the query level metric filter can include every one of them.
+    """
+
+    trace_metrics_resolver: Callable[[ResolvedArguments], frozenset[TraceMetric]]
+
+    def resolve(
+        self,
+        alias: str,
+        search_type: constants.SearchType,
+        resolved_arguments: list[AttributeKey | Any],
+        snuba_params: SnubaParams,
+        query_result_cache: dict[str, EAPResponse],
+        search_config: SearchResolverConfig,
+        default_value: float | None = None,
+    ) -> ResolvedFunction:
+        resolver_settings = ResolverSettings(
+            extrapolation_mode=resolve_extrapolation_mode(
+                search_config, self.extrapolation_mode_override
+            ),
+            snuba_params=snuba_params,
+            query_result_cache=query_result_cache,
+            search_config=search_config,
+            conditional=False,
+        )
+
+        return ResolvedMultiTraceMetricFormula(
+            public_alias=alias,
+            search_type=search_type,
+            formula=self.formula_resolver(resolved_arguments, resolver_settings),
+            is_aggregate=self.is_aggregate,
+            internal_type=self.internal_type,
+            processor=self.processor,
+            default_value=default_value,
+            trace_metrics=self.trace_metrics_resolver(resolved_arguments),
+        )
 
 
 def simple_sentry_field(

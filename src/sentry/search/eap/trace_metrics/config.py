@@ -5,7 +5,11 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 
 from sentry.discover.arithmetic import parse_arithmetic
 from sentry.exceptions import InvalidSearchQuery
-from sentry.search.eap.columns import ResolvedTraceMetricAggregate, ResolvedTraceMetricFormula
+from sentry.search.eap.columns import (
+    ResolvedMultiTraceMetricFormula,
+    ResolvedTraceMetricAggregate,
+    ResolvedTraceMetricFormula,
+)
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.rpc_utils import or_trace_item_filters
 from sentry.search.eap.trace_metrics.types import TraceMetric, TraceMetricType
@@ -63,6 +67,10 @@ class TraceMetricsSearchResolverConfig(SearchResolverConfig):
 
         for column in columns:
             resolved_function, _ = search_resolver.resolve_function(column)
+
+            if isinstance(resolved_function, ResolvedMultiTraceMetricFormula):
+                selected_metrics.update(resolved_function.trace_metrics)
+                continue
 
             if not isinstance(resolved_function, ResolvedTraceMetricAggregate) and not isinstance(
                 resolved_function, ResolvedTraceMetricFormula

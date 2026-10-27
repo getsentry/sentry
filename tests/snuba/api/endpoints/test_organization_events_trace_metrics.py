@@ -1016,3 +1016,189 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         assert len(data) == 1
         assert data[0]["transaction"] == "/api/users"
         assert data[0]["sum(value)"] == 400
+
+    def _create_web_vital_metric(
+        self,
+        vital: str,
+        score_ratio: float,
+        pageload_span_id: str = "a" * 16,
+        transaction: str = "/",
+    ):
+        return self.create_trace_metric(
+            f"browser.web_vital.{vital}",
+            1000.0,
+            "distribution",
+            metric_unit=None if vital == "cls" else "millisecond",
+            attributes={
+                f"score.ratio.{vital}": score_ratio,
+                f"score.{vital}": score_ratio,
+                "sentry.pageload.span_id": pageload_span_id,
+                "sentry.segment.name": transaction,
+            },
+        )
+
+    def test_web_vital_performance_score(self) -> None:
+        self.store_eap_items(
+            [
+                self._create_web_vital_metric("lcp", 0.02),
+                self._create_web_vital_metric("lcp", 0.08),
+                self._create_web_vital_metric("lcp", 0.08),
+                # a different vital must not affect the LCP score
+                self._create_web_vital_metric("cls", 1.0),
+            ]
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "performance_score(measurements.score.lcp)",
+                    "performance_score(measurements.score.cls)",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["performance_score(measurements.score.lcp)"] == pytest.approx(0.06)
+        assert data[0]["performance_score(measurements.score.cls)"] == pytest.approx(1.0)
+        assert meta["fields"]["performance_score(measurements.score.lcp)"] == "percentage"
+
+    def test_web_vital_performance_score_zero(self) -> None:
+        response = self.do_request(
+            {
+                "field": ["performance_score(measurements.score.lcp)"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["performance_score(measurements.score.lcp)"] is None
+
+    def test_web_vital_total_performance_score(self) -> None:
+        self.store_eap_items(
+            [
+                self._create_web_vital_metric("lcp", 1.0),
+                self._create_web_vital_metric("cls", 0.5),
+            ]
+        )
+
+        response = self.do_request(
+            {
+                "field": ["performance_score(measurements.score.total)"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        # only LCP (weight 0.30) and CLS (weight 0.15) have data, so the other weights drop out
+        expected = (1.0 * 0.30 + 0.5 * 0.15) / (0.30 + 0.15)
+        assert data[0]["performance_score(measurements.score.total)"] == pytest.approx(expected)
+
+    def test_web_vital_count_scores(self) -> None:
+        self.store_eap_items(
+            [
+                self._create_web_vital_metric("lcp", 0.5, pageload_span_id="a" * 16),
+                self._create_web_vital_metric("cls", 0.5, pageload_span_id="a" * 16),
+                self._create_web_vital_metric("lcp", 0.5, pageload_span_id="b" * 16),
+                # no score ratio, so it should not be counted
+                self.create_trace_metric("browser.web_vital.lcp", 1000.0, "distribution"),
+            ]
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "count_scores(measurements.score.lcp)",
+                    "count_scores(measurements.score.cls)",
+                    "count_scores(measurements.score.inp)",
+                    "count_scores(measurements.score.total)",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["count_scores(measurements.score.lcp)"] == 2
+        assert data[0]["count_scores(measurements.score.cls)"] == 1
+        assert data[0]["count_scores(measurements.score.inp)"] == 0
+        # total counts distinct pageloads with any vital
+        assert data[0]["count_scores(measurements.score.total)"] == 2
+        assert meta["fields"]["count_scores(measurements.score.lcp)"] == "integer"
+
+    def test_web_vital_opportunity_score(self) -> None:
+        self.store_eap_items(
+            [
+                self._create_web_vital_metric("lcp", 0.5, transaction="/slow"),
+                self._create_web_vital_metric("lcp", 0.5, transaction="/slow"),
+                self._create_web_vital_metric("lcp", 1.0, transaction="/fast"),
+            ]
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "opportunity_score(measurements.score.lcp)",
+                    "opportunity_score(measurements.score.total)",
+                ],
+                "orderby": "-opportunity_score(measurements.score.lcp)",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 2
+        assert data[0]["transaction"] == "/slow"
+        # (2 scores - 1.0 total ratio) / 3 scores overall
+        assert data[0]["opportunity_score(measurements.score.lcp)"] == pytest.approx(1 / 3)
+        # LCP is the only vital with data, so it carries the full weight
+        assert data[0]["opportunity_score(measurements.score.total)"] == pytest.approx(1 / 3)
+        assert data[1]["transaction"] == "/fast"
+        assert data[1]["opportunity_score(measurements.score.lcp)"] == pytest.approx(0)
+        assert data[1]["opportunity_score(measurements.score.total)"] == pytest.approx(0)
+
+    def test_web_vital_scores_alongside_metric_aggregates(self) -> None:
+        # Regression guard: the query level metric filter must include the metrics the score
+        # formulas read, not only the metrics named by the plain aggregates.
+        self.store_eap_items(
+            [
+                self._create_web_vital_metric("lcp", 0.5),
+                self._create_web_vital_metric("cls", 0.25),
+            ]
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "p75(value,browser.web_vital.cls,distribution,-)",
+                    "performance_score(measurements.score.lcp)",
+                    "performance_score(measurements.score.total)",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["p75(value,browser.web_vital.cls,distribution,-)"] == 1000.0
+        assert data[0]["performance_score(measurements.score.lcp)"] == pytest.approx(0.5)
+        expected = (0.5 * 0.30 + 0.25 * 0.15) / (0.30 + 0.15)
+        assert data[0]["performance_score(measurements.score.total)"] == pytest.approx(expected)
