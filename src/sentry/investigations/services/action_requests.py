@@ -324,8 +324,8 @@ def _check_can_apply(
     *,
     retry: bool = False,
 ) -> ActionKind:
-    """Return the request's kind, or raise ApplyFailed if the viewer can't apply it. A retry of
-    a failed re-check is for a request that already went stale, so its state doesn't count.
+    """Return the request's kind, or raise ApplyFailed if the viewer can't apply it. A retry is
+    for a request that already went stale or was applied, so its state doesn't count.
     """
 
     reason = shared_cannot_apply_reason(investigation, action_request)
@@ -517,6 +517,24 @@ def _failed_recheck(
     ).first()
 
 
+def _follow_up_retryable(action_request: InvestigationActionRequest) -> bool:
+    """Whether the applied request's follow-up failed without Seer turning it down. A command
+    Seer turned down, or a re-run it dropped, has a reason, and sending it again won't change it.
+    """
+
+    if (
+        action_request.state != InvestigationActionRequestState.APPLIED
+        or action_request.followup_request_id is None
+    ):
+        return False
+    command = InvestigationOrchestrationCommand.objects.filter(
+        orchestration_run__investigation_id=action_request.investigation_id,
+        request_id=action_request.followup_request_id,
+        status=InvestigationOrchestrationCommandStatus.FAILED,
+    ).first()
+    return command is not None and (command.error or {}).get("reason") is None
+
+
 def _check_without_writes(kind: ActionKind, context: ApplyContext) -> None:
     """Run the kind's check, and undo anything it writes."""
 
@@ -665,6 +683,30 @@ def _recheck(
     )
 
 
+def _retry_follow_up(
+    *,
+    investigation: Investigation,
+    action_request: InvestigationActionRequest,
+    request: Request,
+    actor_id: int,
+    expected_action: Mapping[str, Any] | None,
+) -> InvestigationActionRequest:
+    context = _locked_context(investigation, action_request, request, actor_id, lock=True)
+    action_request = context.action_request
+    if not _follow_up_retryable(action_request):
+        raise ApplyFailed(
+            {"detail": "There's nothing to send Seer again.", "code": ApplyErrorCode.NOT_RETRYABLE}
+        )
+    kind = _check_can_apply(context.investigation, action_request, request, retry=True)
+    _check_action_unchanged(action_request, expected_action)
+    command = kind.follow_up_command(action_request)
+    assert command is not None
+    action_request.update(
+        followup_request_id=_queue_follow_up(context.investigation, context.run, command, actor_id)
+    )
+    return action_request
+
+
 def _get_action_request(
     investigation: Investigation, action_request_id: str
 ) -> InvestigationActionRequest:
@@ -738,6 +780,30 @@ def recheck_action_request(
     action_request = _get_action_request(investigation, action_request_id)
     return _commit_then_raise(
         lambda: _recheck(
+            investigation=investigation,
+            action_request=action_request,
+            request=request,
+            actor_id=actor_id,
+            expected_action=expected_action,
+        )
+    )
+
+
+def retry_follow_up(
+    *,
+    investigation: Investigation,
+    action_request_id: str,
+    request: Request,
+    actor_id: int,
+    expected_action: Mapping[str, Any] | None = None,
+) -> InvestigationActionRequest:
+    """Send the applied request's follow-up command to Seer again under a new request ID, or
+    raise ApplyFailed with `not_retryable` if it didn't fail or Seer turned it down.
+    """
+
+    action_request = _get_action_request(investigation, action_request_id)
+    return _commit_then_raise(
+        lambda: _retry_follow_up(
             investigation=investigation,
             action_request=action_request,
             request=request,

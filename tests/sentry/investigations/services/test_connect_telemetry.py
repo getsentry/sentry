@@ -14,6 +14,8 @@ from sentry.investigations.models import (
     InvestigationActionRequest,
     InvestigationActionRequestState,
     InvestigationOrchestrationCommand,
+    InvestigationOrchestrationCommandStatus,
+    InvestigationOrchestrationRerun,
     InvestigationStatus,
 )
 from sentry.investigations.services.action_kinds.connect_telemetry import telemetry_available
@@ -21,6 +23,7 @@ from sentry.investigations.services.action_requests import upsert_action_request
 from sentry.signals import integration_added
 from sentry.tasks.seer.investigation import (
     TelemetryNotConnectedYet,
+    _mark_command_dispatch_failed,
     mark_investigation_telemetry_connected,
 )
 from sentry.testutils.cases import APITestCase, TestCase
@@ -168,6 +171,28 @@ class ConnectTelemetryApplyTest(APITestCase, TelemetryFixtures):
         self.action_request.refresh_from_db()
         return self.action_request
 
+    def retry_follow_up(self, **data: Any) -> Any:
+        url = reverse(
+            "sentry-api-0-organization-investigation-action-request-retry-follow-up",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "investigation_id": self.investigation.id,
+                "action_request_id": self.action_request.id,
+            },
+        )
+        return self.client.post(url, data=data, format="json")
+
+    def follow_up(self) -> InvestigationOrchestrationCommand:
+        request_id = self.reloaded().followup_request_id
+        assert request_id is not None
+        return InvestigationOrchestrationCommand.objects.get(request_id=request_id)
+
+    def applied_rerun(self) -> InvestigationOrchestrationCommand:
+        self.create_datadog()
+        self.suggest()
+        assert self.apply().status_code == 200
+        return self.follow_up()
+
     def test_applying_a_connected_provider_records_it(self) -> None:
         self.create_datadog()
         self.suggest()
@@ -188,6 +213,95 @@ class ConnectTelemetryApplyTest(APITestCase, TelemetryFixtures):
         assert {"type": rerun.type, **rerun.payload} == fixture("command_rerun_after_connection")
         assert (rerun.expected_workflow_version, rerun.resulting_workflow_version) == (4, 5)
         assert action_request.followup_request_id == rerun.request_id
+
+    def test_an_undelivered_re_run_can_be_tried_again(self) -> None:
+        failed = self.applied_rerun()
+        _mark_command_dispatch_failed(failed.id)
+
+        response = self.retry_follow_up(action=CONNECT)
+
+        assert response.status_code == 200, response.data
+        read = response.data["actionRequest"]
+        assert read["state"] == "applied"
+        assert read["followUp"] == {"status": "accepted", "reason": None, "rerun": None}
+        rerun = self.follow_up()
+        assert rerun.request_id != failed.request_id
+        assert {"type": rerun.type, **rerun.payload} == fixture("command_rerun_after_connection")
+        assert rerun.actor_id == self.user.id
+        assert rerun.expected_workflow_version == 5
+
+    def test_a_re_run_blocked_by_an_earlier_failure_can_be_tried_again(self) -> None:
+        failed = self.applied_rerun()
+        failed.update(
+            status=InvestigationOrchestrationCommandStatus.FAILED,
+            error={"code": "earlier_command_failed"},
+        )
+
+        assert self.retry_follow_up().status_code == 200
+        assert self.reloaded().followup_request_id != failed.request_id
+
+    def test_a_re_run_seer_turned_down_is_not_sent_again(self) -> None:
+        # Seer would turn it down again for the same reason.
+        failed = self.applied_rerun()
+        for error, rerun in (
+            ({"code": "seer_command_rejected", "reason": "provider_already_used"}, None),
+            (
+                {"code": "seer_command_dispatch_failed", "reason": "workflow_version_conflict"},
+                None,
+            ),
+            (
+                {"code": "rerun_skipped", "reason": "run_cancelled"},
+                InvestigationOrchestrationRerun.SKIPPED,
+            ),
+        ):
+            failed.update(
+                status=InvestigationOrchestrationCommandStatus.FAILED, error=error, rerun=rerun
+            )
+
+            response = self.retry_follow_up()
+
+            assert response.status_code == 409
+            assert response.data == {
+                "detail": "There's nothing to send Seer again.",
+                "code": "not_retryable",
+            }
+            assert self.reloaded().followup_request_id == failed.request_id
+
+    def test_a_re_run_that_did_not_fail_is_not_sent_again(self) -> None:
+        self.applied_rerun()
+
+        response = self.retry_follow_up()
+
+        assert response.status_code == 409
+        assert response.data["code"] == "not_retryable"
+        assert (
+            InvestigationOrchestrationCommand.objects.filter(type="rerun_after_connection").count()
+            == 1
+        )
+
+    def test_a_suggested_request_has_no_follow_up_to_retry(self) -> None:
+        self.suggest()
+
+        response = self.retry_follow_up()
+
+        assert response.status_code == 409
+        assert response.data["code"] == "not_retryable"
+
+    def test_a_retry_goes_through_the_apply_guard(self) -> None:
+        failed = self.applied_rerun()
+        _mark_command_dispatch_failed(failed.id)
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization, role="member")
+        self.login_as(member)
+
+        response = self.retry_follow_up()
+
+        assert response.status_code == 403
+        assert response.data["code"] == "permission_denied"
+        with self.feature({FEATURE: False}):
+            self.login_as(self.user)
+            assert self.retry_follow_up().data["code"] == "unsupported_action"
+        assert self.reloaded().followup_request_id == failed.request_id
 
     def test_a_provider_that_is_not_connected_cannot_be_applied(self) -> None:
         self.suggest()

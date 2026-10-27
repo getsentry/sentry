@@ -23,3 +23,11 @@ class ActionRequestRecheckValidator(StrictCamelSnakeValidator):
         help_text="The action the user saw. If the request's action is different, the recheck "
         "fails with `action_changed`.",
     )
+
+
+class ActionRequestRetryFollowUpValidator(StrictCamelSnakeValidator):
+    action = serializers.JSONField(
+        required=False,
+        help_text="The action the user saw. If the request's action is different, the retry "
+        "fails with `action_changed`.",
+    )
