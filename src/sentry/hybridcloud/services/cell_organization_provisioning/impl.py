@@ -2,7 +2,7 @@ from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from sentry_sdk import capture_exception
 
-from sentry import analytics, audit_log, roles
+from sentry import analytics, audit_log, options, roles
 from sentry.analytics.events.data_consent_org_creation import (
     AggregatedDataConsentOrganizationCreatedEvent,
 )
@@ -23,6 +23,7 @@ from sentry.models.organizationslugreservation import OrganizationSlugReservatio
 from sentry.services.organization import OrganizationOptions, OrganizationProvisioningOptions
 from sentry.signals import organization_created, terms_accepted
 from sentry.users.services.user.model import RpcUser
+from sentry.utils import json
 from sentry.utils.audit import create_audit_entry_from_user
 
 
@@ -35,6 +36,19 @@ def create_post_provision_outbox(
         category=OutboxCategory.POST_ORGANIZATION_PROVISION,
         object_identifier=org_id,
         payload=provisioning_options.post_provision_options.dict(),
+    )
+
+
+def create_provision_analytics_outbox(
+    provisioning_options: OrganizationProvisioningOptions, org_id: int
+) -> CellOutbox:
+    payload = json.loads(provisioning_options.provision_options.json())
+    return CellOutbox(
+        shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+        shard_identifier=org_id,
+        category=OutboxCategory.ORGANIZATION_PROVISION_ANALYTICS,
+        object_identifier=org_id,
+        payload=payload,
     )
 
 
@@ -146,6 +160,7 @@ class DatabaseBackedCellOrganizationProvisioningRpcService(CellOrganizationProvi
 
         provision_options = provision_payload.provision_options
 
+        use_outbox = options.get("organization.provision-analytics-with-outbox")
         with outbox_context(transaction.atomic(router.db_for_write(Organization))):
             organization = self._create_organization_and_team(
                 owner=provision_options.owner,
@@ -160,7 +175,13 @@ class DatabaseBackedCellOrganizationProvisioningRpcService(CellOrganizationProvi
                 provisioning_options=provision_payload, org_id=organization.id
             ).save()
 
-        self._record_organization_create_analytics(organization, provision_options)
+            if use_outbox:
+                create_provision_analytics_outbox(
+                    provisioning_options=provision_payload, org_id=organization.id
+                ).save()
+
+        if not use_outbox:
+            self._record_organization_create_analytics(organization, provision_options)
 
         return True
 
