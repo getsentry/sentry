@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Any, Literal, TypedDict, cast
 from uuid import UUID, uuid5
 
@@ -8,7 +9,9 @@ from django.conf import settings
 from pydantic import BaseModel, Field, StrictBool, StrictInt, ValidationError
 from urllib3 import BaseHTTPResponse
 
+from sentry.hybridcloud.rpc.service import RpcException
 from sentry.investigations.models import (
+    Investigation,
     InvestigationOrchestrationCommand,
     InvestigationOrchestrationRun,
 )
@@ -18,6 +21,8 @@ from sentry.seer.agent.monitoring_providers import get_monitoring_provider_conne
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.users.services.user.service import user_service
+
+logger = logging.getLogger(__name__)
 
 _CREATE_REQUEST_NAMESPACE = UUID("3bed27f2-9ab9-49ce-8d64-7d78d5c3fd76")
 investigation_connection_pool = connection_from_url(
@@ -84,6 +89,27 @@ __all__ = [
     "dispatch_investigation_orchestration_command",
     "get_investigation_orchestration_run",
 ]
+
+
+def _monitoring_providers(investigation: Investigation) -> list[dict[str, Any]] | None:
+    """The run's connections, which are its creator's whoever sends the command, or None if
+    Sentry couldn't read them. Seer replaces its connections with any list it gets, and keeps
+    them when there's none.
+    """
+
+    organization = investigation.organization
+    try:
+        connections = get_monitoring_provider_connections(
+            organization, investigation.created_by_id, skip_rpc_errors=False
+        )
+    except RpcException:
+        logger.warning(
+            "investigations.seer_client.monitoring_providers_failed",
+            extra={"organization_id": organization.id},
+            exc_info=True,
+        )
+        return None
+    return [connection.dict() for connection in connections]
 
 
 def _decode_response(response: BaseHTTPResponse) -> dict[str, Any]:
@@ -206,12 +232,9 @@ def create_investigation_orchestration_run(
         "userOrgContext": user_org_context,
         "activeTimeBudgetSeconds": 1800,
     }
-    monitoring_providers = get_monitoring_provider_connections(
-        run.investigation.organization,
-        run.investigation.created_by_id,
-    )
-    if monitoring_providers:
-        body["monitoringProviders"] = [provider.dict() for provider in monitoring_providers]
+    monitoring_providers = _monitoring_providers(run.investigation)
+    if monitoring_providers is not None:
+        body["monitoringProviders"] = monitoring_providers
     response = _post(
         "/v1/automation/investigations",
         body,
@@ -236,12 +259,9 @@ def dispatch_investigation_orchestration_command(
         "expectedWorkflowVersion": command.expected_workflow_version,
         "command": {"type": command.type, **command.payload},
     }
-    monitoring_providers = get_monitoring_provider_connections(
-        investigation.organization,
-        command.actor_id or investigation.created_by_id,
-    )
-    if monitoring_providers:
-        body["monitoringProviders"] = [provider.dict() for provider in monitoring_providers]
+    monitoring_providers = _monitoring_providers(investigation)
+    if monitoring_providers is not None:
+        body["monitoringProviders"] = monitoring_providers
     response = _post(
         f"/v1/automation/investigations/{seer_run_id}/commands",
         body,

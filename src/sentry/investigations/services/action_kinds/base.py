@@ -118,6 +118,14 @@ class ActionKind(abc.ABC):
         """For each suggested request, why the viewer can't apply it, or None if they can."""
         return {item.id: CannotApplyReason.UNSUPPORTED_ACTION for item in action_requests}
 
+    def check_remote(
+        self, investigation: Investigation, action_request: InvestigationActionRequest
+    ) -> None:
+        """Checks that ask another silo, for a request the viewer can apply. They run before
+        apply and its dry run take locks, since a silo call can't run in a transaction. Raise
+        ActionInvalid where apply would.
+        """
+
     def check(self, context: ApplyContext) -> None:
         """Run the checks apply would, without changing anything. Raise ActionStale or
         ActionInvalid where apply would. Kinds with nothing to check beyond

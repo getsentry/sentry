@@ -24,6 +24,7 @@ from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.gcp.client import delete_sentry_sa, generate_sentry_sa
 from sentry.integrations.gcp.utils import (
     GCP_MCP_URLS,
+    GCP_STATUS_CONNECTED,
     GCP_STATUS_UNVERIFIED,
     parse_customer_sa_email,
     parse_gcp_project_ids,
@@ -441,6 +442,9 @@ class GcpOrgMonitoringProvider(OrgMonitoringProvider):
             return None
 
         config = org_integration.config
+        # Seer can't read GCP until the customer's settings pass verification.
+        if config.get("connection_status") != GCP_STATUS_CONNECTED:
+            return None
         projects: list[str] = config.get("projects", [])
         sentry_sa_email: str | None = config.get("sentry_sa_email")
         customer_sa_email: str | None = config.get("customer_sa_email")

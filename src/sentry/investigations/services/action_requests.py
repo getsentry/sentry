@@ -349,11 +349,6 @@ def _check_can_apply(
     )
 
 
-def _seer_actor(investigation: Investigation, user_id: int) -> int:
-    # Send commands as the creator, so Seer keeps the run's monitoring connections.
-    return investigation.created_by_id or user_id
-
-
 def _queue_outcome(context: ApplyContext) -> None:
     """Tell Seer the request was applied."""
 
@@ -370,7 +365,7 @@ def _queue_outcome(context: ApplyContext) -> None:
             "outcome": "applied",
             "appliedBy": context.actor_id,
         },
-        actor_id=_seer_actor(context.investigation, context.actor_id),
+        actor_id=context.actor_id,
     )
 
 
@@ -405,7 +400,7 @@ def _queue_recheck(context: ApplyContext) -> UUID | None:
         expected_workflow_version=context.run.workflow_version,
         command_type="recheck_action_requests",
         payload={"reportRevision": context.action_request.report_revision, "source": source},
-        actor_id=_seer_actor(context.investigation, context.actor_id),
+        actor_id=context.actor_id,
     )
     return accepted.request_id
 
@@ -619,6 +614,13 @@ def apply_action_request(
     """
 
     action_request = _get_action_request(investigation, action_request_id)
+    # A silo call can't run in a transaction, so check before taking locks. _apply runs the
+    # guard again under them.
+    kind = _check_can_apply(investigation, action_request, request)
+    try:
+        kind.check_remote(investigation, action_request)
+    except ActionInvalid as invalid:
+        raise ApplyFailed(_invalid_error(invalid))
     return _commit_then_raise(
         lambda: _apply(
             investigation=investigation,

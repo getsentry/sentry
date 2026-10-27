@@ -550,6 +550,32 @@ class InvestigationActionRequestSerializationTest(TestCase):
 
         assert len(many.captured_queries) == len(one.captured_queries)
 
+    def add_connect_request(self) -> None:
+        self.add_request(
+            "connect-datadog", action={"kind": "connect_telemetry", "provider": "datadog"}
+        )
+
+    @with_feature("organizations:seer-infra-telemetry")
+    def test_a_manager_can_connect_a_provider_that_is_not_connected_yet(self) -> None:
+        self.add_connect_request()
+
+        (serialized,) = self.serialize_requests()
+
+        assert (serialized["canApply"], serialized["cannotApplyReason"]) == (True, None)
+
+    @with_feature("organizations:seer-infra-telemetry")
+    def test_members_who_cannot_install_integrations_cannot_connect(self) -> None:
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization, role="member")
+        self.add_connect_request()
+
+        assert self.cannot_apply_reason(member) == "permission_denied"
+
+    def test_providers_cannot_be_connected_without_infra_telemetry(self) -> None:
+        self.add_connect_request()
+
+        assert self.cannot_apply_reason() == "unsupported_action"
+
     def serialize_for(self, user: Any) -> list[dict[str, Any]]:
         access = from_user(user, self.organization)
         return serialize(self.investigation, user, InvestigationDetailsSerializer(access=access))[
