@@ -8,8 +8,12 @@ import type {OrgRole, TeamRole} from 'sentry/types/organization';
 
 type Props = {
   orgRole: OrgRole['id'] | undefined;
-  orgRoleList: OrgRole[];
-  teamRoleList: TeamRole[];
+  /**
+   * May be undefined when the organization was serialized without role lists
+   * (e.g. the summary payload returned to users without `org:read`).
+   */
+  orgRoleList: OrgRole[] | undefined;
+  teamRoleList: TeamRole[] | undefined;
   isSelf?: boolean;
 };
 
@@ -45,6 +49,9 @@ export function RoleOverwritePanelAlert(props: Props) {
  */
 export function hasOrgRoleOverwrite(props: Props) {
   const {orgRole, orgRoleList, teamRoleList} = props;
+  if (!orgRoleList || !teamRoleList) {
+    return false;
+  }
 
   const orgRoleObj = orgRoleList.find(r => r.id === orgRole);
   return teamRoleList.findIndex(r => r.id === orgRoleObj?.minimumTeamRole) > 0;
@@ -55,8 +62,8 @@ export function hasOrgRoleOverwrite(props: Props) {
  */
 function getOverwriteString(props: Props) {
   const {orgRole, orgRoleList, teamRoleList, isSelf} = props;
-  const orgRoleObj = orgRoleList.find(r => r.id === orgRole);
-  const teamRoleObj = teamRoleList.find(r => r.id === orgRoleObj?.minimumTeamRole);
+  const orgRoleObj = orgRoleList?.find(r => r.id === orgRole);
+  const teamRoleObj = teamRoleList?.find(r => r.id === orgRoleObj?.minimumTeamRole);
   if (!orgRoleObj || !teamRoleObj) {
     return '';
   }
