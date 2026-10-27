@@ -13,7 +13,7 @@ import {IconSiren} from '@sentry/icons/siren';
 import {IconUser} from '@sentry/icons/user';
 import {motion, type MotionProps} from 'framer-motion';
 
-import {Button} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button';
 import {Stack, Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
 
@@ -21,9 +21,9 @@ import Feature from 'sentry/components/acl/feature';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {Override} from 'sentry/components/override';
 import {t} from 'sentry/locale';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {getReturnPath} from 'sentry/utils/useReturnPath';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
 import {
@@ -34,6 +34,7 @@ import {
   NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
   PRIMARY_SIDEBAR_WIDTH,
   SECONDARY_SIDEBAR_WIDTH,
+  SETTINGS_RETURN_PATH_KEY,
 } from 'sentry/views/navigation/constants';
 import {
   NavigationTour,
@@ -55,7 +56,6 @@ import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/cont
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 import {useCollapsedNavigation} from 'sentry/views/navigation/useCollapsedNavigation';
 import {useSettingsNavigation} from 'sentry/views/navigation/useSettingsNavigation';
-import {getSettingsReturnPath} from 'sentry/views/navigation/useSettingsReturnPath';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import {
@@ -181,18 +181,18 @@ export function SettingsNavigationBackButton({
 }: {
   organizationSlug: string;
 }) {
-  const navigate = useNavigate();
   const {setActiveGroup} = usePrimaryNavigation();
   return (
-    <Button
+    <LinkButton
       size="sm"
       icon={<IconArrow direction="left" />}
       aria-label={t('Back to app')}
       tooltipProps={{title: t('Back to app')}}
-      onClick={() => {
-        setActiveGroup(null);
-        navigate(getSettingsReturnPath(`/organizations/${organizationSlug}/issues/`));
-      }}
+      to={getReturnPath(
+        SETTINGS_RETURN_PATH_KEY,
+        `/organizations/${organizationSlug}/issues/`
+      )}
+      onClick={() => setActiveGroup(null)}
     />
   );
 }

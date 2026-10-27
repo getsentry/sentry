@@ -12,6 +12,11 @@ import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPal
 import {CommandPaletteHotkeys} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useCaptureReturnPath} from 'sentry/utils/useReturnPath';
+import {
+  SETTINGS_PATH_PREFIX,
+  SETTINGS_RETURN_PATH_KEY,
+} from 'sentry/views/navigation/constants';
 import {MobileNavigation} from 'sentry/views/navigation/mobileNavigation';
 import {Navigation as DesktopNavigation} from 'sentry/views/navigation/navigation';
 import {
@@ -24,7 +29,6 @@ import {
   useSecondaryNavigation,
 } from 'sentry/views/navigation/secondaryNavigationContext';
 import {useResetActiveNavigationGroup} from 'sentry/views/navigation/useResetActiveNavigationGroup';
-import {useCaptureSettingsReturnPath} from 'sentry/views/navigation/useSettingsReturnPath';
 import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 
 /**
@@ -56,7 +60,10 @@ function UserAndOrganizationNavigation({pageBannerHeight}: NavigationProps) {
   const {visible} = useModal();
   const {view, setView} = useSecondaryNavigation();
 
-  useCaptureSettingsReturnPath();
+  useCaptureReturnPath({
+    key: SETTINGS_RETURN_PATH_KEY,
+    excludePrefix: SETTINGS_PATH_PREFIX,
+  });
 
   useHotkeys(
     visible

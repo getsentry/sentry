@@ -2,7 +2,7 @@ import {matchPath} from 'react-router';
 
 import {useLocation} from 'sentry/utils/useLocation';
 
-type SettingsScope = 'account' | 'org' | 'project';
+export type SettingsScope = 'account' | 'org' | 'project';
 
 /**
  * Which settings scope the current route belongs to. Derived from the pathname
