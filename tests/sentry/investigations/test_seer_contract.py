@@ -38,6 +38,8 @@ def test_every_fixture_is_covered() -> None:
         "state_snapshot_action_requests",
         "command_record_action_outcome",
         "rejected_record_action_outcome",
+        "command_recheck_action_requests",
+        "rejected_recheck_action_requests",
     }
 
 

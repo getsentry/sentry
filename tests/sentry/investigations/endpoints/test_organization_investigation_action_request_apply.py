@@ -19,6 +19,8 @@ from sentry.investigations.models import (
     InvestigationActionRequestState,
     InvestigationBlock,
     InvestigationOrchestrationCommand,
+    InvestigationOrchestrationPhase,
+    InvestigationOrchestrationRun,
     InvestigationStatus,
 )
 from sentry.investigations.services.action_kinds import ACTION_KINDS
@@ -39,6 +41,9 @@ from sentry.testutils.skips import requires_kafka, requires_snuba
 from sentry.workflow_engine.models import DataConditionGroup, Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
+from tests.sentry.investigations.services.test_orchestration import (
+    BreachedMetricInvestigationTestCase,
+)
 from tests.sentry.investigations.test_contracts import RecordingKind, fake_action, fake_action_kind
 from tests.sentry.investigations.test_seer_contract import fixture
 
@@ -840,6 +845,7 @@ class SharedApplyPathTest(APITestCase):
         self.orchestration_run = self.create_investigation_orchestration_run(
             investigation=self.investigation,
             workflow_version=4,
+            phase=InvestigationOrchestrationPhase.COMPLETED,
             projection={"workflowVersion": 4, "report": {"revision": 2, "status": "completed"}},
         )
         self.action_request = self.create_investigation_action_request(
@@ -929,7 +935,7 @@ class SharedApplyPathTest(APITestCase):
         self.kind.raises = ActionStale({"window": 600})
         assert self.post().status_code == 409
 
-        assert self.commands() == []
+        assert [command.type for command in self.commands()] == ["recheck_action_requests"]
 
     def test_a_stale_action_is_superseded_with_what_moved(self) -> None:
         self.kind.raises = ActionStale({"window": 600})
@@ -946,6 +952,61 @@ class SharedApplyPathTest(APITestCase):
         assert self.action_request.state == InvestigationActionRequestState.SUPERSEDED
         assert self.action_request.error == {"code": "stale", "current": {"window": 600}}
 
+    def test_a_stale_action_asks_seer_to_check_again(self) -> None:
+        self.kind.raises = ActionStale({"window": 600})
+
+        assert self.post().status_code == 409
+
+        [command] = self.commands()
+        assert command.type == "recheck_action_requests"
+        assert {"type": command.type, **command.payload}.keys() == fixture(
+            "command_recheck_action_requests"
+        ).keys()
+        assert command.payload["reportRevision"] == 2
+        assert command.actor_id == self.user.id
+        assert (command.expected_workflow_version, command.resulting_workflow_version) == (4, 5)
+        self.action_request.refresh_from_db()
+        assert self.action_request.followup_request_id == command.request_id
+        details = self.client.get(
+            reverse(
+                "sentry-api-0-organization-investigation-details",
+                kwargs={
+                    "organization_id_or_slug": self.organization.slug,
+                    "investigation_id": self.investigation.id,
+                },
+            )
+        )
+        [read] = details.data["actionRequests"]
+        assert read["followUp"] == {"status": "accepted", "reason": None}
+
+    def test_a_stale_action_seer_cant_recheck_stops_being_listed(self) -> None:
+        for phase, report in (
+            (InvestigationOrchestrationPhase.INVESTIGATING, {"revision": 2, "status": "completed"}),
+            (InvestigationOrchestrationPhase.COMPLETED, {"revision": 3, "status": "completed"}),
+            (InvestigationOrchestrationPhase.METADATA, {"revision": 2, "status": "composing"}),
+        ):
+            self.orchestration_run.update(phase=phase, projection={"report": report})
+            self.action_request.update(state=InvestigationActionRequestState.SUGGESTED, error=None)
+            self.kind.raises = ActionStale({"window": 600})
+
+            assert self.post().status_code == 409
+
+            assert self.commands() == []
+            self.action_request.refresh_from_db()
+            assert self.action_request.state == InvestigationActionRequestState.SUPERSEDED
+            assert self.action_request.error == {"code": "stale", "current": {"window": 600}}
+            assert self.action_request.followup_request_id is None
+            details = self.client.get(
+                reverse(
+                    "sentry-api-0-organization-investigation-details",
+                    kwargs={
+                        "organization_id_or_slug": self.organization.slug,
+                        "investigation_id": self.investigation.id,
+                    },
+                )
+            )
+            assert details.data["actionRequests"] == []
+
     def test_a_stale_dry_run_changes_nothing(self) -> None:
         self.kind.raises = ActionStale({"window": 600})
 
@@ -955,6 +1016,8 @@ class SharedApplyPathTest(APITestCase):
         self.action_request.refresh_from_db()
         assert self.action_request.state == InvestigationActionRequestState.SUGGESTED
         assert self.action_request.error is None
+        assert self.action_request.followup_request_id is None
+        assert self.commands() == []
 
     def test_an_invalid_action_stays_suggested(self) -> None:
         self.kind.raises = ActionInvalid(["Pick a supported window."])
@@ -969,3 +1032,42 @@ class SharedApplyPathTest(APITestCase):
         }
         self.action_request.refresh_from_db()
         assert self.action_request.state == InvestigationActionRequestState.SUGGESTED
+
+
+@with_feature(FEATURE)
+class BreachedMetricRecheckTest(BreachedMetricInvestigationTestCase):
+    def test_the_recheck_sends_the_source_the_run_started_with(self) -> None:
+        self.login_as(self.user)
+        kind = fake_action_kind()
+        kind.start()
+        self.addCleanup(kind.stop)
+        recording = ACTION_KINDS["test_kind"]
+        assert isinstance(recording, RecordingKind)
+        recording.raises = ActionStale({"window": 600})
+        InvestigationOrchestrationRun.objects.filter(investigation=self.investigation).update(
+            phase=InvestigationOrchestrationPhase.COMPLETED,
+            projection={"report": {"revision": 1, "status": "completed"}},
+        )
+        action_request = self.create_investigation_action_request(
+            investigation=self.investigation,
+            report_revision=1,
+            key="widen-time-window",
+            action_kind="test_kind",
+            action_payload=fake_action(),
+        )
+
+        response = self.client.post(
+            reverse(
+                "sentry-api-0-organization-investigation-action-request-apply",
+                kwargs={
+                    "organization_id_or_slug": self.organization.slug,
+                    "investigation_id": self.investigation.id,
+                    "action_request_id": action_request.id,
+                },
+            ),
+            format="json",
+        )
+
+        assert response.status_code == 409
+        command = InvestigationOrchestrationCommand.objects.get(type="recheck_action_requests")
+        assert command.payload["source"] == self.started_source(self.investigation)

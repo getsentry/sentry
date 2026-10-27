@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any
-from uuid import UUID, uuid5
+from uuid import UUID, uuid4, uuid5
 
 from django.db import router, transaction
 from django.db.models import Q, QuerySet
@@ -17,6 +17,7 @@ from sentry.investigations.models import (
     InvestigationActionRequest,
     InvestigationActionRequestAnchorType,
     InvestigationActionRequestState,
+    InvestigationOrchestrationPhase,
     InvestigationOrchestrationRun,
 )
 from sentry.investigations.services.action_kinds import get_action_kind, shared_cannot_apply_reason
@@ -30,8 +31,12 @@ from sentry.investigations.services.action_kinds.base import (
     ApplyErrorCode,
     ApplyFailed,
     CannotApplyReason,
+    SettingValue,
 )
-from sentry.investigations.services.orchestration import accept_orchestration_command
+from sentry.investigations.services.orchestration import (
+    accept_orchestration_command,
+    rebuild_orchestration_source,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +49,30 @@ LIVE_STATES = (
 )
 
 
+# A request that went stale on apply. It's listed while Seer re-checks it.
+STALE = Q(
+    state=InvestigationActionRequestState.SUPERSEDED,
+    error__code=ApplyErrorCode.STALE,
+    followup_request_id__isnull=False,
+)
+
+
+def _is_stale(row: InvestigationActionRequest) -> bool:
+    return (
+        row.state == InvestigationActionRequestState.SUPERSEDED
+        and row.error is not None
+        and row.error["code"] == ApplyErrorCode.STALE
+        and row.followup_request_id is not None
+    )
+
+
+def _drop_stale(queryset: QuerySet[InvestigationActionRequest]) -> None:
+    # Keep the error, so Seer sending the same suggestion again can't bring it back.
+    queryset.filter(STALE).update(followup_request_id=None, date_updated=timezone.now())
+
+
 def _supersede(queryset: QuerySet[InvestigationActionRequest]) -> int:
+    _drop_stale(queryset)
     return queryset.filter(state__in=LIVE_STATES).update(
         state=InvestigationActionRequestState.SUPERSEDED, date_updated=timezone.now()
     )
@@ -55,13 +83,16 @@ def supersede_action_requests_before(investigation: Investigation, report_revisi
 
     Only the primary and block-anchored requests go away with the old report. A re-run can
     ask for hypothesis and unanchored requests before its new report starts, so we keep
-    those until Seer re-sends, withdraws, or leaves them out of a snapshot.
+    those until Seer re-sends, withdraws, or leaves them out of a snapshot. Stale requests
+    all go, since the re-check was for the old report.
     """
 
+    older = InvestigationActionRequest.objects.filter(
+        investigation=investigation, report_revision__lt=report_revision
+    )
+    _drop_stale(older)
     return _supersede(
-        InvestigationActionRequest.objects.filter(
-            investigation=investigation, report_revision__lt=report_revision
-        ).filter(Q(primary=True) | Q(anchor_type=InvestigationActionRequestAnchorType.BLOCK))
+        older.filter(Q(primary=True) | Q(anchor_type=InvestigationActionRequestAnchorType.BLOCK))
     )
 
 
@@ -69,13 +100,16 @@ def _replace_primary(investigation: Investigation, row: InvestigationActionReque
     """Make `row` the only live primary.
 
     An older primary with an anchor stays as a normal request under that anchor. One without
-    an anchor is superseded.
+    an anchor is superseded, and a stale one stops being listed.
     """
 
     others = InvestigationActionRequest.objects.filter(
-        investigation=investigation, primary=True, state__in=LIVE_STATES
+        investigation=investigation, primary=True
     ).exclude(id=row.id)
-    others.filter(anchor_type__isnull=False).update(primary=False, date_updated=timezone.now())
+    _drop_stale(others)
+    others.filter(anchor_type__isnull=False, state__in=LIVE_STATES).update(
+        primary=False, date_updated=timezone.now()
+    )
     _supersede(others.filter(anchor_type__isnull=True))
 
 
@@ -142,6 +176,9 @@ def _upsert(
     elif row.state == InvestigationActionRequestState.APPLIED:
         changed = False
     else:
+        if _is_stale(row) and row.action_payload == action:
+            # Seer demotes an old primary before it sends the new one, which drops this.
+            del display["primary"]
         update_fields = [*display, "date_updated"]
         for field, value in display.items():
             setattr(row, field, value)
@@ -151,13 +188,27 @@ def _upsert(
             row.state = InvestigationActionRequestState.SUGGESTED
             row.error = None
             row.reason = None
-            update_fields.extend(["action_kind", "action_payload", "state", "error", "reason"])
+            row.followup_request_id = None
+            update_fields.extend(
+                ["action_kind", "action_payload", "state", "error", "reason", "followup_request_id"]
+            )
         elif row.state == InvestigationActionRequestState.SUPERSEDED and row.error is None:
             row.state = InvestigationActionRequestState.SUGGESTED
             update_fields.append("state")
         else:
             changed = False
         row.save(update_fields=update_fields)
+
+    if anchor is not None:
+        # A newer request under the same anchor replaces a stale one there.
+        _drop_stale(
+            InvestigationActionRequest.objects.filter(
+                investigation=investigation,
+                anchor_type=anchor["type"],
+                anchor_id=anchor["id"],
+                id__lt=row.id,
+            )
+        )
 
     if item["primary"] and row.state not in LIVE_STATES:
         # Seer should have used a new key. A finished request can't be the next step again.
@@ -169,15 +220,15 @@ def _upsert(
 
 
 def withdraw_action_request(run: InvestigationOrchestrationRun, key: str, reason: str) -> bool:
-    """Withdraw a suggested request that Seer no longer stands behind. Applied and failed
-    requests are left alone.
+    """Withdraw a suggested or stale request that Seer no longer stands behind. Applied and
+    failed requests are left alone.
     """
 
     return bool(
         InvestigationActionRequest.objects.filter(
+            Q(state=InvestigationActionRequestState.SUGGESTED) | STALE,
             investigation=run.investigation,
             key=key,
-            state=InvestigationActionRequestState.SUGGESTED,
         ).update(
             state=InvestigationActionRequestState.WITHDRAWN,
             reason=reason,
@@ -189,7 +240,9 @@ def withdraw_action_request(run: InvestigationOrchestrationRun, key: str, reason
 def sync_snapshot_action_requests(
     run: InvestigationOrchestrationRun, items: Sequence[ActionRequestItem]
 ) -> None:
-    """Treat the snapshot as the full list: any live request it leaves out is superseded."""
+    """Treat the snapshot as the full list: any live request it leaves out is superseded, and
+    any stale one stops being listed.
+    """
 
     primaries: list[InvestigationActionRequest] = []
     changed: list[InvestigationActionRequest] = []
@@ -310,6 +363,52 @@ def _queue_outcome(context: ApplyContext) -> None:
     )
 
 
+def _seer_can_recheck(
+    run: InvestigationOrchestrationRun, action_request: InvestigationActionRequest
+) -> bool:
+    # Seer turns a re-check down unless it's for the current report, and that report is done.
+    report = run.projection.get("report")
+    return (
+        run.phase
+        in (InvestigationOrchestrationPhase.METADATA, InvestigationOrchestrationPhase.COMPLETED)
+        and isinstance(report, dict)
+        and report.get("status") == "completed"
+        and report.get("revision") == action_request.report_revision
+    )
+
+
+def _queue_recheck(context: ApplyContext) -> UUID | None:
+    """Ask Seer to check its requests for this report again against the current source, and
+    return the command's request ID. None if Seer would turn it down or Sentry can't rebuild
+    the source.
+    """
+
+    if not _seer_can_recheck(context.run, context.action_request):
+        return None
+    source = rebuild_orchestration_source(context.investigation)
+    if source is None:
+        return None
+    accepted = accept_orchestration_command(
+        investigation=context.investigation,
+        request_id=uuid4(),
+        expected_workflow_version=context.run.workflow_version,
+        command_type="recheck_action_requests",
+        payload={"reportRevision": context.action_request.report_revision, "source": source},
+        actor_id=_seer_actor(context.investigation, context.actor_id),
+    )
+    return accepted.request_id
+
+
+def _record_stale(context: ApplyContext, current: dict[str, SettingValue]) -> None:
+    # It's listed while Seer re-checks, and the error stops Seer sending the same suggestion
+    # again from bringing it back.
+    context.action_request.update(
+        state=InvestigationActionRequestState.SUPERSEDED,
+        error=ActionRequestError(code=ApplyErrorCode.STALE, current=current),
+        followup_request_id=_queue_recheck(context),
+    )
+
+
 def _check_without_writes(kind: ActionKind, context: ApplyContext) -> None:
     """Run the kind's check, and undo anything it writes."""
 
@@ -386,12 +485,7 @@ def _apply(
         details = kind.apply(context)
     except ActionStale as stale:
         if not dry_run:
-            # Keep the error on the row, so Seer sending the same suggestion again can't bring
-            # it back.
-            context.action_request.update(
-                state=InvestigationActionRequestState.SUPERSEDED,
-                error=ActionRequestError(code=ApplyErrorCode.STALE, current=stale.current),
-            )
+            _record_stale(context, stale.current)
         raise ApplyFailed(
             {
                 "detail": "This changed since Seer suggested it.",

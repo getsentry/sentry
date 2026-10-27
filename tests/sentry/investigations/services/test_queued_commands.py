@@ -197,3 +197,81 @@ class QueuedCommandsTest(TestCase):
         assert self.orchestration_run.error is None
         assert self.orchestration_run.projection["errors"] == []
         self.dispatch.assert_called_once_with(self.orchestration_run.id)
+
+    def recheck(self) -> InvestigationOrchestrationCommand:
+        return self.accept(
+            "recheck_action_requests", {"reportRevision": 1, "source": {"type": "manual"}}
+        )
+
+    @mock.patch("sentry.investigations.seer_client.make_signed_seer_api_request")
+    def test_a_re_check_seer_turns_down_keeps_seers_code(self, seer: mock.Mock) -> None:
+        self.seer_rejects_with(seer, "rejected_recheck_action_requests")
+        recheck = self.recheck()
+
+        dispatch_investigation_orchestration_commands(self.orchestration_run.id)
+
+        recheck.refresh_from_db()
+        self.orchestration_run.refresh_from_db()
+        assert recheck.status == InvestigationOrchestrationCommandStatus.FAILED
+        assert recheck.error is not None
+        assert recheck.error["reason"] == "action_requests_report_changed"
+        # The re-check bumped Sentry's version, and Seer's never moved.
+        assert self.orchestration_run.workflow_version == 10
+        # The request shows it, so the run has no error.
+        assert self.orchestration_run.error is None
+        assert self.orchestration_run.projection["errors"] == []
+
+    @mock.patch("sentry.investigations.seer_client.make_signed_seer_api_request")
+    def test_a_turned_down_re_check_that_fails_a_user_command_is_a_run_error(
+        self, seer: mock.Mock
+    ) -> None:
+        self.seer_rejects_with(seer, "rejected_recheck_action_requests")
+        recheck = self.recheck()
+        steer = self.steer()
+
+        dispatch_investigation_orchestration_commands(self.orchestration_run.id)
+
+        recheck.refresh_from_db()
+        steer.refresh_from_db()
+        self.orchestration_run.refresh_from_db()
+        assert steer.status == InvestigationOrchestrationCommandStatus.FAILED
+        assert steer.error is not None
+        assert steer.error["code"] == "earlier_command_conflicted"
+        assert self.orchestration_run.error == recheck.error
+        assert self.orchestration_run.projection["errors"] == [recheck.error]
+
+    def test_an_undelivered_re_check_that_fails_a_user_command_is_a_run_error(self) -> None:
+        recheck = self.recheck()
+        steer = self.steer()
+
+        _mark_command_dispatch_failed(recheck.id)
+
+        recheck.refresh_from_db()
+        steer.refresh_from_db()
+        self.orchestration_run.refresh_from_db()
+        assert steer.status == InvestigationOrchestrationCommandStatus.FAILED
+        assert self.orchestration_run.error == recheck.error
+
+    @mock.patch("sentry.investigations.seer_client.make_signed_seer_api_request")
+    def test_a_user_command_seer_turns_down_is_a_run_error(self, seer: mock.Mock) -> None:
+        self.seer_rejects_with(seer, "rejected_recheck_action_requests")
+        steer = self.steer()
+
+        dispatch_investigation_orchestration_commands(self.orchestration_run.id)
+
+        steer.refresh_from_db()
+        self.orchestration_run.refresh_from_db()
+        assert steer.error is not None
+        assert steer.error["reason"] == "action_requests_report_changed"
+        assert self.orchestration_run.error == steer.error
+
+    def test_an_undelivered_re_check_is_not_a_run_error(self) -> None:
+        recheck = self.recheck()
+
+        _mark_command_dispatch_failed(recheck.id)
+
+        recheck.refresh_from_db()
+        self.orchestration_run.refresh_from_db()
+        assert recheck.status == InvestigationOrchestrationCommandStatus.FAILED
+        assert self.orchestration_run.error is None
+        assert self.orchestration_run.projection["errors"] == []
