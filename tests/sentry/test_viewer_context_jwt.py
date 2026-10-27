@@ -7,16 +7,17 @@ import jwt as pyjwt
 import pytest
 from django.test import override_settings
 from django.utils import timezone
+from sentry_viewercontext import key_id
 
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.types.superuser import SuperuserAccess
 from sentry.viewer_context import (
     Actor,
     ActorType,
+    SuperuserAccess,
     ViewerContext,
     decode_viewer_context,
     encode_viewer_context,
@@ -82,7 +83,9 @@ class TestEncodeEarlyAdopterClaim(TestCase):
 class TestEncodeDecodeRoundtrip(TestCase):
     @override_settings(SEER_API_SHARED_SECRET="test-secret-key")
     def test_roundtrip(self):
-        vc = ViewerContext(organization_id=42, actor=Actor(type=ActorType.USER, actor_id=7))
+        vc = ViewerContext(
+            organization_id=42, actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=7)
+        )
         token = encode_viewer_context(vc)
         result = decode_viewer_context(token)
         assert result == vc
@@ -136,7 +139,7 @@ class TestEncodeViewerContext(TestCase):
         with freeze_time(timezone.now() + timedelta(minutes=4)):
             propagated = encode_viewer_context(decode_viewer_context(token))
         claims = pyjwt.decode(propagated, options={"verify_signature": False})
-        assert claims["superuser"] == {"expires_at": deadline}
+        assert claims["actor"]["superuser"] == {"expires_at": deadline}
         assert claims["exp"] == deadline
 
     @override_settings(SEER_API_SHARED_SECRET="test-secret-key")
@@ -194,13 +197,12 @@ class TestDecodeViewerContext(TestCase):
             "exp": time.time() - 60,
             "iss": "sentry",
         }
-        from sentry.viewer_context import _key_id
 
         expired_token = pyjwt.encode(
             payload,
             "test-secret-key",
             algorithm="HS256",
-            headers={"kid": _key_id("test-secret-key")},
+            headers={"kid": key_id("test-secret-key")},
         )
 
         with pytest.raises(pyjwt.exceptions.ExpiredSignatureError):
@@ -210,7 +212,7 @@ class TestDecodeViewerContext(TestCase):
         vc = ViewerContext(actor=Actor(type=ActorType.UNKNOWN), organization_id=1)
         token = encode_viewer_context(vc, key="correct-key")
 
-        with pytest.raises(pyjwt.exceptions.InvalidSignatureError):
+        with pytest.raises(pyjwt.exceptions.InvalidTokenError, match="No verification key"):
             decode_viewer_context(token, key="wrong-key")
 
     def test_leeway_accepts_nearly_expired(self):
@@ -222,7 +224,9 @@ class TestDecodeViewerContext(TestCase):
             "exp": time.time() - 3,  # expired 3 seconds ago
             "iss": "sentry",
         }
-        token = pyjwt.encode(payload, "test-key", algorithm="HS256")
+        token = pyjwt.encode(
+            payload, "test-key", algorithm="HS256", headers={"kid": key_id("test-key")}
+        )
 
         # Should succeed with default leeway of 5 seconds
         result = decode_viewer_context(token, key="test-key")

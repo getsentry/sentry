@@ -131,6 +131,10 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/sharedGroupDetails')),
     },
     {
+      path: '/organizations/:orgId/share/issue/:shareId/',
+      component: make(() => import('sentry/views/sharedGroupDetails')),
+    },
+    {
       path: '/unsubscribe/project/:id/',
       component: make(() => import('sentry/views/unsubscribe/project')),
       customerDomainOnlyRoute: true,
@@ -197,10 +201,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: '/user-feedback/',
       redirectTo: '/feedback/',
-    },
-    {
-      path: '/organizations/:orgId/share/issue/:shareId/',
-      component: make(() => import('sentry/views/sharedGroupDetails')),
     },
     {
       path: '/organizations/new/',
@@ -2746,6 +2746,16 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'automations/',
       component: make(() => import('sentry/views/seerWorkflows')),
+      children: [
+        {
+          index: true,
+          component: make(() => import('sentry/views/seerWorkflows/automations')),
+        },
+        {
+          path: 'runs/',
+          component: make(() => import('sentry/views/seerWorkflows/runs')),
+        },
+      ],
     },
   ];
   const seerRoutes: SentryRouteObject = {

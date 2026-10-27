@@ -1,15 +1,18 @@
 import {useEffect, useRef, type Ref} from 'react';
 import {mergeRefs} from '@react-aria/utils';
 
-import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
-import {useFieldContext} from '@sentry/scraps/form/formContext';
-import {Checkmark, Spinner} from '@sentry/scraps/form/icons';
+import {
+  useAutoSaveContext,
+  useFieldContext,
+  Checkmark,
+  Spinner,
+  useFieldId,
+  useHintTextId,
+  FieldMeta,
+} from '@sentry/scraps/formPresentation';
 import {Flex} from '@sentry/scraps/layout';
 
 import {useLocation} from 'sentry/utils/useLocation';
-
-import {useFieldId, useHintTextId} from './fieldIds';
-import {FieldMeta} from './meta';
 
 export type BaseFieldProps<T extends HTMLElement> = {
   disabled?: boolean | string;

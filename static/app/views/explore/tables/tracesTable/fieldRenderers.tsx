@@ -17,6 +17,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {PerformanceDuration} from 'sentry/components/performanceDuration';
+import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct, tn} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
@@ -443,6 +444,7 @@ export function SpanIdRenderer({
   const location = useLocation();
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const [caseInsensitive] = useCaseInsensitivity();
 
   const shortSpanId = getShortEventId(spanId);
 
@@ -470,6 +472,7 @@ export function SpanIdRenderer({
               similarSpans: (
                 <Link
                   to={getSimilarEventsUrl({
+                    caseInsensitive,
                     queryString: search.formatString(),
                     organization,
                     projectIds,
@@ -528,6 +531,7 @@ export function TraceIdRenderer({
 }: TraceIdRendererProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const [caseInsensitive] = useCaseInsensitivity();
 
   const shortId = getShortEventId(traceId);
 
@@ -557,6 +561,7 @@ export function TraceIdRenderer({
               similarTraces: (
                 <Link
                   to={getSimilarEventsUrl({
+                    caseInsensitive,
                     queryString: search.formatString(),
                     table: 'trace',
                     organization,

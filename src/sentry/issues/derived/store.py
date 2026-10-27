@@ -39,7 +39,8 @@ class GroupDerivedDataStore:
 
     @staticmethod
     def load(pipeline: PipelineFeatures, derived: GroupDerivedData) -> State:
-        data: dict[str, Any] = derived.data
+        # The field is typed as a dict, but the JSON column can hold any value.
+        data: object = derived.data
         if not isinstance(data, dict):
             raise DerivedDataError("decode") from TypeError("Expected derived data to be an object")
         result: dict[Feature[Any], Any] = {}

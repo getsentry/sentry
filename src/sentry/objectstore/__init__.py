@@ -13,6 +13,7 @@ from django.urls import reverse
 from objectstore_client import (
     Client,
     MetricsBackend,
+    SecretKey,
     Session,
     TimeToIdle,
     TimeToLive,
@@ -129,11 +130,15 @@ def _create_client() -> Client:
     # Initialize the `TokenGenerator` if key parameters are found.
     token_generator = None
     if signing_key_options := options.get("token_generator"):
-        # We require the `kid` and `secret_key` keys be set, other options are optional
-        if signing_key_options.get("kid") and signing_key_options.get("secret_key"):
-            token_generator = TokenGenerator(
-                **signing_key_options,
-            )
+        # We require the `kid` and `secret_key` keys be set, other options
+        # (`expiry_seconds`, `permissions`) are optional token defaults.
+        kid = signing_key_options.get("kid")
+        secret_key = signing_key_options.get("secret_key")
+        if kid and secret_key:
+            token_defaults = {
+                k: v for k, v in signing_key_options.items() if k not in ("kid", "secret_key")
+            }
+            token_generator = TokenGenerator(SecretKey(kid, secret_key), **token_defaults)
 
     return Client(
         options["base_url"],

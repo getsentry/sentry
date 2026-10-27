@@ -14,6 +14,8 @@ const APDEX: SavedFormula = {
   type: 'number',
   unit: null,
   references: [],
+  createdBy: null,
+  updatedBy: null,
   params: [
     {name: 'threshold', type: 'number', order: 1, value: ''},
     {name: 'duration', type: 'column', order: 0, value: ''},

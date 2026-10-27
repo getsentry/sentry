@@ -45,12 +45,7 @@ from sentry.types.activity import ActivityType
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user_option import get_option_from_list, user_option_service
 from sentry.utils.cache import cache
-from sentry.viewer_context import (
-    Actor,
-    ActorType,
-    ViewerContext,
-    viewer_context_scope,
-)
+from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
 

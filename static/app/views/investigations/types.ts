@@ -1,4 +1,8 @@
 import type {AvatarUser} from 'sentry/types/user';
+import type {
+  ActionRequestError,
+  CannotApplyReason,
+} from 'sentry/views/investigations/api';
 import type {ToolResult} from 'sentry/views/seerExplorer/types';
 
 /**
@@ -279,7 +283,7 @@ export type InvestigationUpdateDetectorAction = {
   kind: 'update_detector';
 };
 
-type InvestigationAction =
+export type InvestigationAction =
   | InvestigationUpdateDetectorAction
   | {kind: 'connect_telemetry'; provider: 'datadog' | 'gcp'};
 
@@ -294,9 +298,11 @@ export type InvestigationActionRequest = {
   anchor: InvestigationActionRequestAnchor | null;
   appliedBy: AvatarUser | null;
   appliedDetails: Record<string, unknown> | null;
+  canApply: boolean;
+  cannotApplyReason: InvestigationOrchestrationOpenString<CannotApplyReason> | null;
   dateApplied: string | null;
   dateCreated: string;
-  error: Record<string, unknown> | null;
+  error: ActionRequestError | null;
   id: string;
   impact: string | null;
   key: string;
@@ -308,6 +314,10 @@ export type InvestigationActionRequest = {
     'suggested' | 'applied' | 'failed' | 'superseded' | 'withdrawn'
   >;
   title: string;
+};
+
+export type InvestigationActionRequestApplyResponse = {
+  actionRequest: InvestigationActionRequest;
 };
 
 type InvestigationOrchestrationError = {

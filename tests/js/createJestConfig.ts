@@ -333,7 +333,8 @@ const config: Config.InitialOptions = {
   ],
 
   moduleFileExtensions: ['js', 'ts', 'jsx', 'tsx', 'pegjs'],
-  globals: {},
+  // Matches setupStatics, so tests run Zod's jitless parsers like production does.
+  globals: {__zod_globalConfig: {jitless: true}},
 
   reporters: ['default'],
   /**

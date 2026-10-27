@@ -22,6 +22,7 @@ from sentry.utils import json
 from ..base import DetectorType, PerformanceDetector
 from ..detectors.utils import (
     get_notification_attachment_body,
+    get_span_description,
     get_span_evidence_value,
     total_span_time,
 )
@@ -247,7 +248,12 @@ class DBMainThreadDetector(BaseIOMainThreadDetector):
     def _fingerprint(self, span_list: list[Span]) -> str:
         description_strings = []
         for span in span_list:
-            description_strings.append(span.get("description", ""))
+            description_strings.append(
+                # TODO: Check the `issue_detection.description_stripping` metric to determine if we
+                # can apply stripping here (IOW, how often it would change the value and thereby
+                # mess up existing fingerprints).
+                get_span_description(span, strip=False, caller="io_main_thread")
+            )
         # Use set to remove dupes, and list index to preserve order
         joined_queries = "-".join(
             sorted(set(description_strings), key=lambda c: description_strings.index(c))

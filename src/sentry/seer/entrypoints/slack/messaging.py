@@ -145,6 +145,18 @@ def send_thread_update(
     return message_ts
 
 
+def edit_thread_message(
+    *, install: SlackIntegration, channel_id: str, message_ts: str, data: NotificationData
+) -> None:
+    """Re-render a message we already posted from new data."""
+    renderable, _ = NotificationService.render_template(
+        data=data,
+        template=template_registry.get(data.source)(),
+        provider=provider_registry.get(NotificationProviderKey.SLACK),
+    )
+    install.update_message(channel_id=channel_id, message_ts=message_ts, renderable=renderable)
+
+
 @instrumented_task(
     name="sentry.seer.entrypoints.slack.process_thread_update",
     alias="sentry.seer.entrypoints.integrations.slack.process_thread_update",

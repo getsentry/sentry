@@ -80,9 +80,13 @@ describe('BuildYourPlan', () => {
 
       const businessPlan = await screen.findByRole('radio', {name: 'Business'});
       expect(businessPlan).toBeInTheDocument();
-      expect(within(businessPlan).getByText('Current')).toBeInTheDocument();
-      const teamPlan = screen.getByRole('radio', {name: 'Team'});
-      expect(within(teamPlan).queryByText('Current')).not.toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('plan-option-am3_business')).getByText('Current')
+      ).toBeInTheDocument();
+      expect(screen.getByRole('radio', {name: 'Team'})).toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('plan-option-am3_team')).queryByText('Current')
+      ).not.toBeInTheDocument();
     });
 
     it('can select plan', async () => {
