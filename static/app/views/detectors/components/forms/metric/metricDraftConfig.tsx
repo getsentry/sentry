@@ -25,7 +25,6 @@ export const METRIC_DETECTOR_DRAFT_CONFIG: DetectorDraftConfig<MetricDetectorFor
     conditionComparisonAgo: z.number().optional(),
     conditionType: z.enum([DataConditionType.GREATER, DataConditionType.LESS]).optional(),
     dataset: z.enum(DetectorDataset),
-    description: z.string().nullable(),
     detectionType: z.enum(['static', 'percent', 'dynamic']),
     environment: z.string(),
     extrapolationMode: z.enum(ExtrapolationMode).optional(),
