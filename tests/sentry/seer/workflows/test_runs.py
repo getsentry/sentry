@@ -269,6 +269,19 @@ class SeerWorkflowRunLifecycleTest(TestCase):
         first.run.refresh_from_db()
         assert first.run.date_completed is None
 
+    def test_lifecycle_reads_updates_from_another_instance(self) -> None:
+        run = self.create_run()
+        other = SeerWorkflowRunLifecycle.get(
+            organization_id=self.organization.id, run_id=run.run.id
+        )
+        other.start()
+        assert run.run.status == SeerWorkflowRunStatus.RUNNING
+
+        failure = WorkflowRunError(code="selection_failed", message="Work selection failed")
+        other.fail(error=failure)
+        assert run.run.status == SeerWorkflowRunStatus.FAILED
+        assert run.extras.error == failure
+
     def test_started_work_cannot_be_restarted(self) -> None:
         run = self.create_run()
         run.start()
