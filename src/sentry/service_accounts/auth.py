@@ -29,7 +29,8 @@ def authenticate_service_account(vc: ViewerContext) -> AuthenticatedToken | None
         or vc.organization_id is None
     ):
         return None
-    # The replica is a cell table. Seer only calls cell endpoints with these contexts.
+    # Only cell endpoints accept these contexts, since the replica is a cell table.
+    # Control endpoints would need to read the control-side ServiceAccount instead.
     if SiloMode.get_current_mode() == SiloMode.CONTROL:
         return None
 
