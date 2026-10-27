@@ -219,7 +219,7 @@ class DeprecatedScopeTranslationTest(DRFPermissionTestCase):
                 "org:read",
                 "dashboard:read",
                 "dashboard:create",
-                "dashboard:write",
+                "dashboard:update",
                 "dashboard:delete",
             ]
         )

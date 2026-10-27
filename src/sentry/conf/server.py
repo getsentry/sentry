@@ -2029,7 +2029,7 @@ DEPRECATED_SCOPE_TRANSLATIONS: dict[str, frozenset[str]] = {
             "org:read",
             "dashboard:read",
             "dashboard:create",
-            "dashboard:write",
+            "dashboard:update",
             "dashboard:delete",
         ]
     ),

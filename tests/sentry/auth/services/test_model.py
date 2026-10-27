@@ -37,7 +37,7 @@ def test_authenticated_token_translates_deprecated_scopes() -> None:
         "dashboard:create",
         "dashboard:delete",
         "dashboard:read",
-        "dashboard:write",
+        "dashboard:update",
         "org:read",
     ]
     assert token.get_stored_scopes() == ["org:read"]

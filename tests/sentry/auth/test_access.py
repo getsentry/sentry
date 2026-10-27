@@ -545,7 +545,7 @@ class FromUserTest(AccessFactoryTestCase):
             assert result.has_scope("org:read")
             assert result.has_scope("dashboard:read")
             assert result.has_scope("dashboard:create")
-            assert result.has_scope("dashboard:write")
+            assert result.has_scope("dashboard:update")
             assert result.has_scope("dashboard:delete")
 
     def test_deprecated_token_scope_translation_capped_by_role(self) -> None:

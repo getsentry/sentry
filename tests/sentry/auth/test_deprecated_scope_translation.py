@@ -9,7 +9,7 @@ from sentry.auth.deprecated_scope_translation import (
 )
 
 DASHBOARD_SCOPES = frozenset(
-    {"dashboard:read", "dashboard:create", "dashboard:write", "dashboard:delete"}
+    {"dashboard:read", "dashboard:create", "dashboard:update", "dashboard:delete"}
 )
 
 
