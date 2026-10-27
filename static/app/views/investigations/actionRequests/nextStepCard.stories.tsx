@@ -92,6 +92,15 @@ function FixtureCard({
   );
 }
 
+const connectSuggestion: InvestigationActionRequest = {
+  ...intervalChange,
+  key: 'connect-telemetry-datadog-r1',
+  title: 'Connect Datadog',
+  rationale: 'The payment processor logs to Datadog, which Seer cannot read yet.',
+  impact: null,
+  action: {kind: 'connect_telemetry', provider: 'datadog'},
+};
+
 export default Storybook.story('Investigations — Recommended Action', story => {
   story('Suggested', () => (
     <Fragment>
@@ -231,7 +240,7 @@ export default Storybook.story('Investigations — Recommended Action', story =>
           canApply: false,
           cannotApplyReason: 'not_suggested',
           error: {code: 'stale', current: {timeWindowSeconds: 120}},
-          followUp: {status: 'accepted', reason: null, rerun: null},
+          followUp: {status: 'accepted', reason: null, rerun: null, retryable: false},
         },
       ]}
     />
@@ -247,18 +256,28 @@ export default Storybook.story('Investigations — Recommended Action', story =>
       </Text>
       <CardStory
         id="connect"
-        actionRequests={[
-          {
-            ...intervalChange,
-            key: 'connect-telemetry-datadog-r1',
-            title: 'Connect Datadog',
-            rationale:
-              'The payment processor logs to Datadog, which Seer cannot read yet.',
-            impact: null,
-            action: {kind: 'connect_telemetry', provider: 'datadog'},
+        actionRequests={[connectSuggestion]}
+        dryRunErrors={{
+          [connectSuggestion.id]: {
+            status: 400,
+            body: {
+              detail: "The change wasn't valid.",
+              code: 'validation_failed',
+              messages: ["This provider isn't connected yet."],
+            },
           },
-        ]}
+        }}
       />
+    </Fragment>
+  ));
+
+  story('Provider connected', () => (
+    <Fragment>
+      <Text as="p">
+        When the user comes back from connecting the provider before Sentry has applied
+        the request, the card offers to re-run the investigation with it.
+      </Text>
+      <CardStory id="connected" actionRequests={[connectSuggestion]} />
     </Fragment>
   ));
 

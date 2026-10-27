@@ -120,7 +120,10 @@ describe('AnchoredActionRequests', () => {
 
   it('says Seer is checking a stale request again', () => {
     renderRequests([
-      {...staleRequest, followUp: {status: 'accepted', reason: null, rerun: null}},
+      {
+        ...staleRequest,
+        followUp: {status: 'accepted', reason: null, rerun: null, retryable: false},
+      },
     ]);
 
     expect(screen.getByRole('status')).toHaveTextContent(

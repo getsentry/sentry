@@ -136,7 +136,7 @@ def cache_candidate(
         dataset == Spans
         and query == ""
         and query_columns == ["count(span.duration)"]
-        and rollup == 1800
+        and rollup in [1800, 10_800]
         and top_events == 0
     ):
         return True

@@ -1,8 +1,9 @@
-import {QueryClientProvider} from '@tanstack/react-query';
+import {focusManager, QueryClientProvider} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -118,6 +119,12 @@ function connectRequest(overrides: Partial<InvestigationActionRequest> = {}) {
   });
 }
 
+const notConnectedBody = {
+  detail: "The change wasn't valid.",
+  code: 'validation_failed',
+  messages: ["This provider isn't connected yet."],
+};
+
 function connectedRequest(followUp: InvestigationActionRequest['followUp']) {
   return connectRequest({
     state: 'applied',
@@ -133,6 +140,8 @@ const applyUrl =
   '/organizations/org-slug/investigations/investigation-1/action-requests/312/apply/';
 const recheckUrl =
   '/organizations/org-slug/investigations/investigation-1/action-requests/312/recheck/';
+const retryFollowUpUrl =
+  '/organizations/org-slug/investigations/investigation-1/action-requests/312/retry-follow-up/';
 
 type MockResponse = Parameters<typeof MockApiClient.addMockResponse>[0];
 
@@ -168,6 +177,10 @@ async function findApplyButton() {
 describe('NextStepCard', () => {
   beforeEach(() => {
     mockDryRun();
+  });
+
+  afterEach(() => {
+    focusManager.setFocused(undefined);
   });
 
   it('renders the primary request', () => {
@@ -1317,7 +1330,8 @@ describe('NextStepCard', () => {
     expect(card).not.toHaveTextContent('Applied by');
   });
 
-  it('offers to connect a provider through its integration settings', () => {
+  it('offers to connect a provider through its integration settings', async () => {
+    const dryRun = mockDryRun({statusCode: 400, body: notConnectedBody});
     render(
       <NextStepCard
         investigationId="investigation-1"
@@ -1326,11 +1340,12 @@ describe('NextStepCard', () => {
       />
     );
 
+    await waitFor(() => expect(dryRun).toHaveBeenCalled());
     const card = getCard();
-    expect(card).toHaveTextContent('Connect Datadog. Checkout logs live in Datadog.');
-    const connect = within(card).getByRole('button', {
+    const connect = await within(card).findByRole('button', {
       name: 'Connect Datadog (opens in a new tab)',
     });
+    expect(card).toHaveTextContent('Connect Datadog. Checkout logs live in Datadog.');
     expect(connect).toHaveAttribute('href', '/settings/org-slug/integrations/datadog/');
     expect(connect).toHaveAttribute('target', '_blank');
   });
@@ -1354,8 +1369,33 @@ describe('NextStepCard', () => {
     expect(connect).toHaveAccessibleDescription(message);
   });
 
-  it('does not check a connection in advance', () => {
-    const dryRun = mockDryRun();
+  it('offers a re-run once the provider is connected', async () => {
+    const connected = connectRequest({
+      state: 'applied',
+      canApply: false,
+      cannotApplyReason: 'not_suggested',
+    });
+    const apply = mockApply({body: {actionRequest: connected}});
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[connectRequest()]}
+      />
+    );
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Re-run with Datadog'})
+    );
+
+    expect(apply).toHaveBeenCalledWith(
+      applyUrl,
+      expect.objectContaining({method: 'POST', data: {action: connected.action}})
+    );
+  });
+
+  it('checks the connection before offering either button', () => {
+    mockDryRun({asyncDelay: 1_000_000});
     render(
       <NextStepCard
         investigationId="investigation-1"
@@ -1365,11 +1405,83 @@ describe('NextStepCard', () => {
     );
 
     expect(
-      within(getCard()).getByRole('button', {
-        name: 'Connect Datadog (opens in a new tab)',
-      })
-    ).toBeEnabled();
-    expect(dryRun).not.toHaveBeenCalled();
+      within(getCard()).getByRole('button', {name: 'Checking the Datadog connection…'})
+    ).toBeDisabled();
+    expect(
+      screen.queryByRole('button', {name: 'Connect Datadog (opens in a new tab)'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps the re-run when a later connection check fails', async () => {
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[connectRequest()]}
+      />
+    );
+    await screen.findByRole('button', {name: 'Re-run with Datadog'});
+
+    const failed = mockDryRun({statusCode: 500, body: {}});
+    act(() => focusManager.setFocused(false));
+    act(() => focusManager.setFocused(true));
+    await waitFor(() => expect(failed).toHaveBeenCalled());
+
+    expect(screen.getByRole('button', {name: 'Re-run with Datadog'})).toBeEnabled();
+    expect(
+      screen.queryByRole('button', {name: 'Connect Datadog (opens in a new tab)'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('offers to connect again when the re-run finds no connection', async () => {
+    mockApply({statusCode: 400, body: notConnectedBody});
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[connectRequest()]}
+      />
+    );
+
+    const rerun = await screen.findByRole('button', {name: 'Re-run with Datadog'});
+    mockDryRun({statusCode: 400, body: notConnectedBody});
+    await userEvent.click(rerun);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      "This change could not be applied. This provider isn't connected yet."
+    );
+    expect(
+      await screen.findByRole('button', {name: 'Connect Datadog (opens in a new tab)'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Re-run with Datadog'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('drops the not-connected error once the provider connects', async () => {
+    mockApply({statusCode: 400, body: notConnectedBody});
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[connectRequest()]}
+      />
+    );
+
+    const rerun = await screen.findByRole('button', {name: 'Re-run with Datadog'});
+    mockDryRun({statusCode: 400, body: notConnectedBody});
+    await userEvent.click(rerun);
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    await screen.findByRole('button', {name: 'Connect Datadog (opens in a new tab)'});
+
+    mockDryRun();
+    act(() => focusManager.setFocused(false));
+    act(() => focusManager.setFocused(true));
+
+    expect(
+      await screen.findByRole('button', {name: 'Re-run with Datadog'})
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
   it.each([
@@ -1395,7 +1507,9 @@ describe('NextStepCard', () => {
         <NextStepCard
           investigationId="investigation-1"
           orchestration={completedRun}
-          actionRequests={[connectedRequest({status, reason: null, rerun})]}
+          actionRequests={[
+            connectedRequest({status, reason: null, rerun, retryable: false}),
+          ]}
         />
       );
 
@@ -1413,7 +1527,12 @@ describe('NextStepCard', () => {
         investigationId="investigation-1"
         orchestration={rerunningRun}
         actionRequests={[
-          connectedRequest({status: 'acknowledged', reason: null, rerun: 'started'}),
+          connectedRequest({
+            status: 'acknowledged',
+            reason: null,
+            rerun: 'started',
+            retryable: false,
+          }),
         ]}
       />
     );
@@ -1443,7 +1562,12 @@ describe('NextStepCard', () => {
         investigationId="investigation-1"
         orchestration={completedRun}
         actionRequests={[
-          connectedRequest({status: 'failed', reason: 'run_cancelled', rerun: 'skipped'}),
+          connectedRequest({
+            status: 'failed',
+            reason: 'run_cancelled',
+            rerun: 'skipped',
+            retryable: false,
+          }),
         ]}
       />
     );
@@ -1459,7 +1583,12 @@ describe('NextStepCard', () => {
         investigationId="investigation-1"
         orchestration={completedRun}
         actionRequests={[
-          connectedRequest({status: 'acknowledged', reason: null, rerun: 'started'}),
+          connectedRequest({
+            status: 'acknowledged',
+            reason: null,
+            rerun: 'started',
+            retryable: false,
+          }),
         ]}
       />
     );
@@ -1474,13 +1603,192 @@ describe('NextStepCard', () => {
       <NextStepCard
         investigationId="investigation-1"
         orchestration={completedRun}
-        actionRequests={[connectedRequest({status: 'failed', reason: null, rerun: null})]}
+        actionRequests={[
+          connectedRequest({
+            status: 'failed',
+            reason: null,
+            rerun: null,
+            retryable: false,
+          }),
+        ]}
       />
     );
 
     expect(getCard()).toHaveTextContent(
       "Datadog connected. Seer couldn't re-run the investigation with it."
     );
+  });
+
+  it('tries a re-run that never reached Seer again', async () => {
+    const retry = MockApiClient.addMockResponse({
+      url: retryFollowUpUrl,
+      method: 'POST',
+      body: {
+        actionRequest: connectedRequest({
+          status: 'accepted',
+          reason: null,
+          rerun: null,
+          retryable: false,
+        }),
+      },
+    });
+    const failed = connectedRequest({
+      status: 'failed',
+      reason: null,
+      rerun: null,
+      retryable: true,
+    });
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[failed]}
+      />
+    );
+
+    await userEvent.click(within(getCard()).getByRole('button', {name: 'Try again'}));
+
+    expect(retry).toHaveBeenCalledWith(
+      retryFollowUpUrl,
+      expect.objectContaining({data: {action: failed.action}})
+    );
+  });
+
+  it('says when a re-run can no longer be sent again', async () => {
+    MockApiClient.addMockResponse({
+      url: retryFollowUpUrl,
+      method: 'POST',
+      statusCode: 409,
+      body: {detail: "There's nothing to send Seer again.", code: 'not_retryable'},
+    });
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[
+          connectedRequest({
+            status: 'failed',
+            reason: null,
+            rerun: null,
+            retryable: true,
+          }),
+        ]}
+      />
+    );
+
+    await userEvent.click(within(getCard()).getByRole('button', {name: 'Try again'}));
+
+    expect(
+      await screen.findByText("This can't be sent to Seer again.")
+    ).toBeInTheDocument();
+  });
+
+  it('sends a retry once when Try again is clicked twice', async () => {
+    let respond!: () => void;
+    const retry = MockApiClient.addMockResponse({
+      url: retryFollowUpUrl,
+      method: 'POST',
+      asyncDelay: new Promise<void>(resolve => {
+        respond = resolve;
+      }),
+      body: {
+        actionRequest: connectedRequest({
+          status: 'accepted',
+          reason: null,
+          rerun: null,
+          retryable: false,
+        }),
+      },
+    });
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[
+          connectedRequest({
+            status: 'failed',
+            reason: null,
+            rerun: null,
+            retryable: true,
+          }),
+        ]}
+      />
+    );
+
+    const button = within(getCard()).getByRole('button', {name: 'Try again'});
+    await userEvent.click(button);
+    await waitFor(() => expect(button).toBeDisabled());
+    await userEvent.click(button);
+    respond();
+
+    await waitFor(() => expect(retry).toHaveBeenCalled());
+    expect(retry).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not offer to retry a re-run that failed behind another command', () => {
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[
+          connectedRequest({
+            status: 'failed',
+            reason: null,
+            rerun: null,
+            retryable: false,
+          }),
+        ]}
+      />
+    );
+
+    expect(
+      within(getCard()).queryByRole('button', {name: 'Try again'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not offer to retry a re-run on an archived investigation', () => {
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[
+          {
+            ...connectedRequest({
+              status: 'failed',
+              reason: null,
+              rerun: null,
+              retryable: true,
+            }),
+            cannotApplyReason: 'investigation_archived',
+          },
+        ]}
+      />
+    );
+
+    expect(
+      within(getCard()).queryByRole('button', {name: 'Try again'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not offer to retry a re-run Seer turned down', () => {
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[
+          connectedRequest({
+            status: 'failed',
+            reason: 'provider_already_used',
+            rerun: null,
+            retryable: false,
+          }),
+        ]}
+      />
+    );
+
+    expect(
+      within(getCard()).queryByRole('button', {name: 'Try again'})
+    ).not.toBeInTheDocument();
   });
 
   it('keeps the title of an applied change of a kind it does not know', () => {
@@ -1650,7 +1958,7 @@ describe('NextStepCard', () => {
       body: {
         actionRequest: {
           ...staleRequest,
-          followUp: {status: 'accepted', reason: null, rerun: null},
+          followUp: {status: 'accepted', reason: null, rerun: null, retryable: false},
         },
       },
     });
@@ -1713,7 +2021,9 @@ describe('NextStepCard', () => {
           <NextStepCard
             investigationId="investigation-1"
             orchestration={completedRun}
-            actionRequests={[recheckedRequest({status, reason: null, rerun: null})]}
+            actionRequests={[
+              recheckedRequest({status, reason: null, rerun: null, retryable: false}),
+            ]}
           />
         );
 
@@ -1731,7 +2041,12 @@ describe('NextStepCard', () => {
           investigationId="investigation-1"
           orchestration={completedRun}
           actionRequests={[
-            recheckedRequest({status: 'acknowledged', reason: null, rerun: null}),
+            recheckedRequest({
+              status: 'acknowledged',
+              reason: null,
+              rerun: null,
+              retryable: false,
+            }),
           ]}
         />
       );
@@ -1752,7 +2067,12 @@ describe('NextStepCard', () => {
               {phase: 'metadata', status}
             )}
             actionRequests={[
-              recheckedRequest({status: 'acknowledged', reason: null, rerun: null}),
+              recheckedRequest({
+                status: 'acknowledged',
+                reason: null,
+                rerun: null,
+                retryable: false,
+              }),
             ]}
           />
         );
@@ -1771,7 +2091,12 @@ describe('NextStepCard', () => {
           investigationId="investigation-1"
           orchestration={completedRun}
           actionRequests={[
-            recheckedRequest({status: 'failed', reason: null, rerun: null}),
+            recheckedRequest({
+              status: 'failed',
+              reason: null,
+              rerun: null,
+              retryable: false,
+            }),
           ]}
         />
       );
@@ -1790,6 +2115,7 @@ describe('NextStepCard', () => {
             status: 'accepted',
             reason: null,
             rerun: null,
+            retryable: false,
           }),
         },
       });
@@ -1799,7 +2125,12 @@ describe('NextStepCard', () => {
           investigationId="investigation-1"
           orchestration={completedRun}
           actionRequests={[
-            recheckedRequest({status: 'failed', reason: null, rerun: null}),
+            recheckedRequest({
+              status: 'failed',
+              reason: null,
+              rerun: null,
+              retryable: false,
+            }),
           ]}
         />
       );
@@ -1823,6 +2154,7 @@ describe('NextStepCard', () => {
               status: 'failed',
               reason: 'action_requests_report_changed',
               rerun: null,
+              retryable: false,
             }),
           ]}
         />
