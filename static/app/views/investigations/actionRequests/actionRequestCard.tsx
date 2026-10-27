@@ -1,4 +1,4 @@
-import {useId} from 'react';
+import {useEffect, useId, useRef} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -124,6 +124,19 @@ export function ActionRequestCard({
       },
     }
   );
+
+  const previousCheckStatus = useRef(check.status);
+  const {error: applyMutationError, reset: resetApplyMutation} = applyMutation;
+  useEffect(() => {
+    if (
+      check.status === 'passed' &&
+      previousCheckStatus.current !== 'passed' &&
+      applyMutationError
+    ) {
+      resetApplyMutation();
+    }
+    previousCheckStatus.current = check.status;
+  }, [check.status, applyMutationError, resetApplyMutation]);
 
   if (!isShownActionRequest(actionRequest)) {
     return null;

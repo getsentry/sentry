@@ -1,8 +1,9 @@
-import {QueryClientProvider} from '@tanstack/react-query';
+import {focusManager, QueryClientProvider} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -176,6 +177,10 @@ async function findApplyButton() {
 describe('NextStepCard', () => {
   beforeEach(() => {
     mockDryRun();
+  });
+
+  afterEach(() => {
+    focusManager.setFocused(undefined);
   });
 
   it('renders the primary request', () => {
@@ -1412,6 +1417,32 @@ describe('NextStepCard', () => {
     expect(
       screen.queryByRole('button', {name: 'Re-run with Datadog'})
     ).not.toBeInTheDocument();
+  });
+
+  it('drops the not-connected error once the provider connects', async () => {
+    mockApply({statusCode: 400, body: notConnectedBody});
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[connectRequest()]}
+      />
+    );
+
+    const rerun = await screen.findByRole('button', {name: 'Re-run with Datadog'});
+    mockDryRun({statusCode: 400, body: notConnectedBody});
+    await userEvent.click(rerun);
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    await screen.findByRole('button', {name: 'Connect Datadog (opens in a new tab)'});
+
+    mockDryRun();
+    act(() => focusManager.setFocused(false));
+    act(() => focusManager.setFocused(true));
+
+    expect(
+      await screen.findByRole('button', {name: 'Re-run with Datadog'})
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
   it.each([
