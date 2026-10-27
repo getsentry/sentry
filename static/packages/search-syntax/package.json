@@ -1,6 +1,6 @@
 {
   "name": "@sentry/search-syntax",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Grammar and structural parser for Sentry's search syntax",
   "repository": {
     "type": "git",
