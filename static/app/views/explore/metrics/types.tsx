@@ -22,6 +22,13 @@ export enum TraceMetricKnownFieldKey {
 
   PAYLOAD_SIZE = 'payload_size',
 
+  // OTLP histogram rows
+  POINT_ID = 'point_id',
+  ROW_KIND = 'row_kind',
+  BUCKET_LOWER = 'bucket.lower',
+  BUCKET_UPPER = 'bucket.upper',
+  BUCKET_COUNT = 'bucket.count',
+
   PARENT_SPAN_ID = 'trace.parent_span_id',
 
   // Field renderer aliases
@@ -63,7 +70,7 @@ type TraceMetricCustomFieldKey = string;
 
 export type TraceMetricFieldKey = TraceMetricCustomFieldKey | TraceMetricKnownFieldKey;
 
-export type TraceMetricTypeValue = 'counter' | 'gauge' | 'distribution';
+export type TraceMetricTypeValue = 'counter' | 'gauge' | 'distribution' | 'histogram';
 
 export function isTraceMetricTypeValue(
   metricType: string
@@ -72,6 +79,7 @@ export function isTraceMetricTypeValue(
     case 'counter':
     case 'distribution':
     case 'gauge':
+    case 'histogram':
       return true;
     default:
       return false;
@@ -116,6 +124,7 @@ export interface TraceMetricEventsResult {
 export enum VirtualTableSampleColumnKey {
   EXPAND_ROW = 'expand_row', // Chevron acts as an additional column
   PROJECT_BADGE = 'project_badge',
+  BUCKET_RANGE = 'bucket_range',
 }
 
 export type SampleTableColumnKey = TraceMetricFieldKey | VirtualTableSampleColumnKey;

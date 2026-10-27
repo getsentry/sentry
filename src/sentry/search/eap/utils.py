@@ -70,6 +70,7 @@ from sentry.search.eap.spans.attributes import (
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.trace_metrics.attributes import (
     TRACE_METRICS_ATTRIBUTE_DEFINITIONS,
+    TRACE_METRICS_EXPOSED_INTERNAL_ATTRIBUTES,
     TRACE_METRICS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
     TRACE_METRICS_INTERNAL_TO_SECONDARY_ALIASES_MAPPING,
     TRACE_METRICS_PRIVATE_ATTRIBUTE_PREFIXES,
@@ -281,6 +282,12 @@ def can_expose_attribute(
         for prefix in PRIVATE_ATTRIBUTE_PREFIXES.get(item_type, {})
     ):
         return False
+
+    if (
+        item_type == SupportedTraceItemType.TRACEMETRICS
+        and attribute in TRACE_METRICS_EXPOSED_INTERNAL_ATTRIBUTES
+    ):
+        return True
 
     # Omit internal attributes, unless explicitly requested. Usually, only
     # Sentry staff should see these.

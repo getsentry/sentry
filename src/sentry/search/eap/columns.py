@@ -964,17 +964,20 @@ def attribute_key_to_tuple(
 
 def count_argument_resolver_optimized(
     always_present_attributes: list[AttributeKey],
+    replacement: AttributeKey | None = None,
 ) -> Callable[[ResolvedArgument], AttributeKey]:
     always_present_attributes_set = {
         attribute_key_to_tuple(attribute) for attribute in always_present_attributes
     }
+    if replacement is None:
+        replacement = AttributeKey(name="sentry.project_id", type=AttributeKey.Type.TYPE_INT)
 
     def count_argument_resolver(resolved_argument: ResolvedArgument) -> AttributeKey:
         if not isinstance(resolved_argument, AttributeKey):
             raise InvalidSearchQuery("Aggregates accept attribute keys only")
 
         if attribute_key_to_tuple(resolved_argument) in always_present_attributes_set:
-            return AttributeKey(name="sentry.project_id", type=AttributeKey.Type.TYPE_INT)
+            return replacement
 
         return resolved_argument
 

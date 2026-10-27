@@ -26,7 +26,7 @@ class MetricResponseTypeOptional(TypedDict, total=False):
 
 class MetricResponseType(MetricResponseTypeOptional):
     name: str
-    type: Literal["counter", "gauge", "distribution"]
+    type: Literal["counter", "gauge", "distribution", "histogram"]
 
 
 class VisualizeResponseTypeOptional(TypedDict, total=False):

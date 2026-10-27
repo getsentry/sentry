@@ -23,6 +23,7 @@ from sentry.search.eap.columns import (
     ValueArgumentDefinition,
     extract_trace_metric_aggregate_arguments,
 )
+from sentry.search.eap.trace_metrics.aggregates import TRACE_METRICS_COUNT_KEY
 from sentry.search.eap.trace_metrics.config import TraceMetricsSearchResolverConfig
 from sentry.search.eap.validator import literal_validator
 
@@ -66,14 +67,14 @@ def _rate_internal(
             key = AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.value")
         else:
             aggregate = Function.FUNCTION_COUNT
-            key = AttributeKey(name="sentry.project_id", type=AttributeKey.Type.TYPE_INT)
+            key = TRACE_METRICS_COUNT_KEY
     else:
         if settings["conditional"]:
             trace_filter = cast(TraceItemFilter, args[0])
         else:
             trace_filter = None
         aggregate = Function.FUNCTION_COUNT
-        key = AttributeKey(name="sentry.project_id", type=AttributeKey.Type.TYPE_INT)
+        key = TRACE_METRICS_COUNT_KEY
 
     if trace_filter is None:
         left = Column(
@@ -136,6 +137,7 @@ TRACE_METRICS_FORMULA_DEFINITIONS: dict[str, FormulaDefinition] = {
                         "counter",
                         "gauge",
                         "distribution",
+                        "histogram",
                     ]
                 ),
                 default_arg="",
@@ -166,6 +168,7 @@ TRACE_METRICS_FORMULA_DEFINITIONS: dict[str, FormulaDefinition] = {
                         "counter",
                         "gauge",
                         "distribution",
+                        "histogram",
                     ]
                 ),
                 default_arg="",

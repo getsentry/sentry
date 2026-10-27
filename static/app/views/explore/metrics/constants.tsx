@@ -95,6 +95,33 @@ export const TraceSamplesTableColumns: Array<
   TraceMetricKnownFieldKey.TIMESTAMP,
 ];
 
+// OTLP histograms are stored as one row per bucket plus one row per exemplar.
+export const HistogramTraceSamplesTableColumns: Array<
+  TraceMetricFieldKey | VirtualTableSampleColumnKey
+> = [
+  VirtualTableSampleColumnKey.EXPAND_ROW,
+  TraceMetricKnownFieldKey.TRACE,
+  VirtualTableSampleColumnKey.PROJECT_BADGE,
+  TraceMetricKnownFieldKey.ROW_KIND,
+  VirtualTableSampleColumnKey.BUCKET_RANGE,
+  TraceMetricKnownFieldKey.BUCKET_COUNT,
+  TraceMetricKnownFieldKey.METRIC_VALUE,
+  TraceMetricKnownFieldKey.POINT_ID,
+  TraceMetricKnownFieldKey.TIMESTAMP,
+];
+
+/**
+ * Fields that UI-only columns need to render.
+ */
+const VIRTUAL_SAMPLE_COLUMN_FIELDS: Partial<
+  Record<VirtualTableSampleColumnKey, TraceMetricFieldKey[]>
+> = {
+  [VirtualTableSampleColumnKey.BUCKET_RANGE]: [
+    TraceMetricKnownFieldKey.BUCKET_LOWER,
+    TraceMetricKnownFieldKey.BUCKET_UPPER,
+  ],
+};
+
 export const TraceSamplesTableEmbeddedColumns: Array<
   TraceMetricFieldKey | VirtualTableSampleColumnKey
 > = [
@@ -119,8 +146,10 @@ function isVirtualSampleColumn(
 export function getTraceSamplesTableFields(
   columns: SampleTableColumnKey[]
 ): TraceMetricFieldKey[] {
-  return columns.filter(
-    (column): column is TraceMetricFieldKey => !isVirtualSampleColumn(column)
+  return columns.flatMap(column =>
+    isVirtualSampleColumn(column)
+      ? (VIRTUAL_SAMPLE_COLUMN_FIELDS[column] ?? [])
+      : [column]
   );
 }
 
@@ -220,6 +249,9 @@ export const OPTIONS_BY_TYPE: Record<string, Array<SelectOption<string>>> = {
     },
   ],
 };
+
+// OTLP histograms support the same aggregates as distributions.
+OPTIONS_BY_TYPE.histogram = OPTIONS_BY_TYPE.distribution!;
 
 export const GROUPED_OPTIONS_BY_TYPE: Record<string, Array<SelectSection<string>>> = {
   counter: [
@@ -369,9 +401,12 @@ export const GROUPED_OPTIONS_BY_TYPE: Record<string, Array<SelectSection<string>
   ],
 };
 
+GROUPED_OPTIONS_BY_TYPE.histogram = GROUPED_OPTIONS_BY_TYPE.distribution!;
+
 export const DEFAULT_YAXIS_BY_TYPE: Record<string, string> = {
   counter: 'sum',
   distribution: 'sum',
+  histogram: 'sum',
   gauge: 'avg',
 };
 

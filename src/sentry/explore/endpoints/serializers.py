@@ -79,6 +79,7 @@ class MetricSerializer(serializers.Serializer):
             "counter",
             "gauge",
             "distribution",
+            "histogram",
         ],
         required=True,
         help_text="The type of the metric.",

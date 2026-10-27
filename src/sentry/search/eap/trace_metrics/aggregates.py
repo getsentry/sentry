@@ -22,6 +22,10 @@ TRACE_METRICS_ALWAYS_PRESENT_ATTRIBUTES = [
     AttributeKey(name="sentry.value", type=AttributeKey.Type.TYPE_DOUBLE),
 ]
 
+# Snuba weights count(sentry.value) by bucket count for OTLP histogram rows and
+# skips exemplar rows, so counts must target sentry.value rather than project_id.
+TRACE_METRICS_COUNT_KEY = AttributeKey(name="sentry.value", type=AttributeKey.Type.TYPE_DOUBLE)
+
 
 TRACE_METRIC_DEFAULT_ARGUMENTS = [
     ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
@@ -33,6 +37,7 @@ TRACE_METRIC_DEFAULT_ARGUMENTS = [
                 "counter",
                 "gauge",
                 "distribution",
+                "histogram",
             ]
         ),
         default_arg="",
@@ -70,7 +75,7 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
             *TRACE_METRIC_DEFAULT_ARGUMENTS,
         ],
         attribute_resolver=count_argument_resolver_optimized(
-            TRACE_METRICS_ALWAYS_PRESENT_ATTRIBUTES
+            TRACE_METRICS_ALWAYS_PRESENT_ATTRIBUTES, replacement=TRACE_METRICS_COUNT_KEY
         ),
         valid_arithmetic=True,
     ),

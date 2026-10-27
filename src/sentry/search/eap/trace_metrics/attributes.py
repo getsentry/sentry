@@ -87,7 +87,67 @@ TRACE_METRICS_ATTRIBUTE_DEFINITIONS = {
             internal_name=ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME,
             search_type="string",
         ),
+        # OTLP histogram rows: every row of one data point shares a point_id;
+        # row_kind is point, bucket or exemplar.
+        ResolvedAttribute(
+            public_alias="point_id",
+            internal_name="sentry._internal.point_id",
+            search_type="string",
+        ),
+        ResolvedAttribute(
+            public_alias="row_kind",
+            internal_name="sentry._internal.row_kind",
+            search_type="string",
+        ),
+        ResolvedAttribute(
+            public_alias="bucket.lower",
+            internal_name="sentry._internal.bucket_lower",
+            search_type="number",
+        ),
+        ResolvedAttribute(
+            public_alias="bucket.upper",
+            internal_name="sentry._internal.bucket_upper",
+            search_type="number",
+        ),
+        ResolvedAttribute(
+            public_alias="bucket.count",
+            internal_name="sentry._internal.bucket_count",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="sum_share",
+            internal_name="sentry._internal.sum_share",
+            search_type="number",
+        ),
+        ResolvedAttribute(
+            public_alias="histogram.count",
+            internal_name="sentry._internal.histogram_count",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="histogram.sum",
+            internal_name="sentry._internal.histogram_sum",
+            search_type="number",
+        ),
+        ResolvedAttribute(
+            public_alias="histogram.min",
+            internal_name="sentry._internal.histogram_min",
+            search_type="number",
+        ),
+        ResolvedAttribute(
+            public_alias="histogram.max",
+            internal_name="sentry._internal.histogram_max",
+            search_type="number",
+        ),
     ]
+}
+
+# Internal attributes that are exposed through the public aliases above even
+# though they carry the `sentry._internal.` prefix.
+TRACE_METRICS_EXPOSED_INTERNAL_ATTRIBUTES: set[str] = {
+    definition.internal_name
+    for definition in TRACE_METRICS_ATTRIBUTE_DEFINITIONS.values()
+    if definition.internal_name.startswith("sentry._internal.")
 }
 
 # Ensure that required fields are defined at runtime

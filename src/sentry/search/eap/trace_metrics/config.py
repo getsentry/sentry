@@ -100,7 +100,7 @@ class TraceMetricsSearchResolverConfig(SearchResolverConfig):
         return self.metric.get_filter()
 
 
-ALLOWED_METRIC_TYPES: list[TraceMetricType] = ["counter", "gauge", "distribution"]
+ALLOWED_METRIC_TYPES: list[TraceMetricType] = ["counter", "gauge", "distribution", "histogram"]
 
 
 def get_trace_metric_from_request(
