@@ -3038,3 +3038,39 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["values"] == build_expected_timeseries(
             self.start, 1_800_000, expected, ignore_accuracy=True
         )
+
+    def test_skip_cache_bypasses_incremental_cache(self) -> None:
+        data = {
+            "start": self.start,
+            "end": self.end,
+            "interval": "30m",
+            "yAxis": "count(span.duration)",
+            "project": self.project.id,
+            "dataset": "spans",
+            "skipCache": "1",
+        }
+        features = {
+            "organizations:discover-basic": True,
+            "organizations:explore-incremental-timeseries": True,
+        }
+        with (
+            mock.patch(
+                "sentry.api.endpoints.organization_events_timeseries.default_cache.get"
+            ) as cache_get,
+            mock.patch(
+                "sentry.api.endpoints.organization_events_timeseries.default_cache.set"
+            ) as cache_set,
+        ):
+            response = self._do_request(data=data, features=features)
+        assert response.status_code == 200, response.content
+        cache_get.assert_not_called()
+        cache_set.assert_not_called()
+
+        data.pop("skipCache")
+        with mock.patch(
+            "sentry.api.endpoints.organization_events_timeseries.default_cache.get",
+            return_value=None,
+        ) as cache_get:
+            response = self._do_request(data=data, features=features)
+        assert response.status_code == 200, response.content
+        cache_get.assert_called()
