@@ -6,7 +6,7 @@ from sentry.constants import ObjectStatus
 from sentry.models.options.project_option import ProjectOption
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.models import AutofixHandoffPoint
-from sentry.testutils.cases import APITestCase, APITestCaseMixin, BaseTestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 
 
@@ -14,7 +14,9 @@ from sentry.testutils.helpers.features import with_feature
     "sentry.seer.endpoints.project_seer_settings.is_seer_seat_based_tier_enabled",
     return_value=True,
 )
-class ProjectSeerSettingsEndpointTestMixin(BaseTestCase, APITestCaseMixin):
+class ProjectSeerSettingsEndpointBaseTest(APITestCase):
+    __test__ = False
+
     endpoint = "sentry-api-0-project-seer-settings"
 
     def setUp(self) -> None:
@@ -386,9 +388,9 @@ class ProjectSeerSettingsEndpointTestMixin(BaseTestCase, APITestCaseMixin):
             assert entry.data["project_id"] == self.project.id
 
 
-class ProjectSeerSettingsEndpointSeatBasedBillingTest(
-    ProjectSeerSettingsEndpointTestMixin, APITestCase
-):
+class ProjectSeerSettingsEndpointSeatBasedBillingTest(ProjectSeerSettingsEndpointBaseTest):
+    __test__ = True
+
     def test_get_repos_count_excludes_repos_without_seer_config(self) -> None:
         self.create_project_repository(
             repository=self.create_seer_eligible_repo(self.project, "owner/repo-1")
@@ -406,9 +408,9 @@ class ProjectSeerSettingsEndpointSeatBasedBillingTest(
         "organizations:token-billed-seer-enabled": True,
     }
 )
-class ProjectSeerSettingsEndpointTokenBasedBillingTest(
-    ProjectSeerSettingsEndpointTestMixin, APITestCase
-):
+class ProjectSeerSettingsEndpointTokenBasedBillingTest(ProjectSeerSettingsEndpointBaseTest):
+    __test__ = True
+
     def test_get_repos_count_includes_repos_without_seer_config(self) -> None:
         self.create_project_repository(
             repository=self.create_seer_eligible_repo(self.project, "owner/repo-1")
@@ -458,7 +460,9 @@ class ProjectSeerSettingsEndpointTokenBasedBillingTest(
     "sentry.seer.endpoints.project_seer_settings.is_seer_seat_based_tier_enabled",
     return_value=True,
 )
-class OrganizationSeerProjectSettingsEndpointTestMixin(BaseTestCase, APITestCaseMixin):
+class OrganizationSeerProjectSettingsEndpointBaseTest(APITestCase):
+    __test__ = False
+
     endpoint = "sentry-api-0-organization-seer-project-settings"
 
     def setUp(self) -> None:
@@ -1000,8 +1004,10 @@ class OrganizationSeerProjectSettingsEndpointTestMixin(BaseTestCase, APITestCase
 
 
 class OrganizationSeerProjectSettingsEndpointSeatBasedBillingTest(
-    OrganizationSeerProjectSettingsEndpointTestMixin, APITestCase
+    OrganizationSeerProjectSettingsEndpointBaseTest
 ):
+    __test__ = True
+
     def test_get_repos_count_excludes_repos_without_seer_config(self) -> None:
         self.create_project_repository(
             repository=self.create_seer_eligible_repo(self.project, "owner/repo-1")
@@ -1030,8 +1036,10 @@ class OrganizationSeerProjectSettingsEndpointSeatBasedBillingTest(
     }
 )
 class OrganizationSeerProjectSettingsEndpointTokenBasedBillingTest(
-    OrganizationSeerProjectSettingsEndpointTestMixin, APITestCase
+    OrganizationSeerProjectSettingsEndpointBaseTest
 ):
+    __test__ = True
+
     def test_get_repos_count_includes_repos_without_seer_config(self) -> None:
         self.create_project_repository(
             repository=self.create_seer_eligible_repo(self.project, "owner/repo-1")
