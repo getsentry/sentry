@@ -139,8 +139,16 @@ class OrganizationPermission(DemoSafePermission):
             if not has_staff_perm:
                 raise SuperuserRequired(orgSlug=org_slug)
 
-        allowed_scopes = set(self.scope_map.get(request.method or "", []))
+        allowed_scopes = self.get_allowed_scopes(request, organization)
         return any(request.access.has_scope(s) for s in allowed_scopes)
+
+    def get_allowed_scopes(
+        self,
+        request: Request,
+        organization: Organization | RpcOrganization | RpcUserOrganizationContext,
+    ) -> set[str]:
+        """The scopes that grant access to `organization` for the request's method."""
+        return set(self.scope_map.get(request.method or "", []))
 
     def is_member_disabled_from_limit(
         self,
