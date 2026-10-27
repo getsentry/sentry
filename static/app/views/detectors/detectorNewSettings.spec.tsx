@@ -1392,7 +1392,7 @@ describe('DetectorEdit', () => {
       });
 
       await screen.findByRole('spinbutton', {name: 'High threshold'});
-      await act(() => new Promise(resolve => setTimeout(resolve, 100)));
+      await act(() => new Promise(resolve => setTimeout(resolve, 500)));
 
       expect(router.location.query.draft).toBeUndefined();
     });
