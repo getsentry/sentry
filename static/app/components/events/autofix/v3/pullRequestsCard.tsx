@@ -12,6 +12,7 @@ import {getRepoPullRequestLink} from 'sentry/components/events/autofix/pullReque
 import {
   getAutofixArtifactFromSection,
   isPullRequestsArtifact,
+  isSingleRunAutofix,
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
@@ -29,6 +30,7 @@ interface PullRequestsCardProps {
 export function PullRequestsCard({autofix, section}: PullRequestsCardProps) {
   const runId = getAutofixRunId(autofix.runState);
   const {createPR} = autofix;
+  const isSingleRun = isSingleRunAutofix(autofix.runState);
   const artifact = useMemo(() => {
     const sectionArtifact = getAutofixArtifactFromSection(section);
     return isPullRequestsArtifact(sectionArtifact) ? sectionArtifact : null;
@@ -78,6 +80,16 @@ export function PullRequestsCard({autofix, section}: PullRequestsCardProps) {
                 {link.label}
               </LinkButton>
               <CopyPullRequestUrlButton url={link.url} />
+            </Flex>
+          );
+        }
+
+        if (isSingleRun) {
+          return (
+            <Flex key={pullRequest.repo_name} gap="xs" align="center">
+              <Button disabled tooltipProps={{title: pullRequest.pr_creation_error}}>
+                {t('Failed to create PR in %s', pullRequest.repo_name)}
+              </Button>
             </Flex>
           );
         }
