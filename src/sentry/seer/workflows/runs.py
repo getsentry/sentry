@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
+from dataclasses import dataclass
 from functools import partial
 from typing import Any, Literal
 from uuid import UUID
@@ -36,23 +37,27 @@ class InvalidWorkflowTransition(ValueError):
     pass
 
 
+@dataclass(frozen=True)
 class SeerWorkflowRunLifecycle:
-    def __init__(self, run: SeerWorkflowRun) -> None:
-        self._run_id = run.id
-        self._organization_id = run.organization_id
+    run_id: int
+    organization_id: int
 
     @classmethod
     def get(cls, *, organization_id: int, run_id: int) -> SeerWorkflowRunLifecycle:
-        return cls(
+        return cls.from_run(
             SeerWorkflowRun.objects.using(router.db_for_write(SeerWorkflowRun)).get(
                 id=run_id, organization_id=organization_id, status__isnull=False
             )
         )
 
+    @classmethod
+    def from_run(cls, run: SeerWorkflowRun) -> SeerWorkflowRunLifecycle:
+        return cls(run_id=run.id, organization_id=run.organization_id)
+
     @property
     def run(self) -> SeerWorkflowRun:
         return SeerWorkflowRun.objects.using(router.db_for_write(SeerWorkflowRun)).get(
-            id=self._run_id, organization_id=self._organization_id
+            id=self.run_id, organization_id=self.organization_id
         )
 
     @property
@@ -191,7 +196,7 @@ class SeerWorkflowRunLifecycle:
     def _lock_run(self) -> Iterator[SeerWorkflowRun]:
         with transaction.atomic(router.db_for_write(SeerWorkflowRun)):
             yield SeerWorkflowRun.objects.select_for_update().get(
-                id=self._run_id, organization_id=self._organization_id, status__isnull=False
+                id=self.run_id, organization_id=self.organization_id, status__isnull=False
             )
 
     def _finish(

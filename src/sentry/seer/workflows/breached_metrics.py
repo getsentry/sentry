@@ -185,9 +185,8 @@ class BreachedMetricWorkflow(SeerWorkflow):
         trigger_key = f"issue_created:{group.id}"
         existing = self.get_runs().filter(trigger_key=trigger_key).first()
         if existing is not None:
-            admission = (
-                SeerWorkflowRunLifecycle(existing).parse_extras(MetricBreachRunExtras).admission
-            )
+            lifecycle = SeerWorkflowRunLifecycle.from_run(existing)
+            admission = lifecycle.parse_extras(MetricBreachRunExtras).admission
             if admission.status == "rejected":
                 return RejectedMetricBreach(run=existing, reason=admission.reason, created=False)
             return AcceptedMetricBreach(run=existing, created=False)

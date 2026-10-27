@@ -104,7 +104,7 @@ class SeerWorkflow:
             existing = self.get_runs().filter(trigger_key=trigger_key).first()
             if existing is not None:
                 return WorkflowRunCreationResult(
-                    lifecycle=SeerWorkflowRunLifecycle(existing), created=False
+                    lifecycle=SeerWorkflowRunLifecycle.from_run(existing), created=False
                 )
 
             snapshot = WorkflowRunSnapshot(
@@ -123,7 +123,9 @@ class SeerWorkflow:
                 status=SeerWorkflowRunStatus.QUEUED,
                 extras=json.loads(run_extras.json()),
             )
-            return WorkflowRunCreationResult(lifecycle=SeerWorkflowRunLifecycle(run), created=True)
+            return WorkflowRunCreationResult(
+                lifecycle=SeerWorkflowRunLifecycle.from_run(run), created=True
+            )
 
     def get_runs(self) -> QuerySet[SeerWorkflowRun]:
         return SeerWorkflowRun.objects.filter(
