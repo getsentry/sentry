@@ -3,7 +3,7 @@ import {PullRequestFixture} from 'sentry-fixture/pullRequest';
 
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import AutomationRunsList from 'sentry/views/seerWorkflows/runs';
+import {LegacyAutomationRunsList} from 'sentry/views/seerWorkflows/runs/legacyRunsList';
 
 describe('SeerWorkflows', () => {
   const organization = OrganizationFixture({features: ['seer-automations']});
@@ -27,7 +27,7 @@ describe('SeerWorkflows', () => {
       url: `/organizations/${organization.slug}/seer/workflows/runs/`,
       body: [],
     });
-    render(<AutomationRunsList />, {organization});
+    render(<LegacyAutomationRunsList />, {organization});
     expect(await screen.findByText('No workflow runs yet.')).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Run…'})).not.toBeInTheDocument();
   });
@@ -57,7 +57,7 @@ describe('SeerWorkflows', () => {
         runId: '2',
       },
     });
-    const {router} = render(<AutomationRunsList />, {
+    const {router} = render(<LegacyAutomationRunsList />, {
       organization: scanOrganization,
       initialRouterConfig: {
         location: {
@@ -146,7 +146,7 @@ describe('SeerWorkflows', () => {
       url,
       body: [...unsupportedRuns, runningRun],
     });
-    render(<AutomationRunsList />, {
+    render(<LegacyAutomationRunsList />, {
       organization,
       initialRouterConfig: {
         location: {
@@ -255,7 +255,7 @@ describe('SeerWorkflows', () => {
         },
       ],
     });
-    render(<AutomationRunsList />, {organization});
+    render(<LegacyAutomationRunsList />, {organization});
     expect(await screen.findByText('Duplicate monitors')).toBeInTheDocument();
     expect(
       screen.getByText('1 exact duplicate group · 1 other finding')
@@ -289,7 +289,7 @@ describe('SeerWorkflows', () => {
       ],
     });
 
-    render(<AutomationRunsList />, {organization});
+    render(<LegacyAutomationRunsList />, {organization});
 
     expect(await screen.findByText('Run failed')).toBeInTheDocument();
     expect(screen.getByLabelText('Failed')).toBeInTheDocument();
@@ -318,7 +318,7 @@ describe('SeerWorkflows', () => {
       ],
     });
 
-    render(<AutomationRunsList />, {organization});
+    render(<LegacyAutomationRunsList />, {organization});
 
     expect(await screen.findByText(resultText)).toBeInTheDocument();
     expect(screen.getByLabelText(status)).toBeInTheDocument();
@@ -350,7 +350,7 @@ describe('SeerWorkflows', () => {
       ],
     });
 
-    render(<AutomationRunsList />, {organization});
+    render(<LegacyAutomationRunsList />, {organization});
 
     expect(await screen.findByText('1 issue')).toBeInTheDocument();
     expect(screen.getByLabelText('Succeeded')).toBeInTheDocument();
@@ -400,7 +400,7 @@ describe('SeerWorkflows', () => {
       ],
     });
 
-    render(<AutomationRunsList />, {organization});
+    render(<LegacyAutomationRunsList />, {organization});
 
     await userEvent.click(await screen.findByRole('button', {name: 'Expand run'}));
 
@@ -454,7 +454,7 @@ describe('SeerWorkflows', () => {
       ],
     });
 
-    render(<AutomationRunsList />, {organization});
+    render(<LegacyAutomationRunsList />, {organization});
 
     await userEvent.click(await screen.findByRole('button', {name: 'Expand run'}));
 
@@ -493,7 +493,7 @@ describe('SeerWorkflows', () => {
       ],
     });
 
-    render(<AutomationRunsList />, {organization});
+    render(<LegacyAutomationRunsList />, {organization});
 
     expect(await screen.findByText('1 issue')).toBeInTheDocument();
     expect(
@@ -529,7 +529,7 @@ describe('SeerWorkflows', () => {
       ],
     });
 
-    render(<AutomationRunsList />, {organization});
+    render(<LegacyAutomationRunsList />, {organization});
 
     expect(await screen.findByText('No issues processed')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Expand run'}));
@@ -593,7 +593,7 @@ describe('SeerWorkflows', () => {
       ],
     });
 
-    const {router} = render(<AutomationRunsList />, {organization});
+    const {router} = render(<LegacyAutomationRunsList />, {organization});
 
     const resultsDesc = (await screen.findAllByText(/issues?$/)).map(
       el => el.textContent
@@ -616,7 +616,7 @@ describe('SeerWorkflows', () => {
       body: {detail: 'not found'},
     });
 
-    render(<AutomationRunsList />, {organization});
+    render(<LegacyAutomationRunsList />, {organization});
 
     expect(await screen.findByRole('button', {name: /retry/i})).toBeInTheDocument();
   });
@@ -657,7 +657,7 @@ describe('SeerWorkflows', () => {
       ],
     });
 
-    render(<AutomationRunsList />, {
+    render(<LegacyAutomationRunsList />, {
       organization,
       initialRouterConfig: {
         location: {
@@ -697,7 +697,7 @@ describe('SeerWorkflows', () => {
       ],
     });
 
-    const {router} = render(<AutomationRunsList />, {
+    const {router} = render(<LegacyAutomationRunsList />, {
       organization,
       initialRouterConfig: {
         location: {
@@ -749,7 +749,7 @@ describe('SeerWorkflows', () => {
       ],
     });
 
-    render(<AutomationRunsList />, {
+    render(<LegacyAutomationRunsList />, {
       organization,
       initialRouterConfig: {
         location: {
