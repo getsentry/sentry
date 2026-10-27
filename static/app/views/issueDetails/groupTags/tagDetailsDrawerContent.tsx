@@ -26,7 +26,7 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import type {Group, Tag, TagValue} from 'sentry/types/group';
-import {percent} from 'sentry/utils';
+import {escapeDoubleQuotes, percent} from 'sentry/utils';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {escapeIssueTagKey, generateQueryWithTag} from 'sentry/utils/queryString';
@@ -154,7 +154,9 @@ function TagDetailsRow({
           query: undefined,
         }
       : {
-          query: tagValue.query || `${escapeIssueTagKey(key)}:"${tagValue.value}"`,
+          query:
+            tagValue.query ||
+            `${escapeIssueTagKey(key)}:"${escapeDoubleQuotes(tagValue.value)}"`,
         };
 
   const allEventsLocation = {

@@ -37,10 +37,6 @@ export function IssueWidgetQueries({
 }: Props) {
   const config = IssuesConfig;
 
-  const afterFetchTableData = (_rawResult: Group[]) => {
-    return {totalIssuesCount: undefined};
-  };
-
   const {loading, ...rest} = useGenericWidgetQueries<IssuesSeriesResponse, Group[]>({
     config,
     widget,
@@ -50,7 +46,6 @@ export function IssueWidgetQueries({
     onDataFetched,
     onDataFetchStart,
     selection,
-    afterFetchTableData,
     skipDashboardFilterParens: true, // Issue widgets do not support parens in search
     widgetInterval,
   });

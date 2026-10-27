@@ -86,6 +86,12 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "organization.provision-analytics-with-outbox",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Redis
 register(
@@ -947,6 +953,11 @@ register("vercel.integration-slug", default="sentry", flags=FLAG_AUTOMATOR_MODIF
 # MsTeams Integration
 register("msteams.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("msteams.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+register(
+    "msteams.client-secret-expires-at",
+    default="",
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 register("msteams.app-id")
 register(
     "msteams.personal-installation-link.enabled",
@@ -3703,6 +3714,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Notifications for a curated set of customer organizations in limited access
+register(
+    "notifications.platform-rollout.limited-access",
+    type=Dict,
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Notifications for early adopter organizations
 register(
     "notifications.platform-rollout.early-adopter",
@@ -4689,5 +4708,14 @@ register(
     "integrations.client.disable_retries",
     default=False,
     type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Whether to query legacy debug/code IDS during debug file lookup.
+# This is a per-request rollout rate.
+register(
+    "debug-files.query-legacy-ids.rollout-rate",
+    type=Float,
+    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

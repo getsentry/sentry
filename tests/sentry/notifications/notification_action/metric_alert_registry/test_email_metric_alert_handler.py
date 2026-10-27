@@ -346,9 +346,10 @@ class TestMetricAlertEmailLinks(MetricAlertHandlerBase):
         )
 
     def test_resolved_link_keeps_original_period_without_legacy_lookup(self) -> None:
-        incident = self.create_incident(alert_rule=self.alert_rule)
         self.create_incident_group_open_period(
-            incident=incident, group_open_period=self.open_period
+            group_open_period=self.open_period,
+            incident_id=123,
+            incident_identifier=42,
         )
         self.open_period.close_open_period(self.open_period.date_started + timedelta(seconds=1))
         self.open_period_context = OpenPeriodContext.from_group(self.group)

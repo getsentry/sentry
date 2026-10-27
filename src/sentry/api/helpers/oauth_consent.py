@@ -179,7 +179,7 @@ _PERMISSION_RESOURCES = (
     OAuthPermissionResource(
         "dashboards",
         "Dashboards",
-        ("dashboard:read", "dashboard:create", "dashboard:write", "dashboard:delete"),
+        ("dashboard:read", "dashboard:create", "dashboard:update", "dashboard:delete"),
         access_descriptions={
             "read": "View dashboards.",
             "create": "Create dashboards.",
@@ -217,7 +217,8 @@ _PERMISSION_RESOURCES = (
 _PERMISSION_ACTIONS = {
     "read": ("read",),
     "write": ("read", "write"),
-    "dashboard:write": ("read", "create", "write"),
+    # The consent screen shows update access in its "write" column.
+    "dashboard:update": ("read", "create", "write"),
     "admin": ("read", "write", "admin"),
     "create": ("read", "create"),
     "delete": ("read", "create", "write", "delete"),

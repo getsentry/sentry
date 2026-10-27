@@ -150,10 +150,6 @@ const setupMocks = () => {
     },
   });
   MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/events-histogram/',
-    body: {data: [], meta: []},
-  });
-  MockApiClient.addMockResponse({
     url: '/organizations/org-slug/key-transactions-list/',
     body: [],
   });
