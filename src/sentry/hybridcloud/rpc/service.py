@@ -19,6 +19,7 @@ from collections.abc import (
     Sequence,
 )
 from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass
 from threading import local
 from typing import TYPE_CHECKING, Any, NoReturn, Self, TypeVar, cast
@@ -499,9 +500,25 @@ def dispatch_remote_call(
     return remote_silo_call.dispatch(use_test_client)
 
 
+# Number of retries urllib3 has performed for the RPC request in flight.
+_rpc_retries_used: ContextVar[int] = ContextVar("rpc_retries_used", default=0)
+
+
+class _CountingRetry(Retry):
+    """
+    Retry wrapper that counts the total number of retries, mostly for us to
+    report metrics on request retry counts.
+    """
+
+    def increment(self, *args: Any, **kwargs: Any) -> Self:
+        new_retry = super().increment(*args, **kwargs)
+        _rpc_retries_used.set(_rpc_retries_used.get() + 1)
+        return new_retry
+
+
 def _create_request_session(retry_count: int) -> requests.Session:
     retry_adapter = HTTPAdapter(
-        max_retries=Retry(
+        max_retries=_CountingRetry(
             total=retry_count,
             backoff_factor=0.1,
             status_forcelist=[503],
@@ -769,8 +786,13 @@ class _RemoteSiloCall:
         url = self.address + self.path
 
         timeout = self.get_method_timeout()
+        retries_token = _rpc_retries_used.set(0)
+        result = "failure"
         try:
-            return http.post(url, headers=headers, data=data, timeout=timeout)
+            response = http.post(url, headers=headers, data=data, timeout=timeout)
+            if response.status_code == 200:
+                result = "success"
+            return response
         except requests.exceptions.ConnectionError as e:
             metrics.incr(
                 "hybrid_cloud.dispatch_rpc.failure",
@@ -789,6 +811,13 @@ class _RemoteSiloCall:
                 tags=self._metrics_tags(kind="timeout"),
             )
             raise self._remote_exception(f"Timeout of {settings.RPC_TIMEOUT} exceeded") from e
+        finally:
+            metrics.distribution(
+                "hybrid_cloud.dispatch_rpc.retries",
+                _rpc_retries_used.get(),
+                tags=self._metrics_tags(result=result),
+            )
+            _rpc_retries_used.reset(retries_token)
 
     def _check_disabled(self) -> None:
         if disabled_service_methods := options.get("hybrid_cloud.rpc.disabled-service-methods"):

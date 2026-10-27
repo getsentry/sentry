@@ -9,6 +9,8 @@ import responses
 from django.conf import settings
 from django.db import router
 from django.test import override_settings
+from urllib3.connectionpool import HTTPConnectionPool
+from urllib3.exceptions import NewConnectionError, ReadTimeoutError
 
 from sentry import options
 from sentry.auth.services.auth import AuthService
@@ -233,6 +235,94 @@ class DispatchRemoteCallTest(TestCase):
             org_service_delgn = OrganizationService.create_delegation(use_test_client=False)
         result = org_service_delgn.get_org_by_slug(slug="this_is_not_a_valid_slug")
         assert result is None
+
+    @staticmethod
+    def _retry_metric_calls(mock_distribution: mock.MagicMock) -> list[tuple[int, str]]:
+        return [
+            (call.args[1], call.kwargs["tags"]["result"])
+            for call in mock_distribution.call_args_list
+            if call.args[0] == "hybrid_cloud.dispatch_rpc.retries"
+        ]
+
+    @responses.activate
+    @override_settings(SILO_MODE=SiloMode.CELL)
+    @mock.patch("sentry.hybridcloud.rpc.service.metrics.distribution")
+    def test_retry_count_emitted_without_retries(self, mock_distribution: mock.MagicMock) -> None:
+        self._set_up_mock_response("organization/get_organization_by_id", None)
+
+        dispatch_remote_call(None, "organization", "get_organization_by_id", {"id": 0})
+
+        assert self._retry_metric_calls(mock_distribution) == [(0, "success")]
+
+    @responses.activate
+    @override_settings(SILO_MODE=SiloMode.CELL)
+    @mock.patch("sentry.hybridcloud.rpc.service.metrics.distribution")
+    def test_retry_count_emitted_on_success_after_retry(
+        self, mock_distribution: mock.MagicMock
+    ) -> None:
+        responses.add(
+            responses.POST,
+            f"{settings.SENTRY_CONTROL_ADDRESS}/api/0/internal/rpc/organization/get_organization_by_id/",
+            status=503,
+        )
+        self._set_up_mock_response("organization/get_organization_by_id", None)
+
+        result = dispatch_remote_call(None, "organization", "get_organization_by_id", {"id": 0})
+
+        assert result is None
+        assert self._retry_metric_calls(mock_distribution) == [(1, "success")]
+
+    @responses.activate
+    @override_settings(SILO_MODE=SiloMode.CELL)
+    @override_options({"hybridcloud.rpc.retries": 2})
+    @mock.patch("sentry.hybridcloud.rpc.service.metrics.distribution")
+    def test_retry_count_emitted_on_exhausted_retries(
+        self, mock_distribution: mock.MagicMock
+    ) -> None:
+        responses.add(
+            responses.POST,
+            f"{settings.SENTRY_CONTROL_ADDRESS}/api/0/internal/rpc/organization/get_organization_by_id/",
+            status=503,
+        )
+
+        with pytest.raises(RpcRemoteException, match="max retries reached"):
+            dispatch_remote_call(None, "organization", "get_organization_by_id", {"id": 0})
+
+        assert len(responses.calls) == 3
+        assert self._retry_metric_calls(mock_distribution) == [(2, "failure")]
+
+    @override_settings(SILO_MODE=SiloMode.CELL)
+    @override_options({"hybridcloud.rpc.retries": 2})
+    @mock.patch("sentry.hybridcloud.rpc.service.metrics.distribution")
+    def test_retry_count_emitted_on_read_timeouts(self, mock_distribution: mock.MagicMock) -> None:
+        # responses doesn't retry raised errors, so fail below urllib3's retry loop instead.
+        with mock.patch.object(
+            HTTPConnectionPool,
+            "_make_request",
+            side_effect=ReadTimeoutError(mock.sentinel.pool, "/", "Read timed out."),
+        ) as mock_make_request:
+            with pytest.raises(RpcRemoteException, match="RPC Connection failed"):
+                dispatch_remote_call(None, "organization", "get_organization_by_id", {"id": 0})
+
+        assert mock_make_request.call_count == 3
+        assert self._retry_metric_calls(mock_distribution) == [(2, "failure")]
+
+    @override_settings(SILO_MODE=SiloMode.CELL)
+    @override_options({"hybridcloud.rpc.retries": 2})
+    @mock.patch("sentry.hybridcloud.rpc.service.metrics.distribution")
+    def test_retry_count_emitted_on_connection_errors(
+        self, mock_distribution: mock.MagicMock
+    ) -> None:
+        with mock.patch.object(
+            HTTPConnectionPool,
+            "_make_request",
+            side_effect=NewConnectionError(mock.sentinel.conn, "Connection refused"),
+        ) as mock_make_request:
+            with pytest.raises(RpcRemoteException, match="RPC Connection failed"):
+                dispatch_remote_call(None, "organization", "get_organization_by_id", {"id": 0})
+
+        assert mock_make_request.call_count == 3
+        assert self._retry_metric_calls(mock_distribution) == [(2, "failure")]
 
     @override_options(
         {"hybrid_cloud.rpc.disabled-service-methods": ["organization.get_organization_by_id"]}
