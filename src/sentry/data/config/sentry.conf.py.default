@@ -2,6 +2,7 @@
 # you can inherit and tweak settings to your hearts content.
 from sentry.conf.server import *
 
+import json
 import os.path
 
 DATABASES = {
@@ -118,3 +119,10 @@ SENTRY_WEB_OPTIONS = {
 # Exclude logs caused by Relay polling every 100ms.
 # Makes it rather hard to use Python debugger
 DEVSERVER_REQUEST_LOG_EXCLUDES = ["/api/0/relays/projectconfigs/"]
+
+# Prod flag values written by bin/sync-prod-flags, run by devenv sync.
+# Set SENTRY_FEATURES below this to override them.
+_prod_flags = os.path.join(os.path.dirname(__file__), "prod-flags.json")
+if os.path.exists(_prod_flags):
+    with open(_prod_flags) as f:
+        SENTRY_FEATURES.update(json.load(f))
