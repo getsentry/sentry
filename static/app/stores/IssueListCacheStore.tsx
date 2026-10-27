@@ -1,9 +1,7 @@
 import isEqual from 'lodash/isEqual';
-import {createStore} from 'reflux';
 
+import {createLegacyStore} from 'sentry/stores/createLegacyStore';
 import type {Group} from 'sentry/types/group';
-
-import type {StrictStoreDefinition} from './types';
 
 /**
  * The type here doesn't really matter it just needs to be compared via isEqual
@@ -36,52 +34,34 @@ interface IssueListCacheState {
 // 30 seconds
 const CACHE_EXPIRATION = 30 * 1000;
 
-interface IssueListCacheStoreDefinition extends StrictStoreDefinition<IssueListCacheState | null> {
-  getFromCache(params: LooseParamsType): IssueListCache | null;
-  markGroupAsSeen(groupId: string): void;
-  reset(): void;
-  save(params: LooseParamsType, data: IssueListCache): void;
-}
+const store = createLegacyStore<IssueListCacheState | null>(null);
 
-const storeConfig: IssueListCacheStoreDefinition = {
-  state: null,
-
-  init() {},
+export const IssueListCacheStore = {
+  ...store,
 
   reset() {
-    this.state = null;
+    store.resetState(null);
   },
 
   save(params: LooseParamsType, data: IssueListCache) {
-    this.state = {
-      params,
-      cache: data,
-      expiration: Date.now() + CACHE_EXPIRATION,
-    };
+    store.resetState({params, cache: data, expiration: Date.now() + CACHE_EXPIRATION});
   },
 
   getFromCache(params: LooseParamsType) {
-    if (
-      this.state &&
-      this.state.expiration > Date.now() &&
-      isEqual(this.state?.params, params)
-    ) {
-      return this.state.cache;
+    const state = store.getState();
+    if (state && state.expiration > Date.now() && isEqual(state.params, params)) {
+      return state.cache;
     }
 
     return null;
   },
 
-  getState() {
-    return this.state;
-  },
-
   markGroupAsSeen(groupId: string) {
-    const matchingGroup = this.state?.cache.groups.find(group => group.id === groupId);
+    const matchingGroup = store
+      .getState()
+      ?.cache.groups.find(group => group.id === groupId);
     if (matchingGroup) {
       matchingGroup.hasSeen = true;
     }
   },
 };
-
-export const IssueListCacheStore = createStore(storeConfig);

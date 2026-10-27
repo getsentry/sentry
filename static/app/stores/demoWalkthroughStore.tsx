@@ -1,30 +1,30 @@
-import type {StoreDefinition} from 'reflux';
-import {createStore} from 'reflux';
-
+import {createLegacyStore} from 'sentry/stores/createLegacyStore';
 import {OnboardingTaskKey} from 'sentry/types/onboarding';
 
-interface DemoWalkthroughStoreDefinition extends StoreDefinition {
-  activateGuideAnchor(guide: string): void;
-  get(guide: string): boolean;
-}
+type State = {
+  issueGuideAnchor: boolean;
+  sidebarGuideAnchor: boolean;
+};
 
-const storeConfig: DemoWalkthroughStoreDefinition = {
+const store = createLegacyStore<State>({
   issueGuideAnchor: false,
   sidebarGuideAnchor: false,
-  init() {
-    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
-    // listeners due to their leaky nature in tests.
-  },
+});
+
+/**
+ * This store is used to hold local user preferences
+ * Side-effects (like reading/writing to cookies) are done in associated actionCreators
+ */
+export const DemoWalkthroughStore = {
+  ...store,
 
   activateGuideAnchor(task: OnboardingTaskKey) {
     switch (task) {
       case OnboardingTaskKey.ISSUE_GUIDE:
-        this.issueGuideAnchor = true;
-        this.trigger(this.issueGuideAnchor);
+        store.setState(prev => ({...prev, issueGuideAnchor: true}));
         break;
       case OnboardingTaskKey.SIDEBAR_GUIDE:
-        this.sidebarGuideAnchor = true;
-        this.trigger(this.sidebarGuideAnchor);
+        store.setState(prev => ({...prev, sidebarGuideAnchor: true}));
         break;
       default:
     }
@@ -33,17 +33,11 @@ const storeConfig: DemoWalkthroughStoreDefinition = {
   get(guide: string) {
     switch (guide) {
       case 'issue':
-        return this.issueGuideAnchor;
+        return store.getState().issueGuideAnchor;
       case 'sidebar':
-        return this.sidebarGuideAnchor;
+        return store.getState().sidebarGuideAnchor;
       default:
         return false;
     }
   },
 };
-
-/**
- * This store is used to hold local user preferences
- * Side-effects (like reading/writing to cookies) are done in associated actionCreators
- */
-export const DemoWalkthroughStore = createStore(storeConfig);

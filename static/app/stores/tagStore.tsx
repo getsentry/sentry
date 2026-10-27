@@ -1,35 +1,22 @@
-import {createStore} from 'reflux';
-
+import {createLegacyStore} from 'sentry/stores/createLegacyStore';
 import type {Tag, TagCollection} from 'sentry/types/group';
 
-import type {StrictStoreDefinition} from './types';
+const store = createLegacyStore<TagCollection>({});
 
-interface TagStoreDefinition extends StrictStoreDefinition<TagCollection> {
-  loadTagsSuccess(data: Tag[]): void;
-  reset(): void;
-}
-
-const storeConfig: TagStoreDefinition = {
-  state: {},
+export const TagStore = {
+  ...store,
 
   init() {
-    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
-    // listeners due to their leaky nature in tests.
-    this.state = {};
-  },
-
-  getState() {
-    return this.state;
+    store.resetState({});
   },
 
   reset() {
-    this.state = {};
-    this.trigger(this.state);
+    store.setState(() => ({}));
   },
 
-  loadTagsSuccess(data) {
+  loadTagsSuccess(data: Tag[]) {
     // Note: We could probably stop cloning the data here and just
-    // assign to this.state directly, but there is a change someone may
+    // assign to the state directly, but there is a change someone may
     // be relying on referential equality somewhere in the codebase and
     // we dont want to risk breaking that.
     const newState: TagCollection = {};
@@ -41,10 +28,11 @@ const storeConfig: TagStoreDefinition = {
       };
     }
 
+    const previousState = store.getState();
     // We will iterate through the previous tags in reverse so that previously
     // added tags are carried over first. We rely on browser implementation
     // of Object.keys() to return keys in insertion order.
-    const previousTagKeys = Object.keys(this.state);
+    const previousTagKeys = Object.keys(previousState);
 
     const MAX_STORE_SIZE = 2000;
     // We will carry over the previous tags until we reach the max store size
@@ -63,13 +51,10 @@ const storeConfig: TagStoreDefinition = {
         continue;
       }
       // Else override the tag with the previous tag
-      newState[tagKey] = this.state[tagKey]!;
+      newState[tagKey] = previousState[tagKey]!;
       carriedOver++;
     }
 
-    this.state = newState;
-    this.trigger(newState);
+    store.setState(() => newState);
   },
 };
-
-export const TagStore = createStore(storeConfig);

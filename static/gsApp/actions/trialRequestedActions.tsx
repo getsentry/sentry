@@ -1,6 +1,6 @@
-import Reflux from 'reflux';
+import {TrialRequestedStore} from 'getsentry/stores/trialRequestedStore';
 
-export const TrialRequestedActions = Reflux.createActions([
-  'requested',
-  'clearNotification',
-]);
+export const TrialRequestedActions = {
+  requested: () => TrialRequestedStore.onRequested(),
+  clearNotification: () => TrialRequestedStore.onClearNotification(),
+};
