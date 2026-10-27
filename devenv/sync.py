@@ -333,6 +333,7 @@ def main(context: dict[str, str]) -> int:
         proc.run((f"{venv_dir}/bin/sentry", "init", "--dev"))
 
     if not run_procs(
+        repo,
         reporoot,
         venv_dir,
         (("prod feature flags", ("bin/sync-prod-flags",), {}),),
