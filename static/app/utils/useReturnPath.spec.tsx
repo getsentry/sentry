@@ -20,6 +20,15 @@ describe('useReturnPath', () => {
     expect(getReturnPath(KEY, '/fallback/')).toBe('/issues/?query=is%3Aunresolved');
   });
 
+  it('does not capture without a key', () => {
+    renderHookWithProviders(
+      () => useCaptureReturnPath({key: null, excludePrefix: '/settings'}),
+      {initialRouterConfig: {location: {pathname: '/issues/'}}}
+    );
+
+    expect(getReturnPath(KEY, '/fallback/')).toBe('/fallback/');
+  });
+
   it('does not capture locations under the excluded prefix', () => {
     renderHookWithProviders(() => useCaptureReturnPath(options), {
       initialRouterConfig: {location: {pathname: '/settings/org-slug/members/'}},

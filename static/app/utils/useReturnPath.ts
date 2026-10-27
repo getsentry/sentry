@@ -10,9 +10,11 @@ interface CaptureReturnPathOptions {
    */
   excludePrefix: string;
   /**
-   * The session storage key the return path is stored under.
+   * The session storage key the return path is stored under. Nothing is
+   * captured while this is null, e.g. when the key depends on something that
+   * is not known yet.
    */
-  key: string;
+  key: string | null;
 }
 
 /**
@@ -27,7 +29,7 @@ export function useCaptureReturnPath({key, excludePrefix}: CaptureReturnPathOpti
   const {pathname, search, hash} = useLocation();
 
   useEffect(() => {
-    if (matchPath({path: excludePrefix, end: false}, pathname)) {
+    if (key === null || matchPath({path: excludePrefix, end: false}, pathname)) {
       return;
     }
     sessionStorageWrapper.setItem(key, `${pathname}${search}${hash}`);

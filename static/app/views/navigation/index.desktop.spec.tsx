@@ -382,6 +382,27 @@ describe('desktop navigation', () => {
     expect(router.location.pathname).toBe(exploreLocation);
   });
 
+  it('does not return to a page from another organization', async () => {
+    ProjectsStore.loadInitialData([ProjectFixture()]);
+    sessionStorage.setItem(
+      'settings-return-path:other-org',
+      '/organizations/other-org/explore/traces/'
+    );
+    const {router} = render(
+      <PrimaryNavigationContextProvider>
+        <Navigation />
+      </PrimaryNavigationContextProvider>,
+      navigationContext({
+        organization: {features: [...ALL_AVAILABLE_FEATURES, 'settings-v3']},
+        initialRouterConfig: {location: {pathname: '/settings/org-slug/'}},
+      })
+    );
+
+    const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
+    await userEvent.click(within(primaryNav).getByRole('button', {name: 'Back to app'}));
+    expect(router.location.pathname).toBe('/organizations/org-slug/issues/');
+  });
+
   it('shows settings scope navigation with settings v3', async () => {
     ProjectsStore.loadInitialData([ProjectFixture()]);
     const {router} = render(

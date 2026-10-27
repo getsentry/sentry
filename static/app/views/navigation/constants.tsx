@@ -30,4 +30,7 @@ export const SIDEBAR_NAVIGATION_SOURCE = 'sidebar';
 // Settings has its own navigation, so "Back to app" returns to the last page
 // visited outside of this path prefix.
 export const SETTINGS_PATH_PREFIX = '/settings';
-export const SETTINGS_RETURN_PATH_KEY = 'settings-return-path';
+
+// Scoped by organization so "Back to app" never returns to another organization.
+export const getSettingsReturnPathKey = (organizationSlug: string) =>
+  `settings-return-path:${organizationSlug}`;

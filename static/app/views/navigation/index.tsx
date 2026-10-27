@@ -15,7 +15,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useCaptureReturnPath} from 'sentry/utils/useReturnPath';
 import {
   SETTINGS_PATH_PREFIX,
-  SETTINGS_RETURN_PATH_KEY,
+  getSettingsReturnPathKey,
 } from 'sentry/views/navigation/constants';
 import {MobileNavigation} from 'sentry/views/navigation/mobileNavigation';
 import {Navigation as DesktopNavigation} from 'sentry/views/navigation/navigation';
@@ -61,7 +61,7 @@ function UserAndOrganizationNavigation({pageBannerHeight}: NavigationProps) {
   const {view, setView} = useSecondaryNavigation();
 
   useCaptureReturnPath({
-    key: SETTINGS_RETURN_PATH_KEY,
+    key: organization ? getSettingsReturnPathKey(organization.slug) : null,
     excludePrefix: SETTINGS_PATH_PREFIX,
   });
 

@@ -34,7 +34,7 @@ import {
   NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
   PRIMARY_SIDEBAR_WIDTH,
   SECONDARY_SIDEBAR_WIDTH,
-  SETTINGS_RETURN_PATH_KEY,
+  getSettingsReturnPathKey,
 } from 'sentry/views/navigation/constants';
 import {
   NavigationTour,
@@ -189,7 +189,7 @@ export function SettingsNavigationBackButton({
       aria-label={t('Back to app')}
       tooltipProps={{title: t('Back to app')}}
       to={getReturnPath(
-        SETTINGS_RETURN_PATH_KEY,
+        getSettingsReturnPathKey(organizationSlug),
         `/organizations/${organizationSlug}/issues/`
       )}
       onClick={() => setActiveGroup(null)}
