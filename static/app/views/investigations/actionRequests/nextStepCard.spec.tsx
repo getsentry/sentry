@@ -25,6 +25,8 @@ import {
   InvestigationOrchestrationFixture,
 } from 'sentry/views/investigations/fixtures';
 import type {
+  InvestigationAction,
+  InvestigationActionRequest,
   InvestigationDetail,
   InvestigationOrchestration,
   InvestigationUpdateDetectorAction,
@@ -99,6 +101,33 @@ const finishingRun = runWith(
   {phase: 'metadata', status: 'processing'},
   {status: 'completed'}
 );
+
+const rerunningRun = runWith(
+  {status: 'not_started', error: null},
+  {phase: 'investigating', status: 'processing'},
+  {revision: completedRun.report.revision + 1}
+);
+
+function connectRequest(overrides: Partial<InvestigationActionRequest> = {}) {
+  return InvestigationActionRequestFixture({
+    title: 'Connect Datadog',
+    rationale: 'Checkout logs live in Datadog.',
+    impact: null,
+    action: {kind: 'connect_telemetry', provider: 'datadog'},
+    ...overrides,
+  });
+}
+
+function connectedRequest(followUp: InvestigationActionRequest['followUp']) {
+  return connectRequest({
+    state: 'applied',
+    canApply: false,
+    cannotApplyReason: 'not_suggested',
+    dateApplied: '2026-08-27T12:00:00Z',
+    appliedDetails: {provider: 'datadog'},
+    followUp,
+  });
+}
 
 const applyUrl =
   '/organizations/org-slug/investigations/investigation-1/action-requests/312/apply/';
@@ -1288,6 +1317,172 @@ describe('NextStepCard', () => {
     expect(card).not.toHaveTextContent('Applied by');
   });
 
+  it('offers to connect a provider through its integration settings', () => {
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[connectRequest()]}
+      />
+    );
+
+    const card = getCard();
+    expect(card).toHaveTextContent('Connect Datadog. Checkout logs live in Datadog.');
+    const connect = within(card).getByRole('button', {
+      name: 'Connect Datadog (opens in a new tab)',
+    });
+    expect(connect).toHaveAttribute('href', '/settings/org-slug/integrations/datadog/');
+    expect(connect).toHaveAttribute('target', '_blank');
+  });
+
+  it.each([
+    ['permission_denied', 'You need permission to install integrations.'],
+    ['investigation_archived', 'Archived investigations are read-only.'],
+  ] as const)('says why a provider cannot be connected: %s', (reason, message) => {
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[connectRequest({canApply: false, cannotApplyReason: reason})]}
+      />
+    );
+
+    const connect = within(getCard()).getByRole('button', {
+      name: 'Connect Datadog (opens in a new tab)',
+    });
+    expect(connect).toHaveAttribute('aria-disabled', 'true');
+    expect(connect).toHaveAccessibleDescription(message);
+  });
+
+  it('does not check a connection in advance', () => {
+    const dryRun = mockDryRun();
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[connectRequest()]}
+      />
+    );
+
+    expect(
+      within(getCard()).getByRole('button', {
+        name: 'Connect Datadog (opens in a new tab)',
+      })
+    ).toBeEnabled();
+    expect(dryRun).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    {
+      status: 'accepted',
+      rerun: null,
+      note: 'Seer will re-run the investigation with it.',
+    },
+    {
+      status: 'dispatched',
+      rerun: null,
+      note: 'Seer will re-run the investigation with it.',
+    },
+    {
+      status: 'acknowledged',
+      rerun: 'held',
+      note: 'Seer will re-run the investigation with it once the current run finishes.',
+    },
+  ] as const)(
+    'says Seer will re-run with a connected provider while the re-run is $status',
+    ({status, rerun, note}) => {
+      render(
+        <NextStepCard
+          investigationId="investigation-1"
+          orchestration={completedRun}
+          actionRequests={[connectedRequest({status, reason: null, rerun})]}
+        />
+      );
+
+      const card = getCard();
+      expect(card).toHaveTextContent(`Datadog connected. ${note}`);
+      expect(
+        within(card).getByRole('button', {name: 'View integration (opens in a new tab)'})
+      ).toHaveAttribute('href', '/settings/org-slug/integrations/datadog/');
+    }
+  );
+
+  it('drops a connected provider from an older report once the re-run starts', () => {
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={rerunningRun}
+        actionRequests={[
+          connectedRequest({status: 'acknowledged', reason: null, rerun: 'started'}),
+        ]}
+      />
+    );
+
+    expect(
+      screen.queryByRole('region', {name: 'Recommended action'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows only that a provider connected when no re-run follows', () => {
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[connectedRequest(null)]}
+      />
+    );
+
+    const card = getCard();
+    expect(card).toHaveTextContent('Datadog connected.');
+    expect(card).not.toHaveTextContent('re-run');
+  });
+
+  it('says why Seer did not re-run with a connected provider', () => {
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[
+          connectedRequest({status: 'failed', reason: 'run_cancelled', rerun: 'skipped'}),
+        ]}
+      />
+    );
+
+    expect(getCard()).toHaveTextContent(
+      "Datadog connected. Seer didn't re-run the investigation because it was cancelled."
+    );
+  });
+
+  it('says when Seer started the re-run with a connected provider', () => {
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[
+          connectedRequest({status: 'acknowledged', reason: null, rerun: 'started'}),
+        ]}
+      />
+    );
+
+    expect(getCard()).toHaveTextContent(
+      'Datadog connected. Seer started re-running the investigation with it.'
+    );
+  });
+
+  it('says the re-run failed when Seer gives no reason', () => {
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[connectedRequest({status: 'failed', reason: null, rerun: null})]}
+      />
+    );
+
+    expect(getCard()).toHaveTextContent(
+      "Datadog connected. Seer couldn't re-run the investigation with it."
+    );
+  });
+
   it('keeps the title of an applied change of a kind it does not know', () => {
     render(
       <NextStepCard
@@ -1295,9 +1490,9 @@ describe('NextStepCard', () => {
         orchestration={completedRun}
         actionRequests={[
           InvestigationActionRequestFixture({
-            title: 'Connect Datadog',
+            title: 'Open a ticket',
             rationale: 'Seer needs traces.',
-            action: {kind: 'connect_telemetry', provider: 'datadog'},
+            action: {kind: 'open_ticket'} as unknown as InvestigationAction,
             state: 'applied',
             canApply: false,
             cannotApplyReason: 'not_suggested',
@@ -1309,7 +1504,7 @@ describe('NextStepCard', () => {
     );
 
     const card = getCard();
-    expect(card).toHaveTextContent('Connect Datadog. Seer needs traces.');
+    expect(card).toHaveTextContent('Open a ticket. Seer needs traces.');
     expect(within(card).getByText('Applied')).toBeInTheDocument();
   });
 

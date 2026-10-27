@@ -269,9 +269,14 @@ export type InvestigationUpdateDetectorAction = {
   kind: 'update_detector';
 };
 
+export type InvestigationConnectTelemetryAction = {
+  kind: 'connect_telemetry';
+  provider: 'datadog' | 'gcp';
+};
+
 export type InvestigationAction =
   | InvestigationUpdateDetectorAction
-  | {kind: 'connect_telemetry'; provider: 'datadog' | 'gcp'};
+  | InvestigationConnectTelemetryAction;
 
 export type InvestigationActionRequestAnchor = {
   blockId: string | null;

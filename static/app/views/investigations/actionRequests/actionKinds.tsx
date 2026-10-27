@@ -1,6 +1,7 @@
 import type {ComponentType, ReactNode} from 'react';
 
 import type {ApplyCheck} from 'sentry/views/investigations/actionRequests/applyButton';
+import {connectTelemetryUI} from 'sentry/views/investigations/actionRequests/connectTelemetry';
 import {updateDetectorUI} from 'sentry/views/investigations/actionRequests/updateDetector';
 import type {ActionRequestError} from 'sentry/views/investigations/api';
 import type {
@@ -47,8 +48,9 @@ export type ActionKindUI<A extends InvestigationAction> = {
   getSuccessMessage?: () => string;
 };
 
-const ACTION_KIND_UI: {[K in ActionKind]?: ActionKindUI<ActionByKind[K]>} = {
+const ACTION_KIND_UI: {[K in ActionKind]: ActionKindUI<ActionByKind[K]>} = {
   update_detector: updateDetectorUI,
+  connect_telemetry: connectTelemetryUI,
 };
 
 export function getActionKind<K extends ActionKind>(
