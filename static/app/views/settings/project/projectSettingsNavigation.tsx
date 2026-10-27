@@ -38,6 +38,7 @@ export function ProjectSettingsNavigation({
               project,
               organization,
               debugFilesNeedsReview: false,
+              settingsV3,
             })
       }
       access={new Set(organization.access)}

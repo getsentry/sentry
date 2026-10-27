@@ -1,4 +1,3 @@
-import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {useParams} from 'sentry/utils/useParams';
@@ -16,26 +15,6 @@ function isItemVisible(item: NavigationItem, props: NavigationGroupProps): boole
   return item.show ?? true;
 }
 
-function getItemTitle(
-  item: NavigationItem,
-  groupId: string,
-  settingsV3: boolean
-): NavigationItem['title'] {
-  if (!settingsV3) {
-    return item.title;
-  }
-
-  switch (groupId) {
-    case 'settings-organization':
-    case 'settings-project':
-      return item.index ? t('General') : item.title;
-    case 'settings-account':
-      return item.path === '/settings/account/details/' ? t('General') : item.title;
-    default:
-      return item.title;
-  }
-}
-
 function SettingsNavigationGroupImpl(props: NavigationGroupProps) {
   const {organization, project, name, items} = props;
   const params = useParams();
@@ -44,9 +23,7 @@ function SettingsNavigationGroupImpl(props: NavigationGroupProps) {
     settingsV3 &&
     ['settings-organization', 'settings-account', 'settings-project'].includes(props.id);
 
-  const visibleItems = items
-    .filter(item => isItemVisible(item, props))
-    .map(item => ({...item, title: getItemTitle(item, props.id, settingsV3)}));
+  const visibleItems = items.filter(item => isItemVisible(item, props));
 
   // A settings category and the links inside it that are actually visible to
   // this user (post access/feature/hook filtering) — the same list rendered

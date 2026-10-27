@@ -14,7 +14,7 @@ function OrganizationSettingsNavigation() {
 
   return (
     <SettingsNavigation
-      navigationObjects={getUserOrgNavigationConfiguration().filter(
+      navigationObjects={getUserOrgNavigationConfiguration({settingsV3}).filter(
         // Settings V3 moves account settings to the primary Account entry,
         // so hide them here to avoid duplicating them in the Org sidebar.
         section => !settingsV3 || section.id !== 'settings-account'

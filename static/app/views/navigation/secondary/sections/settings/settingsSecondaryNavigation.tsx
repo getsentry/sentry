@@ -24,7 +24,7 @@ export function SettingsSecondaryNavigation() {
   ) {
     return (
       <SettingsNavigation
-        navigationObjects={getUserNavigationConfiguration()}
+        navigationObjects={getUserNavigationConfiguration({settingsV3})}
         hookConfigs={[]}
         hooks={[]}
       />

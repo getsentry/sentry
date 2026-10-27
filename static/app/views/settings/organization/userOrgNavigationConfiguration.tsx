@@ -8,22 +8,36 @@ import type {NavigationItem, NavigationSection} from 'sentry/views/settings/type
 const organizationSettingsPathPrefix = '/settings/:orgId';
 const userSettingsPathPrefix = '/settings/account';
 
-export function getUserOrgNavigationConfiguration(): NavigationSection[] {
+type ConfigParams = {
+  /**
+   * Whether the `settings-v3` navigation is enabled. Index items are titled
+   * "General" instead of "General Settings".
+   */
+  settingsV3?: boolean;
+};
+
+export function getUserOrgNavigationConfiguration({
+  settingsV3,
+}: ConfigParams = {}): NavigationSection[] {
   return [
-    ...getAccountNavigationConfiguration(),
-    ...getOrganizationNavigationConfiguration(),
+    ...getAccountNavigationConfiguration({settingsV3}),
+    ...getOrganizationNavigationConfiguration({settingsV3}),
     ...getDeveloperNavigationConfiguration(true),
   ];
 }
 
-export function getUserNavigationConfiguration(): NavigationSection[] {
+export function getUserNavigationConfiguration({
+  settingsV3,
+}: ConfigParams = {}): NavigationSection[] {
   return [
-    ...getAccountNavigationConfiguration(),
+    ...getAccountNavigationConfiguration({settingsV3}),
     ...getDeveloperNavigationConfiguration(false),
   ];
 }
 
-function getAccountNavigationConfiguration(): NavigationSection[] {
+function getAccountNavigationConfiguration({
+  settingsV3,
+}: ConfigParams): NavigationSection[] {
   return [
     {
       id: 'settings-account',
@@ -31,7 +45,7 @@ function getAccountNavigationConfiguration(): NavigationSection[] {
       items: [
         {
           path: `${userSettingsPathPrefix}/details/`,
-          title: t('Account Details'),
+          title: settingsV3 ? t('General') : t('Account Details'),
           keywords: [t('user settings'), t('account settings')],
           description: t(
             'Change your account details and preferences (e.g. timezone/clock, avatar, language)'
@@ -87,7 +101,9 @@ function getAccountNavigationConfiguration(): NavigationSection[] {
   ];
 }
 
-function getOrganizationNavigationConfiguration(): NavigationSection[] {
+function getOrganizationNavigationConfiguration({
+  settingsV3,
+}: ConfigParams): NavigationSection[] {
   return [
     {
       id: 'settings-organization',
@@ -95,7 +111,7 @@ function getOrganizationNavigationConfiguration(): NavigationSection[] {
       items: [
         {
           path: `${organizationSettingsPathPrefix}/`,
-          title: t('General Settings'),
+          title: settingsV3 ? t('General') : t('General Settings'),
           keywords: [t('slug'), t('org slug'), t('organization slug')],
           index: true,
           description: t('Configure general settings for an organization'),
