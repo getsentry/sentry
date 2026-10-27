@@ -4,7 +4,7 @@ import {createStore} from 'zustand';
  * Creates a Zustand store that can also replace its state without notifying
  * subscribers.
  *
- * Reflux stores reset their state silently, and many callers (mostly tests
+ * Our stores have always reset their state silently, and many callers (mostly tests
  * resetting stores in `afterEach` while components are still mounted) rely on
  * that. Use `resetState` for those writes and `setState` for everything else.
  */
