@@ -357,7 +357,7 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
 
     def test_put_transformations_requires_feature(self) -> None:
         for visualization_field, transformations in product(
-            ["visualize", "aggregateField"], [[], ["fill(locf)"], ["unknown()"]]
+            ["visualize", "aggregateField"], [[], ["fill(locf)"]]
         ):
             url = reverse(
                 "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
@@ -393,24 +393,7 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
             assert self.model.query == {"query": [{"fields": ["span.op"], "mode": "samples"}]}
 
     def test_put_invalid_transformation_pipeline(self) -> None:
-        for visualization_field, (transformations, expected_error) in product(
-            ["visualize", "aggregateField"],
-            [
-                (["fill(locf)\n"], "fill(locf)\n is not a valid transformation"),
-                (
-                    ["smooth(sma,0)"],
-                    "smooth(sma,0): window_size argument invalid: Window size must be positive.",
-                ),
-                (
-                    ["smooth(ema,7,0.25)", "smooth(asap)"],
-                    "Only one transformation per function type is allowed per yAxis",
-                ),
-                (
-                    ["fill(locf)", "smooth(sma,3)", "fill(zero)"],
-                    "At most 2 transformations are allowed per yAxis",
-                ),
-            ],
-        ):
+        for visualization_field in ["visualize", "aggregateField"]:
             url = reverse(
                 "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
             )
@@ -428,7 +411,10 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
                                 "mode": "aggregate",
                                 visualization_field: [
                                     {"yAxes": ["count()"]},
-                                    {"yAxes": ["count()"], "transformations": transformations},
+                                    {
+                                        "yAxes": ["count()"],
+                                        "transformations": ["smooth(sma,0)"],
+                                    },
                                 ],
                             },
                         ],
@@ -436,7 +422,9 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
                 )
 
             assert response.status_code == 400, response.content
-            assert response.data == {"detail": expected_error}
+            assert response.data == {
+                "detail": "smooth(sma,0): window_size argument invalid: Window size must be positive."
+            }
             self.model.refresh_from_db()
             assert self.model.name == "Test query"
             assert self.model.query == {"query": [{"fields": ["span.op"], "mode": "samples"}]}

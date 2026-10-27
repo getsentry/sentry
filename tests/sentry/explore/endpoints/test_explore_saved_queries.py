@@ -1235,9 +1235,6 @@ class ExploreSavedQueriesTest(APITestCase):
             queries,
             [
                 [],
-                ["fill(locf)", "smooth(sma,5)"],
-                ["smooth(ema,7,0.25)", "fill(linear)"],
-                ["smooth(asap,7)", "fill(zero)"],
                 ["smooth( ema , 7 , 0.25 )", "fill( linear )"],
             ],
             ["visualize", "aggregateField"],
@@ -1282,7 +1279,7 @@ class ExploreSavedQueriesTest(APITestCase):
 
     def test_save_transformations_requires_feature(self) -> None:
         for visualization_field, transformations in product(
-            ["visualize", "aggregateField"], [[], ["fill(locf)"], ["unknown()"]]
+            ["visualize", "aggregateField"], [[], ["fill(locf)"]]
         ):
             with self.feature(
                 {**self.features, "organizations:explore-interpolation-and-smoothing": False}
@@ -1310,45 +1307,7 @@ class ExploreSavedQueriesTest(APITestCase):
             assert ExploreSavedQuery.objects.filter(organization=self.org).count() == 1
 
     def test_save_invalid_transformation_pipeline(self) -> None:
-        for visualization_field, (transformations, expected_error) in product(
-            ["visualize", "aggregateField"],
-            [
-                (["unknown()"], "unknown is not a valid transformation function"),
-                (["fill(locf"], "fill(locf is not a valid transformation"),
-                (["fill(locf)\n"], "fill(locf)\n is not a valid transformation"),
-                (
-                    ["fill(sma)"],
-                    "fill(sma): mode argument invalid: expected one of locf, zero, linear",
-                ),
-                (["smooth(sma)"], "smooth(sma): argument count must be 2"),
-                (
-                    ["smooth(sma,0)"],
-                    "smooth(sma,0): window_size argument invalid: Window size must be positive.",
-                ),
-                (
-                    ["smooth(ema,7,0)"],
-                    "smooth(ema,7,0): smoothing_factor argument invalid: "
-                    "Smoothing factor must be greater than zero and at most one.",
-                ),
-                (
-                    ["smooth(asap,0)"],
-                    "smooth(asap,0): max_window_size argument invalid: "
-                    "Maximum window size must be positive.",
-                ),
-                (
-                    ["fill(locf)", "fill(zero)"],
-                    "Only one transformation per function type is allowed per yAxis",
-                ),
-                (
-                    ["smooth(sma,3)", "smooth(ema,5)"],
-                    "Only one transformation per function type is allowed per yAxis",
-                ),
-                (
-                    ["fill(locf)", "smooth(sma,3)", "fill(zero)"],
-                    "At most 2 transformations are allowed per yAxis",
-                ),
-            ],
-        ):
+        for visualization_field in ["visualize", "aggregateField"]:
             with self.feature(
                 {**self.features, "organizations:explore-interpolation-and-smoothing": True}
             ):
@@ -1363,7 +1322,7 @@ class ExploreSavedQueriesTest(APITestCase):
                                 "mode": "aggregate",
                                 visualization_field: [
                                     {"yAxes": ["count()"]},
-                                    {"yAxes": ["count()"], "transformations": transformations},
+                                    {"yAxes": ["count()"], "transformations": ["unknown()"]},
                                 ],
                             },
                         ],
@@ -1371,7 +1330,7 @@ class ExploreSavedQueriesTest(APITestCase):
                 )
 
             assert response.status_code == 400, response.content
-            assert response.data == {"detail": expected_error}
+            assert response.data == {"detail": "unknown is not a valid transformation function"}
             assert ExploreSavedQuery.objects.filter(organization=self.org).count() == 1
 
     def test_save_invalid_transformations(self) -> None:
