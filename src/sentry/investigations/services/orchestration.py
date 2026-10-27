@@ -301,6 +301,13 @@ def _reset_create_dispatch_failure(run: InvestigationOrchestrationRun) -> None:
         ]
 
 
+# Commands that only keep Seer's action requests in sync. Neither side checks or moves the
+# workflow version for them.
+INTERNAL_COMMAND_TYPES = frozenset({"record_action_outcome"})
+# Commands Sentry sends for an action request, which shows how they went.
+FOLLOW_UP_COMMAND_TYPES = frozenset({"recheck_action_requests"})
+
+
 def _is_run_retry(command_type: str, payload: dict[str, Any]) -> bool:
     return command_type == "retry" and payload.get("target") == "run"
 
@@ -314,7 +321,7 @@ def _schedule_orchestration_create(run_id: int) -> None:
     )
 
 
-def _schedule_orchestration_commands(run_id: int) -> None:
+def schedule_orchestration_commands(run_id: int) -> None:
     from sentry.tasks.seer.investigation import dispatch_investigation_orchestration_commands
 
     transaction.on_commit(
@@ -701,12 +708,13 @@ def accept_orchestration_command(
         except InvestigationOrchestrationRun.DoesNotExist:
             raise InvestigationSourceNotFound
 
+        internal = command_type in INTERNAL_COMMAND_TYPES
         existing = InvestigationOrchestrationCommand.objects.filter(
             orchestration_run=run, request_id=request_id
         ).first()
         if existing is not None:
             if (
-                existing.expected_workflow_version != expected_workflow_version
+                (not internal and existing.expected_workflow_version != expected_workflow_version)
                 or existing.type != command_type
                 or existing.payload != payload
             ):
@@ -721,15 +729,15 @@ def accept_orchestration_command(
             ):
                 _requeue_failed_command(run, existing)
                 existing.refresh_from_db(fields=["status", "error"])
-                _schedule_orchestration_commands(run.id)
+                schedule_orchestration_commands(run.id)
             elif existing.status in {
                 InvestigationOrchestrationCommandStatus.ACCEPTED,
                 InvestigationOrchestrationCommandStatus.DISPATCHED,
             }:
-                _schedule_orchestration_commands(run.id)
+                schedule_orchestration_commands(run.id)
             return _command_acceptance(run, existing, duplicate=True)
 
-        if run.workflow_version != expected_workflow_version:
+        if not internal and run.workflow_version != expected_workflow_version:
             raise InvestigationConflictError("Workflow version does not match.")
 
         _validate_command_target(
@@ -761,7 +769,7 @@ def accept_orchestration_command(
             _schedule_orchestration_create(run.id)
             return _command_acceptance(run, command, duplicate=False)
 
-        resulting_version = run.workflow_version + 1
+        resulting_version = run.workflow_version if internal else run.workflow_version + 1
         command = InvestigationOrchestrationCommand.objects.create(
             orchestration_run=run,
             request_id=request_id,
@@ -783,5 +791,5 @@ def accept_orchestration_command(
                 "date_updated",
             ]
         )
-        _schedule_orchestration_commands(run.id)
+        schedule_orchestration_commands(run.id)
         return _command_acceptance(run, command, duplicate=False)

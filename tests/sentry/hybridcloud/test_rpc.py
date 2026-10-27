@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 from unittest import mock
+from uuid import uuid4
 
 import pytest
 import responses
@@ -13,7 +14,9 @@ from sentry import options
 from sentry.auth.services.auth import AuthService
 from sentry.hybridcloud.rpc.service import (
     RpcAuthenticationSetupException,
+    RpcCircuitBreakerOpenException,
     RpcDisabledException,
+    RpcRemoteException,
     RpcResponseException,
     _RemoteSiloCall,
     dispatch_remote_call,
@@ -36,6 +39,7 @@ from sentry.types.cell import Cell
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.utils import json
+from sentry.utils.circuit_breaker2 import CircuitBreaker
 
 _CELLS = [Cell("north_america", 1, "http://na.sentry.io"), Cell("europe", 2, "http://eu.sentry.io")]
 
@@ -335,3 +339,182 @@ class DispatchRemoteCallTest(TestCase):
         timeout_override_setting = {"organization_service.some_other_method": 20}
         with override_options({"hybridcloud.rpc.method_retry_overrides": timeout_override_setting}):
             assert test_class.get_method_retry_count() == default_value
+
+
+_BREAKER_CONFIG = {
+    "error_limit_window": 60,
+    "broken_state_duration": 30,
+    "threshold": 0.5,
+    "floor": 2,
+}
+
+
+@no_silo_test
+class RpcCircuitBreakerTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        # Unique cell names keep breaker state in redis from leaking between tests.
+        suffix = uuid4().hex[:8]
+        self.failing_cell = Cell(f"failing-{suffix}", 1, "http://failing.sentry.io")
+        self.healthy_cell = Cell(f"healthy-{suffix}", 2, "http://healthy.sentry.io")
+
+    def _add_response(self, cell: Cell, **kwargs: Any) -> None:
+        responses.add(
+            responses.POST,
+            f"{cell.address}/api/0/internal/rpc/user/get_first_superuser/",
+            content_type="json",
+            **kwargs,
+        )
+
+    def _call(self, cell: Cell) -> Any:
+        with override_settings(SILO_MODE=SiloMode.CONTROL):
+            return dispatch_remote_call(cell, "user", "get_first_superuser", {})
+
+    def _fail_calls(self, cell: Cell, count: int, status: int = 504) -> None:
+        self._add_response(cell, status=status, body=json.dumps({"detail": "unavailable"}))
+        for _ in range(count):
+            with pytest.raises(RpcRemoteException):
+                self._call(cell)
+
+    @responses.activate
+    @override_options(
+        {
+            "hybridcloud.rpc.circuit-breaker.enabled": True,
+            "hybridcloud.rpc.circuit-breaker.enforce": True,
+            "hybridcloud.rpc.circuit-breaker.config": _BREAKER_CONFIG,
+        }
+    )
+    def test_open_breaker_rejects_only_its_destination(self) -> None:
+        with override_cells([self.failing_cell, self.healthy_cell]):
+            self._fail_calls(self.failing_cell, 2)
+            sent_before = len(responses.calls)
+
+            with pytest.raises(RpcCircuitBreakerOpenException):
+                self._call(self.failing_cell)
+            assert len(responses.calls) == sent_before
+
+            serial = serialize_rpc_user(self.create_user())
+            self._add_response(
+                self.healthy_cell, body=json.dumps({"meta": {}, "value": serial.dict()})
+            )
+            assert self._call(self.healthy_cell) == serial
+
+    @responses.activate
+    @override_options(
+        {
+            "hybridcloud.rpc.circuit-breaker.enabled": True,
+            "hybridcloud.rpc.circuit-breaker.config": _BREAKER_CONFIG,
+        }
+    )
+    @mock.patch("sentry.hybridcloud.rpc.circuit_breaker.metrics.incr")
+    def test_log_only_mode_still_sends(self, mock_incr: mock.MagicMock) -> None:
+        with override_cells([self.failing_cell]):
+            self._fail_calls(self.failing_cell, 2)
+            sent_before = len(responses.calls)
+
+            with pytest.raises(RpcRemoteException) as excinfo:
+                self._call(self.failing_cell)
+
+            assert not isinstance(excinfo.value, RpcCircuitBreakerOpenException)
+            assert len(responses.calls) == sent_before + 1
+            mock_incr.assert_any_call(
+                "hybrid_cloud.dispatch_rpc.circuit_breaker.rejected", tags=mock.ANY
+            )
+
+    @responses.activate
+    @override_options(
+        {
+            "hybridcloud.rpc.circuit-breaker.enabled": True,
+            "hybridcloud.rpc.circuit-breaker.enforce": True,
+            "hybridcloud.rpc.circuit-breaker.config": _BREAKER_CONFIG,
+            "hybridcloud.rpc.circuit-breaker.slow-call-seconds": 0.0,
+        }
+    )
+    def test_slow_calls_count_as_failures(self) -> None:
+        with override_cells([self.failing_cell]):
+            serial = serialize_rpc_user(self.create_user())
+            self._add_response(
+                self.failing_cell, body=json.dumps({"meta": {}, "value": serial.dict()})
+            )
+            self._call(self.failing_cell)
+            self._call(self.failing_cell)
+
+            with pytest.raises(RpcCircuitBreakerOpenException):
+                self._call(self.failing_cell)
+
+    @responses.activate
+    @override_options(
+        {
+            "hybridcloud.rpc.circuit-breaker.enabled": True,
+            "hybridcloud.rpc.circuit-breaker.enforce": True,
+            "hybridcloud.rpc.circuit-breaker.config": _BREAKER_CONFIG,
+        }
+    )
+    def test_plain_500s_do_not_trip(self) -> None:
+        with override_cells([self.failing_cell]):
+            self._fail_calls(self.failing_cell, 5, status=500)
+
+            with pytest.raises(RpcRemoteException) as excinfo:
+                self._call(self.failing_cell)
+            assert not isinstance(excinfo.value, RpcCircuitBreakerOpenException)
+
+    @responses.activate
+    def test_force_open_rejects_listed_destination_only(self) -> None:
+        # Works as a manual switch even when the breaker itself is off.
+        with (
+            override_cells([self.failing_cell, self.healthy_cell]),
+            override_options(
+                {
+                    "hybridcloud.rpc.circuit-breaker.force-open-destinations": [
+                        self.failing_cell.name
+                    ]
+                }
+            ),
+        ):
+            self._add_response(self.failing_cell, body="")
+            with pytest.raises(RpcCircuitBreakerOpenException):
+                self._call(self.failing_cell)
+            assert len(responses.calls) == 0
+
+            serial = serialize_rpc_user(self.create_user())
+            self._add_response(
+                self.healthy_cell, body=json.dumps({"meta": {}, "value": serial.dict()})
+            )
+            assert self._call(self.healthy_cell) == serial
+
+    @responses.activate
+    @override_options(
+        {
+            "hybridcloud.rpc.circuit-breaker.enabled": True,
+            "hybridcloud.rpc.circuit-breaker.enforce": True,
+            "hybridcloud.rpc.circuit-breaker.config": _BREAKER_CONFIG,
+        }
+    )
+    @mock.patch("sentry.hybridcloud.rpc.circuit_breaker.metrics.incr")
+    def test_breaker_errors_are_counted_and_do_not_fail_the_call(
+        self, mock_incr: mock.MagicMock
+    ) -> None:
+        with (
+            override_cells([self.failing_cell]),
+            mock.patch.object(CircuitBreaker, "should_allow_request", side_effect=Exception),
+            mock.patch.object(CircuitBreaker, "record_success", side_effect=Exception),
+        ):
+            serial = serialize_rpc_user(self.create_user())
+            self._add_response(
+                self.failing_cell, body=json.dumps({"meta": {}, "value": serial.dict()})
+            )
+            assert self._call(self.failing_cell) == serial
+
+        error_kinds = [
+            call.kwargs["tags"]["kind"]
+            for call in mock_incr.call_args_list
+            if call.args[0] == "hybrid_cloud.dispatch_rpc.circuit_breaker.error"
+        ]
+        assert error_kinds == ["check", "record"]
+
+    @responses.activate
+    @mock.patch("sentry.utils.circuit_breaker2.CircuitBreaker.__init__")
+    def test_disabled_by_default(self, mock_init: mock.MagicMock) -> None:
+        with override_cells([self.failing_cell]):
+            self._fail_calls(self.failing_cell, 3)
+        assert not mock_init.called

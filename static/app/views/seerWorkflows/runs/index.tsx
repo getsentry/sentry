@@ -7,7 +7,7 @@ import {IconFilter} from '@sentry/icons/filter';
 import {IconUser} from '@sentry/icons/user';
 import {IconWarning} from '@sentry/icons/warning';
 import * as Sentry from '@sentry/react';
-import {useMutation, useQuery} from '@tanstack/react-query';
+import {skipToken, useMutation, useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Spinner} from '@sentry/scraps/chat';
@@ -23,6 +23,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {DateTime} from 'sentry/components/dateTime';
+import {NotFound} from 'sentry/components/errors/notFound';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -54,6 +55,7 @@ import type {
   WorkflowRunSource,
   WorkflowStrategy,
 } from 'sentry/views/seerWorkflows/types';
+import {useAutomationsEnabled} from 'sentry/views/seerWorkflows/utils';
 
 const RUNS_COLUMNS: TableColumnConfig[] = [
   {key: 'select', width: 'min-content'},
@@ -67,6 +69,7 @@ export default function AutomationRunsList() {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
+  const automationsEnabled = useAutomationsEnabled();
   const runActions = getWorkflowRunActions(organization.features);
   const [expanded, setExpanded] = useState(new Set<string>());
   const {mutate: startWorkflowRun, isPending: isStartingWorkflowRun} = useMutation({
@@ -97,24 +100,29 @@ export default function AutomationRunsList() {
     ...apiOptions.as<SeerWorkflowRun[]>()(
       '/organizations/$organizationIdOrSlug/seer/workflows/runs/',
       {
-        path: {organizationIdOrSlug: organization.slug},
+        path: automationsEnabled ? {organizationIdOrSlug: organization.slug} : skipToken,
         staleTime: 0,
       }
     ),
-    queryFn: async context => {
-      const response = await apiFetch<SeerWorkflowRun[]>(context);
-      for (const {strategy} of response.json) {
-        if (isSupportedStrategy(strategy) || reportedStrategies.current.has(strategy)) {
-          continue;
+    queryFn: automationsEnabled
+      ? async context => {
+          const response = await apiFetch<SeerWorkflowRun[]>(context);
+          for (const {strategy} of response.json) {
+            if (
+              isSupportedStrategy(strategy) ||
+              reportedStrategies.current.has(strategy)
+            ) {
+              continue;
+            }
+            reportedStrategies.current.add(strategy);
+            Sentry.captureMessage('Unsupported Seer workflow strategy', {
+              level: 'warning',
+              extra: {strategy},
+            });
+          }
+          return response;
         }
-        reportedStrategies.current.add(strategy);
-        Sentry.captureMessage('Unsupported Seer workflow strategy', {
-          level: 'warning',
-          extra: {strategy},
-        });
-      }
-      return response;
-    },
+      : skipToken,
     refetchInterval: query =>
       query.state.data?.json.some(
         run => isSupportedStrategy(run.strategy) && run.extras.status === 'running'
@@ -271,6 +279,10 @@ export default function AutomationRunsList() {
     });
     autoExpandedForRef.current = expandLatest;
   }, [expandLatest, filteredRuns]);
+
+  if (!automationsEnabled) {
+    return <NotFound />;
+  }
 
   return (
     <Stack gap="lg">

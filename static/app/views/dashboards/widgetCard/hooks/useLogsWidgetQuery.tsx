@@ -4,6 +4,7 @@ import {queryOptions, useQueries} from '@tanstack/react-query';
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {toArray} from 'sentry/utils/array/toArray';
+import {defined} from 'sentry/utils/defined';
 import type {
   EventsTableData,
   TableData,
@@ -13,10 +14,7 @@ import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDisc
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {eventsResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/eventsResponseTransforms';
-import {
-  getSeriesRequestData,
-  convertEventStatsRequestDataToEventTimeseriesQueryParams,
-} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
+import {getTimeseriesRequestQuery} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {
   combineIngestionMeta,
@@ -32,6 +30,7 @@ import {
   combineWidgetJsonQueryResults,
   combineWidgetQueryResults,
 } from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
+import {getSeriesConfidenceInformation} from 'sentry/views/dashboards/widgetCard/hooks/utils/getSeriesConfidenceInformation';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
 import {getTimeseriesWidgetQueryOptions} from 'sentry/views/dashboards/widgetCard/hooks/utils/getTimeseriesWidgetQueryOptions';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
@@ -62,31 +61,24 @@ export function useLogsSeriesQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  const seriesRequestData = filteredWidget.queries.map((_, queryIndex) => {
-    const requestData = getSeriesRequestData(
-      filteredWidget,
-      queryIndex,
-      organization,
-      pageFilters,
-      DiscoverDatasets.OURLOGS,
-      getReferrer(filteredWidget.displayType),
-      widgetInterval
-    );
-
-    if (samplingMode) {
-      requestData.sampling = samplingMode;
-    }
-    return requestData;
-  });
-
   const {results: queryResults, data: rawData} = useQueries({
-    queries: seriesRequestData.map(requestData =>
+    queries: filteredWidget.queries.map((_, queryIndex) =>
       getTimeseriesWidgetQueryOptions({
         organization,
         pageFilters,
         queue,
         enabled,
-        query: convertEventStatsRequestDataToEventTimeseriesQueryParams(requestData),
+        query: getTimeseriesRequestQuery(
+          filteredWidget,
+          queryIndex,
+          pageFilters,
+          DiscoverDatasets.OURLOGS,
+          {
+            referrer: getReferrer(filteredWidget.displayType),
+            widgetInterval,
+            sampling: samplingMode,
+          }
+        ),
       })
     ),
     combine: combineWidgetQueryResults,
@@ -133,7 +125,15 @@ export function useLogsSeriesQuery(
     };
   })();
 
-  return transformedData;
+  // When a widget has several queries, the last response's confidence is shown
+  const confidenceInformation = useMemo(() => {
+    const lastResponse = rawData.findLast(defined);
+    return lastResponse
+      ? getSeriesConfidenceInformation(lastResponse, widget.queries[0])
+      : undefined;
+  }, [rawData, widget.queries]);
+
+  return {...transformedData, ...confidenceInformation};
 }
 
 export function useLogsTableQuery(

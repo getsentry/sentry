@@ -12,6 +12,7 @@ import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {NotFound} from 'sentry/components/errors/notFound';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {ProjectList} from 'sentry/components/projectList';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -127,6 +128,10 @@ export default function AutomationsList() {
   );
 
   const configs: AutomationConfig[] = [...PLACEHOLDER_CONFIGS, ...(data?.configs ?? [])];
+
+  if (!automationsEnabled) {
+    return <NotFound />;
+  }
 
   return (
     <Grid

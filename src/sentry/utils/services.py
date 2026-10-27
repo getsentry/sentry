@@ -334,8 +334,8 @@ class ServiceDelegator(Delegator, Service):
     The backends are provided as mapping of backend name to configuration
     parameters:
 
-        'redis': {
-            'path': 'sentry.tsdb.redis.RedisTSDB',
+        'snuba': {
+            'path': 'sentry.tsdb.snuba.SnubaTSDB',
             'executor': {
                 'path': 'sentry.utils.services.ThreadedExecutor',
                 'options': {

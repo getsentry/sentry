@@ -1,5 +1,5 @@
 import {outcomeLabel} from 'sentry/components/droppedData/outcomes';
-import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
+import type {OutcomeRow} from 'sentry/components/droppedData/types';
 
 export interface ReasonRow {
   events: number;
@@ -18,7 +18,7 @@ export interface OutcomeSection {
   shareRatio: number;
 }
 
-function sumCounts(events: DroppedEventsBucket[]): number {
+function sumCounts(events: OutcomeRow[]): number {
   return events.reduce((sum, event) => sum + event.count, 0);
 }
 
@@ -31,36 +31,36 @@ export interface OutcomeGroups {
   unintentional: OutcomeSection[];
 }
 
-export type DroppedDataScope = 'contributing' | 'all';
+export type DroppedDataScope = 'unexpected' | 'all';
 
-function isUnintentional(event: DroppedEventsBucket): boolean {
+function isUnintentional(event: OutcomeRow): boolean {
   return event.tags.includes('unintentional');
 }
 
 export function filterDroppedEventsByScope(
-  droppedEvents: DroppedEventsBucket[],
+  droppedEvents: OutcomeRow[],
   scope: DroppedDataScope
-): DroppedEventsBucket[] {
+): OutcomeRow[] {
   return scope === 'all' ? droppedEvents : droppedEvents.filter(isUnintentional);
 }
 
 export function droppedEventsToOutcomeSections(
-  droppedEvents: DroppedEventsBucket[],
-  acceptedEvents: DroppedEventsBucket[]
+  droppedEvents: OutcomeRow[],
+  acceptedEvents: OutcomeRow[]
 ): OutcomeSection[] {
   const totalEvents = sumCounts(droppedEvents) + sumCounts(acceptedEvents);
   return buildOutcomeSections(droppedEvents, totalEvents);
 }
 
 export function droppedEventsToOutcomeGroups(
-  droppedEvents: DroppedEventsBucket[],
-  acceptedEvents: DroppedEventsBucket[],
+  droppedEvents: OutcomeRow[],
+  acceptedEvents: OutcomeRow[],
   scope: DroppedDataScope
 ): OutcomeGroups {
   const scopedEvents = filterDroppedEventsByScope(droppedEvents, scope);
   const totalEvents = sumCounts(scopedEvents) + sumCounts(acceptedEvents);
-  const unintentional: DroppedEventsBucket[] = [];
-  const intentional: DroppedEventsBucket[] = [];
+  const unintentional: OutcomeRow[] = [];
+  const intentional: OutcomeRow[] = [];
   for (const event of scopedEvents) {
     if (isUnintentional(event)) {
       unintentional.push(event);
@@ -76,7 +76,7 @@ export function droppedEventsToOutcomeGroups(
 }
 
 function buildOutcomeSections(
-  droppedEvents: DroppedEventsBucket[],
+  droppedEvents: OutcomeRow[],
   totalEvents: number
 ): OutcomeSection[] {
   const share = (events: number) => (totalEvents === 0 ? 0 : events / totalEvents);

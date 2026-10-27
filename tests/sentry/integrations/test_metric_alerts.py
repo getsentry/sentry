@@ -52,8 +52,6 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         This tests that we look up the correct incident and alert rule during dual write ACI migration.
         """
         alert_rule = self.create_alert_rule()
-        trigger = self.create_alert_rule_trigger(alert_rule, "critical", 100)
-        self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
         metric_value = 123
         referrer = "metric_alert_custom"
         notification_uuid = str(uuid.uuid4())
@@ -116,8 +114,6 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         Test that we use the fake incident ID to build the title link if no IGOP entry exists (if the detector was not dual written).
         """
         alert_rule = self.create_alert_rule()
-        trigger = self.create_alert_rule_trigger(alert_rule, "critical", 100)
-        self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
         metric_value = 123
         referrer = "metric_alert_custom"
         notification_uuid = str(uuid.uuid4())

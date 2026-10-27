@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useMemo} from 'react';
-import {type Theme} from '@emotion/react';
 import {IconInfo} from '@sentry/icons/info';
 import {IconWarning} from '@sentry/icons/warning';
 import type {YAXisComponentOption} from 'echarts';
@@ -29,6 +28,10 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {AggregateSummaryTable} from 'sentry/views/detectors/components/details/metric/aggregateSummaryTable';
+import {
+  incidentMarklineTooltip,
+  incidentSeriesTooltip,
+} from 'sentry/views/detectors/components/details/metric/chartTooltip';
 import {getDetectorOpenInDestination} from 'sentry/views/detectors/components/details/metric/getDetectorOpenInDestination';
 import {useDetectorChartAxisBounds} from 'sentry/views/detectors/components/details/metric/utils/useDetectorChartAxisBounds';
 import {useIsMigratedExtrapolation} from 'sentry/views/detectors/components/details/metric/utils/useIsMigratedExtrapolation';
@@ -68,48 +71,6 @@ function shiftSeriesToBucketEnd(seriesList: Series[], intervalSeconds: number): 
   }));
 }
 
-interface IncidentTooltipContext {
-  period: IncidentPeriod;
-  theme: Theme;
-}
-
-function incidentSeriesTooltip(ctx: IncidentTooltipContext) {
-  const startTime = defaultFormatAxisLabel(ctx.period.start, true, false, true, false);
-  const endTime = ctx.period.end
-    ? defaultFormatAxisLabel(ctx.period.end, true, false, true, false)
-    : '-';
-  const color =
-    ctx.period.priority === 'high' ? ctx.theme.colors.red400 : ctx.theme.colors.yellow400;
-  const priorityLabel = ctx.period.priority === 'high' ? t('Critical') : t('Warning');
-
-  const priorityDot = `<span style="display:inline-block;width:10px;height:8px;border-radius:100%;background:${color};margin-right:6px;vertical-align:middle;"></span>`;
-  return [
-    '<div class="tooltip-series">',
-    `<div><span class="tooltip-label"><strong>#${ctx.period.id}</strong></span></div>`,
-    `<div><span class="tooltip-label">${t('Started')}</span> ${startTime}</div>`,
-    `<div><span class="tooltip-label">${t('Ended')}</span> ${endTime}</div>`,
-    `<div><span class="tooltip-label">${t('Priority')}</span> ${priorityDot} ${priorityLabel}</div>`,
-    '</div>',
-    '<div class="tooltip-arrow arrow-top"></div>',
-  ].join('');
-}
-
-function incidentMarklineTooltip(ctx: IncidentTooltipContext) {
-  const time = defaultFormatAxisLabel(ctx.period.start, true, false, true, false);
-  const color =
-    ctx.period.priority === 'high' ? ctx.theme.colors.red400 : ctx.theme.colors.yellow400;
-  const priorityLabel = ctx.period.priority === 'high' ? t('Critical') : t('Warning');
-  const priorityDot = `<span style="display:inline-block;width:10px;height:8px;border-radius:100%;background:${color};margin-right:6px;vertical-align:middle;"></span>`;
-  return [
-    '<div class="tooltip-series">',
-    `<div><span class="tooltip-label"><strong>${t('#%s Triggered', ctx.period.id)}</strong></span></div>`,
-    `<div><span class="tooltip-label">${t('Started')}</span> ${time}</div>`,
-    `<div><span class="tooltip-label">${t('Priority')}</span> ${priorityDot} ${priorityLabel}</div>`,
-    '</div>',
-    '<div class="tooltip-arrow arrow-top"></div>',
-  ].join('');
-}
-
 interface MetricDetectorDetailsChartProps {
   detector: MetricDetector;
 }
@@ -129,7 +90,7 @@ interface UseMetricDetectorChartProps {
    */
   highlightedOpenPeriodId?: string;
   /**
-   * Called when an open period marker on the chart is clicked.
+   * Called when clicking an open period's marker or anywhere within its time range.
    */
   onOpenPeriodClick?: (openPeriod: GroupOpenPeriod) => void;
   start?: string | null;
@@ -146,6 +107,7 @@ function createTriggerIntervalMarkerData({
   return {
     id: period.id,
     end: new Date(period.start).getTime(),
+    issueShortId: period.shortId,
     priority: period.activities[0]?.value ?? 'high',
     start: new Date(period.start).getTime() - intervalMs,
     type: 'trigger-interval',
@@ -181,6 +143,8 @@ function createOpenPeriodMarkerData({
     type: i === 0 ? 'open-period-start' : 'open-period-transition',
     end: segment.end,
     id: period.id,
+    isOngoing: !period.end && i === segments.length - 1,
+    issueShortId: period.shortId,
     name: t('Open Periods'),
     priority: segment.priority ?? 'high',
     start: segment.start,

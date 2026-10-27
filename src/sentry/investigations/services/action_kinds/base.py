@@ -44,6 +44,7 @@ class ApplyErrorCode(StrEnum):
     WITHDRAWN = "withdrawn"
     STALE = "stale"
     VALIDATION_FAILED = "validation_failed"
+    ACTION_CHANGED = "action_changed"
 
 
 class ApplyError(TypedDict):

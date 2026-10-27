@@ -96,6 +96,7 @@ class OutboxCategory(IntEnum):
     SEER_RUN_CREATE = 48
     GROUP_ACTION_LOG_EVENT = 49
     SERVICE_ACCOUNT_UPDATE = 50
+    ORGANIZATION_PROVISION_ANALYTICS = 51
 
     @classmethod
     def as_choices(cls) -> Sequence[tuple[int, int]]:
@@ -313,6 +314,7 @@ class OutboxScope(IntEnum):
             OutboxCategory.SEND_SIGNAL,
             OutboxCategory.ORGAUTHTOKEN_UPDATE_USED,
             OutboxCategory.POST_ORGANIZATION_PROVISION,
+            OutboxCategory.ORGANIZATION_PROVISION_ANALYTICS,
             OutboxCategory.DISABLE_AUTH_PROVIDER,
             OutboxCategory.ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE,
             OutboxCategory.TEAM_UPDATE,
