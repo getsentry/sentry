@@ -388,6 +388,27 @@ describe('enabled Spend Allocations page without root', () => {
     expect(requestMock).toHaveBeenCalled();
     expect(mockGet_success).toHaveBeenCalledTimes(2);
   });
+
+  it('shows a fallback error when the create request fails without a response body', async () => {
+    render(<SpendAllocationsRoot subscription={subscription} />, {organization});
+
+    const enableSpendAllocation = await screen.findByRole('button', {
+      name: 'Create Organization-Level Allocation',
+    });
+
+    const requestMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/spend-allocations/`,
+      method: 'POST',
+      statusCode: 500,
+      body: undefined,
+    });
+
+    await userEvent.click(enableSpendAllocation);
+    expect(requestMock).toHaveBeenCalled();
+    expect(
+      await screen.findByText('Unable to create spend allocation. Please try again.')
+    ).toBeInTheDocument();
+  });
 });
 
 describe('POST Create spend allocation', () => {
