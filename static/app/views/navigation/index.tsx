@@ -24,6 +24,7 @@ import {
   useSecondaryNavigation,
 } from 'sentry/views/navigation/secondaryNavigationContext';
 import {useResetActiveNavigationGroup} from 'sentry/views/navigation/useResetActiveNavigationGroup';
+import {useCaptureSettingsReturnPath} from 'sentry/views/navigation/useSettingsReturnPath';
 import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 
 /**
@@ -54,6 +55,8 @@ function UserAndOrganizationNavigation({pageBannerHeight}: NavigationProps) {
   const {layout} = usePrimaryNavigation();
   const {visible} = useModal();
   const {view, setView} = useSecondaryNavigation();
+
+  useCaptureSettingsReturnPath();
 
   useHotkeys(
     visible

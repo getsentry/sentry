@@ -52,6 +52,7 @@ function navigationContext({
 
 function setupMocks() {
   localStorage.clear();
+  sessionStorage.clear();
   MockApiClient.clearMockResponses();
 
   // MobileNavigation requires a #main element to manage inert/overflow attributes
@@ -145,7 +146,7 @@ describe('mobile navigation', () => {
     expect(within(primaryNav).queryByRole('link', {name: 'Org'})).not.toBeInTheDocument();
   });
 
-  it('restores the issues sidebar after returning from settings entered through the menu', async () => {
+  it('returns to the page settings was entered from through the menu', async () => {
     const {router} = render(
       <PrimaryNavigationContextProvider>
         <Navigation />
@@ -162,9 +163,8 @@ describe('mobile navigation', () => {
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Settings'}));
     expect(router.location.pathname).toBe('/settings/org-slug/');
     await userEvent.click(screen.getByRole('button', {name: 'Back to app'}));
-    expect(router.location.pathname).toBe('/organizations/org-slug/issues/');
+    expect(router.location.pathname).toMatch(/^\/organizations\/org-slug\/explore\//);
     const secondaryNav = screen.getByRole('navigation', {name: 'Secondary Navigation'});
-    expect(within(secondaryNav).getByRole('link', {name: /^Feed$/})).toBeInTheDocument();
     expect(within(secondaryNav).queryByText('Org Settings')).not.toBeInTheDocument();
   });
 

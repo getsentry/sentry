@@ -60,6 +60,7 @@ import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/cont
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 import {useCollapsedNavigation} from 'sentry/views/navigation/useCollapsedNavigation';
 import {useSettingsNavigation} from 'sentry/views/navigation/useSettingsNavigation';
+import {getSettingsReturnPath} from 'sentry/views/navigation/useSettingsReturnPath';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import {
@@ -194,7 +195,7 @@ export function SettingsNavigationBackButton({
       tooltipProps={{title: t('Back to app')}}
       onClick={() => {
         setActiveGroup(null);
-        navigate(`/organizations/${organizationSlug}/issues/`);
+        navigate(getSettingsReturnPath(`/organizations/${organizationSlug}/issues/`));
       }}
     />
   );

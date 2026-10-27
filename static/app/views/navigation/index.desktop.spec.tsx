@@ -101,6 +101,7 @@ function assertValidListHTML(list: HTMLElement) {
 function setupMocks() {
   ProjectsStore.reset();
   localStorage.clear();
+  sessionStorage.clear();
   MockApiClient.clearMockResponses();
 
   ConfigStore.set('user', UserFixture());
@@ -351,6 +352,34 @@ describe('desktop navigation', () => {
     expect(router.location.pathname).toBe(
       '/settings/org-slug/projects/second-project/keys/'
     );
+  });
+
+  it('returns to the page settings was entered from after visiting several settings pages', async () => {
+    ProjectsStore.loadInitialData([ProjectFixture()]);
+    const {router} = render(
+      <PrimaryNavigationContextProvider>
+        <Navigation />
+      </PrimaryNavigationContextProvider>,
+      navigationContext({
+        organization: {features: [...ALL_AVAILABLE_FEATURES, 'settings-v3']},
+        initialRouterConfig: {location: {pathname: '/organizations/org-slug/issues/'}},
+      })
+    );
+
+    await userEvent.click(screen.getByRole('link', {name: 'Explore'}));
+    const exploreLocation = router.location.pathname;
+    expect(exploreLocation).toMatch(/^\/organizations\/org-slug\/explore\//);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle organization menu'}));
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Settings'}));
+    expect(router.location.pathname).toBe('/settings/org-slug/');
+
+    const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
+    await userEvent.click(within(primaryNav).getByRole('link', {name: 'Account'}));
+    expect(router.location.pathname).toBe('/settings/account/');
+
+    await userEvent.click(within(primaryNav).getByRole('button', {name: 'Back to app'}));
+    expect(router.location.pathname).toBe(exploreLocation);
   });
 
   it('shows settings scope navigation with settings v3', async () => {
