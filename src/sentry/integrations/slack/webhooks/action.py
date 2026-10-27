@@ -73,6 +73,7 @@ from sentry.users.models import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
+from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 _logger = logging.getLogger(__name__)
 
@@ -183,6 +184,16 @@ def _is_message(data: Mapping[str, Any]) -> bool:
     Bot posted messages will not have the type at all.
     """
     return data.get("original_message", {}).get("type") == "message"
+
+
+def _user_viewer_context(user: RpcUser, group: Group) -> contextlib.AbstractContextManager[None]:
+    """Slack requests carry no Sentry credential, so act as the linked user for Seer calls."""
+    return viewer_context_scope(
+        ViewerContext(
+            actor=Actor(type=ActorType.USER, actor_id=user.id),
+            organization_id=group.project.organization_id,
+        )
+    )
 
 
 @all_silo_endpoint  # Only LINK_IDENTITY is handled at control
@@ -662,7 +673,7 @@ class SlackActionEndpoint(Endpoint):
         )
         lock = locks.get(lock_key, duration=10, name="autofix_entrypoint_slack")
         try:
-            with lock.acquire():
+            with lock.acquire(), _user_viewer_context(user, group):
                 SeerAutofixOperator(entrypoint=entrypoint).trigger_autofix(
                     group=group,
                     user=user,
@@ -711,7 +722,10 @@ class SlackActionEndpoint(Endpoint):
                 },
             )
             return
-        SeerAutofixOperator(entrypoint=entrypoint).trigger_handoff(group=group, run_id=int(run_id))
+        with _user_viewer_context(user, group):
+            SeerAutofixOperator(entrypoint=entrypoint).trigger_handoff(
+                group=group, run_id=int(run_id)
+            )
 
     @classmethod
     def get_action_option(cls, slack_request: SlackActionRequest) -> tuple[str | None, str | None]:
