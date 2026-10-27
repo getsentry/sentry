@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {UptimeSummaryFixture} from 'sentry-fixture/uptimeSummary';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import UptimeAlertDetails from './details';
 
@@ -54,6 +54,32 @@ describe('UptimeAlertDetails', () => {
       initialRouterConfig: getInitialRouterConfig('3'),
     });
     expect(await screen.findByText('Uptime Test Rule')).toBeInTheDocument();
+  });
+
+  it('renders parent crumbs in the trail and the monitor name as the page title', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/detectors/3/`,
+      body: UptimeDetectorFixture({name: 'Uptime Test Rule'}),
+    });
+
+    render(<UptimeAlertDetails />, {
+      organization,
+      initialRouterConfig: getInitialRouterConfig('3'),
+    });
+
+    const monitorsCrumb = await screen.findByRole('link', {name: 'Monitors'});
+    expect(monitorsCrumb).toHaveAttribute('href', '/organizations/org-slug/monitors/');
+    expect(screen.getByRole('link', {name: 'Uptime'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/monitors/uptime/'
+    );
+
+    expect(
+      screen.getByRole('heading', {name: 'Uptime Test Rule', level: 1})
+    ).toBeInTheDocument();
+
+    const trail = monitorsCrumb.closest('ol')!;
+    expect(within(trail).queryByText('Uptime Test Rule')).not.toBeInTheDocument();
   });
 
   it('shows a message for invalid uptime alert', async () => {

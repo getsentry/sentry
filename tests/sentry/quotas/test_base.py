@@ -4,7 +4,14 @@ from sentry.constants import DataCategory, ObjectStatus
 from sentry.models.projectkey import ProjectKey
 from sentry.monitors.constants import PermitCheckInStatus
 from sentry.monitors.models import Monitor
-from sentry.quotas.base import Quota, QuotaConfig, QuotaScope, SeatAssignmentResult
+from sentry.quotas.base import (
+    Quota,
+    QuotaConfig,
+    QuotaDimension,
+    QuotaGroupBy,
+    QuotaScope,
+    SeatAssignmentResult,
+)
 from sentry.testutils.cases import TestCase
 from sentry.utils.outcomes import Outcome
 
@@ -102,6 +109,35 @@ class QuotaTest(TestCase):
                 "scope": "organization",
                 "categories": ["transaction"],
                 "reasonCode": "go_away",
+            },
+        ),
+        (
+            QuotaConfig(
+                id="m",
+                scope=QuotaScope.PROJECT,
+                limit=6,
+                window=60,
+                categories=[DataCategory.MONITOR],
+                reason_code="go_away",
+                group_by=QuotaGroupBy(
+                    max_cardinality=100,
+                    dimensions=(
+                        QuotaDimension.CHECK_IN_SLUG,
+                        QuotaDimension.CHECK_IN_ENVIRONMENT,
+                    ),
+                ),
+            ),
+            {
+                "id": "m",
+                "scope": "project",
+                "categories": ["monitor"],
+                "limit": 6,
+                "window": 60,
+                "reasonCode": "go_away",
+                "groupBy": {
+                    "maxCardinality": 100,
+                    "dimensions": ["checkInSlug", "checkInEnvironment"],
+                },
             },
         ),
     ],

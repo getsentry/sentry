@@ -42,6 +42,7 @@ export function useInitialSeerQuery(): string {
     return {parsedQuery, queryToUse};
   }, [committedQuery, isAutoSubmittingCurrentQuery, parseQuery, query]);
 
+  // oxlint-disable-next-line react/refs
   const inputValue = currentInputValueRef.current.trim();
 
   // Only filter out FREE_TEXT tokens if there's actual input value to filter by
@@ -208,6 +209,7 @@ export function mapSeerResponseItem(
     mode: item.mode || defaultMode,
     ...(interval ? {interval} : {}),
     ...(crossEvents.length ? {crossEvents} : {}),
+    ...(item.extra_fields?.length ? {extraFields: item.extra_fields} : {}),
   };
 }
 

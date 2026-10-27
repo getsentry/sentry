@@ -1,0 +1,48 @@
+---
+title: Invitation Authentication
+description: Account creation, sign-in, and MFA within an organization invitation.
+category: patterns
+source: sentry/views/authV2/acceptOrganizationInvite/invitationAuthentication
+---
+
+import {InvitationAuthentication} from 'sentry/views/authV2/acceptOrganizationInvite/invitationAuthentication';
+import * as Storybook from 'sentry/stories';
+
+Use this component for the account authentication step of an invitation. It owns form navigation and MFA state; the parent fetches auth configuration and refreshes the invitation after authentication.
+
+## Account Creation and Sign-In
+
+Registration starts with the invitation email. Users can switch to the shared sign-in form. Successful registration, password sign-in, and MFA completion report the authenticated account through `onAuthenticated`.
+
+<Storybook.Demo>
+  <InvitationAuthentication
+    authConfig={{
+      canRegister: true,
+      hasNewsletter: false,
+      pendingMfa: null,
+      serverHostname: 'sentry.example.com',
+    }}
+    initialEmail="invitee@example.com"
+    onAuthenticated={() => {}}
+  />
+</Storybook.Demo>
+
+```tsx
+<InvitationAuthentication
+  authConfig={authConfig}
+  initialEmail="invitee@example.com"
+  onAuthenticated={handleAuthenticated}
+/>
+```
+
+## Props
+
+| Prop              | Type                                    | Description                                                     |
+| ----------------- | --------------------------------------- | --------------------------------------------------------------- |
+| `authConfig`      | `AuthConfig`                            | Registration availability, external providers, and pending MFA. |
+| `initialEmail`    | `string`                                | Initial registration email; defaults to an empty string.        |
+| `onAuthenticated` | `(result: AuthenticatedResult) => void` | Reports the account and destination after authentication.       |
+
+## Accessibility
+
+The shared forms provide labeled fields and keyboard-accessible actions. The secondary actions switch forms within the invitation.

@@ -19,7 +19,8 @@ from the event, feature-gates, and hands off to ``trigger_pr_iteration_from_revi
 which fetches the review's inline comments and summary body and dispatches an
 Autofix PR iteration. The task gates human review authors on repo write access, so
 a human review only drives an iteration when its author could push the change
-themselves; bot reviews are instead bounded by the automated-iteration cap.
+themselves. Bot reviews are instead dropped when they have no inline comments, and
+bounded by the automated-iteration cap.
 """
 
 from __future__ import annotations

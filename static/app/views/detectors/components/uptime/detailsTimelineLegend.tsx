@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {InfoTip} from '@sentry/scraps/info';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {tct} from 'sentry/locale';
 import {CheckIndicator} from 'sentry/views/detectors/components/uptime/checkIndicator';
 import {CheckStatus} from 'sentry/views/detectors/components/uptime/types';
@@ -12,12 +12,11 @@ import {statusToText} from 'sentry/views/insights/uptime/timelineConfig';
 export function DetailsTimelineLegend({showMissedLegend}: {showMissedLegend: boolean}) {
   return (
     <CheckLegend>
-      <CheckLegendItem>
+      <Grid as="li" align="center" column="1 / -1" columns="subgrid">
         <CheckIndicator status={CheckStatus.SUCCESS} />
         <Flex align="center" gap="md">
           {statusToText[CheckStatus.SUCCESS]}
-          <QuestionTooltip
-            isHoverable
+          <InfoTip
             size="sm"
             title={tct(
               'A check status is considered uptime when it meets the uptime check criteria. [link:Learn more].',
@@ -29,13 +28,12 @@ export function DetailsTimelineLegend({showMissedLegend}: {showMissedLegend: boo
             )}
           />
         </Flex>
-      </CheckLegendItem>
-      <CheckLegendItem>
+      </Grid>
+      <Grid as="li" align="center" column="1 / -1" columns="subgrid">
         <CheckIndicator status={CheckStatus.FAILURE} />
         <Flex align="center" gap="md">
           {statusToText[CheckStatus.FAILURE]}
-          <QuestionTooltip
-            isHoverable
+          <InfoTip
             size="sm"
             title={tct(
               'A check status is considered as a failure when a check fails but hasn’t recorded three consecutive failures needed for Downtime. [link:Learn more].',
@@ -47,13 +45,12 @@ export function DetailsTimelineLegend({showMissedLegend}: {showMissedLegend: boo
             )}
           />
         </Flex>
-      </CheckLegendItem>
-      <CheckLegendItem>
+      </Grid>
+      <Grid as="li" align="center" column="1 / -1" columns="subgrid">
         <CheckIndicator status={CheckStatus.FAILURE_INCIDENT} />
         <Flex align="center" gap="md">
           {statusToText[CheckStatus.FAILURE_INCIDENT]}
-          <QuestionTooltip
-            isHoverable
+          <InfoTip
             size="sm"
             title={tct(
               'A check status is considered downtime when it fails 3 consecutive times, meeting the Downtime threshold. [link:Learn more].',
@@ -65,14 +62,13 @@ export function DetailsTimelineLegend({showMissedLegend}: {showMissedLegend: boo
             )}
           />
         </Flex>
-      </CheckLegendItem>
+      </Grid>
       {showMissedLegend && (
-        <CheckLegendItem>
+        <Grid as="li" align="center" column="1 / -1" columns="subgrid">
           <CheckIndicator status={CheckStatus.MISSED_WINDOW} />
           <Flex align="center" gap="md">
             {statusToText[CheckStatus.MISSED_WINDOW]}
-            <QuestionTooltip
-              isHoverable
+            <InfoTip
               size="sm"
               title={tct(
                 'A check status is unknown when Sentry is unable to execute an uptime check at the scheduled time. [link:Learn more].',
@@ -84,7 +80,7 @@ export function DetailsTimelineLegend({showMissedLegend}: {showMissedLegend: boo
               )}
             />
           </Flex>
-        </CheckLegendItem>
+        </Grid>
       )}
     </CheckLegend>
   );
@@ -96,11 +92,4 @@ const CheckLegend = styled('ul')`
   padding: 0;
   gap: ${p => p.theme.space.md};
   margin-bottom: 0;
-`;
-
-const CheckLegendItem = styled('li')`
-  display: grid;
-  grid-template-columns: subgrid;
-  align-items: center;
-  grid-column: 1 / -1;
 `;

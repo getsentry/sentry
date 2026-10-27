@@ -24,11 +24,21 @@ from sentry.models.organizationonboardingtask import (
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
 
-non_default_owner_scopes = ["org:ci", "openid", "email", "profile", "project:distribution"]
+granular_scopes = ["dashboard:read", "dashboard:create", "dashboard:update", "dashboard:delete"]
+non_default_owner_scopes = [
+    "org:ci",
+    "org:tokens",
+    "openid",
+    "email",
+    "profile",
+    "project:distribution",
+    *granular_scopes,
+]
 default_owner_scopes = frozenset(
     filter(lambda scope: scope not in non_default_owner_scopes, settings.SENTRY_SCOPES)
 )
@@ -70,7 +80,6 @@ class OrganizationSummarySerializerTest(TestCase):
             "invite-members",
             "open-membership",
             "relay",
-            "sentry-app-schema-form-migration",
             "session-replay-ui",
             "shared-issues",
             "sso-basic",
@@ -79,6 +88,11 @@ class OrganizationSummarySerializerTest(TestCase):
             "team-roles",
             "uptime",
         ]
+
+    @with_feature("organizations:flamegraph-attachments")
+    def test_flamegraph_feature_is_exposed(self) -> None:
+        result = serialize(self.organization, self.user)
+        assert "flamegraph-attachments" in result["features"]
 
     @mock.patch("sentry.features.batch_has")
     def test_organization_batch_has(self, mock_batch: mock.MagicMock) -> None:
@@ -115,6 +129,19 @@ class OrganizationSerializerTest(TestCase):
         assert isinstance(result["orgRoleList"], list)
         assert isinstance(result["teamRoleList"], list)
         assert result["requiresSso"] == acc.requires_sso
+
+    @with_feature("organizations:granular-permission-scopes")
+    def test_detailed_with_granular_permission_scopes(self) -> None:
+        user = self.create_user()
+        organization = self.create_organization(owner=user)
+        acc = access.from_user(user, organization)
+
+        serializer = OrganizationSerializer()
+        result = serialize(organization, user, serializer, access=acc)
+
+        assert result["access"] == default_owner_scopes | set(granular_scopes)
+        for role in result["orgRoleList"]:
+            assert set(granular_scopes) <= role["scopes"]
 
     def test_granular_replay_permissions_without_option(self) -> None:
         user = self.create_user()

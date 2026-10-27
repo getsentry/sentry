@@ -12,7 +12,7 @@ from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
 from sentry import features, options
 from sentry.ai_monitoring.tasks import spawn_conversation_title_generation
-from sentry.constants import DataCategory
+from sentry.constants import MAX_TAG_VALUE_LENGTH, DataCategory
 from sentry.dynamic_sampling.rules.helpers.latest_releases import record_latest_release
 from sentry.event_manager import INSIGHT_MODULE_TO_PROJECT_FLAG_NAME
 from sentry.insights import FilterSpan
@@ -57,6 +57,8 @@ from sentry.utils.last_seen import LAST_SEEN_INTERVAL_SECONDS
 from sentry.utils.local_cache import LRUCache, SizedKeyCache, ThreadSafeCache
 from sentry.utils.outcomes import Outcome, OutcomeAggregator
 from sentry.utils.projectflags import set_project_flag_and_signal
+from sentry.utils.safe import get_json_bytes, strict_trim
+from sentry.utils.strings import truncatechars
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +73,9 @@ MAX_SPAN_DESCRIPTION_LENGTH = 2048
 MAX_SPAN_DATA_VALUE_LENGTH = 500
 MAX_EVIDENCE_VALUE_LENGTH = 500
 MAX_EVIDENCE_LIST_ITEMS = 100
+MAX_OCCURRENCE_TAGS_BYTES = 16_384
+MAX_OCCURRENCE_EXTRA_BYTES = 16_384
+MAX_OCCURRENCE_BREADCRUMBS_BYTES = 16_384
 
 # The `evidence_data` values we actually use for issue details and Seer - all others are dropped
 # when we produce the occurrence
@@ -83,6 +88,8 @@ EVIDENCE_SPAN_DATA_KEYS = frozenset(
         "http.request.request_start",
         "http.request.response_start",
         "http.response_content_length",
+        "sentry.category",
+        "sentry.group",
         "url",
     )
 )
@@ -195,13 +202,12 @@ def _verify_compatibility(spans: Sequence[Mapping[str, Any]]) -> list[None | dic
             if "attributes" in span:
                 metrics.incr("spans.consumers.process_segments.span_v2")
 
-                attributes = span.get("attributes") or {}
                 data = span.get("data") or {}
                 # Verify that all data exist also in attributes.
                 mismatches = [
-                    (key, data_value, attribute_value)
+                    (key, data_value, value)
                     for (key, data_value) in data.items()
-                    if data_value != (attribute_value := (attributes.get(key) or {}).get("value"))
+                    if data_value != (value := attribute_value(span, key))
                 ]
                 if mismatches:
                     redacted = _redact(span)
@@ -449,6 +455,7 @@ def _run_legacy_detectors(
 
     # Produce an occurrence for each problem, first filtering and trimming data to stay within the
     # occurrence consumer's limits
+    _trim_event_data_for_occurrence(event_data)
     spans_by_id = {span["span_id"]: span for span in event_data["spans"]}
     for problem in detected_problems:
         evidence_display = [
@@ -488,7 +495,7 @@ def _run_legacy_detectors(
             type=problem.type,
             issue_title=problem.title,
             subtitle=_truncate_value_for_occurrence(problem.desc, MAX_EVIDENCE_VALUE_LENGTH),
-            culprit=event_data["transaction"],
+            culprit=event_data.get("transaction"),
             evidence_data=evidence_data,
             evidence_display=evidence_display,
             detection_time=to_datetime(segment_span["end_timestamp"]),
@@ -513,6 +520,79 @@ def _truncate_span_id_list(
     """
     ids_for_existing_spans = [span_id for span_id in raw_span_ids if span_id in spans_by_id]
     return ids_for_existing_spans[:max_span_ids]
+
+
+def _trim_event_data_for_occurrence(event_data: dict[str, Any]) -> None:
+    """
+    Trim values in the shim transaction event before using them to create occurrences, so that the
+    full occurrence stays within the occurrence consumer's limits. Modifies the given `event_data`
+    dict in place.
+    """
+    # Tag values are capped by character count rather than byte count, to match what `set_tag`
+    # does everywhere else in the event pipeline. The list as a whole then gets a byte budget,
+    # spent one whole tag at a time, so that no tag ends up with a truncated key or no value.
+    if "tags" in event_data:
+        initial_tag_count = len(event_data["tags"])
+
+        trimmed_tags = [
+            [key, truncatechars(value, MAX_TAG_VALUE_LENGTH)] for key, value in event_data["tags"]
+        ]
+        event_data["tags"] = strict_trim(
+            trimmed_tags, MAX_OCCURRENCE_TAGS_BYTES, treat_as_dict_entries=True
+        )
+
+        final_tag_count = len(event_data["tags"])
+        if final_tag_count < initial_tag_count:
+            logger.info(
+                "issue_detection.shim.tags_dropped",
+                extra={"initial_count": initial_tag_count, "final_count": final_tag_count},
+            )
+
+    if "breadcrumbs" in event_data and event_data["breadcrumbs"].get("values"):
+        all_breadcrumbs = event_data["breadcrumbs"]["values"]
+        initial_breadcrumb_count = len(all_breadcrumbs)
+
+        trimmed_breadcrumbs = strict_trim(
+            event_data["breadcrumbs"], MAX_OCCURRENCE_BREADCRUMBS_BYTES
+        ).get("values", [])
+
+        if trimmed_breadcrumbs:
+            # If trimming has altered key fields in the last included breadcrumb, it can cause UI
+            # elements to break and/or the overall event data to fail schema validation. To avoid
+            # this, check for changes in those fields and remove the breadcrumb entirely if trimming
+            # has made it invalid.
+            last_breadcrumb_index = len(trimmed_breadcrumbs) - 1
+            last_breadcrumb = trimmed_breadcrumbs[last_breadcrumb_index]
+            last_breadcrumb_orig_value = all_breadcrumbs[last_breadcrumb_index]
+            for field in ["event_id", "level", "timestamp"]:
+                if last_breadcrumb.get(field) != last_breadcrumb_orig_value.get(field):
+                    trimmed_breadcrumbs.pop()
+                    break
+
+        event_data["breadcrumbs"]["values"] = trimmed_breadcrumbs
+
+        final_breadcrumb_count = len(trimmed_breadcrumbs)
+        if final_breadcrumb_count < initial_breadcrumb_count:
+            logger.info(
+                "issue_detection.shim.breadcrumbs_dropped",
+                extra={
+                    "initial_count": initial_breadcrumb_count,
+                    "final_count": final_breadcrumb_count,
+                },
+            )
+
+    if "extra" in event_data:
+        initial_extra_size = get_json_bytes(event_data["extra"])
+
+        event_data["extra"] = strict_trim(event_data["extra"], MAX_OCCURRENCE_EXTRA_BYTES)
+
+        # Unlike with tags and breadcrumbs above, `extra` is arbitrarily nested, so it doesn't make
+        # sense to use count as a before and after
+        if initial_extra_size > MAX_OCCURRENCE_EXTRA_BYTES:
+            logger.info(
+                "issue_detection.shim.extra_trimmed",
+                extra={"initial_size": initial_extra_size},
+            )
 
 
 def _get_evidence_data_for_occurrence(
@@ -581,6 +661,13 @@ def _get_evidence_span_for_occurrence(span: dict[str, Any]) -> dict[str, Any]:
         for key, value in (span.get("data") or {}).items()
         if key in EVIDENCE_SPAN_DATA_KEYS
     }
+
+    # The span's `hash` value is used in the FE for the Span Evidence and Grouping Info sections of
+    # the issue details page, but gets dropped during normalization. Transaction-based spans
+    # calculate it and add it in post-normalization, so that doesn't matter, but for segment-based
+    # spans normalization happens after hash calculation, meaning the value will be lost unless we
+    # store it somewhere which survives normalization.
+    filtered_data["hash"] = span.get("hash")
 
     return {
         "span_id": span["span_id"],

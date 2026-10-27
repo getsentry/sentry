@@ -1,19 +1,19 @@
 import styled from '@emotion/styled';
+import {IconInfo} from '@sentry/icons/info';
 import moment from 'moment-timezone';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {DescriptionList} from '@sentry/scraps/descriptionList';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
-import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {TimeSince} from 'sentry/components/timeSince';
 import {Version} from 'sentry/components/version';
-import {IconInfo} from 'sentry/icons/iconInfo';
 import {t, tct, tn} from 'sentry/locale';
 import type {AvatarProject} from 'sentry/types/project';
 import type {ReleaseMeta, ReleaseWithHealth} from 'sentry/types/release';
@@ -45,18 +45,17 @@ export function ProjectReleaseDetails({release, releaseMeta, project}: Props) {
     <SidebarSection.Wrap>
       <SidebarSection.Title>{t('Project Release Details')}</SidebarSection.Title>
       <SidebarSection.Content>
-        <KeyValueTable>
-          <KeyValueTableRow
-            keyName={t('Created')}
-            value={<DateTime date={dateCreated} />}
-          />
-          <KeyValueTableRow
-            keyName={
+        <Container marginBottom="xl">
+          <DescriptionList striped>
+            <DescriptionList.Term>{t('Created')}</DescriptionList.Term>
+            <DescriptionList.Details>
+              <DateTime date={dateCreated} />
+            </DescriptionList.Details>
+            <DescriptionList.Term>
               <Flex gap="sm" align="center">
                 {t('Finalized')}
                 <Tooltip
                   skipWrapper
-                  isHoverable
                   title={tct(
                     'By default a release is created "unreleased".[br]Finalizing a release means that we populate a second timestamp on the release record, which is prioritized over [code:date_created] when sorting releases. [docs:Read more].',
                     {
@@ -71,12 +70,12 @@ export function ProjectReleaseDetails({release, releaseMeta, project}: Props) {
                   <IconInfo />
                 </Tooltip>
               </Flex>
-            }
-            value={
-              dateReleased ? (
+            </DescriptionList.Term>
+            <DescriptionList.Details>
+              {dateReleased ? (
                 <DateTime date={dateReleased} />
               ) : (
-                <ButtonContainer>
+                <Flex justify="end" align="center" height="1lh">
                   <Tooltip
                     title={t(
                       'Set release date to %s',
@@ -105,25 +104,20 @@ export function ProjectReleaseDetails({release, releaseMeta, project}: Props) {
                       {t('Finalize')}
                     </FinalizeButton>
                   </Tooltip>
-                </ButtonContainer>
-              )
-            }
-          />
-          <KeyValueTableRow
-            keyName={t('Version')}
-            value={
+                </Flex>
+              )}
+            </DescriptionList.Details>
+            <DescriptionList.Term>{t('Version')}</DescriptionList.Term>
+            <DescriptionList.Details>
               <StyledTextOverflow ellipsisDirection="left">
                 <Version version={version} anchor={false} />
               </StyledTextOverflow>
-            }
-          />
-          <KeyValueTableRow
-            keyName={
+            </DescriptionList.Details>
+            <DescriptionList.Term>
               <Flex gap="sm" align="center">
                 {t('Semver')}
                 <Tooltip
                   skipWrapper
-                  isHoverable
                   title={tct(
                     'Semver packages format their versions as [code:package@version] or [code:package@version+build]. [docs:Read more].',
                     {
@@ -137,47 +131,45 @@ export function ProjectReleaseDetails({release, releaseMeta, project}: Props) {
                   <IconInfo />
                 </Tooltip>
               </Flex>
-            }
-            value={
-              versionInfo && isVersionInfoSemver(versionInfo.version) ? t('Yes') : t('No')
-            }
-          />
-          <KeyValueTableRow
-            keyName={t('Package')}
-            value={
+            </DescriptionList.Term>
+            <DescriptionList.Details>
+              {versionInfo && isVersionInfoSemver(versionInfo.version)
+                ? t('Yes')
+                : t('No')}
+            </DescriptionList.Details>
+            <DescriptionList.Term>{t('Package')}</DescriptionList.Term>
+            <DescriptionList.Details>
               <StyledTextOverflow ellipsisDirection="left">
                 {versionInfo?.package ?? '\u2014'}
               </StyledTextOverflow>
-            }
-          />
-          <KeyValueTableRow
-            keyName={t('First Activity')}
-            value={firstEvent ? <TimeSince date={firstEvent} /> : '\u2014'}
-          />
-          <KeyValueTableRow
-            keyName={t('Last Activity')}
-            value={lastEvent ? <TimeSince date={lastEvent} /> : '\u2014'}
-          />
-          <KeyValueTableRow
-            keyName={t('Source Maps')}
-            value={
+            </DescriptionList.Details>
+            <DescriptionList.Term>{t('First Activity')}</DescriptionList.Term>
+            <DescriptionList.Details>
+              {firstEvent ? <TimeSince date={firstEvent} /> : '\u2014'}
+            </DescriptionList.Details>
+            <DescriptionList.Term>{t('Last Activity')}</DescriptionList.Term>
+            <DescriptionList.Details>
+              {lastEvent ? <TimeSince date={lastEvent} /> : '\u2014'}
+            </DescriptionList.Details>
+            <DescriptionList.Term>{t('Source Maps')}</DescriptionList.Term>
+            <DescriptionList.Details>
               <Link
                 to={
                   isArtifactBundle
-                    ? `/settings/${orgSlug}/projects/${project.slug}/source-maps/?query=${encodeURIComponent(
-                        version
-                      )}`
-                    : `/settings/${orgSlug}/projects/${project.slug}/source-maps/${encodeURIComponent(
-                        version
-                      )}/`
+                    ? `/settings/${orgSlug}/projects/${
+                        project.slug
+                      }/source-maps/?query=${encodeURIComponent(version)}`
+                    : `/settings/${orgSlug}/projects/${
+                        project.slug
+                      }/source-maps/${encodeURIComponent(version)}/`
                 }
               >
                 <Count value={releaseFileCount} />{' '}
                 {tn('artifact', 'artifacts', releaseFileCount)}
               </Link>
-            }
-          />
-        </KeyValueTable>
+            </DescriptionList.Details>
+          </DescriptionList>
+        </Container>
       </SidebarSection.Content>
     </SidebarSection.Wrap>
   );
@@ -188,20 +180,7 @@ const StyledTextOverflow = styled(TextOverflow)`
   text-align: right;
 `;
 
-const ButtonContainer = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  min-width: 0;
-  position: relative;
-  width: 100%;
-
-  & > * {
-    position: absolute;
-    right: 0;
-  }
-`;
-
 const FinalizeButton = styled(Button)`
   font-size: ${p => p.theme.font.size.sm};
-  padding-inline: ${p => p.theme.space.xs};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
 `;

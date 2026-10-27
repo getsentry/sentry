@@ -9,7 +9,7 @@ import type {Location} from 'history';
 import moment, {type MomentInput} from 'moment-timezone';
 
 import {CHART_ZOOM_MERGE_OPTIONS} from 'sentry/components/charts/chartZoomConfig';
-import {DataZoomInside} from 'sentry/components/charts/components/dataZoomInside';
+import {dataZoomInside} from 'sentry/components/charts/components/dataZoomInside';
 import {getToolBox} from 'sentry/components/charts/components/toolBox';
 import {activateZoomAreaSelect} from 'sentry/components/charts/utils';
 import {updateDateTime} from 'sentry/components/pageFilters/actions';
@@ -337,7 +337,7 @@ class ChartZoom extends Component<Props> {
       utc,
       start,
       end,
-      dataZoom: DataZoomInside({
+      dataZoom: dataZoomInside({
         xAxisIndex,
       }),
       showTimeInTooltip: true,

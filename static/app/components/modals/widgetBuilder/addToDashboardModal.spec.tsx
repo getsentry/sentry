@@ -29,7 +29,7 @@ jest.mock('sentry/views/dashboards/createLimitWrapper');
 const mockDashboardCreateLimitWrapper = jest.mocked(DashboardCreateLimitWrapper);
 
 describe('add to dashboard modal', () => {
-  let eventsStatsMock!: jest.Mock;
+  let eventsTimeseriesMock!: jest.Mock;
   let initialData!: ReturnType<typeof initializeOrg>;
   let widget: Widget;
 
@@ -124,9 +124,9 @@ describe('add to dashboard modal', () => {
       body: [],
     });
 
-    eventsStatsMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: [],
+    eventsTimeseriesMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: []},
     });
   });
 
@@ -161,8 +161,14 @@ describe('add to dashboard modal', () => {
         /This is a preview of how the widget will appear in your dashboard./
       )
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Add + Stay on this Page'})).toBeDisabled();
-    expect(screen.getByRole('button', {name: 'Open in Widget Builder'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Add + Stay on this Page'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('button', {name: 'Open in Widget Builder'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
   it('enables the buttons when a dashboard is selected', async () => {
@@ -184,13 +190,23 @@ describe('add to dashboard modal', () => {
       expect(screen.getByText('Select Dashboard')).toBeEnabled();
     });
 
-    expect(screen.getByRole('button', {name: 'Add + Stay on this Page'})).toBeDisabled();
-    expect(screen.getByRole('button', {name: 'Open in Widget Builder'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Add + Stay on this Page'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('button', {name: 'Open in Widget Builder'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
 
     await selectEvent.select(screen.getByText('Select Dashboard'), 'Test Dashboard');
 
-    expect(screen.getByRole('button', {name: 'Add + Stay on this Page'})).toBeEnabled();
-    expect(screen.getByRole('button', {name: 'Open in Widget Builder'})).toBeEnabled();
+    expect(
+      screen.getByRole('button', {name: 'Add + Stay on this Page'})
+    ).not.toHaveAttribute('aria-disabled', 'true');
+    expect(
+      screen.getByRole('button', {name: 'Open in Widget Builder'})
+    ).not.toHaveAttribute('aria-disabled', 'true');
   });
 
   it('includes a New Dashboard option in the selector with saved dashboards', async () => {
@@ -236,14 +252,13 @@ describe('add to dashboard modal', () => {
       expect(screen.getByText('Select Dashboard')).toBeEnabled();
     });
 
-    expect(eventsStatsMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/events-stats/',
+    expect(eventsTimeseriesMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-timeseries/',
       expect.objectContaining({
         query: expect.objectContaining({
           environment: [],
           project: [],
           interval: '5m',
-          orderby: '',
           statsPeriod: '24h',
           yAxis: ['count()'],
         }),
@@ -252,14 +267,12 @@ describe('add to dashboard modal', () => {
 
     await selectEvent.select(screen.getByText('Select Dashboard'), 'Test Dashboard');
 
-    expect(eventsStatsMock).toHaveBeenLastCalledWith(
-      '/organizations/org-slug/events-stats/',
+    expect(eventsTimeseriesMock).toHaveBeenLastCalledWith(
+      '/organizations/org-slug/events-timeseries/',
       expect.objectContaining({
         query: expect.objectContaining({
           environment: [],
           interval: '1m',
-          orderby: '',
-          partial: '1',
           project: [1],
           query: ' release:"abc@v1.2.0" ',
           statsPeriod: '1h',
@@ -269,7 +282,7 @@ describe('add to dashboard modal', () => {
     );
   });
 
-  it('calls the events stats endpoint with the query and selection values', async () => {
+  it('calls the events timeseries endpoint with the query and selection values', async () => {
     render(
       <AddToDashboardModal
         Header={stubEl}
@@ -288,14 +301,13 @@ describe('add to dashboard modal', () => {
       expect(screen.getByText('Select Dashboard')).toBeEnabled();
     });
 
-    expect(eventsStatsMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/events-stats/',
+    expect(eventsTimeseriesMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-timeseries/',
       expect.objectContaining({
         query: expect.objectContaining({
           environment: [],
           project: [],
           interval: '5m',
-          orderby: '',
           statsPeriod: '24h',
           yAxis: ['count()'],
         }),
@@ -890,7 +902,7 @@ describe('add to dashboard modal', () => {
         expect(screen.getByText('Select Dashboard')).toBeEnabled();
       });
 
-      expect(eventsStatsMock).not.toHaveBeenCalled();
+      expect(eventsTimeseriesMock).not.toHaveBeenCalled();
     });
 
     it('adds a text widget to an existing dashboard without modifying queries', async () => {

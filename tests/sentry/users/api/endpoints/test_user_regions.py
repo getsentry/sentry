@@ -4,7 +4,7 @@ from sentry.seer import agent_token
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.cell import override_cells
 from sentry.testutils.silo import control_silo_test
-from sentry.types.cell import Cell, Locality, RegionCategory
+from sentry.types.cell import Cell, Locality
 
 us = Cell("us", 1, "https://us.testserver")
 de = Cell("de", 2, "https://de.testserver")
@@ -12,16 +12,11 @@ st = Cell("acme", 3, "https://acme.testserver")
 cell_config = (us, de, st)
 SECRET = "test-seer-api-shared-secret-thirty-two-bytes!"
 
-us_locality = Locality(
-    name="us", cells=frozenset(["us"]), category=RegionCategory.MULTI_TENANT, new_org_cell="us"
-)
-de_locality = Locality(
-    name="de", cells=frozenset(["de"]), category=RegionCategory.MULTI_TENANT, new_org_cell="de"
-)
+us_locality = Locality(name="us", cells=frozenset(["us"]), new_org_cell="us")
+de_locality = Locality(name="de", cells=frozenset(["de"]), new_org_cell="de")
 st_locality = Locality(
     name="acme",
     cells=frozenset(["acme"]),
-    category=RegionCategory.SINGLE_TENANT,
     new_org_cell="acme",
 )
 

@@ -3,6 +3,7 @@ import {lazy} from 'react';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {LazyLoad} from 'sentry/components/lazyLoad';
+import {ROOT_ELEMENT} from 'sentry/constants';
 
 type TestProps = {
   testProp?: boolean;
@@ -19,12 +20,33 @@ function BarComponent() {
 type ResolvedComponent = {default: React.ComponentType<TestProps>};
 
 describe('LazyLoad', () => {
+  let initialLoaderRoot: HTMLElement | null = null;
+
   beforeEach(() => {
     jest.useFakeTimers();
   });
   afterEach(() => {
+    initialLoaderRoot?.remove();
+    initialLoaderRoot = null;
     jest.restoreAllMocks();
     jest.useRealTimers();
+  });
+
+  it('reuses the initial server loader when it is present', () => {
+    initialLoaderRoot = document.createElement('div');
+    initialLoaderRoot.id = ROOT_ELEMENT;
+    initialLoaderRoot.innerHTML = `
+      <div class="splash-loader">
+        <div data-test-id="server-loader">Loading Sentry</div>
+      </div>
+    `;
+    document.body.appendChild(initialLoaderRoot);
+
+    const importTest = new Promise<ResolvedComponent>(() => {});
+    render(<LazyLoad LazyComponent={lazy(() => importTest)} />);
+    initialLoaderRoot.replaceChildren();
+
+    expect(screen.getByTestId('server-loader')).toHaveTextContent('Loading Sentry');
   });
 
   it('renders with a loading indicator when promise is not resolved yet', async () => {

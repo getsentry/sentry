@@ -22,6 +22,7 @@ from sentry.identity import default_manager as identity_manager
 from sentry.identity.mcp import McpIdentityProvider
 from sentry.identity.oauth2 import OAuth2Provider
 from sentry.integrations.types import MONITORING_PROVIDERS
+from sentry.investigations.access import has_investigations_access
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -32,6 +33,8 @@ from sentry.seer.agent.client_utils import (
     AgentRunOptions,
     AgentUpdateRequest,
     SeerFeatureRunRequest,
+    SeerFeatureRunWireRequest,
+    UserOrgContext,
     collect_user_org_context,
     enqueue_seer_run,
     fetch_run_status,
@@ -39,6 +42,7 @@ from sentry.seer.agent.client_utils import (
     make_agent_chat_request,
     make_agent_repos_request,
     make_agent_update_request,
+    make_feature_run_request,
     poll_until_done,
 )
 from sentry.seer.agent.coding_agent_handoff import launch_coding_agents
@@ -297,13 +301,15 @@ class SeerAgentClient:
             category_key: Optional category key for filtering/grouping runs (e.g., "bug-fixer", "trace-analyzer"). Must be provided together with category_value. Makes it easy to retrieve runs for your feature later.
             category_value: Optional category value for filtering/grouping runs (e.g., issue ID, trace ID). Must be provided together with category_key. Makes it easy to retrieve a specific run for your feature later.
             custom_tools: Optional list of `AgentTool` classes to make available as tools to the agent. Each tool must inherit from AgentTool, define a params_model (Pydantic BaseModel), and implement execute(). Tools are automatically given access to the organization context. Tool classes must be module-level (not nested classes).
-            on_completion_hook: Optional `AgentOnCompletionHook` class to call when the agent completes. The hook's execute() method receives the organization and run ID. This is called whether or not the agent was successful. Hook classes must be module-level (not nested classes).
+            on_completion_hook: Optional `AgentOnCompletionHook` class to call when the agent completes. The hook's execute() method receives the organization and run ID. By default this is called only when the run succeeds; see hook_call_on_failure. Hook classes must be module-level (not nested classes).
+            hook_call_on_failure: Also call the hook when the run errors or times out, including when Seer's stale-run sweep ends a run whose worker died. The hook is told nothing about which outcome it was called for, so it must read the run status itself. Seer pins this when the run is created, so it cannot be varied per step of an existing run. Default is False.
             intelligence_level: Optionally set the intelligence level of the agent. Higher intelligence gives better result quality at the cost of significantly higher latency and cost.
             is_interactive: Enable full interactive, human-like features of the agent. Only enable if you support *all* available interactions in Seer. An example use of this is the explorer chat in Sentry UI.
             enable_coding: Include code editing tools. When False, the agent cannot make code changes. Default is False. If enable_coding is True and the organization does not have the enable_seer_coding option, a SeerPermissionError will be raised.
             code_review_enabled: Expose the review_code_changes tool, which spawns a reviewer agent to check accumulated code edits before finalizing. Only useful alongside enable_coding. Default is False.
             max_iterations: Optional maximum number of agent iterations. Useful for lightweight/fast runs that don't need full exploration depth.
             enable_embeds: Allow the agent to emit rich inline embed widgets (e.g. formatted timestamps) as Markdoc tags. Only enable for surfaces that render these embeds (the Explorer chat in the Sentry UI). Disable for plaintext/markdown surfaces like Slack, where the tags would leak as raw text. Default is True.
+            enable_investigation_tools: Let Code Mode read and change investigations: notebooks, cells and their runs, the agent workflow, and comments. Only takes effect where the investigation endpoints themselves would answer, i.e. with the organizations:investigations feature and open membership. Default is False.
     """
 
     def __init__(
@@ -316,17 +322,20 @@ class SeerAgentClient:
         category_value: str | None = None,
         custom_tools: list[type[AgentTool[Any]]] | None = None,
         on_completion_hook: type[AgentOnCompletionHook] | None = None,
+        hook_call_on_failure: bool = False,
         intelligence_level: Literal["low", "medium", "high"] = "medium",
         reasoning_effort: Literal["low", "medium", "high"] | None = None,
         is_interactive: bool = False,
-        enable_bash_tools: bool = False,
+        enable_bash_mode: bool = False,
         enable_coding: bool = False,
         enable_pr_context_tools: bool = False,
+        enable_write_pull_request: bool = False,
         enable_code_mode_tools: str = "off",
         code_review_enabled: bool = False,
         max_iterations: int | None = None,
         enable_embeds: bool = True,
         enable_streaming: bool | None = None,
+        enable_investigation_tools: bool = False,
     ):
         self.organization = organization
         self.user = user
@@ -334,12 +343,13 @@ class SeerAgentClient:
         self.group = group
         self.custom_tools = custom_tools or []
         self.on_completion_hook = on_completion_hook
+        self.hook_call_on_failure = hook_call_on_failure
         self.intelligence_level = intelligence_level
         self.reasoning_effort = reasoning_effort
         self.category_key = category_key
         self.category_value = category_value
         self.is_interactive = is_interactive
-        self.enable_bash_tools = enable_bash_tools and features.has(
+        self.enable_bash_mode = enable_bash_mode and features.has(
             "organizations:seer-explorer-allow-bash-mode", organization, actor=user
         )
         self.enable_code_mode_tools = enable_code_mode_tools
@@ -347,21 +357,24 @@ class SeerAgentClient:
         self.max_iterations = max_iterations
         self.enable_embeds = enable_embeds
         self.enable_streaming = enable_streaming
+        self.enable_assisted_query_code_mode = features.has(
+            "organizations:seer-agent-enable-assisted-query-code-mode",
+            organization,
+            actor=user,
+        )
 
         if enable_coding and not organization.get_option("sentry:enable_seer_coding", True):
             raise SeerPermissionError("Seer coding is not enabled for this organization")
 
         self.enable_coding = enable_coding
 
-        # PR context tools back both the automated CI and the manual iteration flows,
-        # so either flag grants them.
-        if enable_pr_context_tools and not (
-            features.has("organizations:autofix-pr-iteration", organization, actor=user)
-            or features.has("organizations:autofix-pr-iteration-manual", organization, actor=user)
-        ):
-            raise SeerPermissionError("PR context tools are not enabled for this organization")
-
         self.enable_pr_context_tools = enable_pr_context_tools
+        self.enable_write_pull_request = enable_write_pull_request
+        # The same gate the investigation endpoints apply, so Code Mode isn't handed
+        # operations that would only 404.
+        self.enable_investigation_tools = enable_investigation_tools and has_investigations_access(
+            organization, actor=user
+        )
 
         self.viewer_context = self._build_viewer_context()
 
@@ -372,7 +385,7 @@ class SeerAgentClient:
             raise ValueError("category_key and category_value must be provided together")
 
         # Validate base Seer access on init (agent-specific flag checks are done at the endpoint level)
-        has_access, error = has_seer_access_with_detail(organization, user)
+        has_access, error = has_seer_access_with_detail(organization)
         if not has_access:
             raise SeerPermissionError(error or "Access denied")
 
@@ -432,7 +445,9 @@ class SeerAgentClient:
             "enable_code_mode_tools": self.enable_code_mode_tools,
             "code_review_enabled": self.code_review_enabled,
             "enable_pr_context_tools": self.enable_pr_context_tools,
-            "enable_bash_mode": self.enable_bash_tools,
+            "enable_write_pull_request": self.enable_write_pull_request,
+            "enable_bash_mode": self.enable_bash_mode,
+            "enable_investigation_tools": self.enable_investigation_tools,
         }
 
         chat_body: AgentChatRequest = AgentChatRequest(
@@ -477,7 +492,7 @@ class SeerAgentClient:
         # Add on-completion hook if provided
         if self.on_completion_hook:
             chat_body["on_completion_hook"] = extract_hook_definition(
-                self.on_completion_hook
+                self.on_completion_hook, call_on_failure=self.hook_call_on_failure
             ).dict()
 
         if self.category_key and self.category_value:
@@ -545,11 +560,13 @@ class SeerAgentClient:
         feature_id: str,
         payload: dict[str, Any],
         title: str,
+        referrer: str,
         flush: bool = True,
         extras: dict[str, Any] | None = None,
         on_run_created: Callable[[SeerRun], None] | None = None,
-        referrer: str | None = None,
         agent_run_options: AgentRunOptions | None = None,
+        user_org_context: UserOrgContext | None = None,
+        proxy_headers: dict[str, str] | None = None,
     ) -> SeerRun:
         """Dispatch a run to a registered Seer feature by feature_id via the
         SEER_RUN_CREATE outbox. The feature builds its own agent run from
@@ -565,7 +582,7 @@ class SeerAgentClient:
         synchronously (mirror -> FAILED, raises SeerApiError, no retry).
 
         flush=False: leave the row for the async outbox runner to drain and
-        retry. Use for background callers (e.g. night shift).
+        retry. Use for background callers (e.g. agentic triage).
 
         Explicit agent_run_options override any options derived from organization
         configuration.
@@ -592,20 +609,59 @@ class SeerAgentClient:
         if agent_run_options is not None:
             resolved_agent_run_options.update(agent_run_options)
 
+        body = SeerFeatureRunRequest(
+            feature_id=feature_id,
+            payload=payload,
+            agent_run_options=resolved_agent_run_options,
+            referrer=referrer,
+        )
+        if user_org_context is not None:
+            body["user_org_context"] = user_org_context
+        if proxy_headers is not None:
+            body["proxy_headers"] = proxy_headers
+
         return enqueue_seer_run(
             organization=self.organization,
             run_type=SeerRunType.FEATURE_RUN,
             on_run_created=_create_agent_run,
-            body=SeerFeatureRunRequest(
-                feature_id=feature_id,
-                payload=payload,
-                agent_run_options=resolved_agent_run_options,
-            ),
+            body=body,
             viewer_context=self.viewer_context,
             user_id=user_id,
             referrer=referrer,
             flush=flush,
         )
+
+    def continue_feature_run(
+        self,
+        existing_agent_run: SeerAgentRun,
+        payload: dict[str, Any],
+        referrer: str,
+        user_org_context: UserOrgContext,
+        agent_run_options: AgentRunOptions | None = None,
+        proxy_headers: dict[str, str] | None = None,
+    ) -> SeerRun:
+        resolved_agent_run_options = self._build_agent_run_options()
+        if agent_run_options is not None:
+            resolved_agent_run_options.update(agent_run_options)
+
+        existing_run = existing_agent_run.run
+        body = SeerFeatureRunWireRequest(
+            ref=str(existing_run.uuid),
+            external_idempotency_key=str(existing_run.uuid),
+            feature_id=existing_agent_run.source,
+            payload=payload,
+            referrer=referrer,
+            agent_run_options=resolved_agent_run_options,
+            user_org_context=user_org_context,
+            proxy_headers=proxy_headers,
+        )
+
+        response = make_feature_run_request(body, viewer_context=self.viewer_context)
+        if response.status >= 400:
+            raise SeerApiError("Seer request failed", response.status)
+
+        existing_run.update(last_triggered_at=now())
+        return existing_run
 
     def _embed_widgets_enabled(self) -> bool:
         """Whether to tell the agent it may emit embed widgets.
@@ -643,7 +699,9 @@ class SeerAgentClient:
 
         opts = AgentRunOptions()
 
-        if self.enable_bash_tools:
+        opts["enable_assisted_query_code_mode"] = self.enable_assisted_query_code_mode
+
+        if self.enable_bash_mode:
             opts["enable_bash_mode"] = True
 
         if random.random() < options.get("seer.explorer.context-engine-rollout"):
@@ -688,13 +746,6 @@ class SeerAgentClient:
             )
         ):
             opts["enable_streaming"] = True
-
-        if features.has(
-            "organizations:agentic-triage-sort",
-            self.organization,
-            actor=self.user,
-        ):
-            opts["is_agentic_triage_sort"] = True
 
         return opts
 
@@ -748,6 +799,10 @@ class SeerAgentClient:
             "enable_code_mode_tools": self.enable_code_mode_tools,
             "code_review_enabled": self.code_review_enabled,
             "enable_pr_context_tools": self.enable_pr_context_tools,
+            "enable_write_pull_request": self.enable_write_pull_request,
+            "enable_bash_mode": self.enable_bash_mode,
+            "enable_investigation_tools": self.enable_investigation_tools,
+            "enable_assisted_query_code_mode": self.enable_assisted_query_code_mode,
         }
 
         chat_body: AgentChatRequest = AgentChatRequest(
@@ -947,6 +1002,7 @@ class SeerAgentClient:
         poll_interval: float = 2.0,
         poll_timeout: float = 120.0,
         author: SeerCommitAuthor | None = None,
+        allow_force_push: bool = True,
     ) -> SeerRunState | None:
         """
         Push code changes to PR(s) and wait for completion.
@@ -960,6 +1016,7 @@ class SeerAgentClient:
             poll_interval: Seconds between polls
             poll_timeout: Maximum seconds to wait
             author: Git commit author; None lets Seer pick one
+            allow_force_push: Overwrite the branch if it has commits Seer didn't push
 
         Returns:
             SeerRunState: Final state with PR info
@@ -979,6 +1036,7 @@ class SeerAgentClient:
             "type": "create_pr",
             "ready_for_review": ready_for_review,
             "verify_content": verify_content,
+            "allow_force_push": allow_force_push,
             # Include an idempotency key in the request so that if
             # the request is retried by anything, it will not create duplicate PRs
             # This is regenerated per attempt to permit retries.
@@ -991,7 +1049,9 @@ class SeerAgentClient:
         if author:
             payload["author"] = author
         if self.on_completion_hook:
-            payload["on_completion_hook"] = extract_hook_definition(self.on_completion_hook).dict()
+            payload["on_completion_hook"] = extract_hook_definition(
+                self.on_completion_hook, call_on_failure=self.hook_call_on_failure
+            ).dict()
         update_body = AgentUpdateRequest(
             run_id=run_id,
             organization_id=self.organization.id,

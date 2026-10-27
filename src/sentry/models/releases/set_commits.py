@@ -13,7 +13,7 @@ from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_
 from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
-from sentry.models.commitauthor import CommitAuthor
+from sentry.models.commitauthor import COMMIT_AUTHOR_EMAIL_LENGTH, CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupinbox import GroupInbox, GroupInboxRemoveAction, remove_group_from_inbox
@@ -300,7 +300,7 @@ def update_group_resolutions(release, commit_author_by_commit):
                 router.db_for_write(Activity),
             )
         ):
-            resolution, _ = GroupResolution.objects.update_or_create(
+            resolution, created = GroupResolution.objects.update_or_create(
                 group_id=group_id,
                 defaults={
                     "release": release,
@@ -310,7 +310,18 @@ def update_group_resolutions(release, commit_author_by_commit):
                 },
             )
             group = Group.objects.get(id=group_id)
-            should_create_resolution_activity = group.status != GroupStatus.RESOLVED
+            # Every resolution needs a matching activity keyed on its id. Gate on that
+            # invariant, not on the status transition: an already-resolved group whose
+            # resolution gets re-pointed at a new release (e.g. its commit ships in a
+            # later release) still needs a fresh activity for the new release.
+            should_create_resolution_activity = (
+                created
+                or not Activity.objects.filter(
+                    group=group,
+                    type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
+                    ident=resolution.id,
+                ).exists()
+            )
             group.update(status=GroupStatus.RESOLVED, substatus=None)
             remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED, user=actor)
             if should_create_resolution_activity:
@@ -362,7 +373,7 @@ def create_commit_authors(commit_list, release):
                 re.sub(r"[^a-zA-Z0-9\-_\.]*", "", data["author_name"]).lower() + "@localhost"
             )
 
-        author_email = truncatechars(author_email, 75)
+        author_email = truncatechars(author_email, COMMIT_AUTHOR_EMAIL_LENGTH)
         if author_email:
             # Lowercase to match CommitAuthorManager.get_or_create behavior
             author_email = author_email.lower()

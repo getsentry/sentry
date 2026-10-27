@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from enum import Enum, IntEnum
+from enum import IntEnum
 from typing import Any, ClassVar, Self
 
 from django.conf import settings
@@ -11,6 +11,7 @@ from django.utils import timezone
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
+    BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
@@ -46,6 +47,9 @@ class Rule(Model):
 
     project = FlexibleForeignKey("sentry.Project")
     environment_id = BoundedPositiveIntegerField(null=True)
+    # Shadow column for the in-progress widening of `environment_id` to int8; swapped
+    # into `environment_id` once backfilled. Nothing reads or writes it yet.
+    new_environment_id = BoundedBigIntegerField(null=True)
     label = models.CharField(max_length=256)
     # `data` contain all the specifics of the rule - conditions, actions, frequency, etc.
     data = LegacyTextJSONField(default=dict)
@@ -96,18 +100,6 @@ class Rule(Model):
             rules_list = list(cls.objects.filter(project=project_id, status=ObjectStatus.ACTIVE))
             cache.set(cache_key, rules_list, 60)
         return rules_list
-
-    @property
-    def created_by_id(self):
-        try:
-            created_activity = RuleActivity.objects.get(
-                rule=self, type=RuleActivityType.CREATED.value
-            )
-            return created_activity.user_id
-        except RuleActivity.DoesNotExist:
-            pass
-
-        return None
 
     @property
     def owner(self) -> Actor | None:
@@ -161,25 +153,3 @@ class Rule(Model):
                 return action
 
         return None
-
-
-class RuleActivityType(Enum):
-    CREATED = 1
-    DELETED = 2
-    UPDATED = 3
-    ENABLED = 4
-    DISABLED = 5
-
-
-@cell_silo_model
-class RuleActivity(Model):
-    __relocation_scope__ = RelocationScope.Organization
-
-    rule = FlexibleForeignKey("sentry.Rule")
-    user_id = HybridCloudForeignKey("sentry.User", on_delete="SET_NULL", null=True)
-    type = models.IntegerField()
-    date_added = models.DateTimeField(default=timezone.now)
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_ruleactivity"

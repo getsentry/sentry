@@ -5,6 +5,7 @@ import pytest
 from django.db import connections, router, transaction
 
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
 from sentry.relay.projectconfig_cache.redis import RedisProjectConfigCache
@@ -12,6 +13,7 @@ from sentry.relay.projectconfig_debounce_cache.redis import RedisProjectConfigDe
 from sentry.tasks.relay import (
     _schedule_invalidate_project_config,
     build_project_config,
+    compute_projectkey_config,
     invalidate_project_config,
     schedule_build_project_config,
     schedule_invalidate_project_config,
@@ -82,7 +84,6 @@ def redis_cache():
             "sentry.relay.projectconfig_cache.redis.RedisProjectConfigCache",
         ),
         mock.patch("sentry.relay.projectconfig_cache.set_many", cache.set_many),
-        mock.patch("sentry.relay.projectconfig_cache.delete_many", cache.delete_many),
         mock.patch("sentry.relay.projectconfig_cache.get", cache.get),
     ):
         yield cache
@@ -156,7 +157,6 @@ def test_generate(
     redis_cache,
     django_cache,
 ):
-    # redis_cache.delete_many([default_projectkey.public_key])
     assert not redis_cache.get(default_projectkey.public_key)
 
     build_project_config(default_projectkey.public_key)
@@ -247,6 +247,44 @@ def test_project_get_option_does_not_reload(
         )
 
     assert not build_project_config.called
+
+
+@django_db_all
+def test_compute_projectkey_config_sees_options_saved_by_another_process(
+    default_project,
+    default_projectkey,
+    django_cache,
+):
+    organization = default_project.organization
+    OrganizationOption.objects.set_value(organization, "sentry:sensitive_fields", ["org_old"])
+    ProjectOption.objects.set_value(default_project, "sentry:sensitive_fields", ["project_old"])
+
+    # A long-running task worker computes a config and keeps the options it read
+    # in its process-local cache. Nothing ends a request in a worker, so
+    # `request_finished` never clears that cache.
+    config = compute_projectkey_config(default_projectkey)
+    assert config["config"]["datascrubbingSettings"]["sensitiveFields"] == [
+        "org_old",
+        "project_old",
+    ]
+    org_key = OrganizationOption.objects._make_key(organization.id)
+    project_key = ProjectOption.objects._make_key(default_project.id)
+    stale_org = OrganizationOption.objects._option_cache[org_key]
+    stale_project = ProjectOption.objects._option_cache[project_key]
+
+    # Another process (a web request) saves new values. The database and the
+    # shared cache have them; this worker's local cache does not.
+    OrganizationOption.objects.set_value(organization, "sentry:sensitive_fields", ["org_new"])
+    ProjectOption.objects.set_value(default_project, "sentry:sensitive_fields", ["project_new"])
+    OrganizationOption.objects._option_cache[org_key] = stale_org
+    ProjectOption.objects._option_cache[project_key] = stale_project
+
+    config = compute_projectkey_config(default_projectkey)
+
+    assert config["config"]["datascrubbingSettings"]["sensitiveFields"] == [
+        "org_new",
+        "project_new",
+    ]
 
 
 @django_db_all
@@ -456,6 +494,40 @@ class TestInvalidationTask:
             new_cfg = redis_cache.get(cache_key)
             assert new_cfg is not None
             assert new_cfg != cfg
+
+    def test_invalidate_org_writes_each_config_as_computed(
+        self,
+        default_organization,
+        default_project,
+        default_projectkey,
+        factories,
+        redis_cache,
+        task_runner,
+        django_cache,
+    ):
+        other_project = factories.create_project(organization=default_organization)
+        other_projectkey = ProjectKey.objects.get(project=other_project)
+        seed = {"dummy-key": "val"}
+        public_keys = [default_projectkey.public_key, other_projectkey.public_key]
+        redis_cache.set_many({public_key: seed for public_key in public_keys})
+
+        fresh_before_each_compute = []
+
+        def record_then_compute(key):
+            fresh_before_each_compute.append(
+                sum(redis_cache.get(public_key) != seed for public_key in public_keys)
+            )
+            return compute_projectkey_config(key)
+
+        with (
+            mock.patch("sentry.tasks.relay.compute_projectkey_config", record_then_compute),
+            task_runner(),
+        ):
+            schedule_invalidate_project_config(
+                organization_id=default_organization.id, trigger="test"
+            )
+
+        assert fresh_before_each_compute == [0, 1]
 
     @mock.patch(
         "sentry.tasks.relay._schedule_invalidate_project_config",

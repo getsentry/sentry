@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import logging
 import time
 from abc import ABC
+from datetime import datetime, timezone
 from typing import TypedDict
 from urllib.parse import urlencode
 
@@ -10,12 +12,16 @@ from requests import PreparedRequest
 from sentry import options
 from sentry.integrations.client import ApiClient
 from sentry.integrations.models import Integration
+from sentry.integrations.msteams.metrics import translate_msteams_api_error
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient, infer_org_integration
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.silo.base import SiloMode, control_silo_function
+from sentry.utils import metrics
+
+logger = logging.getLogger(__name__)
 
 # five minutes which is industry standard clock skew tolerance
 CLOCK_SKEW = 60 * 5
@@ -90,6 +96,14 @@ class MsTeamsPreInstallClient(MsTeamsClientABC):
 # MsTeamsClient is used with an existing integration object and handles token refreshing
 class MsTeamsClient(MsTeamsClientABC, IntegrationProxyClient):
     integration_name = IntegrationProviderSlug.MSTEAMS.value
+
+    def request(self, *args, **kwargs):
+        try:
+            return super().request(*args, **kwargs)
+        except ApiError as error:
+            if kwargs.get("raw_response"):
+                raise
+            translate_msteams_api_error(error)
 
     def __init__(self, integration: Integration | RpcIntegration):
         self.integration = integration
@@ -171,11 +185,35 @@ class TokenData(TypedDict):
 def get_token_data() -> TokenData:
     client_id = options.get("msteams.client-id")
     client_secret = options.get("msteams.client-secret")
+    _record_client_secret_expiry()
     client = OAuthMsTeamsClient(client_id, client_secret)
     resp = client.exchange_token()
     # calculate the expiration date but offset because of the delay in receiving the response
     expires_at = int(time.time()) + int(resp["expires_in"]) - CLOCK_SKEW
     return {"access_token": resp["access_token"], "expires_at": expires_at}
+
+
+def _record_client_secret_expiry() -> None:
+    """Record the time remaining before the MS Teams client secret expires."""
+    expires_at = options.get("msteams.client-secret-expires-at")
+    if not expires_at:
+        return
+
+    try:
+        expiry = datetime.fromisoformat(expires_at)
+        if expiry.tzinfo is None:
+            expiry = expiry.replace(tzinfo=timezone.utc)
+
+        seconds_until_expiry = (expiry - datetime.now(timezone.utc)).total_seconds()
+        metrics.gauge(
+            "integrations.msteams.client_secret.seconds_until_expiry",
+            seconds_until_expiry,
+            sample_rate=0.01,
+        )
+    except ValueError:
+        logger.exception("MS Teams client secret expiry is not a valid ISO format")
+    except Exception:
+        logger.exception("Failed to record MS Teams client secret expiry")
 
 
 class MsTeamsJwtClient(ApiClient):

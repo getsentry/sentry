@@ -27,7 +27,11 @@ import {getIntegrationChip} from './chips/integrationChip';
 import {ActivityPriorityChip} from './chips/priorityChip';
 import {PullRequestChip, SeerPullRequestChip} from './chips/pullRequestChip';
 import {ActivityRelease} from './chips/releaseChip';
-import type {ActivityFeedItem, CollapsedSeerActivity} from './activityFeedItem';
+import {
+  getActorActivity,
+  type ActivityFeedItem,
+  type CollapsedSeerActivity,
+} from './activityFeedItem';
 import {getArchiveDetails} from './archiveDetails';
 
 interface ActivityItem {
@@ -177,7 +181,7 @@ function getCollapsedSeerIterationReferrer(item: ActivityFeedItem) {
 
 export function getActivityItem(params: GetActivityItemParams): ActivityItem {
   const activityItem = getActivityItemContent(params);
-  const source = getSentryAppSource(params.item.activity);
+  const source = getSentryAppSource(getActorActivity(params.item));
 
   return source ? {...activityItem, source} : activityItem;
 }
@@ -542,6 +546,21 @@ function getActivityItemContent({
               pullRequest: <SeerPullRequestChip pullRequest={pullRequest} />,
             })
           : t('Pull request created'),
+        details: pullRequest
+          ? tct('on [provider]', {
+              provider: getProviderName(pullRequest.provider),
+            })
+          : null,
+      };
+    }
+    case GroupActivityType.SEER_PR_READY_FOR_REVIEW: {
+      const pullRequest = activity.data.pull_requests?.[0];
+      return {
+        title: pullRequest
+          ? tct('Pull request [pullRequest] ready for review', {
+              pullRequest: <SeerPullRequestChip pullRequest={pullRequest} />,
+            })
+          : t('Pull request ready for review'),
         details: pullRequest
           ? tct('on [provider]', {
               provider: getProviderName(pullRequest.provider),

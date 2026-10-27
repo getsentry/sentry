@@ -107,7 +107,6 @@ def merge_groups(
     from sentry.models.grouplink import GroupLink
     from sentry.models.groupmeta import GroupMeta
     from sentry.models.groupredirect import GroupRedirect
-    from sentry.models.grouprulestatus import GroupRuleStatus
     from sentry.models.groupsubscription import GroupSubscription
     from sentry.models.userreport import UserReport
 
@@ -181,7 +180,6 @@ def merge_groups(
             GroupEnvironment,
             GroupHash,
             GroupLink,
-            GroupRuleStatus,
             GroupSubscription,
             EventAttachment,
             UserReport,
@@ -260,7 +258,7 @@ def merge_groups(
                     num_comments=F("num_comments") + group.num_comments,
                 )
             except DataError as e:
-                with sentry_sdk.push_scope() as scope:
+                with sentry_sdk.new_scope() as scope:
                     scope.set_extra("new_group_id", new_group.id)
                     scope.set_extra("old_group_id", group.id)
                     sentry_sdk.capture_exception(e, level="warning")

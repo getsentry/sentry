@@ -1,5 +1,7 @@
 import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconCopyId} from '@sentry/icons/copyId';
+import {IconGlobe} from '@sentry/icons/globe';
 
 import type {BreadcrumbTitleItem} from '@sentry/scraps/breadcrumbList';
 import {Button} from '@sentry/scraps/button';
@@ -10,7 +12,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {ShortId} from 'sentry/components/shortId';
-import {IconCopyId, IconGlobe} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -79,7 +80,6 @@ export function useIssueIdBreadcrumbItem({project, group}: ShortIdBreadcrumbProp
                 aria-label={t('View issue share settings')}
                 icon={<IconGlobe size="xs" variant="muted" />}
                 tooltipProps={{
-                  isHoverable: true,
                   title: tct('This issue has been shared [link:with a public link].', {
                     link: <ExternalLink href={shareUrl} />,
                   }),
@@ -180,7 +180,6 @@ export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
           aria-label={t('View issue share settings')}
           icon={<IconGlobe size="xs" variant="muted" />}
           tooltipProps={{
-            isHoverable: true,
             title: tct('This issue has been shared [link:with a public link].', {
               link: <ExternalLink href={shareUrl} />,
             }),

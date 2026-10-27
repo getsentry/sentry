@@ -16,6 +16,7 @@ class ProjectManagementActionType(StrEnum):
     INBOUND_STATUS_SYNC = "inbound_status_sync"
     LINK_EXTERNAL_ISSUE = "link_external_issue"
     CREATE_EXTERNAL_ISSUE_VIA_ISSUE_DETAIL = "create_external_issue_via_issue_detail"
+    REKEY_EXTERNAL_ISSUE = "rekey_external_issue"
 
     # External Issue Comment Sync
     SYNC_EXTERNAL_ISSUE_COMMENT_CREATE = "sync_external_issue_comment_create"
@@ -33,6 +34,7 @@ class ProjectManagementHaltReason(StrEnum):
     SYNC_INBOUND_ASSIGNEE_NOT_FOUND = "inbound-assignee-not-found"
     SYNC_NON_SYNC_INTEGRATION_PROVIDED = "sync-non-sync-integration-provided"
     SYNC_INBOUND_MISSING_CHANGELOG_STATUS = "missing-changelog-status"
+    REKEY_UNUSABLE_KEY_CHANGE = "rekey-unusable-key-change"
 
 
 class ProjectManagementFailuresReason(StrEnum):

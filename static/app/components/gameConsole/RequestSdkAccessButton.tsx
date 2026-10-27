@@ -1,9 +1,9 @@
-/* eslint-disable unicorn/filename-case */
+import {IconLock} from '@sentry/icons/lock';
+
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 
 import {openPrivateGamingSdkAccessModal} from 'sentry/actionCreators/modal';
 import type {PrivateGamingSdkAccessModalProps} from 'sentry/components/modals/privateGamingSdkAccessModal';
-import {IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useReopenGamingSdkModal} from 'sentry/utils/useReopenGamingSdkModal';
 

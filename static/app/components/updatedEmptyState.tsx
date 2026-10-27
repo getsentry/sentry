@@ -1,11 +1,12 @@
 import {useEffect} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex, Container} from '@sentry/scraps/layout';
+import {Image} from '@sentry/scraps/image';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -42,9 +43,9 @@ export function SetupTitle({project}: {project: Project}) {
     <BodyTitle>
       {tct('Set up the Sentry SDK for [projectBadge]', {
         projectBadge: (
-          <ProjectBadgeWrapper>
+          <Flex as="span" display="inline-flex" maxWidth="100%">
             <ProjectBadge project={project} avatarSize={16} />
-          </ProjectBadgeWrapper>
+          </Flex>
         ),
       })}
     </BodyTitle>
@@ -171,16 +172,42 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
     <AuthTokenGeneratorProvider projectSlug={project?.slug}>
       <TabSelectionScope>
         <div>
-          <HeaderWrapper>
-            <Title>{t('Get Started with Sentry Issues')}</Title>
+          <Container radius="md" padding="3xl">
+            <Text as="div" bold variant="inherit" style={{fontSize: '26px'}}>
+              {t('Get Started with Sentry Issues')}
+            </Text>
             <Container maxWidth="340px">
               {t('Your code sleuth eagerly awaits its first mission.')}
             </Container>
-            <Image src={waitingForEventImg} />
-          </HeaderWrapper>
-          <Divider />
-          <Body>
-            <Setup>
+            <Container
+              position="absolute"
+              top="0px"
+              right="20px"
+              height="120px"
+              overflow="hidden"
+              pointerEvents="none"
+              display={{zero: 'none', xl: 'block'}}
+            >
+              <Image
+                src={waitingForEventImg}
+                alt={t('A detective waits for the first issue to arrive')}
+                height="120px"
+                width="auto"
+                loading="eager"
+              />
+            </Container>
+          </Container>
+          <Container
+            as="hr"
+            height="0px"
+            width="95%"
+            border="none"
+            borderTop="primary"
+            marginTop="0"
+            marginBottom="0"
+          />
+          <Grid columns={{zero: 'minmax(0, 1fr)', xl: 'repeat(2, minmax(0, 1fr))'}}>
+            <Container padding="3xl">
               <SetupTitle project={project} />
               <GuidedSteps
                 initialStep={decodeInteger(location.query.guidedStep)}
@@ -223,134 +250,70 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                         <GuidedSteps.NextButton size="md" />
                         {isLastStep && <WaitingIndicator project={project} />}
                       </GuidedSteps.ButtonWrapper>
-                      {/* This spacer ensures the whole pulse effect is visible, as the parent has overflow: hidden */}
-                      {isLastStep && <PulseSpacer />}
                     </GuidedSteps.Step>
                   );
                 })}
               </GuidedSteps>
-            </Setup>
+              <Container
+                position="absolute"
+                right="50%"
+                top="19%"
+                height="78%"
+                borderRight="primary"
+                display={{zero: 'none', xl: 'block'}}
+              />
+            </Container>
+            <Container padding="0 3xl" display={{zero: 'block', xl: 'none'}}>
+              <Container as="hr" border="none" borderTop="primary" margin="0" />
+            </Container>
             <Container padding="3xl">
               <BodyTitle>{t('Preview a Sentry Issue')}</BodyTitle>
-              <Container marginTop="md">
-                <Arcade
+              <Container marginTop="md" width="720px" maxWidth="100%">
+                <iframe
                   src="https://demo.arcade.software/bQko6ZTRFMyTm6fJaDzs?embed"
                   loading="lazy"
                   allowFullScreen
+                  title={t('Sentry issue preview')}
+                  width="100%"
+                  height={420}
+                  style={{border: 0, colorScheme: 'auto'}}
                 />
               </Container>
             </Container>
-          </Body>
+          </Grid>
         </div>
       </TabSelectionScope>
     </AuthTokenGeneratorProvider>
   );
 }
 
-const PulsingIndicator = styled('div')`
-  ${pulsingIndicatorStyles};
-  flex-shrink: 0;
-`;
-
 function EventWaitingIndicator() {
+  const theme = useTheme();
+
   return (
-    <EventWaitingIndicatorContainer
+    <Flex
       align="center"
       position="relative"
       padding="0 md"
       paddingRight="3xl"
       gap="md"
       flexGrow={1}
+      style={{zIndex: 10}}
     >
-      {t("Waiting for this project's first error")}
-      <PulsingIndicator />
-    </EventWaitingIndicatorContainer>
+      <Text size="md" variant="promotion">
+        {t("Waiting for this project's first error")}
+      </Text>
+      <Container flexShrink={0} css={pulsingIndicatorStyles({theme})} />
+    </Flex>
   );
 }
 
-const EventWaitingIndicatorContainer = styled(Flex)`
-  font-size: ${p => p.theme.font.size.md};
-  color: ${p => p.theme.tokens.content.promotion};
-  z-index: 10;
-`;
-
-const ProjectBadgeWrapper = styled('div')`
-  display: inline-block;
-  vertical-align: text-top;
-  max-width: 100%;
-`;
-
-const Title = styled('div')`
-  font-size: 26px;
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-`;
-
-const HeaderWrapper = styled('div')`
-  border-radius: ${p => p.theme.radius.md};
-  padding: ${p => p.theme.space['3xl']};
-`;
-
-const Setup = styled('div')`
-  padding: ${p => p.theme.space['3xl']};
-
-  &:after {
-    content: '';
-    position: absolute;
-    right: 50%;
-    top: 19%;
-    height: 78%;
-    border-right: 1px ${p => p.theme.tokens.border.primary} solid;
-  }
-`;
-
-export const BodyTitle = styled('div')`
-  font-size: ${p => p.theme.font.size.xl};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  margin-bottom: ${p => p.theme.space.md};
-`;
-
-const Body = styled('div')`
-  display: grid;
-  grid-auto-columns: minmax(0, 1fr);
-  grid-auto-flow: column;
-
-  h4 {
-    margin-bottom: 0;
-  }
-`;
-
-const Image = styled('img')`
-  position: absolute;
-  display: block;
-  top: 0px;
-  right: 20px;
-  pointer-events: none;
-  height: 120px;
-  overflow: hidden;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: none;
-  }
-`;
-
-const Divider = styled('hr')`
-  height: 1px;
-  width: 95%;
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
-  background: ${p => p.theme.tokens.border.primary};
-  border: none;
-  margin-top: 0;
-  margin-bottom: 0;
-`;
-
-const Arcade = styled('iframe')`
-  width: 720px;
-  max-width: 100%;
-  height: 420px;
-  border: 0;
-  color-scheme: auto;
-`;
-
-const PulseSpacer = styled('div')`
-  height: ${p => p.theme.space['3xl']};
-`;
+export function BodyTitle({children}: {children: React.ReactNode}) {
+  return (
+    <Container marginBottom="md">
+      <Text as="div" size="xl" bold variant="inherit">
+        {children}
+      </Text>
+    </Container>
+  );
+}

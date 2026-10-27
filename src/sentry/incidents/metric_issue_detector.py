@@ -91,6 +91,9 @@ def schedule_update_project_config(detector: Detector) -> None:
         )
 
 
+TRANSACTION_UPDATES_DISABLED = "Updates to transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead."
+
+
 class MetricIssueComparisonConditionValidator(BaseDataConditionValidator):
     supported_conditions = frozenset(
         (
@@ -151,9 +154,23 @@ class MetricIssueConditionGroupValidator(BaseDataConditionGroupValidator):
         MetricIssueComparisonConditionValidator(data=value, many=True).is_valid(
             raise_exception=True
         )
-        if not any(
-            condition["condition_result"] == DetectorPriorityLevel.OK for condition in value
-        ) and not any(condition["type"] == Condition.ANOMALY_DETECTION for condition in value):
+        condition_types = {condition["type"] for condition in value}
+        has_anomaly_detection = Condition.ANOMALY_DETECTION in condition_types
+        if has_anomaly_detection and condition_types != {Condition.ANOMALY_DETECTION}:
+            # Dynamic (anomaly detection) detectors are evaluated against an
+            # AnomalyDetectionValues dict rather than a scalar. Mixing in a base
+            # comparison condition (gt/lt/gte/lte) creates a malformed condition
+            # group: the shared dict payload gets handed to an operator that
+            # expects a number, which TypeErrors at evaluation time.
+            raise serializers.ValidationError(
+                "Cannot combine anomaly detection conditions with other condition types."
+            )
+        if (
+            not any(
+                condition["condition_result"] == DetectorPriorityLevel.OK for condition in value
+            )
+            and not has_anomaly_detection
+        ):
             raise serializers.ValidationError(
                 "Resolution condition required for metric issue detector."
             )
@@ -194,9 +211,7 @@ def format_extrapolation_mode(
 
 
 class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
-    data_sources = serializers.ListField(
-        child=SnubaQueryValidator(timeWindowSeconds=True), required=False
-    )
+    data_sources = serializers.ListField(child=SnubaQueryValidator(), required=False)
     condition_group = MetricIssueConditionGroupValidator(required=True)
 
     def validate_eap_rule(self, attrs: dict[str, Any]) -> None:
@@ -266,8 +281,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         comparison_delta: int | float | None,
     ) -> timedelta:
         """
-        Compute the appropriate SnubaQuery resolution for a given time window
-        (in seconds), mirroring the logic in create_alert_rule / update_alert_rule.
+        Compute the appropriate SnubaQuery resolution for a given time window in seconds.
         """
         organization = self.context["organization"]
 
@@ -353,9 +367,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         event_types = snuba_query.event_types
 
         if self.is_editing_transaction_dataset(snuba_query, data_source):
-            raise serializers.ValidationError(
-                "Updates to transaction-based alerts is disabled, as we migrate to the span dataset. Create span-based alerts (dataset: events_analytics_platform) with the is_transaction:true filter instead."
-            )
+            raise serializers.ValidationError(TRANSACTION_UPDATES_DISABLED)
 
         new_extrapolation_mode = data_source.get(
             "extrapolation_mode", snuba_query.extrapolation_mode

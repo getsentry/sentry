@@ -1,8 +1,11 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconBot} from '@sentry/icons/bot';
+import {IconSeer} from '@sentry/icons/seer';
 import {useQuery} from '@tanstack/react-query';
 
 import {Avatar, UserAvatar} from '@sentry/scraps/avatar';
+import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -11,7 +14,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {Placeholder} from 'sentry/components/placeholder';
 import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconBot, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
   GroupActivityType,
@@ -71,9 +73,42 @@ export function getLinkedPullRequestActivityIds(group: Group) {
 
 interface LinkedPullRequestsProps {
   group: Group;
+  collapseBeforeLatestRegression?: boolean;
   showChecksAndReview?: boolean;
   showEmptyState?: boolean;
   variant?: 'compact' | 'default';
+}
+
+export function partitionLinkedPullRequests(
+  pullRequests: LinkedPullRequest[],
+  latestRegressionAt: string | null | undefined
+) {
+  const latestRegressionTimestamp = latestRegressionAt
+    ? Date.parse(latestRegressionAt)
+    : Number.NaN;
+
+  if (Number.isNaN(latestRegressionTimestamp)) {
+    return {currentPullRequests: pullRequests, historicalPullRequests: []};
+  }
+
+  const currentPullRequests: LinkedPullRequest[] = [];
+  const historicalPullRequests: LinkedPullRequest[] = [];
+
+  for (const pullRequest of pullRequests) {
+    const dateLinkedTimestamp = Date.parse(pullRequest.dateLinked);
+    const isTerminal = pullRequest.status === 'closed' || pullRequest.status === 'merged';
+    if (
+      isTerminal &&
+      !Number.isNaN(dateLinkedTimestamp) &&
+      dateLinkedTimestamp < latestRegressionTimestamp
+    ) {
+      historicalPullRequests.push(pullRequest);
+    } else {
+      currentPullRequests.push(pullRequest);
+    }
+  }
+
+  return {currentPullRequests, historicalPullRequests};
 }
 
 function LinkedPullRequestRow({
@@ -146,7 +181,14 @@ function LinkedPullRequestRow({
                   {title}
                 </Text>
               )}
-              <PullRequestTitle>
+              <Flex
+                as="span"
+                align="center"
+                gap="xs"
+                width="100%"
+                minWidth="0"
+                overflow="hidden"
+              >
                 {variant === 'default' ? (
                   <Fragment>
                     <Text as="span" ellipsis variant="muted">
@@ -164,7 +206,7 @@ function LinkedPullRequestRow({
                     </Text>
                   </Fragment>
                 )}
-              </PullRequestTitle>
+              </Flex>
             </Stack>
             <Flex align="center" gap="md" wrap="wrap">
               <PullRequestStatusBadge status={pullRequest.status} />
@@ -347,6 +389,7 @@ export function linkedPullRequestsApiOptions({
 }
 
 export function LinkedPullRequests({
+  collapseBeforeLatestRegression = false,
   group,
   showChecksAndReview = true,
   showEmptyState,
@@ -378,17 +421,63 @@ export function LinkedPullRequests({
     return null;
   }
 
+  const {currentPullRequests, historicalPullRequests} = collapseBeforeLatestRegression
+    ? partitionLinkedPullRequests(data.pullRequests, data.latestRegressionAt)
+    : {currentPullRequests: data.pullRequests, historicalPullRequests: []};
+  const shouldCollapseHistoricalPullRequests = currentPullRequests.some(
+    pullRequest => pullRequest.status === 'open' || pullRequest.status === 'draft'
+  );
+  const visiblePullRequests = shouldCollapseHistoricalPullRequests
+    ? currentPullRequests
+    : data.pullRequests;
+  const collapsedPullRequests = shouldCollapseHistoricalPullRequests
+    ? historicalPullRequests
+    : [];
+
+  return (
+    <Stack gap="sm" width="100%">
+      {visiblePullRequests.length > 0 && (
+        <PullRequestList
+          ariaLabel={t('Linked pull requests')}
+          group={group}
+          pullRequests={visiblePullRequests}
+          variant={variant}
+        />
+      )}
+      {collapsedPullRequests.length > 0 && (
+        <HistoricalPullRequests
+          key={group.id}
+          group={group}
+          pullRequests={collapsedPullRequests}
+          variant={variant}
+        />
+      )}
+    </Stack>
+  );
+}
+
+export function PullRequestList({
+  ariaLabel,
+  group,
+  pullRequests,
+  variant,
+}: {
+  ariaLabel: string;
+  group: Group;
+  pullRequests: LinkedPullRequest[];
+  variant: 'compact' | 'default';
+}) {
   return (
     <Stack
       as="ul"
-      aria-label={t('Linked pull requests')}
+      aria-label={ariaLabel}
       border="primary"
       radius="md"
       overflow="hidden"
       margin="0"
       padding="0"
     >
-      {data.pullRequests.map((pullRequest, index) => (
+      {pullRequests.map((pullRequest, index) => (
         <Container
           as="li"
           key={`${pullRequest.repository.id}:${pullRequest.id}`}
@@ -406,6 +495,32 @@ export function LinkedPullRequests({
   );
 }
 
+function HistoricalPullRequests({
+  group,
+  pullRequests,
+  variant,
+}: {
+  group: Group;
+  pullRequests: LinkedPullRequest[];
+  variant: 'compact' | 'default';
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <Disclosure size="sm" expanded={expanded} onExpandedChange={setExpanded}>
+      <Disclosure.Title>{t('PRs before last regression')}</Disclosure.Title>
+      <Disclosure.Content>
+        <PullRequestList
+          ariaLabel={t('Other linked pull requests')}
+          group={group}
+          pullRequests={pullRequests}
+          variant={variant}
+        />
+      </Disclosure.Content>
+    </Disclosure>
+  );
+}
+
 const PullRequestRow = styled(ExternalLink)`
   display: block;
   color: ${p => p.theme.tokens.content.primary};
@@ -418,13 +533,4 @@ const PullRequestRow = styled(ExternalLink)`
 
 const EmptyLinksText = styled(Text)`
   margin: 0;
-`;
-
-const PullRequestTitle = styled('span')`
-  align-items: center;
-  display: flex;
-  gap: ${p => p.theme.space.xs};
-  min-width: 0;
-  overflow: hidden;
-  width: 100%;
 `;

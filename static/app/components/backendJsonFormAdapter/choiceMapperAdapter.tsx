@@ -1,4 +1,6 @@
 import {useState, type ReactNode} from 'react';
+import {IconAdd} from '@sentry/icons/add';
+import {IconDelete} from '@sentry/icons/delete';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import {useQueries, useQuery} from '@tanstack/react-query';
 import type {DistributedPick} from 'type-fest';
@@ -15,7 +17,6 @@ import {Select} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
 import {Client} from 'sentry/api';
-import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useApi} from 'sentry/utils/useApi';
 
@@ -37,7 +38,7 @@ interface ChoiceMapperTableProps {
   labels: Record<string, ReactNode>;
   onSave: (value: Record<string, Record<string, unknown>>) => void;
   onUpdate: (value: Record<string, Record<string, unknown>>) => void;
-  value: Record<string, Record<string, unknown>>;
+  value: Record<string, Record<string, string>>;
   disabled?: boolean;
 }
 
@@ -382,7 +383,7 @@ export function ChoiceMapperTable({
  * Transform choice tuples from the backend config into Select options.
  */
 function transformMappedChoices(
-  selector?: {choices?: Array<[string, string]>; placeholder?: string} | unknown
+  selector?: {choices?: Array<[string, string]>} | unknown
 ): Array<{label: string; value: string}> {
   if (!selector || typeof selector !== 'object') {
     return [];

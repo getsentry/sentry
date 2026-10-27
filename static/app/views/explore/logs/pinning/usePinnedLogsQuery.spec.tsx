@@ -100,7 +100,7 @@ describe('usePinnedLogsQuery', () => {
       method: 'GET',
       body: {
         data: [missingLog],
-        meta: {fields: {id: 'string'}, units: {}},
+        meta: {fields: {id: 'string'}, units: {}, routingHint: 'pinned-hint'},
       },
     });
 
@@ -129,6 +129,7 @@ describe('usePinnedLogsQuery', () => {
       })
     );
     expect(result.current.fetchedRows[0]?.[OurLogKnownFieldKey.ID]).toBe('log-missing');
+    expect(result.current.routingHintsById.get('log-missing')).toBe('pinned-hint');
   });
 
   it('windows the request to a narrow range derived from the pin id when the id is a valid v7 timestamp', async () => {
@@ -370,7 +371,10 @@ describe('usePinnedLogsQuery', () => {
     const eventsRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
-      body: {data: [pinnedLog], meta: {fields: {id: 'string'}, units: {}}},
+      body: {
+        data: [pinnedLog],
+        meta: {fields: {id: 'string'}, units: {}, routingHint: 'original-hint'},
+      },
     });
 
     const logsPinning = makeLogsPinning(['log-cols']);
@@ -392,14 +396,32 @@ describe('usePinnedLogsQuery', () => {
     });
     expect(eventsRequest).toHaveBeenCalledTimes(1);
 
+    const updatedRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {
+        data: [{...pinnedLog}],
+        meta: {fields: {id: 'string'}, units: {}, routingHint: 'updated-hint'},
+      },
+    });
     act(() => {
       router.navigate('/?logsFields=message&logsFields=my.custom.attr');
     });
 
     await waitFor(() => {
-      expect(eventsRequest).toHaveBeenCalledTimes(2);
+      expect(updatedRequest).toHaveBeenCalledTimes(1);
     });
-    expect(fieldsForCall(eventsRequest.mock.calls[1])).toContain('my.custom.attr');
+    expect(fieldsForCall(updatedRequest.mock.calls[0])).toContain('my.custom.attr');
+    await waitFor(() =>
+      expect(result.current.routingHintsById.get('log-cols')).toBe('updated-hint')
+    );
+
+    act(() => {
+      router.navigate('/?logsFields=message');
+    });
+    await waitFor(() =>
+      expect(result.current.routingHintsById.get('log-cols')).toBe('original-hint')
+    );
+    expect(updatedRequest).toHaveBeenCalledTimes(1);
   });
 
   it('does not fetch when pinned ids are already in allRows', () => {

@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
+from types import MappingProxyType
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -33,10 +34,15 @@ if TYPE_CHECKING:
     from sentry.snuba.dataset import Dataset
     from sentry.snuba.models import ExtrapolationMode, SnubaQuery, SnubaQueryEventType
     from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
-    from sentry.workflow_engine.handlers.detector import DetectorHandler
+    from sentry.workflow_engine.handlers.detector import BaseDetectorHandler
     from sentry.workflow_engine.models import Action, Detector
     from sentry.workflow_engine.models.data_condition import Condition
     from sentry.workflow_engine.models.data_source import DataSource
+    from sentry.workflow_engine.preview import (
+        ActionFilterPreviewBehavior,
+        UnsupportedPreviewBehavior,
+        WorkflowTriggerPreviewBehavior,
+    )
 
 T = TypeVar("T")
 
@@ -93,6 +99,7 @@ type DetectorResult = IssueOccurrence | StatusChangeMessage | None
 
 class _WorkflowEventLocalCache(TypedDict, total=False):
     group_assignees: Sequence[GroupAssignee]
+    activity_environment: Environment | None
 
 
 @dataclass(frozen=True)
@@ -146,6 +153,7 @@ class ConfigTransformer(ABC):
 class ActionHandler:
     config_schema: ClassVar[dict[str, Any]]
     data_schema: ClassVar[dict[str, Any]]
+    required_features: ClassVar[tuple[FeatureGate, ...]] = ()
 
     class Group(StrEnum):
         NOTIFICATION = "notification"
@@ -153,6 +161,26 @@ class ActionHandler:
         OTHER = "other"
 
     group: ClassVar[Group]
+
+    @classmethod
+    def get_dedup_key(cls, action: Action) -> str:
+        key_parts = [action.type]
+        if action.integration_id:
+            key_parts.append(str(action.integration_id))
+
+        if action.config:
+            config = action.config.copy()
+            config.pop("target_display", None)
+            key_parts.append(str(config))
+
+        if action.data:
+            data = action.data.copy()
+            if "dynamic_form_fields" in data:
+                data = data["dynamic_form_fields"]
+
+            key_parts.append(str(data))
+
+        return ":".join(key_parts)
 
     @classmethod
     def get_config_transformer(cls) -> ConfigTransformer | None:
@@ -235,7 +263,7 @@ class DataConditionHandler(Generic[T]):
 
     group: ClassVar[Group]
     subgroup: ClassVar[Subgroup]
-    comparison_json_schema: ClassVar[dict[str, Any]] = {}
+    comparison_json_schema: ClassVar[dict[str, Any]]
     condition_result_schema: ClassVar[dict[str, Any]] = {}
     label_template = ""
 
@@ -264,6 +292,16 @@ class DataConditionHandler(Generic[T]):
         return comparison
 
 
+class WorkflowTriggerDataConditionHandler(DataConditionHandler[WorkflowEventData]):
+    group = DataConditionHandler.Group.WORKFLOW_TRIGGER
+    preview_behavior: ClassVar[WorkflowTriggerPreviewBehavior | UnsupportedPreviewBehavior]
+
+
+class ActionFilterDataConditionHandler(DataConditionHandler[T]):
+    group = DataConditionHandler.Group.ACTION_FILTER
+    preview_behavior: ClassVar[ActionFilterPreviewBehavior | UnsupportedPreviewBehavior]
+
+
 class DataConditionType(TypedDict):
     id: int | None
     comparison: int
@@ -285,12 +323,32 @@ class SnubaQueryDataSourceType(TypedDict, total=False):
     event_types: list[SnubaQueryEventType.EventType]
 
 
+class DetectorAPIOperation(StrEnum):
+    LIST = "list"
+    GET = "GET"
+    POST = "POST"
+    PUT = "PUT"
+    DELETE = "DELETE"
+
+
 @dataclass(frozen=True)
+class FeatureGate:
+    name: str
+
+
+APIGate: TypeAlias = bool | FeatureGate
+
+
 class DetectorSettings:
-    handler: type[DetectorHandler[Any]] | None = None
-    validator: type[BaseDetectorTypeValidator] | None = None
-    config_schema: dict[str, Any] = field(default_factory=dict)
-    filter: Q | None = None
+    DEFAULT_API_AVAILABILITY: ClassVar[Mapping[DetectorAPIOperation, APIGate]] = MappingProxyType(
+        {operation: True for operation in DetectorAPIOperation}
+    )
+
+    api_availability: ClassVar[Mapping[DetectorAPIOperation, APIGate]] = DEFAULT_API_AVAILABILITY
+    handler: ClassVar[type[BaseDetectorHandler[Any, Any]] | None] = None
+    validator: ClassVar[type[BaseDetectorTypeValidator] | None] = None
+    config_schema: ClassVar[dict[str, Any]] = {}
+    filter: ClassVar[Q | None] = None
 
 
 WorkflowActivityHandler: TypeAlias = Callable[["Group", "Activity", DetectorId | None], None]

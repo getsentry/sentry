@@ -1,0 +1,36 @@
+{
+  "webhookEvent": "jira:issue_updated",
+  "issue_event_type_name": "issue_moved",
+  "changelog": {
+    "items": [
+      {
+        "field": "project",
+        "fieldtype": "jira",
+        "from": "10000",
+        "fromString": "APP",
+        "to": "10001",
+        "toString": "PLATFORM"
+      },
+      {
+        "field": "Key",
+        "fieldtype": "jira",
+        "from": null,
+        "fromString": "APP-123",
+        "to": null,
+        "toString": "PLATFORM-45"
+      }
+    ],
+    "id": "10197"
+  },
+  "issue": {
+    "id": "101",
+    "fields": {
+      "project": {
+        "id": "10001",
+        "key": "PLATFORM"
+      },
+      "updated": "2023-01-01T00:00:00.000+0000"
+    },
+    "key": "PLATFORM-45"
+  }
+}

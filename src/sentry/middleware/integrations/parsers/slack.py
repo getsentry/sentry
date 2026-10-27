@@ -146,7 +146,7 @@ class SlackRequestParser(BaseRequestParser):
     def handle_dialog(self, request: HttpRequest, action: str, title: str) -> None:
         payload, action_ts = self.parse_slack_payload(request)
 
-        integration = self.get_integration_from_request()
+        integration = self.integration_for_request()
         if not integration:
             raise ValueError("integration not found")
 
@@ -179,7 +179,7 @@ class SlackRequestParser(BaseRequestParser):
             # Add more actions here, ie for buttons in modal
         }
 
-        integration = self.get_integration_from_request()
+        integration = self.integration_for_request()
 
         # if we are able to  send a response to Slack from control itself to beat the 3 second timeout, we should do so
         try:
@@ -502,6 +502,14 @@ class SlackRequestParser(BaseRequestParser):
             self.slack_request, SlackActionRequest
         ):
             self.response_url = self.slack_request.response_url
+            # Resolve/archive modal submissions omit the top-level response_url. When opening
+            # the modal, we retain the original message's URL in callback_data. Recover it so
+            # the routing below queues cell processing and returns a response to Slack immediately,
+            # rather than waiting for the resolve/archive process to complete.
+            if not self.response_url and self.slack_request.type == "view_submission":
+                callback_data = self.slack_request.callback_data
+                if callback_data.get("issue"):
+                    self.response_url = callback_data.get("orig_response_url")
             self.action_option, self.action_id = SlackActionEndpoint.get_action_option(
                 slack_request=self.slack_request
             )

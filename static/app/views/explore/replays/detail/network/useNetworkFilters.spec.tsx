@@ -396,6 +396,29 @@ describe('getResourceTypes', () => {
 });
 
 describe('getStatusTypes', () => {
+  it('should not throw when a ResourceFrame has no data property', () => {
+    // Regression test: ResourceFrame.data can be absent from the SDK payload,
+    // causing getFrameStatus to throw "Cannot read properties of undefined".
+    const frameWithNoData = {
+      ...ReplayResourceFrameFixture({
+        op: 'resource.img',
+        description: 'http://localhost:3000/img.png',
+        startTimestamp: new Date(1663131080.64),
+        endTimestamp: new Date(1663131080.65),
+      }),
+      data: undefined,
+    } as any;
+
+    const [hydratedFrame] = hydrateSpans(ReplayRecordFixture(), [frameWithNoData]);
+
+    const {result} = renderHook(useNetworkFilters, {
+      initialProps: {networkFrames: [hydratedFrame!]},
+    });
+
+    // Should not throw and should treat the frame as having unknown status
+    expect(() => result.current.getStatusTypes()).not.toThrow();
+  });
+
   it('should return a sorted list of BreadcrumbType', () => {
     const networkFrames = [
       SPAN_0_NAVIGATE!,

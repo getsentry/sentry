@@ -5,7 +5,7 @@ from typing import Any, override
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.models.notificationaction import ActionTarget
-from sentry.notifications.notification_action.utils import execute_via_issue_alert_handler
+from sentry.notifications.notification_action.utils import execute_via_group_type_registry
 from sentry.workflow_engine.transformers import TargetTypeConfigTransformer
 from sentry.workflow_engine.types import ActionHandler, ActionInvocation, ConfigTransformer
 
@@ -73,4 +73,4 @@ class TicketingActionHandler(IntegrationActionHandler, ABC):
     @staticmethod
     @override
     def execute(invocation: ActionInvocation) -> None:
-        execute_via_issue_alert_handler(invocation)
+        execute_via_group_type_registry(invocation)

@@ -13,9 +13,8 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import type {Confidence, Organization} from 'sentry/types/organization';
 import type {DetailedProject, Project} from 'sentry/types/project';
-import {escapeDoubleQuotes} from 'sentry/utils';
 import {defined} from 'sentry/utils/defined';
-import {encodeSort} from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {
   isEquation,
@@ -23,7 +22,8 @@ import {
   prettifyParsedFunction,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
-import {decodeSorts} from 'sentry/utils/queryString';
+import {FieldValueType} from 'sentry/utils/fields';
+import {decodeSorts, encodeSort} from 'sentry/utils/queryString';
 import {determineTimeSeriesConfidence} from 'sentry/utils/timeSeries/determineSeriesConfidence';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -36,21 +36,26 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {EXPLORE_AGENTS_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import type {
+  SavedQuery,
   RawGroupBy,
   RawVisualize,
-  SavedQuery,
+  CombinedSavedQuery,
+  DiscoverSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {
   getSavedQueryTraceItemDataset,
+  isExploreSavedQuery,
   isRawVisualize,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import type {
   TraceItemAttributeMeta,
   TraceItemDetailsMeta,
+  TraceItemResponseAttribute,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {getLogsUrlFromSavedQueryUrl} from 'sentry/views/explore/logs/utils';
 import {getMetricsUrlFromSavedQueryUrl} from 'sentry/views/explore/metrics/utils';
 import {
+  encodeCompareCaseInsensitive,
   getFieldsForConstructedQuery,
   normalizeCompareQueryParts,
   type ReadableExploreQueryParts,
@@ -60,10 +65,8 @@ import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {getTargetWithReadableQueryParams} from 'sentry/views/explore/spans/spansQueryParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {
-  parseConditionalAggregate,
-  withReadableConditionalFilter,
-} from 'sentry/views/explore/utils/conditionalAggregate';
+import {withReadableConditionalFilter} from 'sentry/views/explore/utils/conditionalAggregate';
+import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 import {isChartType} from 'sentry/views/insights/common/components/chart';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
@@ -87,6 +90,13 @@ export interface GetExploreUrlArgs {
   table?: 'trace' | 'attribute_breakdowns';
   title?: string;
   visualize?: BaseVisualize[];
+}
+
+function encodeCaseInsensitive(caseInsensitive: CaseInsensitive | undefined) {
+  if (!defined(caseInsensitive)) {
+    return null;
+  }
+  return caseInsensitive ? '1' : '0';
 }
 
 export function getExploreUrl({
@@ -132,7 +142,7 @@ export function getExploreUrl({
     table,
     title,
     referrer,
-    caseInsensitive: caseInsensitive ? '1' : undefined,
+    caseInsensitive: encodeCaseInsensitive(caseInsensitive),
     chartSelection: chartSelection ? JSON.stringify(chartSelection) : undefined,
     crossEvents: crossEvents?.length ? JSON.stringify(crossEvents) : undefined,
   };
@@ -173,7 +183,7 @@ function getExploreUrlFromSavedQueryUrl({
           groupBys: groupBys ?? [],
           query: q.query ?? '',
           sortBys: decodeSorts(q.orderby),
-          caseInsensitive: q.caseInsensitive ? '1' : null,
+          caseInsensitive: q.caseInsensitive ? '1' : '0',
         });
         const yAxes = normalized.yAxes ?? [];
 
@@ -191,7 +201,7 @@ function getExploreUrlFromSavedQueryUrl({
       selection: {
         datetime: {
           end: savedQuery.end ?? null,
-          period: savedQuery.range ?? null,
+          period: savedQuery.statsPeriod ?? null,
           start: savedQuery.start ?? null,
           utc: null,
         },
@@ -211,13 +221,14 @@ function getExploreUrlFromSavedQueryUrl({
         : savedQuery.query[0].groupby,
     sort: savedQuery.query[0].orderby,
     query: savedQuery.query[0].query,
+    caseInsensitive: savedQuery.query[0].caseInsensitive ?? false,
     title: savedQuery.name,
     mode: savedQuery.query[0].mode,
     field: savedQuery.query[0].fields,
     selection: {
       datetime: {
         end: savedQuery.end ?? null,
-        period: savedQuery.range ?? null,
+        period: savedQuery.statsPeriod ?? null,
         start: savedQuery.start ?? null,
         utc: null,
       },
@@ -263,7 +274,7 @@ export function getExploreMultiQueryUrl({
           query,
           sortBys: sortBys[0] ? encodeSort(sortBys[0]) : undefined, // Explore only handles a single sort by
           yAxes,
-          caseInsensitive: caseInsensitive ? '1' : undefined,
+          caseInsensitive: encodeCompareCaseInsensitive(caseInsensitive),
         })
     ),
     title,
@@ -306,118 +317,7 @@ export function combineConfidenceForSeries(series: TimeSeries[]): Confidence {
   return 'high';
 }
 
-export function generateTargetQuery({
-  fields,
-  groupBys,
-  location,
-  projects,
-  search,
-  row,
-  sorts,
-  yAxes,
-}: {
-  fields: readonly string[];
-  groupBys: readonly string[];
-  location: Location;
-  // needed to generate targets when `project` is in the group by
-  projects: Project[];
-  row: Record<string, any>;
-  search: MutableSearch;
-  sorts: readonly Sort[];
-  yAxes: string[];
-}) {
-  search = search.copy();
-
-  // first update the resulting query to filter for the target group
-  for (const groupBy of groupBys) {
-    if (!groupBy) {
-      continue;
-    }
-    const value = row[groupBy];
-    // some fields require special handling so make sure to handle it here
-    if (groupBy === 'project' && typeof value === 'string') {
-      const project = projects.find(p => p.slug === value);
-      if (defined(project)) {
-        location.query.project = project.id;
-      }
-    } else if (groupBy === 'project.id' && typeof value === 'number') {
-      location.query.project = String(value);
-    } else if (groupBy === 'environment' && typeof value === 'string') {
-      location.query.environment = value;
-    } else if (typeof value === 'string') {
-      // TODO(nsdeschenes): Remove this once we have a proper way to handle quoted values
-      // that have square brackets included in the value
-      if (value.startsWith('[') && value.endsWith(']')) {
-        search.setFilterValues(groupBy, [`"${escapeDoubleQuotes(value)}"`]);
-      } else {
-        search.setFilterValues(groupBy, [value]);
-      }
-    } else if (typeof value === 'number') {
-      search.setFilterValues(groupBy, [String(value)]);
-    } else if (!defined(value)) {
-      search.addFilterValue('!has', groupBy);
-    }
-  }
-
-  const newFields = [...fields];
-  const seenFields = new Set(newFields);
-
-  // add all the arguments of the visualizations as columns
-  for (const yAxis of yAxes) {
-    // Parse conditionally so an `_if` filter query is not mistaken for an attribute and
-    // added as a samples column.
-    const parsedFunction = parseConditionalAggregate(yAxis);
-    if (!parsedFunction?.arguments[0]) {
-      continue;
-    }
-    const field = parsedFunction.arguments[0];
-    if (seenFields.has(field)) {
-      continue;
-    }
-    newFields.push(field);
-    seenFields.add(field);
-  }
-
-  // fall back, force timestamp to be a column so we
-  // always have at least 1 column
-  if (newFields.length === 0) {
-    newFields.push('timestamp');
-    seenFields.add('timestamp');
-  }
-
-  // fall back, sort the last column present
-  let sortBy: Sort = {
-    field: newFields[newFields.length - 1]!,
-    kind: 'desc' as const,
-  };
-
-  // find the first valid sort and sort on that
-  for (const sort of sorts) {
-    const parsedFunction = parseConditionalAggregate(sort.field);
-    if (!parsedFunction?.arguments[0]) {
-      continue;
-    }
-    const field = parsedFunction.arguments[0];
-
-    // on the odd chance that this sorted column was not added
-    // already, make sure to add it
-    if (!seenFields.has(field)) {
-      newFields.push(field);
-    }
-
-    sortBy = {
-      field,
-      kind: sort.kind,
-    };
-    break;
-  }
-
-  return {
-    fields: newFields,
-    search,
-    sortBys: [sortBy],
-  };
-}
+import {generateTargetQuery} from 'sentry/views/explore/utils/generateTargetQuery';
 
 export function viewSamplesTarget({
   location,
@@ -509,7 +409,8 @@ export function confirmDeleteSavedQuery({
   savedQuery,
 }: {
   handleDelete: () => void;
-  savedQuery: SavedQuery;
+  // Only the name is shown, so this works for either kind of saved query.
+  savedQuery: Pick<CombinedSavedQuery, 'name'>;
 }) {
   openConfirmModal({
     message: t('Are you sure you want to delete the query "%s"?', savedQuery.name),
@@ -708,8 +609,12 @@ export function getSavedQueryTraceItemUrl({
   organization,
 }: {
   organization: Organization;
-  savedQuery: SavedQuery;
+  savedQuery: CombinedSavedQuery;
 }) {
+  if (!isExploreSavedQuery(savedQuery)) {
+    return getDiscoverSavedQueryUrl({savedQuery, organization});
+  }
+
   if (savedQuery.dataset === 'ai_conversations') {
     return getConversationsUrlFromSavedQueryUrl({savedQuery, organization});
   }
@@ -739,7 +644,8 @@ function getConversationsUrlFromSavedQueryUrl({
     environment: savedQuery.environment,
     start: normalizeDateTimeString(savedQuery.start),
     end: normalizeDateTimeString(savedQuery.end),
-    statsPeriod: savedQuery.range,
+    statsPeriod: savedQuery.statsPeriod,
+    errorsOnly: savedQuery.errorsOnly ? true : undefined,
     id: savedQuery.id,
     title: savedQuery.name,
   };
@@ -768,7 +674,7 @@ function getReplayUrlFromSavedQueryUrl({
     environment: savedQuery.environment,
     start: normalizeDateTimeString(savedQuery.start),
     end: normalizeDateTimeString(savedQuery.end),
-    statsPeriod: savedQuery.range,
+    statsPeriod: savedQuery.statsPeriod,
     id: savedQuery.id,
     title: savedQuery.name,
   };
@@ -796,6 +702,21 @@ const TRACE_ITEM_TO_URL_FUNCTION: Record<
   [TraceItemDataset.REPLAYS]: getReplayUrlFromSavedQueryUrl,
   [TraceItemDataset.PROCESSING_ERRORS]: undefined,
   [TraceItemDataset.ERRORS]: undefined,
+};
+
+/**
+ * The value type an attribute was stored with, for when no field definition
+ * describes it more precisely.
+ */
+export const ATTRIBUTE_VALUE_TYPES: Record<
+  TraceItemResponseAttribute['type'],
+  FieldValueType
+> = {
+  bool: FieldValueType.BOOLEAN,
+  float: FieldValueType.NUMBER,
+  int: FieldValueType.INTEGER,
+  str: FieldValueType.STRING,
+  array: FieldValueType.ARRAY,
 };
 
 /**
@@ -871,11 +792,17 @@ interface RemarkObject {
   type: string;
 }
 
-const SAMPLING_SENSITIVE_AGGREGATES = new Set([
-  'count_unique',
-  'failure_count',
-  'failure_rate',
-]);
+/**
+ * Whether a PII rule redacted the attribute's value.
+ */
+export function hasScrubbedValue(
+  meta: TraceItemDetailsMeta | undefined,
+  attribute: string
+): boolean {
+  return meta === undefined ? false : new TraceItemMetaInfo(meta).hasRemarks(attribute);
+}
+
+const SAMPLING_SENSITIVE_AGGREGATES = new Set(['count_unique', 'max', 'min']);
 const LOW_SAMPLE_RATE_THRESHOLD = 0.1;
 
 export type SamplingWarningReason = 'partialData' | 'lowSampleRate';
@@ -896,6 +823,24 @@ export function getSamplingWarningReason(
   }
   if (shouldWarnSamplingSensitive(yAxis, series)) {
     return 'lowSampleRate';
+  }
+  return null;
+}
+
+export function getFirstSamplingWarning(
+  yAxes: string[],
+  seriesByYAxis: Record<string, TimeSeries[]>,
+  dataScanned: 'full' | 'partial' | undefined
+): {reason: SamplingWarningReason; yAxis: string} | null {
+  for (const yAxis of yAxes) {
+    const reason = getSamplingWarningReason(
+      yAxis,
+      seriesByYAxis[yAxis] ?? [],
+      dataScanned
+    );
+    if (reason) {
+      return {reason, yAxis};
+    }
   }
   return null;
 }
@@ -934,4 +879,26 @@ function computeAvgSampleRate(series: TimeSeries[]): number | undefined {
   }
 
   return count > 0 ? total / count : undefined;
+}
+
+function getDiscoverSavedQueryUrl({
+  savedQuery,
+  organization,
+}: {
+  organization: Organization;
+  savedQuery: DiscoverSavedQuery;
+}) {
+  const {pathname, query} =
+    EventView.fromSavedQuery(savedQuery).getResultsViewShortUrlTarget(organization);
+  const search = qs.stringify(query);
+  return search ? `${pathname}?${search}` : pathname;
+}
+
+export function getYAxisDiscoverSavedQuery(
+  savedQuery: DiscoverSavedQuery
+): BaseVisualize[] {
+  if (savedQuery.yAxis?.length) {
+    return [{yAxes: savedQuery.yAxis}];
+  }
+  return [{yAxes: [EventView.fromSavedQuery(savedQuery).getYAxis()]}];
 }

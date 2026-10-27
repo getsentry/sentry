@@ -148,7 +148,8 @@ export type AuthConfig = {
   serverHostname: string;
   githubLoginLink?: string;
   googleLoginLink?: string;
-  loginBanner?: string;
+  loginBannerMarkdown?: string;
+  singleOrganizationSlug?: string;
   vstsLoginLink?: string;
   warning?: string;
 };

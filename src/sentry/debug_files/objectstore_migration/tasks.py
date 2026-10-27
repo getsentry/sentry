@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 _SHARD_TASK_KEY = "debug_files_objectstore_migration_shard"
 _FILES_PER_ACTIVATION = 30
+_ID_WINDOW_SIZE = 1_000_000
 _PROCESSING_DEADLINE_SECONDS = 10 * 60
 _SHARD_LOCK_DURATION_SECONDS = _PROCESSING_DEADLINE_SECONDS
 
@@ -35,14 +36,19 @@ def enqueue_shard(
     shard_id: int,
     num_shards: int,
     cursor: int,
+    delete_corrupt: bool = False,
 ) -> None:
     def enqueue() -> None:
+        task_kwargs = {
+            "shard_id": shard_id,
+            "num_shards": num_shards,
+            "cursor": cursor,
+        }
+        if delete_corrupt:
+            task_kwargs["delete_corrupt"] = True
+
         delivery = migrate_shard.apply_async_with_future(
-            kwargs={
-                "shard_id": shard_id,
-                "num_shards": num_shards,
-                "cursor": cursor,
-            },
+            kwargs=task_kwargs,
             headers={"sentry-propagate-traces": False},
         )
         if delivery is not None:
@@ -67,6 +73,7 @@ def migrate_shard(
     shard_id: int,
     num_shards: int,
     cursor: int,
+    delete_corrupt: bool = False,
     **kwargs: object,
 ) -> None:
     """Process one page of DIFs for a shard, then self-chain if more remain.
@@ -117,9 +124,11 @@ def migrate_shard(
     )
     try:
         with lock.acquire():
+            lower_bound = max(cursor - _ID_WINDOW_SIZE, 0)
             to_migrate = list(
                 ProjectDebugFile.objects.filter(
                     id__lte=cursor,
+                    id__gt=lower_bound,
                     file_id__isnull=False,
                 )
                 .annotate(
@@ -131,28 +140,24 @@ def migrate_shard(
                 .select_related("file")
                 .order_by("-id")[:_FILES_PER_ACTIVATION]
             )
-            if not to_migrate:
-                logger.info(
-                    "debug_files.objectstore_migration.shard_completed",
-                    extra=log_extra(),
-                )
-                return
-
             for debug_file in to_migrate:
-                migrate_debug_file(debug_file)
+                migrate_debug_file(debug_file, delete_corrupt=delete_corrupt)
 
-            lowest_id = to_migrate[-1].id
+            query_limit_reached = len(to_migrate) == _FILES_PER_ACTIVATION
+            lowest_id = to_migrate[-1].id if to_migrate else None
+            next_cursor = to_migrate[-1].id - 1 if query_limit_reached else lower_bound
             duration_seconds = monotonic() - shard_started_at
             logger.info(
                 "debug_files.objectstore_migration.shard_progress",
                 extra=log_extra(
                     processed_this_activation=len(to_migrate),
                     lowest_id=lowest_id,
+                    next_cursor=next_cursor,
                     duration_seconds=duration_seconds,
                 ),
             )
 
-            if len(to_migrate) < _FILES_PER_ACTIVATION or lowest_id <= 0:
+            if next_cursor <= 0:
                 logger.info(
                     "debug_files.objectstore_migration.shard_completed",
                     extra=log_extra(lowest_id=lowest_id),
@@ -162,7 +167,8 @@ def migrate_shard(
             enqueue_shard(
                 shard_id=shard_id,
                 num_shards=num_shards,
-                cursor=lowest_id - 1,
+                cursor=next_cursor,
+                delete_corrupt=delete_corrupt,
             )
             if activation_id:
                 mark_spawned(_SHARD_TASK_KEY, activation_id)

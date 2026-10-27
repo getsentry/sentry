@@ -55,20 +55,64 @@ class WorkflowStatsEndpointTest(APITestCase):
         self.login_as(self.user)
 
     def test(self) -> None:
+        start = before_now(days=6)
+        end = before_now(days=0)
         resp = self.get_success_response(
             self.organization.slug,
             self.workflow.id,
-            start=before_now(days=6),
-            end=before_now(days=0),
+            start=start,
+            end=end,
         )
-        assert len(resp.data) == 144
+        assert resp.data["meta"] == {
+            "dataset": "workflow",
+            "start": start.timestamp() * 1000,
+            "end": end.timestamp() * 1000,
+        }
+        time_series = resp.data["timeSeries"][0]
+        assert time_series["yAxis"] == "count()"
+        assert time_series["meta"] == {
+            "interval": 60 * 60 * 1000,
+            "valueType": "integer",
+            "valueUnit": None,
+        }
+        assert len(time_series["values"]) == 144
         now = timezone.now().replace(minute=0, second=0, microsecond=0)
-        assert [r for r in resp.data[-4:]] == [
-            {"date": now - timedelta(hours=3), "count": 3},
-            {"date": now - timedelta(hours=2), "count": 2},
-            {"date": now - timedelta(hours=1), "count": 1},
-            {"date": now, "count": 0},
+        assert time_series["values"][-4:] == [
+            {
+                "timestamp": (now - timedelta(hours=3)).timestamp() * 1000,
+                "value": 3,
+                "incomplete": False,
+            },
+            {
+                "timestamp": (now - timedelta(hours=2)).timestamp() * 1000,
+                "value": 2,
+                "incomplete": False,
+            },
+            {
+                "timestamp": (now - timedelta(hours=1)).timestamp() * 1000,
+                "value": 1,
+                "incomplete": False,
+            },
+            {
+                "timestamp": now.timestamp() * 1000,
+                "value": 0,
+                "incomplete": False,
+            },
         ]
+
+    def test_one_hour_range_returns_bounds_for_single_bucket(self) -> None:
+        start = before_now(hours=1)
+        end = before_now()
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.workflow.id,
+            start=start,
+            end=end,
+        )
+
+        assert len(resp.data["timeSeries"][0]["values"]) == 1
+        assert resp.data["meta"]["start"] == start.timestamp() * 1000
+        assert resp.data["meta"]["end"] == end.timestamp() * 1000
 
     def test_invalid_dates_error(self) -> None:
         self.get_error_response(

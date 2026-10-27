@@ -4,6 +4,7 @@ import {AddressElement, useElements, useStripe} from '@stripe/react-stripe-js';
 import type {StripeAddressElementChangeEvent} from '@stripe/stripe-js';
 
 import {Alert} from '@sentry/scraps/alert';
+import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -11,7 +12,6 @@ import {TextField} from 'sentry/components/forms/fields/textField';
 import {Form} from 'sentry/components/forms/form';
 import {FormModel} from 'sentry/components/forms/model';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
@@ -42,22 +42,11 @@ type Props = {
    */
   analyticsEvent?: GetsentryEventKey;
   /**
-   * Extra button to render in the form footer.
-   */
-  extraButton?: React.ReactNode;
-  /**
    * Initial form data.
    */
   initialData?: BillingDetails;
-  /**
-   * Display detailed view for subscription settings.
-   */
-  isDetailed?: boolean;
+  onCancel?: () => void;
   onSubmitError?: (error: any) => void;
-  /**
-   * Form submit button label.
-   */
-  submitLabel?: string;
 };
 
 type State = {
@@ -69,17 +58,13 @@ type State = {
 const GOOGLE_MAPS_API_KEY = ConfigStore.get('getsentry.googleMapsApiKey');
 
 function BillingDetailsFormFields({
-  form,
-  isDetailed,
   initialData,
   handleStripeFormChange,
   state,
   taxFieldInfo,
   onSubmitDisabled,
 }: {
-  form: FormModel;
   handleStripeFormChange: (data: StripeAddressElementChangeEvent) => void;
-  isDetailed: boolean;
   onSubmitDisabled: (disabled: boolean) => void;
   state: State;
   initialData?: BillingDetails;
@@ -124,7 +109,7 @@ function BillingDetailsFormFields({
         </Alert>
       ) : (
         <Fragment>
-          {isDetailed && !stripeIsLoading && (
+          {!stripeIsLoading && (
             <CustomBillingDetailsFormField
               inputName="billingEmail"
               label={t('Billing email')}
@@ -132,7 +117,6 @@ function BillingDetailsFormFields({
                 'If provided, all billing-related notifications will be sent to this address'
               )}
               placeholder={t('name@example.com (optional)')}
-              value={form.getValue('billingEmail') ?? ''}
             />
           )}
           {stripeIsLoading && <LoadingIndicator />}
@@ -181,7 +165,6 @@ function BillingDetailsFormFields({
                 "Your company's [taxNumberName] will appear on all receipts. You may be subject to taxes depending on country specific tax policies.",
                 {taxNumberName: <strong>{taxFieldInfo.taxNumberName}</strong>}
               )}
-              value={form.getValue('taxNumber') ?? ''}
               placeholder={taxFieldInfo.placeholder}
             />
           )}
@@ -196,11 +179,9 @@ function CustomBillingDetailsFormField({
   label,
   help,
   placeholder,
-  value,
 }: {
   inputName: string;
   label: string;
-  value: string;
   help?: React.ReactNode;
   placeholder?: string;
 }) {
@@ -210,14 +191,9 @@ function CustomBillingDetailsFormField({
         <Text size="sm" variant="muted">
           {label}
         </Text>
-        <QuestionTooltip title={help} size="sm" />
+        <InfoTip title={help} size="sm" />
       </Flex>
-      <StyledTextField
-        name={inputName}
-        placeholder={placeholder}
-        value={value}
-        aria-label={label}
-      />
+      <StyledTextField name={inputName} placeholder={placeholder} aria-label={label} />
     </Stack>
   );
 }
@@ -231,9 +207,7 @@ export function BillingDetailsForm({
   onSubmitError,
   onSubmitSuccess,
   organization,
-  submitLabel,
-  isDetailed = true,
-  extraButton,
+  onCancel,
   analyticsEvent,
 }: Props) {
   const [submitDisabled, setSubmitDisabled] = useState(true);
@@ -327,15 +301,12 @@ export function BillingDetailsForm({
         model={form}
         submitDisabled={submitDisabled}
         apiEndpoint={`/customers/${organization.slug}/billing-details/`}
-        submitLabel={submitLabel}
         onSubmitSuccess={handleSubmit}
         onSubmitError={err => onSubmitError?.(err)}
         initialData={transformedInitialData}
-        extraButton={extraButton}
+        onCancel={onCancel}
       >
         <BillingDetailsFormFields
-          form={form}
-          isDetailed={isDetailed}
           initialData={initialData}
           handleStripeFormChange={handleStripeFormChange}
           state={state}

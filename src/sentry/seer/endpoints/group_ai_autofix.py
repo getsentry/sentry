@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import uuid
+from collections.abc import Collection
 from typing import Any
 
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -15,7 +16,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.conditional_get import ConditionalGetResponseMixin
-from sentry.api.helpers.deprecation import deprecated
+from sentry.api.exceptions import InsufficientScope
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
@@ -31,22 +32,20 @@ from sentry.apidocs.response_types import (
     as_validation_errors,
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.action_log import (
     action_context_scope,
-    resolve_action_actor,
-    resolve_action_source,
 )
+from sentry.issues.action_log.request import resolve_action_actor, resolve_action_source
 from sentry.issues.action_log.types import GroupActorType
-from sentry.issues.endpoints.bases.group import GroupAiEndpoint
+from sentry.issues.endpoints.bases.group import GroupAiEndpoint, GroupAiPermission
 from sentry.issues.formatting.autofix import format_autofix
 from sentry.issues.formatting.mixin import VALID_FORMATS, FormattableResponseMixin
 from sentry.models.activity import Activity
 from sentry.models.group import Group
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.autofix_agent import (
-    AutofixStep,
-    NoSeerQuotaException,
     get_autofix_agent_state,
     get_autofix_run_state,
     trigger_autofix_agent,
@@ -59,38 +58,95 @@ from sentry.seer.autofix.coding_agent import (
 )
 from sentry.seer.autofix.commit_author import commit_author_for_user
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.github_perms import (
-    get_blocked_pr_iteration_permissions,
-)
-from sentry.seer.autofix.pr_iteration.feedback import Feedback
-from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
-from sentry.seer.autofix.pr_iteration.pause import PAUSED_EXTRA
-from sentry.seer.autofix.pr_iteration.queue import (
-    peek_queued_autofix_feedback,
-    try_enqueue_autofix_feedback,
-)
-from sentry.seer.autofix.pr_iteration.run_markers import get_run_extra
+from sentry.seer.autofix.exceptions import NoSeerQuotaException
+from sentry.seer.autofix.on_completion_hook import get_run_stopping_point
+from sentry.seer.autofix.pr_iteration.manual_trigger import handle_ui_feedback
+from sentry.seer.autofix.pr_iteration.ui_state import get_pr_iteration_state_fields
+from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.types import (
     AutofixHandoffResponse,
     AutofixPostResponse,
     AutofixStateResponse,
-    GithubAppPermissionsWarning,
 )
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     CodingAgentProviderType,
+    has_project_connected_repos,
 )
-from sentry.seer.endpoints.utils import get_seer_run, resolve_seer_run
+from sentry.seer.endpoints.organization_seer_onboarding_check import (
+    has_supported_scm_integration,
+)
+from sentry.seer.endpoints.utils import SEER_PERMISSION_DENIED, get_seer_run, resolve_seer_run
 from sentry.seer.models import UNKNOWN_RUN_ID_FOR_GROUP, SeerPermissionError
-from sentry.tasks.seer.pr_iteration import trigger_consume_pr_iteration_feedback
 from sentry.types.activity import ActivityType
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.users.services.user.service import user_service
+from sentry.utils import metrics
 from sentry.utils.http import is_mcp_request
 
 logger = logging.getLogger(__name__)
 
-SEER_PERMISSION_DENIED = "You are not authorized to perform this action"
+# Keep in sync with AUTOFIX_USER_CONTEXT_MAX_LENGTH in
+# static/app/components/events/autofix/types.ts.
+USER_CONTEXT_MAX_LENGTH = 10000
+
+# Marks the one 409 from this endpoint that a caller can recover from on its own:
+# the run named in the body is alive, so polling it is the whole remedy.
+RUN_IN_FLIGHT_CODE = "run_in_flight"
+
+AUTOFIX_SETUP_REQUIRED_DETAIL = {
+    "scm_integration_required": (
+        "Seer Autofix requires a supported SCM integration (GitHub or GitLab) "
+        "to be installed for your organization before a new run can be started."
+    ),
+    "repos_not_linked": (
+        "Seer Autofix requires repositories to be connected to this project "
+        "before a new run can be started."
+    ),
+}
+
+
+class GroupAutofixPermission(GroupAiPermission):
+    # `seer:write` covers the analysis steps only; see _require_publish_scope.
+    scope_map = {
+        **GroupAiPermission.scope_map,
+        "POST": ["event:write", "event:admin", "seer:write"],
+    }
+
+
+# Steps that still need explicit user approval (`event:write`) because they act outside
+# Sentry: pushing a branch, opening or iterating on a pull request, or handing the run to
+# an external coding agent.
+PUBLISH_STEPS = frozenset({"open_pr", "coding_agent_handoff", "pr_iteration"})
+PUBLISH_SCOPES = frozenset({"event:write", "event:admin"})
+
+
+# If an autofix can be handed off we want to use these stopping points to require user approval
+HANDOFF_STOPPING_POINTS = frozenset(
+    {AutofixStoppingPoint.SOLUTION.value, AutofixStoppingPoint.CODE_CHANGES.value}
+)
+
+
+def _require_publish_scope(
+    request: Request, group: Group, step: str, stopping_points: Collection[str | None]
+) -> None:
+    """`seer:write` lets a caller run Autofix analysis but not publish its result. A
+    request still needs `event:write` when it, or the completion hook continuing the run
+    toward `stopping_points`, can act outside Sentry: a publishing step, a run headed
+    for a pull request, or root cause on a run that may then hand off to a coding agent.
+    Raising the RFC 6750 challenge lets the Seer agent ask for approval."""
+    may_publish = (
+        step in PUBLISH_STEPS
+        or AutofixStoppingPoint.OPEN_PR.value in stopping_points
+        or (
+            step == AutofixStep.ROOT_CAUSE.value
+            and not HANDOFF_STOPPING_POINTS.isdisjoint(stopping_points)
+        )
+    )
+    if not may_publish:
+        return
+    if request.access.has_any_project_scope(group.project, PUBLISH_SCOPES):
+        return
+    raise InsufficientScope({"event:write"})
 
 
 def _is_unknown_run_id_error(error: SeerPermissionError) -> bool:
@@ -109,6 +165,41 @@ def _parse_autofix_referrer(raw: str | None, request: Request) -> AutofixReferre
     except ValueError:
         logger.warning("group_ai_autofix.unknown_referrer", extra={"referrer": raw})
         return AutofixReferrer.UNKNOWN
+
+
+def _record_user_context_length(request_data: Any) -> None:
+    """Record the length of the user context passed to POST, including rejected requests."""
+    if not isinstance(request_data, dict):
+        return
+
+    user_context = request_data.get("user_context", request_data.get("userContext"))
+    if user_context is None:
+        return
+
+    metrics.distribution(
+        "seer.autofix.user_context.length",
+        len(user_context) if isinstance(user_context, str) else 0,
+        sample_rate=1.0,  # data should be sparse enough
+    )
+
+
+def _check_autofix_setup(organization: Organization, project: Project) -> str | None:
+    """Return the setup code blocking a new autofix run, or None if it can start.
+
+    Mirrors the frontend gate in AutofixContent: legacy usage-based Seer plans
+    (organizations:seer-added) may run autofix without an SCM integration or
+    linked repos, so the checks are skipped for them.
+    """
+    if features.has("organizations:seer-added", organization):
+        return None
+
+    if not has_supported_scm_integration(organization):
+        return "scm_integration_required"
+
+    if not has_project_connected_repos(organization, project):
+        return "repos_not_linked"
+
+    return None
 
 
 class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
@@ -157,7 +248,7 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
     )
     user_context = serializers.CharField(
         required=False,
-        max_length=1000,
+        max_length=USER_CONTEXT_MAX_LENGTH,
         help_text="Optional user context to append to the step prompt.",
         allow_blank=True,
     )
@@ -173,7 +264,7 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
         required=False,
         help_text="Referrer identifying where the issue fix was triggered from.",
     )
-    enable_bash_tools = serializers.BooleanField(
+    enable_bash_mode = serializers.BooleanField(
         required=False,
         default=False,
         help_text="Override bash mode tools.",
@@ -192,10 +283,11 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
 class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin, GroupAiEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PUBLIC,
-        "GET": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
     formatter_adapter = staticmethod(format_autofix)
     owner = ApiOwner.ML_AI
+    permission_classes = (GroupAutofixPermission,)
     enforce_rate_limit = True
     rate_limits = RateLimitConfig(
         limit_overrides={
@@ -230,11 +322,6 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
         },
         examples=AutofixExamples.AUTOFIX_POST_RESPONSE,
     )
-    @deprecated(
-        CELL_API_DEPRECATION_DATE,
-        suggested_api="sentry-api-0-organization-group-group-autofix",
-        url_names=["sentry-api-0-group-autofix"],
-    )
     def post(
         self, request: Request, group: Group
     ) -> (
@@ -256,6 +343,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
 
         The process runs asynchronously, and you can get the state using the GET endpoint.
         """
+        _record_user_context_length(request.data)
         serializer = ExplorerAutofixRequestSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
@@ -263,6 +351,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
         data = serializer.validated_data
         step = data.get("step", "root_cause")
         stopping_point = data.get("stopping_point")
+        _require_publish_scope(request, group, step, {stopping_point})
 
         # Prefer sentry_run_id (a uuid.UUID) over numeric run_id; None = new run.
         sentry_run_id_param: uuid.UUID | None = data.get("sentry_run_id")
@@ -354,6 +443,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                             group.organization.id,
                             referrer="autofix_open_pr",
                         ),
+                        user=request.user,
                     )
                 except SeerPermissionError:
                     return Response(status=status.HTTP_404_NOT_FOUND)
@@ -365,76 +455,38 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                         {"detail": "run_id is required for pr_iteration"},
                         status=status.HTTP_400_BAD_REQUEST,
                     )
-
-                if not features.has(
-                    "organizations:autofix-pr-iteration-manual", group.organization
-                ):
-                    return Response(
-                        {"detail": "PR iteration is not enabled for this organization"},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-
-                if not user_context:
-                    return Response(
-                        {"detail": "feedback is required for pr_iteration"},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-
-                try:
-                    run_state = get_autofix_run_state(group, resolved_run_id)
-                except SeerPermissionError:
+                if request.user.id is None:
                     raise PermissionDenied(SEER_PERMISSION_DENIED)
 
-                if not run_state.get_created_pull_request_states():
-                    return Response(
-                        {"detail": "Cannot iterate on a PR before one has been created"},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-
-                serialized_users = user_service.serialize_many(
-                    filter={"user_ids": [request.user.id]},
-                )
-                feedback = Feedback(
-                    source={
-                        "type": "user-ui",
-                        "user_id": request.user.id,
-                        "user": serialized_users[0] if serialized_users else None,
-                        "user_feedback": user_context,
-                    },
-                )
-
-                # Shared by both calls, so one arrival of feedback logs its queue
-                # and trigger decisions under one identity.
-                log_ctx = PrIterationLogContext.for_run(
-                    logger, run_state, group.organization.id, group.id
-                )
-
-                try_enqueue_autofix_feedback(
-                    log_ctx=log_ctx,
+                error_response = handle_ui_feedback(
+                    group=group,
                     run_id=resolved_run_id,
-                    organization_id=group.organization.id,
-                    group_id=group.id,
-                    feedback=feedback,
+                    user_id=request.user.id,
+                    user_feedback=user_context,
                     referrer=referrer,
-                    run_state=run_state,
-                    actor_user_id=request.user.id,
                 )
-
-                trigger_consume_pr_iteration_feedback(
-                    log_ctx=log_ctx,
-                    run_id=resolved_run_id,
-                    organization_id=group.organization.id,
-                    feedback=feedback,
-                    run_state=run_state,
-                    bypass=True,
-                )
+                if error_response is not None:
+                    return error_response
 
                 run_id, sentry_run_id = resolved_run_id, resolved_sentry_run_id
 
             case _:
-                # A truncating re-run would strand a PR/coding agent (they live
-                # outside the blocks). Refuse it, mirroring the frontend gate.
-                if data.get("insert_index") is not None and resolved_run_id is not None:
+                # New runs require Seer setup (SCM integration and linked
+                # repos), mirroring the frontend gate in AutofixContent. The
+                # handoff/open_pr/pr_iteration steps and continuations
+                # (resolved_run_id is not None) are never gated here.
+                if is_autofix_kickoff:
+                    setup_code = _check_autofix_setup(group.organization, group.project)
+                    if setup_code is not None:
+                        return Response(
+                            {
+                                "detail": AUTOFIX_SETUP_REQUIRED_DETAIL[setup_code],
+                                "code": setup_code,
+                            },
+                            status=status.HTTP_409_CONFLICT,
+                        )
+
+                if resolved_run_id is not None:
                     try:
                         run_state = get_autofix_run_state(group, resolved_run_id)
                     except SeerPermissionError as e:
@@ -442,7 +494,39 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                             return Response(status=status.HTTP_404_NOT_FOUND)
                         raise PermissionDenied(SEER_PERMISSION_DENIED)
 
-                    if run_state.get_created_pull_request_states() or run_state.coding_agents:
+                    # A continued run keeps the stopping point it started with, and the
+                    # completion hook acts on it after this step, so gate on it too.
+                    _require_publish_scope(
+                        request,
+                        group,
+                        step,
+                        {get_run_stopping_point(group.organization, resolved_run_id, run_state)},
+                    )
+
+                    # Seer accepts a step while one is still processing, and the two
+                    # workers then write to the same run state; a truncating re-run
+                    # even deletes the blocks the live worker is appending to. Refuse
+                    # the step and hand back the run in flight, so a caller that can
+                    # recover silently has the ids to poll.
+                    #
+                    # The code, not the detail text, is what callers branch on: this
+                    # 409 is recoverable, the re-run 409 below is not.
+                    if run_state.status == "processing":
+                        return Response(
+                            {
+                                "detail": "A step is already running for this autofix run",
+                                "code": RUN_IN_FLIGHT_CODE,
+                                "run_id": resolved_run_id,
+                                "sentry_run_id": resolved_sentry_run_id,
+                            },
+                            status=status.HTTP_409_CONFLICT,
+                        )
+
+                    # A truncating re-run would strand a PR/coding agent (they live
+                    # outside the blocks). Refuse it, mirroring the frontend gate.
+                    if data.get("insert_index") is not None and (
+                        run_state.get_created_pull_request_states() or run_state.coding_agents
+                    ):
                         return Response(
                             {
                                 "detail": "Cannot re-run a step after a pull request or coding agent has started"
@@ -478,7 +562,14 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                         user_context=user_context,
                         insert_index=data.get("insert_index"),
                         user=request.user,
-                        enable_bash_tools=data.get("enable_bash_tools", False),
+                        enable_bash_mode=data.get("enable_bash_mode", False),
+                        # TRIGGER_AUTOFIX attributes a kickoff, so only steps the
+                        # user continues (or codes directly) carry them as the actor.
+                        actor_user_id=(
+                            request.user.id
+                            if not is_autofix_kickoff or step == AutofixStep.CODE_CHANGES.value
+                            else None
+                        ),
                     )
                 except NoSeerQuotaException:
                     return Response(
@@ -529,11 +620,6 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
         },
         examples=AutofixExamples.AUTOFIX_GET_RESPONSE,
     )
-    @deprecated(
-        CELL_API_DEPRECATION_DATE,
-        suggested_api="sentry-api-0-organization-group-group-autofix",
-        url_names=["sentry-api-0-group-autofix"],
-    )
     def get(self, request: Request, group: Group) -> Response[AutofixStateResponse]:
         """
         Retrieve the current detailed state of an issue fix process for a specific issue including:
@@ -544,8 +630,6 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
         - Root Cause Analysis
         - Proposed Solution
         - Generated code changes
-
-        This endpoint although documented is still experimental and the payload may change in the future.
         """
         try:
             state = get_autofix_agent_state(group.organization, group.id)
@@ -575,25 +659,6 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
 
         run = get_seer_run(state.run_id, group.organization)
         blocks = [block.dict() for block in state.blocks]
-        queued_items = peek_queued_autofix_feedback(state.run_id)
-
-        missing_perms = get_blocked_pr_iteration_permissions(
-            group.organization,
-            state,
-            has_actionable_feedback=any(
-                item.feedback.source.should_consume(state).ok for item in queued_items
-            ),
-        )
-
-        warnings = [
-            GithubAppPermissionsWarning(
-                repo_name=repo_name,
-                installation_id=info.installation_id,
-                installation_url=info.installation_url,
-            ).dict()
-            for repo_name, info in missing_perms.items()
-        ]
-        queued_feedback = [item.feedback.dict() for item in queued_items]
         return Response(
             {
                 "autofix": {
@@ -611,18 +676,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                     "coding_agents": {
                         agent_id: agent.dict() for agent_id, agent in state.coding_agents.items()
                     },
-                    "pr_iteration_enabled": features.has(
-                        "organizations:autofix-pr-iteration", group.organization
-                    ),
-                    "manual_pr_iteration_enabled": features.has(
-                        "organizations:autofix-pr-iteration-manual", group.organization
-                    ),
-                    "queued_feedback": queued_feedback,
-                    # Off the fetched row, not is_pr_iteration_paused: polled every second.
-                    "pr_iteration_paused": (
-                        run is not None and get_run_extra(run, PAUSED_EXTRA) is not None
-                    ),
-                    "warnings": warnings,
+                    **get_pr_iteration_state_fields(group.organization, state, run),
                 }
             }
         )

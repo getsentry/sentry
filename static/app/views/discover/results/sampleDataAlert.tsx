@@ -1,14 +1,14 @@
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/close';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
-import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 
 const EXCLUDED_CONDITIONS = [
   'event.type:error',
@@ -45,14 +45,10 @@ export function SampleDataAlert({query}: {query?: string}) {
   return (
     <Alert.Container>
       <Alert variant="warning">
-        <AlertContent>
-          {getDiscoverDeprecation(organization)
-            ? t(
-                'Based on your search criteria and sample rate, the events available may be limited because Errors uses sampled data only.'
-              )
-            : t(
-                'Based on your search criteria and sample rate, the events available may be limited because Discover uses sampled data only.'
-              )}
+        <Grid align="center" gap="md" columns="1fr max-content">
+          {t(
+            'Based on your search criteria and sample rate, the events available may be limited because Errors uses sampled data only.'
+          )}
           <DismissButton
             variant="link"
             icon={<IconClose />}
@@ -60,7 +56,7 @@ export function SampleDataAlert({query}: {query?: string}) {
             aria-label={t('Dismiss Alert')}
             tooltipProps={{title: t('Dismiss Alert')}}
           />
-        </AlertContent>
+        </Grid>
       </Alert>
     </Alert.Container>
   );
@@ -72,11 +68,4 @@ const DismissButton = styled(Button)`
   &:hover {
     opacity: 0.5;
   }
-`;
-
-const AlertContent = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr max-content;
-  gap: ${p => p.theme.space.md};
-  align-items: center;
 `;

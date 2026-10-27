@@ -5,7 +5,7 @@ from collections import defaultdict
 from collections.abc import Generator
 from datetime import UTC, datetime, timedelta
 
-from sentry import features, options
+from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.issue_detection.performance_detection import get_merged_settings
 from sentry.models.project import Project
@@ -13,7 +13,7 @@ from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.seer.agent.utils import normalize_description
 from sentry.seer.autofix.utils import get_autofix_repos_from_project_code_mappings
-from sentry.seer.seer_setup import get_supported_scm_providers
+from sentry.seer.seer_setup import get_supported_scm_providers, has_seer_access
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.tasks.base import instrumented_task
@@ -340,10 +340,7 @@ def check_seer_setup_for_project(project: Project) -> bool:
     Checks if a project and it's organization have the necessary Seer setup to detect web vitals issues.
     The project must have seer feature flags, seer acknowledgement, and a supported SCM code mapping.
     """
-    if not features.has("organizations:gen-ai-features", project.organization):
-        return False
-
-    if project.organization.get_option("sentry:hide_ai_features"):
+    if not has_seer_access(project.organization):
         return False
 
     repos = get_autofix_repos_from_project_code_mappings(project)

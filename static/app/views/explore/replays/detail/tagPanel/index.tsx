@@ -2,10 +2,10 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Container, Stack} from '@sentry/scraps/layout';
 
 import {EmptyMessage} from 'sentry/components/emptyMessage';
-import {KeyValueTable} from 'sentry/components/keyValueTable';
 import {Placeholder} from 'sentry/components/placeholder';
 import {ReplayTagsTableRow} from 'sentry/components/replays/replayTagsTableRow';
 import {t} from 'sentry/locale';
@@ -77,7 +77,7 @@ export function TagPanel() {
       <TabItemContainer>
         <Container as="section" flex="1 1 auto" overflow="auto">
           {filteredTags.length ? (
-            <KeyValueTable noMargin>
+            <DescriptionList striped>
               {filteredTags.map(([key, values]) => (
                 <ReplayTagsTableRow
                   key={key}
@@ -86,7 +86,7 @@ export function TagPanel() {
                   generateUrl={key.includes('sdk.replay.') ? undefined : generateUrl}
                 />
               ))}
-            </KeyValueTable>
+            </DescriptionList>
           ) : (
             <EmptyMessage>{t('No tags for this replay were found.')}</EmptyMessage>
           )}

@@ -65,7 +65,7 @@ def send_incident_alert_notification(
 ) -> None:
     """
     When a metric alert is triggered, send incident data to the SentryApp's webhook.
-    :param action: The triggered `AlertRuleTriggerAction`.
+    :param notification_context: The modern action notification context.
     :param incident: The `Incident` for which to build a payload.
     :param metric_value: The value of the metric that triggered this alert to fire.
     :param project_id: project id will be used for analytics after sending the webhook.
@@ -155,6 +155,3 @@ class NotifyEventServiceAction(EventAction):
 
     def get_services(self) -> Sequence[Any]:
         return list(self.get_sentry_app_services())
-
-    def get_form_instance(self) -> NotifyEventServiceForm:
-        return NotifyEventServiceForm(self.data, services=self.get_services())

@@ -1,4 +1,24 @@
+import type {AvatarUser} from 'sentry/types/user';
+import type {
+  ActionRequestError,
+  CannotApplyReason,
+} from 'sentry/views/investigations/api';
 import type {ToolResult} from 'sentry/views/seerExplorer/types';
+
+/**
+ * The scalar head of an agentic run, served inline with an investigation so a
+ * caller can tell one apart without a second request.
+ *
+ * This is the only marker an investigation carries for being agentic: it is
+ * `null` on manual and template investigations, whose orchestration endpoint
+ * 404s. Anything that needs the full run state fetches the projection.
+ */
+type InvestigationOrchestrationSummary = {
+  heartbeatAt: string | null;
+  notebookRevision: number;
+  phase: InvestigationOrchestrationPhase;
+  status: InvestigationOrchestrationStatus;
+};
 
 export type InvestigationListItem = {
   blockCount: number;
@@ -13,6 +33,7 @@ export type InvestigationListItem = {
   summaryDescription: string | null;
   title: string;
   version: number;
+  orchestration?: InvestigationOrchestrationSummary | null;
   titleGeneration?: {
     status: 'pending' | 'running' | 'completed' | 'failed' | null;
   };
@@ -42,6 +63,23 @@ export type InvestigationBlock = {
 };
 
 export type InvestigationBlockKind = 'query' | 'text';
+
+export type InvestigationViewer = {
+  active: boolean;
+  lastSeen: string;
+  userId: string;
+};
+
+export type InvestigationComment = {
+  /** Null once the author's account is deleted. */
+  author: AvatarUser | null;
+  /** Null for a comment on the investigation as a whole. */
+  blockId: string | null;
+  body: string;
+  dateCreated: string;
+  dateUpdated: string;
+  id: string;
+};
 
 export type InvestigationBlockExecutionStart = {
   id: string;
@@ -129,11 +167,17 @@ export type InvestigationQueryOutput = {
 };
 
 export type InvestigationDetail = InvestigationListItem & {
+  actionRequests?: InvestigationActionRequest[];
   blocks?: InvestigationBlock[];
   filters?: Record<string, unknown>;
   parameters?: unknown[];
   projectIds?: number[];
-  source?: Record<string, unknown>;
+  source?: {
+    ref: Record<string, unknown>;
+    revision: number | null;
+    type: string;
+    snapshot?: Record<string, unknown>;
+  };
   template?: {key: string; version: number} | null;
 };
 
@@ -154,3 +198,361 @@ export type InvestigationCandidate =
   | {status: 'investigate'}
   | {status: 'unavailable'}
   | {investigationId: string; status: 'view'};
+
+// The orchestration projection: the whole live state of an agentic run, which
+// Seer pushes as one JSON blob on every orchestration event and Sentry serves
+// from `/investigations/$investigationId/orchestration/`. The server contract
+// lives in `src/sentry/investigations/contracts.py` — keep these types in step
+// with it.
+//
+// Those serializers are deliberately relaxed: fields Sentry does not know about
+// pass straight through instead of failing validation, so Seer can ship a new
+// field ahead of a Sentry deploy. `InvestigationOrchestrationOpenString` encodes
+// the same tolerance for enum values — a status Sentry has never heard of still
+// typechecks, so a `switch` over one has to keep its default branch.
+
+/** A known set of string values that still accepts one Seer added later. */
+type InvestigationOrchestrationOpenString<T extends string> = T | (string & {});
+
+export type InvestigationOrchestrationPhase = InvestigationOrchestrationOpenString<
+  | 'intake'
+  | 'broad_scan'
+  | 'planning'
+  | 'investigating'
+  | 'judging'
+  | 'reporting'
+  | 'metadata'
+  | 'completed'
+  | 'failed'
+  | 'cancelled'
+>;
+
+export type InvestigationOrchestrationStatus = InvestigationOrchestrationOpenString<
+  'pending' | 'processing' | 'awaiting_input' | 'completed' | 'failed' | 'cancelled'
+>;
+
+/** Lifecycle of agent work, including skipped verification checks. */
+type InvestigationOrchestrationWorkStatus = InvestigationOrchestrationOpenString<
+  | 'not_started'
+  | 'queued'
+  | 'running'
+  | 'blocked'
+  | 'reauth_required'
+  | 'stalled'
+  | 'completed'
+  | 'failed'
+  | 'cancelled'
+  | 'skipped'
+>;
+
+/**
+ * What the UI shows for a hypothesis. The server folds the agent's verdict and
+ * the user's disposition into the run status to produce this, so it — not
+ * `status` — is what a hypothesis card renders.
+ * Mirrors `EFFECTIVE_HYPOTHESIS_STATUSES`.
+ */
+export type InvestigationHypothesisStatus = InvestigationOrchestrationOpenString<
+  | 'pending'
+  | 'investigating'
+  | 'supported'
+  | 'refuted'
+  | 'inconclusive'
+  | 'accepted'
+  | 'rejected'
+  | 'failed'
+  | 'cancelled'
+>;
+
+export type InvestigationDetectorChangeKey =
+  | 'query'
+  | 'aggregate'
+  | 'environment'
+  | 'timeWindowSeconds'
+  | 'highThreshold'
+  | 'mediumThreshold'
+  | 'resolutionThreshold';
+
+type InvestigationDetectorValues = Partial<
+  Record<InvestigationDetectorChangeKey, number | string | null>
+>;
+
+export type InvestigationUpdateDetectorAction = {
+  before: InvestigationDetectorValues;
+  changes: InvestigationDetectorValues;
+  detectorId: string;
+  kind: 'update_detector';
+};
+
+export type InvestigationAction =
+  | InvestigationUpdateDetectorAction
+  | {kind: 'connect_telemetry'; provider: 'datadog' | 'gcp'};
+
+type InvestigationActionRequestAnchor = {
+  blockId: string | null;
+  id: string;
+  type: InvestigationOrchestrationOpenString<'block' | 'hypothesis'>;
+};
+
+export type InvestigationActionRequest = {
+  action: InvestigationAction | null;
+  anchor: InvestigationActionRequestAnchor | null;
+  appliedBy: AvatarUser | null;
+  appliedDetails: Record<string, unknown> | null;
+  canApply: boolean;
+  cannotApplyReason: InvestigationOrchestrationOpenString<CannotApplyReason> | null;
+  dateApplied: string | null;
+  dateCreated: string;
+  error: ActionRequestError | null;
+  id: string;
+  impact: string | null;
+  key: string;
+  primary: boolean;
+  rationale: string;
+  reason: string | null;
+  reportRevision: number;
+  state: InvestigationOrchestrationOpenString<
+    'suggested' | 'applied' | 'failed' | 'superseded' | 'withdrawn'
+  >;
+  title: string;
+};
+
+export type InvestigationActionRequestApplyResponse = {
+  actionRequest: InvestigationActionRequest;
+};
+
+type InvestigationOrchestrationError = {
+  code: string;
+  message: string;
+  retryable: boolean;
+  occurredAt?: string;
+  requestId?: string;
+  source?: string | null;
+};
+
+export type InvestigationToolActivity = {
+  id: string;
+  kind: InvestigationOrchestrationOpenString<'api' | 'library' | 'step' | 'tool'>;
+  status: InvestigationOrchestrationOpenString<
+    'queued' | 'running' | 'completed' | 'failed'
+  >;
+  title: string;
+};
+
+type InvestigationOrchestrationEvidence = {
+  data: Record<string, unknown>;
+  id: string;
+  kind: InvestigationOrchestrationOpenString<
+    | 'issue'
+    | 'event'
+    | 'trace'
+    | 'profile'
+    | 'replay'
+    | 'query'
+    | 'chart'
+    | 'release'
+    | 'monitor'
+    | 'external'
+    | 'other'
+  >;
+  title: string;
+  reference?: string | null;
+  summary?: string | null;
+  url?: string | null;
+};
+
+/** One check planned against a hypothesis, including checks skipped by the agent. */
+export type InvestigationVerificationStep = {
+  error: InvestigationOrchestrationError | null;
+  evidence: InvestigationOrchestrationEvidence[];
+  id: string;
+  method: string;
+  objective: string;
+  order: number;
+  result: string | null;
+  status: InvestigationOrchestrationWorkStatus;
+  title: string;
+};
+
+type InvestigationAgentVerdict = {
+  confidence: number;
+  rationale: string;
+  refutingEvidenceIds: string[];
+  remainingGaps: string[];
+  supportingEvidenceIds: string[];
+  verdict: InvestigationOrchestrationOpenString<'supported' | 'refuted' | 'inconclusive'>;
+};
+
+export type InvestigationHypothesis = {
+  confidence: number | null;
+  decisionSource: InvestigationOrchestrationOpenString<'none' | 'agent' | 'user'>;
+  effectiveStatus: InvestigationHypothesisStatus;
+  error: InvestigationOrchestrationError | null;
+  evidence: InvestigationOrchestrationEvidence[];
+  id: string;
+  order: number;
+  rationale: string;
+  statement: string;
+  status: InvestigationOrchestrationWorkStatus;
+  agentVerdict?: InvestigationAgentVerdict | null;
+  attempt?: number;
+  automaticRetryCount?: number;
+  heartbeatAt?: string | null;
+  investigatorRunId?: number | null;
+  toolActivity?: InvestigationToolActivity[];
+  /**
+   * Absent, not empty, until the agent has planned any checks: the contract
+   * declares this `required=False` with no default, so DRF omits the key
+   * entirely rather than sending `[]`.
+   */
+  verificationSteps?: InvestigationVerificationStep[];
+};
+
+type InvestigationOrchestrationReport = {
+  currentBlockKey: string | null;
+  error: InvestigationOrchestrationError | null;
+  includedHypothesisIds: string[];
+  metadata: {
+    error: InvestigationOrchestrationError | null;
+    status: InvestigationOrchestrationOpenString<
+      'not_started' | 'generating' | 'completed' | 'failed'
+    >;
+    summary: string | null;
+    summaryDescription: string | null;
+    title: string | null;
+  };
+  notebookRevision: number;
+  primaryHypothesisId: string | null;
+  revision: number;
+  status: InvestigationOrchestrationOpenString<
+    | 'not_started'
+    | 'waiting'
+    | 'composing'
+    | 'completed'
+    | 'partial_failed'
+    | 'failed'
+    | 'cancelled'
+  >;
+  automaticRetryCount?: number;
+  currentBlockStatus?: InvestigationOrchestrationWorkStatus | null;
+  currentBlockToolActivity?: InvestigationToolActivity[];
+  heartbeatAt?: string | null;
+  nextStep?: {
+    error: InvestigationOrchestrationError | null;
+    status: InvestigationOrchestrationOpenString<
+      'not_started' | 'generating' | 'completed' | 'failed'
+    >;
+    automaticRetryCount?: number;
+  } | null;
+  suggestedHypotheses?: Array<{
+    statement: string;
+    rationale?: string | null;
+  }>;
+};
+
+export type InvestigationOrchestration = {
+  broadScan: {
+    error: InvestigationOrchestrationError | null;
+    status: InvestigationOrchestrationWorkStatus;
+    summary: string | null;
+    attempt?: number;
+    automaticRetryCount?: number;
+    heartbeatAt?: string | null;
+    runId?: number | string | null;
+    toolActivity?: InvestigationToolActivity[];
+  };
+  errors: InvestigationOrchestrationError[];
+  generation: number;
+  heartbeatAt: string | null;
+  hypotheses: InvestigationHypothesis[];
+  investigationId: string;
+  notebookRevision: number;
+  phase: InvestigationOrchestrationPhase;
+  report: InvestigationOrchestrationReport;
+  runId: string | null;
+  sourceType: InvestigationOrchestrationOpenString<'manual' | 'breached_metric'>;
+  status: InvestigationOrchestrationStatus;
+  updatedAt: string;
+  workflowVersion: number;
+  activeSince?: string | null;
+  /** Active work only; absent on runs created before timing was tracked. */
+  activeTimeElapsedSeconds?: number | null;
+  finishedAt?: string | null;
+  pendingInput?: {
+    missingFields: Array<'prompt' | 'time_range'>;
+    prompt: string;
+  } | null;
+  /** Fresh API server time, independent of the projection's last update. */
+  serverTime?: string;
+  startedAt?: string | null;
+  steeringIntents?: Array<{
+    createdAt: string;
+    id: string;
+    instruction: string;
+    requestId: string;
+    target: InvestigationOrchestrationOpenString<
+      'workflow' | 'hypothesis' | 'report' | 'block'
+    >;
+    targetId: string | null;
+  }>;
+};
+
+/**
+ * A viewer-issued instruction to a running workflow. Mirrors
+ * `COMMAND_VALIDATORS`. The inner payload stays camelCase because the server
+ * only case-converts the envelope keys.
+ */
+export type InvestigationOrchestrationCommand =
+  | {
+      type: 'provide_input';
+      prompt?: string;
+      timeRange?: {end: string; start: string};
+    }
+  | {
+      statement: string;
+      type: 'add_hypothesis';
+      rationale?: string | null;
+    }
+  | {
+      disposition: 'accepted' | 'rejected' | null;
+      hypothesisId: string;
+      type: 'set_hypothesis_disposition';
+    }
+  | {
+      instruction: string;
+      target: 'workflow' | 'hypothesis' | 'report' | 'block';
+      type: 'steer';
+      targetId?: string | null;
+    }
+  | {
+      target: 'run' | 'hypothesis' | 'report';
+      type: 'retry';
+      targetId?: string | null;
+    }
+  | {
+      type: 'cancel';
+      reason?: string | null;
+    };
+
+export type InvestigationOrchestrationCommandVariables = {
+  command: InvestigationOrchestrationCommand;
+  /**
+   * The version the caller believes it is acting on. The server rejects the
+   * command with a 409 if the workflow has moved on, so pass the version from
+   * the projection this command was composed against.
+   */
+  expectedWorkflowVersion: number;
+  /**
+   * Idempotency key. A repeat of the same id is accepted and reported back as a
+   * duplicate rather than applied twice.
+   */
+  requestId: string;
+};
+
+export type InvestigationOrchestrationCommandResponse = {
+  accepted: boolean;
+  duplicate: boolean;
+  projection: InvestigationOrchestration;
+  requestId: string;
+  runId: string | null;
+  workflowVersion: number;
+};

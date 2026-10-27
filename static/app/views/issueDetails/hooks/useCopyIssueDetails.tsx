@@ -20,6 +20,7 @@ import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import {getFormat, getUserTimezone} from 'sentry/utils/dates';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -99,7 +100,7 @@ function formatBreadcrumbsToMarkdown(crumbs: RawCrumb[]): string {
   const entries: string[] = [];
 
   crumbs.slice(-MAX_BREADCRUMBS).forEach(crumb => {
-    const message = crumb.message ?? '';
+    const message = stripAnsi(crumb.message ?? '');
 
     // Drop empty values, matching Seer's `{k: v for k, v in data if v}`.
     const data = crumb.data
@@ -212,7 +213,7 @@ function formatEventToMarkdown(event: Event, activeThreadId: number | undefined)
             markdownText += `**Handled:** ${handled ? 'Yes' : 'No'}\n`;
           }
           if (exception.value) {
-            markdownText += `**Value:** ${exception.value}\n\n`;
+            markdownText += `**Value:** ${stripAnsi(exception.value)}\n\n`;
           }
 
           // Add stacktrace if available
@@ -267,7 +268,6 @@ export const issueAndEventToMarkdown = ({
   event,
   autofixData,
   activeThreadId,
-  organization,
   autofixFormatted,
 }: IssueAndEventToMarkdownOptions): string => {
   const formatted = event?.formatted?.content;
@@ -286,7 +286,8 @@ export const issueAndEventToMarkdown = ({
   }
 
   // Format the basic issue information
-  let markdownText = `# ${group.title}\n\n`;
+  const title = stripAnsi(group.title);
+  let markdownText = `# ${title}\n\n`;
   markdownText += `**Issue ID:** ${group.id}\n`;
 
   if (group.shortId) {
@@ -314,8 +315,8 @@ export const issueAndEventToMarkdown = ({
 
   // Mirror Seer: include the event message only when it adds something beyond
   // the title, since for most errors the title already is the message.
-  const message = event?.message?.trim();
-  if (message && !group.title.includes(message)) {
+  const message = stripAnsi(event?.message ?? '').trim();
+  if (message && !title.includes(message)) {
     markdownText += `\n## Message\n\n${message}\n`;
   }
 
@@ -347,7 +348,7 @@ export const issueAndEventToMarkdown = ({
   }
 
   if (event) {
-    markdownText += formatSpanEvidenceToMarkdown(event, organization, group);
+    markdownText += formatSpanEvidenceToMarkdown(event, group);
     markdownText += formatEventToMarkdown(event, activeThreadId);
   }
 

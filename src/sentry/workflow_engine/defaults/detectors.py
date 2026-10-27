@@ -90,8 +90,7 @@ class UnableToAcquireLockApiError(SentryAPIException):
 def _ensure_detector(project: Project, type: str, default_enabled: bool = True) -> Detector:
     """
     Ensure that a detector of a given type exists for a project.
-    If the Detector doesn't already exist, we try to acquire a lock to avoid double-creating,
-    and UnableToAcquireLockApiError if that fails.
+    If the Detector doesn't already exist, we lock the project row to avoid double-creating.
     """
     group_type = grouptype.registry.get_by_slug(type)
     if not group_type:
@@ -106,40 +105,30 @@ def _ensure_detector(project: Project, type: str, default_enabled: bool = True) 
     if existing:
         return existing
 
-    # If we may need to create it, we acquire a lock to avoid double-creating.
+    # If we may need to create it, we lock the project row to avoid double-creating.
     # There isn't a unique constraint on the detector, so we can't rely on get_or_create
     # to avoid duplicates.
-    # However, by only locking during the one-time creation, the window for a race condition is small.
-    lock = locks.get(
-        f"workflow-engine-project-{slug}-detector:{project.id}",
-        duration=2,
-        name=f"workflow_engine_default_{slug}_detector",
-    )
-    try:
-        with (
-            # Creation should be fast, so it's worth blocking a little rather
-            # than failing a request.
-            lock.blocking_acquire(initial_delay=0.1, timeout=3),
-            transaction.atomic(router.db_for_write(Detector)),
-        ):
-            detector, _ = Detector.objects.get_or_create(
-                type=slug,
-                project=project,
-                defaults={
-                    "config": {},
-                    "name": (
-                        ERROR_DETECTOR_NAME
-                        if slug == ErrorGroupType.slug
-                        else ISSUE_STREAM_DETECTOR_NAME
-                        if slug == IssueStreamGroupType.slug
-                        else group_type.description
-                    ),
-                    "enabled": default_enabled,
-                },
-            )
-            return detector
-    except UnableToAcquireLock:
-        raise UnableToAcquireLockApiError
+    #
+    # The row lock is held until the outermost transaction ends, so a concurrent caller
+    # waits until our detector is committed, then finds it in get_or_create.
+    with transaction.atomic(router.db_for_write(Detector)):
+        Project.objects.select_for_update(no_key=True).get(id=project.id)
+        detector, _ = Detector.objects.get_or_create(
+            type=slug,
+            project=project,
+            defaults={
+                "config": {},
+                "name": (
+                    ERROR_DETECTOR_NAME
+                    if slug == ErrorGroupType.slug
+                    else ISSUE_STREAM_DETECTOR_NAME
+                    if slug == IssueStreamGroupType.slug
+                    else group_type.description
+                ),
+                "enabled": default_enabled,
+            },
+        )
+        return detector
 
 
 def ensure_default_anomaly_detector(
@@ -284,16 +273,12 @@ def ensure_default_all_projects_detector(organization_id: int) -> Detector:
     """
     Ensure that an org-scoped all-project detector exists for the organization.
     This detector has project=NULL and config={"organization_id": org_id}.
+
+    Raises on UnableToAcquireLockApiError
     """
-    existing = (
-        Detector.objects.filter(
-            type=IssueStreamGroupType.slug,
-            project__isnull=True,
-            config__organization_id=organization_id,
-        )
-        .order_by("id")
-        .first()
-    )
+    from sentry.workflow_engine.processors.detector import query_all_projects_detector
+
+    existing = query_all_projects_detector(organization_id=organization_id)
     if existing:
         return existing
 
@@ -307,15 +292,7 @@ def ensure_default_all_projects_detector(organization_id: int) -> Detector:
             lock.blocking_acquire(initial_delay=0.1, timeout=3),
             transaction.atomic(router.db_for_write(Detector)),
         ):
-            existing = (
-                Detector.objects.filter(
-                    type=IssueStreamGroupType.slug,
-                    project__isnull=True,
-                    config__organization_id=organization_id,
-                )
-                .order_by("id")
-                .first()
-            )
+            existing = query_all_projects_detector(organization_id=organization_id)
             if existing:
                 return existing
 
@@ -331,6 +308,9 @@ def ensure_default_all_projects_detector(organization_id: int) -> Detector:
 
 
 def ensure_default_organization_detectors(organization: Organization) -> dict[str, Detector]:
+    """
+    Raises on UnableToAcquireLockApiError
+    """
     detectors: dict[str, Detector] = {}
     if options.get("workflow_engine.auto_creation.all_projects_detector"):
         detectors[IssueStreamGroupType.slug] = ensure_default_all_projects_detector(

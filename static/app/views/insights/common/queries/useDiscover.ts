@@ -22,10 +22,8 @@ interface UseDiscoverOptions<Fields> {
   enabled?: boolean;
   extrapolationMode?: ExtrapolationMode;
   fields?: Fields;
-  keepPreviousData?: boolean;
   limit?: number;
   noPagination?: boolean;
-  orderby?: string | string[];
   pageFilters?: PageFilters;
   projectIds?: number[];
   /**
@@ -66,7 +64,6 @@ const useDiscover = <T extends Array<Extract<keyof ResponseType, string>>, Respo
     pageFilters: pageFiltersFromOptions,
     noPagination,
     projectIds,
-    orderby,
     samplingMode = DEFAULT_SAMPLING_MODE,
     extrapolationMode,
     useQueryOptions,
@@ -80,14 +77,17 @@ const useDiscover = <T extends Array<Extract<keyof ResponseType, string>>, Respo
     sorts,
     pageFiltersFromOptions ?? pageFilters.selection,
     dataset,
-    projectIds,
-    orderby
+    projectIds
   );
 
+  // oxlint-disable-next-line react/hooks -- queryWithoutPageFilters is a constant per call site, so the branch never flips.
   const queryFn = options.queryWithoutPageFilters
-    ? useWrappedDiscoverQueryWithoutPageFilters
-    : useWrappedDiscoverQuery;
+    ? // oxlint-disable-next-line react/hooks -- queryWithoutPageFilters is a constant per call site, so the branch never flips.
+      useWrappedDiscoverQueryWithoutPageFilters
+    : // oxlint-disable-next-line react/hooks -- queryWithoutPageFilters is a constant per call site, so the branch never flips.
+      useWrappedDiscoverQuery;
 
+  // oxlint-disable-next-line react/hooks -- queryWithoutPageFilters is a constant per call site, so the branch never flips.
   const result = queryFn({
     eventView,
     initialData: [],
@@ -100,7 +100,6 @@ const useDiscover = <T extends Array<Extract<keyof ResponseType, string>>, Respo
     extrapolationMode,
     additionalQueryKey: useQueryOptions?.additonalQueryKey,
     refetchInterval: useQueryOptions?.refetchInterval,
-    keepPreviousData: options.keepPreviousData,
   });
 
   // This type is a little awkward but it explicitly states that the response could be empty. This doesn't enable unchecked access errors, but it at least indicates that it's possible that there's no data
@@ -119,8 +118,7 @@ export function getEventView(
   sorts: Sort[] = [],
   pageFilters: PageFilters,
   dataset: DiscoverDatasets,
-  projectIds?: number[],
-  orderby?: string | string[]
+  projectIds?: number[]
 ) {
   const query = typeof search === 'string' ? search : (search?.formatString() ?? '');
 
@@ -131,7 +129,6 @@ export function getEventView(
       fields,
       dataset,
       version: 2,
-      orderby,
     },
     pageFilters
   );

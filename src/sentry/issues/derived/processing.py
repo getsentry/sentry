@@ -11,11 +11,13 @@ from typing import NamedTuple
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
+from django.db.models.functions import Now
 from django.utils import timezone
 
 from sentry.db.postgres.transactions import enforce_constraints
 from sentry.issues.derived.aggregators import AGGREGATORS
-from sentry.issues.derived.framework import Pipeline, State
+from sentry.issues.derived.framework import DerivedDataError, Pipeline, State
+from sentry.issues.derived.reporting import report_derived_data_error
 from sentry.issues.derived.store import GroupDerivedDataStore
 from sentry.issues.derived.tasks import generate_group_derived_data, process_group_log_task
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
@@ -115,6 +117,7 @@ def _ensure_derived(group_id: int, pipeline_hash: str) -> tuple[GroupDerivedData
             derived, _created = GroupDerivedData.objects.get_or_create(
                 group_id=group_id,
                 defaults={
+                    "generated_at": Now(),
                     "cursor_date": EPOCH,
                     "cursor_id": 0,
                     "data": {},
@@ -185,12 +188,21 @@ def _process_batch(
     if not entries:
         return False
 
-    result = p.run(entries, state=GroupDerivedDataStore.load(p, derived))
+    try:
+        result = p.run(entries, state=GroupDerivedDataStore.load(p, derived))
+        state_update = GroupDerivedDataStore.build_update(p, result)
+    except DerivedDataError as error:
+        report_derived_data_error(
+            error,
+            derived=derived,
+            operation="process" if persist else "replay",
+            pipeline_hash=p.pipeline_hash,
+        )
+        raise
 
     last = entries[-1]
     last_date = last.date_added
     last_id = last.id
-    state_update = GroupDerivedDataStore.build_update(p, result)
 
     if not persist:
         derived.cursor_date = last_date
@@ -198,17 +210,19 @@ def _process_batch(
         GroupDerivedDataStore.apply_to_instance(derived, state_update)
         return len(entries) == batch_size
 
+    now = timezone.now()
     updated = GroupDerivedData.objects.filter(
         Q(id=derived.id, generated_at=derived.generated_at)
         & (Q(cursor_date__lt=last_date) | Q(cursor_date=last_date, cursor_id__lte=last_id))
         & (Q(pipeline_hash=derived.pipeline_hash) | Q(pipeline_hash__isnull=True))
-    ).update(cursor_date=last_date, cursor_id=last_id, **state_update)
+    ).update(cursor_date=last_date, cursor_id=last_id, date_updated=now, **state_update)
 
     if updated:
         if derived_metrics is not None:
             derived_metrics.report_batch_processed(entries, result)
         derived.cursor_date = last_date
         derived.cursor_id = last_id
+        derived.date_updated = now
         GroupDerivedDataStore.apply_to_instance(derived, state_update)
         logger.info(
             "issues.derived.processed",
@@ -346,15 +360,20 @@ def trigger_group_log_processing(group_id: int, *, strategy: ProcessingStrategy)
         except ObjectDoesNotExist:
             return
 
-        has_more = _process_batch(
-            pipeline,
-            derived,
-            INLINE_BATCH_SIZE,
-            derived_metrics=DerivedMetrics(
-                mode=strategy,
-                incremental=expected_incremental,
-            ),
-        )
+        try:
+            has_more = _process_batch(
+                pipeline,
+                derived,
+                INLINE_BATCH_SIZE,
+                derived_metrics=DerivedMetrics(
+                    mode=strategy,
+                    incremental=expected_incremental,
+                ),
+            )
+        except DerivedDataError:
+            # Already reported by _process_batch. Retrying the same computation
+            # asynchronously cannot repair it.
+            return
     if has_more:
         # Derived data will be stale for any code running between now and
         # when the task completes.
@@ -413,7 +432,7 @@ def invalidate_group_derived_data(
         # Bumping ``generated_at`` reuses ``promote_to_live``'s SUPERSEDED
         # CAS path — pre-invalidation snapshots can't win over the null-hash
         # row.
-        affected = qs.update(pipeline_hash=None, generated_at=timezone.now())
+        affected = qs.update(pipeline_hash=None, generated_at=Now(), date_updated=timezone.now())
     else:
         affected, _ = qs.delete()
 
@@ -430,7 +449,7 @@ def invalidate_group_derived_data(
             # insert fails — treat as a no-op.
             try:
                 _, created = GroupDerivedData.objects.get_or_create(
-                    group_id=group_id, defaults={"pipeline_hash": None}
+                    group_id=group_id, defaults={"pipeline_hash": None, "generated_at": Now()}
                 )
             except IntegrityError:
                 logger.info(

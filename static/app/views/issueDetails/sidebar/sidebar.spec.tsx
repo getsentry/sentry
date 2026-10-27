@@ -25,13 +25,14 @@ describe('IssueDetailsSidebar', () => {
   const activityContent = 'test-note';
   const issueTrackingKey = 'issue-key';
 
-  const organization = OrganizationFixture({features: ['gen-ai-features']});
+  const organization = OrganizationFixture();
   const project = ProjectFixture();
   const group = GroupFixture({
     activity: [
       {
         type: GroupActivityType.NOTE,
         id: 'note-1',
+        commentId: 'note-1',
         data: {text: activityContent},
         dateCreated: '2020-01-01T00:00:00',
         user,

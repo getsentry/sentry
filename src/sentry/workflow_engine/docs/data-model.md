@@ -94,17 +94,17 @@ relationships and fields are:
 | `enabled`                  | User-controlled active/snoozed state                                                       |
 | `status`                   | Lifecycle state, including pending deletion and plan-level disabling                       |
 
-The detector type is registered outside this Django app. A concrete
-[`GroupType`](../../issues/grouptype.py) supplies
-[`DetectorSettings`](../types.py), which can define:
+The detector type is registered outside this Django app, in two parts. A concrete
+[`GroupType`](../../issues/grouptype.py) defines the issue type. A
+[`DetectorSettings`](../types.py) subclass, registered in
+[`detector_settings_registry`](../registry.py) under the group type's slug, can define:
 
 - Runtime handler
 - API validator
 - Configuration JSON schema
 - Query filter for detector visibility
 
-Do not add a second detector registry. `GroupType` registration is the detector-type
-registry.
+`GroupType.detector_settings` and `Detector.settings` read from the registry.
 
 `Detector` does not enforce a database uniqueness constraint for project and type.
 Default detector creation uses short distributed locks and idempotent lookups instead.

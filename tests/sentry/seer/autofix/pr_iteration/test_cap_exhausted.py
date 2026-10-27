@@ -10,7 +10,7 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
     GithubCheckSuiteEvent,
 )
 from sentry.seer.autofix.pr_iteration.constants import CAP_ASSIGN_FLAG
-from sentry.seer.autofix.pr_iteration.pause import pause_pr_iteration
+from sentry.seer.autofix.pr_iteration.pause import PauseReason, pause_pr_iteration
 from sentry.seer.models.run import SeerRun
 from sentry.testutils.cases import TestCase
 
@@ -50,7 +50,7 @@ def _pull_request_result(
     }
 
 
-@patch(f"{CAP_EXHAUSTED_PATH}.automated_iteration_cap_reached", return_value=True)
+@patch(f"{CAP_EXHAUSTED_PATH}.automated_streak_cap_reached", return_value=True)
 class AssignUserForExhaustedCapTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -105,7 +105,8 @@ class AssignUserForExhaustedCapTest(TestCase):
         _, pr_number, body = mock_actions.create_pull_request_comment.call_args[0]
         assert pr_number == str(PR_NUMBER)
         assert "@octocat" in body
-        assert "automated fix attempts" in body
+        assert "times in a row" in body
+        assert "then go back to fixing CI" in body
         marker = self._marker()
         assert marker is not None
         assert marker["assignees"] == ["octocat"]
@@ -144,8 +145,20 @@ class AssignUserForExhaustedCapTest(TestCase):
         mock_actions.create_pull_request_comment.assert_not_called()
         assert self._marker() is None
 
+    @patch(f"{CAP_EXHAUSTED_PATH}.total_iteration_cap_reached", return_value=True)
     @patch(f"{CAP_EXHAUSTED_PATH}.scm_actions")
-    def test_skips_night_shift_run_without_user(
+    def test_skips_when_total_cap_reached(
+        self, mock_actions: MagicMock, _mock_total_cap: MagicMock, _mock_cap: MagicMock
+    ) -> None:
+        with self.feature(FLAG):
+            assign_user_for_exhausted_cap(_event(), self._resolved())
+
+        mock_actions.update_issue.assert_not_called()
+        mock_actions.create_pull_request_comment.assert_not_called()
+        assert self._marker() is None
+
+    @patch(f"{CAP_EXHAUSTED_PATH}.scm_actions")
+    def test_skips_agentic_triage_run_without_user(
         self, mock_actions: MagicMock, _mock_cap: MagicMock
     ) -> None:
         self.seer_run.update(user_id=None)
@@ -158,7 +171,11 @@ class AssignUserForExhaustedCapTest(TestCase):
 
     @patch(f"{CAP_EXHAUSTED_PATH}.scm_actions")
     def test_skips_paused_run(self, mock_actions: MagicMock, _mock_cap: MagicMock) -> None:
-        pause_pr_iteration(run_id=RUN_ID, organization_id=self.organization.id)
+        pause_pr_iteration(
+            run_id=RUN_ID,
+            organization_id=self.organization.id,
+            reason=PauseReason.USER_STOP,
+        )
 
         with self.feature(FLAG), patch(f"{PAUSE_PATH}.metrics") as mock_metrics:
             assign_user_for_exhausted_cap(_event(), self._resolved())

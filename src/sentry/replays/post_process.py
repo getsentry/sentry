@@ -5,9 +5,9 @@ from collections.abc import Generator, Iterable, Iterator, MutableMapping
 from itertools import zip_longest
 from typing import Any, TypedDict
 
-from drf_spectacular.utils import extend_schema_serializer
+from sentry_sdk import traces
 
-from sentry.utils.tracing import trace
+from sentry.apidocs.omissions import sentry_schema_serializer
 
 
 class DeviceResponseType(TypedDict, total=False):
@@ -54,7 +54,12 @@ class OTAUpdatesResponseType(TypedDict, total=False):
     update_id: str | None
 
 
-@extend_schema_serializer(exclude_fields=["info_ids", "warning_ids"])
+@sentry_schema_serializer(
+    omit_from_public_schema={
+        "info_ids": "Internal breadcrumb index used by the replay UI.",
+        "warning_ids": "Internal breadcrumb index used by the replay UI.",
+    }
+)
 class ReplayDetailsResponse(TypedDict, total=False):
     id: str
     project_id: str
@@ -92,7 +97,7 @@ class ReplayDetailsResponse(TypedDict, total=False):
     has_viewed: bool
 
 
-@trace
+@traces.trace
 def process_raw_response(
     response: list[dict[str, Any]], fields: list[str]
 ) -> list[ReplayDetailsResponse]:
@@ -279,6 +284,7 @@ def _archived_row(replay_id: str, project_id: int) -> ReplayDetailsResponse:
         "dist": None,
         "platform": None,
         "releases": [],
+        "replay_type": "session",
         "clicks": [],
         "has_viewed": False,
     }

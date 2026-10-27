@@ -100,15 +100,6 @@ describe('Bars', () => {
       expect(onHighlightMock).toHaveBeenCalledWith({category: 'Firefox', value: 890}, 1);
     });
 
-    it('calls onDownplay handler with correct item', () => {
-      const onDownplayMock = jest.fn();
-      const bar = new Bars(sampleCountCategoricalData, {onDownplay: onDownplayMock});
-
-      bar.onDownplay(2);
-
-      expect(onDownplayMock).toHaveBeenCalledWith({category: 'Safari', value: 650}, 2);
-    });
-
     it('does not throw when handler not provided', () => {
       const bar = new Bars(sampleCountCategoricalData);
 

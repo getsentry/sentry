@@ -8,23 +8,24 @@ import {useKeyboard} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconSearch} from '@sentry/icons/search';
 import {useDebouncedValue} from '@tanstack/react-pacer';
-import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {Tag} from '@sentry/scraps/badge';
 import {LeadWrap, ListWrap} from '@sentry/scraps/compactSelect';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {MenuListItem} from '@sentry/scraps/menuListItem';
+import {ListItem} from '@sentry/scraps/menu';
+import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
+import {useOverlay} from '@sentry/scraps/useOverlay';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Overlay, PositionWrapper} from 'sentry/components/overlay';
+import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import {IconCheckmark, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {useOverlay} from 'sentry/utils/useOverlay';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {NONE_UNIT} from 'sentry/views/explore/metrics/constants';
@@ -396,7 +397,6 @@ export function MetricSelector({
   function handleOverlayOpenChange(open: boolean) {
     if (open) {
       nextFrameCallback(() => {
-        updateOverlay?.();
         if (scrollElementRef.current) {
           scrollElementRef.current.scrollTop = 0;
         }
@@ -474,7 +474,6 @@ export function MetricSelector({
     overlayProps,
     arrowProps: overlayArrowProps,
     triggerRef,
-    update: updateOverlay,
   } = useOverlay({
     type: 'listbox',
     position: 'bottom-start',
@@ -514,7 +513,7 @@ export function MetricSelector({
   );
   const focusedKey = comboBoxState.selectionManager.focusedKey;
 
-  const virtualizer = useVirtualizer({
+  const {totalSize, virtualItems, virtualizer} = useVirtualRows({
     count: collectionItems.length,
     getScrollElement: () => scrollElementRef.current,
     estimateSize: () => METRIC_SELECTOR_OPTION_HEIGHT,
@@ -589,8 +588,6 @@ export function MetricSelector({
     [updateSidePanelAnchorOffset]
   );
 
-  const virtualItems = virtualizer.getVirtualItems();
-
   // Fall back to rendering all items when the virtualizer can't measure
   // the scroll container (e.g. in tests where the DOM has no layout).
   const itemsToRender =
@@ -606,7 +603,7 @@ export function MetricSelector({
         }));
 
   const sidePanelAnchorPosition =
-    sidePanelAnchorOffset === null ? '0px' : `${sidePanelAnchorOffset}px`;
+    sidePanelAnchorOffset === null ? '0px' : (`${sidePanelAnchorOffset}px` as const);
   const hasSelectedMetric =
     Boolean(highlightedOption) ||
     (!focusedOption && Boolean(traceMetric.name) && !fieldOption?.isSelected);
@@ -712,7 +709,7 @@ export function MetricSelector({
                           height={0}
                           overflow="hidden"
                         >
-                          <MenuListItem
+                          <ListItem
                             as="div"
                             size="md"
                             label={longestOption.label}
@@ -737,7 +734,7 @@ export function MetricSelector({
                         <Container
                           width="100%"
                           position="relative"
-                          style={{height: `${virtualizer.getTotalSize()}px`}}
+                          style={{height: `${totalSize}px`}}
                         >
                           <Container
                             width="100%"

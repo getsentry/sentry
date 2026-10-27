@@ -374,6 +374,19 @@ function ngettext(singular: string, plural: string, ...args: FormatArg[]): strin
 }
 
 /**
+ * Translates a string that is disambiguated by a context, using `msgctxt` in
+ * the PO catalog. Reach for this only when the same source string needs more
+ * than one translation — for example the extra-short duration labels, where
+ * "m" means both minutes and months, and would otherwise share a single msgid
+ * with every other "m" in the codebase.
+ */
+function pgettext(context: string, string: string): string {
+  const val: string = getClient().pgettext(context, string);
+  staticTranslations.add(val);
+  return mark(val);
+}
+
+/**
  * special form of gettext where you can render nested react components in
  * template strings.
  *
@@ -394,20 +407,16 @@ function gettextComponentTemplate(
   components: ComponentMap
 ): React.JSX.Element {
   const parsedTemplate = parseComponentTemplate(getClient().gettext(template));
-  return mark(renderTemplate(parsedTemplate, components));
-}
-
-/**
- * Helper over `gettextComponentTemplate` with a pre-populated `<code />` component that
- * is commonly used.
- */
-export function tctCode(template: string, components: ComponentMap = {}) {
-  return gettextComponentTemplate(template, {code: <code />, ...components});
+  return mark(
+    renderTemplate(parsedTemplate, {
+      ...components,
+    })
+  );
 }
 
 /**
  * Translates a string without formatting support. Used for translating
- * pre-extracted strings like attribute descriptions from @sentry/conventions.
+ * pre-extracted strings like attribute descriptions from @sentry/conventions/attributes/search.
  * This function is intentionally not included in the gettext extraction script.
  */
 function gettextDescription(string: string): string {
@@ -424,4 +433,5 @@ export {
   gettextComponentTemplate as tct,
   ngettext as tn,
   gettextDescription as td,
+  pgettext,
 };

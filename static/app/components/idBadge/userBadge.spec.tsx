@@ -1,12 +1,40 @@
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import type {AvatarUser} from 'sentry/types/user';
 
 describe('UserBadge', () => {
   const user: AvatarUser = UserFixture();
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it.each([false, true])(
+    'reveals the displayed email only when truncated (overflowing: %s)',
+    async overflowing => {
+      jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(100);
+      jest
+        .spyOn(Element.prototype, 'scrollWidth', 'get')
+        .mockReturnValue(overflowing ? 200 : 50);
+
+      const displayEmail = 'long-display-email@example.com';
+      render(<UserBadge user={user} displayEmail={displayEmail} />);
+
+      const email = screen.getByText(displayEmail);
+      await userEvent.hover(email);
+
+      if (overflowing) {
+        await waitFor(() => expect(email).toHaveAccessibleDescription(displayEmail));
+        expect(email).toHaveAttribute('tabindex', '0');
+      } else {
+        expect(email).not.toHaveAttribute('aria-describedby');
+        expect(email).not.toHaveAttribute('tabindex');
+      }
+    }
+  );
 
   it('renders with no link when user is supplied', () => {
     render(<UserBadge user={user} />);

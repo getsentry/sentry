@@ -8,14 +8,17 @@ from sentry.deletions.base import (
 )
 from sentry.investigations.models import (
     Investigation,
+    InvestigationActionRequest,
     InvestigationBlock,
     InvestigationBlockDependency,
     InvestigationBlockExecution,
     InvestigationBlockExecutionProject,
     InvestigationBlockParameter,
+    InvestigationComment,
     InvestigationFavoriteUser,
     InvestigationParameter,
     InvestigationProject,
+    InvestigationSeen,
 )
 
 
@@ -35,6 +38,7 @@ class InvestigationBlockExecutionDeletionTask(ModelDeletionTask[InvestigationBlo
 class InvestigationBlockDeletionTask(ModelDeletionTask[InvestigationBlock]):
     def get_child_relations(self, instance: InvestigationBlock) -> list[BaseRelation]:
         return [
+            ModelRelation(InvestigationComment, {"block_id": instance.id}, BulkModelDeletionTask),
             ModelRelation(
                 InvestigationBlockDependency, {"block_id": instance.id}, BulkModelDeletionTask
             ),
@@ -58,6 +62,17 @@ class InvestigationDeletionTask(ModelDeletionTask[Investigation]):
             ),
             ModelRelation(
                 InvestigationFavoriteUser, {"investigation_id": instance.id}, BulkModelDeletionTask
+            ),
+            ModelRelation(
+                InvestigationSeen, {"investigation_id": instance.id}, BulkModelDeletionTask
+            ),
+            ModelRelation(
+                InvestigationComment, {"investigation_id": instance.id}, BulkModelDeletionTask
+            ),
+            ModelRelation(
+                InvestigationActionRequest,
+                {"investigation_id": instance.id},
+                BulkModelDeletionTask,
             ),
             ModelRelation(InvestigationBlock, {"investigation_id": instance.id}),
             ModelRelation(

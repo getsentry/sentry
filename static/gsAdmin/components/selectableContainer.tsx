@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {createContext, useContext, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -57,6 +57,28 @@ type Props = {
   panelTitle?: string;
 };
 
+const SelectableContainerContext = createContext<{
+  selector: React.ReactNode;
+  panelTitle?: string;
+}>({selector: null});
+
+function InjectedPanel({children, extraActions}: SelectableContainerPanelProps) {
+  const {panelTitle, selector} = useContext(SelectableContainerContext);
+
+  return (
+    <Panel>
+      <PanelHeader hasButtons>
+        <div>{panelTitle}</div>
+        <Actions>
+          {extraActions}
+          {selector}
+        </Actions>
+      </PanelHeader>
+      {children}
+    </Panel>
+  );
+}
+
 export function SelectableContainer({dropdownPrefix, sections, panelTitle}: Props) {
   const [sectionKey, setSection] = useState(sections[0]?.key ?? '');
 
@@ -77,24 +99,11 @@ export function SelectableContainer({dropdownPrefix, sections, panelTitle}: Prop
     />
   );
 
-  // Setup a custom Panel component that renders with the selcetor at the top
-  // right corner
-  function InjectedPanel({children, extraActions}: SelectableContainerPanelProps) {
-    return (
-      <Panel>
-        <PanelHeader hasButtons>
-          <div>{panelTitle}</div>
-          <Actions>
-            {extraActions}
-            {selector}
-          </Actions>
-        </PanelHeader>
-        {children}
-      </Panel>
-    );
-  }
-
-  return section.content({selector, Panel: InjectedPanel});
+  return (
+    <SelectableContainerContext value={{panelTitle, selector}}>
+      {section.content({selector, Panel: InjectedPanel})}
+    </SelectableContainerContext>
+  );
 }
 
 const Actions = styled('div')`

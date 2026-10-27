@@ -12,9 +12,14 @@ from sentry import audit_log
 from sentry.analytics.events.cron_monitor_created import CronMonitorCreated, FirstCronMonitorCreated
 from sentry.constants import ObjectStatus
 from sentry.models.projectteam import ProjectTeam
-from sentry.models.rule import Rule, RuleSource
-from sentry.monitors.models import Monitor, MonitorStatus, ScheduleType, is_monitor_muted
-from sentry.monitors.utils import get_detector_for_monitor
+from sentry.monitors.models import (
+    Monitor,
+    MonitorStatus,
+    ScheduleType,
+    get_detector_for_monitor,
+    is_monitor_muted,
+)
+from sentry.monitors.utils import ensure_cron_detector
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import MonitorTestCase
@@ -22,6 +27,7 @@ from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.outbox import outbox_runner
 from sentry.utils.outcomes import Outcome
 from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
+from sentry.workflow_engine.models import Detector
 
 
 class ListOrganizationMonitorsTest(MonitorTestCase):
@@ -582,39 +588,34 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             )
         ]
 
-    def test_simple_with_alert_rule(self) -> None:
-        from sentry.workflow_engine.models import AlertRuleWorkflow, DetectorWorkflow, Workflow
-
+    @patch("sentry.monitors.validators.logger")
+    def test_alert_rule_disabled(self, mock_logger: MagicMock) -> None:
         data = {
             "project": self.project.slug,
             "name": "My Monitor",
             "type": "cron_job",
             "config": {"schedule_type": "crontab", "schedule": "@daily"},
-            "alert_rule": {
+            "alertRule": {
                 "environment": self.environment.name,
                 "targets": [{"targetIdentifier": self.user.id, "targetType": "Member"}],
             },
         }
-        response = self.get_success_response(self.organization.slug, **data)
 
-        monitor = Monitor.objects.get(slug=response.data["slug"])
-        alert_rule_id = monitor.config["alert_rule_id"]
-        rule = Rule.objects.get(
-            project_id=monitor.project_id, id=alert_rule_id, source=RuleSource.CRON_MONITOR
+        response = self.get_error_response(self.organization.slug, status_code=400, **data)
+
+        assert response.data["alertRule"] == [
+            "Cron monitor alert rules are disabled for this organization."
+        ]
+        mock_logger.info.assert_called_once_with(
+            "monitors.validator.alert_rule_rejected",
+            extra={
+                "organization_id": self.organization.id,
+                "operation": "create",
+                "endpoint": self.endpoint,
+                "ui_request": True,
+            },
         )
-        assert rule is not None
-        assert rule.environment_id == self.environment.id
-
-        # Verify the detector was created and linked to the workflow
-        detector = get_detector_for_monitor(monitor)
-        assert detector is not None
-
-        # Verify the workflow was created for the rule
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(rule_id=rule.id)
-        workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
-
-        # Verify the detector is linked to the workflow
-        assert DetectorWorkflow.objects.filter(detector=detector, workflow=workflow).exists()
+        assert not Monitor.objects.filter(name="My Monitor").exists()
 
     def test_checkin_margin_zero(self) -> None:
         # Invalid checkin margin
@@ -729,6 +730,147 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         }
         resp = self.get_response(self.organization.slug, **data_member)
         assert resp.status_code == 403
+
+    def test_create_denied_without_projects(self) -> None:
+        self.organization.update_option("sentry:alerts_member_write", False)
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization, role="member", teams=[])
+        self.login_as(member)
+
+        self.get_error_response(
+            self.organization.slug,
+            project=self.project.slug,
+            name="No Project Access",
+            type="cron_job",
+            config={"schedule_type": "crontab", "schedule": "@daily"},
+            status_code=403,
+        )
+        assert not Monitor.objects.filter(organization_id=self.organization.id).exists()
+
+    def test_config_validation_precedes_write_permission(self) -> None:
+        self.organization.update_option("sentry:alerts_member_write", False)
+        member = self.create_user()
+        self.create_member(
+            user=member, organization=self.organization, role="member", teams=[self.team]
+        )
+        self.login_as(member)
+
+        response = self.get_error_response(
+            self.organization.slug,
+            project=self.project.slug,
+            name="Invalid Schedule",
+            config={"schedule_type": "crontab", "schedule": "invalid schedule"},
+            status_code=400,
+        )
+        assert response.data["config"]["schedule"] == ["Schedule is invalid"]
+        assert not Monitor.objects.filter(organization_id=self.organization.id).exists()
+
+    @override_settings(MAX_MONITORS_PER_ORG=0)
+    def test_monitor_limit_validation_precedes_write_permission(self) -> None:
+        self.organization.update_option("sentry:alerts_member_write", False)
+        member = self.create_user()
+        self.create_member(
+            user=member, organization=self.organization, role="member", teams=[self.team]
+        )
+        self.login_as(member)
+
+        response = self.get_error_response(
+            self.organization.slug,
+            project=self.project.slug,
+            name="Over Monitor Limit",
+            config={"schedule_type": "crontab", "schedule": "@daily"},
+            status_code=400,
+        )
+        assert response.data["nonFieldErrors"] == ["You may not exceed 0 monitors per organization"]
+        assert not Monitor.objects.filter(organization_id=self.organization.id).exists()
+
+    def test_create_requires_project(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug,
+            name="Missing Project",
+            config={"schedule_type": "crontab", "schedule": "@daily"},
+            status_code=400,
+        )
+        assert response.data["project"] == ["This field is required."]
+        assert not Monitor.objects.filter(organization_id=self.organization.id).exists()
+
+    def test_team_admin_can_create_with_mixed_project_access(self) -> None:
+        self.organization.update_option("sentry:alerts_member_write", False)
+        admin_team = self.create_team(organization=self.organization)
+        member_team = self.create_team(organization=self.organization)
+        admin_project = self.create_project(organization=self.organization, teams=[admin_team])
+        self.create_project(organization=self.organization, teams=[member_team])
+        member = self.create_user()
+        self.create_member(
+            user=member,
+            organization=self.organization,
+            role="member",
+            team_roles=[(admin_team, "admin"), (member_team, "contributor")],
+        )
+        self.login_as(member)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            project=admin_project.slug,
+            name="Mixed Project Access",
+            type="cron_job",
+            config={"schedule_type": "crontab", "schedule": "@daily"},
+            status_code=201,
+        )
+        monitor = Monitor.objects.get(slug=response.data["slug"])
+        assert monitor.project_id == admin_project.id
+
+    def test_team_admin_cannot_authorize_creation_with_query_project(self) -> None:
+        self.organization.update_option("sentry:alerts_member_write", False)
+        admin_team = self.create_team(organization=self.organization)
+        member_team = self.create_team(organization=self.organization)
+        admin_project = self.create_project(organization=self.organization, teams=[admin_team])
+        member_project = self.create_project(organization=self.organization, teams=[member_team])
+        member = self.create_user()
+        self.create_member(
+            user=member,
+            organization=self.organization,
+            role="member",
+            team_roles=[(admin_team, "admin"), (member_team, "contributor")],
+        )
+        self.login_as(member)
+
+        self.get_error_response(
+            self.organization.slug,
+            qs_params={"project": admin_project.id},
+            project=member_project.id,
+            name="Read Only Project",
+            type="cron_job",
+            config={"schedule_type": "crontab", "schedule": "@daily"},
+            status_code=403,
+        )
+        assert not Monitor.objects.filter(organization_id=self.organization.id).exists()
+
+    def test_team_admin_cannot_create_in_readable_nonmember_project(self) -> None:
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+        admin_team = self.create_team(organization=self.organization)
+        self.create_project(organization=self.organization, teams=[admin_team])
+        other_project = self.create_project(organization=self.organization)
+        member = self.create_user()
+        self.create_member(
+            user=member,
+            organization=self.organization,
+            role="member",
+            team_roles=[(admin_team, "admin")],
+        )
+        self.login_as(member)
+
+        self.get_error_response(
+            self.organization.slug,
+            project=other_project.slug,
+            name="Nonmember Project",
+            type="cron_job",
+            config={"schedule_type": "crontab", "schedule": "@daily"},
+            status_code=403,
+        )
+        assert not Monitor.objects.filter(organization_id=self.organization.id).exists()
 
     def test_owner_team_not_member_denied(self) -> None:
         """
@@ -922,6 +1064,8 @@ class BulkEditOrganizationMonitorTest(MonitorTestCase):
     def test_bulk_disable_enable(self) -> None:
         monitor_one = self._create_monitor(slug="monitor_one")
         monitor_two = self._create_monitor(slug="monitor_two")
+        ensure_cron_detector(monitor_one)
+        ensure_cron_detector(monitor_two)
         data = {
             "ids": [monitor_one.guid, monitor_two.guid],
             "status": "disabled",
@@ -933,6 +1077,8 @@ class BulkEditOrganizationMonitorTest(MonitorTestCase):
         monitor_two.refresh_from_db()
         assert monitor_one.status == ObjectStatus.DISABLED
         assert monitor_two.status == ObjectStatus.DISABLED
+        assert not Detector.objects.get(datasource__source_id=str(monitor_one.id)).enabled
+        assert not Detector.objects.get(datasource__source_id=str(monitor_two.id)).enabled
 
         data = {
             "ids": [monitor_one.guid, monitor_two.guid],
@@ -946,6 +1092,8 @@ class BulkEditOrganizationMonitorTest(MonitorTestCase):
         monitor_two.refresh_from_db()
         assert monitor_one.status == ObjectStatus.ACTIVE
         assert monitor_two.status == ObjectStatus.ACTIVE
+        assert Detector.objects.get(datasource__source_id=str(monitor_one.id)).enabled
+        assert Detector.objects.get(datasource__source_id=str(monitor_two.id)).enabled
 
     @patch("sentry.quotas.backend.check_assign_seats")
     def test_enable_no_quota(self, check_assign_seats: MagicMock) -> None:

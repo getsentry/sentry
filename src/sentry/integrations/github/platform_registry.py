@@ -349,20 +349,13 @@ FRAMEWORKS: list[FrameworkDef] = [
         ],
     },
     {
-        "platform": "node-cloudflare-pages",
-        "sort": 50,
-        "base_platform": "javascript",
-        "every": [
-            {"path": "wrangler.toml", "match_content": r"pages_build_output_dir"},
-        ],
-        "supersedes": ["node-cloudflare-workers"],
-    },
-    {
         "platform": "node-cloudflare-workers",
         "sort": 50,
         "base_platform": "javascript",
         "some": [
             {"path": "wrangler.toml"},
+            {"path": "wrangler.json"},
+            {"path": "wrangler.jsonc"},
             {"match_package": "wrangler"},
         ],
     },

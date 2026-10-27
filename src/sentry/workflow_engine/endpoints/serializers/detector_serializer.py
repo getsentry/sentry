@@ -4,12 +4,12 @@ from datetime import datetime
 from typing import Any, TypedDict
 
 from django.db.models import OuterRef, Subquery
-from drf_spectacular.utils import extend_schema_serializer
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.api.serializers.models.group import SimpleGroupSerializer
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
+from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.group import Group
 from sentry.models.options.project_option import ProjectOption
@@ -33,7 +33,12 @@ class DetectorSerializerResponseOptional(TypedDict, total=False):
     description: str | None
 
 
-@extend_schema_serializer(exclude_fields=["alertRuleId", "ruleId"])
+@sentry_schema_serializer(
+    omit_from_public_schema={
+        "alertRuleId": "Legacy identifier retained during the alert-rule to detector migration.",
+        "ruleId": "Legacy identifier retained during the alert-rule to detector migration.",
+    }
+)
 class DetectorSerializerResponse(DetectorSerializerResponseOptional):
     id: str
     projectId: str | None

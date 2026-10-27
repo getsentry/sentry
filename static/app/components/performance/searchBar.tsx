@@ -27,9 +27,7 @@ export type SearchBarProps = {
   onSearch: (query: string) => void;
   organization: Organization;
   query: string;
-  additionalConditions?: MutableSearch;
   className?: string;
-  placeholder?: string;
 };
 
 export function SearchBar(props: SearchBarProps) {
@@ -39,8 +37,6 @@ export function SearchBar(props: SearchBarProps) {
     onSearch,
     query: searchQuery,
     className,
-    placeholder,
-    additionalConditions,
   } = props;
 
   const navigate = useNavigate();
@@ -184,7 +180,7 @@ export function SearchBar(props: SearchBarProps) {
         async query => {
           try {
             setLoading(true);
-            const conditions = additionalConditions?.copy() ?? new MutableSearch('');
+            const conditions = new MutableSearch('');
             conditions.addFilterValues(
               'transaction',
               [wrapQueryInWildcards(query)],
@@ -240,6 +236,7 @@ export function SearchBar(props: SearchBarProps) {
             setSearchResults([parsedResults]);
           } catch (_) {
             throw new Error('Unable to fetch event field values');
+            // oxlint-disable-next-line react/todo
           } finally {
             setLoading(false);
           }
@@ -247,7 +244,7 @@ export function SearchBar(props: SearchBarProps) {
         DEFAULT_DEBOUNCE_DURATION,
         {leading: true}
       ),
-    [api, url, eventView.statsPeriod, eventView.project, additionalConditions]
+    [api, url, eventView.statsPeriod, eventView.project]
   );
 
   const handleSearchChange = useCallback(
@@ -286,7 +283,7 @@ export function SearchBar(props: SearchBarProps) {
       ref={containerRef}
     >
       <BaseSearchBar
-        placeholder={placeholder ?? t('Search Transactions')}
+        placeholder={t('Search Transactions')}
         onChange={handleSearchChange}
         onKeyDown={handleKeyDown}
         query={searchString}

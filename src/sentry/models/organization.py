@@ -28,23 +28,21 @@ from sentry.db.models.fields.slug import SentryOrgSlugField
 from sentry.db.models.indexes import IndexWithPostgresNameLimits
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.db.models.utils import slugify_instance
+from sentry.db.models.utils import save_with_unique_slug, slugify_instance
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.hybridcloud.outbox.base import ReplicatedCellModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
-from sentry.locks import locks
 from sentry.notifications.services import notifications_service
 from sentry.organizations.absolute_url import (
     api_absolute_url,
     has_customer_domain,
     organization_absolute_url,
 )
-from sentry.roles.manager import Role
+from sentry.roles.manager import OrganizationRole, Role, RoleLevel
 from sentry.users.services.user import RpcUser, RpcUserProfile
 from sentry.users.services.user.service import user_service
 from sentry.utils.http import is_using_customer_domain
-from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import generate_snowflake_id, save_with_snowflake_id, snowflake_id_model
 
 if TYPE_CHECKING:
@@ -243,25 +241,38 @@ class Organization(ReplicatedCellModel):
     snowflake_redis_key = "organization_snowflake_key"
 
     def save(self, *args, **kwargs):
+        save_callback = lambda: super(Organization, self).save(*args, **kwargs)
         slugify_target = None
         if not self.slug:
             slugify_target = self.name
         elif not self.id:
             slugify_target = self.slug
-        if slugify_target is not None:
-            lock = locks.get("slug:organization", duration=5, name="organization_slug")
-            with TimedRetryPolicy(10)(lock.acquire):
-                slugify_target = slugify_target.lower().replace("_", "-").strip("-")
-                slugify_instance(self, slugify_target, reserved=RESERVED_ORGANIZATION_SLUGS)
+        if slugify_target is None:
+            self._save_organization(save_callback)
+            return
 
+        target = slugify_target.lower().replace("_", "-").strip("-")
+        pick_slug = lambda: slugify_instance(self, target, reserved=RESERVED_ORGANIZATION_SLUGS)
+
+        if self.slug:
+            # Explicit slugs shouldn't be modified or retried if there's a conflict.
+            pick_slug()
+            self._save_organization(save_callback)
+            return
+
+        self._save_organization(
+            lambda: save_with_unique_slug(self, pick_slug=pick_slug, save_callback=save_callback)
+        )
+
+    def _save_organization(self, save_callback: Callable[[], object]) -> None:
         if settings.SENTRY_USE_SNOWFLAKE:
             save_with_snowflake_id(
                 instance=self,
                 snowflake_redis_key=self.snowflake_redis_key,
-                save_callback=lambda: super(Organization, self).save(*args, **kwargs),
+                save_callback=save_callback,
             )
         else:
-            super().save(*args, **kwargs)
+            save_callback()
 
     @classmethod
     def reserve_snowflake_id(cls):
@@ -524,14 +535,40 @@ class Organization(ReplicatedCellModel):
             fragment=fragment,
         )
 
+    def _has_granular_scopes(self) -> bool:
+        from sentry import features
+
+        return features.has("organizations:granular-permission-scopes", self)
+
+    def get_roles(self) -> RoleLevel[OrganizationRole]:
+        """
+        Return the organization roles that apply to this organization, which
+        grant granular scopes once the feature flag is enabled.
+        """
+        manager = roles.granular_manager if self._has_granular_scopes() else roles.default_manager
+        return manager.organization_roles
+
+    def get_role_scopes(self, role: Role) -> frozenset[str]:
+        """
+        Return the scopes a role grants in this organization, before any
+        organization options are applied.
+        """
+        if isinstance(role, OrganizationRole) and self._has_granular_scopes():
+            try:
+                return roles.granular_manager.get(role.id).scopes
+            except KeyError:
+                pass
+        return role.scopes
+
     def get_scopes(self, role: Role) -> frozenset[str]:
         """
         Note that scopes for team-roles are filtered through this method too.
         """
-        if bool(NON_MEMBER_SCOPES & role.scopes):
-            return role.scopes
+        role_scopes = self.get_role_scopes(role)
+        if bool(NON_MEMBER_SCOPES & role_scopes):
+            return role_scopes
 
-        scopes = set(role.scopes)
+        scopes = set(role_scopes)
         if not self.get_option("sentry:events_member_admin", EVENTS_MEMBER_ADMIN_DEFAULT):
             scopes.discard("event:admin")
         if not self.get_option("sentry:alerts_member_write", ALERTS_MEMBER_WRITE_DEFAULT):

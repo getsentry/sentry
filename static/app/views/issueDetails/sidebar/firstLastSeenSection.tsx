@@ -15,7 +15,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Release} from 'sentry/types/release';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {orgHasIssueInbox} from 'sentry/utils/seer/orgHasIssueInbox';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {issueFirstLastReleaseQueryOptions} from 'sentry/views/issueDetails/issueFirstLastReleaseQueryOptions';
@@ -28,7 +27,7 @@ function useFetchAllEnvsGroupData(organization: Organization, group: Group) {
       organizationSlug: organization.slug,
       groupId: group.id,
       environments: [],
-      expandDerivedData: orgHasIssueInbox(organization),
+      expandDerivedData: organization.features.includes('issue-inbox'),
     }),
     gcTime: 30_000,
   });
@@ -137,7 +136,7 @@ function ReleaseText({
           {t('in release')}{' '}
         </Text>
       </Container>
-      <ReleaseVersionWrapper>
+      <Flex as="span" align="center" minWidth="0" maxWidth="100%" overflow="hidden">
         <VersionHoverCard
           organization={organization}
           projectSlug={project.slug}
@@ -145,7 +144,7 @@ function ReleaseText({
         >
           <ReleaseVersion version={release.version} projectId={project.id} truncate />
         </VersionHoverCard>
-      </ReleaseVersionWrapper>
+      </Flex>
     </Grid>
   );
 }
@@ -157,14 +156,6 @@ function ReleaseTextPlaceholder() {
     </Container>
   );
 }
-
-const ReleaseVersionWrapper = styled('span')`
-  display: flex;
-  align-items: center;
-  min-width: 0;
-  max-width: 100%;
-  overflow: hidden;
-`;
 
 const ReleaseVersion = styled(Version)`
   display: block;

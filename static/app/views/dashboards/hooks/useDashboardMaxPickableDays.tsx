@@ -17,7 +17,7 @@ function getDataCategoriesFromWidgets(
   const categories = new Set<DataCategory>();
 
   for (const widget of widgets) {
-    const widgetType = widget.widgetType ?? WidgetType.DISCOVER;
+    const widgetType = widget.widgetType ?? WidgetType.ERRORS;
 
     switch (widgetType) {
       case WidgetType.SPANS:
@@ -33,7 +33,6 @@ function getDataCategoriesFromWidgets(
         categories.add(DataCategory.LOG_ITEM);
         break;
       case WidgetType.ERRORS:
-      case WidgetType.DISCOVER:
       case WidgetType.ISSUE:
       case WidgetType.RELEASE:
       case WidgetType.METRICS:

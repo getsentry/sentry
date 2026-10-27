@@ -1,6 +1,7 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconCode} from '@sentry/icons/code';
 
 import {Button, LinkButton, type LinkButtonProps} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -9,7 +10,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {CopyFrameLink} from 'sentry/components/events/interfaces/frame/copyFrameLink';
 import {hasFileExtension} from 'sentry/components/events/interfaces/frame/utils';
-import {IconCode} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, Frame} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -66,7 +66,7 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
   );
   const isQueryEnabled = hasGithubSourceLink
     ? false
-    : shouldStartQuery && validFilePath && frame.inApp;
+    : shouldStartQuery && validFilePath && frame.inApp && !!project;
 
   const {
     data: match,
@@ -289,7 +289,7 @@ function SetupCodeMappingButton({
 
   return (
     <Fragment>
-      <Container display={{'2xs': 'none', md: 'contents'}}>
+      <Container display={{zero: 'none', '2xl': 'contents'}}>
         <Button
           size={DEFAULT_BUTTON_SIZE}
           variant="transparent"
@@ -299,7 +299,7 @@ function SetupCodeMappingButton({
           {label}
         </Button>
       </Container>
-      <Container display={{'2xs': 'contents', md: 'none'}}>
+      <Container display={{zero: 'contents', '2xl': 'none'}}>
         <Button
           size={DEFAULT_BUTTON_SIZE}
           variant="transparent"

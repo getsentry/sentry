@@ -1,4 +1,7 @@
 import os
+from collections.abc import Iterator
+from contextlib import contextmanager
+from contextvars import ContextVar
 
 from click import echo
 from django.conf import settings
@@ -27,6 +30,19 @@ SELECT setval('sentry_project_id_seq', (
     FROM sentry_project))
 """
 DEFAULT_SENTRY_PROJECT_ID = 1
+
+_default_project_key_creation_enabled = ContextVar(
+    "default_project_key_creation_enabled", default=True
+)
+
+
+@contextmanager
+def disable_default_project_key_creation() -> Iterator[None]:
+    token = _default_project_key_creation_enabled.set(False)
+    try:
+        yield
+    finally:
+        _default_project_key_creation_enabled.reset(token)
 
 
 def create_default_projects(**kwds):
@@ -113,6 +129,9 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
 
 
 def create_keys_for_project(instance, created, app=None, **kwargs):
+    if not _default_project_key_creation_enabled.get():
+        return
+
     if app and app.__name__ != "sentry.models":
         return
 

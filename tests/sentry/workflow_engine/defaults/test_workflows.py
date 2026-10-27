@@ -1,3 +1,5 @@
+import pytest
+
 from sentry.notifications.types import FallthroughChoiceType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
@@ -199,6 +201,14 @@ class TestEnsureDefaultWorkflows(TestCase):
         assert isinstance(workflows, list)
         assert all(isinstance(w, Workflow) for w in workflows)
 
+    def test_project_created_receiver_connects_issue_stream_detector(self) -> None:
+        project = self.create_project(create_default_detectors=False, fire_project_created=True)
+
+        connection = DetectorWorkflow.objects.get(
+            workflow__organization=project.organization, detector__project=project
+        )
+        assert connection.detector.type == IssueStreamGroupType.slug
+
 
 class TestCreateAndConnectPullRequestWorkflow(TestCase):
     def setUp(self) -> None:
@@ -314,6 +324,13 @@ class TestEnsurePullRequestWorkflow(TestCase):
         second = ensure_pull_request_workflow(self.organization, random_detector)
 
         assert first.id != second.id
+
+    def test_duplicate_workflows_raises(self) -> None:
+        ensure_pull_request_workflow(self.organization, self.all_projects_detector)
+        create_and_connect_pull_request_workflow(self.organization, self.all_projects_detector)
+
+        with pytest.raises(Workflow.MultipleObjectsReturned):
+            ensure_pull_request_workflow(self.organization, self.all_projects_detector)
 
 
 class TestEnsureDefaultOrganizationWorkflows(TestCase):

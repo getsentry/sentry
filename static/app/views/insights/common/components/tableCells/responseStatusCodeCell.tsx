@@ -14,7 +14,6 @@ export function ResponseStatusCodeCell({code}: Props) {
   return (
     <Tooltip
       disabled={!code}
-      isHoverable
       title={tct('Status Code [code] “[explanation]”', {
         code,
         explanation,

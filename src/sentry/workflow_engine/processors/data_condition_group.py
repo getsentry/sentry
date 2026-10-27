@@ -1,8 +1,10 @@
 import logging
+from datetime import timedelta
 from typing import TypeVar
 
+from sentry_sdk import traces
+
 from sentry.utils.function_cache import cache_func_for_models
-from sentry.utils.tracing import trace
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup
 from sentry.workflow_engine.models.data_condition import is_slow_condition
 from sentry.workflow_engine.processors.data_condition import split_conditions_by_speed
@@ -29,6 +31,7 @@ def _group_id_from_condition(condition: DataCondition) -> tuple[int]:
 
 @cache_func_for_models(
     [(DataCondition, _group_id_from_condition)],
+    cache_ttl=timedelta(hours=4),
     recalculate=False,
 )
 def get_data_conditions_for_group(data_condition_group_id: int) -> list[DataCondition]:
@@ -45,7 +48,7 @@ def _get_data_conditions_for_group_shim(data_condition_group_id: int) -> list[Da
     return get_data_conditions_for_group(data_condition_group_id)
 
 
-@trace
+@traces.trace
 def get_slow_conditions_for_groups(
     data_condition_group_ids: list[int],
 ) -> dict[int, list[DataCondition]]:

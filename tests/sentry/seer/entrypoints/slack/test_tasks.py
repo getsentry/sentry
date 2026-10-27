@@ -1,5 +1,7 @@
 from unittest.mock import ANY, MagicMock, patch
 
+from django.test import override_settings
+
 from sentry.integrations.messaging.metrics import SeerSlackHaltReason
 from sentry.seer.entrypoints.slack.analytics import (
     SlackSeerAgentConversation,
@@ -39,7 +41,6 @@ TASK_KWARGS = {
 
 
 _SEER_SLACK_FEATURES = {
-    "organizations:gen-ai-features": True,
     "organizations:seer-explorer": True,
 }
 
@@ -803,6 +804,7 @@ REACTION_TASK_KWARGS = {
 }
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class ProcessReactionForSlackTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -928,13 +930,13 @@ class ProcessReactionForSlackTest(TestCase):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.analytics.record")
+    @override_settings(SENTRY_SELF_HOSTED=True)
     def test_no_agent_access_records_halt(
         self,
         mock_record,
         mock_lifecycle_record,
     ):
-        with self.feature({"organizations:gen-ai-features": False}):
-            process_reaction_for_slack(**self.defaults)
+        process_reaction_for_slack(**self.defaults)
 
         assert_not_analytics_event(mock_record, SlackSeerAgentFeedback)
         assert_halt_metric(mock_lifecycle_record, ProcessReactionHaltReason.NO_AGENT_ACCESS)

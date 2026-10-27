@@ -1,14 +1,19 @@
 import {memo, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconEdit} from '@sentry/icons/edit';
+import {IconRefresh} from '@sentry/icons/refresh';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {makeDroppedDataQueryKeyPrefix} from 'sentry/components/droppedData/useDroppedData';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
@@ -19,15 +24,17 @@ import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilderAI,
 } from 'sentry/components/searchQueryBuilder/context';
-import {IconChevron, IconEdit, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {HOUR} from 'sentry/utils/formatters';
+import {makeEventsTimeSeriesQueryKeyPrefix} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {ExploreQuotaExceededAlert} from 'sentry/views/explore/components/exploreQuotaExceededAlert';
+import {ExploreShareButton} from 'sentry/views/explore/components/exploreShareButton';
 import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
 import {
   ExploreBodyContent,
@@ -53,6 +60,7 @@ import {
 } from 'sentry/views/explore/logs/constants';
 import {LogsAggregateExportModalButton} from 'sentry/views/explore/logs/exports/logsAggregateExportModalButton';
 import {LogsDirectExportModalButton} from 'sentry/views/explore/logs/exports/logsDirectExportModalButton';
+import {getGroupBysForAggregateMode} from 'sentry/views/explore/logs/getGroupBysForAggregateMode';
 import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
 import {LogsDownSamplingAlert} from 'sentry/views/explore/logs/logsDownsamplingAlert';
 import {LogsGraph} from 'sentry/views/explore/logs/logsGraph';
@@ -81,12 +89,14 @@ import {calculateAverageLogsPerSecond} from 'sentry/views/explore/logs/utils';
 import {
   useQueryParamsAggregateSortBys,
   useQueryParamsFields,
+  useQueryParamsHasTransformations,
   useQueryParamsGroupBys,
   useQueryParamsMode,
   useQueryParamsSearch,
   useQueryParamsSortBys,
   useQueryParamsTopEventsLimit,
   useQueryParamsVisualizes,
+  useSetQueryParamsGroupBys,
   useSetQueryParamsMode,
 } from 'sentry/views/explore/queryParams/context';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
@@ -98,9 +108,6 @@ import {
   toLLMContextProjectFields,
   useSelectedProjectsForLLMContext,
 } from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
-
-// eslint-disable-next-line boundaries/dependencies
-import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
 type LogsTabProps = {
   datePageFilterProps: DatePageFilterProps;
@@ -134,6 +141,7 @@ const LogsSearchSection = memo(function LogsSearchSectionImpl({
   const visualizes = useQueryParamsVisualizes();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
 
+  const hasTransformations = useQueryParamsHasTransformations();
   const saveAsItems = useSaveAsItems({
     visualizes,
     groupBys,
@@ -169,15 +177,8 @@ const LogsSearchSection = memo(function LogsSearchSectionImpl({
       validatedSearchQueryData,
     });
 
-  const hasTranslateEndpoint = organization.features.includes(
-    'gen-ai-search-agent-translate'
-  );
-
   return (
-    <SearchQueryBuilderProvider
-      enableAISearch={hasTranslateEndpoint}
-      {...searchQueryBuilderProviderProps}
-    >
+    <SearchQueryBuilderProvider enableAISearch {...searchQueryBuilderProviderProps}>
       <ExploreBodySearch>
         <Layout.Main width="full">
           <Grid
@@ -227,20 +228,25 @@ const LogsSearchSection = memo(function LogsSearchSectionImpl({
                   trigger={triggerProps => (
                     <Container width={{zero: '100%', sm: 'auto'}}>
                       {buttonProps => (
-                        <Button
+                        <OverlayTrigger.Button
+                          showChevron={false}
                           {...buttonProps}
                           {...triggerProps}
                           variant="primary"
                           aria-label={t('Save as')}
-                          onClick={e => {
-                            e.stopPropagation();
-                            e.preventDefault();
-
-                            triggerProps.onClick?.(e);
-                          }}
+                          disabled={hasTransformations}
+                          tooltipProps={
+                            hasTransformations
+                              ? {
+                                  title: t(
+                                    'Queries with transformations cannot be saved yet.'
+                                  ),
+                                }
+                              : undefined
+                          }
                         >
                           {t('Save as')}
-                        </Button>
+                        </OverlayTrigger.Button>
                       )}
                     </Container>
                   )}
@@ -268,6 +274,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
   const sortBys = useQueryParamsSortBys();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
   const setMode = useSetQueryParamsMode();
+  const setGroupBys = useSetQueryParamsGroupBys();
   const tableData = useLogsPageDataQueryResult();
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const searchQuery = useQueryParamsSearch().formatString();
@@ -301,6 +308,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
 
   useEffect(() => {
     if (autorefreshEnabled) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setTimeseriesIngestDelay(getMaxIngestDelayTimestamp());
     }
   }, [autorefreshEnabled]);
@@ -350,7 +358,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
     aggregateSortBys,
   });
 
-  const refreshTable = async () => {
+  const refreshData = async () => {
     setTimeseriesIngestDelay(getMaxIngestDelayTimestamp());
     queryClient.setQueryData(tableData.queryKey, data => {
       if (data?.pages) {
@@ -362,7 +370,17 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
       }
       return data;
     });
-    await tableData.refetch();
+    await Promise.all([
+      tableData.refetch(),
+      queryClient.refetchQueries({
+        queryKey: makeEventsTimeSeriesQueryKeyPrefix(organization.slug),
+        type: 'active',
+      }),
+      queryClient.refetchQueries({
+        queryKey: makeDroppedDataQueryKeyPrefix(organization.slug),
+        type: 'active',
+      }),
+    ]);
   };
 
   const openColumnEditor = () => {
@@ -394,7 +412,16 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
     trackAnalytics('logs.explorer.table_tab_changed', {organization, tab});
     if (tab === 'aggregates') {
       setSidebarOpen(true);
-      setMode(Mode.AGGREGATE);
+      const aggregateGroupBys = getGroupBysForAggregateMode({
+        fields,
+        groupBys,
+        visualizes,
+      });
+      if (aggregateGroupBys) {
+        setGroupBys(aggregateGroupBys, Mode.AGGREGATE);
+      } else {
+        setMode(Mode.AGGREGATE);
+      }
     } else {
       setMode(Mode.SAMPLES);
     }
@@ -410,7 +437,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
       return {
         canManuallyRefresh: false,
         manualRefreshDisabledReason: t(
-          'Auto-refresh is enabled. Please disable auto-refresh to manually refresh the table.'
+          'Auto-refresh is enabled. Please disable auto-refresh to manually refresh.'
         ),
       };
     }
@@ -484,22 +511,26 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
                   {sidebarOpen ? null : t('Advanced')}
                 </LogsSidebarCollapseButton>
               </Container>
-              {mode === Mode.AGGREGATE ? (
-                <LogsAggregateExportModalButton
-                  isLoading={aggregatesTableResult.isPending}
-                  tableData={aggregatesTableResult.data?.data ?? []}
-                  error={aggregatesTableResult.error}
-                  pageLinks={aggregatesTableResult.pageLinks}
-                />
-              ) : (
-                <LogsDirectExportModalButton
-                  isLoading={tableData.isPending}
-                  tableData={tableData.data}
-                  error={tableData.error}
-                />
-              )}
+              <Flex gap="xs">
+                <ExploreShareButton traceItemDataset={TraceItemDataset.LOGS} />
+                {mode === Mode.AGGREGATE ? (
+                  <LogsAggregateExportModalButton
+                    isLoading={aggregatesTableResult.isPending}
+                    tableData={aggregatesTableResult.data?.data ?? []}
+                    error={aggregatesTableResult.error}
+                    pageLinks={aggregatesTableResult.pageLinks}
+                  />
+                ) : (
+                  <LogsDirectExportModalButton
+                    isLoading={tableData.isPending}
+                    tableData={tableData.data}
+                    timeseriesIngestDelay={timeseriesIngestDelay}
+                    error={tableData.error}
+                  />
+                )}
+              </Flex>
             </OverChartButtonGroup>
-            <QuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
+            <ExploreQuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
             <LogsDownSamplingAlert
               timeseriesResult={timeseriesResult}
               tableResult={infiniteLogsQueryResult}
@@ -529,7 +560,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
                       size="sm"
                       icon={<IconRefresh />}
                       disabled={!canManuallyRefresh}
-                      onClick={refreshTable}
+                      onClick={refreshData}
                       aria-label={t('Refresh')}
                     />
                   </Tooltip>

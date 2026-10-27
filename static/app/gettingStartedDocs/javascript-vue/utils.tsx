@@ -67,7 +67,7 @@ const getDynamicParts = (params: Params): string[] => {
   if (params.isPerformanceSelected) {
     dynamicParts.push(`
       // Tracing
-      tracesSampleRate: 1.0, // Capture 100% of the transactions
+      tracesSampleRate: 1.0, // Capture 100% of the traces
       // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
       tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/]`);
   }
@@ -92,13 +92,14 @@ function getSiblingImportsSetupConfiguration(siblingOption: string): string {
   switch (siblingOption) {
     case VueVersion.VUE3:
       return `import {createApp} from "vue";
-          import {createRouter} from "vue-router";
+          import App from "./App.vue";
           import router from "./router";
           `;
     case VueVersion.VUE2:
     default:
       return `import Vue from "vue";
-          import Router from "vue-router";`;
+          import Router from "vue-router";
+          import App from "./App.vue";`;
   }
 }
 
@@ -120,9 +121,7 @@ function getVueConstSetup(siblingOption: string): string {
   switch (siblingOption) {
     case VueVersion.VUE3:
       return `
-          const app = createApp({
-            // ...
-          });
+          const app = createApp(App);
           `;
     case VueVersion.VUE2:
       return `
@@ -143,12 +142,6 @@ function getSentryInitLayout(params: Params, siblingOption: string): string {
     staticParts: [
       siblingOption === VueVersion.VUE2 ? 'Vue' : 'app',
       `dsn: "${params.dsn.public}"`,
-      `dataCollection: {
-    // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
-    // https://docs.sentry.io/platforms/javascript/guides/vue/configuration/options/#dataCollection
-    // userInfo: false,
-    // httpBodies: []
-  }`,
     ],
     getIntegrations,
     getDynamicParts,

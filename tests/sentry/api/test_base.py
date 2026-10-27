@@ -16,6 +16,7 @@ from sentry.api.base import Endpoint, EndpointSiloLimit, StatsMixin
 from sentry.api.exceptions import SuperuserRequired
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.permissions import SuperuserPermission
+from sentry.api.serializers import Serializer, serialize
 from sentry.auth import access
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.models.apikey import ApiKey
@@ -41,6 +42,10 @@ class DummyEndpoint(Endpoint):
 
     def get(self, request):
         return Response({"ok": True})
+
+
+class DummyCsrfProtectedEndpoint(DummyEndpoint):
+    csrf_protect = True
 
 
 class DummyDeclaredScopePermission(AllowAny):
@@ -127,6 +132,32 @@ class DummyPaginationStreamingEndpoint(Endpoint):
         )
 
 
+class SometimesFailingSerializer(Serializer):
+    def serialize(self, obj, attrs, user, **kwargs):
+        if obj % 2:
+            raise Exception
+        return {"id": obj}
+
+
+class DummyPaginationFailingSerializerEndpoint(Endpoint):
+    permission_classes = ()
+
+    def get(self, request):
+        values = [x for x in range(0, 10)]
+
+        def data_fn(offset, limit):
+            page_offset = offset * limit
+            return values[page_offset : page_offset + limit]
+
+        return self.paginate(
+            request=request,
+            paginator=GenericOffsetPaginator(data_fn),
+            on_results=lambda results: serialize(
+                results, request.user, SometimesFailingSerializer()
+            ),
+        )
+
+
 _dummy_endpoint = DummyEndpoint.as_view()
 _dummy_scope_checking_endpoint = DummyScopeCheckingEndpoint.as_view()
 _dummy_streaming_endpoint = DummyPaginationStreamingEndpoint.as_view()
@@ -134,6 +165,12 @@ _dummy_streaming_endpoint = DummyPaginationStreamingEndpoint.as_view()
 
 @all_silo_test
 class EndpointTest(APITestCase):
+    def test_csrf_protection_defaults_to_disabled(self) -> None:
+        assert DummyEndpoint.as_view().csrf_exempt is True
+
+    def test_csrf_protection_can_be_enabled(self) -> None:
+        assert DummyCsrfProtectedEndpoint.as_view().csrf_exempt is False
+
     @mock.patch("sentry.auth.scope_declaration.new_scope")
     @mock.patch("sentry.auth.scope_declaration.capture_message")
     @mock.patch("sentry.auth.scope_declaration.logger.warning")
@@ -595,6 +632,12 @@ class PaginateTest(APITestCase):
         request = self.make_request(GET={"per_page": "101"})
         response = self.view(request)
         assert response.status_code == 400
+
+    def test_on_results_removes_failed_items(self) -> None:
+        view = DummyPaginationFailingSerializerEndpoint.as_view()
+        response = view(self.make_request())
+        assert response.status_code == 200, response.content
+        assert response.data == [{"id": 0}, {"id": 2}, {"id": 4}, {"id": 6}, {"id": 8}]
 
     def test_custom_response_type(self) -> None:
         response = _dummy_streaming_endpoint(self.make_request())

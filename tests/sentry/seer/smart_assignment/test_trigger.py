@@ -1,3 +1,4 @@
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
@@ -71,9 +72,14 @@ class TriggerSmartAssignmentTest(TestCase):
             SeerAgentRun.objects.filter(group_id=(group or self.group).id, source=SEER_FEATURE_ID)
         )
 
-    def _activity(self, activity_type: ActivityType, user_id: int | None = None) -> Activity:
+    def _activity(
+        self,
+        activity_type: ActivityType,
+        user_id: int | None = None,
+        data: dict[str, object] | None = None,
+    ) -> Activity:
         return self.create_group_activity(
-            group=self.group, type=activity_type.value, user_id=user_id
+            group=self.group, type=activity_type.value, user_id=user_id, data=data or {}
         )
 
     def _seer_started(self) -> Activity:
@@ -96,7 +102,20 @@ class TriggerSmartAssignmentTest(TestCase):
     @patch(CLIENT_PATH)
     def test_dispatch_creates_run_mirror(self, mock_client_cls: MagicMock) -> None:
         self._wire_client(mock_client_cls)
-        with self.feature(RUN_FEATURES):
+        with (
+            self.feature(RUN_FEATURES),
+            patch(
+                "sentry.seer.smart_assignment.trigger.bulk_read_preferences_from_sentry_db"
+            ) as mock_preferences,
+        ):
+            mock_preferences.return_value = {
+                self.group.project_id: SimpleNamespace(
+                    repositories=[
+                        SimpleNamespace(owner="getsentry", name="sentry"),
+                        SimpleNamespace(owner="getsentry", name="seer"),
+                    ]
+                )
+            }
             trigger_smart_assignment(
                 self.group, ActivityType.SEER_RCA_STARTED, self._seer_started()
             )
@@ -105,7 +124,12 @@ class TriggerSmartAssignmentTest(TestCase):
         assert len(mirrors) == 1
         # The dispatch trigger (raw ActivityType name) is seeded on the extras for scoring.
         assert mirrors[0].extras["trigger"] == ActivityType.SEER_RCA_STARTED.name
-        assert "referrer" not in mock_client_cls.return_value.start_feature_run.call_args.kwargs
+        run_kwargs = mock_client_cls.return_value.start_feature_run.call_args.kwargs
+        assert run_kwargs["referrer"] == "smart_assignment"
+        assert run_kwargs["payload"]["connected_repos"] == [
+            "getsentry/sentry",
+            "getsentry/seer",
+        ]
         # A Seer AI-step start carries no ground truth.
         assert "actual_assignee_user_id" not in mirrors[0].extras
 
@@ -570,6 +594,23 @@ class TriggerSmartAssignmentTest(TestCase):
             )
 
         # No acting user -> not a signal, so we don't even dispatch a prediction.
+        assert self._mirrors() == []
+        mock_client_cls.return_value.start_feature_run.assert_not_called()
+
+    @patch(CLIENT_PATH)
+    def test_bulk_resolution_is_skipped(self, mock_client_cls: MagicMock) -> None:
+        self._wire_client(mock_client_cls)
+        resolver = self.create_user()
+        with (
+            self.feature(RUN_FEATURES),
+            self.options({"seer.smart_assignment.eval_sample_rate": 1.0}),
+        ):
+            trigger_smart_assignment(
+                self.group,
+                ActivityType.SET_RESOLVED,
+                self._activity(ActivityType.SET_RESOLVED, resolver.id, data={"bulk": True}),
+            )
+
         assert self._mirrors() == []
         mock_client_cls.return_value.start_feature_run.assert_not_called()
 

@@ -1,10 +1,11 @@
 import {Fragment, useContext, useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconWarning} from '@sentry/icons/warning';
 import toNumber from 'lodash/toNumber';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack, Grid} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
@@ -16,12 +17,15 @@ import {SelectField} from 'sentry/components/forms/fields/selectField';
 import {FormContext} from 'sentry/components/forms/formContext';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
-import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
 import {pulse} from 'sentry/styles/animations';
 import {PriorityLevel} from 'sentry/types/group';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
-import type {Detector, MetricDetectorConfig} from 'sentry/types/workflowEngine/detectors';
+import type {
+  Detector,
+  MetricDetector,
+  MetricDetectorConfig,
+} from 'sentry/types/workflowEngine/detectors';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -38,13 +42,15 @@ import {AutomateSectionDeprecated} from 'sentry/views/detectors/components/forms
 import {IssueOwnershipSection} from 'sentry/views/detectors/components/forms/common/issueOwnershipSection';
 import {ProjectEnvironmentSection} from 'sentry/views/detectors/components/forms/common/projectEnvironmentSection';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
-import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {
-  METRIC_DETECTOR_FORM_FIELDS,
   metricDetectorFormDataToEndpointPayload,
   metricSavedDetectorToFormData,
-  useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
+import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormFields';
+import {
+  METRIC_DETECTOR_FORM_FIELDS,
+  useMetricDetectorFormField,
+} from 'sentry/views/detectors/components/forms/metric/metricFormFields';
 import {MetricIssuePreview} from 'sentry/views/detectors/components/forms/metric/metricIssuePreview';
 import {MetricDetectorPreviewChart} from 'sentry/views/detectors/components/forms/metric/previewChart';
 import {DetectorQueryFilterBuilder} from 'sentry/views/detectors/components/forms/metric/queryFilterBuilder';
@@ -102,7 +108,11 @@ export function EditExistingMetricDetectorForm({detector}: {detector: Detector})
   );
 }
 
-export function NewMetricDetectorForm() {
+export function NewMetricDetectorForm({
+  duplicateDetector,
+}: {
+  duplicateDetector?: MetricDetector;
+}) {
   const initialMetricFormData = useInitialMetricDetectorFormData();
 
   return (
@@ -110,7 +120,11 @@ export function NewMetricDetectorForm() {
       detectorType="metric_issue"
       previewChart={<MetricDetectorPreviewChart />}
       formDataToEndpointPayload={metricDetectorFormDataToEndpointPayload}
-      initialFormData={initialMetricFormData}
+      initialFormData={
+        duplicateDetector
+          ? metricSavedDetectorToFormData(duplicateDetector)
+          : initialMetricFormData
+      }
       mapFormErrors={mapMetricDetectorFormErrors}
     >
       <MetricDetectorForm />
@@ -236,6 +250,7 @@ function useRevalidateMediumThreshold() {
 
   useEffect(() => {
     formContext.form?.validateField(METRIC_DETECTOR_FORM_FIELDS.mediumThreshold);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [highThreshold, formContext.form]);
 }
 
@@ -387,6 +402,7 @@ function IntervalPicker() {
         intervalChoices[0]![0]
       );
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [intervalChoices, formContext.form, interval, dataset]);
 
   return (
@@ -425,7 +441,7 @@ function CustomizeMetricSection({step}: {step?: number}) {
     <Container>
       <FormSection step={step} title={t('Customize Metric')}>
         <Stack gap="xs">
-          <DatasetRow>
+          <Grid gap="xl" maxWidth="425px" columns="1fr 1fr">
             <DatasetField
               placeholder={t('Dataset')}
               flexibleControlStateSize
@@ -474,18 +490,16 @@ function CustomizeMetricSection({step}: {step?: number}) {
             />
             <Tooltip
               title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
-              isHoverable
               disabled={!isTransactionsDataset}
             >
               <DisabledSection disabled={isTransactionsDataset}>
                 <IntervalPicker />
               </DisabledSection>
             </Tooltip>
-          </DatasetRow>
+          </Grid>
         </Stack>
         <Tooltip
           title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
-          isHoverable
           disabled={!isTransactionsDataset}
         >
           <DisabledSection disabled={isTransactionsDataset}>
@@ -496,7 +510,6 @@ function CustomizeMetricSection({step}: {step?: number}) {
         dataset === DetectorDataset.METRICS ? null : (
           <Tooltip
             title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
-            isHoverable
             disabled={!isTransactionsDataset}
           >
             <FilterRow disabled={isTransactionsDataset}>
@@ -540,7 +553,6 @@ function DetectSection({step}: {step?: number}) {
             <WarningIcon
               id="thresholds-warning-icon"
               tooltipProps={{
-                isHoverable: true,
                 title: tct(
                   'Your thresholds may need to be adjusted to take into account [samplingLink:sampling].',
                   {
@@ -715,13 +727,6 @@ function WarningIcon({id, tooltipProps}: {id: string; tooltipProps?: TooltipProp
 
 const StyledIconWarning = styled(IconWarning)`
   animation: ${() => pulse(1.15)} 1s ease infinite;
-`;
-
-const DatasetRow = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: ${p => p.theme.space.xl};
-  max-width: 425px;
 `;
 
 const FilterRow = styled('div')<{disabled: boolean}>`

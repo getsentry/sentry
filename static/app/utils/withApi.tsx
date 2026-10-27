@@ -18,11 +18,10 @@ type WrappedProps<P> = Omit<P, keyof InjectedApiProps> & Partial<InjectedApiProp
  * through.
  */
 export const withApi = <P extends InjectedApiProps>(
-  WrappedComponent: React.ComponentType<P>,
-  options: Parameters<typeof useApi>[0] = {}
+  WrappedComponent: React.ComponentType<P>
 ) => {
   function WithApi({api: propsApi, ...props}: WrappedProps<P>) {
-    const api = useApi({api: propsApi, ...options});
+    const api = useApi({api: propsApi});
 
     // TODO(any): HoC prop types not working w/ emotion https://github.com/emotion-js/emotion/issues/3261
     return <WrappedComponent {...(props as any)} api={api} />;

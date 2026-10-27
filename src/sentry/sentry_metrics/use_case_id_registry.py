@@ -31,33 +31,17 @@ USE_CASE_ID_API_ACCESSES: Mapping[UseCaseID, UseCaseIDAPIAccess] = {
     UseCaseID.METRIC_STATS: UseCaseIDAPIAccess.PRIVATE,
 }
 
-# UseCaseKey will be renamed to MetricPathKey
 METRIC_PATH_MAPPING: Mapping[UseCaseID, UseCaseKey] = {
-    UseCaseID.SPANS: UseCaseKey.PERFORMANCE,
-    UseCaseID.TRANSACTIONS: UseCaseKey.PERFORMANCE,
     UseCaseID.SESSIONS: UseCaseKey.RELEASE_HEALTH,
-    UseCaseID.PROFILES: UseCaseKey.PERFORMANCE,
-    UseCaseID.METRIC_STATS: UseCaseKey.PERFORMANCE,
 }
 
-# TODO: Remove this as soon as the entire indexer system is use case aware
-# as this is temporary and eventually UseCaseKey will have a 1:N relationship
-# with UseCaseID
 REVERSE_METRIC_PATH_MAPPING: Mapping[UseCaseKey, UseCaseID] = {
     UseCaseKey.RELEASE_HEALTH: UseCaseID.SESSIONS,
-    UseCaseKey.PERFORMANCE: UseCaseID.TRANSACTIONS,
 }
 
-# Temporary allowlist until all use cases have cardinality limit options
-CARDINALITY_LIMIT_USE_CASES = (
-    UseCaseID.TRANSACTIONS,
-    UseCaseID.SESSIONS,
-    UseCaseID.SPANS,
-)
+CARDINALITY_LIMIT_USE_CASES = (UseCaseID.SESSIONS,)
 
 USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS = {
-    UseCaseID.SPANS: "sentry-metrics.writes-limiter.limits.spans",
-    UseCaseID.TRANSACTIONS: "sentry-metrics.writes-limiter.limits.performance",
     UseCaseID.SESSIONS: "sentry-metrics.writes-limiter.limits.releasehealth",
 }
 

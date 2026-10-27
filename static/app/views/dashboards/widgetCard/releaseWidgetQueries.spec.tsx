@@ -8,12 +8,25 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import type {Series} from 'sentry/types/echarts';
 import {
   DashboardFilterKeys,
   DisplayType,
   WidgetType,
 } from 'sentry/views/dashboards/types';
 import {ReleaseWidgetQueries} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
+
+// Matches a widget time series that plots the same points as the legacy series
+function matchesLegacySeries({seriesName, data}: Series) {
+  return expect.objectContaining({
+    seriesName,
+    timeSeries: expect.objectContaining({
+      values: data.map(({name, value}) =>
+        expect.objectContaining({timestamp: Date.parse(String(name)), value})
+      ),
+    }),
+  });
+}
 
 describe('Dashboards > ReleaseWidgetQueries', () => {
   const badMessage = 'Bad request data';
@@ -97,15 +110,29 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
         expect.objectContaining({
           tableResults: undefined,
           timeseriesResults: [
-            {
-              data: expect.arrayContaining([
-                {name: '2021-12-01T16:15:00Z', value: 443.6200417187068},
-                {name: '2021-12-01T16:30:00Z', value: 471.7512262596214},
-                {name: '2021-12-01T16:45:00Z', value: 632.5356294251225},
-                {name: '2021-12-01T17:00:00Z', value: 538.6063865509535},
-              ]),
+            expect.objectContaining({
               seriesName: 'sessions > sum(session)',
-            },
+              timeSeries: expect.objectContaining({
+                values: expect.arrayContaining([
+                  expect.objectContaining({
+                    timestamp: Date.parse('2021-12-01T16:15:00Z'),
+                    value: 443.6200417187068,
+                  }),
+                  expect.objectContaining({
+                    timestamp: Date.parse('2021-12-01T16:30:00Z'),
+                    value: 471.7512262596214,
+                  }),
+                  expect.objectContaining({
+                    timestamp: Date.parse('2021-12-01T16:45:00Z'),
+                    value: 632.5356294251225,
+                  }),
+                  expect.objectContaining({
+                    timestamp: Date.parse('2021-12-01T17:00:00Z'),
+                    value: 538.6063865509535,
+                  }),
+                ]),
+              }),
+            }),
           ],
         })
       )
@@ -138,7 +165,7 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
     ];
 
     render(
-      <ReleaseWidgetQueries widget={{...singleQueryWidget, queries}}>
+      <ReleaseWidgetQueries widget={{...singleQueryWidget, queries}} widgetInterval="3h">
         {children}
       </ReleaseWidgetQueries>
     );
@@ -147,7 +174,7 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
     expect(mockRelease).toHaveBeenCalledWith(
       '/organizations/org-slug/releases/',
       expect.objectContaining({
-        data: {
+        query: {
           environment: ['prod'],
           per_page: 50,
           project: [1],
@@ -172,6 +199,11 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
           statsPeriod: '14d',
         },
       })
+    );
+    await waitFor(() =>
+      expect(children).toHaveBeenLastCalledWith(
+        expect.objectContaining({timeseriesInterval: '1h'})
+      )
     );
   });
 
@@ -277,7 +309,7 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
           errorMessage: undefined,
           loading: false,
           timeseriesResults: [
-            {
+            matchesLegacySeries({
               data: [
                 {name: '2022-01-15T00:00:00Z', value: 0},
                 {name: '2022-01-16T00:00:00Z', value: 0},
@@ -295,8 +327,8 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
                 {name: '2022-01-28T00:00:00Z', value: 0},
               ],
               seriesName: 'sessions > crashed, 1 : sum(session)',
-            },
-            {
+            }),
+            matchesLegacySeries({
               data: [
                 {name: '2022-01-15T00:00:00Z', value: 1},
                 {name: '2022-01-16T00:00:00Z', value: 0},
@@ -314,8 +346,8 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
                 {name: '2022-01-28T00:00:00Z', value: 0},
               ],
               seriesName: 'sessions > abnormal, 1 : sum(session)',
-            },
-            {
+            }),
+            matchesLegacySeries({
               data: [
                 {name: '2022-01-15T00:00:00Z', value: 0},
                 {name: '2022-01-16T00:00:00Z', value: 0},
@@ -333,8 +365,8 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
                 {name: '2022-01-28T00:00:00Z', value: 0},
               ],
               seriesName: 'sessions > errored, 1 : sum(session)',
-            },
-            {
+            }),
+            matchesLegacySeries({
               data: [
                 {name: '2022-01-15T00:00:00Z', value: 0},
                 {name: '2022-01-16T00:00:00Z', value: 0},
@@ -352,8 +384,8 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
                 {name: '2022-01-28T00:00:00Z', value: 0},
               ],
               seriesName: 'sessions > healthy, 1 : sum(session)',
-            },
-            {
+            }),
+            matchesLegacySeries({
               data: [
                 {name: '2022-01-15T00:00:00Z', value: 1},
                 {name: '2022-01-16T00:00:00Z', value: 0},
@@ -371,8 +403,8 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
                 {name: '2022-01-28T00:00:00Z', value: 0},
               ],
               seriesName: 'sessions > crashed, 2 : sum(session)',
-            },
-            {
+            }),
+            matchesLegacySeries({
               data: [
                 {name: '2022-01-15T00:00:00Z', value: 1},
                 {name: '2022-01-16T00:00:00Z', value: 0},
@@ -390,8 +422,8 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
                 {name: '2022-01-28T00:00:00Z', value: 0},
               ],
               seriesName: 'sessions > abnormal, 2 : sum(session)',
-            },
-            {
+            }),
+            matchesLegacySeries({
               data: [
                 {name: '2022-01-15T00:00:00Z', value: 1},
                 {name: '2022-01-16T00:00:00Z', value: 0},
@@ -409,8 +441,8 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
                 {name: '2022-01-28T00:00:00Z', value: 0},
               ],
               seriesName: 'sessions > errored, 2 : sum(session)',
-            },
-            {
+            }),
+            matchesLegacySeries({
               data: [
                 {name: '2022-01-15T00:00:00Z', value: 1},
                 {name: '2022-01-16T00:00:00Z', value: 0},
@@ -428,7 +460,7 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
                 {name: '2022-01-28T00:00:00Z', value: 0},
               ],
               seriesName: 'sessions > healthy, 2 : sum(session)',
-            },
+            }),
           ],
         })
       )

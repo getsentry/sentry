@@ -1,17 +1,23 @@
 import {Fragment} from 'react';
+import {IconChevron} from '@sentry/icons/chevron';
 
+import type {FeatureBadgeProps} from '@sentry/scraps/badge';
 import {BreadcrumbCopyAction} from '@sentry/scraps/breadcrumbList/actions/breadcrumbCopyAction';
 import type {BreadcrumbCopyActionProps} from '@sentry/scraps/breadcrumbList/actions/breadcrumbCopyAction';
 import {BreadcrumbMenuAction} from '@sentry/scraps/breadcrumbList/actions/breadcrumbMenuAction';
 import type {BreadcrumbMenuActionProps} from '@sentry/scraps/breadcrumbList/actions/breadcrumbMenuAction';
-import {Button, type ButtonProps, type LinkButtonProps} from '@sentry/scraps/button';
-import {LinkButton} from '@sentry/scraps/button';
+import {
+  Button,
+  type ButtonProps,
+  type LinkButtonProps,
+  LinkButton,
+} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
 import type {LinkProps} from '@sentry/scraps/link';
+import {Heading} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconChevron} from 'sentry/icons';
 import {unreachable} from 'sentry/utils/unreachable';
 
 import {BreadcrumbLeadingSlot} from './breadcrumbLeadingSlot';
@@ -24,6 +30,7 @@ import {BreadcrumbLeadingSlot} from './breadcrumbLeadingSlot';
 type BreadcrumbTitleAction =
   | ({type: 'copy'} & BreadcrumbCopyActionProps)
   | ({type: 'menu'} & BreadcrumbMenuActionProps)
+  | {element: React.ReactElement<FeatureBadgeProps>; type: 'badge'}
   | {element: React.ReactElement<ButtonProps | LinkButtonProps>; type: 'button'};
 
 /**
@@ -45,6 +52,7 @@ function renderTrailingAction(action: BreadcrumbTitleAction) {
       const {type: _type, ...props} = action;
       return <BreadcrumbMenuAction {...props} />;
     }
+    case 'badge':
     case 'button':
       return action.element;
     default:
@@ -58,9 +66,13 @@ function renderTrailingActions(trailingActions?: BreadcrumbTitleActions) {
     return null;
   }
 
+  // Key on the slot each action was declared in, not its position after the
+  // nulls are dropped. Consumers inline conditionals here, so a slot appearing
+  // would otherwise shift every later action onto a new key — remounting it and
+  // discarding its state (an open dropdown snaps shut).
   const actions = (
     Array.isArray(trailingActions) ? trailingActions : [trailingActions]
-  ).filter(action => action !== null);
+  ).flatMap((action, slot) => (action === null ? [] : [{action, slot}]));
 
   if (actions.length === 0) {
     return null;
@@ -68,8 +80,8 @@ function renderTrailingActions(trailingActions?: BreadcrumbTitleActions) {
 
   return (
     <Flex as="span" align="center" gap="xs" flexShrink={0}>
-      {actions.map((action, index) => (
-        <Fragment key={index}>{renderTrailingAction(action)}</Fragment>
+      {actions.map(({action, slot}) => (
+        <Fragment key={slot}>{renderTrailingAction(action)}</Fragment>
       ))}
     </Flex>
   );
@@ -117,13 +129,12 @@ export function BreadcrumbItemPageTitle({
   const actions = renderTrailingActions(trailingActions);
 
   return (
-    <Flex as="span" align="center" gap="sm" height="32px" minWidth="32px">
+    <Flex align="center" gap="sm" height="32px" minWidth="32px">
       {pagination && (
         <Flex as="span" align="center">
           <Tooltip
             title={pagination.previous.tooltip}
             disabled={!pagination.previous.tooltip}
-            isHoverable
           >
             {pagination.previous.to ? (
               <LinkButton
@@ -145,11 +156,7 @@ export function BreadcrumbItemPageTitle({
               />
             )}
           </Tooltip>
-          <Tooltip
-            title={pagination.next.tooltip}
-            disabled={!pagination.next.tooltip}
-            isHoverable
-          >
+          <Tooltip title={pagination.next.tooltip} disabled={!pagination.next.tooltip}>
             {pagination.next.to ? (
               <LinkButton
                 size="zero"
@@ -177,15 +184,11 @@ export function BreadcrumbItemPageTitle({
           on the outer Flex above. */}
       <Container minWidth={0}>
         {containerProps => (
-          <InfoText
-            title={labelTooltip}
-            ellipsis
-            bold
-            variant="inherit"
-            {...containerProps}
-          >
-            {label}
-          </InfoText>
+          <Heading as="h1" variant="inherit" {...containerProps}>
+            <InfoText title={labelTooltip} ellipsis bold variant="inherit">
+              {label}
+            </InfoText>
+          </Heading>
         )}
       </Container>
       {actions}

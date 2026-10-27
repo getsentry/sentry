@@ -32,6 +32,7 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.query import in_iexact
 from sentry.demo_mode.utils import is_demo_user
 from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH
+from sentry.models.apitoken import is_api_token_auth
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
@@ -51,7 +52,7 @@ from sentry.services.organization.provisioning import (
 from sentry.silo.base import SiloMode
 from sentry.types.cell import (
     CellResolutionError,
-    RegionCategory,
+    find_all_cell_names,
     get_locality_by_name,
 )
 from sentry.users.services.user.serial import serialize_generic_user
@@ -106,7 +107,7 @@ class OrganizationPostSerializer(BaseOrganizationSerializer):
         if "request" in self.context and is_active_staff(self.context["request"]):
             # Staff users are allowed to create orgs in hidden cells/localities.
             return value
-        if locality.category != RegionCategory.MULTI_TENANT or not locality.visible:
+        if not locality.visible or not locality.signup_visible:
             raise serializers.ValidationError(f"Unknown data storage location {value!r}.")
         return value
 
@@ -202,6 +203,12 @@ class OrganizationIndexEndpoint(Endpoint):
             elif request.auth.organization_id is not None:
                 queryset = queryset.filter(id=request.auth.organization_id)
 
+        elif request.user.is_authenticated and request.user.is_sentry_app:
+            # Sentry App proxy users have no org membership, so scope to the installing org.
+            if is_api_token_auth(request.auth) and request.auth.organization_id is not None:
+                queryset = queryset.filter(id=request.auth.organization_id)
+            else:
+                queryset = queryset.none()
         elif not (is_active_superuser(request) and request.GET.get("show") == "all"):
             queryset = queryset.filter(
                 id__in=OrganizationMember.objects.filter(user_id=request.user.id).values(
@@ -295,7 +302,12 @@ class OrganizationIndexEndpoint(Endpoint):
                 organization_id=agent_organization_id,
             )
 
-        queryset = OrganizationMapping.objects.distinct()
+        # Only include organizations from cells that we've marked as active.
+        # This prevents an issue where these organizations in limbo would be
+        # serialized as `null`.
+        queryset = OrganizationMapping.objects.filter(
+            cell_name__in=list(find_all_cell_names())
+        ).distinct()
 
         if agent_organization_id is not None:
             queryset = queryset.filter(organization_id=agent_organization_id)
@@ -304,6 +316,12 @@ class OrganizationIndexEndpoint(Endpoint):
                 queryset = queryset.filter(organization_id=request.auth.project.organization_id)
             elif request.auth.organization_id is not None:
                 queryset = queryset.filter(organization_id=request.auth.organization_id)
+        elif request.user.is_authenticated and request.user.is_sentry_app:
+            # Sentry App proxy users have no org membership, so scope to the installing org.
+            if is_api_token_auth(request.auth) and request.auth.organization_id is not None:
+                queryset = queryset.filter(organization_id=request.auth.organization_id)
+            else:
+                queryset = queryset.none()
         elif not (is_active_superuser(request) and request.GET.get("show") == "all"):
             assert request.user.id is not None
             queryset = queryset.filter(
@@ -411,6 +429,7 @@ class OrganizationIndexEndpoint(Endpoint):
         org_mappings_query = OrganizationMapping.objects.filter(
             organization_id__in=owner_org_ids,
             status=OrganizationStatus.ACTIVE,
+            cell_name__in=list(find_all_cell_names()),
         )
         if organization_id is not None:
             org_mappings_query = org_mappings_query.filter(organization_id=organization_id)

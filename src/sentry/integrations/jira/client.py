@@ -1,6 +1,5 @@
 import datetime
 import logging
-import re
 from typing import Any
 from urllib.parse import parse_qs, urlparse, urlsplit
 
@@ -11,6 +10,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.atlassian_connect import get_query_hash
+from sentry.integrations.utils.jira import parse_jira_issue_key
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri
@@ -18,7 +18,6 @@ from sentry.utils.http import absolute_uri
 logger = logging.getLogger("sentry.integrations.jira")
 
 JIRA_KEY = f"{urlparse(absolute_uri()).hostname}.jira"
-ISSUE_KEY_RE = re.compile(r"^[A-Za-z][A-Za-z0-9]*-\d+$")
 CUSTOMFIELD_PREFIX = "customfield_"
 
 STATUS_SEARCH_PAGE_SIZE = 200
@@ -118,11 +117,12 @@ class JiraCloudClient(ApiClient):
         return self.get(self.ISSUE_URL % (issue_id,))
 
     def search_issues(self, query):
-        q = query.replace('"', '\\"')
-        # check if it looks like an issue id
-        if ISSUE_KEY_RE.match(query):
-            jql = f'id="{q}"'
+        issue_key = parse_jira_issue_key(query, self.base_url)
+        if issue_key is not None:
+            # the key pattern cannot contain a quote, so it needs no escaping
+            jql = f'id="{issue_key}"'
         else:
+            q = query.replace('"', '\\"')
             jql = f'text ~ "{q}"'
         return self.get(self.SEARCH_URL, params={"jql": jql, "fields": "*all"})
 

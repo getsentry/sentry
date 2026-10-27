@@ -1,11 +1,12 @@
 import {useEffect, useId, useLayoutEffect, useRef, useState} from 'react';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
+import {IconClose} from '@sentry/icons/close';
+import {IconExclamation} from '@sentry/icons/exclamation';
 
 import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconClose, IconExclamation} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {isNotFoundError} from 'sentry/utils/requestError/requestError';
 import {useAuthOrganization} from 'sentry/views/authV2/authLogin/hooks/useAuthOrganization';
@@ -23,6 +24,8 @@ export function OrganizationSlugInput({onCancel, onSelect}: OrganizationSlugInpu
   const normalizedSlug = slug.trim();
   const organizationQuery = useAuthOrganization(submittedSlug);
   const hasError = Boolean(submittedSlug && organizationQuery.isError);
+  const isLocating =
+    organizationQuery.isFetching || Boolean(submittedSlug && organizationQuery.isSuccess);
   const organizationNotFound = hasError && isNotFoundError(organizationQuery.error);
   const errorMessage = hasError
     ? organizationNotFound
@@ -93,7 +96,7 @@ export function OrganizationSlugInput({onCancel, onSelect}: OrganizationSlugInpu
           autoFocus
           data-1p-ignore
           placeholder={t('Organization Slug')}
-          readOnly={organizationQuery.isFetching}
+          readOnly={isLocating}
           spellCheck={false}
           value={slug}
           aria-invalid={hasError}
@@ -113,12 +116,7 @@ export function OrganizationSlugInput({onCancel, onSelect}: OrganizationSlugInpu
             </Tooltip>
           ) : null}
           {!organizationNotFound && normalizedSlug ? (
-            <Button
-              busy={organizationQuery.isFetching}
-              size="zero"
-              type="submit"
-              variant="transparent"
-            >
+            <Button busy={isLocating} size="zero" type="submit" variant="transparent">
               {t('Locate')}
             </Button>
           ) : null}

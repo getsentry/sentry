@@ -1,0 +1,88 @@
+---
+source: tests/sentry/grouping/test_grouphash_metadata.py::test_metadata_from_variants
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 1,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "in_app"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "in_app"
+  }
+}
+---
+contributing variants:
+  app*
+    hash: "87487f53aed91db01c2f782511559c58"
+    contributing component: exception
+    hint: None
+    root_component:
+      app*
+        exception*
+          stacktrace*
+            frame* (marked in-app by the client)
+              filename*
+                "textures.cpp"
+              function*
+                "unrelated_native_app_source_under_assets_dir"
+            frame* (marked in-app by the client)
+              function*
+                "developer_own_libgame_binary_not_unity_gameactivity_glue"
+            frame* (marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app))
+              function*
+                "legacy_ios_engine_binary_unity_6000_0_and_older"
+          type*
+            "SIGABRT"
+  system*
+    hash: "75ba4858d44123832a64fcaa643df81b"
+    contributing component: exception
+    hint: None
+    root_component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              filename*
+                "textures.cpp"
+              function*
+                "unrelated_native_app_source_under_assets_dir"
+            frame*
+              filename*
+                "bar.cpp"
+              function*
+                "unrelated_native_app_source_under_package_cache_dir"
+            frame*
+              function*
+                "developer_own_libgame_binary_not_unity_gameactivity_glue"
+            frame*
+              filename*
+                "enemyspawner.cs"
+              function*
+                "windows_il2cpp_project_source_with_backslash_paths"
+            frame*
+              filename*
+                "enemyspawner.cs"
+              function*
+                "linux_il2cpp_project_source"
+            frame*
+              filename*
+                "inputaction.cs"
+              function*
+                "registry_package_source_under_runtime_dir_never_restored"
+            frame*
+              function*
+                "legacy_ios_engine_binary_unity_6000_0_and_older"
+            frame*
+              function*
+                "windows_sentry_native_sdk"
+          type*
+            "SIGABRT"

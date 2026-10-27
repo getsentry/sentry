@@ -7,15 +7,17 @@ import {
   useMemo,
   useState,
 } from 'react';
+import type {NavigateOptions} from 'react-router';
 import {parseAsString, useQueryStates} from 'nuqs';
 
 import {defined} from 'sentry/utils/defined';
 import type {Sort} from 'sentry/utils/discover/fields';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
-import type {
-  AggregateField,
-  WritableAggregateField,
+import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/topEventsConstants';
+import {
+  serializeAggregateFields,
+  type AggregateField,
+  type WritableAggregateField,
 } from 'sentry/views/explore/queryParams/aggregateField';
 import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
@@ -24,19 +26,23 @@ import type {Mode} from 'sentry/views/explore/queryParams/mode';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {ID_KEY, TITLE_KEY} from 'sentry/views/explore/queryParams/savedQuery';
 import {
+  hasVisualizeTransformations,
   isVisualize,
   isVisualizeEquation,
   type BaseVisualize,
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
-import {isConditionalAggregateYAxisValid} from 'sentry/views/explore/utils/conditionalAggregate';
+import {
+  areConditionalAggregateFiltersInExpressionValid,
+  isConditionalAggregateYAxisValid,
+} from 'sentry/views/explore/utils/conditionalAggregate';
 
 interface QueryParamsContextValue {
   managedFields: Set<string>;
   queryParams: ReadableQueryParams;
   setManagedFields: (managedFields: Set<string>) => void;
-  setQueryParams: (queryParams: WritableQueryParams) => void;
+  setQueryParams: (queryParams: WritableQueryParams, options?: NavigateOptions) => void;
 }
 
 const QueryParamsContext = createContext<QueryParamsContextValue | undefined>(undefined);
@@ -55,7 +61,7 @@ interface QueryParamsContextProps {
   children: ReactNode;
   isUsingDefaultFields: boolean;
   queryParams: ReadableQueryParams;
-  setQueryParams: (queryParams: WritableQueryParams) => void;
+  setQueryParams: (queryParams: WritableQueryParams, options?: NavigateOptions) => void;
   shouldManageFields: boolean;
 }
 
@@ -76,6 +82,7 @@ export function QueryParamsContextProvider({
   // 2. some code intentionally wipes the fields
   useEffect(() => {
     if (isUsingDefaultFields) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setManagedFields(new Set());
     }
   }, [isUsingDefaultFields]);
@@ -106,7 +113,7 @@ export function useSetQueryParams() {
   } = useQueryParamsContext();
 
   return useCallback(
-    (writableQueryParams: WritableQueryParams) => {
+    (writableQueryParams: WritableQueryParams, options?: NavigateOptions) => {
       const {updatedFields, updatedManagedFields} = deriveUpdatedManagedFields(
         managedFields,
         readableQueryParams,
@@ -130,7 +137,11 @@ export function useSetQueryParams() {
         writableQueryParams.breakdownCursor = null;
       }
 
-      setQueryParams(writableQueryParams);
+      if (options) {
+        setQueryParams(writableQueryParams, options);
+      } else {
+        setQueryParams(writableQueryParams);
+      }
     },
     [managedFields, setManagedFields, readableQueryParams, setQueryParams]
   );
@@ -235,8 +246,8 @@ export function useSetQueryParamsFields() {
   const setQueryParams = useSetQueryParams();
 
   return useCallback(
-    (fields: string[]) => {
-      setQueryParams({fields});
+    (fields: string[], options?: NavigateOptions) => {
+      setQueryParams({fields}, options);
     },
     [setQueryParams]
   );
@@ -274,7 +285,10 @@ export function useQueryParamsAggregateFields(
           return true;
         }
         if (isVisualizeEquation(aggregateField)) {
-          return aggregateField.expression.isValid;
+          return (
+            aggregateField.expression.isValid &&
+            areConditionalAggregateFiltersInExpressionValid(aggregateField.yAxis)
+          );
         }
         // Drop series whose `_if` filter is invalid (e.g. aggregates as keys) so
         // timeseries / table queries never send them to the backend.
@@ -309,7 +323,10 @@ export function useQueryParamsVisualizes(
     if (validate) {
       return queryParams.visualizes.filter(visualize => {
         if (isVisualizeEquation(visualize)) {
-          return visualize.expression.isValid;
+          return (
+            visualize.expression.isValid &&
+            areConditionalAggregateFiltersInExpressionValid(visualize.yAxis)
+          );
         }
         // Same as aggregateFields: skip series with an invalid `_if` filter.
         return isConditionalAggregateYAxisValid(visualize.yAxis);
@@ -329,13 +346,26 @@ export function useSetQueryParamsVisualizes() {
 
       const iter = visualizes[Symbol.iterator]();
 
+      // Each entry replaces one chart, so the visualizes sharing a chart group
+      // take up a single slot. Otherwise the extra group members would pull
+      // later charts in front of the group bys between them.
+      let previousAggregateField: AggregateField | undefined;
       for (const aggregateField of queryParams.aggregateFields) {
         if (isVisualize(aggregateField)) {
+          const continuesChartGroup =
+            defined(aggregateField.chartGroup) &&
+            isVisualize(previousAggregateField) &&
+            previousAggregateField.chartGroup === aggregateField.chartGroup;
+          previousAggregateField = aggregateField;
+          if (continuesChartGroup) {
+            continue;
+          }
           const {value: visualize, done} = iter.next();
           if (!done) {
             aggregateFields.push(visualize);
           }
         } else if (isGroupBy(aggregateField)) {
+          previousAggregateField = aggregateField;
           aggregateFields.push(aggregateField);
         } else {
           throw new Error(`Unknown aggregate field: ${JSON.stringify(aggregateField)}`);
@@ -350,6 +380,10 @@ export function useSetQueryParamsVisualizes() {
     },
     [queryParams, setQueryParams]
   );
+}
+
+export function useQueryParamsHasTransformations(): boolean {
+  return hasVisualizeTransformations(useQueryParamsVisualizes());
 }
 
 export function useQueryParamsGroupBys(): readonly string[] {
@@ -375,7 +409,7 @@ export function useSetQueryParamsGroupBys() {
         }
       }
 
-      const aggregateFields: WritableAggregateField[] = [];
+      const aggregateFields: AggregateField[] = [];
 
       const iter = groupBys[Symbol.iterator]();
 
@@ -388,7 +422,7 @@ export function useSetQueryParamsGroupBys() {
               aggregateFields.push({groupBy});
             }
           }
-          aggregateFields.push(aggregateField.serialize());
+          aggregateFields.push(aggregateField);
         } else if (isGroupBy(aggregateField)) {
           const {value: groupBy, done} = iter.next();
           if (!done) {
@@ -403,7 +437,7 @@ export function useSetQueryParamsGroupBys() {
         aggregateFields.push({groupBy});
       }
 
-      setQueryParams({aggregateFields, mode});
+      setQueryParams({aggregateFields: serializeAggregateFields(aggregateFields), mode});
     },
     [queryParams, setQueryParams]
   );

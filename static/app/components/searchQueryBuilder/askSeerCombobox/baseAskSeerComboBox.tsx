@@ -3,10 +3,16 @@ import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
+import {IconClose} from '@sentry/icons/close';
+import {IconMegaphone} from '@sentry/icons/megaphone';
+import {IconSearch} from '@sentry/icons/search';
+import {IconSync} from '@sentry/icons/sync';
+import type {Primitive} from 'type-fest';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack, Container} from '@sentry/scraps/layout';
+import {useOverlay} from '@sentry/scraps/useOverlay';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
@@ -17,64 +23,17 @@ import {AskSeerSearchListBox} from 'sentry/components/searchQueryBuilder/askSeer
 import {AskSeerSearchPopover} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchPopover';
 import {QueryTokens} from 'sentry/components/searchQueryBuilder/askSeerCombobox/queryTokens';
 import type {QueryTokensProps} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
-import {generateQueryTokensString} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
+import {
+  generateQueryTokensString,
+  stringifyQueryForFeedback,
+} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
-import {IconClose, IconMegaphone, IconSearch, IconSync} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useOverlay} from 'sentry/utils/useOverlay';
 import {useProjects} from 'sentry/utils/useProjects';
-
-// The menu size can change from things like loading states, long options,
-// or custom menus like a date picker. This hook ensures that the overlay
-// is updated in response to these changes.
-function useUpdateOverlayPositionOnContentChange({
-  contentRef,
-  updateOverlayPosition,
-  isOpen,
-}: {
-  contentRef: React.RefObject<HTMLDivElement | null>;
-  isOpen: boolean;
-  updateOverlayPosition: (() => void) | null;
-}) {
-  const resizeObserverRef = useRef<ResizeObserver | null>(null);
-
-  // Keep a ref to the updateOverlayPosition function so that we can
-  // access the latest value in the resize observer callback.
-  const updateOverlayPositionRef = useRef(updateOverlayPosition);
-  if (updateOverlayPositionRef.current !== updateOverlayPosition) {
-    updateOverlayPositionRef.current = updateOverlayPosition;
-  }
-
-  useLayoutEffect(() => {
-    resizeObserverRef.current = new ResizeObserver(() => {
-      if (!updateOverlayPositionRef.current) {
-        return;
-      }
-      updateOverlayPositionRef.current?.();
-    });
-
-    return () => {
-      resizeObserverRef.current?.disconnect();
-      resizeObserverRef.current = null;
-    };
-  }, []);
-
-  useLayoutEffect(() => {
-    if (!contentRef.current || !resizeObserverRef.current || !isOpen) {
-      return () => {};
-    }
-
-    resizeObserverRef.current?.observe(contentRef.current);
-
-    return () => {
-      resizeObserverRef.current?.disconnect();
-    };
-  }, [contentRef, isOpen, updateOverlayPosition]);
-}
 
 export interface BaseAskSeerComboBoxProps<T extends QueryTokensProps> {
   applySeerSearchQuery: (item: T) => void;
@@ -87,6 +46,7 @@ export interface BaseAskSeerComboBoxProps<T extends QueryTokensProps> {
   queries: T[];
   searchQuery: string;
   submitQuery: (query: string) => void;
+  additionalFeedbackTags?: Record<string, Primitive>;
   className?: string;
   onReset?: () => void;
   unsupportedReason?: string | null;
@@ -106,6 +66,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
   searchQuery,
   submitQuery,
   unsupportedReason,
+  additionalFeedbackTags,
   ...props
 }: BaseAskSeerComboBoxProps<T>) {
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -198,6 +159,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
             expandedProjectIds={item?.expandedProjectIds}
             interval={item?.interval}
             crossEvents={item?.crossEvents}
+            extraFields={item?.extraFields}
           />
         </Item>
       );
@@ -274,11 +236,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
     state
   );
 
-  const {
-    overlayProps,
-    triggerProps,
-    update: updateOverlayPosition,
-  } = useOverlay({
+  const {overlayProps, triggerProps} = useOverlay({
     type: 'listbox',
     isOpen: state.isOpen,
     position: 'bottom-start',
@@ -300,12 +258,6 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
     onInteractOutside: () => {
       state.close();
     },
-  });
-
-  useUpdateOverlayPositionOnContentChange({
-    contentRef: popoverRef,
-    updateOverlayPosition,
-    isOpen: state.isOpen,
   });
 
   useLayoutEffect(() => {
@@ -371,7 +323,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
       <PositionedSearchIconContainer>
         <SearchIcon size="sm" />
       </PositionedSearchIconContainer>
-      <InputWrapper>
+      <Container width="100%" height="100%" position="relative">
         <InvisibleInput
           {...inputProps}
           autoComplete="off"
@@ -380,7 +332,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
           placeholder={t('Ask Seer with Natural Language')}
           ref={mergeRefs(inputRef, triggerProps.ref as React.Ref<HTMLInputElement>)}
         />
-      </InputWrapper>
+      </Container>
       <ButtonsWrapper>
         {hasQueryStatus ? (
           <AskSeerQueryStatusIndicator
@@ -498,6 +450,12 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
                       tags: {
                         'feedback.source': `ai_query.${analyticsArea}`,
                         'feedback.owner': 'ml-ai',
+                        'feedback.natural_language_query': searchQuery.trim(),
+                        'feedback.raw_result': queries
+                          .map(query => stringifyQueryForFeedback(query))
+                          .join('\n\n'),
+                        'feedback.num_queries_returned': queries.length,
+                        ...additionalFeedbackTags,
                       },
                     })
                   }
@@ -535,12 +493,6 @@ const PositionedSearchIconContainer = styled('div')`
 const SearchIcon = styled(IconSearch)`
   color: ${p => p.theme.tokens.content.secondary};
   height: 22px;
-`;
-
-const InputWrapper = styled('div')`
-  position: relative;
-  width: 100%;
-  height: 100%;
 `;
 
 const InvisibleInput = styled('input')<{hasQueryStatus: boolean}>`

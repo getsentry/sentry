@@ -3,6 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {
+  act,
   render,
   renderGlobalModal,
   screen,
@@ -41,7 +42,7 @@ function renderView({
     organization: renderOrganization,
     initialRouterConfig: {
       location: {
-        pathname: '/organizations/org-slug/explore/investigations/',
+        pathname: '/organizations/org-slug/seer/investigations/',
         query,
       },
     },
@@ -104,12 +105,7 @@ describe('Explore Investigations', () => {
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     expect(
       await screen.findByRole('link', {name: 'Database latency investigation'})
-    ).toHaveAttribute('href', '/explore/investigations/1/');
-    expect(screen.getByText('4')).toBeInTheDocument();
-    expect(screen.getByText('Status')).toBeInTheDocument();
-    expect(screen.getByText('Active')).toBeInTheDocument();
-    expect(screen.queryByText('All Projects')).not.toBeInTheDocument();
-    expect(screen.queryByText('All Environments')).not.toBeInTheDocument();
+    ).toHaveAttribute('href', '/seer/investigations/1/');
   });
 
   it('renders the dashboard-style empty state', async () => {
@@ -137,9 +133,7 @@ describe('Explore Investigations', () => {
     await userEvent.type(screen.getByPlaceholderText('Search Investigations'), 'latency');
     await userEvent.keyboard('{Enter}');
 
-    expect(router.location.pathname).toBe(
-      '/organizations/org-slug/explore/investigations/'
-    );
+    expect(router.location.pathname).toBe('/organizations/org-slug/seer/investigations/');
     expect(router.location.query).toEqual({query: 'latency'});
   });
 
@@ -199,90 +193,58 @@ describe('Explore Investigations', () => {
     await waitFor(() => expect(detailRequest).toHaveBeenCalledTimes(1));
   });
 
-  it('creates an untitled investigation and opens it', async () => {
-    MockApiClient.addMockResponse({
-      url: listUrl,
-      body: [],
-    });
-    const createRequest = MockApiClient.addMockResponse({
-      url: listUrl,
-      method: 'POST',
-      body: InvestigationFixture({title: 'Untitled investigation'}),
+  describe('refreshes running title and summary generation in the list with fake timers', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
     });
 
-    const {queryClient, router} = renderView();
-    const unrelatedOptions = getInvestigationDetailQueryOptions('org-slug', 'existing');
-    const unrelatedDetail = InvestigationFixture({id: 'existing'});
-    queryClient.setQueryData(unrelatedOptions.queryKey, {
-      headers: {},
-      json: unrelatedDetail,
-    });
-    await screen.findByText('Sorry, no investigations match your filters.');
-    MockApiClient.addMockResponse({
-      url: listUrl,
-      body: [InvestigationFixture({title: 'Untitled investigation'})],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/1/',
-      body: InvestigationFixture({title: 'Untitled investigation'}),
-    });
-    await userEvent.click(screen.getByRole('button', {name: 'Launch investigation'}));
-
-    await waitFor(() =>
-      expect(createRequest).toHaveBeenCalledWith(
-        listUrl,
-        expect.objectContaining({data: {title: 'Untitled investigation'}})
-      )
-    );
-    expect(await screen.findByText('Untitled investigation')).toBeInTheDocument();
-    expect(router.location.pathname).toBe(
-      '/organizations/org-slug/explore/investigations/1/'
-    );
-    expect(queryClient.getQueryData(unrelatedOptions.queryKey)?.json).toBe(
-      unrelatedDetail
-    );
-    expect(indicators.addSuccessMessage).toHaveBeenCalledWith('Investigation created.');
-  });
-
-  it('refreshes running title and summary generation in the list', async () => {
-    MockApiClient.addMockResponse({
-      url: listUrl,
-      body: [
-        InvestigationFixture({
-          title: 'Untitled investigation',
-          titleGeneration: {status: 'running'},
-        }),
-      ],
+    afterEach(async () => {
+      try {
+        await act(() => jest.runOnlyPendingTimersAsync());
+      } finally {
+        jest.useRealTimers();
+      }
     });
 
-    const {queryClient} = renderView();
-    await screen.findByText('Untitled investigation');
-    const completedRequest = MockApiClient.addMockResponse({
-      url: listUrl,
-      body: [
-        InvestigationFixture({
-          title: 'Checkout errors across releases',
+    it('refreshes running title and summary generation in the list', async () => {
+      MockApiClient.addMockResponse({
+        url: listUrl,
+        body: [
+          InvestigationFixture({
+            title: 'Untitled investigation',
+            titleGeneration: {status: 'running'},
+          }),
+        ],
+      });
+
+      const {queryClient} = renderView();
+      await screen.findByText('Untitled investigation');
+      const completedRequest = MockApiClient.addMockResponse({
+        url: listUrl,
+        body: [
+          InvestigationFixture({
+            title: 'Checkout errors across releases',
+            summary: 'Errors rose across releases',
+            summaryDescription: 'All active releases increased together.',
+            titleGeneration: {status: 'completed'},
+          }),
+        ],
+      });
+
+      await act(() => jest.advanceTimersByTimeAsync(2000));
+      expect(screen.getByText('Checkout errors across releases')).toBeInTheDocument();
+      expect(completedRequest).toHaveBeenCalled();
+      expect(
+        queryClient.getQueryData(
+          investigationListQueryOptions({organizationSlug: 'org-slug'}).queryKey
+        )?.json[0]
+      ).toEqual(
+        expect.objectContaining({
           summary: 'Errors rose across releases',
           summaryDescription: 'All active releases increased together.',
-          titleGeneration: {status: 'completed'},
-        }),
-      ],
+        })
+      );
     });
-
-    expect(
-      await screen.findByText('Checkout errors across releases', {}, {timeout: 3000})
-    ).toBeInTheDocument();
-    expect(completedRequest).toHaveBeenCalled();
-    expect(
-      queryClient.getQueryData(
-        investigationListQueryOptions({organizationSlug: 'org-slug'}).queryKey
-      )?.json[0]
-    ).toEqual(
-      expect.objectContaining({
-        summary: 'Errors rose across releases',
-        summaryDescription: 'All active releases increased together.',
-      })
-    );
   });
 
   it('toggles an investigation favorite and refreshes the list', async () => {
@@ -418,7 +380,7 @@ describe('Explore Investigations', () => {
 
     await waitFor(() =>
       expect(writeText).toHaveBeenCalledWith(
-        `${window.location.origin}/organizations/org-slug/explore/investigations/1/`
+        `${window.location.origin}/organizations/org-slug/seer/investigations/1/`
       )
     );
     expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
@@ -520,32 +482,27 @@ describe('Explore Investigations', () => {
     );
   });
 
-  it.each([
-    [
-      'create',
-      'Launch investigation',
-      listUrl,
-      'POST',
-      'Unable to create investigation.',
-    ],
-    [
-      'favorite',
-      'Favorite Database latency investigation',
-      '/organizations/org-slug/investigations/1/favorite/',
-      'PUT',
-      'Unable to update investigation favorite.',
-    ],
-  ])('reports a %s failure', async (_name, buttonName, url, method, message) => {
+  it('reports a favorite failure', async () => {
     MockApiClient.addMockResponse({
       url: listUrl,
       body: [InvestigationFixture()],
     });
-    MockApiClient.addMockResponse({url, method, statusCode: 500});
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/1/favorite/',
+      method: 'PUT',
+      statusCode: 500,
+    });
 
     renderView();
-    await userEvent.click(await screen.findByRole('button', {name: buttonName}));
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Favorite Database latency investigation'})
+    );
 
-    await waitFor(() => expect(indicators.addErrorMessage).toHaveBeenCalledWith(message));
+    await waitFor(() =>
+      expect(indicators.addErrorMessage).toHaveBeenCalledWith(
+        'Unable to update investigation favorite.'
+      )
+    );
   });
 
   it('reports a duplicate failure', async () => {

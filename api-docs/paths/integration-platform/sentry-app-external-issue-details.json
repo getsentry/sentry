@@ -32,11 +32,14 @@
       },
       "404": {
         "description": "External issue not found"
+      },
+      "409": {
+        "description": "This issue link is being updated. Try again."
       }
     },
     "security": [
       {
-        "auth_token": ["event:admin"]
+        "auth_token": ["event:write", "event:admin"]
       }
     ]
   }

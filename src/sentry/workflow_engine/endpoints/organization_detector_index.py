@@ -1,4 +1,4 @@
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from functools import partial
 from typing import Any, assert_never
 
@@ -11,7 +11,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log
+from sentry import audit_log, quotas
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -51,6 +51,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.monitors.grouptype import MonitorIncidentType
+from sentry.monitors.models import get_cron_monitor
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -61,6 +62,7 @@ from sentry.workflow_engine.endpoints.serializers.detector_serializer import (
 from sentry.workflow_engine.endpoints.utils.filters import (
     apply_filter,
     exclude_disallowed_metric_detectors,
+    get_excluded_detector_types,
 )
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.endpoints.validators.detector_workflow_mutation import (
@@ -75,6 +77,8 @@ from sentry.workflow_engine.endpoints.validators.utils import (
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.processors.detector import get_all_projects_detector
+from sentry.workflow_engine.types import DetectorAPIOperation
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 detector_search_config = SearchConfig.create_from(
     default_config,
@@ -116,8 +120,8 @@ SORT_MAP = {
     "-type": "-type",
     "connectedWorkflows": "connected_workflows",
     "-connectedWorkflows": "-connected_workflows",
-    "latestGroup": F("latest_group_date_added").asc(nulls_first=True),
-    "-latestGroup": F("latest_group_date_added").desc(nulls_last=True),
+    "latestGroup": F("latest_group_last_seen").asc(nulls_first=True),
+    "-latestGroup": F("latest_group_last_seen").desc(nulls_last=True),
     "openIssues": F("open_issues_count").asc(nulls_first=True),
     "-openIssues": F("open_issues_count").desc(nulls_last=True),
 }
@@ -128,9 +132,16 @@ DETECTOR_TYPE_ALIASES = {
     "cron": MonitorIncidentType.slug,
 }
 
+SEAT_DETECTOR_TYPES = (MonitorIncidentType.slug, UptimeDomainCheckFailure.slug)
+
 
 def get_detector_validator(
-    request: Request, project: Project, detector_type_slug: str, instance: Any = None
+    request: Request,
+    project: Project,
+    detector_type_slug: str,
+    instance: Detector | None = None,
+    partial: bool = False,
+    data: Mapping[str, Any] | None = None,
 ) -> BaseDetectorTypeValidator:
     type = grouptype.registry.get_by_slug(detector_type_slug)
     if type is None:
@@ -139,6 +150,13 @@ def get_detector_validator(
 
     if type.detector_settings is None or type.detector_settings.validator is None:
         raise ValidationError({"type": ["Detector type not compatible with detectors"]})
+
+    if detector_type_slug in get_excluded_detector_types(
+        request.method, project.organization, actor=request.user
+    ):
+        raise ValidationError(
+            {"type": [f"Detector type does not support {request.method} requests"]}
+        )
 
     return type.detector_settings.validator(
         instance=instance,
@@ -149,7 +167,8 @@ def get_detector_validator(
             "access": request.access,
             "user": request.user,
         },
-        data=request.data,
+        data=request.data if data is None else data,
+        partial=partial,
     )
 
 
@@ -187,7 +206,21 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
 
         projects = self.get_projects(request, organization)
         detector_q = Q(project_id__in=projects)
-        if all_projects_detector and should_include_all_projects_detector(request, organization):
+
+        # XXX: We have to do this to avoid breaking the Terraform provider.
+        # src: https://github.com/jianyuan/terraform-provider-sentry/blob/b59481f837cbeae74be2fe9883eab473fb63f3a1/internal/provider/data_source_project_issue_stream_monitor_impl.go#L29-L54
+        # We exclude the all projects detector when the request filters to specific projects.
+        # However, if the all projects sentinel is used, we do add it into the response.
+        project_params_unchecked = self.get_requested_project_params_unchecked(request)
+        project_params_include_all_projects = (
+            not project_params_unchecked.has_values
+            or project_params_unchecked.has_all_projects_sentinel
+        )
+        if (
+            all_projects_detector
+            and should_include_all_projects_detector(request, organization)
+            and project_params_include_all_projects
+        ):
             detector_q |= Q(id__in=[all_projects_detector.id])
 
         queryset: QuerySet[Detector] = Detector.objects.with_type_filters().filter(detector_q)
@@ -267,6 +300,8 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             DetectorParams.QUERY,
             DetectorParams.SORT,
             DetectorParams.ID,
+            DetectorParams.TYPE,
+            DetectorParams.ENABLED,
             VisibilityParams.PER_PAGE,
             CursorQueryParam,
         ],
@@ -291,6 +326,24 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             return self.respond(status=status.HTTP_401_UNAUTHORIZED)
 
         queryset = self.filter_detectors(request, organization)
+        queryset = queryset.exclude(
+            type__in=get_excluded_detector_types(
+                DetectorAPIOperation.LIST, organization, actor=request.user
+            )
+        )
+
+        if detector_types := request.GET.getlist("type"):
+            detector_types = [DETECTOR_TYPE_ALIASES.get(value, value) for value in detector_types]
+            queryset = queryset.filter(type__in=detector_types)
+
+        raw_enabled = request.GET.get("enabled")
+        if raw_enabled is not None:
+            try:
+                enabled = serializers.BooleanField().run_validation(raw_enabled)
+            except ValidationError as error:
+                raise ValidationError({"enabled": error.detail}) from error
+            queryset = queryset.filter(enabled=enabled)
+
         queryset = exclude_disallowed_metric_detectors(queryset, organization)
 
         sort_by = request.GET.get("sortBy", "id")
@@ -304,10 +357,10 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             latest_detector_group_subquery = (
                 DetectorGroup.objects.filter(detector=OuterRef("pk"))
                 .order_by("-date_added")
-                .values("date_added")[:1]
+                .values("group__last_seen")[:1]
             )
             queryset = queryset.annotate(
-                latest_group_date_added=Subquery(latest_detector_group_subquery)
+                latest_group_last_seen=Subquery(latest_detector_group_subquery)
             )
         elif sort_by_field == "openIssues":
             queryset = queryset.annotate(
@@ -383,7 +436,13 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         enabled = validator.validated_data.get("enabled", True)
 
         queryset = self.filter_detectors(request, organization)
+        queryset = queryset.exclude(
+            type__in=get_excluded_detector_types(
+                DetectorAPIOperation.PUT, organization, actor=request.user
+            )
+        )
         queryset = exclude_disallowed_metric_detectors(queryset, organization)
+        queryset = queryset.exclude(type=IssueStreamGroupType.slug)
 
         # If explicitly filtering by IDs and some were not found, return 400
         if request.GET.getlist("id") and len(queryset) != len(set(request.GET.getlist("id"))):
@@ -404,10 +463,61 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         if not can_edit_detectors(queryset, request):
             raise PermissionDenied
 
+        seat_detectors = [
+            detector
+            for detector in queryset
+            if detector.type in SEAT_DETECTOR_TYPES and detector.enabled != enabled
+        ]
+        if enabled:
+            monitors = [
+                get_cron_monitor(detector)
+                for detector in seat_detectors
+                if detector.type == MonitorIncidentType.slug
+            ]
+            uptime_detectors = [
+                detector
+                for detector in seat_detectors
+                if detector.type == UptimeDomainCheckFailure.slug
+            ]
+            for seat_objects in (monitors, uptime_detectors):
+                if not seat_objects:
+                    continue
+                assign_result = quotas.backend.check_assign_seats(seat_objects=seat_objects)
+                if not assign_result.assignable:
+                    return Response(
+                        {"detail": assign_result.reason}, status=status.HTTP_400_BAD_REQUEST
+                    )
+
         # We update detectors individually to ensure post_save signals are called
         with transaction.atomic(router.db_for_write(Detector)):
             for detector in queryset:
-                detector.update(enabled=enabled)
+                if detector.type not in SEAT_DETECTOR_TYPES:
+                    detector.update(enabled=enabled)
+
+        # Seat detectors commit one at a time, so keep going past failures
+        failed_detectors = []
+        for detector in seat_detectors:
+            detector_validator = get_detector_validator(
+                request,
+                detector.linked_project,
+                detector.type,
+                detector,
+                partial=True,
+                data={"enabled": enabled},
+            )
+            try:
+                detector_validator.is_valid(raise_exception=True)
+                detector_validator.save()
+            except ValidationError:
+                failed_detectors.append(detector)
+
+        if failed_detectors:
+            action = "enable" if enabled else "disable"
+            names = ", ".join(detector.name for detector in failed_detectors)
+            return Response(
+                {"detail": f"Failed to {action} some monitors: {names}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         return self.paginate(
             request=request,
@@ -459,6 +569,11 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             )
 
         queryset = self.filter_detectors(request, organization)
+        queryset = queryset.exclude(
+            type__in=get_excluded_detector_types(
+                DetectorAPIOperation.DELETE, organization, actor=request.user
+            )
+        )
 
         # If explicitly filtering by IDs and some were not found, return 400
         if request.GET.getlist("id") and len(queryset) != len(set(request.GET.getlist("id"))):

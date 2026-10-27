@@ -5,12 +5,18 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {GroupStore} from 'sentry/stores/groupStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 
-import {GroupList, RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from './groupList';
+import {GroupList} from './groupList';
 
 describe('GroupList', () => {
   const organization = OrganizationFixture();
@@ -62,6 +68,25 @@ describe('GroupList', () => {
     expect(screen.getByText('35K')).toBeInTheDocument();
   });
 
+  it('renders a header for each column of the rows', async () => {
+    render(
+      <GroupList
+        numPlaceholderRows={1}
+        queryParams={defaultQueryParams}
+        withColumns={['firstSeen', 'lastSeen', 'event', 'priority', 'assigneeAvatar']}
+      />,
+      {organization, initialRouterConfig}
+    );
+
+    await screen.findByText(group.shortId);
+    const row = screen.getByTestId('group');
+
+    expect(screen.getAllByRole('columnheader').map(header => header.textContent)).toEqual(
+      ['Issue', 'Last Seen', 'Age', 'Graph', 'Events', 'Priority', 'Assignee']
+    );
+    expect(within(row).getAllByRole('cell')).toHaveLength(7);
+  });
+
   it('renders empty state when no groups are returned', async () => {
     MockApiClient.addMockResponse({url: membersUrl, body: []});
     MockApiClient.addMockResponse({
@@ -80,8 +105,7 @@ describe('GroupList', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders custom error when query has boolean logic', async () => {
-    const renderErrorMessage = jest.fn(() => <div>custom error</div>);
+  it('explains a boolean query without asking the endpoint', async () => {
     const issuesRequest = MockApiClient.addMockResponse({
       url: issuesUrl,
       method: 'GET',
@@ -92,7 +116,6 @@ describe('GroupList', () => {
       <GroupList
         numPlaceholderRows={1}
         queryParams={{...defaultQueryParams, query: 'foo OR bar'}}
-        renderErrorMessage={renderErrorMessage}
       />,
       {
         organization,
@@ -106,12 +129,71 @@ describe('GroupList', () => {
       }
     );
 
-    expect(await screen.findByText('custom error')).toBeInTheDocument();
-    expect(renderErrorMessage).toHaveBeenCalledWith(
-      {detail: RELATED_ISSUES_BOOLEAN_QUERY_ERROR},
-      expect.any(Function)
-    );
+    expect(await screen.findByTestId('loading-error')).toBeInTheDocument();
+    expect(
+      screen.getByText('Search queries with AND or OR are not supported.')
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Retry'})).not.toBeInTheDocument();
     expect(issuesRequest).not.toHaveBeenCalled();
+  });
+
+  it('offers no retry for a client error the endpoint already rejected', async () => {
+    MockApiClient.addMockResponse({
+      url: issuesUrl,
+      method: 'GET',
+      statusCode: 400,
+      body: {detail: 'Invalid query'},
+    });
+
+    render(<GroupList numPlaceholderRows={1} queryParams={defaultQueryParams} />, {
+      organization,
+      initialRouterConfig,
+    });
+
+    expect(await screen.findByTestId('loading-error')).toBeInTheDocument();
+    expect(screen.getByText('Invalid query')).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Retry'})).not.toBeInTheDocument();
+  });
+
+  it('falls back to generic copy when the response carries no detail', async () => {
+    MockApiClient.addMockResponse({
+      url: issuesUrl,
+      method: 'GET',
+      statusCode: 400,
+      body: {},
+    });
+
+    render(<GroupList numPlaceholderRows={1} queryParams={defaultQueryParams} />, {
+      organization,
+      initialRouterConfig,
+    });
+
+    expect(await screen.findByTestId('loading-error')).toBeInTheDocument();
+    expect(screen.getByText('There was an error loading data.')).toBeInTheDocument();
+  });
+
+  it('offers a retry for a server error that could land differently', async () => {
+    const issuesRequest = MockApiClient.addMockResponse({
+      url: issuesUrl,
+      method: 'GET',
+      statusCode: 500,
+      body: {detail: 'Internal error'},
+    });
+
+    render(<GroupList numPlaceholderRows={1} queryParams={defaultQueryParams} />, {
+      organization,
+      initialRouterConfig,
+    });
+
+    expect(await screen.findByTestId('loading-error')).toBeInTheDocument();
+
+    const retry = await screen.findByRole('button', {name: 'Retry'});
+    const callsBeforeRetry = issuesRequest.mock.calls.length;
+    await userEvent.click(retry);
+
+    await waitFor(() =>
+      expect(issuesRequest.mock.calls.length).toBeGreaterThan(callsBeforeRetry)
+    );
   });
 
   it('invokes onFetchSuccess with correct arguments', async () => {

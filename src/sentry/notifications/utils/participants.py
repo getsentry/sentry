@@ -5,8 +5,6 @@ from collections import defaultdict
 from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from typing import TYPE_CHECKING, Any
 
-from django.db.models import Q
-
 from sentry.integrations.types import ExternalProviders
 from sentry.integrations.utils.providers import get_provider_enum_from_string
 from sentry.models.commit import Commit
@@ -19,8 +17,6 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.release import Release
-from sentry.models.rule import Rule
-from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.team import Team
 from sentry.notifications.services import notifications_service
 from sentry.notifications.types import (
@@ -358,26 +354,14 @@ def get_send_to(
     event: Event | GroupEvent | None = None,
     notification_type_enum: NotificationSettingEnum = NotificationSettingEnum.ISSUE_ALERTS,
     fallthrough_choice: FallthroughChoiceType | None = None,
-    rules: Iterable[Rule] | None = None,
     notification_uuid: str | None = None,
 ) -> Mapping[ExternalProviders, set[Actor]]:
-    recipients = determine_eligible_recipients(
-        project, target_type, target_identifier, event, fallthrough_choice
+    recipients = list(
+        determine_eligible_recipients(
+            project, target_type, target_identifier, event, fallthrough_choice
+        )
     )
 
-    if rules:
-        rule_snoozes = RuleSnooze.objects.filter(Q(rule__in=rules))
-        muted_user_ids = []
-        for rule_snooze in rule_snoozes:
-            if rule_snooze.user_id is None:
-                return {}
-            else:
-                muted_user_ids.append(rule_snooze.user_id)
-
-        if muted_user_ids:
-            recipients = filter(
-                lambda x: x.actor_type != ActorType.USER or x.id not in muted_user_ids, recipients
-            )
     return _get_recipients_by_provider(
         project,
         recipients,

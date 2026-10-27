@@ -6,6 +6,7 @@ from typing import Any
 
 from django.conf import settings
 from sentry_redis_tools.clients import RedisCluster
+from sentry_sdk import traces
 
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.datasource import (
@@ -17,7 +18,6 @@ from sentry.models.project import Project
 from sentry.options.rollout import in_random_rollout
 from sentry.utils import redis
 from sentry.utils.safe import safe_execute
-from sentry.utils.tracing import start_span
 
 #: Maximum number of transaction names per project that we want
 #: to store in redis.
@@ -83,9 +83,9 @@ def get_active_project_ids(namespace: ClustererNamespace) -> Iterator[int]:
 
 
 def _record_sample(namespace: ClustererNamespace, project: Project, sample: str) -> None:
-    with start_span(
-        op=f"cluster.{namespace.value.name}.record_sample",
+    with traces.start_span(
         name=f"cluster.{namespace.value.name}.record_sample",
+        attributes={"sentry.op": f"cluster.{namespace.value.name}.record_sample"},
     ):
         client = get_redis_client()
         redis_key = _get_redis_key(namespace, project)

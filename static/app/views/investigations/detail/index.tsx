@@ -1,58 +1,95 @@
-import {useEffect, useRef, useState} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChat} from '@sentry/icons/chat';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconIssues} from '@sentry/icons/issues';
+import {IconStack} from '@sentry/icons/stack';
 import {useDebouncer} from '@tanstack/react-pacer';
-import {useQuery, useQueryClient} from '@tanstack/react-query';
+import {useIsFetching, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Badge} from '@sentry/scraps/badge';
+import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
-import {TextArea} from '@sentry/scraps/textarea';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {DateTime} from 'sentry/components/dateTime';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconAdd, IconSeer, IconStack} from 'sentry/icons';
-import {IconEllipsis} from 'sentry/icons/iconEllipsis';
-import {t} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {
+  getPrimaryActionRequest,
+  NextStepCard,
+} from 'sentry/views/investigations/actionRequests/nextStepCard';
+import {InvestigationActivity} from 'sentry/views/investigations/activity/investigationActivity';
+import {
   getInvestigationDetailQueryOptions,
+  investigationCommentCountsQueryOptions,
   investigationListQueryOptions,
+  investigationOrchestrationQueryOptions,
   investigationTitleGenerationQueryOptions,
-  useAddInvestigationBlockMutation,
   useDeleteInvestigationMutation,
   useDuplicateInvestigationMutation,
   useRenameInvestigationMutation,
 } from 'sentry/views/investigations/api';
+import {useBlockCommentsDrawer} from 'sentry/views/investigations/comments/useBlockCommentsDrawer';
+import {useInvestigationComments} from 'sentry/views/investigations/comments/useInvestigationComments';
 import {
-  InvestigationCell,
+  InvestigationNotebookBlock,
+  isBlockWorking,
   shouldDisplayInvestigationBlock,
   shouldPollInvestigationBlocks,
-} from 'sentry/views/investigations/detail/cell';
+} from 'sentry/views/investigations/detail/block';
+import {InvestigationBlockPlaceholder} from 'sentry/views/investigations/detail/blockPlaceholder';
+import {InvestigationViewers} from 'sentry/views/investigations/detail/presence';
+import {InvestigationRunTimer} from 'sentry/views/investigations/detail/runTimer';
+import {
+  InvestigationHypotheses,
+  shouldPollInvestigationRun,
+} from 'sentry/views/investigations/hypotheses/investigationHypotheses';
 import {updateInvestigationCache} from 'sentry/views/investigations/investigationCache';
 import {InvestigationSummaryCard} from 'sentry/views/investigations/investigationSummaryCard';
+import {getInvestigationSource} from 'sentry/views/investigations/source';
+import {getSeerStatusBlock} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
 import type {
-  InvestigationBlockKind,
+  InvestigationActionRequest,
+  InvestigationBlock,
   InvestigationDetail,
+  InvestigationOrchestration,
 } from 'sentry/views/investigations/types';
+import {
+  getInvestigationPath,
+  getInvestigationsPath,
+  useInvestigationsEnabled,
+} from 'sentry/views/investigations/utils';
+import {TopBar} from 'sentry/views/navigation/topBar';
 import {RouteError} from 'sentry/views/routeError';
 
 const DEFAULT_INVESTIGATION_TITLE = 'Untitled investigation';
+
+const STATUS_TAG_VARIANT = {
+  running: 'info',
+  awaitingInput: 'warning',
+  failed: 'danger',
+  complete: 'success',
+  cancelled: 'muted',
+} as const;
 
 function FeatureDisabledPage() {
   return (
@@ -77,6 +114,71 @@ function ClosedMembershipPage() {
   );
 }
 
+/**
+ * Action requests come with the investigation, which stops polling once the run is done
+ * and which orchestration commands don't refresh. Refetch it whenever the next step moves
+ * on, and return true until that refetch settles.
+ */
+function useRefetchStaleActionRequests(
+  investigationId: string,
+  orchestration: InvestigationOrchestration | undefined,
+  actionRequests: InvestigationActionRequest[] | undefined
+) {
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
+  const detailQueryKey = getInvestigationDetailQueryOptions(
+    organization.slug,
+    investigationId
+  ).queryKey;
+  // Re-renders when the refetch starts and settles.
+  useIsFetching({queryKey: detailQueryKey});
+  const detailState = queryClient.getQueryState(detailQueryKey);
+  const detailUpdates =
+    (detailState?.dataUpdateCount ?? 0) + (detailState?.errorUpdateCount ?? 0);
+  const nextStepKey = orchestration
+    ? `${orchestration.report.revision}:${orchestration.report.nextStep?.status}`
+    : null;
+  const [refresh, setRefresh] = useState<{
+    detailUpdates: number;
+    initial: boolean;
+    investigationId: string;
+    key: string;
+  } | null>(null);
+
+  if (
+    nextStepKey !== null &&
+    (refresh?.investigationId !== investigationId || refresh.key !== nextStepKey)
+  ) {
+    // The first next step we see usually matches the investigation we already have,
+    // unless it finished before that investigation was fetched.
+    const missingRequest =
+      orchestration?.report.nextStep?.status === 'completed' &&
+      !getPrimaryActionRequest(actionRequests ?? [], orchestration.report.revision);
+    setRefresh({
+      detailUpdates,
+      initial: refresh?.investigationId !== investigationId && !missingRequest,
+      investigationId,
+      key: nextStepKey,
+    });
+  }
+
+  useEffect(() => {
+    if (refresh && !refresh.initial) {
+      void queryClient.invalidateQueries({
+        queryKey: getInvestigationDetailQueryOptions(
+          organization.slug,
+          refresh.investigationId
+        ).queryKey,
+      });
+    }
+  }, [organization.slug, queryClient, refresh]);
+
+  if (refresh === null || refresh.initial || nextStepKey === null) {
+    return false;
+  }
+  return detailUpdates === refresh.detailUpdates;
+}
+
 export function InvestigationBootstrapPage({investigationId}: {investigationId: string}) {
   const organization = useOrganization();
   const detailOptions = getInvestigationDetailQueryOptions(
@@ -92,7 +194,14 @@ export function InvestigationBootstrapPage({investigationId}: {investigationId: 
     ...detailOptions,
     refetchInterval: query => {
       const data = query.state.data?.json;
-      return shouldPollInvestigationBlocks(data?.blocks ?? []) ||
+      // A live agentic run keeps this polling too: the notebook fills in as the
+      // agent writes blocks, and `orchestration` is what gates the hypothesis
+      // row, so a stale copy would leave the row hidden or showing a run that
+      // has since finished.
+      const orchestrationActive =
+        data?.orchestration && shouldPollInvestigationRun(data.orchestration.status);
+      return orchestrationActive ||
+        shouldPollInvestigationBlocks(data?.blocks ?? []) ||
         isTitleGenerationActive(data?.titleGeneration?.status)
         ? 2000
         : false;
@@ -121,6 +230,20 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const {copy} = useCopyToClipboard();
+  const composerRef = useRef<HTMLDivElement>(null);
+  const activityRef = useRef<HTMLElement>(null);
+  const {data: comments} = useInvestigationComments(investigation.id, {
+    shouldPoll: investigation.status !== 'archived',
+  });
+  const commentCount = comments?.json.length ?? 0;
+  const hasMoreComments =
+    parseLinkHeader(comments?.headers.Link ?? null).next?.results === true;
+  const isArchived = investigation.status === 'archived';
+  const {data: commentCounts} = useQuery({
+    ...investigationCommentCountsQueryOptions(organization.slug, investigation.id),
+    refetchInterval: 10_000,
+  });
+  const {openBlockComments} = useBlockCommentsDrawer(investigation.id);
   const [draftTitle, setDraftTitle] = useState<string | null>(null);
   const persistedTitle = useRef(investigation.title);
   const titleGenerationSettledFor = useRef<string | null>(null);
@@ -141,6 +264,19 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
       ? titleGenerationQuery.data?.preview
       : null;
   const displayedTitle = draftTitle ?? generatedTitlePreview ?? investigation.title;
+  const {data: orchestration, isPending: orchestrationPending} = useQuery({
+    ...investigationOrchestrationQueryOptions(organization.slug, investigation.id),
+    enabled: Boolean(investigation.orchestration),
+  });
+  const actionRequestsStale = useRefetchStaleActionRequests(
+    investigation.id,
+    orchestration,
+    investigation.actionRequests
+  );
+  const runStatus =
+    investigation.orchestration && orchestration
+      ? getSeerStatusBlock(orchestration)
+      : null;
 
   useEffect(() => {
     const status = titleGenerationQuery.data?.status;
@@ -210,16 +346,10 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
         exact: true,
       });
       addSuccessMessage(t('Investigation deleted.'));
-      navigate(`/organizations/${organization.slug}/explore/investigations/`);
+      navigate(getInvestigationsPath(organization.slug));
     },
     onError: () => addErrorMessage(t('Unable to delete investigation.')),
   });
-  const addBlockMutation = useAddInvestigationBlockMutation(
-    organization.slug,
-    investigation.id,
-    {onError: () => addErrorMessage(t('Unable to add cell.'))}
-  );
-
   function handleTitleChange(nextTitle: string) {
     setDraftTitle(nextTitle);
     updateInvestigationCache(
@@ -261,50 +391,31 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
     );
   }
 
-  const blocks = investigation.blocks ?? [];
-  const summaryBlock = investigation.template ? blocks[0] : undefined;
-  const notebookCells = summaryBlock ? blocks.slice(1) : blocks;
-  const visibleSummaryBlock =
-    summaryBlock && shouldDisplayInvestigationBlock(summaryBlock, blocks)
-      ? summaryBlock
-      : undefined;
-  const visibleNotebookCells = notebookCells.filter(block =>
-    shouldDisplayInvestigationBlock(block, blocks)
+  const visibleBlocks = (investigation.blocks ?? []).filter(block =>
+    shouldDisplayInvestigationBlock(block)
   );
-
-  async function handleAddBlock({
-    kind,
-    prompt,
-    title,
-  }: {
-    kind: InvestigationBlockKind;
-    prompt: string;
-    title: string;
-  }) {
-    await addBlockMutation.mutateAsync({investigation, kind, prompt, title});
-  }
+  const awaitingReportBlock = isAwaitingReportBlock(investigation);
+  const source = getInvestigationSource(investigation);
+  const hasDetails =
+    Boolean(investigation.orchestration) ||
+    visibleBlocks.length > 0 ||
+    awaitingReportBlock;
+  // The "Investigation details" heading only appears below a summary.
+  const showDetailsHeading =
+    hasDetails && Boolean(investigation.summary && investigation.summaryDescription);
+  const showActivity = isInvestigationRunDone(investigation);
 
   return (
     <SentryDocumentTitle title={displayedTitle} orgSlug={organization.slug}>
       <Stack flex={1}>
-        <Layout.Title>
-          <HeaderBreadcrumbs
-            align="center"
-            gap="sm"
-            minWidth={0}
-            data-test-id="investigation-breadcrumbs"
-            data-text-size="md"
-          >
-            <IconStack size="md" />
-            <HeaderBreadcrumbLink
-              to={`/organizations/${organization.slug}/explore/investigations/`}
-            >
-              {t('Investigations')}
-            </HeaderBreadcrumbLink>
-            <HeaderDivider>/</HeaderDivider>
-            <HeaderInvestigationTitle>{displayedTitle}</HeaderInvestigationTitle>
-            <DropdownMenu
-              items={[
+        <TopBar.Slot
+          name="breadcrumbs"
+          title={{
+            type: 'page-title',
+            label: displayedTitle,
+            trailingActions: {
+              type: 'menu',
+              items: [
                 {
                   key: 'copy-link',
                   label: t('Copy link'),
@@ -334,29 +445,27 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                       onConfirm: () => deleteMutation.mutate(investigation),
                     }),
                 },
-              ]}
-              triggerProps={{
-                size: 'sm',
-                showChevron: false,
-                variant: 'transparent',
-                icon: <IconEllipsis />,
-                'aria-label': t('Investigation actions'),
-              }}
-              position="bottom-end"
-              usePortal
-            />
-          </HeaderBreadcrumbs>
-        </Layout.Title>
-        <InvestigationHeader as="header" width="100%" padding="xl">
-          <Grid
-            columns="minmax(0, 1fr) auto"
-            align="start"
-            gap="lg"
-            width="100%"
-            maxWidth="885px"
-            margin="0 auto"
-          >
-            <Stack gap="xs" minWidth={0}>
+              ],
+              triggerLabel: t('Investigation actions'),
+              triggerIcon: <IconEllipsis />,
+            },
+          }}
+          items={[
+            {
+              type: 'link',
+              label: t('Investigations'),
+              to: getInvestigationsPath(organization.slug),
+              leadingGraphic: <IconStack size="md" />,
+            },
+          ]}
+        />
+        <Container as="header" width="100%" padding="xl xl 2xl">
+          <Stack gap="xs" width="100%" maxWidth="960px" margin="0 auto">
+            <Grid
+              columns={runStatus ? 'minmax(0, 1fr) auto' : 'minmax(0, 1fr)'}
+              align="center"
+              gap="md"
+            >
               <NotebookTitleInput
                 aria-label={t('Investigation title')}
                 value={displayedTitle}
@@ -365,76 +474,176 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                 maxLength={200}
                 aria-busy={renameMutation.isPending}
               />
-              <Flex align="center" gap="sm" wrap="wrap">
-                <Text variant="muted">{formatSourceType(investigation.sourceType)}</Text>
-                <MetaDivider />
-                <Text variant="muted">{t('%s blocks', investigation.blockCount)}</Text>
+              {runStatus ? (
+                <Flex align="center" gap="md" wrap="nowrap">
+                  <Tag variant={STATUS_TAG_VARIANT[runStatus.variant]}>
+                    {runStatus.statusLabel}
+                  </Tag>
+                  {orchestration ? (
+                    <InvestigationRunTimer orchestration={orchestration} />
+                  ) : null}
+                </Flex>
+              ) : null}
+            </Grid>
+            <Flex align="center" justify="between" gap="md">
+              <Flex flex="1" minWidth={0} align="center" gap="sm" wrap="wrap">
+                {source.groupId ? (
+                  <Link
+                    to={normalizeUrl(
+                      `/organizations/${organization.slug}/issues/${source.groupId}/`
+                    )}
+                  >
+                    <Flex as="span" align="center" gap="xs">
+                      <IconIssues size="xs" />
+                      {source.monitorName ?? t('View issue')}
+                    </Flex>
+                  </Link>
+                ) : (
+                  <Text variant="muted">
+                    {formatSourceType(investigation.sourceType)}
+                  </Text>
+                )}
                 <MetaDivider />
                 <Text variant="muted">
-                  {t('Last update: %s', formatNotebookDate(investigation.dateUpdated))}
+                  {tct('Last update: [date]', {
+                    date: <DateTime date={investigation.dateUpdated} year />,
+                  })}
                 </Text>
+                {!showActivity ||
+                (investigation.status === 'archived' && commentCount === 0) ? null : (
+                  <Fragment>
+                    <MetaDivider />
+                    <Button
+                      size="sm"
+                      variant="link"
+                      icon={<IconChat size="xs" />}
+                      onClick={() => {
+                        if (investigation.status === 'archived') {
+                          activityRef.current?.scrollIntoView?.({behavior: 'smooth'});
+                          return;
+                        }
+                        composerRef.current?.scrollIntoView?.({
+                          block: 'center',
+                          behavior: 'smooth',
+                        });
+                        composerRef.current?.focus({preventScroll: true});
+                      }}
+                    >
+                      {hasMoreComments
+                        ? t('%s+ comments', commentCount)
+                        : commentCount > 0
+                          ? tn('%s comment', '%s comments', commentCount)
+                          : t('Comment')}
+                    </Button>
+                  </Fragment>
+                )}
+                <InvestigationViewers
+                  investigationId={investigation.id}
+                  separator={<MetaDivider />}
+                />
               </Flex>
-            </Stack>
-            <Flex align="center" gap="sm">
-              <FeedbackButton
-                feedbackOptions={{
-                  formTitle: t('Give feedback on this investigation'),
-                  messagePlaceholder: t('What was useful, incorrect, or missing?'),
-                  tags: {
-                    'feedback.source': 'investigation',
-                    'feedback.owner': 'ml-ai',
-                    'investigation.id': investigation.id,
-                    'investigation.source_type': investigation.sourceType,
-                    ...(investigation.template
-                      ? {'investigation.template': investigation.template.key}
-                      : {}),
-                  },
-                }}
-              >
-                {t('Give feedback')}
-              </FeedbackButton>
-              <Badge variant={getStatusVariant(investigation.status)}>
-                {formatStatus(investigation.status)}
-              </Badge>
-              <IconSeer size="sm" />
+              <Container flexShrink={0}>
+                <FeedbackButton
+                  feedbackOptions={{
+                    formTitle: t('Give feedback on this investigation'),
+                    messagePlaceholder: t('What was useful, incorrect, or missing?'),
+                    tags: {
+                      'feedback.source': 'investigation',
+                      'feedback.owner': 'ml-ai',
+                      'investigation.id': investigation.id,
+                      'investigation.source_type': investigation.sourceType,
+                      ...(investigation.template
+                        ? {'investigation.template': investigation.template.key}
+                        : {}),
+                    },
+                  }}
+                >
+                  {t('Give feedback')}
+                </FeedbackButton>
+              </Container>
             </Flex>
-          </Grid>
-        </InvestigationHeader>
-        <Layout.Body>
+          </Stack>
+        </Container>
+        <Layout.Body padding={{xl: '0 lg lg', '3xl': '0 xl lg'}}>
           <Layout.Main width="full">
-            <InvestigationCanvas>
-              <NotebookSummaryCard
+            <Stack width="100%" maxWidth="960px" minWidth={0} margin="0 auto" gap="3xl">
+              <InvestigationSummaryCard
                 summary={investigation.summary}
                 summaryDescription={investigation.summaryDescription}
               />
+              <NextStepCard
+                actionRequests={investigation.actionRequests}
+                actionRequestsStale={actionRequestsStale}
+                investigationId={investigation.id}
+                source={investigation.source}
+                orchestration={orchestration}
+                orchestrationLoading={
+                  Boolean(investigation.orchestration) && orchestrationPending
+                }
+              />
 
-              <Stack width="min(100%, 884px)" margin="0 auto">
-                {visibleSummaryBlock ? (
-                  <InvestigationCell
-                    block={visibleSummaryBlock}
-                    canRun={investigation.status === 'active'}
-                    investigation={investigation}
-                  />
-                ) : null}
+              {showDetailsHeading ? <Separator orientation="horizontal" /> : null}
 
-                <Stack gap="xl">
-                  {visibleNotebookCells.map(block => (
-                    <InvestigationCell
-                      key={block.id}
-                      block={block}
-                      canRun={investigation.status === 'active'}
-                      investigation={investigation}
-                    />
-                  ))}
+              {hasDetails ? (
+                <Stack gap="lg">
+                  {showDetailsHeading ? (
+                    <Heading as="h2" size="lg">
+                      {t('Investigation details')}
+                    </Heading>
+                  ) : null}
+                  <DetailsBody gap="3xl">
+                    {/*
+                     * Only an agentic investigation has hypotheses, and `orchestration`
+                     * being present is the only thing that says one is: it is null for
+                     * manual and template investigations, whose orchestration endpoint
+                     * 404s.
+                     */}
+                    {investigation.orchestration ? (
+                      <InvestigationHypotheses
+                        investigationId={investigation.id}
+                        phase={investigation.orchestration.phase}
+                        status={investigation.orchestration.status}
+                      />
+                    ) : null}
+                    {visibleBlocks.length > 0 || awaitingReportBlock ? (
+                      <Stack>
+                        {visibleBlocks.map((block, index) => (
+                          <Container
+                            key={block.id}
+                            paddingTop={getBlockSpacing(block, index)}
+                          >
+                            <InvestigationNotebookBlock
+                              block={block}
+                              canRun={investigation.status === 'active'}
+                              investigation={investigation}
+                              commentCount={commentCounts?.[block.id]}
+                              onComment={
+                                isArchived && commentCounts && !commentCounts[block.id]
+                                  ? undefined
+                                  : openBlockComments
+                              }
+                            />
+                          </Container>
+                        ))}
+                        {awaitingReportBlock ? (
+                          <Container paddingTop={visibleBlocks.length > 0 ? '3xl' : '0'}>
+                            <InvestigationBlockPlaceholder />
+                          </Container>
+                        ) : null}
+                      </Stack>
+                    ) : null}
+                  </DetailsBody>
                 </Stack>
-                {investigation.status === 'active' ? (
-                  <AddCellComposer
-                    isAdding={addBlockMutation.isPending}
-                    onAdd={handleAddBlock}
-                  />
-                ) : null}
-              </Stack>
-            </InvestigationCanvas>
+              ) : null}
+              {showActivity ? (
+                <InvestigationActivity
+                  investigation={investigation}
+                  composerRef={composerRef}
+                  ref={activityRef}
+                />
+              ) : null}
+              <Container height="128px" flexShrink={0} aria-hidden />
+            </Stack>
           </Layout.Main>
         </Layout.Body>
       </Stack>
@@ -442,106 +651,43 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   );
 }
 
-function AddCellComposer({
-  isAdding,
-  onAdd,
-}: {
-  isAdding: boolean;
-  onAdd: (cell: {
-    kind: InvestigationBlockKind;
-    prompt: string;
-    title: string;
-  }) => Promise<void>;
-}) {
-  const [kind, setKind] = useState<InvestigationBlockKind | null>(null);
-  const [title, setTitle] = useState('');
-  const [prompt, setPrompt] = useState('');
-
-  function reset() {
-    setKind(null);
-    setTitle('');
-    setPrompt('');
+/**
+ * Text blocks start a new section with a large gap. Query blocks sit close to the
+ * text block above them.
+ */
+function getBlockSpacing(block: InvestigationBlock, index: number) {
+  if (index === 0) {
+    return '0';
   }
-
-  async function handleAdd() {
-    if (!kind || !prompt.trim()) {
-      return;
-    }
-    try {
-      await onAdd({kind, title: title.trim(), prompt: prompt.trim()});
-      reset();
-    } catch {
-      // The mutation owns user-facing error handling and leaves the draft intact.
-    }
-  }
-
-  if (!kind) {
-    return (
-      <AddCellActions align="center" justify="center" gap="sm">
-        <Button size="sm" icon={<IconAdd />} onClick={() => setKind('text')}>
-          {t('Add text cell (debug only)')}
-        </Button>
-        <Button size="sm" icon={<IconAdd />} onClick={() => setKind('query')}>
-          {t('Add query cell (debug only)')}
-        </Button>
-      </AddCellActions>
-    );
-  }
-
-  return (
-    <CellComposer>
-      <Stack gap="md">
-        <Heading as="h2" size="md">
-          {kind === 'text'
-            ? t('Add text cell (debug only)')
-            : t('Add query cell (debug only)')}
-        </Heading>
-        <Input
-          aria-label={t('Cell title')}
-          placeholder={t('Title (optional)')}
-          value={title}
-          onChange={event => setTitle(event.target.value)}
-        />
-        <TextArea
-          aria-label={t('Cell instructions')}
-          autosize
-          autoFocus
-          rows={3}
-          placeholder={
-            kind === 'text'
-              ? t('Describe the text to generate')
-              : t('Describe the query to run')
-          }
-          value={prompt}
-          onChange={event => setPrompt(event.target.value)}
-        />
-        <Flex align="center" justify="end" gap="sm">
-          <Button size="sm" onClick={reset} disabled={isAdding}>
-            {t('Cancel')}
-          </Button>
-          <Button
-            size="sm"
-            variant="primary"
-            busy={isAdding}
-            disabled={!prompt.trim()}
-            onClick={() => void handleAdd()}
-          >
-            {t('Add cell')}
-          </Button>
-        </Flex>
-      </Stack>
-    </CellComposer>
-  );
+  return block.kind === 'query' ? 'lg' : '3xl';
 }
+
+// Seer reaches the reporting phase once it is done with the hypotheses, but the
+// report arrives as blocks on a later poll. Until then the notebook stands in a
+// placeholder block, unless a block is already running — that one shows its own.
+function isAwaitingReportBlock(investigation: InvestigationDetail) {
+  const {orchestration} = investigation;
+  if (orchestration?.status !== 'processing' || orchestration.phase !== 'reporting') {
+    return false;
+  }
+  // Only a block Seer is working on rules this out, because that block is already
+  // showing a placeholder of its own. A block that finished, failed or was
+  // cancelled is done, and more are still coming.
+  return !(investigation.blocks ?? []).some(isBlockWorking);
+}
+
+// The activity feed waits for an agentic run to stop, so it doesn't compete with
+// the run for attention while Seer is still working. Manual and template
+// investigations have no run, so their feed always shows.
+function isInvestigationRunDone(investigation: InvestigationDetail) {
+  const {orchestration} = investigation;
+  return !orchestration || RUN_DONE_STATUSES.has(orchestration.status);
+}
+
+const RUN_DONE_STATUSES = new Set<string>(['completed', 'failed', 'cancelled']);
 
 function isTitleGenerationActive(status: string | null | undefined) {
   return status === 'pending' || status === 'running';
-}
-
-function getInvestigationPath(organizationSlug: string, investigationId: string) {
-  return normalizeUrl(
-    `/organizations/${organizationSlug}/explore/investigations/${investigationId}/`
-  );
 }
 
 function formatSourceType(sourceType: string) {
@@ -554,87 +700,10 @@ function formatSourceType(sourceType: string) {
   return sourceType.replaceAll('_', ' ');
 }
 
-function formatStatus(status: string) {
-  if (status === 'active') {
-    return t('Active');
-  }
-  return status.replaceAll('_', ' ').replace(/^./, character => character.toUpperCase());
-}
-
-function formatNotebookDate(date: string) {
-  return new Date(date).toISOString().slice(0, 10).replaceAll('-', '.');
-}
-
-function getStatusVariant(status: string): 'success' | 'warning' | 'muted' {
-  if (status === 'completed' || status === 'active') {
-    return 'success';
-  }
-  if (status === 'pending') {
-    return 'warning';
-  }
-  return 'muted';
-}
-
-const InvestigationCanvas = styled(Stack)`
-  width: min(100%, calc(884px + ${p => p.theme.space['2xl']}));
-  margin: 0 auto;
-`;
-
-const InvestigationHeader = styled(Container)`
-  position: relative;
-
-  &::after {
-    /* The specified divider is intentionally as subtle as the secondary surface. */
-    content: '';
-    position: absolute;
-    inset: auto 0 0;
-    height: 1px;
-    background: ${p => p.theme.tokens.background.secondary};
-  }
-`;
-
-const NotebookSummaryCard = styled(InvestigationSummaryCard)`
-  width: 100%;
-  margin-bottom: ${p => p.theme.space.xl};
-  padding-inline: ${p => p.theme.space.xl};
-`;
-
-const HeaderBreadcrumbs = styled(Flex)`
-  height: 32px;
-  overflow: hidden;
-  font-size: ${p => p.theme.font.size.md};
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  line-height: 32px;
-  white-space: nowrap;
-`;
-
-const HeaderBreadcrumbLink = styled(Link)`
-  overflow: hidden;
-  color: ${p => p.theme.tokens.content.secondary};
-  text-decoration-line: underline;
-  text-decoration-style: dotted;
-  text-decoration-color: ${p => p.theme.tokens.border.primary};
-  text-underline-offset: 5px;
-  text-overflow: ellipsis;
-`;
-
-const HeaderDivider = styled('span')`
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const HeaderInvestigationTitle = styled('span')`
-  overflow: hidden;
-  color: ${p => p.theme.tokens.content.primary};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  text-decoration-line: underline;
-  text-decoration-style: dotted;
-  text-decoration-color: ${p => p.theme.tokens.border.primary};
-  text-underline-offset: 5px;
-  text-overflow: ellipsis;
-`;
-
 const NotebookTitleInput = styled(Input)`
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   height: auto;
   margin: 0;
   padding: 0;
@@ -643,7 +712,9 @@ const NotebookTitleInput = styled(Input)`
   border-color: transparent;
   border-radius: ${p => p.theme.radius.sm};
   box-shadow: none;
-  font-size: ${p => p.theme.font.size['2xl']};
+  /* The base input's form min-height would pad the title out below its text. */
+  min-height: 0;
+  font-size: ${p => p.theme.font.size.xl};
   font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1.25;
 
@@ -654,26 +725,24 @@ const NotebookTitleInput = styled(Input)`
   }
 `;
 
+/**
+ * Hidden when empty (e.g. no hypotheses and no blocks), so it doesn't add a gap
+ * below the heading.
+ */
+const DetailsBody = styled(Stack)`
+  &:empty {
+    display: none;
+  }
+`;
+
 const MetaDivider = styled('span')`
   height: 16px;
   border-left: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
-const AddCellActions = styled(Flex)`
-  padding: ${p => p.theme.space.xl} 0;
-`;
-
-const CellComposer = styled('section')`
-  width: min(100%, 862px);
-  margin: ${p => p.theme.space.lg} auto 0;
-  padding: ${p => p.theme.space.xl};
-  background: ${p => p.theme.tokens.background.secondary};
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
-`;
-
 export default function InvestigationDetailView() {
   const organization = useOrganization();
+  const investigationsEnabled = useInvestigationsEnabled();
   const {investigationId} = useParams<{investigationId: string}>();
 
   return (
@@ -683,7 +752,7 @@ export default function InvestigationDetailView() {
         features="organizations:investigations"
         renderDisabled={() => <FeatureDisabledPage />}
       >
-        {organization.openMembership ? (
+        {investigationsEnabled ? (
           <InvestigationBootstrapPage investigationId={investigationId} />
         ) : (
           <ClosedMembershipPage />

@@ -15,6 +15,7 @@ from sentry.api.helpers.deprecation import deprecated
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, SimpleEventSerializer, serialize
 from sentry.api.serializers.models.event import (
+    FULL_PAYLOAD_MAX_PER_PAGE,
     EventSerializerResponse,
     SimpleEventSerializerResponse,
 )
@@ -54,6 +55,14 @@ class GroupHashesEndpoint(GroupEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
     }
 
+    def get_per_page(
+        self, request: Request, default_per_page: int | None = None, max_per_page: int | None = None
+    ) -> int:
+        per_page = super().get_per_page(request, default_per_page, max_per_page)
+        if request.GET.get("full") not in ("0", "false"):
+            return min(per_page, FULL_PAYLOAD_MAX_PER_PAGE)
+        return per_page
+
     @extend_schema(
         operation_id="listOrganizationIssueHashes",
         summary="List an Issue's Hashes",
@@ -69,7 +78,7 @@ class GroupHashesEndpoint(GroupEndpoint):
                 location=OpenApiParameter.QUERY,
                 required=False,
                 default=True,
-                description="Specify true to include the full event body, including the stacktrace, in the event payload.",
+                description="Specify true to include the full event body, including the stacktrace, in the event payload. When true, the page size is capped at 10.",
             ),
             CursorQueryParam,
         ],

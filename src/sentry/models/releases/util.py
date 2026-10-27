@@ -4,6 +4,7 @@ import logging
 from collections import namedtuple
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import datetime
 from typing import TYPE_CHECKING, Self
 
 from django.db import models
@@ -21,6 +22,13 @@ if TYPE_CHECKING:
     from sentry.models.release import Release  # noqa: F401
 
 logger = logging.getLogger(__name__)
+
+
+def release_order_date(
+    date_added: datetime, date_released: datetime | None, *, use_finalized_order: bool
+) -> datetime:
+    """Prefer the finalized date when finalized release ordering is enabled."""
+    return (date_released or date_added) if use_finalized_order else date_added
 
 
 class SemverVersion(

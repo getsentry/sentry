@@ -10,7 +10,9 @@ from drf_spectacular.plumbing import build_basic_type
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import Direction
 
+from sentry.api.serializers.rest_framework.base import snake_to_camel_case
 from sentry.apidocs.spectacular_ports import resolve_type_hint
+from sentry.conf.server import GRANULAR_SCOPES
 
 
 class TokenAuthExtension(OpenApiAuthenticationExtension):
@@ -28,8 +30,7 @@ class TokenAuthExtension(OpenApiAuthenticationExtension):
             for s in permission.scope_map.get(auto_schema.method, []):
                 scopes.add(s)
 
-        scope_list = list(scopes)
-        scope_list.sort()
+        scope_list = sorted(scopes - GRANULAR_SCOPES)
         return {self.name: scope_list}
 
     def get_security_definition(
@@ -77,6 +78,17 @@ class SentryInlineResponseSerializerExtension(OpenApiSerializerExtension):
         return resolve_type_hint(self.target.typeSchema)
 
 
+class SentryAppIssueActionSerializerExtension(OpenApiSerializerExtension):
+    target_class = "sentry.sentry_apps.api.endpoints.installation_external_issue_actions.SentryAppInstallationExternalIssueActionsSerializer"
+
+    def map_serializer(self, auto_schema: AutoSchema, direction: Direction) -> dict[str, Any]:
+        schema = auto_schema._map_serializer(self.target, direction, bypass_extensions=True)
+        schema["properties"]["action"]["enum"] = ["link", "create"]
+        # Apps define additional form fields at the top level of the request.
+        schema["additionalProperties"] = True
+        return schema
+
+
 class RestrictedJsonFieldExtension(OpenApiSerializerFieldExtension):
     """
     This extension restricts Sentry's use of the JSONField to mimic a DictField.
@@ -96,3 +108,32 @@ class RestrictedJsonFieldExtension(OpenApiSerializerFieldExtension):
 
 # TODO: extension to do default error codes on responses.
 # https://github.com/tfranzel/drf-spectacular/issues/334
+
+
+class InvestigationRequestSerializerExtension(OpenApiSerializerExtension):
+    """Expose the wire names without changing opaque JSON keys or runtime validation."""
+
+    target_class = "sentry.investigations.endpoints.validators.base.StrictCamelSnakeValidator"
+    match_subclasses = True
+
+    def map_serializer(self, auto_schema: AutoSchema, direction: Direction) -> dict[str, Any]:
+        schema = auto_schema._map_serializer(self.target, direction, bypass_extensions=True)
+        schema["properties"] = {
+            snake_to_camel_case(name): field for name, field in schema["properties"].items()
+        }
+        # These validators do not treat PATCH as partial: resume requires both
+        # inputId and responseData, including when the latter is null.
+        schema["required"] = [
+            snake_to_camel_case(name)
+            for name, field in self.target.fields.items()
+            if field.required
+        ]
+        # An unconstrained JSON value already includes null. OpenAPI validators
+        # such as AJV reject nullable without a type on these fields.
+        for field in schema["properties"].values():
+            if not any(key in field for key in ("type", "$ref", "oneOf", "anyOf", "allOf")):
+                field.pop("nullable", None)
+        if not schema["required"]:
+            schema.pop("required")
+        schema["additionalProperties"] = False
+        return schema

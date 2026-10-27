@@ -1,10 +1,11 @@
 import {useMemo} from 'react';
-import {useQueries, useQuery, type QueryObserverResult} from '@tanstack/react-query';
+import {useQueries, type QueryObserverResult} from '@tanstack/react-query';
 
 import {
   SCM_MESSAGING_PROVIDER_KEYS,
   type ScmMessagingProviderKey,
 } from 'sentry/components/onboarding/scm/messagingProviders';
+import {useScmMessagingIntegrationsQuery} from 'sentry/components/onboarding/scm/useScmMessagingIntegrationsQuery';
 import {
   isEligibleForIssueAlerts,
   isIntegrationActive,
@@ -53,18 +54,7 @@ export function useScmMessagingProviders(): {
   retry: () => void;
 } {
   const organization = useOrganization();
-
-  const integrationsQuery = useQuery({
-    ...apiOptions.as<OrganizationIntegration[]>()(
-      '/organizations/$organizationIdOrSlug/integrations/',
-      {
-        path: {organizationIdOrSlug: organization.slug},
-        query: {integrationType: 'messaging'},
-        staleTime: 0,
-      }
-    ),
-    refetchOnWindowFocus: true,
-  });
+  const integrationsQuery = useScmMessagingIntegrationsQuery();
 
   const providerQueries = useQueries({
     queries: SCM_MESSAGING_PROVIDER_KEYS.map(providerKey =>

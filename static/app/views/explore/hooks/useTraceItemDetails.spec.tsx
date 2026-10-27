@@ -77,6 +77,105 @@ describe('useTraceItemDetails', () => {
     MockApiClient.clearMockResponses();
   });
 
+  it('keeps details cached separately for each opaque routing hint', async () => {
+    const request = addTraceItemDetailsMock();
+    const initialProps: {routingHint?: string} = {};
+    const {result, rerender} = renderHookWithProviders(
+      ({routingHint}: {routingHint?: string}) =>
+        useTraceItemDetails({
+          projectId: project.id,
+          traceItemId: 'item-id',
+          traceId: '1234567890abcdef1234567890abcdef',
+          traceItemType: TraceItemDataset.LOGS,
+          referrer: 'api.explore.log-item-details',
+          timestamp: 123,
+          routingHint,
+        }),
+      {organization, initialProps}
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(request.mock.calls[0]![1].query).not.toHaveProperty('routing_hint');
+
+    rerender({routingHint: ' opaque+/== '});
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(request).toHaveBeenCalledTimes(2);
+    expect(request.mock.calls[1]![1].query).toMatchObject({
+      routing_hint: ' opaque+/== ',
+      timestamp: 123,
+    });
+
+    rerender({routingHint: 'second-hint'});
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(request).toHaveBeenCalledTimes(3);
+    expect(request.mock.calls[2]![1].query.routing_hint).toBe('second-hint');
+
+    rerender({routingHint: ' opaque+/== '});
+    expect(result.current.isSuccess).toBe(true);
+    rerender({routingHint: ''});
+    expect(result.current.isSuccess).toBe(true);
+    expect(request).toHaveBeenCalledTimes(3);
+  });
+
+  it.each(['prefetch', 'fetchTraceItemDetails'] as const)(
+    'shares hinted details from %s with the expanded item',
+    async method => {
+      const request = addTraceItemDetailsMock();
+      const props = {
+        projectId: project.id,
+        traceItemId: 'item-id',
+        traceId: '1234567890abcdef1234567890abcdef',
+        traceItemType: TraceItemDataset.LOGS,
+        referrer: 'api.explore.log-item-details',
+        timestamp: 123,
+        routingHint: 'opaque+/==',
+      };
+      const {result, rerender} = renderHookWithProviders(
+        ({expanded}: {expanded: boolean}) => ({
+          hover: usePrefetchTraceItemDetailsOnHover({
+            ...props,
+            sharedHoverTimeoutRef: {current: null},
+            timeout: 0,
+          }),
+          details: useTraceItemDetails({...props, enabled: expanded}),
+        }),
+        {organization, initialProps: {expanded: false}}
+      );
+
+      await act(async () => {
+        await result.current.hover[method]();
+      });
+      await waitFor(() => expect(result.current.details.isSuccess).toBe(true));
+      rerender({expanded: true});
+      expect(request).toHaveBeenCalledTimes(1);
+      expect(request.mock.calls[0]![1].query.routing_hint).toBe(props.routingHint);
+    }
+  );
+
+  it('surfaces invalid hinted requests without retrying against default storage', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/trace-items/item-id/`,
+      statusCode: 400,
+      body: {detail: 'Invalid trace item details request.'},
+    });
+    const {result} = renderHookWithProviders(useTraceItemDetails, {
+      organization,
+      initialProps: {
+        projectId: project.id,
+        traceItemId: 'item-id',
+        traceId: '1234567890abcdef1234567890abcdef',
+        traceItemType: TraceItemDataset.LOGS,
+        referrer: 'api.explore.log-item-details',
+        timestamp: 123,
+        routingHint: 'invalid',
+      },
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(request.mock.calls[0]![1].query.routing_hint).toBe('invalid');
+  });
+
   it('uses timestamp instead of page filter datetime when timestamp is passed', async () => {
     initializePageFilters({
       period: '14d',

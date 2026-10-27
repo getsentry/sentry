@@ -20,7 +20,6 @@ import type {Organization} from 'sentry/types/organization';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {EventView} from 'sentry/utils/discover/eventView';
-import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {
   ABYTE_UNITS,
   getAggregateAlias,
@@ -29,6 +28,7 @@ import {
   RateUnit,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
+import {DURATION_UNITS} from 'sentry/utils/discover/fieldUnits';
 import {DisplayModes, type SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
@@ -191,10 +191,9 @@ export function getWidgetDiscoverUrl(
   widget: Widget,
   dashboardFilters: DashboardFilters | undefined,
   selection: PageFilters,
-  organization: Organization,
-  index = 0
+  organization: Organization
 ) {
-  const eventView = eventViewFromWidget(widget.title, widget.queries[index]!, selection);
+  const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
   const discoverLocation = eventView.getResultsViewUrlTarget(
     organization,
     false,

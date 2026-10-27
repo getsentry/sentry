@@ -1,6 +1,6 @@
 import type {LineSeriesOption} from 'echarts';
 
-import {lineSeries} from 'sentry/components/charts/series/lineSeries';
+import {createLineSeries} from 'sentry/components/charts/series/lineSeries';
 import {scaleTimeSeriesData} from 'sentry/utils/timeSeries/scaleTimeSeriesData';
 import {segmentTimeSeriesByIncompleteData} from 'sentry/utils/timeSeries/segmentTimeSeriesByIncompleteData';
 import {timeSeriesItemToEChartsDataPoint} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
@@ -22,25 +22,6 @@ export class Line extends ContinuousTimeSeries implements Plottable {
     this.#timeSeriesAndIsIncomplete = segmentTimeSeriesByIncompleteData(timeSeries);
   }
 
-  onHighlight(seriesDataIndex: number): void {
-    const {config = {}} = this;
-    // The incomplete series prepends the final data point from the complete
-    // series. This causes off-by-one errors with `seriesDataIndex`, since the
-    // complete series has one more data points than we'd expect. Account for
-    // this by reconstructing the data points from the split series
-    const mergedData = this.#timeSeriesAndIsIncomplete.flatMap(([timeSeries]) => {
-      return timeSeries.values;
-    });
-
-    const datum = mergedData.at(seriesDataIndex);
-
-    if (!datum) {
-      return;
-    }
-
-    config.onHighlight?.(datum);
-  }
-
   toSeries(plottingOptions: ContinuousTimeSeriesPlottingOptions) {
     const {config = {}} = this;
 
@@ -58,7 +39,7 @@ export class Line extends ContinuousTimeSeries implements Plottable {
     this.#timeSeriesAndIsIncomplete.forEach(([timeSeries, isIncomplete]) => {
       if (isIncomplete) {
         plottableSeries.push(
-          lineSeries({
+          createLineSeries({
             ...commonOptions,
             data: scaleTimeSeriesData(timeSeries, plottingOptions.unit).values.map(
               timeSeriesItemToEChartsDataPoint
@@ -73,7 +54,7 @@ export class Line extends ContinuousTimeSeries implements Plottable {
 
       if (!isIncomplete) {
         plottableSeries.push(
-          lineSeries({
+          createLineSeries({
             ...commonOptions,
             data: scaleTimeSeriesData(timeSeries, plottingOptions.unit).values.map(
               timeSeriesItemToEChartsDataPoint

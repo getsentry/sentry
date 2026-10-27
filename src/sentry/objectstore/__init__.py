@@ -13,6 +13,7 @@ from django.urls import reverse
 from objectstore_client import (
     Client,
     MetricsBackend,
+    SecretKey,
     Session,
     TimeToIdle,
     TimeToLive,
@@ -88,7 +89,11 @@ class UsecaseId(Enum):
     ATTACHMENTS = "attachments"
     DEBUG_FILES = "debug_files"
     PROFILE_ATTACHMENTS = "profile_attachments"
+    # Deprecated: retained for migration compatibility only.
+    # Use PREPROD_SIZE or PREPROD_SNAPSHOTS for new code.
     PREPROD = "preprod"
+    PREPROD_SNAPSHOTS = "preprod_snapshots"
+    PREPROD_SIZE = "preprod_size"
 
     def create(self) -> ObjectstoreClientUsecase:
         match self:
@@ -101,14 +106,18 @@ class UsecaseId(Enum):
                 return ObjectstoreClientUsecase(
                     self.value,
                     compression="zstd",
-                    expiration_policy=TimeToIdle(timedelta(days=90)),
+                    expiration_policy=TimeToIdle(
+                        timedelta(
+                            days=90 + options.get("system.debug-files-renewal-age-threshold-days")
+                        )
+                    ),
                 )
             case UsecaseId.PROFILE_ATTACHMENTS:
                 return ObjectstoreClientUsecase(
                     self.value,
                     expiration_policy=TimeToLive(timedelta(days=default_attachment_retention())),
                 )
-            case UsecaseId.PREPROD:
+            case UsecaseId.PREPROD | UsecaseId.PREPROD_SNAPSHOTS | UsecaseId.PREPROD_SIZE:
                 return ObjectstoreClientUsecase(
                     self.value,
                     expiration_policy=TimeToIdle(timedelta(days=30)),
@@ -121,11 +130,15 @@ def _create_client() -> Client:
     # Initialize the `TokenGenerator` if key parameters are found.
     token_generator = None
     if signing_key_options := options.get("token_generator"):
-        # We require the `kid` and `secret_key` keys be set, other options are optional
-        if signing_key_options.get("kid") and signing_key_options.get("secret_key"):
-            token_generator = TokenGenerator(
-                **signing_key_options,
-            )
+        # We require the `kid` and `secret_key` keys be set, other options
+        # (`expiry_seconds`, `permissions`) are optional token defaults.
+        kid = signing_key_options.get("kid")
+        secret_key = signing_key_options.get("secret_key")
+        if kid and secret_key:
+            token_defaults = {
+                k: v for k, v in signing_key_options.items() if k not in ("kid", "secret_key")
+            }
+            token_generator = TokenGenerator(SecretKey(kid, secret_key), **token_defaults)
 
     return Client(
         options["base_url"],
@@ -255,6 +268,7 @@ def get_download_redirect_url(
     org: int,
     key: str,
     token_validity: timedelta | None = None,
+    inline: bool = False,
 ) -> str:
     """
     Returns the URL that `request` should be redirected to in order to download the object at `key`
@@ -262,17 +276,26 @@ def get_download_redirect_url(
 
     Internal callers (e.g. Symbolicator) are redirected straight to Objectstore's internal URL, while
     external callers are redirected to the cell proxy, which forwards the request to Objectstore.
+
+    Set `inline=True` to serve the object with `Content-Disposition: inline`, allowing the browser
+    to display it instead of downloading it. Defaults to `attachment` disposition.
     """
     from sentry.api.utils import generate_locality_url
     from sentry.auth import system
 
-    if system.is_internal_ip(request):
-        return get_internal_download_url(session, key, token_validity)
+    is_internal = system.is_internal_ip(request)
 
     if token_validity is None:
         token_validity = REDIRECT_VALIDITY
 
-    presigned_url = session.object_url(key, token_validity=token_validity)
+    presigned_url = session.object_url(
+        key,
+        token_validity=token_validity,
+        response_content_disposition="inline" if inline else None,
+    )
+
+    if is_internal:
+        return _maybe_rewrite_internal_url(presigned_url)
 
     parts = urlsplit(presigned_url)
     proxy_path = reverse(

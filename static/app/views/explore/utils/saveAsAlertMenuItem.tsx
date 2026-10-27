@@ -1,6 +1,7 @@
 import type {LocationDescriptor} from 'history';
 
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
+
 import {t} from 'sentry/locale';
 
 interface SaveAsAlertMenuItemBaseOptions {

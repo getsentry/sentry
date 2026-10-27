@@ -82,6 +82,15 @@ ALL_KILLSWITCH_OPTIONS = {
             "symbolication_function": "process_minidump, process_applecrashreport, process_native_stacktraces, or process_js_stacktraces",
         },
     ),
+    "store.load-shed-gpu-crash-projects": KillswitchInfo(
+        description="Skip routing GPU crash events to the isolated teapot task "
+        "(event is forwarded to normal process/save, unenriched)",
+        fields={
+            "project_id": "A project ID to filter events by.",
+            "event_id": "An event ID as given in the event payload.",
+            "platform": "The event platform as defined in the event payload's platform field.",
+        },
+    ),
     "store.load-shed-save-event-projects": KillswitchInfo(
         description="Drop events in save_event",
         fields={

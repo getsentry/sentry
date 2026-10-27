@@ -28,10 +28,6 @@ describe('CronDetectorsList', () => {
     },
   };
 
-  afterEach(() => {
-    fetchMock.resetMocks();
-  });
-
   beforeEach(() => {
     ConfigStore.set('statuspage', {
       id: 'sentry',
@@ -60,11 +56,12 @@ describe('CronDetectorsList', () => {
     // Ensure a project is selected for queries
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}));
 
-    // Make elements report a non-zero size so timelines compute rollups and fetch
+    // Make elements report a non-zero size so timelines compute rollups and fetch,
+    // and so the table's container is wide enough for its detail columns.
     Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
       configurable: true,
       get() {
-        return 800;
+        return 1600;
       },
     });
     Object.defineProperty(HTMLElement.prototype, 'clientHeight', {
@@ -73,6 +70,10 @@ describe('CronDetectorsList', () => {
         return 50;
       },
     });
+  });
+
+  afterEach(() => {
+    fetchMock.resetMocks();
   });
 
   it('displays empty state when no cron monitors are found', async () => {

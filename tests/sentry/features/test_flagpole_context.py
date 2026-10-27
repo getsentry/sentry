@@ -4,7 +4,6 @@ from django.contrib.auth.models import AnonymousUser
 from sentry.features.flagpole_context import (
     InvalidContextDataException,
     SentryContextData,
-    get_sentry_flagpole_context_builder,
     organization_context_transformer,
     project_context_transformer,
     user_context_transformer,
@@ -16,23 +15,6 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.useremail import UserEmail
-
-
-class TestSentryFlagpoleContext(TestCase):
-    def test_sentry_flagpole_context_builder(self) -> None:
-        org = self.create_organization()
-        project = self.create_project(organization=org, platform="php")
-        sentry_flagpole_builder = get_sentry_flagpole_context_builder()
-
-        sentry_context = sentry_flagpole_builder.build(
-            SentryContextData(organization=org, project=project)
-        )
-
-        assert sentry_context.get("organization_slug") == org.slug
-        assert sentry_context.get("organization_slug") == org.slug
-        assert sentry_context.get("project_slug") == project.slug
-        assert sentry_context.get("project_id") == project.id
-        assert sentry_context.get("project_platform") == project.platform
 
 
 class TestSentryOrganizationContextTransformer(TestCase):

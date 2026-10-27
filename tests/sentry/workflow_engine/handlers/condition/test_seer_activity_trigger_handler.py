@@ -1,11 +1,15 @@
 import pytest
 from jsonschema import ValidationError
 
+from sentry.issues.action_log.types import SeerPRReadyForReviewAction, SeerRCACompletedAction
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.types.activity import ActivityType
 from sentry.workflow_engine.handlers.condition.seer_activity_trigger_handler import (
+    SeerActivityTriggerHandler,
     SeerActivityTriggerStage,
 )
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.preview import AlertPreviewPlan, InvalidPreviewConfiguration
 from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 
@@ -28,6 +32,52 @@ class TestSeerActivityTriggerHandler(ConditionTestCase):
     def test_evaluate_value__matching_single_stage(self) -> None:
         event_data = self._create_event_data(ActivityType.SEER_RCA_COMPLETED)
         self.assert_passes(self.dc, event_data)
+
+    def test_preview_ignores_unknown_stages(self) -> None:
+        matching_entry = self.create_group_action_log_entry(
+            group=self.group,
+            type=SeerRCACompletedAction.get_type(),
+        )
+        other_entry = self.create_group_action_log_entry(
+            group=self.group,
+            type=SeerPRReadyForReviewAction.get_type(),
+        )
+        plan = AlertPreviewPlan()
+
+        SeerActivityTriggerHandler.preview_behavior.add_to_preview(
+            plan, [SeerActivityTriggerStage.RCA_COMPLETED, "rca_started"]
+        )
+
+        matching_entry_ids = set(
+            GroupActionLogEntry.objects.filter(id__in=[matching_entry.id, other_entry.id])
+            .filter(*plan.group_action_log_candidate_filters)
+            .values_list("id", flat=True)
+        )
+        assert matching_entry_ids == {matching_entry.id}
+
+    def test_preview_rejects_invalid_comparison(self) -> None:
+        with pytest.raises(InvalidPreviewConfiguration):
+            SeerActivityTriggerHandler.preview_behavior.add_to_preview(AlertPreviewPlan(), [1])
+
+    def test_preview_supports_legacy_pr_created_stage(self) -> None:
+        matching_entry = self.create_group_action_log_entry(
+            group=self.group,
+            type=SeerPRReadyForReviewAction.get_type(),
+        )
+        other_entry = self.create_group_action_log_entry(
+            group=self.group,
+            type=SeerRCACompletedAction.get_type(),
+        )
+        plan = AlertPreviewPlan()
+
+        SeerActivityTriggerHandler.preview_behavior.add_to_preview(plan, ["pr_created"])
+
+        matching_entry_ids = set(
+            GroupActionLogEntry.objects.filter(id__in=[matching_entry.id, other_entry.id])
+            .filter(*plan.group_action_log_candidate_filters)
+            .values_list("id", flat=True)
+        )
+        assert matching_entry_ids == {matching_entry.id}
 
     def test_evaluate_value__non_matching_stage(self) -> None:
         event_data = self._create_event_data(ActivityType.SEER_PR_CREATED)

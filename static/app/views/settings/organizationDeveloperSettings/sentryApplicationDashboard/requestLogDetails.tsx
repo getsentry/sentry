@@ -1,59 +1,70 @@
 import {Fragment, useCallback} from 'react';
-import styled from '@emotion/styled';
 
 import {CodeBlock} from '@sentry/scraps/code';
 import {DrawerBody, DrawerHeader, useDrawer} from '@sentry/scraps/drawer';
-import {Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {DateTime} from 'sentry/components/dateTime';
-import type {KeyValueDataContentProps} from 'sentry/components/keyValueData';
-import {KeyValueData} from 'sentry/components/keyValueData';
+import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {JsonEventData} from 'sentry/components/structuredEventData/jsonEventData';
+import {
+  KeyValueTableCard,
+  type KeyValueTableDataRowProps,
+} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {SentryAppWebhookRequest} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
 import {shouldUse24Hours} from 'sentry/utils/dates';
+import {defined} from 'sentry/utils/defined';
 import {decodeWebhookBody} from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDashboard/decodeWebhookBody';
-import {ResponseCode} from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDashboard/requestLog';
+import {ResponseCode} from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDashboard/responseCode';
 
-const is24Hours = shouldUse24Hours();
+import {WebhookSubject} from './webhookSubjects';
+
+const EMPTY_VALUE = '—';
 
 function BodySection({title, body}: {body: string; title: string}) {
   const {parsed, raw, maybeTruncated} = decodeWebhookBody(body);
 
   return (
-    <BodyCardPanel>
-      <KeyValueData.Title>
-        {title}
-        {maybeTruncated && (
-          <Text variant="muted" size="xs">{` (${t('truncated')})`}</Text>
-        )}
-      </KeyValueData.Title>
+    <KeyValueTableCard
+      title={
+        <Fragment>
+          {title}
+          {maybeTruncated && (
+            <Text variant="muted" size="xs">{` (${t('truncated')})`}</Text>
+          )}
+        </Fragment>
+      }
+    >
       {parsed === null ? (
         <CodeBlock>{raw}</CodeBlock>
       ) : (
         <JsonEventData data={parsed} showCopyButton />
       )}
-    </BodyCardPanel>
+    </KeyValueTableCard>
   );
 }
 
-function RequestLogDetails({request}: {request: SentryAppWebhookRequest}) {
-  const {request_body, request_headers, response_body} = request;
+interface RequestLogDetailsProps {
+  isInternal: boolean;
+  organization: Organization;
+  request: SentryAppWebhookRequest;
+}
 
-  const summaryItems: KeyValueDataContentProps[] = [
+function RequestLogDetails({request, isInternal, organization}: RequestLogDetailsProps) {
+  const {request_body, request_headers, response_body} = request;
+  const timeFormat = shouldUse24Hours() ? 'MMM D, YYYY HH:mm:ss z' : 'll LTS z';
+
+  const summaryItems: KeyValueTableDataRowProps[] = [
     {
       item: {
         key: 'date',
         subject: t('Time'),
-        value: (
-          <DateTime
-            date={request.date}
-            format={is24Hours ? 'MMM D, YYYY HH:mm:ss z' : 'll LTS z'}
-          />
-        ),
+        value: <DateTime date={request.date} format={timeFormat} />,
       },
-      disableFormattedData: true,
     },
     {
       item: {
@@ -61,24 +72,80 @@ function RequestLogDetails({request}: {request: SentryAppWebhookRequest}) {
         subject: t('Status Code'),
         value: <ResponseCode code={request.responseCode} />,
       },
-      disableFormattedData: true,
     },
     {
       item: {key: 'eventType', subject: t('Event Type'), value: request.eventType},
-      disableFormattedData: true,
+    },
+    request.organization
+      ? {
+          item: {
+            key: 'organization',
+            subject: t('Organization'),
+            value: request.organization.name,
+          },
+        }
+      : undefined,
+    {
+      item: {
+        key: 'subject',
+        subject: t('Subject'),
+        value: (
+          <WebhookSubject
+            subjectType={request.subjectType}
+            subjectId={request.subjectId}
+            isInternal={isInternal}
+            organization={organization}
+          />
+        ),
+      },
+    },
+    {
+      item: {
+        key: 'duration',
+        subject: t('Duration'),
+        value: defined(request.durationMs) ? (
+          <PerformanceDuration milliseconds={request.durationMs} abbreviation />
+        ) : (
+          EMPTY_VALUE
+        ),
+      },
     },
     {
       item: {key: 'webhookUrl', subject: t('Webhook URL'), value: request.webhookUrl},
-      disableFormattedData: true,
     },
-  ];
+    {
+      item: {
+        key: 'requestId',
+        subject: t('Request ID'),
+        value: defined(request.requestId) ? (
+          <Flex align="center" gap="sm">
+            <Text>{request.requestId}</Text>
+            <CopyToClipboardButton
+              variant="transparent"
+              size="zero"
+              text={request.requestId}
+              aria-label={t('Copy Request ID')}
+            />
+          </Flex>
+        ) : (
+          EMPTY_VALUE
+        ),
+      },
+    },
+    defined(request.error_id)
+      ? {
+          item: {
+            key: 'errorId',
+            subject: t('Error ID'),
+            value: request.error_id,
+          },
+        }
+      : undefined,
+  ].filter(defined);
 
-  const headerItems: KeyValueDataContentProps[] = Object.entries(
+  const headerItems: KeyValueTableDataRowProps[] = Object.entries(
     request_headers ?? {}
-  ).map(([name, value]) => ({
-    item: {key: name, subject: name, value},
-    disableFormattedData: true,
-  }));
+  ).map(([name, value]) => ({item: {key: name, subject: name, value}}));
 
   return (
     <Fragment>
@@ -89,10 +156,18 @@ function RequestLogDetails({request}: {request: SentryAppWebhookRequest}) {
       </DrawerHeader>
       <DrawerBody>
         <Stack gap="xl">
-          <KeyValueData.Card title={t('Summary')} contentItems={summaryItems} />
+          <KeyValueTableCard
+            title={t('Summary')}
+            contentItems={summaryItems}
+            itemProps={{disableFormattedData: true}}
+          />
 
           {headerItems.length > 0 && (
-            <KeyValueData.Card title={t('Request Headers')} contentItems={headerItems} />
+            <KeyValueTableCard
+              title={t('Request Headers')}
+              contentItems={headerItems}
+              itemProps={{disableFormattedData: true}}
+            />
           )}
 
           {request_body && <BodySection title={t('Request Body')} body={request_body} />}
@@ -105,24 +180,33 @@ function RequestLogDetails({request}: {request: SentryAppWebhookRequest}) {
   );
 }
 
-export function useRequestLogDetailsDrawer() {
+interface UseRequestLogDetailsDrawerOptions {
+  isInternal: boolean;
+  organization: Organization;
+}
+
+export function useRequestLogDetailsDrawer({
+  isInternal,
+  organization,
+}: UseRequestLogDetailsDrawerOptions) {
   const {openDrawer} = useDrawer();
 
   return useCallback(
     (request: SentryAppWebhookRequest) => {
-      openDrawer(() => <RequestLogDetails request={request} />, {
-        ariaLabel: t('Webhook request details'),
-        drawerKey: 'sentry-app-webhook-request-details',
-      });
+      openDrawer(
+        () => (
+          <RequestLogDetails
+            request={request}
+            isInternal={isInternal}
+            organization={organization}
+          />
+        ),
+        {
+          ariaLabel: t('Webhook request details'),
+          drawerKey: 'sentry-app-webhook-request-details',
+        }
+      );
     },
-    [openDrawer]
+    [isInternal, openDrawer, organization]
   );
 }
-
-const BodyCardPanel = styled(KeyValueData.CardPanel)`
-  display: block;
-
-  pre {
-    margin: 0;
-  }
-`;

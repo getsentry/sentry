@@ -1,9 +1,12 @@
 import {useEffect} from 'react';
-import type {QueryFunctionContext, UseInfiniteQueryResult} from '@tanstack/react-query';
+import type {UseInfiniteQueryResult} from '@tanstack/react-query';
 
+import {Client} from 'sentry/api';
+import type {ResponseMeta} from 'sentry/types/api';
 import type {ApiQueryKey, InfiniteApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {ParsedHeader} from 'sentry/utils/parseLinkHeader';
-import {QUERY_API_CLIENT} from 'sentry/utils/queryClient';
+
+export const QUERY_API_CLIENT = new Client();
 
 export type ApiResponse<TResponseData = unknown> = {
   headers: {
@@ -13,12 +16,36 @@ export type ApiResponse<TResponseData = unknown> = {
     'X-Sentry-Direct-Hit'?: string;
   };
   json: TResponseData;
+  /**
+   * The HTTP status code. Endpoints that return more than one success code
+   * (201 created vs 200 already-exists) need it to tell the cases apart.
+   *
+   * Optional because `ApiResponse` doubles as the query-cache entry shape, and
+   * entries that are synthesized rather than fetched (`setQueryData`,
+   * `initialData`, optimistic updates) have no real response behind them.
+   * Readers that need a value can fall back with `status ?? 200`.
+   */
+  status?: number;
 };
 
-export async function apiFetch<TQueryFnData = unknown>(
-  context: QueryFunctionContext<ApiQueryKey>
-): Promise<ApiResponse<TQueryFnData>> {
-  const [url, options] = context.queryKey;
+function extractHeaders(response: ResponseMeta | undefined): ApiResponse['headers'] {
+  const hits = response?.getResponseHeader('X-Hits');
+  const maxHits = response?.getResponseHeader('X-Max-Hits');
+  return {
+    Link: response?.getResponseHeader('Link') ?? undefined,
+    'X-Hits': typeof hits === 'string' ? Number(hits) : undefined,
+    'X-Max-Hits': typeof maxHits === 'string' ? Number(maxHits) : undefined,
+    'X-Sentry-Direct-Hit':
+      response?.getResponseHeader('X-Sentry-Direct-Hit') ?? undefined,
+  };
+}
+
+export async function apiFetch<TQueryFnData = unknown>({
+  queryKey,
+}: {
+  queryKey: ApiQueryKey;
+}): Promise<ApiResponse<TQueryFnData>> {
+  const [url, options] = queryKey;
 
   const [json, , response] = await QUERY_API_CLIENT.requestPromise(url, {
     includeAllArgs: true,
@@ -30,24 +57,21 @@ export async function apiFetch<TQueryFnData = unknown>(
     headers: options?.headers,
   });
 
-  const hits = response?.getResponseHeader('X-Hits');
-  const maxHits = response?.getResponseHeader('X-Max-Hits');
   return {
-    headers: {
-      Link: response?.getResponseHeader('Link') ?? undefined,
-      'X-Hits': typeof hits === 'string' ? Number(hits) : undefined,
-      'X-Max-Hits': typeof maxHits === 'string' ? Number(maxHits) : undefined,
-      'X-Sentry-Direct-Hit':
-        response?.getResponseHeader('X-Sentry-Direct-Hit') ?? undefined,
-    },
+    headers: extractHeaders(response),
     json: json as TQueryFnData,
+    status: response?.status,
   };
 }
 
-export async function apiFetchInfinite<TQueryFnData = unknown>(
-  context: QueryFunctionContext<InfiniteApiQueryKey, null | undefined | ParsedHeader>
-): Promise<ApiResponse<TQueryFnData>> {
-  const [url, options] = context.queryKey;
+export async function apiFetchInfinite<TQueryFnData = unknown>({
+  queryKey,
+  pageParam,
+}: {
+  pageParam: null | undefined | ParsedHeader;
+  queryKey: InfiniteApiQueryKey;
+}): Promise<ApiResponse<TQueryFnData>> {
+  const [url, options] = queryKey;
 
   const [json, , response] = await QUERY_API_CLIENT.requestPromise(url, {
     includeAllArgs: true,
@@ -57,22 +81,15 @@ export async function apiFetchInfinite<TQueryFnData = unknown>(
     data: options?.data,
     query: {
       ...options?.query,
-      cursor: context.pageParam?.cursor ?? options?.query?.cursor,
+      cursor: pageParam?.cursor ?? options?.query?.cursor,
     },
     headers: options?.headers,
   });
 
-  const hits = response?.getResponseHeader('X-Hits');
-  const maxHits = response?.getResponseHeader('X-Max-Hits');
   return {
-    headers: {
-      Link: response?.getResponseHeader('Link') ?? undefined,
-      'X-Hits': typeof hits === 'string' ? Number(hits) : undefined,
-      'X-Max-Hits': typeof maxHits === 'string' ? Number(maxHits) : undefined,
-      'X-Sentry-Direct-Hit':
-        response?.getResponseHeader('X-Sentry-Direct-Hit') ?? undefined,
-    },
+    headers: extractHeaders(response),
     json: json as TQueryFnData,
+    status: response?.status,
   };
 }
 

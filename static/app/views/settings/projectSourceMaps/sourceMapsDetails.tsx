@@ -1,5 +1,7 @@
 import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {IconClock} from '@sentry/icons/clock';
+import {IconDownload} from '@sentry/icons/download';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -12,11 +14,9 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {useRole} from 'sentry/components/acl/useRole';
 import {FileSize} from 'sentry/components/fileSize';
-import {Panel} from 'sentry/components/panels/panel';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconClock, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {Artifact, Release} from 'sentry/types/release';
@@ -78,7 +78,7 @@ function ArtifactsTableRow({
       <AlignedRightColumn>
         <FileSize bytes={size} />
       </AlignedRightColumn>
-      <ActionsColumn>
+      <SimpleTable.RowCell justify="end">
         <Tooltip
           title={tct(
             'Artifacts can only be downloaded by users with organization [downloadRole] role[orHigher]. This can be changed in [settingsLink:Debug Files Access] settings.',
@@ -89,7 +89,6 @@ function ArtifactsTableRow({
             }
           )}
           disabled={hasRole}
-          isHoverable
         >
           <LinkButton
             size="sm"
@@ -100,7 +99,7 @@ function ArtifactsTableRow({
             aria-label={t('Download Artifact')}
           />
         </Tooltip>
-      </ActionsColumn>
+      </SimpleTable.RowCell>
     </SimpleTable.Row>
   );
 }
@@ -239,12 +238,10 @@ export function SourceMapsDetails({bundleId, project}: Props) {
         }
       />
       {isDebugIdBundle && debugIdBundlesArtifactsData && (
-        <DetailsPanel>
-          <DebugIdBundleDetails
-            debugIdBundle={debugIdBundlesArtifactsData}
-            projectId={project.id}
-          />
-        </DetailsPanel>
+        <DebugIdBundleDetails
+          debugIdBundle={debugIdBundlesArtifactsData}
+          projectId={project.id}
+        />
       )}
       <SearchBarWithMarginBottom
         placeholder={isDebugIdBundle ? t('Filter by Path or ID') : t('Filter by Path')}
@@ -365,20 +362,8 @@ const ARTIFACT_COLUMNS_WITHOUT_TYPE = ARTIFACT_COLUMNS.filter(
   column => column.key !== 'type'
 );
 
-const Column = styled(SimpleTable.RowCell)`
-  overflow: hidden;
-`;
-
-const ActionsColumn = styled(Column)`
-  justify-content: flex-end;
-`;
-
 const SearchBarWithMarginBottom = styled(SearchBar)`
   margin-bottom: ${p => p.theme.space['2xl']};
-`;
-
-const DetailsPanel = styled(Panel)`
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
 `;
 
 const ArtifactColumn = styled(SimpleTable.RowCell)`

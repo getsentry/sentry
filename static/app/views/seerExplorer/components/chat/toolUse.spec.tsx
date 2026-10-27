@@ -1,15 +1,17 @@
-import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
+import {
+  blockRendersToolContent,
+  findLatestTodos,
+} from 'sentry/views/seerExplorer/components/chat/toolUse';
 import type {
   AgentWriteApproval,
   Block,
   CallRecord,
-  PendingUserInput,
   TodoItem,
 } from 'sentry/views/seerExplorer/types';
 
@@ -74,17 +76,6 @@ function createAgentApprovalBlock(
   });
 }
 
-function createPendingAgentApproval(
-  requiredScopes: AgentWriteApproval['requiredScopes'] = ['project:write'],
-  sessionId = '123'
-): PendingUserInput {
-  return {
-    id: APPROVAL_ID,
-    input_type: 'agent_write_approval',
-    data: {required_scopes: requiredScopes, session_id: sessionId},
-  };
-}
-
 describe('ToolUseBlock', () => {
   it('renders tool call display text', () => {
     render(<BlockComponent block={createBlock()} blockIndex={0} />);
@@ -132,39 +123,24 @@ describe('ToolUseBlock', () => {
     expect(screen.getByText(/Queried spans/)).toBeInTheDocument();
   });
 
-  it('renders an agent approval Markdown embed from typed structured content', () => {
-    const block = createAgentApprovalBlock();
-    render(
-      <BlockComponent
-        block={block}
-        blockIndex={0}
-        pendingInput={createPendingAgentApproval()}
-        respondToUserInput={jest.fn()}
-      />
-    );
-    expect(screen.getByTestId('agent-write-approval-embed')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Approve'})).toBeEnabled();
-    expect(screen.getByText('Allow Seer to make changes?')).toBeInTheDocument();
-    expect(screen.getByText('project:write')).toBeInTheDocument();
+  it('renders a pending agent approval as a status line without actions', () => {
+    render(<BlockComponent block={createAgentApprovalBlock()} blockIndex={0} />);
+
     expect(
-      screen.queryByText('PUT /api/0/projects/test-org/test-project/')
-    ).not.toBeInTheDocument();
+      screen.getByText('Access requested for reading and writing Projects')
+    ).toBeInTheDocument();
+    // The actionable prompt renders above the composer, not in the reasoning trace.
+    expect(screen.queryByRole('button', {name: 'Approve'})).not.toBeInTheDocument();
+    expect(screen.queryByText('Allow Seer to make changes?')).not.toBeInTheDocument();
   });
 
   it('does not render an approval without the Markdown embed', () => {
     const block = createAgentApprovalBlock();
     block.tool_results![0]!.content = 'Sentry write permission is awaiting approval.';
 
-    render(
-      <BlockComponent
-        block={block}
-        blockIndex={0}
-        pendingInput={createPendingAgentApproval()}
-        respondToUserInput={jest.fn()}
-      />
-    );
+    render(<BlockComponent block={block} blockIndex={0} />);
 
-    expect(screen.queryByTestId('agent-write-approval-embed')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('agent-write-approval-result')).not.toBeInTheDocument();
   });
 
   it('ignores approval data authored in Markdown', () => {
@@ -181,7 +157,7 @@ describe('ToolUseBlock', () => {
     expect(
       screen.getByText('Access granted for reading and writing Projects')
     ).toBeInTheDocument();
-    expect(screen.queryByText('org:admin')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Organization/)).not.toBeInTheDocument();
   });
 
   it('does not render an approval from Markdown data alone', () => {
@@ -196,210 +172,16 @@ describe('ToolUseBlock', () => {
 
     render(<BlockComponent block={block} blockIndex={0} />);
 
-    expect(screen.queryByTestId('agent-write-approval-embed')).not.toBeInTheDocument();
-  });
-
-  it('uses pending input data when minting an approval', async () => {
-    const organization = OrganizationFixture();
-    const respondToUserInput = jest.fn();
-    const approveRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/agent/approve/`,
-      method: 'POST',
-      body: {
-        status: 'approved',
-        scopes: ['project:write'],
-        expiresAt: '2026-08-05T12:00:00Z',
-      },
-    });
-
-    render(
-      <BlockComponent
-        block={createAgentApprovalBlock('pending', ['org:admin'])}
-        blockIndex={0}
-        pendingInput={createPendingAgentApproval(['project:write'], 'trusted-session')}
-        respondToUserInput={respondToUserInput}
-      />,
-      {organization}
-    );
-
-    expect(screen.getByText('project:write')).toBeInTheDocument();
-    expect(screen.queryByText('org:admin')).not.toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', {name: 'Approve'}));
-
-    await waitFor(() => {
-      expect(approveRequest).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/agent/approve/`,
-        expect.objectContaining({
-          data: {sessionId: 'trusted-session', scopes: ['project:write']},
-          method: 'POST',
-        })
-      );
-    });
-    expect(respondToUserInput).toHaveBeenCalledWith(APPROVAL_ID, {
-      decision: 'approve',
-    });
-  });
-
-  it('allows an active approval with invalid grant data to be rejected', async () => {
-    const respondToUserInput = jest.fn();
-    const pendingInput = createPendingAgentApproval();
-    pendingInput.data = {};
-
-    render(
-      <BlockComponent
-        block={createAgentApprovalBlock()}
-        blockIndex={0}
-        pendingInput={pendingInput}
-        respondToUserInput={respondToUserInput}
-      />
-    );
-
-    expect(screen.getByRole('button', {name: 'Reject'})).toBeEnabled();
-    expect(screen.getByRole('button', {name: 'Approve'})).toBeDisabled();
-
-    await userEvent.click(screen.getByRole('button', {name: 'Reject'}));
-
-    expect(respondToUserInput).toHaveBeenCalledWith(APPROVAL_ID, {
-      decision: 'reject',
-    });
-  });
-
-  it('does not resume with approval when only some scopes are granted', async () => {
-    const organization = OrganizationFixture();
-    const respondToUserInput = jest.fn();
-    const requiredScopes: AgentWriteApproval['requiredScopes'] = [
-      'project:write',
-      'event:write',
-    ];
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/agent/approve/`,
-      method: 'POST',
-      body: {
-        status: 'approved',
-        scopes: ['project:write'],
-        expiresAt: '2026-08-05T12:00:00Z',
-      },
-    });
-
-    render(
-      <BlockComponent
-        block={createAgentApprovalBlock('pending', requiredScopes)}
-        blockIndex={0}
-        pendingInput={createPendingAgentApproval(requiredScopes)}
-        respondToUserInput={respondToUserInput}
-      />,
-      {organization}
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Approve'}));
-
-    await waitFor(() => {
-      expect(respondToUserInput).toHaveBeenCalledWith(APPROVAL_ID, {
-        decision: 'reject',
-        reason: 'insufficient_scope',
-      });
-    });
-
-    expect(
-      await screen.findByText(
-        'Access not granted for reading and writing Projects, reading and writing Issues & Events'
-      )
-    ).toBeInTheDocument();
+    expect(screen.queryByTestId('agent-write-approval-result')).not.toBeInTheDocument();
   });
 
   it.each([
     ['approved' as const, 'Access granted for reading and writing Projects'],
     ['rejected' as const, 'Access not granted for reading and writing Projects'],
-  ])('updates resolved scope content for %s requests', (status, copy) => {
+  ])('renders resolved scope content for %s requests', (status, copy) => {
     render(<BlockComponent block={createAgentApprovalBlock(status)} blockIndex={0} />);
 
     expect(screen.getByText(copy)).toBeInTheDocument();
-    expect(screen.queryByText('Requested Scopes')).not.toBeInTheDocument();
-    expect(screen.queryByText('Granted for This Chat')).not.toBeInTheDocument();
-  });
-
-  it('approves in Sentry before resuming the agent', async () => {
-    const organization = OrganizationFixture();
-    const respondToUserInput = jest.fn();
-    const {promise, resolve} = Promise.withResolvers<{
-      expiresAt: string;
-      scopes: string[];
-      status: string;
-    }>();
-    const approveRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/agent/approve/`,
-      method: 'POST',
-      body: promise,
-    });
-
-    render(
-      <BlockComponent
-        block={createAgentApprovalBlock()}
-        blockIndex={0}
-        pendingInput={createPendingAgentApproval()}
-        respondToUserInput={respondToUserInput}
-      />,
-      {organization}
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Approve'}));
-
-    await waitFor(() => {
-      expect(approveRequest).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/agent/approve/`,
-        expect.objectContaining({
-          method: 'POST',
-          data: {sessionId: '123', scopes: ['project:write']},
-        })
-      );
-    });
-    expect(respondToUserInput).not.toHaveBeenCalled();
-
-    resolve({
-      status: 'approved',
-      scopes: ['project:write'],
-      expiresAt: '2026-08-05T12:00:00Z',
-    });
-
-    await waitFor(() => {
-      expect(respondToUserInput).toHaveBeenCalledWith(APPROVAL_ID, {
-        decision: 'approve',
-      });
-    });
-
-    expect(
-      await screen.findByText('Access granted for reading and writing Projects')
-    ).toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'Reject'})).not.toBeInTheDocument();
-  });
-
-  it('rejects without creating a Sentry grant', async () => {
-    const organization = OrganizationFixture();
-    const respondToUserInput = jest.fn();
-    const approveRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/agent/approve/`,
-      method: 'POST',
-    });
-    render(
-      <BlockComponent
-        block={createAgentApprovalBlock()}
-        blockIndex={0}
-        pendingInput={createPendingAgentApproval()}
-        respondToUserInput={respondToUserInput}
-      />,
-      {organization}
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Reject'}));
-    expect(respondToUserInput).toHaveBeenCalledWith(APPROVAL_ID, {
-      decision: 'reject',
-    });
-    expect(approveRequest).not.toHaveBeenCalled();
-    expect(
-      screen.getByText('Access not granted for reading and writing Projects')
-    ).toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'Approve'})).not.toBeInTheDocument();
   });
 
   it('renders todo list for todo_write tool calls', () => {
@@ -738,6 +520,56 @@ describe('ToolUseBlock', () => {
     expect(rowLink).toHaveAttribute('href', expect.stringContaining('is%3Aunresolved'));
     expect(rowLink).toHaveAttribute('href', expect.stringContaining('statsPeriod=7d'));
     expect(screen.getAllByRole('button')).toHaveLength(1);
+  });
+
+  it('links a direct spans API query without separate tool link metadata', () => {
+    const block = createBlock({
+      message: {
+        role: 'tool_use',
+        content: null,
+        tool_calls: [{id: 'call-1', function: 'sentry_api_execute', args: '{}'}],
+      },
+      tool_links: [null],
+      tool_results: [
+        {
+          tool_call_id: 'call-1',
+          tool_call_function: 'sentry_api_execute',
+          content: 'done',
+          structuredContent: {
+            calls: [
+              {
+                id: 1,
+                kind: 'api',
+                method: 'GET',
+                path: '/api/0/organizations/{organization_id_or_slug}/events/',
+                path_params: {organization_id_or_slug: 'org-slug'},
+                resolved_path:
+                  '/api/0/organizations/org-slug/events/?dataset=spans&field=span.op&field=count()&query=span.op%3Adb&project=2&statsPeriod=30d&sort=-count()',
+                title: 'Querying spans for database calls',
+                status: 200,
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
+
+    expect(screen.getByText('Querying spans for database calls')).toBeInTheDocument();
+    const link = screen.getByRole('button', {name: 'View spans'});
+    const url = new URL(link.getAttribute('href')!, 'https://example.com');
+    expect(url.pathname).toBe('/organizations/org-slug/traces/');
+    expect(url.searchParams.get('query')).toBe('span.op:db');
+    expect(url.searchParams.get('project')).toBe('2');
+    expect(url.searchParams.get('statsPeriod')).toBe('30d');
+    expect(url.searchParams.get('mode')).toBe('aggregate');
+    // The aggregate table sorts from its own key, not the samples `sort`.
+    expect(url.searchParams.get('aggregateSort')).toBe('-count()');
+    expect(url.searchParams.get('sort')).toBeNull();
+    expect(
+      url.searchParams.getAll('aggregateField').map(value => JSON.parse(value))
+    ).toEqual([{yAxes: ['count()']}, {groupBy: 'span.op'}]);
   });
 
   it('does not double-render a classic link present in both channels', () => {
@@ -1250,34 +1082,12 @@ describe('ToolUseBlock', () => {
       expect(screen.getByText('Searching for the issue')).toBeInTheDocument();
     });
 
-    it('keeps the placeholder up while a search runs, which reports no calls', () => {
+    it('does not render a placeholder while a search runs', () => {
       render(<BlockComponent block={runningBlock()} blockIndex={0} />);
-      expect(screen.getByRole('status', {name: 'Loading'})).toBeInTheDocument();
+      expect(screen.queryByRole('status', {name: 'Loading'})).not.toBeInTheDocument();
     });
 
-    it('renders the same placeholder a block with no tool calls yet would', () => {
-      // The transition the fix is about: the spinner must not vanish, move or change when the tool
-      // call attaches, so both states have to render the identical element.
-      const before = render(
-        <BlockComponent
-          block={createBlock({
-            loading: true,
-            message: {role: 'tool_use', content: null, tool_calls: null},
-          })}
-          blockIndex={0}
-        />
-      );
-      const placeholder = screen.getByRole('status', {name: 'Loading'}).outerHTML;
-      before.unmount();
-
-      render(<BlockComponent block={runningBlock()} blockIndex={0} />);
-      expect(screen.getByRole('status', {name: 'Loading'}).outerHTML).toBe(placeholder);
-    });
-
-    it('keeps the placeholder up alongside an in-flight call row', () => {
-      // The mirror publishes a record when a call starts, so this row is spinning too. Hiding the
-      // placeholder whenever a row spins would blink it out and back on every call the execute
-      // makes; the two say different things and are allowed to coexist.
+    it('uses only the call status for an in-flight call row', () => {
       const block = executeBlock([
         {id: 1, kind: 'api', method: 'GET', path: '/issues/', title: 'Listing issues'},
       ]);
@@ -1286,12 +1096,10 @@ describe('ToolUseBlock', () => {
 
       expect(screen.getByText('Listing issues')).toBeInTheDocument();
       expect(screen.getByLabelText('Running')).toBeInTheDocument();
-      expect(screen.getByRole('status', {name: 'Loading'})).toBeInTheDocument();
+      expect(screen.queryByRole('status', {name: 'Loading'})).not.toBeInTheDocument();
     });
 
-    it('keeps the placeholder up after the last call has returned', () => {
-      // The sandbox is still working after its final call came back, and no row says so: they have
-      // all settled to a checkmark.
+    it('does not add a placeholder after the last call has returned', () => {
       const block = executeBlock([
         {
           id: 1,
@@ -1307,122 +1115,7 @@ describe('ToolUseBlock', () => {
 
       expect(screen.getByLabelText('Succeeded')).toBeInTheDocument();
       expect(screen.queryByLabelText('Running')).not.toBeInTheDocument();
-      expect(screen.getByRole('status', {name: 'Loading'})).toBeInTheDocument();
-    });
-
-    it('does not spin for a call with no id, which can never be seen settling', () => {
-      // Results are matched to calls by id. Treating an id-less call as running would keep the
-      // placeholder up for as long as the block claims to be loading, with nothing able to clear
-      // it. Matches how `liveCallsForCallId` decides what is pending.
-      const block = runningBlock({
-        message: {
-          role: 'tool_use',
-          content: null,
-          tool_calls: [{id: undefined, function: 'sentry_api_search', args: '{}'}],
-        },
-      });
-
-      render(<BlockComponent block={block} blockIndex={0} />);
       expect(screen.queryByRole('status', {name: 'Loading'})).not.toBeInTheDocument();
-    });
-
-    it('drops the placeholder once the call reports back', () => {
-      const block = runningBlock({
-        loading: false,
-        tool_results: [
-          {
-            tool_call_id: 'call-1',
-            tool_call_function: 'sentry_api_search',
-            content: 'ran',
-          },
-        ],
-      });
-
-      render(<BlockComponent block={block} blockIndex={0} />);
-      expect(screen.queryByRole('status', {name: 'Loading'})).not.toBeInTheDocument();
-    });
-
-    it('keeps it up while one of two calls is still in flight', () => {
-      // `loading` stays true until every call in the block responds, so it cannot be the signal on
-      // its own — the block would keep spinning after the last call settled.
-      const block = runningBlock({
-        message: {
-          role: 'tool_use',
-          content: null,
-          tool_calls: [
-            {id: 'call-1', function: 'sentry_api_search', args: '{}'},
-            {id: 'call-2', function: 'sentry_api_execute', args: '{}'},
-          ],
-        },
-        tool_results: [
-          {
-            tool_call_id: 'call-1',
-            tool_call_function: 'sentry_api_search',
-            content: 'ran',
-          },
-        ],
-      });
-
-      render(<BlockComponent block={block} blockIndex={0} />);
-      expect(screen.getAllByRole('status', {name: 'Loading'})).toHaveLength(1);
-    });
-
-    it('renders one placeholder for a block, not one per in-flight call', () => {
-      const block = runningBlock({
-        message: {
-          role: 'tool_use',
-          content: null,
-          tool_calls: [
-            {id: 'call-1', function: 'sentry_api_search', args: '{}'},
-            {id: 'call-2', function: 'sentry_api_execute', args: '{}'},
-          ],
-        },
-      });
-
-      render(<BlockComponent block={block} blockIndex={0} />);
-      expect(screen.getAllByRole('status', {name: 'Loading'})).toHaveLength(1);
-    });
-
-    it('puts the placeholder after every row, not beside the running call', () => {
-      // The running call is first, so a per-call placeholder would land between the two calls'
-      // rows and read as a stalled row rather than as the block still working.
-      const block = runningBlock({
-        message: {
-          role: 'tool_use',
-          content: null,
-          tool_calls: [
-            {id: 'call-1', function: 'sentry_api_execute', args: '{}'},
-            {id: 'call-2', function: 'sentry_api_execute', args: '{}'},
-          ],
-        },
-        tool_results: [
-          {
-            tool_call_id: 'call-2',
-            tool_call_function: 'sentry_api_execute',
-            content: 'ran',
-            structuredContent: {
-              calls: [
-                {
-                  id: 1,
-                  kind: 'api',
-                  method: 'GET',
-                  path: '/issues/',
-                  title: 'Listing issues',
-                  status: 200,
-                },
-              ],
-            },
-          },
-        ],
-      });
-
-      render(<BlockComponent block={block} blockIndex={0} />);
-
-      const spinner = screen.getByRole('status', {name: 'Loading'});
-      const row = screen.getByText('Listing issues');
-      expect(
-        row.compareDocumentPosition(spinner) & Node.DOCUMENT_POSITION_FOLLOWING
-      ).toBeTruthy();
     });
 
     it('leaves a classic tool to its own label rather than adding a placeholder', () => {
@@ -1507,16 +1200,91 @@ describe('ToolUseBlock', () => {
       expect(screen.getByText('ml-service')).toBeInTheDocument();
     });
 
-    it('shows the HTTP status code in the trailing chip and the error under Output', () => {
+    it('shows only the HTTP status code in the trailing chip on failure', () => {
       const block = codeModeCallsBlock([
         {...issueCall, status: 500, title: 'Retrieve an issue'},
       ]);
       render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
 
-      // Status code trails the title; the error prints under Output, mirroring Input.
       expect(screen.getByText('500')).toBeInTheDocument();
-      expect(screen.getByText('Output:')).toBeInTheDocument();
-      expect(screen.getByText('Returned HTTP 500')).toBeInTheDocument();
+      expect(screen.queryByText('Output:')).not.toBeInTheDocument();
+      expect(screen.queryByText('Returned HTTP 500')).not.toBeInTheDocument();
     });
+
+    it('shows useful error context for a transport failure', () => {
+      const block = codeModeCallsBlock([
+        {
+          ...issueCall,
+          status: undefined,
+          error: 'Error: Connection timed out',
+          title: 'Retrieve an issue',
+        },
+      ]);
+      render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
+
+      expect(screen.getByText('Output:')).toBeInTheDocument();
+      expect(
+        screen.getByText('Request failed: Error: Connection timed out')
+      ).toBeInTheDocument();
+    });
+  });
+});
+
+describe('blockRendersToolContent', () => {
+  // The predicate exists to agree with `ToolCallList`; every case here is one the list suppresses,
+  // so counting it opens a box with an empty body.
+  function codeModeBlock(
+    id: string,
+    structuredContent: Record<string, unknown> | null
+  ): Block {
+    return {
+      id,
+      message: {
+        role: 'tool_use',
+        content: null,
+        tool_calls: [{id: `${id}-call`, function: 'sentry_api_execute', args: '{}'}],
+      },
+      timestamp: '2024-01-01T00:01:00Z',
+      loading: false,
+      tool_results: [
+        {
+          tool_call_id: `${id}-call`,
+          tool_call_function: 'sentry_api_execute',
+          content: 'ok',
+          structuredContent,
+        },
+      ],
+    };
+  }
+
+  it('ignores links that only reported an error', () => {
+    // `ToolCallList` filters `is_error` links out, so a result carrying nothing else renders no row.
+    const block = codeModeBlock('t1', {
+      links: [{kind: 'get_issue_details', params: {is_error: true}}],
+    });
+
+    expect(blockRendersToolContent(block, findLatestTodos([block]))).toBe(false);
+  });
+
+  it('counts a link that did not error', () => {
+    const block = codeModeBlock('t1', {
+      links: [{kind: 'get_issue_details', params: {issueId: '4521'}}],
+    });
+
+    expect(blockRendersToolContent(block, findLatestTodos([block]))).toBe(true);
+  });
+
+  it('ignores todos superseded by a later block', () => {
+    // Only the block holding the newest snapshot renders the checklist.
+    const stale = codeModeBlock('t1', {
+      todos: [{id: '1', text: 'old', status: 'completed'}],
+    });
+    const newest = codeModeBlock('t2', {
+      todos: [{id: '2', text: 'new', status: 'pending'}],
+    });
+    const blocks = [stale, newest];
+
+    expect(blockRendersToolContent(stale, findLatestTodos(blocks))).toBe(false);
+    expect(blockRendersToolContent(newest, findLatestTodos(blocks))).toBe(true);
   });
 });

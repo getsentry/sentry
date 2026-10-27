@@ -28,6 +28,7 @@ import {
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
+import {canShareChart} from 'sentry/views/explore/spans/sharedChartAggregates';
 import {SpanFields} from 'sentry/views/insights/types';
 
 const SPANS_MODE_KEY = 'mode';
@@ -55,8 +56,18 @@ export function isDefaultFields(location: Location): boolean {
   return getFieldsFromLocation(location, SPANS_FIELD_KEY) ? false : true;
 }
 
+interface SpansQueryParamsOptions {
+  /**
+   * Plots the y axes listed together in one entry on the same chart when they
+   * can share it, instead of giving each its own chart.
+   */
+  multiAggregateCharts?: boolean;
+}
+
 export function getReadableQueryParamsFromLocation(
-  location: Location
+  location: Location,
+  fieldsOverride?: string[],
+  options?: SpansQueryParamsOptions
 ): ReadableQueryParams {
   const extrapolate = decodeScalar(location.query?.[SPANS_EXTRAPOLATE_KEY], '1') === '1';
   const mode = getModeFromLocation(location, SPANS_MODE_KEY);
@@ -65,12 +76,13 @@ export function getReadableQueryParamsFromLocation(
   const cursor = getCursorFromLocation(location, SPANS_CURSOR_KEY);
   const breakdownCursor = decodeScalar(location.query[SPANS_BREAKDOWN_CURSOR_KEY]);
   const breakdownQuery = decodeScalar(location.query[SPANS_BREAKDOWN_QUERY_KEY]);
-  const fields = getFieldsFromLocation(location, SPANS_FIELD_KEY) ?? defaultFields();
+  const fields =
+    fieldsOverride ?? getFieldsFromLocation(location, SPANS_FIELD_KEY) ?? defaultFields();
   const sortBys =
     getSortBysFromLocation(location, SPANS_SORT_KEY, fields) ?? defaultSortBys(fields);
 
   const aggregateCursor = getCursorFromLocation(location, SPANS_AGGREGATE_CURSOR);
-  const aggregateFields = getSpansAggregateFieldsFromLocation(location);
+  const aggregateFields = getSpansAggregateFieldsFromLocation(location, options);
   const aggregateSortBys =
     getAggregateSortBysFromLocation(
       location,
@@ -224,10 +236,17 @@ export function defaultVisualizes(): [Visualize] {
   return [new VisualizeFunction(DEFAULT_VISUALIZATION)];
 }
 
-function getSpansAggregateFieldsFromLocation(location: Location): AggregateField[] {
+function getSpansAggregateFieldsFromLocation(
+  location: Location,
+  options?: SpansQueryParamsOptions
+): AggregateField[] {
+  const parseOptions = options?.multiAggregateCharts
+    ? {groupYAxes: canShareChart}
+    : undefined;
   const aggregateFields = getAggregateFieldsFromLocation(
     location,
-    SPANS_AGGREGATE_FIELD_KEY
+    SPANS_AGGREGATE_FIELD_KEY,
+    parseOptions
   );
 
   if (aggregateFields?.length) {
@@ -257,7 +276,7 @@ function getSpansAggregateFieldsFromLocation(location: Location): AggregateField
 
   return [
     ...(getGroupBysFromLocation(location, SPANS_GROUP_BY_KEY) ?? defaultGroupBys()),
-    ...(getVisualizesFromLocation(location, SPANS_VISUALIZATION_KEY) ??
+    ...(getVisualizesFromLocation(location, SPANS_VISUALIZATION_KEY, parseOptions) ??
       defaultVisualizes()),
   ];
 }

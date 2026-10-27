@@ -14,6 +14,7 @@ from sentry.identity.vsts.provider import (
     VSTSIdentityProvider,
     VSTSNewOAuth2CallbackView,
     VSTSOAuth2CallbackView,
+    VSTSOAuth2LoginView,
 )
 from sentry.integrations.vsts.integration import get_accounts
 from sentry.testutils.cases import TestCase
@@ -67,7 +68,6 @@ class TestVSTSOAuthCallbackView(TestCase):
 
 
 @control_silo_test
-@override_options({"vsts.consent-prompt": True})
 class TestVSTSNewOAuth2CallbackView(TestCase):
     @responses.activate
     def test_exchange_token(self) -> None:
@@ -106,7 +106,7 @@ class TestVSTSNewOAuth2CallbackView(TestCase):
         assert req_params["client_id"] == ["vsts-new-client-id"]
         assert req_params["client_secret"] == ["vsts-new-client-secret"]
         assert req_params["code"] == ["oauth-code"]
-        assert req_params["prompt"] == ["consent"]
+        assert "prompt" not in req_params
 
         # Verify the redirect URI is correctly constructed with absolute_uri
         assert req_params["redirect_uri"][0] == absolute_uri(
@@ -119,54 +119,24 @@ class TestVSTSNewOAuth2CallbackView(TestCase):
         assert result["expires_in"] == 3600
         assert result["refresh_token"] == "zzzzzzzzzz"
 
-    @responses.activate
-    def test_exchange_token_without_consent_prompt(self) -> None:
-        view = VSTSNewOAuth2CallbackView(
-            access_token_url="https://login.microsoftonline.com/common/oauth2/v2.0/token",
+
+@control_silo_test
+class TestVSTSOAuth2LoginView(TestCase):
+    def get_authorize_params(self) -> dict[str, str]:
+        view = VSTSOAuth2LoginView(
+            authorize_url="https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
             client_id="vsts-new-client-id",
-            client_secret="vsts-new-client-secret",
+            scope="offline_access 499b84ac-1321-427f-aa17-267ca6975798/.default",
         )
-        request = Mock()
-        pipeline = Mock(
-            config={
-                "redirect_url": reverse(
-                    "sentry-extension-setup", kwargs={"provider_id": "vsts_new"}
-                )
-            },
-            provider=Mock(key="vsts_new"),
-        )
+        return view.get_authorize_params(state="state", redirect_uri="https://sentry.io/redirect")
 
-        responses.add(
-            responses.POST,
-            "https://login.microsoftonline.com/common/oauth2/v2.0/token",
-            json={
-                "access_token": "xxxxxxxxx",
-                "token_type": "Bearer",
-                "expires_in": 3600,
-                "refresh_token": "zzzzzzzzzz",
-            },
-        )
+    @override_options({"vsts.consent-prompt": True})
+    def test_consent_prompt(self) -> None:
+        assert self.get_authorize_params()["prompt"] == "consent"
 
-        result: dict[str, Any] = view.exchange_token(request, pipeline, "oauth-code")
-        mock_request = responses.calls[0].request
-        req_params = parse_qs(mock_request.body)
-
-        # Verify the correct parameters are sent
-        assert req_params["grant_type"] == ["authorization_code"]
-        assert req_params["client_id"] == ["vsts-new-client-id"]
-        assert req_params["client_secret"] == ["vsts-new-client-secret"]
-        assert req_params["code"] == ["oauth-code"]
-
-        # Verify the redirect URI is correctly constructed with absolute_uri
-        assert req_params["redirect_uri"][0] == absolute_uri(
-            reverse("sentry-extension-setup", kwargs={"provider_id": "vsts_new"})
-        )
-
-        # Verify the response is correctly parsed
-        assert result["access_token"] == "xxxxxxxxx"
-        assert result["token_type"] == "Bearer"
-        assert result["expires_in"] == 3600
-        assert result["refresh_token"] == "zzzzzzzzzz"
+    @override_options({"vsts.consent-prompt": False})
+    def test_no_consent_prompt(self) -> None:
+        assert "prompt" not in self.get_authorize_params()
 
 
 @control_silo_test

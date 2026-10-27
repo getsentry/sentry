@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 from typing import Any
 
+from django.db.models import Q
 from rest_framework import serializers
 
 from sentry.models.group import Group
@@ -12,13 +13,47 @@ from sentry.notifications.types import AssigneeTargetType
 from sentry.users.services.user.service import user_service
 from sentry.utils.cache import cache
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.preview import (
+    ActionFilterPreviewBehavior,
+    ActionFilterPreviewPlan,
+    InvalidPreviewConfiguration,
+)
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
+from sentry.workflow_engine.types import (
+    ActionFilterDataConditionHandler,
+    DataConditionHandler,
+    WorkflowEventData,
+)
+
+
+class AssignedToPreviewBehavior(ActionFilterPreviewBehavior):
+    def filter_preview(self, plan: ActionFilterPreviewPlan, comparison: Any) -> None:
+        try:
+            target_type = AssigneeTargetType(comparison["target_type"])
+        except (KeyError, TypeError, ValueError) as error:
+            raise InvalidPreviewConfiguration("Invalid assignee target type") from error
+
+        if target_type == AssigneeTargetType.UNASSIGNED:
+            plan.add_group_filter(Q(assignee_set__isnull=True))
+            return
+
+        target_identifier = AssignedToConditionHandler._coerce_target_identifier(
+            comparison.get("target_identifier")
+        )
+        if target_identifier is None:
+            raise InvalidPreviewConfiguration("Invalid assignee target identifier")
+
+        lookup = (
+            "assignee_set__team_id"
+            if target_type == AssigneeTargetType.TEAM
+            else "assignee_set__user_id"
+        )
+        plan.add_group_filter(Q(**{lookup: target_identifier}))
 
 
 @condition_handler_registry.register(Condition.ASSIGNED_TO)
-class AssignedToConditionHandler(DataConditionHandler[WorkflowEventData]):
-    group = DataConditionHandler.Group.ACTION_FILTER
+class AssignedToConditionHandler(ActionFilterDataConditionHandler[WorkflowEventData]):
+    preview_behavior = AssignedToPreviewBehavior()
     subgroup = DataConditionHandler.Subgroup.ISSUE_ATTRIBUTES
     label_template = "The issue is assigned to {targetType}"
 
@@ -39,18 +74,36 @@ class AssignedToConditionHandler(DataConditionHandler[WorkflowEventData]):
         ],
     }
 
+    @staticmethod
+    def _coerce_target_identifier(raw_target_identifier: Any) -> int | None:
+        """Normalize raw_target_identifier to a trusted int target_identifier.
+
+        The comparison schema accepts both integers and digit strings (e.g. from
+        Terraform / OpenAPI string unions). Evaluation compares against integer
+        assignee FK ids, so we must coerce before storage and at evaluate time.
+        """
+        # bool is a subclass of int; reject it explicitly.
+        if raw_target_identifier is None or isinstance(raw_target_identifier, bool):
+            return None
+        try:
+            return int(raw_target_identifier)
+        except (TypeError, ValueError):
+            return None
+
     @classmethod
     def validate_comparison(
         cls, comparison: dict[str, Any], organization: Organization
     ) -> dict[str, Any]:
         target_type = comparison.get("target_type")
-        target_identifier = comparison.get("target_identifier")
-        if target_type == AssigneeTargetType.UNASSIGNED.value or not target_identifier:
+        raw_target_identifier = comparison.get("target_identifier")
+        if target_type == AssigneeTargetType.UNASSIGNED.value:
             return comparison
 
-        try:
-            target_identifier = int(target_identifier)
-        except (TypeError, ValueError):
+        # TEAM/MEMBER require a real positive integer id. Do not treat falsy values
+        # like "" or 0 as "missing" and skip validation — that would store conditions
+        # that can never match an assignee.
+        target_identifier = cls._coerce_target_identifier(raw_target_identifier)
+        if target_identifier is None or target_identifier <= 0:
             raise serializers.ValidationError("target_identifier must be an integer")
 
         if target_type == AssigneeTargetType.TEAM.value:
@@ -62,7 +115,8 @@ class AssignedToConditionHandler(DataConditionHandler[WorkflowEventData]):
             ).exists():
                 raise serializers.ValidationError("This user is not part of the organization.")
 
-        return comparison
+        # Persist the integer form so evaluate_value can compare against int FKs.
+        return {**comparison, "target_identifier": target_identifier}
 
     @staticmethod
     def get_assignees(group: Group) -> Sequence[GroupAssignee]:
@@ -86,12 +140,22 @@ class AssignedToConditionHandler(DataConditionHandler[WorkflowEventData]):
         if target_type == AssigneeTargetType.UNASSIGNED:
             return len(assignees) == 0
 
-        target_id = comparison.get("target_identifier")
+        raw_target_identifier = comparison.get("target_identifier")
+        target_identifier = AssignedToConditionHandler._coerce_target_identifier(
+            raw_target_identifier
+        )
+        if target_identifier is None:
+            return False
 
         if target_type == AssigneeTargetType.TEAM:
-            return any(assignee.team_id and assignee.team_id == target_id for assignee in assignees)
-        elif target_type == AssigneeTargetType.MEMBER:
-            return any(assignee.user_id and assignee.user_id == target_id for assignee in assignees)
+            return any(
+                assignee.team_id and assignee.team_id == target_identifier for assignee in assignees
+            )
+
+        # Remaining AssigneeTargetType is MEMBER.
+        return any(
+            assignee.user_id and assignee.user_id == target_identifier for assignee in assignees
+        )
 
     @classmethod
     def render_label(cls, condition_data: dict[str, Any], organization_id: int) -> str:

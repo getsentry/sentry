@@ -1,4 +1,5 @@
 import {Fragment, useEffect} from 'react';
+import {IconEdit} from '@sentry/icons/edit';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -7,7 +8,6 @@ import {useModal} from '@sentry/scraps/modal';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconEdit} from 'sentry/icons/iconEdit';
 import {t} from 'sentry/locale';
 import {AttributeBreakdownsContent} from 'sentry/views/explore/components/attributeBreakdowns/content';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -25,7 +25,7 @@ import {AggregateColumnEditorModal} from 'sentry/views/explore/tables/aggregateC
 import {AggregatesTable} from 'sentry/views/explore/tables/aggregatesTable';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {SpansTable} from 'sentry/views/explore/tables/spansTable';
-import {TracesTable} from 'sentry/views/explore/tables/tracesTable/index';
+import {TracesTable} from 'sentry/views/explore/tables/tracesTable/tracesTable';
 
 interface BaseExploreTablesProps {
   setTab: (tab: Mode | Tab, reason: 'click' | 'effect') => void;
@@ -104,12 +104,7 @@ export function ExploreTables(props: ExploreTablesProps) {
   return (
     <Fragment>
       <Flex justify="between" marginBottom="md" gap="md" wrap="wrap">
-        <Tabs
-          value={tab}
-          onChange={newTab => setTab(newTab, 'click')}
-          size="sm"
-          disableOverflow
-        >
+        <Tabs value={tab} onChange={newTab => setTab(newTab, 'click')} size="sm">
           <TabList variant="floating">
             <TabList.Item key={Tab.SPAN}>{t('Span Samples')}</TabList.Item>
             <TabList.Item

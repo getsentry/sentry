@@ -5,6 +5,8 @@ from contextlib import ExitStack, contextmanager
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
+from sentry.dynamic_sampling.models.common import RebalancedItem
+from sentry.dynamic_sampling.per_org.cache import set_project_sample_rates
 from sentry.dynamic_sampling.per_org.configuration import ProjectSampleRates
 from sentry.dynamic_sampling.per_org.queries import ProjectVolume
 from sentry.dynamic_sampling.per_org.results import DynamicSamplingResults
@@ -35,6 +37,14 @@ def patch_configuration(targets: dict[str, Any]) -> Iterator[dict[str, MagicMock
             target: stack.enter_context(patch(target, return_value=return_value))
             for target, return_value in targets.items()
         }
+
+
+def store_per_org_project_sample_rate(project: Project, sample_rate: float) -> None:
+    """Store the rate as if a per-org pass had balanced the project, so that rules serve it."""
+    set_project_sample_rates(
+        project.organization_id,
+        [RebalancedItem(id=project.id, count=1, new_sample_rate=sample_rate)],
+    )
 
 
 def make_project_volume(project_id: int, total: int = 100, keep: int = 25) -> ProjectVolume:

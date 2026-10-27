@@ -1,13 +1,13 @@
 import type React from 'react';
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/arrow';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack, useResponsivePropValue} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -158,8 +158,11 @@ export function SnapshotMainContent({
       return;
     }
     const cardIndex = (cardOffsets[singleViewIndex] ?? 0) + variantIndex;
+    // eslint-disable react-you-might-not-need-an-effect/no-derived-state
+    // oxlint-disable-next-line react/set-state-in-effect
     setCurrentCardIndex(cardIndex);
     setScrollProgress(totalCards <= 1 ? 100 : (cardIndex / (totalCards - 1)) * 100);
+    // eslint-enable react-you-might-not-need-an-effect/no-derived-state
   }, [viewMode, singleViewIndex, variantIndex, totalCards, cardOffsets]);
 
   const handleOpenSnapshot = useCallback(
@@ -476,6 +479,7 @@ function SingleViewLayout({
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const navStateRef = useRef({onNavigateSingleView, canNavigateNext, canNavigatePrev});
+  // oxlint-disable-next-line react/refs
   navStateRef.current = {onNavigateSingleView, canNavigateNext, canNavigatePrev};
 
   useEffect(() => {
@@ -592,6 +596,7 @@ function SingleViewLayout({
               </Tooltip>
               <Tooltip title={t('Next (↓)')} skipWrapper>
                 <Button
+                  // oxlint-disable-next-line react/refs
                   ref={navButtonRefs.next}
                   size="sm"
                   icon={<IconArrow direction="down" />}

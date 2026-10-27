@@ -4,11 +4,7 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {backend, frontend, mobile} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import type {
-  NewQuery,
-  Organization,
-  OrganizationSummary,
-} from 'sentry/types/organization';
+import type {NewQuery, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {ReleaseProject} from 'sentry/types/release';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -28,15 +24,6 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
-
-export const QUERY_KEYS = [
-  'environment',
-  'project',
-  'query',
-  'start',
-  'end',
-  'statsPeriod',
-] as const;
 
 export const UNPARAMETERIZED_TRANSACTION = '<< unparameterized >>'; // Represents 'other' transactions with high cardinality names that were dropped on the metrics dataset.
 const SHOW_UNPARAM_BANNER = 'showUnparameterizedBanner';
@@ -196,55 +183,13 @@ export function isSummaryViewFrontend(eventView: EventView, projects: Project[])
   );
 }
 
-function getPerformanceTrendsUrl(
-  organization: OrganizationSummary,
-  view?: DomainView
-): string {
-  return `${getPerformanceBaseUrl(organization.slug, view)}/trends/`;
-}
-
 export function getTransactionSearchQuery(location: Location, query = '') {
   return decodeScalar(location.query.query, query).trim();
 }
 
-export function trendsTargetRoute({
-  location,
-  organization,
-  initialConditions,
-  additionalQuery,
-  view,
-}: {
-  location: Location;
-  organization: Organization;
-  additionalQuery?: Record<string, string>;
-  initialConditions?: MutableSearch;
-  view?: DomainView;
-}) {
-  const newQuery = {
-    ...location.query,
-    ...additionalQuery,
-  };
-
-  const modifiedConditions = initialConditions ?? new MutableSearch([]);
-  newQuery.query = modifiedConditions.formatString();
-
-  return {pathname: getPerformanceTrendsUrl(organization, view), query: {...newQuery}};
-}
-
-export function removeTracingKeysFromSearch(
-  currentFilter: MutableSearch,
-  options: {excludeTagKeys: Set<string>} = {
-    excludeTagKeys: new Set([
-      // event type can be "transaction" but we're searching for issues
-      'event.type',
-      // the project is already determined by the transaction,
-      // and issue search does not support the project filter
-      'project',
-    ]),
-  }
-) {
+export function removeTracingKeysFromSearch(currentFilter: MutableSearch) {
   currentFilter.getFilterKeys().forEach(tagKey => {
-    if (shouldExcludeTracingKeys(tagKey, options)) {
+    if (shouldExcludeTracingKeys(tagKey)) {
       currentFilter.removeFilter(tagKey);
     }
   });
@@ -252,29 +197,16 @@ export function removeTracingKeysFromSearch(
   return currentFilter;
 }
 
-export function shouldExcludeTracingKeys(
-  tagKey: string,
-  options: {excludeTagKeys: Set<string>} = {
-    excludeTagKeys: new Set([
-      // event type can be "transaction" but we're searching for issues
-      'event.type',
-      // the project is already determined by the transaction,
-      // and issue search does not support the project filter
-      'project',
-    ]),
-  }
-): boolean {
+export function shouldExcludeTracingKeys(tagKey: string): boolean {
   // Remove aggregates and transaction event fields
   const searchKey = tagKey.startsWith('!') ? tagKey.substring(1) : tagKey;
 
-  // aggregates
-  const condAggregates = searchKey.match(/\w+\(.*\)/) !== null;
-  // transaction event fields
-  const condTransactionEventFields = TRACING_FIELDS.includes(searchKey);
-  // tags that we don't want to pass to pass to issue search
-  const condExcludeTagKeys = options.excludeTagKeys.has(searchKey);
-
-  return condAggregates || condTransactionEventFields || condExcludeTagKeys;
+  return (
+    searchKey.match(/\w+\(.*\)/) !== null ||
+    TRACING_FIELDS.includes(searchKey) ||
+    searchKey === 'event.type' ||
+    searchKey === 'project'
+  );
 }
 
 export function addRoutePerformanceContext(selection: PageFilters) {

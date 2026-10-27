@@ -23,11 +23,13 @@ from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.agent.client_utils import (
+    chat_prompt_to_markdown,
     has_seer_agent_access_with_detail,
     snapshot_to_markdown,
 )
 from sentry.seer.endpoints.utils import ResolvedSeerRun, resolve_seer_run
 from sentry.seer.models import SeerApiError, SeerPermissionError
+from sentry.seer.models.run import SeerAgentRun
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import json
@@ -36,6 +38,8 @@ logger = logging.getLogger(__name__)
 
 
 _CODE_MODE_VALUES = frozenset({"off", "on", "only"})
+
+_DASHBOARD_GENERATE_RUN_SOURCE = "dashboard_generate"
 
 
 class SeerAgentChatStateResponse(BaseModel):
@@ -152,6 +156,20 @@ class SeerAgentChatSerializer(serializers.Serializer):
         default=None,
         help_text="JSON-encoded tool definitions for client-side UI tools.",
     )
+    chat_prompt = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        default=None,
+        help_text="The question an 'Ask Seer' entry point showed the user, which this query answers.",
+    )
+    chat_prompt_context = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        default=None,
+        help_text="JSON-encoded context for the chat prompt: what the entry point was about.",
+    )
 
 
 class OrganizationSeerAgentChatPermission(OrganizationPermission):
@@ -179,6 +197,19 @@ class OrganizationSeerAgentChatPermission(OrganizationPermission):
                 return False
             return True
         return super().has_object_permission(request, view, obj)
+
+
+def _is_dashboard_generate_run(organization: Organization, resolved: ResolvedSeerRun) -> bool:
+    """A run that may be read or continued without explorer access.
+
+    Explorer chats are not included, so a saved run_id stops working once open
+    membership is turned off.
+    """
+    return SeerAgentRun.objects.filter(
+        run__organization_id=organization.id,
+        run__seer_run_state_id=resolved.seer_run_state_id,
+        source=_DASHBOARD_GENERATE_RUN_SOURCE,
+    ).exists()
 
 
 @cell_silo_endpoint
@@ -213,17 +244,22 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         """
         has_access, error = has_seer_agent_access_with_detail(organization, request.user)
 
-        has_seer_access, _ = has_seer_access_with_detail(organization, request.user)
+        has_seer_access, _ = has_seer_access_with_detail(organization)
+
+        if not run_id:
+            if not has_access:
+                raise PermissionDenied(error)
+            return Response({"session": None}, status=404)
 
         if not has_access and not has_seer_access:
             raise PermissionDenied(error)
 
-        if not run_id:
-            return Response({"session": None}, status=404)
-
         resolved = resolve_seer_run(run_id, organization)
         if isinstance(resolved, Response):
             return resolved
+
+        if not has_access and not _is_dashboard_generate_run(organization, resolved):
+            raise PermissionDenied(error)
 
         try:
             client = SeerAgentClient(organization, request.user)
@@ -263,11 +299,8 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         """
         has_access, error = has_seer_agent_access_with_detail(organization, request.user)
 
-        has_seer_access, _ = has_seer_access_with_detail(organization, request.user)
-        # Orgs with Seer access can continue existing dashboard generate runs, but cannot start new runs from this endpoint.
-        can_continue_dashboards_generate_run = has_seer_access and run_id is not None
-
-        if not has_access and not can_continue_dashboards_generate_run:
+        has_seer_access, _ = has_seer_access_with_detail(organization)
+        if not has_access and (run_id is None or not has_seer_access):
             raise PermissionDenied(error)
 
         serializer = SeerAgentChatSerializer(data=request.data)
@@ -285,6 +318,8 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         override_ce_enable = validated_data["override_ce_enable"]
         override_code_mode_enable = validated_data.get("override_code_mode_enable")
         ui_tools = validated_data.get("ui_tools")
+        chat_prompt = validated_data.get("chat_prompt")
+        chat_prompt_context = validated_data.get("chat_prompt_context")
 
         # If the frontend sent a structured LLMContext JSON snapshot, convert to markdown.
         if on_page_context:
@@ -294,6 +329,24 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                     on_page_context = snapshot_to_markdown(snapshot)
             except (json.JSONDecodeError, TypeError, AttributeError):
                 pass
+
+        # Stored on the user message for display; the agent sees it only as page context,
+        # which Seer wraps as untrusted. Appended so the page's own lines stay first.
+        prompt_metadata: dict[str, str] | None = None
+        if chat_prompt and features.has(
+            "organizations:seer-explorer-chat-prompts", organization, actor=request.user
+        ):
+            prompt_metadata = {"chat_prompt": chat_prompt}
+            context: Any = None
+            if chat_prompt_context:
+                prompt_metadata["chat_prompt_context"] = chat_prompt_context
+                try:
+                    context = json.loads(chat_prompt_context)
+                except json.JSONDecodeError:
+                    context = chat_prompt_context
+            section = chat_prompt_to_markdown(chat_prompt, context)
+            on_page_context = f"{on_page_context}\n\n{section}" if on_page_context else section
+
         resolved: ResolvedSeerRun | None = None
         if run_id:
             user_id = request.user.id
@@ -304,11 +357,18 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 return result
             resolved = result
 
+        if not has_access and not (
+            resolved is not None and _is_dashboard_generate_run(organization, resolved)
+        ):
+            raise PermissionDenied(error)
+
         try:
-            enable_coding = organization.get_option(
+            # Seer only exposes write_pull_request when coding and bash mode are also on.
+            has_create_pr = features.has(
+                "organizations:ask-seer-create-pr", organization, actor=request.user
+            )
+            enable_coding = has_create_pr and organization.get_option(
                 "sentry:enable_seer_coding", False
-            ) and features.has(
-                "organizations:seer-explorer-chat-coding", organization, actor=request.user
             )
 
             has_code_mode_feature = features.has(
@@ -329,9 +389,12 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 organization,
                 request.user,
                 is_interactive=True,
-                enable_bash_tools=override_bash_mode_enabled,
+                # The client still requires seer-explorer-allow-bash-mode.
+                enable_bash_mode=override_bash_mode_enabled or has_create_pr,
                 enable_coding=enable_coding,
+                enable_write_pull_request=has_create_pr,
                 enable_code_mode_tools=enable_code_mode_tools,
+                enable_investigation_tools=True,
                 reasoning_effort="medium",
             )
             if resolved is not None:
@@ -339,6 +402,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 client.continue_run(
                     run_id=resolved.seer_run_state_id,
                     prompt=query,
+                    prompt_metadata=prompt_metadata,
                     insert_index=insert_index,
                     on_page_context=on_page_context,
                     page_name=page_name,
@@ -354,6 +418,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
             # Start new conversation
             run = client.start_run(
                 prompt=query,
+                prompt_metadata=prompt_metadata,
                 on_page_context=on_page_context,
                 page_name=page_name,
                 page_location=page_location,

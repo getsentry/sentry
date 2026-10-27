@@ -1,15 +1,16 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconStar} from '@sentry/icons/star';
 
+import {Flex} from '@sentry/scraps/layout';
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {DataGrid} from 'sentry/components/tables/dataGrid';
 import {getNextSort} from 'sentry/components/tables/getNextSort';
-import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
-import {IconStar} from 'sentry/icons';
 import {getSortField} from 'sentry/utils/dashboards/issueFieldRenderers';
 import {defined} from 'sentry/utils/defined';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -21,7 +22,7 @@ import {
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {FieldValueType, prettifyTagKey} from 'sentry/utils/fields';
-import {decodeSorts} from 'sentry/utils/queryString';
+import {decodeSorts, encodeSort} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -74,7 +75,7 @@ interface TableWidgetVisualizationProps {
    */
   aliases?: Record<string, string>;
   /**
-   * The cell actions that may appear when a user clicks on a table cell. By default, copying text and opening external links are enabled.
+   * The cell actions that may appear in the table cell actions menu. By default, copying text and opening external links are enabled.
    */
   allowedCellActions?: Actions[] | GetAllowedCellActionsFn;
   /**
@@ -143,6 +144,29 @@ export const FRAMELESS_STYLES = {
   borderBottom: 0,
   height: '100%',
 };
+
+/**
+ * The starred column only ever holds an icon, so it hugs its content rather
+ * than stretching to the table's minimum column width.
+ */
+const STARRED_COLUMN_WIDTH = 'max-content';
+
+function isStarredColumn(key: string, aliases?: Record<string, string>): boolean {
+  return key === SpanFields.IS_STARRED_TRANSACTION && !aliases?.[key];
+}
+
+function getStaticColumnWidths(
+  columns: TabularColumn[],
+  aliases?: Record<string, string>
+): Record<string, string> | undefined {
+  const starredColumn = columns.find(
+    column =>
+      isStarredColumn(column.key, aliases) &&
+      (column.width === undefined || column.width === COL_WIDTH_UNDEFINED)
+  );
+
+  return starredColumn ? {[starredColumn.key]: STARRED_COLUMN_WIDTH} : undefined;
+}
 
 function prettifyColumnKey(key: string): string {
   if (isEquation(key) || parseFunction(key)) {
@@ -231,11 +255,12 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
     }));
 
   return (
-    <GridEditable
+    <DataGrid
       data={data}
-      // GridEditable needs name, but this functionality is replaced by aliases
+      // DataGrid needs name, but this functionality is replaced by aliases
       columnOrder={columnOrder.map(column => ({...column, name: column.key}))}
       grid={{
+        staticColumnWidths: getStaticColumnWidths(columnOrder, aliases),
         getColumnSort: (_tableColumn, columnIndex) => {
           const column = columnOrder[columnIndex]!;
           const sortColumn = getSortField(column.key) ?? column.key;
@@ -271,18 +296,17 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
         },
         renderHeadCell: (_tableColumn, columnIndex) => {
           const column = columnOrder[columnIndex]!;
-          const isStarredColumn = column.key === SpanFields.IS_STARRED_TRANSACTION;
-          const hasAlias = !!aliases?.[column.key];
+          if (isStarredColumn(column.key, aliases)) {
+            return <StarColumnHeader columnKey={column.key} />;
+          }
+
           let name: React.ReactNode =
             aliases?.[column.key] || prettifyColumnKey(column.key);
-          if (isStarredColumn && !hasAlias) {
-            name = <IconStar isSolid size="md" variant="warning" />;
-          } else if (isEquation(column.key)) {
+          if (isEquation(column.key)) {
             name = stripEquationPrefix(name as string);
           }
-          const tooltipTitle = isStarredColumn && !hasAlias ? column.key : name;
 
-          return <StyledTooltip title={tooltipTitle}>{name}</StyledTooltip>;
+          return <StyledTooltip title={name}>{name}</StyledTooltip>;
         },
         renderBodyCell: (tableColumn, dataRow, rowIndex, columnIndex) => {
           const field = tableColumn.key;
@@ -360,7 +384,6 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
         },
       }}
       stickyHeader={scrollable}
-      scrollable={scrollable}
       height={scrollable ? '100%' : undefined}
       bodyStyle={frameless ? FRAMELESS_STYLES : {}}
       resizable={resizable}
@@ -377,28 +400,25 @@ TableWidgetVisualization.LoadingPlaceholder = function ({
 }) {
   const columnsWithName = columns?.map(column => ({...column, name: column.key})) ?? [];
   return (
-    <GridEditable
+    <DataGrid
       isLoading
       columnOrder={columnsWithName}
       data={[]}
       resizable={false}
       grid={{
+        staticColumnWidths: getStaticColumnWidths(columns ?? [], aliases),
         renderHeadCell: (_tableColumn, columnIndex) => {
           if (!columns) {
             return null;
           }
           const column = columns[columnIndex]!;
-          const isStarredColumn = column.key === SpanFields.IS_STARRED_TRANSACTION;
-          const hasAlias = !!aliases?.[column.key];
-          const displayAsIcon = isStarredColumn && !hasAlias;
-          const name: React.ReactNode = displayAsIcon ? (
-            <IconStar isSolid size="md" variant="warning" />
-          ) : (
-            aliases?.[column.key] || prettifyColumnKey(column.key)
-          );
-          const tooltipTitle = displayAsIcon ? column.key : name;
+          if (isStarredColumn(column.key, aliases)) {
+            return <StarColumnHeader columnKey={column.key} />;
+          }
 
-          return <StyledTooltip title={tooltipTitle}>{name}</StyledTooltip>;
+          const name = aliases?.[column.key] || prettifyColumnKey(column.key);
+
+          return <StyledTooltip title={name}>{name}</StyledTooltip>;
         },
       }}
     />
@@ -408,4 +428,18 @@ TableWidgetVisualization.LoadingPlaceholder = function ({
 const StyledTooltip = styled(Tooltip)`
   display: initial;
   vertical-align: middle;
+`;
+
+function StarColumnHeader({columnKey}: {columnKey: string}) {
+  return (
+    <StarColumnTooltip title={columnKey}>
+      <Flex align="center" justify="center">
+        <IconStar isSolid variant="warning" />
+      </Flex>
+    </StarColumnTooltip>
+  );
+}
+
+const StarColumnTooltip = styled(StyledTooltip)`
+  flex: 1;
 `;

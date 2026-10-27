@@ -1,6 +1,8 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/close';
+import {IconProject} from '@sentry/icons/project';
 import debounce from 'lodash/debounce';
 import {PlatformIcon} from 'platformicons';
 
@@ -19,7 +21,6 @@ import {
   filterAliases,
 } from 'sentry/data/platformPickerCategories';
 import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
-import {IconClose, IconProject} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -56,7 +57,6 @@ interface PlatformPickerProps {
   noAutoFilter?: boolean;
   organization?: Organization;
   platform?: string | null;
-  showOther?: boolean;
   source?: string;
   /**
    * For project-creation picker events, `source` identifies the flow and `variant`
@@ -79,7 +79,6 @@ export function PlatformPicker({
   variant,
   visibleSelection = true,
   loading = false,
-  showOther = true,
 }: PlatformPickerProps) {
   const {isSelfHosted} = useLegacyStore(ConfigStore);
 
@@ -120,7 +119,7 @@ export function PlatformPicker({
     // 'other' is not part of the createablePlatforms list, therefore it won't be included in the filtered list
     const filtered = availablePlatforms.filter(filter ? subsetMatch : categoryMatch);
 
-    if (showOther && filter.toLowerCase() === 'other') {
+    if (filter.toLowerCase() === 'other') {
       // We only show 'Other' if users click on the 'Other' suggestion rendered in the not found state or type this word in the search bar
       return [otherPlatform];
     }
@@ -135,7 +134,7 @@ export function PlatformPicker({
 
     // We only want to sort the platforms alphabetically if users are not viewing the 'popular' tab category
     return filtered.sort((a, b) => comparePlatformNames(a.name, b.name));
-  }, [filter, category, availablePlatforms, showOther]);
+  }, [filter, category, availablePlatforms]);
 
   const latestValuesRef = useRef({
     filter,
@@ -158,6 +157,7 @@ export function PlatformPicker({
   });
 
   const debounceSearch = useRef(
+    // oxlint-disable-next-line react/refs
     debounce(() => {
       const {
         filter: currentFilter,

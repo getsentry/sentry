@@ -1,15 +1,16 @@
 import type {ReactNode} from 'react';
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconCursorArrow} from '@sentry/icons/cursorArrow';
+import {IconSearch} from '@sentry/icons/search';
 
+import {InfoTip} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack, type FlexProps} from '@sentry/scraps/layout';
 
 import {Accordion} from 'sentry/components/container/accordion';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {Placeholder} from 'sentry/components/placeholder';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {TextOverflow} from 'sentry/components/textOverflow';
-import {IconCursorArrow, IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {useDeadRageSelectors} from 'sentry/utils/replays/hooks/useDeadRageSelectors';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -151,7 +152,7 @@ function SelectorCardHeader({deadOrRage}: {deadOrRage: DeadOrRage}) {
       <StyledWidgetHeader>
         <Flex align="center" gap="md">
           {deadOrRage === 'dead' ? t('Most Dead Clicks') : t('Most Rage Clicks')}
-          <QuestionTooltip
+          <InfoTip
             size="xs"
             position="top"
             title={
@@ -163,7 +164,6 @@ function SelectorCardHeader({deadOrRage}: {deadOrRage: DeadOrRage}) {
                     'The top selectors your users have rage clicked on (i.e., 5 or more clicks on a dead element, which exhibits no page activity after 7 seconds).'
                   )
             }
-            isHoverable
           />
         </Flex>
       </StyledWidgetHeader>

@@ -21,6 +21,7 @@ describe('FoldSection', () => {
     sectionData: {},
     detectorDetails: {},
     eventCount: 0,
+    eventNavigationHeight: 0,
     isSidebarOpen: true,
     navScrollMargin: 64,
     dispatch: jest.fn(),
@@ -91,7 +92,7 @@ describe('FoldSection', () => {
         }
       );
 
-      expect(screen.getByRole('region')).toHaveAccessibleName('Accessible Title');
+      expect(screen.getByRole('region', {name: 'Accessible Title'})).toBeInTheDocument();
       expect(screen.getByRole('button')).toHaveAccessibleName(
         'Collapse Accessible Title Section'
       );
@@ -389,8 +390,6 @@ describe('FoldSection', () => {
       // Collapse section
       await userEvent.click(screen.getByRole('button'));
 
-      // Wait and verify localStorage was not updated
-      await new Promise(resolve => setTimeout(resolve, 100));
       expect(
         localStorageWrapper.getItem(getFoldSectionKey(SectionKey.HIGHLIGHTS))
       ).toBeNull();

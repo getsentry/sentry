@@ -14,6 +14,7 @@ from sentry.dynamic_sampling.per_org.configuration import (
 from sentry.dynamic_sampling.per_org.queries import (
     DynamicSamplingQueryFields,
     DynamicSamplingQueryFilters,
+    OrganizationDataVolume,
     ProjectTransactionCounts,
     ProjectVolume,
     get_eap_organization_volume,
@@ -22,7 +23,6 @@ from sentry.dynamic_sampling.per_org.queries import (
     get_outcomes_organization_volume,
     run_eap_spans_table_query_in_chunks,
 )
-from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
 from sentry.models.organization import Organization
 from sentry.search.eap.constants import SAMPLING_MODE_HIGHEST_ACCURACY
 from sentry.search.eap.types import SearchResolverConfig
@@ -108,8 +108,9 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
             RUN_TABLE_QUERY,
             return_value={"data": [{DynamicSamplingQueryFields.COUNT: 2, "count_sample()": 2}]},
         ) as run_table_query:
+            config = self.get_config(organization)
             org_volume = get_eap_organization_volume(
-                self.get_config(organization), time_interval=timedelta(hours=1)
+                config.organization, config.projects, time_interval=timedelta(hours=1)
             )
 
         assert org_volume == OrganizationDataVolume(org_id=organization.id, total=2, indexed=2)
@@ -136,8 +137,9 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
             RUN_TABLE_QUERY,
             return_value={"data": [{"count()": 10, DynamicSamplingQueryFields.COUNT_SAMPLE: 1}]},
         ):
+            config = self.get_config(organization)
             org_volume = get_eap_organization_volume(
-                self.get_config(organization), time_interval=timedelta(hours=1)
+                config.organization, config.projects, time_interval=timedelta(hours=1)
             )
 
         assert org_volume == OrganizationDataVolume(org_id=organization.id, total=10, indexed=1)
@@ -146,8 +148,9 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
         organization = self.create_organization()
         self.create_project(organization=organization)
 
+        config = self.get_config(organization)
         org_volume = get_eap_organization_volume(
-            self.get_config(organization), time_interval=timedelta(hours=1)
+            config.organization, config.projects, time_interval=timedelta(hours=1)
         )
 
         assert org_volume is None
@@ -159,8 +162,9 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
             RUN_TABLE_QUERY,
             return_value={"data": []},
         ) as run_table_query:
+            config = self.get_config(organization)
             org_volume = get_eap_organization_volume(
-                self.get_config(organization), time_interval=timedelta(hours=1)
+                config.organization, config.projects, time_interval=timedelta(hours=1)
             )
 
         assert org_volume is None
@@ -634,7 +638,7 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
             ),
         ]
 
-    def test_get_eap_transaction_volumes_reads_cap_from_legacy_option(self) -> None:
+    def test_get_eap_transaction_volumes_reads_cap_from_option(self) -> None:
         organization = self.create_organization()
         project = self.create_project(organization=organization)
         timestamp = before_now(minutes=15)

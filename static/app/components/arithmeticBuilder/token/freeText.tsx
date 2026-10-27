@@ -4,6 +4,11 @@ import styled from '@emotion/styled';
 import {Item, Section} from '@react-stately/collections';
 import type {ListState} from '@react-stately/list';
 import type {KeyboardEvent, Node} from '@react-types/shared';
+import {IconAdd} from '@sentry/icons/add';
+import {IconClose} from '@sentry/icons/close';
+import {IconDivide} from '@sentry/icons/divide';
+import {IconParenthesis} from '@sentry/icons/parenthesis';
+import {IconSubtract} from '@sentry/icons/subtract';
 
 import type {
   SelectOptionWithKey,
@@ -31,11 +36,6 @@ import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {useGridListItem} from 'sentry/components/tokenizedInput/grid/useGridListItem';
 import {focusTarget} from 'sentry/components/tokenizedInput/grid/utils';
 import {ComboBox} from 'sentry/components/tokenizedInput/token/comboBox';
-import {IconAdd} from 'sentry/icons/iconAdd';
-import {IconClose} from 'sentry/icons/iconClose';
-import {IconDivide} from 'sentry/icons/iconDivide';
-import {IconParenthesis} from 'sentry/icons/iconParenthesis';
-import {IconSubtract} from 'sentry/icons/iconSubtract';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 
@@ -62,6 +62,8 @@ export function ArithmeticTokenFreeText({
     focusable: true,
   });
 
+  const isCollapsed = !token.text.trim();
+
   return (
     <Row
       {...rowProps}
@@ -69,8 +71,14 @@ export function ArithmeticTokenFreeText({
       tabIndex={-1}
       aria-label={token.text}
       aria-invalid={false}
+      collapsed={isCollapsed}
     >
-      <GridCell {...gridCellProps} onClick={stopPropagation}>
+      <GridCell
+        {...gridCellProps}
+        onClick={stopPropagation}
+        collapsed={isCollapsed}
+        showPlaceholder={showPlaceholder}
+      >
         <InternalInput
           showPlaceholder={showPlaceholder}
           nextAllowedTokenKinds={nextAllowedTokenKinds}
@@ -482,7 +490,7 @@ function useParenthesisItems({
     if (nextAllowedTokenKinds.includes(TokenKind.OPEN_PARENTHESIS)) {
       options.push({
         key: `${TokenKind.OPEN_PARENTHESIS}:open`,
-        label: <IconParenthesis height={26} />,
+        label: <IconParenthesis size="lg" />,
         value: '(',
         textValue: '(',
         hideCheck: true,
@@ -492,7 +500,7 @@ function useParenthesisItems({
     if (nextAllowedTokenKinds.includes(TokenKind.CLOSE_PARENTHESIS)) {
       options.push({
         key: `${TokenKind.CLOSE_PARENTHESIS}:close`,
-        label: <IconParenthesis side="right" height={26} />,
+        label: <IconParenthesis side="right" size="lg" />,
         value: ')',
         textValue: ')',
         hideCheck: true,
@@ -638,7 +646,9 @@ function stopPropagation(evt: MouseEvent<HTMLElement>) {
   evt.stopPropagation();
 }
 
-const GridCell = styled('div')`
+const GridCell = styled('div', {
+  shouldForwardProp: prop => prop !== 'collapsed' && prop !== 'showPlaceholder',
+})<{collapsed?: boolean; showPlaceholder?: boolean}>`
   position: relative;
   display: flex;
   align-items: stretch;
@@ -646,8 +656,14 @@ const GridCell = styled('div')`
   width: 100%;
 
   input {
-    padding: 0 ${p => p.theme.space.xs};
-    min-width: 9px;
+    /* Collapsed empty spacers stay zero-width/padding so they do not wrap.
+     * Mid-expression hit targets come from the Row collapsed mid-gap width in
+     * styles.tsx. Trailing empty fields with a placeholder keep horizontal
+     * inset so it lines up with the aggregate filter. */
+    padding: 0 ${p => (p.collapsed && !p.showPlaceholder ? 0 : p.theme.space.xs)};
+    min-width: ${p => (p.collapsed && !p.showPlaceholder ? 0 : '9px')};
     width: 100%;
+    height: 100%;
+    min-height: 100%;
   }
 `;

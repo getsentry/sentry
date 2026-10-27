@@ -1,4 +1,4 @@
-import type {RouteObject} from 'react-router-dom';
+import type {RouteObject} from 'react-router';
 
 import {PRELOAD_HANDLE} from 'sentry/router/preload';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -271,8 +271,7 @@ export function toCustomerDomainForm(url: string): string {
  */
 export function dedupeRoutes(
   slugRecords: RouteRecord[],
-  domainRecords: RouteRecord[],
-  toCustomerDomain: (url: string) => string = toCustomerDomainForm
+  domainRecords: RouteRecord[]
 ): LogicalRoute[] {
   const byKey = new Map<string, LogicalRoute>();
 
@@ -280,7 +279,7 @@ export function dedupeRoutes(
     if (!record.component) {
       return;
     }
-    const urlCustomerDomain = toCustomerDomain(record.url);
+    const urlCustomerDomain = toCustomerDomainForm(record.url);
     const key = `${urlCustomerDomain} ${record.component}`;
     if (byKey.has(key)) {
       return;
@@ -341,6 +340,7 @@ export function collectRouteMap(
 export const ROUTE_OVERRIDE_HOOKS = [
   'routes:root',
   'routes:org-settings',
+  'routes:project-settings',
   'routes:subscription-settings',
   'routes:legacy-organization-redirects',
 ] as const;

@@ -1,6 +1,6 @@
 import {useRef, type Ref} from 'react';
 
-import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
+import {useAutoSaveContext} from '@sentry/scraps/formPresentation';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import type {SelectValue} from '@sentry/scraps/select';
@@ -48,6 +48,10 @@ type BaseSelectFieldProps<TValue, IsMulti extends boolean> = Omit<
 > &
   BaseFieldProps<HTMLInputElement> & {
     options: ReadonlyArray<SelectValue<TValue>>;
+    /**
+     * Allows entering values that are not in `options`.
+     */
+    creatable?: boolean;
     /**
      * custom value comparator function
      * defaults to === comparison of the option values
@@ -114,11 +118,17 @@ export function SelectField<TValue>({
   onChange,
   disabled,
   multiple,
+  clearable,
   value,
   ref,
   ...props
 }: BaseFieldProps<HTMLInputElement> & SelectFieldProps<TValue>) {
   const autoSaveContext = useAutoSaveContext();
+  const selectVariantProps = multiple
+    ? {multiple: true as const, clearable, value}
+    : clearable
+      ? {clearable: true as const, value}
+      : {value};
 
   // Track whether the menu is open for multi-select auto-save behavior
   const isMenuOpenRef = useRef(false);
@@ -130,11 +140,10 @@ export function SelectField<TValue>({
           <Select
             {...fieldProps}
             {...props}
+            {...selectVariantProps}
             inputId={id}
-            multiple={multiple}
-            value={value}
             inputRef={applyInputToRef(fieldRef)}
-            {...(autoSaveContext && {blurInputOnSelect: false})}
+            blurInputOnSelect={false}
             components={
               {
                 ...props.components,
@@ -178,9 +187,8 @@ export function SelectField<TValue>({
                 (onChange as (value: TValue) => void)(
                   (option as SelectValue<TValue>).value
                 );
-                if (autoSaveContext) {
-                  fieldProps.onBlur();
-                }
+                // Preserve blur validation and auto-save after selection.
+                fieldProps.onBlur();
               }
             }}
           />

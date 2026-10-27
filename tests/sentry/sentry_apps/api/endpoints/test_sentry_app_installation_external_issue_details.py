@@ -19,7 +19,7 @@ class SentryAppInstallationExternalIssueDetailsEndpointTest(APITestCase):
             name="testin",
             organization=self.org,
             webhook_url="https://example.com",
-            scopes=["event:admin"],
+            scopes=["event:write"],
         )
         self.install = self.create_sentry_app_installation(
             organization=self.org, slug=self.sentry_app.slug, user=self.user
@@ -33,11 +33,51 @@ class SentryAppInstallationExternalIssueDetailsEndpointTest(APITestCase):
         self.login_as(self.user)
 
     def test_deletes_external_issue(self) -> None:
-        with assume_test_silo_mode_of(PlatformExternalIssue):
-            assert PlatformExternalIssue.objects.filter(id=self.external_issue.id).exists()
-        self.get_success_response(self.install.uuid, self.external_issue.id, status_code=204)
+        team = self.create_team(organization=self.org)
+        with assume_test_silo_mode_of(Organization):
+            self.org.update_option("sentry:events_member_admin", False)
+            self.project.add_team(team)
+        member = self.create_user()
+        self.create_member(organization=self.org, user=member, role="member", teams=[team])
+        token = self.create_user_auth_token(user=member, scope_list=["event:write"])
+        self.client.cookies.clear()
+
+        self.get_success_response(
+            self.install.uuid,
+            self.external_issue.id,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+            status_code=204,
+        )
         with assume_test_silo_mode_of(PlatformExternalIssue):
             assert not PlatformExternalIssue.objects.filter(id=self.external_issue.id).exists()
+
+    def test_deletes_external_issue_with_app_writer_token(self) -> None:
+        token = self.create_internal_integration_token(install=self.install, user=self.user)
+        self.client.cookies.clear()
+
+        self.get_success_response(
+            self.install.uuid,
+            self.external_issue.id,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+            status_code=204,
+        )
+        with assume_test_silo_mode_of(PlatformExternalIssue):
+            assert not PlatformExternalIssue.objects.filter(id=self.external_issue.id).exists()
+
+    def test_rejects_read_only_app_token(self) -> None:
+        self.sentry_app.update(scope_list=["event:read"])
+        self.install.refresh_from_db()
+        token = self.create_internal_integration_token(install=self.install, user=self.user)
+        self.client.cookies.clear()
+
+        self.get_error_response(
+            self.install.uuid,
+            self.external_issue.id,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+            status_code=403,
+        )
+        with assume_test_silo_mode_of(PlatformExternalIssue):
+            assert PlatformExternalIssue.objects.filter(id=self.external_issue.id).exists()
 
     def test_handles_non_existing_external_issue(self) -> None:
         self.get_error_response(self.install.uuid, 999999, status_code=404)
@@ -71,6 +111,7 @@ class SentryAppInstallationExternalIssueDetailsEndpointTest(APITestCase):
         with assume_test_silo_mode_of(Organization):
             self.org.flags.allow_joinleave = False
             self.org.save()
+            self.org.update_option("sentry:events_member_admin", False)
 
         member_team = self.create_team(organization=self.org)
         self.create_project(organization=self.org, teams=[member_team])

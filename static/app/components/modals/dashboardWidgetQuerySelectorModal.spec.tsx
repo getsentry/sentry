@@ -64,10 +64,6 @@ describe('Modals -> AddDashboardWidgetModal', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventsv2/',
       body: {data: [{'event.type': 'error'}], meta: {'event.type': 'string'}},
     });
@@ -91,7 +87,7 @@ describe('Modals -> AddDashboardWidgetModal', () => {
     expect(
       screen.getByDisplayValue('title:/organizations/:orgId/insights/summary/')
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Open in Discover'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Open in Explore'})).toBeInTheDocument();
   });
 
   it('renders a multiple query selections when the widget only has multiple queries', () => {
@@ -120,7 +116,7 @@ describe('Modals -> AddDashboardWidgetModal', () => {
     renderModal({initialData, widget: mockWidget});
     expect(screen.getByRole('link')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/discover/results/?field=count%28%29&field=failure_count%28%29&name=Test%20Widget&project=&query=title%3A%2Forganizations%2F%3AorgId%2Finsights%2Fsummary%2F&statsPeriod=14d&yAxis=count%28%29&yAxis=failure_count%28%29'
+      '/organizations/org-slug/explore/errors/results/?field=count%28%29&field=failure_count%28%29&name=Test%20Widget&project=&query=title%3A%2Forganizations%2F%3AorgId%2Finsights%2Fsummary%2F&statsPeriod=14d&yAxis=count%28%29&yAxis=failure_count%28%29'
     );
   });
 });

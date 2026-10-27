@@ -3,9 +3,11 @@
 import logging
 import os
 import sys
-from collections.abc import MutableSequence
+import threading
+from collections.abc import Callable, MutableSequence
 from contextlib import contextmanager
 from datetime import datetime
+from typing import Any
 from urllib.parse import urlparse
 
 import pytest
@@ -15,8 +17,10 @@ from selenium.common.exceptions import (
     SessionNotCreatedException,
     WebDriverException,
 )
+from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
+from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.wait import WebDriverWait
 
@@ -337,10 +341,11 @@ class Browser:
         if domain:
             cookie["domain"] = domain
 
-        # XXX(dcramer): the cookie store must be initialized via a URL
+        # Initialize the cookie origin without loading the login app, whose
+        # async auth requests can overwrite the session installed by login_as.
         if not self._has_initialized_cookie_store:
             logger.info("selenium.initialize-cookies")
-            self.get("/")
+            self.get("/robots.txt")
 
         # TODO(dcramer): this should be escaped, but idgaf
         logger.info("selenium.set-cookie.%s", name, extra={"value": value})
@@ -396,37 +401,121 @@ def start_chrome(**chrome_args):
             )
 
 
+def _launch_chrome(config: pytest.Config) -> webdriver.Chrome:
+    options = webdriver.ChromeOptions()
+    options.add_argument("no-sandbox")
+    options.add_argument("disable-gpu")
+    options.add_argument("disable-dev-shm-usage")
+    options.add_argument(f"window-size={config.getoption('window_size')}")
+    if not config.getoption("no_headless"):
+        options.add_argument("headless")
+    chrome_path = config.getoption("chrome_path")
+    if chrome_path:
+        options.binary_location = chrome_path
+    chrome_args: dict[str, Any] = {"options": options}
+    # Without a driver path, Selenium runs Selenium Manager on every launch to
+    # look one up, which takes a couple of seconds the first time.
+    chromedriver_path = config.getoption("chromedriver_path")
+    if chromedriver_path:
+        chrome_args["service"] = ChromeService(executable_path=chromedriver_path)
+
+    driver = start_chrome(**chrome_args)
+    if config.getoption("slow_network"):
+        driver.set_network_conditions(
+            offline=False,
+            latency=400 * 2,  # additional latency (ms)
+            throughput=500 * 1024,  # maximal throughput
+        )
+    return driver
+
+
+class _Background:
+    """Runs a function on a thread and hands its result back when joined."""
+
+    def __init__(self, name: str, fn: Callable[[], Any]) -> None:
+        self._fn = fn
+        self._result: Any = None
+        self._error: BaseException | None = None
+        self._thread = threading.Thread(target=self._run, name=name, daemon=True)
+        self._thread.start()
+
+    def _run(self) -> None:
+        try:
+            self._result = self._fn()
+        except BaseException as e:
+            self._error = e
+
+    def join(self) -> Any:
+        self._thread.join()
+        if self._error is not None:
+            raise self._error
+        return self._result
+
+
+def _populate_url_resolver() -> None:
+    from django.urls import get_resolver
+
+    # The first request to the live server spends seconds importing every
+    # URLconf module; doing it here keeps that off the first test.
+    get_resolver()._populate()
+
+
+# The first Chrome launch on a fresh worker and the URLconf import both take
+# seconds, and neither needs the test databases. Starting them once collection
+# finishes lets them overlap with the test database setup, which runs next.
+_warmup: dict[str, _Background] = {}
+
+
+@pytest.hookimpl(trylast=True)
+def pytest_collection_finish(session: pytest.Session) -> None:
+    config = session.config
+    if config.option.collectonly or config.getoption("selenium_driver") != "chrome":
+        return
+    if not any("browser" in getattr(item, "fixturenames", ()) for item in session.items):
+        return
+    _warmup["chrome"] = _Background("selenium-prelaunch-chrome", lambda: _launch_chrome(config))
+    _warmup["urls"] = _Background("selenium-warm-urlconf", _populate_url_resolver)
+
+
+def _take_prelaunched_chrome() -> webdriver.Chrome | None:
+    urls = _warmup.pop("urls", None)
+    if urls is not None:
+        try:
+            urls.join()
+        except Exception:
+            # The first request will import whatever is missing.
+            logger.warning("selenium.warm-urlconf.failed", exc_info=True)
+
+    chrome = _warmup.pop("chrome", None)
+    if chrome is None:
+        return None
+    try:
+        return chrome.join()
+    except Exception:
+        logger.warning("selenium.prelaunch-chrome.failed", exc_info=True)
+        return None
+
+
+def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
+    # A worker whose tests never use the browser still has to close the
+    # prelaunched Chrome.
+    driver = _take_prelaunched_chrome()
+    if driver is not None:
+        try:
+            driver.quit()
+        except Exception:
+            pass
+
+
 @pytest.fixture(scope="function")
 def browser(request, live_server):
     window_size = request.config.getoption("window_size")
     window_width, window_height = map(int, window_size.split("x", 1))
 
     driver_type = request.config.getoption("selenium_driver")
-    headless = not request.config.getoption("no_headless")
-    slow_network = request.config.getoption("slow_network")
+    driver: WebDriver
     if driver_type == "chrome":
-        options = webdriver.ChromeOptions()
-        options.add_argument("no-sandbox")
-        options.add_argument("disable-gpu")
-        options.add_argument("disable-dev-shm-usage")
-        options.add_argument(f"window-size={window_size}")
-        if headless:
-            options.add_argument("headless")
-        chrome_path = request.config.getoption("chrome_path")
-        if chrome_path:
-            options.binary_location = chrome_path
-        chromedriver_path = request.config.getoption("chromedriver_path")
-        chrome_args = {"options": options}
-        if chromedriver_path:
-            chrome_args["executable_path"] = chromedriver_path
-
-        driver = start_chrome(**chrome_args)
-        if slow_network:
-            driver.set_network_conditions(
-                offline=False,
-                latency=400 * 2,  # additional latency (ms)
-                throughput=500 * 1024,  # maximal throughput
-            )
+        driver = _take_prelaunched_chrome() or _launch_chrome(request.config)
     elif driver_type == "firefox":
         driver = webdriver.Firefox()
     else:

@@ -5,17 +5,16 @@ import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Tooltip} from '@sentry/scraps/tooltip';
-
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useSearchQueryBuilderConfig} from 'sentry/components/searchQueryBuilder/context';
 import {FilterKeyCombobox} from 'sentry/components/searchQueryBuilder/tokens/filter/filterKeyCombobox';
+import {FilterKeyDetailsTooltip} from 'sentry/components/searchQueryBuilder/tokens/filter/filterKeyDetailsTooltip';
 import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
-import type {
-  ParseResultToken,
+import {
   Token,
-  TokenResult,
+  type ParseResultToken,
+  type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyLabel, getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
@@ -30,8 +29,7 @@ type FilterKeyProps = {
 
 export function FilterKey({item, state, token, onActiveChange}: FilterKeyProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const {disabled, getFieldDefinition} = useSearchQueryBuilderConfig();
-  const fieldDefinition = getFieldDefinition(token.key.text);
+  const {disabled} = useSearchQueryBuilderConfig();
 
   const [isEditing, setIsEditing] = useState(false);
 
@@ -61,7 +59,12 @@ export function FilterKey({item, state, token, onActiveChange}: FilterKeyProps) 
   }
 
   return (
-    <Tooltip title={fieldDefinition?.desc} skipWrapper>
+    <FilterKeyDetailsTooltip
+      keyName={
+        token.key.type === Token.KEY_EXPLICIT_TAG ? token.key.text : getKeyName(token.key)
+      }
+      skipWrapper
+    >
       <KeyButton
         aria-label={t('Edit key for filter: %s', getKeyName(token.key))}
         onClick={() => {
@@ -75,7 +78,7 @@ export function FilterKey({item, state, token, onActiveChange}: FilterKeyProps) 
         {/* Filter keys have no expected format, so we attempt to split by whitespace, dash, colon, and underscores. */}
         {middleEllipsis(getKeyLabel(token.key), 40, /[\s-_:]/)}
       </KeyButton>
-    </Tooltip>
+    </FilterKeyDetailsTooltip>
   );
 }
 

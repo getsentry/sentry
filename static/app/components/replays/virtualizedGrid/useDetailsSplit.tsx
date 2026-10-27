@@ -58,6 +58,7 @@ export function useDetailsSplit({
   });
 
   const maxContainerHeight =
+    // oxlint-disable-next-line react/refs
     (containerRef.current?.clientHeight || window.innerHeight) - handleHeight;
   const splitSize =
     frames && detailIndex !== null

@@ -9,7 +9,10 @@ from typing import Any
 from sentry.hybridcloud.rpc.resolvers import ByOrganizationId
 from sentry.hybridcloud.rpc.service import RpcService, cell_rpc_method
 from sentry.integrations.services.repository import RpcRepository
-from sentry.integrations.services.repository.model import RpcCreateRepository
+from sentry.integrations.services.repository.model import (
+    RpcCreateRepository,
+    RpcRepointIntegrationResult,
+)
 from sentry.silo.base import SiloMode
 from sentry.users.services.user.model import RpcUser
 
@@ -72,8 +75,67 @@ class RepositoryService(RpcService):
 
     @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
+    def update_repository_config(
+        self,
+        *,
+        organization_id: int,
+        id: int,
+        config_updates: dict[str, Any],
+        config_deletions: list[str] | None = None,
+        expected_integration_id: int | None = None,
+        expected_config: dict[str, Any] | None = None,
+    ) -> bool:
+        """
+        Merges ``config_updates`` into the repository's current config and removes
+        ``config_deletions``, leaving every other field and config key untouched. Deletion
+        wins when a key appears in both arguments. Use this instead of
+        ``update_repository`` when a snapshot may have gone stale, e.g. across an external
+        API call.
+
+        Returns False without changing anything unless the repository is still active,
+        still belongs to ``expected_integration_id`` (when given), and its config still
+        holds each ``expected_config`` value (a None value expects the key to be unset).
+        """
+
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
     def update_repositories(self, *, organization_id: int, updates: list[RpcRepository]) -> None:
         pass
+
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def transfer_repository_to_integration(
+        self,
+        *,
+        organization_id: int,
+        update: RpcRepository,
+        organization_integration_id: int,
+    ) -> bool:
+        """
+        Applies ``update`` to the repository and moves its code mappings to
+        ``update.integration_id`` / ``organization_integration_id``, in one transaction.
+        Used when a repository moves between two integrations of the same organization,
+        e.g. a GitHub repo transferred between GitHub orgs.
+
+        Returns False without changing anything if the repository no longer exists or is
+        being deleted.
+        """
+
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def repoint_organization_integration_data(
+        self,
+        *,
+        organization_id: int,
+        old_integration_id: int,
+        new_integration_id: int,
+    ) -> RpcRepointIntegrationResult:
+        """
+        Moves an organization's cell-silo references from one integration to another.
+
+        The operation is atomic and safe to retry. It preserves the existing
+        organization integration referenced by code mappings.
+        """
 
     @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
@@ -138,10 +200,11 @@ class RepositoryService(RpcService):
         *,
         organization_id: int,
         integration_id: int,
+        force: bool = False,
     ) -> None:
         """
         Schedules a task to update all GitLab project webhooks for an integration.
-        This is used when sync settings change and webhooks need to be updated.
+        Settings saves are debounced; installations pass force to always repair hooks.
         """
 
     @cell_rpc_method(resolve=ByOrganizationId())

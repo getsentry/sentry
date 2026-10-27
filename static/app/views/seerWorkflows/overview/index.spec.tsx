@@ -18,8 +18,12 @@ import {
 import {useDrawer} from '@sentry/scraps/drawer';
 
 import {DiffFileType, DiffLineType} from 'sentry/components/events/autofix/types';
-import {setPageFiltersStorage} from 'sentry/components/pageFilters/persistence';
+import {
+  getPageFilterStorage,
+  setPageFiltersStorage,
+} from 'sentry/components/pageFilters/persistence';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
@@ -36,7 +40,7 @@ import {useOverviewSeerDrawer} from 'sentry/views/seerWorkflows/overview/useOver
 
 describe('AutofixOverview', () => {
   const organization = OrganizationFixture({
-    features: ['seer-night-shift-ui', 'gen-ai-features'],
+    features: ['seer-night-shift-ui'],
   });
   const basePath = `/organizations/${organization.slug}/issues/autofix/`;
 
@@ -234,6 +238,11 @@ describe('AutofixOverview', () => {
       url: `/organizations/${organization.slug}/users/`,
       body: [],
     });
+    // The project page filter fetches user teams to decide whether to show Create Project.
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/user-teams/`,
+      body: [],
+    });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/coding-agents/`,
       body: {integrations: []},
@@ -371,6 +380,10 @@ describe('AutofixOverview', () => {
   });
 
   describe('Seer drawer', () => {
+    beforeEach(() => {
+      ConfigStore.set('isSelfHosted', false);
+    });
+
     // Holds setup open so the drawer sits in its loading state and fires no
     // downstream content requests.
     function mockDrawerFor(groupId: string) {
@@ -426,7 +439,8 @@ describe('AutofixOverview', () => {
       expect(groupRequest).toHaveBeenCalled();
     });
 
-    it('stays closed and clears the param when the org lacks gen-ai access', async () => {
+    it('stays closed and clears the param when self-hosted', async () => {
+      ConfigStore.set('isSelfHosted', true);
       mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
       mockDrawerFor('2');
 
@@ -556,31 +570,67 @@ describe('AutofixOverview', () => {
     expect(statusPollRequest).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps a pinned time window through param navigation instead of resetting it', async () => {
-    PageFiltersStore.onInitializeUrlState(
-      PageFiltersFixture({datetime: {period: '30d', start: null, end: null, utc: null}})
-    );
-    setPageFiltersStorage(organization.slug, new Set(['datetime']));
-    ProjectsStore.reset();
+  it('keeps the page-local activity window through param navigation instead of resetting it', async () => {
     const {statusPollRequest} = mockOverview({
       base: {autofix_root_cause: [{...rootCauseRun, status: 'processing'}]},
     });
 
-    const {router} = renderPage();
-    act(() => ProjectsStore.loadInitialData([ProjectFixture()]));
+    const {router} = renderPage({activityStatsPeriod: '30d'});
 
     await screen.findByRole('tab', {name: /All Runs/});
-    await waitFor(() => expect(router.location.query.statsPeriod).toBe('30d'));
+    expect(
+      screen.getByRole('button', {name: 'Autofix Activity 30D'})
+    ).toBeInTheDocument();
     const requestsBeforeClick = statusPollRequest.mock.calls.length;
 
     await userEvent.click(screen.getByRole('tab', {name: /In Progress/}));
 
     expect(router.location.query.view).toBe('in_progress');
-    expect(router.location.query.statsPeriod).toBe('30d');
+    expect(router.location.query.activityStatsPeriod).toBe('30d');
     expect(
       screen.getByRole('button', {name: 'Autofix Activity 30D'})
     ).toBeInTheDocument();
     expect(statusPollRequest).toHaveBeenCalledTimes(requestsBeforeClick);
+  });
+
+  it('defaults to the last 7 days and ignores a globally pinned time window', async () => {
+    PageFiltersStore.onInitializeUrlState(
+      PageFiltersFixture({datetime: {period: '30d', start: null, end: null, utc: null}})
+    );
+    setPageFiltersStorage(organization.slug, new Set(['datetime']));
+    const {statusPollRequest} = mockOverview({
+      base: {autofix_root_cause: [rootCauseRun]},
+    });
+
+    renderPage();
+
+    expect(
+      await screen.findByRole('button', {name: 'Autofix Activity 7D'})
+    ).toBeInTheDocument();
+    expect(statusPollRequest).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/seer/autofix-overview/`,
+      expect.objectContaining({
+        query: expect.objectContaining({statsPeriod: '7d'}),
+      })
+    );
+  });
+
+  it('writes only the page-local param and leaves global page filters untouched', async () => {
+    mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
+
+    const {router} = renderPage();
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Autofix Activity 7D'})
+    );
+    await userEvent.click(await screen.findByRole('option', {name: 'Last 24 hours'}));
+
+    await waitFor(() => expect(router.location.query.activityStatsPeriod).toBe('24h'));
+    expect(router.location.query.statsPeriod).not.toBe('24h');
+    expect(PageFiltersStore.getState().selection.datetime.period).not.toBe('24h');
+    expect(getPageFilterStorage(organization.slug).pinnedFilters.has('datetime')).toBe(
+      false
+    );
   });
 
   it('shows an empty state on the In Progress tab when nothing is processing', async () => {
@@ -673,13 +723,9 @@ describe('AutofixOverview', () => {
   });
 
   it('keeps a stale 90-day selection valid on the trigger', async () => {
-    PageFiltersStore.onInitializeUrlState(
-      PageFiltersFixture({datetime: {period: '90d', start: null, end: null, utc: null}})
-    );
-    setPageFiltersStorage(organization.slug, new Set(['datetime']));
     mockOverview({base: {}});
 
-    renderPage();
+    renderPage({activityStatsPeriod: '90d'});
 
     expect(
       await screen.findByRole('button', {name: 'Autofix Activity 90D'})
@@ -806,20 +852,35 @@ describe('AutofixOverview', () => {
     expect(screen.getByText('5 users')).toBeInTheDocument();
   });
 
-  it('shows the cards when the issueStats call fails instead of blocking forever', async () => {
-    mockOverview({
-      base: {autofix_root_cause: [rootCauseRun]},
-      issueStatsStatusCode: 500,
+  describe('shows the cards when the issueStats call fails instead of blocking forever with fake timers', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
     });
 
-    renderPage();
+    afterEach(async () => {
+      try {
+        await act(() => jest.runOnlyPendingTimersAsync());
+      } finally {
+        jest.useRealTimers();
+      }
+    });
 
-    // A failed vitals call must not withhold the cards forever; once the query
-    // settles (after its one retry) the cards render. The timeout covers the
-    // issueStats retry backoff.
-    expect(
-      await screen.findByText('TypeError in checkout cart', undefined, {timeout: 5000})
-    ).toBeInTheDocument();
+    it('shows the cards when the issueStats call fails instead of blocking forever', async () => {
+      const {issueStatsRequest} = mockOverview({
+        base: {autofix_root_cause: [rootCauseRun]},
+        issueStatsStatusCode: 500,
+      });
+
+      renderPage();
+
+      await waitFor(() => expect(issueStatsRequest).toHaveBeenCalledTimes(1));
+      expect(screen.queryByText('TypeError in checkout cart')).not.toBeInTheDocument();
+      await act(() => jest.advanceTimersByTimeAsync(1000));
+      expect(await screen.findByText('TypeError in checkout cart')).toBeInTheDocument();
+      expect(screen.getByText('1.2K events')).toBeInTheDocument();
+      expect(screen.getByText('5 users')).toBeInTheDocument();
+      expect(issueStatsRequest).toHaveBeenCalledTimes(2);
+    });
   });
 
   it('fetches the vitals once for a stable run set, without looping', async () => {
@@ -877,7 +938,7 @@ describe('AutofixOverview', () => {
     );
   });
 
-  it('scopes the request to the selected time window', async () => {
+  it('scopes the request to the page-local activity window', async () => {
     const {statusPollRequest} = mockOverview({
       base: {autofix_root_cause: [rootCauseRun]},
     });
@@ -885,7 +946,7 @@ describe('AutofixOverview', () => {
     render(<AutofixOverview />, {
       organization,
       initialRouterConfig: {
-        location: {pathname: basePath, query: {statsPeriod: '7d'}},
+        location: {pathname: basePath, query: {activityStatsPeriod: '24h'}},
       },
     });
 
@@ -895,7 +956,39 @@ describe('AutofixOverview', () => {
     expect(statusPollRequest).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/seer/autofix-overview/`,
       expect.objectContaining({
-        query: expect.objectContaining({statsPeriod: '7d'}),
+        query: expect.objectContaining({statsPeriod: '24h'}),
+      })
+    );
+  });
+
+  it('scopes the request to an absolute page-local activity window', async () => {
+    const {statusPollRequest} = mockOverview({
+      base: {autofix_root_cause: [rootCauseRun]},
+    });
+
+    render(<AutofixOverview />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: basePath,
+          query: {
+            activityStart: '2026-07-01T00:00:00',
+            activityEnd: '2026-07-08T00:00:00',
+          },
+        },
+      },
+    });
+
+    expect(
+      await screen.findByRole('link', {name: 'TypeError in checkout cart'})
+    ).toBeInTheDocument();
+    expect(statusPollRequest).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/seer/autofix-overview/`,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          start: expect.stringContaining('2026-07-01T00:00:00'),
+          end: expect.stringContaining('2026-07-08T00:00:00'),
+        }),
       })
     );
   });
@@ -1274,14 +1367,12 @@ describe('AutofixOverview', () => {
       body: {runsByMilestone: emptyMilestones},
     });
 
-    renderPage();
+    const {router} = renderPage();
     expect(
       await screen.findByRole('link', {name: 'TypeError in checkout cart'})
     ).toBeInTheDocument();
 
-    act(() =>
-      PageFiltersStore.updateDateTime({period: '24h', start: null, end: null, utc: null})
-    );
+    router.navigate(`${basePath}?activityStatsPeriod=24h`);
 
     expect((await screen.findAllByTestId('loading-placeholder')).length).toBeGreaterThan(
       0
@@ -1685,7 +1776,7 @@ describe('AutofixOverview', () => {
     const fileToggle = await screen.findByRole('button', {
       name: /src\/sentry\/mystery\.py/,
     });
-    const fileRow = fileToggle.closest<HTMLElement>('[data-disclosure]')!;
+    const fileRow = fileToggle.closest<HTMLElement>('[data-test-id="changed-file-row"]')!;
 
     expect(within(fileRow).getByText('+4')).toBeInTheDocument();
     expect(within(fileRow).queryByTestId('tag-background')).not.toBeInTheDocument();
@@ -1848,48 +1939,49 @@ describe('AutofixOverview', () => {
     expect(screen.queryByText('No diff available.')).not.toBeInTheDocument();
   });
 
-  it('renders generated code changes for the Create PR step', async () => {
-    const codeChangesRun = {
-      ...rootCauseRun,
-      codeChanges: [
-        {
-          repoName: 'getsentry/sentry',
-          patch: {
-            path: 'src/sentry/foo.py',
-            source_file: 'src/sentry/foo.py',
-            target_file: 'src/sentry/foo.py',
-            type: DiffFileType.MODIFIED,
-            added: 1,
-            removed: 1,
-            hunks: [
-              {
-                source_start: 1,
-                source_length: 1,
-                target_start: 1,
-                target_length: 1,
-                section_header: '',
-                lines: [
-                  {
-                    line_type: DiffLineType.REMOVED,
-                    value: 'old',
-                    source_line_no: 1,
-                    target_line_no: null,
-                    diff_line_no: 1,
-                  },
-                  {
-                    line_type: DiffLineType.ADDED,
-                    value: 'new',
-                    source_line_no: null,
-                    target_line_no: 1,
-                    diff_line_no: 2,
-                  },
-                ],
-              },
-            ],
-          },
+  const codeChangesRun = {
+    ...rootCauseRun,
+    codeChanges: [
+      {
+        repoName: 'getsentry/sentry',
+        patch: {
+          path: 'src/sentry/foo.py',
+          source_file: 'src/sentry/foo.py',
+          target_file: 'src/sentry/foo.py',
+          type: DiffFileType.MODIFIED,
+          added: 1,
+          removed: 1,
+          hunks: [
+            {
+              source_start: 1,
+              source_length: 1,
+              target_start: 1,
+              target_length: 1,
+              section_header: '',
+              lines: [
+                {
+                  line_type: DiffLineType.REMOVED,
+                  value: 'old',
+                  source_line_no: 1,
+                  target_line_no: null,
+                  diff_line_no: 1,
+                },
+                {
+                  line_type: DiffLineType.ADDED,
+                  value: 'new',
+                  source_line_no: null,
+                  target_line_no: 1,
+                  diff_line_no: 2,
+                },
+              ],
+            },
+          ],
         },
-      ],
-    };
+      },
+    ],
+  };
+
+  it('renders generated code changes for the Create PR step', async () => {
     mockOverview({base: {autofix_code_changes: [codeChangesRun]}});
 
     renderPage();
@@ -1900,6 +1992,36 @@ describe('AutofixOverview', () => {
       await screen.findByRole('button', {name: /src\/sentry\/foo\.py/})
     );
     expect(await screen.findByText('new')).toBeInTheDocument();
+  });
+
+  it('shows an error instead of a stale diff when a later code changes turn errored', async () => {
+    mockOverview({
+      base: {autofix_code_changes: [{...codeChangesRun, status: 'error' as const}]},
+    });
+
+    renderPage();
+
+    expect(
+      await screen.findByText(
+        'Seer ran into an error on the latest attempt. Open Seer to retry.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByText('getsentry/sentry')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Draft PR'})).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Open Seer'})).toHaveAttribute(
+      'href',
+      expect.stringContaining('seerDrawer=2')
+    );
+  });
+
+  it('renders code changes for a completed run', async () => {
+    mockOverview({
+      base: {autofix_code_changes: [{...codeChangesRun, status: 'completed' as const}]},
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('getsentry/sentry')).toBeInTheDocument();
   });
 
   it('renders a Create PR step run whose code changes are absent', async () => {

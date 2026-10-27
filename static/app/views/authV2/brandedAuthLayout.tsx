@@ -1,18 +1,19 @@
-import {Outlet, useLocation} from 'react-router-dom';
-import {AnimatePresence} from 'framer-motion';
-
 import {BrandPageLayout} from 'sentry/components/brandPageLayout';
 
+import {AuthPageLayout} from './authPageLayout';
+import {useBrandedArtworkLoading} from './useBrandedArtworkLoading';
+
 export default function BrandedAuthLayout() {
-  const location = useLocation();
+  const isArtworkLoading = useBrandedArtworkLoading();
 
   return (
-    <BrandPageLayout>
-      <BrandPageLayout.Content>
-        <AnimatePresence initial={false} mode="wait">
-          <Outlet key={location.pathname} />
-        </AnimatePresence>
-      </BrandPageLayout.Content>
-    </BrandPageLayout>
+    <AuthPageLayout isArtworkLoading={isArtworkLoading}>
+      {({content, header, isLoading}) => (
+        <BrandPageLayout isArtworkActive={!isLoading}>
+          <BrandPageLayout.HeaderStart>{header}</BrandPageLayout.HeaderStart>
+          <BrandPageLayout.Content>{content}</BrandPageLayout.Content>
+        </BrandPageLayout>
+      )}
+    </AuthPageLayout>
   );
 }

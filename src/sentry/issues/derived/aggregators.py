@@ -30,11 +30,13 @@ from sentry.issues.action_log.types import (
 )
 from sentry.issues.derived.features import (
     BLOCKER,
+    FIRST_ASSIGNMENT_ACTION_ID,
     HAS_OPEN_FIX_PR,
     HAS_ROOT_CAUSE,
     IS_ASSIGNED,
     LAST_COMPLETED_AUTOFIX_STEP,
     LAST_PROGRESSED_AT,
+    NO_CHANGE_RECONCILE_IDS,
     PROGRESS,
     STATUS,
     VIEW_COUNT,
@@ -58,8 +60,11 @@ def track_views(state: StateView, entry: GroupActionLogEntry) -> AggregatorResul
     return emit(VIEW_COUNT.value(state[VIEW_COUNT] + 1))
 
 
+_MAX_NO_CHANGE_RECONCILE_IDS = 20
+
+
 @aggregator(
-    (STATUS,),
+    (STATUS, NO_CHANGE_RECONCILE_IDS),
     scope=(
         ResolveAction,
         SetResolvedInReleaseAction,
@@ -85,6 +90,10 @@ def track_status(state: StateView, entry: GroupActionLogEntry) -> AggregatorResu
             new_status = IssueStatus(raw_status)
             if new_status != current:
                 return emit(STATUS.value(new_status))
+            reconcile_ids = state[NO_CHANGE_RECONCILE_IDS]
+            if len(reconcile_ids) < _MAX_NO_CHANGE_RECONCILE_IDS:
+                return emit(NO_CHANGE_RECONCILE_IDS.value([*reconcile_ids, entry.id]))
+            return None
         case (
             ResolveAction()
             | SetResolvedInReleaseAction()
@@ -137,6 +146,14 @@ def track_assignment(state: StateView, entry: GroupActionLogEntry) -> Aggregator
     is_assigned = isinstance(entry.action, AssignAction)
     if is_assigned != state[IS_ASSIGNED]:
         return emit(IS_ASSIGNED.value(is_assigned))
+    return None
+
+
+@aggregator((FIRST_ASSIGNMENT_ACTION_ID,), scope=(AssignAction,))
+def track_first_assignment(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
+    """Record the first assignment in the issue's complete action-log history."""
+    if state[FIRST_ASSIGNMENT_ACTION_ID] is None:
+        return emit(FIRST_ASSIGNMENT_ACTION_ID.value(entry.id))
     return None
 
 
@@ -308,6 +325,7 @@ AGGREGATORS: list[Aggregator[GroupActionLogEntry]] = [
     track_views,
     track_status,
     track_assignment,
+    track_first_assignment,
     track_root_cause,
     track_open_fix_prs,
     track_progress,

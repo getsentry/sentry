@@ -2,19 +2,15 @@ from __future__ import annotations
 
 import logging
 import os
-import time
 from tempfile import NamedTemporaryFile
-from typing import IO, Any
+from typing import Any
 
 import orjson
-from objectstore_client import RequestError, Session
-from objectstore_client.multipart import CompletePart, MultipartUpload
-from urllib3.exceptions import HTTPError
 
 from sentry.models.organization import Organization
-from sentry.objectstore import UsecaseId, get_session
 from sentry.preprod.snapshots.manifest import SnapshotManifest
 from sentry.preprod.snapshots.models import PreprodSnapshotMetrics
+from sentry.preprod.snapshots.storage import SnapshotStorage, get_snapshot_storage
 from sentry.preprod.snapshots.zip_builder import (
     SnapshotZipBuildError,
     archive_exists,
@@ -23,14 +19,11 @@ from sentry.preprod.snapshots.zip_builder import (
 )
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import preprod_tasks
+from sentry.taskworker.namespaces import preprod_snapshots_tasks
 from sentry.users.services.user.service import user_service
 from sentry.utils.email import MessageBuilder
 
 logger = logging.getLogger(__name__)
-
-MULTIPART_PART_SIZE = 32 * 1024 * 1024
-MULTIPART_MAX_RETRIES = 3
 
 
 def _snapshot_page_url(organization: Organization, artifact_id: int) -> str:
@@ -66,50 +59,17 @@ def _send_archive_email(
     ).send_async([email])
 
 
-def _put_part_with_retry(upload: MultipartUpload, chunk: bytes, part_number: int) -> CompletePart:
-    for attempt in range(MULTIPART_MAX_RETRIES):
-        try:
-            return upload.put_part(chunk, part_number=part_number, content_length=len(chunk))
-        except (RequestError, HTTPError):
-            if attempt == MULTIPART_MAX_RETRIES - 1:
-                raise
-            time.sleep(2**attempt)
-    raise AssertionError("unreachable")
-
-
 def _archive_available(org_id: int, project_id: int, artifact_id: int) -> bool:
     try:
-        session = get_session(UsecaseId.PREPROD, project_id, org=org_id)
+        session = get_snapshot_storage(project_id, org=org_id)
         return archive_exists(session, archive_object_key(artifact_id))
     except Exception:
         return False
 
 
-def _upload_archive_multipart(session: Session, key: str, tmp: IO[bytes]) -> None:
-    upload = session.initiate_multipart_upload(
-        key=key, compression="none", content_type="application/zip"
-    )
-    try:
-        parts: list[CompletePart] = []
-        part_number = 1
-        while True:
-            chunk = tmp.read(MULTIPART_PART_SIZE)
-            if not chunk:
-                break
-            parts.append(_put_part_with_retry(upload, chunk, part_number))
-            part_number += 1
-        upload.complete(parts)
-    except Exception:
-        try:
-            upload.abort()
-        except (RequestError, HTTPError):
-            logger.warning("preprod_snapshot_zip.archive_abort_failed", extra={"key": key})
-        raise
-
-
 @instrumented_task(
     name="sentry.preprod.tasks.build_snapshot_images_zip",
-    namespace=preprod_tasks,
+    namespace=preprod_snapshots_tasks,
     silo_mode=SiloMode.CELL,
     processing_deadline_duration=900,
 )
@@ -155,7 +115,7 @@ def build_snapshot_images_zip(
         if not manifest_key:
             raise SnapshotZipBuildError(f"missing manifest_key for artifact {artifact_id}")
 
-        session = get_session(UsecaseId.PREPROD, project_id, org=org_id)
+        session = get_snapshot_storage(project_id, org=org_id)
         key = archive_object_key(artifact_id)
 
         # Snapshot images for a given artifact are immutable, so a stored archive
@@ -196,7 +156,17 @@ def build_snapshot_images_zip(
                         "archive_size_bytes": archive_size_bytes,
                     },
                 )
-                _upload_archive_multipart(session, key, tmp)
+                session.put(
+                    tmp,
+                    key=key,
+                    content_type="application/zip",
+                    # A `zip` is already compressed, so it would likely be not beneficial to compress it again.
+                    compress="none",
+                    # Force this `put` to use a resumable upload, overriding the default threshold.
+                    # This already incorporates retries with exponential backoffs and allows the client to retry
+                    # from the persisted offset when the upload fails midway through.
+                    resumable_threshold_bytes=0,
+                )
                 logger.info(
                     "preprod_snapshot_zip.upload_completed",
                     extra={
@@ -232,7 +202,7 @@ def build_snapshot_images_zip(
     _send_archive_email(organization, user_id, artifact_id, ready=True)
 
 
-def _load_manifest(session: Session, manifest_key: str) -> tuple[SnapshotManifest, bytes]:
+def _load_manifest(session: SnapshotStorage, manifest_key: str) -> tuple[SnapshotManifest, bytes]:
     """Return the validated manifest and its original objectstore payload bytes."""
     response = session.get(manifest_key)
     if response is None:

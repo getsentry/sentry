@@ -33,7 +33,14 @@ from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.types import ExternalProviders, IntegrationProviderSlug
+from sentry.integrations.types import (
+    ExternalProviders,
+    IntegrationIssueConfigField,
+    IntegrationProviderSlug,
+)
+from sentry.integrations.utils.external_issue_key import PROVIDER_ISSUE_ID_KEY
+from sentry.integrations.utils.issue_url import parse_issue_url
+from sentry.integrations.utils.jira import parse_jira_issue_key
 from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
@@ -605,6 +612,14 @@ class JiraServerIntegration(IssueSyncIntegration):
             output.extend(["", "{code}", body, "{code}"])
         return "\n".join(output)
 
+    def get_issue_link_data(self, url: str) -> dict[str, str]:
+        base_url = self.model.metadata["base_url"]
+        parse_issue_url(url)
+        key = parse_jira_issue_key(url, base_url)
+        if key is None:
+            raise IntegrationFormError({"externalIssue": "Invalid Jira issue URL"})
+        return {"externalIssue": key.upper()}
+
     def get_issue(self, issue_id, **kwargs):
         """
         Jira installation's implementation of IssueSyncIntegration's `get_issue`.
@@ -616,6 +631,8 @@ class JiraServerIntegration(IssueSyncIntegration):
             "key": issue_id,
             "title": fields.get("summary"),
             "description": fields.get("description"),
+            # Jira reassigns the key when an issue moves projects; the id never changes.
+            "metadata": {PROVIDER_ISSUE_ID_KEY: issue.get("id")},
         }
 
     def create_comment(self, issue_id, user_id, group_note):
@@ -824,7 +841,7 @@ class JiraServerIntegration(IssueSyncIntegration):
 
         client = self.get_client()
 
-        project_field = {
+        project_field: IntegrationIssueConfigField = {
             "name": "project",
             "label": "Jira Project",
             "choices": [(p["id"], p["key"]) for p in jira_projects],

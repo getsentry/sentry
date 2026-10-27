@@ -1,5 +1,6 @@
 import type {ReactNode} from 'react';
 import qs from 'query-string';
+import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {
   createTraceMetricFixtures,
@@ -169,36 +170,149 @@ describe('MetricPanel', () => {
     setupMocks(organization.slug);
   });
 
-  it('renders the metric panel', async () => {
+  it('renders the metric chart with its label and refreshed controls', async () => {
     render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
       organization,
       additionalWrapper: createWrapper({queryParams, traceMetric}),
     });
 
     expect(await screen.findByTestId('metric-panel')).toBeInTheDocument();
-  });
-
-  it('renders the visualize label badge', async () => {
-    render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
-      organization,
-      additionalWrapper: createWrapper({queryParams, traceMetric}),
-    });
-
-    // The visualize label badge "A" should be present
     expect(await screen.findByText('A')).toBeInTheDocument();
-  });
-
-  it('does not render orientation controls', async () => {
-    render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
-      organization,
-      additionalWrapper: createWrapper({queryParams, traceMetric}),
-    });
-
-    expect(await screen.findByTestId('metric-panel')).toBeInTheDocument();
-
-    // Orientation controls should NOT be present in the refreshed UI
+    expect(
+      screen.queryByRole('button', {name: 'Add Transformation'})
+    ).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Table bottom'})).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Table right'})).not.toBeInTheDocument();
+  });
+
+  it('counts each top-N group once across transformation pipelines', async () => {
+    setupEventsMock(
+      createTraceMetricFixtures(organization, project, new Date()).detailedFixtures,
+      [MockApiClient.matchQuery({referrer: 'api.explore.metric-options'})]
+    );
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
+      body: {
+        timeSeries: [
+          {group: 'api', sampleCounts: [5, 10]},
+          {group: 'worker', sampleCounts: [10, 20]},
+          {group: null, sampleCounts: [100, 100]},
+        ].flatMap(({group, sampleCounts}) =>
+          sampleCounts.map(sampleCount =>
+            TimeSeriesFixture({
+              yAxis: 'sum(value)',
+              groupBy: group ? [{key: 'service.name', value: group}] : null,
+              meta: {
+                valueType: 'integer',
+                valueUnit: null,
+                interval: 1000,
+                isOther: group === null,
+              },
+              values: [{timestamp: Date.now(), value: 5, sampleCount, sampleRate: 1}],
+            })
+          )
+        ),
+      },
+    });
+    render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
+      organization: {
+        ...organization,
+        features: [...organization.features, 'explore-interpolation-and-smoothing'],
+      },
+      additionalWrapper: createWrapper({
+        traceMetric,
+        queryParams: queryParams.replace({
+          aggregateFields: [
+            new VisualizeFunction('sum(value)'),
+            new VisualizeFunction('sum(value)', {transformations: ['smooth(sma,5)']}),
+            {groupBy: 'service.name'},
+          ],
+        }),
+      }),
+    });
+
+    await waitFor(() =>
+      expect(screen.getByTestId('metric-panel')).toHaveTextContent(
+        '30 data points for top 2 groups'
+      )
+    );
+  });
+
+  it.each([
+    new VisualizeEquation('equation|1 + 2'),
+    new VisualizeFunction('count(value,bar,distribution,none)', {
+      chartType: ChartType.HEATMAP,
+    }),
+  ])(
+    'keeps the chart visible without transformation controls for $kind $chartType',
+    async visualize => {
+      render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
+        organization: {
+          ...organization,
+          features: [...organization.features, 'explore-interpolation-and-smoothing'],
+        },
+        additionalWrapper: createWrapper({
+          queryParams: queryParams.replace({aggregateFields: [visualize]}),
+          traceMetric,
+        }),
+      });
+
+      expect(await screen.findByTestId('metric-panel')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-panel-chart-type-select')).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Add Transformation'})
+      ).not.toBeInTheDocument();
+    }
+  );
+
+  describe('dropped data layer', () => {
+    function mockDroppedData() {
+      return MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-dropped/`,
+        method: 'GET',
+        match: [
+          MockApiClient.matchQuery({referrer: 'api.explore.dropped-data-annotations'}),
+        ],
+        body: {
+          meta: {dataset: 'tracemetrics', start: 0, end: 0, interval: 0},
+          droppedEvents: [OutcomeRowFixture()],
+          acceptedEvents: [],
+        },
+      });
+    }
+
+    it('shows the Layers control when metrics were dropped', async () => {
+      mockDroppedData();
+      setupEventsMock(
+        createTraceMetricFixtures(organization, project, new Date()).detailedFixtures,
+        [MockApiClient.matchQuery({referrer: 'api.explore.metric-options'})]
+      );
+
+      render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
+        organization: {
+          ...organization,
+          features: [...organization.features, 'explore-data-fidelity-annotations'],
+        },
+        additionalWrapper: createWrapper({queryParams, traceMetric}),
+      });
+
+      expect(await screen.findByLabelText('Chart layers')).toBeInTheDocument();
+    });
+
+    it('hides the Layers control without the feature flag', async () => {
+      const droppedDataMock = mockDroppedData();
+
+      render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
+        organization,
+        additionalWrapper: createWrapper({queryParams, traceMetric}),
+      });
+
+      expect(
+        await screen.findByTestId('metric-panel-chart-type-select')
+      ).toBeInTheDocument();
+      expect(droppedDataMock).not.toHaveBeenCalled();
+      expect(screen.queryByLabelText('Chart layers')).not.toBeInTheDocument();
+    });
   });
 
   it('uses the internal expression as the chart title for equations', async () => {
@@ -519,16 +633,16 @@ describe('MetricPanel', () => {
     });
     const traceMetaMock = MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/${organization.slug}/events-trace-meta/${row.trace}/`,
+      url: `/organizations/${organization.slug}/trace-meta/${row.trace}/`,
       match: [MockApiClient.matchData({timestamp})],
       body: {
-        errors: 1,
-        performance_issues: 0,
-        projects: 1,
-        transactions: 1,
-        transaction_child_count_map: [],
-        span_count: 2,
-        span_count_map: {},
+        errorsCount: 1,
+        logsCount: 0,
+        metricsCount: 0,
+        performanceIssuesCount: 0,
+        spansCount: 2,
+        spansCountMap: {},
+        uptimeCount: 0,
       },
     });
 
@@ -551,6 +665,99 @@ describe('MetricPanel', () => {
     ).toBeInTheDocument();
   });
 
+  it.each(['metricsPage', 'traceWaterfall', 'issueDetails'] as const)(
+    'forwards the samples response hint in %s',
+    async source => {
+      const {detailedFixtures} = createTraceMetricFixtures(
+        organization,
+        project,
+        new Date()
+      );
+      const row = detailedFixtures[0]!;
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+        match: [MockApiClient.matchQuery({referrer: 'api.explore.metric-samples-table'})],
+        body: {
+          data: [row],
+          meta: {fields: {}, units: {}, routingHint: 'metric-hint'},
+        },
+      });
+      const details = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/trace-items/${row.id}/`,
+        body: {
+          itemId: row.id,
+          meta: {},
+          timestamp: row.timestamp,
+          attributes: [{name: 'custom.attribute', type: 'str', value: 'sample detail'}],
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/trace-meta/${row.trace}/`,
+        body: {errorsCount: 0, logsCount: 0, metricsCount: 1, spansCount: 0},
+      });
+
+      render(<MetricsSamplesTable source={source} traceMetric={traceMetric} />, {
+        organization,
+        additionalWrapper: createWrapper({queryParams, traceMetric}),
+      });
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Toggle trace details'})
+      );
+      expect(await screen.findByText('sample detail')).toBeInTheDocument();
+      expect(details.mock.calls[0]![1].query).toMatchObject({
+        item_type: 'tracemetrics',
+        timestamp: new Date(row.timestamp).getTime() / 1000,
+        routing_hint: 'metric-hint',
+      });
+    }
+  );
+
+  it.each([undefined, 'override-hint'])(
+    'uses only the override rows hint (%s), even when another samples query has metadata',
+    async routingHint => {
+      const {detailedFixtures} = createTraceMetricFixtures(
+        organization,
+        project,
+        new Date()
+      );
+      const row = detailedFixtures[0]!;
+      const events = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+        match: [MockApiClient.matchQuery({referrer: 'api.explore.metric-samples-table'})],
+        body: {data: [row], meta: {fields: {}, units: {}, routingHint: 'unrelated-hint'}},
+      });
+      const details = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/trace-items/${row.id}/`,
+        body: {
+          itemId: row.id,
+          meta: {},
+          timestamp: row.timestamp,
+          attributes: [{name: 'custom.attribute', type: 'str', value: 'override detail'}],
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/trace-meta/${row.trace}/`,
+        body: {errorsCount: 0, logsCount: 0, metricsCount: 1, spansCount: 0},
+      });
+      render(
+        <MetricsSamplesTable
+          traceMetric={traceMetric}
+          overrideTableData={[row]}
+          overrideTableRoutingHint={routingHint}
+        />,
+        {organization, additionalWrapper: createWrapper({queryParams, traceMetric})}
+      );
+      await waitFor(() => expect(events).toHaveBeenCalled());
+      await userEvent.click(screen.getByRole('button', {name: 'Toggle trace details'}));
+      expect(await screen.findByText('override detail')).toBeInTheDocument();
+      if (routingHint) {
+        expect(details.mock.calls[0]![1].query.routing_hint).toBe(routingHint);
+      } else {
+        expect(details.mock.calls[0]![1].query).not.toHaveProperty('routing_hint');
+      }
+    }
+  );
+
   it('shows an error state when expanded sample trace meta fails to load', async () => {
     const metricFixtures = createTraceMetricFixtures(
       organization,
@@ -561,7 +768,7 @@ describe('MetricPanel', () => {
     const timestamp = new Date(row.timestamp).getTime() / 1000;
     const traceMetaMock = MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/${organization.slug}/events-trace-meta/${row.trace}/`,
+      url: `/organizations/${organization.slug}/trace-meta/${row.trace}/`,
       match: [MockApiClient.matchData({timestamp})],
       statusCode: 500,
       body: {detail: 'Internal Server Error'},

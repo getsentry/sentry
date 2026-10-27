@@ -79,12 +79,6 @@ export function Filter({
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  const hasTranslateEndpoint = organization.features.includes(
-    'gen-ai-search-agent-translate'
-  );
-  const hasMetricsAISearch = organization.features.includes(
-    'gen-ai-explore-metrics-search'
-  );
   const supportsArrays = organization.features.includes('trace-item-array-query-support');
 
   const traceMetricFilter = createTraceMetricFilter(traceMetric);
@@ -209,6 +203,7 @@ export function Filter({
 
       if (item.valid) {
         if (item.attrType === 'boolean') {
+          // oxlint-disable-next-line react/todo
           localBooleanTags[item.name] ??= {
             key: item.name,
             name: prettifyAttributeName(item.name),
@@ -217,6 +212,7 @@ export function Filter({
         }
 
         if (item.attrType === 'number') {
+          // oxlint-disable-next-line react/todo
           localNumberTags[item.name] ??= {
             key: item.name,
             name: prettifyAttributeName(item.name),
@@ -225,6 +221,7 @@ export function Filter({
         }
 
         if (item.attrType === 'string') {
+          // oxlint-disable-next-line react/todo
           localStringTags[item.name] ??= {
             key: item.name,
             name: prettifyAttributeName(item.name),
@@ -233,6 +230,7 @@ export function Filter({
         }
 
         if (supportsArrays && item.attrType === 'array') {
+          // oxlint-disable-next-line react/todo
           localArrayTags[item.name] ??= {
             key: item.name,
             name: prettifyAttributeName(item.name),
@@ -318,7 +316,7 @@ export function Filter({
       // This prevents race conditions when navigating between different metrics
       key={traceMetric.name}
       {...searchQueryBuilderProviderProps}
-      enableAISearch={hasTranslateEndpoint && hasMetricsAISearch}
+      enableAISearch
     >
       <MetricsSearchBar
         tracesItemSearchQueryBuilderProps={tracesItemSearchQueryBuilderProps}

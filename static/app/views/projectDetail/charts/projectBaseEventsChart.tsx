@@ -2,12 +2,13 @@ import {Component} from 'react';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
+import {InfoTip} from '@sentry/scraps/info';
+
 import {fetchTotalCount} from 'sentry/actionCreators/events';
 import type {EventsChartProps} from 'sentry/components/charts/eventsChart';
 import {EventsChart} from 'sentry/components/charts/eventsChart';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import type {PageFilters, PageFilterDatetime} from 'sentry/types/core';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
@@ -106,7 +107,7 @@ class ProjectBaseEventsChart extends Component<Props> {
           chartHeader={
             <HeaderTitleLegend>
               {title}
-              {help && <QuestionTooltip size="sm" position="top" title={help} />}
+              {help && <InfoTip size="sm" position="top" title={help} />}
             </HeaderTitleLegend>
           }
           legendOptions={{right: 10, top: 0}}

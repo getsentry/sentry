@@ -17,6 +17,7 @@ components.LoadingMessage.defaultProps = undefined;
 // @ts-expect-error remove default props for react 19
 components.LoadingIndicator.defaultProps = undefined;
 
+// oxlint-disable-next-line react/function-component-definition -- This typed wrapper must remain a named function expression.
 const ReactSelectWrapper = function ReactSelectWrapperComponent({ref, ...props}: any) {
   // Reapply default props to the component
   return (

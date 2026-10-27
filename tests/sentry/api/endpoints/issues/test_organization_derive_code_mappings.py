@@ -320,6 +320,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
         assert response.status_code == 201, response.content
         assert response.data == {
             "automaticallyGenerated": False,
+            "hasCodeOwner": False,
             "id": str(response.data["id"]),
             "projectId": str(self.project.id),
             "projectSlug": self.project.slug,

@@ -8,6 +8,7 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
@@ -96,10 +97,9 @@ describe('UpsellProvider', () => {
     });
 
     await userEvent.click(screen.getByTestId('test-render'));
-    await tick();
 
+    await waitFor(() => expect(handleTrialStarted).toHaveBeenCalled());
     expect(startTrialMock).toHaveBeenCalled();
-    expect(handleTrialStarted).toHaveBeenCalled();
   });
 
   it('with billing scope redirect to sub page', async () => {
@@ -163,6 +163,7 @@ describe('UpsellProvider', () => {
 
     await userEvent.click(screen.getByTestId('test-render'));
     expect(requestTrialMock).toHaveBeenCalled();
+    expect(await screen.findByText('Request Sent')).toBeInTheDocument();
   });
 
   it('request plan upgrade with triggerMemberRequests', async () => {
@@ -186,6 +187,7 @@ describe('UpsellProvider', () => {
     expect(screen.getByText('Request Upgrade')).toBeInTheDocument();
     await userEvent.click(screen.getByTestId('test-render'));
     expect(requestTrialMock).toHaveBeenCalled();
+    expect(await screen.findByText('Request Sent')).toBeInTheDocument();
   });
 
   it('opens modal with showConfirmation', async () => {
@@ -219,9 +221,8 @@ describe('UpsellProvider', () => {
       }
     );
     await userEvent.click(screen.getByTestId('test-render'));
-    await tick();
 
-    expect(screen.getByTestId('confirm-content')).toBeInTheDocument();
+    expect(await screen.findByTestId('confirm-content')).toBeInTheDocument();
     expect(handleTrialStarted).not.toHaveBeenCalled();
     expect(startTrialMock).not.toHaveBeenCalled();
 

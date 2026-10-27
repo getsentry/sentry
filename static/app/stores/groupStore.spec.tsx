@@ -2,8 +2,9 @@ import {ActorFixture} from 'sentry-fixture/actor';
 import {GroupFixture} from 'sentry-fixture/group';
 import {ProjectFixture} from 'sentry-fixture/project';
 
+import {toast} from '@sentry/scraps/toast';
+
 import {GroupStore} from 'sentry/stores/groupStore';
-import {IndicatorStore} from 'sentry/stores/indicatorStore';
 import type {TimeseriesValue} from 'sentry/types/core';
 import type {Group, GroupStats} from 'sentry/types/group';
 
@@ -230,30 +231,30 @@ describe('GroupStore', () => {
       });
 
       it('should show generic message when itemIds is undefined', () => {
-        const addMessageSpy = jest.spyOn(IndicatorStore, 'addMessage');
+        const successToastSpy = jest.spyOn(toast, 'success');
         GroupStore.onDeleteSuccess('1337', undefined, {});
 
-        expect(addMessageSpy).toHaveBeenCalledWith('Deleted selected issues', 'success', {
+        expect(successToastSpy).toHaveBeenCalledWith('Deleted selected issues', {
           duration: 4000,
         });
       });
 
       it('should show specific count when itemIds is provided', () => {
-        const addMessageSpy = jest.spyOn(IndicatorStore, 'addMessage');
+        const successToastSpy = jest.spyOn(toast, 'success');
         GroupStore.onDeleteSuccess('1337', ['1', '2'], {});
 
-        expect(addMessageSpy).toHaveBeenCalledWith('Deleted 2 Issues', 'success', {
+        expect(successToastSpy).toHaveBeenCalledWith('Deleted 2 Issues', {
           duration: 4000,
         });
       });
 
       it('should show shortId for single issue deletion', () => {
-        const addMessageSpy = jest.spyOn(IndicatorStore, 'addMessage');
+        const successToastSpy = jest.spyOn(toast, 'success');
         const mockGroup = g('1', {shortId: 'ABC-123'});
         jest.spyOn(GroupStore, 'get').mockReturnValue(mockGroup);
         GroupStore.onDeleteSuccess('1337', ['1'], {});
 
-        expect(addMessageSpy).toHaveBeenCalledWith('Deleted ABC-123', 'success', {
+        expect(successToastSpy).toHaveBeenCalledWith('Deleted ABC-123', {
           duration: 4000,
         });
       });

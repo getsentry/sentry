@@ -1,4 +1,4 @@
-import type {ComponentProps} from 'react';
+import {useMemo, type ComponentProps} from 'react';
 import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
 import {EventFixture} from 'sentry-fixture/event';
 import {EventEntryStacktraceFixture} from 'sentry-fixture/eventEntryStacktrace';
@@ -85,10 +85,10 @@ function TestStackTraceProvider({
   );
 }
 
-function renderStackTrace() {
-  const {event, stacktrace} = makeStackTraceData();
+function ExampleStackTrace() {
+  const {event, stacktrace} = useMemo(() => makeStackTraceData(), []);
 
-  render(
+  return (
     <TestStackTraceProvider event={event} stacktrace={stacktrace}>
       <DisplayOptions />
       <StackTraceFrames frameContextComponent={FrameContent} />
@@ -97,6 +97,7 @@ function renderStackTrace() {
 }
 
 describe('Core StackTrace', () => {
+  const longFilename = `/source/${'long directory with spaces/'.repeat(10)}runner.py`;
   beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/prompts-activity/',
@@ -116,7 +117,7 @@ describe('Core StackTrace', () => {
   });
 
   it('switches between app and full stack views', async () => {
-    renderStackTrace();
+    render(<ExampleStackTrace />);
 
     expect(screen.getAllByTestId('core-stacktrace-frame-row')).toHaveLength(4);
 
@@ -127,7 +128,7 @@ describe('Core StackTrace', () => {
   });
 
   it('toggles frame ordering', async () => {
-    renderStackTrace();
+    render(<ExampleStackTrace />);
 
     expect(screen.getAllByTestId('core-stacktrace-frame-title')[0]).toHaveTextContent(
       'raven/scripts/runner.py'
@@ -142,7 +143,7 @@ describe('Core StackTrace', () => {
   });
 
   it('supports raw stack trace view', async () => {
-    renderStackTrace();
+    render(<ExampleStackTrace />);
 
     await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
     await userEvent.click(await screen.findByRole('option', {name: 'Raw Stack Trace'}));
@@ -192,7 +193,7 @@ describe('Core StackTrace', () => {
   });
 
   it('toggles frame expansion', async () => {
-    renderStackTrace();
+    render(<ExampleStackTrace />);
 
     expect(screen.getByTestId('core-stacktrace-frame-context')).toBeInTheDocument();
 
@@ -217,7 +218,7 @@ describe('Core StackTrace', () => {
   });
 
   it('toggles frame expansion when clicking the right trailing area', async () => {
-    renderStackTrace();
+    render(<ExampleStackTrace />);
 
     const firstTrailingArea = screen.getAllByTestId('core-stacktrace-frame-trailing')[0]!;
 
@@ -248,7 +249,7 @@ describe('Core StackTrace', () => {
   });
 
   it('shows and hides collapsed system frames', async () => {
-    renderStackTrace();
+    render(<ExampleStackTrace />);
 
     const toggleButton = screen.getByRole('button', {name: 'Show 1 more frame'});
 
@@ -259,14 +260,18 @@ describe('Core StackTrace', () => {
   });
 
   it('renders frame badges for in-app frames only', async () => {
-    renderStackTrace();
+    render(<ExampleStackTrace />);
 
     expect((await screen.findAllByText('In App')).length).toBeGreaterThan(0);
     expect(screen.queryByText('System')).not.toBeInTheDocument();
   });
 
-  it('renders captured python frame variables', async () => {
-    renderStackTrace();
+  it('renders captured frame variables through the tree', async () => {
+    render(<ExampleStackTrace />, {
+      organization: OrganizationFixture({
+        features: ['native-variable-extraction'],
+      }),
+    });
 
     expect(await screen.findByText('args')).toBeInTheDocument();
     expect(screen.getByText('dsn')).toBeInTheDocument();
@@ -374,7 +379,7 @@ describe('Core StackTrace', () => {
   });
 
   it('renders lead hint when non-app frame leads to app frame', async () => {
-    renderStackTrace();
+    render(<ExampleStackTrace />);
 
     expect(await screen.findByText('Called from:')).toBeInTheDocument();
   });
@@ -582,36 +587,48 @@ describe('Core StackTrace', () => {
     );
   });
 
-  it('shows a tooltip with absPath when hovering filename', async () => {
-    jest.useFakeTimers();
-    const {event, stacktrace} = makeStackTraceData();
-    const frameWithAbsolutePath = {
-      ...stacktrace.frames[stacktrace.frames.length - 1]!,
+  it.each([
+    {
       filename: 'raven/scripts/runner.py',
       absPath: '/home/ubuntu/raven/scripts/runner.py',
-      inApp: false,
-    };
+    },
+    {filename: longFilename, absPath: longFilename},
+    {filename: longFilename, absPath: null},
+  ])(
+    'shows the full path in the filename tooltip (case %#)',
+    async ({filename, absPath}) => {
+      jest.useFakeTimers();
+      const {event, stacktrace} = makeStackTraceData();
 
-    render(
-      <TestStackTraceProvider
-        event={event}
-        stacktrace={{
-          ...stacktrace,
-          frames: [frameWithAbsolutePath],
-        }}
-      >
-        <DisplayOptions />
-        <StackTraceFrames frameContextComponent={FrameContent} />
-      </TestStackTraceProvider>
-    );
+      render(
+        <TestStackTraceProvider
+          event={event}
+          stacktrace={{
+            ...stacktrace,
+            frames: [
+              {
+                ...stacktrace.frames[stacktrace.frames.length - 1]!,
+                filename,
+                absPath,
+                inApp: false,
+              },
+            ],
+          }}
+        >
+          <DisplayOptions />
+          <StackTraceFrames frameContextComponent={FrameContent} />
+        </TestStackTraceProvider>
+      );
 
-    await userEvent.hover(screen.getByText('raven/scripts/runner.py'), {delay: null});
-    act(() => jest.advanceTimersByTime(2000));
-    expect(
-      await screen.findByText('/home/ubuntu/raven/scripts/runner.py')
-    ).toBeInTheDocument();
-    jest.useRealTimers();
-  });
+      await userEvent.hover(screen.getByText(filename), {delay: null});
+      act(() => jest.advanceTimersByTime(2000));
+
+      expect(
+        await screen.findByText(absPath ?? filename, {selector: '[data-tooltip] span'})
+      ).toBeVisible();
+      jest.useRealTimers();
+    }
+  );
 
   it('shows copy path and code mapping setup actions on hover for collapsed frames', async () => {
     const {event, stacktrace} = makeStackTraceData();

@@ -7,7 +7,7 @@ import {PlatformIcon} from 'platformicons';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
-import {Grid} from '@sentry/scraps/layout';
+import {Grid, Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -15,18 +15,17 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openConsoleModal} from 'sentry/actionCreators/modal';
 import {Access} from 'sentry/components/acl/access';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {captureProjectCreationFailure} from 'sentry/components/onboarding/captureProjectCreationFailure';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {ProjectCreationErrorAlert} from 'sentry/components/onboarding/projectCreationErrorAlert';
 import {useCreateProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
+import type {CreatedProjectWorkflow} from 'sentry/components/onboarding/useCreateProjectWorkflow';
 import {PlatformPicker, type Platform} from 'sentry/components/platformPicker';
 import {TeamSelector} from 'sentry/components/teamSelector';
 import {categoryList} from 'sentry/data/platformPickerCategories';
 import {t, tct} from 'sentry/locale';
-import type {IssueAlertRule} from 'sentry/types/alerts';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -43,11 +42,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
-import {
-  MultipleCheckboxOptions,
-  useCreateNotificationAction,
-  type IntegrationChannel,
-} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useCreateNotificationAction} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import type {
   AlertRuleOptions,
   RequestDataFragment,
@@ -57,6 +53,10 @@ import {
   IssueAlertOptions,
   RuleAction,
 } from 'sentry/views/projectInstall/issueAlertOptions';
+import {
+  MultipleCheckboxOptions,
+  type IntegrationChannel,
+} from 'sentry/views/projectInstall/messagingIntegrationTypes';
 import {useProjectCreationPageOrigin} from 'sentry/views/projectInstall/projectCreationOrigin';
 import {validateChannelQueryOptions} from 'sentry/views/projectInstall/useValidateChannel';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
@@ -71,7 +71,7 @@ type FormData = {
 type CreatedProject = Pick<Project, 'name' | 'id'> & {
   platform: OnboardingSelectedSDK;
   alertRule?: Partial<AlertRuleOptions>;
-  notificationRule?: IssueAlertRule;
+  notificationRule?: CreatedProjectWorkflow;
   team?: string;
   wasNameManuallyModified?: boolean;
 };
@@ -161,14 +161,14 @@ export function CreateProject() {
     return referrer === 'getting-started' && projectId === createdProject?.id;
   }, [referrer, projectId, createdProject?.id]);
 
-  const createNotificationActionParam = useMemo(() => {
+  const notificationActionParam = useMemo(() => {
     return autoFill && createdProject?.notificationRule?.actions
       ? {actions: createdProject.notificationRule.actions}
       : undefined;
-  }, [autoFill, createdProject?.notificationRule?.actions]);
+  }, [autoFill, createdProject]);
 
-  const {createNotificationAction, notificationProps} = useCreateNotificationAction(
-    createNotificationActionParam
+  const {getIntegrationAction, notificationProps} = useCreateNotificationAction(
+    notificationActionParam
   );
 
   const validateChannel = useQuery({
@@ -218,6 +218,7 @@ export function CreateProject() {
   useEffect(() => {
     if (autoFill && createdProject?.name) {
       hasUserModifiedProjectName.current = createdProject.wasNameManuallyModified ?? true;
+      // oxlint-disable-next-line react/set-state-in-effect
       setFormData(prev => ({
         ...prev,
         projectName: createdProject.name ?? prev.projectName,
@@ -314,13 +315,13 @@ export function CreateProject() {
       });
 
       try {
-        const {project, notificationRule, ruleIds} =
+        const {project, notificationRule, workflowIds} =
           await createProjectAndRules.mutateAsync({
             projectName,
             platform: selectedPlatform,
             team,
             alertRuleConfig,
-            createNotificationAction,
+            getIntegrationAction,
           });
 
         trackAnalytics('project_creation_page.created', {
@@ -332,7 +333,7 @@ export function CreateProject() {
               : 'No Rule',
           project_id: project.id,
           platform: selectedPlatform.key,
-          rule_ids: ruleIds,
+          workflow_ids: workflowIds,
           notification_rule_created: !!notificationRule,
           variant: 'legacy',
         });
@@ -386,7 +387,7 @@ export function CreateProject() {
       setCreatedProject,
       navigate,
       createProjectAndRules,
-      createNotificationAction,
+      getIntegrationAction,
       alertRuleConfig,
       accessTeams,
     ]
@@ -411,6 +412,7 @@ export function CreateProject() {
       }
 
       const {FrameworkSuggestionModal, modalCss} =
+        // oxlint-disable-next-line react/todo
         await import('sentry/components/onboarding/frameworkSuggestionModal');
 
       openModal(
@@ -444,6 +446,7 @@ export function CreateProject() {
   );
 
   const debounceHandleProjectCreation = useMemo(
+    // oxlint-disable-next-line react/refs
     () => debounce(handleProjectCreation, 2000, {leading: true, trailing: false}),
     [handleProjectCreation]
   );
@@ -492,7 +495,9 @@ export function CreateProject() {
 
   // Workaround to force PlatformPicker to re-render when users go back in the flow and fields should be pre-filled.
   // Without this, the selected platform might not be visible depending on the active tab.
+  // oxlint-disable-next-line react/refs
   if (autoFill && platform && pickerKeyRef.current === 'create-project') {
+    // oxlint-disable-next-line react/refs
     pickerKeyRef.current = 'auto-fill';
   }
 
@@ -500,7 +505,10 @@ export function CreateProject() {
     <Access access={canUserCreateProject ? ['project:read'] : ['project:admin']}>
       <div data-test-id="onboarding-info">
         <List symbol="colored-numeric">
-          <Layout.Title>{t('Create a new project in 3 steps')}</Layout.Title>
+          <TopBar.Slot
+            name="breadcrumbs"
+            title={{type: 'page-title', label: t('Create a new project in 3 steps')}}
+          />
           <HelpText>
             {tct(
               'Set up a separate project for each part of your application (for example, your API server and frontend client), to quickly pinpoint which part of your application errors are coming from. [link: Read the docs].',
@@ -513,6 +521,7 @@ export function CreateProject() {
           </HelpText>
           <StyledListItem>{t('Choose your platform')}</StyledListItem>
           <PlatformPicker
+            // oxlint-disable-next-line react/refs
             key={pickerKeyRef.current}
             platform={platform}
             defaultCategory={defaultCategory}
@@ -574,7 +583,7 @@ export function CreateProject() {
           >
             <div>
               <FormLabel>{t('Project slug')}</FormLabel>
-              <ProjectNameInputWrap>
+              <Container position="relative">
                 <StyledPlatformIcon
                   platform={formData.platform?.key ?? 'other'}
                   size={20}
@@ -593,12 +602,12 @@ export function CreateProject() {
                     updateFormData('projectName', slugified);
                   }}
                 />
-              </ProjectNameInputWrap>
+              </Container>
             </div>
             {!isOrgMemberWithNoAccess && (
               <div>
                 <FormLabel>{t('Team')}</FormLabel>
-                <TeamSelectInput>
+                <Grid align="center" gap="md" columns="1fr min-content">
                   <TeamSelector
                     allowCreate
                     name="team"
@@ -612,7 +621,7 @@ export function CreateProject() {
                       updateFormData('team', value);
                     }}
                   />
-                </TeamSelectInput>
+                </Grid>
               </div>
             )}
             <div>
@@ -670,10 +679,6 @@ const FormLabel = styled('div')`
   margin-bottom: ${p => p.theme.space.md};
 `;
 
-const ProjectNameInputWrap = styled('div')`
-  position: relative;
-`;
-
 const ProjectNameInput = styled(Input)`
   padding-left: calc(${p => p.theme.form.md.paddingLeft}px * 1.5 + 20px);
 `;
@@ -683,13 +688,6 @@ const StyledPlatformIcon = styled(PlatformIcon)`
   top: 50%;
   left: ${p => p.theme.form.md.paddingLeft}px;
   transform: translateY(-50%);
-`;
-
-const TeamSelectInput = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space.md};
-  grid-template-columns: 1fr min-content;
-  align-items: center;
 `;
 
 const HelpText = styled('p')`

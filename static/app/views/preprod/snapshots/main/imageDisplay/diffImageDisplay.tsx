@@ -10,7 +10,10 @@ import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {t} from 'sentry/locale';
 import {computeMaskSize} from 'sentry/views/preprod/snapshots/main/computeMaskSize';
 import {DiffOverlay} from 'sentry/views/preprod/snapshots/main/diffOverlay';
-import {getSnapshotImageUrl} from 'sentry/views/preprod/types/snapshotTypes';
+import {
+  getSnapshotImageUrl,
+  getSnapshotImageUrlForKey,
+} from 'sentry/views/preprod/types/snapshotTypes';
 import type {SnapshotDiffPair} from 'sentry/views/preprod/types/snapshotTypes';
 
 import {useBufferedImageGroup} from './useBufferedImageUrl';
@@ -51,7 +54,7 @@ export function DiffImageDisplay({
   const baseImageUrl = getSnapshotImageUrl(imageBaseUrl, pair.base_image);
   const headImageUrl = getSnapshotImageUrl(imageBaseUrl, pair.head_image);
   const diffMaskUrl = pair.diff_image_key
-    ? `${diffImageBaseUrl}${pair.diff_image_key}/`
+    ? getSnapshotImageUrlForKey(diffImageBaseUrl, pair.diff_image_key)
     : null;
 
   const maskSize = computeMaskSize(pair.base_image, pair.head_image);
@@ -132,6 +135,7 @@ function SplitView({
               align="center"
               width="100%"
               height="100%"
+              // oxlint-disable-next-line react/refs
               style={zoomTransformStyle(zoom1.transform)}
             >
               {displayBaseUrl && (
@@ -158,6 +162,7 @@ function SplitView({
               align="center"
               width="100%"
               height="100%"
+              // oxlint-disable-next-line react/refs
               style={zoomTransformStyle(zoom2.transform)}
             >
               {displayHeadUrl && (
@@ -292,6 +297,7 @@ function OnionView({
         </Text>
         <Flex width="200px">
           <Slider
+            aria-label={t('Head image opacity')}
             value={opacity}
             onChange={onOpacityChange}
             formatOptions={{style: 'unit', unit: 'percent'}}

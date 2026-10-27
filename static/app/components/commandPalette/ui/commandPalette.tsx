@@ -6,6 +6,14 @@ import {ListKeyboardDelegate, useSelectableCollection} from '@react-aria/selecti
 import {mergeProps} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
 import {useTreeState} from '@react-stately/tree';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconClose} from '@sentry/icons/close';
+import {IconLink} from '@sentry/icons/link';
+import {IconMegaphone} from '@sentry/icons/megaphone';
+import {IconOpen} from '@sentry/icons/open';
+import {IconSearch} from '@sentry/icons/search';
+import {IconSeer} from '@sentry/icons/seer';
+import {IconDefaultsProvider} from '@sentry/icons/useIconDefaults';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import {useIsFetching} from '@tanstack/react-query';
 import {animate, AnimatePresence, motion} from 'framer-motion';
@@ -18,9 +26,9 @@ import {Hotkey} from '@sentry/scraps/hotkey';
 import {Image} from '@sentry/scraps/image';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {InnerWrap} from '@sentry/scraps/menuListItem';
-import type {MenuListItemProps} from '@sentry/scraps/menuListItem';
+import type {ListItemProps} from '@sentry/scraps/menu';
 import {Text} from '@sentry/scraps/text';
+import type {Theme} from '@sentry/scraps/theme';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {CMDKActionData} from 'sentry/components/commandPalette/ui/cmdk';
@@ -38,19 +46,8 @@ import {useCommandPaletteAnalytics} from 'sentry/components/commandPalette/useCo
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import {
-  IconArrow,
-  IconClose,
-  IconLink,
-  IconMegaphone,
-  IconOpen,
-  IconSearch,
-  IconSeer,
-} from 'sentry/icons';
-import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
 import {fzf} from 'sentry/utils/search/fzf';
-import type {Theme} from 'sentry/utils/theme';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -79,7 +76,7 @@ function makeLeadingItemAnimation(theme: Theme, instant = false) {
   };
 }
 
-type CommandPaletteActionMenuItem = MenuListItemProps & {
+type CommandPaletteActionMenuItem = ListItemProps & {
   children: CommandPaletteActionMenuItem[];
   key: string;
   hideCheck?: boolean;
@@ -114,6 +111,9 @@ export function CommandPalette({
 
   const getDocEl = useCallback(
     () => state.input.current?.closest('[role="document"]') as HTMLElement | null,
+    // The dependency is the ref object while React Compiler infers the `.current`
+    // read inside the callback. Refs are stable, so the memoization already holds.
+    // oxlint-disable-next-line react/preserve-manual-memoization
     [state.input]
   );
 
@@ -253,11 +253,13 @@ export function CommandPalette({
   const isSeerFallback =
     state.list === 'active' ? computedIsSeerFallback : frozenRef.current.isSeerFallback;
 
+  // oxlint-disable-next-line react/refs
   const analytics = useCommandPaletteAnalytics(isSeerFallback ? 0 : actions.length);
   const mouseLeftResultsRef = useRef(false);
 
   const sectionKeys = useMemo(() => {
     return new Set(
+      // oxlint-disable-next-line react/refs
       actions
         .filter(action => action.listItemType === 'section')
         .map(action => action.key)
@@ -266,6 +268,7 @@ export function CommandPalette({
 
   const treeState = useTreeState<CommandPaletteActionMenuItem>({
     disabledKeys: sectionKeys,
+    // oxlint-disable-next-line react/refs
     children: actions.map(action => {
       const menuItem = makeMenuItemFromAction(action, prefixMap);
 
@@ -352,6 +355,7 @@ export function CommandPalette({
     if (firstFocusableKey) {
       treeState.selectionManager.setFocusedKey(firstFocusableKey.key);
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [treeState.collection, treeState.selectionManager, firstFocusableKey]);
 
   const resultsListRef = useRef<HTMLDivElement>(null);
@@ -363,6 +367,7 @@ export function CommandPalette({
         disabledKeys: treeState.selectionManager.disabledKeys,
         ref: resultsListRef,
       }),
+    // oxlint-disable-next-line react/memo-dependencies
     [treeState.collection, treeState.selectionManager.disabledKeys]
   );
 
@@ -383,6 +388,7 @@ export function CommandPalette({
     ...collectionProps,
     onKeyDown: undefined,
   };
+  // oxlint-disable-next-line react/refs
   const inputCollectionProps = mergeProps(mergedCollectionProps, {
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
       dispatch({type: 'set query', query: e.target.value});
@@ -539,6 +545,7 @@ export function CommandPalette({
   // cleanup runs at exactly the right time. If the user re-opens the palette
   // before the animation ends, the component stays mounted and nothing fires.
   const pendingResetRef = useRef(state.pendingReset);
+  // oxlint-disable-next-line react/refs
   pendingResetRef.current = state.pendingReset;
   useEffect(() => {
     return () => {
@@ -1276,12 +1283,12 @@ const ResultsList = styled(Flex)`
     margin: 0;
   }
 
-  ${InnerWrap} {
+  [data-menu-item-content] {
     padding-top: ${p => p.theme.space.sm};
     padding-bottom: ${p => p.theme.space.sm};
   }
 
-  li[data-focused] > ${InnerWrap} {
+  li[data-focused] > [data-menu-item-content] {
     outline: 2px solid ${p => p.theme.tokens.focus.default};
   }
 `;

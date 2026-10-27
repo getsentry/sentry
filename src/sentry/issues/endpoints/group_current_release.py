@@ -1,5 +1,6 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import traces
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -13,7 +14,6 @@ from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releases.release_project import ReleaseProject
-from sentry.utils.tracing import set_span_data, start_span
 
 
 @cell_silo_endpoint
@@ -73,21 +73,21 @@ class GroupCurrentReleaseEndpoint(GroupEndpoint):
 
         environments = get_environments(request, group.project.organization)
 
-        with start_span(
-            op="CurrentReleaseEndpoint.get.current_release",
+        with traces.start_span(
             name="CurrentReleaseEndpoint.get.current_release",
-        ) as span:
-            set_span_data(span, "Environment Count", len(environments))
-            set_span_data(
-                span,
-                "Raw Parameters",
-                {
-                    "group.id": group.id,
-                    "group.project_id": group.project_id,
-                    "group.project.organization_id": group.project.organization_id,
-                    "environments": [{"id": e.id, "name": e.name} for e in environments],
-                },
-            )
+            attributes={
+                "sentry.op": "CurrentReleaseEndpoint.get.current_release",
+                "Environment Count": len(environments),
+                "Raw Parameters": repr(
+                    {
+                        "group.id": group.id,
+                        "group.project_id": group.project_id,
+                        "group.project.organization_id": group.project.organization_id,
+                        "environments": [{"id": e.id, "name": e.name} for e in environments],
+                    }
+                ),
+            },
+        ):
             current_release = self._get_current_release(group, environments)
 
         data = {

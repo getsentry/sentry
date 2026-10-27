@@ -5,7 +5,7 @@ from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.base import to_use_case_id
-from sentry.sentry_metrics.use_case_id_registry import METRIC_PATH_MAPPING, UseCaseID
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 
 #: Special integer used to represent a string missing from the indexer
 STRING_NOT_FOUND = -1
@@ -58,7 +58,7 @@ def bulk_reverse_resolve_tag_value(
     which is either itself (in case of string keys) or the reverse_resolved string (in case of positive integers)
 
     Example:
-        bulk_reverse_resolve_tag_value( UseCaseKey:PERFORMANCE, 1, [ -1, 0, 1, "some-string", "abc", 7, 33333])
+        bulk_reverse_resolve_tag_value(UseCaseID.SESSIONS, 1, [-1, 0, 1, "some-string", "abc", 7, 33333])
     would return something like this ( presuming that no string was found for 33333 )
     {
         1: "tag-a",
@@ -141,19 +141,11 @@ def resolve(
 def resolve_tag_key(use_case_id: UseCaseID | UseCaseKey, org_id: int, string: str) -> str:
     use_case_id = to_use_case_id(use_case_id)
     resolved = resolve(use_case_id, org_id, string)
-    assert isinstance(use_case_id, UseCaseID)
-    if METRIC_PATH_MAPPING[use_case_id] is UseCaseKey.PERFORMANCE:
-        return f"tags_raw[{resolved}]"
-    else:
-        return f"tags[{resolved}]"
+    return f"tags[{resolved}]"
 
 
 def resolve_tag_value(use_case_id: UseCaseID | UseCaseKey, org_id: int, string: str) -> str | int:
-    use_case_id = to_use_case_id(use_case_id)
     assert isinstance(string, str)
-    assert isinstance(use_case_id, UseCaseID)
-    if METRIC_PATH_MAPPING[use_case_id] is UseCaseKey.PERFORMANCE:
-        return string
     return resolve_weak(use_case_id, org_id, string)
 
 

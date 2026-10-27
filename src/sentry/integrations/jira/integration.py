@@ -7,7 +7,6 @@ from collections.abc import Mapping, Sequence
 from operator import attrgetter
 from typing import Any, NamedTuple, NoReturn, TypedDict
 
-import orjson
 import sentry_sdk
 from django.conf import settings
 from django.core.signing import BadSignature, SignatureExpired
@@ -23,6 +22,7 @@ from rest_framework.fields import CharField
 
 from sentry import features
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
+from sentry.constants import ObjectStatus
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -43,7 +43,10 @@ from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.types import IntegrationIssueConfigField, IntegrationProviderSlug
+from sentry.integrations.utils.external_issue_key import PROVIDER_ISSUE_ID_KEY
+from sentry.integrations.utils.issue_url import parse_issue_url
+from sentry.integrations.utils.jira import parse_jira_issue_key
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
@@ -856,6 +859,14 @@ class JiraIntegration(IssueSyncIntegration):
     def _get_debug_metadata_keys(self) -> list[str]:
         return ["base_url", "domain_name"]
 
+    def get_issue_link_data(self, url: str) -> dict[str, str]:
+        base_url = self.model.metadata["base_url"]
+        parse_issue_url(url)
+        key = parse_jira_issue_key(url, base_url)
+        if key is None:
+            raise IntegrationFormError({"externalIssue": "Invalid Jira issue URL"})
+        return {"externalIssue": key.upper()}
+
     def get_issue(self, issue_id, **kwargs):
         """
         Jira installation's implementation of IssueSyncIntegration's `get_issue`.
@@ -871,6 +882,8 @@ class JiraIntegration(IssueSyncIntegration):
             "key": issue_id,
             "title": fields.get("summary"),
             "description": fields.get("description"),
+            # Jira reassigns the key when an issue moves projects; the id never changes.
+            "metadata": {PROVIDER_ISSUE_ID_KEY: issue.get("id")},
         }
 
     def create_comment(self, issue_id, user_id, group_note):
@@ -1190,7 +1203,7 @@ class JiraIntegration(IssueSyncIntegration):
             if not any(c for c in issue_type_choices if c[0] == issue_type):
                 issue_type = issue_type_meta["id"]
 
-        projects_form_field = {
+        projects_form_field: IntegrationIssueConfigField = {
             "name": "project",
             "label": "Jira Project",
             "choices": [(p["id"], f"{p['key']} - {p['name']}") for p in jira_projects],
@@ -1456,6 +1469,8 @@ class JiraIntegration(IssueSyncIntegration):
             "integration_id": external_issue.integration_id,
             "is_resolved": is_resolved,
             "issue_key": external_issue.key,
+            "jira_project_id": jira_project["id"],
+            "jira_project_key": jira_project.get("key"),
         }
         if not external_project:
             logger.info("jira.external-project-not-found", extra=log_context)
@@ -1523,12 +1538,12 @@ INSTALL_EXPIRATION_TIME = 60 * 60 * 24
 
 
 class JiraInstallParams(TypedDict):
-    """Decoded contents of the `signed_params` blob from a Marketplace install.
+    """Install params resolved from the `signed_params` blob of a Marketplace install.
 
-    The Jira UI hook (`JiraSentryInstallationView`) signs the integration's
-    `external_id` plus a JSON-encoded `metadata` payload into the configure
-    link. We decode `metadata` back into a dict here so it can be bound to
-    pipeline state and consumed by `build_integration`.
+    The Jira UI hook (`JiraSentryInstallationView`) signs only the integration's
+    `external_id` into the configure link. `metadata` is loaded from the
+    integration record the `installed` webhook already created, so it can be
+    bound to pipeline state and consumed by `build_integration`.
     """
 
     external_id: str
@@ -1538,9 +1553,10 @@ class JiraInstallParams(TypedDict):
 class JiraInitialDataSerializer(CamelSnakeSerializer):
     """Initial pipeline data for Jira Cloud Marketplace installs.
 
-    The configure link carries a single `signed_params` blob. We unsign it and
-    bind `external_id` and the decoded `metadata` dict to top-level pipeline
-    state so the confirmation step and `build_integration` can read them.
+    The configure link carries a single `signed_params` blob. We unsign it,
+    look up the integration by `external_id`, and bind `external_id` and the
+    stored `metadata` to top-level pipeline state so the confirmation step and
+    `build_integration` can read them.
     """
 
     signed_params = CharField(required=True)
@@ -1553,9 +1569,19 @@ class JiraInitialDataSerializer(CamelSnakeSerializer):
         except BadSignature:
             raise serializers.ValidationError("Invalid installation link")
 
+        # Links minted before this change also carry `metadata`; ignore it so
+        # the stored record stays the only source for it.
+        integration = integration_service.get_integration(
+            provider=IntegrationProviderSlug.JIRA.value,
+            external_id=decoded["external_id"],
+            status=ObjectStatus.ACTIVE,
+        )
+        if integration is None:
+            raise serializers.ValidationError("Invalid installation link")
+
         return {
-            "external_id": decoded["external_id"],
-            "metadata": orjson.loads(decoded["metadata"]),
+            "external_id": integration.external_id,
+            "metadata": dict(integration.metadata),
         }
 
 

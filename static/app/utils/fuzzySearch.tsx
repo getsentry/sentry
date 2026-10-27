@@ -12,7 +12,7 @@ const DEFAULT_FUSE_OPTIONS: IFuseOptions<any> = {
   minMatchCharLength: 2,
 };
 
-export async function createFuzzySearch<T = string>(
+async function createFuzzySearch<T = string>(
   objects: T[],
   options: IFuseOptions<T>
 ): Promise<Fuse<T>> {

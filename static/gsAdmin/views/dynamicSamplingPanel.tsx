@@ -1,5 +1,7 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconOpen} from '@sentry/icons/open';
 import isEmpty from 'lodash/isEmpty';
 import startCase from 'lodash/startCase';
 
@@ -18,15 +20,13 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {SearchInput} from 'sentry/components/resultGrid';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconArrow, IconOpen} from 'sentry/icons';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
-
-import {SearchInput} from 'admin/components/resultGrid';
 
 type Props = {
   organization?: Organization;
@@ -235,6 +235,7 @@ export function DynamicSamplingPanel({projectId, organization}: Props) {
       }
     }
 
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
     fetchProjectConfig();
   }, [projectId, api, regionHost]);
 
@@ -412,11 +413,8 @@ function DynamicSamplingRulesTable({
             </SimpleTable.RowCell>
             <SimpleTable.RowCell>{row.formattedRateType}</SimpleTable.RowCell>
             <SimpleTable.RowCell justify="end" paddingRight="3xl" gap="md">
-              <Tooltip isHoverable title={row.samplingValue.value}>
-                {row.formattedRateValue}
-              </Tooltip>
+              <Tooltip title={row.samplingValue.value}>{row.formattedRateValue}</Tooltip>
               <Tooltip
-                isHoverable
                 title={`This rule ${
                   row.impact > 0 ? 'increases' : 'decreases'
                 } sample rate of matching events`}
@@ -449,11 +447,9 @@ const PanelHeaderRight = styled('div')`
 `;
 
 const BaseSampleRateWrapper = styled(Alert)`
-  padding: ${p => p.theme.space.md};
   margin-right: ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.md};
   font-weight: 600;
-  width: max-content;
   flex-basis: 50%;
 `;
 

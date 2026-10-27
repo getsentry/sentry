@@ -1,4 +1,12 @@
-import {useCallback, useEffect, useMemo, useReducer, useRef, useState} from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
@@ -56,6 +64,22 @@ function scrollToTop(top: number, containers: MaybeContainers) {
   });
 }
 
+// Rows in a table scroll container start below its border and header, not at its top.
+function getRowIndexAtClientY(
+  container: HTMLElement,
+  clientY: number,
+  scrollTop: number,
+  rowHeight: number
+) {
+  const rowsTop =
+    container instanceof HTMLTableElement
+      ? container.clientTop + (container.tHead?.offsetHeight ?? 0)
+      : 0;
+  return Math.floor(
+    (scrollTop + clientY - container.getBoundingClientRect().top - rowsTop) / rowHeight
+  );
+}
+
 function addListenerToContainer(
   container: MaybeContainers,
   type: string,
@@ -101,7 +125,7 @@ export interface UseVirtualizedTreeProps<T extends TreeLike> {
   expanded?: boolean;
   initialSelectedNodeIndex?: number;
   onScrollToNode?: (
-    node: VirtualizedTreeRenderedRow<T>,
+    node: VirtualizedTreeRenderedRow<T> | undefined,
     scrollContainer: MaybeContainers,
     coordinates?: {depth: number; top: number}
   ) => void;
@@ -122,6 +146,11 @@ export function useVirtualizedTree<T extends TreeLike>(
   const theme = useTheme();
   const clickedGhostRowRef = useRef<HTMLDivElement | null>(null);
   const hoveredGhostRowRef = useRef<HTMLDivElement | null>(null);
+  const pendingScrollRef = useRef<{
+    depth: number;
+    index: number;
+    scrollTop: number;
+  } | null>(null);
 
   const [state, dispatch] = useReducer(VirtualizedTreeReducer, {
     scrollTop: 0,
@@ -160,11 +189,23 @@ export function useVirtualizedTree<T extends TreeLike>(
 
   // Keep a ref to latest state to avoid re-rendering
   const latestStateRef = useRef(state);
+  // oxlint-disable-next-line react/refs
   latestStateRef.current = state;
   const latestTreeRef = useRef(tree);
+  // oxlint-disable-next-line react/refs
   latestTreeRef.current = tree;
   const latestItemsRef = useRef(items);
+  // oxlint-disable-next-line react/refs
   latestItemsRef.current = items;
+
+  useEffect(() => {
+    markRowAsClicked(state.selectedNodeIndex, items, {
+      ghostRowRef: clickedGhostRowRef.current,
+      rowHeight: props.rowHeight,
+      scrollTop: state.scrollTop,
+      theme,
+    });
+  }, [items, props.rowHeight, state.scrollTop, state.selectedNodeIndex, theme]);
 
   // On scroll, we update scrollTop position.
   // Keep a rafId reference in the unlikely event where component unmounts before raf is executed.
@@ -293,7 +334,7 @@ export function useVirtualizedTree<T extends TreeLike>(
           {
             ghostRowRef: clickedGhostRowRef.current,
             rowHeight: props.rowHeight,
-            scrollTop: latestStateRef.current.scrollTop,
+            scrollTop,
             theme,
           }
         );
@@ -360,9 +401,11 @@ export function useVirtualizedTree<T extends TreeLike>(
         return;
       }
 
-      const rect = (evt.target as HTMLDivElement).getBoundingClientRect();
-      const index = Math.floor(
-        (latestStateRef.current.scrollTop + evt.clientY - rect.top) / props.rowHeight
+      const index = getRowIndexAtClientY(
+        evt.target as HTMLElement,
+        evt.clientY,
+        latestStateRef.current.scrollTop,
+        props.rowHeight
       );
 
       // If a node exists at the index, select it
@@ -387,9 +430,11 @@ export function useVirtualizedTree<T extends TreeLike>(
         return;
       }
 
-      const rect = (evt.target as HTMLDivElement).getBoundingClientRect();
-      const index = Math.floor(
-        (latestStateRef.current.scrollTop + evt.clientY - rect.top) / props.rowHeight
+      const index = getRowIndexAtClientY(
+        evt.target as HTMLElement,
+        evt.clientY,
+        latestStateRef.current.scrollTop,
+        props.rowHeight
       );
 
       const element = latestItemsRef.current.find(item => item.key === index);
@@ -479,10 +524,11 @@ export function useVirtualizedTree<T extends TreeLike>(
       // When we expand nodes, tree.expand will mutate the underlying tree which then
       // gets copied to the new tree instance. To get the right index, we need to read
       // it before any mutations are made
-      const previousNode = latestStateRef.current.selectedNodeIndex
-        ? (latestTreeRef.current.flattened[latestStateRef.current.selectedNodeIndex] ??
-          null)
-        : null;
+      const previousNode =
+        latestStateRef.current.selectedNodeIndex === null
+          ? null
+          : (latestTreeRef.current.flattened[latestStateRef.current.selectedNodeIndex] ??
+            null);
 
       latestTreeRef.current.expandNode(node, expand, opts);
       const newTree = new VirtualizedTree(
@@ -515,10 +561,11 @@ export function useVirtualizedTree<T extends TreeLike>(
       // When we sort nodes, tree.sort will mutate the underlying tree which then
       // gets copied to the new tree instance. To get the right index, we need to read
       // it before any mutations are made
-      const previousNode = latestStateRef.current.selectedNodeIndex
-        ? (latestTreeRef.current.flattened[latestStateRef.current.selectedNodeIndex] ??
-          null)
-        : null;
+      const previousNode =
+        latestStateRef.current.selectedNodeIndex === null
+          ? null
+          : (latestTreeRef.current.flattened[latestStateRef.current.selectedNodeIndex] ??
+            null);
 
       latestTreeRef.current.sort(sortFn);
       const newTree = new VirtualizedTree(
@@ -751,67 +798,52 @@ export function useVirtualizedTree<T extends TreeLike>(
       markRowAsClicked(newlyVisibleIndex, latestItemsRef.current, {
         ghostRowRef: clickedGhostRowRef.current,
         rowHeight: props.rowHeight,
-        scrollTop: latestStateRef.current.scrollTop,
+        scrollTop: newScrollTop,
         theme,
       });
 
-      const newMaxHeight = newTree.flattened.length * props.rowHeight;
-
-      // When a new view is larger than the previous view, we need to update the scroll height
-      // synchronously so that the view can be scrolled to its new position. If we don't do this,
-      // then the scrollTo(newScrollTop) will be clamped to the previous scroll height.
-      if (Array.isArray(props.scrollContainer)) {
-        props.scrollContainer.forEach(container => {
-          const firstChild = container?.childNodes?.[0] as HTMLElement | undefined;
-          if (!firstChild) {
-            return;
-          }
-
-          firstChild.style.height = `${newMaxHeight}px`;
-          firstChild.style.maxHeight = `${newMaxHeight}px`;
-        });
-      } else {
-        if (props.scrollContainer?.childNodes[0]) {
-          // Not exactly sure why we need the cast here, maybe we should limit HTMLElement to HTMLDivElement.
-          // https://stackoverflow.com/questions/58773652/ts2339-property-style-does-not-exist-on-type-element
-          const firstChild = props.scrollContainer?.childNodes?.[0] as
-            | HTMLElement
-            | undefined;
-
-          if (!firstChild) {
-            return;
-          }
-          firstChild.style.height = `${newMaxHeight}px`;
-          firstChild.style.maxHeight = `${newMaxHeight}px`;
-        }
-      }
-
-      if (Array.isArray(props.scrollContainer)) {
-        props.scrollContainer.forEach(container => {
-          container.scrollTo({
-            top: newScrollTop,
-          });
-        });
-      } else {
-        props.scrollContainer.scrollTo({
-          top: newScrollTop,
-        });
-      }
-
-      if (onScrollToNode) {
-        onScrollToNode(
-          latestItemsRef.current[newlyVisibleIndex]!,
-          props.scrollContainer,
-          {
-            top: newScrollTop,
-            depth: node.depth,
-          }
-        );
-      }
+      // A view larger than the previous one has to render before it can be
+      // scrolled to its new position, or the scroll is clamped to the previous
+      // scroll height, so the scroll waits for the next commit.
+      pendingScrollRef.current = {
+        depth: node.depth,
+        index: newlyVisibleIndex,
+        scrollTop: newScrollTop,
+      };
     },
 
-    [props.rowHeight, onScrollToNode, props.scrollContainer, theme]
+    [props.rowHeight, props.scrollContainer, theme]
   );
+
+  useLayoutEffect(() => {
+    const pendingScroll = pendingScrollRef.current;
+    if (!pendingScroll || !props.scrollContainer) {
+      return;
+    }
+
+    pendingScrollRef.current = null;
+
+    if (Array.isArray(props.scrollContainer)) {
+      props.scrollContainer.forEach(container => {
+        container.scrollTo({
+          top: pendingScroll.scrollTop,
+        });
+      });
+    } else {
+      props.scrollContainer.scrollTo({
+        top: pendingScroll.scrollTop,
+      });
+    }
+
+    onScrollToNode?.(
+      latestItemsRef.current.find(item => item.key === pendingScroll.index),
+      props.scrollContainer,
+      {
+        top: pendingScroll.scrollTop,
+        depth: pendingScroll.depth,
+      }
+    );
+  });
 
   // Basic required styles for the scroll container
   const scrollContainerStyles: React.CSSProperties = useMemo(() => {
@@ -841,8 +873,10 @@ export function useVirtualizedTree<T extends TreeLike>(
     // It is important that we do not create a copy of item
     // because refs will assign the dom node to the item.
     // If we map, we get a new object that our internals will not be able to access.
+    // oxlint-disable-next-line react/refs
     for (const item of latestItemsRef.current) {
       renderered.push(
+        // oxlint-disable-next-line react/refs
         renderRow(item, {
           handleRowClick: handleRowClick(item.key),
           handleExpandTreeNode,
@@ -898,6 +932,7 @@ export function useVirtualizedTree<T extends TreeLike>(
       }
       resizeObserver.disconnect();
     };
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [props.scrollContainer, props.rowHeight]);
 
   const getNodeAtIndex = useCallback((index: number) => {

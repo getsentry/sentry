@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import type {Query} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Pagination} from '@sentry/scraps/pagination';
 
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import type {ReplayTableColumn} from 'sentry/components/replays/table/replayTableColumns';
 import {ReplayTableHeader} from 'sentry/components/replays/table/replayTableHeader';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -26,10 +26,10 @@ type SortProps =
 
 type Props = SortProps & {
   columns: readonly ReplayTableColumn[];
-  error: Error | null | undefined;
   isPending: boolean;
   replays: ReplayListRecord[];
   showDropdownFilters: boolean;
+  error?: Error | null;
   highlightedRowIndex?: number;
   pageLinks?: string | null;
   query?: Query;

@@ -59,14 +59,6 @@ kafka_topics:
       application: sentry
       taskname: sentry.snuba.query_subscriptions.run.process_metrics_subscription_from_kafka
       processing_deadline_duration: 60
-  generic-metrics-subscription-results:
-    cluster: default
-    consumer_group: sentry-consumer
-    raw:
-      namespace: snuba.subscriptions.generic_metrics.raw
-      application: sentry
-      taskname: sentry.snuba.query_subscriptions.run.process_generic_metrics_subscription_from_kafka
-      processing_deadline_duration: 60
   subscription-results-eap-items:
     cluster: default
     consumer_group: sentry-consumer

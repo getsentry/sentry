@@ -1,0 +1,69 @@
+{
+  "platform": "native",
+  "exception": {
+    "values": [
+      {
+        "type": "EXC_BAD_ACCESS",
+        "value": "Attempted to dereference null pointer.",
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "__libc_init",
+              "package": "/apex/com.android.runtime/lib64/bionic/libc.so"
+            },
+            {
+              "function": "android_main",
+              "package": "/data/app/~~kR3n9QvPzXw==/com.mystudio.spacegame-8fJq2wLmTd==/lib/arm64/libgame.so"
+            },
+            {
+              "function": "UnityPlayerLoop",
+              "package": "/data/app/~~kR3n9QvPzXw==/com.mystudio.spacegame-8fJq2wLmTd==/lib/arm64/libunity.so"
+            },
+            {
+              "function": "ScriptingInvocation::Invoke",
+              "package": "/data/app/~~kR3n9QvPzXw==/com.mystudio.spacegame-8fJq2wLmTd==/lib/arm64/libunity.so"
+            },
+            {
+              "function": "RuntimeInvoker_TrueVoid_t22962CB4C05B1D89B55A6E1139F0E87A90987017",
+              "package": "/data/app/~~kR3n9QvPzXw==/com.mystudio.spacegame-8fJq2wLmTd==/lib/arm64/libil2cpp.so",
+              "abs_path": "/Users/builder/Projects/SpaceGame/Library/Bee/artifacts/AndroidPlayerBuildProgram/il2cppOutput/cpp/Il2CppInvokerTable.cpp"
+            },
+            {
+              "function": "EnemySpawner_Update_m9C8B7A6F5E4D3C2B1A09F8E7D6C5B4A398765432",
+              "package": "/data/app/~~kR3n9QvPzXw==/com.mystudio.spacegame-8fJq2wLmTd==/lib/arm64/libil2cpp.so",
+              "abs_path": "/Users/builder/Projects/SpaceGame/Assets/Scripts/EnemySpawner.cs"
+            },
+            {
+              "function": "CombatSystem_ApplyDamage_m2D5F8A1B4C7E0D3F6A9B2C5E8F1A4D7B0C3E6F9A",
+              "package": "/data/app/~~kR3n9QvPzXw==/com.mystudio.spacegame-8fJq2wLmTd==/lib/arm64/libil2cpp.so",
+              "abs_path": "/Users/builder/Projects/SpaceGame/Packages/com.mystudio.combat/Runtime/CombatSystem.cs"
+            },
+            {
+              "function": "TMP_Text_SetText_mE5F60718293A4B5C6D7E8F901234567890ABCDEF",
+              "package": "/data/app/~~kR3n9QvPzXw==/com.mystudio.spacegame-8fJq2wLmTd==/lib/arm64/libil2cpp.so",
+              "abs_path": "/Users/builder/Projects/SpaceGame/Library/PackageCache/com.unity.textmeshpro@3.0.6/Assets/TMP_Text.cs"
+            },
+            {
+              "function": "Animation_Play_m4C6D7E8F9A0B1C2D3E4F5061728394A5B6C7D8E9",
+              "package": "/data/app/~~kR3n9QvPzXw==/com.mystudio.spacegame-8fJq2wLmTd==/lib/arm64/libil2cpp.so",
+              "abs_path": "/Users/bokken/build/output/unity/unity/Modules/Animation/ScriptBindings/Assets/Animation.bindings.cs"
+            },
+            {
+              "function": "il2cpp_codegen_raise_null_reference_exception",
+              "package": "/data/app/~~kR3n9QvPzXw==/com.mystudio.spacegame-8fJq2wLmTd==/lib/arm64/libil2cpp.so",
+              "abs_path": "/Users/builder/Projects/SpaceGame/Library/Bee/artifacts/AndroidPlayerBuildProgram/il2cppOutput/cpp/Il2CppCodeGen.cpp"
+            },
+            {
+              "function": "sentry__handle_signal",
+              "package": "/data/app/~~kR3n9QvPzXw==/com.mystudio.spacegame-8fJq2wLmTd==/lib/arm64/libsentry.so"
+            },
+            {
+              "function": "sentry_android_capture_envelope",
+              "package": "/data/app/~~kR3n9QvPzXw==/com.mystudio.spacegame-8fJq2wLmTd==/lib/arm64/libsentry-android.so"
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

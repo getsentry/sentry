@@ -229,7 +229,7 @@ class Symbolicator:
     def process_minidump(
         self, platform: str, minidump: CachedAttachment, rewrite_first_module: list[Any]
     ):
-        (sources, process_response) = sources_for_symbolication(self.project)
+        (sources, process_response) = sources_for_symbolication(self.project, self.event_id)
         scraping_config = get_scraping_config(self.project)
 
         if minidump.stored_id:
@@ -273,7 +273,7 @@ class Symbolicator:
         return process_response(res)
 
     def process_applecrashreport(self, platform: str, report: CachedAttachment):
-        (sources, process_response) = sources_for_symbolication(self.project)
+        (sources, process_response) = sources_for_symbolication(self.project, self.event_id)
         scraping_config = get_scraping_config(self.project)
 
         if report.stored_id:
@@ -329,7 +329,7 @@ class Symbolicator:
         :param signal: A numeric crash signal value. This is optional.
         :param apply_source_context: Whether to add source context to frames.
         """
-        (sources, process_response) = sources_for_symbolication(self.project)
+        (sources, process_response) = sources_for_symbolication(self.project, self.event_id)
         scraping_config = get_scraping_config(self.project)
         json = {
             "platform": platform,
@@ -396,7 +396,6 @@ class Symbolicator:
         exceptions,
         stacktraces,
         modules,
-        release_package,
         classes,
         frame_order,
         apply_source_context=True,
@@ -411,8 +410,6 @@ class Symbolicator:
                             Frames are expected to be ordered according to the frame_order (see below).
         :param modules: ProGuard modules and source bundles. They must contain a `uuid` and have a
                         `type` of either "proguard" or "source".
-        :param release_package: The name of the release's package. This is optional.
-                                Used for determining whether frames are in-app.
         :param frame_order: The order of frames within stacktraces. See the documentation of `FrameOrder`.
         :param apply_source_context: Whether to add source context to frames.
         """
@@ -431,9 +428,6 @@ class Symbolicator:
                 "extract_variables": self._should_extract_variables(),
             },
         }
-
-        if release_package is not None:
-            json["release_package"] = release_package
 
         return self._process("symbolicate_jvm_stacktraces", "symbolicate-jvm", json=json)
 

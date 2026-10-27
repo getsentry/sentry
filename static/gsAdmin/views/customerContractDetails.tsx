@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {CodeBlock} from '@sentry/scraps/code';
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -17,7 +18,6 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useParams} from 'sentry/utils/useParams';
 
 import {DetailLabel} from 'admin/components/detailLabel';
-import {DetailList} from 'admin/components/detailList';
 import {DetailsContainer} from 'admin/components/detailsContainer';
 import {PageHeader} from 'admin/components/pageHeader';
 import type {
@@ -27,9 +27,8 @@ import type {
   ContractSKUConfig as SKUConfig,
 } from 'admin/types';
 import {CPE_MULTIPLIER_TO_CENTS, UNLIMITED} from 'getsentry/constants';
-import {isUnlimitedReserved} from 'getsentry/utils/billing';
+import {displayPriceWithCents, isUnlimitedReserved} from 'getsentry/utils/billing';
 import {getCountryByCode} from 'getsentry/utils/ISO3166codes';
-import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
 function parseCents(value?: string): number {
   if (!value) {
@@ -88,7 +87,7 @@ function ContractOverview({data}: {data: Contract}) {
       <PanelBody withPadding>
         <DetailsContainer>
           <div>
-            <DetailList>
+            <DescriptionList gap="md">
               <DetailLabel title="Billing Period">
                 {`${formatContractDate(pricingConfig?.billingPeriodStartDate)} › ${formatContractDate(pricingConfig?.billingPeriodEndDate)}`}
               </DetailLabel>
@@ -101,10 +100,10 @@ function ContractOverview({data}: {data: Contract}) {
               <DetailLabel title="Max Spend">
                 {maxSpend > 0 ? formatPrice(maxSpend) : 'None'}
               </DetailLabel>
-            </DetailList>
+            </DescriptionList>
           </div>
           <div>
-            <DetailList>
+            <DescriptionList gap="md">
               <DetailLabel title="Contract ID">{metadata?.id || 'N/A'}</DetailLabel>
               <DetailLabel title="Type">
                 {formatEnumLabel(billingConfig?.billingType, 'BILLING_TYPE_')}
@@ -118,7 +117,7 @@ function ContractOverview({data}: {data: Contract}) {
                     billingConfig.address.countryCode)
                   : 'N/A'}
               </DetailLabel>
-            </DetailList>
+            </DescriptionList>
           </div>
         </DetailsContainer>
       </PanelBody>
@@ -143,7 +142,7 @@ function SKUPricing({skuConfigs}: {skuConfigs: SKUConfig[]}) {
           return (
             <SKUPricingSection key={skuConfig.sku ?? idx}>
               <h6>{formatEnumLabel(skuConfig.sku, 'SKU_')}</h6>
-              <DetailList>
+              <DescriptionList gap="md">
                 <DetailLabel title="Reserved Volume">
                   {parseInt(skuConfig.reservedVolume ?? '0', 10).toLocaleString()}
                 </DetailLabel>
@@ -188,7 +187,7 @@ function SKUPricing({skuConfigs}: {skuConfigs: SKUConfig[]}) {
                     'N/A'
                   )}
                 </DetailLabel>
-              </DetailList>
+              </DescriptionList>
             </SKUPricingSection>
           );
         })}
@@ -222,14 +221,14 @@ function SharedBudgets({budgets}: {budgets: SharedSKUBudget[]}) {
           return (
             <Fragment key={idx}>
               <h6>{skuNames || 'Unknown SKUs'}</h6>
-              <DetailList>
+              <DescriptionList gap="md">
                 <DetailLabel title="Reserved Budget">
                   {formatPrice(parseCents(budget.reservedBudgetCents))}
                 </DetailLabel>
                 <DetailLabel title="PAYG Budget">
                   {formatPrice(parseCents(budget.paygBudgetCents))}
                 </DetailLabel>
-              </DetailList>
+              </DescriptionList>
             </Fragment>
           );
         })}

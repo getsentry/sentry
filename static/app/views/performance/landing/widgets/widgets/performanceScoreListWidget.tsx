@@ -57,38 +57,38 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
   const {data: timeseriesData, isLoading: isTimeseriesQueryLoading} =
     useProjectWebVitalsScoresTimeseriesQuery();
 
-  const assembleAccordionItems = () =>
-    getHeaders().map(header => ({header, content: getAreaChart()}));
-
   const order = ORDER;
 
   const weightedTimeseriesData = applyStaticWeightsToTimeseries(timeseriesData);
 
-  const getAreaChart = () => {
+  const assembleAccordionItems = () => {
     const segmentColors = theme.chart.getColorPalette(4).slice(0, 5);
-    return (
-      <Chart
-        stacked
-        height={props.chartHeight}
-        data={formatTimeSeriesResultsToChartData(
-          weightedTimeseriesData,
-          segmentColors,
-          order
-        )}
-        type={ChartType.AREA}
-        disableXAxis
-        loading={false}
-        grid={{
-          left: 5,
-          right: 5,
-          top: 5,
-          bottom: 0,
-        }}
-        dataMax={100}
-        chartColors={segmentColors}
-        hideYAxisSplitLine
-      />
-    );
+    return getHeaders().map(header => ({
+      header,
+      content: (
+        <Chart
+          stacked
+          height={props.chartHeight}
+          data={formatTimeSeriesResultsToChartData(
+            weightedTimeseriesData,
+            segmentColors,
+            order
+          )}
+          type={ChartType.AREA}
+          disableXAxis
+          loading={false}
+          grid={{
+            left: 5,
+            right: 5,
+            top: 5,
+            bottom: 0,
+          }}
+          dataMax={100}
+          chartColors={segmentColors}
+          hideYAxisSplitLine
+        />
+      ),
+    }));
   };
 
   const moduleURL = useModuleURL('vital');
@@ -121,7 +121,6 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
                     </ExternalLink>
                   </span>
                 }
-                isHoverable
               >
                 <PerformanceBadge score={listItem.totalScore} />
               </Tooltip>
@@ -141,7 +140,6 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
                     </ExternalLink>
                   </span>
                 }
-                isHoverable
                 showUnderline
                 skipWrapper
               >

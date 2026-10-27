@@ -3,7 +3,7 @@ import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 
 import type {Series} from 'sentry/types/echarts';
 
-import {transformWidgetSeriesToTimeSeries} from './transformWidgetSeriesToTimeSeries';
+import {transformMultipleWidgetSeriesToTimeSeries} from './transformWidgetSeriesToTimeSeries';
 
 function makeSeries(seriesName: string, data: number[] = [1, 2, 3]): Series {
   return {
@@ -12,18 +12,98 @@ function makeSeries(seriesName: string, data: number[] = [1, 2, 3]): Series {
   };
 }
 
-describe('transformWidgetSeriesToTimeSeries', () => {
-  it('returns null when widget has no queries', () => {
+describe('transformMultipleWidgetSeriesToTimeSeries', () => {
+  it('returns nothing when the query index does not exist', () => {
     const widget = WidgetFixture({queries: []});
-    const result = transformWidgetSeriesToTimeSeries(makeSeries('count()'), widget);
-    expect(result).toBeNull();
+    expect(
+      transformMultipleWidgetSeriesToTimeSeries([makeSeries('count()')], widget, 0)
+    ).toEqual([]);
   });
 
-  it('produces a label with the aggregate for a single-query, single-aggregate widget', () => {
+  it('attaches the widget query and parses the aggregate', () => {
+    const query = WidgetQueryFixture({
+      name: '',
+      aggregates: ['count()'],
+      columns: [],
+      fields: ['count()'],
+    });
+    const widget = WidgetFixture({queries: [query]});
+
+    const [result] = transformMultipleWidgetSeriesToTimeSeries(
+      [makeSeries('count()')],
+      widget,
+      0
+    );
+    expect(result?.queryIndex).toBe(0);
+    expect(result?.widgetQuery).toBe(query);
+    expect(result?.seriesName).toBe('count()');
+    expect(result?.timeSeries.yAxis).toBe('count()');
+    expect(result?.timeSeries.groupBy).toBeNull();
+  });
+
+  it('prefixes the series name with the query conditions when there are multiple queries and no alias', () => {
     const widget = WidgetFixture({
       queries: [
         WidgetQueryFixture({
           name: '',
+          conditions: 'browser:Chrome',
+          aggregates: ['count()'],
+          columns: ['environment'],
+          fields: ['environment', 'count()'],
+        }),
+        WidgetQueryFixture({
+          name: '',
+          conditions: 'browser:Firefox',
+          aggregates: ['count()'],
+          columns: ['environment'],
+          fields: ['environment', 'count()'],
+        }),
+      ],
+    });
+
+    const [result] = transformMultipleWidgetSeriesToTimeSeries(
+      [makeSeries('prod : count()')],
+      widget,
+      1
+    );
+    expect(result?.seriesName).toBe('browser:Firefox > prod : count()');
+    expect(result?.widgetQuery).toBe(widget.queries[1]);
+    expect(result?.timeSeries.yAxis).toBe('count()');
+    expect(result?.timeSeries.groupBy).toEqual([{key: 'environment', value: 'prod'}]);
+  });
+
+  it('strips a legend alias joined with > and picks the matching aggregate', () => {
+    const httpQuery = WidgetQueryFixture({
+      name: 'http',
+      conditions: 'span.op:http.client',
+      aggregates: ['count(span.duration)', 'avg(span.duration)'],
+      columns: ['project_id'],
+      fields: ['project_id', 'count(span.duration)', 'avg(span.duration)'],
+    });
+    const widget = WidgetFixture({
+      queries: [WidgetQueryFixture({name: 'db'}), httpQuery],
+    });
+
+    const [count, avg] = transformMultipleWidgetSeriesToTimeSeries(
+      [
+        makeSeries('http > (no value) : count(span.duration)'),
+        makeSeries('http > (no value) : avg(span.duration)'),
+      ],
+      widget,
+      1
+    );
+    expect(count?.seriesName).toBe('http > (no value) : count(span.duration)');
+    expect(count?.timeSeries.yAxis).toBe('count(span.duration)');
+    expect(avg?.timeSeries.yAxis).toBe('avg(span.duration)');
+    expect(avg?.timeSeries.groupBy).toEqual([{key: 'project_id', value: '(no value)'}]);
+  });
+
+  it('strips a legend alias joined with : when there is no group by', () => {
+    const widget = WidgetFixture({
+      queries: [
+        WidgetQueryFixture({
+          name: 'Chrome',
+          conditions: 'browser:Chrome',
           aggregates: ['count()'],
           columns: [],
           fields: ['count()'],
@@ -31,242 +111,53 @@ describe('transformWidgetSeriesToTimeSeries', () => {
       ],
     });
 
-    const result = transformWidgetSeriesToTimeSeries(makeSeries('count()'), widget);
-    expect(result?.label).toBe('count()');
+    const [result] = transformMultipleWidgetSeriesToTimeSeries(
+      [makeSeries('Chrome : count()')],
+      widget,
+      0
+    );
+    expect(result?.seriesName).toBe('Chrome : count()');
+    expect(result?.timeSeries.yAxis).toBe('count()');
+    expect(result?.timeSeries.groupBy).toBeNull();
   });
 
-  describe('multi-query labels (prefixed upstream with > delimiter)', () => {
-    it('finds the correct widget query by matching conditions in the series name', () => {
-      const chromeQuery = WidgetQueryFixture({
-        name: '',
-        conditions: 'browser:Chrome',
-        aggregates: ['count()'],
-        columns: [],
-        fields: ['count()'],
-      });
-      const firefoxQuery = WidgetQueryFixture({
-        name: '',
-        conditions: 'browser:Firefox',
-        aggregates: ['count()'],
-        columns: [],
-        fields: ['count()'],
-      });
-      const widget = WidgetFixture({
-        queries: [chromeQuery, firefoxQuery],
-      });
-
-      const result0 = transformWidgetSeriesToTimeSeries(
-        makeSeries('browser:Chrome > count()'),
-        widget
-      );
-      expect(result0?.widgetQuery).toBe(chromeQuery);
-
-      const result1 = transformWidgetSeriesToTimeSeries(
-        makeSeries('browser:Firefox > count()'),
-        widget
-      );
-      expect(result1?.widgetQuery).toBe(firefoxQuery);
+  it('keeps a group by value that equals the alias', () => {
+    const widget = WidgetFixture({
+      queries: [
+        WidgetQueryFixture({
+          name: 'prod',
+          aggregates: ['count()'],
+          columns: ['environment'],
+          fields: ['environment', 'count()'],
+        }),
+      ],
     });
 
-    it('extracts conditions prefix from before the > delimiter', () => {
-      const widget = WidgetFixture({
-        queries: [
-          WidgetQueryFixture({
-            name: '',
-            conditions: 'browser:Chrome',
-            aggregates: ['count()'],
-            columns: [],
-            fields: ['count()'],
-          }),
-          WidgetQueryFixture({
-            name: '',
-            conditions: 'browser:Firefox',
-            aggregates: ['count()'],
-            columns: [],
-            fields: ['count()'],
-          }),
-        ],
-      });
-
-      // Hooks prefix with ' > ' via getSeriesQueryPrefix
-      const result0 = transformWidgetSeriesToTimeSeries(
-        makeSeries('browser:Chrome > count()'),
-        widget
-      );
-      expect(result0?.label).toBe('browser:Chrome : count()');
-
-      const result1 = transformWidgetSeriesToTimeSeries(
-        makeSeries('browser:Firefox > count()'),
-        widget
-      );
-      expect(result1?.label).toBe('browser:Firefox : count()');
-    });
-
-    it('extracts conditions prefix with group-by values', () => {
-      const widget = WidgetFixture({
-        queries: [
-          WidgetQueryFixture({
-            name: '',
-            conditions: 'browser:Chrome',
-            aggregates: ['count()'],
-            columns: ['environment'],
-            fields: ['environment', 'count()'],
-          }),
-          WidgetQueryFixture({
-            name: '',
-            conditions: 'browser:Firefox',
-            aggregates: ['count()'],
-            columns: ['environment'],
-            fields: ['environment', 'count()'],
-          }),
-        ],
-      });
-
-      const result = transformWidgetSeriesToTimeSeries(
-        makeSeries('browser:Chrome > prod : count()'),
-        widget
-      );
-      expect(result?.label).toBe('browser:Chrome : prod');
-    });
-
-    it('matches the correct query by alias prefix when there is a group by (DAIN-1784)', () => {
-      const dbQuery = WidgetQueryFixture({
-        name: 'db',
-        conditions: 'span.op:db',
-        aggregates: ['count(span.duration)', 'avg(span.duration)'],
-        columns: ['project_id'],
-        fields: ['project_id', 'count(span.duration)', 'avg(span.duration)'],
-      });
-      const httpQuery = WidgetQueryFixture({
-        name: 'http',
-        conditions: 'span.op:http.client',
-        aggregates: ['count(span.duration)', 'avg(span.duration)'],
-        columns: ['project_id'],
-        fields: ['project_id', 'count(span.duration)', 'avg(span.duration)'],
-      });
-      const widget = WidgetFixture({queries: [dbQuery, httpQuery]});
-
-      // Alias with a group-by uses ' > ' to separate the alias from the
-      // group-by value (from transformEventsResponseToSeries).
-      const dbCount = transformWidgetSeriesToTimeSeries(
-        makeSeries('db > (no value) : count(span.duration)'),
-        widget
-      );
-      expect(dbCount?.widgetQuery).toBe(dbQuery);
-      expect(dbCount?.label).toBe('db : (no value) : count(span.duration)');
-
-      const httpCount = transformWidgetSeriesToTimeSeries(
-        makeSeries('http > (no value) : count(span.duration)'),
-        widget
-      );
-      expect(httpCount?.widgetQuery).toBe(httpQuery);
-      expect(httpCount?.label).toBe('http : (no value) : count(span.duration)');
-
-      const httpAvg = transformWidgetSeriesToTimeSeries(
-        makeSeries('http > (no value) : avg(span.duration)'),
-        widget
-      );
-      expect(httpAvg?.widgetQuery).toBe(httpQuery);
-      expect(httpAvg?.label).toBe('http : (no value) : avg(span.duration)');
-    });
-
-    it('uses query alias from the : delimited series name when available', () => {
-      const widget = WidgetFixture({
-        queries: [
-          WidgetQueryFixture({
-            name: 'Chrome',
-            conditions: 'browser:Chrome',
-            aggregates: ['count()'],
-            columns: [],
-            fields: ['count()'],
-          }),
-          WidgetQueryFixture({
-            name: 'Firefox',
-            conditions: 'browser:Firefox',
-            aggregates: ['count()'],
-            columns: [],
-            fields: ['count()'],
-          }),
-        ],
-      });
-
-      // Alias without group-by uses ' : ' (from transformEventsResponseToSeries)
-      const result = transformWidgetSeriesToTimeSeries(
-        makeSeries('Chrome : count()'),
-        widget
-      );
-      expect(result?.label).toBe('Chrome : count()');
-      expect(result?.widgetQuery.name).toBe('Chrome');
-    });
+    const [result] = transformMultipleWidgetSeriesToTimeSeries(
+      [makeSeries('prod > prod : count()')],
+      widget,
+      0
+    );
+    expect(result?.timeSeries.groupBy).toEqual([{key: 'environment', value: 'prod'}]);
   });
 
-  describe('multi-query with group by but no conditions', () => {
-    it('does not misidentify group-by values as query names', () => {
-      const widget = WidgetFixture({
-        queries: [
-          WidgetQueryFixture({
-            name: '',
-            conditions: '',
-            aggregates: ['count()'],
-            columns: ['environment'],
-            fields: ['environment', 'count()'],
-          }),
-          WidgetQueryFixture({
-            name: '',
-            conditions: '',
-            aggregates: ['count()'],
-            columns: ['environment'],
-            fields: ['environment', 'count()'],
-          }),
-        ],
-      });
-
-      // No ' > ' delimiter — "prod" is a group-by value, not a query prefix
-      const result = transformWidgetSeriesToTimeSeries(
-        makeSeries('prod : count()'),
-        widget
-      );
-      expect(result?.label).toBe('prod');
-    });
-  });
-
-  describe('multi-aggregate, single query, with group by', () => {
-    it('appends yAxis for uniqueness when there are multiple aggregates and group by columns', () => {
-      const widget = WidgetFixture({
-        queries: [
-          WidgetQueryFixture({
-            name: '',
-            aggregates: ['count()', 'avg(duration)'],
-            columns: ['environment'],
-            fields: ['environment', 'count()', 'avg(duration)'],
-          }),
-        ],
-      });
-
-      const result = transformWidgetSeriesToTimeSeries(
-        makeSeries('prod : count()'),
-        widget
-      );
-      expect(result?.label).toBe('prod : count()');
+  it('falls back to the first aggregate when none appears in the series name', () => {
+    const widget = WidgetFixture({
+      queries: [
+        WidgetQueryFixture({
+          name: '',
+          aggregates: ['count()', 'avg(duration)'],
+          columns: [],
+          fields: ['count()', 'avg(duration)'],
+        }),
+      ],
     });
 
-    it('does not duplicate aggregate info with single aggregate and group by', () => {
-      const widget = WidgetFixture({
-        queries: [
-          WidgetQueryFixture({
-            name: '',
-            aggregates: ['count()'],
-            columns: ['environment'],
-            fields: ['environment', 'count()'],
-          }),
-        ],
-      });
-
-      const result = transformWidgetSeriesToTimeSeries(
-        makeSeries('prod : count()'),
-        widget
-      );
-      expect(result?.label).toBe('prod');
-    });
+    const [result] = transformMultipleWidgetSeriesToTimeSeries(
+      [makeSeries('(no results)')],
+      widget,
+      0
+    );
+    expect(result?.timeSeries.yAxis).toBe('count()');
   });
 });

@@ -1,6 +1,6 @@
 ---
 name: backend-conventions
-description: Sentry backend conventions for logging, tracing/spans, metrics tags, and the options system. Use when adding or editing Python in src/ that logs (logger.info/exception), records metrics (metrics.incr/timing with tags), instruments spans/transactions, or reads registered options with options.get(). Trigger on "add logging", "log an error", "add a metric", "add a span", "instrument tracing", "read an option", "LOG005", "LOG011", or metrics tag cardinality questions.
+description: Sentry backend conventions for logging, tracing/spans, span/tag attribute naming, metrics tags, and the options system. Use when adding or editing Python in src/ that logs (logger.info/exception), records metrics (metrics.incr/timing with tags), instruments spans/transactions, calls sentry_sdk.set_tag/set_attribute or set_span_tag/set_span_data, or reads registered options with options.get(). Trigger on "add logging", "log an error", "add a metric", "add a span", "instrument tracing", "set an attribute", "add a tag", "read an option", "LOG005", "LOG011", or metrics tag cardinality questions.
 ---
 
 # Backend Conventions: Logging, Tracing, Metrics, Options
@@ -76,33 +76,21 @@ analytics.record(
 )
 ```
 
-## Tracing / Spans
+## Span / Tag Attribute Names
 
-Use the wrappers in `sentry.utils.tracing` instead of calling the SDK directly. This is required while we dogfood the streaming trace lifecycle (Span First rollout).
-
-| Instead of                       | Use                                              |
-| -------------------------------- | ------------------------------------------------ |
-| `sentry_sdk.start_span()`        | `start_span(name=..., op=...)`                   |
-| `sentry_sdk.start_transaction()` | `start_span(name=..., op=..., transaction=True)` |
-| `span.set_tag(key, value)`       | `set_span_tag(span, key, value)`                 |
-| `span.set_data(key, value)`      | `set_span_data(span, key, value)`                |
+Before inventing a key for `sentry_sdk.set_tag`/`set_attribute`, `set_span_tag`, or `set_span_data`, check whether OTel or Sentry already has a standard name for it in `sentry_conventions.attributes.ATTRIBUTE_NAMES`. Reusing a convention name keeps the attribute queryable and consistent with what other producers (SDKs, Relay) already emit for the same concept — a bespoke name fragments the same data across two keys.
 
 ```python
-from sentry.utils.tracing import start_span, set_span_tag, set_span_data
+from sentry_conventions.attributes import ATTRIBUTE_NAMES
 
-# Child span — no need to capture the span when you don't set tags/data
-with start_span(name="event_manager.save", op="save"):
-    do_work()
+# WRONG: inventing a name for a concept the conventions already cover
+sentry_sdk.set_attribute("request_user_agent", user_agent)
 
-# Child span with tags/data — capture via `as span`
-with start_span(name="event_manager.save", op="save") as span:
-    set_span_tag(span, "platform", platform)
-    set_span_data(span, "rows_count", len(rows))
-
-# Transaction root (replaces sentry_sdk.start_transaction)
-with start_span(name="monitors.consumer", op="process", transaction=True):
-    process_batch()
+# RIGHT: use the existing convention name
+sentry_sdk.set_attribute(ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL, user_agent)
 ```
+
+`ATTRIBUTE_NAMES` is generated from the OTel semantic conventions plus Sentry's own model (`.venv/lib/python*/site-packages/sentry_conventions/attributes.py`); grep it for candidate keywords before adding a new one. Only fall back to a custom key when the concept genuinely isn't covered, and prefer a namespaced, descriptive name over a generic one. A key kept behind a `_test`/POC suffix while a feature is unreleased is a separate, deliberate case — that's about hiding the field, not about picking its name.
 
 ## Metrics Tags
 

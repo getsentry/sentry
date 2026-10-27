@@ -1,6 +1,6 @@
 import type {Theme} from '@emotion/react';
 
-import {Grid} from 'sentry/components/charts/components/grid';
+import {createGridOptions} from 'sentry/components/charts/components/grid';
 import type {LineChartProps} from 'sentry/components/charts/lineChart';
 import {transformToLineSeries} from 'sentry/components/charts/lineChart';
 import {
@@ -25,7 +25,7 @@ export function makePerformanceCharts(theme: Theme): Array<RenderDescriptor<Char
 
   const performanceChartDefaults = {
     ...slackChartDefaults,
-    grid: Grid({left: 10, right: 5, bottom: 5}),
+    grid: createGridOptions({left: 10, right: 5, bottom: 5}),
   };
 
   function modifyOptionsForSlack(options: Omit<LineChartProps, 'series'>) {

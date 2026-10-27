@@ -31,7 +31,6 @@ export function InvoiceFixture(
     receipt: {
       url: `https://sentry.io/organizations/${mockOrg.slug}/payments/1a2b/pdf/3c4d/`,
     },
-    stripeInvoiceID: null,
     type: 'credit card',
     customer: SubscriptionFixture({organization: organization ?? mockOrg}),
     items: [],

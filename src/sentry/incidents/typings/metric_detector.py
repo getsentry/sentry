@@ -10,9 +10,8 @@ from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleDetectionType,
     AlertRuleThresholdType,
-    AlertRuleTriggerAction,
 )
-from sentry.incidents.models.incident import Incident, IncidentStatus
+from sentry.incidents.models.incident import IncidentStatus
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.notifications.models.notificationaction import ActionTarget
@@ -157,18 +156,11 @@ class NotificationContext:
     target_type: ActionTarget | None = None
     sentry_app_config: list[dict[str, Any]] | dict[str, Any] | None = None
     sentry_app_id: str | None = None
-
-    @classmethod
-    def from_alert_rule_trigger_action(cls, action: AlertRuleTriggerAction) -> NotificationContext:
-        return cls(
-            id=action.id,
-            integration_id=action.integration_id,
-            target_identifier=action.target_identifier,
-            target_display=action.target_display,
-            sentry_app_config=action.sentry_app_config,
-            sentry_app_id=str(action.sentry_app_id) if action.sentry_app_id else None,
-            target_type=ActionTarget(action.target_type),
-        )
+    notes: str | None = None
+    # The workflow (alert) whose action sent this notification. Only set for notifications
+    # sent through the workflow engine.
+    workflow_id: int | None = None
+    workflow_name: str | None = None
 
     @classmethod
     def from_action_model(cls, action: Action) -> NotificationContext:
@@ -203,6 +195,7 @@ class NotificationContext:
             integration_id=action.integration_id,
             target_identifier=action.config.get("target_identifier"),
             target_display=action.config.get("target_display"),
+            notes=action.data.get("notes"),
         )
 
 
@@ -250,8 +243,10 @@ class MetricIssueContext:
         snuba_query = subscription.snuba_query
         if isinstance(evidence_data.value, (int, float)):
             metric_value = float(evidence_data.value)
-        else:
+        elif isinstance(evidence_data.value, dict):
             metric_value = evidence_data.value["value"]
+        else:
+            metric_value = None
 
         return cls(
             id=group.id,
@@ -262,24 +257,6 @@ class MetricIssueContext:
             metric_value=metric_value,
             group=group,
             title=group.title,
-        )
-
-    @classmethod
-    def from_legacy_models(
-        cls,
-        incident: Incident,
-        new_status: IncidentStatus,
-        metric_value: float | None = None,
-    ) -> MetricIssueContext:
-        return cls(
-            id=incident.id,
-            open_period_identifier=incident.identifier,
-            snuba_query=incident.alert_rule.snuba_query,
-            subscription=incident.subscription,
-            new_status=new_status,
-            metric_value=metric_value,
-            group=None,
-            title=incident.title,
         )
 
 
@@ -295,12 +272,6 @@ class OpenPeriodContext(BaseModel):
     date_started: datetime
     date_closed: datetime | None = None
     id: int
-
-    @classmethod
-    def from_incident(cls, incident: Incident) -> OpenPeriodContext:
-        return cls(
-            date_started=incident.date_added, date_closed=incident.date_closed, id=incident.id
-        )
 
     @classmethod
     def from_group(cls, group: Group) -> OpenPeriodContext:

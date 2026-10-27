@@ -3,8 +3,6 @@ import styled from '@emotion/styled';
 
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 
-type MenuMode = 'slash-commands-keyboard' | 'pr-widget' | 'hidden';
-
 interface SlashCommandHandlers {
   onFeedback: (() => void) | undefined;
   onNew: () => void;
@@ -17,15 +15,15 @@ interface SlashCommandHandlers {
 
 interface ExplorerMenuProps {
   clearInput: () => void;
+  // Only used for `.style.height` resets and anchor positioning, both of
+  // which work against any element, so this stays valid if the input is
+  // ever backed by something other than a <textarea>.
+  composerRef: React.RefObject<HTMLElement | null>;
   focusInput: () => void;
   inputValue: string;
   panelSize: 'max' | 'med';
   slashCommandHandlers: SlashCommandHandlers;
-  textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
   inputAnchorRef?: React.RefObject<HTMLElement | null>;
-  prWidgetAnchorRef?: React.RefObject<HTMLElement | null>;
-  prWidgetFooter?: React.ReactNode;
-  prWidgetItems?: MenuItemProps[];
 }
 
 export interface MenuItemProps {
@@ -36,25 +34,20 @@ export interface MenuItemProps {
 }
 
 /**
- * Custom floating menu for Seer Explorer slash commands and PR widget.
+ * Custom floating menu for Seer Explorer slash commands.
  */
 export function useExplorerMenu({
   clearInput,
   inputValue,
   focusInput,
-  textAreaRef,
+  composerRef,
   panelSize,
   slashCommandHandlers,
   inputAnchorRef,
-  prWidgetAnchorRef,
-  prWidgetItems,
-  prWidgetFooter,
 }: ExplorerMenuProps) {
-  const [menuMode, setMenuMode] = useState<MenuMode>('hidden');
   const [menuPosition, setMenuPosition] = useState<{
     bottom?: string | number;
     left?: string | number;
-    right?: string | number;
     top?: string | number;
   }>({});
 
@@ -69,28 +62,20 @@ export function useExplorerMenu({
     return allSlashCommands.filter(cmd => cmd.title.toLowerCase().startsWith(query));
   }, [allSlashCommands, inputValue]);
 
-  // Menu items and select handlers change based on the mode.
-  const menuItems = useMemo(() => {
-    switch (menuMode) {
-      case 'slash-commands-keyboard':
-        return filteredSlashCommands;
-      case 'pr-widget':
-        return prWidgetItems ?? [];
-      default:
-        return [];
-    }
-  }, [menuMode, filteredSlashCommands, prWidgetItems]);
+  const menuItems = filteredSlashCommands;
+  const isVisible = menuItems.length > 0;
 
+  // The menu only shows while the input is a partial slash command, so
+  // clearing the input is what closes it.
   const close = useCallback(() => {
-    setMenuMode('hidden');
-    if (menuMode === 'slash-commands-keyboard') {
-      // Clear input and reset textarea height.
-      clearInput();
-      if (textAreaRef.current) {
-        textAreaRef.current.style.height = 'auto';
-      }
+    if (!isVisible) {
+      return;
     }
-  }, [menuMode, setMenuMode, clearInput, textAreaRef]);
+    clearInput();
+    if (composerRef.current) {
+      composerRef.current.style.height = 'auto';
+    }
+  }, [isVisible, clearInput, composerRef]);
 
   const closeAndFocusInput = useCallback(() => {
     close();
@@ -99,41 +84,20 @@ export function useExplorerMenu({
 
   const onSelect = useCallback(
     (item: MenuItemProps) => {
-      // Execute custom handler.
       item.handler();
-
-      if (menuMode === 'slash-commands-keyboard') {
-        // Clear input and reset textarea height.
-        clearInput();
-        if (textAreaRef.current) {
-          textAreaRef.current.style.height = 'auto';
-        }
-      }
-
-      // Default to closing the menu after an item is selected and handled.
       closeAndFocusInput();
     },
-    // clearInput and textAreaRef are both expected to be stable.
-    [menuMode, clearInput, textAreaRef, closeAndFocusInput]
+    [closeAndFocusInput]
   );
-
-  // Toggle between slash-commands-keyboard and hidden modes based on filteredSlashCommands.
-  useEffect(() => {
-    if (menuMode === 'slash-commands-keyboard' && filteredSlashCommands.length === 0) {
-      setMenuMode('hidden');
-    } else if (menuMode === 'hidden' && filteredSlashCommands.length > 0) {
-      setMenuMode('slash-commands-keyboard');
-    }
-  }, [menuMode, setMenuMode, filteredSlashCommands]);
-
-  const isVisible = menuMode !== 'hidden';
 
   const [selectedIndex, setSelectedIndex] = useState(0);
   const menuItemRefs = useRef<Array<HTMLDivElement | null>>([]);
 
   // Reset selected index when items change
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setSelectedIndex(0);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [menuItems]);
 
   // Scroll selected item into view when selection changes
@@ -153,8 +117,6 @@ export function useExplorerMenu({
         return;
       }
 
-      const isPrintableChar = e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey;
-
       if (e.key === 'ArrowUp') {
         e.preventDefault();
         e.stopPropagation();
@@ -173,43 +135,30 @@ export function useExplorerMenu({
         e.preventDefault();
         e.stopPropagation();
         closeAndFocusInput();
-        if (menuMode === 'slash-commands-keyboard') {
-          clearInput();
-        }
-      } else if (isPrintableChar && menuMode !== 'slash-commands-keyboard') {
-        closeAndFocusInput();
       }
     },
-    [
-      isVisible,
-      selectedIndex,
-      menuItems,
-      onSelect,
-      clearInput,
-      menuMode,
-      closeAndFocusInput,
-    ]
+    [isVisible, selectedIndex, menuItems, onSelect, closeAndFocusInput]
   );
 
   useEffect(() => {
     if (isVisible) {
+      const ownerDocument = composerRef.current?.ownerDocument ?? document;
       // Use capture phase to intercept events before they reach other handlers
-      document.addEventListener('keydown', handleKeyDown, true);
-      return () => document.removeEventListener('keydown', handleKeyDown, true);
+      ownerDocument.addEventListener('keydown', handleKeyDown, true);
+      return () => ownerDocument.removeEventListener('keydown', handleKeyDown, true);
     }
     return;
-  }, [handleKeyDown, isVisible]);
+  }, [composerRef, handleKeyDown, isVisible]);
 
   // Calculate menu position based on anchor element
   useEffect(() => {
     if (!isVisible) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setMenuPosition({});
       return;
     }
 
-    const anchorRef = menuMode === 'pr-widget' ? prWidgetAnchorRef : inputAnchorRef;
-
-    if (!anchorRef?.current) {
+    if (!inputAnchorRef?.current) {
       setMenuPosition({
         bottom: '100%',
         left: '16px',
@@ -217,8 +166,8 @@ export function useExplorerMenu({
       return;
     }
 
-    const rect = anchorRef.current.getBoundingClientRect();
-    const panelRect = anchorRef.current
+    const rect = inputAnchorRef.current.getBoundingClientRect();
+    const panelRect = inputAnchorRef.current
       .closest('[data-seer-explorer-root]')
       ?.getBoundingClientRect();
 
@@ -230,19 +179,12 @@ export function useExplorerMenu({
     const relativeTop = rect.top - panelRect.top;
     const relativeLeft = rect.left - panelRect.left;
 
-    if (menuMode === 'slash-commands-keyboard') {
-      setMenuPosition({
-        bottom: `${panelRect.height - relativeTop + spacing}px`,
-        left: `${relativeLeft}px`,
-      });
-    } else {
-      // Position above anchor (since button is at bottom of panel)
-      setMenuPosition({
-        bottom: `${panelRect.height - relativeTop + spacing}px`,
-        right: `${panelRect.width - relativeLeft - rect.width}px`,
-      });
-    }
-  }, [isVisible, menuMode, inputAnchorRef, prWidgetAnchorRef]);
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
+    setMenuPosition({
+      bottom: `${panelRect.height - relativeTop + spacing}px`,
+      left: `${relativeLeft}px`,
+    });
+  }, [isVisible, inputAnchorRef]);
 
   const menu = (
     <Activity mode={isVisible ? 'visible' : 'hidden'}>
@@ -260,26 +202,14 @@ export function useExplorerMenu({
             <ItemDescription>{item.description}</ItemDescription>
           </MenuItem>
         ))}
-        {menuMode === 'pr-widget' && prWidgetFooter}
       </MenuPanel>
     </Activity>
   );
 
-  // Handler for opening PR widget from button
-  const openPRWidget = useCallback(() => {
-    if (menuMode === 'pr-widget') {
-      close();
-    } else {
-      setMenuMode('pr-widget');
-    }
-  }, [menuMode, close]);
-
   return {
     menu,
-    menuMode,
-    isMenuOpen: menuMode !== 'hidden',
+    isMenuOpen: isVisible,
     closeMenu: close,
-    openPRWidget,
   };
 }
 

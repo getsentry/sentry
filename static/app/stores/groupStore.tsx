@@ -1,8 +1,8 @@
 import {createStore} from 'reflux';
 
-import type {Indicator} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {t} from 'sentry/locale';
-import {IndicatorStore} from 'sentry/stores/indicatorStore';
 import type {BaseGroup, Group, GroupStats} from 'sentry/types/group';
 import {toArray} from 'sentry/utils/array/toArray';
 import {parseApiError} from 'sentry/utils/parseApiError';
@@ -10,8 +10,8 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 import type {StrictStoreDefinition} from './types';
 
-function showAlert(msg: string, type: Indicator['type']) {
-  IndicatorStore.addMessage(msg, type, {duration: 4000});
+function showAlert(msg: string, type: 'error' | 'success') {
+  toast[type](msg, {duration: 4000});
 }
 
 type ChangeId = string;

@@ -7,7 +7,6 @@ from sentry.seer.endpoints.organization_seer_onboarding_check import (
     is_code_review_enabled,
 )
 from sentry.testutils.cases import APITestCase, TestCase
-from sentry.testutils.helpers.features import with_feature
 
 
 class TestHasSupportedScmIntegration(TestCase):
@@ -62,8 +61,7 @@ class TestHasSupportedScmIntegration(TestCase):
         assert has_supported_scm_integration(org1)
         assert not has_supported_scm_integration(org2)
 
-    @with_feature("organizations:seer-gitlab-support")
-    def test_gitlab_integration_with_feature_flag(self) -> None:
+    def test_gitlab_integration(self) -> None:
         self.create_integration(
             organization=self.organization,
             provider="gitlab",
@@ -73,20 +71,17 @@ class TestHasSupportedScmIntegration(TestCase):
 
         assert has_supported_scm_integration(self.organization)
 
-    @with_feature("organizations:seer-gitlab-support")
-    def test_no_integration_with_gitlab_feature_flag(self) -> None:
-        assert not has_supported_scm_integration(self.organization)
-
-    def test_gitlab_integration_without_feature_flag(self) -> None:
-        # GitLab should not count as a supported SCM without the feature flag
+    def test_cursor_origin_integration_needs_the_feature_flag(self) -> None:
         self.create_integration(
             organization=self.organization,
-            provider="gitlab",
-            name="GitLab Test",
-            external_id="789",
+            provider="cursor_origin",
+            name="acme",
+            external_id="inst_01example",
         )
 
         assert not has_supported_scm_integration(self.organization)
+        with self.feature("organizations:seer-cursor-origin-support"):
+            assert has_supported_scm_integration(self.organization)
 
 
 class TestIsCodeReviewEnabled(TestCase):

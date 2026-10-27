@@ -80,6 +80,10 @@ const iOSDeviceMapping: Record<string, string> = {
   'iPhone18,3': 'iPhone 17',
   'iPhone18,4': 'iPhone Air',
   'iPhone18,5': 'iPhone 17e',
+  'iPhone19,2': 'iPhone 18 Pro',
+  'iPhone19,3': 'iPhone 18 Pro Max',
+  'iPhone19,7': 'iPhone 18 Pro Max',
+  'iPhone19,4': 'iPhone Duo',
   // iPad Pro
   'iPad6,7': 'iPad Pro 12.9-inch (1st generation)',
   'iPad6,8': 'iPad Pro 12.9-inch (1st generation)',
@@ -139,6 +143,8 @@ const iOSDeviceMapping: Record<string, string> = {
   'iPad14,2': 'iPad mini (6th generation)',
   'iPad16,1': 'iPad mini (A17 Pro)',
   'iPad16,2': 'iPad mini (A17 Pro)',
+  'iPad19,1': 'iPad mini (A20 Pro)',
+  'iPad19,2': 'iPad mini (A20 Pro)',
   // iPad Air
   'iPad4,1': 'iPad Air (1st generation)',
   'iPad4,2': 'iPad Air (1st generation)',

@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import invariant from 'invariant';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {EntityHeader} from '@sentry/scraps/entityHeader';
+import {Stack} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -21,10 +22,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
 import {ReplayDetailsProviders} from 'sentry/views/explore/replays/detail/body/replayDetailsProviders';
-import {ReplayDetailsHeaderActions} from 'sentry/views/explore/replays/detail/header/replayDetailsHeaderActions';
-import {ReplayDetailsMetadata} from 'sentry/views/explore/replays/detail/header/replayDetailsMetadata';
+import {ReplayDetailsEntityHeader} from 'sentry/views/explore/replays/detail/header/replayDetailsEntityHeader';
 import {ReplayDetailsPageBreadcrumbs} from 'sentry/views/explore/replays/detail/header/replayDetailsPageBreadcrumbs';
-import {ReplayDetailsUserBadge} from 'sentry/views/explore/replays/detail/header/replayDetailsUserBadge';
 import {ReplayDetailsPage} from 'sentry/views/explore/replays/detail/page';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
@@ -35,16 +34,9 @@ function ReplayDetailsInner() {
       <ReplayAccess
         fallback={
           <Fragment>
-            <Flex
-              borderBottom="secondary"
-              justify="between"
-              align="center"
-              gap="md"
-              wrap="wrap"
-              padding={{'screen:sm': 'sm lg', 'screen:md': 'md xl'}}
-            >
-              {t('Replay Details')}
-            </Flex>
+            <EntityHeader
+              title={{type: 'text', label: t('Page'), value: t('Replay Details')}}
+            />
             <Layout.Body>
               <ReplayAccessFallbackAlert />
             </Layout.Body>
@@ -84,21 +76,24 @@ function ReplayDetailsContent() {
     mobile: replay?.isVideoReplay(),
   });
 
-  useLLMContext({
-    contextHint:
-      'Sentry session replay detail page. The user is viewing a specific recorded browser session. You can look up full details for this replay using the replayId below, query for related replay sessions, or search live telemetry for errors and spans associated with this session.',
-    replayId: replayRecord?.id,
-    replaySlug,
-    projectSlug: readerResult.projectSlug,
-    browser: replayRecord?.browser.name,
-    os: replayRecord?.os.name,
-    duration: replayRecord?.duration,
-    countErrors: replayRecord?.count_errors,
-    countRageClicks: replayRecord?.count_rage_clicks,
-    countDeadClicks: replayRecord?.count_dead_clicks,
-    environment: replayRecord?.environment,
-    platform: replayRecord?.platform,
-  });
+  useLLMContext(
+    {
+      contextHint:
+        'Sentry session replay detail page. The user is viewing a specific recorded browser session. You can look up full details for this replay using the replayId below, query for related replay sessions, or search live telemetry for errors and spans associated with this session.',
+      replayId: replayRecord?.id,
+      replaySlug,
+      projectSlug: readerResult.projectSlug,
+      browser: replayRecord?.browser.name,
+      os: replayRecord?.os.name,
+      duration: replayRecord?.duration,
+      countErrors: replayRecord?.count_errors,
+      countRageClicks: replayRecord?.count_rage_clicks,
+      countDeadClicks: replayRecord?.count_dead_clicks,
+      environment: replayRecord?.environment,
+      platform: replayRecord?.platform,
+    },
+    {isLoading: !replayRecord && readerResult.isPending}
+  );
 
   const title = replayRecord
     ? `${
@@ -109,21 +104,12 @@ function ReplayDetailsContent() {
   const pageContent = (
     <Fragment>
       <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
-      <ReplayDetailsHeaderActions readerResult={readerResult} />
-      <Flex
-        justify="between"
-        align="center"
-        gap="md"
-        wrap="wrap"
-        padding={{'screen:sm': 'md lg', 'screen:md': 'md xl'}}
-        borderBottom="secondary"
-      >
-        <ReplayDetailsUserBadge readerResult={readerResult} />
-        <ReplayDetailsMetadata readerResult={readerResult} />
-      </Flex>
-      <Stack flex={1} minHeight="0" overflow="hidden" padding="lg xl">
-        <ReplayDetailsPage readerResult={readerResult} />
-      </Stack>
+      <ReplayDetailsEntityHeader readerResult={readerResult} />
+      <Layout.Body noRowGap minHeight="0" overflow="hidden" alignContent="stretch">
+        <Layout.Main width="full" display="flex" minHeight="0" overflow="hidden">
+          <ReplayDetailsPage readerResult={readerResult} />
+        </Layout.Main>
+      </Layout.Body>
     </Fragment>
   );
 

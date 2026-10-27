@@ -76,6 +76,5 @@ class FeatureHandlerStrategy(Enum):
     """
     FLAGPOLE = 2
     """
-    Handle the feature using Flagpole and option backed rules based features.
-    Features will automatically have options registered for them.
+    Handle the feature using Flagpole rules configured in sentry-options.
     """

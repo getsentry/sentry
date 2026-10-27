@@ -1,7 +1,8 @@
-import type {CSSProperties} from 'react';
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
+
+import type {CSS} from '@sentry/scraps/cssTypes';
 
 import {t} from 'sentry/locale';
 import type {RequestState} from 'sentry/types/core';
@@ -62,6 +63,7 @@ export function FlamegraphChart({
   >(null);
 
   const configSpaceCursorRef = useRef<vec2 | null>(null);
+  // oxlint-disable-next-line react/refs
   configSpaceCursorRef.current = configSpaceCursor;
 
   const chartRenderer = useMemo(() => {
@@ -120,6 +122,7 @@ export function FlamegraphChart({
 
   useEffect(() => {
     drawchart();
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [drawchart, configSpaceCursor]);
 
   useEffect(() => {
@@ -320,7 +323,7 @@ export function FlamegraphChart({
   );
 }
 
-const Canvas = styled('canvas')<{cursor?: CSSProperties['cursor']}>`
+const Canvas = styled('canvas')<{cursor?: CSS['cursor']}>`
   width: 100%;
   height: 100%;
   position: absolute;

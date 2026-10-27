@@ -1,17 +1,18 @@
 import {Fragment} from 'react';
-import {ThemeProvider} from '@emotion/react';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {CompactSelect as mockCompactSelect} from 'sentry-test/snapshots/mocks/compactSelect';
 
 import {Tag} from '@sentry/scraps/badge';
 
 import {t} from 'sentry/locale';
-// eslint-disable-next-line no-restricted-imports -- SSR snapshot rendering needs direct theme access
-import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 
 import type {DiffMode} from './imageDisplay/diffImageDisplay';
 
-jest.mock('@sentry/scraps/compactSelect', () => ({CompactSelect: mockCompactSelect}));
+jest.mock('@sentry/scraps/compactSelect', () => ({
+  CompactSelect: mockCompactSelect,
+}));
 
 import {Container} from '@sentry/scraps/layout';
 
@@ -77,155 +78,146 @@ function SnapshotsToolbarWithControls({
   }
 
   return (
-    <Container containerType="inline-size">
-      <ToolbarContainer
-        toggle={
-          <ViewModeToggle viewMode={viewMode} onViewModeChange={onViewModeChange} />
-        }
-        sortDropdown={
-          sort ? <SortDropdown value={sort.value} onChange={sort.onChange} /> : null
-        }
-        progressIndicator={
-          progress ? (
-            <ProgressPill>
-              <ToolbarProgressBar value={progress.percent} />
-              <ProgressCounter size="xs" variant="muted">
-                {progress.current}/{progress.total}
-              </ProgressCounter>
-            </ProgressPill>
-          ) : null
-        }
-        diffControls={
-          diff ? (
-            <Fragment>
-              {diff.mode === 'split' && (
-                <ColorPickerButton
-                  color={diff.overlayColor}
-                  onChange={diff.onOverlayColorChange}
-                  opacity={diff.overlayOpacity}
-                  onOpacityChange={diff.onOverlayOpacityChange}
+    <OrganizationContext value={organization}>
+      <Container containerType="inline-size">
+        <ToolbarContainer
+          toggle={
+            <ViewModeToggle viewMode={viewMode} onViewModeChange={onViewModeChange} />
+          }
+          sortDropdown={
+            sort ? <SortDropdown value={sort.value} onChange={sort.onChange} /> : null
+          }
+          progressIndicator={
+            progress ? (
+              <ProgressPill>
+                <ToolbarProgressBar value={progress.percent} />
+                <ProgressCounter size="xs" variant="muted">
+                  {progress.current}/{progress.total}
+                </ProgressCounter>
+              </ProgressPill>
+            ) : null
+          }
+          diffControls={
+            diff ? (
+              <Fragment>
+                {diff.mode === 'split' && (
+                  <ColorPickerButton
+                    color={diff.overlayColor}
+                    onChange={diff.onOverlayColorChange}
+                    opacity={diff.overlayOpacity}
+                    onOpacityChange={diff.onOverlayOpacityChange}
+                  />
+                )}
+                <DiffModeToggle
+                  diffMode={diff.mode}
+                  onDiffModeChange={diff.onModeChange}
+                  showSplit={diff.showSplit ?? true}
                 />
-              )}
-              <DiffModeToggle
-                diffMode={diff.mode}
-                onDiffModeChange={diff.onModeChange}
-                showSplit={diff.showSplit ?? true}
-              />
-            </Fragment>
-          ) : null
-        }
-        soloDiffToggle={soloDiffToggle}
-      />
-    </Container>
+              </Fragment>
+            ) : null
+          }
+          soloDiffToggle={soloDiffToggle}
+        />
+      </Container>
+    </OrganizationContext>
   );
 }
 
-const themes = {light: lightTheme, dark: darkTheme};
+const organization = OrganizationFixture();
+const SM_BREAKPOINT_WIDTH = 800;
 
 const noop = () => {};
 
 describe('SnapshotsToolbar', () => {
-  describe.each(['light', 'dark'] as const)('%s', themeName => {
-    it.snapshot.breakpoints(
-      ['xs', 'sm', 'md'],
-      'all controls',
-      width => {
-        const isSm = width >= parseInt(themes[themeName].breakpoints.sm, 10);
-        return (
-          <ThemeProvider theme={themes[themeName]}>
-            <div style={{width: '100%'}}>
-              <SnapshotsToolbarWithControls
-                viewMode="list"
-                onViewModeChange={noop}
-                progress={{current: 3, total: 12, percent: 25}}
-                sort={{value: 'diff', onChange: noop}}
-                diff={{
-                  mode: isSm ? 'split' : 'wipe',
-                  onModeChange: noop,
-                  overlayColor: '#f55459',
-                  onOverlayColorChange: noop,
-                  overlayOpacity: 50,
-                  onOverlayOpacityChange: noop,
-                  showSplit: isSm,
-                }}
-                solo={{isActive: false, onToggle: noop}}
-              />
-            </div>
-          </ThemeProvider>
-        );
-      },
-      {tags: {area: 'snapshots'}}
-    );
+  it.snapshot.breakpoints(
+    ['xs', 'sm', 'md'],
+    'all controls',
+    width => {
+      const isSm = width >= SM_BREAKPOINT_WIDTH;
+      return (
+        <div style={{width: '100%'}}>
+          <SnapshotsToolbarWithControls
+            viewMode="list"
+            onViewModeChange={noop}
+            progress={{current: 3, total: 12, percent: 25}}
+            sort={{value: 'diff', onChange: noop}}
+            diff={{
+              mode: isSm ? 'split' : 'wipe',
+              onModeChange: noop,
+              overlayColor: '#f55459',
+              onOverlayColorChange: noop,
+              overlayOpacity: 50,
+              onOverlayOpacityChange: noop,
+              showSplit: isSm,
+            }}
+            solo={{isActive: false, onToggle: noop}}
+          />
+        </div>
+      );
+    },
+    {tags: {area: 'snapshots'}}
+  );
 
-    it.snapshot(
-      'no diff controls',
-      () => (
-        <ThemeProvider theme={themes[themeName]}>
-          <div style={{width: 960}}>
-            <SnapshotsToolbarWithControls
-              viewMode="single"
-              onViewModeChange={noop}
-              progress={{current: 1, total: 5, percent: 0}}
-              sort={{value: 'alpha', onChange: noop}}
-              solo={{isActive: true, onToggle: noop}}
-            />
-          </div>
-        </ThemeProvider>
-      ),
-      {tags: {area: 'snapshots'}}
-    );
+  it.snapshot(
+    'no diff controls',
+    () => (
+      <div style={{width: 960}}>
+        <SnapshotsToolbarWithControls
+          viewMode="single"
+          onViewModeChange={noop}
+          progress={{current: 1, total: 5, percent: 0}}
+          sort={{value: 'alpha', onChange: noop}}
+          solo={{isActive: true, onToggle: noop}}
+        />
+      </div>
+    ),
+    {tags: {area: 'snapshots'}}
+  );
 
-    it.snapshot(
-      'solo base tag',
-      () => (
-        <ThemeProvider theme={themes[themeName]}>
-          <div style={{width: 960}}>
-            <SnapshotsToolbarWithControls
-              viewMode="list"
-              onViewModeChange={noop}
-              progress={{current: 1, total: 3, percent: 0}}
-              solo="base"
-            />
-          </div>
-        </ThemeProvider>
-      ),
-      {tags: {area: 'snapshots'}}
-    );
+  it.snapshot(
+    'solo base tag',
+    () => (
+      <div style={{width: 960}}>
+        <SnapshotsToolbarWithControls
+          viewMode="list"
+          onViewModeChange={noop}
+          progress={{current: 1, total: 3, percent: 0}}
+          solo="base"
+        />
+      </div>
+    ),
+    {tags: {area: 'snapshots'}}
+  );
 
-    it.snapshot(
-      'minimal',
-      () => (
-        <ThemeProvider theme={themes[themeName]}>
-          <div style={{width: 960}}>
-            <SnapshotsToolbarWithControls viewMode="list" onViewModeChange={noop} />
-          </div>
-        </ThemeProvider>
-      ),
-      {tags: {area: 'snapshots'}}
-    );
+  it.snapshot(
+    'minimal',
+    () => (
+      <div style={{width: 960}}>
+        <SnapshotsToolbarWithControls viewMode="list" onViewModeChange={noop} />
+      </div>
+    ),
+    {tags: {area: 'snapshots'}}
+  );
 
-    it.snapshot.each<DiffMode>(['split', 'wipe', 'onion'])(
-      '%s',
-      diffMode => (
-        <ThemeProvider theme={themes[themeName]}>
-          <div style={{width: 960}}>
-            <SnapshotsToolbarWithControls
-              viewMode="single"
-              onViewModeChange={noop}
-              progress={{current: 1, total: 5, percent: 20}}
-              diff={{
-                mode: diffMode,
-                onModeChange: noop,
-                overlayColor: '#f55459',
-                onOverlayColorChange: noop,
-                overlayOpacity: 50,
-                onOverlayOpacityChange: noop,
-              }}
-            />
-          </div>
-        </ThemeProvider>
-      ),
-      diffMode => ({tags: {area: 'snapshots', diffMode}})
-    );
-  });
+  it.snapshot.each<DiffMode>(['split', 'wipe', 'onion'])(
+    '%s',
+    diffMode => (
+      <div style={{width: 960}}>
+        <SnapshotsToolbarWithControls
+          viewMode="single"
+          onViewModeChange={noop}
+          progress={{current: 1, total: 5, percent: 20}}
+          diff={{
+            mode: diffMode,
+            onModeChange: noop,
+            overlayColor: '#f55459',
+            onOverlayColorChange: noop,
+            overlayOpacity: 50,
+            onOverlayOpacityChange: noop,
+          }}
+        />
+      </div>
+    ),
+    diffMode => ({tags: {area: 'snapshots', diffMode}})
+  );
 });

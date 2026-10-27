@@ -56,6 +56,7 @@ IPADMINI4 = "iPad mini 4"
 IPADMINIGEN5 = "iPad mini (5th generation)"
 IPADMINIGEN6 = "iPad mini (6th generation)"
 IPADMINIA17PRO = "iPad mini (A17 Pro)"
+IPADMINIA20PRO = "iPad mini (A20 Pro)"
 
 APPLEWATCHGEN1 = "Apple Watch (1st generation)"
 APPLEWATCHSERIES1 = "Apple Watch Series 1"
@@ -142,6 +143,10 @@ IOS_MODELS: dict[str, str] = {
     "iPhone18,3": "iPhone 17",
     "iPhone18,4": "iPhone Air",
     "iPhone18,5": "iPhone 17e",
+    "iPhone19,2": "iPhone 18 Pro",
+    "iPhone19,3": "iPhone 18 Pro Max",
+    "iPhone19,7": "iPhone 18 Pro Max",
+    "iPhone19,4": "iPhone Duo",
     # iPod Touch
     "iPod1,1": "iPod touch (1st generation)",
     "iPod2,1": "iPod touch (2nd generation)",
@@ -259,6 +264,8 @@ IOS_MODELS: dict[str, str] = {
     "iPad14,2": IPADMINIGEN6,
     "iPad16,1": IPADMINIA17PRO,
     "iPad16,2": IPADMINIA17PRO,
+    "iPad19,1": IPADMINIA20PRO,
+    "iPad19,2": IPADMINIA20PRO,
     # Apple Watch
     "Watch1,1": APPLEWATCHGEN1,
     "Watch1,2": APPLEWATCHGEN1,

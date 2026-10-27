@@ -1,19 +1,19 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import {Tag} from '@sentry/scraps/badge';
-import {Button} from '@sentry/scraps/button';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
+import {Footer} from '@sentry/scraps/menu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Activity} from 'sentry/types/group';
 import {GroupActivityType, PriorityLevel} from 'sentry/types/group';
@@ -21,6 +21,7 @@ import type {AvatarUser} from 'sentry/types/user';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {useNewIssuePriorityAndAssigneeUI} from 'sentry/utils/useNewIssuePriorityAndAssigneeUI';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 type GroupPriorityDropdownProps = {
@@ -44,6 +45,12 @@ const PRIORITY_KEY_TO_LABEL: Record<PriorityLevel, string> = {
 };
 
 const PRIORITY_OPTIONS = [PriorityLevel.HIGH, PriorityLevel.MEDIUM, PriorityLevel.LOW];
+
+const GROUP_PRIORITY_BARS: Record<PriorityLevel, 1 | 2 | 3> = {
+  [PriorityLevel.HIGH]: 3,
+  [PriorityLevel.MEDIUM]: 2,
+  [PriorityLevel.LOW]: 1,
+};
 
 function useLastEditedBy({
   groupId,
@@ -98,8 +105,7 @@ export function GroupPriorityBadge({
   showLabel = true,
   children,
 }: GroupPriorityBadgeProps) {
-  const bars =
-    priority === PriorityLevel.HIGH ? 3 : priority === PriorityLevel.MEDIUM ? 2 : 1;
+  const bars = GROUP_PRIORITY_BARS[priority];
   const label = PRIORITY_KEY_TO_LABEL[priority] ?? t('Unknown');
 
   return (
@@ -143,10 +149,14 @@ export function GroupPriorityDropdown({
   lastEditedBy,
   disabled = false,
 }: GroupPriorityDropdownProps) {
+  const shouldUseNewUI = useNewIssuePriorityAndAssigneeUI();
   const options: MenuItemProps[] = useMemo(
     () => makeGroupPriorityDropdownOptions({onChange}),
     [onChange]
   );
+  const tooltip = disabled
+    ? t('You cannot manually update the priority of a metric issue.')
+    : t('Update the priority of this issue.');
 
   return (
     <DropdownMenu
@@ -157,23 +167,35 @@ export function GroupPriorityDropdown({
         </Flex>
       }
       minMenuWidth={230}
-      trigger={(triggerProps, isOpen) => (
-        <DropdownButton
-          {...triggerProps}
-          aria-label={t('Modify issue priority')}
-          size="zero"
-          disabled={disabled}
-          tooltipProps={{
-            title: disabled
-              ? t('You cannot manually update the priority of a metric issue.')
-              : t('Update the priority of this issue.'),
-          }}
-        >
-          <GroupPriorityBadge showLabel={false} priority={value}>
-            <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" variant="muted" />
-          </GroupPriorityBadge>
-        </DropdownButton>
-      )}
+      trigger={(triggerProps, isOpen) =>
+        shouldUseNewUI ? (
+          <OverlayTrigger.IconButton
+            {...triggerProps}
+            aria-label={t(
+              'Modify issue priority: %s',
+              PRIORITY_KEY_TO_LABEL[value] ?? t('Unknown')
+            )}
+            disabled={disabled}
+            icon={<IconCellSignal bars={GROUP_PRIORITY_BARS[value]} />}
+            size="xs"
+            tooltipProps={{title: tooltip}}
+            variant="secondary"
+          />
+        ) : (
+          <DropdownButton
+            showChevron={false}
+            {...triggerProps}
+            aria-label={t('Modify issue priority')}
+            size="zero"
+            disabled={disabled}
+            tooltipProps={{title: tooltip}}
+          >
+            <GroupPriorityBadge showLabel={false} priority={value}>
+              <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" variant="muted" />
+            </GroupPriorityBadge>
+          </DropdownButton>
+        )
+      }
       items={options}
       menuFooter={
         <Fragment>
@@ -205,7 +227,7 @@ const StyledTag = styled(Tag)`
   overflow: hidden;
 `;
 
-const DropdownButton = styled(Button)`
+const DropdownButton = styled(OverlayTrigger.Button)`
   padding: 0;
   border-radius: ${p => p.theme.radius.full};
 
@@ -219,7 +241,7 @@ const InlinePlaceholder = styled(Placeholder)`
   vertical-align: middle;
 `;
 
-const StyledFooter = styled(DropdownMenuFooter)`
+const StyledFooter = styled(Footer)`
   max-width: 230px;
   display: block;
   width: 100%;

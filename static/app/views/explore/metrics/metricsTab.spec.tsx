@@ -12,10 +12,17 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
+import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
+import {decodeList} from 'sentry/utils/queryString';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {
+  defaultMetricQuery,
+  encodeMetricQueryParams,
+} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricsTabContent} from 'sentry/views/explore/metrics/metricsTab';
 import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {
@@ -53,6 +60,21 @@ const validationBody: EventValidationData = {
   valid: true,
 };
 
+const encodedBarMetric = encodeMetricQueryParams({
+  ...defaultMetricQuery(),
+  metric: {name: 'bar', type: 'distribution'},
+});
+
+const encodedP50BarMetric = JSON.stringify({
+  metric: {name: 'bar', type: 'distribution'},
+  query: '',
+  aggregateFields: [
+    new VisualizeFunction('p50(value,bar,distribution,none)').serialize(),
+  ],
+  aggregateSortBys: [],
+  mode: 'samples',
+});
+
 describe('MetricsTabContent', () => {
   const {
     organization,
@@ -66,7 +88,7 @@ describe('MetricsTabContent', () => {
     routerQuery: {
       start: '2025-04-10T14%3A37%3A55',
       end: '2025-04-10T20%3A04%3A51',
-      metric: ['bar||distribution'],
+      metric: [encodedBarMetric],
       title: 'Test Title',
     },
   });
@@ -80,9 +102,13 @@ describe('MetricsTabContent', () => {
     route: '/organizations/:orgId/explore/metrics/',
   };
 
+  const scrollIntoView = jest.fn();
+
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     trackAnalyticsMock.mockClear();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    resetMockDate();
     setupPageFilters();
 
     const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
@@ -173,7 +199,323 @@ describe('MetricsTabContent', () => {
     });
   });
 
-  it.isKnownFlake('should add a metric when Add Metric button is clicked', async () => {
+  it('edits panel transformations in the URL without changing other metrics', async () => {
+    const firstMetric = JSON.stringify({
+      metric: {name: 'bar', type: 'distribution'},
+      query: '',
+      aggregateFields: [
+        {yAxes: ['p50(value,bar,distribution,none)'], transformations: ['fill(locf)']},
+        {yAxes: ['p90(value,bar,distribution,none)'], transformations: ['fill(linear)']},
+        {groupBy: 'project'},
+      ],
+      aggregateSortBys: [],
+      mode: 'samples',
+    });
+    const otherMetric = JSON.stringify({
+      metric: {name: 'foo', type: 'counter'},
+      query: '',
+      aggregateFields: [
+        {yAxes: ['sum(value,foo,counter,none)'], transformations: ['smooth(asap)']},
+      ],
+      aggregateSortBys: [{field: 'sum(value,foo,counter,none)', kind: 'desc'}],
+      sortBys: [{field: 'timestamp', kind: 'desc'}],
+      mode: 'samples',
+    });
+    const {router} = render(
+      <MetricsTabContent datePageFilterProps={datePageFilterProps} />,
+      {
+        additionalWrapper: ProviderWrapper,
+        organization: {
+          ...organization,
+          features: [...organization.features, 'explore-interpolation-and-smoothing'],
+        },
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialLocation,
+            query: {...initialLocation.query, metric: [firstMetric, otherMetric]},
+          },
+        },
+      }
+    );
+
+    const firstPanel = screen.getAllByTestId('metric-panel')[0]!;
+    await userEvent.click(
+      within(firstPanel).getByRole('button', {name: 'Add Transformation'})
+    );
+    await userEvent.click(screen.getByRole('option', {name: 'Smooth'}));
+    await userEvent.click(within(firstPanel).getByRole('button', {name: 'Window Size'}));
+    await userEvent.click(screen.getByRole('option', {name: '4'}));
+
+    await waitFor(() => {
+      const encodedMetrics = decodeList(router.location.query.metric);
+      expect(JSON.parse(encodedMetrics[0]!)).toMatchObject({
+        aggregateFields: [
+          {
+            yAxes: ['p50(value,bar,distribution,none)'],
+            transformations: ['fill(locf)', 'smooth(sma,4)'],
+          },
+          {
+            yAxes: ['p90(value,bar,distribution,none)'],
+            transformations: ['fill(locf)', 'smooth(sma,4)'],
+          },
+          {groupBy: 'project'},
+        ],
+      });
+      expect(encodedMetrics[1]).toBe(otherMetric);
+    });
+
+    await userEvent.click(
+      within(firstPanel).getAllByRole('button', {name: 'Remove transformation'})[1]!
+    );
+    await userEvent.click(
+      within(firstPanel).getByRole('button', {name: 'Remove transformation'})
+    );
+    await waitFor(() => {
+      const encodedMetrics = decodeList(router.location.query.metric);
+      expect(JSON.parse(encodedMetrics[0]!)).toMatchObject({
+        aggregateFields: [
+          {yAxes: ['p50(value,bar,distribution,none)']},
+          {yAxes: ['p90(value,bar,distribution,none)']},
+          {groupBy: 'project'},
+        ],
+      });
+      expect(encodedMetrics[0]).not.toContain('transformations');
+      expect(encodedMetrics[1]).toBe(otherMetric);
+    });
+  });
+
+  it('disables saving when a later metric row has transformations', async () => {
+    render(<MetricsTabContent datePageFilterProps={datePageFilterProps} />, {
+      additionalWrapper: ProviderWrapper,
+      organization,
+      initialRouterConfig: {
+        ...initialRouterConfig,
+        location: {
+          ...initialLocation,
+          query: {
+            ...initialLocation.query,
+            metric: [
+              encodedBarMetric,
+              JSON.stringify({
+                metric: {name: 'bar', type: 'distribution'},
+                aggregateFields: [
+                  {
+                    yAxes: ['p50(value,bar,distribution,none)'],
+                    transformations: ['fill(locf)', 'smooth(sma,5)'],
+                  },
+                ],
+              }),
+            ],
+          },
+        },
+      },
+    });
+
+    expect(screen.getByRole('button', {name: 'Save as'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(
+      await within(screen.getAllByTestId('metric-toolbar')[1]!).findByRole('button', {
+        name: 'bar',
+      })
+    ).toBeInTheDocument();
+  });
+
+  it.each(['Add Metric', 'Add Equation'])(
+    'scrolls the new panel into view when %s is clicked',
+    async buttonName => {
+      render(
+        <ProviderWrapper>
+          <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+        </ProviderWrapper>,
+        {
+          initialRouterConfig,
+          organization,
+        }
+      );
+
+      expect(await screen.findAllByTestId('metric-panel')).toHaveLength(1);
+
+      await userEvent.click(screen.getAllByRole('button', {name: buttonName})[0]!);
+
+      await waitFor(() => {
+        expect(screen.getAllByTestId('metric-panel')).toHaveLength(2);
+      });
+      expect(scrollIntoView).toHaveBeenCalledTimes(1);
+      expect(scrollIntoView.mock.contexts[0]).toBe(
+        screen.getAllByTestId('metric-panel')[1]
+      );
+    }
+  );
+
+  describe('when another chart fetches new data', () => {
+    function renderWithTwoPanels() {
+      render(
+        <ProviderWrapper>
+          <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+        </ProviderWrapper>,
+        {
+          initialRouterConfig: {
+            ...initialRouterConfig,
+            location: {
+              ...initialLocation,
+              query: {
+                ...initialLocation.query,
+                metric: [encodedBarMetric, encodedP50BarMetric, encodedBarMetric],
+              },
+            },
+          },
+          organization,
+        }
+      );
+    }
+
+    async function changeLastPanelAggregate() {
+      await userEvent.click(screen.getAllByRole('button', {name: /Agg/})[2]!);
+      await userEvent.click(await screen.findByRole('option', {name: 'p75'}));
+    }
+
+    function getYAxesAfter(mock: jest.Mock, callCount: number) {
+      return mock.mock.calls
+        .slice(callCount)
+        .map(([, options]) => options.query.yAxis[0])
+        .sort();
+    }
+
+    it('refetches charts fetched in an earlier interval', async () => {
+      const timeseriesMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-timeseries/`,
+        method: 'GET',
+        body: {timeSeries: [TimeSeriesFixture()]},
+      });
+      renderWithTwoPanels();
+      expect(await screen.findAllByText(/data points/)).toHaveLength(3);
+      const initialCallCount = timeseriesMock.mock.calls.length;
+      setMockDate(Date.now() + 24 * 60 * 60 * 1000);
+
+      await changeLastPanelAggregate();
+
+      await waitFor(() =>
+        expect(getYAxesAfter(timeseriesMock, initialCallCount)).toEqual([
+          'p50(value,bar,distribution,none)',
+          'p75(value,bar,distribution,none)',
+          'sum(value)',
+        ])
+      );
+    });
+
+    it('refetches charts requested in an earlier interval when their responses arrived later', async () => {
+      const {promise: responsesReleased, resolve: releaseResponses} =
+        Promise.withResolvers<void>();
+      const timeseriesMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-timeseries/`,
+        method: 'GET',
+        asyncDelay: responsesReleased,
+        body: {timeSeries: [TimeSeriesFixture()]},
+      });
+      renderWithTwoPanels();
+      await waitFor(() => expect(timeseriesMock).toHaveBeenCalledTimes(2));
+      setMockDate(Date.now() + 24 * 60 * 60 * 1000);
+      releaseResponses();
+      expect(await screen.findAllByText(/data points/)).toHaveLength(3);
+
+      await changeLastPanelAggregate();
+
+      await waitFor(() =>
+        expect(getYAxesAfter(timeseriesMock, 2)).toEqual([
+          'p50(value,bar,distribution,none)',
+          'p75(value,bar,distribution,none)',
+          'sum(value)',
+        ])
+      );
+    });
+
+    it('refetches charts whose earlier requests were in flight when another chart fetched', async () => {
+      const {promise: responsesReleased, resolve: releaseResponses} =
+        Promise.withResolvers<void>();
+      const timeseriesMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-timeseries/`,
+        method: 'GET',
+        asyncDelay: responsesReleased,
+        body: {timeSeries: [TimeSeriesFixture()]},
+      });
+      renderWithTwoPanels();
+      await waitFor(() => expect(timeseriesMock).toHaveBeenCalledTimes(2));
+      setMockDate(Date.now() + 24 * 60 * 60 * 1000);
+
+      await changeLastPanelAggregate();
+      await waitFor(() => expect(timeseriesMock).toHaveBeenCalledTimes(3));
+      releaseResponses();
+
+      await waitFor(() =>
+        expect(getYAxesAfter(timeseriesMock, 2)).toEqual([
+          'p50(value,bar,distribution,none)',
+          'p75(value,bar,distribution,none)',
+          'sum(value)',
+        ])
+      );
+    });
+
+    it('refetches high accuracy charts fetched in an earlier interval', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-timeseries/`,
+        method: 'GET',
+        match: [MockApiClient.matchQuery({sampling: SAMPLING_MODE.NORMAL})],
+        body: (_url: string, options: {query: {yAxis: string[]}}) => {
+          const timeSeries = TimeSeriesFixture({yAxis: options.query.yAxis[0]});
+          return {
+            timeSeries: [
+              {...timeSeries, meta: {...timeSeries.meta, dataScanned: 'partial'}},
+            ],
+          };
+        },
+      });
+      const highAccuracyMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-timeseries/`,
+        method: 'GET',
+        match: [MockApiClient.matchQuery({sampling: SAMPLING_MODE.HIGH_ACCURACY})],
+        body: (_url: string, options: {query: {yAxis: string[]}}) => ({
+          timeSeries: [TimeSeriesFixture({yAxis: options.query.yAxis[0]})],
+        }),
+      });
+      renderWithTwoPanels();
+      await waitFor(() => expect(highAccuracyMock).toHaveBeenCalledTimes(2));
+      setMockDate(Date.now() + 24 * 60 * 60 * 1000);
+
+      await changeLastPanelAggregate();
+
+      await waitFor(() =>
+        expect(getYAxesAfter(highAccuracyMock, 2)).toEqual([
+          'p50(value,bar,distribution,none)',
+          'p75(value,bar,distribution,none)',
+          'sum(value)',
+        ])
+      );
+    });
+
+    it('does not refetch charts fetched in the current interval', async () => {
+      const timeseriesMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-timeseries/`,
+        method: 'GET',
+        body: {timeSeries: [TimeSeriesFixture()]},
+      });
+      renderWithTwoPanels();
+      expect(await screen.findAllByText(/data points/)).toHaveLength(3);
+      const initialCallCount = timeseriesMock.mock.calls.length;
+
+      await changeLastPanelAggregate();
+
+      await waitFor(() =>
+        expect(getYAxesAfter(timeseriesMock, initialCallCount)).toEqual([
+          'p75(value,bar,distribution,none)',
+        ])
+      );
+    });
+  });
+
+  it('prompts for an equation instead of loading when an added equation is empty', async () => {
     render(
       <ProviderWrapper>
         <MetricsTabContent datePageFilterProps={datePageFilterProps} />
@@ -183,48 +525,77 @@ describe('MetricsTabContent', () => {
         organization,
       }
     );
+    expect(await screen.findAllByTestId('metric-panel')).toHaveLength(1);
 
-    let toolbars = screen.getAllByTestId('metric-toolbar');
-    expect(toolbars).toHaveLength(1);
-    // have to wait for the response to load
-    await waitFor(() => {
-      // selects the first metric available - sorted alphanumerically
-      expect(within(toolbars[0]!).getByRole('button', {name: 'bar'})).toBeInTheDocument();
-    });
-    expect(screen.getAllByTestId('metric-panel')).toHaveLength(1);
+    await userEvent.click(screen.getAllByRole('button', {name: 'Add Equation'})[0]!);
 
-    let addButtons = screen.getAllByRole('button', {name: 'Add Metric'});
-    expect(addButtons[0]).toBeEnabled();
-
-    await userEvent.click(addButtons[0]!);
-
-    toolbars = await screen.findAllByTestId('metric-toolbar');
-    expect(toolbars).toHaveLength(2);
-    // copies the last metric as a starting point
-    expect(within(toolbars[1]!).getByRole('button', {name: 'bar'})).toBeInTheDocument();
-    expect(screen.getAllByTestId('metric-panel')).toHaveLength(2);
-
-    // change the second metric from bar to foo
-    await userEvent.click(within(toolbars[1]!).getByRole('button', {name: 'bar'}));
-    await userEvent.click(within(toolbars[1]!).getByRole('option', {name: 'foo'}));
-
-    const toolbar = await screen.findAllByTestId('metric-toolbar');
-
+    const equationPanel = within(await screen.findByTestId('equation-metric-panels'));
     expect(
-      await within(toolbar[1]!).findByRole('button', {
+      equationPanel.getByText('Enter an equation to see results')
+    ).toBeInTheDocument();
+    expect(
+      equationPanel.getByText('Enter an equation to see aggregates')
+    ).toBeInTheDocument();
+    expect(equationPanel.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+  });
+
+  it('copies the last edited metric when adding another metric', async () => {
+    render(
+      <ProviderWrapper>
+        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+      </ProviderWrapper>,
+      {
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              ...initialRouterConfig.location.query,
+              metric: [encodedBarMetric, encodedBarMetric],
+            },
+          },
+        },
+        organization,
+      }
+    );
+
+    expect(screen.getAllByTestId('metric-toolbar')).toHaveLength(2);
+    await waitFor(() => {
+      expect(
+        within(screen.getAllByTestId('metric-toolbar')[1]!).getByRole('button', {
+          name: 'bar',
+        })
+      ).toBeInTheDocument();
+    });
+
+    await userEvent.click(
+      within(screen.getAllByTestId('metric-toolbar')[1]!).getByRole('button', {
+        name: 'bar',
+      })
+    );
+    await userEvent.click(
+      within(screen.getAllByTestId('metric-toolbar')[1]!).getByRole('option', {
+        name: 'foo',
+      })
+    );
+    expect(
+      await within(screen.getAllByTestId('metric-toolbar')[1]!).findByRole('button', {
         name: 'foo',
       })
     ).toBeInTheDocument();
 
-    addButtons = screen.getAllByRole('button', {name: 'Add Metric'});
-    expect(addButtons[0]).toBeEnabled();
+    const addButton = screen.getAllByRole('button', {name: 'Add Metric'})[0]!;
+    expect(addButton).toBeEnabled();
+    await userEvent.click(addButton);
 
-    await userEvent.click(addButtons[0]!);
-
-    toolbars = await screen.findAllByTestId('metric-toolbar');
-    expect(toolbars).toHaveLength(3);
-    // copies the last metric as a starting point
-    expect(within(toolbars[2]!).getByRole('button', {name: 'foo'})).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getAllByTestId('metric-toolbar')).toHaveLength(3);
+    });
+    expect(
+      within(screen.getAllByTestId('metric-toolbar')[2]!).getByRole('button', {
+        name: 'foo',
+      })
+    ).toBeInTheDocument();
     expect(screen.getAllByTestId('metric-panel')).toHaveLength(3);
   });
 
@@ -245,25 +616,6 @@ describe('MetricsTabContent', () => {
     await waitFor(() => {
       expect(trackAnalyticsMock).toHaveBeenNthCalledWith(
         1,
-        'metrics.explorer.metadata',
-        expect.objectContaining({
-          organization,
-          metric_queries_count: 1,
-          metric_panels_with_filters_count: 0,
-          metric_panels_with_group_bys_count: 0,
-          datetime_selection: '--14d',
-          environment_count: 0,
-          has_exceeded_performance_usage_limit: false,
-          interval: '1h',
-          project_count: 1,
-          title: 'Test Title',
-        })
-      );
-    });
-
-    await waitFor(() => {
-      expect(trackAnalyticsMock).toHaveBeenNthCalledWith(
-        2,
         'metrics.explorer.panel.metadata',
         expect.objectContaining({
           panel_index: 0,
@@ -283,6 +635,25 @@ describe('MetricsTabContent', () => {
           interval: '1h',
           metric_name: 'bar',
           metric_type: 'distribution',
+        })
+      );
+    });
+
+    await waitFor(() => {
+      expect(trackAnalyticsMock).toHaveBeenNthCalledWith(
+        2,
+        'metrics.explorer.metadata',
+        expect.objectContaining({
+          organization,
+          metric_queries_count: 1,
+          metric_panels_with_filters_count: 0,
+          metric_panels_with_group_bys_count: 0,
+          datetime_selection: '--14d',
+          environment_count: 0,
+          has_exceeded_performance_usage_limit: false,
+          interval: '1h',
+          project_count: 1,
+          title: 'Test Title',
         })
       );
     });
@@ -478,6 +849,13 @@ describe('MetricsTabContent', () => {
   });
 
   it('should fire analytics with no metrics available', async () => {
+    // Use a router config with no pre-selected metric so the component starts with an empty selection.
+    const {metric: _metric, ...queryWithoutMetric} = initialLocation.query ?? {};
+    const noMetricRouterConfig = {
+      location: {...initialLocation, query: queryWithoutMetric},
+      route: '/organizations/:orgId/explore/metrics/',
+    };
+
     MockApiClient.clearMockResponses();
     setupPageFilters();
 
@@ -528,7 +906,7 @@ describe('MetricsTabContent', () => {
         <MetricsTabContent datePageFilterProps={datePageFilterProps} />
       </ProviderWrapper>,
       {
-        initialRouterConfig,
+        initialRouterConfig: noMetricRouterConfig,
         organization,
       }
     );
@@ -627,19 +1005,6 @@ describe('MetricsTabContent', () => {
       expect(parsedQuery.mode).toBe('aggregate');
     });
     expect(parsedQuery.aggregateFields).toContainEqual({groupBy: 'test.region'});
-  });
-
-  it('shows the Add Equation button', async () => {
-    render(
-      <ProviderWrapper>
-        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
-      </ProviderWrapper>,
-      {
-        organization,
-      }
-    );
-    expect(await screen.findAllByText('Add Metric')).toHaveLength(1);
-    expect(screen.getAllByText('Add Equation').length).toBeGreaterThan(0);
   });
 
   it('renders aggregate and equation panels in separate sections', async () => {
@@ -818,7 +1183,7 @@ describe('MetricsTabContent', () => {
     // Metric A should be disabled because it is referenced by the equation
     expect(
       within(toolbars[0]!).getByRole('button', {name: 'Delete Metric'})
-    ).toBeDisabled();
+    ).toHaveAttribute('aria-disabled', 'true');
 
     // Metric B should be enabled because it is not referenced by the equation
     expect(

@@ -4,16 +4,25 @@ import {mutationOptions} from '@tanstack/react-query';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-import {getEmotionRules} from 'sentry-test/utils';
 
 import type {FeedbackIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
+import type {
+  SeerRawResponse,
+  SeerRawResponseItem,
+} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
+import {
+  buildSeerMutationResult,
+  mapSeerResponseItem,
+} from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
 import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilderAI,
 } from 'sentry/components/searchQueryBuilder/context';
+import {ConfigStore} from 'sentry/stores/configStore';
 import * as analytics from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {GlobalFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {
@@ -29,22 +38,48 @@ const defaultProps = {
   searchSource: 'test',
 };
 
+const SELECTED_PROJECT_IDS = [1];
+
 const askSeerMutationOptions = mutationOptions({
-  mutationFn: async (_value: string) => {
-    return fetchMutation<{
-      queries: Array<{query: string}>;
-      status: string;
-      unsupported_reason: string | null;
-    }>({
-      url: '/organizations/org-slug/trace-explorer-ai/query/',
+  mutationFn: async (queryToSubmit: string) => {
+    const data = await fetchMutation<SeerRawResponse>({
+      url: getApiUrl('/organizations/$organizationIdOrSlug/search-agent/translate/', {
+        path: {organizationIdOrSlug: 'org-slug'},
+      }),
       method: 'POST',
-      data: {},
+      data: {
+        natural_language_query: queryToSubmit,
+        project_ids: SELECTED_PROJECT_IDS,
+      },
     });
+
+    return buildSeerMutationResult(data, SELECTED_PROJECT_IDS, response =>
+      mapSeerResponseItem(response, 'spans')
+    );
   },
 });
 
+function seerResponse(
+  responses: Array<Partial<SeerRawResponseItem>>,
+  unsupportedReason: string | null = null
+): SeerRawResponse {
+  return {
+    unsupported_reason: unsupportedReason,
+    responses: responses.map(response => ({
+      query: '',
+      sort: '',
+      group_by: [],
+      stats_period: '',
+      start: null,
+      end: null,
+      mode: 'spans',
+      ...response,
+    })),
+  };
+}
+
 const {organization} = initializeOrg({
-  organization: {features: ['gen-ai-features'], hideAiFeatures: false},
+  organization: {hideAiFeatures: false},
 });
 
 const feedbackIntegration = {
@@ -75,6 +110,8 @@ describe('AskSeerComboBox', () => {
     // Combobox announcements will pollute the test output if we don't clear them
     destroyAnnouncer();
 
+    ConfigStore.set('isSelfHosted', false);
+
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
@@ -83,14 +120,9 @@ describe('AskSeerComboBox', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/trace-explorer-ai/setup/',
+      url: '/organizations/org-slug/search-agent/translate/',
       method: 'POST',
-    });
-
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/trace-explorer-ai/query/',
-      method: 'POST',
-      body: {status: 'ok', queries: [{query: 'span.duration:>30s'}]},
+      body: seerResponse([{query: 'span.duration:>30s'}]),
     });
   });
 
@@ -168,7 +200,7 @@ describe('AskSeerComboBox', () => {
 
   it('shows a processing status while Seer is thinking', async () => {
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/trace-explorer-ai/query/',
+      url: '/organizations/org-slug/search-agent/translate/',
       method: 'POST',
       body: new Promise(() => {}),
     });
@@ -235,9 +267,9 @@ describe('AskSeerComboBox', () => {
   it('regenerates results when feedback is unavailable', async () => {
     const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
     const queryRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/trace-explorer-ai/query/',
+      url: '/organizations/org-slug/search-agent/translate/',
       method: 'POST',
-      body: {status: 'ok', queries: [{query: 'span.duration:>30s'}]},
+      body: seerResponse([{query: 'span.duration:>30s'}]),
     });
     render(
       <SearchQueryBuilderProvider {...defaultProps}>
@@ -352,13 +384,9 @@ describe('AskSeerComboBox', () => {
 
   it('shows a warning status when Seer returns an unsupported reason', async () => {
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/trace-explorer-ai/query/',
+      url: '/organizations/org-slug/search-agent/translate/',
       method: 'POST',
-      body: {
-        status: 'ok',
-        queries: [],
-        unsupported_reason: 'This query type is not supported yet',
-      },
+      body: seerResponse([], 'This query type is not supported yet'),
     });
 
     render(
@@ -388,9 +416,9 @@ describe('AskSeerComboBox', () => {
   it('middle-ellipsizes long query tokens', async () => {
     const longValue = '/api/0/organizations/{organization_id_or_slug}/events/';
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/trace-explorer-ai/query/',
+      url: '/organizations/org-slug/search-agent/translate/',
       method: 'POST',
-      body: {status: 'ok', queries: [{query: `message:${longValue}`}]},
+      body: seerResponse([{query: `message:${longValue}`}]),
     });
     render(
       <SearchQueryBuilderProvider {...defaultProps}>
@@ -412,40 +440,6 @@ describe('AskSeerComboBox', () => {
       await screen.findByText('/api/0…{organization_id_or_slug}/events/')
     ).toBeInTheDocument();
     expect(screen.queryByText(longValue)).not.toBeInTheDocument();
-  });
-
-  it('sizes parameter chips to their content', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/trace-explorer-ai/query/',
-      method: 'POST',
-      body: {
-        status: 'ok',
-        queries: [
-          {
-            query: 'span.duration:>30s',
-            groupBys: ['span.name', 'browser.name'],
-          },
-        ],
-      },
-    });
-    render(
-      <SearchQueryBuilderProvider {...defaultProps}>
-        <AskSeerComboBox
-          initialQuery=""
-          askSeerMutationOptions={askSeerMutationOptions}
-          applySeerSearchQuery={() => {}}
-        />
-      </SearchQueryBuilderProvider>,
-      {organization}
-    );
-
-    const input = await screen.findByRole('combobox', {
-      name: 'Ask Seer with Natural Language',
-    });
-    await userEvent.type(input, 'test{Enter}');
-
-    const groupBy = await screen.findByText('span.name');
-    expect(getEmotionRules(groupBy).join(' ')).toContain('width: fit-content');
   });
 
   it('does not show the legacy feedback option', async () => {
@@ -499,6 +493,13 @@ describe('AskSeerComboBox', () => {
       expect(applySeerSearchQuery).toHaveBeenCalledWith({
         key: '0-span.duration:>30s',
         query: 'span.duration:>30s',
+        sort: '',
+        groupBys: [],
+        statsPeriod: '',
+        start: null,
+        end: null,
+        mode: 'spans',
+        visualizations: [],
       })
     );
     expect(input).not.toHaveFocus();
@@ -548,7 +549,7 @@ describe('AskSeerComboBox', () => {
 
   it('renders the error actions and retries a failed Seer search', async () => {
     const queryRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/trace-explorer-ai/query/',
+      url: '/organizations/org-slug/search-agent/translate/',
       method: 'POST',
       statusCode: 500,
     });
@@ -583,7 +584,8 @@ describe('AskSeerComboBox', () => {
     await waitFor(() => expect(queryRequest).toHaveBeenCalledTimes(2));
   });
 
-  it('does not render if the organization does not have the gen-ai-features feature', () => {
+  it('does not render when self-hosted', () => {
+    ConfigStore.set('isSelfHosted', true);
     const {container} = render(
       <SearchQueryBuilderProvider {...defaultProps}>
         <AskSeerComboBox

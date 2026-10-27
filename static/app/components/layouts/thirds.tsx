@@ -9,8 +9,6 @@ import {
 } from '@sentry/scraps/layout';
 import {Tabs} from '@sentry/scraps/tabs';
 
-import {TopBar} from 'sentry/views/navigation/topBar';
-
 /**
  * Main container for a page.
  */
@@ -46,7 +44,7 @@ export function Header({noActionWrap, unified, ...props}: HeaderProps) {
         zero: noActionWrap ? 'minmax(0, 1fr) auto' : 'minmax(0, 1fr)',
         '3xl': 'minmax(0, 1fr) auto',
       }}
-      padding={{zero: 'md lg 0 lg', '3xl': 'lg xl 0 xl'}}
+      padding={{xl: 'md lg 0 lg', '3xl': 'lg xl 0 xl'}}
       borderBottom={unified ? 'none' : 'primary'}
       {...props}
     />
@@ -79,10 +77,6 @@ export function HeaderActions(props: {children: React.ReactNode}) {
   );
 }
 
-export function Title(props: {children: React.ReactNode}) {
-  return <TopBar.Slot name="title">{props.children}</TopBar.Slot>;
-}
-
 /**
  * Styled Tabs for use inside a Layout.Header component
  */
@@ -103,13 +97,13 @@ export function Body({noRowGap, ...props}: BodyProps) {
       alignContent="start"
       gap={noRowGap ? '0 2xl' : '2xl'}
       background="primary"
-      padding="lg xl"
+      padding={{xl: 'lg', '3xl': 'lg xl'}}
       {...props}
     />
   );
 }
 
-interface MainProps extends ContainerProps<'section'> {
+interface MainProps extends Omit<ContainerProps<'section'>, 'width'> {
   children: React.ReactNode;
   /**
    * Set the width of the main content.

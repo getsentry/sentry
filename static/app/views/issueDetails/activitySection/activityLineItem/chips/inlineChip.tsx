@@ -12,16 +12,6 @@ interface InlineChipProps {
   variant?: 'compactLeading' | 'constrained' | 'constrainedCompactLeading' | 'default';
 }
 
-interface ChipFrameProps {
-  children: React.ReactNode;
-  constrained?: boolean;
-  interactive?: boolean;
-  maxWidth?: React.CSSProperties['maxWidth'];
-  minWidth?: React.CSSProperties['minWidth'];
-  paddingLeft?: React.CSSProperties['paddingLeft'];
-  tone?: InlineChipProps['tone'];
-}
-
 export function InlineChip({
   children,
   interactive = false,
@@ -35,34 +25,15 @@ export function InlineChip({
     variant === 'compactLeading' || variant === 'constrainedCompactLeading';
 
   return (
-    <ChipFrame
-      constrained={constrained}
-      interactive={interactive}
-      maxWidth={constrained ? '100%' : undefined}
-      minWidth={constrained ? 0 : undefined}
-      paddingLeft={compactLeading ? theme.space.xs : undefined}
-      tone={tone}
-    >
-      {children}
-    </ChipFrame>
-  );
-}
-
-function ChipFrame({
-  children,
-  constrained,
-  interactive,
-  maxWidth,
-  minWidth,
-  paddingLeft,
-  tone,
-}: ChipFrameProps) {
-  return (
     <ChipFrameElement
       data-constrained={constrained ? true : undefined}
       data-interactive={interactive ? true : undefined}
       data-tone={tone}
-      style={{maxWidth, minWidth, paddingLeft}}
+      style={{
+        maxWidth: constrained ? '100%' : undefined,
+        minWidth: constrained ? 0 : undefined,
+        paddingLeft: compactLeading ? theme.space.xs : undefined,
+      }}
     >
       {children}
     </ChipFrameElement>

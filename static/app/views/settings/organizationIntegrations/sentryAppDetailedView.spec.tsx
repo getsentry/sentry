@@ -11,11 +11,6 @@ import {
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import SentryAppDetailedView from 'sentry/views/settings/organizationIntegrations/sentryAppDetailedView';
 
-const mockNavigate = jest.fn();
-jest.mock('sentry/utils/useNavigate', () => ({
-  useNavigate: () => mockNavigate,
-}));
-
 describe('SentryAppDetailedView', () => {
   const organization = OrganizationFixture({features: ['events']});
 
@@ -25,7 +20,7 @@ describe('SentryAppDetailedView', () => {
   });
 
   function renderSentryAppDetailedView({integrationSlug}: {integrationSlug: string}) {
-    render(<SentryAppDetailedView />, {
+    const renderResult = render(<SentryAppDetailedView />, {
       initialRouterConfig: {
         route: '/settings/:orgId/integrations/:integrationSlug/',
         location: {
@@ -35,21 +30,13 @@ describe('SentryAppDetailedView', () => {
       organization,
     });
     renderGlobalModal();
+    return renderResult;
   }
 
   describe('Published Sentry App', () => {
     let createRequest: jest.Mock;
     let deleteRequest: jest.Mock;
-    let sentryAppInteractionRequest: jest.Mock;
-
     beforeEach(() => {
-      sentryAppInteractionRequest = MockApiClient.addMockResponse({
-        url: '/sentry-apps/clickup/interaction/',
-        method: 'POST',
-        statusCode: 200,
-        body: {},
-      });
-
       MockApiClient.addMockResponse({
         url: '/sentry-apps/clickup/',
         body: {
@@ -110,18 +97,10 @@ describe('SentryAppDetailedView', () => {
     it('renders a published sentry app', async () => {
       renderSentryAppDetailedView({integrationSlug: 'clickup'});
 
-      expect(sentryAppInteractionRequest).toHaveBeenCalledWith(
-        '/sentry-apps/clickup/interaction/',
-        expect.objectContaining({
-          method: 'POST',
-          data: {
-            tsdbField: 'sentry_app_viewed',
-          },
-        })
-      );
-
       // Shows the Integration name and install status
-      expect(await screen.findByText('ClickUp')).toBeInTheDocument();
+      expect(
+        await screen.findByRole('heading', {name: 'ClickUp', level: 1})
+      ).toBeInTheDocument();
       expect(screen.getByText('Not Installed')).toBeInTheDocument();
       expect(screen.getByText(/Continuous Integration \(CI\)/)).toBeInTheDocument();
 
@@ -152,12 +131,6 @@ describe('SentryAppDetailedView', () => {
 
   describe('Internal Sentry App', () => {
     beforeEach(() => {
-      MockApiClient.addMockResponse({
-        url: '/sentry-apps/my-headband-washer-289499/interaction/',
-        method: 'POST',
-        statusCode: 200,
-        body: {},
-      });
       MockApiClient.addMockResponse({
         url: '/sentry-apps/my-headband-washer-289499/',
         body: {
@@ -207,10 +180,12 @@ describe('SentryAppDetailedView', () => {
     });
 
     it('should get redirected to Developer Settings', async () => {
-      renderSentryAppDetailedView({integrationSlug: 'my-headband-washer-289499'});
+      const {router} = renderSentryAppDetailedView({
+        integrationSlug: 'my-headband-washer-289499',
+      });
 
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenLastCalledWith(
+        expect(router.location.pathname).toBe(
           `/settings/${organization.slug}/developer-settings/my-headband-washer-289499/`
         );
       });
@@ -221,12 +196,6 @@ describe('SentryAppDetailedView', () => {
     let createRequest: jest.Mock;
 
     beforeEach(() => {
-      MockApiClient.addMockResponse({
-        url: '/sentry-apps/la-croix-monitor/interaction/',
-        method: 'POST',
-        statusCode: 200,
-        body: {},
-      });
       MockApiClient.addMockResponse({
         url: '/sentry-apps/la-croix-monitor/',
         body: {
@@ -286,7 +255,9 @@ describe('SentryAppDetailedView', () => {
     });
     it('shows the Integration name and install status', async () => {
       renderSentryAppDetailedView({integrationSlug: 'la-croix-monitor'});
-      expect(await screen.findByText('La Croix Monitor')).toBeInTheDocument();
+      expect(
+        await screen.findByRole('heading', {name: 'La Croix Monitor', level: 1})
+      ).toBeInTheDocument();
       expect(screen.getByText('Not Installed')).toBeInTheDocument();
     });
 
@@ -302,12 +273,6 @@ describe('SentryAppDetailedView', () => {
   describe('Unpublished Sentry App with Redirect Url', () => {
     let createRequest: jest.Mock;
     beforeEach(() => {
-      MockApiClient.addMockResponse({
-        url: '/sentry-apps/go-to-google/interaction/',
-        method: 'POST',
-        statusCode: 200,
-        body: {},
-      });
       MockApiClient.addMockResponse({
         url: '/sentry-apps/go-to-google/',
         body: {
@@ -360,7 +325,9 @@ describe('SentryAppDetailedView', () => {
     });
     it('shows the Integration name and install status', async () => {
       renderSentryAppDetailedView({integrationSlug: 'go-to-google'});
-      expect(await screen.findByText('Go to Google')).toBeInTheDocument();
+      expect(
+        await screen.findByRole('heading', {name: 'Go to Google', level: 1})
+      ).toBeInTheDocument();
       expect(screen.getByText('Not Installed')).toBeInTheDocument();
 
       // Shows the Accept & Install button

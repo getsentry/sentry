@@ -69,7 +69,12 @@ class PreprodArtifactRerunAnalysisEndpoint(PreprodArtifactEndpoint):
             cleanup_old_metrics(head_artifact)
         reset_artifact_data(head_artifact)
 
-        if not dispatch_taskbroker(head_artifact.project.id, organization.id, head_artifact_id):
+        if not dispatch_taskbroker(
+            head_artifact.project.id,
+            organization.id,
+            head_artifact_id,
+            organization_slug=organization.slug,
+        ):
             return Response(
                 {
                     "detail": f"Failed to queue analysis for artifact {head_artifact_id}",
@@ -147,7 +152,10 @@ class PreprodArtifactAdminRerunAnalysisEndpoint(Endpoint):
 
         organization = preprod_artifact.project.organization
         if not dispatch_taskbroker(
-            preprod_artifact.project.id, organization.id, preprod_artifact_id
+            preprod_artifact.project.id,
+            organization.id,
+            preprod_artifact_id,
+            organization_slug=organization.slug,
         ):
             return Response(
                 {
@@ -240,7 +248,12 @@ class PreprodArtifactAdminBatchRerunAnalysisEndpoint(Endpoint):
             cleanup_stats = cleanup_old_metrics(artifact)
             reset_artifact_data(artifact)
 
-            dispatched = dispatch_taskbroker(artifact.project.id, organization.id, artifact_id)
+            dispatched = dispatch_taskbroker(
+                artifact.project.id,
+                organization.id,
+                artifact_id,
+                organization_slug=organization.slug,
+            )
             if not dispatched:
                 artifact.refresh_from_db()
 

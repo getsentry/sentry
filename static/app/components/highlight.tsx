@@ -14,17 +14,12 @@ interface MultiHighlightProps {
    */
   caseSensitive?: boolean;
   className?: string;
-  /**
-   * Should highlighting be disabled?
-   */
-  disabled?: boolean;
 }
 
 export function MultiHighlight({
   caseSensitive,
   className,
   children,
-  disabled,
   terms,
 }: MultiHighlightProps) {
   const {validTerms, pattern} = useMemo(() => {
@@ -40,7 +35,7 @@ export function MultiHighlight({
     };
   }, [terms, caseSensitive]);
 
-  if (disabled || !pattern || typeof children !== 'string') {
+  if (!pattern || typeof children !== 'string') {
     return children;
   }
 

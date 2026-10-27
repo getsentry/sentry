@@ -155,7 +155,94 @@ describe('getValidOpsForFilter', () => {
   });
 });
 
+describe('getValidOpsForFilter comparison operators first', () => {
+  it('lists the comparison operators right after the basic ones', () => {
+    const fieldDefinition: FieldDefinition = {
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+      allowComparisonOperators: true,
+      comparisonOperatorsFirst: true,
+    };
+
+    const ops = getValidOpsForFilter({
+      filterToken: parseFilterToken('release:1.0'),
+      fieldDefinition,
+    });
+
+    expect(ops.slice(0, 7)).toEqual([
+      TermOperator.DEFAULT,
+      TermOperator.NOT_EQUAL,
+      TermOperator.GREATER_THAN_EQUAL,
+      TermOperator.LESS_THAN_EQUAL,
+      TermOperator.GREATER_THAN,
+      TermOperator.LESS_THAN,
+      TermOperator.EQUAL,
+    ]);
+    expect(ops).toEqual(expect.arrayContaining([TermOperator.CONTAINS]));
+  });
+
+  it('keeps the default order without the flag', () => {
+    const fieldDefinition: FieldDefinition = {
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+      allowComparisonOperators: true,
+    };
+
+    const ops = getValidOpsForFilter({
+      filterToken: parseFilterToken('release:1.0'),
+      fieldDefinition,
+    });
+
+    expect(ops.slice(0, 3)).toEqual([
+      TermOperator.DEFAULT,
+      TermOperator.NOT_EQUAL,
+      TermOperator.CONTAINS,
+    ]);
+  });
+});
+
+describe('getValidOpsForFilter regex operators', () => {
+  it('allows regex operators for string fields only when allowRegexOperators is true', () => {
+    const fieldDefinition: FieldDefinition = {
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    };
+    const filterToken = parseFilterToken('message:hello');
+
+    const allowed = getValidOpsForFilter({
+      filterToken,
+      fieldDefinition,
+      allowRegexOperators: true,
+    });
+    const notAllowed = getValidOpsForFilter({filterToken, fieldDefinition});
+
+    expect(allowed).toEqual(
+      expect.arrayContaining([TermOperator.MATCHES, TermOperator.DOES_NOT_MATCH])
+    );
+    expect(notAllowed).not.toEqual(expect.arrayContaining([TermOperator.MATCHES]));
+  });
+
+  it('does not allow regex operators for non-string effective value types', () => {
+    const fieldDefinition: FieldDefinition = {
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NUMBER,
+    };
+
+    expect(
+      getValidOpsForFilter({
+        filterToken: parseFilterToken('timesSeen:10'),
+        fieldDefinition,
+        allowRegexOperators: true,
+      })
+    ).not.toEqual(expect.arrayContaining([TermOperator.MATCHES]));
+  });
+});
+
 describe('escapeTagValueForSearch', () => {
+  it('quotes a value that starts with the regex delimiter', () => {
+    expect(escapeTagValueForSearch('//a//')).toBe('"//a//"');
+  });
+
   it('escapes unescaped asterisks', () => {
     expect(escapeTagValueForSearch('foo*bar')).toBe('foo\\*bar');
   });
@@ -166,10 +253,6 @@ describe('escapeTagValueForSearch', () => {
 
   it('preserves representable backslashes before escaped asterisks', () => {
     expect(escapeTagValueForSearch('foo\\\\*bar')).toBe('foo\\\\\\*bar');
-  });
-
-  it('preserves quoting when forced', () => {
-    expect(escapeTagValueForSearch('foo*bar', {forceQuote: true})).toBe('"foo\\*bar"');
   });
 
   it('respects allowArrayValue when disabled by the caller', () => {

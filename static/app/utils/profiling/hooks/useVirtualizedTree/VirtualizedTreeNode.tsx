@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 export class VirtualizedTreeNode<T> {
   node: T;
   parent: VirtualizedTreeNode<T> | null;

@@ -2,11 +2,13 @@ import uuid
 from hashlib import md5
 from typing import Any
 from unittest import mock
+from unittest.mock import patch
 
 import pytest
 from django.utils import timezone
 
 from sentry import nodestore
+from sentry.constants import MAX_TAG_VALUE_LENGTH
 from sentry.issue_detection.detectors.n_plus_one_db_span_detector import NPlusOneDBSpanDetector
 from sentry.issue_detection.detectors.span_first.run_detectors import run_span_first_detectors
 from sentry.issue_detection.detectors.span_first.span_first_utils import (
@@ -32,12 +34,16 @@ from sentry.spans.consumers.process_segments.message import (
     EVIDENCE_SPAN_DATA_KEYS,
     MAX_EVIDENCE_LIST_ITEMS,
     MAX_EVIDENCE_VALUE_LENGTH,
+    MAX_OCCURRENCE_BREADCRUMBS_BYTES,
+    MAX_OCCURRENCE_EXTRA_BYTES,
+    MAX_OCCURRENCE_TAGS_BYTES,
     MAX_SPAN_DATA_VALUE_LENGTH,
     MAX_SPAN_DESCRIPTION_LENGTH,
     OVERALL_MAX_EVIDENCE_SPANS,
     _bump_release_last_seen,
     _get_evidence_data_for_occurrence,
     _get_evidence_span_for_occurrence,
+    _trim_event_data_for_occurrence,
     _truncate_value_for_occurrence,
     _verify_compatibility,
     process_segment,
@@ -50,6 +56,7 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.issue_detection.experiments import exclude_experimental_detectors
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
+from sentry.utils.safe import get_json_bytes, strict_trim
 from tests.sentry.spans.consumers.process import build_mock_span
 
 DETECTORS_ENABLED_OPTION = "spans.process-segments.detect-performance-problems.detectors-enabled"
@@ -219,8 +226,7 @@ class TestSpansTask(TestCase):
         self.project.update_option("sentry:enable_auto_release_creation", False)
         spans = self.generate_basic_spans()
 
-        with self.feature("organizations:auto-release-creation"):
-            assert process_segment(spans)
+        assert process_segment(spans)
 
         Environment.objects.get(organization_id=self.organization.id, name="development")
         assert not Release.objects.filter(organization_id=self.organization.id).exists()
@@ -235,26 +241,17 @@ class TestSpansTask(TestCase):
         )
         spans = self.generate_basic_spans()
 
-        with self.feature("organizations:auto-release-creation"):
-            assert process_segment(spans)
+        assert process_segment(spans)
 
         assert ReleaseProject.objects.filter(release=release, project=self.project).exists()
         assert ReleaseProjectEnvironment.objects.filter(
             release_id=release.id, project_id=self.project.id
         ).exists()
 
-    def test_create_models_auto_creation_disabled_without_feature_flag(self) -> None:
-        self.project.update_option("sentry:enable_auto_release_creation", False)
-        spans = self.generate_basic_spans()
-        assert process_segment(spans)
-
-        assert Release.objects.filter(organization_id=self.organization.id).exists()
-
     def test_bump_release_last_seen_auto_creation_disabled(self) -> None:
         self.project.update_option("sentry:enable_auto_release_creation", False)
 
-        with self.feature("organizations:auto-release-creation"):
-            _bump_release_last_seen(self.project, "development", "1.0", timezone.now())
+        _bump_release_last_seen(self.project, "development", "1.0", timezone.now())
 
         assert not Release.objects.filter(organization_id=self.organization.id).exists()
 
@@ -605,6 +602,8 @@ def test_evidence_span_truncates_descriptions_and_data_separately() -> None:
                 "code.filepath": "F" * (MAX_SPAN_DATA_VALUE_LENGTH * 2),
                 "code.lineno": 42,  # non-strings pass through untouched
                 "db.system": "postgresql",  # not in the allowlist
+                "sentry.group": "0123456789abcdef",
+                "sentry.category": "db",
                 # The span schema allows any attribute to be an array or an object, so an
                 # allowlisted key is not guaranteed to hold a scalar.
                 "url": ["U" * (MAX_SPAN_DATA_VALUE_LENGTH * 2)] * (MAX_EVIDENCE_LIST_ITEMS * 2),
@@ -619,6 +618,9 @@ def test_evidence_span_truncates_descriptions_and_data_separately() -> None:
     assert "db.system" not in span["data"]
     assert len(span["data"]["url"]) == MAX_EVIDENCE_LIST_ITEMS
     assert {len(v) for v in span["data"]["url"]} == {MAX_SPAN_DATA_VALUE_LENGTH}
+    assert span["data"]["sentry.group"] == "0123456789abcdef"
+    assert span["data"]["sentry.category"] == "db"
+    assert span["data"]["hash"] == "abcdef0123456789"
     assert span["trace_id"] == "t" * 32
     # Raw `attributes` forms the bulk of a span's size and must not reach the occurrence
     assert "attributes" not in span
@@ -649,6 +651,258 @@ def test_truncate_value_for_occurrence_recurses_and_leaves_scalars_alone() -> No
     assert bounded["num_repeating_spans"] == "500"
     assert bounded["pattern_size"] == 3
     assert bounded["detector_id"] is None
+
+
+def test_trim_oversize_event_data() -> None:
+    event_data = {
+        "tags": [[f"dog_{i}", "very good"] for i in range(3000)],
+        "extra": {f"dog_{i}": "great" for i in range(3000)},
+        "breadcrumbs": {
+            "values": [{"type": "default", "message": "adopt don't shop"} for _ in range(500)]
+        },
+    }
+
+    original_tag_bytes = get_json_bytes(event_data["tags"])
+    original_extra_bytes = get_json_bytes(event_data["extra"])
+    original_breadcrumb_bytes = get_json_bytes(event_data["breadcrumbs"])
+
+    _trim_event_data_for_occurrence(event_data)
+
+    trimmed_tag_bytes = get_json_bytes(event_data["tags"])
+    trimmed_extra_bytes = get_json_bytes(event_data["extra"])
+    trimmed_breadcrumb_bytes = get_json_bytes(event_data["breadcrumbs"])
+
+    assert original_tag_bytes > MAX_OCCURRENCE_TAGS_BYTES
+    assert original_extra_bytes > MAX_OCCURRENCE_EXTRA_BYTES
+    assert original_breadcrumb_bytes > MAX_OCCURRENCE_BREADCRUMBS_BYTES
+
+    assert trimmed_tag_bytes <= MAX_OCCURRENCE_TAGS_BYTES
+    assert trimmed_extra_bytes <= MAX_OCCURRENCE_EXTRA_BYTES
+    assert trimmed_breadcrumb_bytes <= MAX_OCCURRENCE_BREADCRUMBS_BYTES
+
+
+def test_trim_event_data_caps_tag_values_by_character_count() -> None:
+    # Tag values are capped the way `set_tag` caps them, so that a value which survives here is
+    # identical to what the transaction pipeline would have stored. Measuring bytes instead would
+    # cut a non-ASCII value roughly six times shorter than an ASCII one.
+    event_data = {"tags": [["ascii", "x" * 5000], ["cyrillic", "ж" * 5000]]}
+
+    _trim_event_data_for_occurrence(event_data)
+
+    assert [len(value) for _, value in event_data["tags"]] == [
+        MAX_TAG_VALUE_LENGTH,
+        MAX_TAG_VALUE_LENGTH,
+    ]
+
+
+def test_trim_event_data_keeps_each_tag_whole() -> None:
+    tags1 = [[f"{'co_best_dogs'}_{i}", "maisey_charlie" * 4] for i in range(250)]
+    tags2 = [[f"{'co_best_dogs'}_{i}", "maisey_charlie" * 7] for i in range(250)]
+
+    for tag_set in [tags1, tags2]:
+        event_data = {"tags": tag_set}
+        orig_keys = dict(event_data["tags"]).keys()
+
+        _trim_event_data_for_occurrence(event_data)
+        trimmed_tags = event_data["tags"]
+
+        # The full set of tags is within the limit, and every tag which survived did so as a pair,
+        # with its key intact (values may still have been trimmed, but never all the way down to
+        # nothing)
+        assert get_json_bytes(trimmed_tags) <= MAX_OCCURRENCE_TAGS_BYTES
+        for tag in trimmed_tags:
+            assert len(tag) == 2
+            key, value = tag
+
+            assert key in orig_keys
+            assert value != ""
+
+        # The reason this is guaranteed is because we trim with the `treat_as_dict_entries` option
+        # set to True
+        assert trimmed_tags == strict_trim(
+            tag_set, MAX_OCCURRENCE_TAGS_BYTES, treat_as_dict_entries=True
+        )
+        # To see why this matters, consider what would happen if we didn't
+        naively_trimmed_tags = strict_trim(tag_set, MAX_OCCURRENCE_TAGS_BYTES)
+        # Without the opton set, we get a tag list with an extra, invalid tag at the end
+        assert len(naively_trimmed_tags) == len(trimmed_tags) + 1
+        assert trimmed_tags == naively_trimmed_tags[:-1]
+        # In both cases, that tag would be a bare key (not good)
+        extra_naively_trimmed_tag = naively_trimmed_tags[-1]
+        assert len(extra_naively_trimmed_tag) == 1
+        # With the first set of tags, we'd also end up with an invented key, because the key's value
+        # would be trimmed
+        if tag_set == tags1:
+            bare_extra_key = extra_naively_trimmed_tag[0]
+            assert bare_extra_key.endswith("...")
+            assert bare_extra_key not in orig_keys
+
+
+@pytest.mark.parametrize(
+    ("field_name", "value"),
+    [
+        ("event_id", "11212012123120120415201309082013"),
+        ("level", "warning"),
+        ("timestamp", "2012-12-31T11:21:33Z"),
+    ],
+)
+def test_trim_event_data_drops_corrupted_last_breadcrumb(field_name: str, value: str) -> None:
+    # Ensure that the second breadcrumb will get trimmed. Within the second breadcrumb, since all of
+    # the key fields have values which are longer than `http`, they'll be the ones to have their
+    # values chopped.
+    orig_breadcrumbs = {
+        "values": [
+            {"type": "default", "message": "dogs_are_great"},
+            {"type": "http", field_name: value},
+        ]
+    }
+    breadcrumb_byte_limit = get_json_bytes(orig_breadcrumbs) - 1
+
+    with (
+        patch.object(message_module, "MAX_OCCURRENCE_BREADCRUMBS_BYTES", breadcrumb_byte_limit),
+        patch.object(message_module.logger, "info") as mock_logger_info,
+    ):
+        # A naive trim leaves both breadcrumbs present, with the second one having a corrupted key
+        # field value
+        raw_trimmed_breadcrumbs = strict_trim(orig_breadcrumbs, breadcrumb_byte_limit)["values"]
+        assert len(raw_trimmed_breadcrumbs) == 2
+        assert "..." in raw_trimmed_breadcrumbs[1][field_name]
+
+        # Trimming using the helper, however, drops the second breadcrumb
+        event_data = {"breadcrumbs": orig_breadcrumbs}
+        _trim_event_data_for_occurrence(event_data)
+        assert event_data["breadcrumbs"]["values"] == [
+            {"type": "default", "message": "dogs_are_great"}
+        ]
+        mock_logger_info.assert_called_once_with(
+            "issue_detection.shim.breadcrumbs_dropped",
+            extra={"initial_count": 2, "final_count": 1},
+        )
+
+    # Now set the byte limit so that the key field doesn't have room to appear at all, and the
+    # behavior will be the same, with the corrupted breadcrumb dropped.
+    orig_breadcrumbs = {
+        "values": [
+            {"type": "default", "message": "dogs_are_great"},
+            {"type": "http", field_name: value},
+        ]
+    }
+    breadcrumb_byte_limit = get_json_bytes(orig_breadcrumbs) - len(value)
+
+    with (
+        patch.object(message_module, "MAX_OCCURRENCE_BREADCRUMBS_BYTES", breadcrumb_byte_limit),
+        patch.object(message_module.logger, "info") as mock_logger_info,
+    ):
+        # As before, both breadcrumbs are kept, but this time trimming removes the key field entirely
+        raw_trimmed_breadcrumbs = strict_trim(orig_breadcrumbs, breadcrumb_byte_limit)["values"]
+        assert len(raw_trimmed_breadcrumbs) == 2
+        assert field_name not in raw_trimmed_breadcrumbs[1]
+
+        # And as before, trimming using the helper drops the second breadcrumb
+        event_data = {"breadcrumbs": orig_breadcrumbs}
+        _trim_event_data_for_occurrence(event_data)
+        assert event_data["breadcrumbs"]["values"] == [
+            {"type": "default", "message": "dogs_are_great"}
+        ]
+        mock_logger_info.assert_called_once_with(
+            "issue_detection.shim.breadcrumbs_dropped",
+            extra={"initial_count": 2, "final_count": 1},
+        )
+
+
+@pytest.mark.parametrize(
+    ("field_name", "value"),
+    [
+        ("event_id", "11212012123120120415201309082013"),
+        ("level", "warning"),
+        ("timestamp", "2012-12-31T11:21:33Z"),
+    ],
+)
+def test_trim_event_data_keeps_last_breadcrumb_if_non_key_field_truncated(
+    field_name: str, value: str
+) -> None:
+    # Ensure that the second breadcrumb will get trimmed. Within the second breadcrumb, since all of
+    # the key fields have values which are longer than `http`, they'll be the ones to have their
+    # values chopped.
+    orig_breadcrumbs = {
+        "values": [
+            {
+                "type": "default",
+                "message": "dogs_are_great",
+            },
+            {
+                "type": "really_long_type_guaranteed_to_be_the_longest_value_in_the_breadcrumb",
+                field_name: value,
+            },
+        ]
+    }
+    breadcrumb_byte_limit = get_json_bytes(orig_breadcrumbs) - 1
+
+    with (
+        patch.object(message_module, "MAX_OCCURRENCE_BREADCRUMBS_BYTES", breadcrumb_byte_limit),
+        patch.object(message_module.logger, "info") as mock_logger_info,
+    ):
+        # A naive trim leaves both breadcrumbs present, with the second one having a trimmed non-key
+        # field but intact key field
+        raw_trimmed_breadcrumbs = strict_trim(orig_breadcrumbs, breadcrumb_byte_limit)["values"]
+        assert len(raw_trimmed_breadcrumbs) == 2
+        assert raw_trimmed_breadcrumbs[1][field_name] == value
+        assert "..." in raw_trimmed_breadcrumbs[1]["type"]
+
+        # Trimming using the helper keeps the second breadcrumb, because the trimmed field isn't a
+        # key field
+        event_data = {"breadcrumbs": orig_breadcrumbs}
+        _trim_event_data_for_occurrence(event_data)
+        assert event_data["breadcrumbs"]["values"] == [
+            {
+                "type": "default",
+                "message": "dogs_are_great",
+            },
+            {
+                "type": "really_long_type_guaranteed_to_be_the_longest_value_in_the_breadc...",
+                field_name: value,
+            },
+        ]
+        mock_logger_info.assert_not_called()
+
+    # Now set the byte limit so that the non-key field doesn't have room to appear at all, and the
+    # behavior will be the same, with both breadcrumbs kept
+    orig_breadcrumbs = {
+        "values": [
+            {
+                "type": "default",
+                "message": "dogs_are_great",
+            },
+            {
+                "type": "really_long_type_guaranteed_to_be_the_longest_value_in_the_breadcrumb",
+                field_name: value,
+            },
+        ]
+    }
+    breadcrumb_byte_limit = get_json_bytes(orig_breadcrumbs) - len(
+        "really_long_type_guaranteed_to_be_the_longest_value_in_the_breadcrumb"
+    )
+
+    with (
+        patch.object(message_module, "MAX_OCCURRENCE_BREADCRUMBS_BYTES", breadcrumb_byte_limit),
+        patch.object(message_module.logger, "info") as mock_logger_info,
+    ):
+        # As before, both breadcrumbs are kept, but this time trimming removes the non-key field
+        # entirely
+        raw_trimmed_breadcrumbs = strict_trim(orig_breadcrumbs, breadcrumb_byte_limit)["values"]
+        assert len(raw_trimmed_breadcrumbs) == 2
+        assert raw_trimmed_breadcrumbs[1][field_name] == value
+        assert "type" not in raw_trimmed_breadcrumbs
+
+        # And as before, trimming using the helper keeps the second breadcrumb because the omitted
+        # field wasn't a key field
+        event_data = {"breadcrumbs": orig_breadcrumbs}
+        _trim_event_data_for_occurrence(event_data)
+        assert event_data["breadcrumbs"]["values"] == [
+            {"type": "default", "message": "dogs_are_great"},
+            {field_name: value},
+        ]
+        mock_logger_info.assert_not_called()
 
 
 def test_evidence_stays_under_the_producer_message_limit() -> None:

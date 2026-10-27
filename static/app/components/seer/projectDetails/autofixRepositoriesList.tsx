@@ -1,8 +1,10 @@
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
 import {useInfiniteQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import seerConfigBug1 from 'getsentry-images/spot/seer-config-bug-1.svg';
 
 import {Button} from '@sentry/scraps/button';
+import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
@@ -11,11 +13,9 @@ import {Heading} from '@sentry/scraps/text';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {AddAutofixRepoModal} from 'sentry/components/seer/legacy/addAutofixRepoModal';
 import {AutofixRepositoriesItem} from 'sentry/components/seer/projectDetails/autofixRepositoriesItem';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconAdd} from 'sentry/icons/iconAdd';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -42,8 +42,7 @@ interface Props {
 const getTableHeaders = (organization: Organization): React.ReactNode[] => [
   <Flex key="connected-repositories" align="center" gap="md">
     {t('Connected Repositories')}
-    <QuestionTooltip
-      isHoverable
+    <InfoTip
       size="xs"
       title={tct(
         'Seer will only be able to see code from, and make PRs to, the repos connected here. The [link:GitHub integration] is required for Seer to access these repos.',

@@ -33,7 +33,7 @@ describe('AddToStartupProgramAction', () => {
     triggerAddToStartupProgramModal(modalProps);
 
     renderGlobalModal();
-    expect(await screen.findByTestId('balance')).toHaveTextContent('$0.00 owed');
+    expect(await screen.findByText('$0.00 owed')).toBeInTheDocument();
     expect(screen.getByText('Add to Startup Program')).toBeInTheDocument();
   });
 
@@ -44,7 +44,7 @@ describe('AddToStartupProgramAction', () => {
     });
 
     renderGlobalModal();
-    expect(await screen.findByTestId('balance')).toHaveTextContent('$30.00 credit');
+    expect(await screen.findByText('$30.00 credit')).toBeInTheDocument();
   });
 
   it('renders amount owed', async () => {
@@ -54,7 +54,7 @@ describe('AddToStartupProgramAction', () => {
     });
 
     renderGlobalModal();
-    expect(await screen.findByTestId('balance')).toHaveTextContent('$30.00 owed');
+    expect(await screen.findByText('$30.00 owed')).toBeInTheDocument();
   });
 
   it('has default values for credit amount and notes', async () => {
@@ -218,7 +218,7 @@ describe('AddToStartupProgramAction', () => {
     const submitButton = await screen.findByRole('button', {name: 'Submit'});
     await userEvent.click(submitButton);
 
-    expect(submitButton).toHaveTextContent('Submitting...');
+    expect(submitButton).toHaveAttribute('aria-busy', 'true');
     expect(submitButton).toBeDisabled();
     expect(screen.getByRole('spinbutton', {name: 'Credit Amount'})).toBeDisabled();
     expect(screen.getByRole('textbox', {name: 'Ticket URL'})).toBeDisabled();

@@ -3,9 +3,10 @@ from unittest.mock import Mock, patch
 import pytest
 import responses
 from django.core.handlers.wsgi import WSGIRequest
-from django.db import router, transaction
+from django.db import connections, router, transaction
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory, override_settings
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from rest_framework import status
 
@@ -20,7 +21,11 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.cell import override_cells
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.outbox import assert_no_webhook_payloads, assert_webhook_payloads_for_mailbox
+from sentry.testutils.outbox import (
+    assert_no_webhook_payloads,
+    assert_webhook_payloads_for_mailbox,
+    override_mailbox_bucket_count,
+)
 from sentry.testutils.silo import control_silo_test
 from sentry.types.cell import Cell
 
@@ -32,6 +37,12 @@ cell_config = (cell,)
 class GithubRequestParserTest(TestCase):
     factory = RequestFactory()
     path = reverse("sentry-integration-github-webhook")
+
+    def setUp(self) -> None:
+        super().setUp()
+        # One request never sends fast enough to earn a split. Pin the width so these
+        # assertions stay about which bucket a key lands in; repository 123 lands in 59.
+        self.enterContext(override_mailbox_bucket_count(64))
 
     def get_response(self, req: HttpRequest) -> HttpResponse:
         return HttpResponse(status=200, content="passthrough")
@@ -59,6 +70,33 @@ class GithubRequestParserTest(TestCase):
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
         response = parser.get_response()
         assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_cells(cell_config)
+    @responses.activate
+    def test_forwarding_reads_each_routing_table_once(self) -> None:
+        """Counting queries is the only way to catch a caller reintroducing a round
+        trip, since nothing about the response changes when it does."""
+        self.get_integration()
+        request = self.factory.post(
+            self.path,
+            data={"installation": {"id": "1"}, "repository": {"id": 123}},
+            content_type="application/json",
+            headers={"X-GITHUB-EVENT": GithubWebhookType.PUSH.value},
+        )
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+
+        with CaptureQueriesContext(connections[router.db_for_read(Integration)]) as queries:
+            response = parser.get_response()
+
+        assert response.status_code == status.HTTP_202_ACCEPTED
+
+        def reads_of(table: str) -> int:
+            return len([q for q in queries.captured_queries if f'FROM "{table}"' in q["sql"]])
+
+        assert reads_of("sentry_integration") == 1
+        assert reads_of("sentry_organizationintegration") == 1
+        assert reads_of("sentry_organizationmapping") == 1
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_cells(cell_config)
@@ -256,7 +294,7 @@ class GithubRequestParserTest(TestCase):
                 "installation": {"id": "1"},
                 "issue": {"id": "1"},
                 "action": "deleted",
-                "repository": {"id": "1"},
+                "repository": {"id": 1},
             },
             content_type="application/json",
             headers={"X-GITHUB-EVENT": GithubWebhookType.ISSUE.value},
@@ -270,7 +308,7 @@ class GithubRequestParserTest(TestCase):
         assert len(responses.calls) == 0
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"github:{integration.id}:issues",
+            mailbox_name=f"github:{integration.id}:1:issues",
             cell_names=[cell.name],
             destination_types={DestinationType.SENTRY_CELL: 1},
         )
@@ -280,6 +318,12 @@ class GithubRequestParserTest(TestCase):
 class GithubRequestParserMailboxBucketingTest(TestCase):
     factory = RequestFactory()
     path = reverse("sentry-integration-github-webhook")
+
+    def setUp(self) -> None:
+        super().setUp()
+        # One request never sends fast enough to earn a split. Pin the width so these
+        # assertions stay about which bucket a key lands in.
+        self.enterContext(override_mailbox_bucket_count(64))
 
     def get_response(self, req: HttpRequest) -> HttpResponse:
         return HttpResponse(status=200, content="passthrough")
@@ -340,10 +384,10 @@ class GithubRequestParserMailboxBucketingTest(TestCase):
 
         assert isinstance(response, HttpResponse)
         assert response.status_code == status.HTTP_202_ACCEPTED
-        # 35129377 % 100 = 77, event type appended for per-event-type isolation
+        # 35129377 % 64 = 33, event type appended for per-event-type isolation
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"github:{integration.id}:77:push",
+            mailbox_name=f"github:{integration.id}:33:push",
             cell_names=[cell.name],
         )
 
@@ -369,9 +413,9 @@ class GithubRequestParserMailboxBucketingTest(TestCase):
         check_run_parser = GithubRequestParser(
             request=check_run_request, response_handler=self.get_response
         )
-        assert push_parser.get_mailbox_identifier(
-            integration, {}
-        ) != check_run_parser.get_mailbox_identifier(integration, {})
+        assert str(push_parser.get_mailbox(integration, {})) != str(
+            check_run_parser.get_mailbox(integration, {})
+        )
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_cells(cell_config)
@@ -393,7 +437,7 @@ class GithubRequestParserMailboxBucketingTest(TestCase):
         # No event type header — identifier is repo-bucket only
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"github:{integration.id}:77",
+            mailbox_name=f"github:{integration.id}:33",
             cell_names=[cell.name],
         )
 
@@ -428,6 +472,12 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
 
     factory = RequestFactory()
     path = reverse("sentry-integration-github-webhook")
+
+    def setUp(self) -> None:
+        super().setUp()
+        # One request never sends fast enough to earn a split. Pin the width so these
+        # assertions stay about which bucket a key lands in.
+        self.enterContext(override_mailbox_bucket_count(64))
 
     def get_response(self, req: HttpRequest) -> HttpResponse:
         return HttpResponse(status=200, content="passthrough")
@@ -482,7 +532,7 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
         assert response.status_code == status.HTTP_202_ACCEPTED
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"github:{integration.id}:23:push",
+            mailbox_name=f"github:{integration.id}:59:push",
             cell_names=[cell.name],
         )
 
@@ -505,7 +555,7 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
         assert response.status_code == status.HTTP_202_ACCEPTED
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"github:{integration.id}:23",
+            mailbox_name=f"github:{integration.id}:59",
             cell_names=[cell.name],
         )
 
@@ -565,7 +615,7 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
         assert response.status_code == status.HTTP_202_ACCEPTED
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"github:{integration.id}:23:check_run",
+            mailbox_name=f"github:{integration.id}:59:check_run",
             cell_names=[cell.name],
         )
 
@@ -582,7 +632,7 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
         assert response.status_code == status.HTTP_202_ACCEPTED
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"github:{integration.id}:23:check_run",
+            mailbox_name=f"github:{integration.id}:59:check_run",
             cell_names=[cell.name],
         )
 
@@ -599,7 +649,7 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
         assert response.status_code == status.HTTP_202_ACCEPTED
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"github:{integration.id}:23:check_run",
+            mailbox_name=f"github:{integration.id}:59:check_run",
             cell_names=[cell.name],
         )
 
@@ -747,7 +797,7 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
         assert response.status_code == status.HTTP_202_ACCEPTED
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"github:{integration.id}:23:check_suite",
+            mailbox_name=f"github:{integration.id}:59:check_suite",
             cell_names=[cell.name],
         )
 
@@ -785,9 +835,8 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
     @patch("sentry.integrations.middleware.hybrid_cloud.parser.metrics")
     @override_options({SHED_INBOUND_KILLSWITCH: [{"integration_id": "12345"}]})
     def test_shed_condition_ignored_counted_once_per_webhook(self, mock_metrics: Mock) -> None:
-        """GitHub checks the shed twice per request: once ahead of its own counters and
-        again inside get_response_from_webhookpayload. An ignored condition is a property
-        of the config, so it must be counted per webhook, not per check."""
+        """GitHub consults the shed three times per request. An ignored condition is a
+        property of the config, so it is counted per webhook, not per check."""
         self.get_integration()
         request = self.factory.post(
             self.path,
@@ -1142,6 +1191,99 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
 
         assert isinstance(response, HttpResponse)
         assert response.status_code == status.HTTP_202_ACCEPTED
+        assert_no_webhook_payloads()
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_cells(cell_config)
+    @responses.activate
+    def test_drop_never_looks_up_the_integration(self) -> None:
+        """Asserted as "never called" rather than as a query count: not calling it is
+        what keeps the dropped majority of inbound webhooks off the queries."""
+        self.get_integration()
+        request = self.factory.post(
+            self.path,
+            data={"installation": {"id": "1"}, "repository": {"id": 123}},
+            content_type="application/json",
+            headers={"X-GITHUB-EVENT": "status"},
+        )
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+
+        with patch.object(
+            GithubRequestParser, "get_integration_from_request"
+        ) as mock_get_integration:
+            response = parser.get_response()
+
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert mock_get_integration.call_count == 0
+        assert_no_webhook_payloads()
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_cells(cell_config)
+    @responses.activate
+    def test_drops_unprocessed_event_with_no_integration(self) -> None:
+        """202 where the previous ordering returned 400. Neither path stored the payload,
+        so GitHub is just no longer told that a webhook we never process failed."""
+        request = self.factory.post(
+            self.path,
+            data={"installation": {"id": "does-not-exist"}, "repository": {"id": 123}},
+            content_type="application/json",
+            headers={"X-GITHUB-EVENT": "status"},
+        )
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+        response = parser.get_response()
+
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert_no_webhook_payloads()
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_cells(cell_config)
+    @responses.activate
+    @override_options({SHED_INBOUND_KILLSWITCH: [{"provider": "github"}]})
+    def test_provider_wide_shed_skips_the_routing_lookups(self) -> None:
+        """A condition naming no integration_id matches on the provider alone, so the
+        shed does not wait on lookups it has no use for."""
+        self.get_integration()
+        request = self.factory.post(
+            self.path,
+            data={"installation": {"id": "1"}, "repository": {"id": 123}},
+            content_type="application/json",
+            headers={"X-GITHUB-EVENT": GithubWebhookType.PUSH.value},
+        )
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+
+        with CaptureQueriesContext(connections[router.db_for_read(Integration)]) as queries:
+            response = parser.get_response()
+
+        assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
+        assert not [q for q in queries.captured_queries if 'FROM "sentry_integration"' in q["sql"]]
+        assert_no_webhook_payloads()
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_cells(cell_config)
+    @responses.activate
+    def test_integration_scoped_shed_still_applies(self) -> None:
+        """The narrow half of the killswitch needs the id, so it stays after the lookup."""
+        integration = self.get_integration()
+        request = self.factory.post(
+            self.path,
+            data={"installation": {"id": "1"}, "repository": {"id": 123}},
+            content_type="application/json",
+            headers={"X-GITHUB-EVENT": GithubWebhookType.PUSH.value},
+        )
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+
+        with override_options(
+            {
+                SHED_INBOUND_KILLSWITCH: [
+                    {"provider": "github", "integration_id": str(integration.id)}
+                ]
+            }
+        ):
+            response = parser.get_response()
+
+        assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
         assert_no_webhook_payloads()
 
 

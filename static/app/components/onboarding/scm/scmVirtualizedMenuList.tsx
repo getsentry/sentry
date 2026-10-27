@@ -19,7 +19,8 @@ import {isValidElement, type Ref, useEffect, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import {getInteractionModality} from '@react-aria/interactions';
 import {mergeRefs} from '@react-aria/utils';
-import {useVirtualizer} from '@tanstack/react-virtual';
+
+import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 
 const OPTION_HEIGHT = 36;
 const GROUP_HEADING_HEIGHT = 24;
@@ -101,14 +102,12 @@ interface ScmVirtualizedMenuListProps {
   innerProps?: React.HTMLAttributes<HTMLDivElement>;
   innerRef?: Ref<HTMLDivElement>;
   maxHeight?: number;
-  optionHeight?: number;
 }
 
 export function ScmVirtualizedMenuList({
   children,
   focusedOption,
   maxHeight = MAX_MENU_HEIGHT,
-  optionHeight = OPTION_HEIGHT,
   innerRef,
   innerProps,
 }: ScmVirtualizedMenuListProps) {
@@ -118,27 +117,26 @@ export function ScmVirtualizedMenuList({
   const combinedRef = mergeRefs(scrollRef, innerRef ?? null);
   const visibleOptionCount = Math.max(
     1,
-    Math.floor((maxHeight - MENU_PADDING * 2) / optionHeight)
+    Math.floor((maxHeight - MENU_PADDING * 2) / OPTION_HEIGHT)
   );
-  const alignedMaxHeight = visibleOptionCount * optionHeight + MENU_PADDING * 2;
+  const alignedMaxHeight = visibleOptionCount * OPTION_HEIGHT + MENU_PADDING * 2;
 
-  const virtualizer = useVirtualizer({
+  const {totalSize, virtualItems, virtualizer} = useVirtualRows({
     count: rows.length,
     getScrollElement: () => scrollRef.current,
     // Estimates only; rows are measured on mount below. Headings differ in
     // height from options, and an empty-label heading collapses to zero.
-    estimateSize: index => (rows[index]?.isHeading ? GROUP_HEADING_HEIGHT : optionHeight),
+    estimateSize: index =>
+      rows[index]?.isHeading ? GROUP_HEADING_HEIGHT : OPTION_HEIGHT,
     // Keep measurements attached to rows (not indices) when filtering shifts
     // the list.
     getItemKey: index => rows[index]?.key ?? index,
-    overscan: 5,
     paddingStart: MENU_PADDING,
     paddingEnd: MENU_PADDING,
     scrollPaddingStart: MENU_PADDING,
     scrollPaddingEnd: MENU_PADDING,
   });
 
-  const virtualItems = virtualizer.getVirtualItems();
   // react-select shares focused option identity with each Option child's data.
   // The focused DOM node may be virtualized out, so scroll by its row index.
   const focusedIndex = rows.findIndex(
@@ -167,7 +165,7 @@ export function ScmVirtualizedMenuList({
       {...innerProps}
       style={{maxHeight: alignedMaxHeight, overflowY: 'auto'}}
     >
-      <div style={{height: virtualizer.getTotalSize(), position: 'relative'}}>
+      <div style={{height: totalSize, position: 'relative'}}>
         {virtualItems.map(virtualRow => {
           const row = rows[virtualRow.index];
           return (

@@ -86,6 +86,25 @@ class DeliverSmartAssignmentResultTest(TestCase):
         self._assert_outcome(mock_metrics, "resolved")
 
     @patch(METRICS_PATH)
+    def test_resolves_at_prefixed_username(self, mock_metrics: MagicMock) -> None:
+        alice = self.create_user(username="alice")
+        self.create_member(user=alice, organization=self.organization)
+
+        self._deliver(
+            {
+                "candidates": [
+                    {
+                        "identifier": "@alice",
+                        "identifier_kind": "username",
+                    }
+                ]
+            }
+        )
+
+        assert self._extras()["predicted_assignee_user_ids"] == [alice.id]
+        self._assert_outcome(mock_metrics, "resolved")
+
+    @patch(METRICS_PATH)
     def test_records_run_duration_and_candidate_counts(self, mock_metrics: MagicMock) -> None:
         self.seer_run.update(last_triggered_at=timezone.now() - timedelta(seconds=30))
         alice = self.create_user(username="alice")
@@ -177,6 +196,27 @@ class DeliverSmartAssignmentResultTest(TestCase):
                 },
             ]
         }
+        self._deliver(result)
+
+        assert self._extras()["predicted_assignee_user_ids"] == [carol.id]
+        self._assert_outcome(mock_metrics, "resolved")
+
+    @patch(METRICS_PATH)
+    def test_email_kind_resolves_by_unverified_email(self, mock_metrics: MagicMock) -> None:
+        carol = self.create_user(email="carol@example.com")
+        self.create_member(user=carol, organization=self.organization)
+        self.create_useremail(user=carol, email="carol-secondary@example.com", is_verified=False)
+        result = {
+            "candidates": [
+                {
+                    "identifier": "carol-secondary@example.com",
+                    "identifier_kind": "email",
+                    "reason": "unlinked commit author",
+                    "confidence": "low",
+                },
+            ]
+        }
+
         self._deliver(result)
 
         assert self._extras()["predicted_assignee_user_ids"] == [carol.id]

@@ -1,242 +1,147 @@
-import {Component} from 'react';
-import isEqual from 'lodash/isEqual';
+import {useState} from 'react';
+import {useMutation} from '@tanstack/react-query';
 import omit from 'lodash/omit';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Relay} from 'sentry/types/relay';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
 
 import {createTrustedRelaysResponseError} from './createTrustedRelaysResponseError';
 import {Form} from './form';
 import {Modal} from './modal';
 
 type FormProps = React.ComponentProps<typeof Form>;
-type Values = FormProps['values'];
+export type Values = FormProps['values'];
 
 type Props = ModalRenderProps & {
-  api: Client;
+  getData: (values: Values, savedRelays: Relay[]) => {trustedRelays: Relay[]};
   onSubmitSuccess: (organization: Organization) => void;
   orgSlug: Organization['slug'];
   savedRelays: Relay[];
-};
-
-type State = {
-  disables: FormProps['disables'];
-  errors: FormProps['errors'];
-  isFormValid: boolean;
-  requiredValues: Array<keyof Values>;
   title: string;
-  values: Values;
+  btnSaveLabel?: string;
+  initialDisables?: FormProps['disables'];
+  initialValues?: Partial<Values>;
+  renderContent?: (form: React.ReactElement) => React.ReactElement;
 };
 
-export class ModalManager<
-  P extends Props = Props,
-  S extends State = State,
-> extends Component<P, S> {
-  state = this.getDefaultState();
+const REQUIRED_VALUES: Array<keyof Values> = ['name', 'publicKey'];
+const DEFAULT_VALUES: Values = {name: '', publicKey: '', description: ''};
 
-  componentDidMount() {
-    this.validateForm();
-  }
+export function ModalManager({
+  getData,
+  onSubmitSuccess,
+  orgSlug,
+  savedRelays,
+  title,
+  btnSaveLabel,
+  initialDisables = {},
+  initialValues = {},
+  renderContent,
+  ...modalProps
+}: Props) {
+  const [values, setValues] = useState<Values>({...DEFAULT_VALUES, ...initialValues});
+  const [errors, setErrors] = useState<FormProps['errors']>({});
+  const [disables] = useState<FormProps['disables']>(initialDisables);
+  const isFormValid = REQUIRED_VALUES.every(
+    field => !!values[field].replace(/\s/g, '') && !errors[field]
+  );
 
-  componentDidUpdate(_prevProps: Props, prevState: S) {
-    if (!isEqual(prevState.values, this.state.values)) {
-      this.validateForm();
-    }
-    if (
-      !isEqual(prevState.errors, this.state.errors) &&
-      Object.keys(this.state.errors).length > 0
-    ) {
-      this.setValidForm(false);
-    }
-  }
-
-  getDefaultState(): Readonly<S> {
-    return {
-      values: {name: '', publicKey: '', description: ''},
-      requiredValues: ['name', 'publicKey'],
-      errors: {},
-      disables: {},
-      isFormValid: false,
-      title: this.getTitle(),
-    } as Readonly<S>;
-  }
-
-  getTitle(): string {
-    return '';
-  }
-
-  getData(): {trustedRelays: Relay[]} {
-    // Child has to implement this
-    throw new Error('Not implemented');
-  }
-
-  getBtnSaveLabel(): string | undefined {
-    return undefined;
-  }
-
-  setValidForm(isFormValid: boolean) {
-    this.setState({isFormValid});
-  }
-
-  validateForm() {
-    const {values, requiredValues, errors} = this.state;
-
-    const isFormValid = requiredValues.every(
-      requiredValue =>
-        !!values[requiredValue].replace(/\s/g, '') && !errors[requiredValue]
-    );
-
-    this.setValidForm(isFormValid);
-  }
-
-  clearError(field: keyof Values) {
-    this.setState(prevState => ({
-      errors: omit(prevState.errors, field),
-    }));
-  }
-
-  handleErrorResponse(error: ReturnType<typeof createTrustedRelaysResponseError>) {
-    switch (error.type) {
-      case 'invalid-key':
-      case 'missing-key':
-        this.setState(prevState => ({
-          errors: {...prevState.errors, publicKey: error.message},
-        }));
-        break;
-      case 'empty-name':
-      case 'missing-name':
-        this.setState(prevState => ({
-          errors: {...prevState.errors, name: error.message},
-        }));
-        break;
-      default:
-        addErrorMessage(error.message);
-    }
-  }
-
-  handleChange = <F extends keyof Values>(field: F, value: Values[F]) => {
-    this.setState(prevState => ({
-      values: {
-        ...prevState.values,
-        [field]: value,
-      },
-      errors: omit(prevState.errors, field),
-    }));
-  };
-
-  handleSave = async () => {
-    const {onSubmitSuccess, closeModal, orgSlug, api} = this.props;
-
-    const trustedRelays = this.getData().trustedRelays.map(trustedRelay =>
-      omit(trustedRelay, ['created', 'lastModified'])
-    );
-
-    try {
-      const response = await api.requestPromise(
-        getApiUrl('/organizations/$organizationIdOrSlug/', {
+  const {mutate: save} = useMutation({
+    mutationFn: (trustedRelays: Array<Omit<Relay, 'created' | 'lastModified'>>) =>
+      fetchMutation<Organization>({
+        url: getApiUrl('/organizations/$organizationIdOrSlug/', {
           path: {organizationIdOrSlug: orgSlug},
         }),
-        {
-          method: 'PUT',
-          data: {trustedRelays},
-        }
-      );
+        method: 'PUT',
+        data: {trustedRelays},
+      }),
+    onSuccess: response => {
       onSubmitSuccess(response);
-      closeModal();
-    } catch (error: any) {
-      this.handleErrorResponse(createTrustedRelaysResponseError(error));
-    }
-  };
+      modalProps.closeModal();
+    },
+    onError: (error: any) => {
+      const relayError = createTrustedRelaysResponseError(error);
+      switch (relayError.type) {
+        case 'invalid-key':
+        case 'missing-key':
+          setErrors(prev => ({...prev, publicKey: relayError.message}));
+          break;
+        case 'empty-name':
+        case 'missing-name':
+          setErrors(prev => ({...prev, name: relayError.message}));
+          break;
+        default:
+          addErrorMessage(relayError.message);
+      }
+    },
+  });
 
-  handleValidate = (field: keyof Values) => () => {
-    const isFieldValueEmpty = !this.state.values[field].replace(/\s/g, '');
-
-    const fieldErrorAlreadyExist = this.state.errors[field];
-
-    if (isFieldValueEmpty && fieldErrorAlreadyExist) {
-      return;
-    }
-
-    if (isFieldValueEmpty && !fieldErrorAlreadyExist) {
-      this.setState(prevState => ({
-        errors: {
-          ...prevState.errors,
-          [field]: t('Field Required'),
-        },
-      }));
-      return;
-    }
-
-    if (!isFieldValueEmpty && fieldErrorAlreadyExist) {
-      this.clearError(field);
-    }
-  };
-
-  handleValidateKey = () => {
-    const {savedRelays} = this.props;
-    const {values, errors} = this.state;
-    const isKeyAlreadyTaken = savedRelays.find(
-      savedRelay => savedRelay.publicKey === values.publicKey
+  const handleSave = () => {
+    const trustedRelays = getData(values, savedRelays).trustedRelays.map(relay =>
+      omit(relay, ['created', 'lastModified'])
     );
+    save(trustedRelays);
+  };
+
+  const handleChange = <F extends keyof Values>(field: F, value: Values[F]) => {
+    setValues(prev => ({...prev, [field]: value}));
+    setErrors(prev => omit(prev, field) as FormProps['errors']);
+  };
+
+  const handleValidate = (field: keyof Values) => () => {
+    const isEmpty = !values[field].replace(/\s/g, '');
+    const hasError = !!errors[field];
+
+    if (isEmpty && !hasError) {
+      setErrors(prev => ({...prev, [field]: t('Field Required')}));
+    } else if (!isEmpty && hasError) {
+      setErrors(prev => omit(prev, field) as FormProps['errors']);
+    }
+  };
+
+  const handleValidateKey = () => {
+    const isKeyAlreadyTaken = savedRelays.find(r => r.publicKey === values.publicKey);
 
     if (isKeyAlreadyTaken && !errors.publicKey) {
-      this.setState({
-        errors: {
-          ...errors,
-          publicKey: t('Relay key already taken'),
-        },
-      });
+      setErrors(prev => ({...prev, publicKey: t('Relay key already taken')}));
       return;
     }
 
     if (errors.publicKey) {
-      this.setState({
-        errors: omit(errors, 'publicKey'),
-      });
+      setErrors(prev => omit(prev, 'publicKey') as FormProps['errors']);
     }
 
-    this.handleValidate('publicKey')();
+    handleValidate('publicKey')();
   };
 
-  getForm() {
-    const {values, errors, disables, isFormValid} = this.state;
-    return (
-      <Form
-        isFormValid={isFormValid}
-        onSave={this.handleSave}
-        onChange={this.handleChange}
-        onValidate={this.handleValidate}
-        onValidateKey={this.handleValidateKey}
-        errors={errors}
-        values={values}
-        disables={disables}
-      />
-    );
-  }
+  const form = (
+    <Form
+      isFormValid={isFormValid}
+      onSave={handleSave}
+      onChange={handleChange}
+      onValidate={handleValidate}
+      onValidateKey={handleValidateKey}
+      errors={errors}
+      values={values}
+      disables={disables}
+    />
+  );
 
-  getContent(): React.ReactElement {
-    return this.getForm();
-  }
+  const content = renderContent ? renderContent(form) : form;
 
-  render() {
-    const {title, isFormValid} = this.state;
-    const btnSaveLabel = this.getBtnSaveLabel();
-    const content = this.getContent();
-
-    return (
-      <Modal
-        {...this.props}
-        title={title}
-        onSave={this.handleSave}
-        btnSaveLabel={btnSaveLabel}
-        disabled={!isFormValid}
-        content={content}
-      />
-    );
-  }
+  return (
+    <Modal
+      {...modalProps}
+      title={title}
+      onSave={handleSave}
+      btnSaveLabel={btnSaveLabel}
+      disabled={!isFormValid}
+      content={content}
+    />
+  );
 }

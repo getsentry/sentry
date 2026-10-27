@@ -10,15 +10,18 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.apps import apps
 from django.db.models import Q
+from django.utils.functional import classproperty
 from redis.client import StrictRedis
 from sentry_redis_tools.clients import RedisCluster
+from sentry_sdk import traces
 
 from sentry import features
 from sentry.features.base import OrganizationFeature
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
 from sentry.utils import metrics
-from sentry.utils.tracing import set_span_data, set_span_tag, start_span
+from sentry.utils.registry import NoRegistrationExistsError
+from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import DetectorSettings
 
 if TYPE_CHECKING:
@@ -131,8 +134,9 @@ class GroupTypeRegistry:
     def get_visible(
         self, organization: Organization, actor: Any | None = None
     ) -> list[type[GroupType]]:
-        with start_span(
-            op="GroupTypeRegistry.get_visible", name="GroupTypeRegistry.get_visible"
+        with traces.start_span(
+            name="GroupTypeRegistry.get_visible",
+            attributes={"sentry.op": "GroupTypeRegistry.get_visible"},
         ) as span:
             released = [gt for gt in self.all() if gt.released]
             feature_to_grouptype: dict[str, type[GroupType]] = {}
@@ -153,11 +157,11 @@ class GroupTypeRegistry:
                         if gt.type_id not in seen:
                             seen.add(gt.type_id)
                             enabled.append(gt)
-            set_span_tag(span, "organization_id", organization.id)
-            set_span_tag(span, "has_batch_features", batch_features is not None)
-            set_span_tag(span, "released", released)
-            set_span_tag(span, "enabled", enabled)
-            set_span_data(span, "feature_to_grouptype", feature_to_grouptype)
+            span.set_attribute("organization_id", organization.id)
+            span.set_attribute("has_batch_features", batch_features is not None)
+            span.set_attribute("released", repr(released))
+            span.set_attribute("enabled", repr(enabled))
+            span.set_attribute("feature_to_grouptype", repr(feature_to_grouptype))
             return released + enabled
 
     def get_all_group_type_ids(self) -> set[int]:
@@ -262,7 +266,6 @@ class GroupType:
         3600, 60, 5
     )  # default 5 per hour, sliding window of 60 seconds
     notification_config: ClassVar[NotificationConfig] = NotificationConfig()
-    detector_settings: ClassVar[DetectorSettings | None] = None
     # Controls whether status change (i.e. resolved, regressed) workflow notifications are enabled.
     # Defaults to true to maintain the default workflow notification behavior as it exists for error group types.
     enable_status_change_workflow_notifications: ClassVar[bool] = True
@@ -275,6 +278,13 @@ class GroupType:
 
     # Controls whether Seer automation is always triggered for this group type.
     always_trigger_seer_automation: ClassVar[bool] = False
+
+    @classproperty
+    def detector_settings(cls) -> type[DetectorSettings] | None:
+        try:
+            return detector_settings_registry.get(cls.slug)
+        except NoRegistrationExistsError:
+            return None
 
     def __init_subclass__(cls: type[GroupType], **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
@@ -396,7 +406,7 @@ class PerformanceNPlusOneExperimentalGroupType(GroupType):
     category = GroupCategory.DB_QUERY.value
     noise_config = NoiseConfig()
     default_priority = PriorityLevel.LOW
-    released = False
+    released = True
 
 
 @dataclass(frozen=True)
@@ -451,7 +461,7 @@ class PerformanceNPlusOneAPICallsExperimentalGroupType(GroupType):
     category = GroupCategory.HTTP_CLIENT.value
     noise_config = NoiseConfig()
     default_priority = PriorityLevel.LOW
-    released = False
+    released = True
 
 
 @dataclass(frozen=True)
@@ -570,6 +580,7 @@ class QueryInjectionVulnerabilityGroupType(GroupType):
     slug = "query_injection_vulnerability"
     description = "Potential Query Injection Vulnerability"
     category = GroupCategory.DB_QUERY.value
+    released = True
     enable_auto_resolve = False
     enable_escalation_detection = False
     noise_config = NoiseConfig(ignore_limit=10)
@@ -659,7 +670,7 @@ class LLMDetectedExperimentalGroupTypeV2(GroupType):
     description = "LLM Detected Issue"
     category = GroupCategory.AI_DETECTED.value
     default_priority = PriorityLevel.MEDIUM
-    released = False
+    released = True
     enable_auto_resolve = False
     enable_escalation_detection = False
 

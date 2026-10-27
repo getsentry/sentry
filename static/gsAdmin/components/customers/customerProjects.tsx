@@ -1,3 +1,4 @@
+import {IconProject} from '@sentry/icons/project';
 import moment from 'moment-timezone';
 import {PlatformIcon} from 'platformicons';
 
@@ -5,10 +6,9 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
-import {IconProject} from 'sentry/icons';
+import {ResultGrid} from 'sentry/components/resultGrid';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-
-import {ResultGrid} from 'admin/components/resultGrid';
 
 type Props = {
   orgId: string;
@@ -20,26 +20,20 @@ export function CustomerProjects({orgId}: Props) {
       inPanel
       panelTitle="Projects"
       path={`/_admin/customers/${orgId}/`}
-      endpoint={`${getApiUrl('/organizations/$organizationIdOrSlug/projects/', {
+      endpoint={getApiUrl('/organizations/$organizationIdOrSlug/projects/', {
         path: {organizationIdOrSlug: orgId},
-      })}?statsPeriod=30d`}
-      method="GET"
-      defaultParams={{per_page: 10}}
+      })}
+      defaultParams={{per_page: 10, statsPeriod: '30d'}}
+      useQueryString={false}
       hasSearch
       columns={[
-        <th key="name">Project</th>,
-        <th key="status" style={{width: 150, textAlign: 'center'}}>
-          Status
-        </th>,
-        <th key="events" style={{width: 120, textAlign: 'center'}}>
-          Events (30d)
-        </th>,
-        <th key="created" style={{width: 150, textAlign: 'right'}}>
-          Created
-        </th>,
+        {key: 'name', label: 'Project'},
+        {key: 'status', label: 'Status', width: 150, align: 'center'},
+        {key: 'events', label: 'Events (30d)', width: 120, align: 'center'},
+        {key: 'created', label: 'Created', width: 150, align: 'right'},
       ]}
       columnsForRow={(row: any) => [
-        <td key="name">
+        <SimpleTable.RowCell key="name">
           <Flex align="center" gap="md">
             <PlatformIcon size={16} platform={row.platform ?? 'other'} />
             <LinkButton
@@ -54,16 +48,16 @@ export function CustomerProjects({orgId}: Props) {
               {row.slug}
             </Link>
           </Flex>
-        </td>,
-        <td key="status" style={{textAlign: 'center'}}>
+        </SimpleTable.RowCell>,
+        <SimpleTable.RowCell key="status" justify="center">
           {row.status}
-        </td>,
-        <td key="events" style={{textAlign: 'center'}}>
+        </SimpleTable.RowCell>,
+        <SimpleTable.RowCell key="events" justify="center">
           {row.stats.reduce((a: number, b: any) => a + b[1], 0).toLocaleString()}
-        </td>,
-        <td key="created" style={{textAlign: 'right'}}>
+        </SimpleTable.RowCell>,
+        <SimpleTable.RowCell key="created" justify="end">
           {moment(row.dateCreated).fromNow()}
-        </td>,
+        </SimpleTable.RowCell>,
       ]}
     />
   );

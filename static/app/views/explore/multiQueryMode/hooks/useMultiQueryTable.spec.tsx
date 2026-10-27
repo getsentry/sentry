@@ -1,9 +1,8 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {useLocation} from 'sentry/utils/useLocation';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
   useMultiQueryTableAggregateMode,
@@ -12,8 +11,6 @@ import {
 import {useReadQueriesFromLocation} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/components/pageFilters/usePageFilters');
 jest.mock('sentry/views/explore/multiQueryMode/locationUtils', () => {
   const actual = jest.requireActual('sentry/views/explore/multiQueryMode/locationUtils');
   return {
@@ -26,24 +23,18 @@ describe('useMultiQueryTable', () => {
   let mockNormalRequestUrl: jest.Mock;
 
   beforeEach(() => {
-    jest.mocked(useLocation).mockReturnValue(LocationFixture());
-
-    jest.mocked(usePageFilters).mockReturnValue({
-      isReady: true,
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      adjustments: {},
-      selection: {
+    PageFiltersStore.init();
+    PageFiltersStore.onInitializeUrlState(
+      PageFiltersFixture({
         datetime: {
           period: '14d',
           start: null,
           end: null,
           utc: false,
         },
-        environments: [],
         projects: [2],
-      },
-    });
+      })
+    );
     jest.clearAllMocks();
   });
 
@@ -88,15 +79,21 @@ describe('useMultiQueryTable', () => {
         ],
         method: 'GET',
       });
-      renderHookWithProviders(() =>
-        hook({
+      renderHookWithProviders(hook, {
+        initialProps: {
           enabled: true,
           groupBys: [],
           query: 'test value',
           sortBys: [],
           yAxes: [],
-        })
-      );
+        },
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
+            query: {},
+          },
+        },
+      });
 
       expect(mockNormalRequestUrl).toHaveBeenCalledTimes(1);
       expect(mockNormalRequestUrl).toHaveBeenCalledWith(

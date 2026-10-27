@@ -10,7 +10,7 @@ import {FormContext} from 'sentry/components/forms/formContext';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {t} from 'sentry/locale';
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
-import {METRIC_DETECTOR_FORM_FIELDS} from 'sentry/views/detectors/components/forms/metric/metricFormData';
+import {METRIC_DETECTOR_FORM_FIELDS} from 'sentry/views/detectors/components/forms/metric/metricFormFields';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
 import {ToolbarVisualizeAddChart} from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {DEFAULT_EQUATION_LABEL} from 'sentry/views/explore/metrics/constants';
@@ -131,6 +131,7 @@ function MetricsEquationVisualizeContent({
     let selectedQuery = metricQueries.find(q => q.label === selectedLabel);
     if (!selectedQuery && metricQueries.length > 0) {
       selectedQuery = metricQueries[0];
+      // oxlint-disable-next-line react/set-state-in-effect
       setSelectedLabel(selectedQuery?.label);
     }
 
@@ -165,6 +166,7 @@ function MetricsEquationVisualizeContent({
   const hasEquationRow = Boolean(equationQuery);
   useEffect(() => {
     if (!hasEquationRow) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setEquationReferencedLabels([]);
     }
   }, [hasEquationRow]);

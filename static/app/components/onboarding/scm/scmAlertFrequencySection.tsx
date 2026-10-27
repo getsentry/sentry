@@ -1,15 +1,16 @@
+import {IconInfo} from '@sentry/icons/info';
+
 import {Tag} from '@sentry/scraps/badge';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import type {TagVariant} from '@sentry/scraps/theme';
 
-import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {TagVariant} from 'sentry/utils/theme';
-import {type IssueAlertNotificationProps} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import {
   type AlertRuleOptions,
   RuleAction,
 } from 'sentry/views/projectInstall/issueAlertOptions';
+import {type IssueAlertNotificationProps} from 'sentry/views/projectInstall/messagingIntegrationTypes';
 
 import {ScmAlertFrequency} from './scmAlertFrequency';
 import type {ScmAnalyticsFlow} from './scmAnalyticsFlow';
@@ -42,12 +43,7 @@ export function ScmAlertFrequencySection({
 }: ScmAlertFrequencySectionProps) {
   const collapsible = analyticsFlow === 'project-creation';
 
-  // Notification options are irrelevant when the user opts out of alerts, so
-  // hide them for "create alerts later" (mirrors issueAlertOptions). Route the
-  // show/hide through the shared height tween: on the custom -> "set up later"
-  // switch the custom-threshold body collapses via its own ScmCollapsibleReveal,
-  // so snapping this block to null at the same time bounces the whole form.
-  // Animating its height keeps the shift smooth and anchored from the bottom.
+  // Animate alongside the custom threshold details to keep the form from jumping.
   const notificationOptions = (
     <ScmCollapsibleReveal
       open={alertRuleConfig.alertSetting !== RuleAction.CREATE_ALERT_LATER}

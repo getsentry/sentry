@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 import sentry_sdk
 from django.conf import settings
 from django.db import router, transaction
+from sentry_sdk import traces
 from taskbroker_client.retry import Retry
 from taskbroker_client.state import current_task
 
@@ -20,6 +21,7 @@ from sentry.reprocessing2 import buffered_delete_old_primary_hash
 from sentry.search.eap.occurrences.query_utils import build_group_id_in_filter
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
+from sentry.services.eventstore.reprocessing import reprocessing_store
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.process_buffer import buffer_incr
@@ -28,7 +30,6 @@ from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawne
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.utils.query import TaskBulkQueryState, task_run_batch_query
-from sentry.utils.tracing import start_span
 
 # Identifies this task in the self-chain idempotency guard.
 REPROCESS_GROUP_TASK_NAME = "reprocessing2.reprocess_group"
@@ -109,6 +110,33 @@ def reprocess_group(
 
     assert new_group_id is not None
 
+    # INC-2445 follow-up: To the best of our knowledge we still have quite some `reprocess_group` tasks running in parallel,
+    # this logic is intended to cull all but one. This is temporary to recover from a bad state and should be dead code after that.
+    if activation_id:
+        try:
+            page_owned = reprocessing_store.try_claim_page(
+                project_id=project_id,
+                group_id=group_id,
+                new_group_id=new_group_id,
+                state=query_state,
+                claimant=activation_id,
+            )
+        except Exception:
+            logger.warning("reprocessing2.page_claim.error", exc_info=True)
+            page_owned = True
+        if not page_owned:
+            logger.info(
+                "reprocessing2.page_claim.culled",
+                extra={
+                    "project_id": project_id,
+                    "group_id": group_id,
+                    "new_group_id": new_group_id,
+                    "query_state": query_state,
+                    "activation_id": activation_id,
+                },
+            )
+            return
+
     query_state, events = task_run_batch_query(
         filter=eventstore.Filter(project_ids=[project_id], group_ids=[group_id]),
         batch_size=settings.SENTRY_REPROCESSING_PAGE_SIZE,
@@ -137,7 +165,9 @@ def reprocess_group(
 
     for event in events:
         if max_events is None or max_events > 0:
-            with start_span(op="reprocess_event", name="reprocess_event"):
+            with traces.start_span(
+                name="reprocess_event", attributes={"sentry.op": "reprocess_event"}
+            ):
                 try:
                     reprocess_event(
                         project_id=project_id,

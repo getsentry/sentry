@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';

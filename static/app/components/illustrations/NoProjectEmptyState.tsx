@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import {css, keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Transition} from 'framer-motion';

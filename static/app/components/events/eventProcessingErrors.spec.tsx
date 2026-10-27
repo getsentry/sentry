@@ -47,10 +47,10 @@ describe('EventProcessingErrors', () => {
       expect(screen.getByText(/discarded invalid value/i)).toBeInTheDocument();
 
       // Check that the tooltip icon is present
-      expect(screen.getByTestId('more-information')).toBeInTheDocument();
+      expect(screen.getByRole('img', {name: 'More information'})).toBeInTheDocument();
 
       // Hover over the tooltip to show the documentation link
-      await userEvent.hover(screen.getByTestId('more-information'));
+      await userEvent.hover(screen.getByRole('img', {name: 'More information'}));
 
       // Wait for the tooltip content to appear and check for the link
       const tooltipLink = await screen.findByRole('link');
@@ -80,7 +80,7 @@ describe('EventProcessingErrors', () => {
     );
 
     expect(screen.getByText('Discarded invalid value')).toBeInTheDocument();
-    expect(screen.queryByTestId('more-information')).not.toBeInTheDocument();
+    expect(screen.queryByRole('img', {name: 'More information'})).not.toBeInTheDocument();
   });
 
   it('handles non-string values gracefully', () => {
@@ -105,6 +105,6 @@ describe('EventProcessingErrors', () => {
     );
 
     expect(screen.getByText('Discarded invalid value')).toBeInTheDocument();
-    expect(screen.queryByTestId('more-information')).not.toBeInTheDocument();
+    expect(screen.queryByRole('img', {name: 'More information'})).not.toBeInTheDocument();
   });
 });

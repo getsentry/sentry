@@ -73,7 +73,7 @@ export function UptimeDetectorFormDetectSection({step}: {step?: number}) {
             label={t('Interval')}
             defaultValue={60}
             flexibleControlStateSize
-            showHelpInTooltip={{isHoverable: true}}
+            showHelpInTooltip
             help={({model}) =>
               tct(
                 'The amount of time between each uptime check request. Selecting a period of [interval] means it will take at least [expectedFailureInterval] until you are notified of a failure. [link:Learn more].',
@@ -145,7 +145,7 @@ export function UptimeDetectorFormDetectSection({step}: {step?: number}) {
           <BooleanField
             name="traceSampling"
             label={t('Allow Sampling')}
-            showHelpInTooltip={{isHoverable: true}}
+            showHelpInTooltip
             help={tct(
               'Defer the sampling decision to a Sentry SDK configured in your application. Disable to prevent all span sampling. [link:Learn more].',
               {

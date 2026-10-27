@@ -35,12 +35,20 @@ export function IntegrationExternalUserMappings(props: Props) {
   const organization = useOrganization();
   const location = useLocation();
 
-  const BASE_FORM_ENDPOINT = getApiUrl(
-    '/organizations/$organizationIdOrSlug/external-users/',
-    {
-      path: {organizationIdOrSlug: organization.slug},
-    }
-  );
+  // An existing mapping is updated in place, so the id belongs in the path.
+  const getBaseFormEndpoint = (mapping?: ExternalActorMappingOrSuggestion) => {
+    const externalUserId = mapping && 'id' in mapping ? mapping.id : null;
+    return externalUserId
+      ? getApiUrl(
+          '/organizations/$organizationIdOrSlug/external-users/$externalUserId/',
+          {
+            path: {organizationIdOrSlug: organization.slug, externalUserId},
+          }
+        )
+      : getApiUrl('/organizations/$organizationIdOrSlug/external-users/', {
+          path: {organizationIdOrSlug: organization.slug},
+        });
+  };
   // We paginate on this query, since we're filtering by hasExternalTeams:true
   const {
     data,
@@ -136,15 +144,14 @@ export function IntegrationExternalUserMappings(props: Props) {
       };
     });
 
-  const openMembersModal = (mapping?: ExternalActorMappingOrSuggestion) => {
+  const openMembersModal = () => {
     openModal(modalProps => (
       <IntegrationExternalMappingForm
         {...modalProps}
         type="user"
         integration={integration}
-        getBaseFormEndpoint={() => BASE_FORM_ENDPOINT}
+        getBaseFormEndpoint={getBaseFormEndpoint}
         defaultOptions={defaultUserOptions}
-        mapping={mapping}
         onSubmitSuccess={handleSubmitSuccess}
       />
     ));
@@ -156,7 +163,7 @@ export function IntegrationExternalUserMappings(props: Props) {
         type="user"
         integration={integration}
         mappings={mappings()}
-        getBaseFormEndpoint={() => BASE_FORM_ENDPOINT}
+        getBaseFormEndpoint={getBaseFormEndpoint}
         defaultOptions={defaultUserOptions}
         onCreate={openMembersModal}
         onDelete={deleteMutation.mutate}

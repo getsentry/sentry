@@ -123,7 +123,6 @@ function InsightsSecondaryNavigationImpl() {
                 analyticsItemName="insights_crons"
                 trailingItems={
                   <Tooltip
-                    isHoverable
                     title={
                       <Fragment>
                         <Text as="p">{t('Crons now live under Monitors.')}</Text>
@@ -153,7 +152,6 @@ function InsightsSecondaryNavigationImpl() {
                   analyticsItemName="insights_uptime"
                   trailingItems={
                     <Tooltip
-                      isHoverable
                       title={
                         <Fragment>
                           <Text as="p">{t('Uptime now lives under Monitors.')}</Text>

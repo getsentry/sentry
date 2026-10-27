@@ -8,8 +8,6 @@ from django.test import RequestFactory
 
 from sentry.charts.types import ChartType
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
-from sentry.incidents.grouptype import MetricIssue
-from sentry.incidents.models.incident import Incident
 from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.integrations.slack.message_builder.discover import SlackDiscoverMessageBuilder
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
@@ -18,7 +16,6 @@ from sentry.integrations.slack.unfurl.explore import _build_heatmap_query, _heat
 from sentry.integrations.slack.unfurl.handlers import link_handlers, match_link
 from sentry.integrations.slack.unfurl.types import LinkType, UnfurlableUrl
 from sentry.models.dashboard_widget import DashboardWidgetDisplayTypes, DashboardWidgetTypes
-from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.search.eap.types import SupportedTraceItemType
 from sentry.snuba import discover, errors, transactions
 from sentry.testutils.cases import TestCase
@@ -26,9 +23,6 @@ from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
-from sentry.types.group import PriorityLevel
-from sentry.workflow_engine.migration_helpers.alert_rule import migrate_alert_rule
-from sentry.workflow_engine.models import IncidentGroupOpenPeriod
 
 pytestmark = [requires_snuba, pytest.mark.sentry_metrics]
 
@@ -229,29 +223,6 @@ class UnfurlTest(TestCase):
     def tearDown(self) -> None:
         self.frozen_time.stop()
 
-    def _wire_workflow_engine_for_incident(self, alert_rule, incident: Incident) -> None:
-        """
-        Wire up the workflow engine fixtures so that the /incidents/ endpoint
-        (which always routes through _get_workflow_engine) returns this incident.
-        """
-        _, _, _, detector, _, _, _, _ = migrate_alert_rule(alert_rule)
-        group = self.create_group(
-            project=self.project,
-            type=MetricIssue.type_id,
-            priority=PriorityLevel.HIGH,
-            first_seen=incident.date_started,
-        )
-        self.create_detector_group(detector=detector, group=group)
-        gop = GroupOpenPeriod.objects.get(group=group)
-        # Align the open period's date_started with the incident's so the chart's
-        # time-window query (which truncates to seconds via strftime) includes it.
-        gop.update(date_started=incident.date_started)
-        IncidentGroupOpenPeriod.objects.create(
-            group_open_period=gop,
-            incident_id=incident.id,
-            incident_identifier=incident.identifier,
-        )
-
     def test_unfurl_issues(self) -> None:
         min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
@@ -362,6 +333,58 @@ class UnfurlTest(TestCase):
         chart_data = mock_generate_chart.call_args[0][1]
         assert chart_data["seriesName"] == "count()"
         assert len(chart_data["stats"]["data"]) == INTERVALS_PER_DAY
+
+    @patch("sentry.integrations.slack.unfurl.discover.client.get")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_discover_without_fields_or_saved_query(
+        self, mock_generate_chart: MagicMock, api_mock: MagicMock
+    ) -> None:
+        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?project={self.project.id}&statsPeriod=24h"
+
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise AssertionError("Missing link_type/args")
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        with self.feature(["organizations:discover-basic"]):
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+
+        assert (
+            unfurls[url]
+            == SlackDiscoverMessageBuilder(title="Dashboards query", chart_url="chart-url").build()
+        )
+
+        assert len(mock_generate_chart.mock_calls) == 1
+        params = api_mock.call_args[1]["params"]
+        assert params.getlist("field") == []
+        assert params.getlist("name") == []
+        assert params.getlist("yAxis") == ["count()"]
+
+    @patch("sentry.integrations.slack.unfurl.discover.client.get")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_discover_top5_without_fields_or_saved_query(
+        self, mock_generate_chart: MagicMock, api_mock: MagicMock
+    ) -> None:
+        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?display=top5&project={self.project.id}&statsPeriod=24h"
+
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise AssertionError("Missing link_type/args")
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        with self.feature(["organizations:discover-basic"]):
+            link_handlers[link_type].fn(self.integration, links, self.user)
+
+        assert len(mock_generate_chart.mock_calls) == 1
+        assert api_mock.call_args[1]["params"].getlist("field") == []
 
     @patch(
         "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
@@ -887,9 +910,7 @@ class UnfurlTest(TestCase):
 
         assert (
             unfurls[url]
-            == SlackDiscoverMessageBuilder(
-                title=args["query"].get("name"), chart_url="chart-url"
-            ).build()
+            == SlackDiscoverMessageBuilder(title="Dashboards query", chart_url="chart-url").build()
         )
         assert len(mock_generate_chart.mock_calls) == 1
 
@@ -987,7 +1008,7 @@ class UnfurlTest(TestCase):
             version=2,
         )
         saved_query.set_projects([self.project.id])
-        api_mock.return_value.data = query
+        api_mock.return_value.data = {**query, "name": saved_query.name}
 
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?id={saved_query.id}&statsPeriod=24h"
         link_type, args = match_link(url)
@@ -1008,9 +1029,7 @@ class UnfurlTest(TestCase):
 
         assert (
             unfurls[url]
-            == SlackDiscoverMessageBuilder(
-                title=args["query"].get("name"), chart_url="chart-url"
-            ).build()
+            == SlackDiscoverMessageBuilder(title="Test query", chart_url="chart-url").build()
         )
 
         assert len(mock_generate_chart.mock_calls) == 1

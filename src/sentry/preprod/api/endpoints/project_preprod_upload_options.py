@@ -28,8 +28,16 @@ class ProjectPreprodUploadOptionsEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
 
     def get(self, request: Request, project: Project) -> Response:
+        requested = request.GET.get("usecase")
+        if requested is None:
+            usecase = UsecaseId.PREPROD
+        elif requested == "auto":
+            usecase = UsecaseId.PREPROD_SNAPSHOTS
+        else:
+            return Response({"detail": "Invalid usecase"}, status=400)
+
         organization = project.organization
-        session = get_session(UsecaseId.PREPROD, project)
+        session = get_session(usecase, project)
 
         path = reverse(
             "sentry-api-0-organization-objectstore",
@@ -44,6 +52,7 @@ class ProjectPreprodUploadOptionsEndpoint(ProjectEndpoint):
 
         options = ObjectstoreUploadOptions(
             url=url,
+            usecase=usecase.value,
             scopes=[
                 ("org", str(organization.id)),
                 ("project", str(project.id)),

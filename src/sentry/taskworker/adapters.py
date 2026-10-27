@@ -127,7 +127,7 @@ class ViewerContextHook:
         if raw:
             try:
                 ctx = ViewerContext.deserialize(orjson.loads(raw))
-            except (orjson.JSONDecodeError, TypeError, KeyError, AttributeError):
+            except (ValueError, TypeError, KeyError, AttributeError):
                 logger.exception("Failed to deserialize viewer context header")
         # Only `expected=True` when dispatch actually sent the header. That distinguishes
         # the noise case (system task with no VC, header genuinely absent) from the bug
@@ -142,28 +142,29 @@ class ViewerContextHook:
         return viewer_context_scope(ctx)
 
 
-_producer_local = threading.local()
+_producers: dict[str, SingletonProducer] = {}
+_producers_lock = threading.Lock()
 
 
 def make_producer(topic: str) -> SingletonProducer:
     """
     Producer factory for taskbroker-client.
 
-    Returns a thread-local KafkaProducer for the given topic, creating one
-    on first access.
+    Returns a process-wide KafkaProducer for the given topic, creating one
+    on first access. Producers are safe to share across threads, thus there's
+    no need for a threading.local instance.
     """
-    if not hasattr(_producer_local, "producers"):
-        _producer_local.producers = {}
+    with _producers_lock:
+        producer = _producers.get(topic)
+        if producer is None:
 
-    if topic not in _producer_local.producers:
+            def factory() -> KafkaProducer:
+                return get_arroyo_producer(f"sentry.taskworker.{topic}", topic)
 
-        def factory() -> KafkaProducer:
-            return get_arroyo_producer(f"sentry.taskworker.{topic}", topic)
-
-        _producer_local.producers[topic] = SingletonProducer(
-            factory, max_futures=options.get("taskworker.producer.max_futures")
-        )
-    return _producer_local.producers[topic]
+            producer = _producers[topic] = SingletonProducer(
+                factory, max_futures=options.get("taskworker.producer.max_futures")
+            )
+        return producer
 
 
 def _extract_metrics_config() -> tuple[str | None, int | None]:

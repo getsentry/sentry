@@ -8,10 +8,11 @@ from django.db.models import Q
 from django.utils import timezone as django_timezone
 from taskbroker_client.retry import Retry
 
-from sentry import analytics, options
+from sentry import analytics, features, options
 from sentry.analytics.events.issue_resolved import IssueResolvedEvent
 from sentry.api.helpers.group_index.update import get_current_release_version_of_group
 from sentry.constants import ObjectStatus
+from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
@@ -143,21 +144,13 @@ def get_resolutions_and_activity_data_for_groups(
                             # been released, there is no point in setting GroupResolution to
                             # be of type in_next_release but rather in_release would suffice
 
-                            date_order_q = Q(date_added__gt=current_release_obj.date_added) | Q(
-                                date_added=current_release_obj.date_added,
-                                id__gt=current_release_obj.id,
-                            )
-                            # Find the next release after the current_release_version
-                            # i.e. the release that resolves the issue
-                            resolved_in_release = (
-                                Release.objects.filter(
-                                    date_order_q,
-                                    projects=group.project,
-                                    organization_id=organization_id,
-                                )
-                                .extra(select={"sort": "COALESCE(date_released, date_added)"})
-                                .order_by("sort", "id")[:1]
-                                .get()
+                            resolved_in_release = Release.objects.get_next_release(
+                                group.project,
+                                current_release_obj,
+                                use_finalized_order=features.has(
+                                    "organizations:release-resolution-finalized-order",
+                                    group.project.organization,
+                                ),
                             )
                             resolution_params.update({"release": resolved_in_release})
                             activity_data.update({"version": resolved_in_release.version})
@@ -241,6 +234,19 @@ def sync_status_inbound(
     except Organization.DoesNotExist:
         return
 
+    installation = integration.get_installation(organization_id=organization_id)
+    if not hasattr(installation, "get_resolve_sync_action"):
+        return
+    try:
+        org_integration = installation.org_integration
+    except OrganizationIntegrationNotFound:
+        # The organization uninstalled the integration after this sync was queued.
+        logger.info(
+            "sync_status_inbound.organization_integration_missing",
+            extra={"integration_id": integration_id, "organization_id": organization_id},
+        )
+        return
+
     affected_groups = list(
         Group.objects.get_groups_by_external_issue(
             integration=integration, organizations=[organization], external_issue_key=issue_key
@@ -275,11 +281,7 @@ def sync_status_inbound(
         )
         return
 
-    installation = integration.get_installation(organization_id=organization_id)
-    if not (hasattr(installation, "get_resolve_sync_action") and installation.org_integration):
-        return
-
-    config = installation.org_integration.config
+    config = org_integration.config
     try:
         # This makes an API call.
         action = installation.get_resolve_sync_action(data)

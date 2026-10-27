@@ -5,7 +5,8 @@ from typing import Any
 from taskbroker_client.retry import Retry
 
 from sentry.auth import access
-from sentry.issues.action_log import ActionSource, GroupActionActor, action_context_scope
+from sentry.issues.action_log import ActionSource
+from sentry.issues.comments import create_comment
 from sentry.models.group import Group
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -31,9 +32,6 @@ def _get_user_from_email(group: Group, email: str) -> RpcUser | None:
 
 
 def process_inbound_email(mailfrom: str, group_id: int, payload: str) -> None:
-    from sentry.models.group import Group
-    from sentry.web.forms import NewNoteForm
-
     try:
         group = Group.objects.select_related("project").get(pk=group_id)
     except Group.DoesNotExist:
@@ -45,10 +43,14 @@ def process_inbound_email(mailfrom: str, group_id: int, payload: str) -> None:
         logger.warning("Inbound email from unknown address: %s", mailfrom)
         return
 
-    form = NewNoteForm({"text": payload})
-    if form.is_valid():
-        with action_context_scope(ActionSource.EMAIL, GroupActionActor.user(user.id)):
-            form.save(group, user)
+    text = payload.strip()
+    if not text or "\x00" in text:
+        return
+
+    # Email redelivery deduplicates without the API's one-hour window.
+    create_comment(
+        group=group, user=user, data={"text": text}, source=ActionSource.EMAIL, from_email=True
+    )
 
 
 class TemporaryEmailError(Exception):

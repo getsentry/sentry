@@ -64,22 +64,16 @@ export function getPythonInstallCodeBlock({
   };
 }
 
-export function getPythonAiocontextvarsCodeBlocks({
-  description,
-}: {
-  description?: React.ReactNode;
-} = {}): ContentBlock[] {
-  const defaultDescription = tct(
-    "If you're on Python 3.6, you also need the [code:aiocontextvars] package:",
-    {
-      code: <code />,
-    }
-  );
-
+export function getPythonAiocontextvarsCodeBlocks(): ContentBlock[] {
   return [
     {
       type: 'text',
-      text: description ?? defaultDescription,
+      text: tct(
+        "If you're on Python 3.6, you also need the [code:aiocontextvars] package:",
+        {
+          code: <code />,
+        }
+      ),
     },
     getPythonInstallCodeBlock({
       packageName: 'aiocontextvars',

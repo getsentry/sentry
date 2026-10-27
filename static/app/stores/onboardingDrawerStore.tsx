@@ -5,7 +5,7 @@ import type {StrictStoreDefinition} from './types';
 type ActivePanelType = Readonly<OnboardingDrawerKey | ''>;
 
 interface OnboardingDrawerStoreDefinition extends StrictStoreDefinition<ActivePanelType> {
-  close(hash?: string): void;
+  close(): void;
 
   open(panel: OnboardingDrawerKey): void;
   toggle(panel: OnboardingDrawerKey): void;
@@ -43,13 +43,8 @@ const storeConfig: OnboardingDrawerStoreDefinition = {
     }
   },
 
-  close(hash?: string) {
+  close() {
     this.state = '';
-
-    if (hash) {
-      window.location.hash = window.location.hash.replace(`#${hash}`, '');
-    }
-
     this.trigger(this.state);
   },
 

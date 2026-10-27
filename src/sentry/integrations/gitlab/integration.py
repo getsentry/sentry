@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import secrets
 from collections.abc import Mapping, MutableMapping
 from typing import Any
 from urllib.parse import urlparse
@@ -11,7 +12,7 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from rest_framework.fields import BooleanField, CharField, URLField
 
-from sentry import features
+from sentry import features, options
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.identity.gitlab.provider import GitlabIdentityProvider, get_oauth_data, get_user_info
 from sentry.identity.oauth2 import OAuth2ApiStep
@@ -22,9 +23,10 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.gitlab.constants import GITLAB_WEBHOOK_VERSION, GITLAB_WEBHOOK_VERSION_KEY
 from sentry.integrations.gitlab.types import GitLabIssueStatus
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.referrer_ids import GITLAB_PR_BOT_REFERRER
 from sentry.integrations.services.integration import integration_service
@@ -39,12 +41,15 @@ from sentry.integrations.source_code_management.repository import (
     RepositoryInfo,
     RepositoryIntegration,
 )
+from sentry.integrations.source_code_management.sync_repos import sync_repos_for_org
+from sentry.integrations.source_code_management.url import url_is_under
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.types import PipelineStepResult
 from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.shared_integrations.exceptions import (
@@ -58,14 +63,13 @@ from sentry.shared_integrations.exceptions import (
 from sentry.snuba.referrer import Referrer
 from sentry.users.models.identity import Identity
 from sentry.utils import metrics
-from sentry.utils.hashlib import sha1_text
 from sentry.utils.http import absolute_uri
 
 from .client import GitLabApiClient, GitLabSetupApiClient
 from .issue_sync import GitlabIssueSyncSpec
 from .issues import GitlabIssuesSpec
 from .repository import GitlabRepositoryProvider
-from .utils import parse_gitlab_blob_url
+from .utils import build_integration_external_id, parse_gitlab_blob_url
 
 logger = logging.getLogger("sentry.integrations.gitlab")
 
@@ -74,6 +78,20 @@ Connect your Sentry organization to an organization in your GitLab instance or g
 """
 
 FEATURES = [
+    FeatureDescription(
+        """
+        Get automated code reviews from Seer on your GitLab merge requests,
+        surfacing bugs and issues before they reach production.
+        """,
+        IntegrationFeatures.SEER_CONTEXT,
+    ),
+    FeatureDescription(
+        """
+        Let Seer's Autofix find the root cause of your Sentry issues and open a
+        merge request with the fix.
+        """,
+        IntegrationFeatures.SEER_CONTEXT,
+    ),
     FeatureDescription(
         """
         Track commits and releases (learn more
@@ -228,7 +246,12 @@ class GitlabIntegration(
             raise IntegrationConfigurationError(self.message_from_error(e)) from e
 
     def source_url_matches(self, url: str) -> bool:
-        return url.startswith("https://{}".format(self.model.metadata["domain_name"]))
+        # base_url carries the instance's path prefix, and the group path is what tells
+        # integrations on one instance apart. Installs from before October 2018 can
+        # store base_url with a trailing slash.
+        base_url = self.model.metadata["base_url"].rstrip("/")
+        group_path = self.model.metadata["domain_name"].partition("/")[2]
+        return url_is_under(url, f"{base_url}/{group_path}")
 
     def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         base_url = self.model.metadata["base_url"]
@@ -440,9 +463,6 @@ class GitlabIntegration(
                         unresolved_status=statuses["on_unresolve"],
                     )
 
-        # Check webhook version BEFORE updating config to determine if migration is needed
-        current_webhook_version = config.get(GITLAB_WEBHOOK_VERSION_KEY, 0)
-
         config.update(data)
 
         org_integration = integration_service.update_organization_integration(
@@ -452,12 +472,10 @@ class GitlabIntegration(
         if org_integration is not None:
             self.org_integration = org_integration
 
-        # Only update webhooks if the webhook version is outdated
-        if current_webhook_version < GITLAB_WEBHOOK_VERSION:
-            repository_service.schedule_update_gitlab_project_webhooks(
-                integration_id=self.model.id,
-                organization_id=self.organization_id,
-            )
+        repository_service.schedule_update_gitlab_project_webhooks(
+            integration_id=self.model.id,
+            organization_id=self.organization_id,
+        )
 
     # CommitContextIntegration methods
 
@@ -549,7 +567,7 @@ class GitlabPRCommentWorkflow(PRCommentWorkflow):
 
 class InstallationConfigSerializer(CamelSnakeSerializer):
     url = URLField(required=False, default="https://gitlab.com")
-    group = CharField(required=False, allow_blank=True, default="")
+    group = CharField(required=True, allow_blank=False)
     include_subgroups = BooleanField(required=False, default=False)
     verify_ssl = BooleanField(required=False, default=True)
     client_id = CharField(required=True)
@@ -626,6 +644,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
     integration_cls = GitlabIntegration
 
     needs_default_identity = True
+    reject_pending_deletion_reinstall = True
 
     features = frozenset(
         [
@@ -635,6 +654,29 @@ class GitlabIntegrationProvider(IntegrationProvider):
             IntegrationFeatures.CODEOWNERS,
         ]
     )
+
+    def post_install(
+        self,
+        integration: Integration,
+        organization: RpcOrganization,
+        *,
+        extra: dict[str, Any],
+    ) -> None:
+        if not options.get("gitlab.webhook-update-on-install.enabled"):
+            return
+
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=organization.id, integration_id=integration.id
+        )
+        # Discover and relink repositories without waiting for the daily sync cycle.
+        sync_repos_for_org.delay(organization_integration_id=org_integration.id)
+
+        # A recent settings save must not suppress repair of retained hooks on reinstall.
+        repository_service.schedule_update_gitlab_project_webhooks(
+            organization_id=organization.id,
+            integration_id=integration.id,
+            force=True,
+        )
 
     def get_group_info(self, access_token, installation_data):
         client = GitLabSetupApiClient(
@@ -686,6 +728,15 @@ class GitlabIntegrationProvider(IntegrationProvider):
             lambda: self._make_oauth_api_step(),
         ]
 
+    def _get_external_id(self, hostname: str, group_id: int) -> str:
+        """
+        Each organization gets its own integration.
+        The external_id is embedded in the webhook token, which is how inbound hooks find
+        their integration.
+        """
+        assert self.pipeline.organization is not None
+        return build_integration_external_id(hostname, group_id, self.pipeline.organization.id)
+
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         data = state["oauth_data"]
 
@@ -701,37 +752,58 @@ class GitlabIntegrationProvider(IntegrationProvider):
         scopes = sorted(GitlabIdentityProvider.oauth_scopes)
         base_url = state["installation_data"]["url"]
 
-        if state["installation_data"].get("group"):
-            group = self.get_group_info(data["access_token"], state["installation_data"])
-            include_subgroups = state["installation_data"]["include_subgroups"]
-        else:
-            group = {}
-            include_subgroups = False
+        # Guard against a missing group in the pipeline, we need this to
+        # properly key integrations.
+        if not state["installation_data"].get("group"):
+            raise IntegrationError("A GitLab group is required to install this integration.")
+
+        group = self.get_group_info(data["access_token"], state["installation_data"])
+        include_subgroups = state["installation_data"]["include_subgroups"]
 
         hostname = urlparse(base_url).netloc
         verify_ssl = state["installation_data"]["verify_ssl"]
 
-        # Generate a hash to prevent stray hooks from being accepted
-        # use a consistent hash so that reinstalls/shared integrations don't
-        # rotate secrets.
-        secret = sha1_text("".join([hostname, state["installation_data"]["client_id"]]))
+        group_id = group["id"]
+        if not group_id or not isinstance(group_id, int):
+            raise IntegrationError("Malformed group provided")
+
+        assert self.pipeline.organization is not None
+        legacy_external_id = f"{hostname}:{group_id}"
+        if OrganizationIntegration.objects.filter(
+            organization_id=self.pipeline.organization.id,
+            integration__provider=self.key,
+            integration__external_id=legacy_external_id,
+        ).exists():
+            raise IntegrationError(
+                _(
+                    "This GitLab integration cannot be reinstalled in its current format. "
+                    "Remove the existing integration before installing it again. "
+                    "We apologize for the inconvenience. Please contact Sentry Support "
+                    "if you need help."
+                )
+            )
+
+        external_id = self._get_external_id(hostname, group_id)
+
+        # Hooks on GitLab outlive the org integration that created them, so the
+        # secret has to survive a reinstall. No status filter: a disabled row still
+        # owns hooks carrying its secret.
+        existing = Integration.objects.filter(provider=self.key, external_id=external_id).first()
+        webhook_secret = existing.metadata.get("webhook_secret") if existing else None
+        if not webhook_secret:
+            webhook_secret = secrets.token_hex(20)
 
         return {
-            "name": group.get("full_name", hostname),
-            # Splice the gitlab host and project together to
-            # act as unique link between a gitlab instance, group + sentry.
-            # This value is embedded then in the webhook token that we
-            # give to gitlab to allow us to find the integration a hook came
-            # from.
-            "external_id": "{}:{}".format(hostname, group.get("id", "_instance_")),
+            "name": group["full_name"],
+            "external_id": external_id,
             "metadata": {
                 "icon": group.get("avatar_url"),
                 "instance": hostname,
-                "domain_name": "{}/{}".format(hostname, group.get("full_path", "")).rstrip("/"),
+                "domain_name": "{}/{}".format(hostname, group["full_path"]).rstrip("/"),
                 "scopes": scopes,
                 "verify_ssl": verify_ssl,
                 "base_url": base_url,
-                "webhook_secret": secret.hexdigest(),
+                "webhook_secret": webhook_secret,
                 "group_id": group.get("id"),
                 "include_subgroups": include_subgroups,
             },

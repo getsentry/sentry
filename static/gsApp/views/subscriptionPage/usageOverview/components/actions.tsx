@@ -1,15 +1,26 @@
-import {Button, LinkButton} from '@sentry/scraps/button';
-import {Flex, useResponsivePropValue} from '@sentry/scraps/layout';
+import {IconDownload} from '@sentry/icons/download';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconTable} from '@sentry/icons/table';
 
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {IconDownload, IconEllipsis, IconTable} from 'sentry/icons';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {Flex, useResponsivePropValue} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
 import {useCurrentBillingHistory} from 'getsentry/hooks/useCurrentBillingHistory';
+import type {Subscription} from 'getsentry/types';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
-export function UsageOverviewActions({organization}: {organization: Organization}) {
+export function UsageOverviewActions({
+  organization,
+  subscription,
+}: {
+  organization: Organization;
+  subscription: Subscription;
+}) {
   const shouldCollapseActions = useResponsivePropValue({zero: true, xl: false});
 
   const {currentHistory, isPending, isError} = useCurrentBillingHistory();
@@ -27,7 +38,11 @@ export function UsageOverviewActions({organization}: {organization: Organization
   }> = [
     {
       label: t('View all usage'),
-      to: `/settings/${organization.slug}/billing/usage/`,
+      // Legacy orgs keep the billing usage history page. Only orgs migrated to
+      // the billing platform get the Stats & Usage page.
+      to: subscription.hasMigratedToBillingPlatform
+        ? `/settings/${organization.slug}/stats/`
+        : `/settings/${organization.slug}/billing/usage/`,
       icon: <IconTable />,
     },
     {
@@ -49,12 +64,14 @@ export function UsageOverviewActions({organization}: {organization: Organization
   if (shouldCollapseActions) {
     return (
       <DropdownMenu
-        triggerProps={{
-          'aria-label': t('More Actions'),
-          icon: <IconEllipsis />,
-          showChevron: false,
-          size: 'sm',
-        }}
+        trigger={triggerProps => (
+          <OverlayTrigger.IconButton
+            {...triggerProps}
+            aria-label={t('More Actions')}
+            icon={<IconEllipsis />}
+            size="sm"
+          />
+        )}
         items={buttons.map(buttonInfo => ({
           key: buttonInfo.label,
           label: buttonInfo.label,

@@ -28,20 +28,17 @@ import {
 import {useAssignedSearchValues} from 'sentry/utils/membersAndTeams/useAssignedSearchValues';
 import {useMemberUsernames} from 'sentry/utils/membersAndTeams/useMemberUsernames';
 import {escapeIssueTagKey} from 'sentry/utils/queryString';
-import {orgHasIssueInbox} from 'sentry/utils/seer/orgHasIssueInbox';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {useFetchOrganizationFeatureFlags} from 'sentry/views/issueList/utils/useFetchOrganizationFeatureFlags';
 
 type UseFetchIssueTagsParams = {
   org: Organization;
   projectIds: string[];
-  enabled?: boolean;
   end?: string;
   includeFeatureFlags?: boolean;
   keepPreviousData?: boolean;
   start?: string;
   statsPeriod?: string | null;
-  useCache?: boolean;
 };
 
 const PREDEFINED_FIELDS = {
@@ -112,8 +109,6 @@ export const useFetchIssueTags = ({
   org,
   projectIds,
   keepPreviousData = false,
-  useCache = true,
-  enabled = true,
   includeFeatureFlags = false,
   ...statsPeriodParams
 }: UseFetchIssueTagsParams) => {
@@ -122,8 +117,6 @@ export const useFetchIssueTags = ({
       orgSlug: org.slug,
       projectIds,
       dataset: Dataset.ERRORS,
-      useCache,
-      enabled,
       keepPreviousData,
       ...statsPeriodParams,
     },
@@ -135,8 +128,6 @@ export const useFetchIssueTags = ({
       orgSlug: org.slug,
       projectIds,
       dataset: Dataset.ISSUE_PLATFORM,
-      useCache,
-      enabled,
       keepPreviousData,
       ...statsPeriodParams,
     },
@@ -149,8 +140,8 @@ export const useFetchIssueTags = ({
     {
       orgSlug: org.slug,
       projectIds,
-      useCache,
-      enabled: enabled && includeFeatureFlags, // Only make this query if includeFeatureFlags is true.
+      useCache: true,
+      enabled: includeFeatureFlags, // Only make this query if includeFeatureFlags is true.
       keepPreviousData,
       ...statsPeriodParams,
     },
@@ -430,7 +421,7 @@ function builtInIssuesFields({
     ...semverFields,
   };
 
-  if (!orgHasIssueInbox(organization)) {
+  if (!organization.features.includes('issue-inbox')) {
     delete allFields[FieldKey.ISSUE_PROGRESS];
   }
 

@@ -1,6 +1,17 @@
 from __future__ import annotations
 
-from django.db.models import Case, IntegerField, When
+import sentry_sdk
+from django.db.models import (
+    Case,
+    DateTimeField,
+    F,
+    IntegerField,
+    OuterRef,
+    Subquery,
+    Value,
+    When,
+)
+from django.db.models.expressions import OrderBy
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -32,7 +43,13 @@ from sentry.discover.endpoints.bases import (
     filter_to_accessible_discover_queries,
 )
 from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
-from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery, DiscoverSavedQueryTypes
+from sentry.discover.models import (
+    DatasetSourcesTypes,
+    DiscoverSavedQuery,
+    DiscoverSavedQueryLastVisited,
+    DiscoverSavedQueryStarred,
+    DiscoverSavedQueryTypes,
+)
 from sentry.models.organization import Organization
 from sentry.search.utils import tokenize_query
 
@@ -81,19 +98,20 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             return self.respond(status=404)
 
         queryset = (
-            DiscoverSavedQuery.objects.filter(organization=organization)
-            .prefetch_related("projects")
-            .extra(select={"lower_name": "lower(name)"})
-        ).exclude(is_homepage=True)
+            (
+                DiscoverSavedQuery.objects.filter(organization=organization)
+                .prefetch_related("projects")
+                .extra(select={"lower_name": "lower(name)"})
+                # Hide transactions saved queries for everyone since they've been migrated to spans and
+                # the transactions dataset has been deprecated
+            )
+            .exclude(is_homepage=True)
+            .exclude(dataset=DiscoverSavedQueryTypes.TRANSACTION_LIKE)
+        )
         # Hide saved queries whose project scope the caller cannot access. The detail endpoint
         # enforces this via `check_object_permissions`; without this filter the list endpoint
         # would leak the body of queries belonging to projects the caller has no access to.
         queryset = filter_to_accessible_discover_queries(request, queryset)
-
-        # Hide transactions saved queries if organizations has the discover transactions
-        # deprecation flag enabled
-        if features.has("organizations:deprecate-discover", organization, actor=request.user):
-            queryset = queryset.exclude(dataset=DiscoverSavedQueryTypes.TRANSACTION_LIKE)
 
         query = request.query_params.get("query")
         if query:
@@ -106,6 +124,17 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
                 else:
                     queryset = queryset.none()
 
+        last_visited_query: Subquery | Value = Value(None, output_field=DateTimeField(null=True))
+        if request.user.is_authenticated:
+            last_visited_query = Subquery(
+                DiscoverSavedQueryLastVisited.objects.filter(
+                    organization=organization,
+                    user_id=request.user.id,
+                    discover_saved_query_id=OuterRef("id"),
+                ).values("last_visited")[:1]
+            )
+        queryset = queryset.annotate(user_last_visited=last_visited_query)
+
         sort_by = request.query_params.get("sortBy")
         if sort_by and sort_by.startswith("-"):
             sort_by, desc = sort_by[1:], True
@@ -113,7 +142,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             desc = False
 
         if sort_by == "name":
-            order_by: list[Case | str] = [
+            order_by: list[Case | OrderBy | str] = [
                 "-lower_name" if desc else "lower_name",
                 "-date_created",
             ]
@@ -131,7 +160,14 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             ]
 
         elif sort_by == "recentlyViewed":
-            order_by = ["last_visited" if desc else "-last_visited"]
+            order_by = [
+                (
+                    F("user_last_visited").asc(nulls_last=True)
+                    if desc
+                    else F("user_last_visited").desc(nulls_last=True)
+                ),
+                "-date_updated",
+            ]
 
         elif sort_by == "myqueries":
             order_by = [
@@ -152,7 +188,9 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
         if request.query_params.get("all") == "1":
             saved_queries = list(queryset.all())
             return Response(
-                serialize(saved_queries, serializer=DiscoverSavedQueryModelSerializer()),
+                serialize(
+                    saved_queries, request.user, serializer=DiscoverSavedQueryModelSerializer()
+                ),
                 status=200,
             )
 
@@ -221,6 +259,14 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
         )
 
         model.set_projects(data["project_ids"])
+
+        try:
+            if request.user.is_authenticated and request.data.get("starred"):
+                DiscoverSavedQueryStarred.objects.insert_starred_query(
+                    organization, request.user.id, model, starred=True
+                )
+        except Exception as err:
+            sentry_sdk.capture_exception(err)
 
         return Response(
             serialize(model, serializer=DiscoverSavedQueryModelSerializer()), status=201

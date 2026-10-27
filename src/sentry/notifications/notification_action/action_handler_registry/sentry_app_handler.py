@@ -33,7 +33,7 @@ class SentryAppActionHandler(ActionHandler):
         "description": "The data schema for a Sentry App Action",
         "type": "object",
         "properties": {
-            "settings": {"type": ["array", "object"]},
+            "settings": {"type": "array"},
         },
         "additionalProperties": False,
     }

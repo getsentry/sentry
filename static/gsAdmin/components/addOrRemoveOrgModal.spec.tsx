@@ -1,6 +1,7 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
 import {AddToOrgModal} from 'admin/components/addOrRemoveOrgModal';
 
@@ -10,10 +11,11 @@ function ModalSection({children}: {children?: React.ReactNode}) {
 
 describe('AddToOrgModal', () => {
   it('submits the selected organization role', async () => {
+    const closeModal = jest.fn();
     const request = MockApiClient.addMockResponse({
       url: '/customers/org-slug/users/123/members/',
       method: 'POST',
-      body: new Promise(() => {}),
+      body: {},
     });
 
     render(
@@ -22,7 +24,7 @@ describe('AddToOrgModal', () => {
         Body={ModalSection as ModalRenderProps['Body']}
         Footer={ModalSection as ModalRenderProps['Footer']}
         CloseButton={ModalSection}
-        closeModal={jest.fn()}
+        closeModal={closeModal}
         userId="123"
       />
     );
@@ -43,6 +45,8 @@ describe('AddToOrgModal', () => {
           data: {orgRole: 'member'},
         })
       );
+      expect(closeModal).toHaveBeenCalled();
+      expect(testableWindowLocation.reload).toHaveBeenCalled();
     });
   });
 });

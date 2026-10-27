@@ -1,8 +1,11 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconSettings} from '@sentry/icons/settings';
 import round from 'lodash/round';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {InfoTip} from '@sentry/scraps/info';
 import {Grid, Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
@@ -10,7 +13,6 @@ import {IdBadge} from 'sentry/components/idBadge';
 import {Panel} from 'sentry/components/panels/panel';
 import {Placeholder} from 'sentry/components/placeholder';
 import {BookmarkStar} from 'sentry/components/projects/bookmarkStar';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {
   Score,
   ScoreCard,
@@ -19,7 +21,6 @@ import {
   Title,
   Trend,
 } from 'sentry/components/scoreCard';
-import {IconArrow, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
@@ -140,7 +141,7 @@ export function ProjectCard({
                 >
                   {t('Transactions: %s', formatAbbreviatedNumber(totalTransactions))}
                   {totalTransactions === 0 && (
-                    <QuestionTooltip
+                    <InfoTip
                       title={t('Click here to learn more about performance monitoring')}
                       position="top"
                       size="xs"
@@ -166,7 +167,7 @@ export function ProjectCard({
           <Placeholder height="150px" />
         )}
       </ChartContainer>
-      <CardFooter>
+      <Grid gap="md" columns="1fr 1fr">
         <ScoreCardWrapper>
           {stats ? (
             hasHealthData ? (
@@ -200,7 +201,7 @@ export function ProjectCard({
             <FooterPlaceholder />
           )}
         </div>
-      </CardFooter>
+      </Grid>
     </CardPanel>
   );
 }
@@ -212,12 +213,6 @@ const CardPanel = styled(Panel)`
   height: 100%;
   padding: ${p => p.theme.space.xl};
   margin: 0;
-`;
-
-const CardFooter = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: ${p => p.theme.space.md};
 `;
 
 const ChartContainer = styled('div')`

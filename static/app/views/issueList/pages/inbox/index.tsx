@@ -1,39 +1,51 @@
 import {
   type ComponentProps,
+  Fragment,
+  useCallback,
   useEffectEvent,
   useLayoutEffect,
   useRef,
   useState,
 } from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconPullRequest} from '@sentry/icons/pullRequest';
 import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
-import {parseAsString, useQueryState} from 'nuqs';
+import {parseAsString, useQueryStates} from 'nuqs';
 
-import {ActorAvatar, UserAvatar} from '@sentry/scraps/avatar';
-import {Badge} from '@sentry/scraps/badge';
+import {ActorAvatar, ProjectAvatar, UserAvatar} from '@sentry/scraps/avatar';
+import {FeatureBadge, Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {
+  Container,
+  Flex,
+  Grid,
+  Stack,
+  useResponsivePropValue,
+} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {AnsiText} from 'sentry/components/ansiText';
+import {DocumentationHint} from 'sentry/components/documentationHint';
 import {NotFound} from 'sentry/components/errors/notFound';
 import {EventMessage} from 'sentry/components/events/eventMessage';
-import {useLinkedPullRequests} from 'sentry/components/group/externalIssuesList/linkedPullRequests';
+import {
+  partitionLinkedPullRequests,
+  useLinkedPullRequests,
+} from 'sentry/components/group/externalIssuesList/linkedPullRequests';
 import {getPullRequestStatusLabel} from 'sentry/components/group/externalIssuesList/pullRequestStatusBadge';
-import * as Layout from 'sentry/components/layouts/thirds';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {LoadingError} from 'sentry/components/loadingError';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {Placeholder} from 'sentry/components/placeholder';
 import {QueryCount} from 'sentry/components/queryCount';
 import {SuggestedAvatarStack} from 'sentry/components/suggestedAvatarStack';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconArrow, IconChevron, IconPullRequest} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {Actor} from 'sentry/types/core';
 import {ProgressState, type Group} from 'sentry/types/group';
@@ -46,27 +58,25 @@ import {useMembers} from 'sentry/utils/members/useMembers';
 import {parseActorString} from 'sentry/utils/parseActorString';
 import {useReplayForCriticalFlow} from 'sentry/utils/replays/useReplayForCriticalFlow';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import {orgHasIssueInbox} from 'sentry/utils/seer/orgHasIssueInbox';
-import {orgHasSeerAccess} from 'sentry/utils/seer/orgHasSeerAccess';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useResizable} from 'sentry/utils/useResizable';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
 import {IssueListContainer} from 'sentry/views/issueList';
+import {InboxLayout} from 'sentry/views/issueList/pages/inbox/inboxLayout';
 import {IssuePreview} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreview';
 import {INBOX_AUTOFIX_CATEGORY_FILTER} from 'sentry/views/issueList/pages/inbox/utils';
 import {InboxEmptyState} from 'sentry/views/issueList/pages/inboxEmptyState';
 import {
+  assignmentFilterParser,
   type AssignmentFilter,
-  useAssignmentFilter,
 } from 'sentry/views/issueList/pages/useAssignmentFilter';
 import {useInboxPreviewPrefetch} from 'sentry/views/issueList/pages/useInboxPreviewPrefetch';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import {getProgressIcon} from 'sentry/views/issueList/utils/progress';
-import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
+import {TopBar} from 'sentry/views/navigation/topBar';
 
 const TITLE = t('Inbox');
 const ISSUE_LIMIT = 10;
@@ -75,19 +85,19 @@ const INBOX_SPLIT_SIZE_STORAGE_KEY = 'inbox-split-size';
 const INBOX_DEFAULT_SIZE = 480;
 const INBOX_MIN_SIZE = 320;
 const INBOX_MAX_SIZE = 640;
+type RestoreSelectedIssueScroll = (issueId: string, element: HTMLDivElement) => void;
+
 interface AssignmentCounts {
   all: number;
-  me: number;
   my_teams: number;
 }
 
 interface AlternateInbox {
-  filter: Exclude<AssignmentFilter, 'me'>;
+  filter: 'all';
   label: string;
 }
 
 const ASSIGNMENT_QUERY_SUFFIXES: Record<AssignmentFilter, string> = {
-  me: ' assigned_or_suggested:me',
   my_teams: ' assigned_or_suggested:[me,my_teams]',
   all: '',
 };
@@ -95,10 +105,6 @@ const ASSIGNMENT_COUNT_QUERY =
   'issue.progress:[fix_proposed,diagnosed,assigned,identified] is:unresolved';
 const ALL_ASSIGNMENT_COUNT_QUERY =
   'issue.progress:[fix_proposed,diagnosed,assigned] is:unresolved';
-interface InboxSectionContext {
-  hasSeer: boolean;
-}
-
 interface InboxSectionConfig {
   analyticsKey: 'num_fix_proposed' | 'num_diagnosed' | 'num_assigned' | 'num_fix_applied';
   emptyMessage: string;
@@ -106,7 +112,6 @@ interface InboxSectionConfig {
   label: string;
   progress: ProgressState;
   query: string | ((assignmentFilter: AssignmentFilter) => string);
-  hidden?: (context: InboxSectionContext) => boolean;
 }
 
 const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
@@ -125,7 +130,6 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
     query: 'issue.progress:diagnosed is:unresolved',
     emptyMessage: t('No diagnosed issues'),
     progress: ProgressState.DIAGNOSED,
-    hidden: ({hasSeer}) => !hasSeer,
   },
   {
     analyticsKey: 'num_assigned',
@@ -137,7 +141,6 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
         : 'issue.progress:[assigned,identified] is:unresolved',
     emptyMessage: t('No assigned issues'),
     progress: ProgressState.ASSIGNED,
-    hidden: ({hasSeer}) => !hasSeer,
   },
   {
     analyticsKey: 'num_fix_applied',
@@ -151,9 +154,9 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
 
 export default function InboxPage() {
   const organization = useOrganization();
-  const hasIssueInbox = orgHasIssueInbox(organization);
+  const hasIssueInbox = organization.features.includes('issue-inbox');
 
-  if (!hasIssueInbox || !orgHasSeerAccess(organization)) {
+  if (!hasIssueInbox) {
     return <NotFound />;
   }
 
@@ -179,9 +182,13 @@ function useSelectFirstLoadedIssue({
   const hasFinished = useRef(disabled);
   const previousResetKey = useRef(resetKey);
 
+  // oxlint-disable-next-line react/refs
   if (previousResetKey.current !== resetKey) {
+    // oxlint-disable-next-line react/refs
     previousResetKey.current = resetKey;
+    // oxlint-disable-next-line react/refs
     sectionResults.current.clear();
+    // oxlint-disable-next-line react/refs
     hasFinished.current = disabled;
   }
 
@@ -211,10 +218,9 @@ function useSelectFirstLoadedIssue({
   };
 }
 
-// Fetch counts for the assignment filter tabs (my/my teams/all)
+// Fetch counts for the assignment filter tabs (my teams/all)
 function useAssignmentCounts(): AssignmentCounts | null {
   const organization = useOrganization();
-  const meQuery = `${ASSIGNMENT_COUNT_QUERY}${ASSIGNMENT_QUERY_SUFFIXES.me}${INBOX_AUTOFIX_CATEGORY_FILTER}`;
   const myTeamsQuery = `${ASSIGNMENT_COUNT_QUERY}${ASSIGNMENT_QUERY_SUFFIXES.my_teams}${INBOX_AUTOFIX_CATEGORY_FILTER}`;
   const allQuery = `${ALL_ASSIGNMENT_COUNT_QUERY}${INBOX_AUTOFIX_CATEGORY_FILTER}`;
 
@@ -223,7 +229,7 @@ function useAssignmentCounts(): AssignmentCounts | null {
       '/organizations/$organizationIdOrSlug/issues-count/',
       {
         path: {organizationIdOrSlug: organization.slug},
-        query: {query: [meQuery, myTeamsQuery, allQuery]},
+        query: {query: [myTeamsQuery, allQuery]},
         staleTime: 180_000,
       }
     ),
@@ -234,7 +240,6 @@ function useAssignmentCounts(): AssignmentCounts | null {
   }
 
   return {
-    me: data[meQuery] ?? 0,
     my_teams: data[myTeamsQuery] ?? 0,
     all: data[allQuery] ?? 0,
   };
@@ -244,11 +249,7 @@ function getAlternateInbox(
   assignmentFilter: AssignmentFilter,
   assignmentCounts: AssignmentCounts | null
 ): AlternateInbox | null {
-  if (assignmentFilter === 'me' && assignmentCounts?.my_teams) {
-    return {filter: 'my_teams', label: t('View team inbox')};
-  }
-
-  if (assignmentFilter !== 'all' && assignmentCounts?.all) {
+  if (assignmentFilter === 'my_teams' && assignmentCounts?.all) {
     return {filter: 'all', label: t('View all inbox')};
   }
 
@@ -268,7 +269,6 @@ function AssignmentTabs({
     assignmentCounts
       ? {
           assignment_filter: assignmentFilter,
-          count_me: assignmentCounts.me,
           count_my_teams: assignmentCounts.my_teams,
           count_all: assignmentCounts.all,
         }
@@ -284,15 +284,9 @@ function AssignmentTabs({
       value={assignmentFilter}
       onChange={onChange}
     >
-      <SegmentedControl.Item key="me" textValue={t('Me')}>
+      <SegmentedControl.Item key="my_teams" textValue={t('Me')}>
         <Flex as="span" align="center" gap="sm">
           {t('Me')}
-          <AssignmentCountBadge count={assignmentCounts?.me} />
-        </Flex>
-      </SegmentedControl.Item>
-      <SegmentedControl.Item key="my_teams" textValue={t('My Teams')}>
-        <Flex as="span" align="center" gap="sm">
-          {t('My Teams')}
           <AssignmentCountBadge count={assignmentCounts?.my_teams} />
         </Flex>
       </SegmentedControl.Item>
@@ -311,21 +305,31 @@ function InboxContent() {
   // Remove this once we roll out to more users
   useReplayForCriticalFlow({flowName: 'issue_inbox', sampleRate: 1});
 
-  const theme = useTheme();
-  const isDesktop = useMedia(`(min-width: ${theme.breakpoints.md})`);
-  const {layout} = usePrimaryNavigation();
-  const isMobile = layout === 'mobile';
+  const isDesktop = useResponsivePropValue({zero: false, '4xl': true});
+  const canShowEmptyState = useResponsivePropValue({zero: false, '2xl': true});
   const resizableContainerRef = useRef<HTMLDivElement>(null);
   const organization = useOrganization();
-  const hasSeer = orgHasSeerAccess(organization);
-  const [assignmentFilter, setAssignmentFilter] = useAssignmentFilter();
-  const [selectedIssueId, setSelectedIssueId] = useQueryState(
-    SELECTED_ISSUE_QUERY_PARAM,
-    parseAsString.withOptions({history: 'replace'})
+  const [{assignment: assignmentFilter, preview: selectedIssueId}, setInboxQueryState] =
+    useQueryStates(
+      {
+        assignment: assignmentFilterParser,
+        [SELECTED_ISSUE_QUERY_PARAM]: parseAsString,
+      },
+      {history: 'replace'}
+    );
+  const issueIdToRestoreScroll = useRef(selectedIssueId);
+  const restoreSelectedIssueScroll = useCallback<RestoreSelectedIssueScroll>(
+    (issueId, element) => {
+      if (issueIdToRestoreScroll.current === issueId) {
+        issueIdToRestoreScroll.current = null;
+        element.scrollIntoView({block: 'center'});
+      }
+    },
+    []
   );
   const assignmentCounts = useAssignmentCounts();
-  const sections = SECTIONS.filter(section => !section.hidden?.({hasSeer}));
   const isInboxEmpty = assignmentCounts?.[assignmentFilter] === 0;
+  const showEmptyState = !selectedIssueId && isInboxEmpty && canShowEmptyState;
   const alternateInbox = getAlternateInbox(assignmentFilter, assignmentCounts);
   const [storedSize, setStoredSize] = useSyncedLocalStorageState(
     INBOX_SPLIT_SIZE_STORAGE_KEY,
@@ -341,17 +345,18 @@ function InboxContent() {
 
   const handleInitialSectionResult = useSelectFirstLoadedIssue({
     disabled: !isDesktop || selectedIssueId !== null,
-    onSelect: issueId => void setSelectedIssueId(issueId),
+    onSelect: issueId => void setInboxQueryState({preview: issueId}),
     resetKey: assignmentFilter,
-    sections,
+    sections: SECTIONS,
   });
 
   const handleAssignmentFilterChange = (filter: AssignmentFilter) => {
+    issueIdToRestoreScroll.current = null;
     trackAnalytics('issue_inbox.assignment_filter_changed', {
       organization,
       assignment_filter: filter,
     });
-    setAssignmentFilter(filter);
+    void setInboxQueryState({assignment: filter, preview: null});
   };
 
   const alternateInboxAction = alternateInbox
@@ -363,114 +368,81 @@ function InboxContent() {
 
   return (
     <Stack flex={1} minHeight={0} contain="size" overflow="hidden">
-      <Layout.Title>
-        {TITLE}
-        <PageHeadingQuestionTooltip
-          docsUrl="https://docs.sentry.io/product/issues/inbox/"
-          title={t(
-            'A personalized view of issues relevant to you, organized by how close you are to fixing them.'
-          )}
-        />
-      </Layout.Title>
-      <Grid
-        flex={1}
-        minHeight={0}
-        columns={isMobile ? 'minmax(0, 1fr)' : 'max-content minmax(0, 1fr)'}
-      >
-        <Stack
-          ref={isMobile ? undefined : resizableContainerRef}
-          as="section"
-          aria-label={t('Issue inbox')}
-          position="relative"
-          width={isMobile ? '100%' : `${size}px`}
-          minWidth={0}
-          minHeight={0}
-          display={selectedIssueId ? {'screen:xs': 'none', 'screen:md': 'flex'} : 'flex'}
-          background="primary"
-          borderRight="muted"
-        >
-          <Flex
-            as="header"
-            align="center"
-            justify="between"
-            padding="md lg"
-            background="secondary"
-            borderBottom="muted"
-            flexShrink={0}
-          >
-            <Heading as="h2" size="md">
-              {t('Issues')}
-            </Heading>
-            <AssignmentTabs
-              assignmentFilter={assignmentFilter}
-              onChange={handleAssignmentFilterChange}
-            />
-          </Flex>
-          <Stack flex={1} minHeight={0} overflowY="auto" overscrollBehavior="contain">
-            {sections.map(section => (
-              <InboxSection
-                key={`${assignmentFilter}:${section.key}`}
-                section={section}
+      <TopBar.Slot
+        name="breadcrumbs"
+        title={{
+          type: 'page-title',
+          label: TITLE,
+          trailingActions: {type: 'badge', element: <FeatureBadge type="new" />},
+          labelTooltip: (
+            <DocumentationHint docsUrl="https://docs.sentry.io/product/issues/inbox/">
+              {t(
+                'A personalized view of issues relevant to you, organized by how close you are to fixing them.'
+              )}
+            </DocumentationHint>
+          ),
+        }}
+      />
+      <InboxLayout
+        isDesktop={isDesktop}
+        hasSelectedIssue={Boolean(selectedIssueId)}
+        showEmptyState={showEmptyState}
+        inboxWidth={size}
+        inboxRef={resizableContainerRef}
+        assignmentTabs={
+          <AssignmentTabs
+            assignmentFilter={assignmentFilter}
+            onChange={handleAssignmentFilterChange}
+          />
+        }
+        resizeHandle={props => (
+          <ResizeHandle
+            {...props}
+            onMouseDown={handleStartResize}
+            onDoubleClick={() => setStoredSize(INBOX_DEFAULT_SIZE)}
+            atMinWidth={size === INBOX_MIN_SIZE}
+            atMaxWidth={size === INBOX_MAX_SIZE}
+          />
+        )}
+        preview={
+          <Fragment>
+            {selectedIssueId && (
+              <Container
+                display={isDesktop ? 'none' : 'block'}
+                padding="md"
+                borderBottom="muted"
+              >
+                <Button
+                  size="xs"
+                  variant="link"
+                  icon={<IconArrow direction="left" size="xs" />}
+                  onClick={() => void setInboxQueryState({preview: null})}
+                >
+                  {t('Back to inbox')}
+                </Button>
+              </Container>
+            )}
+            {selectedIssueId && <IssuePreview groupId={selectedIssueId} />}
+            {showEmptyState && (
+              <InboxEmptyState
                 assignmentFilter={assignmentFilter}
-                selectedIssueId={selectedIssueId}
-                onInitialResult={handleInitialSectionResult}
-              />
-            ))}
-          </Stack>
-          <Container
-            top="0"
-            right="0"
-            bottom="0"
-            width="8px"
-            radius="lg"
-            position="absolute"
-            display={isMobile ? 'none' : undefined}
-          >
-            {props => (
-              <ResizeHandle
-                {...props}
-                onMouseDown={handleStartResize}
-                onDoubleClick={() => setStoredSize(INBOX_DEFAULT_SIZE)}
-                atMinWidth={size === INBOX_MIN_SIZE}
-                atMaxWidth={size === INBOX_MAX_SIZE}
+                alternateInbox={alternateInboxAction}
               />
             )}
-          </Container>
-        </Stack>
-        <Stack
-          as="aside"
-          aria-label={t('Issue preview')}
-          flex={1}
-          minWidth={0}
-          minHeight={0}
-          overflow="hidden"
-          display={selectedIssueId ? 'flex' : {'screen:xs': 'none', 'screen:md': 'flex'}}
-        >
-          {selectedIssueId && (
-            <Container
-              display={{'screen:xs': 'block', 'screen:md': 'none'}}
-              padding="md"
-              borderBottom="muted"
-            >
-              <Button
-                size="xs"
-                variant="link"
-                icon={<IconArrow direction="left" size="xs" />}
-                onClick={() => void setSelectedIssueId(null)}
-              >
-                {t('Back to inbox')}
-              </Button>
-            </Container>
-          )}
-          {selectedIssueId && <IssuePreview groupId={selectedIssueId} />}
-          {!selectedIssueId && isInboxEmpty && (
-            <InboxEmptyState
-              assignmentFilter={assignmentFilter}
-              alternateInbox={alternateInboxAction}
-            />
-          )}
-        </Stack>
-      </Grid>
+          </Fragment>
+        }
+      >
+        {SECTIONS.map(section => (
+          <InboxSection
+            key={`${assignmentFilter}:${section.key}`}
+            section={section}
+            assignmentFilter={assignmentFilter}
+            selectedIssueId={selectedIssueId}
+            onInitialResult={handleInitialSectionResult}
+            restoreSelectedIssueScroll={restoreSelectedIssueScroll}
+          />
+        ))}
+      </InboxLayout>
     </Stack>
   );
 }
@@ -490,6 +462,7 @@ function AssignmentCountBadge({count}: {count: number | undefined}) {
 interface InboxSectionProps {
   assignmentFilter: AssignmentFilter;
   onInitialResult: (sectionKey: string, firstIssueId: string | null) => void;
+  restoreSelectedIssueScroll: RestoreSelectedIssueScroll;
   section: InboxSectionConfig;
   selectedIssueId: string | null;
 }
@@ -497,6 +470,7 @@ interface InboxSectionProps {
 function InboxSection({
   assignmentFilter,
   onInitialResult,
+  restoreSelectedIssueScroll,
   section,
   selectedIssueId,
 }: InboxSectionProps) {
@@ -604,6 +578,7 @@ function InboxSection({
                   assignmentFilter={assignmentFilter}
                   group={group}
                   progressLabel={section.label}
+                  restoreSelectedIssueScroll={restoreSelectedIssueScroll}
                   selected={selectedIssueId === group.id}
                   showPullRequests={
                     section.progress === ProgressState.FIX_PROPOSED ||
@@ -689,25 +664,35 @@ function InboxIssueCard({
   assignedUser,
   group,
   progressLabel,
+  restoreSelectedIssueScroll,
   selected,
   showPullRequests,
 }: {
   assignmentFilter: AssignmentFilter;
   group: Group;
   progressLabel: string;
+  restoreSelectedIssueScroll: RestoreSelectedIssueScroll;
   selected: boolean;
   showPullRequests: boolean;
   assignedUser?: User;
 }) {
   const location = useLocation();
   const organization = useOrganization();
-  const {title} = getTitle(group);
+  const {title = ''} = getTitle(group);
   const message = getMessage(group);
   const prefetchHoverProps = useInboxPreviewPrefetch(group);
   const suggestedAssignees = useIssueSuggestedAssignees(group);
+  const cardRef = useCallback(
+    (element: HTMLDivElement | null) => {
+      if (selected && element) {
+        restoreSelectedIssueScroll(group.id, element);
+      }
+    },
+    [group.id, restoreSelectedIssueScroll, selected]
+  );
 
   return (
-    <Container position="relative">
+    <Container ref={cardRef} position="relative">
       <IssueCardLink
         {...prefetchHoverProps}
         aria-current={selected ? 'true' : undefined}
@@ -728,7 +713,7 @@ function InboxIssueCard({
       >
         <InteractionStateLayer />
         <Grid columns="8px minmax(0, 1fr) max-content" gap="md" align="stretch">
-          <Flex align="center">
+          <Flex align="center" height="16px">
             {!group.hasSeen && (
               <StatusIndicator
                 variant="accent"
@@ -739,10 +724,19 @@ function InboxIssueCard({
           </Flex>
           <Stack minWidth={0} gap="xs">
             <Heading as="h4" size="md" ellipsis>
-              {title}
+              <AnsiText>{title}</AnsiText>
             </Heading>
             <EventMessage level={group.level} message={message} type={group.type} />
-            <Container height="18px" />
+            {showPullRequests ? (
+              <Container height="18px" />
+            ) : (
+              <Flex height="18px" minWidth={0} align="center" gap="2xs">
+                <ProjectAvatar project={group.project} size={12} />
+                <Text size="xs" variant="muted" ellipsis>
+                  {group.shortId}
+                </Text>
+              </Flex>
+            )}
           </Stack>
           <Stack align="end" justify="between">
             {group.derivedData?.lastProgressedAt ? (
@@ -779,8 +773,10 @@ function InboxIssueCard({
               <SuggestedAvatarStack
                 size={18}
                 owners={suggestedAssignees}
-                tooltip={t(
-                  'Suggested assignees: %s',
+                tooltip={tn(
+                  'Suggested assignee: %2$s',
+                  'Suggested assignees: %2$s',
+                  suggestedAssignees.length,
                   suggestedAssignees.map(getActorLabel).join(', ')
                 )}
               />
@@ -788,7 +784,7 @@ function InboxIssueCard({
           </Stack>
         </Grid>
       </IssueCardLink>
-      {showPullRequests && <InboxPullRequestBadges group={group} />}
+      {showPullRequests && <InboxPullRequestMetadata group={group} />}
     </Container>
   );
 }
@@ -801,21 +797,27 @@ const PULL_REQUEST_BADGE_VARIANTS = {
   unknown: 'muted',
 } satisfies Record<PullRequestStatus, ComponentProps<typeof Badge>['variant']>;
 
-function InboxPullRequestBadges({group}: {group: Group}) {
+function InboxPullRequestMetadata({group}: {group: Group}) {
   const {data} = useLinkedPullRequests({group, includeChecksAndReview: false});
-  const pullRequests = data?.pullRequests.filter(
+  const {currentPullRequests} = partitionLinkedPullRequests(
+    data?.pullRequests ?? [],
+    data?.latestRegressionAt
+  );
+  const pullRequests = currentPullRequests.filter(
     pullRequest => pullRequest.status !== 'closed'
   );
-
-  if (!pullRequests?.length) {
-    return null;
-  }
 
   return (
     <PullRequestBadgePositioner>
       <Grid columns="8px minmax(0, 1fr) max-content" gap="md">
         <span />
         <Flex align="center" gap="xs">
+          <Flex minWidth={0} align="center" gap="2xs">
+            <ProjectAvatar project={group.project} size={12} />
+            <Text size="xs" variant="muted" ellipsis>
+              {group.shortId}
+            </Text>
+          </Flex>
           {pullRequests.slice(0, 2).map(pullRequest => (
             <PullRequestBadgeLink
               key={`${pullRequest.repository.id}:${pullRequest.id}`}

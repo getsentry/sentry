@@ -227,7 +227,7 @@ By default, `Tag` renders nothing. Provide a `Tag` component override to handle 
 >
 ```
 
-During streaming, partial tag syntax (e.g. `{% ref type="issue"` before the closing `/%}` arrives) is automatically suppressed to avoid flashing raw source text.
+With `variant="streaming"`, partial tag syntax (e.g. `{% ref type="issue"` before the closing `/%}` arrives) is automatically suppressed to avoid flashing raw source text. Static content renders unclosed tag syntax as written.
 
 ## Security
 
@@ -260,7 +260,7 @@ Every override receives a `Default` prop in addition to the props listed below (
 | `ListItem`       | `<Text size="md">` as `<li>`   | `children`                       |
 | `TaskList`       | `<Stack as="ul">` (no bullets) | `children`                       |
 | `TaskListItem`   | `<Container as="li">`          | `children`, `checked` (bool)     |
-| `Table`          | styled `<table>`               | `children`                       |
+| `Table`          | `<SimpleTable>`                | `columns`, `header`, `rows`      |
 | `Tag`            | `null` (silent)                | `name`, `level`, `attrs`, `data` |
 | `HorizontalRule` | `<Separator>`                  | -                                |
 | `LineBreak`      | `<br>`                         | -                                |

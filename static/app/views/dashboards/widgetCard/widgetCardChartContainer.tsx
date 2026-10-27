@@ -11,17 +11,17 @@ import type {
   EChartDataZoomHandler,
   EChartEventHandler,
   EChartLegendSelectChangeHandler,
-  Series,
 } from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import type {AggregationOutputType, Sort} from 'sentry/utils/discover/fields';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {getIntervalOptionsForPageFilter} from 'sentry/utils/useChartInterval';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useWidgetErrorCallback} from 'sentry/views/dashboards/contexts/widgetErrorContext';
 import type {DashboardFilters, Widget as TWidget} from 'sentry/views/dashboards/types';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/types';
 import {usesTimeSeriesData, widgetFetchesOwnData} from 'sentry/views/dashboards/utils';
+import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 import type {
@@ -56,16 +56,13 @@ type Props = {
     pageLinks?: string;
     sampleCount?: number;
     tableResults?: TableDataWithTitle[];
-    timeseriesResults?: Series[];
-    timeseriesResultsTypes?: Record<string, AggregationOutputType>;
-    totalIssuesCount?: string;
+    timeseriesResults?: WidgetTimeSeries[];
   }) => void;
   onLegendSelectChanged?: EChartEventHandler<{
     name: string;
     selected: Record<string, boolean>;
     type: 'legendselectchanged';
   }>;
-  onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
   onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;
   onWidgetTableSort?: (sort: Sort) => void;
   onZoom?: EChartDataZoomHandler;
@@ -77,7 +74,37 @@ type Props = {
   windowWidth?: number;
 };
 
-export function WidgetCardChartContainer({
+function getErrorOrEmptyMessage(
+  errorMessage: string | undefined,
+  timeseriesResults: WidgetTimeSeries[] | undefined,
+  tableResults: TableDataWithTitle[] | undefined,
+  heatmapResults: HeatMapSeries | undefined,
+  widgetType: DisplayType
+) {
+  if (widgetFetchesOwnData(widgetType)) {
+    return;
+  }
+
+  // Heat maps return a single series object rather than table/timeseries rows.
+  if (widgetType === DisplayType.HEATMAP) {
+    return errorMessage
+      ? errorMessage
+      : heatmapResults === undefined || heatmapResults.values.length === 0
+        ? t('No data found')
+        : undefined;
+  }
+
+  // non-chart widgets need to look at tableResults
+  const results = usesTimeSeriesData(widgetType) ? timeseriesResults : tableResults;
+
+  return errorMessage
+    ? errorMessage
+    : results === undefined || results?.length === 0
+      ? t('No data found')
+      : undefined;
+}
+
+function WidgetCardDataLoaderView({
   selection,
   widget,
   dashboardFilters,
@@ -89,7 +116,6 @@ export function WidgetCardChartContainer({
   legendOptions,
   onDataFetched,
   noPadding,
-  onWidgetSplitDecision,
   chartGroup,
   shouldResize,
   widgetLegendState,
@@ -101,56 +127,24 @@ export function WidgetCardChartContainer({
   onWidgetTableSort,
   onWidgetTableResizeColumn,
   disableTableActions,
-  widgetInterval,
-}: Props) {
-  const onWidgetError = useWidgetErrorCallback();
-
-  const isHeatmap = widget.displayType === DisplayType.HEATMAP;
-
+  onWidgetError,
+  resolvedWidgetInterval,
+  yBuckets,
+}: Props & {
+  onWidgetError: ReturnType<typeof useWidgetErrorCallback>;
+  resolvedWidgetInterval: string | undefined;
+  yBuckets: number | undefined;
+}) {
   const keepLegendState: EChartLegendSelectChangeHandler = ({selected}) => {
     widgetLegendState.setWidgetSelectionState(selected, widget);
   };
 
-  function getErrorOrEmptyMessage(
-    errorMessage: string | undefined,
-    timeseriesResults: Series[] | undefined,
-    tableResults: TableDataWithTitle[] | undefined,
-    heatmapResults: HeatMapSeries | undefined,
-    widgetType: DisplayType
-  ) {
-    if (widgetFetchesOwnData(widgetType)) {
-      return;
-    }
-
-    // Heat maps return a single series object rather than table/timeseries rows.
-    if (widgetType === DisplayType.HEATMAP) {
-      return errorMessage
-        ? errorMessage
-        : heatmapResults === undefined || heatmapResults.values.length === 0
-          ? t('No data found')
-          : undefined;
-    }
-
-    // non-chart widgets need to look at tableResults
-    const results = usesTimeSeriesData(widgetType) ? timeseriesResults : tableResults;
-
-    return errorMessage
-      ? errorMessage
-      : results === undefined || results?.length === 0
-        ? t('No data found')
-        : undefined;
-  }
-
-  const renderDataLoader = (
-    resolvedWidgetInterval: string | undefined,
-    yBuckets: number | undefined
-  ) => (
+  return (
     <WidgetCardDataLoader
       widget={widget}
       selection={selection}
       dashboardFilters={dashboardFilters}
       onDataFetched={onDataFetched}
-      onWidgetSplitDecision={onWidgetSplitDecision}
       onDataFetchStart={onDataFetchStart}
       tableItemLimit={tableItemLimit}
       widgetInterval={resolvedWidgetInterval}
@@ -162,8 +156,6 @@ export function WidgetCardChartContainer({
         heatmapResults,
         errorMessage,
         loading,
-        timeseriesResultsTypes,
-        timeseriesResultsUnits,
         confidence,
         dataScanned,
         sampleCount,
@@ -209,8 +201,6 @@ export function WidgetCardChartContainer({
               isMobile={isMobile}
               windowWidth={windowWidth}
               onZoom={onZoom}
-              timeseriesResultsTypes={timeseriesResultsTypes}
-              timeseriesResultsUnits={timeseriesResultsUnits}
               noPadding={noPadding}
               chartGroup={chartGroup}
               shouldResize={shouldResize}
@@ -240,6 +230,62 @@ export function WidgetCardChartContainer({
       }}
     </WidgetCardDataLoader>
   );
+}
+
+export function WidgetCardChartContainer({
+  selection,
+  widget,
+  dashboardFilters,
+  isMobile,
+  tableItemLimit,
+  windowWidth,
+  onZoom,
+  onLegendSelectChanged,
+  legendOptions,
+  onDataFetched,
+  noPadding,
+  chartGroup,
+  shouldResize,
+  widgetLegendState,
+  showConfidenceWarning,
+  minTableColumnWidth,
+  onDataFetchStart,
+  disableZoom,
+  showLoadingText,
+  onWidgetTableSort,
+  onWidgetTableResizeColumn,
+  disableTableActions,
+  widgetInterval,
+}: Props) {
+  const onWidgetError = useWidgetErrorCallback();
+
+  const isHeatmap = widget.displayType === DisplayType.HEATMAP;
+
+  const dataLoaderProps = {
+    selection,
+    widget,
+    dashboardFilters,
+    isMobile,
+    tableItemLimit,
+    windowWidth,
+    onZoom,
+    onLegendSelectChanged,
+    legendOptions,
+    onDataFetched,
+    noPadding,
+    chartGroup,
+    shouldResize,
+    widgetLegendState,
+    showConfidenceWarning,
+    minTableColumnWidth,
+    onDataFetchStart,
+    disableZoom,
+    showLoadingText,
+    onWidgetTableSort,
+    onWidgetTableResizeColumn,
+    disableTableActions,
+    onWidgetError,
+  };
 
   // Heat maps size their request from the rendered dimensions, so they go
   // through a measured wrapper that resolves the bucket interval/count before
@@ -247,14 +293,24 @@ export function WidgetCardChartContainer({
   if (isHeatmap) {
     return (
       <HeatmapMeasuredArea selection={selection}>
-        {({widgetInterval: heatmapInterval, yBuckets}) =>
-          renderDataLoader(heatmapInterval, yBuckets)
-        }
+        {({widgetInterval: heatmapInterval, yBuckets}) => (
+          <WidgetCardDataLoaderView
+            {...dataLoaderProps}
+            resolvedWidgetInterval={heatmapInterval}
+            yBuckets={yBuckets}
+          />
+        )}
       </HeatmapMeasuredArea>
     );
   }
 
-  return renderDataLoader(widgetInterval, undefined);
+  return (
+    <WidgetCardDataLoaderView
+      {...dataLoaderProps}
+      resolvedWidgetInterval={widgetInterval}
+      yBuckets={undefined}
+    />
+  );
 }
 
 /**

@@ -1,4 +1,4 @@
-import {useMatches} from 'react-router-dom';
+import {useMatches} from 'react-router';
 
 import type {TrackingProps} from '@sentry/scraps/trackingContext';
 
@@ -18,7 +18,10 @@ export function useButtonTracking() {
     analyticsParams,
     'aria-label': ariaLabel,
   }: TrackingProps) => {
-    const considerSendingAnalytics = organization && Boolean(matches);
+    const hasCustomAnalytics =
+      analyticsEventKey !== undefined || analyticsEventName !== undefined;
+    const considerSendingAnalytics =
+      Boolean(matches) && (Boolean(organization) || hasCustomAnalytics);
 
     if (considerSendingAnalytics) {
       const routeString = getEventPath(matches);
@@ -36,7 +39,7 @@ export function useButtonTracking() {
       rawTrackAnalyticsEvent({
         eventKey,
         eventName,
-        organization,
+        organization: organization ?? null,
         // pass in the parameterized path as well
         parameterized_path: reloadPath,
         text: ariaLabel,

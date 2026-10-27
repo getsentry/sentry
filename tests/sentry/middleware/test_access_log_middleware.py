@@ -206,6 +206,9 @@ optional_access_log_fields = (
     "snuba_throttle_threshold",
     "token_last_characters",
     "gateway_proxy",
+    # Only present for endpoints that resolve an organization.
+    "client_kind",
+    "client_host",
 )
 
 
@@ -479,6 +482,40 @@ class TestOrganizationIdPresentForRegion(LogCaptureAPITestCase):
 
         tested_log = self.get_tested_log(args=[self.organization.slug])
         assert tested_log.organization_id == str(self.organization.id)
+
+
+class TestClientKindLogged(LogCaptureAPITestCase):
+    """`client_kind` has to reach the access log, not just the span.
+
+    Span attributes stop at Snuba -- the analytics warehouse promotes a fixed
+    allow-list of span columns -- so the access log is the only path by which caller
+    attribution becomes queryable downstream.
+    """
+
+    endpoint = "sentry-api-0-organization-stats-v2"
+
+    def setUp(self) -> None:
+        self.login_as(user=self.user)
+
+    def request_stats(self) -> None:
+        self._caplog.set_level(logging.INFO, logger="sentry")
+        self.get_success_response(
+            self.organization.slug,
+            qs_params={
+                "project": [-1],
+                "category": ["error"],
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(quantity)"],
+            },
+        )
+
+    def test_client_kind_logged(self) -> None:
+        self.request_stats()
+
+        tested_log = self.get_tested_log(args=[self.organization.slug])
+        # A session cookie and no token is the web UI.
+        assert tested_log.client_kind == "frontend"
 
 
 @control_silo_test

@@ -2,7 +2,6 @@ from typing import Any
 from unittest import mock
 
 import responses
-from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory, override_settings
 from django.urls import reverse
@@ -13,7 +12,11 @@ from sentry.middleware.integrations.parsers.jira_server import JiraServerRequest
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.cell import override_cells
-from sentry.testutils.outbox import assert_no_webhook_payloads, assert_webhook_payloads_for_mailbox
+from sentry.testutils.outbox import (
+    assert_no_webhook_payloads,
+    assert_webhook_payloads_for_mailbox,
+    override_mailbox_bucket_count,
+)
 from sentry.testutils.silo import control_silo_test
 from sentry.types.cell import Cell
 
@@ -35,6 +38,8 @@ class JiraServerRequestParserTest(TestCase):
     @override_cells(cell_config)
     def setUp(self) -> None:
         super().setUp()
+        # Pin the rate-derived width so routing assertions exercise the bucket key.
+        self.enterContext(override_mailbox_bucket_count(64))
         self.integration = self.create_integration(
             organization=self.organization, external_id="jira_server:1", provider="jira_server"
         )
@@ -79,7 +84,7 @@ class JiraServerRequestParserTest(TestCase):
         assert len(responses.calls) == 0
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"jira_server:{self.integration.id}",
+            mailbox_name=f"jira_server:{self.integration.id}:37",
             cell_names=[cell.name],
         )
 
@@ -112,7 +117,7 @@ class JiraServerRequestParserTest(TestCase):
     @override_cells(cell_config)
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @responses.activate
-    def test_routing_webhook_with_mailbox_buckets_low_volume(self) -> None:
+    def test_routing_webhook_buckets_on_issue_id(self) -> None:
         route = reverse("sentry-extensions-jiraserver-issue-updated", kwargs={"token": "TOKEN"})
 
         request = self.factory.post(
@@ -131,74 +136,35 @@ class JiraServerRequestParserTest(TestCase):
         assert len(responses.calls) == 0
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"jira_server:{self.integration.id}",
+            mailbox_name=f"jira_server:{self.integration.id}:37",
             cell_names=[cell.name],
         )
 
-    @override_cells(cell_config)
     @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_cells(cell_config)
     @responses.activate
-    def test_routing_webhook_with_mailbox_buckets_high_volume(self) -> None:
+    def test_changelog_drop_skips_the_organization_lookups(self) -> None:
+        """The changelog check reads only the body, so it settles before the org and
+        cell lookups a dropped payload never needs."""
         route = reverse("sentry-extensions-jiraserver-issue-updated", kwargs={"token": "TOKEN"})
-
-        request = self.factory.post(
-            route, data=issue_updated_payload, content_type="application/json"
-        )
+        request = self.factory.post(route, data=no_changelog, content_type="application/json")
         parser = JiraServerRequestParser(request=request, response_handler=self.get_response)
 
         with (
             mock.patch(
-                "sentry.integrations.middleware.hybrid_cloud.parser.ratelimiter.is_limited"
-            ) as mock_is_limited,
-            mock.patch(
                 "sentry.middleware.integrations.parsers.jira_server.get_integration_from_token"
             ) as mock_get_token,
+            mock.patch.object(
+                JiraServerRequestParser, "get_organizations_from_integration"
+            ) as mock_get_organizations,
         ):
-            mock_is_limited.return_value = True
-            mock_get_token.return_value = self.integration
-            response = parser.get_response()
-        assert isinstance(response, HttpResponse)
-        assert response.status_code == status.HTTP_202_ACCEPTED
-        assert response.content == b""
-        assert len(responses.calls) == 0
-        assert_webhook_payloads_for_mailbox(
-            request=request,
-            # Mailbox name should have an extra segment
-            mailbox_name=f"jira_server:{self.integration.id}:1",
-            cell_names=[cell.name],
-        )
-
-    @override_cells(cell_config)
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @responses.activate
-    def test_routing_webhook_with_mailbox_bucket_mode_active(self) -> None:
-        route = reverse("sentry-extensions-jiraserver-issue-updated", kwargs={"token": "TOKEN"})
-
-        request = self.factory.post(
-            route, data=issue_updated_payload, content_type="application/json"
-        )
-        parser = JiraServerRequestParser(request=request, response_handler=self.get_response)
-
-        use_bucket_key = f"webhookpayload:jira_server:{self.integration.id}:use_buckets"
-        cache.set(use_bucket_key, 1)
-
-        with mock.patch(
-            "sentry.middleware.integrations.parsers.jira_server.get_integration_from_token"
-        ) as mock_get_token:
             mock_get_token.return_value = self.integration
             response = parser.get_response()
 
-        cache.delete(use_bucket_key)
         assert isinstance(response, HttpResponse)
-        assert response.status_code == status.HTTP_202_ACCEPTED
-        assert response.content == b""
-        assert len(responses.calls) == 0
-        assert_webhook_payloads_for_mailbox(
-            request=request,
-            # Mailbox name should have an extra segment
-            mailbox_name=f"jira_server:{self.integration.id}:1",
-            cell_names=[cell.name],
-        )
+        assert response.status_code == status.HTTP_200_OK
+        assert mock_get_organizations.call_count == 0
+        assert_no_webhook_payloads()
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_cells(cell_config)

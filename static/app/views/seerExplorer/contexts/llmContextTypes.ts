@@ -18,13 +18,20 @@
  * Add new types here as new context-aware components are registered.
  */
 export type LLMContextNodeType =
+  | 'alert-builder'
+  | 'alert-detail'
+  | 'alert-list'
   | 'autofix'
   | 'chart'
   | 'dashboard'
+  | 'dropped-data'
   | 'issue-detail'
   | 'issue-list'
   | 'logs-explorer'
   | 'metrics-explorer'
+  | 'monitor-builder'
+  | 'monitor-detail'
+  | 'monitor-list'
   | 'navigation'
   | 'profiling-explorer'
   | 'releases-list'
@@ -115,7 +122,11 @@ export interface LLMContextOverlayNode {
 export interface LLMContextInternalValue {
   getOverlayNodes: () => LLMContextOverlayNode[];
   getSnapshot: (fromNodeId?: string) => LLMContextSnapshot;
+  /** Whether a node of this type is registered and not marked as loading. */
+  isNodeReady: (nodeType: string) => boolean;
   registerNode: (nodeId: string, nodeType: string, parentId?: string) => void;
+  /** Called after every registry change; returns an unsubscribe function. */
+  subscribe: (listener: () => void) => () => void;
   unregisterNode: (nodeId: string) => void;
-  updateNodeData: (nodeId: string, data: unknown) => void;
+  updateNodeData: (nodeId: string, data: unknown, isLoading?: boolean) => void;
 }

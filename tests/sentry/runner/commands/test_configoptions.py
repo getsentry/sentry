@@ -4,6 +4,7 @@ from unittest import mock
 
 import pytest
 from django.conf import settings
+from django.test import override_settings
 
 from sentry import options
 from sentry.options.manager import (
@@ -37,9 +38,10 @@ class ConfigOptionsTest(CliTestCase):
             default="",
             flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
         )
-        settings.SENTRY_OPTIONS["set_on_disk_option"] = "test"
-
-        yield
+        with override_settings(
+            SENTRY_OPTIONS={**settings.SENTRY_OPTIONS, "set_on_disk_option": "test"}
+        ):
+            yield
 
         options.unregister("readonly_option")
         options.unregister("int_option")
@@ -52,7 +54,6 @@ class ConfigOptionsTest(CliTestCase):
         options.unregister("invalid_type")
         options.unregister("float_option")
         options.unregister("set_on_disk_option")
-        del settings.SENTRY_OPTIONS["set_on_disk_option"]
 
     @pytest.fixture(autouse=True)
     def set_options(self) -> None:
@@ -179,8 +180,7 @@ class ConfigOptionsTest(CliTestCase):
         assert isinstance(value, float)
 
     def test_yaml_input_is_accepted(self) -> None:
-        # Hand-authored YAML (e.g. the local flagpole devloop) is not valid JSON,
-        # so it must fall back to the YAML parser.
+        # Hand-authored YAML is not valid JSON, so it must fall back to the YAML parser.
         rv = self.invoke(
             "patch",
             input="options:\n  int_option: 40\n  str_option: 'new value'\n",

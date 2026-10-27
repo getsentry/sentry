@@ -700,7 +700,7 @@ class PullRequestEventWebhook(APITestCase):
         pr = prs[0]
 
         assert pr.key == "1"
-        assert pr.external_id == 34778301
+        assert pr.external_id == "34778301"
         assert pr.message == "This is a pretty simple change that we need to pull into master."
         assert pr.title == "Update the README with new information"
         assert pr.author is not None
@@ -806,10 +806,9 @@ class PullRequestEventWebhook(APITestCase):
         merged["pull_request"]["body"] = fixes_body
         merged["pull_request"]["merged_by"] = {"id": 999999, "login": "dependabot[bot]"}
 
-        with self.feature("organizations:pr-lifecycle-activity"):
-            self._post_pull_request_event(orjson.dumps(opened))
-            with capture_action_log() as log:
-                self._post_pull_request_event(orjson.dumps(merged))
+        self._post_pull_request_event(orjson.dumps(opened))
+        with capture_action_log() as log:
+            self._post_pull_request_event(orjson.dumps(merged))
 
         log.assert_logged(
             PullRequestMergedAction,
@@ -908,6 +907,7 @@ class IssuesEventWebhookTest(APITestCase):
             external_user_name="@octocat",
             external_issue_key="baxterthehacker/public-repo#2",
             assign=True,
+            provider_event_updated_at="2015-05-05T23:40:28Z",
         )
 
         assert_success_metric(mock_record)
@@ -948,6 +948,7 @@ class IssuesEventWebhookTest(APITestCase):
             external_user_name="",
             external_issue_key="baxterthehacker/public-repo#2",
             assign=False,
+            provider_event_updated_at="2015-05-05T23:40:28Z",
         )
 
         assert_success_metric(mock_record)

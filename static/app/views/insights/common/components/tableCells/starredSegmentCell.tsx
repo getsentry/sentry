@@ -1,9 +1,9 @@
+import {IconStar} from '@sentry/icons/star';
 import {useQueryClient} from '@tanstack/react-query';
 import type {Simplify} from 'type-fest';
 
 import {Button} from '@sentry/scraps/button';
 
-import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FlexContainer} from 'sentry/utils/discover/styles';
@@ -106,6 +106,7 @@ export function StarredSegmentCell({
           <IconStar
             variant={isStarred ? 'warning' : 'muted'}
             isSolid={isStarred}
+            size="sm"
             data-test-id="starred-transaction-column"
           />
         }

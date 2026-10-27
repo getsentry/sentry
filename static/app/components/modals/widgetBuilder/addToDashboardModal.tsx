@@ -26,8 +26,6 @@ import {t, tct, tn} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
-import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -67,12 +65,10 @@ import {
 } from 'sentry/views/dashboards/widgetBuilder/utils';
 import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
-import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {getDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
-import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 export type AddToDashboardModalActions =
   | 'add-and-open-dashboard'
@@ -186,6 +182,7 @@ function AddToDashboardModal({
     let unmounted = false;
 
     if (selectedDashboardId === NEW_DASHBOARD_ID || selectedDashboardId === null) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setSelectedDashboard(null);
     } else {
       fetchDashboard(api, organization.slug, selectedDashboardId).then(response => {
@@ -383,7 +380,7 @@ function AddToDashboardModal({
           value: 'new',
           disabled: hasReachedDashboardLimit || isLoading,
           tooltip: hasReachedDashboardLimit ? limitMessage : undefined,
-          tooltipOptions: {position: 'right', isHoverable: true},
+          tooltipOptions: {position: 'right'},
         } satisfies SelectValue<string>,
         ...dashboards
           .filter(dashboard =>
@@ -479,52 +476,39 @@ function AddToDashboardModal({
               )}
         </Container>
         {!hasMultipleWidgets && (
-          <MetricsCardinalityProvider organization={organization} location={location}>
-            <MetricsDataSwitcher location={location}>
-              {metricsDataSide => (
-                <DashboardsMEPProvider>
-                  <MEPSettingProvider
-                    location={location}
-                    forceTransactions={metricsDataSide.forceTransactionsOnly}
-                  >
-                    <WidgetCardWrapper>
-                      <WidgetCard
-                        showContextMenu={false}
-                        widgetLimitReached={false}
-                        selection={
-                          selectedDashboard
-                            ? getSavedFiltersAsPageFilters(selectedDashboard)
-                            : selection
-                        }
-                        dashboardFilters={getMergedDashboardFilters(
-                          selectedDashboard?.filters,
-                          location
-                        )}
-                        widget={{
-                          ...widget,
-                          title: newWidgetTitle,
-                          tableWidths,
-                          queries: getUpdatedWidgetQueries(),
-                        }}
-                        shouldResize
-                        widgetLegendState={widgetLegendState}
-                        onLegendSelectChanged={() => {}}
-                        legendOptions={
-                          widgetLegendState.widgetRequiresLegendUnselection(widget)
-                            ? {selected: unselectedReleasesForCharts}
-                            : undefined
-                        }
-                        disableFullscreen
-                        onWidgetTableResizeColumn={handleWidgetTableColumnResize}
-                        onWidgetTableSort={handleWidgetTableSort}
-                        disableTableActions
-                      />
-                    </WidgetCardWrapper>
-                  </MEPSettingProvider>
-                </DashboardsMEPProvider>
+          <WidgetCardWrapper>
+            <WidgetCard
+              showContextMenu={false}
+              widgetLimitReached={false}
+              selection={
+                selectedDashboard
+                  ? getSavedFiltersAsPageFilters(selectedDashboard)
+                  : selection
+              }
+              dashboardFilters={getMergedDashboardFilters(
+                selectedDashboard?.filters,
+                location
               )}
-            </MetricsDataSwitcher>
-          </MetricsCardinalityProvider>
+              widget={{
+                ...widget,
+                title: newWidgetTitle,
+                tableWidths,
+                queries: getUpdatedWidgetQueries(),
+              }}
+              shouldResize
+              widgetLegendState={widgetLegendState}
+              onLegendSelectChanged={() => {}}
+              legendOptions={
+                widgetLegendState.widgetRequiresLegendUnselection(widget)
+                  ? {selected: unselectedReleasesForCharts}
+                  : undefined
+              }
+              disableFullscreen
+              onWidgetTableResizeColumn={handleWidgetTableColumnResize}
+              onWidgetTableSort={handleWidgetTableSort}
+              disableTableActions
+            />
+          </WidgetCardWrapper>
         )}
       </Body>
 

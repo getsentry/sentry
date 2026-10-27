@@ -6,7 +6,7 @@ import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {isNotFoundError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {providerDetails} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
+import {providerDetails} from 'sentry/views/projectInstall/messagingIntegrationTypes';
 
 export type StaleDestinationReason =
   | 'channel'
@@ -30,6 +30,7 @@ export function isEligibleForIssueAlerts(integration: OrganizationIntegration): 
   if (integration.provider.key !== 'msteams') {
     return true;
   }
+
   return integration.configData?.installationType !== 'tenant';
 }
 
@@ -161,6 +162,7 @@ export function useScmMessagingSetupValidation({
   // both settle.
   useEffect(() => {
     if (messagingSetup.mode === 'selected') {
+      // oxlint-disable-next-line react/set-state-in-effect
       setStaleReason(undefined);
     }
   }, [messagingSetup]);
@@ -171,6 +173,7 @@ export function useScmMessagingSetupValidation({
     }
 
     if (!integration) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setStaleReason(
         hasInactiveIntegration
           ? 'inactiveIntegration'

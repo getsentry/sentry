@@ -1,3 +1,4 @@
+import {IconArrow} from '@sentry/icons/arrow';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TabularColumnsFixture} from 'sentry-fixture/tabularColumns';
@@ -12,7 +13,6 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {IconArrow} from 'sentry/icons';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
@@ -26,7 +26,7 @@ import type {FieldRenderer} from 'sentry/views/dashboards/widgets/tableWidget/ta
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 
-jest.mock('sentry/icons/iconArrow', () => ({
+jest.mock('@sentry/icons/arrow', () => ({
   IconArrow: jest.fn(() => <div />),
 }));
 
@@ -78,6 +78,22 @@ describe('TableWidgetVisualization', () => {
       const $headers = screen.getAllByRole('columnheader');
       expect($headers[0]).not.toHaveTextContent('is_starred_transaction');
       expect($headers[0]!.querySelector('svg')).toBeInTheDocument();
+    });
+
+    it('Sizes the is_starred_transaction column to its content', () => {
+      const starredTableData: TabularData = {
+        data: [{is_starred_transaction: true, transaction: '/api/foo'}],
+        meta: {
+          fields: {is_starred_transaction: 'boolean', transaction: 'string'},
+          units: {is_starred_transaction: null, transaction: null},
+        },
+      };
+
+      render(<TableWidgetVisualization tableData={starredTableData} />);
+
+      expect(screen.getByRole('table')).toHaveStyle({
+        gridTemplateColumns: 'max-content minmax(90px, auto)',
+      });
     });
 
     it('Renders alias text instead of star icon when alias is provided', () => {

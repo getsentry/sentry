@@ -118,7 +118,7 @@ function importJSSelfProfile(
   traceID: string,
   options: ImportOptions
 ): ProfileGroup {
-  const frameIndex = createFrameIndex('javascript', input.frames);
+  const frameIndex = createFrameIndex('javascript', input.frames, input);
   const profile = importSingleProfile(input, frameIndex, options);
 
   return {

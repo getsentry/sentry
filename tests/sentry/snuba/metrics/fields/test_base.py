@@ -656,8 +656,6 @@ class DerivedMetricAliasTestCase(TestCase):
         ("d:sessions/duration@second", "metrics_distributions"),
         ("d:sessions/unknown_metric@second", None),
         ("e:sessions/all@none", None),  # derived metric
-        ("c:transactions/count_per_root_project@none", "generic_metrics_counters"),
-        ("c:custom/foo@none", "generic_metrics_counters"),
         ("", None),
         ("foo", None),
         ("foo:foo:foo", None),

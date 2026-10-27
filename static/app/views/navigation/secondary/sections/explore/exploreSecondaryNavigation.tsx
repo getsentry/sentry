@@ -5,28 +5,41 @@ import {FeatureBadge} from '@sentry/scraps/badge';
 import Feature from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {EXPLORE_AGENTS_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import {
   MAX_STARRED_SAVED_QUERIES_IN_NAV,
   useGetSavedQueries,
+  getSavedQueryDatasetLabel,
+  isExploreSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {
+  getInvestigationsPath,
+  useInvestigationsEnabled,
+} from 'sentry/views/investigations/utils';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {ExploreSavedQueryNavigationItems} from 'sentry/views/navigation/secondary/sections/explore/exploreSavedQueryNavigationItems';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+import {
+  getAutomationsPath,
+  useAutomationsEnabled,
+} from 'sentry/views/seerWorkflows/utils';
 
 function ExploreSecondaryNavigationImpl() {
   const organization = useOrganization();
 
   const baseUrl = `/organizations/${organization.slug}/explore`;
+  // Seer tabs live here until Seer primary nav release.
+  const showSeerTabs = !organization.features.includes('seer-primary-nav');
+  const automationsEnabled = useAutomationsEnabled() && showSeerTabs;
+  const investigationsEnabled = useInvestigationsEnabled() && showSeerTabs;
+  const automationsPath = getAutomationsPath(organization.slug);
+  const investigationsPath = getInvestigationsPath(organization.slug);
 
   const {data: starredQueries} = useGetSavedQueries({
     starred: true,
     perPage: MAX_STARRED_SAVED_QUERIES_IN_NAV,
   });
-
-  const discoverTransactionsDeprecation = getDiscoverDeprecation(organization);
 
   // Mirrors the <Feature> gates below so the reported nav items match what's
   // actually rendered — including any beta/new/alpha badge shown on them.
@@ -44,17 +57,15 @@ function ExploreSecondaryNavigationImpl() {
     navItems.push({label: 'Logs', to: `${baseUrl}/logs/`});
   }
   if (organization.features.includes('tracemetrics-enabled')) {
-    navItems.push({label: 'Metrics', badge: 'new', to: `${baseUrl}/metrics/`});
+    navItems.push({label: 'Metrics', to: `${baseUrl}/metrics/`});
   }
   if (organization.features.includes('explore-errors')) {
     navItems.push({label: 'Errors', badge: 'alpha', to: `${baseUrl}/errors-v2/`});
   }
   if (organization.features.includes('discover-basic')) {
     navItems.push({
-      label: discoverTransactionsDeprecation ? 'Errors' : 'Discover',
-      to: discoverTransactionsDeprecation
-        ? `${baseUrl}/errors/homepage/`
-        : `${baseUrl}/discover/homepage/`,
+      label: 'Errors',
+      to: `${baseUrl}/errors/`,
     });
   }
   if (organization.features.includes('profiling')) {
@@ -71,11 +82,17 @@ function ExploreSecondaryNavigationImpl() {
       to: `${baseUrl}/${EXPLORE_AGENTS_SUB_PATH}/`,
     });
   }
-  if (organization.openMembership && organization.features.includes('investigations')) {
+  if (automationsEnabled) {
+    navItems.push({label: 'Automations', badge: 'alpha', to: automationsPath});
+  }
+  if (investigationsEnabled) {
+    navItems.push({label: 'Investigations', badge: 'alpha', to: investigationsPath});
+  }
+  if (organization.features.includes('explore-saved-formulas')) {
     navItems.push({
-      label: 'Investigations',
-      badge: 'beta',
-      to: `${baseUrl}/investigations/`,
+      label: 'Saved Formulas',
+      badge: 'alpha',
+      to: `${baseUrl}/saved-formulas/`,
     });
   }
 
@@ -88,7 +105,10 @@ function ExploreSecondaryNavigationImpl() {
     starredQueries: (starredQueries ?? []).map(query => ({
       id: query.id,
       name: query.name,
-      dataset: query.dataset,
+      dataset: isExploreSavedQuery(query)
+        ? getSavedQueryDatasetLabel(query.dataset)
+        : 'Errors',
+      queryType: query.queryType,
     })),
   });
 
@@ -125,7 +145,6 @@ function ExploreSecondaryNavigationImpl() {
                 <SecondaryNavigation.Link
                   to={`${baseUrl}/metrics/`}
                   analyticsItemName="explore_metrics"
-                  trailingItems={<FeatureBadge type="new" />}
                 >
                   {t('Metrics')}
                 </SecondaryNavigation.Link>
@@ -149,19 +168,11 @@ function ExploreSecondaryNavigationImpl() {
             >
               <SecondaryNavigation.ListItem>
                 <SecondaryNavigation.Link
-                  to={
-                    discoverTransactionsDeprecation
-                      ? `${baseUrl}/errors/`
-                      : `${baseUrl}/discover/homepage/`
-                  }
-                  activeTo={
-                    discoverTransactionsDeprecation
-                      ? `${baseUrl}/errors/`
-                      : `${baseUrl}/discover/`
-                  }
+                  to={`${baseUrl}/errors/`}
+                  activeTo={`${baseUrl}/errors/`}
                   analyticsItemName="explore_discover"
                 >
-                  {discoverTransactionsDeprecation ? t('Errors') : t('Discover')}
+                  {t('Errors')}
                 </SecondaryNavigation.Link>
               </SecondaryNavigation.ListItem>
             </Feature>
@@ -218,19 +229,27 @@ function ExploreSecondaryNavigationImpl() {
                 </SecondaryNavigation.Link>
               </SecondaryNavigation.ListItem>
             </Feature>
-            {organization.openMembership && (
-              <Feature features="organizations:investigations">
-                <SecondaryNavigation.ListItem>
-                  <SecondaryNavigation.Link
-                    to={`${baseUrl}/investigations/`}
-                    activeTo={`${baseUrl}/investigations/`}
-                    analyticsItemName="explore_investigations"
-                    trailingItems={<FeatureBadge type="beta" />}
-                  >
-                    {t('Investigations')}
-                  </SecondaryNavigation.Link>
-                </SecondaryNavigation.ListItem>
-              </Feature>
+            {automationsEnabled && (
+              <SecondaryNavigation.ListItem>
+                <SecondaryNavigation.Link
+                  to={automationsPath}
+                  analyticsItemName="explore_automations"
+                  trailingItems={<FeatureBadge type="alpha" />}
+                >
+                  {t('Automations')}
+                </SecondaryNavigation.Link>
+              </SecondaryNavigation.ListItem>
+            )}
+            {investigationsEnabled && (
+              <SecondaryNavigation.ListItem>
+                <SecondaryNavigation.Link
+                  to={investigationsPath}
+                  analyticsItemName="explore_investigations"
+                  trailingItems={<FeatureBadge type="alpha" />}
+                >
+                  {t('Investigations')}
+                </SecondaryNavigation.Link>
+              </SecondaryNavigation.ListItem>
             )}
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
@@ -244,6 +263,17 @@ function ExploreSecondaryNavigationImpl() {
                     {t('All Queries')}
                   </SecondaryNavigation.Link>
                 </SecondaryNavigation.ListItem>
+                <Feature features="organizations:explore-saved-formulas">
+                  <SecondaryNavigation.ListItem>
+                    <SecondaryNavigation.Link
+                      to={`${baseUrl}/saved-formulas/`}
+                      analyticsItemName="explore_saved_formulas"
+                      trailingItems={<FeatureBadge type="alpha" />}
+                    >
+                      {t('Saved Formulas')}
+                    </SecondaryNavigation.Link>
+                  </SecondaryNavigation.ListItem>
+                </Feature>
               </SecondaryNavigation.List>
             </SecondaryNavigation.Section>
             {starredQueries && starredQueries.length > 0 && (

@@ -1,10 +1,10 @@
 import type {Location} from 'history';
 
 import {ExternalLink} from '@sentry/scraps/link';
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {wrapQueryInWildcards} from 'sentry/components/performance/searchBar';
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t, tct} from 'sentry/locale';
 import type {NewQuery, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -16,15 +16,15 @@ export const DEFAULT_STATS_PERIOD = '14d';
 export const DEFAULT_PROJECT_THRESHOLD = 300;
 
 export const COLUMN_TITLES = [
-  'transaction',
-  'project',
-  'tpm',
+  'Transaction',
+  'Project',
+  'TPM',
   'p50',
   'p95',
-  'failure rate',
-  'apdex',
-  'users',
-  'user misery',
+  'Failure rate',
+  'Apdex',
+  'Users',
+  'User misery',
 ];
 
 export const USER_MISERY_TOOLTIP = tct(
@@ -228,8 +228,7 @@ export function generateGenericPerformanceEventView(
 
 export function generateBackendPerformanceEventView(
   location: Location,
-  withStaticFilters: boolean,
-  useEap = false
+  withStaticFilters: boolean
 ): EventView {
   const {query} = location;
 
@@ -253,7 +252,7 @@ export function generateBackendPerformanceEventView(
   const savedQuery: NewQuery = {
     id: undefined,
     name: t('Performance'),
-    query: useEap ? 'is_transaction:true' : 'event.type:transaction',
+    query: 'event.type:transaction',
     projects: [],
     fields,
     version: 2,
@@ -277,11 +276,7 @@ export function generateBackendPerformanceEventView(
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
 
-  if (useEap) {
-    eventView.additionalConditions.addFilterValues('is_transaction', ['true']);
-  } else {
-    eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
-  }
+  eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
 
   return eventView;
 }
@@ -359,8 +354,7 @@ export function generateMobilePerformanceEventView(
 
 export function generateFrontendOtherPerformanceEventView(
   location: Location,
-  withStaticFilters: boolean,
-  useEap = false
+  withStaticFilters: boolean
 ): EventView {
   const {query} = location;
 
@@ -382,7 +376,7 @@ export function generateFrontendOtherPerformanceEventView(
   const savedQuery: NewQuery = {
     id: undefined,
     name: t('Performance'),
-    query: useEap ? 'is_transaction:true' : 'event.type:transaction',
+    query: 'event.type:transaction',
     projects: [],
     fields,
     version: 2,
@@ -405,11 +399,7 @@ export function generateFrontendOtherPerformanceEventView(
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
 
-  if (useEap) {
-    eventView.additionalConditions.addFilterValues('is_transaction', ['true']);
-  } else {
-    eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
-  }
+  eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
 
   return eventView;
 }

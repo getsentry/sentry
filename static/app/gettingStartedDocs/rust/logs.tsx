@@ -10,8 +10,8 @@ import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersi
 
 type Params = DocsParams;
 
-const getInstallSnippet = (params: Params, defaultVersion = '0.42.0') => {
-  const version = getPackageVersion(params, 'sentry.rust', defaultVersion);
+const getInstallSnippet = (params: Params) => {
+  const version = getPackageVersion(params, 'sentry.rust', '0.42.0');
   return params.isLogsSelected
     ? `
 [dependencies]

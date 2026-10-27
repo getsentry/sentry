@@ -21,6 +21,7 @@ function makeContextCapture() {
 
   function ContextCapture() {
     const {getLLMContext} = useLLMContext();
+    // oxlint-disable-next-line react/immutability
     ref.current = getLLMContext;
     return null;
   }
@@ -502,6 +503,7 @@ describe('getLLMContext — full tree vs componentOnly', () => {
     function DashboardWithCapture({name}: {name: string}) {
       useLLMContext({name});
       const {getLLMContext} = useLLMContext();
+      // oxlint-disable-next-line react/immutability
       innerRef.current = getLLMContext;
       return (
         <div>

@@ -10,6 +10,7 @@ from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, control_silo_model, sane_repr
+from sentry.hybridcloud.mailbox import MailboxName
 from sentry.utils import json, metrics
 
 THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=datetime.UTC)
@@ -106,22 +107,16 @@ class WebhookPayload(Model):
         cls,
         *,
         destination_type: DestinationType,
-        cell: str | None,
-        provider: str,
-        identifier: int | str,
+        mailbox: MailboxName,
         request: HttpRequest,
         integration_id: int | None = None,
     ) -> Self:
-        metrics.incr("hybridcloud.deliver_webhooks.saved", tags={"provider": provider})
-        # One mailbox per destination cell, so each cell's copies drain
-        # independently. The cell rides in the middle: the first segment stays
-        # the provider, the last the event type for providers that suffix one.
-        mailbox_name = f"{provider}:{cell}:{identifier}" if cell else f"{provider}:{identifier}"
+        metrics.incr("hybridcloud.deliver_webhooks.saved", tags={"provider": mailbox.provider})
         return cls.objects.create(
-            mailbox_name=mailbox_name,
-            provider=provider,
+            mailbox_name=str(mailbox),
+            provider=mailbox.provider,
             destination_type=destination_type,
-            cell_name=cell,
+            cell_name=mailbox.cell,
             integration_id=integration_id,
             **cls.get_attributes_from_request(request),
         )

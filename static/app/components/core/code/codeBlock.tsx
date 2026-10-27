@@ -1,16 +1,15 @@
 import {Fragment, useEffect, useRef, useState} from 'react';
 import {css, ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconCopy} from '@sentry/icons/copy';
 import Prism from 'prismjs';
 
 import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {darkTheme} from '@sentry/scraps/theme';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
-import {IconCopy} from 'sentry/icons';
-import {getPrismLanguage, loadPrismLanguage} from 'sentry/utils/prism';
-// eslint-disable-next-line no-restricted-imports
-import {darkTheme} from 'sentry/utils/theme/theme';
+import {getPrismLanguage, loadPrismLanguage} from './prism';
 
 interface CodeBlockProps {
   children: string;
@@ -65,6 +64,7 @@ interface CodeBlockProps {
    * Fires when the user switches tabs.
    */
   onTabClick?: (tab: string) => void;
+  ref?: React.Ref<HTMLDivElement>;
   selectedTab?: string;
   tabs?: Array<{
     label: string;
@@ -95,6 +95,7 @@ export function CodeBlock({
   onCopy,
   onSelectAndCopy,
   onTabClick,
+  ref: forwardedRef,
   selectedTab,
   tabs,
   wrapMode = 'scroll',
@@ -108,6 +109,7 @@ export function CodeBlock({
   // https://prismjs.com/plugins/line-highlight/
   useEffect(() => {
     async function loadLineHighlight() {
+      // oxlint-disable-next-line react/todo
       await import('prismjs/plugins/line-highlight/prism-line-highlight');
       setLineHighlightLoaded(true);
     }
@@ -137,6 +139,7 @@ export function CodeBlock({
       onLoad: () =>
         Prism.highlightElement(element, false, () => onAfterHighlight?.(element)),
     });
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [children, language, onAfterHighlight, lineHighlightLoaded]);
 
   const [tooltipState, setTooltipState] = useState<'copy' | 'copied' | 'error'>('copy');
@@ -165,6 +168,7 @@ export function CodeBlock({
 
   const snippet = (
     <Wrapper
+      ref={forwardedRef}
       reserveCopyButtonSpace={alwaysShowCopyButton && hasFloatingHeader}
       isRounded={isRounded}
       wrapMode={wrapMode}

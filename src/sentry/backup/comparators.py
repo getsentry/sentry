@@ -874,8 +874,6 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
                 DateUpdatedComparator("date_updated"),
                 DateUpdatedComparator("date_added"),
             ],
-            "sentry.incident": [UUID4Comparator("detection_uuid")],
-            "sentry.incidentactivity": [UUID4Comparator("notification_uuid")],
             "sentry.integration": [DateUpdatedComparator("date_updated")],
             "sentry.orgauthtoken": [
                 HashObfuscatingComparator("token_hashed", "token_last_characters")
@@ -891,12 +889,6 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "sentry.organizationmemberinvite": [
                 DateUpdatedComparator("date_updated", "date_added"),
                 HashObfuscatingComparator("token"),
-            ],
-            "sentry.organizationmemberteam": [
-                # `new_id` mirrors the primary key, which is reassigned on import, so
-                # comparing its value across an export cycle is meaningless. The
-                # `new_id == id` invariant is enforced on write instead.
-                IgnoredComparator("new_id"),
             ],
             "sentry.projectkey": [
                 HashObfuscatingComparator("public_key", "secret_key"),
@@ -925,6 +917,10 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
                 EmailObfuscatingComparator("creator_label"),
             ],
             "sentry.sentryappinstallation": [DateUpdatedComparator("date_updated")],
+            "service_accounts.serviceaccount": [DateUpdatedComparator("date_updated")],
+            "service_accounts.serviceaccountproject": [
+                DateUpdatedComparator("date_updated", "date_added")
+            ],
             "sentry.servicehook": [HashObfuscatingComparator("secret")],
             "sentry.team": [
                 # TODO(getsentry/sentry#66247): Remove once self-hosted 24.4.0 is released.
@@ -995,7 +991,9 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "tempest.tempestcredentials": [
                 DateUpdatedComparator("date_updated", "date_added"),
             ],
+            "explore.exploresavedformula": [DateUpdatedComparator("date_updated", "date_added")],
             "explore.exploresavedquery": [DateUpdatedComparator("date_updated", "date_added")],
+            "explore.exploresavedvariable": [DateUpdatedComparator("date_updated", "date_added")],
             "explore.exploresavedquerystarred": [
                 DateUpdatedComparator("date_updated", "date_added")
             ],
@@ -1022,6 +1020,12 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
                 DateUpdatedComparator("date_updated", "date_added"),
             ],
             "seer.seerprojectrepositorybranchoverride": [
+                DateUpdatedComparator("date_updated", "date_added"),
+            ],
+            "seer.seerworkflowconfig": [
+                DateUpdatedComparator("date_updated", "date_added"),
+            ],
+            "seer.seerworkflowconfigproject": [
                 DateUpdatedComparator("date_updated", "date_added"),
             ],
         },

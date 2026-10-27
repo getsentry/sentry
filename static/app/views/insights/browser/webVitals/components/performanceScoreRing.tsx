@@ -85,6 +85,7 @@ export function PerformanceScoreRing({
         : 0;
       const rotate = currentRotate;
       if (sumMaxValues) {
+        // oxlint-disable-next-line react/immutability
         currentRotate += (360 * maxValue) / sumMaxValues;
       }
       const cx = radius + barWidth / 2;

@@ -1,9 +1,6 @@
-import {useCallback} from 'react';
+import {parseAsBoolean, useQueryStates} from 'nuqs';
 
-import {decodeBoolean, decodeList} from 'sentry/utils/queryString';
-import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 
 type QueryValues = {
   /**
@@ -16,38 +13,14 @@ type QueryValues = {
   showManualSetup: boolean;
 };
 
+const onboardingParsers = {
+  product: parseAsStringArray,
+  showManualSetup: parseAsBoolean.withDefault(false),
+};
+
 export function useOnboardingQueryParams(): [
-  params: Partial<QueryValues>,
+  params: QueryValues,
   setParams: (newValues: Partial<QueryValues>) => void,
 ] {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const params = useLocationQuery({
-    fields: {
-      product: decodeList,
-      showManualSetup: decodeBoolean,
-    },
-  });
-
-  const setParams = useCallback(
-    (newValues: Partial<QueryValues>) => {
-      const updatedQuery = {...location.query};
-
-      for (const key in newValues) {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        updatedQuery[key] = newValues[key];
-      }
-
-      navigate(
-        {
-          ...location,
-          query: updatedQuery,
-        },
-        {replace: true}
-      );
-    },
-    [location, navigate]
-  );
-
-  return [params, setParams];
+  return useQueryStates(onboardingParsers, {history: 'replace'});
 }

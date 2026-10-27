@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 /* eslint-disable import/no-nodejs-modules, no-console */
 
 import childProcess from 'node:child_process';
@@ -10,7 +9,7 @@ import * as esbuild from 'esbuild';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = path.resolve(scriptDir, '..');
-const packageJsonPath = path.join(workspaceRoot, 'package.json');
+const packageJsonPath = path.join(workspaceRoot, 'static/app/package.json');
 const entryPoint = path.join(workspaceRoot, 'static/app/chartcuterie/config.tsx');
 const outfile = path.join(workspaceRoot, 'config/chartcuterie/config.js');
 

@@ -1,7 +1,3 @@
-import {ThemeProvider} from '@emotion/react';
-
-// eslint-disable-next-line no-restricted-imports -- SSR snapshot rendering needs direct theme access
-import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 import type {
   SnapshotDiffPair,
   SnapshotImage,
@@ -59,7 +55,6 @@ jest.mock('./useD3Zoom', () => {
   };
 });
 
-const themes = {light: lightTheme, dark: darkTheme};
 const imageBaseUrl = '/visual-snapshots/images/';
 const diffImageBaseUrl = '/visual-snapshots/diffs/';
 const displayHeights = {
@@ -92,51 +87,45 @@ const pair: SnapshotDiffPair = {
 };
 
 describe('DiffImageDisplay', () => {
-  describe.each(['light', 'dark'] as const)('%s', themeName => {
-    function Wrapper({
-      children,
-      diffMode,
-    }: {
-      children: React.ReactNode;
-      diffMode: keyof typeof displayHeights;
-    }) {
-      return (
-        <ThemeProvider theme={themes[themeName]}>
-          <div style={{height: displayHeights[diffMode], width: 900}}>{children}</div>
-        </ThemeProvider>
-      );
-    }
+  function Wrapper({
+    children,
+    diffMode,
+  }: {
+    children: React.ReactNode;
+    diffMode: keyof typeof displayHeights;
+  }) {
+    return <div style={{height: displayHeights[diffMode], width: 900}}>{children}</div>;
+  }
 
-    it.snapshot.each(['split', 'wipe', 'onion'] as const)(
-      '%s',
-      diffMode => (
-        <Wrapper diffMode={diffMode}>
-          <DiffImageDisplay
-            pair={pair}
-            imageBaseUrl={imageBaseUrl}
-            diffImageBaseUrl={diffImageBaseUrl}
-            overlayColor="rgba(219, 66, 66, 0.65)"
-            diffMode={diffMode}
-          />
-        </Wrapper>
-      ),
-      () => ({tags: {area: 'snapshots'}})
-    );
+  it.snapshot.each(['split', 'wipe', 'onion'] as const)(
+    '%s',
+    diffMode => (
+      <Wrapper diffMode={diffMode}>
+        <DiffImageDisplay
+          pair={pair}
+          imageBaseUrl={imageBaseUrl}
+          diffImageBaseUrl={diffImageBaseUrl}
+          overlayColor="rgba(219, 66, 66, 0.65)"
+          diffMode={diffMode}
+        />
+      </Wrapper>
+    ),
+    () => ({tags: {area: 'snapshots'}})
+  );
 
-    it.snapshot(
-      'split-missing-diff-image-key',
-      () => (
-        <Wrapper diffMode="split">
-          <DiffImageDisplay
-            pair={{...pair, diff_image_key: null}}
-            imageBaseUrl={imageBaseUrl}
-            diffImageBaseUrl={diffImageBaseUrl}
-            overlayColor="rgba(219, 66, 66, 0.65)"
-            diffMode="split"
-          />
-        </Wrapper>
-      ),
-      {tags: {area: 'snapshots'}}
-    );
-  });
+  it.snapshot(
+    'split-missing-diff-image-key',
+    () => (
+      <Wrapper diffMode="split">
+        <DiffImageDisplay
+          pair={{...pair, diff_image_key: null}}
+          imageBaseUrl={imageBaseUrl}
+          diffImageBaseUrl={diffImageBaseUrl}
+          overlayColor="rgba(219, 66, 66, 0.65)"
+          diffMode="split"
+        />
+      </Wrapper>
+    ),
+    {tags: {area: 'snapshots'}}
+  );
 });

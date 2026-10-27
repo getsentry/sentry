@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {IconOpen} from '@sentry/icons/open';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
@@ -8,7 +9,6 @@ import {Collapsible} from 'sentry/components/collapsible';
 import {IdBadge} from 'sentry/components/idBadge';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconOpen} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -29,30 +29,22 @@ export function ProjectTeamAccess({organization, project}: Props) {
     query: extractSelectionParameters(location.query),
   };
 
-  function renderInnerBody() {
-    if (!project) {
-      return <Placeholder height="23px" />;
-    }
-
-    if (project.teams.length === 0) {
-      return (
-        <LinkButton
-          to={settingsLink}
-          disabled={!hasEditPermissions}
-          tooltipProps={{
-            title: hasEditPermissions
-              ? undefined
-              : t('You do not have permission to do this'),
-          }}
-          variant="primary"
-          size="sm"
-        >
-          {t('Assign Team')}
-        </LinkButton>
-      );
-    }
-
-    return (
+  const innerBody = project ? (
+    project.teams.length === 0 ? (
+      <LinkButton
+        to={settingsLink}
+        disabled={!hasEditPermissions}
+        tooltipProps={{
+          title: hasEditPermissions
+            ? undefined
+            : t('You do not have permission to do this'),
+        }}
+        variant="primary"
+        size="sm"
+      >
+        {t('Assign Team')}
+      </LinkButton>
+    ) : (
       <Collapsible
         expandButton={({onExpand, numberOfHiddenItems}) => (
           <Button variant="link" onClick={onExpand}>
@@ -71,8 +63,10 @@ export function ProjectTeamAccess({organization, project}: Props) {
             </StyledLink>
           ))}
       </Collapsible>
-    );
-  }
+    )
+  ) : (
+    <Placeholder height="23px" />
+  );
 
   return (
     <StyledSidebarSection>
@@ -83,7 +77,7 @@ export function ProjectTeamAccess({organization, project}: Props) {
         </StyledIconLink>
       </SectionHeadingWrapper>
 
-      <div>{renderInnerBody()}</div>
+      <div>{innerBody}</div>
     </StyledSidebarSection>
   );
 }

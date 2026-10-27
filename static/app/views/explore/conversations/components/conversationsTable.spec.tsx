@@ -1,16 +1,30 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {dragHandle} from 'sentry-test/dragMove';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
+
+import {COL_WIDTH_MINIMUM, COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {COL_WIDTH_MINIMUM} from 'sentry/components/tables/gridEditable';
+import {useConversations} from 'sentry/views/explore/conversations/hooks/useConversations';
 
 import {
   collapseToolsColumnWhenUnused,
   ConversationsTable,
+  getConversationTimeSpan,
   getUserDisplayName,
   getVisibleToolCount,
+  parseStoredColumnWidths,
 } from './conversationsTable';
+
+const COLUMN_WIDTHS_STORAGE_KEY = 'conversation-table-column-widths';
 
 const BASE_CONVERSATION = {
   conversationId: 'conv-1',
@@ -24,6 +38,7 @@ const BASE_CONVERSATION = {
   llmCalls: 3,
   projectId: null,
   startTimestamp: 1000,
+  timeSpan: 1000,
   title: null,
   toolCalls: 0,
   toolErrors: 0,
@@ -40,23 +55,39 @@ const organization = OrganizationFixture({
 });
 
 function mockConversations(body: Array<Record<string, unknown>>) {
-  MockApiClient.addMockResponse({
+  return MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/agents/conversations/`,
     body,
   });
 }
 
+function TestConversationsTable() {
+  const conversations = useConversations();
+  return <ConversationsTable conversations={conversations} />;
+}
+
 function renderTable() {
-  return render(<ConversationsTable />, {organization});
+  return render(<TestConversationsTable />, {organization});
 }
 
 describe('ConversationsTable', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    localStorage.clear();
     act(() => {
       PageFiltersStore.reset();
       PageFiltersStore.init();
     });
+  });
+
+  it('renders the shared no-data state when there are no conversations', async () => {
+    mockConversations([]);
+
+    renderTable();
+
+    expect(
+      await screen.findByRole('heading', {name: 'No results found'})
+    ).toBeInTheDocument();
   });
 
   it('renders the AI-generated title when present', async () => {
@@ -118,6 +149,22 @@ describe('ConversationsTable', () => {
     expect(await screen.findByText('sarah@example.com')).toBeInTheDocument();
   });
 
+  it('uses the conversation timespan', () => {
+    expect(getConversationTimeSpan({...BASE_CONVERSATION, timeSpan: 420_000})).toBe(
+      420_000
+    );
+  });
+
+  it('uses generation duration for a single span with no elapsed timespan', () => {
+    expect(
+      getConversationTimeSpan({
+        ...BASE_CONVERSATION,
+        timeSpan: 0,
+        generationDuration: 750,
+      })
+    ).toBe(750);
+  });
+
   it('uses the user ID when no other identifying fields are available', () => {
     expect(
       getUserDisplayName({id: '123', email: null, username: null, ip_address: null})
@@ -140,6 +187,18 @@ describe('ConversationsTable', () => {
     // covered by the getVisibleToolCount unit tests below.
     expect((await screen.findAllByText('get_issue_details')).length).toBeGreaterThan(0);
     expect(screen.getAllByText('execute_query').length).toBeGreaterThan(0);
+  });
+
+  it('stretches the conversation column to fill available space', async () => {
+    mockConversations([{...BASE_CONVERSATION, title: 'A conversation'}]);
+
+    renderTable();
+
+    await screen.findByText('A conversation');
+
+    expect(screen.getByTestId('grid-editable').style.gridTemplateColumns).toContain(
+      `minmax(${COL_WIDTH_MINIMUM}px, 1fr)`
+    );
   });
 
   it('keeps the tools column at full width when a conversation has tools', async () => {
@@ -168,6 +227,112 @@ describe('ConversationsTable', () => {
     // flexible conversation column.
     expect(screen.getByTestId('grid-editable').style.gridTemplateColumns).not.toContain(
       '220px'
+    );
+  });
+
+  it('restores a persisted column width', async () => {
+    localStorage.setItem(
+      COLUMN_WIDTHS_STORAGE_KEY,
+      JSON.stringify({conversation: 300, tools: 400})
+    );
+    mockConversations([
+      {...BASE_CONVERSATION, title: 'With tools', toolNames: ['execute_query']},
+    ]);
+
+    renderTable();
+
+    await screen.findByText('With tools');
+
+    const template = screen.getByTestId('grid-editable').style.gridTemplateColumns;
+    expect(template).toContain('300px');
+    expect(template).toContain('400px');
+    expect(template).not.toContain('220px');
+    expect(template).not.toContain('1fr');
+  });
+
+  it('keeps a persisted tools width when no conversation has tools', async () => {
+    localStorage.setItem(COLUMN_WIDTHS_STORAGE_KEY, JSON.stringify({tools: 400}));
+    mockConversations([{...BASE_CONVERSATION, title: 'No tools', toolNames: []}]);
+
+    renderTable();
+
+    await screen.findByText('No tools');
+
+    // Only a tools column still at its default width collapses; a width the
+    // user chose is respected across reloads.
+    expect(screen.getByTestId('grid-editable').style.gridTemplateColumns).toContain(
+      '400px'
+    );
+  });
+
+  it('persists a column width when the user resizes it', async () => {
+    mockConversations([
+      {...BASE_CONVERSATION, title: 'With tools', toolNames: ['execute_query']},
+    ]);
+
+    renderTable();
+
+    await screen.findByText('With tools');
+
+    // Columns measure 0px in jsdom, so the committed width is the drag distance.
+    dragHandle(screen.getByRole('separator', {name: 'Tools'}), {from: 0, to: 300});
+
+    await waitFor(() => {
+      const stored = localStorage.getItem(COLUMN_WIDTHS_STORAGE_KEY);
+      expect(stored && JSON.parse(stored)).toEqual({tools: 300});
+    });
+  });
+
+  it('restores the flexible conversation column after resetting its resize handle', async () => {
+    localStorage.setItem(COLUMN_WIDTHS_STORAGE_KEY, JSON.stringify({conversation: 300}));
+    mockConversations([{...BASE_CONVERSATION, title: 'A conversation'}]);
+
+    renderTable();
+
+    await screen.findByText('A conversation');
+
+    // Double-clicking the resize handle resets the column to
+    // COL_WIDTH_UNDEFINED, which should restore the flexible track rather
+    // than leaving the column stuck at a fixed width.
+    await userEvent.dblClick(screen.getByRole('separator', {name: 'Conversation'}));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('grid-editable').style.gridTemplateColumns).toContain(
+        `minmax(${COL_WIDTH_MINIMUM}px, 1fr)`
+      );
+    });
+  });
+
+  it('sorts by supported headers', async () => {
+    const request = mockConversations([
+      {...BASE_CONVERSATION, title: 'Sortable conversation'},
+    ]);
+
+    renderTable();
+
+    await screen.findByText('Sortable conversation');
+    expect(screen.getByRole('columnheader', {name: 'Age'})).toHaveAttribute(
+      'aria-sort',
+      'descending'
+    );
+    expect(screen.queryByRole('button', {name: 'Conversation'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Tools'})).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Timespan'}));
+
+    await waitFor(() =>
+      expect(request).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/agents/conversations/`,
+        expect.objectContaining({
+          query: expect.objectContaining({sort: ['-conversation.timeSpan']}),
+        })
+      )
+    );
+    await waitFor(() =>
+      expect(screen.getByRole('columnheader', {name: 'Timespan'})).toHaveAttribute(
+        'aria-sort',
+        'descending'
+      )
     );
   });
 
@@ -227,6 +392,144 @@ describe('ConversationsTable', () => {
     expect(router.location.pathname).toBe(initialPath);
 
     openSpy.mockRestore();
+  });
+
+  it('adds a cell value to the search query without opening the conversation', async () => {
+    mockConversations([{...BASE_CONVERSATION, title: 'Filter me', llmCalls: 7}]);
+
+    const {router} = renderTable();
+    const initialPath = router.location.pathname;
+
+    await screen.findByText('Filter me');
+    const messagesCell = screen.getAllByRole('cell')[2]!;
+    await userEvent.click(within(messagesCell).getByRole('button', {name: 'Actions'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
+
+    await waitFor(() =>
+      expect(router.location.query.query).toBe('conversation.messages:7')
+    );
+    expect(router.location.pathname).toBe(initialPath);
+  });
+
+  it('excludes a cell value from the existing search query', async () => {
+    mockConversations([{...BASE_CONVERSATION, title: 'Filter me', errors: 2}]);
+
+    const {router} = render(<TestConversationsTable />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/', query: {query: 'gen_ai.tool.name:search'}},
+      },
+    });
+
+    await screen.findByText('Filter me');
+    const errorsCell = screen.getAllByRole('cell')[3]!;
+    await userEvent.click(within(errorsCell).getByRole('button', {name: 'Actions'}));
+    await userEvent.click(
+      screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
+    );
+
+    await waitFor(() =>
+      expect(router.location.query.query).toBe(
+        'gen_ai.tool.name:search !conversation.errors:2'
+      )
+    );
+  });
+
+  it('filters the timespan and cost with comparisons', async () => {
+    mockConversations([
+      {...BASE_CONVERSATION, title: 'Filter me', timeSpan: 1500, totalCost: 0.25},
+    ]);
+
+    const {router} = renderTable();
+
+    await screen.findByText('Filter me');
+    const timeSpanCell = screen.getAllByRole('cell')[1]!;
+    await userEvent.click(within(timeSpanCell).getByRole('button', {name: 'Actions'}));
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Add to filter'})
+    ).not.toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole('menuitemradio', {name: 'Show values greater than'})
+    );
+
+    await waitFor(() =>
+      expect(router.location.query.query).toBe('conversation.timeSpan:>1.50s')
+    );
+
+    const costCell = screen.getAllByRole('cell')[4]!;
+    await userEvent.click(within(costCell).getByRole('button', {name: 'Actions'}));
+    await userEvent.click(
+      screen.getByRole('menuitemradio', {name: 'Show values less than'})
+    );
+
+    await waitFor(() =>
+      expect(router.location.query.query).toBe(
+        'conversation.timeSpan:>1.50s conversation.totalCost:<0.25'
+      )
+    );
+  });
+
+  it('filters on generation duration when the timespan falls back to it', async () => {
+    mockConversations([
+      {...BASE_CONVERSATION, title: 'Filter me', timeSpan: 0, generationDuration: 2000},
+    ]);
+
+    const {router} = renderTable();
+
+    await screen.findByText('Filter me');
+    const timeSpanCell = screen.getAllByRole('cell')[1]!;
+    await userEvent.click(within(timeSpanCell).getByRole('button', {name: 'Actions'}));
+    await userEvent.click(
+      screen.getByRole('menuitemradio', {name: 'Show values less than'})
+    );
+
+    await waitFor(() =>
+      expect(router.location.query.query).toBe('conversation.generationDuration:<2.00s')
+    );
+  });
+
+  it('does not offer cell actions for a missing cost', async () => {
+    mockConversations([{...BASE_CONVERSATION, title: 'Filter me', totalCost: null}]);
+
+    renderTable();
+
+    await screen.findByText('Filter me');
+    const costCell = screen.getAllByRole('cell')[4]!;
+    expect(
+      within(costCell).queryByRole('button', {name: 'Actions'})
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe('parseStoredColumnWidths', () => {
+  it('keeps widths for known columns', () => {
+    expect(parseStoredColumnWidths({tools: 400, age: 150})).toEqual({
+      tools: 400,
+      age: 150,
+    });
+  });
+
+  it('drops columns it does not know about', () => {
+    expect(parseStoredColumnWidths({tools: 400, retired: 400})).toEqual({tools: 400});
+  });
+
+  it('drops widths below the grid minimum', () => {
+    expect(
+      parseStoredColumnWidths({
+        tools: COL_WIDTH_MINIMUM - 1,
+        age: COL_WIDTH_UNDEFINED,
+      })
+    ).toEqual({});
+  });
+
+  it('drops values that are not finite numbers', () => {
+    expect(parseStoredColumnWidths({tools: '400', age: null, cost: NaN})).toEqual({});
+  });
+
+  it('returns no widths when nothing usable is stored', () => {
+    expect(parseStoredColumnWidths(undefined)).toEqual({});
+    expect(parseStoredColumnWidths(null)).toEqual({});
+    expect(parseStoredColumnWidths('garbage')).toEqual({});
   });
 });
 

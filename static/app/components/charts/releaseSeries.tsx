@@ -1,8 +1,6 @@
-import {Component} from 'react';
-import type {Theme} from '@emotion/react';
-import {withTheme} from '@emotion/react';
-import type {Location, Query} from 'history';
-import isEqual from 'lodash/isEqual';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useTheme} from '@emotion/react';
+import type {Query} from 'history';
 import memoize from 'lodash/memoize';
 import partition from 'lodash/partition';
 
@@ -18,12 +16,11 @@ import {escape} from 'sentry/utils';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getFormat, getFormattedDate, getUtcDateString} from 'sentry/utils/dates';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-import {withApi} from 'sentry/utils/withApi';
-import {withOrganization} from 'sentry/utils/withOrganization';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 
 type ReleaseMetaBasic = {
@@ -79,17 +76,11 @@ const getOrganizationReleasesMemoized = memoize(
       .join('-')
 );
 
-export interface ReleaseSeriesProps {
-  api: Client;
-  children: (s: State) => React.ReactNode;
+interface UseReleaseSeriesProps {
   end: DateString;
   environments: readonly string[];
-  location: Location;
-  navigate: ReactRouter3Navigate;
-  organization: Organization;
   projects: readonly number[];
   start: DateString;
-  theme: Theme;
   emphasizeReleases?: string[];
   enabled?: boolean;
   memoized?: boolean;
@@ -102,166 +93,31 @@ export interface ReleaseSeriesProps {
   utc?: boolean | null;
 }
 
-type State = {
+type ReleaseSeriesState = {
   releaseSeries: Series[];
   releases: ReleaseMetaBasic[] | null;
 };
 
-/**
- * @deprecated use useReleaseBubbles instead
- */
-class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
-  state: State = {
-    releases: null,
-    releaseSeries: [],
-  };
-
-  componentDidMount() {
-    this._isMounted = true;
-    const {releases, enabled = true} = this.props;
-
-    if (releases) {
-      // No need to fetch releases if passed in from props
-      this.setReleasesWithSeries(releases);
-      return;
-    }
-
-    if (enabled) {
-      this.fetchData();
-    }
-  }
-
-  componentDidUpdate(prevProps: any) {
-    const {enabled = true} = this.props;
-
-    if (
-      (!isEqual(prevProps.projects, this.props.projects) ||
-        !isEqual(prevProps.environments, this.props.environments) ||
-        !isEqual(prevProps.start, this.props.start) ||
-        !isEqual(prevProps.end, this.props.end) ||
-        !isEqual(prevProps.period, this.props.period) ||
-        !isEqual(prevProps.query, this.props.query) ||
-        (!prevProps.enabled && this.props.enabled)) &&
-      enabled
-    ) {
-      this.fetchData();
-    } else if (!isEqual(prevProps.emphasizeReleases, this.props.emphasizeReleases)) {
-      this.setReleasesWithSeries(this.state.releases);
-    }
-  }
-
-  componentWillUnmount() {
-    this._isMounted = false;
-    this.props.api.clear();
-  }
-
-  _isMounted = false;
-
-  async fetchData() {
-    const {
-      api,
-      organization,
-      projects,
-      environments,
-      period,
-      start,
-      end,
-      memoized,
-      query,
-    } = this.props;
-    const conditions: ReleaseConditions = {
-      start,
-      end,
-      project: projects,
-      environment: environments,
-      statsPeriod: period,
-      query,
-    };
-    let hasMore = true;
-    const releases: ReleaseMetaBasic[] = [];
-    while (hasMore) {
-      try {
-        const getReleases = memoized
-          ? getOrganizationReleasesMemoized
-          : getOrganizationReleases;
-        const [newReleases, , resp] = await getReleases(api, organization, conditions);
-        releases.push(...newReleases);
-        if (this._isMounted) {
-          this.setReleasesWithSeries(releases);
-        }
-
-        const pageLinks = resp?.getResponseHeader('Link');
-        if (pageLinks) {
-          const paginationObject = parseLinkHeader(pageLinks);
-          hasMore = paginationObject?.next?.results ?? false;
-          conditions.cursor = paginationObject.next!.cursor;
-        } else {
-          hasMore = false;
-        }
-      } catch {
-        addErrorMessage(t('Error fetching releases'));
-        hasMore = false;
-      }
-    }
-  }
-
-  setReleasesWithSeries(releases: any) {
-    const {emphasizeReleases = []} = this.props;
-    const releaseSeries: Series[] = [];
-
-    if (emphasizeReleases.length) {
-      const [unemphasizedReleases, emphasizedReleases] = partition(
-        releases,
-        release => !emphasizeReleases.includes(release.version)
-      );
-      if (unemphasizedReleases.length) {
-        releaseSeries.push(this.getReleaseSeries(unemphasizedReleases, {type: 'dotted'}));
-      }
-      if (emphasizedReleases.length) {
-        releaseSeries.push(
-          this.getReleaseSeries(emphasizedReleases, {
-            opacity: 0.8,
-          })
-        );
-      }
-    } else {
-      releaseSeries.push(this.getReleaseSeries(releases));
-    }
-
-    this.setState({
-      releases,
-      releaseSeries,
-    });
-  }
-
-  getReleaseSeries = (releases: any, lineStyle = {}) => {
-    const {
-      organization,
-      location,
-      navigate,
-      tooltip,
-      environments,
-      start,
-      end,
-      period,
-      preserveQueryParams,
-      queryExtra,
-      theme,
-    } = this.props;
-
-    const query = {...queryExtra};
-    query.project = location.query.project;
-    if (preserveQueryParams) {
-      query.environment = [...environments];
-      query.start = start ? getUtcDateString(start) : undefined;
-      query.end = end ? getUtcDateString(end) : undefined;
-      query.statsPeriod = period || undefined;
-    }
-
+function buildReleaseSeries({
+  releases,
+  emphasizeReleases,
+  color,
+  tooltip,
+  utc,
+  onReleaseClick,
+}: {
+  color: string;
+  onReleaseClick: (version: string) => void;
+  releases: ReleaseMetaBasic[];
+  emphasizeReleases?: string[];
+  tooltip?: UseReleaseSeriesProps['tooltip'];
+  utc?: boolean | null;
+}): Series[] {
+  function makeOneSeries(items: ReleaseMetaBasic[], lineStyle = {}): Series {
     const markLine = createMarkLine({
       animation: false,
       lineStyle: {
-        color: theme.tokens.dataviz.semantic.release,
+        color,
         opacity: 0.3,
         type: 'solid',
         ...lineStyle,
@@ -269,21 +125,11 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
       label: {
         show: false,
       },
-      data: releases.map((release: any) => ({
+      data: items.map(release => ({
         xAxis: +new Date(release.date),
         name: formatVersion(release.version, true),
         value: formatVersion(release.version, true),
-
-        onClick: () => {
-          navigate({
-            pathname: makeReleasesPathname({
-              organization,
-              path: `/${encodeURIComponent(release.version)}/`,
-            }),
-            query,
-          });
-        },
-
+        onClick: () => onReleaseClick(release.version),
         label: {
           formatter: () => formatVersion(release.version, true),
         },
@@ -295,15 +141,10 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
           if (!data) {
             return '';
           }
-          // XXX using this.props here as this function does not get re-run
-          // unless projects are changed. Using a closure variable would result
-          // in stale values.
           const time = getFormattedDate(
             data.value,
             getFormat({timeZone: true, year: true}),
-            {
-              local: !this.props.utc,
-            }
+            {local: !utc}
           );
           const version = escape(formatVersion(data.name, true));
           return [
@@ -324,29 +165,192 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
     return {
       id: 'release-lines',
       seriesName: 'Releases',
-      color: theme.tokens.dataviz.semantic.release,
+      color,
       data: [],
       markLine,
     };
-  };
-
-  render() {
-    const {children, enabled = true} = this.props;
-
-    return children({
-      releases: enabled ? this.state.releases : [],
-      releaseSeries: enabled ? this.state.releaseSeries : [],
-    });
   }
-}
 
-function WithRouter(props: Omit<ReleaseSeriesProps, 'location' | 'navigate'>) {
-  const location = useLocation();
-  const navigate = useNavigate();
-  return <ReleaseSeries {...props} location={location} navigate={navigate} />;
+  if (!emphasizeReleases?.length) {
+    return [makeOneSeries(releases)];
+  }
+
+  const [unemphasizedReleases, emphasizedReleases] = partition(
+    releases,
+    release => !emphasizeReleases.includes(release.version)
+  );
+  const releaseSeries: Series[] = [];
+  if (unemphasizedReleases.length) {
+    releaseSeries.push(makeOneSeries(unemphasizedReleases, {type: 'dotted'}));
+  }
+  if (emphasizedReleases.length) {
+    releaseSeries.push(makeOneSeries(emphasizedReleases, {opacity: 0.8}));
+  }
+  return releaseSeries;
 }
 
 /**
  * @deprecated use useReleaseBubbles instead
  */
-export default withOrganization(withApi(withTheme(WithRouter)));
+export function useReleaseSeries({
+  start,
+  end,
+  period,
+  environments,
+  projects,
+  query,
+  releases: propReleases,
+  enabled = true,
+  memoized,
+  emphasizeReleases,
+  preserveQueryParams,
+  queryExtra,
+  tooltip,
+  utc,
+}: UseReleaseSeriesProps): ReleaseSeriesState {
+  const api = useApi();
+  const organization = useOrganization();
+  const theme = useTheme();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const [fetchedReleases, setFetchedReleases] = useState<ReleaseMetaBasic[] | null>(null);
+  const releases = propReleases ?? fetchedReleases;
+
+  // Callers like Discover rebuild Date objects and arrays on every render, so
+  // effect deps compare serialized values to avoid re-fetching unchanged data.
+  const startKey = start ? getUtcDateString(start) : '';
+  const endKey = end ? getUtcDateString(end) : '';
+  const projectsKey = [...projects].join(',');
+  const environmentsKey = [...environments].join(',');
+
+  // Read at click time so the memoized series doesn't rebuild whenever a
+  // caller passes freshly-allocated navigation params.
+  const clickContextRef = useRef({
+    environments,
+    end,
+    location,
+    navigate,
+    organization,
+    period,
+    preserveQueryParams,
+    queryExtra,
+    start,
+  });
+  useEffect(() => {
+    clickContextRef.current = {
+      environments,
+      end,
+      location,
+      navigate,
+      organization,
+      period,
+      preserveQueryParams,
+      queryExtra,
+      start,
+    };
+  });
+
+  const handleReleaseClick = useCallback((version: string) => {
+    const ctx = clickContextRef.current;
+    const extraQuery: Query = {...ctx.queryExtra, project: ctx.location.query.project};
+    if (ctx.preserveQueryParams) {
+      extraQuery.environment = [...ctx.environments];
+      extraQuery.start = ctx.start ? getUtcDateString(ctx.start) : undefined;
+      extraQuery.end = ctx.end ? getUtcDateString(ctx.end) : undefined;
+      extraQuery.statsPeriod = ctx.period || undefined;
+    }
+    ctx.navigate({
+      pathname: makeReleasesPathname({
+        organization: ctx.organization,
+        path: `/${encodeURIComponent(version)}/`,
+      }),
+      query: extraQuery,
+    });
+  }, []);
+
+  const releaseSeries = useMemo(
+    () =>
+      releases
+        ? buildReleaseSeries({
+            releases,
+            emphasizeReleases,
+            color: theme.tokens.dataviz.semantic.release,
+            tooltip,
+            utc,
+            onReleaseClick: handleReleaseClick,
+          })
+        : [],
+    [releases, emphasizeReleases, theme, tooltip, utc, handleReleaseClick]
+  );
+
+  useEffect(() => {
+    if (propReleases || !enabled) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function fetchData() {
+      const conditions: ReleaseConditions = {
+        start,
+        end,
+        project: projects,
+        environment: environments,
+        statsPeriod: period,
+        query,
+      };
+
+      let hasMore = true;
+      const allReleases: ReleaseMetaBasic[] = [];
+      while (hasMore) {
+        try {
+          const getReleases = memoized
+            ? getOrganizationReleasesMemoized
+            : getOrganizationReleases;
+          const [newReleases, , resp] = await getReleases(api, organization, conditions);
+          allReleases.push(...newReleases);
+          if (!cancelled) {
+            setFetchedReleases([...allReleases]);
+          }
+
+          const pageLinks = resp?.getResponseHeader('Link');
+          if (pageLinks) {
+            const paginationObject = parseLinkHeader(pageLinks);
+            hasMore = paginationObject?.next?.results ?? false;
+            conditions.cursor = paginationObject.next!.cursor;
+          } else {
+            hasMore = false;
+          }
+        } catch {
+          addErrorMessage(t('Error fetching releases'));
+          hasMore = false;
+        }
+      }
+    }
+
+    fetchData();
+
+    return () => {
+      cancelled = true;
+      api.clear();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- serialized keys stand in for start/end/projects/environments
+  }, [
+    startKey,
+    endKey,
+    period,
+    projectsKey,
+    environmentsKey,
+    query,
+    propReleases,
+    enabled,
+    memoized,
+  ]);
+
+  if (!enabled) {
+    return {releases: [], releaseSeries: []};
+  }
+
+  return {releases, releaseSeries};
+}

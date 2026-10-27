@@ -1,102 +1,125 @@
-import {Checkbox} from '@sentry/scraps/checkbox';
-import {Container} from '@sentry/scraps/layout';
+import {IconBug} from '@sentry/icons/bug';
+import {IconOpen} from '@sentry/icons/open';
 
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import {IconBug} from 'sentry/icons';
+import {
+  CompactSelect,
+  type SelectOption,
+  type SelectSection,
+} from '@sentry/scraps/compactSelect';
+import {Container} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {t} from 'sentry/locale';
+import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+type DebugOption = 'force-bash-mode' | 'show-thinking' | 'agent-trace';
 
 interface SeerExplorerDebugMenuProps {
   onOverrideBashModeToggle: () => void;
-  onOverrideCtxEngEnableToggle: () => void;
   onShowThinkingToggle: () => void;
   overrideBashModeEnabled: boolean;
-  overrideCtxEngEnable: boolean;
   showThinking: boolean;
+  conversationsUrl?: string;
 }
 
-/**
- * Consolidated "Debug" dropdown holding the feature-flagged developer toggles
- * (Context Engine override, Force bash mode, Show thinking). The flag checks
- * live here so the parent doesn't thread them through — if no flags are enabled
- * the whole menu renders nothing. The toggle state stays lifted (it's consumed
- * elsewhere), so we only receive the current values and their toggle handlers.
- */
 export function SeerExplorerDebugMenu({
-  overrideCtxEngEnable,
-  onOverrideCtxEngEnableToggle,
   overrideBashModeEnabled,
   onOverrideBashModeToggle,
   showThinking,
   onShowThinkingToggle,
+  conversationsUrl,
 }: SeerExplorerDebugMenuProps) {
   const organization = useOrganization({allowNull: true});
-  const showContextEngineToggle = !!organization?.features.includes(
-    'seer-explorer-context-engine-fe-override-ui-flag'
-  );
-  const showThinkingToggle = !!organization?.features.includes(
-    'seer-explorer-thinking-blocks'
-  );
+  const isSentryEmployee = useIsSentryEmployee();
+  // Code mode always shows thinking with no opt-out, so keep the toggle off the
+  // menu whenever that flag is on. The dedicated thinking-blocks flag still owns
+  // the manual toggle for non-code-mode orgs.
+  const showThinkingToggle =
+    !!organization?.features.includes('seer-explorer-thinking-blocks') &&
+    !organization?.features.includes('seer-explorer-code-mode-tools');
   const showBashModeToggle = !!organization?.features.includes(
     'seer-explorer-allow-bash-mode'
   );
 
-  const items: MenuItemProps[] = [
-    ...(showContextEngineToggle
-      ? [
-          {
-            key: 'context-engine',
-            label: t('Context Engine'),
-            leadingItems: <Checkbox checked={overrideCtxEngEnable} readOnly />,
-            onAction: onOverrideCtxEngEnableToggle,
-            closeOnSelect: false,
-          },
-        ]
-      : []),
+  const toggleOptions: Array<SelectOption<DebugOption>> = [
     ...(showBashModeToggle
-      ? [
-          {
-            key: 'force-bash-mode',
-            label: t('Force bash mode on'),
-            leadingItems: <Checkbox checked={overrideBashModeEnabled} readOnly />,
-            onAction: onOverrideBashModeToggle,
-            closeOnSelect: false,
-          },
-        ]
+      ? [{value: 'force-bash-mode' as const, label: t('Force bash mode on')}]
       : []),
     ...(showThinkingToggle
+      ? [{value: 'show-thinking' as const, label: t('Show thinking')}]
+      : []),
+  ];
+  const sections: Array<SelectSection<DebugOption>> = [
+    ...(toggleOptions.length ? [{key: 'toggles', options: toggleOptions}] : []),
+    ...(conversationsUrl
       ? [
           {
-            key: 'show-thinking',
-            label: t('Show thinking'),
-            leadingItems: <Checkbox checked={showThinking} readOnly />,
-            onAction: onShowThinkingToggle,
-            closeOnSelect: false,
+            key: 'links',
+            options: [
+              {
+                value: 'agent-trace' as const,
+                label: t('Open agent trace'),
+                leadingItems: <IconOpen />,
+                // This is an action, not a toggle, so it never holds selection.
+                hideCheck: true,
+              },
+            ],
           },
         ]
       : []),
   ];
+  const value: DebugOption[] = [
+    ...(showBashModeToggle && overrideBashModeEnabled
+      ? (['force-bash-mode'] as const)
+      : []),
+    ...(showThinkingToggle && showThinking ? (['show-thinking'] as const) : []),
+  ];
 
-  if (items.length === 0) {
+  if (!isSentryEmployee || sections.length === 0) {
     return null;
   }
 
   return (
-    <DropdownMenu
-      items={items}
-      size="xs"
-      position="bottom-end"
-      triggerLabel={
-        <Container as="span" display={{zero: 'none', sm: 'inline'}}>
-          {t('Debug')}
-        </Container>
-      }
-      triggerProps={{
-        'aria-label': t('Debug'),
-        icon: <IconBug />,
-        variant: 'transparent',
-        size: 'xs',
+    <CompactSelect
+      multiple
+      options={sections}
+      value={value}
+      onChange={selectedOptions => {
+        const selectedValues = new Set(selectedOptions.map(option => option.value));
+        if (selectedValues.has('agent-trace')) {
+          window.open(conversationsUrl, '_blank', 'noopener,noreferrer');
+          return;
+        }
+        if (
+          showBashModeToggle &&
+          selectedValues.has('force-bash-mode') !== overrideBashModeEnabled
+        ) {
+          onOverrideBashModeToggle();
+        }
+        if (showThinkingToggle && selectedValues.has('show-thinking') !== showThinking) {
+          onShowThinkingToggle();
+        }
       }}
+      // Toggles keep the menu open; opening the trace closes it.
+      closeOnSelect={selectedOptions =>
+        selectedOptions.some(option => option.value === 'agent-trace')
+      }
+      position="bottom-end"
+      preventOverflowOptions={{boundary: document.body}}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button
+          {...triggerProps}
+          aria-label={t('Debug')}
+          icon={<IconBug />}
+          variant="transparent"
+          size="xs"
+        >
+          <Container as="span" display={{zero: 'none', sm: 'inline'}}>
+            {t('Debug')}
+          </Container>
+        </OverlayTrigger.Button>
+      )}
     />
   );
 }

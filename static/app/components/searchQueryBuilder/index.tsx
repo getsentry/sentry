@@ -1,10 +1,14 @@
 import {useCallback, useLayoutEffect, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconCase} from '@sentry/icons/case';
+import {IconClose} from '@sentry/icons/close';
+import {IconSearch} from '@sentry/icons/search';
 import type {QueryKey} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
+import {PanelProvider} from '@sentry/scraps/panelProvider';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
@@ -27,12 +31,11 @@ import {
 } from 'sentry/components/searchQueryBuilder/types';
 import {queryIsValid} from 'sentry/components/searchQueryBuilder/utils';
 import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
-import {IconCase, IconClose, IconSearch} from 'sentry/icons';
+import {QueryBuilderPanel} from 'sentry/components/tokenizedInput/token/queryBuilderPanel';
 import {t} from 'sentry/locale';
 import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import type {FieldKind} from 'sentry/utils/fields';
-import {PanelProvider} from 'sentry/utils/panelProvider';
 import {useDimensions} from 'sentry/utils/useDimensions';
 
 export interface GetTagValuesParams {
@@ -70,6 +73,11 @@ export interface SearchQueryBuilderProps {
    * Indicates the usage of the search bar for analytics
    */
   searchSource: string;
+  /**
+   * When true, the regex operators ("matches regex", "does not match regex") are
+   * offered for string filters, and key://pattern// values are parsed as regexes.
+   */
+  allowRegexOperators?: boolean;
   /**
    * Query key used to scope async filter key metadata. When omitted, metadata is
    * scoped to this query builder instance.
@@ -174,6 +182,12 @@ export interface SearchQueryBuilderProps {
    * Allows for customization of the invalid token messages.
    */
   invalidMessages?: SearchConfig['invalidMessages'];
+  /**
+   * When true, picking a value from the dropdown keeps the operator the user
+   * chose. By default a filter under "contains" with no value yet switches to
+   * "is" on a pick, since a suggestion is an exact value.
+   */
+  keepOperatorOnValueSelect?: boolean;
   label?: string;
   /**
    * Allows for key suggestions to be rendered when the value matches the pattern.
@@ -188,6 +202,8 @@ export interface SearchQueryBuilderProps {
    * ```
    */
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
+  /** Render the input and suggestions together in one panel. */
+  menuPresentation?: 'floating' | 'panel';
   /**
    * If provided, filters recent searches by this query string on the backend.
    * This query will not be displayed in the UI because it is stripped from the
@@ -216,6 +232,17 @@ export interface SearchQueryBuilderProps {
    * a scrollable container.
    */
   portalTarget?: HTMLElement | null;
+  /**
+   * Keys that should be sorted above all other keys in the filter key
+   * autocomplete, regardless of how they score against the typed value.
+   * Relative ordering within the prioritized group still follows the search
+   * score.
+   *
+   * Useful when a subset of keys maps to what the user already sees on the
+   * page (e.g. table headers), so those should win over raw attributes that
+   * happen to match the input more literally.
+   */
+  prioritizedFilterKeys?: string[];
   queryInterface?: QueryInterfaceType;
 
   /**
@@ -232,6 +259,13 @@ export interface SearchQueryBuilderProps {
    * as an option, and so on with any other provided keys.
    */
   replaceRawSearchKeys?: string[];
+  /**
+   * When true, a filter with several values shows every value and wraps them onto
+   * new lines, both at rest and while editing. By default the filter shows the
+   * first few values plus a count of the rest, and the value editor scrolls
+   * sideways.
+   */
+  showAllFilterValues?: boolean;
   /**
    * When false, hides the leading magnifying glass icon and the padding reserved for it.
    * Defaults to true.
@@ -275,7 +309,7 @@ function ActionButtons({
             variant="transparent"
             active={!isCaseInsensitive}
             onClick={() => {
-              onCaseInsensitiveClick?.(isCaseInsensitive ? null : true);
+              onCaseInsensitiveClick?.(!isCaseInsensitive);
             }}
           />
         </Tooltip>
@@ -306,9 +340,11 @@ function SearchQueryBuilderUI({
   onChange,
 }: SearchQueryBuilderProps) {
   const {parsedQuery, query, dispatch} = useSearchQueryBuilderState();
-  const {wrapperRef, actionBarRef, size} = useSearchQueryBuilderLayout();
+  const {wrapperRef, actionBarRef, size, menuPresentation, panelRef, setMenuContainer} =
+    useSearchQueryBuilderLayout();
   const {skipNextSearchQueryBuilderAutoFocusRef} = useSearchQueryBuilderAI();
   const autoFocusOnMount = useRef(
+    // oxlint-disable-next-line react/refs
     Boolean(autoFocus) && !skipNextSearchQueryBuilderAutoFocusRef.current
   );
 
@@ -329,7 +365,7 @@ function SearchQueryBuilderUI({
 
   const {width: actionBarWidth} = useDimensions({elementRef: actionBarRef});
 
-  return (
+  const searchBar = (
     <Wrapper
       className={className}
       onBlur={() =>
@@ -338,8 +374,6 @@ function SearchQueryBuilderUI({
       ref={setWrapperRef}
       aria-disabled={disabled}
       data-test-id="search-query-builder"
-      // Styling hook only; the icon itself is what tests should look for.
-      data-hide-search-icon={showSearchIcon ? undefined : true}
     >
       <PanelProvider>
         {showSearchIcon ? (
@@ -351,9 +385,11 @@ function SearchQueryBuilderUI({
           <PlainTextQueryInput label={label} />
         ) : (
           <TokenizedQueryGrid
+            // oxlint-disable-next-line react/refs
             autoFocus={autoFocusOnMount.current}
             label={label}
             actionBarWidth={actionBarWidth}
+            hideSearchIcon={!showSearchIcon}
           />
         )}
         {size !== 'small' && (
@@ -362,6 +398,20 @@ function SearchQueryBuilderUI({
       </PanelProvider>
     </Wrapper>
   );
+
+  if (menuPresentation === 'panel') {
+    return (
+      <QueryBuilderPanel
+        ref={panelRef}
+        data-test-id="search-query-builder-panel"
+        onMenuContainerRef={setMenuContainer}
+      >
+        {searchBar}
+      </QueryBuilderPanel>
+    );
+  }
+
+  return searchBar;
 }
 
 export function SearchQueryBuilder({...props}: SearchQueryBuilderProps) {
@@ -386,11 +436,6 @@ const Wrapper = styled(Input.withComponent('div'))`
   contain: inline-size;
   font-size: ${p => p.theme.font.size.md};
   cursor: text;
-
-  /* Reclaim the space the search icon would have occupied. */
-  &[data-hide-search-icon='true'] [role='grid'] {
-    padding-left: ${p => p.theme.space.sm};
-  }
 `;
 
 const ButtonsWrapper = styled('div')`

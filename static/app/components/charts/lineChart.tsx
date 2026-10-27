@@ -2,7 +2,7 @@ import type {LineSeriesOption} from 'echarts';
 
 import type {Series} from 'sentry/types/echarts';
 
-import {lineSeries} from './series/lineSeries';
+import {createLineSeries} from './series/lineSeries';
 import type {BaseChartProps} from './baseChart';
 import {BaseChart} from './baseChart';
 
@@ -13,7 +13,6 @@ export interface LineChartSeries
 
 export interface LineChartProps extends Omit<BaseChartProps, 'series'> {
   series: LineChartSeries[];
-  additionalSeries?: LineSeriesOption[];
   seriesOptions?: LineSeriesOption;
 }
 
@@ -22,7 +21,7 @@ export function transformToLineSeries({
   seriesOptions,
 }: Pick<LineChartProps, 'series' | 'seriesOptions'>) {
   return series.map(({seriesName, data, dataArray, ...options}) =>
-    lineSeries({
+    createLineSeries({
       ...seriesOptions,
       ...options,
       name: seriesName,

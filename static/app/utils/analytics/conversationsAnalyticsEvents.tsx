@@ -6,6 +6,7 @@ export type ConversationsEventParameters = {
   'conversations.detail.expand-embedding': {expanded: boolean};
   'conversations.detail.expand-thinking': {expanded: boolean};
   'conversations.detail.expand-tool-calls': {expanded: boolean};
+  'conversations.detail.export-conversation': Record<string, unknown>;
   'conversations.detail.page-view': Record<string, unknown>;
   'conversations.detail.select-span': Record<string, unknown>;
   'conversations.detail.tab-switch': {
@@ -13,7 +14,24 @@ export type ConversationsEventParameters = {
     toTab: string;
   };
   'conversations.message.click': Record<string, unknown>;
+  'conversations.message.click-evaluation': Record<string, unknown>;
+  'conversations.message.click-memory': Record<string, unknown>;
   'conversations.message.click-tool-call': Record<string, unknown>;
+  'conversations.onboarding.interaction': {
+    action:
+      | 'collapse_prompt'
+      | 'copy_agent_prompt'
+      | 'expand_prompt'
+      | 'next_step'
+      | 'previous_step'
+      | 'select_setup_option'
+      | 'switch_tab'
+      | 'view_conversations';
+    option?: string;
+    step?: number;
+    tab?: 'agent' | 'human';
+    value?: string;
+  };
   'conversations.onboarding.page-view': Record<string, unknown>;
   'conversations.page-view': Record<string, unknown>;
   'conversations.save_as': {
@@ -32,6 +50,7 @@ export type ConversationsEventParameters = {
 
 export const conversationsEventMap: Record<keyof ConversationsEventParameters, string> = {
   'conversations.onboarding.page-view': 'Conversations: Onboarding Page View',
+  'conversations.onboarding.interaction': 'Conversations: Onboarding Interaction',
   'conversations.page-view': 'Conversations: Page View',
   'conversations.save_as': 'Conversations: Save As',
   'conversations.save_query_modal': 'Conversations: Save Query Modal',
@@ -46,8 +65,11 @@ export const conversationsEventMap: Record<keyof ConversationsEventParameters, s
   'conversations.detail.copy-conversation': 'Conversations: Detail Copy Conversation',
   'conversations.detail.copy-conversation-id':
     'Conversations: Detail Copy Conversation ID',
+  'conversations.detail.export-conversation': 'Conversations: Detail Export Conversation',
   'conversations.detail.click-trace-link': 'Conversations: Detail Click Trace Link',
   'conversations.detail.click-errors-link': 'Conversations: Detail Click Errors Link',
   'conversations.message.click': 'Conversations: Message Click',
+  'conversations.message.click-evaluation': 'Conversations: Message Click Evaluation',
+  'conversations.message.click-memory': 'Conversations: Message Click Memory',
   'conversations.message.click-tool-call': 'Conversations: Message Click Tool Call',
 };

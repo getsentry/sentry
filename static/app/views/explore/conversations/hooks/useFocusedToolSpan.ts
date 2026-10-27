@@ -27,6 +27,7 @@ export function useFocusedToolSpan({
 
   useEffect(() => {
     hasProcessed.current = false;
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [focusedTool]);
 
   useEffect(() => {

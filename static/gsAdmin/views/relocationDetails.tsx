@@ -2,8 +2,10 @@ import {useState} from 'react';
 import moment from 'moment-timezone';
 
 import {OrganizationAvatar} from '@sentry/scraps/avatar';
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
+import {Text} from '@sentry/scraps/text';
 
 import {
   addErrorMessage,
@@ -15,6 +17,8 @@ import {Client} from 'sentry/api';
 import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {ResultGrid} from 'sentry/components/resultGrid';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {Truncate} from 'sentry/components/truncate';
 import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -26,7 +30,6 @@ import {useParams} from 'sentry/utils/useParams';
 
 import {CustomerName} from 'admin/components/customerName';
 import {DetailLabel} from 'admin/components/detailLabel';
-import {DetailList} from 'admin/components/detailList';
 import {DetailsContainer} from 'admin/components/detailsContainer';
 import type {ActionItem} from 'admin/components/detailsPage';
 import {DetailsPage} from 'admin/components/detailsPage';
@@ -36,7 +39,6 @@ import {RelocationCancelModal} from 'admin/components/relocationCancelModal';
 import {RelocationPauseModal} from 'admin/components/relocationPauseModal';
 import {RelocationRetryModal} from 'admin/components/relocationRetryModal';
 import {RelocationUnpauseModal} from 'admin/components/relocationUnpauseModal';
-import {ResultGrid} from 'admin/components/resultGrid';
 import type {Relocation} from 'admin/types';
 import {RelocationSteps} from 'admin/types';
 import {titleCase} from 'getsentry/utils/titleCase';
@@ -112,7 +114,7 @@ const orderedRelocationArtifacts = [
 ];
 
 const getArtifactRow = (row: RelocationArtifact) => [
-  <td key="file">
+  <SimpleTable.RowCell key="file">
     <strong>
       <Link
         to={`/_admin/relocations/${row.regionName}/${row.relocation.uuid}/${row.path}/`}
@@ -120,36 +122,33 @@ const getArtifactRow = (row: RelocationArtifact) => [
         {row.path}
       </Link>
     </strong>
-  </td>,
-  <td key="size" style={{textAlign: 'center'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="size" justify="center">
     {row.sizeInKbs} KB
-  </td>,
-  <td key="description" style={{textAlign: 'left'}}>
-    {row.description}
-  </td>,
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="description">{row.description}</SimpleTable.RowCell>,
 ];
 
 const getOrgRow = (row: Organization) => [
-  <td key="customer">
+  <SimpleTable.RowCell key="customer">
     <CustomerName>
       <OrganizationAvatar size={36} organization={row} />
       <div>
         <strong>
           <Link to={`/_admin/customers/${row.slug}/`}>{row.name}</Link>
         </strong>
-        <small> — {row.slug}</small>
+        <Text size="xs"> — {row.slug}</Text>
       </div>
     </CustomerName>
-  </td>,
-  <td key="joined" style={{textAlign: 'right'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="joined" direction="column" align="end" gap="xs">
     {moment(row.dateCreated).format('MMMM YYYY')}
-    <br />
-    <small>{moment(row.dateCreated).fromNow()}</small>
-  </td>,
+    <Text size="xs">{moment(row.dateCreated).fromNow()}</Text>
+  </SimpleTable.RowCell>,
 ];
 
 const getUserRow = (row: any) => [
-  <td key="user">
+  <SimpleTable.RowCell key="user" overflow="visible">
     <Link to={`/_admin/users/${row.id}/`}>
       <UserBadge
         hideEmail
@@ -157,18 +156,17 @@ const getUserRow = (row: any) => [
         displayName={<Truncate maxLength={40} value={row.name} />}
       />
     </Link>
-  </td>,
-  <td key="email" style={{textAlign: 'center'}}>
-    {row.username}
-    <br />
-    {row.username !== row.email && row.email}
-  </td>,
-  <td key="status" style={{textAlign: 'center'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="email" direction="column" gap="xs">
+    <Text>{row.username}</Text>
+    {row.username !== row.email && <Text>{row.email}</Text>}
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="status" justify="center">
     {row.isActive ? 'Active' : 'Disabled'}
-  </td>,
-  <td key="joined" style={{textAlign: 'right'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="joined" justify="end">
     {moment(row.dateJoined).fromNow()}
-  </td>,
+  </SimpleTable.RowCell>,
 ];
 
 export function RelocationDetails() {
@@ -355,115 +353,108 @@ export function RelocationDetails() {
     return actions;
   };
 
-  const renderOverview = () => {
-    return (
-      <DetailsContainer>
-        <DetailList>
-          <DetailLabel title="Provenance">
-            <code>{relocationData.provenance}</code>
-          </DetailLabel>
-          <DetailLabel title="Region">
-            <code>{regionName}</code>
-          </DetailLabel>
-          <DetailLabel title="Status">
-            <RelocationBadge data={relocationData} />
-          </DetailLabel>
-          <DetailLabel title="Owner">
-            {relocationData.owner ? (
-              <Link aria-label="Owner" to={`/_admin/users/${relocationData.owner.id}/`}>
-                {relocationData.owner.email}
-              </Link>
-            ) : (
-              <i>&lt;deleted&gt;</i>
-            )}
-          </DetailLabel>
-          <DetailLabel title="Creator">
-            {relocationData.creator ? (
-              <Link
-                aria-label="Creator"
-                to={`/_admin/users/${relocationData.creator.id}/`}
-              >
-                {relocationData.creator.email}
-              </Link>
-            ) : (
-              <i>&lt;deleted&gt;</i>
-            )}
-          </DetailLabel>
-        </DetailList>
-        <DetailList>
-          <DetailLabel title="Started">
-            {moment(relocationData.dateAdded).fromNow()}
-          </DetailLabel>
-          <DetailLabel title="Updated">
-            {moment(relocationData.dateUpdated).fromNow()}
-          </DetailLabel>
-          <DetailLabel title="Autopause">
-            {relocationData.scheduledPauseAtStep
-              ? titleCase(relocationData.scheduledPauseAtStep)
-              : '--'}
-          </DetailLabel>
-          <DetailLabel title="Owner Notified Of">
-            {relocationData.latestNotified
-              ? titleCase(relocationData.latestNotified)
-              : '--'}
-          </DetailLabel>
-          <DetailLabel title="Unclaimed Users Last Notified">
-            {relocationData.latestUnclaimedEmailsSentAt
-              ? moment(relocationData.latestUnclaimedEmailsSentAt).fromNow()
-              : '--'}
-          </DetailLabel>
-        </DetailList>
-      </DetailsContainer>
-    );
-  };
-
-  const renderSummary = () => {
-    const current_step = RelocationSteps[relocationData.step];
-    const steps: React.ReactElement[] = [];
-    Object.keys(RelocationSteps)
-      .filter(step => Number.isNaN(Number(step)))
-      .reduce((acc, step, key) => {
-        if (acc.length > 0) {
-          acc.push();
-        }
-
-        let text = <span>{`${key + 1}: ${titleCase(step)}`}</span>;
-        if (RelocationSteps[step as keyof typeof RelocationSteps] === current_step) {
-          text = <b>{text}</b>;
-        }
-        if (
-          step === relocationData.scheduledPauseAtStep ||
-          relocationData.status === 'PAUSE'
-        ) {
-          text = <i>{text}</i>;
-        }
-
-        acc.push(
-          <span key={step}>
-            {acc.length > 0 ? <span> | </span> : null}
-            {text}
-          </span>
-        );
-        return acc;
-      }, steps);
-
-    return (
-      <DetailList>
-        <DetailLabel title="Progress">{steps}</DetailLabel>
-        <DetailLabel title="Requested Slugs">
-          {relocationData.wantOrgSlugs.join(', ')}
+  const overview = (
+    <DetailsContainer>
+      <DescriptionList gap="md">
+        <DetailLabel title="Provenance">
+          <code>{relocationData.provenance}</code>
         </DetailLabel>
-        {relocationData.wantUsernames ? (
-          <DetailLabel title="Requested Usernames">
-            {relocationData.wantUsernames.join(', ')}
-          </DetailLabel>
-        ) : null}
-        {relocationData.failureReason ? (
-          <DetailLabel title="Notes">{relocationData.failureReason}</DetailLabel>
-        ) : null}
-      </DetailList>
-    );
-  };
+        <DetailLabel title="Region">
+          <code>{regionName}</code>
+        </DetailLabel>
+        <DetailLabel title="Status">
+          <RelocationBadge data={relocationData} />
+        </DetailLabel>
+        <DetailLabel title="Owner">
+          {relocationData.owner ? (
+            <Link aria-label="Owner" to={`/_admin/users/${relocationData.owner.id}/`}>
+              {relocationData.owner.email}
+            </Link>
+          ) : (
+            <i>&lt;deleted&gt;</i>
+          )}
+        </DetailLabel>
+        <DetailLabel title="Creator">
+          {relocationData.creator ? (
+            <Link aria-label="Creator" to={`/_admin/users/${relocationData.creator.id}/`}>
+              {relocationData.creator.email}
+            </Link>
+          ) : (
+            <i>&lt;deleted&gt;</i>
+          )}
+        </DetailLabel>
+      </DescriptionList>
+      <DescriptionList gap="md">
+        <DetailLabel title="Started">
+          {moment(relocationData.dateAdded).fromNow()}
+        </DetailLabel>
+        <DetailLabel title="Updated">
+          {moment(relocationData.dateUpdated).fromNow()}
+        </DetailLabel>
+        <DetailLabel title="Autopause">
+          {relocationData.scheduledPauseAtStep
+            ? titleCase(relocationData.scheduledPauseAtStep)
+            : '--'}
+        </DetailLabel>
+        <DetailLabel title="Owner Notified Of">
+          {relocationData.latestNotified
+            ? titleCase(relocationData.latestNotified)
+            : '--'}
+        </DetailLabel>
+        <DetailLabel title="Unclaimed Users Last Notified">
+          {relocationData.latestUnclaimedEmailsSentAt
+            ? moment(relocationData.latestUnclaimedEmailsSentAt).fromNow()
+            : '--'}
+        </DetailLabel>
+      </DescriptionList>
+    </DetailsContainer>
+  );
+
+  const current_step = RelocationSteps[relocationData.step];
+  const steps: React.ReactElement[] = [];
+  Object.keys(RelocationSteps)
+    .filter(step => Number.isNaN(Number(step)))
+    .reduce((acc, step, key) => {
+      if (acc.length > 0) {
+        acc.push();
+      }
+
+      let text = <span>{`${key + 1}: ${titleCase(step)}`}</span>;
+      if (RelocationSteps[step as keyof typeof RelocationSteps] === current_step) {
+        text = <b>{text}</b>;
+      }
+      if (
+        step === relocationData.scheduledPauseAtStep ||
+        relocationData.status === 'PAUSE'
+      ) {
+        text = <i>{text}</i>;
+      }
+
+      acc.push(
+        <span key={step}>
+          {acc.length > 0 ? <span> | </span> : null}
+          {text}
+        </span>
+      );
+      return acc;
+    }, steps);
+
+  const summary = (
+    <DescriptionList gap="md">
+      <DetailLabel title="Progress">{steps}</DetailLabel>
+      <DetailLabel title="Requested Slugs">
+        {relocationData.wantOrgSlugs.join(', ')}
+      </DetailLabel>
+      {relocationData.wantUsernames ? (
+        <DetailLabel title="Requested Usernames">
+          {relocationData.wantUsernames.join(', ')}
+        </DetailLabel>
+      ) : null}
+      {relocationData.failureReason ? (
+        <DetailLabel title="Notes">{relocationData.failureReason}</DetailLabel>
+      ) : null}
+    </DescriptionList>
+  );
 
   const renderArtifactsSection = () => {
     if (artifactsState === ArtifactsState.DISABLED) {
@@ -491,17 +482,10 @@ export function RelocationDetails() {
           path={`/_admin/relocations/${relocationData.uuid}/`}
           api={regionApi}
           endpoint={`/relocations/${relocationData.uuid}/artifacts/`}
-          method="GET"
           columns={[
-            <th key="file" style={{width: 240}}>
-              File
-            </th>,
-            <th key="size" style={{width: 100, textAlign: 'center'}}>
-              Size
-            </th>,
-            <th key="description" style={{textAlign: 'left'}}>
-              Description
-            </th>,
+            {key: 'file', label: 'File', width: 240},
+            {key: 'size', label: 'Size', width: 100, align: 'center'},
+            {key: 'description', label: 'Description'},
           ]}
           hasPagination={false}
           columnsForRow={getArtifactRow}
@@ -546,60 +530,9 @@ export function RelocationDetails() {
     };
   };
 
-  const renderImportedOrgs = (importedOrgIds: number[]) => {
-    return (
-      <ResultGrid
-        key="orgs"
-        inPanel
-        panelTitle="Relocated Customers"
-        path={`/_admin/relocations/${relocationData.uuid}/`}
-        api={regionApi}
-        endpoint={`/_admin/cells/${regionName}/customers/`}
-        method="GET"
-        columns={[
-          <th key="customer">Customer</th>,
-          <th key="joined" style={{width: 150, textAlign: 'right'}}>
-            Joined
-          </th>,
-        ]}
-        columnsForRow={getOrgRow}
-        defaultParams={{query: importedOrgIds.map(id => `id:${id.toString()}`).join(' ')}}
-      />
-    );
-  };
-
-  const renderImportedUsers = (importedUserIds: number[]) => {
-    return (
-      <ResultGrid
-        key="users"
-        inPanel
-        panelTitle="Relocated Users"
-        path={`/_admin/relocations/${relocationData.uuid}/`}
-        endpoint="/users/"
-        method="GET"
-        columns={[
-          <th key="user">User</th>,
-          <th key="email" style={{width: 100, textAlign: 'center'}}>
-            Email
-          </th>,
-          <th key="status" style={{width: 100, textAlign: 'center'}}>
-            Status
-          </th>,
-          <th key="joined" style={{width: 200, textAlign: 'right'}}>
-            Joined
-          </th>,
-        ]}
-        columnsForRow={getUserRow}
-        defaultParams={{
-          query: importedUserIds.map(id => `id:${id.toString()}`).join(' '),
-        }}
-      />
-    );
-  };
-
   const sections = [
-    {noPanel: false, content: renderOverview()},
-    {noPanel: false, content: renderSummary()},
+    {noPanel: false, content: overview},
+    {noPanel: false, content: summary},
   ];
 
   // If we are not sufficiently far along in the relocation step-wise, ignore this bit.
@@ -611,13 +544,52 @@ export function RelocationDetails() {
     if (relocationData.importedOrgIds) {
       sections.push({
         noPanel: true,
-        content: renderImportedOrgs(relocationData.importedOrgIds),
+        content: (
+          <ResultGrid
+            key="orgs"
+            inPanel
+            panelTitle="Relocated Customers"
+            path={`/_admin/relocations/${relocationData.uuid}/`}
+            api={regionApi}
+            endpoint={`/_admin/cells/${regionName}/customers/`}
+            columns={[
+              {key: 'customer', label: 'Customer'},
+              {key: 'joined', label: 'Joined', width: 150, align: 'right'},
+            ]}
+            columnsForRow={getOrgRow}
+            defaultParams={{
+              query: relocationData.importedOrgIds
+                .map(id => `id:${id.toString()}`)
+                .join(' '),
+            }}
+          />
+        ),
       });
     }
     if (relocationData.importedUserIds) {
       sections.push({
         noPanel: true,
-        content: renderImportedUsers(relocationData.importedUserIds),
+        content: (
+          <ResultGrid
+            key="users"
+            inPanel
+            panelTitle="Relocated Users"
+            path={`/_admin/relocations/${relocationData.uuid}/`}
+            endpoint="/users/"
+            columns={[
+              {key: 'user', label: 'User'},
+              {key: 'email', label: 'Email', width: 100, align: 'center'},
+              {key: 'status', label: 'Status', width: 100, align: 'center'},
+              {key: 'joined', label: 'Joined', width: 200, align: 'right'},
+            ]}
+            columnsForRow={getUserRow}
+            defaultParams={{
+              query: relocationData.importedUserIds
+                .map(id => `id:${id.toString()}`)
+                .join(' '),
+            }}
+          />
+        ),
       });
     }
   }

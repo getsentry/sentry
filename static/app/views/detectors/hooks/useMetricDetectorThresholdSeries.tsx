@@ -6,7 +6,7 @@ import type {LineSeriesOption} from 'echarts';
 
 import {MarkArea} from 'sentry/components/charts/components/markArea';
 import {markLine} from 'sentry/components/charts/components/markLine';
-import {lineSeries} from 'sentry/components/charts/series/lineSeries';
+import {createLineSeries} from 'sentry/components/charts/series/lineSeries';
 import type {Series} from 'sentry/types/echarts';
 import {
   DataConditionType,
@@ -219,7 +219,7 @@ export function useMetricDetectorThresholdSeries({
           seriesName
         );
 
-        return lineSeries({
+        return createLineSeries({
           name: seriesName,
           data: series.data.map(({name, value}) => [name, value]),
           lineStyle: {

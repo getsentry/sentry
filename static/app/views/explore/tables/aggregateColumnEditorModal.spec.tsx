@@ -1,5 +1,3 @@
-import {OrganizationFixture} from 'sentry-fixture/organization';
-
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
@@ -12,7 +10,6 @@ import {
 
 import {openModal} from 'sentry/actionCreators/modal';
 import type {TagCollection} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {FieldKind} from 'sentry/utils/fields';
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
@@ -21,7 +18,10 @@ import type {
   AggregateField,
   WritableAggregateField,
 } from 'sentry/views/explore/queryParams/aggregateField';
-import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {
+  VisualizeEquation,
+  VisualizeFunction,
+} from 'sentry/views/explore/queryParams/visualize';
 import {AggregateColumnEditorModal} from 'sentry/views/explore/tables/aggregateColumnEditorModal';
 
 const stringTags: TagCollection = {
@@ -377,6 +377,45 @@ describe('AggregateColumnEditorModal', () => {
     ]);
   });
 
+  it('keeps the rest of a shared chart together when editing its middle aggregate', async () => {
+    const onColumnsChange = jest.fn();
+    const chartGroup = 'chart-group';
+
+    renderGlobalModal();
+
+    act(() => {
+      openModal(
+        modalProps => (
+          <AggregateColumnEditorModal
+            {...modalProps}
+            columns={[
+              {groupBy: 'span.op'},
+              new VisualizeFunction('p50(span.duration)', {chartGroup}),
+              new VisualizeFunction('p75(span.duration)', {chartGroup}),
+              new VisualizeFunction('p99(span.duration)', {chartGroup}),
+            ]}
+            onColumnsChange={onColumnsChange}
+            stringTags={stringTags}
+            numberTags={numberTags}
+            booleanTags={booleanTags}
+          />
+        ),
+        {onClose: jest.fn()}
+      );
+    });
+
+    const p75Argument = (await screen.findAllByTestId('editor-visualize-argument'))[1]!;
+    await userEvent.click(within(p75Argument).getByRole('button'));
+    await userEvent.click(await screen.findByRole('option', {name: 'span.self_time'}));
+
+    await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+    expect(onColumnsChange).toHaveBeenCalledWith([
+      {groupBy: 'span.op'},
+      {yAxes: ['p50(span.duration)', 'p99(span.duration)']},
+      {yAxes: ['p75(span.self_time)']},
+    ]);
+  });
+
   it('allows adding an equation', async () => {
     const {organization} = initializeOrg();
 
@@ -421,20 +460,14 @@ describe('AggregateColumnEditorModal', () => {
   describe('conditional aggregates', () => {
     const SERIES_FILTER_PLACEHOLDER = 'Filter spans for this series';
 
-    const organizationWithConditionalAggregates = OrganizationFixture({
-      features: ['explore-conditional-aggregates'],
-    });
-
     function renderModal({
       columns,
       onColumnsChange = jest.fn(),
-      organization,
     }: {
       columns: AggregateField[];
       onColumnsChange?: (columns: WritableAggregateField[]) => void;
-      organization?: Organization;
     }) {
-      renderGlobalModal({organization});
+      renderGlobalModal();
 
       act(() => {
         openModal(
@@ -453,15 +486,6 @@ describe('AggregateColumnEditorModal', () => {
       });
     }
 
-    it('hides the series filter without the feature', async () => {
-      renderModal({columns: [new VisualizeFunction('count(span.duration)')]});
-
-      expect(await screen.findByTestId('editor-visualize-function')).toBeInTheDocument();
-      expect(
-        screen.queryByPlaceholderText(SERIES_FILTER_PLACEHOLDER)
-      ).not.toBeInTheDocument();
-    });
-
     it('turns a series filter into an _if aggregate', async () => {
       const onColumnsChange = jest.fn();
 
@@ -471,7 +495,6 @@ describe('AggregateColumnEditorModal', () => {
           new VisualizeFunction('count(span.duration)'),
         ],
         onColumnsChange,
-        organization: organizationWithConditionalAggregates,
       });
 
       const filterInput = await screen.findByPlaceholderText(SERIES_FILTER_PLACEHOLDER);
@@ -489,7 +512,6 @@ describe('AggregateColumnEditorModal', () => {
     it('renders an existing _if aggregate as its base aggregate and filter', async () => {
       renderModal({
         columns: [new VisualizeFunction('avg_if(`span.op:db`,span.duration)')],
-        organization: organizationWithConditionalAggregates,
       });
 
       const row = await screen.findByTestId('editor-row');
@@ -509,7 +531,6 @@ describe('AggregateColumnEditorModal', () => {
       renderModal({
         columns: [new VisualizeFunction('avg_if(`span.op:db`,span.duration)')],
         onColumnsChange,
-        organization: organizationWithConditionalAggregates,
       });
 
       const argument = await screen.findByTestId('editor-visualize-argument');
@@ -528,7 +549,6 @@ describe('AggregateColumnEditorModal', () => {
       renderModal({
         columns: [new VisualizeFunction('avg_if(`span.op:db`,span.duration)')],
         onColumnsChange,
-        organization: organizationWithConditionalAggregates,
       });
 
       const func = await screen.findByTestId('editor-visualize-function');
@@ -543,6 +563,18 @@ describe('AggregateColumnEditorModal', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
       expect(onColumnsChange).toHaveBeenCalledWith([{yAxes: ['epm()']}]);
+    });
+
+    it('offers EAP _if aggregates in equations', async () => {
+      renderModal({
+        columns: [new VisualizeEquation('equation|')],
+      });
+
+      const input = await screen.findByRole('combobox', {name: 'Add a term'});
+      await userEvent.click(input);
+      await userEvent.type(input, 'sum_if');
+
+      expect(await screen.findByRole('option', {name: 'sum_if'})).toBeInTheDocument();
     });
   });
 });

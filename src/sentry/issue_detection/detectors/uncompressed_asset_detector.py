@@ -11,8 +11,10 @@ from sentry.models.project import Project
 from ..base import DetectorType, PerformanceDetector
 from ..detectors.utils import (
     fingerprint_resource_span,
+    get_browser_name,
     get_notification_attachment_body,
     get_numeric_value_from_span,
+    get_span_description,
     get_span_duration,
     get_span_evidence_value,
 )
@@ -45,7 +47,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
 
     def visit_span(self, span: Span) -> None:
         op = span.get("op", None)
-        description = span.get("description", "")
+        description = get_span_description(span)
         if not op:
             return
 
@@ -93,7 +95,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
             return
 
         # Ignore assets with certain file extensions
-        normalized_description = description.strip().upper()
+        normalized_description = description.upper()
         extension = EXTENSION_REGEX.search(normalized_description)
         if extension and extension.group(1) not in FILE_EXTENSION_ALLOWLIST:
             return
@@ -155,19 +157,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
 
     @classmethod
     def is_event_eligible(cls, event: dict[str, Any], project: Project | None = None) -> bool:
-        tags = event.get("tags", [])
-        browser_name = next(
-            (
-                tag[1]
-                for tag in tags
-                if tag is not None
-                and tag[0] == "browser.name"
-                and len(tag) == 2
-                and tag[1] is not None
-            ),
-            "",
-        )
-        if browser_name.lower() in [
+        if get_browser_name(event).lower() in [
             "chrome",
             "firefox",
             "safari",

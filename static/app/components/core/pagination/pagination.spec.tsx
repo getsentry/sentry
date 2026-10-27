@@ -4,7 +4,7 @@ import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
 import {
   TranslationContextProvider,
   type TranslationContextValue,
-} from '@sentry/scraps/translationContext';
+} from '@sentry/scraps/translation';
 
 const testTranslation: TranslationContextValue = {
   t: string => string,
@@ -93,17 +93,6 @@ describe('Pagination', () => {
 
     expect(router.location.pathname).toBe('/items/');
     expect(router.location.query).toEqual({foo: 'bar', cursor: '0:25:0'});
-  });
-
-  it('uses the to prop to override the default pathname', async () => {
-    const {router} = render(<Pagination pageLinks={pageLinks} to="/other/" />, {
-      initialRouterConfig: {location: {pathname: '/items/'}},
-    });
-
-    await userEvent.click(screen.getByRole('button', {name: 'Next'}));
-
-    expect(router.location.pathname).toBe('/other/');
-    expect(router.location.query.cursor).toBe('0:25:0');
   });
 
   it('calls custom onCursor with (cursor, path, query, delta)', async () => {

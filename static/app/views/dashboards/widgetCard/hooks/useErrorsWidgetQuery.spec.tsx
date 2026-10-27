@@ -1,5 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -40,13 +41,8 @@ describe('useErrorsSeriesQuery', () => {
     });
 
     const mockRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: {
-        data: [
-          [1, [{count: 100}]],
-          [2, [{count: 200}]],
-        ],
-      },
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: [TimeSeriesFixture({yAxis: 'count()'})]},
     });
 
     renderHookWithProviders(() =>
@@ -60,7 +56,7 @@ describe('useErrorsSeriesQuery', () => {
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
-        '/organizations/org-slug/events-stats/',
+        '/organizations/org-slug/events-timeseries/',
         expect.objectContaining({
           query: expect.objectContaining({
             dataset: DiscoverDatasets.ERRORS,
@@ -68,6 +64,81 @@ describe('useErrorsSeriesQuery', () => {
         })
       );
     });
+  });
+
+  it('excludes the Other series for grouped widgets with multiple aggregates', async () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      queries: [
+        {
+          name: '',
+          fields: [],
+          aggregates: ['count()', 'count_unique(user)'],
+          columns: ['transaction'],
+          conditions: '',
+          orderby: '',
+        },
+      ],
+    });
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: []},
+    });
+
+    renderHookWithProviders(() =>
+      useErrorsSeriesQuery({widget, organization, pageFilters, enabled: true})
+    );
+
+    await waitFor(() =>
+      expect(mockRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-timeseries/',
+        expect.objectContaining({query: expect.objectContaining({excludeOther: '1'})})
+      )
+    );
+  });
+
+  it('returns the transformed series', async () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      queries: [
+        {
+          name: '',
+          fields: ['count()'],
+          aggregates: ['count()'],
+          columns: [],
+          conditions: '',
+          orderby: '',
+        },
+      ],
+    });
+
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: [TimeSeriesFixture({yAxis: 'count()'})]},
+    });
+
+    const {result} = renderHookWithProviders(() =>
+      useErrorsSeriesQuery({
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      })
+    );
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(mockRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-timeseries/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          yAxis: ['count()'],
+          dataset: DiscoverDatasets.ERRORS,
+        }),
+      })
+    );
+    expect(result.current.timeseriesResults?.map(({seriesName}) => seriesName)).toEqual([
+      'count()',
+    ]);
   });
 
   it('formats Date objects in query parameters', async () => {
@@ -100,13 +171,8 @@ describe('useErrorsSeriesQuery', () => {
     PageFiltersStore.onInitializeUrlState(pageFiltersWithDates);
 
     const mockRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: {
-        data: [
-          [1, [{count: 100}]],
-          [2, [{count: 200}]],
-        ],
-      },
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: [TimeSeriesFixture({yAxis: 'count()'})]},
     });
 
     renderHookWithProviders(() =>
@@ -120,7 +186,7 @@ describe('useErrorsSeriesQuery', () => {
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
-        '/organizations/org-slug/events-stats/',
+        '/organizations/org-slug/events-timeseries/',
         expect.objectContaining({
           query: expect.objectContaining({
             start: '2026-01-14T00:00:00',
@@ -147,10 +213,8 @@ describe('useErrorsSeriesQuery', () => {
     });
 
     const mockRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: {
-        data: [[1, [{count: 100}]]],
-      },
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: [TimeSeriesFixture({yAxis: 'count()'})]},
     });
 
     renderHookWithProviders(() =>
@@ -167,7 +231,7 @@ describe('useErrorsSeriesQuery', () => {
 
     await waitFor(() => {
       expect(mockRequest).toHaveBeenCalledWith(
-        '/organizations/org-slug/events-stats/',
+        '/organizations/org-slug/events-timeseries/',
         expect.objectContaining({
           query: expect.objectContaining({
             query: expect.stringContaining('release:"1.0.0"'),
@@ -201,10 +265,8 @@ describe('useErrorsSeriesQuery', () => {
     });
 
     const mockRequest1 = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: {
-        data: [[1, [{count: 100}]]],
-      },
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: [TimeSeriesFixture({yAxis: 'count()'})]},
       match: [
         function (_url: string, options: Record<string, any>) {
           const yAxis = Array.isArray(options.query.yAxis)
@@ -216,10 +278,8 @@ describe('useErrorsSeriesQuery', () => {
     });
 
     const mockRequest2 = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: {
-        data: [[1, [{count: 50}]]],
-      },
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: [TimeSeriesFixture({yAxis: 'count_unique(user)'})]},
       match: [
         function (_url: string, options: Record<string, any>) {
           const yAxis = Array.isArray(options.query.yAxis)
@@ -243,6 +303,39 @@ describe('useErrorsSeriesQuery', () => {
       expect(mockRequest1).toHaveBeenCalled();
     });
     expect(mockRequest2).toHaveBeenCalled();
+  });
+
+  it('keeps rawData referentially stable across rerenders', async () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      queries: [
+        {
+          name: '',
+          fields: ['count()'],
+          aggregates: ['count()'],
+          columns: [],
+          conditions: '',
+          orderby: '',
+        },
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: [TimeSeriesFixture({yAxis: 'count()'})]},
+    });
+
+    const {result, rerender} = renderHookWithProviders(useErrorsSeriesQuery, {
+      initialProps: {widget, organization, pageFilters, enabled: true},
+    });
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    const {rawData} = result.current;
+    expect(rawData).toHaveLength(1);
+
+    rerender({widget: {...widget}, organization, pageFilters, enabled: true});
+
+    expect(result.current.rawData).toBe(rawData);
   });
 });
 
@@ -432,5 +525,38 @@ describe('useErrorsTableQuery', () => {
         })
       );
     });
+  });
+
+  it('keeps rawData referentially stable across rerenders', async () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.TABLE,
+      queries: [
+        {
+          name: '',
+          fields: ['count()'],
+          aggregates: ['count()'],
+          columns: [],
+          conditions: '',
+          orderby: '',
+        },
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{'count()': 100}], meta: {fields: {'count()': 'integer'}}},
+    });
+
+    const {result, rerender} = renderHookWithProviders(useErrorsTableQuery, {
+      initialProps: {widget, organization, pageFilters, enabled: true},
+    });
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    const {rawData} = result.current;
+    expect(rawData).toHaveLength(1);
+
+    rerender({widget: {...widget}, organization, pageFilters, enabled: true});
+
+    expect(result.current.rawData).toBe(rawData);
   });
 });

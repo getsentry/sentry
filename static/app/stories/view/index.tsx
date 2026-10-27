@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {GlobalDrawer} from '@sentry/scraps/drawer';
-import {Container} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {TrackingContextProvider} from '@sentry/scraps/trackingContext';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -24,18 +24,7 @@ import {StoryExports} from './storyExports';
 import {StoryHeader} from './storyHeader';
 import {useStoryDarkModeTheme} from './useStoriesDarkMode';
 import {useStoriesLoader} from './useStoriesLoader';
-
-export function useStoryParams(): {storyCategory?: StoryCategory; storySlug?: string} {
-  const location = useLocation();
-  // Match: /scraps/:category/(one/optional/or/more/path/segments)
-  // Handles both /scraps/... and /organizations/{org}/scraps/...
-  // Supports optional trailing slashes
-  const match = location.pathname.match(/\/scraps\/([^/]+)\/(.+?)\/?$/);
-  return {
-    storyCategory: match?.[1] as StoryCategory | undefined,
-    storySlug: match?.[2] ?? undefined,
-  };
-}
+import {useStoryParams} from './useStoryParams';
 
 export default function Stories() {
   const location = useLocation();
@@ -49,7 +38,13 @@ export default function Stories() {
 function StoriesLanding() {
   return (
     <StoriesLayout>
-      <StoryMainContainer>
+      <StoryMainContainer
+        as="main"
+        column="2"
+        containerType="inline-size"
+        gap="xl"
+        row="1"
+      >
         <StoryLanding />
       </StoryMainContainer>
     </StoriesLayout>
@@ -121,7 +116,14 @@ function StoryDetail() {
           </Alert.Container>
         </Container>
       ) : story.isSuccess ? (
-        <StoryMainContainer onClick={handleExpressiveCodeCopyClick}>
+        <StoryMainContainer
+          as="main"
+          column="2"
+          containerType="inline-size"
+          gap="xl"
+          row="1"
+          onClick={handleExpressiveCodeCopyClick}
+        >
           {story.data.map(s => {
             return <StoryExports key={s.filename} story={s} />;
           })}
@@ -256,9 +258,7 @@ function GlobalStoryStyles() {
     /* match body background with header story styles */
     body {
       background-color: ${
-        isIndex
-          ? darkTheme.tokens.background.secondary
-          : theme.tokens.background.secondary
+        isIndex ? darkTheme.tokens.background.secondary : theme.tokens.background.primary
       };
     }
     /* fixed position color block to match overscroll color to story background */
@@ -309,13 +309,8 @@ const HeaderContainer = styled('header')`
   background: ${p => p.theme.tokens.background.primary};
 `;
 
-const StoryMainContainer = styled('main')`
-  grid-row: 1;
-  grid-column: 2;
+const StoryMainContainer = styled(Stack)`
   color: ${p => p.theme.tokens.content.primary};
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.xl};
 
   h1,
   h2,

@@ -13,7 +13,7 @@ import type {SymbolicatorStatus} from 'sentry/components/events/interfaces/types
 
 import type {RawCrumb} from './breadcrumbs';
 import type {Image} from './debugImage';
-import type {IssueAttachment, IssueCategory, IssueType, UserReport} from './group';
+import type {IssueAttachment, IssueCategory, Meta, UserReport} from './group';
 import type {PlatformKey} from './platform';
 import type {Release} from './release';
 import type {StackTraceMechanism, StacktraceType} from './stacktrace';
@@ -219,6 +219,11 @@ export type EventMetadata = {
   message?: string;
   origin?: string;
   stripped_crash?: boolean;
+  /**
+   * Set when the SDK fabricated the exception to carry a stacktrace. Its `type` is then a
+   * platform label (`SIGSEGV`, `AppHang`) rather than the identity of what went wrong.
+   */
+  synthetic?: boolean;
   title?: string;
   type?: string;
   uri?: string;
@@ -296,7 +301,7 @@ export type EntrySpans = {
   type: EntryType.SPANS;
 };
 
-export type AggregateEntrySpans = {
+type AggregateEntrySpans = {
   data: AggregateSpanType[];
   type: EntryType.SPANS;
 };
@@ -690,13 +695,6 @@ type EventUser = {
   username?: string | null;
 };
 
-type PerformanceDetectorData = {
-  causeSpanIds: string[];
-  offenderSpanIds: string[];
-  parentSpanIds: string[];
-  issueType?: IssueType;
-};
-
 export type EventEvidenceDisplay = {
   important: boolean;
   name: string;
@@ -765,7 +763,6 @@ interface EventBase {
   _meta?: Record<string, any>;
   context?: Record<string, any>;
   dateCreated?: string;
-  device?: Record<string, any>;
   endTimestamp?: number;
   formatted?: {content: string; format: string};
   groupID?: string;
@@ -810,34 +807,6 @@ export interface EventTransaction extends Omit<
   >;
   startTimestamp: number;
   type: EventOrGroupType.TRANSACTION;
-  perfProblem?: PerformanceDetectorData;
-}
-
-export interface AggregateEventTransaction extends Omit<
-  EventTransaction,
-  | 'crashFile'
-  | 'culprit'
-  | 'dist'
-  | 'dateReceived'
-  | 'errors'
-  | 'location'
-  | 'metadata'
-  | 'message'
-  | 'occurrence'
-  | 'type'
-  | 'size'
-  | 'user'
-  | 'eventID'
-  | 'fingerprints'
-  | 'id'
-  | 'projectID'
-  | 'tags'
-  | 'title'
-> {
-  count: number;
-  frequency: number;
-  total: number;
-  type: EventOrGroupType.AGGREGATE_TRANSACTION;
 }
 
 export interface EventError extends Omit<EventBase, 'entries' | 'type'> {
@@ -858,3 +827,53 @@ export type EventIdResponse = {
   organizationSlug: string;
   projectSlug: string;
 };
+
+/**
+ * Proposed Symbolicator native variable payload. `kind` describes the variable's scope.
+ * TODO(scttcper): Revisit this type once the Symbolicator schema lands and confirm it is still needed.
+ * https://github.com/getsentry/symbolicator/blob/90490595bfc14c929b295b97afd6f9789c3266dc/crates/symbolicator-native/src/interface/variables.rs
+ */
+export interface NativeFrameVariable {
+  formatted: string | null;
+  kind: 'local' | 'parameter';
+  type: string;
+}
+
+interface FrameVariableBase {
+  name: string;
+  /** Annotations for this value; len is the original string or collection length. */
+  meta?: Partial<Meta>;
+  /** Native type label, when provided separately by Symbolicator. */
+  type?: string;
+}
+
+type FrameVariableCollection = FrameVariableBase & {
+  children: readonly FrameVariable[];
+} & ({kind: 'object'} | {kind: 'array'});
+
+interface FrameVariableScalar extends FrameVariableBase {
+  kind: 'number' | 'string' | 'unformatted' | 'boolean';
+  /** Preserve pointer addresses and full numeric precision. */
+  value: string;
+}
+
+interface FrameVariableNull extends FrameVariableBase {
+  kind: 'null';
+  value?: string;
+}
+
+interface FrameVariableUnavailable extends FrameVariableBase {
+  kind: 'unavailable';
+}
+
+/**
+ * Renderer model built from frame.vars. Here `kind` selects the display representation,
+ * unlike NativeFrameVariable.kind, which describes local variables and parameters.
+ * Legacy native strings are preserved verbatim; proposed native payloads supply
+ * a separate type label and an already-formatted value.
+ */
+export type FrameVariable =
+  | FrameVariableCollection
+  | FrameVariableScalar
+  | FrameVariableNull
+  | FrameVariableUnavailable;

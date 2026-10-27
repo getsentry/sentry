@@ -1,5 +1,3 @@
-import type {FlagMap} from '@sentry/toolbar';
-
 import type {Organization} from 'sentry/types/organization';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 
@@ -22,10 +20,6 @@ export class FeatureFlagOverrides {
     return __SINGLETON;
   }
 
-  public getFlagMap(organization: Organization): FlagMap {
-    return Object.fromEntries(organization.features.map(name => [name, true]));
-  }
-
   /**
    * Set an override value into localStorage, so that the next time the page
    * loads we can read it and apply it to the org.
@@ -40,8 +34,8 @@ export class FeatureFlagOverrides {
     }
   }
 
-  public clear(): void {
-    localStorageWrapper.setItem(LOCALSTORAGE_KEY, '{}');
+  public clearStoredOverrides(): void {
+    localStorageWrapper.removeItem(LOCALSTORAGE_KEY);
   }
 
   public getStoredOverrides(): OverrideState {
@@ -56,7 +50,7 @@ export class FeatureFlagOverrides {
    * Return the effective featureFlags as an array, for `organization.features`
    */
   public getEnabledFeatureFlagList(organization: Organization): string[] {
-    const enabled = new Set(Object.keys(this.getFlagMap(organization)));
+    const enabled = new Set(organization.features);
     Object.entries(this.getStoredOverrides()).forEach(([override, value]) => {
       // TODO(ryan953): we're only dealing with booleans to start, but other types could be supported
       if (value) {
@@ -69,7 +63,7 @@ export class FeatureFlagOverrides {
   }
 
   /**
-   * Stash the original list of features & override organization.features with the effective list of features
+   * Replace organization.features with the effective list of features.
    */
   public loadOrg(organization: Organization) {
     organization.features = this.getEnabledFeatureFlagList(organization);

@@ -100,10 +100,13 @@ class SCIMTeamPatchOperationSerializer(serializers.Serializer):
         raise serializers.ValidationError(f'"{value}" is not a valid choice')
 
 
-@extend_schema_serializer(exclude_fields="schemas")
 class SCIMTeamPatchRequestSerializer(serializers.Serializer):
     # we don't actually use "schemas" for anything atm but its part of the spec
-    schemas = serializers.ListField(child=serializers.CharField(), required=True)
+    schemas = serializers.ListField(
+        child=serializers.CharField(),
+        required=True,
+        help_text="SCIM schema URIs identifying the request format. Must be the PatchOp schema.",
+    )
     Operations = serializers.ListField(
         child=SCIMTeamPatchOperationSerializer(),
         required=True,
@@ -378,15 +381,18 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         return Response(body)
 
     def _should_manage_privileges(self, team: Team) -> bool:
+        if settings.SENTRY_MODE != SentryMode.SAAS:
+            return False
+        if team.organization.id != settings.SUPERUSER_ORG_ID:
+            return False
         return (
-            settings.SENTRY_MODE == SentryMode.SAAS
-            and team.organization.id == settings.SUPERUSER_ORG_ID
-            and team.slug
+            team.slug
             in (
                 settings.SENTRY_SCIM_STAFF_TEAM_SLUG,
                 settings.SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG,
                 settings.SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG,
             )
+            or team.slug in settings.SENTRY_SCIM_PERMISSION_TEAM_SLUGS.values()
         )
 
     def _add_members_operation(
@@ -657,6 +663,8 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         """
         Delete a team with a SCIM Group DELETE Request.
         """
+        team_slug = team.slug
+        user_ids_to_revoke = []
         if self._should_manage_privileges(team):
             user_ids_to_revoke = [
                 omt.organizationmember.user_id
@@ -665,16 +673,18 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                 )
                 if omt.organizationmember.user_id
             ]
-            if user_ids_to_revoke:
-                sync_scim_team_privileges.delay(
-                    team_slug=team.slug,
-                    organization_id=team.organization.id,
-                    user_ids_to_grant=[],
-                    user_ids_to_revoke=user_ids_to_revoke,
-                )
 
         metrics.incr("sentry.scim.team.delete")
-        return super().delete(request, team)
+        response = super().delete(request, team)
+
+        if user_ids_to_revoke:
+            sync_scim_team_privileges.delay(
+                team_slug=team_slug,
+                organization_id=team.organization.id,
+                user_ids_to_grant=[],
+                user_ids_to_revoke=user_ids_to_revoke,
+            )
+        return response
 
     def put(self, request: Request, organization: Organization, team: Team) -> HttpResponseBase:  # type: ignore[override]  # convert_args changed shape from baseclass
         # override parent's put since we don't have puts

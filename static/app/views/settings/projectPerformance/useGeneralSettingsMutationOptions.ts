@@ -36,9 +36,7 @@ export function useGeneralSettingsMutationOptions() {
       queryClient.setQueryData(
         getGeneralSettingsQueryOptions(organization.slug, projectSlug).queryKey,
         previous =>
-          previous
-            ? {json: {...previous.json, ...variables}, headers: previous.headers}
-            : previous
+          previous ? {...previous, json: {...previous.json, ...variables}} : previous
       );
     },
   };

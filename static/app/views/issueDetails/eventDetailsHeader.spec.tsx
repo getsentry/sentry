@@ -3,7 +3,6 @@ import {EventsStatsFixture} from 'sentry-fixture/events';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TagsFixture} from 'sentry-fixture/tags';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -14,11 +13,6 @@ import {IssueCategory, IssueType} from 'sentry/types/group';
 import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 
 import {EventDetailsHeader} from './eventDetailsHeader';
-
-const mockUseNavigate = jest.fn();
-jest.mock('sentry/utils/useNavigate', () => ({
-  useNavigate: () => mockUseNavigate,
-}));
 
 describe('EventDetailsHeader', () => {
   const organization = OrganizationFixture();
@@ -35,7 +29,6 @@ describe('EventDetailsHeader', () => {
   });
 
   const defaultProps = {group, event, project};
-  const router = RouterFixture();
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -118,14 +111,8 @@ describe('EventDetailsHeader', () => {
     expect(await screen.findByRole('button', {name: '90D'})).toBeInTheDocument();
   });
 
-  it('updates the query params with search tokens', async () => {
+  it('resets pagination when searching while preserving the other filters', async () => {
     const [tagKey, tagValue] = ['user.email', 's@s.io'];
-    const locationQuery = {
-      query: {
-        ...router.location.query,
-        query: `${tagKey}:${tagValue}`,
-      },
-    };
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/tags/${tagKey}/values/`,
       body: [
@@ -138,26 +125,75 @@ describe('EventDetailsHeader', () => {
       method: 'GET',
     });
 
-    render(
+    const {router} = render(
       <GroupDataContextProvider group={group} project={group.project}>
         <EventDetailsHeader {...defaultProps} />
       </GroupDataContextProvider>,
       {
         organization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
+            query: {
+              cursor: '2:0:0',
+              environment: 'production',
+              statsPeriod: '7d',
+              sort: 'timestamp',
+            },
+          },
+        },
       }
     );
-    expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
+    expect(router.location.query.cursor).toBe('2:0:0');
 
     const search = await screen.findByPlaceholderText('Filter events\u2026');
     await userEvent.type(search, `${tagKey}:`, {delay: null});
     await userEvent.click(await screen.findByRole('option', {name: tagValue}));
     await waitFor(() => {
-      expect(mockUseNavigate).toHaveBeenCalledWith(
-        expect.objectContaining(locationQuery),
-        {replace: true}
-      );
+      expect(router.location.query).toEqual({
+        environment: 'production',
+        statsPeriod: '7d',
+        sort: 'timestamp',
+        query: `${tagKey}:${tagValue}`,
+      });
     });
   }, 20_000);
+
+  it('resets pagination when changing the time range while preserving the other filters', async () => {
+    const {router} = render(
+      <GroupDataContextProvider group={group} project={group.project}>
+        <EventDetailsHeader {...defaultProps} />
+      </GroupDataContextProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
+            query: {
+              cursor: '2:0:0',
+              environment: 'production',
+              statsPeriod: '7d',
+              sort: 'timestamp',
+              query: 'release:1.0',
+            },
+          },
+        },
+      }
+    );
+
+    await userEvent.click(await screen.findByRole('button', {name: '7D'}));
+    expect(router.location.query.cursor).toBe('2:0:0');
+    await userEvent.click(screen.getByRole('option', {name: 'Last 24 hours'}));
+
+    await waitFor(() => {
+      expect(router.location.query).toEqual({
+        environment: 'production',
+        statsPeriod: '24h',
+        sort: 'timestamp',
+        query: 'release:1.0',
+      });
+    });
+  });
 
   it('does not render timeline summary if disabled', async () => {
     render(

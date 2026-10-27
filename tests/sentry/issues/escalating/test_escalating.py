@@ -8,6 +8,7 @@ from uuid import uuid4
 
 import pytest
 
+from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
 from sentry.issues.escalating.escalating import (
     GroupsCountResponse,
     _query_groups_past_counts_eap,
@@ -16,12 +17,13 @@ from sentry.issues.escalating.escalating import (
     get_group_hourly_count_eap,
     get_group_hourly_count_snuba,
     is_escalating,
+    manage_issue_states,
     query_groups_past_counts,
 )
 from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.grouptype import GroupCategory, ProfileFileIOGroupType
 from sentry.models.group import Group, GroupStatus
-from sentry.models.groupinbox import GroupInbox
+from sentry.models.groupinbox import GroupInbox, GroupInboxReason
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.testutils.cases import (
     PerformanceIssueTestCase,
@@ -36,7 +38,9 @@ from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 pytestmark = pytest.mark.sentry_metrics
 
-TIME_YESTERDAY = (datetime.now() - timedelta(hours=24)).replace(hour=6)
+TIME_YESTERDAY = (datetime.now() - timedelta(hours=24)).replace(
+    hour=6, minute=30, second=0, microsecond=0
+)
 
 
 class BaseGroupCounts(TestCase):
@@ -93,7 +97,6 @@ class HistoricGroupCounts(
             self._create_hourly_bucket(1, event)
         ]
 
-    @pytest.mark.skip(reason="flaky: #95139")
     @freeze_time(TIME_YESTERDAY)
     def test_query_different_group_categories(self) -> None:
         from django.utils import timezone
@@ -243,7 +246,6 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
         group.substatus = GroupSubStatus.UNTIL_ESCALATING
         group.save()
 
-    @pytest.mark.skip(reason="flaky: #93732")
     @freeze_time(TIME_YESTERDAY)
     def test_is_escalating_issue(self) -> None:
         """Test when an archived until escalating issue starts escalating"""
@@ -286,7 +288,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
         assert group.status == GroupStatus.IGNORED
         assert not GroupInbox.objects.filter(group=group).exists()
 
-    @freeze_time(TIME_YESTERDAY.replace(minute=12, second=40, microsecond=0))
+    @freeze_time(TIME_YESTERDAY)
     def test_hourly_count_query(self) -> None:
         """Test the hourly count query only aggregates events from within the current hour"""
         self._create_events_for_group(count=2, hours_ago=1)  # An hour ago -> It will not count
@@ -296,7 +298,6 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
         # Events are aggregated in the hourly count query by date rather than the last 24hrs
         assert get_group_hourly_count_snuba(group) == (1, False)
 
-    @pytest.mark.skip(reason="flaky")
     @freeze_time(TIME_YESTERDAY)
     def test_is_forecast_out_of_range(self) -> None:
         """
@@ -319,7 +320,6 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
             assert is_escalating(archived_group) == (True, 1)
             logger.error.assert_called_once()
 
-    @pytest.mark.skip(reason="flaky: #94622")
     @freeze_time(TIME_YESTERDAY)
     def test_is_escalating_two_weeks(self) -> None:
         """
@@ -439,3 +439,40 @@ class TestEAPIsEscalating(TestCase, SnubaTestCase):
         # return exactly one bucket with count 2.
         assert len(snuba_results) == len(eap_results) == 1
         assert snuba_results[0]["count()"] == eap_results[0]["count()"] == 2
+
+
+@patch("sentry.issues.attributes.produce_snapshot_to_kafka")
+class ManageIssueStatesSnapshotTest(TestCase):
+    def test_escalating_emits_snapshot(self, produce_snapshot: mock.MagicMock) -> None:
+        group = self.create_group(
+            status=GroupStatus.IGNORED,
+            substatus=GroupSubStatus.UNTIL_ESCALATING,
+            priority_locked_at=before_now(days=1),
+        )
+
+        produce_snapshot.reset_mock()
+
+        with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
+            manage_issue_states(group, GroupInboxReason.ESCALATING)
+
+        assert produce_snapshot.called
+
+    def test_ongoing_emits_snapshot(self, produce_snapshot: mock.MagicMock) -> None:
+        group = self.create_group(status=GroupStatus.RESOLVED, substatus=None)
+
+        produce_snapshot.reset_mock()
+
+        with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
+            manage_issue_states(group, GroupInboxReason.ONGOING)
+
+        assert produce_snapshot.called
+
+    def test_unignored_emits_snapshot(self, produce_snapshot: mock.MagicMock) -> None:
+        group = self.create_group(status=GroupStatus.IGNORED, substatus=GroupSubStatus.FOREVER)
+
+        produce_snapshot.reset_mock()
+
+        with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
+            manage_issue_states(group, GroupInboxReason.UNIGNORED)
+
+        assert produce_snapshot.called

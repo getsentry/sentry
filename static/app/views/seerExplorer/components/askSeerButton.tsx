@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {IconSeer} from '@sentry/icons/seer';
 import {useReducedMotion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
@@ -8,7 +9,6 @@ import {IndeterminateLoader} from '@sentry/scraps/loader';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Text} from '@sentry/scraps/text';
 
-import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useTopBarActionDisplay} from 'sentry/views/navigation/useTopBarActionDisplay';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
@@ -39,11 +39,7 @@ export function AskSeerButton() {
           <IconSeer
             variant={state === 'thinking' && prefersReducedMotion ? 'accent' : undefined}
             animation={
-              showMessageIndicator
-                ? 'waiting'
-                : state === 'thinking'
-                  ? 'loading'
-                  : undefined
+              state === 'thinking' ? 'loading' : showMessageIndicator ? 'idle' : undefined
             }
           />
           {showMessageIndicator && isIconOnly ? <MessageIndicator /> : null}

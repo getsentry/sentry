@@ -1,4 +1,5 @@
-import {IconGeneric} from 'sentry/icons';
+import {IconGeneric} from '@sentry/icons/generic';
+
 import type {AvatarSentryApp} from 'sentry/types/integrations';
 
 import {
@@ -12,19 +13,17 @@ import {
 interface SentryAppAvatarProps extends AvatarProps {
   sentryApp: AvatarSentryApp;
   isColor?: boolean;
-  isDefault?: boolean;
 }
 
 export function SentryAppAvatar({
   sentryApp,
   isColor = true,
-  isDefault = false,
   ...props
 }: SentryAppAvatarProps) {
   const avatarDetails = sentryApp?.avatars?.find(({color}) => color === isColor);
 
-  // Render the default if the prop is provided, there is no existing avatar, or it has been reverted to 'default'
-  if (isDefault || avatarDetails?.avatarType === 'default') {
+  // Render the default if there is no existing avatar, or it has been reverted to 'default'
+  if (avatarDetails?.avatarType === 'default') {
     return <FallbackAvatar {...props} />;
   }
 

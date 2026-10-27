@@ -1,5 +1,4 @@
 import * as Sentry from '@sentry/react';
-import type {LegendComponentOption} from 'echarts';
 
 import type {Series} from 'sentry/types/echarts';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
@@ -33,13 +32,12 @@ import {categorizeDuration} from './categorizeDuration';
  */
 export function tooltipFormatter(
   value: number | null,
-  outputType: AggregationOutputType = 'number',
-  unit?: DataUnit
+  outputType: AggregationOutputType = 'number'
 ): string {
   if (!defined(value)) {
     return '\u2014';
   }
-  return tooltipFormatterUsingAggregateOutputType(value, outputType, unit);
+  return tooltipFormatterUsingAggregateOutputType(value, outputType);
 }
 
 /**
@@ -95,19 +93,13 @@ export function axisLabelFormatter(
   value: number,
   outputType: AggregationOutputType,
   abbreviation = false,
-  durationUnit?: number,
-  rateUnit?: RateUnit,
-  decimalPlaces?: number,
-  sizeUnit?: DataUnit
+  durationUnit?: number
 ): string {
   return axisLabelFormatterUsingAggregateOutputType(
     value,
     outputType,
     abbreviation,
-    durationUnit,
-    rateUnit,
-    decimalPlaces,
-    sizeUnit
+    durationUnit
   );
 }
 
@@ -155,14 +147,12 @@ export function axisLabelFormatterUsingAggregateOutputType(
 }
 
 /**
- * Given an array of series and an eCharts legend object,
- * finds the range of y values (min and max) based on which series is selected in the legend.
+ * Given an array of series, finds the range of y values (min and max).
  * Does not assume any ordering of series, will check min/max for all series in multiseries.
  * @param series Array of eCharts series
- * @param legend eCharts legend object
  * @returns
  */
-export function findRangeOfMultiSeries(series: Series[], legend?: LegendComponentOption) {
+export function findRangeOfMultiSeries(series: Series[]) {
   const range: {max: number; min: number} = {
     max: 0,
     min: Infinity,
@@ -173,24 +163,22 @@ export function findRangeOfMultiSeries(series: Series[], legend?: LegendComponen
   }
 
   for (const {seriesName, data} of series) {
-    if (legend?.selected?.[seriesName] !== false) {
-      const max = Math.max(...data.map(({value}) => value).filter(Number.isFinite));
-      const min = Math.min(...data.map(({value}) => value).filter(Number.isFinite));
+    const max = Math.max(...data.map(({value}) => value).filter(Number.isFinite));
+    const min = Math.min(...data.map(({value}) => value).filter(Number.isFinite));
 
-      if (max > range.max) {
-        range.max = max;
-      }
-      if (min < range.min) {
-        range.min = min;
-      }
-      if (min < 0) {
-        Sentry.withScope(scope => {
-          scope.setTag('seriesName', seriesName);
-          scope.setExtra('min', min);
-          scope.setExtra('max', min);
-          Sentry.captureMessage('Found negative min value in multiseries');
-        });
-      }
+    if (max > range.max) {
+      range.max = max;
+    }
+    if (min < range.min) {
+      range.min = min;
+    }
+    if (min < 0) {
+      Sentry.withScope(scope => {
+        scope.setTag('seriesName', seriesName);
+        scope.setExtra('min', min);
+        scope.setExtra('max', min);
+        Sentry.captureMessage('Found negative min value in multiseries');
+      });
     }
   }
   if (range.max === 0 && range.min === Infinity) {
@@ -200,25 +188,15 @@ export function findRangeOfMultiSeries(series: Series[], legend?: LegendComponen
 }
 
 /**
- * Given a eCharts series and legend, returns the unit to be used on the yAxis for a duration chart
+ * Given an eCharts series, returns the unit to be used on the yAxis for a duration chart
  * @param series eCharts series array
- * @param legend eCharts legend object
- * @returns
  */
-export function getDurationUnit(
-  series: Series[],
-  legend?: LegendComponentOption,
-  dataUnit?: DataUnit
-): number {
+export function getDurationUnit(series: Series[]): number {
   let durationUnit = 0;
-  const range = findRangeOfMultiSeries(series, legend);
+  const range = findRangeOfMultiSeries(series);
   if (range) {
-    const unitString = dataUnit ?? undefined;
-    const multiplier = isADurationUnit(unitString)
-      ? DURATION_UNIT_MULTIPLIERS[unitString]
-      : 1; // default to milliseconds
-    const min = range.min * multiplier;
-    const max = range.max * multiplier;
+    const min = range.min;
+    const max = range.max;
     const avg = (max + min) / 2;
     durationUnit = categorizeDuration((max - min) / 5); // avg of 5 yAxis ticks per chart
 

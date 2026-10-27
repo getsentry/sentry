@@ -192,6 +192,24 @@ describe('getReadableQueryParamsFromLocation', () => {
     );
   });
 
+  it('validates sortBys against overridden fields', () => {
+    const fields = ['id', 'gen_ai.response.model', 'timestamp'];
+    const location = locationFixture({
+      field: ['id', 'span.name', 'timestamp'],
+      sort: ['gen_ai.response.model'],
+    });
+    const queryParams = getReadableQueryParamsFromLocation(location, fields);
+
+    expect(queryParams).toEqual(
+      new ReadableQueryParams(
+        readableQueryParamOptions({
+          fields,
+          sortBys: [{field: 'gen_ai.response.model', kind: 'asc'}],
+        })
+      )
+    );
+  });
+
   it('uses timestamp sort when fields include timestamp', () => {
     const location = locationFixture({field: ['id', 'span.op', 'timestamp'], sort: []});
     const queryParams = getReadableQueryParamsFromLocation(location);
@@ -293,7 +311,7 @@ describe('getReadableQueryParamsFromLocation', () => {
     );
   });
 
-  it('decodes custom aggregate fields correctly', () => {
+  it('decodes custom aggregate fields with multi aggregate charts', () => {
     const location = locationFixture({
       aggregateField: [
         {yAxes: ['count(span.duration)'], chartType: ChartType.AREA},
@@ -301,19 +319,87 @@ describe('getReadableQueryParamsFromLocation', () => {
         {yAxes: ['p50(span.duration)', 'p75(span.duration)']},
       ].map(aggregateField => JSON.stringify(aggregateField)),
     });
-    const queryParams = getReadableQueryParamsFromLocation(location);
+    const queryParams = getReadableQueryParamsFromLocation(location, undefined, {
+      multiAggregateCharts: true,
+    });
     expect(queryParams).toEqual(
       new ReadableQueryParams(
         readableQueryParamOptions({
           aggregateFields: [
             new VisualizeFunction('count(span.duration)', {chartType: ChartType.AREA}),
             {groupBy: 'span.op'},
-            new VisualizeFunction('p50(span.duration)'),
-            new VisualizeFunction('p75(span.duration)'),
+            new VisualizeFunction('p50(span.duration)', {
+              chartGroup: expect.any(String),
+            }),
+            new VisualizeFunction('p75(span.duration)', {
+              chartGroup: expect.any(String),
+            }),
           ],
         })
       )
     );
+
+    // Percentiles of the same field listed together share a chart.
+    const [count, , p50, p75] = queryParams.aggregateFields as VisualizeFunction[];
+    expect(count!.chartGroup).toBeUndefined();
+    expect(p50!.chartGroup).toBe(p75!.chartGroup);
+  });
+
+  it('keeps a chart per y axis when the y axes cannot share a chart', () => {
+    const location = locationFixture({
+      aggregateField: [
+        {groupBy: 'span.op'},
+        {yAxes: ['count(span.duration)', 'p50(span.duration)']},
+        {yAxes: ['p50(span.duration)', 'p50(span.self_time)']},
+      ].map(aggregateField => JSON.stringify(aggregateField)),
+    });
+    const queryParams = getReadableQueryParamsFromLocation(location, undefined, {
+      multiAggregateCharts: true,
+    });
+    expect(queryParams).toEqual(
+      new ReadableQueryParams(
+        readableQueryParamOptions({
+          aggregateFields: [
+            {groupBy: 'span.op'},
+            new VisualizeFunction('count(span.duration)'),
+            new VisualizeFunction('p50(span.duration)'),
+            new VisualizeFunction('p50(span.duration)'),
+            new VisualizeFunction('p50(span.self_time)'),
+          ],
+        })
+      )
+    );
+  });
+
+  it('keeps a chart per y axis for a percentile and a stat', () => {
+    const location = locationFixture({
+      aggregateField: [
+        {groupBy: 'span.op'},
+        {yAxes: ['p90(span.duration)', 'avg(span.duration)']},
+      ].map(aggregateField => JSON.stringify(aggregateField)),
+    });
+    const [, p90, avg] = getReadableQueryParamsFromLocation(location, undefined, {
+      multiAggregateCharts: true,
+    }).aggregateFields as VisualizeFunction[];
+    expect(p90!.yAxis).toBe('p90(span.duration)');
+    expect(avg!.yAxis).toBe('avg(span.duration)');
+    expect(p90!.chartGroup).toBeUndefined();
+    expect(avg!.chartGroup).toBeUndefined();
+  });
+
+  it('keeps a chart per y axis without multi aggregate charts', () => {
+    const location = locationFixture({
+      aggregateField: [
+        {groupBy: 'span.op'},
+        {yAxes: ['p50(span.duration)', 'p75(span.duration)']},
+      ].map(aggregateField => JSON.stringify(aggregateField)),
+    });
+    const queryParams = getReadableQueryParamsFromLocation(location);
+    expect(queryParams.aggregateFields).toEqual([
+      {groupBy: 'span.op'},
+      new VisualizeFunction('p50(span.duration)'),
+      new VisualizeFunction('p75(span.duration)'),
+    ]);
   });
 
   it('decodes custom aggregatefields and inserts default group bys', () => {

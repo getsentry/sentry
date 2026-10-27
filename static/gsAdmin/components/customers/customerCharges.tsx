@@ -1,26 +1,27 @@
 import {Tag} from '@sentry/scraps/badge';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {DateTime} from 'sentry/components/dateTime';
-
-import {ResultGrid} from 'admin/components/resultGrid';
+import {ResultGrid} from 'sentry/components/resultGrid';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 
 type Props = Partial<React.ComponentProps<typeof ResultGrid>> & {
   orgId: string;
   region: string;
 };
 
-const getRow = (orgId: string, region: string, row: any) => [
-  <td key="name">
+const getRow = (region: string, row: any) => [
+  <SimpleTable.RowCell key="name">
     {row.invoiceID ? (
-      <Link to={`/_admin/customers/${orgId}/invoices/${region}/${row.invoiceID}/`}>
+      <Link to={`/_admin/invoices/${region}/${row.invoiceID}/`}>
         <DateTime date={row.dateCreated} />
       </Link>
     ) : (
       <DateTime date={row.dateCreated} />
     )}
-  </td>,
-  <td key="stripeId" style={{textAlign: 'center'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="stripeId" justify="center">
     {row.stripeID ? (
       <ExternalLink href={`https://dashboard.stripe.com/charges/${row.stripeID}`}>
         {row.stripeID}
@@ -28,22 +29,21 @@ const getRow = (orgId: string, region: string, row: any) => [
     ) : (
       'n/a'
     )}
-  </td>,
-  <td key="status" style={{textAlign: 'center'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="status" justify="center">
     <Tag variant={row.isPaid ? 'success' : 'warning'}>
       {row.isPaid ? 'paid' : row.failureCode}
     </Tag>
-  </td>,
-  <td key="card" style={{textAlign: 'center'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="card" justify="center">
     {row.cardLast4 ? `··· ${row.cardLast4}` : 'n/a'}
-  </td>,
-  <td key="amount" style={{textAlign: 'right'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="amount" direction="column" align="end" gap="xs">
     ${(row.amount / 100).toLocaleString()}
-    <br />
     {row.isRefunded && (
-      <small>(${(row.amountRefunded / 100).toLocaleString()} refunded)</small>
+      <Text size="xs">(${(row.amountRefunded / 100).toLocaleString()} refunded)</Text>
     )}
-  </td>,
+  </SimpleTable.RowCell>,
 ];
 
 export function CustomerCharges({orgId, region, ...props}: Props) {
@@ -55,21 +55,13 @@ export function CustomerCharges({orgId, region, ...props}: Props) {
       defaultParams={{per_page: 10}}
       useQueryString={false}
       columns={[
-        <th key="name">Charge</th>,
-        <th key="stripeId" style={{width: 150, textAlign: 'center'}}>
-          Stripe ID
-        </th>,
-        <th key="status" style={{width: 150, textAlign: 'center'}}>
-          Status
-        </th>,
-        <th key="card" style={{width: 100, textAlign: 'center'}}>
-          Card
-        </th>,
-        <th key="amount" style={{width: 150, textAlign: 'right'}}>
-          Amount
-        </th>,
+        {key: 'name', label: 'Charge'},
+        {key: 'stripeId', label: 'Stripe ID', width: 150, align: 'center'},
+        {key: 'status', label: 'Status', width: 150, align: 'center'},
+        {key: 'card', label: 'Card', width: 100, align: 'center'},
+        {key: 'amount', label: 'Amount', width: 150, align: 'right'},
       ]}
-      columnsForRow={row => getRow(orgId, region, row)}
+      columnsForRow={row => getRow(region, row)}
       {...props}
     />
   );

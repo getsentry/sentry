@@ -6,9 +6,9 @@ import pytest
 
 from sentry.incidents.grouptype import MetricIssue
 from sentry.models.organization import Organization
-from sentry.rules import MatchType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import cell_silo_test
+from sentry.workflow_engine.handlers.condition.utils.match import MatchType
 from sentry.workflow_engine.models import (
     Action,
     AlertRuleWorkflow,

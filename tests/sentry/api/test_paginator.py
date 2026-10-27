@@ -3,8 +3,7 @@ from datetime import UTC, datetime, timedelta
 from unittest import TestCase as SimpleTestCase
 
 import pytest
-from django.db.models import DateTimeField, IntegerField, OuterRef, Subquery, Value
-from django.db.models.functions import Coalesce
+from django.db.models import DateTimeField, IntegerField, Value
 from django.utils import timezone
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import AndFilter, TraceItemFilter
@@ -36,7 +35,6 @@ from sentry.api.paginator import (
     reverse_bisect_left,
 )
 from sentry.incidents.models.alert_rule import AlertRule
-from sentry.incidents.models.incident import Incident
 from sentry.models.rule import Rule
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
 from sentry.testutils.silo import control_silo_test
@@ -103,6 +101,14 @@ class PaginatorTest(TestCase):
         result3 = paginator.get_result(limit=1, cursor=result2.prev)
         assert len(result3) == 0, (result3, list(result3))
 
+    def test_negative_offset(self) -> None:
+        self.create_user("foo@example.com")
+        paginator = self.cls(User.objects.all(), "id")
+
+        for cursor in (Cursor(0, -1), Cursor(0, -1, True), Cursor(1, -5)):
+            with pytest.raises(BadPaginationError):
+                paginator.get_result(limit=1, cursor=cursor)
+
 
 @control_silo_test
 class OffsetPaginatorTest(TestCase):
@@ -152,9 +158,41 @@ class OffsetPaginatorTest(TestCase):
         with pytest.raises(BadPaginationError):
             paginator.get_result(cursor=cursor)
 
+        cursor = Cursor(0, -1)
+        with pytest.raises(BadPaginationError):
+            paginator.get_result(cursor=cursor)
+
+    def test_negative_limit(self) -> None:
+        self.create_user("baz@example.com")
+        queryset = User.objects.all()
+        paginator = OffsetPaginator(queryset)
         cursor = Cursor(-10, 1)
         with pytest.raises(BadPaginationError):
             paginator.get_result(cursor=cursor)
+
+        cursor = Cursor(-10, 0)
+        with pytest.raises(BadPaginationError):
+            paginator.get_result(cursor=cursor)
+
+    def test_non_integer_limit(self) -> None:
+        self.create_user("baz@example.com")
+        queryset = User.objects.all()
+        paginator = OffsetPaginator(queryset)
+        cursor = Cursor(1.5, 0)
+        with pytest.raises(BadPaginationError):
+            paginator.get_result(cursor=cursor)
+
+    def test_limit_too_large(self) -> None:
+        self.create_user("baz@example.com")
+        queryset = User.objects.all()
+        paginator = OffsetPaginator(queryset, max_limit=10)
+
+        result = paginator.get_result(limit=10, cursor=Cursor(10, 0))
+        assert len(result) == 1
+
+        cursor = Cursor(11, 0)
+        with pytest.raises(BadPaginationError):
+            paginator.get_result(limit=10, cursor=cursor)
 
     def test_count_hits(self) -> None:
         self.create_user("foo@example.com")
@@ -729,25 +767,9 @@ class CombinedQuerysetPaginatorTest(APITestCase):
         rules = AlertRule.objects.all()
         far_past_date = Value(datetime.min.replace(tzinfo=UTC), output_field=DateTimeField())
         rules = rules.annotate(
-            date_triggered=Coalesce(
-                Subquery(
-                    Incident.objects.filter(alert_rule=OuterRef("pk"))
-                    .order_by("-date_started")
-                    .values("date_started")[:1]
-                ),
-                far_past_date,
-            ),
+            date_triggered=far_past_date,
         )
-        rules = rules.annotate(
-            incident_status=Coalesce(
-                Subquery(
-                    Incident.objects.filter(alert_rule=OuterRef("pk"))
-                    .order_by("-date_started")
-                    .values("status")[:1]
-                ),
-                Value(-1, output_field=IntegerField()),
-            )
-        )
+        rules = rules.annotate(incident_status=Value(-1, output_field=IntegerField()))
 
         alert_rule_intermediary = CombinedQuerysetIntermediary(
             rules, ["incident_status", "date_triggered"]
@@ -795,26 +817,12 @@ class CombinedQuerysetPaginatorTest(APITestCase):
         far_past_date = Value(datetime.min.replace(tzinfo=UTC), output_field=DateTimeField())
         issue_alert_rules = issue_alert_rules.annotate(date_triggered=far_past_date)
         metric_alert_rules = metric_alert_rules.annotate(
-            date_triggered=Coalesce(
-                Subquery(
-                    Incident.objects.filter(alert_rule=OuterRef("pk"))
-                    .order_by("-date_started")
-                    .values("date_started")[:1]
-                ),
-                far_past_date,
-            ),
+            date_triggered=far_past_date,
         )
         incident_status_value = Value(-2, output_field=IntegerField())
         issue_alert_rules = issue_alert_rules.annotate(incident_status=incident_status_value)
         metric_alert_rules = metric_alert_rules.annotate(
-            incident_status=Coalesce(
-                Subquery(
-                    Incident.objects.filter(alert_rule=OuterRef("pk"))
-                    .order_by("-date_started")
-                    .values("status")[:1]
-                ),
-                Value(-1, output_field=IntegerField()),
-            )
+            incident_status=Value(-1, output_field=IntegerField())
         )
 
         alert_rule_intermediary = CombinedQuerysetIntermediary(

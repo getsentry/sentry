@@ -6,6 +6,7 @@ import sentry_sdk
 from django.conf import settings
 from requests import Response
 from requests.exceptions import ConnectionError, Timeout
+from sentry_sdk import traces
 
 from sentry import options
 from sentry.locks import locks
@@ -18,7 +19,6 @@ from sentry.tempest.models import MessageType, TempestCredentials
 from sentry.tempest.utils import has_tempest_access
 from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
-from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -438,11 +438,15 @@ def fetch_latest_id_from_tempest(
 
     timeout = options.get("tempest.latest-id-timeout")
 
-    with start_span(op="http.client", name="POST /latest-id") as span:
-        set_span_data(span, "tempest.org_id", org_id)
-        set_span_data(span, "tempest.project_id", project_id)
-        set_span_data(span, "tempest.timeout", timeout)
-
+    with traces.start_span(
+        name="POST /latest-id",
+        attributes={
+            "sentry.op": "http.client",
+            "tempest.org_id": org_id,
+            "tempest.project_id": project_id,
+            "tempest.timeout": timeout,
+        },
+    ) as span:
         response = requests.post(
             url=settings.SENTRY_TEMPEST_URL + "/latest-id",
             headers={"Content-Type": "application/json"},
@@ -450,9 +454,9 @@ def fetch_latest_id_from_tempest(
             timeout=timeout,
         )
 
-        set_span_data(span, "http.status_code", response.status_code)
-        set_span_data(span, "http.response_content_length", len(response.content))
-        set_span_data(span, "tempest.response_text", response.text[:1000])  # Truncate for safety
+        span.set_attribute("http.status_code", response.status_code)
+        span.set_attribute("http.response_content_length", len(response.content))
+        span.set_attribute("tempest.response_text", response.text[:1000])  # Truncate for safety
 
     return response
 
@@ -482,14 +486,18 @@ def fetch_items_from_tempest(
 
     timeout = options.get("tempest.crashes-timeout")
 
-    with start_span(op="http.client", name="POST /crashes") as span:
-        set_span_data(span, "tempest.org_id", org_id)
-        set_span_data(span, "tempest.project_id", project_id)
-        set_span_data(span, "tempest.offset", offset)
-        set_span_data(span, "tempest.limit", limit)
-        set_span_data(span, "tempest.attach_screenshot", attach_screenshot)
-        set_span_data(span, "tempest.timeout", timeout)
-
+    with traces.start_span(
+        name="POST /crashes",
+        attributes={
+            "sentry.op": "http.client",
+            "tempest.org_id": org_id,
+            "tempest.project_id": project_id,
+            "tempest.offset": offset,
+            "tempest.limit": limit,
+            "tempest.attach_screenshot": attach_screenshot,
+            "tempest.timeout": timeout,
+        },
+    ) as span:
         response = requests.post(
             url=settings.SENTRY_TEMPEST_URL + "/crashes",
             headers={"Content-Type": "application/json"},
@@ -497,9 +505,9 @@ def fetch_items_from_tempest(
             timeout=timeout,
         )
 
-        set_span_data(span, "http.status_code", response.status_code)
-        set_span_data(span, "http.response_content_length", len(response.content))
+        span.set_attribute("http.status_code", response.status_code)
+        span.set_attribute("http.response_content_length", len(response.content))
         # Don't log full response for crashes - it can be huge
-        set_span_data(span, "tempest.response_preview", response.text[:500])
+        span.set_attribute("tempest.response_preview", response.text[:500])
 
     return response

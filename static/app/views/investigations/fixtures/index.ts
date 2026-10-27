@@ -1,11 +1,16 @@
 import type {
+  InvestigationActionRequest,
   InvestigationBlock,
+  InvestigationComment,
   InvestigationDetail,
   InvestigationExecutionDetail,
+  InvestigationHypothesis,
   InvestigationListItem,
+  InvestigationOrchestration,
   InvestigationQueryOutput,
   InvestigationTitleGeneration,
   InvestigationTranscriptBlock,
+  InvestigationVerificationStep,
 } from 'sentry/views/investigations/types';
 
 export function InvestigationListItemFixture(
@@ -24,6 +29,9 @@ export function InvestigationListItemFixture(
     isFavorited: false,
     summary: null,
     summaryDescription: null,
+    // Manual by default: an agentic investigation carries a summary here, and
+    // that is what gates the hypothesis row.
+    orchestration: null,
     titleGeneration: {status: null},
     ...overrides,
   };
@@ -86,6 +94,26 @@ export function InvestigationQueryOutputFixture(
   };
 }
 
+export function InvestigationCommentFixture(
+  overrides: Partial<InvestigationComment> = {}
+): InvestigationComment {
+  return {
+    id: '1',
+    blockId: null,
+    author: {
+      id: '1',
+      name: 'Ada Lovelace',
+      email: 'ada@example.com',
+      username: 'ada@example.com',
+      ip_address: '127.0.0.1',
+    },
+    body: 'A comment',
+    dateCreated: '2026-01-01T00:00:00Z',
+    dateUpdated: '2026-01-01T00:00:00Z',
+    ...overrides,
+  };
+}
+
 export function InvestigationDetailFixture(
   overrides: Partial<InvestigationDetail> = {}
 ): InvestigationDetail & {blocks: InvestigationBlock[]} {
@@ -122,10 +150,32 @@ export function InvestigationDetailFixture(
     projectIds: [],
     source: {type: 'manual', ref: {}, revision: null},
     template: null,
+    // Manual by default: an agentic investigation carries a summary here, and
+    // that is what gates the hypothesis row.
+    orchestration: null,
     titleGeneration: {status: null},
     ...detailOverrides,
     blocks,
   };
+}
+
+/**
+ * An investigation with an agentic run behind it. `orchestration` being present
+ * is what tells the detail view to render the hypothesis row, so a fixture
+ * without it exercises the manual path instead.
+ */
+export function InvestigationAgenticDetailFixture(
+  overrides: Partial<InvestigationDetail> = {}
+): InvestigationDetail & {blocks: InvestigationBlock[]} {
+  return InvestigationDetailFixture({
+    orchestration: {
+      phase: 'investigating',
+      status: 'processing',
+      heartbeatAt: '2026-08-27T11:06:30Z',
+      notebookRevision: 5,
+    },
+    ...overrides,
+  });
 }
 
 export function InvestigationTranscriptBlockFixture(
@@ -171,6 +221,65 @@ export function InvestigationTitleGenerationFixture(
   };
 }
 
+export function InvestigationActionRequestFixture(
+  overrides: Partial<InvestigationActionRequest> = {}
+): InvestigationActionRequest {
+  return {
+    id: '312',
+    key: 'widen-time-window',
+    reportRevision: 2,
+    primary: true,
+    anchor: null,
+    reason: null,
+    title: 'Widen the interval',
+    rationale:
+      'The 5 minute window fires on single deploy spikes that recover within a minute.',
+    impact: 'Would have suppressed 4 of the last 5 alerts.',
+    state: 'suggested',
+    action: {
+      kind: 'update_detector',
+      detectorId: '789',
+      before: {timeWindowSeconds: 300},
+      changes: {timeWindowSeconds: 900},
+    },
+    appliedBy: null,
+    appliedDetails: null,
+    canApply: true,
+    cannotApplyReason: null,
+    dateApplied: null,
+    error: null,
+    dateCreated: '2026-08-27T11:10:00Z',
+    ...overrides,
+  };
+}
+
+export function InvestigationMetricSourceFixture(
+  monitor: Record<string, unknown> = {}
+): NonNullable<InvestigationDetail['source']> {
+  return {
+    type: 'metric_open_period',
+    ref: {groupId: '123', openPeriodId: '456'},
+    revision: null,
+    snapshot: {
+      monitor: {
+        id: '789',
+        name: 'Checkout error rate',
+        aggregate: 'count()',
+        query: '',
+        environment: null,
+        detectionType: 'static',
+        comparisonDeltaSeconds: null,
+        conditions: [
+          {type: 'gt', comparison: 100, result: 75},
+          {type: 'lte', comparison: 100, result: 0},
+        ],
+        ...monitor,
+      },
+      project: {id: '1', slug: 'checkout-api'},
+    },
+  };
+}
+
 export function InvestigationBreachedMetricDetailFixture(
   overrides: Partial<InvestigationDetail> = {}
 ): InvestigationDetail & {blocks: InvestigationBlock[]} {
@@ -181,11 +290,7 @@ export function InvestigationBreachedMetricDetailFixture(
     summaryDescription:
       'All active releases increased together.\nCheck shared infrastructure and dependencies.',
     template: {key: 'breached_metric', version: 1},
-    source: {
-      type: 'metric_open_period',
-      ref: {groupId: '123', openPeriodId: '456'},
-      revision: null,
-    },
+    source: InvestigationMetricSourceFixture(),
     blocks: [
       InvestigationBlockFixture({
         id: 'summary-block',
@@ -392,4 +497,194 @@ export function InvestigationAwaitingInputExecutionFixture(
     },
     ...overrides,
   });
+}
+
+export function InvestigationVerificationStepFixture(
+  overrides: Partial<InvestigationVerificationStep> = {}
+): InvestigationVerificationStep {
+  return {
+    id: 'step-1',
+    order: 0,
+    title: 'Compare FCP with server response time',
+    objective: 'Establish whether the delay starts on the server or in the browser.',
+    method: 'Compare FCP and TTFB percentiles over the incident window.',
+    status: 'completed',
+    result: 'The delay begins before the document reaches the browser.',
+    evidence: [],
+    error: null,
+    ...overrides,
+  };
+}
+
+export function InvestigationHypothesisFixture(
+  overrides: Partial<InvestigationHypothesis> = {}
+): InvestigationHypothesis {
+  return {
+    id: 'hypothesis-1',
+    order: 0,
+    statement: 'Database or cache degradation delayed the response',
+    rationale:
+      'FCP and TTFB rose together as cache misses exposed a much slower organization lookup.',
+    status: 'completed',
+    effectiveStatus: 'supported',
+    decisionSource: 'agent',
+    confidence: 0.86,
+    attempt: 0,
+    verificationSteps: [
+      InvestigationVerificationStepFixture(),
+      InvestigationVerificationStepFixture({
+        id: 'step-2',
+        order: 1,
+        title: 'Compare organization lookup spans',
+        objective: 'Isolate the slow span.',
+        method: 'Break lookup duration down by cache outcome.',
+        result: 'The lookup slowed sharply during the incident window.',
+      }),
+      InvestigationVerificationStepFixture({
+        id: 'step-3',
+        order: 2,
+        title: 'Inspect cache and Redis behavior',
+        objective: 'Confirm the cache is the source.',
+        method: 'Chart hit rate against response time.',
+        result: 'Cache misses increased at the same time as the slowdown.',
+      }),
+    ],
+    agentVerdict: {
+      verdict: 'supported',
+      confidence: 0.86,
+      rationale: 'Every check points at the same cache regression.',
+      supportingEvidenceIds: [],
+      refutingEvidenceIds: [],
+      remainingGaps: [],
+    },
+    evidence: [],
+    toolActivity: [],
+    error: null,
+    ...overrides,
+  };
+}
+
+/**
+ * The three-hypothesis shape the hypothesis row is designed around: one
+ * supported conclusion alongside a refuted and an inconclusive alternative.
+ */
+export function InvestigationHypothesesFixture(): InvestigationHypothesis[] {
+  return [
+    InvestigationHypothesisFixture(),
+    InvestigationHypothesisFixture({
+      id: 'hypothesis-2',
+      order: 1,
+      statement: 'An external SSO provider slowed the response',
+      rationale:
+        'SSO and non-SSO organizations slowed together: provider spans stayed near baseline.',
+      effectiveStatus: 'refuted',
+      confidence: 0.91,
+      agentVerdict: {
+        verdict: 'refuted',
+        confidence: 0.91,
+        rationale: 'The shared delay contradicts an SSO-only explanation.',
+        supportingEvidenceIds: [],
+        refutingEvidenceIds: [],
+        remainingGaps: [],
+      },
+      verificationSteps: [
+        InvestigationVerificationStepFixture({
+          id: 'step-2-1',
+          order: 0,
+          title: 'Compare identity-provider spans',
+          objective: 'Check the provider call.',
+          method: 'Chart provider span duration over the window.',
+          result: 'No shared provider slowdown appears in the affected traces.',
+        }),
+        InvestigationVerificationStepFixture({
+          id: 'step-2-2',
+          order: 1,
+          title: 'Compare SSO and non-SSO organizations',
+          objective: 'Separate the two populations.',
+          method: 'Group response time by authentication method.',
+          result: 'Both groups show the same server-side delay.',
+        }),
+      ],
+    }),
+    InvestigationHypothesisFixture({
+      id: 'hypothesis-3',
+      order: 2,
+      statement: 'Session validation created a shared bottleneck',
+      rationale:
+        'Available traces do not separate session-validation time from the cache and database delay.',
+      effectiveStatus: 'inconclusive',
+      confidence: 0.34,
+      agentVerdict: {
+        verdict: 'inconclusive',
+        confidence: 0.34,
+        rationale: 'Span coverage is too incomplete to isolate this contribution.',
+        supportingEvidenceIds: [],
+        refutingEvidenceIds: [],
+        remainingGaps: ['Session middleware spans are not instrumented.'],
+      },
+      verificationSteps: [
+        InvestigationVerificationStepFixture({
+          id: 'step-3-1',
+          order: 0,
+          title: 'Inspect session and middleware spans',
+          objective: 'Measure validation time.',
+          method: 'Break the request down by middleware span.',
+          result: 'Span coverage is incomplete in the affected trace sample.',
+        }),
+        InvestigationVerificationStepFixture({
+          id: 'step-3-2',
+          order: 1,
+          title: 'Check shared Redis pressure',
+          objective: 'Separate session load from cache load.',
+          method: 'Compare Redis command latency by key prefix.',
+          result:
+            'Redis contention overlaps the slowdown but does not isolate session validation.',
+        }),
+      ],
+    }),
+  ];
+}
+
+export function InvestigationOrchestrationFixture(
+  overrides: Partial<InvestigationOrchestration> = {}
+): InvestigationOrchestration {
+  return {
+    runId: '9001',
+    investigationId: 'investigation-1',
+    workflowVersion: 4,
+    generation: 1,
+    notebookRevision: 5,
+    phase: 'reporting',
+    status: 'processing',
+    sourceType: 'breached_metric',
+    broadScan: {
+      status: 'completed',
+      summary: 'FCP regressed on organization login pages across every active release.',
+      toolActivity: [],
+      error: null,
+    },
+    hypotheses: InvestigationHypothesesFixture(),
+    report: {
+      status: 'composing',
+      revision: 2,
+      notebookRevision: 5,
+      currentBlockKey: null,
+      includedHypothesisIds: ['hypothesis-1', 'hypothesis-3'],
+      primaryHypothesisId: 'hypothesis-1',
+      error: null,
+      metadata: {
+        status: 'completed',
+        title: 'Why did FCP spike on organization login pages?',
+        summary: 'A cache regression slowed organization lookups',
+        summaryDescription:
+          'Cache misses exposed a much slower organization lookup, delaying the server response.',
+        error: null,
+      },
+    },
+    pendingInput: null,
+    errors: [],
+    heartbeatAt: '2026-08-27T11:06:30Z',
+    updatedAt: '2026-08-27T11:06:30Z',
+    ...overrides,
+  };
 }

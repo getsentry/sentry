@@ -94,3 +94,10 @@ def test_latest_artifact_per_key_wins() -> None:
     out = format_autofix(data)
     assert "new" in out
     assert "old" not in out
+
+
+def test_no_autofix_run_still_renders_valid_json() -> None:
+    # the common no-run GET: "" is not parseable json, so a caller that json.loads the
+    # formatted content would fail on it
+    assert format_autofix({}, "json") == "{}"
+    assert format_autofix({}, "markdown") == ""

@@ -1,0 +1,150 @@
+---
+title: Invitation Status
+description: The next action for an organization invitation.
+category: patterns
+source: sentry/views/authV2/acceptOrganizationInvite/invitationStatus
+---
+
+import {InvitationStatus} from 'sentry/views/authV2/acceptOrganizationInvite/invitationStatus';
+import * as Storybook from 'sentry/stories';
+
+`getInvitationStep` selects the next step from invitation details. `InvitationStatus` renders acceptance, account switching, SSO guidance, two-factor setup, or refresh progress. The page owns mutations and renders account authentication separately.
+
+## Accept Invitation
+
+<Storybook.Demo>
+  <InvitationStatus
+    step="accept"
+    isAccepting={false}
+    onAccept={() => {}}
+    onSwitchAccount={() => {}}
+  />
+</Storybook.Demo>
+
+```tsx
+<InvitationStatus
+  step="accept"
+  isAccepting={false}
+  onAccept={acceptInvitation}
+  onSwitchAccount={switchAccount}
+/>
+```
+
+## Existing Member
+
+<Storybook.Demo>
+  <InvitationStatus
+    step="existing-member"
+    isAccepting={false}
+    onAccept={() => {}}
+    onSwitchAccount={() => {}}
+  />
+</Storybook.Demo>
+
+```tsx
+<InvitationStatus
+  step="existing-member"
+  isAccepting={false}
+  onAccept={acceptInvitation}
+  onSwitchAccount={switchAccount}
+/>
+```
+
+## Sign In with SSO
+
+<Storybook.Demo>
+  <InvitationStatus
+    step="sign-in-sso"
+    isAccepting={false}
+    onAccept={() => {}}
+    onSwitchAccount={() => {}}
+  />
+</Storybook.Demo>
+
+```tsx
+<InvitationStatus
+  step="sign-in-sso"
+  isAccepting={false}
+  onAccept={acceptInvitation}
+  onSwitchAccount={switchAccount}
+/>
+```
+
+## Authenticate with SSO
+
+<Storybook.Demo>
+  <InvitationStatus
+    step="authenticate-sso"
+    isAccepting={false}
+    onAccept={() => {}}
+    onSwitchAccount={() => {}}
+  />
+</Storybook.Demo>
+
+```tsx
+<InvitationStatus
+  step="authenticate-sso"
+  isAccepting={false}
+  onAccept={acceptInvitation}
+  onSwitchAccount={switchAccount}
+/>
+```
+
+## Required Two-Factor Setup
+
+<Storybook.Demo>
+  <InvitationStatus
+    step="required-2fa"
+    isAccepting={false}
+    onAccept={() => {}}
+    onSwitchAccount={() => {}}
+  />
+</Storybook.Demo>
+
+```tsx
+<InvitationStatus
+  step="required-2fa"
+  isAccepting={false}
+  onAccept={acceptInvitation}
+  onSwitchAccount={switchAccount}
+/>
+```
+
+## Background Checks
+
+The current action stays visible while the invitation status refreshes. Actions are disabled until the check completes.
+
+<Storybook.Demo>
+  <InvitationStatus
+    step="required-2fa"
+    isCheckingInvite
+    isAccepting={false}
+    onAccept={() => {}}
+    onSwitchAccount={() => {}}
+  />
+</Storybook.Demo>
+
+```tsx
+<InvitationStatus
+  step="required-2fa"
+  isCheckingInvite
+  isAccepting={false}
+  onAccept={acceptInvitation}
+  onSwitchAccount={switchAccount}
+/>
+```
+
+## Props
+
+| Prop                 | Type                                                              | Description                                     |
+| -------------------- | ----------------------------------------------------------------- | ----------------------------------------------- |
+| `step`               | `Exclude<ReturnType<typeof getInvitationStep>, 'authentication'>` | The current invitation status.                  |
+| `isAccepting`        | `boolean`                                                         | Disables acceptance while submitting.           |
+| `isCheckingInvite`   | `boolean`                                                         | Disables actions while checking the invitation. |
+| `isSwitchingAccount` | `boolean`                                                         | Keeps actions busy while switching accounts.    |
+| `onAccept`           | `() => void`                                                      | Submits invitation acceptance.                  |
+| `onSwitchAccount`    | `() => void`                                                      | Starts the parent-owned account switch.         |
+
+## Accessibility
+
+Status guidance is rendered as text, and the next actions use labeled buttons or links. Two-factor setup opens account security in a new tab so the invitation stays available.

@@ -1,21 +1,22 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from typing import TypedDict
+from typing import NoReturn, TypedDict
 
+from django.http import HttpRequest
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.exceptions import APIException, ParseError
 from rest_framework.negotiation import BaseContentNegotiation
 from rest_framework.renderers import BaseRenderer
 from rest_framework.request import Request
+from sentry_sdk import traces
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.auth.services.auth import auth_service
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
-from sentry.utils.tracing import get_current_span, set_span_tag
 
 from .constants import SCIM_400_INVALID_FILTER, SCIM_API_ERROR, SCIM_API_LIST
 
@@ -25,9 +26,9 @@ ACCEPTED_FILTERED_KEYS = ["userName", "value", "displayName"]
 
 class SCIMApiError(APIException):
     def __init__(self, detail, status_code=400, scim_type=None):
-        span = get_current_span()
+        span = traces.get_current_span()
         if span is not None:
-            set_span_tag(span, "http.status_code", status_code)
+            span.set_attribute("http.status_code", status_code)
         error_body = {
             "schemas": [SCIM_API_ERROR],
             "status": str(status_code),
@@ -147,6 +148,11 @@ class SCIMListBaseResponse(TypedDict):
     itemsPerPage: int
 
 
+class SCIMMetaResponse(TypedDict):
+    resourceType: str
+    location: str
+
+
 @extend_schema(tags=["SCIM"])
 class SCIMEndpoint(OrganizationEndpoint):
     owner = ApiOwner.FOUNDATIONS
@@ -175,6 +181,30 @@ class SCIMEndpoint(OrganizationEndpoint):
             raise ParseError(serializer.errors)
 
         return serializer.validated_data
+
+
+class SCIMDiscoveryEndpoint(SCIMEndpoint):
+    """Base for the RFC 7644 §4 discovery endpoints (ServiceProviderConfig,
+    ResourceTypes, Schemas). Discovery resources are static and GET-only:
+    query parameters are ignored rather than validated, a supplied filter is
+    rejected, and other HTTP methods get SCIM-format 405 bodies.
+    """
+
+    permission_classes = (OrganizationSCIMMemberPermission,)
+
+    def reject_filter_param(self, request: Request) -> None:
+        # RFC 7644 §4: a filter on a discovery endpoint SHOULD be rejected
+        # with 403 so clients can't assume its conditions were applied.
+        # Handlers must call this first, rather than us hooking initial():
+        # initial() runs before convert_args resolves the org, and the org
+        # access + scim_enabled checks must fail before the filter check.
+        if "filter" in request.GET:
+            raise SCIMApiError(
+                detail="Filtering is not supported on this endpoint.", status_code=403
+            )
+
+    def http_method_not_allowed(self, request: HttpRequest, *args, **kwargs) -> NoReturn:
+        raise SCIMApiError(detail=f'Method "{request.method}" not allowed.', status_code=405)
 
 
 def parse_filter_conditions(raw_filters):

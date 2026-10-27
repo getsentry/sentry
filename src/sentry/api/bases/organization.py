@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Sequence
 from datetime import datetime
 from typing import Any, Literal, NamedTuple, NotRequired, TypedDict, overload
@@ -12,9 +13,15 @@ from rest_framework.exceptions import ParseError, PermissionDenied, ValidationEr
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.views import APIView
+from sentry_sdk import traces
 
+from sentry.api.authentication import UserAuthTokenAuthentication
 from sentry.api.base import Endpoint
-from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.exceptions import (
+    INSUFFICIENT_SCOPE_ATTR,
+    ResourceDoesNotExist,
+    SuperuserRequired,
+)
 from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.projects import (
     ParsedProjectIdOrSlugParams,
@@ -24,6 +31,7 @@ from sentry.api.helpers.projects import (
 )
 from sentry.api.permissions import DemoSafePermission, StaffPermissionMixin
 from sentry.api.utils import get_date_range_from_params, is_member_disabled_from_limit
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG, ObjectStatus
 from sentry.exceptions import InvalidParams
@@ -45,8 +53,9 @@ from sentry.types.cell import subdomain_is_locality
 from sentry.utils import auth
 from sentry.utils.hashlib import hash_values
 from sentry.utils.numbers import format_grouped_length
-from sentry.utils.sdk import bind_organization_context, set_span_attribute
-from sentry.utils.tracing import set_span_data, start_span
+from sentry.utils.sdk import bind_organization_context
+
+logger = logging.getLogger(__name__)
 
 
 class NoProjects(Exception):
@@ -120,6 +129,16 @@ class OrganizationPermission(DemoSafePermission):
         organization: Organization | RpcOrganization | RpcUserOrganizationContext,
     ) -> bool:
         self.determine_access(request, organization)
+
+        org_slug = getattr(request, "_superuser_needs_org_auth", None)
+        if org_slug:
+            has_staff_perm = any(
+                isinstance(perm, StaffPermissionMixin) for perm in view.get_permissions()
+            )
+            delattr(request, "_superuser_needs_org_auth")
+            if not has_staff_perm:
+                raise SuperuserRequired(orgSlug=org_slug)
+
         allowed_scopes = set(self.scope_map.get(request.method or "", []))
         return any(request.access.has_scope(s) for s in allowed_scopes)
 
@@ -252,11 +271,52 @@ class OrganizationDetectorPermission(OrganizationPermission):
 
 
 class OrgAuthTokenPermission(OrganizationPermission):
+    """
+    Org auth tokens can be managed from a browser session, or by an OAuth application
+    token (e.g. the Sentry CLI) acting for a member who consented to `org:tokens`.
+
+    Every other token type is rejected: personal tokens cannot hold token-only scopes
+    like `org:tokens`, and org auth / integration tokens must never mint new tokens.
+    """
+
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],
         "POST": ["org:read", "org:write", "org:admin"],
         "PUT": ["org:read", "org:write", "org:admin"],
         "DELETE": ["org:write", "org:admin"],
+    }
+
+    def has_permission(self, request: Request, view: APIView) -> bool:
+        if request.auth is not None:
+            if not self._is_oauth_application_token(request):
+                return False
+            if not request.auth.has_scope("org:tokens"):
+                setattr(request, INSUFFICIENT_SCOPE_ATTR, {"org:tokens"})
+                return False
+        return super().has_permission(request, view)
+
+    @staticmethod
+    def _is_oauth_application_token(request: Request) -> bool:
+        return (
+            isinstance(request.successful_authenticator, UserAuthTokenAuthentication)
+            and is_api_token_auth(request.auth)
+            and request.auth.application_id is not None
+            and not getattr(request.user, "is_sentry_app", False)
+        )
+
+
+def get_issuing_token_audit_log_data(request: Request) -> dict[str, int]:
+    """
+    Record which OAuth application and token managed an org auth token, so tokens minted by
+    a compromised OAuth grant can be traced back to it.
+    """
+    if not is_api_token_auth(request.auth) or request.auth.application_id is None:
+        return {}
+    issuing_token = AuthenticatedToken.from_token(request.auth)
+    assert issuing_token is not None and issuing_token.entity_id is not None
+    return {
+        "application_id": request.auth.application_id,
+        "api_token_id": issuing_token.entity_id,
     }
 
 
@@ -274,6 +334,13 @@ class ControlSiloOrganizationEndpoint(Endpoint):
     """
 
     permission_classes: tuple[type[BasePermission], ...] = (OrganizationPermission,)
+
+    # Control silo endpoints fetch the organization over RPC from the cell silo.
+    # Including projects/teams serializes every row into the response body, which is
+    # expensive for large organizations. Set these to False when the endpoint does not
+    # need them.
+    include_organization_projects: bool = True
+    include_organization_teams: bool = True
 
     def convert_args(
         self,
@@ -304,18 +371,25 @@ class ControlSiloOrganizationEndpoint(Endpoint):
             # It is ok that `get_organization_by_id` doesn't check for visibility as we
             # don't check the visibility in `get_organization_by_slug` either (only_active=False).
             organization_context = organization_service.get_organization_by_id(
-                id=int(organization_id_or_slug), user_id=request.user.id
+                id=int(organization_id_or_slug),
+                user_id=request.user.id,
+                include_projects=self.include_organization_projects,
+                include_teams=self.include_organization_teams,
             )
         else:
             organization_context = organization_service.get_organization_by_slug(
-                slug=str(organization_id_or_slug), only_visible=False, user_id=request.user.id
+                slug=str(organization_id_or_slug),
+                only_visible=False,
+                user_id=request.user.id,
+                include_projects=self.include_organization_projects,
+                include_teams=self.include_organization_teams,
             )
         if organization_context is None:
             raise ResourceDoesNotExist
 
-        with start_span(
-            op="check_object_permissions_on_organization",
+        with traces.start_span(
             name="check_object_permissions_on_organization",
+            attributes={"sentry.op": "check_object_permissions_on_organization"},
         ):
             self.check_object_permissions(request, organization_context)
 
@@ -429,11 +503,12 @@ class OrganizationEndpoint(Endpoint):
             qs = qs.filter(id__in=ids)
         # No project ids or slugs === `all projects I am a member of`
 
-        with start_span(
-            op="fetch_organization_projects", name="fetch_organization_projects"
+        with traces.start_span(
+            name="fetch_organization_projects",
+            attributes={"sentry.op": "fetch_organization_projects"},
         ) as span:
             projects = list(qs)
-            set_span_data(span, "Project Count", len(projects))
+            span.set_attribute("Project Count", len(projects))
 
         filter_by_membership = not bool(ids) and not bool(slugs)
         filtered_projects = self._filter_projects_by_permissions(
@@ -635,7 +710,11 @@ class OrganizationEndpoint(Endpoint):
             )
             # For some reason we use range in saved queries
             if "range" in data and "statsPeriod" not in data:
-                data["statsPeriod"] = data["range"]
+                if not isinstance(data, QueryDict):
+                    logger.warning("deprecated range parameter used")
+                    data["statsPeriod"] = data["range"]
+                else:
+                    raise ParseError(detail="range is not a supported parameter")
             start, end = get_date_range_from_params(data, optional=date_filter_optional)
             if start and end:
                 total_seconds = (end - start).total_seconds()
@@ -675,7 +754,9 @@ class OrganizationEndpoint(Endpoint):
         sentry_sdk.set_attribute("query.num_projects", len_projects)
         sentry_sdk.set_tag("query.num_projects.grouped", format_grouped_length(len_projects))
         sentry_sdk.set_attribute("query.num_projects.grouped", format_grouped_length(len_projects))
-        set_span_attribute("query.num_projects", len_projects)
+        span = traces.get_current_span()
+        if span:
+            span.set_attribute("query.num_projects", len_projects)
 
         params: FilterParams = {
             "start": start,
@@ -733,9 +814,9 @@ class OrganizationEndpoint(Endpoint):
         except Organization.DoesNotExist:
             raise ResourceDoesNotExist
 
-        with start_span(
-            op="check_object_permissions_on_organization",
+        with traces.start_span(
             name="check_object_permissions_on_organization",
+            attributes={"sentry.op": "check_object_permissions_on_organization"},
         ):
             self.check_object_permissions(request, organization)
 

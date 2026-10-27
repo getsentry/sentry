@@ -3,6 +3,7 @@ from typing import Any
 from unittest.mock import MagicMock, call, patch
 from uuid import uuid4
 
+import pytest
 from django.urls import reverse
 from urllib3.exceptions import ReadTimeoutError
 
@@ -10,16 +11,145 @@ from sentry.ai_monitoring.endpoints.organization_ai_conversation_details import 
     PARENT_SPAN_ATTRIBUTES,
     OrganizationAIConversationDetailsEndpoint,
 )
+from sentry.ai_monitoring.transcript.builder import (
+    TranscriptContextError,
+    TranscriptContextReadError,
+)
+from sentry.ai_monitoring.transcript.pagination import TranscriptWorkLimitError
 from sentry.issues.grouptype import PerformanceFileIOMainThreadGroupType
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.search.events.types import SnubaParams
 from sentry.snuba.spans_rpc import Spans
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
+from sentry.utils import json
 from sentry.utils.samples import load_data
 from sentry.utils.snuba_rpc import SnubaRPCTimeout
 
 from .test_organization_ai_conversations_base import BaseAIConversationsTestCase
+
+
+def test_parent_fetch_groups_span_ids_by_trace() -> None:
+    endpoint = OrganizationAIConversationDetailsEndpoint()
+    snuba_params = MagicMock()
+    parent_keys = {
+        ("trace-a", "parent-2"),
+        ("trace-b", "parent-3"),
+        ("trace-a", "parent-1"),
+    }
+    parent = {"trace": "trace-a", "span_id": "parent-1"}
+
+    with patch.object(Spans, "run_table_query", return_value={"data": [parent]}) as run_query:
+        result = endpoint._fetch_parent_spans(snuba_params, parent_keys)
+
+    assert result == {("trace-a", "parent-1"): parent}
+    assert run_query.call_args.kwargs["query_string"] == (
+        '(trace:"trace-a" span_id:["parent-1", "parent-2"]) OR (trace:"trace-b" span_id:"parent-3")'
+    )
+    assert run_query.call_args.kwargs["limit"] == 3
+    assert run_query.call_args.kwargs["config"].auto_fields is False
+
+
+def test_parent_repair_reuses_context_cache_between_batches() -> None:
+    endpoint = OrganizationAIConversationDetailsEndpoint()
+    parent = {
+        "trace": "trace-a",
+        "span_id": "agent",
+        "gen_ai.conversation.id": "conversation",
+        "gen_ai.operation.type": "agent",
+    }
+    first = {
+        "trace": "trace-a",
+        "span_id": "first",
+        "parent_span": "agent",
+        "gen_ai.conversation.id": "conversation",
+        "gen_ai.operation.type": "ai_client",
+    }
+    second = {**first, "span_id": "second"}
+    cache: dict[tuple[str, str], dict[str, Any]] = {}
+    fetched: set[tuple[str, str]] = set()
+    with patch.object(Spans, "run_table_query", return_value={"data": [parent]}) as query:
+        endpoint._repair_parent_links(
+            [first], MagicMock(), "conversation", parent_cache=cache, fetched_parent_keys=fetched
+        )
+        endpoint._repair_parent_links(
+            [second], MagicMock(), "conversation", parent_cache=cache, fetched_parent_keys=fetched
+        )
+    query.assert_called_once()
+    assert first["parent_span"] == second["parent_span"] == "agent"
+
+
+def test_conversation_probe_fetches_only_span_id() -> None:
+    endpoint = OrganizationAIConversationDetailsEndpoint()
+
+    with patch.object(
+        Spans, "run_table_query", return_value={"data": [{"span_id": "span-id"}]}
+    ) as run_query:
+        exists = endpoint._conversation_exists(MagicMock(), "conversation-id")
+
+    assert exists is True
+    assert run_query.call_args.kwargs["selected_columns"] == ["span_id"]
+    assert run_query.call_args.kwargs["orderby"] == []
+    assert run_query.call_args.kwargs["offset"] == 0
+    assert run_query.call_args.kwargs["limit"] == 1
+    assert run_query.call_args.kwargs["config"].auto_fields is False
+
+
+def test_conversation_probes_use_disjoint_windows() -> None:
+    endpoint = OrganizationAIConversationDetailsEndpoint()
+    now = before_now()
+
+    with patch.object(
+        endpoint, "_conversation_exists", side_effect=[False, False, True]
+    ) as conversation_exists:
+        resolved = endpoint._resolve_time_window(SnubaParams(), None, now, "conversation-id")
+
+    assert resolved.start == now - timedelta(days=30)
+    assert [
+        (probe.args[0].start, probe.args[0].end) for probe in conversation_exists.mock_calls
+    ] == [
+        (now - timedelta(days=7), now),
+        (now - timedelta(days=14), now - timedelta(days=7)),
+        (now - timedelta(days=30), now - timedelta(days=14)),
+    ]
+
+
+def test_parent_repair_uses_spans_from_page() -> None:
+    endpoint = OrganizationAIConversationDetailsEndpoint()
+    conversation_id = uuid4().hex
+    trace_id = uuid4().hex
+    root = {
+        "trace": trace_id,
+        "span_id": "root",
+        "gen_ai.conversation.id": conversation_id,
+        "gen_ai.operation.type": "invoke_agent",
+    }
+    bridge = {
+        "trace": trace_id,
+        "span_id": "bridge",
+        "parent_span": "root",
+        "gen_ai.conversation.id": conversation_id,
+        "span.op": "http.client",
+    }
+    child = {
+        "trace": trace_id,
+        "span_id": "child",
+        "parent_span": "bridge",
+        "gen_ai.conversation.id": conversation_id,
+        "gen_ai.operation.type": "ai_client",
+    }
+
+    with (
+        patch.object(Spans, "run_table_query") as run_query,
+        patch(
+            "sentry.ai_monitoring.endpoints.organization_ai_conversation_details.metrics.distribution"
+        ),
+    ):
+        endpoint._repair_parent_links([root, bridge, child], MagicMock(), conversation_id)
+
+    assert child["parent_span"] == "root"
+    run_query.assert_not_called()
 
 
 def test_parent_repair_stops_after_five_hops() -> None:
@@ -87,6 +217,27 @@ def test_parent_repair_is_best_effort() -> None:
         endpoint._repair_parent_links([child], MagicMock(), conversation_id)
 
     assert child["parent_span"] == "missing-parent"
+
+
+def test_transcript_parent_repair_propagates_storage_failures() -> None:
+    endpoint = OrganizationAIConversationDetailsEndpoint()
+    child = {
+        "trace": "trace-a",
+        "span_id": "child",
+        "parent_span": "bridge",
+        "gen_ai.conversation.id": "conversation",
+        "gen_ai.operation.type": "ai_client",
+    }
+    storage_error = Exception("unavailable")
+    with (
+        patch.object(endpoint, "_fetch_parent_spans", side_effect=storage_error),
+        pytest.raises(
+            TranscriptContextReadError, match="Unable to read transcript parent context"
+        ) as error,
+    ):
+        endpoint._repair_parent_links([child], MagicMock(), "conversation", strict=True)
+    assert error.value.__cause__ is storage_error
+    assert child["parent_span"] == "bridge"
 
 
 def test_parent_repair_skips_gen_ai_ancestors_from_other_conversations() -> None:
@@ -350,7 +501,49 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert response.status_code == 200
         assert response.data["conversationId"] == conversation_id
         assert response.data["title"] is None
+        assert response.data["projects"] == []
+        assert response.data["webUrl"].endswith(
+            f"/organizations/{self.organization.slug}/explore/agents/conversations/"
+            f"{conversation_id}/"
+        )
         assert response.data["spans"] == []
+
+    def test_memory_span_attributes(self) -> None:
+        now = before_now(days=20).replace(microsecond=0)
+        conversation_id = uuid4().hex
+
+        records = [{"content": "User prefers dark mode", "score": 0.95}]
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now,
+            op="gen_ai.search_memory",
+            operation_name="search_memory",
+            operation_type="memory",
+            memory_store_id="user-prefs",
+            memory_query_text="dietary preferences",
+            memory_record_id="mem_123",
+            memory_record_count=3,
+            memory_records=records,
+            trace_id=uuid4().hex,
+        )
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200
+        assert len(response.data["spans"]) == 1
+
+        span = response.data["spans"][0]
+        assert span["gen_ai.operation.name"] == "search_memory"
+        assert span["gen_ai.memory.store.id"] == "user-prefs"
+        assert span["gen_ai.memory.query.text"] == "dietary preferences"
+        assert span["gen_ai.memory.record.id"] == "mem_123"
+        assert span["gen_ai.memory.record.count"] == 3
+        assert json.loads(span["gen_ai.memory.records"]) == records
 
     def test_single_trace_conversation(self) -> None:
         now = before_now(days=20).replace(microsecond=0)
@@ -370,7 +563,12 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             timestamp=now - timedelta(seconds=2),
             op="gen_ai.chat",
             operation_type="ai_client",
-            tokens=100,
+            tokens=150,
+            input_tokens=100,
+            output_tokens=50,
+            cache_read_tokens=20,
+            cache_write_tokens=30,
+            reasoning_tokens=10,
             trace_id=trace_id,
         )
         self.store_ai_span(
@@ -397,6 +595,16 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         trace_ids = {span["trace"] for span in response.data["spans"]}
         assert len(trace_ids) == 1
         assert trace_id in trace_ids
+
+        generation_span = next(
+            span for span in response.data["spans"] if span["gen_ai.operation.type"] == "ai_client"
+        )
+        assert generation_span["gen_ai.usage.input_tokens"] == 100
+        assert generation_span["gen_ai.usage.output_tokens"] == 50
+        assert generation_span["gen_ai.usage.cache_read.input_tokens"] == 20
+        assert generation_span["gen_ai.usage.cache_creation.input_tokens"] == 30
+        assert generation_span["gen_ai.usage.reasoning.output_tokens"] == 10
+        assert generation_span["gen_ai.usage.total_tokens"] == 150
 
     def test_repairs_parent_links_with_bulk_fetch(self) -> None:
         now = before_now(days=5).replace(microsecond=0)
@@ -554,6 +762,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             conversation_id=conversation_id,
             timestamp=now,
             op="gen_ai.chat",
+            operation_name="chat",
             operation_type="ai_client",
             trace_id=trace_id,
             messages=[{"role": "user", "content": "Hello"}],
@@ -562,6 +771,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             cost=0.0025,
             user_id="user-123",
             user_email="test@example.com",
+            origin="auto.otlp.spans",
         )
 
         query = {
@@ -586,13 +796,17 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert span["project.id"] == self.project.id
         assert "transaction" in span
         assert "is_transaction" in span
+        assert span["gen_ai.operation.name"] == "chat"
         assert span["gen_ai.operation.type"] == "ai_client"
-        assert span["gen_ai.request.messages"] is not None
-        assert span["gen_ai.response.text"] == "Hi there!"
+        assert span["gen_ai.input.messages"] is not None
+        assert span["gen_ai.output.messages"] == "Hi there!"
+        assert "gen_ai.request.messages" not in span
+        assert "gen_ai.response.text" not in span
         assert span["gen_ai.usage.total_tokens"] == 150
         assert span["gen_ai.cost.total_tokens"] == 0.0025
         assert span["user.id"] == "user-123"
         assert span["user.email"] == "test@example.com"
+        assert span["origin"] == "auto.otlp.spans"
 
     def test_pagination(self) -> None:
         now = before_now(days=5).replace(microsecond=0)
@@ -722,6 +936,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             trace_id=trace_id,
             tool_name="search_database",
             tool_result="found 3 rows",
+            tool_result_size=4096,
             tool_output="tool output payload",
         )
 
@@ -740,7 +955,8 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert span["gen_ai.operation.type"] == "tool"
         assert span["gen_ai.tool.name"] == "search_database"
         assert span["gen_ai.tool.call.result"] == "found 3 rows"
-        assert span["gen_ai.tool.output"] == "tool output payload"
+        assert span["gen_ai.tool.call.result.size"] == 4096
+        assert "gen_ai.tool.output" not in span
 
     def test_returns_embeddings_attributes(self) -> None:
         now = before_now(days=5).replace(microsecond=0)
@@ -881,6 +1097,188 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert ai_client_span["gen_ai.usage.total_tokens"] == 100
         assert ai_client_span["gen_ai.cost.total_tokens"] == 0.01
 
+    def test_returns_full_conversation_stats_on_first_page(self) -> None:
+        now = before_now(days=5).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        trace_id = uuid4().hex
+
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=2),
+            operation_type="ai_client",
+            tokens=100,
+            input_tokens=70,
+            output_tokens=30,
+            cache_read_tokens=10,
+            cache_write_tokens=5,
+            reasoning_tokens=4,
+            cost=0.01,
+            input_cost=0.006,
+            output_cost=0.004,
+            cache_read_cost=0.001,
+            cache_write_cost=0.002,
+            reasoning_cost=0.003,
+            request_model="requested-model-a",
+            response_model="model-a",
+            trace_id=trace_id,
+        )
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=1),
+            operation_type="ai_client",
+            tokens=200,
+            input_tokens=120,
+            output_tokens=80,
+            cache_read_tokens=20,
+            cache_write_tokens=10,
+            reasoning_tokens=8,
+            cost=0.02,
+            input_cost=0.012,
+            output_cost=0.008,
+            cache_read_cost=0.002,
+            cache_write_cost=0.004,
+            reasoning_cost=0.006,
+            request_model="model-b",
+            trace_id=trace_id,
+        )
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now,
+            op="gen_ai.execute_tool",
+            operation_type="tool",
+            tool_name="database",
+            status="internal_error",
+            trace_id=trace_id,
+            cache_read_cost=1.0,
+            cache_write_cost=2.0,
+            reasoning_cost=3.0,
+        )
+
+        query: dict[str, Any] = {
+            "project": [self.project.id],
+            "per_page": "1",
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+        response = self.do_request(conversation_id, query)
+
+        assert response.status_code == 200
+        assert len(response.data["spans"]) == 1
+        expected_stats = {
+            "cacheReadTokens": 30,
+            "cacheWriteTokens": 15,
+            "endTimestamp": int(now.timestamp() * 1000),
+            "cacheReadCost": pytest.approx(0.003),
+            "cacheWriteCost": pytest.approx(0.006),
+            "reasoningCost": pytest.approx(0.009),
+            "errors": 1,
+            "errorToolNames": ["database"],
+            "inputTokens": 190,
+            "llmCalls": 2,
+            "outputTokens": 110,
+            "reasoningTokens": 12,
+            "startTimestamp": int((now - timedelta(seconds=2)).timestamp() * 1000),
+            "toolCalls": 1,
+            "toolErrors": 1,
+            "toolNames": ["database"],
+            "totalCost": 0.03,
+            "totalTokens": 300,
+        }
+        stats = response.data["stats"]
+        assert {field: stats[field] for field in expected_stats} == expected_stats
+        assert stats["generationDuration"] > 0
+        expected_usage_by_model = [
+            {
+                "model": "model-b",
+                "llmCalls": 1,
+                "inputTokens": 120,
+                "outputTokens": 80,
+                "totalTokens": 200,
+                "cacheReadTokens": 20,
+                "cacheWriteTokens": 10,
+                "reasoningTokens": 8,
+                "inputCost": 0.012,
+                "outputCost": 0.008,
+                "cacheReadCost": 0.002,
+                "cacheWriteCost": 0.004,
+                "reasoningCost": 0.006,
+                "totalCost": 0.02,
+            },
+            {
+                "model": "model-a",
+                "llmCalls": 1,
+                "inputTokens": 70,
+                "outputTokens": 30,
+                "totalTokens": 100,
+                "cacheReadTokens": 10,
+                "cacheWriteTokens": 5,
+                "reasoningTokens": 4,
+                "inputCost": 0.006,
+                "outputCost": 0.004,
+                "cacheReadCost": 0.001,
+                "cacheWriteCost": 0.002,
+                "reasoningCost": 0.003,
+                "totalCost": 0.01,
+            },
+        ]
+        assert stats["usageByModel"] == expected_usage_by_model
+
+        links = parse_link_header(response.headers["Link"])
+        query["cursor"] = next(link for link in links.values() if link["rel"] == "next")["cursor"]
+        run_bulk_table_queries = Spans.run_bulk_table_queries
+        with patch.object(
+            Spans, "run_bulk_table_queries", side_effect=run_bulk_table_queries
+        ) as mock_run_bulk:
+            next_response = self.do_request(conversation_id, query)
+
+        assert next_response.status_code == 200
+        assert next_response.data["stats"] is None
+        assert len(mock_run_bulk.call_args.args[0]) == 1
+
+    def test_missing_cost_breakdowns_without_costs(self) -> None:
+        self._assert_missing_cost_breakdowns(None, None, None)
+
+    def test_missing_cost_breakdowns_with_sdk_costs(self) -> None:
+        self._assert_missing_cost_breakdowns(0.006, 0.004, 0.01)
+
+    def _assert_missing_cost_breakdowns(
+        self, input_cost: float | None, output_cost: float | None, total_cost: float | None
+    ) -> None:
+        now = before_now(days=5).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now,
+            operation_type="ai_client",
+            request_model="model-a",
+            cache_read_tokens=10,
+            cache_write_tokens=5,
+            reasoning_tokens=4,
+            input_cost=input_cost,
+            output_cost=output_cost,
+            cost=total_cost,
+        )
+
+        response = self.do_request(
+            conversation_id,
+            {
+                "project": [self.project.id],
+                "start": (now - timedelta(hours=1)).isoformat(),
+                "end": (now + timedelta(hours=1)).isoformat(),
+            },
+        )
+
+        assert response.status_code == 200
+        stats = response.data["stats"]
+        usage = stats["usageByModel"][0]
+        for breakdown in ("cacheReadCost", "cacheWriteCost", "reasoningCost"):
+            assert stats[breakdown] == 0
+            assert usage[breakdown] == 0
+        assert usage["inputCost"] == (input_cost or 0)
+        assert usage["outputCost"] == (output_cost or 0)
+        assert usage["totalCost"] == (total_cost or 0)
+        assert stats["totalCost"] == (total_cost or 0)
+
     def test_timeout_returns_504(self) -> None:
         conversation_id = uuid4().hex
 
@@ -897,6 +1295,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
     def _store_error_on_span(self, trace_id, span_id, timestamp, project=None):
         project = project or self.project
         error_data = load_data("javascript", timestamp=timestamp)
+        assert error_data is not None
         error_data["contexts"]["trace"] = {
             "type": "trace",
             "trace_id": trace_id,
@@ -939,7 +1338,6 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             timestamp=now - timedelta(seconds=1),
             op="gen_ai.chat",
             operation_type="ai_client",
-            status="error",
             trace_id=trace_id,
         )
         span_id = span["span_id"]
@@ -954,6 +1352,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
         response = self.do_request(conversation_id, query)
         assert response.status_code == 200
+        assert response.data["stats"]["errors"] == 0
         assert len(response.data["spans"]) == 1
 
         span_data = response.data["spans"][0]
@@ -1059,6 +1458,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         span_id = span["span_id"]
 
         event_data = load_data("transaction", timestamp=now)
+        assert event_data is not None
         event_data["contexts"]["trace"]["trace_id"] = trace_id
         event_data["contexts"]["trace"]["span_id"] = span_id
         event = self.store_event(event_data, project_id=self.project.id)
@@ -1115,8 +1515,18 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         response = self.do_request(conversation_id, query)
 
         assert response.status_code == 200
-        assert set(response.data) == {"conversationId", "title", "spans"}
+        assert set(response.data) == {
+            "conversationId",
+            "projects",
+            "spans",
+            "stats",
+            "title",
+            "webUrl",
+        }
         assert response.data["conversationId"] == conversation_id
+        assert response.data["projects"] == [
+            {"id": self.project.id, "name": self.project.name, "slug": self.project.slug}
+        ]
         assert len(response.data["spans"]) == 1
 
     def test_returns_stored_title(self) -> None:
@@ -1237,24 +1647,10 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert response.status_code == 200
         assert len(response.data["spans"]) == 2
         assert response.data["title"] == "Started here"
-
-    def test_empty_conversation_returns_envelope(self) -> None:
-        now = before_now(days=5).replace(microsecond=0)
-        conversation_id = uuid4().hex
-
-        self._store_conversation_span(uuid4().hex, now)
-
-        query = {
-            "project": [self.project.id],
-            "start": (now - timedelta(hours=1)).isoformat(),
-            "end": (now + timedelta(hours=1)).isoformat(),
-        }
-
-        response = self.do_request(conversation_id, query)
-        assert response.status_code == 200
-        assert response.data["conversationId"] == conversation_id
-        assert response.data["title"] is None
-        assert response.data["spans"] == []
+        assert response.data["projects"] == [
+            {"id": self.project.id, "name": self.project.name, "slug": self.project.slug}
+        ]
+        assert response.data["webUrl"].endswith(f"/{conversation_id}/?project={self.project.id}")
 
     def test_paginates_with_title(self) -> None:
         now = before_now(days=5).replace(microsecond=0)
@@ -1320,3 +1716,314 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert response.data["title"] is None
         assert len(response.data["spans"]) == 1
         assert mock_fetch_conversation_title.call_count == 1
+
+    def _read_transcript_pages(
+        self, conversation_id: str, query: dict[str, Any]
+    ) -> list[dict[str, Any]]:
+        messages: list[dict[str, Any]] = []
+        with self.feature("organizations:gen-ai-conversations-backend-transcript"):
+            for index in range(100):
+                response = self.do_request(conversation_id, query)
+                assert response.status_code == 200, response.data
+                assert len(response.data["transcript"]) <= int(query["per_page"])
+                messages.extend(response.data["transcript"])
+                if index:
+                    assert response.data["stats"] is None
+                next_link = next(
+                    link
+                    for link in parse_link_header(response.headers["Link"]).values()
+                    if link["rel"] == "next"
+                )
+                if next_link["results"] == "false":
+                    assert response.data["complete"] is True
+                    assert len({message["id"] for message in messages}) == len(messages)
+                    assert [message["timestamp"] for message in messages] == sorted(
+                        message["timestamp"] for message in messages
+                    )
+                    return messages
+                assert response.data["complete"] is False
+                query["cursor"] = next_link["cursor"]
+        pytest.fail("Transcript pagination did not terminate")
+
+    def test_transcript_requires_feature(self) -> None:
+        with self.feature({"organizations:gen-ai-conversations-backend-transcript": False}):
+            response = self.do_request("conversation-id", {"view": "transcript"})
+        assert response.status_code == 404
+        assert response.data == {"detail": "Conversation transcript is not available"}
+
+    def test_invalid_view(self) -> None:
+        response = self.do_request("conversation-id", {"view": "invalid"})
+        assert response.status_code == 400
+        assert response.data == {"detail": "view must be timeline or transcript"}
+
+    def test_timeline_view_matches_default_without_transcript_feature(self) -> None:
+        now = before_now(days=1).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        self._store_conversation_span(conversation_id, now)
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+        with self.feature({"organizations:gen-ai-conversations-backend-transcript": False}):
+            default = self.do_request(conversation_id, query)
+            timeline = self.do_request(conversation_id, {**query, "view": "timeline"})
+        assert default.status_code == 200
+        assert timeline.status_code == 200
+        assert timeline.data == default.data
+        assert len(timeline.data["spans"]) == 1
+        assert "transcript" not in timeline.data
+
+    def test_transcript_rejects_timeline_cursor(self) -> None:
+        with self.feature("organizations:gen-ai-conversations-backend-transcript"):
+            response = self.do_request(
+                "conversation-id",
+                {"project": [self.project.id], "view": "transcript", "cursor": "0:0:0"},
+            )
+        assert response.status_code == 400
+        assert "pagination" in response.data["detail"]
+
+    def test_transcript_accepts_page_size(self) -> None:
+        with self.feature("organizations:gen-ai-conversations-backend-transcript"):
+            response = self.do_request(
+                "conversation-id",
+                {"project": [self.project.id], "view": "transcript", "per_page": "1"},
+            )
+        assert response.status_code == 200, response.data
+        assert response.data["complete"] is True
+
+    def test_transcript_view(self) -> None:
+        now = before_now(days=1).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now,
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            trace_id=uuid4().hex,
+            input_messages=[{"role": "user", "content": "hello"}],
+            output_messages=[{"role": "assistant", "content": "hi"}],
+        )
+        query = {
+            "project": [self.project.id],
+            "view": "transcript",
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+        with self.feature("organizations:gen-ai-conversations-backend-transcript"):
+            response = self.do_request(conversation_id, query)
+        assert response.status_code == 200, response.data
+        assert response.data["complete"] is True
+        assert response.data["sourceSpanCount"] == 1
+        assert [(item["role"], item["content"]) for item in response.data["transcript"]] == [
+            ("user", "hello"),
+            ("assistant", "hi"),
+        ]
+        assert "spans" not in response.data
+
+    def test_transcript_deduplicates_across_source_pages(self) -> None:
+        now = before_now(days=1).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        history = [
+            {"role": "user", "content": "hello"},
+            {"role": "assistant", "content": "answer 0"},
+        ]
+        for index in range(2):
+            self.store_ai_span(
+                conversation_id=conversation_id,
+                timestamp=now + timedelta(seconds=index * 10),
+                op="gen_ai.chat",
+                operation_type="ai_client",
+                trace_id=uuid4().hex,
+                input_messages=history[: 1 + index],
+                output_messages=[{"role": "assistant", "content": f"answer {index}"}],
+            )
+        messages = self._read_transcript_pages(
+            conversation_id,
+            {
+                "project": [self.project.id],
+                "view": "transcript",
+                "per_page": 1,
+                "start": (now - timedelta(hours=1)).isoformat(),
+                "end": (now + timedelta(hours=1)).isoformat(),
+            },
+        )
+        assert [item["content"] for item in messages] == ["hello", "answer 0", "answer 1"]
+
+    def test_transcript_has_stable_order_for_tied_source_timestamps(self) -> None:
+        now = before_now(days=1).replace(microsecond=0)
+        conversation_id, trace_id = uuid4().hex, uuid4().hex
+        spans = [
+            self.store_ai_span(
+                conversation_id=conversation_id,
+                timestamp=now,
+                trace_id=trace_id,
+                op="gen_ai.chat",
+                operation_type="ai_client",
+                output_messages=[{"role": "assistant", "content": f"answer {index}"}],
+            )
+            for index in range(3)
+        ]
+        for per_page in (1, 2, 3):
+            messages = self._read_transcript_pages(
+                conversation_id,
+                {
+                    "project": [self.project.id],
+                    "view": "transcript",
+                    "per_page": per_page,
+                    "start": (now - timedelta(hours=1)).isoformat(),
+                    "end": (now + timedelta(hours=1)).isoformat(),
+                },
+            )
+            assert [item["nodeId"] for item in messages] == sorted(
+                span["span_id"] for span in spans
+            )
+
+    def test_transcript_context_failure_is_not_partial_success(self) -> None:
+        self._assert_transcript_context_failure(
+            TranscriptContextError("Invalid transcript source timestamp"), 400
+        )
+
+    def test_transcript_work_limit_returns_service_unavailable(self) -> None:
+        self._assert_transcript_context_failure(
+            TranscriptWorkLimitError("Transcript context exceeds the per-request server limit"), 503
+        )
+
+    def _assert_transcript_context_failure(
+        self, error: TranscriptContextError, status: int
+    ) -> None:
+        now = before_now(days=1)
+        with (
+            self.feature("organizations:gen-ai-conversations-backend-transcript"),
+            patch(
+                "sentry.ai_monitoring.endpoints.organization_ai_conversation_details.paginate_transcript",
+                side_effect=error,
+            ),
+        ):
+            response = self.do_request(
+                "conversation-id",
+                {
+                    "project": [self.project.id],
+                    "view": "transcript",
+                    "start": (now - timedelta(hours=1)).isoformat(),
+                    "end": now.isoformat(),
+                },
+            )
+        assert response.status_code == status
+        assert response.data["detail"] == str(error)
+        assert "transcript" not in response.data
+
+    def test_failed_parent_repair_aborts_transcript_but_not_timeline(self) -> None:
+        now = before_now(days=1).replace(microsecond=0)
+        conversation_id, trace_id = uuid4().hex, uuid4().hex
+        agent = self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now,
+            trace_id=trace_id,
+            op="gen_ai.invoke_agent",
+            operation_type="agent",
+            input_messages=[{"role": "user", "content": "question"}],
+            output_messages=[{"role": "assistant", "content": "answer"}],
+            store=False,
+        )
+        agent["parent_span_id"] = None
+        bridge = self.create_span(
+            {
+                "trace_id": trace_id,
+                "parent_span_id": agent["span_id"],
+                "sentry_tags": {"op": "http.client"},
+            },
+            start_ts=now + timedelta(seconds=1),
+        )
+        generation = self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now + timedelta(seconds=2),
+            trace_id=trace_id,
+            operation_type="ai_client",
+            store=False,
+        )
+        generation["parent_span_id"] = bridge["span_id"]
+        self.store_spans([agent, bridge, generation])
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+        with (
+            self.feature("organizations:gen-ai-conversations-backend-transcript"),
+            patch.object(
+                OrganizationAIConversationDetailsEndpoint,
+                "_fetch_parent_spans",
+                side_effect=Exception("unavailable"),
+            ),
+        ):
+            transcript_response = self.do_request(conversation_id, {**query, "view": "transcript"})
+            timeline_response = self.do_request(conversation_id, query)
+        assert transcript_response.status_code == 503, transcript_response.data
+        assert transcript_response.data == {"detail": "Unable to read transcript parent context"}
+        assert "Link" not in transcript_response.headers
+        assert "transcript" not in transcript_response.data
+        assert timeline_response.status_code == 200, timeline_response.data
+        assert len(timeline_response.data["spans"]) == 2
+
+    def test_transcript_annotates_only_emitted_rows_once(self) -> None:
+        now = before_now(days=1).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now,
+            trace_id=uuid4().hex,
+            op="gen_ai.execute_tool",
+            operation_type="tool",
+            tool_name="lookup",
+        )
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now + timedelta(seconds=10),
+            trace_id=uuid4().hex,
+            op="gen_ai.execute_tool",
+            operation_type="tool",
+            tool_name="another-lookup",
+        )
+
+        def annotate(spans, params, organization):
+            spans[0]["errors"] = [{"issue_id": 1}]
+
+        with (
+            self.feature("organizations:gen-ai-conversations-backend-transcript"),
+            patch.object(
+                OrganizationAIConversationDetailsEndpoint, "_annotate_issues", side_effect=annotate
+            ) as annotate_issues,
+        ):
+            response = self.do_request(
+                conversation_id,
+                {
+                    "project": [self.project.id],
+                    "view": "transcript",
+                    "per_page": 1,
+                    "start": (now - timedelta(hours=1)).isoformat(),
+                    "end": (now + timedelta(hours=1)).isoformat(),
+                },
+            )
+        assert response.status_code == 200, response.data
+        annotate_issues.assert_called_once()
+        assert len(annotate_issues.call_args.args[0]) == 1
+        assert response.data["transcript"][0]["toolCalls"][0]["hasError"] is True
+        assert response.data["complete"] is False
+
+    def test_transcript_empty_conversation(self) -> None:
+        now = before_now(days=1)
+        with self.feature("organizations:gen-ai-conversations-backend-transcript"):
+            response = self.do_request(
+                uuid4().hex,
+                {
+                    "project": [self.project.id],
+                    "view": "transcript",
+                    "start": (now - timedelta(hours=1)).isoformat(),
+                    "end": now.isoformat(),
+                },
+            )
+        assert response.status_code == 200
+        assert response.data["transcript"] == []
+        assert response.data["complete"] is True
+        assert response.data["sourceSpanCount"] == 0

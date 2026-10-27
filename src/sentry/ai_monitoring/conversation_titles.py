@@ -8,7 +8,7 @@ from typing import Any
 
 from django.db.models import F
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
-from sentry_sdk import trace
+from sentry_sdk import traces
 
 from sentry.ai_monitoring.message_normalizer import (
     FILTERED,
@@ -130,7 +130,8 @@ def _extract_first_user_message(messages: Any) -> str | None:
     parsed = normalize_to_messages(messages, "user")
     if not parsed:
         return None
-    for msg in parsed:
+    # Clients often prepend context as user messages, so the last user message is usually relevant.
+    for msg in reversed(parsed):
         if msg.get("role") != "user":
             continue
         content = stringify_message_content(msg.get("content"))
@@ -209,7 +210,7 @@ def fallback_title_from_message(message: str) -> str:
     return _finalize_title(" ".join(words[:TITLE_MAX_WORDS]) + "...")
 
 
-@trace
+@traces.trace
 def generate_title_with_seer(first_user_message: str, organization: Organization) -> str | None:
     try:
         result = run_oneshot(

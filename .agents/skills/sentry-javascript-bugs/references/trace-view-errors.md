@@ -34,7 +34,7 @@ No in-app exception frames (info-level captureMessage on `/explore/traces/trace/
 **Stacktrace:**
 
 ```
-./app/views/performance/newTraceDetails/traceDrawer/details/span/index.tsx
+./app/views/performance/traceDetails/traceDrawer/details/span/index.tsx
   EAPSpanNodeDetails (line 349)
     } = useTraceItemDetails({
       projectId: node.value.project_id.toString(),

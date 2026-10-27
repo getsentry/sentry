@@ -3,6 +3,7 @@ __all__ = [
     "DataConditionEvaluationException",
     "DataConditionGroupEvaluation",
     "DetectorEvaluation",
+    "DetectorEvaluationArtifact",
     "DetectorEvaluationData",
     "DetectorEvaluationOutcome",
     "DeferredWorkflowEvaluationResult",
@@ -11,6 +12,8 @@ __all__ = [
     "ProcessDetectorsResult",
     "ProcessWorkflowsResult",
     "WorkflowEvaluation",
+    "WorkflowEvaluationArtifact",
+    "WorkflowEvaluationBatch",
     "WorkflowEvaluationData",
     "WorkflowEvaluationOutcome",
 ]
@@ -20,6 +23,7 @@ from .condition import DataConditionEvaluation, DataConditionEvaluationException
 from .condition_group import DataConditionGroupEvaluation
 from .detector import (
     DetectorEvaluation,
+    DetectorEvaluationArtifact,
     DetectorEvaluationData,
     DetectorEvaluationOutcome,
     ProcessDetectorsResult,
@@ -28,6 +32,8 @@ from .workflow import (
     DeferredWorkflowEvaluationResult,
     ProcessWorkflowsResult,
     WorkflowEvaluation,
+    WorkflowEvaluationArtifact,
+    WorkflowEvaluationBatch,
     WorkflowEvaluationData,
     WorkflowEvaluationOutcome,
 )

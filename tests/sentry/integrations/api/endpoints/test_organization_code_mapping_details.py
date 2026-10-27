@@ -2,6 +2,9 @@ from django.urls import reverse
 from rest_framework import status
 
 from sentry.api.serializers import serialize
+from sentry.integrations.api.endpoints.organization_code_mappings import (
+    INVALID_SOURCE_ROOT_ERROR_MESSAGE,
+)
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.repository import Repository
@@ -99,11 +102,33 @@ class OrganizationCodeMappingDetailsTest(APITestCase):
         assert resp.status_code == 204
         assert not RepositoryProjectPathConfig.objects.filter(id=str(self.config.id)).exists()
 
+    def test_delete_with_non_integer_config_id(self) -> None:
+        url = reverse(self.endpoint, args=[self.org.slug, "invalid"])
+
+        resp = self.client.delete(url)
+
+        assert resp.status_code == 404
+
     def test_basic_edit(self) -> None:
         resp = self.make_put({"sourceRoot": "newRoot"})
         assert resp.status_code == 200
         assert resp.data["id"] == str(self.config.id)
         assert resp.data["sourceRoot"] == "newRoot"
+
+    def test_edit_rejects_unsafe_source_root(self) -> None:
+        resp = self.make_put({"sourceRoot": "../config"})
+
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+        assert resp.data == {"sourceRoot": [INVALID_SOURCE_ROOT_ERROR_MESSAGE]}
+        self.config.refresh_from_db()
+        assert self.config.source_root == "/source/root"
+
+    def test_edit_with_out_of_range_config_id(self) -> None:
+        url = reverse(self.endpoint, args=[self.org.slug, "999999999999999999999"])
+
+        resp = self.client.put(url)
+
+        assert resp.status_code == 404
 
     def test_edit_rejects_missing_required_fields(self) -> None:
         resp = self.client.put(self.url, {"sourceRoot": ""})

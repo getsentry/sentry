@@ -1,25 +1,26 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconLightning} from '@sentry/icons/lightning';
+import {IconLock} from '@sentry/icons/lock';
+import {IconSentry} from '@sentry/icons/sentry';
 import {AnimatePresence, motion} from 'framer-motion';
 import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {InfoTip} from '@sentry/scraps/info';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Placeholder} from 'sentry/components/placeholder';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
-import {IconChevron, IconLightning, IconLock, IconSentry} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {useApi} from 'sentry/utils/useApi';
-import {useMedia} from 'sentry/utils/useMedia';
 
 import {PAYG_BUSINESS_DEFAULT, PAYG_TEAM_DEFAULT} from 'getsentry/constants';
 import {useBillingDetails} from 'getsentry/hooks/useBillingDetails';
@@ -28,6 +29,7 @@ import {OnDemandBudgetMode} from 'getsentry/types';
 import type {AddOnCategory, Plan, PreviewData, Subscription} from 'getsentry/types';
 import {
   displayBudgetName,
+  displayPrice,
   formatReservedWithUnits,
   getCreditApplied,
   getCredits,
@@ -156,13 +158,11 @@ function ItemWithPrice({
   price,
   shouldBoldItem,
   isVariableCost,
-  isCredit,
 }: {
   item: React.ReactNode;
   price: React.ReactNode;
   shouldBoldItem: boolean;
   'data-test-id'?: string;
-  isCredit?: boolean;
   isVariableCost?: boolean;
 }) {
   return (
@@ -170,10 +170,7 @@ function ItemWithPrice({
       <Text bold={shouldBoldItem} variant={isVariableCost ? 'muted' : 'primary'}>
         {item}
       </Text>
-      <Text
-        align="right"
-        variant={isVariableCost ? 'muted' : isCredit ? 'success' : 'primary'}
-      >
+      <Text align="right" variant={isVariableCost ? 'muted' : 'primary'}>
         {price}
       </Text>
     </ItemFlex>
@@ -181,9 +178,6 @@ function ItemWithPrice({
 }
 
 function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
-  const theme = useTheme();
-  const isXSmallScreen = useMedia(`(max-width: ${theme.breakpoints.xs})`);
-
   const additionalProductCategories = useMemo(
     () =>
       Object.values(activePlan.addOnCategories).flatMap(addOn => addOn.dataCategories),
@@ -196,7 +190,7 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
       <Stack gap="md" data-test-id="summary-item-plan">
         <ItemWithPrice
           item={tct('[name] Plan', {name: activePlan.name})}
-          price={`${utils.displayPrice({cents: activePlan.totalPrice})}/${shortInterval}`}
+          price={`${displayPrice({cents: activePlan.totalPrice})}/${shortInterval}`}
           shouldBoldItem
         />
         {activePlan.categories
@@ -218,7 +212,7 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
                     buckets: activePlan.planCategories[category],
                   });
             const price = eventBucket ? eventBucket.price : 0;
-            const formattedPrice = utils.displayPrice({
+            const formattedPrice = displayPrice({
               cents: price,
             });
             const formattedReserved = formatReservedWithUnits(reserved, category);
@@ -269,23 +263,14 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
                       })}
                     >
                       <Tag variant="muted" icon={<IconLock locked size="xs" />}>
-                        {isXSmallScreen ? (
-                          <Text size="xs">
-                            {tct('Unlock with [budgetTerm]', {
-                              budgetTerm: displayBudgetName(activePlan, {
-                                title: true,
-                                abbreviated: activePlan.budgetTerm === 'pay-as-you-go',
-                              }),
-                            })}
-                          </Text>
-                        ) : (
-                          tct('Unlock with [budgetTerm]', {
+                        <Text size={{zero: 'xs', sm: 'sm'}}>
+                          {tct('Unlock with [budgetTerm]', {
                             budgetTerm: displayBudgetName(activePlan, {
                               title: true,
                               abbreviated: activePlan.budgetTerm === 'pay-as-you-go',
                             }),
-                          })
-                        )}
+                          })}
+                        </Text>
                       </Tag>
                     </Tooltip>
                   )
@@ -329,7 +314,7 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
                 item={toTitleCase(productName, {
                   allowInnerUpperCase: true,
                 })}
-                price={`${utils.displayPrice({
+                price={`${displayPrice({
                   cents: price,
                 })}/${shortInterval}`}
                 shouldBoldItem
@@ -337,7 +322,7 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
               {includedBudget && (
                 <div>
                   {tct('Includes [formattedIncludedBudget] monthly credits', {
-                    formattedIncludedBudget: utils.displayPrice({
+                    formattedIncludedBudget: displayPrice({
                       cents: includedBudget,
                     }),
                   })}
@@ -385,7 +370,7 @@ function SubtotalSummary({
           {previewDataLoading ? (
             <Placeholder height="16px" width={PRICE_PLACEHOLDER_WIDTH} />
           ) : (
-            `${utils.displayPrice({cents: recurringSubtotal})}/${shortInterval}`
+            `${displayPrice({cents: recurringSubtotal})}/${shortInterval}`
           )}
         </Text>
       </Flex>
@@ -400,7 +385,7 @@ function SubtotalSummary({
             <Stack gap="sm" align="end">
               <Text align="right" variant="muted">
                 {tct('up to [pricePerMonth]', {
-                  pricePerMonth: `${utils.displayPrice({
+                  pricePerMonth: `${displayPrice({
                     cents: formData.onDemandMaxSpend,
                   })}/mo`,
                 })}
@@ -445,7 +430,7 @@ function SubtotalSummary({
                     category: category as DataCategory,
                   })}
                   price={tct('up to [pricePerMonth]', {
-                    pricePerMonth: `${utils.displayPrice({
+                    pricePerMonth: `${displayPrice({
                       cents: budget,
                     })}/mo`,
                   })}
@@ -477,7 +462,7 @@ function SubtotalSummary({
                   price={
                     <Fragment>
                       {t('Variable cost')}{' '}
-                      <QuestionTooltip
+                      <InfoTip
                         size="xs"
                         position="bottom"
                         title={t(
@@ -579,7 +564,7 @@ function TotalSummary({
             effectiveDateSubtext,
             longInterval,
             renewalDate: moment(renewalDate).format('MMM D, YYYY'),
-            onDemandMaxSpend: utils.displayPrice({
+            onDemandMaxSpend: displayPrice({
               cents: totalOnDemandBudget,
             }),
           }
@@ -614,7 +599,7 @@ function TotalSummary({
           {!previewDataLoading && (
             <Fragment>
               {fees.map(item => {
-                const formattedPrice = utils.displayPrice({cents: item.amount});
+                const formattedPrice = displayPrice({cents: item.amount});
                 return (
                   <Flex
                     data-test-id={`summary-item-${item.type}`}
@@ -645,7 +630,7 @@ function TotalSummary({
                     })}
                   </Text>
                   <Text align="right" variant="success">
-                    {utils.displayPrice({
+                    {displayPrice({
                       cents: onDemandItems.reduce((sum, item) => sum + item.amount, 0),
                     })}
                   </Text>
@@ -662,12 +647,12 @@ function TotalSummary({
                     {t('Credit applied')}
                   </Text>
                   <Text align="right" variant="success">
-                    {utils.displayPrice({cents: -creditApplied})}
+                    {displayPrice({cents: -creditApplied})}
                   </Text>
                 </Flex>
               )}
               {credits.map(item => {
-                const formattedPrice = utils.displayPrice({cents: item.amount});
+                const formattedPrice = displayPrice({cents: item.amount});
                 return (
                   <Flex
                     data-test-id={`summary-item-${item.type}`}
@@ -704,20 +689,20 @@ function TotalSummary({
                 <Fragment>
                   {originalBilledTotal > billedTotal && (
                     <Text strikethrough variant="muted" size="xl">
-                      {utils.displayPrice({
+                      {displayPrice({
                         cents: originalBilledTotal,
                       })}{' '}
                     </Text>
                   )}
                   <Text size="xl" bold>
-                    {utils.displayPrice({
+                    {displayPrice({
                       cents: billedTotal,
                     })}
                   </Text>
                 </Fragment>
               ) : (
                 <Text size="xl" bold>
-                  {utils.displayPrice({
+                  {displayPrice({
                     cents: billedTotal,
                   })}
                 </Text>

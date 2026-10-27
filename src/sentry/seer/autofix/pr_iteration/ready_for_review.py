@@ -20,6 +20,7 @@ from typing import Any
 from django.utils import timezone
 from scm import actions as scm_actions
 from scm.types import MarkPullRequestDraftStateProtocol
+from sentry_sdk import traces
 
 from sentry.locks import locks
 from sentry.models.group import Group
@@ -95,6 +96,7 @@ def _emit_ready_for_review_signal(ctx: GreenCheckSuiteContext) -> None:
         _failed("emit_ready_signal_failed", resolved.log_extra)
 
 
+@traces.trace
 def mark_ready_for_review(ctx: GreenCheckSuiteContext) -> None:
     """Undraft the PR for ``ctx.head_sha``.
 

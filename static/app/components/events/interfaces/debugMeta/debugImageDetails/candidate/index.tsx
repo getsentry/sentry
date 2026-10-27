@@ -1,5 +1,3 @@
-import styled from '@emotion/styled';
-
 import {INTERNAL_SOURCE} from 'sentry/components/events/interfaces/debugMeta/debugImageDetails/utils';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import type {ImageCandidate} from 'sentry/types/debugImage';
@@ -36,21 +34,26 @@ export function Candidate({
 
   return (
     <SimpleTable.Row>
-      <Column>
+      <SimpleTable.RowCell align="center">
         <StatusTooltip candidate={candidate} hasReprocessWarning={hasReprocessWarning} />
-      </Column>
+      </SimpleTable.RowCell>
 
-      <InformationColumn>
+      <SimpleTable.RowCell direction="column" align="start">
         <Information
           candidate={candidate}
           isInternalSource={isInternalSource}
           eventDateReceived={eventDateReceived}
           hasReprocessWarning={hasReprocessWarning}
         />
-      </InformationColumn>
+      </SimpleTable.RowCell>
 
       {haveCandidatesAtLeastOneAction && (
-        <ActionsColumn>
+        <SimpleTable.RowCell
+          justify="end"
+          column={{zero: '2', lg: '3'}}
+          row={{zero: '2', lg: '1'}}
+          padding={{zero: '0 xl lg xl', lg: 'lg xl'}}
+        >
           <Actions
             onDelete={onDelete}
             baseUrl={baseUrl}
@@ -59,22 +62,8 @@ export function Candidate({
             candidate={candidate}
             isInternalSource={isInternalSource}
           />
-        </ActionsColumn>
+        </SimpleTable.RowCell>
       )}
     </SimpleTable.Row>
   );
 }
-
-const Column = styled(SimpleTable.RowCell)`
-  display: flex;
-  align-items: center;
-`;
-
-const InformationColumn = styled(Column)`
-  flex-direction: column;
-  align-items: flex-start;
-`;
-
-const ActionsColumn = styled(Column)`
-  justify-content: flex-end;
-`;

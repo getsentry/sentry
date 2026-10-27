@@ -8,7 +8,6 @@ from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.threading import ThreadContext
 from sentry.notifications.platform.types import (
-    NotificationCategory,
     NotificationData,
     NotificationProviderKey,
     NotificationTarget,
@@ -52,6 +51,9 @@ class SendSuccessResult:
     is_threaded: bool = False
     """Whether the notification was sent with threading."""
 
+    thread_identifier: str | None = None
+    """The existing thread's root identifier when sent as a reply, None for a new message."""
+
 
 @dataclass(frozen=True)
 class SendFailure:
@@ -84,17 +86,17 @@ def integration_error_result(e: IntegrationError, *, is_threaded: bool = False) 
     )
 
 
-class IntegrationNotificationClient[RenderableT, ThreadingResponseT = dict[str, Any]](Protocol):
+class IntegrationNotificationClient[RenderableT, ResponseT = dict[str, Any]](Protocol):
     def send_notification(
         self, target: IntegrationNotificationTarget, payload: RenderableT
-    ) -> None: ...
+    ) -> ResponseT | None: ...
 
-    def send_notification_with_threading(
+    def send_notification_with_response(
         self,
         target: IntegrationNotificationTarget,
         payload: RenderableT,
         threading_context: ProviderThreadingContext,
-    ) -> ThreadingResponseT: ...
+    ) -> ResponseT: ...
 
 
 class NotificationProvider[RenderableT](Protocol):
@@ -106,6 +108,8 @@ class NotificationProvider[RenderableT](Protocol):
     """
 
     key: NotificationProviderKey
+    renderer_key: NotificationProviderKey | None = None
+    """The key renderers are registered against, when it differs from `key`."""
     default_renderer: type[NotificationRenderer[RenderableT]]
     target_class: type[NotificationTarget]
     target_resource_types: list[NotificationTargetResourceType]
@@ -133,15 +137,19 @@ class NotificationProvider[RenderableT](Protocol):
         return
 
     @classmethod
-    def get_renderer(
-        cls, *, data: NotificationData, category: NotificationCategory
-    ) -> type[NotificationRenderer[RenderableT]]:
+    def get_renderer(cls, *, data: NotificationData) -> type[NotificationRenderer[RenderableT]]:
         """
         Returns an instance of a renderer for a given notification, falling back to the default renderer.
         Override this to method to permit different renderers for the provider, though keep in mind
         that this may produce inconsistencies between notifications.
         """
-        return cls.default_renderer
+        # Imported here since the registry imports this module to type its registrations.
+        from sentry.notifications.platform.registry import renderer_registry
+
+        renderer = renderer_registry.get(
+            provider_key=cls.renderer_key or cls.key, source=data.source
+        )
+        return renderer or cls.default_renderer
 
     @classmethod
     def is_available(cls, *, organization: RpcOrganizationSummary | None = None) -> bool:

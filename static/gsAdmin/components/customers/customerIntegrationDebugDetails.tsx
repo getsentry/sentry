@@ -1,14 +1,19 @@
-import {useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 import moment from 'moment-timezone';
 
 import {Button} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
-import {IconChevron} from 'sentry/icons';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {ResultGrid} from 'sentry/components/resultGrid';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {RequestError} from 'sentry/utils/requestError/requestError';
+import {useApi} from 'sentry/utils/useApi';
 
-import {ResultGrid} from 'admin/components/resultGrid';
+import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
 
 type Props = {
   orgId: string;
@@ -41,7 +46,33 @@ function getStatusLabel(status: number): string {
 }
 
 export function CustomerIntegrationDebugDetails({orgId}: Props) {
+  const api = useApi();
   const [expandedRows, setExpandedRows] = useState(new Set());
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const resetIntegrations = () => {
+    openAdminConfirmModal({
+      header: <h4>Reset Integrations</h4>,
+      confirmText: 'Reset Integrations',
+      priority: 'danger',
+      modalSpecificContent:
+        "Reconcile this organization's integrations with its current plan. Supported integrations will be enabled and their grace periods cleared.",
+      onConfirm: async data => {
+        try {
+          await api.requestPromise(`/_admin/customers/${orgId}/integrations/reset/`, {
+            method: 'POST',
+            data,
+          });
+          addSuccessMessage('Integrations reset successfully.');
+          setRefreshKey(value => value + 1);
+        } catch (error) {
+          const responseText =
+            error instanceof RequestError ? error.responseText : undefined;
+          addErrorMessage(responseText || 'Failed to reset integrations.');
+        }
+      },
+    });
+  };
 
   const toggleRow = (id: number) => {
     setExpandedRows(prev => {
@@ -56,101 +87,106 @@ export function CustomerIntegrationDebugDetails({orgId}: Props) {
   };
 
   return (
-    <ResultGrid
-      inPanel
-      panelTitle="Integration Debug Details"
-      path={`/_admin/customers/${orgId}/`}
-      endpoint={`/customers/${orgId}/integrations/`}
-      method="GET"
-      defaultParams={{per_page: 10}}
-      useQueryString={false}
-      rowsFromData={(data: IntegrationRow[]) => {
-        const transformedRows: any[] = [];
-        data.forEach(row => {
-          transformedRows.push(row, {
-            _isExpansionRow: true,
-            _parentId: row.id,
-            _parentData: row,
+    <Fragment>
+      <Flex justify="end" marginBottom="md">
+        <Button variant="danger" onClick={resetIntegrations}>
+          Reset Integrations
+        </Button>
+      </Flex>
+      <ResultGrid
+        key={refreshKey}
+        inPanel
+        panelTitle="Integration Debug Details"
+        path={`/_admin/customers/${orgId}/`}
+        endpoint={`/customers/${orgId}/integrations/`}
+        defaultParams={{per_page: 10}}
+        useQueryString={false}
+        rowsFromData={(data: IntegrationRow[]) => {
+          const transformedRows: any[] = [];
+          data.forEach(row => {
+            transformedRows.push(row, {
+              _isExpansionRow: true,
+              _parentId: row.id,
+              _parentData: row,
+            });
           });
-        });
-        return transformedRows;
-      }}
-      keyForRow={row => (row._isExpansionRow ? `expand-${row._parentId}` : row.id)}
-      columns={[
-        <th key="expand" style={{width: 40}} />,
-        <th key="provider">Provider</th>,
-        <th key="integrationStatus">Integration Status</th>,
-        <th key="orgIntegrationStatus">Org Integration Status</th>,
-        <th key="id" style={{textAlign: 'right'}}>
-          Org Integration ID
-        </th>,
-        <th key="integrationId" style={{textAlign: 'right'}}>
-          Integration ID
-        </th>,
-        <th key="gracePeriodEnd" style={{textAlign: 'right'}}>
-          Grace Period End
-        </th>,
-        <th key="externalId" style={{textAlign: 'right'}}>
-          External ID
-        </th>,
-      ]}
-      columnsForRow={(row: any) => {
-        if (row._isExpansionRow) {
-          const parentRow = row._parentData;
-          const isExpanded = expandedRows.has(parentRow.id);
-          const hasMetadata =
-            parentRow.integration.metadata &&
-            Object.keys(parentRow.integration.metadata).length > 0;
+          return transformedRows;
+        }}
+        keyForRow={row => (row._isExpansionRow ? `expand-${row._parentId}` : row.id)}
+        columns={[
+          {key: 'expand', label: 'Expand', hideLabel: true, width: 40},
+          {key: 'provider', label: 'Provider'},
+          {key: 'integrationStatus', label: 'Integration Status'},
+          {key: 'orgIntegrationStatus', label: 'Org Integration Status'},
+          {key: 'id', label: 'Org Integration ID', align: 'right'},
+          {key: 'integrationId', label: 'Integration ID', align: 'right'},
+          {key: 'gracePeriodEnd', label: 'Grace Period End', align: 'right'},
+          {key: 'externalId', label: 'External ID', align: 'right'},
+        ]}
+        columnsForRow={(row: any) => {
+          if (row._isExpansionRow) {
+            const parentRow = row._parentData;
+            const isExpanded = expandedRows.has(parentRow.id);
+            const hasMetadata =
+              parentRow.integration.metadata &&
+              Object.keys(parentRow.integration.metadata).length > 0;
 
-          if (!isExpanded || !hasMetadata) {
-            return [<td key="empty" colSpan={8} style={{padding: 0, height: 0}} />];
+            if (!isExpanded || !hasMetadata) {
+              return [];
+            }
+
+            return [
+              <SimpleTable.FullWidthCell key="metadata">
+                <Container padding="lg xl">
+                  <Heading as="h6">Integration Metadata</Heading>
+                  <MetadataContent>
+                    {JSON.stringify(parentRow.integration.metadata, null, 2)}
+                  </MetadataContent>
+                </Container>
+              </SimpleTable.FullWidthCell>,
+            ];
           }
 
+          const isExpanded = expandedRows.has(row.id);
+          const hasMetadata =
+            row.integration.metadata && Object.keys(row.integration.metadata).length > 0;
+
           return [
-            <td key="metadata" colSpan={8}>
-              <Container>
-                <Heading as="h6">Integration Metadata</Heading>
-                <MetadataContent>
-                  {JSON.stringify(parentRow.integration.metadata, null, 2)}
-                </MetadataContent>
-              </Container>
-            </td>,
+            <SimpleTable.RowCell key="expand">
+              <Button
+                size="zero"
+                variant="transparent"
+                onClick={() => toggleRow(row.id)}
+                icon={<IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />}
+                aria-label={isExpanded ? 'Collapse row' : 'Expand row'}
+                disabled={!hasMetadata}
+              />
+            </SimpleTable.RowCell>,
+            <SimpleTable.RowCell key="provider">
+              {row.integration.provider}
+            </SimpleTable.RowCell>,
+            <SimpleTable.RowCell key="integrationStatus">
+              {getStatusLabel(row.integration.status)}
+            </SimpleTable.RowCell>,
+            <SimpleTable.RowCell key="orgIntegrationStatus">
+              {getStatusLabel(row.status)}
+            </SimpleTable.RowCell>,
+            <SimpleTable.RowCell key="orgIntegrationId" justify="end">
+              {row.id}
+            </SimpleTable.RowCell>,
+            <SimpleTable.RowCell key="integrationId" justify="end">
+              {row.integration.id}
+            </SimpleTable.RowCell>,
+            <SimpleTable.RowCell key="gracePeriodEnd" justify="end">
+              {row.gracePeriodEnd ? moment(row.gracePeriodEnd).fromNow() : 'n/a'}
+            </SimpleTable.RowCell>,
+            <SimpleTable.RowCell key="externalId" justify="end">
+              {row.integration.externalId || 'n/a'}
+            </SimpleTable.RowCell>,
           ];
-        }
-
-        const isExpanded = expandedRows.has(row.id);
-        const hasMetadata =
-          row.integration.metadata && Object.keys(row.integration.metadata).length > 0;
-
-        return [
-          <td key="expand">
-            <Button
-              size="zero"
-              variant="transparent"
-              onClick={() => toggleRow(row.id)}
-              icon={<IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />}
-              aria-label={isExpanded ? 'Collapse row' : 'Expand row'}
-              disabled={!hasMetadata}
-            />
-          </td>,
-          <td key="provider">{row.integration.provider}</td>,
-          <td key="integrationStatus">{getStatusLabel(row.integration.status)}</td>,
-          <td key="orgIntegrationStatus">{getStatusLabel(row.status)}</td>,
-          <td key="orgIntegrationId" style={{textAlign: 'right'}}>
-            {row.id}
-          </td>,
-          <td key="integrationId" style={{textAlign: 'right'}}>
-            {row.integration.id}
-          </td>,
-          <td key="gracePeriodEnd" style={{textAlign: 'right'}}>
-            {row.gracePeriodEnd ? moment(row.gracePeriodEnd).fromNow() : 'n/a'}
-          </td>,
-          <td key="externalId" style={{textAlign: 'right'}}>
-            {row.integration.externalId || 'n/a'}
-          </td>,
-        ];
-      }}
-    />
+        }}
+      />
+    </Fragment>
   );
 }
 

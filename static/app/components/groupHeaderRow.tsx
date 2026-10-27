@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
+import {IconStar} from '@sentry/icons/star';
 import {useDebouncer} from '@tanstack/react-pacer';
 import {useQueryClient} from '@tanstack/react-query';
 
@@ -9,11 +10,9 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {EventMessage} from 'sentry/components/events/eventMessage';
 import {GroupTitle} from 'sentry/components/groupTitle';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {IconStar} from 'sentry/icons';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {getMessage} from 'sentry/utils/events';
-import {orgHasIssueInbox} from 'sentry/utils/seer/orgHasIssueInbox';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
@@ -46,7 +45,7 @@ function usePreloadGroupOnHover({
           groupId,
           organizationSlug: organization.slug,
           environments: selection.environments,
-          expandDerivedData: orgHasIssueInbox(organization),
+          expandDerivedData: organization.features.includes('issue-inbox'),
         })
       );
     },

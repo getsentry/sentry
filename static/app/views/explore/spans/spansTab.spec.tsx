@@ -4,6 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -14,6 +15,7 @@ import {
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -64,11 +66,7 @@ const invalidAttributeValidationBody: EventValidationData = {
 };
 
 describe('SpansTabContent', () => {
-  const {organization, project} = initializeOrg({
-    organization: {
-      features: ['gen-ai-features'],
-    },
-  });
+  const {organization, project} = initializeOrg();
 
   function setProjects(projects: Project[], selectedProjectIds?: number[]) {
     ProjectsStore.loadInitialData(projects);
@@ -88,10 +86,45 @@ describe('SpansTabContent', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/validate/',
+      body: {
+        dataset: [],
+        environment: [],
+        field: [],
+        orderby: [],
+        projects: [],
+        query: {error: null, fields: [], valid: true},
+        valid: true,
+      },
+    });
 
-    // without this the `CompactSelect` component errors with a bunch of async updates
-    jest.spyOn(console, 'error').mockImplementation();
-
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/stats_v2/',
+      body: {groups: []},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/stats/',
+      body: {data: []},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      method: 'POST',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/start/',
+      method: 'POST',
+      body: {run_id: 1},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/state/1/',
+      body: {status: 'completed', results: []},
+    });
     PageFiltersStore.init();
     setProjects([project]);
     MockApiClient.addMockResponse({
@@ -101,11 +134,6 @@ describe('SpansTabContent', () => {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/recent-searches/`,
-      method: 'GET',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/spans/fields/`,
       method: 'GET',
       body: [],
     });
@@ -150,17 +178,132 @@ describe('SpansTabContent', () => {
     });
   });
 
-  it('should fire analytics once per change', async () => {
+  it('disables saving when a hidden sibling has transformations and restores it after clearing', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {data: [], meta: {fields: {}, units: {}, dataScanned: 'full'}},
+    });
+    const {router} = render(
+      <SpansTabContent datePageFilterProps={datePageFilterProps} />,
+      {
+        organization,
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/traces/',
+            query: {
+              aggregateField: [
+                JSON.stringify({yAxes: ['count(span.duration)']}),
+                JSON.stringify({
+                  yAxes: ['avg(span.duration)'],
+                  transformations: ['fill(locf)', 'smooth(sma,5)'],
+                  visible: false,
+                }),
+              ],
+            },
+          },
+        },
+      }
+    );
+
+    expect(await screen.findByRole('button', {name: 'Save as'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('button', {name: 'Chart actions'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+
+    act(() => {
+      router.navigate('/organizations/org-slug/explore/traces/');
+    });
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Save as'})).toBeEnabled()
+    );
+    expect(screen.getByRole('button', {name: 'Chart actions'})).toBeEnabled();
+    expect(await screen.findByText(/No spans found/)).toBeInTheDocument();
+  });
+
+  it('shows the spans table timeout message', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      statusCode: 400,
+      body: {
+        detail:
+          'Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects.',
+      },
+    });
+
     render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
       organization,
       additionalWrapper: Wrapper,
     });
+
+    expect(
+      await screen.findByText(
+        'Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects.'
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('There was an error loading data.')
+    ).not.toBeInTheDocument();
+  });
+
+  it('should fire analytics once per change', async () => {
+    const {router} = render(
+      <SpansTabContent datePageFilterProps={datePageFilterProps} />,
+      {
+        organization,
+        additionalWrapper: Wrapper,
+      }
+    );
 
     await screen.findByText(/No spans found/);
     expect(trackAnalytics).toHaveBeenCalledTimes(1);
     expect(trackAnalytics).toHaveBeenCalledWith(
       'trace.explorer.metadata',
       expect.objectContaining({result_mode: 'span samples'})
+    );
+
+    const tableResponse = Promise.withResolvers<void>();
+    const tableRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      match: [
+        MockApiClient.matchQuery({query: 'span.op:http'}),
+        (_url, options) => options.query?.field?.includes('id'),
+      ],
+      asyncDelay: tableResponse.promise,
+      body: {
+        data: [{id: 'aaaaaaaaaaaaaaaa', timestamp: '2024-01-01T00:00:00+00:00'}],
+        meta: {dataScanned: 'full', fields: {id: 'string'}},
+      },
+    });
+
+    jest.mocked(trackAnalytics).mockClear();
+    router.navigate(
+      `/organizations/${organization.slug}/explore/traces/?query=span.op%3Ahttp`
+    );
+    await waitFor(() => expect(tableRequest).toHaveBeenCalledTimes(1));
+    const getMetadataCalls = () =>
+      jest
+        .mocked(trackAnalytics)
+        .mock.calls.filter(([eventKey]) => eventKey === 'trace.explorer.metadata');
+    expect(getMetadataCalls()).toHaveLength(0);
+
+    tableResponse.resolve();
+    await waitFor(() => expect(getMetadataCalls()).toHaveLength(1));
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'trace.explorer.metadata',
+      expect.objectContaining({
+        dataScanned: 'full',
+        result_length: 1,
+        result_mode: 'span samples',
+      })
     );
 
     jest.mocked(trackAnalytics).mockClear();
@@ -195,6 +338,7 @@ describe('SpansTabContent', () => {
   it('publishes the aggregate sort to the LLM context in aggregate mode', async () => {
     let getLLMContext: ReturnType<typeof useLLMContext>['getLLMContext'] | undefined;
     function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       ({getLLMContext} = useLLMContext());
       return <SpansTabContent datePageFilterProps={datePageFilterProps} />;
     }
@@ -251,7 +395,9 @@ describe('SpansTabContent', () => {
     let aggregateFields: ReturnType<typeof useQueryParamsAggregateFields> = [];
     let aggregateSortBys: ReturnType<typeof useQueryParamsAggregateSortBys> = [];
     function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       aggregateFields = useQueryParamsAggregateFields();
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       aggregateSortBys = useQueryParamsAggregateSortBys();
       return <SpansTabContent datePageFilterProps={datePageFilterProps} />;
     }
@@ -298,7 +444,9 @@ describe('SpansTabContent', () => {
     let fields: readonly string[] = [];
     let groupBys: readonly string[] = [];
     function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       fields = useQueryParamsFields();
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       groupBys = useQueryParamsGroupBys();
       return <SpansTabContent datePageFilterProps={datePageFilterProps} />;
     }
@@ -380,13 +528,13 @@ describe('SpansTabContent', () => {
   });
 
   describe('case sensitivity', () => {
-    it('renders the case sensitivity toggle', () => {
+    it('renders the case sensitivity toggle', async () => {
       render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
         organization,
         additionalWrapper: Wrapper,
       });
 
-      const caseSensitivityToggle = screen.getByRole('button', {
+      const caseSensitivityToggle = await screen.findByRole('button', {
         name: 'Ignore case',
       });
       expect(caseSensitivityToggle).toBeInTheDocument();
@@ -455,9 +603,14 @@ describe('SpansTabContent', () => {
 
   describe('Ask Seer', () => {
     describe('when the AI features are disabled', () => {
+      afterEach(() => {
+        ConfigStore.set('isSelfHosted', false);
+      });
+
       it('does not display the Ask Seer combobox', async () => {
+        ConfigStore.set('isSelfHosted', true);
         render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
-          organization: {...organization, features: []},
+          organization,
           additionalWrapper: Wrapper,
         });
 
@@ -756,7 +909,7 @@ describe('SpansTabContent', () => {
       );
     });
 
-    it('disables dropdown when there are 2 cross events', () => {
+    it('disables dropdown when there are 2 cross events', async () => {
       const logsProject = makeProject({id: '3', slug: 'logs-project', hasLogs: true});
       setProjects([logsProject]);
 
@@ -777,21 +930,35 @@ describe('SpansTabContent', () => {
       });
 
       expect(
-        screen.getByRole('button', {name: 'Add a cross event query'})
+        await screen.findByRole('button', {name: 'Add a cross event query'})
       ).toBeInTheDocument();
       expect(
         screen.getByRole('button', {name: 'Add a cross event query'})
-      ).toBeDisabled();
+      ).toHaveAttribute('aria-disabled', 'true');
     });
 
-    it('adds a cross event search bar when cross event added', async () => {
+    it('adds and removes an empty cross event search bar without refetching results', async () => {
       const logsProject = makeProject({id: '3', slug: 'logs-project', hasLogs: true});
       setProjects([logsProject]);
+
+      const tableRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+        body: {},
+      });
+      const timeseriesRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-timeseries/`,
+        body: {timeSeries: []},
+      });
 
       render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
         organization,
         additionalWrapper: Wrapper,
       });
+
+      await screen.findByText(/No spans found/);
+      await waitFor(() => expect(timeseriesRequest).toHaveBeenCalled());
+      const tableRequestCount = tableRequest.mock.calls.length;
+      const timeseriesRequestCount = timeseriesRequest.mock.calls.length;
 
       await userEvent.click(
         screen.getByRole('button', {name: 'Add a cross event query'})
@@ -803,6 +970,17 @@ describe('SpansTabContent', () => {
       expect(
         screen.getByPlaceholderText('Search for logs, users, tags, and more')
       ).toBeInTheDocument();
+
+      expect(tableRequest).toHaveBeenCalledTimes(tableRequestCount);
+      expect(timeseriesRequest).toHaveBeenCalledTimes(timeseriesRequestCount);
+
+      await userEvent.click(screen.getByLabelText('Remove cross event search for logs'));
+
+      expect(
+        screen.queryByPlaceholderText('Search for logs, users, tags, and more')
+      ).not.toBeInTheDocument();
+      expect(tableRequest).toHaveBeenCalledTimes(tableRequestCount);
+      expect(timeseriesRequest).toHaveBeenCalledTimes(timeseriesRequestCount);
     });
 
     it('can remove a cross event query', async () => {
@@ -864,7 +1042,7 @@ describe('SpansTabContent', () => {
       );
     });
 
-    it('renders disabled cross event search bar when the limit is reached', () => {
+    it('renders disabled cross event search bar when the limit is reached', async () => {
       const logsProject = makeProject({id: '3', slug: 'logs-project', hasLogs: true});
       setProjects([logsProject]);
 
@@ -885,13 +1063,12 @@ describe('SpansTabContent', () => {
         },
       });
 
-      expect(screen.getAllByTestId('search-query-builder').pop()).toHaveAttribute(
-        'aria-disabled',
-        'true'
-      );
+      expect(
+        (await screen.findAllByTestId('search-query-builder')).pop()
+      ).toHaveAttribute('aria-disabled', 'true');
     });
 
-    it('disables Attribute Breakdowns tab when cross events are present', () => {
+    it('disables Attribute Breakdowns tab when cross events are present', async () => {
       const logsProject = makeProject({id: '3', slug: 'logs-project', hasLogs: true});
       setProjects([logsProject]);
 
@@ -909,7 +1086,7 @@ describe('SpansTabContent', () => {
         },
       });
 
-      const attributeBreakdownsTab = screen.getByRole('tab', {
+      const attributeBreakdownsTab = await screen.findByRole('tab', {
         name: /Attribute Breakdowns/,
       });
       expect(attributeBreakdownsTab).toHaveAttribute('aria-disabled', 'true');

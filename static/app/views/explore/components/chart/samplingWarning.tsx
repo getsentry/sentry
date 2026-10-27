@@ -1,10 +1,11 @@
+import {IconWarning} from '@sentry/icons/warning';
+
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconWarning} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import type {SamplingWarningReason} from 'sentry/views/explore/utils';
-import {parseConditionalAggregate} from 'sentry/views/explore/utils/conditionalAggregate';
+import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 
 interface SamplingWarningProps {
   reason: SamplingWarningReason;
@@ -27,12 +28,7 @@ export function SamplingWarning({yAxis, reason}: SamplingWarningProps) {
         );
 
   return (
-    <Tooltip
-      isHoverable
-      skipWrapper
-      position="top"
-      title={<Text as="span">{title}</Text>}
-    >
+    <Tooltip skipWrapper position="top" title={<Text as="span">{title}</Text>}>
       <IconWarning variant="warning" size="sm" data-test-id="sampling-warning" />
     </Tooltip>
   );

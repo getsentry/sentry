@@ -4,7 +4,7 @@ import partition from 'lodash/partition';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {useDrawer} from '@sentry/scraps/drawer';
-import {Stack} from '@sentry/scraps/layout';
+import {Stack, Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {SelectValue} from '@sentry/scraps/select';
 
@@ -120,6 +120,7 @@ function SidebarContent() {
     // we'll only ever select an unsupportedProject if they do not have a supported project in their organization
     if (supportedProjects.length === 0 && unsupportedProjects.length > 0) {
       if (pageFilters.selection.projects[0] === ALL_ACCESS_PROJECTS) {
+        // oxlint-disable-next-line react/set-state-in-effect
         setCurrentProject(unsupportedProjects[0]);
         return;
       }
@@ -361,7 +362,7 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
 
   return (
     <TabSelectionScope>
-      <Wrapper>
+      <Container marginTop="xl">
         {doc.introduction && <Introduction>{doc.introduction(docParams)}</Introduction>}
         <Steps>
           {steps.map((step, index) => {
@@ -383,14 +384,10 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
             );
           })}
         </Steps>
-      </Wrapper>
+      </Container>
     </TabSelectionScope>
   );
 }
-
-const Wrapper = styled('div')`
-  margin-top: ${p => p.theme.space.xl};
-`;
 
 const Steps = styled('div')`
   display: flex;

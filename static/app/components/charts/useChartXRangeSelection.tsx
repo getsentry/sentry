@@ -175,7 +175,9 @@ export function useChartXRangeSelection({
 
     setSelectionState(null);
 
+    // oxlint-disable-next-line react/immutability
     onClearSelection?.({selectionState, setSelectionState, clearSelection});
+    // oxlint-disable-next-line react/memo-dependencies
   }, [chartRef, onClearSelection, selectionState]);
 
   const callbackParams = useMemo<SelectionCallbackParams>(() => {
@@ -452,6 +454,7 @@ export function useChartXRangeSelection({
     enableBrushMode,
     chartRef,
     chartsGroupName,
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     initialSelection,
     deps,
     syncSelectionStates,
@@ -507,6 +510,7 @@ export function useChartXRangeSelection({
           zIndex: 1000,
         }}
       >
+        {/* oxlint-disable-next-line react/refs */}
         {actionMenuRenderer(callbackParams)}
       </div>,
       document.body

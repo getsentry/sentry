@@ -15,6 +15,7 @@ from sentry.testutils.silo import control_silo_test
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.user import User
 from sentry.utils.auth import SSO_EXPIRY_TIME, SsoSession
+from sudo.settings import COOKIE_NAME as SUDO_COOKIE_NAME
 
 
 def create_authenticator(user: User) -> None:
@@ -143,7 +144,30 @@ class AuthVerifyEndpointTest(APITestCase):
         assert validate_response.call_count == 1
         assert {"challenge": "challenge"} in validate_response.call_args[0]
         assert {"response": "response"} in validate_response.call_args[0]
+        assert SUDO_COOKIE_NAME in response.cookies
         mock_metrics.incr.assert_any_call("auth.2fa.success", sample_rate=1.0, skip_internal=False)
+
+    @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
+    def test_valid_password_with_2fa(self, is_available: mock.MagicMock) -> None:
+        user = self.create_user("foo@example.com")
+        self.login_as(user)
+        create_authenticator(user)
+
+        response = self.client.put(self.path, data={"password": "admin"})
+
+        assert response.status_code == 200
+        assert SUDO_COOKIE_NAME in response.cookies
+
+    def test_expired_password_does_not_grant_sudo(self) -> None:
+        user = self.create_user("foo@example.com")
+        self.login_as(user)
+        user.update(is_password_expired=True)
+
+        response = self.client.put(self.path, data={"password": "admin"})
+
+        assert response.status_code == 403
+        assert response.data["code"] == "password-expired"
+        assert SUDO_COOKIE_NAME not in response.cookies
 
     @mock.patch("sentry.api.endpoints.auth_index.metrics")
     @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
@@ -191,7 +215,7 @@ class AuthVerifyEndpointTest(APITestCase):
         user = self.create_user("foo@example.com")
         self.login_as(user)
         with freeze_time("2025-02-13"):
-            for _ in range(5 + 1):
+            for _ in range(20 + 1):
                 response = self.client.put(self.path, data={"password": "wrongguess"})
             assert response.status_code == 429
 
@@ -274,7 +298,10 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
             assert response.data == {
                 "detail": {
                     "code": "sso-required",
-                    "extra": {"loginUrl": f"/auth/login/{self.organization.slug}/"},
+                    "extra": {
+                        "loginUrl": f"/auth/login/{self.organization.slug}/",
+                        "organizationSlug": self.organization.slug,
+                    },
                     "message": "Must login via SSO",
                 }
             }
@@ -331,7 +358,8 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
                 "detail": {
                     "code": "sso-required",
                     "extra": {
-                        "loginUrl": f"http://{self.organization.slug}.testserver/auth/login/{self.organization.slug}/?{query_string}"
+                        "loginUrl": f"http://{self.organization.slug}.testserver/auth/login/{self.organization.slug}/?{query_string}",
+                        "organizationSlug": self.organization.slug,
                     },
                     "message": "Must login via SSO",
                 }
@@ -553,6 +581,96 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
             )
             assert response.status_code == 401
             assert self.client.session.get("_next") is None
+
+
+@control_silo_test
+class AuthVerifyEndpointSuperuserOrgAuthTest(APITestCase):
+    path = "/api/0/auth/"
+
+    def test_org_auth_valid(self) -> None:
+        user = self.create_user("foo@example.com", is_superuser=True)
+        org = self.create_organization()
+        self.login_as(user, superuser=True)
+        response = self.client.put(
+            self.path,
+            data={
+                "isSuperuserOrgAuth": True,
+                "orgSlug": org.slug,
+                "superuserAccessCategory": "for_unit_test",
+                "superuserReason": "for testing",
+            },
+        )
+        assert response.status_code == 200
+
+    def test_org_auth_missing_slug(self) -> None:
+        user = self.create_user("foo@example.com", is_superuser=True)
+        self.login_as(user, superuser=True)
+        response = self.client.put(
+            self.path,
+            data={
+                "isSuperuserOrgAuth": True,
+                "superuserAccessCategory": "for_unit_test",
+                "superuserReason": "for testing",
+            },
+        )
+        assert response.status_code == 400
+
+    def test_org_auth_nonexistent_org(self) -> None:
+        user = self.create_user("foo@example.com", is_superuser=True)
+        self.login_as(user, superuser=True)
+        response = self.client.put(
+            self.path,
+            data={
+                "isSuperuserOrgAuth": True,
+                "orgSlug": "does-not-exist",
+                "superuserAccessCategory": "for_unit_test",
+                "superuserReason": "for testing",
+            },
+        )
+        assert response.status_code == 404
+
+    def test_org_auth_expired_session(self) -> None:
+        user = self.create_user("foo@example.com", is_superuser=True)
+        self.login_as(user)
+        response = self.client.put(
+            self.path,
+            data={
+                "isSuperuserOrgAuth": True,
+                "orgSlug": "some-org",
+                "superuserAccessCategory": "for_unit_test",
+                "superuserReason": "for testing",
+            },
+        )
+        assert response.status_code == 403
+        assert response.data["detail"]["code"] == "superuser-required"
+
+    def test_org_auth_missing_reason(self) -> None:
+        user = self.create_user("foo@example.com", is_superuser=True)
+        org = self.create_organization()
+        self.login_as(user, superuser=True)
+        response = self.client.put(
+            self.path,
+            data={
+                "isSuperuserOrgAuth": True,
+                "orgSlug": org.slug,
+            },
+        )
+        assert response.status_code == 400
+
+    def test_org_auth_non_superuser(self) -> None:
+        user = self.create_user("foo@example.com", is_superuser=False)
+        self.login_as(user)
+        response = self.client.put(
+            self.path,
+            data={
+                "isSuperuserOrgAuth": True,
+                "orgSlug": "some-org",
+                "superuserAccessCategory": "for_unit_test",
+                "superuserReason": "for testing",
+            },
+        )
+        # Falls through to normal auth flow which needs password/u2f
+        assert response.status_code == 400
 
 
 @control_silo_test

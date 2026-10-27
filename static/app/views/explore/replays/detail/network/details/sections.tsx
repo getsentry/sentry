@@ -2,9 +2,9 @@ import type {MouseEvent} from 'react';
 import {useEffect, useMemo} from 'react';
 import queryString from 'query-string';
 
+import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {StructuredEventData} from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
@@ -113,7 +113,7 @@ export function RequestHeadersSection({item}: SectionProps) {
     contentTypeHeaders.resp !== undefined &&
     contentTypeHeaders.req !== contentTypeHeaders.resp;
 
-  const data = isRequestFrame(item) ? item.data : {};
+  const data = isRequestFrame(item) ? (item.data ?? {}) : {};
   const headers: KeyValueTuple[] = Object.entries(data.request?.headers || {}).map(
     ([key, value]) => {
       const warn = key === 'content-type' && isContentTypeMismatched;
@@ -122,7 +122,7 @@ export function RequestHeadersSection({item}: SectionProps) {
         value: warn ? (
           <Flex align="center" gap="xs">
             {value}
-            <QuestionTooltip
+            <InfoTip
               size="xs"
               title={t('The content-type of the request does not match the response.')}
             />
@@ -149,7 +149,7 @@ export function ResponseHeadersSection({item}: SectionProps) {
     contentTypeHeaders.resp !== undefined &&
     contentTypeHeaders.req !== contentTypeHeaders.resp;
 
-  const data = isRequestFrame(item) ? item.data : {};
+  const data = isRequestFrame(item) ? (item.data ?? {}) : {};
   const headers: KeyValueTuple[] = Object.entries(data.response?.headers || {}).map(
     ([key, value]) => {
       const warn = key === 'content-type' && isContentTypeMismatched;
@@ -158,7 +158,7 @@ export function ResponseHeadersSection({item}: SectionProps) {
         value: warn ? (
           <Flex align="center" gap="xs">
             {value}
-            <QuestionTooltip
+            <InfoTip
               size="xs"
               title={t('The content-type of the request does not match the response.')}
             />
@@ -199,7 +199,7 @@ export function QueryParamsSection({item}: SectionProps) {
 export function RequestPayloadSection({item}: SectionProps) {
   const {dismiss, isDismissed} = useDismissReqRespBodiesAlert();
 
-  const data = useMemo(() => (isRequestFrame(item) ? item.data : {}), [item]);
+  const data = useMemo(() => (isRequestFrame(item) ? (item.data ?? {}) : {}), [item]);
   const {warnings, body} = getBodyAndWarnings(data.request);
 
   useEffect(() => {
@@ -237,7 +237,7 @@ export function RequestPayloadSection({item}: SectionProps) {
 export function ResponsePayloadSection({item}: SectionProps) {
   const {dismiss, isDismissed} = useDismissReqRespBodiesAlert();
 
-  const data = useMemo(() => (isRequestFrame(item) ? item.data : {}), [item]);
+  const data = useMemo(() => (isRequestFrame(item) ? (item.data ?? {}) : {}), [item]);
   const {warnings, body} = getBodyAndWarnings(data.response);
 
   useEffect(() => {

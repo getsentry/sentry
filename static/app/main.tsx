@@ -1,7 +1,9 @@
 import {lazy, Suspense, useEffect, useState} from 'react';
-import {createBrowserRouter, RouterProvider} from 'react-router-dom';
-import {wrapCreateBrowserRouterV6} from '@sentry/react';
-import {NuqsAdapter} from 'nuqs/adapters/react-router/v6';
+import {createBrowserRouter} from 'react-router';
+import {RouterProvider} from 'react-router/dom';
+import {wrapCreateBrowserRouter} from '@sentry/react';
+import {MotionConfig} from 'framer-motion';
+import {NuqsAdapter} from 'nuqs/adapters/react-router/v8';
 
 import {setApiNavigate} from 'sentry/api';
 import {AppQueryClientProvider} from 'sentry/appQueryClient';
@@ -30,7 +32,7 @@ const SentryTanStackDevtools =
     : null;
 
 function buildRouter() {
-  const sentryCreateBrowserRouter = wrapCreateBrowserRouterV6(createBrowserRouter);
+  const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createBrowserRouter);
   const router = sentryCreateBrowserRouter(routes());
   setApiNavigate(createReactRouter3Navigate(router));
 
@@ -46,27 +48,29 @@ export function Main() {
   }, [router.routes]);
 
   return (
-    <AppQueryClientProvider>
-      <DocumentTitleManager>
-        <FrontendVersionProvider releaseVersion={SENTRY_RELEASE_VERSION ?? null}>
-          <ServiceWorkerProvider>
-            <ThemeAndStyleProvider>
-              <NuqsAdapter defaultOptions={{shallow: false}}>
-                <CommandPaletteProvider>
-                  <RouteConfigProvider value={router.routes}>
-                    <RouterProvider router={router} />
-                  </RouteConfigProvider>
-                </CommandPaletteProvider>
-              </NuqsAdapter>
-              {SentryTanStackDevtools ? (
-                <Suspense fallback={null}>
-                  <SentryTanStackDevtools />
-                </Suspense>
-              ) : null}
-            </ThemeAndStyleProvider>
-          </ServiceWorkerProvider>
-        </FrontendVersionProvider>
-      </DocumentTitleManager>
-    </AppQueryClientProvider>
+    <MotionConfig reducedMotion="user">
+      <AppQueryClientProvider>
+        <DocumentTitleManager>
+          <FrontendVersionProvider releaseVersion={SENTRY_RELEASE_VERSION ?? null}>
+            <ServiceWorkerProvider>
+              <ThemeAndStyleProvider>
+                <NuqsAdapter defaultOptions={{shallow: false}}>
+                  <CommandPaletteProvider>
+                    <RouteConfigProvider value={router.routes}>
+                      <RouterProvider router={router} useTransitions={false} />
+                    </RouteConfigProvider>
+                  </CommandPaletteProvider>
+                </NuqsAdapter>
+                {SentryTanStackDevtools ? (
+                  <Suspense fallback={null}>
+                    <SentryTanStackDevtools />
+                  </Suspense>
+                ) : null}
+              </ThemeAndStyleProvider>
+            </ServiceWorkerProvider>
+          </FrontendVersionProvider>
+        </DocumentTitleManager>
+      </AppQueryClientProvider>
+    </MotionConfig>
   );
 }

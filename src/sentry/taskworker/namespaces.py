@@ -149,12 +149,6 @@ snuba_metrics_subscriptions_raw_tasks = app.taskregistry.create_namespace(
     is_raw_mode=True,
 )
 
-snuba_generic_metrics_subscriptions_raw_tasks = app.taskregistry.create_namespace(
-    "snuba.subscriptions.generic_metrics.raw",
-    app_feature="transactions",
-    is_raw_mode=True,
-)
-
 snuba_eap_subscriptions_raw_tasks = app.taskregistry.create_namespace(
     "snuba.subscriptions.eap.raw",
     app_feature="transactions",
@@ -226,9 +220,14 @@ performance_tasks = app.taskregistry.create_namespace(
     app_feature="transactions",
 )
 
-preprod_tasks = app.taskregistry.create_namespace(
-    "preprod",
-    app_feature="preprod",
+preprod_size_tasks = app.taskregistry.create_namespace(
+    "preprod.size",
+    app_feature="preprod_size",
+)
+
+preprod_snapshots_tasks = app.taskregistry.create_namespace(
+    "preprod.snapshots",
+    app_feature="preprod_snapshots",
 )
 
 profiling_tasks = app.taskregistry.create_namespace(
@@ -340,6 +339,18 @@ symbolication_js_tasks = app.taskregistry.create_namespace(
 symbolication_jvm_tasks = app.taskregistry.create_namespace(
     "symbolication.jvm",
     app_feature="errors",
+)
+
+# GPU crash symbolication (teapot), isolated from `symbolication` so a slow
+# teapot can't back up the native CPU symbolication queue.
+gpu_crash_dump_tasks = app.taskregistry.create_namespace(
+    "gpu.crash_dump",
+    app_feature="errors",
+)
+
+telemetry_classifiers_tasks = app.taskregistry.create_namespace(
+    "telemetry.classifiers",
+    app_feature="telemetry_classifiers",
 )
 
 telemetry_experience_tasks = app.taskregistry.create_namespace(

@@ -91,6 +91,10 @@ interface ClippedBoxProps {
   collapsible?: boolean;
   defaultClipped?: boolean;
   /**
+   * Triggered when user clicks on the show less button
+   */
+  onCollapse?: () => void;
+  /**
    * Triggered when user clicks on the show more button
    */
   onReveal?: () => void;
@@ -157,6 +161,7 @@ export function ClippedBox(props: ClippedBoxProps) {
       }
     }
     revealTransitionPendingRef.current = false;
+    props.onCollapse?.();
     setRevealed(false);
     setClipped(true);
   };
@@ -354,6 +359,7 @@ const ClipFade = styled('div')`
     ${p => p.theme.tokens.background.primary}
   );
   text-align: center;
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token -- The border extends the fade's background fill. */
   border-bottom: ${p => p.theme.space.lg} solid ${p => p.theme.tokens.background.primary};
   /* Let pointer-events pass through ClipFade to visible elements underneath it */
   pointer-events: none;
@@ -365,5 +371,6 @@ const ClipFade = styled('div')`
 
 const CollapseButton = styled('div')`
   text-align: center;
+  margin-top: ${p => p.theme.space.lg};
   margin-bottom: ${p => p.theme.space.lg};
 `;

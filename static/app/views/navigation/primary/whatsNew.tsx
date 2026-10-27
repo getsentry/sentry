@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
+import {IconBroadcast} from '@sentry/icons/broadcast';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -8,7 +9,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconBroadcast} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Broadcast} from 'sentry/types/system';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -190,11 +190,8 @@ function WhatsNewBroadcastList({
  * Recent broadcasts plus the derived unseen/deduped views of them. Shared by the
  * standalone What's New button and the help menu entry that replaces it when the
  * navigation row has no room for a dedicated trigger.
- *
- * Pass `enabled: false` from a caller that only conditionally surfaces
- * broadcasts, so it does not fetch them when it will not show them.
  */
-export function useWhatsNewBroadcasts({enabled = true}: {enabled?: boolean} = {}) {
+export function useWhatsNewBroadcasts() {
   const organization = useOrganization();
   const {isPending, data: broadcasts} = useApiQuery<Broadcast[]>(
     [
@@ -204,8 +201,6 @@ export function useWhatsNewBroadcasts({enabled = true}: {enabled?: boolean} = {}
       {query: {show: 'latest', limit: '3'}},
     ],
     {
-      enabled,
-      // Five minute stale time prevents window focus frequent refetches
       staleTime: 1000 * 60 * 5,
       // 10 minutes poll
       refetchInterval: 1000 * 60 * 10,

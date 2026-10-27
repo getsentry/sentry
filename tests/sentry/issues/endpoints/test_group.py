@@ -1,5 +1,7 @@
 from typing import ContextManager
 
+from django.test import override_settings
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.views import APIView
 
 from sentry.auth.access import from_request
@@ -10,9 +12,16 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.requests import drf_request_from_request
 from sentry.users.models.user import User
-from sentry.viewer_context import ViewerContext, get_viewer_context, viewer_context_scope
+from sentry.viewer_context import (
+    Actor,
+    ActorType,
+    ViewerContext,
+    get_viewer_context,
+    viewer_context_scope,
+)
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class GroupAiPermissionTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -56,9 +65,12 @@ class GroupAiPermissionTest(TestCase):
     ) -> bool:
         request = self.make_request(user=user, auth=auth, method=method, is_superuser=is_superuser)
         drf_request = drf_request_from_request(request)
-        return self.permission.has_permission(
-            drf_request, APIView()
-        ) and self.permission.has_object_permission(drf_request, APIView(), obj)
+        try:
+            return self.permission.has_permission(
+                drf_request, APIView()
+            ) and self.permission.has_object_permission(drf_request, APIView(), obj)
+        except PermissionDenied:
+            return False
 
     def test_demo_user_safe_methods(self) -> None:
         with self._demo_mode_enabled():
@@ -110,6 +122,32 @@ class GroupAiPermissionTest(TestCase):
         assert self.has_object_perm("POST", self.group, user=user)
         assert self.has_object_perm("DELETE", self.group, user=user)
 
+    def test_regular_user_denied_when_ai_features_hidden(self) -> None:
+        user = self.create_user()
+        self.create_member(
+            user=user,
+            organization=self.project.organization,
+            role="member",
+            teams=[self.project.teams.first()],
+        )
+        self.project.organization.update_option("sentry:hide_ai_features", True)
+
+        assert not self.has_object_perm("GET", self.group, user=user)
+        assert not self.has_object_perm("POST", self.group, user=user)
+
+    @override_settings(SENTRY_SELF_HOSTED=True)
+    def test_regular_user_denied_on_self_hosted(self) -> None:
+        user = self.create_user()
+        self.create_member(
+            user=user,
+            organization=self.project.organization,
+            role="member",
+            teams=[self.project.teams.first()],
+        )
+
+        assert not self.has_object_perm("GET", self.group, user=user)
+        assert not self.has_object_perm("POST", self.group, user=user)
+
     def test_superuser_access(self) -> None:
         superuser = self.create_user(is_superuser=True)
 
@@ -117,6 +155,7 @@ class GroupAiPermissionTest(TestCase):
             assert self.has_object_perm(method, self.group, user=superuser, is_superuser=True)
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class GroupAiEndpointTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -141,10 +180,12 @@ class GroupAiEndpointTest(TestCase):
         request = drf_request_from_request(request)
         request._request.organization = None
 
-        with viewer_context_scope(ViewerContext(user_id=user.id)):
+        with viewer_context_scope(
+            ViewerContext(actor=Actor(type=ActorType.USER, actor_id=user.id))
+        ):
             self.endpoint.convert_args(request, str(self.group.id), self.project.organization.slug)
             ctx = get_viewer_context()
 
         assert ctx is not None
-        assert ctx.user_id == user.id
+        assert ctx.actor.actor_id == user.id
         assert ctx.organization_id == self.project.organization.id
