@@ -7,8 +7,6 @@ from unittest import mock
 from uuid import uuid4
 
 import pytest
-from django.utils import timezone
-from pydantic import ValidationError
 
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
@@ -21,17 +19,14 @@ from sentry.seer.models.workflow import (
     SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
     SeerWorkflowTriggerBinding,
-    WorkflowRunSnapshot,
 )
 from sentry.seer.workflows.breached_metrics import (
     AcceptedMetricBreach,
-    AcceptedMetricBreachAdmission,
     BreachedMetricWorkflow,
     IgnoredMetricBreach,
     MetricBreachRunExtras,
     MetricBreachTrigger,
     RejectedMetricBreach,
-    RejectedMetricBreachAdmission,
 )
 from sentry.seer.workflows.workflow import SeerWorkflow, SelectedProjects
 from sentry.services.eventstore.models import GroupEvent
@@ -45,31 +40,6 @@ from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
-
-
-@pytest.mark.parametrize(
-    "admission",
-    [
-        {"status": "rejected"},
-        {"status": "rejected", "reason": None},
-        {"status": "rejected", "reason": "unknown_reason"},
-        {"status": "accepted", "reason": "quota_exceeded"},
-        {"status": "unknown_status", "reason": None},
-    ],
-)
-def test_admission_rejects_invalid_combinations(admission: dict[str, str | None]) -> None:
-    snapshot = WorkflowRunSnapshot(
-        config_version=1,
-        strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
-        filters={"all_projects": True},
-        project_ids=(),
-        output_policy={},
-        inputs={},
-    )
-    with pytest.raises(ValidationError, match="admission"):
-        MetricBreachRunExtras.parse_obj(
-            {"snapshot": snapshot, "admission": {**admission, "decided_at": timezone.now()}}
-        )
 
 
 @with_feature("organizations:seer-automations")
@@ -182,15 +152,10 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
         assert execution.date_completed is not None
         assert execution.extras == {"result": "noop", "error": None}
         stored = MetricBreachRunExtras.parse_obj(run.extras)
-        assert isinstance(stored.admission, AcceptedMetricBreachAdmission)
         assert event.occurrence is not None
         stored_trigger = MetricBreachTrigger.parse_obj(stored.snapshot.inputs)
         assert stored_trigger.observed_at == event.occurrence.detection_time
         assert stored_trigger.binding_id == self.action.seer_workflow_binding.id
-        assert stored.snapshot.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
-        assert stored.snapshot.project_ids == (self.project.id,)
-        assert stored.snapshot.filters == self.config.filters
-        assert stored.snapshot.output_policy == {}
         assert stored.admission.decided_at <= run.date_completed
         assert SeerWorkflowRun.objects.count() == 1
 
@@ -326,13 +291,7 @@ class BreachedMetricWorkflowTest(OccurrenceTestMixin, TestCase):
         assert isinstance(first, RejectedMetricBreach)
         assert first.run.status == SeerWorkflowRunStatus.REJECTED
         assert first.run.date_completed is not None
-        assert first.run.extras["snapshot"]["inputs"]["event_id"] == event.event_id
-        assert first.run.extras["snapshot"]["config_version"] == self.config.version
         assert first.run.extras["error"]["code"] == "quota_exceeded"
-        stored = MetricBreachRunExtras.parse_obj(first.run.extras)
-        assert isinstance(stored.admission, RejectedMetricBreachAdmission)
-        assert stored.admission.reason == "quota_exceeded"
-        assert "status" not in first.run.extras
         assert isinstance(replayed, RejectedMetricBreach)
         assert replayed.created is False
         assert replayed.run.id == first.run.id

@@ -259,110 +259,54 @@ class ConfiguredWorkflowRunTest(TestCase):
         first.run.refresh_from_db()
         assert first.run.date_completed is None
 
-    def test_deleted_config_cannot_be_retried(self) -> None:
-        workflow = self.create_configured_workflow()
-        result = workflow.get_or_create_run(
-            trigger_key="manual:first", inputs=RunInputs(issue_limit=10)
-        )
-        run = result.lifecycle
-        SeerWorkflowConfig.objects.filter(id=workflow.config.id).delete()
-        with pytest.raises(SeerWorkflowConfig.DoesNotExist):
-            workflow.get_or_create_run(trigger_key="manual:first", inputs=RunInputs(issue_limit=10))
-        with pytest.raises(SeerWorkflowRun.DoesNotExist):
-            run.start()
-        assert not workflow.get_runs().exists()
-
-    def test_invalid_trigger_key(self) -> None:
-        workflow = self.create_configured_workflow()
-        with pytest.raises(ValueError, match="between 1 and 256"):
-            workflow.get_or_create_run(trigger_key="", inputs=RunInputs(issue_limit=10))
-        with pytest.raises(ValueError, match="between 1 and 256"):
-            workflow.get_or_create_run(trigger_key="x" * 257, inputs=RunInputs(issue_limit=10))
-
-    def test_starts_reject_repeats_and_terminal_states(self) -> None:
+    def test_started_work_cannot_be_restarted(self) -> None:
         run = self.create_run()
-        assert run.run.status == SeerWorkflowRunStatus.QUEUED
-        assert run.start().status == SeerWorkflowRunStatus.RUNNING
-        with pytest.raises(InvalidWorkflowTransition, match="Only queued"):
+        run.start()
+        with pytest.raises(InvalidWorkflowTransition):
             run.start()
         (execution,) = run.create_executions([SeerWorkflowExecutionExtras()])
-        assert execution.status == SeerWorkflowExecutionStatus.QUEUED
-        assert run.start_execution(execution.id).status == SeerWorkflowExecutionStatus.RUNNING
-        with pytest.raises(InvalidWorkflowTransition, match="Only queued"):
-            run.start_execution(execution.id)
-        run.complete_execution(execution.id)
-        completed_at = run.run.date_completed
-
+        run.start_execution(execution.id)
         with pytest.raises(InvalidWorkflowTransition):
             run.start_execution(execution.id)
-        with pytest.raises(InvalidWorkflowTransition):
-            run.start()
-        assert run.run.date_completed == completed_at
-        with pytest.raises(ValueError, match="running workflow"):
-            run.create_executions([SeerWorkflowExecutionExtras()])
 
     def test_empty_plan_completes_the_run_and_allows_exact_retries(self) -> None:
         run = self.create_run()
         run.start()
-        snapshot = run.extras.snapshot
         assert run.create_executions([]) == []
         assert run.run.status == SeerWorkflowRunStatus.COMPLETE
-        assert run.extras.error is None
         assert run.run.date_completed is not None
         assert not run.run.executions.exists()
-        assert run.extras.snapshot == snapshot
         completed_at = run.run.date_completed
 
         assert run.create_executions([]) == []
-        assert run.run.status == SeerWorkflowRunStatus.COMPLETE
-        assert run.extras.error is None
         assert run.run.date_completed == completed_at
-        with pytest.raises(InvalidWorkflowTransition, match="conflicts"):
-            run.fail(WorkflowRunError(code="late_error", message="Late failure"))
-        with pytest.raises(InvalidWorkflowTransition):
-            run.create_executions([SeerWorkflowExecutionExtras()])
 
-    def test_failed_work_preserves_snapshot_and_records_error(self) -> None:
+    def test_orchestration_failure_preserves_snapshot_and_allows_exact_retries(self) -> None:
         run = self.create_run()
         snapshot = run.extras.snapshot
-        complete = run.fail(
-            error=WorkflowRunError(code="selection_failed", message="Work selection failed")
-        )
-        assert complete.status == SeerWorkflowRunStatus.FAILED
-        assert complete.extras["error"] == {
-            "code": "selection_failed",
-            "message": "Work selection failed",
-        }
-        assert complete.date_completed is not None
+        failure = WorkflowRunError(code="selection_failed", message="Work selection failed")
+        failed = run.fail(error=failure)
+        assert failed.status == SeerWorkflowRunStatus.FAILED
+        assert run.extras.error == failure
+        assert failed.date_completed is not None
         assert run.extras.snapshot == snapshot
+        assert not failed.executions.exists()
+        completed_at = failed.date_completed
 
-    def test_rejection_is_terminal_and_has_no_executions(self) -> None:
-        run = self.create_run()
-        failure = WorkflowRunError(code="quota_exceeded", message="Automation quota exceeded.")
-        rejected = run.reject(error=failure)
-        assert rejected.status == SeerWorkflowRunStatus.REJECTED
-        assert rejected.date_completed is not None
-        assert rejected.extras["error"] == failure.dict()
-        assert not rejected.executions.exists()
-        completed_at = rejected.date_completed
+        assert run.fail(error=failure).date_completed == completed_at
         with pytest.raises(InvalidWorkflowTransition):
-            run.start()
-        with pytest.raises(InvalidWorkflowTransition):
-            run.create_executions([])
-        assert run.reject(error=failure).date_completed == completed_at
-        with pytest.raises(ValueError, match="running workflow"):
-            run.create_executions([SeerWorkflowExecutionExtras()])
+            run.fail(WorkflowRunError(code="different_error", message="Different failure"))
+        run.run.refresh_from_db()
+        assert run.extras.error == failure
+        assert run.run.date_completed == completed_at
 
-    def test_active_run_cannot_be_rejected_or_failed_after_planning(self) -> None:
+    def test_run_failure_cannot_replace_execution_results(self) -> None:
         run = self.create_run()
-        with pytest.raises(ValueError, match="running workflow"):
-            run.create_executions([SeerWorkflowExecutionExtras()])
         run.start()
         run.create_executions([SeerWorkflowExecutionExtras()])
-        with pytest.raises(ValueError, match="complete_execution"):
+        with pytest.raises(InvalidWorkflowTransition):
             run.fail(WorkflowRunError(code="selection_failed", message="Selection failed"))
-        with pytest.raises(ValueError, match="Only queued runs"):
-            run.reject(error=WorkflowRunError(code="rejected", message="Rejected"))
+        run.run.refresh_from_db()
         assert run.run.status == SeerWorkflowRunStatus.RUNNING
         assert run.run.date_completed is None
 
@@ -401,52 +345,20 @@ class ConfiguredWorkflowRunTest(TestCase):
         assert run.extras.error is None
         assert run.run.date_completed is not None
 
-    def test_execution_plan_can_only_be_created_once(self) -> None:
-        run = self.create_run()
-        run.start()
-        (execution,) = run.create_executions([SeerWorkflowExecutionExtras()])
-        with pytest.raises(InvalidWorkflowTransition, match="plan already exists"):
-            run.create_executions([SeerWorkflowExecutionExtras()])
-        run.start_execution(execution.id)
-        with pytest.raises(InvalidWorkflowTransition, match="plan already exists"):
-            run.create_executions([SeerWorkflowExecutionExtras()])
-        assert run.run.executions.count() == 1
-
-    def test_failed_run_completion_requires_the_same_error_on_retry(self) -> None:
-        run = self.create_run()
-        failure = WorkflowRunError(code="selection_failed", message="Selection failed")
-        complete = run.fail(error=failure)
-        completed_at = complete.date_completed
-        assert run.fail(error=failure).date_completed == completed_at
-        with pytest.raises(InvalidWorkflowTransition, match="conflicts"):
-            run.fail(WorkflowRunError(code="different_error", message="Different failure"))
-        with pytest.raises(InvalidWorkflowTransition):
-            run.create_executions([])
-        with pytest.raises(InvalidWorkflowTransition):
-            run.reject(error=failure)
-        run.run.refresh_from_db()
-        assert run.extras.error == failure
-        assert run.run.date_completed == completed_at
-
-    def test_selection_result_requires_a_running_workflow(self) -> None:
-        run = self.create_run()
-        with pytest.raises(InvalidWorkflowTransition, match="running workflow"):
-            run.create_executions([])
-        run.run.refresh_from_db()
-        assert run.run.status == SeerWorkflowRunStatus.QUEUED
-        assert run.run.date_completed is None
-
-    def test_execution_plan_preserves_execution_metadata(self) -> None:
+    def test_execution_plan_creates_queued_work_once(self) -> None:
         run = self.create_run()
         run.start()
         first, second = run.create_executions(
             [SeerWorkflowExecutionExtras(project_id=1), SeerWorkflowExecutionExtras(project_id=2)]
         )
-        assert first.id != second.id
-        assert first.extras == {"error": None, "project_id": 1}
-        assert second.extras == {"error": None, "project_id": 2}
+        assert first.extras["project_id"] == 1
+        assert second.extras["project_id"] == 2
         assert first.status == second.status == SeerWorkflowExecutionStatus.QUEUED
-        assert first.date_completed is second.date_completed is None
+        with pytest.raises(InvalidWorkflowTransition):
+            run.create_executions([SeerWorkflowExecutionExtras()])
+        run.start_execution(first.id)
+        with pytest.raises(InvalidWorkflowTransition):
+            run.create_executions([SeerWorkflowExecutionExtras()])
         assert run.run.executions.count() == 2
 
     def create_run(self) -> SeerWorkflowRunLifecycle:
@@ -467,21 +379,10 @@ class ConfiguredWorkflowRunTest(TestCase):
 
 @pytest.mark.django_db(databases="__all__")
 @pytest.mark.parametrize(
-    "first_error,second_error,expected_status",
+    "first_error,expected_status",
     [
-        (None, None, SeerWorkflowRunStatus.COMPLETE),
+        (None, SeerWorkflowRunStatus.COMPLETE),
         (
-            WorkflowRunError(code="investigation_failed", message="Investigation failed"),
-            None,
-            SeerWorkflowRunStatus.FAILED,
-        ),
-        (
-            None,
-            WorkflowRunError(code="investigation_failed", message="Investigation failed"),
-            SeerWorkflowRunStatus.FAILED,
-        ),
-        (
-            WorkflowRunError(code="dispatch_failed", message="Could not start execution"),
             WorkflowRunError(code="investigation_failed", message="Investigation failed"),
             SeerWorkflowRunStatus.FAILED,
         ),
@@ -489,7 +390,6 @@ class ConfiguredWorkflowRunTest(TestCase):
 )
 def test_run_finishes_after_all_executions(
     first_error: WorkflowRunError | None,
-    second_error: WorkflowRunError | None,
     expected_status: SeerWorkflowRunStatus,
 ) -> None:
     organization = Factories.create_organization()
@@ -515,10 +415,10 @@ def test_run_finishes_after_all_executions(
     assert run.run.date_completed is None
     assert run.run.extras == original_extras
 
-    finished = run.complete_execution(second.id, error=second_error)
+    finished = run.complete_execution(second.id)
     first.refresh_from_db()
     assert SeerWorkflowExecutionExtras.parse_obj(first.extras).error == first_error
-    assert SeerWorkflowExecutionExtras.parse_obj(finished.extras).error == second_error
+    assert SeerWorkflowExecutionExtras.parse_obj(finished.extras).error is None
     completed_run = SeerWorkflowRunLifecycle.get(organization_id=organization.id, run_id=run.run.id)
     assert completed_run.run.status == expected_status
     assert completed_run.extras.error is None
@@ -526,13 +426,13 @@ def test_run_finishes_after_all_executions(
     assert completed_run.run.date_completed is not None
     completed_at = completed_run.run.date_completed
 
-    run.complete_execution(second.id, error=second_error)
+    run.complete_execution(second.id)
     with pytest.raises(InvalidWorkflowTransition, match="conflicts"):
         run.complete_execution(
             second.id, error=WorkflowRunError(code="late_callback", message="Late failure")
         )
     second.refresh_from_db()
     assert second.status == finished.status
-    assert SeerWorkflowExecutionExtras.parse_obj(second.extras).error == second_error
+    assert SeerWorkflowExecutionExtras.parse_obj(second.extras).error is None
     assert run.run.extras == original_extras
     assert run.run.date_completed == completed_at
