@@ -40,6 +40,7 @@ class ViewerContextFromRequestTest(TestCase):
 
         ctx = _viewer_context_from_request(request)
 
+        assert ctx is not None
         assert ctx.actor.actor_id == self.user.id
         assert ctx.organization_id is None
         assert ctx.actor.type is ActorType.USER
@@ -59,6 +60,7 @@ class ViewerContextFromRequestTest(TestCase):
 
         ctx = _viewer_context_from_request(request)
 
+        assert ctx is not None
         assert ctx.actor.actor_id == self.user.id
         assert ctx.organization_id == self.organization.id
         assert ctx.actor.type is ActorType.USER

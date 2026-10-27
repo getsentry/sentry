@@ -186,8 +186,14 @@ def _is_message(data: Mapping[str, Any]) -> bool:
     return data.get("original_message", {}).get("type") == "message"
 
 
+# Slack requests carry no Sentry credential, so Seer calls made while handling them need a context.
+def _org_viewer_context(organization_id: int | None) -> contextlib.AbstractContextManager[None]:
+    if organization_id is None:
+        return contextlib.nullcontext()
+    return webhook_viewer_context(organization_id)
+
+
 def _user_viewer_context(user: RpcUser, group: Group) -> contextlib.AbstractContextManager[None]:
-    """Slack requests carry no Sentry credential, so act as the linked user for Seer calls."""
     return viewer_context_scope(
         ViewerContext(
             actor=Actor(type=ActorType.USER, actor_id=user.id),
@@ -820,12 +826,7 @@ class SlackActionEndpoint(Endpoint):
                 else ""
             )
             routing_data = decode_action_id(encoded_action_id)
-            # Slack requests carry no Sentry credential, so the Seer calls need a context here.
-            with (
-                webhook_viewer_context(routing_data.organization_id)
-                if routing_data.organization_id is not None
-                else contextlib.nullcontext()
-            ):
+            with _org_viewer_context(routing_data.organization_id):
                 return handle_seer_agent_write_approval(
                     slack_request=slack_request,
                     action=SlackAction(action_id),
@@ -837,11 +838,12 @@ class SlackActionEndpoint(Endpoint):
             if not identity_user:
                 return self._respond_link_identity(slack_request)
             routing_data = decode_action_id(slack_request.data["actions"][0]["action_id"])
-            return handle_seer_investigation_start(
-                slack_request=slack_request,
-                organization_id=routing_data.organization_id,
-                identity_user=identity_user,
-            )
+            with _org_viewer_context(routing_data.organization_id):
+                return handle_seer_investigation_start(
+                    slack_request=slack_request,
+                    organization_id=routing_data.organization_id,
+                    identity_user=identity_user,
+                )
 
         # If a user is just clicking a button link we return a 200
         if action_option in (
