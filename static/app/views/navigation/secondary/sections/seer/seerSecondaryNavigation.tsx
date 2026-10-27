@@ -41,7 +41,9 @@ function SeerSecondaryNavigationImpl() {
 
   return (
     <Fragment>
-      <SecondaryNavigation.Header>{t('Seer')}</SecondaryNavigation.Header>
+      <SecondaryNavigation.Header>
+        <SecondaryNavigation.HeaderTitle>{t('Seer')}</SecondaryNavigation.HeaderTitle>
+      </SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
         <SecondaryNavigation.Section id="seer-main">
           <SecondaryNavigation.List>
