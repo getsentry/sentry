@@ -12,7 +12,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {removeDetectorDraftFromUrl} from 'sentry/views/detectors/components/forms/common/detectorDraft';
 import {getDetectorAnalyticsPayload} from 'sentry/views/detectors/components/forms/common/getDetectorAnalyticsPayload';
 import {useCreateDetector} from 'sentry/views/detectors/hooks';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
@@ -70,7 +69,6 @@ export function useCreateDetectorFormSubmit<
 
         addSuccessMessage(t('Monitor created'));
 
-        removeDetectorDraftFromUrl();
         navigate(makeMonitorDetailsPathname(organization.slug, resultDetector.id));
 
         onSubmitSuccess?.(resultDetector);

@@ -1,5 +1,6 @@
 import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import omitBy from 'lodash/omitBy';
 import orderBy from 'lodash/orderBy';
 
 import type {FormProps} from 'sentry/components/forms/form';
@@ -18,9 +19,8 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {DetectorFormBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
 import {
   DetectorDraftUrlSync,
-  parseDetectorDraftValues,
   useInitialDetectorDraft,
-  type DetectorDraftConfig,
+  type DetectorDraftSchema,
 } from 'sentry/views/detectors/components/forms/common/detectorDraft';
 import {NewDetectorFooter} from 'sentry/views/detectors/components/forms/common/footer';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
@@ -37,7 +37,7 @@ type NewDetectorLayoutProps<TFormData, TUpdatePayload> = {
    * Syncs the in-progress monitor to the URL so it can be shared.
    * Must be a stable reference.
    */
-  draftConfig?: DetectorDraftConfig<TFormData>;
+  draftSchema?: DetectorDraftSchema<TFormData>;
   extraFooterButton?: React.ReactNode;
   mapFormErrors?: (error: any) => any;
   previewChart?: React.ReactNode;
@@ -55,7 +55,7 @@ export function NewDetectorLayout<
   extraFooterButton,
   previewChart,
   detectorType,
-  draftConfig,
+  draftSchema,
 }: NewDetectorLayoutProps<TFormData, TUpdatePayload>) {
   const location = useLocation();
   const theme = useTheme();
@@ -84,12 +84,12 @@ export function NewDetectorLayout<
     return sorted[0]?.id ?? '';
   }, [location.query.project, writableProjects]);
 
-  const draft = useInitialDetectorDraft(detectorType);
+  const draft = useInitialDetectorDraft();
   const [draftFormData] = useState(() => {
-    if (!draftConfig || !draft) {
+    if (!draftSchema || !draft) {
       return;
     }
-    const values = parseDetectorDraftValues(draftConfig, draft.values);
+    const values = draftSchema.parse(draft);
     if (
       values.projectId !== undefined &&
       !writableProjects.some(p => p.id === values.projectId)
@@ -116,7 +116,7 @@ export function NewDetectorLayout<
       owner: '',
       workflowIds: [],
       ...initialFormData,
-      ...draftFormData,
+      ...omitBy(draftFormData, value => value === undefined),
     };
   }, [initialProjectId, initialEnvironment, initialFormData, draftFormData]);
 
@@ -148,13 +148,8 @@ export function NewDetectorLayout<
         {children}
       </EditLayoutDeprecated.Body>
 
-      {draftConfig && (
-        <DetectorDraftUrlSync
-          detectorType={detectorType}
-          draftConfig={draftConfig}
-          formModel={formModel}
-        />
-      )}
+      {/* After the body, so fields setting their initial values don't count as edits. */}
+      {draftSchema && <DetectorDraftUrlSync formModel={formModel} schema={draftSchema} />}
 
       <NewDetectorFooter
         maxWidth={maxWidth}
