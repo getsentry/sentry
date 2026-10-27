@@ -76,7 +76,17 @@ export function GsBillingCommandPaletteActions() {
       />
       <CMDKAction
         display={{label: t('Legal & Compliance'), icon: <IconDocs />}}
-        keywords={['terms', 'privacy', 'gdpr', 'dpa', 'tos', 'ccpa', 'soc2']}
+        keywords={[
+          'terms',
+          'privacy',
+          'gdpr',
+          'dpa',
+          'tos',
+          'ccpa',
+          'soc2',
+          'data processing addendum',
+          'data processing agreement',
+        ]}
         to={`${prefix}/legal/`}
       />
     </Fragment>
