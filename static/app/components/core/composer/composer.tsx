@@ -124,10 +124,25 @@ function useComposerEditor(
     return () => editor.setRootElement(null);
   }, [editor, rootRef]);
 
+  const resetHistoryRef = useRef(() => {});
+  const resetHistory = useCallback(() => resetHistoryRef.current(), []);
+
   useLayoutEffect(() => {
+    const historyState = createEmptyHistoryState();
+    // History records a change only once it holds a starting state. The value
+    // is written outside of history, so without one, an edit that arrives
+    // before any selection change, such as a mention action, cannot be undone.
+    const startHistory = () => {
+      historyState.current = {editor, editorState: editor.getEditorState()};
+    };
+    startHistory();
+    resetHistoryRef.current = () => {
+      editor.dispatchCommand(CLEAR_HISTORY_COMMAND, undefined);
+      startHistory();
+    };
     const cleanups = [
       registerPlainText(editor),
-      registerHistory(editor, createEmptyHistoryState(), 300),
+      registerHistory(editor, historyState, 300),
       registerMentionClick(editor),
       // Composer handles keys in the capture phase, ahead of Lexical's root
       // listener. A handled key, or the Enter that confirms an IME candidate in
@@ -149,7 +164,7 @@ function useComposerEditor(
     return element ? createPortal(decorator, element, key) : null;
   });
 
-  return {editor, portals};
+  return {editor, portals, resetHistory};
 }
 
 /**
@@ -230,7 +245,7 @@ export function Composer({
   const theme = useTheme();
   const {t} = useTranslation();
   const inputRef = useRef<HTMLDivElement>(null);
-  const {editor, portals} = useComposerEditor(inputValue, inputRef);
+  const {editor, portals, resetHistory} = useComposerEditor(inputValue, inputRef);
   const reportedValueRef = useRef<ComposerValue>(inputValue);
   const [reportVersion, markValueReported] = useReducer(version => version + 1, 0);
   const [isComposing, setIsComposing] = useState(false);
@@ -363,11 +378,11 @@ export function Composer({
     );
     reportedValueRef.current = editor.getEditorState().read($readComposerValue);
     // Undo should not step back into a value the owner replaced.
-    editor.dispatchCommand(CLEAR_HISTORY_COMMAND, undefined);
+    resetHistory();
     // reportVersion reruns this after every reported edit, so an owner that
     // keeps its previous value also restores the editor.
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
-  }, [editor, inputValue, reportVersion]);
+  }, [editor, inputValue, reportVersion, resetHistory]);
 
   const {
     overlayProps,

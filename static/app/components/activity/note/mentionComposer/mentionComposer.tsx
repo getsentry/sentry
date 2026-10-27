@@ -9,11 +9,20 @@ import {Markdown} from '@sentry/scraps/markdown';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Text} from '@sentry/scraps/text';
 
+import type {AssigneeGroup} from 'sentry/components/assigneeSelectorDropdown';
 import {t} from 'sentry/locale';
 import type {NoteType} from 'sentry/types/alerts';
 import {useOrgMentionPlugins} from 'sentry/utils/mentions/useOrgMentionPlugins';
 
-interface CreateComposerProps {
+interface SharedComposerProps {
+  /**
+   * Renders mentions as the issue stream's assignee selector for this project.
+   * Choosing someone only changes the mention, never the issue's assignee.
+   */
+  assigneeSelector?: {project: AssigneeGroup['project']};
+}
+
+interface CreateComposerProps extends SharedComposerProps {
   onSubmit: (data: NoteType) => Promise<void>;
   initialValue?: string;
   minHeight?: number;
@@ -22,7 +31,7 @@ interface CreateComposerProps {
   variant?: 'compact' | 'full';
 }
 
-interface EditComposerProps {
+interface EditComposerProps extends SharedComposerProps {
   initialValue: string;
   onCancel: () => void;
   onSubmit: (data: NoteType) => Promise<void>;
@@ -53,13 +62,14 @@ function serializeNoteMentions(value: ComposerValue): string {
 
 export function MentionComposer(props: MentionComposerProps) {
   const {
+    assigneeSelector,
     initialValue = '',
     minHeight = 140,
     onSubmit,
     placeholder = t('Add a comment.\nTag users with @, or teams with #'),
     variant = 'full',
   } = props;
-  const plugins = useOrgMentionPlugins({team: {trigger: '#'}});
+  const plugins = useOrgMentionPlugins({assigneeSelector, team: {trigger: '#'}});
   const isEditing = props.mode === 'edit';
   const [editorMode, setEditorMode] = useState<EditorMode>('write');
   const [hasFocusedEditor, setHasFocusedEditor] = useState(isEditing);

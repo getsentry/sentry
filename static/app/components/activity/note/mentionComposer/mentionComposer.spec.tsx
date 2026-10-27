@@ -1,4 +1,5 @@
 import {MemberFixture} from 'sentry-fixture/member';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
@@ -6,6 +7,7 @@ import {placeCaret} from 'sentry-test/contentEditable';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {MentionComposer} from 'sentry/components/activity/note/mentionComposer/mentionComposer';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 
 function getEditor(name = 'Add a comment') {
@@ -16,6 +18,7 @@ const noopSubmit = () => Promise.resolve();
 
 describe('MentionComposer', () => {
   beforeEach(() => {
+    ProjectsStore.reset();
     TeamStore.reset();
     TeamStore.loadInitialData([TeamFixture({id: '1', slug: 'frontend'})]);
     MockApiClient.addMockResponse({
@@ -306,5 +309,45 @@ describe('MentionComposer', () => {
       text: 'Existing comment updated',
       mentions: [],
     });
+  });
+
+  it('swaps a mention from its assignee selector without assigning anyone', async () => {
+    const team = TeamFixture({id: '1', slug: 'frontend'});
+    const project = ProjectFixture({id: '2', slug: 'checkout', teams: [team]});
+    ProjectsStore.loadInitialData([project]);
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/',
+      body: [
+        MemberFixture({user: UserFixture({id: '1', name: 'Alice Example'})}),
+        MemberFixture({user: UserFixture({id: '3', name: 'Sam Designer'})}),
+      ],
+    });
+    const assignRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/',
+      method: 'PUT',
+    });
+    const onSubmit = jest.fn().mockResolvedValue(undefined);
+    render(
+      <MentionComposer mode="create" assigneeSelector={{project}} onSubmit={onSubmit} />
+    );
+
+    const textbox = getEditor();
+    await userEvent.type(textbox, 'Thanks @ali');
+    await userEvent.click(await screen.findByRole('option', {name: /Alice Example/}));
+
+    await userEvent.click(screen.getByRole('button', {name: 'Modify issue assignee'}));
+    await userEvent.click(await screen.findByRole('option', {name: /#frontend/}));
+    await userEvent.click(screen.getByRole('button', {name: 'Modify issue assignee'}));
+    await userEvent.click(await screen.findByRole('option', {name: /Sam Designer/}));
+
+    await userEvent.click(textbox);
+    placeCaret(textbox);
+    await userEvent.keyboard('{Enter}');
+
+    expect(onSubmit).toHaveBeenCalledWith({
+      text: 'Thanks **@Sam Designer** ',
+      mentions: ['user:3'],
+    });
+    expect(assignRequest).not.toHaveBeenCalled();
   });
 });

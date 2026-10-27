@@ -398,6 +398,84 @@ describe('Composer', () => {
     expect(getEditorValue()).toHaveTextContent('@Alice Example |user:1');
   });
 
+  it('lets a mention swap or remove itself as an undoable edit', async () => {
+    render(
+      <ControlledComposer
+        initialValue="Ask @Alice Example today"
+        initialMentions={[
+          {id: 'user:1', sourceId: 'members', start: 4, end: 18, text: '@Alice Example'},
+        ]}
+        sources={[
+          {
+            ...MEMBER_SOURCE,
+            renderMention: (mention, actions) => (
+              <span>
+                {mention.text}
+                <button
+                  type="button"
+                  onClick={() =>
+                    actions.replace({
+                      id: 'user:2',
+                      sourceId: 'members',
+                      text: '@Alex Engineer',
+                    })
+                  }
+                >
+                  Swap {mention.text}
+                </button>
+                <button type="button" onClick={() => actions.remove()}>
+                  Remove {mention.text}
+                </button>
+              </span>
+            ),
+          },
+        ]}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Swap @Alice Example'}));
+    expect(getEditorValue()).toHaveTextContent('Ask @Alex Engineer today|user:2');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Remove @Alex Engineer'}));
+    expect(getEditorValue()).toHaveTextContent('Ask today|');
+    expect(getEditor()).toHaveFocus();
+
+    await userEvent.keyboard('{Control>}z{/Control}');
+    expect(getEditorValue()).toHaveTextContent('Ask @Alex Engineer today|user:2');
+    await userEvent.keyboard('{Control>}z{/Control}');
+    expect(getEditorValue()).toHaveTextContent('Ask @Alice Example today|user:1');
+  });
+
+  it('leaves typing into a control inside a mention to that control', async () => {
+    render(
+      <ControlledComposer
+        initialValue="Ask @Alice Example"
+        initialMentions={[
+          {id: 'user:1', sourceId: 'members', start: 4, end: 18, text: '@Alice Example'},
+        ]}
+        sources={[
+          {
+            ...MEMBER_SOURCE,
+            renderMention: mention => (
+              <span>
+                {mention.text}
+                <input aria-label="Search people" />
+              </span>
+            ),
+          },
+        ]}
+      />
+    );
+
+    await userEvent.click(getEditor());
+    placeCaret(getEditor(), 'Ask @Alice Example'.length);
+    const search = screen.getByRole('textbox', {name: 'Search people'});
+    await userEvent.type(search, 'alex{Backspace}{Enter}');
+
+    expect(search).toHaveValue('ale');
+    expect(getEditorValue()).toHaveTextContent('Ask @Alice Example|user:1');
+  });
+
   it('inserts line breaks with Enter when suggestions are closed', async () => {
     render(<ControlledComposer />);
 

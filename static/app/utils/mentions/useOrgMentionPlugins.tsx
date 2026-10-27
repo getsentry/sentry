@@ -5,6 +5,7 @@ import type {ComposerPlugin, ComposerSource} from '@sentry/scraps/composer';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import type {AssigneeGroup} from 'sentry/components/assigneeSelectorDropdown';
 import {t} from 'sentry/locale';
 import type {Member, Team} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
@@ -14,6 +15,8 @@ import {memberUsersQueryOptions} from 'sentry/utils/members/shared';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
 
+import {getUserMentionLabel, MentionAssigneeSelector} from './mentionAssigneeSelector';
+
 const DEFAULT_USER_TRIGGER = '@';
 const DEFAULT_TEAM_TRIGGER = '@';
 
@@ -21,6 +24,11 @@ type MemberSuggestion = {kind: 'member'; user: User};
 type TeamSuggestion = {kind: 'team'; team: Team};
 
 interface OrgMentionPluginOptions {
+  /**
+   * Renders mentions as the issue stream's assignee selector, offering this
+   * project's members and teams. Choosing someone only changes the mention.
+   */
+  assigneeSelector?: {project: AssigneeGroup['project']};
   /** Team suggestions. Pass an object to override the default trigger. */
   team?: boolean | {trigger?: string};
 }
@@ -30,20 +38,46 @@ interface OrgMentionPluginOptions {
  * trigger; pass `{team: {trigger: '#'}}` to restore the split `@`/`#` scheme.
  */
 export function useOrgMentionPlugins({
+  assigneeSelector,
   team = true,
 }: OrgMentionPluginOptions = {}): readonly ComposerPlugin[] {
   const organization = useOrganization();
   const {teams} = useTeams();
 
   const teamTrigger = resolveTrigger(team, DEFAULT_TEAM_TRIGGER);
+  const selectorProjectId = assigneeSelector?.project.id;
+  const selectorProjectSlug = assigneeSelector?.project.slug;
+  const renderMention = useMemo<ComposerSource<unknown>['renderMention']>(() => {
+    if (selectorProjectId === undefined || selectorProjectSlug === undefined) {
+      return;
+    }
+    const project = {id: selectorProjectId, slug: selectorProjectSlug};
+    const triggers = {user: DEFAULT_USER_TRIGGER, team: teamTrigger};
+    return function renderAssigneeSelector(mention, actions) {
+      return (
+        <MentionAssigneeSelector
+          actions={actions}
+          mention={mention}
+          project={project}
+          triggers={triggers}
+        />
+      );
+    };
+  }, [selectorProjectId, selectorProjectSlug, teamTrigger]);
 
   const memberSource = useMemo(
-    () => userMentionSource({trigger: DEFAULT_USER_TRIGGER, orgSlug: organization.slug}),
-    [organization.slug]
+    () => ({
+      ...userMentionSource({trigger: DEFAULT_USER_TRIGGER, orgSlug: organization.slug}),
+      renderMention,
+    }),
+    [organization.slug, renderMention]
   );
   const teamSource = useMemo(
-    () => (teamTrigger ? teamMentionSource({trigger: teamTrigger, teams}) : null),
-    [teamTrigger, teams]
+    () =>
+      teamTrigger
+        ? {...teamMentionSource({trigger: teamTrigger, teams}), renderMention}
+        : null,
+    [renderMention, teamTrigger, teams]
   );
 
   return useMemo(
@@ -163,12 +197,7 @@ function MentionIdentity({
 }
 
 function getMentionLabel(suggestion: MemberSuggestion): string {
-  return (
-    suggestion.user.name ||
-    suggestion.user.email ||
-    suggestion.user.username ||
-    suggestion.user.id
-  );
+  return getUserMentionLabel(suggestion.user);
 }
 
 function getMentionId(suggestion: MemberSuggestion | TeamSuggestion): string {

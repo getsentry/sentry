@@ -1,17 +1,20 @@
-import {createContext, useContext} from 'react';
+import {createContext, useContext, useMemo} from 'react';
 import {
   $create,
   $getDocument,
   $getNearestNodeFromDOMNode,
+  $getNodeByKey,
   $getState,
   $setState,
   CLICK_COMMAND,
   COMMAND_PRIORITY_LOW,
   createState,
   DecoratorNode,
+  SKIP_DOM_SELECTION_TAG,
   stringValue,
   type LexicalEditor,
   type LexicalNode,
+  type NodeKey,
 } from 'lexical';
 
 import type {Mention} from './model';
@@ -19,7 +22,21 @@ import {MentionChip} from './styles';
 
 export type MentionData = Pick<Mention, 'id' | 'sourceId' | 'text'>;
 
-export type MentionRenderer = (mention: MentionData) => React.ReactNode;
+/**
+ * Edits the mention a renderer draws, such as from a menu inside the mention.
+ * Each action is one undoable edit, and the value reports the new text and range.
+ */
+export interface ComposerMentionActions {
+  /** Removes the mention from the text. */
+  remove(): void;
+  /** Swaps the mention for another reference, keeping its place in the text. */
+  replace(mention: MentionData): void;
+}
+
+export type MentionRenderer = (
+  mention: MentionData,
+  actions: ComposerMentionActions
+) => React.ReactNode;
 
 /** Resolves the source-provided renderer for a mention, by source id. */
 export const MentionRendererContext = createContext<
@@ -30,9 +47,47 @@ const idState = createState('id', {parse: stringValue()});
 const sourceIdState = createState('sourceId', {parse: stringValue()});
 const textState = createState('text', {parse: stringValue()});
 
-function ComposerMention(mention: MentionData) {
+function ComposerMention({
+  editor,
+  mention,
+  nodeKey,
+}: {
+  editor: LexicalEditor;
+  mention: MentionData;
+  nodeKey: NodeKey;
+}) {
   const getRenderer = useContext(MentionRendererContext);
-  const content = getRenderer?.(mention.sourceId)?.(mention) ?? mention.text;
+  const actions = useMemo<ComposerMentionActions>(() => {
+    const updateNode = (
+      edit: (node: ComposerMentionNode) => void,
+      options?: Parameters<LexicalEditor['update']>[1]
+    ) =>
+      editor.update(() => {
+        const node = $getNodeByKey(nodeKey);
+        if ($isComposerMentionNode(node)) {
+          edit(node);
+        }
+      }, options);
+    return {
+      // The control that removed the mention is gone, so focus returns to
+      // the text where the mention was.
+      remove: () => {
+        updateNode(
+          node => {
+            node.selectPrevious();
+            node.remove();
+          },
+          {discrete: true}
+        );
+        editor.getRootElement()?.focus({preventScroll: true});
+      },
+      // Restoring the editor's selection would pull focus away from the
+      // control that made the change.
+      replace: next =>
+        updateNode(node => node.setMention(next), {tag: SKIP_DOM_SELECTION_TAG}),
+    };
+  }, [editor, nodeKey]);
+  const content = getRenderer?.(mention.sourceId)?.(mention, actions) ?? mention.text;
   return <MentionChip>{content}</MentionChip>;
 }
 
@@ -93,8 +148,14 @@ export class ComposerMentionNode extends DecoratorNode<React.ReactNode> {
     return false;
   }
 
-  decorate(): React.ReactNode {
-    return <ComposerMention {...this.getMention()} />;
+  decorate(editor: LexicalEditor): React.ReactNode {
+    return (
+      <ComposerMention
+        editor={editor}
+        mention={this.getMention()}
+        nodeKey={this.getKey()}
+      />
+    );
   }
 }
 
