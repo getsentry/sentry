@@ -188,11 +188,20 @@ class WorkflowRunTest(TestCase):
         return run
 
 
-class ConfiguredWorkflowRunTest(TestCase):
+class SeerWorkflowRunLifecycleTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.workflow = SeerWorkflow(
+            Factories.create_seer_workflow_config(
+                self.organization,
+                strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+                filters={"all_projects": True},
+            )
+        )
+
     def test_config_changes_only_apply_to_new_runs(self) -> None:
         original_project = self.create_project()
-        workflow = self.create_configured_workflow()
-        original_result = workflow.get_or_create_run(
+        original_result = self.workflow.get_or_create_run(
             trigger_key="manual:first", inputs=RunInputs(issue_limit=10)
         )
         original_run = original_result.lifecycle
@@ -205,8 +214,8 @@ class ConfiguredWorkflowRunTest(TestCase):
         assert snapshot.inputs == {"issue_limit": 10}
 
         new_project = self.create_project()
-        workflow.set_project_selection(SelectedProjects(project_ids=(new_project.id,)))
-        retry_result = workflow.get_or_create_run(
+        self.workflow.set_project_selection(SelectedProjects(project_ids=(new_project.id,)))
+        retry_result = self.workflow.get_or_create_run(
             trigger_key="manual:first", inputs=RunInputs(issue_limit=20)
         )
         retried_run = retry_result.lifecycle
@@ -214,7 +223,7 @@ class ConfiguredWorkflowRunTest(TestCase):
         assert retried_run.run.id == original_run.run.id
         assert retried_run.extras.snapshot == snapshot
 
-        new_result = workflow.get_or_create_run(
+        new_result = self.workflow.get_or_create_run(
             trigger_key="manual:next", inputs=RunInputs(issue_limit=20)
         )
         new_run = new_result.lifecycle
@@ -225,11 +234,12 @@ class ConfiguredWorkflowRunTest(TestCase):
         assert new_run.extras.snapshot.inputs == {"issue_limit": 20}
 
     def test_request_identity_and_history_are_scoped_to_config_and_organization(self) -> None:
-        workflow, other_workflow = (
-            self.create_configured_workflow(),
-            self.create_configured_workflow(),
+        other_workflow = SeerWorkflow(
+            Factories.create_seer_workflow_config(
+                self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
+            )
         )
-        first_result = workflow.get_or_create_run(
+        first_result = self.workflow.get_or_create_run(
             trigger_key="event:occurrence", inputs=RunInputs(issue_limit=10)
         )
         first = first_result.lifecycle
@@ -240,13 +250,13 @@ class ConfiguredWorkflowRunTest(TestCase):
         assert second_result.created is True
         assert first.run.id != second.run.id
         legacy = Factories.create_seer_workflow_run(
-            self.organization, workflow_config=workflow.config
+            self.organization, workflow_config=self.workflow.config
         )
-        assert list(workflow.get_runs()) == [legacy, first.run]
+        assert list(self.workflow.get_runs()) == [legacy, first.run]
         assert list(other_workflow.get_runs()) == [second.run]
 
         other_org = self.create_organization()
-        wrong_org_config = copy(workflow.config)
+        wrong_org_config = copy(self.workflow.config)
         wrong_org_config.organization_id = other_org.id
         wrong_org_workflow = SeerWorkflow(wrong_org_config)
         assert not wrong_org_workflow.get_runs().exists()
@@ -314,7 +324,7 @@ class ConfiguredWorkflowRunTest(TestCase):
         run = self.create_run()
         run.start()
         (execution,) = run.create_executions([SeerWorkflowExecutionExtras()])
-        other = self.create_run()
+        other = self.create_run(trigger_key="manual:other")
         other.start()
         with pytest.raises(SeerWorkflowRunExecution.DoesNotExist):
             other.start_execution(execution.id)
@@ -361,20 +371,11 @@ class ConfiguredWorkflowRunTest(TestCase):
             run.create_executions([SeerWorkflowExecutionExtras()])
         assert run.run.executions.count() == 2
 
-    def create_run(self) -> SeerWorkflowRunLifecycle:
-        result = self.create_configured_workflow().get_or_create_run(
-            trigger_key="manual:first", inputs=RunInputs(issue_limit=10)
+    def create_run(self, *, trigger_key: str = "manual:first") -> SeerWorkflowRunLifecycle:
+        result = self.workflow.get_or_create_run(
+            trigger_key=trigger_key, inputs=RunInputs(issue_limit=10)
         )
         return result.lifecycle
-
-    def create_configured_workflow(self) -> SeerWorkflow:
-        return SeerWorkflow(
-            Factories.create_seer_workflow_config(
-                self.organization,
-                strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
-                filters={"all_projects": True},
-            )
-        )
 
 
 @pytest.mark.django_db(databases="__all__")
