@@ -468,6 +468,36 @@ describe('DropdownMenu', () => {
     expect(onAction).toHaveBeenCalledTimes(1);
   });
 
+  it('returns from the first enabled item to search when a disabled item comes first', async () => {
+    render(
+      <DropdownMenu
+        triggerLabel="Projects"
+        items={[
+          {
+            key: 'all-projects',
+            label: 'All Projects',
+            submenu: {search: {placeholder: 'Search projects'}},
+            children: [
+              {key: 'archived', label: 'archived', disabled: true},
+              {key: 'javascript', label: 'javascript'},
+              {key: 'sentry', label: 'sentry'},
+            ],
+          },
+        ]}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'All Projects'}));
+    const search = screen.getByRole('textbox', {name: 'Search projects'});
+    expect(search).toHaveFocus();
+
+    await userEvent.keyboard('{ArrowDown}');
+    expect(screen.getByRole('menuitemradio', {name: 'javascript'})).toHaveFocus();
+    await userEvent.keyboard('{ArrowUp}');
+    expect(search).toHaveFocus();
+  });
+
   it('clears a searchable submenu when it closes', async () => {
     render(
       <DropdownMenu

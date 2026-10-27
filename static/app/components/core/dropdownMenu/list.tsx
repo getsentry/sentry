@@ -234,23 +234,23 @@ function DropdownMenuList({
 
   const {keyboardProps} = useKeyboard({
     onKeyDown: e => {
-      const menuItems = menuRef.current?.querySelectorAll('[role^="menuitem"]');
+      const enabledMenuItems = getEnabledMenuItems(menuRef.current);
       // When keyboard navigation wraps past the last item, show the top of the
       // list again so the search field and first item are visible.
       if (
         e.key === 'ArrowDown' &&
         searchRef.current &&
         menuRef.current &&
-        e.target === menuItems?.item(menuItems.length - 1)
+        e.target === enabledMenuItems.at(-1)
       ) {
         menuRef.current.scrollTop = 0;
       }
-      // Move from the first item back to search before leaving the submenu.
+      // Move from the first enabled item back to search before leaving the submenu.
       if (
         e.key === 'ArrowUp' &&
         searchRef.current &&
         menuRef.current &&
-        document.activeElement === menuRef.current.querySelector('[role^="menuitem"]')
+        document.activeElement === enabledMenuItems[0]
       ) {
         e.preventDefault();
         menuRef.current.scrollTop = 0;
@@ -323,7 +323,7 @@ function DropdownMenuList({
         // ArrowDown moves from the search field into the filtered menu items.
         if (event.key === 'ArrowDown') {
           event.preventDefault();
-          menuRef.current?.querySelector<HTMLElement>('[role^="menuitem"]')?.focus();
+          getEnabledMenuItems(menuRef.current)[0]?.focus();
         }
       }}
     />
@@ -450,6 +450,17 @@ function filterMenuItems(items: MenuItemProps[], search: string): MenuItemProps[
 
     return isMenuItemHidden(query, item.label, item.textValue) ? [] : [item];
   });
+}
+
+/**
+ * Returns the menu items keyboard focus can reach. Disabled items are skipped,
+ * so the first and last of these are the first and last focusable items.
+ * Matches the rule CompactSelect uses for its ArrowUp/Down region handoff.
+ */
+function getEnabledMenuItems(menu: HTMLElement | null): HTMLElement[] {
+  return Array.from(
+    menu?.querySelectorAll<HTMLElement>('[role^="menuitem"]') ?? []
+  ).filter(item => item.getAttribute('aria-disabled') !== 'true');
 }
 
 /**
