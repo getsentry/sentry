@@ -87,13 +87,10 @@ class SCMIntegrationInteractionEvent(IntegrationEventLifecycleMetric):
     def get_interaction_type(self) -> str:
         return str(self.interaction_type)
 
-    def get_integration_id(self) -> int | None:
-        return self.integration_id
-
     def get_extras(self) -> Mapping[str, Any]:
         return {
             "organization_id": (self.organization_id if self.organization_id else None),
-            "integration_id": (self.integration_id if self.integration_id else None),
+            "integration_id": (str(self.integration_id) if self.integration_id else None),
         }
 
 

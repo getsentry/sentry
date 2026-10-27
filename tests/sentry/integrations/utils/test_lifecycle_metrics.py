@@ -24,13 +24,8 @@ class IntegrationEventLifecycleMetricTest(TestCase):
         def get_interaction_type(self) -> str:
             return "my_interaction"
 
-        def get_integration_id(self) -> int | None:
-            return 123
-
-    def setUp(self) -> None:
-        patcher = mock.patch("sentry.integrations.utils.metrics.options.get", return_value=True)
-        patcher.start()
-        self.addCleanup(patcher.stop)
+        def get_extras(self) -> dict[str, str]:
+            return {"integration_id": "123"}
 
     def test_key_and_tag_assignment(self) -> None:
         metric_obj = self.TestLifecycleMetric()
@@ -41,7 +36,6 @@ class IntegrationEventLifecycleMetricTest(TestCase):
             "integration_domain": "messaging",
             "integration_name": "my_integration",
             "interaction_type": "my_interaction",
-            "integration_id": "123",
         }
 
     @staticmethod
@@ -53,7 +47,6 @@ class IntegrationEventLifecycleMetricTest(TestCase):
                     "integration_domain": "messaging",
                     "integration_name": "my_integration",
                     "interaction_type": "my_interaction",
-                    "integration_id": "123",
                 },
                 sample_rate=1.0,
             ),
@@ -63,7 +56,6 @@ class IntegrationEventLifecycleMetricTest(TestCase):
                     "integration_domain": "messaging",
                     "integration_name": "my_integration",
                     "interaction_type": "my_interaction",
-                    "integration_id": "123",
                 },
                 sample_rate=1.0,
             ),
