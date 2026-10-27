@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+import os
 from datetime import datetime, timezone
 from unittest.mock import patch
 
@@ -1936,6 +1937,24 @@ class E(Endpoint):
 """
     assert _run_input(src, frozenset()) == []
     assert len(_api_violations(src)) == 1
+
+
+def test_lint_all_prints_unenforced_rules_without_enforcing_them() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        return request.GET.get("truncate")
+"""
+    with patch.dict(os.environ, {"SENTRY_INPUT_LINT_ALL": "1"}):
+        errors = _run_input(src, frozenset())
+        violations = _api_violations(src)
+
+    assert len(errors) == 1
+    assert errors[0].startswith("t.py:5:15: S026 'truncate' is read straight off the query string")
+    assert len(violations) == 1
+    assert violations[0].severity == "warning"
 
 
 def test_api_violations_severity_follows_enforcement() -> None:
