@@ -374,10 +374,10 @@ class SeerWorkflowRunLifecycleTest(TestCase):
         assert run.run.date_completed is None
 
         run.complete_execution(second.id)
-        run.run.refresh_from_db()
-        assert run.run.status == SeerWorkflowRunStatus.COMPLETE
-        assert run.run.date_completed is not None
-        completed_at = run.run.date_completed
+        completed_run = SeerWorkflowRun.objects.get(id=run.run.id)
+        assert completed_run.status == SeerWorkflowRunStatus.COMPLETE
+        assert completed_run.date_completed is not None
+        completed_at = completed_run.date_completed
 
         run.complete_execution(second.id)
         with pytest.raises(InvalidWorkflowTransition):
@@ -387,9 +387,9 @@ class SeerWorkflowRunLifecycleTest(TestCase):
         second.refresh_from_db()
         assert second.status == SeerWorkflowExecutionStatus.COMPLETE
         assert SeerWorkflowExecutionExtras.parse_obj(second.extras).error is None
-        run.run.refresh_from_db()
-        assert run.run.status == SeerWorkflowRunStatus.COMPLETE
-        assert run.run.date_completed == completed_at
+        completed_run.refresh_from_db()
+        assert completed_run.status == SeerWorkflowRunStatus.COMPLETE
+        assert completed_run.date_completed == completed_at
 
     def test_run_waits_for_remaining_executions_before_failing(self) -> None:
         run = self.create_running_run()
@@ -404,10 +404,10 @@ class SeerWorkflowRunLifecycleTest(TestCase):
         assert run.run.date_completed is None
 
         run.complete_execution(second.id)
-        run.run.refresh_from_db()
-        assert run.run.status == SeerWorkflowRunStatus.FAILED
-        assert run.run.date_completed is not None
-        assert run.run.extras == original_extras
+        failed_run = SeerWorkflowRun.objects.get(id=run.run.id)
+        assert failed_run.status == SeerWorkflowRunStatus.FAILED
+        assert failed_run.date_completed is not None
+        assert failed_run.extras == original_extras
         assert run.extras.error is None
         first.refresh_from_db()
         assert first.status == SeerWorkflowExecutionStatus.FAILED

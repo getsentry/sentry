@@ -1,6 +1,6 @@
 import {Fragment, type ReactNode} from 'react';
-import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -52,15 +52,15 @@ describe('DroppedDataLLMContext', () => {
       body: {
         meta: {dataset: 'spans', start: 0, end: 0, interval: 0},
         droppedEvents: [
-          DroppedEventFixture({outcome: 'rate_limited', count: 10}),
-          DroppedEventFixture({
+          OutcomeRowFixture({outcome: 'rate_limited', count: 10}),
+          OutcomeRowFixture({
             outcome: 'client_discard',
             reason: 'sample_rate',
             count: 30,
           }),
         ],
         acceptedEvents: [
-          DroppedEventFixture({outcome: 'accepted', reason: 'accepted', count: 60}),
+          OutcomeRowFixture({outcome: 'accepted', reason: 'accepted', count: 60}),
         ],
       },
     });

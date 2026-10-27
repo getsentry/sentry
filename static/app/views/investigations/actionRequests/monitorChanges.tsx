@@ -1,7 +1,9 @@
 import styled from '@emotion/styled';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
+import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconSiren} from '@sentry/icons/siren';
 
+import {Tag} from '@sentry/scraps/badge';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -42,11 +44,19 @@ const PRIORITY_CHANGE_KEYS: Partial<Record<number, InvestigationDetectorChangeKe
 
 type MonitorChangesProps = {
   action: InvestigationUpdateDetectorAction;
+  applied: boolean;
   impact: string | null;
   monitor: SourceMonitor | null;
+  name: string | null;
 };
 
-export function MonitorChanges({action, impact, monitor}: MonitorChangesProps) {
+export function MonitorChanges({
+  action,
+  applied,
+  impact,
+  monitor,
+  name,
+}: MonitorChangesProps) {
   const changedKeys = CHANGE_KEYS.filter(key => action.changes[key] !== undefined);
   const subtitle = [
     monitor?.projectSlug,
@@ -66,21 +76,28 @@ export function MonitorChanges({action, impact, monitor}: MonitorChangesProps) {
   return (
     <Container border="primary" radius="md" padding="lg">
       <Stack gap="lg">
-        <Stack gap="xs">
-          <Flex align="center" gap="sm">
-            <IconSiren size="sm" aria-hidden />
-            <Text bold size="lg">
-              {monitor?.name ?? t('Monitor')}
-            </Text>
-          </Flex>
-          {subtitle.length > 0 ? (
-            <Container paddingLeft="xl">
-              <Text size="sm" variant="muted">
-                {subtitle.join(' • ')}
+        <Flex justify="between" align="start" gap="md">
+          <Stack gap="xs">
+            <Flex align="center" gap="sm">
+              <IconSiren size="sm" aria-hidden />
+              <Text bold size="lg">
+                {name ?? t('Monitor')}
               </Text>
-            </Container>
+            </Flex>
+            {subtitle.length > 0 ? (
+              <Container paddingLeft="xl">
+                <Text size="sm" variant="muted">
+                  {subtitle.join(' • ')}
+                </Text>
+              </Container>
+            ) : null}
+          </Stack>
+          {applied ? (
+            <Tag variant="success" icon={<IconCheckmark />}>
+              {t('Applied')}
+            </Tag>
           ) : null}
-        </Stack>
+        </Flex>
         <Grid columns="max-content minmax(0, 1fr)">
           {measures.length > 0 ? (
             <SettingRow>
@@ -90,30 +107,43 @@ export function MonitorChanges({action, impact, monitor}: MonitorChangesProps) {
           ) : null}
           {changedKeys.map(key => {
             const {getLabel, monospace} = CHANGE_FIELDS[key];
+            const before = formatChangeValue(
+              key,
+              action.before[key],
+              monitor?.detectionType,
+              currentAggregate
+            );
+            const after = formatChangeValue(
+              key,
+              action.changes[key],
+              monitor?.detectionType,
+              suggestedAggregate
+            );
             return (
               <SettingRow key={key} changed>
                 <Text>{getLabel()}</Text>
-                <Text>
-                  <VisuallyHidden>{t('Current value:')} </VisuallyHidden>
-                  <Text strikethrough variant="muted" monospace={monospace}>
-                    {formatChangeValue(
-                      key,
-                      action.before[key],
-                      monitor?.detectionType,
-                      currentAggregate
-                    )}
+                {applied ? (
+                  <Text>
+                    <Text bold monospace={monospace}>
+                      {after}
+                    </Text>{' '}
+                    <Text size="sm" variant="muted" monospace={monospace}>
+                      {t('was %s', before)}
+                    </Text>
                   </Text>
-                  <span aria-hidden> → </span>
-                  <VisuallyHidden>, {t('suggested value:')} </VisuallyHidden>
-                  <Text bold monospace={monospace}>
-                    {formatChangeValue(
-                      key,
-                      action.changes[key],
-                      monitor?.detectionType,
-                      suggestedAggregate
-                    )}
+                ) : (
+                  <Text>
+                    <VisuallyHidden>{t('Current value:')} </VisuallyHidden>
+                    <Text strikethrough variant="muted" monospace={monospace}>
+                      {before}
+                    </Text>
+                    <span aria-hidden> → </span>
+                    <VisuallyHidden>, {t('suggested value:')} </VisuallyHidden>
+                    <Text bold monospace={monospace}>
+                      {after}
+                    </Text>
                   </Text>
-                </Text>
+                )}
               </SettingRow>
             );
           })}

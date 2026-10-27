@@ -6,6 +6,7 @@ import pytest
 
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.save_event_feedback import save_event_feedback
+from sentry.models.environment import Environment, EnvironmentProject
 from sentry.models.userreport import UserReport
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -148,3 +149,27 @@ def test_save_event_feedback_with_missing_fields(
     assert report.name == ""
     assert report.email == ""
     assert report.comments == feedback_context["message"]
+
+
+@django_db_all
+def test_save_event_feedback_creates_missing_environment(
+    default_project, mock_create_feedback_issue
+) -> None:
+    event_data = mock_feedback_event(default_project.id)
+    event_data["contexts"]["feedback"]["associated_event_id"] = "abcd" * 8
+    event_data["timestamp"] = datetime.now(UTC).isoformat()
+    event_data["environment"] = "never-seen-before"
+    mock_create_feedback_issue.return_value = event_data
+
+    assert not Environment.objects.filter(name="never-seen-before").exists()
+
+    save_event_feedback(event_data, default_project.id)
+
+    environment = Environment.objects.get(
+        organization_id=default_project.organization_id, name="never-seen-before"
+    )
+    report = UserReport.objects.get()
+    assert report.environment_id == environment.id
+    assert EnvironmentProject.objects.filter(
+        environment=environment, project=default_project
+    ).exists()

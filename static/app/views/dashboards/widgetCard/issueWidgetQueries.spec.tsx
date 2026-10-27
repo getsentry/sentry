@@ -155,14 +155,14 @@ describe('IssueWidgetQueries', () => {
           timeSeries: [
             {
               yAxis: 'count(new_issues)',
-              values: [{timestamp: '1763495560000', value: 10}],
+              values: [{timestamp: 1763495560000, value: 10}],
+              meta: {
+                interval: 10800000,
+                valueType: 'integer',
+                valueUnit: null,
+              },
             },
           ],
-          meta: {
-            interval: 10800000,
-            valueType: 'integer',
-            valueUnit: null,
-          },
         },
       });
     });

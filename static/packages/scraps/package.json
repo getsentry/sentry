@@ -1,6 +1,6 @@
 {
   "name": "@sentry/scraps",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/getsentry/sentry.git",
@@ -130,6 +130,10 @@
     "./radio": {
       "types": "./dist/radio/index.d.ts",
       "import": "./dist/radio/index.js"
+    },
+    "./toggleCard": {
+      "types": "./dist/toggleCard/index.d.ts",
+      "import": "./dist/toggleCard/index.js"
     },
     "./statusIndicator": {
       "types": "./dist/statusIndicator/index.d.ts",

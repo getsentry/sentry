@@ -57,7 +57,6 @@ type Props = {
     sampleCount?: number;
     tableResults?: TableDataWithTitle[];
     timeseriesResults?: WidgetTimeSeries[];
-    totalIssuesCount?: string;
   }) => void;
   onLegendSelectChanged?: EChartEventHandler<{
     name: string;

@@ -1,4 +1,4 @@
-import {droppedEventsToOutcomeSections} from 'sentry/components/droppedData/drawer/outcomeSections';
+import {droppedEventsToOutcomeSections} from 'sentry/components/droppedData/outcomeSections';
 import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useChartInterval} from 'sentry/utils/useChartInterval';

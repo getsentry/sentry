@@ -10,7 +10,7 @@ config:
     matchers:
     - - message
       - \{\[\*\?\]\}
-    text: message:"\{\[\*\?\]\}" -> "escaped{{ message }}"
+    text: message:"\{\[\*\?\]\}" -> "escaped", "{{ message }}"
   version: 1
 fingerprint:
 - escaped
@@ -21,7 +21,7 @@ variants:
     contributes: true
     hint: null
     key: custom_server_fingerprint
-    matched_rule: message:"\{\[\*\?\]\}" -> "escaped{{ message }}"
+    matched_rule: message:"\{\[\*\?\]\}" -> "escaped", "{{ message }}"
     type: custom_fingerprint
     values:
     - escaped

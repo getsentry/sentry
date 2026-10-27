@@ -185,8 +185,8 @@ class RpcServiceEndpointTest(APITestCase):
             "meta": {
                 "viewer_context": {
                     "organization_id": organization.id,
-                    "user_id": 42,
-                    "actor_type": "user",
+                    "version": 2,
+                    "actor": {"type": "user", "id": 42},
                 }
             },
         }
@@ -200,9 +200,9 @@ class RpcServiceEndpointTest(APITestCase):
         assert response.status_code == 200
         assert len(captured_contexts) == 1
         ctx = captured_contexts[0]
-        assert ctx is not None
+        assert isinstance(ctx, ViewerContext)
         assert ctx.organization_id == organization.id
-        assert ctx.user_id == 42
+        assert ctx.actor.actor_id == 42
         assert ctx.actor.type == ActorType.USER
 
     def test_viewer_context_unknown_when_meta_empty(self) -> None:
@@ -230,8 +230,8 @@ class RpcServiceEndpointTest(APITestCase):
         assert response.status_code == 200
         assert len(captured_contexts) == 1
         ctx = captured_contexts[0]
-        assert ctx is not None
-        assert ctx.user_id is None
+        assert isinstance(ctx, ViewerContext)
+        assert ctx.actor.actor_id is None
         assert ctx.organization_id is None
         assert ctx.actor.type == ActorType.UNKNOWN
 
@@ -267,7 +267,7 @@ class RpcServiceEndpointTest(APITestCase):
         assert response.status_code == 200
         assert len(captured_contexts) == 1
         restored = captured_contexts[0]
-        assert restored is not None
+        assert isinstance(restored, ViewerContext)
         assert restored.organization_id == ctx.organization_id
-        assert restored.user_id == ctx.user_id
+        assert restored.actor.actor_id == ctx.actor.actor_id
         assert restored.actor.type == ctx.actor.type

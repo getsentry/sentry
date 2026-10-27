@@ -34,12 +34,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
-from sentry.viewer_context import (
-    Actor,
-    ActorType,
-    ViewerContext,
-    decode_viewer_context,
-)
+from sentry.viewer_context import Actor, ActorType, ViewerContext, decode_viewer_context
 
 FEATURE = "organizations:investigations"
 
@@ -561,6 +556,11 @@ class OrganizationInvestigationIndexTest(APITestCase):
             "occurredAt": "2026-01-01T00:02:00+00:00",
         }
         tool = {"id": "tool-1", "title": "Query spans", "kind": "api", "status": "completed"}
+        thought = {
+            "id": "thought-1",
+            "text": "Check the spans first.",
+            "beforeActivityId": "tool-1",
+        }
         evidence = {
             "id": "evidence-1",
             "title": "Slow checkout spans",
@@ -588,6 +588,7 @@ class OrganizationInvestigationIndexTest(APITestCase):
                     "heartbeatAt": "2026-01-01T00:01:00+00:00",
                     "error": None,
                     "toolActivity": [tool],
+                    "thoughts": [thought],
                     "generation": 1,
                     "attempt": 0,
                     "automaticRetryCount": 0,
@@ -610,6 +611,7 @@ class OrganizationInvestigationIndexTest(APITestCase):
                         "planningStatus": "completed",
                         "heartbeatAt": "2026-01-01T00:03:00+00:00",
                         "toolActivity": [tool],
+                        "thoughts": [thought],
                         "evidence": [evidence],
                         "verificationSteps": [
                             {
@@ -650,6 +652,7 @@ class OrganizationInvestigationIndexTest(APITestCase):
                     "currentBlockKey": "summary",
                     "currentBlockStatus": "running",
                     "currentBlockToolActivity": [tool],
+                    "currentBlockThoughts": [thought],
                     "heartbeatAt": "2026-01-01T00:06:00+00:00",
                     "automaticRetryCount": 0,
                     "clearIntent": {
