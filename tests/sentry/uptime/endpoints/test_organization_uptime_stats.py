@@ -3,7 +3,10 @@ from datetime import datetime, timedelta, timezone
 
 from sentry.testutils.cases import APITestCase, SnubaTestCase, UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.uptime.endpoints.organization_uptime_stats import closest_valid_granularity_secs
+from sentry.uptime.endpoints.organization_uptime_stats import (
+    align_bucket_to_rollup,
+    closest_valid_granularity_secs,
+)
 from sentry.uptime.types import IncidentStatus
 from sentry.utils import json
 
@@ -15,6 +18,16 @@ def test_closest_valid_granularity_secs() -> None:
     # 90s is equally close to 60s and 120s. Prefer the coarser bucket.
     assert closest_valid_granularity_secs(90) == 120
     assert closest_valid_granularity_secs(10) == 15
+
+
+def test_align_bucket_to_rollup() -> None:
+    start = 1_000_000
+    day = 86400
+    three_days = 259200
+    assert align_bucket_to_rollup(start, start, three_days) == start
+    assert align_bucket_to_rollup(start + day, start, three_days) == start
+    assert align_bucket_to_rollup(start + (2 * day), start, three_days) == start
+    assert align_bucket_to_rollup(start + three_days, start, three_days) == start + three_days
 
 
 MOCK_DATETIME = datetime.now(tz=timezone.utc) - timedelta(days=1)
@@ -87,7 +100,7 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
             }
 
     def test_invalid_eap_granularity_falls_back(self) -> None:
-        """A 3-day timeline interval is not a valid EAP granularity. Use 1 day."""
+        """A 3-day timeline interval is queried at 1 day, then merged back to 3 days."""
         with self.feature(self.features):
             response = self.get_success_response(
                 self.organization.slug,
@@ -99,7 +112,22 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
             )
             assert response.data is not None
             data = json.loads(json.dumps(response.data))
-            assert len(data[str(self.detector.id)]) == 7
+            timeline = data[str(self.detector.id)]
+            assert len(timeline) == 3
+            assert timeline[1][0] - timeline[0][0] == 259200
+            assert timeline[2][0] - timeline[1][0] == 259200
+            assert timeline[-1][1] == {
+                "failure": 4,
+                "failure_incident": 1,
+                "success": 3,
+                "missed_window": 0,
+            }
+            assert timeline[0][1] == {
+                "failure": 0,
+                "failure_incident": 0,
+                "success": 0,
+                "missed_window": 0,
+            }
 
     def test_invalid_detector_id(self) -> None:
         """

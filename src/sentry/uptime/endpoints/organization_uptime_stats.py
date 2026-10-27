@@ -53,6 +53,21 @@ def closest_valid_granularity_secs(rollup: int) -> int:
     )
 
 
+def align_bucket_to_rollup(bucket_seconds: int, start_seconds: int, rollup: int) -> int:
+    """Fold a finer EAP bucket onto the rollup the client asked for.
+
+    Buckets are aligned to the query start, matching Snuba's time slots. The
+    check-in timeline lays ticks out by index using that requested rollup, so
+    returning the finer buckets stretches the timeline past its width.
+    """
+    if rollup <= 0:
+        return bucket_seconds
+    offset = bucket_seconds - start_seconds
+    if offset < 0:
+        return bucket_seconds
+    return start_seconds + (offset // rollup) * rollup
+
+
 @cell_silo_endpoint
 @extend_schema(tags=["Uptime Monitors"])
 class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
@@ -88,13 +103,21 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
             return self.respond("Invalid uptime detector ids provided", status=400)
 
         try:
+            rollup = timerange_args["rollup"]
+            granularity_secs = closest_valid_granularity_secs(rollup)
             eap_response = self._make_eap_request(
                 organization,
                 projects,
                 subscription_ids,
                 timerange_args,
+                granularity_secs,
             )
-            formatted_response = self._format_response(eap_response)
+            formatted_response = self._format_response(
+                eap_response,
+                start_seconds=int(timerange_args["start"].timestamp()),
+                rollup=rollup,
+                granularity_secs=granularity_secs,
+            )
         except Exception:
             logger.exception("Error making EAP RPC request for uptime check stats")
             return self.respond("error making request", status=400)
@@ -112,13 +135,13 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         projects: list[Project],
         subscription_ids: list[str],
         timerange_args: StatsArgsDict,
+        granularity_secs: int,
     ) -> TimeSeriesResponse:
         eap_query_start = timerange_args["start"]
         start_timestamp = Timestamp()
         start_timestamp.FromDatetime(eap_query_start)
         end_timestamp = Timestamp()
         end_timestamp.FromDatetime(timerange_args["end"])
-        granularity_secs = closest_valid_granularity_secs(timerange_args["rollup"])
 
         subscription_filter = TraceItemFilter(
             comparison_filter=ComparisonFilter(
@@ -188,16 +211,18 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         return responses[0]
 
     def _format_response(
-        self, response: TimeSeriesResponse
+        self,
+        response: TimeSeriesResponse,
+        *,
+        start_seconds: int,
+        rollup: int,
+        granularity_secs: int,
     ) -> dict[str, list[tuple[int, dict[str, int]]]]:
         """
-        Formats the response from the EAP RPC request into a dictionary of subscription ids to a list of tuples
-        of timestamps and a dictionary of check statuses to counts.
+        Formats the EAP response into subscription ids mapped to ``(timestamp, counts)`` buckets.
 
-        Args:
-            response: The EAP RPC TimeSeriesResponse
-            subscription_key: The attribute name for subscription ID ("uptime_subscription_id" or "subscription_id")
-            epoch_cutoff: Optional cutoff timestamp for data
+        When Snuba was queried at a finer granularity than ``rollup``, buckets are folded
+        back onto that rollup so the timeline receives one bucket per requested interval.
         """
         formatted_data: dict[str, dict[int, dict[str, int]]] = {}
 
@@ -216,9 +241,15 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
 
             for bucket, data_point in zip(timeseries.buckets, timeseries.data_points):
                 value = int(data_point.data) if data_point.data_present else 0
+                bucket_seconds = bucket.seconds
+                # Snuba cannot accept the requested rollup, so the query used a
+                # finer granularity. Collapse those buckets back to the rollup
+                # the timeline rendered.
+                if granularity_secs < rollup:
+                    bucket_seconds = align_bucket_to_rollup(bucket_seconds, start_seconds, rollup)
                 # Add to existing value instead of overwriting, since multiple timeseries
                 # may contribute to the same status (e.g., success with different incident_status values)
-                formatted_data[subscription_id][bucket.seconds][status] += value
+                formatted_data[subscription_id][bucket_seconds][status] += value
 
         final_data: dict[str, list[tuple[int, dict[str, int]]]] = {}
         for subscription_id, timestamps in formatted_data.items():
