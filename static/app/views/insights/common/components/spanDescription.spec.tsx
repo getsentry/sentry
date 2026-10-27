@@ -10,12 +10,9 @@ import {DatabaseSpanDescription} from 'sentry/views/insights/common/components/s
 
 describe('DatabaseSpanDescription', () => {
   beforeEach(() => {
+    PageFiltersStore.reset();
     jest.clearAllMocks();
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
-  });
-
-  afterEach(() => {
-    PageFiltersStore.reset();
   });
 
   const organization = OrganizationFixture();

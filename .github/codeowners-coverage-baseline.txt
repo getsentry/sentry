@@ -1249,7 +1249,6 @@ static/app/types/onboarding.tsx
 static/app/types/organization.tsx
 static/app/types/profiling/core.tsx
 static/app/types/reducerAction.tsx
-static/app/types/reflux.d.ts
 static/app/types/relay.tsx
 static/app/types/release.tsx
 static/app/types/sampling.tsx

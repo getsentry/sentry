@@ -79,6 +79,7 @@ function DroppedDataTrigger({enabled, interval}: {enabled?: boolean; interval?: 
 
 describe('useDroppedDataDrawer', () => {
   beforeEach(() => {
+    PageFiltersStore.reset();
     PageFiltersStore.onInitializeUrlState(
       PageFiltersFixture({
         datetime: {period: '14d', start: null, end: null, utc: false},
@@ -87,7 +88,6 @@ describe('useDroppedDataDrawer', () => {
   });
 
   afterEach(() => {
-    PageFiltersStore.reset();
     localStorage.clear();
   });
 

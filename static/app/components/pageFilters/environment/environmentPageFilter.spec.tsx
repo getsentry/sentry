@@ -18,6 +18,7 @@ const projects = [
 
 describe('EnvironmentPageFilter', () => {
   beforeEach(() => {
+    PageFiltersStore.reset();
     OrganizationStore.init();
 
     PageFiltersStore.init();
@@ -30,8 +31,6 @@ describe('EnvironmentPageFilter', () => {
     OrganizationStore.onUpdate(organization, {replace: true});
     ProjectsStore.loadInitialData(projects);
   });
-
-  afterEach(() => PageFiltersStore.reset());
 
   it('renders & handles single selection', async () => {
     const {router} = render(<EnvironmentPageFilter />, {

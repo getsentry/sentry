@@ -1,7 +1,8 @@
+import {createStore} from 'zustand';
+
 import {toast} from '@sentry/scraps/toast';
 
 import {t} from 'sentry/locale';
-import {createLegacyStore} from 'sentry/stores/createLegacyStore';
 import type {BaseGroup, Group, GroupStats} from 'sentry/types/group';
 import {toArray} from 'sentry/utils/array/toArray';
 import {parseApiError} from 'sentry/utils/parseApiError';
@@ -48,7 +49,7 @@ function mergePendingChanges(
   );
 }
 
-const store = createLegacyStore<readonly Item[]>(() => []);
+const store = createStore<readonly Item[]>()(() => []);
 
 export const GroupStore = {
   ...store,
@@ -68,7 +69,7 @@ export const GroupStore = {
     GroupStore.pendingChanges = new Map();
     GroupStore.items = [];
     GroupStore.statuses = {};
-    store.resetState([]);
+    store.setState([], true);
   },
 
   loadInitialData(items: Item[]) {

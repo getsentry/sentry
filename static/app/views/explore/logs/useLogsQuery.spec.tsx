@@ -56,6 +56,7 @@ describe('useInfiniteLogsQuery', () => {
   let mockNow: jest.SpyInstance;
 
   beforeEach(() => {
+    PageFiltersStore.reset();
     jest.resetAllMocks();
     mockNow = jest.spyOn(Date, 'now');
     MockApiClient.clearMockResponses();
@@ -66,7 +67,6 @@ describe('useInfiniteLogsQuery', () => {
 
   afterEach(() => {
     mockNow.mockRestore();
-    PageFiltersStore.reset();
   });
 
   it('should not fetch logs when disabled', () => {
@@ -1056,6 +1056,7 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
   let mockNowInner: jest.SpyInstance;
 
   beforeEach(() => {
+    PageFiltersStore.reset();
     jest.resetAllMocks();
     // jest.resetAllMocks() clears any outer Date.now spy, so we need to re-mock it here
     // with a realistic timestamp so that initializeVirtualTimestamp computes a sane
@@ -1069,7 +1070,6 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
 
   afterEach(() => {
     mockNowInner.mockRestore();
-    PageFiltersStore.reset();
   });
 
   it('should integrate with virtual streaming when auto refresh is enabled', async () => {

@@ -114,6 +114,7 @@ describe('MetricsSamplesExportModalButton', () => {
   let eventsRequest: jest.Mock;
 
   beforeEach(() => {
+    PageFiltersStore.reset();
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
     PageFiltersStore.onInitializeUrlState(
@@ -126,10 +127,6 @@ describe('MetricsSamplesExportModalButton', () => {
       method: 'GET',
       body: {data: []},
     });
-  });
-
-  afterEach(() => {
-    PageFiltersStore.reset();
   });
 
   it('asks the server export for the accuracy the table escalates to', async () => {

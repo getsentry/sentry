@@ -1,5 +1,6 @@
 import {Outlet} from 'react-router';
 import {useProfiler} from '@sentry/react';
+import {useStore} from 'zustand';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Container} from '@sentry/scraps/layout';
@@ -10,7 +11,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
 function OrganizationLoadingIndicator() {
   /* Track how long this component is rendered for. */
@@ -30,7 +30,9 @@ interface Props {
  * rendered while loading the organization.
  */
 export function OrganizationContainer({children}: Props) {
-  const {loading, error, errorType} = useLegacyStore(OrganizationStore);
+  const loading = useStore(OrganizationStore, state => state.loading);
+  const error = useStore(OrganizationStore, state => state.error);
+  const errorType = useStore(OrganizationStore, state => state.errorType);
 
   if (loading) {
     return <OrganizationLoadingIndicator />;

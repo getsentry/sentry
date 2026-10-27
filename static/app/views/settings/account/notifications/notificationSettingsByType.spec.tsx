@@ -94,6 +94,7 @@ function renderComponent({
 describe('NotificationSettingsByType', () => {
   beforeEach(() => {
     OrganizationsStore.init();
+    OrganizationsStore.init();
     MockApiClient.addMockResponse({
       url: '/notification-defaults/',
       method: 'GET',
@@ -103,7 +104,6 @@ describe('NotificationSettingsByType', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    OrganizationsStore.init();
     jest.clearAllMocks();
   });
   it('should render when default is disabled', async () => {

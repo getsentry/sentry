@@ -1,5 +1,6 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {useStore} from 'zustand';
 
 import {Stack} from '@sentry/scraps/layout';
 
@@ -14,7 +15,6 @@ import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingSt
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
 import {ReplayConfigToggle} from 'sentry/components/replaysOnboarding/replayConfigToggle';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -35,7 +35,8 @@ export function ReplayOnboardingLayout({
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
   const [mask, setMask] = useState(true);
   const [block, setBlock] = useState(true);
-  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const isSelfHosted = useStore(ConfigStore, state => state.isSelfHosted);
+  const urlPrefix = useStore(ConfigStore, state => state.urlPrefix);
 
   const {introduction, steps} = useMemo(() => {
     const doc = docsConfig[configType] ?? docsConfig.onboarding;

@@ -1,8 +1,9 @@
+import {createStore} from 'zustand';
+
 import {getGuidesContent} from 'sentry/components/assistant/getGuidesContent';
 import type {Guide, GuidesServerData} from 'sentry/components/assistant/types';
 import {getOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {createLegacyStore} from 'sentry/stores/createLegacyStore';
 import {ModalStore} from 'sentry/stores/modalStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -77,7 +78,7 @@ function isForceEnabled() {
   return window.location.hash === '#assistant';
 }
 
-const store = createLegacyStore<GuideStoreState>(() => ({...defaultState}));
+const store = createStore<GuideStoreState>()(() => ({...defaultState}));
 
 let unsubscribeModalStore: (() => void) | null = null;
 
@@ -97,7 +98,7 @@ export const GuideStore = {
   },
 
   init() {
-    store.resetState({...defaultState, forceShow: isForceEnabled()});
+    store.setState({...defaultState, forceShow: isForceEnabled()}, true);
 
     window.addEventListener('load', onURLChange, false);
 

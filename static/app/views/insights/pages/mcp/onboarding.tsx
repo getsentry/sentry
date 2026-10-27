@@ -1,5 +1,6 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useStore} from 'zustand';
 
 import emptyTraceImg from 'sentry-images/spot/profiling-empty-state.svg';
 
@@ -34,7 +35,6 @@ import {mcpMonitoringPlatforms} from 'sentry/data/platformCategories';
 import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import type {Project} from 'sentry/types/project';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
@@ -178,7 +178,8 @@ function OnboardingPanel({
 
 export function Onboarding() {
   const api = useApi();
-  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const isSelfHosted = useStore(ConfigStore, state => state.isSelfHosted);
+  const urlPrefix = useStore(ConfigStore, state => state.urlPrefix);
   const project = useOnboardingProject();
   const organization = useOrganization();
 

@@ -14,16 +14,13 @@ describe('SegmentSpansTable', () => {
   const project = ProjectFixture({id: '1'});
 
   beforeEach(() => {
+    ProjectsStore.reset();
     MockApiClient.clearMockResponses();
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState(
       PageFiltersFixture({projects: [Number(project.id)]})
     );
     ProjectsStore.loadInitialData([project]);
-  });
-
-  afterEach(() => {
-    ProjectsStore.reset();
   });
 
   it('renders column headers and data rows', async () => {

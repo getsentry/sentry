@@ -1,6 +1,7 @@
+import {createStore} from 'zustand';
+
 import type {PageFilterAdjustments} from 'sentry/components/pageFilters/adjustments';
 import {getDefaultPageFilterSelection} from 'sentry/components/pageFilters/constants';
-import {createLegacyStore} from 'sentry/stores/createLegacyStore';
 import type {PageFilters, PinnedPageFilter, PageFilterDatetime} from 'sentry/types/core';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 
@@ -80,7 +81,7 @@ interface PageFiltersState {
   shouldPersist: boolean;
 }
 
-const store = createLegacyStore<PageFiltersState>(() => ({
+const store = createStore<PageFiltersState>()(() => ({
   isReady: false,
   selection: getDefaultPageFilterSelection(),
   pinnedFilters: new Set(),
@@ -106,7 +107,7 @@ export const PageFiltersStore = {
   },
 
   reset(selection?: PageFilters) {
-    store.resetState(getResetState(selection));
+    store.setState(getResetState(selection), true);
   },
 
   /**
@@ -127,7 +128,7 @@ export const PageFiltersStore = {
   },
 
   onReset() {
-    store.setState(getResetState(), true);
+    PageFiltersStore.reset();
   },
 
   updatePersistence(shouldPersist: boolean) {

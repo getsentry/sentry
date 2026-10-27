@@ -1,7 +1,7 @@
 import type {FocusTrap} from 'focus-trap';
+import {createStore} from 'zustand';
 
 import type {ModalOptions, ModalRenderProps} from 'sentry/actionCreators/modal';
-import {createLegacyStore} from 'sentry/stores/createLegacyStore';
 
 type Renderer = (renderProps: ModalRenderProps) => React.ReactNode;
 
@@ -12,7 +12,7 @@ type State = {
   triggerElement?: HTMLElement | null;
 };
 
-const store = createLegacyStore<State>(() => ({renderer: null, options: {}}));
+const store = createStore<State>()(() => ({renderer: null, options: {}}));
 
 export const ModalStore = {
   ...store,
@@ -22,30 +22,20 @@ export const ModalStore = {
   },
 
   reset() {
-    store.resetState({
-      renderer: null,
-      options: {},
-      focusTrap: store.getState().focusTrap,
-    });
+    store.setState({renderer: null, options: {}, triggerElement: undefined});
   },
 
   closeModal() {
-    store.setState(
-      {renderer: null, options: {}, focusTrap: store.getState().focusTrap},
-      true
-    );
+    ModalStore.reset();
   },
 
   openModal(renderer: Renderer, options: ModalOptions) {
     const triggerElement =
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    store.setState(
-      {renderer, options, focusTrap: store.getState().focusTrap, triggerElement},
-      true
-    );
+    store.setState({renderer, options, triggerElement});
   },
 
   setFocusTrap(focusTrap: FocusTrap) {
-    store.resetState({...store.getState(), focusTrap});
+    store.setState({focusTrap});
   },
 };

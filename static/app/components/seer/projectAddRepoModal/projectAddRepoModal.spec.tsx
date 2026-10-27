@@ -55,13 +55,13 @@ describe('ProjectAddRepoModal', () => {
   }
 
   beforeEach(() => {
+    ProjectsStore.reset();
     ProjectsStore.loadInitialData([project]);
     mockEndpoints();
   });
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    ProjectsStore.reset();
   });
 
   function openAddRepoModal(org = organization) {

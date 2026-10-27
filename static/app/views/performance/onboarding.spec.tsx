@@ -42,6 +42,7 @@ describe('Testing new onboarding ui', () => {
   const organization = OrganizationFixture();
 
   beforeEach(() => {
+    PageFiltersStore.reset();
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/keys/',
       method: 'GET',
@@ -54,10 +55,6 @@ describe('Testing new onboarding ui', () => {
     });
 
     PageFiltersStore.init();
-  });
-
-  afterEach(() => {
-    PageFiltersStore.reset();
   });
 
   it('Renders updated ui', async () => {

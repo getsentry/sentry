@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 import {IconGithub} from '@sentry/icons/github';
 import {IconLink} from '@sentry/icons/link';
 import {IconMoon} from '@sentry/icons/moon';
+import {useStore} from 'zustand';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
@@ -10,7 +11,6 @@ import {Heading} from '@sentry/scraps/text';
 
 import {DebugNotificationsSearch} from 'sentry/debug/notifications/components/debugNotificationsSearch';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {useLocation} from 'sentry/utils/useLocation';
 
 export function DebugNotificationsHeader() {
@@ -76,8 +76,7 @@ const HeaderGrid = styled('div')`
 `;
 
 function ThemeSwitcher() {
-  const config = useLegacyStore(ConfigStore);
-  const isDark = config.theme === 'dark';
+  const isDark = useStore(ConfigStore, state => state.theme === 'dark');
 
   const handleClick = () => {
     ConfigStore.set('theme', isDark ? 'light' : 'dark');

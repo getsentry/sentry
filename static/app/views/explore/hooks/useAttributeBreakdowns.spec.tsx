@@ -8,13 +8,10 @@ import {useAttributeBreakdowns} from 'sentry/views/explore/hooks/useAttributeBre
 
 describe('useAttributeBreakdowns', () => {
   beforeEach(() => {
+    PageFiltersStore.reset();
     MockApiClient.clearMockResponses();
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
-  });
-
-  afterEach(() => {
-    PageFiltersStore.reset();
   });
 
   it('sends the case setting when ignoring case', async () => {

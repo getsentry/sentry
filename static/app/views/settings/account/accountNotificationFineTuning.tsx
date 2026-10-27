@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import {useQuery, keepPreviousData} from '@tanstack/react-query';
 import {parseAsString, useQueryState} from 'nuqs';
 import {z} from 'zod';
+import {useStore} from 'zustand';
 
 import {AutoSaveForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -18,7 +19,6 @@ import {SearchBar} from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Project} from 'sentry/types/project';
 import type {UserEmail} from 'sentry/types/user';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
@@ -100,8 +100,8 @@ function AccountNotificationsByProject({
 }
 
 export function AccountNotificationFineTuning() {
-  const {organizations} = useLegacyStore(OrganizationsStore);
-  const config = useLegacyStore(ConfigStore);
+  const organizations = useStore(OrganizationsStore, state => state.organizations);
+  const customerDomain = useStore(ConfigStore, state => state.customerDomain);
 
   const [orgIdParam, setOrgId] = useQueryState('organizationId', parseAsString);
   const [cursor] = useQueryState('cursor', parseAsString);
@@ -113,7 +113,7 @@ export function AccountNotificationFineTuning() {
   // - default to first org
   const organizationId =
     orgIdParam ??
-    organizations.find(({slug}) => slug === config?.customerDomain?.subdomain)?.id ??
+    organizations.find(({slug}) => slug === customerDomain?.subdomain)?.id ??
     (organizations.length === 1 ? organizations[0]?.id : undefined);
 
   const {

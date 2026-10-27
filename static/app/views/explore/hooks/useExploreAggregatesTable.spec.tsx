@@ -14,12 +14,9 @@ function Wrapper({children}: {children: ReactNode}) {
 }
 describe('useExploreAggregatesTable', () => {
   beforeEach(() => {
+    PageFiltersStore.reset();
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
     jest.clearAllMocks();
-  });
-
-  afterEach(() => {
-    PageFiltersStore.reset();
   });
 
   it('triggers the high accuracy request when there is no data and a partial scan', async () => {

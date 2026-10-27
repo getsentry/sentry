@@ -1,8 +1,8 @@
 import {useEffect, useMemo} from 'react';
 import {useQuery} from '@tanstack/react-query';
+import {useStore} from 'zustand';
 
 import {TeamStore} from 'sentry/stores/teamStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Team} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -49,7 +49,8 @@ function teamsApiOptions(orgSlug: string, property: 'id' | 'slug', values: strin
  */
 export function useTeamsById(options: UseTeamOptions = {}): UseTeamsResult {
   const organization = useOrganization({allowNull: true});
-  const storeState = useLegacyStore(TeamStore);
+  const storeTeams = useStore(TeamStore, state => state.teams);
+  const storeLoading = useStore(TeamStore, state => state.loading);
 
   const teamQueryValues = useMemo<{
     property: 'id' | 'slug';
@@ -68,12 +69,12 @@ export function useTeamsById(options: UseTeamOptions = {}): UseTeamsResult {
 
   const missingValues = teamQueryValues?.values
     ? Array.from(teamQueryValues.values).filter(
-        value => !storeState.teams.some(team => team[teamQueryValues.property] === value)
+        value => !storeTeams.some(team => team[teamQueryValues.property] === value)
       )
     : [];
 
   // Wait until the store has loaded to start fetching
-  const shouldConsiderFetching = !!organization?.slug && !storeState.loading;
+  const shouldConsiderFetching = !!organization?.slug && !storeLoading;
   // Only fetch if there are missing teams
   const hasMissing = missingValues.length > 0;
   const queryEnabled = shouldConsiderFetching && hasMissing;
@@ -101,15 +102,15 @@ export function useTeamsById(options: UseTeamOptions = {}): UseTeamsResult {
 
   const teams = useMemo<Team[]>(() => {
     return teamQueryValues
-      ? storeState.teams.filter(team =>
+      ? storeTeams.filter(team =>
           teamQueryValues.values?.has(team[teamQueryValues.property])
         )
-      : storeState.teams;
-  }, [storeState.teams, teamQueryValues]);
+      : storeTeams;
+  }, [storeTeams, teamQueryValues]);
 
   return {
     teams,
-    isLoading: queryEnabled ? isPending : storeState.loading,
+    isLoading: queryEnabled ? isPending : storeLoading,
     isError: queryEnabled ? isError : null,
   };
 }

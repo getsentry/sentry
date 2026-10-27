@@ -1,6 +1,6 @@
 import isEqual from 'lodash/isEqual';
+import {createStore} from 'zustand';
 
-import {createLegacyStore} from 'sentry/stores/createLegacyStore';
 import type {Group} from 'sentry/types/group';
 
 /**
@@ -34,17 +34,20 @@ interface IssueListCacheState {
 // 30 seconds
 const CACHE_EXPIRATION = 30 * 1000;
 
-const store = createLegacyStore<IssueListCacheState | null>(() => null);
+const store = createStore<IssueListCacheState | null>()(() => null);
 
 export const IssueListCacheStore = {
   ...store,
 
   reset() {
-    store.resetState(null);
+    store.setState(null, true);
   },
 
   save(params: LooseParamsType, data: IssueListCache) {
-    store.resetState({params, cache: data, expiration: Date.now() + CACHE_EXPIRATION});
+    store.setState(
+      {params, cache: data, expiration: Date.now() + CACHE_EXPIRATION},
+      true
+    );
   },
 
   getFromCache(params: LooseParamsType) {

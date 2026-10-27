@@ -1,17 +1,17 @@
 import moment from 'moment-timezone';
+import {createStore} from 'zustand';
 
-import {createLegacyStore} from 'sentry/stores/createLegacyStore';
 import type {Config} from 'sentry/types/system';
 
 // When the app is booted we will _immediately_ hydrate the config store,
 // effecively ensuring this is not empty.
-const store = createLegacyStore<Config>(() => ({}) as Config);
+const store = createStore<Config>()(() => ({}) as Config);
 
 export const ConfigStore = {
   ...store,
 
   init(): void {
-    store.resetState({} as Config);
+    store.setState({} as Config, true);
   },
 
   get<K extends keyof Config>(key: K): Config[K] {

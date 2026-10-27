@@ -8,6 +8,7 @@ import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 import pickBy from 'lodash/pickBy';
 import * as qs from 'query-string';
+import {useStore} from 'zustand';
 
 import type {FeatureBadgeProps} from '@sentry/scraps/badge';
 import {Grid, Stack} from '@sentry/scraps/layout';
@@ -25,7 +26,6 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {PageFilterDatetime} from 'sentry/types/core';
 import type {BaseGroup, Group, PriorityLevel} from 'sentry/types/group';
 import {GroupStatus} from 'sentry/types/group';
@@ -178,7 +178,7 @@ function IssueListOverviewInner({
   const actionTakenRef = useRef(false);
   const {getRunIdForAnalytics} = useAiQueryContext();
 
-  const groups = useLegacyStore(GroupStore);
+  const groups = useStore(GroupStore);
   useEffect(() => {
     const storeGroupIds = groups.map(group => group.id).slice(0, MAX_ISSUES_COUNT);
     if (!isEqual(groupIds, storeGroupIds)) {

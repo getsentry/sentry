@@ -16,6 +16,7 @@ describe('useSpansSaveQuery', () => {
   const organization = OrganizationFixture();
 
   beforeEach(() => {
+    PageFiltersStore.reset();
     PageFiltersStore.onInitializeUrlState(
       PageFiltersFixture({
         projects: [1],
@@ -31,7 +32,6 @@ describe('useSpansSaveQuery', () => {
   });
 
   afterEach(() => {
-    PageFiltersStore.reset();
     MockApiClient.clearMockResponses();
   });
 

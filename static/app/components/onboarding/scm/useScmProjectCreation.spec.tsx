@@ -49,6 +49,8 @@ describe('useScmProjectCreation', () => {
   }
 
   beforeEach(() => {
+    TeamStore.reset();
+    ProjectsStore.reset();
     TeamStore.loadInitialData([adminTeam]);
     ProjectsStore.loadInitialData([]);
     MockApiClient.addMockResponse({
@@ -67,8 +69,6 @@ describe('useScmProjectCreation', () => {
   });
 
   afterEach(() => {
-    TeamStore.reset();
-    ProjectsStore.reset();
     MockApiClient.clearMockResponses();
   });
 

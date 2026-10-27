@@ -4,6 +4,7 @@ import {css, type Interpolation, type Theme, useTheme} from '@emotion/react';
 import type {FocusTrap} from 'focus-trap';
 import {createFocusTrap} from 'focus-trap';
 import {AnimatePresence, motion} from 'framer-motion';
+import {useStore} from 'zustand';
 
 import {Backdrop} from '@sentry/scraps/backdrop';
 import {Container, ContainerQueryProvider, Flex, Surface} from '@sentry/scraps/layout';
@@ -12,7 +13,6 @@ import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
 import {ROOT_ELEMENT} from 'sentry/constants';
 import {ModalStore} from 'sentry/stores/modalStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {getModalPortal} from 'sentry/utils/getModalPortal';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -99,7 +99,7 @@ export type ModalTypes = {
 };
 
 function useModalStore() {
-  const store = useLegacyStore(ModalStore);
+  const store = useStore(ModalStore);
   return {
     ...store,
     visible: typeof store.renderer === 'function',
@@ -333,7 +333,8 @@ interface UseModalReturn {
 }
 
 export function useModal(): UseModalReturn {
-  const store = useLegacyStore(ModalStore);
+  const modalRenderer = useStore(ModalStore, state => state.renderer);
+  const focusTrap = useStore(ModalStore, state => state.focusTrap);
 
   const openModal = useCallback(
     (
@@ -349,14 +350,14 @@ export function useModal(): UseModalReturn {
     ModalStore.closeModal();
   }, []);
 
-  const isOpen = typeof store.renderer === 'function';
+  const isOpen = typeof modalRenderer === 'function';
 
   return {
     openModal,
     closeModal: closeModalFn,
     isOpen,
     visible: isOpen,
-    focusTrap: store.focusTrap,
+    focusTrap,
   };
 }
 

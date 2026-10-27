@@ -1,5 +1,6 @@
+import {createStore} from 'zustand';
+
 import {clearQueryCache} from 'sentry/appQueryClient';
-import {createLegacyStore} from 'sentry/stores/createLegacyStore';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 
@@ -8,7 +9,7 @@ type State = {
   projects: Project[];
 };
 
-const store = createLegacyStore<State>(() => ({projects: [], loading: true}));
+const store = createStore<State>()(() => ({projects: [], loading: true}));
 
 function setProjects(projects: Project[]) {
   store.setState({projects});
@@ -30,7 +31,7 @@ export const ProjectsStore = {
   },
 
   reset() {
-    store.resetState({projects: [], loading: true});
+    store.setState({projects: [], loading: true}, true);
   },
 
   loadInitialData(items: Project[]) {

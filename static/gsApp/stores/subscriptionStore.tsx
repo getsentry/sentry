@@ -1,5 +1,6 @@
+import {createStore} from 'zustand';
+
 import {Client} from 'sentry/api';
-import {createLegacyStore} from 'sentry/stores/createLegacyStore';
 
 import type {Subscription} from 'getsentry/types';
 
@@ -14,7 +15,7 @@ type LoadOptions = {
  */
 type Subscriptions = Record<string, Subscription>;
 
-const store = createLegacyStore<Subscriptions>(() => ({}));
+const store = createStore<Subscriptions>()(() => ({}));
 
 export const SubscriptionStore = {
   ...store,
@@ -26,7 +27,7 @@ export const SubscriptionStore = {
     SubscriptionStore.api = new Client();
     SubscriptionStore.loadingData = {};
     SubscriptionStore.callbacks = {};
-    store.resetState({});
+    store.setState({}, true);
   },
 
   set(orgSlug: string, data: Partial<Subscription>) {

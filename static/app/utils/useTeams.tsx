@@ -1,11 +1,11 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import uniqBy from 'lodash/uniqBy';
+import {useStore} from 'zustand';
 
 import {fetchUserTeams} from 'sentry/actionCreators/teams';
 import type {Client} from 'sentry/api';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {TeamStore} from 'sentry/stores/teamStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Team} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
@@ -170,8 +170,8 @@ async function fetchTeams(
  */
 export function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
   const api = useApi();
-  const {organization} = useLegacyStore(OrganizationStore);
-  const store = useLegacyStore(TeamStore);
+  const organization = useStore(OrganizationStore, state => state.organization);
+  const store = useStore(TeamStore);
 
   const orgId = organization?.slug;
 

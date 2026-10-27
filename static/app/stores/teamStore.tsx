@@ -1,4 +1,5 @@
-import {createLegacyStore} from 'sentry/stores/createLegacyStore';
+import {createStore} from 'zustand';
+
 import type {Team} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 
@@ -20,7 +21,7 @@ const initialState: State = {
   cursor: null,
 };
 
-const store = createLegacyStore<State>(() => initialState);
+const store = createStore<State>()(() => initialState);
 
 function updateTeams(teams: Team[]) {
   const teamIdMap = store
@@ -48,7 +49,7 @@ export const TeamStore = {
   },
 
   reset() {
-    store.resetState(initialState);
+    store.setState(initialState, true);
   },
 
   setTeams(teams: Team[], hasMore?: boolean | null, cursor?: string | null) {

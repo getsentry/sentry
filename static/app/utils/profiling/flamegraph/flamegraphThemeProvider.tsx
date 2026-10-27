@@ -1,9 +1,9 @@
 import {createContext, useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import cloneDeep from 'lodash/cloneDeep';
+import {useStore} from 'zustand';
 
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {
   makeDarkFlamegraphTheme,
@@ -29,7 +29,7 @@ function FlamegraphThemeProvider(
   props: FlamegraphThemeProviderProps
 ): React.ReactElement {
   const theme = useTheme();
-  const {theme: colorMode} = useLegacyStore(ConfigStore);
+  const colorMode = useStore(ConfigStore, state => state.theme);
   const [mutation, setMutation] = useState<FlamegraphThemeMutationCallback | null>(null);
 
   const addModifier = useCallback((cb: FlamegraphThemeMutationCallback) => {

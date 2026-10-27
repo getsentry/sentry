@@ -415,11 +415,8 @@ describe('ExploreCharts', () => {
     const features = ['explore-data-fidelity-annotations'];
 
     beforeEach(() => {
-      PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
-    });
-
-    afterEach(() => {
       PageFiltersStore.reset();
+      PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
     });
 
     function renderCharts({

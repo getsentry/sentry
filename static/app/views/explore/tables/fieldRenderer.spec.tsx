@@ -50,6 +50,7 @@ describe('FieldRenderer tests', () => {
   const eventView = EventView.fromLocation(location);
 
   beforeEach(() => {
+    ProjectsStore.reset();
     const mockTimestamp = new Date('2024-10-06T00:00:00').getTime();
     setMockDate(mockTimestamp);
 
@@ -67,7 +68,6 @@ describe('FieldRenderer tests', () => {
   afterEach(() => {
     jest.restoreAllMocks();
     resetMockDate();
-    ProjectsStore.reset();
   });
 
   it('renders span.op', () => {

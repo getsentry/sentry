@@ -52,11 +52,8 @@ function ChartWithLateConsumer() {
 
 describe('useDroppedData', () => {
   beforeEach(() => {
-    PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
-  });
-
-  afterEach(() => {
     PageFiltersStore.reset();
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
   });
 
   it('requests dropped events and returns them', async () => {

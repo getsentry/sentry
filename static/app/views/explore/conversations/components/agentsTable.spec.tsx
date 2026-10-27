@@ -26,6 +26,7 @@ const conversationsResult = {
 
 describe('AgentsTable', () => {
   beforeEach(() => {
+    PageFiltersStore.reset();
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState({
       projects: [Number(project.id)],
@@ -52,7 +53,6 @@ describe('AgentsTable', () => {
   });
 
   afterEach(() => {
-    PageFiltersStore.reset();
     ProjectsStore.reset();
     MockApiClient.clearMockResponses();
   });

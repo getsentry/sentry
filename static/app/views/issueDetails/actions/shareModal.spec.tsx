@@ -15,6 +15,7 @@ describe('ShareIssueModal', () => {
   const onToggle = jest.fn();
 
   beforeEach(() => {
+    GroupStore.reset();
     GroupStore.init();
     Object.assign(navigator, {
       clipboard: {
@@ -23,7 +24,6 @@ describe('ShareIssueModal', () => {
     });
   });
   afterEach(() => {
-    GroupStore.reset();
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
   });

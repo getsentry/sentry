@@ -1,13 +1,14 @@
-import {createLegacyStore} from 'sentry/stores/createLegacyStore';
+import {createStore} from 'zustand';
+
 import type {Tag, TagCollection} from 'sentry/types/group';
 
-const store = createLegacyStore<TagCollection>(() => ({}));
+const store = createStore<TagCollection>()(() => ({}));
 
 export const TagStore = {
   ...store,
 
   init() {
-    store.resetState({});
+    store.setState({}, true);
   },
 
   reset() {

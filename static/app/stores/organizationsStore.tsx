@@ -1,4 +1,5 @@
-import {createLegacyStore} from 'sentry/stores/createLegacyStore';
+import {createStore} from 'zustand';
+
 import type {OrganizationSummary} from 'sentry/types/organization';
 
 interface State {
@@ -6,13 +7,13 @@ interface State {
   organizations: OrganizationSummary[];
 }
 
-const store = createLegacyStore<State>(() => ({organizations: [], loaded: false}));
+const store = createStore<State>()(() => ({organizations: [], loaded: false}));
 
 export const OrganizationsStore = {
   ...store,
 
   init() {
-    store.resetState({organizations: [], loaded: false});
+    store.setState({organizations: [], loaded: false}, true);
   },
 
   onUpdate(org: Partial<OrganizationSummary>) {
