@@ -14,6 +14,7 @@ import {
   isLastStepPrIteration,
   isPullRequestsSection,
   isRootCauseSection,
+  isSingleRunAutofix,
   isSolutionSection,
   useExplorerAutofix,
   type AutofixSection,
@@ -25,6 +26,7 @@ import {SeerDrawerNextStep} from 'sentry/components/events/autofix/v3/nextStep';
 import {PullRequestsCard} from 'sentry/components/events/autofix/v3/pullRequestsCard';
 import {RootCauseCard} from 'sentry/components/events/autofix/v3/rootCauseCard';
 import {SeerEnableNotifications} from 'sentry/components/events/autofix/v3/seerEnableNotifications';
+import {SingleRunChat} from 'sentry/components/events/autofix/v3/singleRunChat';
 import {SolutionCard} from 'sentry/components/events/autofix/v3/solutionCard';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
@@ -67,6 +69,10 @@ export function SeerDrawerContent({
 
   if (!autofix.runState && aiConfig.hasAutofix) {
     return <AutofixStartCard autofix={autofix} group={group} />;
+  }
+
+  if (isSingleRunAutofix(autofix.runState)) {
+    return <SingleRunChat autofix={autofix} />;
   }
 
   return (

@@ -892,7 +892,7 @@ interface SeerExplorerTranscriptProps {
  * doesn't re-render every message, and `ResponseGroup`/`BlockComponent` are memoized so a poll only
  * re-renders the segments whose blocks actually changed.
  */
-const SeerExplorerTranscript = memo(function SeerExplorerTranscript({
+export const SeerExplorerTranscript = memo(function SeerExplorerTranscript({
   blocks,
   getPageReferrer,
   interactionPending,

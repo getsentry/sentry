@@ -666,6 +666,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                 "autofix": {
                     "run_id": state.run_id,
                     "sentry_run_id": str(run.uuid) if run else None,
+                    "feature_id": (state.metadata or {}).get("feature_id"),
                     "status": state.status,
                     "blocks": blocks,
                     "updated_at": state.updated_at,

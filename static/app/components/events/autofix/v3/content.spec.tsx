@@ -1,8 +1,12 @@
 import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import type {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
+import type {
+  ExplorerAutofixState,
+  useExplorerAutofix,
+} from 'sentry/components/events/autofix/useExplorerAutofix';
 import type {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 
 import {SeerDrawerContent} from './content';
@@ -79,6 +83,92 @@ describe('SeerDrawerContent', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Start Analysis'}));
 
-    expect(startStep).toHaveBeenCalledWith('root_cause', {enableBashMode: true});
+    expect(startStep).toHaveBeenCalledWith('root_cause', {
+      enableBashMode: true,
+    });
+  });
+
+  describe('single run', () => {
+    const runState: ExplorerAutofixState = {
+      run_id: 7,
+      feature_id: 'autofix_single_run',
+      status: 'completed',
+      updated_at: '2026-10-27T00:00:00Z',
+      blocks: [
+        {
+          id: 'block-0',
+          timestamp: '2026-10-27T00:00:00Z',
+          message: {role: 'user', content: 'Fix issue SENTRY-1 end to end.'},
+        },
+        {
+          id: 'block-1',
+          timestamp: '2026-10-27T00:00:00Z',
+          message: {
+            role: 'assistant',
+            content: 'The divisor is never checked for zero.',
+          },
+        },
+      ],
+      repo_pr_states: {
+        'owner/repo': {
+          repo_name: 'owner/repo',
+          branch_name: 'seer/fix-divide-by-zero',
+          commit_sha: 'abc123',
+          pr_creation_error: null,
+          pr_creation_status: 'completed',
+          pr_id: 1,
+          pr_number: 42,
+          pr_url: 'https://github.com/owner/repo/pull/42',
+          title: 'Guard against a zero divisor',
+        },
+      },
+    };
+
+    it('renders the run as a chat with its pull request', () => {
+      render(
+        <SeerDrawerContent
+          aiConfig={makeAiConfig()}
+          autofix={makeAutofix({runState})}
+          group={GroupFixture()}
+        />,
+        {
+          organization: OrganizationFixture({
+            features: ['seer-explorer', 'gen-ai-features'],
+            openMembership: true,
+          }),
+        }
+      );
+
+      expect(
+        screen.getByText('The divisor is never checked for zero.')
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText('Fix issue SENTRY-1 end to end.')
+      ).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'View owner/repo#42'})).toHaveAttribute(
+        'href',
+        'https://github.com/owner/repo/pull/42'
+      );
+      expect(
+        screen.getByRole('button', {name: 'Open in Seer Explorer'})
+      ).toBeInTheDocument();
+    });
+
+    it('hides the Seer Explorer link without Seer Explorer', () => {
+      render(
+        <SeerDrawerContent
+          aiConfig={makeAiConfig()}
+          autofix={makeAutofix({runState})}
+          group={GroupFixture()}
+        />
+      );
+
+      expect(
+        screen.getByText('The divisor is never checked for zero.')
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Open in Seer Explorer'})
+      ).not.toBeInTheDocument();
+    });
   });
 });
