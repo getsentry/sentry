@@ -14,6 +14,7 @@ from sentry.replays.usecases.ingest.event_logger import (
     emit_trace_items_to_eap,
     gen_rage_clicks,
     log_multiclick_events,
+    log_option_events,
     log_rage_click_events,
 )
 from sentry.replays.usecases.ingest.event_parser import (
@@ -299,3 +300,51 @@ def test_log_rage_click_events(
         assert second_call[1]["extra"]["project_id"] == 1
         assert second_call[1]["extra"]["replay_id"] == "test-replay-id"
         assert second_call[1]["extra"]["node_id"] == 2
+
+
+@mock.patch("sentry.replays.usecases.ingest.event_logger.logger")
+def test_log_option_events_with_dict_payload(mock_logger: mock.MagicMock) -> None:
+    """Test that option events with a normal dict payload are logged correctly."""
+    option = {"data": {"payload": {"tag": "input", "value": "test"}}}
+    meta = ParsedEventMeta([], [], [], [], [], [option], [], [])
+
+    log_option_events(meta, project_id=1, replay_id="test-replay-id")
+
+    mock_logger.info.assert_called_once()
+    call_args = mock_logger.info.call_args
+    assert call_args[0][0] == "sentry.replays.slow_click"
+    assert call_args[1]["extra"]["tag"] == "input"
+    assert call_args[1]["extra"]["value"] == "test"
+    assert call_args[1]["extra"]["project_id"] == 1
+    assert call_args[1]["extra"]["replay_id"] == "test-replay-id"
+
+
+@mock.patch("sentry.replays.usecases.ingest.event_logger.logger")
+def test_log_option_events_with_filtered_string_payload(mock_logger: mock.MagicMock) -> None:
+    """Test that option events whose payload was Relay-scrubbed to a string do not raise."""
+    option = {"data": {"payload": "[Filtered]"}}
+    meta = ParsedEventMeta([], [], [], [], [], [option], [], [])
+
+    # Must not raise AttributeError: 'str' object has no attribute 'copy'
+    log_option_events(meta, project_id=1, replay_id="test-replay-id")
+
+    mock_logger.info.assert_called_once()
+    call_args = mock_logger.info.call_args
+    assert call_args[0][0] == "sentry.replays.slow_click"
+    assert call_args[1]["extra"]["project_id"] == 1
+    assert call_args[1]["extra"]["replay_id"] == "test-replay-id"
+
+
+@mock.patch("sentry.replays.usecases.ingest.event_logger.logger")
+def test_log_option_events_with_missing_payload(mock_logger: mock.MagicMock) -> None:
+    """Test that option events without a payload key are logged correctly."""
+    option = {"data": {}}
+    meta = ParsedEventMeta([], [], [], [], [], [option], [], [])
+
+    log_option_events(meta, project_id=1, replay_id="test-replay-id")
+
+    mock_logger.info.assert_called_once()
+    call_args = mock_logger.info.call_args
+    assert call_args[0][0] == "sentry.replays.slow_click"
+    assert call_args[1]["extra"]["project_id"] == 1
+    assert call_args[1]["extra"]["replay_id"] == "test-replay-id"

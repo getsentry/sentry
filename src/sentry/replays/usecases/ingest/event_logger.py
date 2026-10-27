@@ -217,7 +217,8 @@ def log_mutation_events(event_meta: ParsedEventMeta, project_id: int, replay_id:
 @traces.trace
 def log_option_events(event_meta: ParsedEventMeta, project_id: int, replay_id: str) -> None:
     for option in event_meta.options_events:
-        log = option["data"].get("payload", {}).copy()
+        payload = option["data"].get("payload", {})
+        log = payload.copy() if isinstance(payload, dict) else {}
         log["project_id"] = project_id
         log["replay_id"] = replay_id
         logger.info("sentry.replays.slow_click", extra=log)
