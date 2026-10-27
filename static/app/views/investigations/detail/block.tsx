@@ -151,8 +151,8 @@ function InvestigationNotebookBlockInner({
     ? () =>
         askSeer({
           prompt: block.title
-            ? t('How would you like to refine or explore "%s"?', block.title)
-            : t('How would you like to refine or explore this block?'),
+            ? t('How do you want to steer the investigation: "%s"?', block.title)
+            : t('How do you want to steer this block?'),
           context: {
             investigation: getInvestigationReference(investigation),
             block: blockLLMContext,

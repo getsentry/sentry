@@ -1668,7 +1668,7 @@ describe('Investigation detail', () => {
 
     expect(openChatPrompt).toHaveBeenCalledTimes(1);
     expect(openChatPrompt).toHaveBeenCalledWith({
-      prompt: 'How would you like to refine or explore "Latency query"?',
+      prompt: 'How do you want to steer the investigation: "Latency query"?',
       context: {
         investigation: {
           id: 'investigation-1',
@@ -1698,7 +1698,7 @@ describe('Investigation detail', () => {
     await chooseBlockAction('Summary', 'Ask Seer');
 
     expect(openChatPrompt).toHaveBeenCalledWith({
-      prompt: 'How would you like to refine or explore "Summary"?',
+      prompt: 'How do you want to steer the investigation: "Summary"?',
       context: {
         investigation: {
           id: 'investigation-1',
@@ -2218,7 +2218,7 @@ describe('Investigation detail', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Ask Seer'}));
     expect(openChatPrompt).toHaveBeenCalledWith(
       expect.objectContaining({
-        prompt: 'How would you like to refine or explore "Summary"?',
+        prompt: 'How do you want to steer the investigation: "Summary"?',
       })
     );
   });
