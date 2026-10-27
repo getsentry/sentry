@@ -157,6 +157,30 @@ export function SeerExplorerChatStateProvider({children}: {children: ReactNode})
   );
 }
 
+export function SeerExplorerRunScopedProvider({
+  children,
+  runId,
+}: {
+  children: ReactNode;
+  runId: SeerExplorerRunId;
+}) {
+  const [state, dispatch] = useReducer(chatStateReducer, {
+    runId,
+    chatPrompt: null,
+    chatStates: {},
+  });
+
+  return (
+    <SeerExplorerChatDispatchContext.Provider value={dispatch}>
+      <SeerExplorerChatStateContext.Provider value={state}>
+        <SeerExplorerChatStatePolling runId={state.runId} dispatch={dispatch}>
+          {children}
+        </SeerExplorerChatStatePolling>
+      </SeerExplorerChatStateContext.Provider>
+    </SeerExplorerChatDispatchContext.Provider>
+  );
+}
+
 function SeerExplorerChatStatePolling({
   children,
   runId,
