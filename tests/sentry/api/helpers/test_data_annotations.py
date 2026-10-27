@@ -5,15 +5,16 @@ from datetime import datetime, timedelta
 from sentry.api.helpers.data_annotations import get_dropped_data_annotations
 from sentry.constants import DataCategory
 from sentry.search.events.types import SnubaParams
+from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.spans_rpc import Spans
-from sentry.testutils.cases import OutcomesSnubaTest
+from sentry.testutils.cases import OurLogTestCase, OutcomesSnubaTest, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.outcomes import Outcome
 
 ONE_HOUR = 3600
 
 
-class GetDroppedDataAnnotationsTest(OutcomesSnubaTest):
+class GetDroppedDataAnnotationsTest(OutcomesSnubaTest, SnubaTestCase, OurLogTestCase):
     def setUp(self) -> None:
         super().setUp()
         # Align to an hour boundary so the hourly Outcomes rollup buckets cleanly.
@@ -84,3 +85,60 @@ class GetDroppedDataAnnotationsTest(OutcomesSnubaTest):
         assert dropped == []
         assert len(accepted) == 1
         assert accepted[0]["eventCount"] == 5000
+
+    def _store_sdk_log(self, sdk_name: str, sdk_version: str) -> None:
+        self.store_eap_items(
+            [
+                self.create_ourlog(
+                    timestamp=self.start + timedelta(minutes=30),
+                    attributes={"sentry.sdk.name": sdk_name, "sentry.sdk.version": sdk_version},
+                )
+            ]
+        )
+
+    def _store_log_drops(self) -> None:
+        when = self.start + timedelta(minutes=30)
+        self._store_drop(
+            Outcome.CLIENT_DISCARD,
+            DataCategory.LOG_ITEM,
+            when,
+            reason="buffer_overflow",
+            quantity=300,
+        )
+        self._store_drop(
+            Outcome.RATE_LIMITED, DataCategory.LOG_ITEM, when, reason="key_quota", quantity=100
+        )
+
+    def test_hides_log_buffer_overflow_from_old_js_sdk(self) -> None:
+        self._store_log_drops()
+        self._store_sdk_log("sentry.javascript.browser", "10.5.0")
+
+        dropped, _, suppressed = get_dropped_data_annotations(
+            OurLogs, self._snuba_params(), ONE_HOUR
+        )
+
+        assert [(d["outcome"], d["reason"]) for d in dropped] == [
+            (Outcome.RATE_LIMITED.api_name(), "key_quota")
+        ]
+        assert suppressed == [
+            {
+                "cause": "js_sdk_below_11",
+                "category": DataCategory.LOG_ITEM.api_name(),
+                "outcome": Outcome.CLIENT_DISCARD.api_name(),
+                "reason": "buffer_overflow",
+                "count": 300,
+            }
+        ]
+
+    def test_keeps_log_buffer_overflow_without_old_js_sdk(self) -> None:
+        # Neither an 11.x prerelease nor an older non-JavaScript SDK is affected.
+        self._store_log_drops()
+        self._store_sdk_log("sentry.javascript.browser", "11.0.0-beta.1")
+        self._store_sdk_log("sentry.python", "2.0.0")
+
+        dropped, _, suppressed = get_dropped_data_annotations(
+            OurLogs, self._snuba_params(), ONE_HOUR
+        )
+
+        assert {d["reason"] for d in dropped} == {"buffer_overflow", "key_quota"}
+        assert suppressed == []
