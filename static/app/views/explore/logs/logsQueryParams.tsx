@@ -108,6 +108,7 @@ export function getReadableLogsQueryParams(values: LogsQueryValues): ReadableQue
   });
 }
 
+/** @internal used in tests */
 export function getReadableQueryParamsFromLocation(
   location: Location
 ): ReadableQueryParams {
