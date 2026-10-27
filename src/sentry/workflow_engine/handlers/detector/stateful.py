@@ -1,6 +1,7 @@
 import abc
 import dataclasses
 import time
+from collections.abc import Mapping
 from datetime import datetime, timedelta
 from typing import Any, ClassVar, override
 from uuid import uuid4
@@ -18,8 +19,8 @@ from sentry.utils import metrics, redis
 from sentry.workflow_engine.handlers.detector.base import (
     DataPacketEvaluationType,
     DataPacketType,
+    DetectorEvaluations,
     EventData,
-    GroupedDetectorEvaluationResult,
 )
 from sentry.workflow_engine.handlers.detector.condition import DetectorHandler
 from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
@@ -445,37 +446,38 @@ class StatefulDetectorHandler(
     def get_occurrence_id(self, group_key: DetectorGroupKey, event_id: str) -> str:
         return event_id
 
-    # TODO: The stateful detector handler overrides the default evaluation logic of DetectorHandler.evaluate, yet shares
-    # much of the same logic. Refactor this method to use super().evaluate() supplemented with the state manager logic.
     @override
-    def evaluate(self, data_packet: DataPacket[DataPacketType]) -> GroupedDetectorEvaluationResult:
+    def evaluate(
+        self,
+        data_packet: DataPacket[DataPacketType],
+        values: Mapping[DetectorGroupKey, DataPacketEvaluationType],
+    ) -> DetectorEvaluations:
+        """
+        Layers dedupe, priority thresholds, and durable state over `DetectorHandler.evaluate`.
+
+        Groups that already processed this packet's dedupe value are skipped. Each remaining group's
+        condition evaluation advances its threshold counters, and only priority transitions produce
+        a result: an occurrence for a non-OK priority, or a resolution when the group returns to OK.
+        """
         dedupe_value = self.extract_dedupe_value(data_packet)
-        group_data_values = self._extract_value(data_packet)
-        state = self.state_manager.get_state_data(list(group_data_values.keys()))
+        state = self.state_manager.get_state_data(list(values.keys()))
         regression_timeout = self._get_regression_timeout()
-        results: dict[DetectorGroupKey, DetectorEvaluation] = {}
+        unprocessed_values: dict[DetectorGroupKey, DataPacketEvaluationType] = {}
 
-        tainted = False
-
-        for group_key, data_value in group_data_values.items():
-            state_data: DetectorStateData = state[group_key]
-            if dedupe_value <= state_data.dedupe_value:
+        for group_key, data_value in values.items():
+            if dedupe_value <= state[group_key].dedupe_value:
                 metrics.incr("workflow_engine.detector.skipping_already_processed_update")
                 continue
 
             self.state_manager.enqueue_dedupe_update(group_key, dedupe_value)
+            unprocessed_values[group_key] = data_value
 
-            detector_trigger_evaluation, evaluated_priority = self.evaluate_conditions(
-                group_data_values[group_key]
-            )
+        condition_evaluations = super().evaluate(data_packet, unprocessed_values)
+        results: dict[DetectorGroupKey, DetectorEvaluation] = {}
 
-            if detector_trigger_evaluation is not None and detector_trigger_evaluation.is_tainted():
-                tainted = True
-
-            if detector_trigger_evaluation is None or not detector_trigger_evaluation.triggered:
-                # Invalid condition result, nothing we can do
-                # Or if we didn't match any conditions in the evaluation
-                continue
+        for group_key, condition_evaluation in condition_evaluations.evaluations.items():
+            state_data = state[group_key]
+            evaluated_priority = condition_evaluation.priority
 
             if state_data.status == evaluated_priority:
                 # evaluated priority is equal to current detector state.
@@ -515,18 +517,17 @@ class StatefulDetectorHandler(
                 new_priority,
                 activation_id,
             )
-
             results[group_key] = self._build_detector_evaluation_result(
                 group_key,
                 new_priority,
-                detector_trigger_evaluation,
+                condition_evaluation.data["trigger_group_evaluation"],
                 data_packet,
-                data_value,
+                unprocessed_values[group_key],
                 activation_id,
             )
 
         self.state_manager.commit_state_updates()
-        return GroupedDetectorEvaluationResult(result=results, tainted=tainted)
+        return DetectorEvaluations(evaluations=results, tainted=condition_evaluations.tainted)
 
     def _create_resolve_message(
         self,
@@ -563,7 +564,7 @@ class StatefulDetectorHandler(
         self,
         group_key: DetectorGroupKey,
         new_priority: DetectorPriorityLevel,
-        group_evaluation: DataConditionGroupEvaluation,
+        group_evaluation: DataConditionGroupEvaluation | None,
         data_packet: DataPacket[DataPacketType],
         evaluation_value: DataPacketEvaluationType,
         activation_id: int | None = None,
@@ -579,7 +580,6 @@ class StatefulDetectorHandler(
 
         return self._create_occurrence(
             DetectorEvaluation.create_issue(group_key, new_priority, group_evaluation),
-            group_evaluation,
             data_packet,
             evaluation_value,
             fingerprint=fingerprint,
