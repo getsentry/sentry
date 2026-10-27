@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, Sequence
 from typing import Any
+from uuid import UUID, uuid5
 
 from django.db import router, transaction
 from django.db.models import Q, QuerySet
@@ -30,8 +31,11 @@ from sentry.investigations.services.action_kinds.base import (
     ApplyFailed,
     CannotApplyReason,
 )
+from sentry.investigations.services.orchestration import accept_orchestration_command
 
 logger = logging.getLogger(__name__)
+
+_OUTCOME_NAMESPACE = UUID("3d84e9e2-ed0b-4707-8dfc-8fce87c899ae")
 
 
 LIVE_STATES = (
@@ -281,6 +285,31 @@ def _check_can_apply(
     )
 
 
+def _seer_actor(investigation: Investigation, user_id: int) -> int:
+    # Send commands as the creator, so Seer keeps the run's monitoring connections.
+    return investigation.created_by_id or user_id
+
+
+def _queue_outcome(context: ApplyContext) -> None:
+    """Tell Seer the request was applied."""
+
+    action_request = context.action_request
+    accept_orchestration_command(
+        investigation=context.investigation,
+        request_id=uuid5(_OUTCOME_NAMESPACE, f"{action_request.id}:applied"),
+        expected_workflow_version=context.run.workflow_version,
+        command_type="record_action_outcome",
+        payload={
+            "key": action_request.key,
+            "action": action_request.action_payload,
+            "reportRevision": action_request.report_revision,
+            "outcome": "applied",
+            "appliedBy": context.actor_id,
+        },
+        actor_id=_seer_actor(context.investigation, context.actor_id),
+    )
+
+
 def _apply(
     *,
     investigation: Investigation,
@@ -354,6 +383,7 @@ def _apply(
         applied_details=details,
         error=None,
     )
+    _queue_outcome(context)
     return action_request
 
 
