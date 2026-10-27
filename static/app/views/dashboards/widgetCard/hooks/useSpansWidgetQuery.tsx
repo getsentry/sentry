@@ -25,6 +25,7 @@ import {getTimeseriesRequestQuery} from 'sentry/views/dashboards/datasetConfig/u
 import {spansResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/spansResponseTransforms';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import {remapTransformations} from 'sentry/views/dashboards/utils/transformations';
 import {
   combineIngestionMeta,
   type WidgetTimeSeries,
@@ -151,6 +152,14 @@ function withValidConditionalAggregates(widget: Widget, queryIndex: number): Wid
       return {
         ...widgetQuery,
         aggregates: validAggregates,
+        ...(widgetQuery.transformations && {
+          transformations: remapTransformations(
+            widgetQuery.transformations,
+            aggregates.flatMap((aggregate, aggregateIndex) =>
+              validAggregateSet.has(aggregate) ? [aggregateIndex] : []
+            )
+          ),
+        }),
         orderby: nextOrderby,
         fields: widgetQuery.fields
           ? originalFields.filter((_, fieldIndex) => keep[fieldIndex])
@@ -205,6 +214,7 @@ export function useSpansSeriesQuery(
       pageFilters,
       DiscoverDatasets.SPANS,
       {
+        organization,
         referrer: getReferrer(filteredWidget.displayType),
         widgetInterval,
         sampling: samplingMode,
