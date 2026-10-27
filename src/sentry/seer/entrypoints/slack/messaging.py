@@ -52,6 +52,7 @@ from sentry.utils.registry import NoRegistrationExistsError
 if TYPE_CHECKING:
     from sentry.integrations.slack.integration import SlackIntegration
     from sentry.integrations.slack.requests.action import SlackActionRequest
+    from sentry.integrations.utils.metrics import EventLifecycle
     from sentry.seer.entrypoints.slack.entrypoint import SlackThreadDetails
 
 
@@ -260,6 +261,34 @@ def _transform_block_actions(
     return result
 
 
+def _send_message_update(
+    *,
+    install: SlackIntegration,
+    channel_id: str,
+    message_ts: str,
+    data: SeerAutofixUpdate | SeerInvestigationStarted,
+    renderable: SlackRenderable,
+    link_decorator: NotificationLinkDecorator,
+    lifecycle: EventLifecycle,
+) -> None:
+    try:
+        install.update_message(channel_id=channel_id, message_ts=message_ts, renderable=renderable)
+    except (IntegrationError, IntegrationConfigurationError) as e:
+        lifecycle.record_halt(halt_reason=e)
+        return
+
+    record_sent(
+        NotificationTrackingContext(
+            source=data.source,
+            provider=NotificationProviderKey.SLACK,
+            category=template_registry.get(data.source).category,
+            notification_uuid=data.notification_uuid,
+            organization_id=data.organization_id,
+        ),
+        links=link_decorator.links,
+    )
+
+
 def update_existing_message(
     *,
     request: SlackActionRequest,
@@ -334,23 +363,14 @@ def update_existing_message(
             text=original_text,
         )
 
-        try:
-            install.update_message(
-                channel_id=channel_id, message_ts=message_ts, renderable=renderable
-            )
-        except (IntegrationError, IntegrationConfigurationError) as e:
-            lifecycle.record_halt(halt_reason=e)
-            return
-
-        record_sent(
-            NotificationTrackingContext(
-                source=data.source,
-                provider=NotificationProviderKey.SLACK,
-                category=template_registry.get(data.source).category,
-                notification_uuid=data.notification_uuid,
-                organization_id=data.organization_id,
-            ),
-            links=link_decorator.links,
+        _send_message_update(
+            install=install,
+            channel_id=channel_id,
+            message_ts=message_ts,
+            data=data,
+            renderable=renderable,
+            link_decorator=link_decorator,
+            lifecycle=lifecycle,
         )
 
 
@@ -398,25 +418,14 @@ def update_investigation_alert_message(
             }
             for attachment in original_attachments
         ]
-        try:
-            install.update_message(
-                channel_id=channel_id,
-                message_ts=message_ts,
-                renderable=SlackRenderable(blocks=[], attachments=attachments, text=original_text),
-            )
-        except (IntegrationError, IntegrationConfigurationError) as e:
-            lifecycle.record_halt(halt_reason=e)
-            return
-
-        record_sent(
-            NotificationTrackingContext(
-                source=data.source,
-                provider=NotificationProviderKey.SLACK,
-                category=template_registry.get(data.source).category,
-                notification_uuid=data.notification_uuid,
-                organization_id=data.organization_id,
-            ),
-            links=link_decorator.links,
+        _send_message_update(
+            install=install,
+            channel_id=channel_id,
+            message_ts=message_ts,
+            data=data,
+            renderable=SlackRenderable(blocks=[], attachments=attachments, text=original_text),
+            link_decorator=link_decorator,
+            lifecycle=lifecycle,
         )
 
 
