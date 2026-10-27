@@ -6,17 +6,21 @@ import logging
 import shutil
 import sys
 import time
+from contextlib import contextmanager
 from os import environ, path
 from unittest import mock
 from urllib.parse import urlparse
+from uuid import uuid4
 
 import docker.errors
 import ephemeral_port_reserve
 import pytest
 import requests
+from confluent_kafka import Consumer, KafkaException, TopicPartition
 
 from sentry.runner.commands.devservices import get_docker_client
 from sentry.testutils.pytest import xdist
+from sentry.utils import json
 
 _log = logging.getLogger(__name__)
 
@@ -260,6 +264,53 @@ def get_relay_store_url(relay_server):
         return "{}/api/{}/store/".format(relay_server["url"], project_id)
 
     return inner
+
+
+@pytest.fixture
+def capture_relay_outcomes(settings):
+    @contextmanager
+    def capture():
+        # This plugin loads before Django is configured. Import the application
+        # Kafka configuration only when a test actually starts a capture.
+        from sentry.utils.batching_kafka_consumer import create_topics
+
+        topic = xdist.get_kafka_topic("outcomes")
+        create_topics("default", [topic])
+        consumer = Consumer(
+            {
+                **settings.KAFKA_CLUSTERS["default"]["common"],
+                "group.id": f"relay-test-outcomes-{uuid4().hex}",
+                "enable.auto.commit": False,
+            }
+        )
+        try:
+            metadata = consumer.list_topics(topic=topic, timeout=10).topics[topic]
+            assert metadata.error is None, metadata.error
+            assert metadata.partitions, f"No partitions for {topic}"
+
+            # Snapshot concrete offsets before the POST. OFFSET_END is resolved
+            # lazily on the first poll and can skip an outcome from a fast Relay.
+            partitions = []
+            for partition in sorted(metadata.partitions):
+                _, offset = consumer.get_watermark_offsets(
+                    TopicPartition(topic, partition), timeout=10
+                )
+                partitions.append(TopicPartition(topic, partition, offset))
+            consumer.assign(partitions)
+
+            def poll():
+                message = consumer.poll(0)
+                if message is None:
+                    return None
+                if error := message.error():
+                    raise KafkaException(error)
+                return json.loads(message.value())
+
+            yield poll
+        finally:
+            consumer.close()
+
+    return capture
 
 
 @pytest.fixture

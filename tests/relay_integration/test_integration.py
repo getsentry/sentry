@@ -15,6 +15,7 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.relay import RelayStoreHelper
 from sentry.testutils.skips import requires_kafka
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
+from sentry.utils.outcomes import Outcome
 
 pytestmark = [requires_kafka]
 
@@ -233,7 +234,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
 
         signature = create_trusted_relay_signature(secret_key)
 
-        event = self.post_and_try_retrieve_event(
+        event = self.post_and_retrieve_event(
             event_data,
             headers={
                 "x-sentry-auth": self.auth_header,
@@ -278,8 +279,9 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
             "x-sentry-relay-id": relay_id,
         }
 
-        event = self.post_and_try_retrieve_event(event_data, headers=headers)
-        assert event is None
+        self.post_and_assert_rejected(
+            event_data, headers=headers, outcome=Outcome.INVALID, reason="invalid_signature"
+        )
 
         url = self.get_relay_store_url(self.project.id)
         resp = requests.post(
@@ -312,8 +314,9 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
             "x-sentry-relay-id": relay_id,
         }
 
-        event = self.post_and_try_retrieve_event(event_data, headers=headers)
-        assert event is None
+        self.post_and_assert_rejected(
+            event_data, headers=headers, outcome=Outcome.INVALID, reason="invalid_signature"
+        )
 
         url = self.get_relay_store_url(self.project.id)
         resp = requests.post(
@@ -343,11 +346,12 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
             "x-sentry-relay-id": relay_id,
         }
 
-        event = self.post_and_try_retrieve_event(
+        self.post_and_assert_rejected(
             event_data,
             headers=headers,
+            outcome=Outcome.INVALID,
+            reason="invalid_signature",
         )
-        assert event is None
 
         url = self.get_relay_store_url(self.project.id)
         resp = requests.post(
@@ -376,11 +380,12 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
             "x-sentry-relay-id": relay_id,
         }
 
-        event = self.post_and_try_retrieve_event(
+        self.post_and_assert_rejected(
             event_data,
             headers=headers,
+            outcome=Outcome.INVALID,
+            reason="missing_signature",
         )
-        assert event is None
 
         url = self.get_relay_store_url(self.project.id)
         resp = requests.post(
@@ -410,11 +415,12 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
             "x-sentry-relay-id": relay_id,
         }
 
-        event = self.post_and_try_retrieve_event(
+        self.post_and_assert_rejected(
             event_data,
             headers=headers,
+            outcome=Outcome.INVALID,
+            reason="missing_signature",
         )
-        assert event is None
 
         url = self.get_relay_store_url(self.project.id)
         resp = requests.post(

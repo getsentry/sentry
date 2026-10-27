@@ -1,12 +1,15 @@
 from typing import TYPE_CHECKING, Any
+from uuid import uuid4
 
 import pytest
 import requests
 import responses
 
+from sentry.constants import DataCategory
 from sentry.models.eventattachment import PendingEventAttachment
 from sentry.services import eventstore
 from sentry.testutils.helpers import get_auth_header
+from sentry.utils.outcomes import Outcome
 
 if TYPE_CHECKING:
     from sentry.testutils.cases import TestCase
@@ -34,6 +37,7 @@ class RelayStoreHelper(RequiredBaseclass):
     get_relay_attachments_url: Any
     get_relay_minidump_url: Any
     get_relay_unreal_url: Any
+    capture_relay_outcomes: Any
 
     def post_and_retrieve_event(self, data, headers=None):
         if headers is None:
@@ -91,11 +95,55 @@ class RelayStoreHelper(RequiredBaseclass):
         assert event
         return event
 
-    def post_and_try_retrieve_event(self, data, headers=None):
-        try:
-            return self.post_and_retrieve_event(data, headers)
-        except AssertionError:
-            return None
+    def post_and_assert_rejected(self, data, *, outcome: Outcome, reason: str, headers=None):
+        if headers is None:
+            headers = {"x-sentry-auth": self.auth_header, "content-type": "application/json"}
+        url = self.get_relay_store_url(self.project.id)
+        responses.add_passthru(url)
+        data = {**data, "event_id": uuid4().hex}
+
+        with self.capture_relay_outcomes() as poll:
+            resp = requests.post(url, headers=headers, json=data)
+            # Exercise asynchronous rejection with a cold project configuration;
+            # the trusted-relay tests separately check the warm HTTP 403 path.
+            assert resp.status_code == 200, resp.text
+            event_id = resp.json()["id"]
+            assert event_id == data["event_id"]
+
+            def get_outcome():
+                result = poll()
+                # Outcomes aggregate away event IDs. The capture starts at fresh
+                # offsets and this test submits one item for its project/key.
+                if result is not None and (
+                    result.get("org_id"),
+                    result.get("project_id"),
+                    result.get("key_id"),
+                ) == (
+                    self.project.organization_id,
+                    self.project.id,
+                    self.projectkey.id,
+                ):
+                    return result
+                return None
+
+            result = self.wait_for_ingest_consumer(get_outcome)
+            assert result is not None, f"No Relay outcome for {event_id}"
+            assert result["org_id"] == self.project.organization_id, result
+            assert result["category"] == DataCategory.ERROR, result
+            assert result["quantity"] == 1, result
+            assert result["outcome"] == outcome, result
+            assert result["reason"] == reason, result
+
+        # The matching outcome is Relay's terminal rejection signal. The waiter
+        # above also pumps ingestion; a timeout is never evidence of success.
+        assert (
+            eventstore.backend.get_event_by_id(
+                self.project.id,
+                event_id,
+                tenant_ids={"referrer": "relay-test", "organization_id": 123},
+            )
+            is None
+        )
 
     def post_and_retrieve_attachment(self, event_id, files):
         url = self.get_relay_attachments_url(self.project.id, event_id)
@@ -173,6 +221,7 @@ class RelayStoreHelper(RequiredBaseclass):
         get_relay_security_url,
         get_relay_attachments_url,
         wait_for_ingest_consumer,
+        capture_relay_outcomes,
     ):
         self.auth_header = get_auth_header(
             "TEST_USER_AGENT/0.0.0",
@@ -187,3 +236,4 @@ class RelayStoreHelper(RequiredBaseclass):
         self.get_relay_security_url = get_relay_security_url
         self.get_relay_attachments_url = get_relay_attachments_url
         self.wait_for_ingest_consumer = wait_for_ingest_consumer(settings)
+        self.capture_relay_outcomes = capture_relay_outcomes
