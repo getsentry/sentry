@@ -334,6 +334,7 @@ def _process_verdicts(
                     stopping_point=stopping_point_by_project_id[group.project_id],
                     user_context=user_context,
                     allow_free_cohort=True,
+                    can_open_pr=True,
                 )
             except Exception:
                 logger.exception(

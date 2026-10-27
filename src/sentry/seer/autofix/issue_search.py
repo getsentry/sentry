@@ -9,6 +9,7 @@ from django.utils import timezone
 from sentry.models.activity import Activity
 from sentry.models.project import Project
 from sentry.models.pullrequest import PullRequestLifecycleState
+from sentry.seer.autofix.feature.models import AUTOFIX_RUN_SOURCES
 from sentry.seer.models.run import SeerAgentRun
 from sentry.types.activity import ActivityType
 
@@ -70,7 +71,7 @@ def _merged_pr_q(projects: Sequence[Project]) -> Q:
         SeerAgentRun.objects.filter(
             project_id__in=[p.id for p in projects],
             group_id__isnull=False,
-            source="autofix",
+            source__in=AUTOFIX_RUN_SOURCES,
         )
         .order_by("group_id", "-id")
         .distinct("group_id")

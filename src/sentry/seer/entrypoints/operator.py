@@ -4,6 +4,7 @@ from typing import Any, NotRequired, TypedDict
 from taskbroker_client.retry import Retry
 
 from sentry import features, options
+from sentry.auth import access
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT, DataCategory
 from sentry.investigations.access import has_investigations_access
 from sentry.investigations.models import Investigation, InvestigationOrchestrationRun
@@ -22,7 +23,7 @@ from sentry.seer.agent.client_models import CodingAgentState, SeerRunState
 from sentry.seer.agent.client_utils import fetch_run_status
 from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
 from sentry.seer.autofix.commit_author import commit_author_for_user
-from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.constants import PUBLISH_SCOPES, AutofixReferrer
 from sentry.seer.autofix.utils import AutofixStoppingPoint, get_automation_handoff
 from sentry.seer.entrypoints.cache import (
     SeerOperatorAgentCache,
@@ -203,6 +204,7 @@ class SeerAutofixOperator[CachePayloadT]:
             trigger_push_changes,
         )
         from sentry.seer.autofix.exceptions import NoSeerQuotaException
+        from sentry.seer.autofix.feature.models import AUTOFIX_SINGLE_RUN_FEATURE_ID
         from sentry.seer.autofix.steps import AutofixStep
 
         event_lifecyle = SeerOperatorEventLifecycleMetric(
@@ -232,7 +234,14 @@ class SeerAutofixOperator[CachePayloadT]:
                 lifecycle.record_failure(failure_reason=e)
                 return
             if existing_state:
-                has_complete_stage = get_autofix_explorer_status(stopping_point, existing_state)
+                is_single_run = (existing_state.metadata or {}).get(
+                    "feature_id"
+                ) == AUTOFIX_SINGLE_RUN_FEATURE_ID
+                has_complete_stage = (
+                    existing_state.status == "completed"
+                    if is_single_run
+                    else get_autofix_explorer_status(stopping_point, existing_state)
+                )
                 lifecycle.add_extras(
                     {
                         "existing_run_id": str(existing_state.run_id),
@@ -262,6 +271,7 @@ class SeerAutofixOperator[CachePayloadT]:
                             referrer=AutofixReferrer.SLACK,
                             run_id=None,
                             user=user,
+                            can_open_pr=_can_publish(group, user),
                         )
                         run_id = run.seer_run_state_id
                         Activity.objects.create_group_activity(
@@ -980,6 +990,12 @@ def process_investigation_updates(*, investigation_id: int) -> None:
                     raise
                 except Exception as e:
                     ept_lifecycle.record_failure(failure_reason=e)
+
+
+def _can_publish(group: Group, user: User | RpcUser) -> bool:
+    return access.from_user(user, group.organization).has_any_project_scope(
+        group.project, PUBLISH_SCOPES
+    )
 
 
 def get_autofix_explorer_status(

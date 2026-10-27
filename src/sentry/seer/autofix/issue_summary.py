@@ -35,6 +35,7 @@ from sentry.seer.autofix.exceptions import (
     IssueSummarySelfHosted,
     NoSeerQuotaException,
 )
+from sentry.seer.autofix.feature.models import AUTOFIX_RUN_SOURCES
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
@@ -196,6 +197,7 @@ def _trigger_autofix_task(
                 referrer=referrer,
                 run_id=None,
                 stopping_point=stopping_point,
+                can_open_pr=True,
             )
             with action_context_scope(ActionSource.SYSTEM, SYSTEM_ACTOR):
                 Activity.objects.create_group_activity(
@@ -443,7 +445,7 @@ def is_group_eligible_for_automation(group: Group) -> bool:
         return False
 
     if (
-        runs_for_group(group.id, "autofix")
+        runs_for_group(group.id, AUTOFIX_RUN_SOURCES)
         .filter(
             run__mirror_status=SeerRunMirrorStatus.LIVE,
             run__seer_run_state_id__isnull=False,

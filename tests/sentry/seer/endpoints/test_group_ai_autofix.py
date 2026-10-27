@@ -557,6 +557,30 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         )
         mock_push_changes.assert_not_called()
 
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_seer_write_token_single_run_gets_no_pr_tools(self, mock_trigger_explorer):
+        group = self.create_group()
+        mock_trigger_explorer.return_value = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=123
+        )
+
+        with self.feature("organizations:autofix-single-run"):
+            token_response = self.client.post(
+                self._get_url(group.id),
+                data={"step": "root_cause"},
+                format="json",
+                HTTP_AUTHORIZATION=self._seer_write_bearer(),
+            )
+            assert token_response.status_code == 202, token_response.data
+            assert mock_trigger_explorer.call_args.kwargs["can_open_pr"] is False
+
+            self.login_as(user=self.user)
+            member_response = self.client.post(
+                self._get_url(group.id), data={"step": "root_cause"}, format="json"
+            )
+            assert member_response.status_code == 202, member_response.data
+            assert mock_trigger_explorer.call_args.kwargs["can_open_pr"] is True
+
     def _seer_write_bearer(self) -> str:
         token = self.create_user_auth_token(user=self.user, scope_list=["seer:write"])
         return f"Bearer {token.plaintext_token}"
@@ -1014,6 +1038,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             insert_index=None,
             user=ANY,
             enable_bash_mode=False,
+            can_open_pr=True,
             actor_user_id=None,
         )
 
@@ -1050,6 +1075,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             insert_index=3,
             user=ANY,
             enable_bash_mode=False,
+            can_open_pr=True,
             actor_user_id=self.user.id,
         )
 

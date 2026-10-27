@@ -1994,6 +1994,15 @@ class TestSeerAgentClientLatestRun(TestCase):
         assert client.latest_run(group_id=group.id + 999) is None
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    def test_latest_run_matches_any_given_source(self, _mock_access) -> None:
+        older = self._agent_run(1, last_triggered_at=timezone.now() - timedelta(days=1))
+        newer = self._agent_run(2, source="autofix_single_run")
+        client = self._client()
+
+        assert client.latest_run(sources=("autofix", "autofix_single_run")) == newer
+        assert client.latest_run() == older
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
     def test_latest_run_skips_null_state_id(self, _mock_access) -> None:
         self._agent_run(None)
         assert self._client().latest_run() is None

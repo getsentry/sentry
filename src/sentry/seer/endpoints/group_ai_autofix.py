@@ -57,7 +57,7 @@ from sentry.seer.autofix.coding_agent import (
     poll_github_copilot_agents,
 )
 from sentry.seer.autofix.commit_author import commit_author_for_user
-from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.constants import PUBLISH_SCOPES, AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException
 from sentry.seer.autofix.on_completion_hook import get_run_stopping_point
 from sentry.seer.autofix.pr_iteration.manual_trigger import handle_ui_feedback
@@ -117,7 +117,6 @@ class GroupAutofixPermission(GroupAiPermission):
 # Sentry: pushing a branch, opening or iterating on a pull request, or handing the run to
 # an external coding agent.
 PUBLISH_STEPS = frozenset({"open_pr", "coding_agent_handoff", "pr_iteration"})
-PUBLISH_SCOPES = frozenset({"event:write", "event:admin"})
 
 
 # If an autofix can be handed off we want to use these stopping points to require user approval
@@ -563,6 +562,9 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                         insert_index=data.get("insert_index"),
                         user=request.user,
                         enable_bash_mode=data.get("enable_bash_mode", False),
+                        can_open_pr=request.access.has_any_project_scope(
+                            group.project, PUBLISH_SCOPES
+                        ),
                         # TRIGGER_AUTOFIX attributes a kickoff, so only steps the
                         # user continues (or codes directly) carry them as the actor.
                         actor_user_id=(

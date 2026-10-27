@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -11,6 +12,7 @@ from sentry.seer.autofix.feature.models import (
     CodeChangesStepArgs,
     PrIterationStepArgs,
     RCAStepArgs,
+    RepoPin,
     SolutionStepArgs,
 )
 from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
@@ -405,3 +407,144 @@ class TestTriggerAutofixFeature(TestCase):
                     existing_run_id=123,
                 ),
             )
+
+    def _start_single_run(
+        self,
+        stopping_point: AutofixStoppingPoint | None,
+        step_args: RCAStepArgs | None = None,
+        can_open_pr: bool = True,
+    ) -> dict[str, Any]:
+        fake_run = self.create_seer_run(organization=self.organization, type="feature_run")
+        with (
+            self.feature("organizations:autofix-single-run"),
+            patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as mock_client_cls,
+            patch("sentry.seer.autofix.feature.dispatch.quotas") as mock_quotas,
+        ):
+            mock_quotas.backend.check_seer_quota.return_value = True
+            mock_client_cls.return_value.start_feature_run.return_value = fake_run
+
+            run = trigger_autofix_feature(
+                self.group,
+                AutofixFeatureArgs(
+                    referrer=AutofixReferrer.AGENTIC_TRIAGE,
+                    step=AutofixStep.ROOT_CAUSE,
+                    step_args=step_args or RCAStepArgs(),
+                    stopping_point=stopping_point,
+                    can_open_pr=can_open_pr,
+                ),
+            )
+
+        assert run is fake_run
+        mock_quotas.backend.record_seer_run.assert_called_once_with(
+            self.organization.id, self.project.id, DataCategory.SEER_AUTOFIX
+        )
+        return mock_client_cls.return_value.start_feature_run.call_args.kwargs
+
+    def test_single_run_flag_starts_single_run_feature(self) -> None:
+        pin = RepoPin(sha="abc", branch="main", base_sha="abc", base_branch="main")
+
+        kwargs = self._start_single_run(
+            AutofixStoppingPoint.OPEN_PR, RCAStepArgs(repo_pins={"owner/repo": pin})
+        )
+
+        assert kwargs["feature_id"] == "autofix_single_run"
+        assert kwargs["payload"] == {
+            "group_id": self.group.id,
+            "project_id": self.project.id,
+            "short_id": self.group.qualified_short_id,
+            "title": self.group.title,
+            "culprit": self.group.culprit or "unknown",
+            "intelligence_level": "medium",
+            "reasoning_effort": "medium",
+            "repo_pins": {
+                "owner/repo": {
+                    "sha": "abc",
+                    "branch": "main",
+                    "base_sha": "abc",
+                    "base_branch": "main",
+                }
+            },
+        }
+        assert kwargs["agent_run_options"] == {
+            "is_context_engine_enabled": False,
+            "enable_frontend_code_search": False,
+            "enable_coding": True,
+            "enable_bash_mode": True,
+            "enable_write_pull_request": True,
+            "enable_code_mode_tools": "only",
+        }
+        assert kwargs["extras"] == {
+            "referrer": AutofixReferrer.AGENTIC_TRIAGE.value,
+            "stopping_point": AutofixStoppingPoint.OPEN_PR.value,
+        }
+
+    def test_single_run_tools_follow_stopping_point(self) -> None:
+        for stopping_point, coding, write_pr in (
+            (AutofixStoppingPoint.ROOT_CAUSE, False, False),
+            (AutofixStoppingPoint.SOLUTION, False, False),
+            (AutofixStoppingPoint.CODE_CHANGES, True, False),
+            (AutofixStoppingPoint.OPEN_PR, True, True),
+        ):
+            options = self._start_single_run(stopping_point)["agent_run_options"]
+
+            assert options["enable_coding"] is coding, stopping_point
+            assert options["enable_bash_mode"] is coding, stopping_point
+            assert options["enable_write_pull_request"] is write_pr, stopping_point
+
+    def test_single_run_without_stopping_point_goes_to_pr(self) -> None:
+        self.project.update_option("sentry:seer_automated_run_stopping_point", "root_cause")
+
+        kwargs = self._start_single_run(None)
+
+        options = kwargs["agent_run_options"]
+        assert options["enable_coding"] is True
+        assert options["enable_bash_mode"] is True
+        assert options["enable_write_pull_request"] is True
+        assert kwargs["extras"] == {"referrer": AutofixReferrer.AGENTIC_TRIAGE.value}
+
+    def test_single_run_flag_keeps_continuations_on_steps(self) -> None:
+        fake_run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        self.create_seer_agent_run(
+            run=fake_run, source="autofix", group=self.group, project=self.group.project
+        )
+
+        with (
+            self.feature("organizations:autofix-single-run"),
+            patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as mock_client_cls,
+            patch("sentry.seer.autofix.feature.dispatch.quotas"),
+        ):
+            mock_client_cls.return_value.continue_feature_run.return_value = fake_run
+
+            trigger_autofix_feature(
+                self.group,
+                AutofixFeatureArgs(
+                    referrer=AutofixReferrer.AGENTIC_TRIAGE,
+                    step=AutofixStep.ROOT_CAUSE,
+                    step_args=RCAStepArgs(),
+                    existing_run_id=123,
+                ),
+            )
+
+        mock_client_cls.return_value.continue_feature_run.assert_called_once()
+        mock_client_cls.return_value.start_feature_run.assert_not_called()
+
+    def test_single_run_without_publish_scope_codes_but_skips_pr(self) -> None:
+        options = self._start_single_run(None, can_open_pr=False)["agent_run_options"]
+
+        assert options["enable_coding"] is True
+        assert options["enable_write_pull_request"] is False
+
+    def test_single_run_records_last_triggered(self) -> None:
+        self._start_single_run(None)
+
+        self.group.refresh_from_db()
+        assert self.group.seer_explorer_autofix_last_triggered is not None
+
+    def test_single_run_stops_at_root_cause_when_coding_disabled(self) -> None:
+        self.organization.update_option("sentry:enable_seer_coding", False)
+
+        options = self._start_single_run(None)["agent_run_options"]
+
+        assert options["enable_coding"] is False
+        assert options["enable_bash_mode"] is False
+        assert options["enable_write_pull_request"] is False

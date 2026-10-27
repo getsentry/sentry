@@ -17,6 +17,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
+from sentry.seer.autofix.feature.models import AUTOFIX_RUN_SOURCES
 from sentry.seer.autofix.utils import (
     has_project_connected_repos,
     is_free_cohort_org,
@@ -96,12 +97,7 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
         # True only when a run exists (so they see results), False otherwise (shows paywall).
         is_free_cohort = is_free_cohort_org(org)
         if is_free_cohort:
-            # Agentic triage can go through either the regular autofix path (source="autofix") or
-            # the RCA feature path (source="autofix_rca") depending on the organizations:autofix-rca-in-seer.
-            has_autofix_quota = (
-                runs_for_group(group.id, "autofix").exists()
-                or runs_for_group(group.id, "autofix_rca").exists()
-            )
+            has_autofix_quota = runs_for_group(group.id, AUTOFIX_RUN_SOURCES).exists()
         else:
             has_autofix_quota = quotas.backend.check_seer_quota(
                 org_id=org.id, data_category=DataCategory.SEER_AUTOFIX

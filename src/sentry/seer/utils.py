@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Collection
 
 from cryptography.fernet import Fernet
 from django.conf import settings
@@ -19,12 +20,14 @@ from sentry.utils import metrics
 logger = logging.getLogger(__name__)
 
 
-def runs_for_group(group_id: int, source: str) -> QuerySet[SeerAgentRun]:
+def runs_for_group(group_id: int, source: str | Collection[str]) -> QuerySet[SeerAgentRun]:
     """The Seer run mirrors for a group, scoped to a feature (``SeerAgentRun.source``)."""
-    return SeerAgentRun.objects.filter(group_id=group_id, source=source)
+    if isinstance(source, str):
+        return SeerAgentRun.objects.filter(group_id=group_id, source=source)
+    return SeerAgentRun.objects.filter(group_id=group_id, source__in=source)
 
 
-def latest_run_for_group(group_id: int, source: str) -> SeerAgentRun | None:
+def latest_run_for_group(group_id: int, source: str | Collection[str]) -> SeerAgentRun | None:
     """The canonical Seer run for a group + feature (latest wins).
 
     Picking the latest run keeps writers that touch the same group in agreement on a

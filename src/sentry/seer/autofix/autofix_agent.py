@@ -39,6 +39,7 @@ from sentry.seer.autofix.feature.dispatch import (
     trigger_autofix_feature,
 )
 from sentry.seer.autofix.feature.models import (
+    AUTOFIX_SINGLE_RUN_FEATURE_ID,
     FEATURE_ID,
     LEGACY_FEATURE_ID,
     CodeChangesStepArgs,
@@ -448,6 +449,7 @@ def trigger_autofix_agent(
     commit_author: SeerCommitAuthor | None = None,
     iteration_id: int | None = None,
     allow_free_cohort: bool = False,
+    can_open_pr: bool = False,
 ) -> SeerRun:
     """
     Start or continue an agent-based autofix run.
@@ -525,6 +527,7 @@ def trigger_autofix_agent(
             allow_free_cohort=allow_free_cohort,
             user=user,
             enable_bash_mode=enable_bash_mode,
+            can_open_pr=can_open_pr,
         )
         feature_run = trigger_autofix_feature(group, args)
         feature_run_id = feature_run.seer_run_state_id
@@ -580,7 +583,9 @@ def get_autofix_agent_state(organization: Organization, group_id: int) -> SeerRu
         category_key="autofix",
         category_value=str(group_id),
     )
-    return client.fetch_latest_run_state(group_id=group_id)
+    return client.fetch_latest_run_state(
+        group_id=group_id, sources=(FEATURE_ID, AUTOFIX_SINGLE_RUN_FEATURE_ID)
+    )
 
 
 def generate_autofix_handoff_prompt(

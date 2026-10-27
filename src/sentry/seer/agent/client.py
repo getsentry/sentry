@@ -948,11 +948,12 @@ class SeerAgentClient:
         *,
         group_id: int | None = None,
         only_current_user: bool = True,
+        sources: Collection[str] | None = None,
     ) -> SeerAgentRun | None:
         """Most recent run for this source; ordering by last_triggered_at keeps a continued run current."""
         qs = SeerAgentRun.objects.filter(
             run__organization_id=self.organization.id,
-            source=self.category_key or "",
+            source__in=(self.category_key or "",) if sources is None else sources,
         )
         if (
             only_current_user
@@ -977,9 +978,12 @@ class SeerAgentClient:
         *,
         group_id: int | None = None,
         only_current_user: bool = True,
+        sources: Collection[str] | None = None,
     ) -> SeerRunState | None:
         """The remote state of the latest live run mirror for this client, or None."""
-        run = self.latest_run(group_id=group_id, only_current_user=only_current_user)
+        run = self.latest_run(
+            group_id=group_id, only_current_user=only_current_user, sources=sources
+        )
         if run is None:
             return None
         return self.get_run(run.run.seer_run_state_id)
