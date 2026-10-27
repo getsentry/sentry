@@ -203,6 +203,7 @@ class SeerAutofixOperator[CachePayloadT]:
             trigger_push_changes,
         )
         from sentry.seer.autofix.exceptions import NoSeerQuotaException
+        from sentry.seer.autofix.feature.models import AUTOFIX_SINGLE_RUN_FEATURE_ID
         from sentry.seer.autofix.steps import AutofixStep
 
         event_lifecyle = SeerOperatorEventLifecycleMetric(
@@ -232,7 +233,14 @@ class SeerAutofixOperator[CachePayloadT]:
                 lifecycle.record_failure(failure_reason=e)
                 return
             if existing_state:
-                has_complete_stage = get_autofix_explorer_status(stopping_point, existing_state)
+                is_single_run = (existing_state.metadata or {}).get(
+                    "feature_id"
+                ) == AUTOFIX_SINGLE_RUN_FEATURE_ID
+                has_complete_stage = (
+                    existing_state.status == "completed"
+                    if is_single_run
+                    else get_autofix_explorer_status(stopping_point, existing_state)
+                )
                 lifecycle.add_extras(
                     {
                         "existing_run_id": str(existing_state.run_id),

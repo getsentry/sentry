@@ -192,6 +192,28 @@ class SeerOperatorTest(TestCase):
             referrer=AutofixReferrer.SLACK.value,
         )
 
+    @patch("sentry.seer.autofix.autofix_agent.get_autofix_agent_state")
+    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_agent")
+    def test_slack_autofix_reuses_existing_single_run(
+        self, mock_trigger_autofix, mock_get_autofix_state
+    ):
+        mock_get_autofix_state.return_value = SeerRunState(
+            run_id=MOCK_RUN_ID,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            metadata={"feature_id": "autofix_single_run"},
+        )
+
+        self.operator.trigger_autofix(
+            group=self.group,
+            user=self.user,
+            stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
+        )
+
+        assert self.entrypoint.autofix_already_exists_states == [(MOCK_RUN_ID, True)]
+        mock_trigger_autofix.assert_not_called()
+
     @patch("sentry.seer.autofix.autofix_agent.get_autofix_agent_state", return_value=None)
     @patch("sentry.seer.autofix.autofix_agent.trigger_push_changes")
     def test_slack_open_pr_passes_commit_author(self, mock_push_changes, _mock_get_autofix_state):
