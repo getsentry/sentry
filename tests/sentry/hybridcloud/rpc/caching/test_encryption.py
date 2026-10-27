@@ -124,7 +124,7 @@ def test_decrypt_unknown_key_id_raises() -> None:
 def test_encrypt_unknown_method_raises() -> None:
     with fernet_keys("k1", {"k1": Fernet(Fernet.generate_key())}):
         with pytest.raises(InvalidEncryptionMethod):
-            CacheEncrypter.encrypt(PAYLOAD, EncryptionMethod.PLAINTEXT)
+            CacheEncrypter.encrypt(PAYLOAD, "unknown")  # type: ignore[arg-type]
 
 
 @no_silo_test
