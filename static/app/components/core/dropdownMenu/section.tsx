@@ -27,7 +27,9 @@ export function DropdownMenuSection({node, children}: DropdownMenuSectionProps) 
           {node.rendered}
         </SectionLabel>
       )}
-      <SectionList {...groupProps}>{children}</SectionList>
+      <SectionList gap={node.value?.itemGap} {...groupProps}>
+        {children}
+      </SectionList>
     </SectionGroup>
   );
 }

@@ -68,6 +68,7 @@ import {
 } from 'sentry/views/navigation/navigationTour';
 import {isPrimaryNavigationLinkActive} from 'sentry/views/navigation/primary/components';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
+import {NavigationBadge} from 'sentry/views/navigation/secondary/navigationBadge';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 
 const MotionContainer = motion.create(Container);
@@ -277,7 +278,9 @@ interface SecondaryNavigationItemProps extends Omit<LinkProps, 'ref' | 'to'> {
    */
   end?: boolean;
   isActive?: boolean;
-  leadingItems?: ReactNode;
+  leading?:
+    | {type: 'badge'; value: string | number | null}
+    | ({type: 'project'} & SecondaryNavigationProjectIconProps);
   trailingItems?: ReactNode;
 }
 
@@ -475,7 +478,7 @@ interface SecondaryNavigationSectionProps {
   id: string;
   /**
    * Places the collapse chevron in a leading slot that lines up with
-   * `SecondaryNavigation.LeadingSlot` in the links below.
+   * the leading badge slot in the links below.
    */
   chevronPosition?: 'leading' | 'trailing';
   /**
@@ -522,7 +525,7 @@ function SecondaryNavigationLink({
   activeTo = to,
   isActive: incomingIsActive,
   end = false,
-  leadingItems,
+  leading,
   trailingItems,
   onClick,
   ...linkProps
@@ -570,7 +573,16 @@ function SecondaryNavigationLink({
 
   return (
     <SidebarNavigationLink {...sharedLinkProps}>
-      {leadingItems}
+      {leading?.type === 'badge' ? (
+        <SecondaryNavigationLeadingSlot>
+          {leading.value === null ? null : <NavigationBadge badge={leading.value} />}
+        </SecondaryNavigationLeadingSlot>
+      ) : leading?.type === 'project' ? (
+        <SecondaryNavigationProjectIcon
+          projectPlatforms={leading.projectPlatforms}
+          allProjects={leading.allProjects}
+        />
+      ) : null}
       <Text ellipsis variant="inherit">
         {children}
       </Text>
@@ -584,8 +596,7 @@ interface SecondaryNavigationLeadingSlotProps {
 }
 
 /**
- * Fixed-width gutter before a link label. Pass it as `leadingItems` on every
- * link in a list so labels stay aligned whether or not a row has an icon.
+ * Fixed-width gutter before a link label, shared with section chevrons.
  */
 function SecondaryNavigationLeadingSlot(props: SecondaryNavigationLeadingSlotProps) {
   return (
@@ -873,7 +884,7 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>(
 
 interface SecondaryNavigationReorderableLinkProps extends Omit<
   SecondaryNavigationItemProps,
-  'leadingItems' | 'onClick'
+  'leading' | 'onClick'
 > {
   icon: ReactNode;
   onNavigate?: () => void;
@@ -1123,7 +1134,6 @@ export const SecondaryNavigation = {
   Body: SecondaryNavigationBody,
   Section: SecondaryNavigationSection,
   Separator: SecondaryNavigationSeparator,
-  LeadingSlot: SecondaryNavigationLeadingSlot,
   List: SecondaryNavigationList,
   ListItem: SecondaryNavigationListItem,
   Link: SecondaryNavigationLink,

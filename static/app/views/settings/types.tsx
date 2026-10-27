@@ -1,5 +1,3 @@
-import type {ReactElement} from 'react';
-
 import type {Scope} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -28,7 +26,7 @@ export type NavigationItem = {
   /**
    * Returns the text of the badge to render next to the navigation.
    */
-  badge?: (opts: NavigationGroupProps) => string | number | null | ReactElement;
+  badge?: (opts: NavigationGroupProps) => string | number | null;
   /**
    * The description of the settings section. This will be used in search.
    */

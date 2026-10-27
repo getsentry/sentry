@@ -108,8 +108,8 @@ export function MenuSectionGroup(props: ContainerProps<'li'>) {
 }
 
 /** List wrapper for the items within a menu section. */
-export function MenuSectionList(props: ContainerProps<'ul'>) {
-  return <Container as="ul" role="presentation" margin="0" padding="0" {...props} />;
+export function MenuSectionList(props: FlexProps<'ul'>) {
+  return <Stack as="ul" role="presentation" margin="0" padding="0" {...props} />;
 }
 
 /** Container for menu footer actions, with a divider above it. */
@@ -328,6 +328,9 @@ export type ListItemProps = {
    * Items to be added to the left of the label
    */
   leadingItems?: ExtraContent;
+  /** Override the item's padding using spacing tokens. */
+  padding?: ContainerProps['padding'];
+
   /**
    * Accented text and background (on hover) colors.
    */
@@ -383,6 +386,7 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
   as,
   priority = 'default',
   size,
+  padding,
   disabled = false,
   leadingItems = false,
   trailingItems = false,
@@ -430,7 +434,7 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
       >
         <StyledInnerWrap
           data-menu-item-content
-          padding={ITEM_PADDING_BY_SIZE[size ?? 'md']}
+          padding={padding ?? ITEM_PADDING_BY_SIZE[size ?? 'md']}
           // The leading slot is 2xl wide and centers its content, so a 16px icon
           // gets 4px of space on each side. A `md` inset keeps leading items where
           // they sat before the slot existed, at every size.
