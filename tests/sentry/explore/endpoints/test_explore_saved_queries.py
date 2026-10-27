@@ -3,6 +3,7 @@ from itertools import product
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
+from sentry.api.serializers.models.exploresavedquery import QueryResponseType
 from sentry.explore import utils
 from sentry.explore.endpoints.explore_saved_queries import (
     PREBUILT_SAVED_QUERIES,
@@ -1219,18 +1220,19 @@ class ExploreSavedQueriesTest(APITestCase):
         ]
 
     def test_save_transformations(self) -> None:
+        queries: list[tuple[str, QueryResponseType]] = [
+            ("spans", {"mode": "aggregate"}),
+            ("logs", {"mode": "aggregate"}),
+            (
+                "metrics",
+                {
+                    "mode": "aggregate",
+                    "metric": {"name": "request.duration", "type": "distribution"},
+                },
+            ),
+        ]
         for (dataset, query), transformations, visualization_field in product(
-            [
-                ("spans", {"mode": "aggregate"}),
-                ("logs", {"mode": "aggregate"}),
-                (
-                    "metrics",
-                    {
-                        "mode": "aggregate",
-                        "metric": {"name": "request.duration", "type": "distribution"},
-                    },
-                ),
-            ],
+            queries,
             [
                 [],
                 ["fill(locf)", "smooth(sma,5)"],
@@ -1373,8 +1375,9 @@ class ExploreSavedQueriesTest(APITestCase):
             assert ExploreSavedQuery.objects.filter(organization=self.org).count() == 1
 
     def test_save_invalid_transformations(self) -> None:
+        invalid_transformations: list[object] = [None, "fill(zero)", [None], [{}]]
         for visualization_field, transformations in product(
-            ["visualize", "aggregateField"], [None, "fill(zero)", [None], [{}]]
+            ["visualize", "aggregateField"], invalid_transformations
         ):
             with self.feature(
                 {**self.features, "organizations:explore-interpolation-and-smoothing": True}

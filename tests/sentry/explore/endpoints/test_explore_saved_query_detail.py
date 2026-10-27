@@ -3,6 +3,7 @@ from itertools import product
 import pytest
 from django.urls import NoReverseMatch, reverse
 
+from sentry.api.serializers.models.exploresavedquery import QueryResponseType
 from sentry.explore.models import (
     ExploreSavedQuery,
     ExploreSavedQueryDataset,
@@ -295,18 +296,19 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
         ]
 
     def test_put_transformations(self) -> None:
+        queries: list[tuple[str, QueryResponseType]] = [
+            ("spans", {"mode": "aggregate"}),
+            ("logs", {"mode": "aggregate"}),
+            (
+                "metrics",
+                {
+                    "mode": "aggregate",
+                    "metric": {"name": "request.duration", "type": "distribution"},
+                },
+            ),
+        ]
         for (dataset, query), visualization_field in product(
-            [
-                ("spans", {"mode": "aggregate"}),
-                ("logs", {"mode": "aggregate"}),
-                (
-                    "metrics",
-                    {
-                        "mode": "aggregate",
-                        "metric": {"name": "request.duration", "type": "distribution"},
-                    },
-                ),
-            ],
+            queries,
             ["visualize", "aggregateField"],
         ):
             url = reverse(
