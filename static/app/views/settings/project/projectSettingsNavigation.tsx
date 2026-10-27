@@ -19,9 +19,7 @@ export function ProjectSettingsNavigation({
   const projectFromContext = useContext(ProjectRouteContext);
   const {projectId} = useParams<{projectId?: string}>();
   const settingsV3 = useSettingsV3();
-  const {projects} = useProjects({
-    slugs: projectId ? [projectId] : settingsV3 ? undefined : [],
-  });
+  const {projects} = useProjects({slugs: projectId ? [projectId] : []});
   const summaryProject = projects.find(({slug}) => slug === projectId);
   const {data: detailedProject} = useDetailedProject(
     {orgSlug: organization.slug, projectSlug: projectId ?? ''},
@@ -31,16 +29,12 @@ export function ProjectSettingsNavigation({
 
   return (
     <SettingsNavigation
-      navigationObjects={
-        settingsV3 && !projectId
-          ? []
-          : getNavigationConfiguration({
-              project,
-              organization,
-              debugFilesNeedsReview: false,
-              settingsV3,
-            })
-      }
+      navigationObjects={getNavigationConfiguration({
+        project,
+        organization,
+        debugFilesNeedsReview: false,
+        settingsV3,
+      })}
       access={new Set(organization.access)}
       features={new Set(organization.features)}
       organization={organization}
