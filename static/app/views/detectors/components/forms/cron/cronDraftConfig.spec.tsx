@@ -1,15 +1,14 @@
-import {parseDetectorDraftValues} from 'sentry/views/detectors/components/forms/common/detectorDraft';
-import {CRON_DETECTOR_DRAFT_CONFIG} from 'sentry/views/detectors/components/forms/cron/cronDraftConfig';
+import {CRON_DETECTOR_DRAFT_SCHEMA} from 'sentry/views/detectors/components/forms/cron/cronDraftConfig';
 
-describe('CRON_DETECTOR_DRAFT_CONFIG', () => {
+describe('CRON_DETECTOR_DRAFT_SCHEMA', () => {
   it('converts edited number inputs to numbers', () => {
-    const values = parseDetectorDraftValues(CRON_DETECTOR_DRAFT_CONFIG, {
+    const values = CRON_DETECTOR_DRAFT_SCHEMA.parse({
       checkinMargin: '5',
       failureIssueThreshold: '2',
       scheduleIntervalValue: 3,
     });
 
-    expect(values).toEqual({
+    expect(values).toStrictEqual({
       checkinMargin: 5,
       failureIssueThreshold: 2,
       scheduleIntervalValue: 3,
@@ -17,38 +16,42 @@ describe('CRON_DETECTOR_DRAFT_CONFIG', () => {
   });
 
   it('keeps cleared optional numbers empty', () => {
-    const values = parseDetectorDraftValues(CRON_DETECTOR_DRAFT_CONFIG, {
+    const values = CRON_DETECTOR_DRAFT_SCHEMA.parse({
       checkinMargin: '',
       maxRuntime: null,
       recoveryThreshold: '',
     });
 
-    expect(values).toEqual({checkinMargin: null, maxRuntime: null});
+    expect(values).toStrictEqual({
+      checkinMargin: null,
+      maxRuntime: null,
+      recoveryThreshold: undefined,
+    });
   });
 
   it('drops unknown interval units and timezones', () => {
-    const values = parseDetectorDraftValues(CRON_DETECTOR_DRAFT_CONFIG, {
+    const values = CRON_DETECTOR_DRAFT_SCHEMA.parse({
       scheduleIntervalUnit: 'fortnight',
       timezone: 'Mars/Olympus_Mons',
     });
 
-    expect(values).toEqual({});
+    expect(values).toStrictEqual({scheduleIntervalUnit: undefined, timezone: undefined});
   });
 
   it('uses the canonical timezone name when given a different case', () => {
-    const values = parseDetectorDraftValues(CRON_DETECTOR_DRAFT_CONFIG, {
+    const values = CRON_DETECTOR_DRAFT_SCHEMA.parse({
       timezone: 'utc',
     });
 
-    expect(values).toEqual({timezone: 'UTC'});
+    expect(values).toStrictEqual({timezone: 'UTC'});
   });
 
   it('keeps known interval units and timezones', () => {
-    const values = parseDetectorDraftValues(CRON_DETECTOR_DRAFT_CONFIG, {
+    const values = CRON_DETECTOR_DRAFT_SCHEMA.parse({
       scheduleIntervalUnit: 'hour',
       timezone: 'UTC',
     });
 
-    expect(values).toEqual({scheduleIntervalUnit: 'hour', timezone: 'UTC'});
+    expect(values).toStrictEqual({scheduleIntervalUnit: 'hour', timezone: 'UTC'});
   });
 });

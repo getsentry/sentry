@@ -9,7 +9,7 @@ import {AutomateSectionDeprecated} from 'sentry/views/detectors/components/forms
 import {useInitialDetectorDraft} from 'sentry/views/detectors/components/forms/common/detectorDraft';
 import {IssueOwnershipSection} from 'sentry/views/detectors/components/forms/common/issueOwnershipSection';
 import {ProjectSection} from 'sentry/views/detectors/components/forms/common/projectSection';
-import {CRON_DETECTOR_DRAFT_CONFIG} from 'sentry/views/detectors/components/forms/cron/cronDraftConfig';
+import {CRON_DETECTOR_DRAFT_SCHEMA} from 'sentry/views/detectors/components/forms/cron/cronDraftConfig';
 import {CronDetectorFormDetectSection} from 'sentry/views/detectors/components/forms/cron/detect';
 import {
   CRON_DEFAULT_SCHEDULE_TYPE,
@@ -115,7 +115,7 @@ export function NewCronDetectorForm({
 }: {
   duplicateDetector?: CronDetector;
 }) {
-  const hasDraft = Boolean(useInitialDetectorDraft('monitor_check_in_failure'));
+  const hasDraft = Boolean(useInitialDetectorDraft());
   const hideInstrumentationGuide = Boolean(duplicateDetector);
   // Guide params can outlive the guide, e.g. when duplicating.
   const showingPlatformGuide = useIsShowingPlatformGuide() && !hideInstrumentationGuide;
@@ -123,7 +123,7 @@ export function NewCronDetectorForm({
   return (
     <NewDetectorLayout
       detectorType="monitor_check_in_failure"
-      draftConfig={CRON_DETECTOR_DRAFT_CONFIG}
+      draftSchema={CRON_DETECTOR_DRAFT_SCHEMA}
       formDataToEndpointPayload={cronFormDataToEndpointPayload}
       initialFormData={
         duplicateDetector
