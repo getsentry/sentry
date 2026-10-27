@@ -47,8 +47,8 @@ class Migration(CheckedMigration):
                         "sentry.User", db_index=False, on_delete="CASCADE"
                     ),
                 ),
-                ("object_type", models.CharField(max_length=32)),
-                ("object_id", models.CharField(max_length=64)),
+                ("subject_type", models.CharField(max_length=32)),
+                ("subject_id", models.CharField(max_length=64)),
                 ("last_activity_at", models.DateTimeField()),
                 ("last_read_at", models.DateTimeField(null=True)),
                 ("status", models.SmallIntegerField(db_default=0)),
@@ -79,7 +79,7 @@ class Migration(CheckedMigration):
                 ("actor_id", sentry.db.models.fields.bounded.BoundedBigIntegerField(null=True)),
                 ("data", models.JSONField(default=dict)),
                 (
-                    "item",
+                    "inbox_item",
                     sentry.db.models.fields.foreignkey.FlexibleForeignKey(
                         db_index=False,
                         on_delete=django.db.models.deletion.CASCADE,
@@ -102,19 +102,21 @@ class Migration(CheckedMigration):
         migrations.AddIndex(
             model_name="inboxitem",
             index=models.Index(
-                fields=["organization", "object_type", "object_id"], name="inboxitem_object_idx"
+                fields=["organization", "subject_type", "subject_id"], name="inboxitem_subject_idx"
             ),
         ),
         migrations.AddConstraint(
             model_name="inboxitem",
             constraint=models.UniqueConstraint(
-                fields=("user_id", "organization", "object_type", "object_id"),
-                name="inboxitem_user_object_uniq",
+                fields=("user_id", "organization", "subject_type", "subject_id"),
+                name="inboxitem_user_subject_uniq",
             ),
         ),
         migrations.AddIndex(
             model_name="inboxitemevent",
-            index=models.Index(fields=["item", "-date_added"], name="inboxevent_item_date_idx"),
+            index=models.Index(
+                fields=["inbox_item", "-date_added"], name="inboxevent_item_date_idx"
+            ),
         ),
         migrations.AddConstraint(
             model_name="inboxitemevent",

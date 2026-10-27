@@ -27,13 +27,13 @@ class InboxActorType(StrEnum):
 @cell_silo_model
 class InboxItemEvent(DefaultFieldsModel):
     """
-    One thing that happened to an InboxItem's object, such as an assignment or a mention.
+    One thing that happened to an InboxItem's subject, such as an assignment or a mention.
     """
 
     __relocation_scope__ = RelocationScope.Excluded
 
     # The inbox item that the event belongs to.
-    item = FlexibleForeignKey(
+    inbox_item = FlexibleForeignKey(
         "notifications.InboxItem",
         related_name="events",
         on_delete=models.CASCADE,
@@ -63,7 +63,7 @@ class InboxItemEvent(DefaultFieldsModel):
             ),
         ]
         indexes = [
-            models.Index(fields=["item", "-date_added"], name="inboxevent_item_date_idx"),
+            models.Index(fields=["inbox_item", "-date_added"], name="inboxevent_item_date_idx"),
         ]
 
-    __repr__ = sane_repr("id", "item_id", "type", "actor_type", "actor_id")
+    __repr__ = sane_repr("id", "inbox_item_id", "type", "actor_type", "actor_id")
