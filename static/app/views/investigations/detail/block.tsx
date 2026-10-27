@@ -209,7 +209,6 @@ export function InvestigationNotebookBlock({
             <OverlayTrigger.IconButton
               {...triggerProps}
               size={actionSize}
-              variant="transparent"
               icon={<IconEllipsis size="xs" />}
               aria-label={t('Block actions for %s', displayTitle)}
             />
@@ -221,7 +220,6 @@ export function InvestigationNotebookBlock({
         <BlockActions data-pinned={hasComments || undefined}>
           <Button
             size={actionSize}
-            variant="transparent"
             icon={<IconChat size="xs" variant={hasComments ? 'accent' : undefined} />}
             aria-label={
               hasComments
