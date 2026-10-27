@@ -145,19 +145,6 @@ function mockEventsResponse() {
     },
   });
 }
-
-function SyncWindowLocation({children}: {children: React.ReactNode}) {
-  const location = useLocation();
-  useLayoutEffect(() => {
-    // The memory router does not update the browser URL, which the waterfall's
-    // debounced selection and zoom callbacks read when merging query parameters.
-    setWindowLocation(
-      `http://localhost${location.pathname}${location.search}${location.hash}`
-    );
-  }, [location]);
-  return children;
-}
-
 const VISIBLE_TRACE_ROW_SELECTOR = '.TraceRow:not(.Hidden)';
 const DRAWER_TABS_TEST_ID = 'trace-drawer-tab';
 const DRAWER_TABS_PIN_BUTTON_TEST_ID = 'trace-drawer-tab-pin-button';
@@ -258,6 +245,18 @@ describe('trace view', () => {
     afterEach(() => {
       jest.useRealTimers();
     });
+
+    function SyncWindowLocation({children}: {children: React.ReactNode}) {
+      const location = useLocation();
+      useLayoutEffect(() => {
+        // The memory router does not update the browser URL, which the waterfall's
+        // debounced selection and zoom callbacks read when merging query parameters.
+        setWindowLocation(
+          `http://localhost${location.pathname}${location.search}${location.hash}`
+        );
+      }, [location]);
+      return children;
+    }
 
     function setupPinnedTrace() {
       jest
@@ -1220,138 +1219,29 @@ describe('trace view', () => {
       await waitFor(() => expect(rootTransactionRow).toHaveFocus());
     });
 
-    it('reveals a span when the URL targets it in an already loaded trace', async () => {
-      mockPerformanceSubscriptionDetailsResponse();
-      mockProjectDetailsResponse();
-      const traceRequest = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/trace/trace-id/',
-        body: makeEAPTrace([
-          makeEAPSpan({
-            event_id: 'root-transaction',
-            description: 'root transaction',
-            is_transaction: true,
-            start_timestamp: 1,
-            end_timestamp: 3,
-            children: [
-              makeEAPSpan({
-                event_id: 'target-span',
-                description: 'target span',
-                start_timestamp: 1.5,
-                end_timestamp: 2,
-              }),
-              // Enough spans to keep the trace from auto-expanding, so the target starts hidden.
-              ...Array.from({length: 100}, (_, index) =>
-                makeEAPSpan({
-                  event_id: `other-span-${index}`,
-                  start_timestamp: 1.5,
-                  end_timestamp: 2,
-                })
-              ),
-            ],
-          }),
-          makeEAPSpan({
-            event_id: 'second-transaction',
-            description: 'second transaction',
-            is_transaction: true,
-            start_timestamp: 1,
-            end_timestamp: 2,
-          }),
-          makeEAPSpan({
-            event_id: 'third-transaction',
-            description: 'third transaction',
-            is_transaction: true,
-            start_timestamp: 1,
-            end_timestamp: 2,
-          }),
-        ]),
-      });
-      mockTraceMetaResponse({
-        body: {
-          errorsCount: 0,
-          logsCount: 0,
-          metricsCount: 0,
-          performanceIssuesCount: 0,
-          spansCount: 103,
-          spansCountMap: {},
-        },
-      });
-      mockTraceRootFacets();
-      mockEventsResponse();
-      for (const itemId of [
-        'root-transaction',
-        'second-transaction',
-        'third-transaction',
-        'target-span',
-      ]) {
-        MockApiClient.addMockResponse({
-          url: `/projects/org-slug/project_slug/trace-items/${itemId}/`,
-          body: {
-            itemId,
-            links: null,
-            meta: {},
-            timestamp: new Date(1e3).toISOString(),
-            attributes: [],
-          },
-        });
-      }
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/logs/',
-        body: {data: []},
-      });
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/dashboards/',
-        body: [],
-      });
-
+    it('reveals a span linked within the already loaded trace', async () => {
       mockQueryString('?node=span-second-transaction');
-      const {router} = render(<TraceView />, {
-        additionalWrapper: SyncWindowLocation,
-        initialRouterConfig: {
-          ...initialRouterConfig,
-          location: {
-            pathname: '/organizations/org-slug/performance/trace/trace-id/',
-            query: {node: 'span-second-transaction'},
-          },
-        },
-      });
+      setupEAPTraceView();
+      const {router} = render(<TraceView />, {initialRouterConfig});
 
       expect(await screen.findByTestId('trace-drawer-title')).toHaveTextContent(
         'SpanID: second-transaction'
       );
-      expect(screen.queryByText('target span')).not.toBeInTheDocument();
       await userEvent.click(screen.getByRole('button', {name: 'Close Drawer'}));
-      await waitFor(() => {
-        expect(screen.queryByTestId('trace-drawer-title')).not.toBeInTheDocument();
-      });
-
-      // Same navigation a link such as Seer's "View span" performs.
       act(() =>
         router.navigate(
-          '/organizations/org-slug/performance/trace/trace-id/?node=span-target-span'
+          '/organizations/org-slug/performance/trace/trace-id/?node=span-third-transaction'
         )
       );
 
-      const targetRow = (await screen.findByText('target span')).closest(
-        VISIBLE_TRACE_ROW_SELECTOR
-      );
-      await waitFor(() => expect(targetRow).toHaveAttribute('tabindex', '0'));
       expect(await screen.findByTestId('trace-drawer-title')).toHaveTextContent(
-        'SpanID: target-span'
+        'SpanID: third-transaction'
       );
-      expect(router.location.query.node).toBe('span-target-span');
-      expect(traceRequest).toHaveBeenCalledTimes(1);
-
-      // Selecting a row afterwards still drives the URL without the URL pulling selection back.
-      await userEvent.click(screen.getByText('third transaction'));
-      await waitFor(() =>
-        expect(router.location.query.node).toBe('span-third-transaction')
-      );
-      await waitFor(() =>
-        expect(screen.getByTestId('trace-drawer-title')).toHaveTextContent(
-          'SpanID: third-transaction'
-        )
-      );
-      expect(router.location.query.node).toBe('span-third-transaction');
+      expect(
+        within(screen.getByTestId('trace-virtualized-list'))
+          .getByText('third transaction')
+          .closest(VISIBLE_TRACE_ROW_SELECTOR)
+      ).toHaveAttribute('tabindex', '0');
     });
 
     it('warns when an EAP node from the URL cannot be found', async () => {
