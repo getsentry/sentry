@@ -99,6 +99,7 @@ interface DrawerContextType {
     callerId: string
   ) => void;
   panelRef: React.RefObject<HTMLDivElement | null>;
+  setDockedPaneWidth: (width: number) => void;
 }
 
 const DrawerContext = createContext<DrawerContextType>({
@@ -106,6 +107,7 @@ const DrawerContext = createContext<DrawerContextType>({
   activeDrawerId: null,
   closeDrawer: () => {},
   panelRef: {current: null},
+  setDockedPaneWidth: () => {},
 });
 
 function shouldCloseOnInteractOutsideByDefault(element: Element) {
@@ -126,6 +128,7 @@ export function GlobalDrawer({children}: any) {
   // Used to avoid adding `currentDrawerConfig` as a dependency to the below
   // `useLayoutEffect`. It's only used as a callback when `location` changes.
   const currentDrawerConfigRef = useRef(currentDrawerConfig);
+  const [dockedPaneWidth, setDockedPaneWidth] = useState(0);
 
   // If no config is set, the global drawer is closed.
   const isDrawerOpen = !!currentDrawerConfig;
@@ -218,7 +221,9 @@ export function GlobalDrawer({children}: any) {
     : null;
 
   return (
-    <DrawerContext value={{closeDrawer, activeDrawerId, openDrawer, panelRef}}>
+    <DrawerContext
+      value={{closeDrawer, activeDrawerId, openDrawer, panelRef, setDockedPaneWidth}}
+    >
       <ErrorBoundary
         mini
         allowDismiss
@@ -235,6 +240,7 @@ export function GlobalDrawer({children}: any) {
               onClose={handleClose}
               ref={panelRef}
               mode={currentDrawerConfig.options.mode ?? 'blocking'}
+              dockedPaneWidth={dockedPaneWidth}
               drawerWidth={currentDrawerConfig?.options?.drawerWidth}
               drawerMaxWidth={currentDrawerConfig?.options?.drawerMaxWidth}
               drawerKey={currentDrawerConfig?.options?.drawerKey}
@@ -294,9 +300,24 @@ export function useDrawer() {
   };
 }
 
-export {
-  DRAWER_INSET_RIGHT_PROPERTY,
-  DrawerBody,
-  DrawerHeader,
-  useDrawerContentContext,
-} from './components';
+/**
+ * For a layout that docks its own pane against the viewport's right edge (Seer).
+ * While `width` is positive, drawers open over that whole pane: from the top of
+ * the viewport and at least `width` pixels wide, so none of the pane shows
+ * around them. Returns whether a drawer is covering the pane right now.
+ */
+export function useDrawerDockedPane(width: number): boolean {
+  const {activeDrawerId, setDockedPaneWidth} = useContext(DrawerContext);
+  useLayoutEffect(() => {
+    if (width <= 0) {
+      return;
+    }
+    setDockedPaneWidth(width);
+    return () => {
+      setDockedPaneWidth(0);
+    };
+  }, [setDockedPaneWidth, width]);
+  return width > 0 && activeDrawerId !== null;
+}
+
+export {DrawerBody, DrawerHeader, useDrawerContentContext} from './components';

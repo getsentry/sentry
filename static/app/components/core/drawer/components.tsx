@@ -20,12 +20,6 @@ import {
   useDrawerResizing,
 } from './useDrawerResizing';
 
-/**
- * Set on the document root by a layout that docks its own pane against the
- * viewport's right edge, so drawers end at that pane instead of covering it.
- */
-export const DRAWER_INSET_RIGHT_PROPERTY = '--drawer-inset-right';
-
 const DrawerWidthContext = createContext<number | undefined>(undefined);
 
 type DrawerContentContextType = Pick<DrawerOptions, 'ariaLabel' | 'onClose'>;
@@ -52,6 +46,8 @@ interface DrawerPanelProps extends Pick<
   children: React.ReactNode;
   /** Required — GlobalDrawer applies the default before passing it down. */
   mode: NonNullable<DrawerOptions['mode']>;
+  /** Width in pixels of a pane docked against the viewport's right edge, if any. */
+  dockedPaneWidth?: number;
   ref?: React.Ref<HTMLDivElement>;
 }
 
@@ -64,6 +60,7 @@ function DrawerPanel({
   drawerWidth,
   drawerMaxWidth,
   drawerKey,
+  dockedPaneWidth,
   resizable = true,
 }: DrawerPanelProps) {
   const {panelRef, resizeHandleRef, handleResizeStart, persistedWidthPercent, enabled} =
@@ -84,6 +81,7 @@ function DrawerPanel({
       <DrawerWidthContext.Provider value={actualDrawerWidth}>
         <DrawerSlidePanel
           mode={mode}
+          dockedPaneWidth={dockedPaneWidth}
           ariaLabel={ariaLabel}
           position="right"
           ref={mergeRefs(panelRef, ref, (node: HTMLDivElement | null) =>
@@ -241,7 +239,7 @@ const DrawerContainer = styled('div')<{mode?: DrawerOptions['mode']}>`
   }
 `;
 
-const DrawerSlidePanel = styled(SlideOverPanel)`
+const DrawerSlidePanel = styled(SlideOverPanel)<{dockedPaneWidth?: number}>`
   border-left: 1px solid ${p => p.theme.tokens.border.primary};
   position: relative;
   pointer-events: auto;
@@ -250,13 +248,10 @@ const DrawerSlidePanel = styled(SlideOverPanel)`
   /* Extend the panel's background 20px past its right edge so the bounce-in
      overshoot doesn't briefly expose the page beneath. A box-shadow is used
      (vs. a pseudo-element) because the panel's own overflow: auto would clip
-     anything positioned outside its bounds. With a right inset there's a
-     docked pane past that edge rather than the page, and the strip would sit
-     on top of it for as long as the drawer is open, so any inset drops it. */
+     anything positioned outside its bounds. */
   /* oxlint-disable-next-line @sentry/scraps/use-semantic-token -- Extend the drawer background beyond its scrollable bounds. */
   box-shadow:
-    max(0px, 20px - var(${DRAWER_INSET_RIGHT_PROPERTY}, 0px) * 1000) 0 0
-      ${p => p.theme.tokens.background.overlay},
+    20px 0 0 ${p => p.theme.tokens.background.overlay},
     ${p => p.theme.shadow.high};
 
   --drawer-width: ${DEFAULT_WIDTH_PERCENT}%;
@@ -269,9 +264,20 @@ const DrawerSlidePanel = styled(SlideOverPanel)`
     var(--drawer-max-width)
   ) !important;
 
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    right: var(${DRAWER_INSET_RIGHT_PROPERTY}, 0px);
-  }
+  /* Cover a pane docked against the viewport's right edge (Seer) entirely, so
+     none of it shows beside or above the drawer: a narrow drawer would leave
+     the pane's edge, and passive drawers otherwise start below the header. */
+  ${p =>
+    p.dockedPaneWidth
+      ? css`
+          min-width: ${p.dockedPaneWidth}px;
+
+          @media (min-width: ${p.theme.breakpoints.sm}) {
+            top: 0;
+            height: 100%;
+          }
+        `
+      : null}
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     top: 0;
