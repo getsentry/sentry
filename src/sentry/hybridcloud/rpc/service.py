@@ -7,6 +7,7 @@ import importlib
 import inspect
 import logging
 import pkgutil
+import time
 from abc import abstractmethod
 from collections.abc import (
     Callable,
@@ -32,6 +33,7 @@ from sentry_sdk import traces
 
 from sentry import options
 from sentry.hybridcloud.rpc import ArgumentDict, DelegatedBySiloMode, RpcModel
+from sentry.hybridcloud.rpc.circuit_breaker import RpcCircuitBreaker
 from sentry.hybridcloud.rpc.sig import SerializableFunctionSignature
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.types.cell import Cell, CellMappingNotFound
@@ -638,7 +640,21 @@ class _RemoteSiloCall:
             if use_test_client:
                 response = self._fire_test_request(headers, data)
             else:
-                response = self._fire_request(headers, data)
+                destination = self.cell.name if self.cell else "control"
+                breaker = RpcCircuitBreaker(destination, self._metrics_tags())
+                if breaker.should_reject():
+                    raise RpcCircuitBreakerOpenException(
+                        self.service_name,
+                        self.method_name,
+                        f"Circuit breaker open for {destination}",
+                    )
+                start = time.monotonic()
+                try:
+                    response = self._fire_request(headers, data)
+                except RpcRemoteException:
+                    breaker.record_failure()
+                    raise
+                breaker.record_response(response.status_code, time.monotonic() - start)
             tags = self._metrics_tags(status=response.status_code)
             metrics.incr(
                 "hybrid_cloud.dispatch_rpc.response_code",
@@ -779,6 +795,10 @@ class _RemoteSiloCall:
             service_method = f"{self.service_name}.{self.method_name}"
             if service_method in disabled_service_methods:
                 raise RpcDisabledException(f"RPC {service_method} disabled")
+
+
+class RpcCircuitBreakerOpenException(RpcRemoteException):
+    """Indicates that the destination's circuit breaker is open and a request has not been made."""
 
 
 class RpcDisabledException(Exception):
