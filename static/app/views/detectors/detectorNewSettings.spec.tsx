@@ -1453,10 +1453,8 @@ describe('DetectorEdit', () => {
             query: {
               detectorType: 'preprod_size_analysis',
               draft: JSON.stringify({
-                version: 1,
-                detectorType: 'preprod_size_analysis',
-                hasSetName: true,
-                values: {measurement: 'download_size', name: 'Shared app size'},
+                measurement: 'download_size',
+                name: 'Shared app size',
               }),
             },
           },
@@ -1859,7 +1857,7 @@ describe('DetectorEdit', () => {
     });
 
     it('restores an edited cron draft when the URL is reopened', async () => {
-      const {unmount} = render(<DetectorNewSettings />, {
+      const {router, unmount} = render(<DetectorNewSettings />, {
         organization,
         initialRouterConfig: cronRouterConfig,
       });
@@ -1869,12 +1867,9 @@ describe('DetectorEdit', () => {
       await userEvent.clear(gracePeriod);
       await userEvent.type(gracePeriod, '7');
       await waitFor(() => {
-        expect(new URLSearchParams(window.location.search).has('draft')).toBe(true);
+        expect(router.location.query.draft).toContain('"checkinMargin":7');
       });
-      const sharedQuery = {
-        ...cronRouterConfig.location.query,
-        ...Object.fromEntries(new URLSearchParams(window.location.search)),
-      };
+      const sharedQuery = {...router.location.query} as Record<string, string>;
       unmount();
 
       render(<DetectorNewSettings />, {
@@ -1901,12 +1896,7 @@ describe('DetectorEdit', () => {
               ...cronRouterConfig.location.query,
               platform: 'php',
               guide: 'upsert',
-              draft: JSON.stringify({
-                version: 1,
-                detectorType: 'monitor_check_in_failure',
-                hasSetName: false,
-                values: {checkinMargin: ''},
-              }),
+              draft: JSON.stringify({checkinMargin: ''}),
             },
           },
         },
@@ -1934,12 +1924,7 @@ describe('DetectorEdit', () => {
             ...cronRouterConfig.location,
             query: {
               detectorType: 'monitor_check_in_failure',
-              draft: JSON.stringify({
-                version: 1,
-                detectorType: 'monitor_check_in_failure',
-                hasSetName: false,
-                values: {checkinMargin: '', projectId: phpProject.id},
-              }),
+              draft: JSON.stringify({checkinMargin: '', projectId: phpProject.id}),
             },
           },
         },
