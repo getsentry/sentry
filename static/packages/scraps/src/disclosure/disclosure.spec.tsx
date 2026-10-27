@@ -7,23 +7,6 @@ import {Disclosure} from '@sentry/scraps/disclosure';
 import {lightTheme} from '@sentry/scraps/theme';
 
 describe('Disclosure', () => {
-  it('allows a full-width content panel without the default indentation', () => {
-    render(
-      <Disclosure defaultExpanded>
-        <Disclosure.Title>Navigation group</Disclosure.Title>
-        <Disclosure.Content padding="0">Navigation links</Disclosure.Content>
-      </Disclosure>,
-      {wrapper: ThemeWrapper}
-    );
-    expect(screen.getByText('Navigation links')).toHaveStyle({padding: '0px'});
-    const trigger = screen.getByRole('button', {name: 'Navigation group'});
-    expect(trigger).toHaveAttribute('aria-expanded', 'true');
-    expect(trigger).toHaveAttribute(
-      'aria-controls',
-      screen.getByText('Navigation links').id
-    );
-  });
-
   it('supports attaching a render ref to the panel', () => {
     const panelRef = jest.fn();
     render(

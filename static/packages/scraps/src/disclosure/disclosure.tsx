@@ -1,6 +1,5 @@
 import type * as React from 'react';
 import {createContext, useContext, useRef} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {
   useDisclosure,
@@ -12,13 +11,7 @@ import {useDisclosureState, type DisclosureState} from '@react-stately/disclosur
 import {IconChevron} from '@sentry/icons/chevron';
 
 import {Button} from '@sentry/scraps/button';
-import {
-  Container,
-  Flex,
-  Stack,
-  type ContainerProps,
-  type StackProps,
-} from '@sentry/scraps/layout';
+import {Container, Flex, Stack, type StackProps} from '@sentry/scraps/layout';
 
 interface DisclosureProps
   extends Omit<AriaDisclosureProps, 'isDisabled' | 'isExpanded'>, Omit<StackProps, 'as'> {
@@ -128,8 +121,6 @@ function Title({children, leadingItems, trailingItems, ...rest}: DisclosureTitle
         disabled={isDisabled}
         size={context.size}
         variant="transparent"
-        aria-expanded={buttonProps['aria-expanded']}
-        aria-controls={buttonProps['aria-controls']}
         {...pressProps}
         {...rest}
       >
@@ -176,13 +167,12 @@ const StretchedButton = styled(Button)`
 
 interface DisclosureContentProps extends React.HTMLAttributes<HTMLElement> {
   children: React.ReactNode;
-  padding?: ContainerProps['padding'];
 }
 
 const OUTLINE_PADDING = {xs: 'sm', sm: 'md', md: 'lg'} as const;
 const OUTLINE_RADIUS = {xs: 'md', sm: 'lg', md: 'xl'} as const;
 
-function Content({children, padding, ...props}: DisclosureContentProps) {
+function Content({children, ...props}: DisclosureContentProps) {
   const {panelProps, panelRef, context} = useDisclosureContext();
 
   if (context.variant === 'outline') {
@@ -192,7 +182,7 @@ function Content({children, padding, ...props}: DisclosureContentProps) {
         {...panelProps}
         border="primary"
         radius={OUTLINE_RADIUS[context.size]}
-        padding={padding ?? OUTLINE_PADDING[context.size]}
+        padding={OUTLINE_PADDING[context.size]}
         width="100%"
         {...props}
       >
@@ -205,8 +195,8 @@ function Content({children, padding, ...props}: DisclosureContentProps) {
     <AlignedContainer
       ref={panelRef}
       {...panelProps}
-      padding={padding ?? context.size}
-      size={padding === undefined ? context.size : undefined}
+      padding={context.size}
+      size={context.size}
       width="100%"
       {...props}
     >
@@ -215,12 +205,8 @@ function Content({children, padding, ...props}: DisclosureContentProps) {
   );
 }
 
-const AlignedContainer = styled(Container)<{size?: NonNullable<DisclosureProps['size']>}>`
-  ${p =>
-    p.size &&
-    css`
-      padding-left: ${p.size === 'xs' ? '22px' : '26px'};
-    `}
+const AlignedContainer = styled(Container)<{size: NonNullable<DisclosureProps['size']>}>`
+  padding-left: ${p => (p.size === 'xs' ? '22px' : p.size === 'sm' ? '26px' : '26px')};
 `;
 
 export const Disclosure = Object.assign(DisclosureComponent, {

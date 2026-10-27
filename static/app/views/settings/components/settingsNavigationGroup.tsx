@@ -39,7 +39,7 @@ function SettingsNavigationGroupImpl(props: NavigationGroupProps) {
   }
 
   const navLinks = visibleItems.map(
-    ({path, title, index, badge, id, leadingItems, recordAnalytics}) => {
+    ({path, title, index, badge, id, recordAnalytics}) => {
       const badgeResult = typeof badge === 'function' ? badge(props) : null;
       const to = replaceRouterParams(path, {...params, orgId: organization?.slug});
 
@@ -62,7 +62,6 @@ function SettingsNavigationGroupImpl(props: NavigationGroupProps) {
           label={title}
           index={index}
           badge={badgeResult}
-          leadingItems={leadingItems}
           id={id}
           onClick={handleClick}
         />
@@ -74,7 +73,7 @@ function SettingsNavigationGroupImpl(props: NavigationGroupProps) {
     <SecondaryNavigation.Section
       id={props.id}
       title={hideTitle ? undefined : name}
-      variant={settingsV3 ? 'disclosure' : 'default'}
+      chevronPosition={settingsV3 ? 'leading' : 'trailing'}
     >
       <SecondaryNavigation.List>{navLinks}</SecondaryNavigation.List>
     </SecondaryNavigation.Section>

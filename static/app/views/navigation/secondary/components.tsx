@@ -35,7 +35,6 @@ import {IconGrabbable} from '@sentry/icons/grabbable';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
-import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
@@ -367,12 +366,54 @@ function SecondaryNavigationBody(props: SecondaryNavigationBodyProps) {
 
 interface SectionTitleProps {
   canCollapse: boolean;
+  chevronPosition: 'leading' | 'trailing';
   children: ReactNode;
   isCollapsed: boolean;
   setIsCollapsed: (isCollapsed: boolean) => void;
 }
 
 function SectionTitle(props: SectionTitleProps) {
+  // The leading slot and padding match `SecondaryNavigation.Link`, so the
+  // chevron and title line up with the leading slot and label of each link.
+  if (props.chevronPosition === 'leading') {
+    const content = (
+      <Flex align="center" gap="sm" minWidth="0">
+        <SecondaryNavigationLeadingSlot>
+          {props.canCollapse ? (
+            <IconChevron direction={props.isCollapsed ? 'right' : 'down'} size="xs" />
+          ) : null}
+        </SecondaryNavigationLeadingSlot>
+        <Text bold ellipsis align="left">
+          {props.children}
+        </Text>
+      </Flex>
+    );
+
+    if (!props.canCollapse) {
+      return (
+        <Flex align="center" width="100%" padding="md lg">
+          {content}
+        </Flex>
+      );
+    }
+
+    return (
+      <Grid columns="1fr" align="center" width="100%">
+        {p => (
+          <Button
+            {...p}
+            size="sm"
+            variant="transparent"
+            aria-expanded={!props.isCollapsed}
+            onClick={() => props.setIsCollapsed(!props.isCollapsed)}
+          >
+            {content}
+          </Button>
+        )}
+      </Grid>
+    );
+  }
+
   if (props.canCollapse) {
     return (
       <Grid columns="1fr auto" align="center" width="100%" padding="sm lg">
@@ -412,10 +453,14 @@ interface SecondaryNavigationSectionProps {
   children: ReactNode;
   id: string;
   /**
+   * Places the collapse chevron in a leading slot that lines up with
+   * `SecondaryNavigation.LeadingSlot` in the links below.
+   */
+  chevronPosition?: 'leading' | 'trailing';
+  /**
    * The title is the collapse toggle, so only titled sections can collapse.
    */
   title?: ReactNode;
-  variant?: 'default' | 'disclosure';
 }
 
 function SecondaryNavigationSection(props: SecondaryNavigationSectionProps) {
@@ -427,27 +472,12 @@ function SecondaryNavigationSection(props: SecondaryNavigationSectionProps) {
   const canCollapse = layout === 'sidebar' && !!props.title;
   const isCollapsed = canCollapse ? isCollapsedState : false;
 
-  if (props.variant === 'disclosure' && props.title && canCollapse) {
-    return (
-      <Container padding="md sm" data-nav-section>
-        <Disclosure
-          size="sm"
-          width="100%"
-          expanded={!isCollapsed}
-          onExpandedChange={expanded => setIsCollapsedState(!expanded)}
-        >
-          <Disclosure.Title>{props.title}</Disclosure.Title>
-          <Disclosure.Content padding="0">{props.children}</Disclosure.Content>
-        </Disclosure>
-      </Container>
-    );
-  }
-
   return (
     <Container padding="md sm" data-nav-section>
       {props.title ? (
         <SectionTitle
           canCollapse={canCollapse}
+          chevronPosition={props.chevronPosition ?? 'trailing'}
           isCollapsed={isCollapsed}
           setIsCollapsed={setIsCollapsedState}
         >
@@ -522,6 +552,22 @@ function SecondaryNavigationLink({
       </Text>
       {trailingItems}
     </SidebarNavigationLink>
+  );
+}
+
+interface SecondaryNavigationLeadingSlotProps {
+  children?: ReactNode;
+}
+
+/**
+ * Fixed-width gutter before a link label. Pass it as `leadingItems` on every
+ * link in a list so labels stay aligned whether or not a row has an icon.
+ */
+function SecondaryNavigationLeadingSlot(props: SecondaryNavigationLeadingSlotProps) {
+  return (
+    <Flex align="center" justify="center" width="24px" height="24px" flexShrink={0}>
+      {props.children}
+    </Flex>
   );
 }
 
@@ -1033,6 +1079,7 @@ export const SecondaryNavigation = {
   Body: SecondaryNavigationBody,
   Section: SecondaryNavigationSection,
   Separator: SecondaryNavigationSeparator,
+  LeadingSlot: SecondaryNavigationLeadingSlot,
   List: SecondaryNavigationList,
   ListItem: SecondaryNavigationListItem,
   Link: SecondaryNavigationLink,

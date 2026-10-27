@@ -308,7 +308,7 @@ describe('desktop navigation', () => {
     }
   );
 
-  it('persists settings v3 disclosure state and supports keyboard expansion', async () => {
+  it('persists settings v3 section collapse state and supports keyboard expansion', async () => {
     render(
       <PrimaryNavigationContextProvider>
         <Navigation />
@@ -331,9 +331,11 @@ describe('desktop navigation', () => {
 
     await userEvent.click(processing);
     expect(processing).toHaveAttribute('aria-expanded', 'false');
-    expect(
-      within(secondaryNav).queryByRole('link', {name: 'Inbound Filters'})
-    ).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        within(secondaryNav).queryByRole('link', {name: 'Inbound Filters'})
+      ).not.toBeInTheDocument()
+    );
     await waitFor(() =>
       expect(
         localStorageWrapper.getItem('secondary-nav-section-settings-processing-collapsed')
