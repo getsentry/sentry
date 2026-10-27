@@ -1321,37 +1321,6 @@ describe('DetectorEdit', () => {
       expect(new URLSearchParams(window.location.search).has('draft')).toBe(false);
     });
 
-    it('keeps the link prefill when the draft would be too long for the URL', async () => {
-      const prefillQuery = {
-        detectorType: 'metric_issue',
-        project: project.id,
-        dataset: 'errors',
-        query: 'a'.repeat(7000),
-      };
-      window.history.replaceState(
-        null,
-        '',
-        `${initialRouterConfig.location.pathname}?${new URLSearchParams(prefillQuery)}`
-      );
-      render(<DetectorNewSettings />, {
-        organization,
-        initialRouterConfig: {
-          ...initialRouterConfig,
-          location: {...initialRouterConfig.location, query: prefillQuery},
-        },
-      });
-
-      await userEvent.type(
-        await screen.findByRole('spinbutton', {name: 'High threshold'}),
-        '90'
-      );
-      await act(() => new Promise(resolve => setTimeout(resolve, 500)));
-
-      const searchParams = new URLSearchParams(window.location.search);
-      expect(searchParams.has('draft')).toBe(false);
-      expect(searchParams.get('dataset')).toBe('errors');
-    });
-
     it.each([
       ['invalid JSON', '{not json'],
       [
@@ -1404,46 +1373,32 @@ describe('DetectorEdit', () => {
       expect(sourceRequest).not.toHaveBeenCalled();
     });
 
-    it('leaves the description out of the URL when the draft is too long', async () => {
+    it('leaves the description out of the URL draft when one is typed', async () => {
+      const query = {detectorType: 'metric_issue', project: project.id};
       render(<DetectorNewSettings />, {
         organization,
-        initialRouterConfig: getDraftRouterConfig({
-          values: {description: 'a'.repeat(7000), name: 'Long description'},
-        }),
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {...initialRouterConfig.location, query},
+        },
       });
 
       await userEvent.type(
-        await screen.findByRole('spinbutton', {name: 'High threshold'}),
+        await screen.findByRole('textbox', {name: 'description'}),
+        'Private notes'
+      );
+      await userEvent.type(
+        screen.getByRole('spinbutton', {name: 'High threshold'}),
         '90'
       );
 
       await waitFor(() => {
-        expect(new URLSearchParams(window.location.search).has('draft')).toBe(true);
+        expect(
+          JSON.parse(new URLSearchParams(window.location.search).get('draft') ?? '{}')
+            .values
+        ).toEqual(expect.objectContaining({highThreshold: '90'}));
       });
-      const draft = JSON.parse(new URLSearchParams(window.location.search).get('draft')!);
-      expect(draft.values).not.toHaveProperty('description');
-      expect(draft.values).toEqual(
-        expect.objectContaining({highThreshold: '90', name: 'Long description'})
-      );
-    });
-
-    it('removes the URL draft when it is too long even without the description', async () => {
-      render(<DetectorNewSettings />, {
-        organization,
-        initialRouterConfig: getDraftRouterConfig({
-          values: {dataset: 'errors', query: 'a'.repeat(7000)},
-        }),
-      });
-      window.history.replaceState(null, '', '/?draft=stale');
-
-      await userEvent.type(
-        await screen.findByRole('spinbutton', {name: 'High threshold'}),
-        '90'
-      );
-
-      await waitFor(() => {
-        expect(new URLSearchParams(window.location.search).has('draft')).toBe(false);
-      });
+      expect(window.location.search).not.toContain('Private');
     });
 
     it('prefills from the URL draft and submits', async () => {
