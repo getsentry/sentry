@@ -39,6 +39,7 @@ patchedDependencies:
   css-tree@3.2.1: patches/css-tree@3.2.1.patch
   jest-runtime@30.5.1: patches/jest-runtime@30.5.1.patch
   jest-resolve@30.5.1: patches/jest-resolve@30.5.1.patch
+  # cold-build crash fix (rspack#16077); remove on rspack >= 2.3.0
   '@rspack/core@2.2.8': patches/@rspack__core@2.2.8.patch
 allowBuilds:
   '@sentry-internal/node-cpu-profiler': true
