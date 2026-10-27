@@ -33,7 +33,6 @@ from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.unfurl.handlers import link_handlers, match_link
 from sentry.integrations.slack.unfurl.types import LinkType, UnfurlableUrl
 from sentry.integrations.slack.views.link_identity import build_linking_url
-from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.entrypoints.slack.analytics import SlackSeerAgentConversation
@@ -460,22 +459,20 @@ class SlackEventEndpoint(SlackDMEndpoint):
                     },
                 )
 
-            # The task inherits this context; Slack requests carry no Sentry credential.
-            with webhook_viewer_context(organization_id):
-                process_mention_for_slack.apply_async(
-                    kwargs={
-                        "integration_id": slack_request.integration.id,
-                        "organization_id": organization_id,
-                        "channel_id": channel_id,
-                        "ts": ts,
-                        "thread_ts": thread_ts,
-                        "text": text,
-                        "slack_user_id": slack_request.user_id,
-                        "bot_user_id": bot_user_id,
-                        "attachments": data.get("attachments"),
-                        "conversation_type": conversation_type,
-                    }
-                )
+            process_mention_for_slack.apply_async(
+                kwargs={
+                    "integration_id": slack_request.integration.id,
+                    "organization_id": organization_id,
+                    "channel_id": channel_id,
+                    "ts": ts,
+                    "thread_ts": thread_ts,
+                    "text": text,
+                    "slack_user_id": slack_request.user_id,
+                    "bot_user_id": bot_user_id,
+                    "attachments": data.get("attachments"),
+                    "conversation_type": conversation_type,
+                }
+            )
             return self.respond()
 
     def on_app_mention(self, slack_request: SlackEventRequest) -> Response:
@@ -598,17 +595,16 @@ class SlackEventEndpoint(SlackDMEndpoint):
             if not organization_id:
                 return self.respond()
 
-            with webhook_viewer_context(organization_id):
-                process_reaction_for_slack.apply_async(
-                    kwargs={
-                        "integration_id": slack_request.integration.id,
-                        "organization_id": organization_id,
-                        "channel_id": channel_id,
-                        "message_ts": message_ts,
-                        "reaction": reaction,
-                        "reactor_slack_user_id": slack_request.user_id,
-                    }
-                )
+            process_reaction_for_slack.apply_async(
+                kwargs={
+                    "integration_id": slack_request.integration.id,
+                    "organization_id": organization_id,
+                    "channel_id": channel_id,
+                    "message_ts": message_ts,
+                    "reaction": reaction,
+                    "reactor_slack_user_id": slack_request.user_id,
+                }
+            )
             return self.respond()
 
     # TODO(dcramer): implement app_uninstalled and tokens_revoked

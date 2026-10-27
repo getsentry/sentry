@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import contextlib
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, MutableMapping, Sequence
@@ -55,7 +54,6 @@ from sentry.integrations.slack.webhooks.actions.seer_agent import (
 )
 from sentry.integrations.types import ExternalProviderEnum, IntegrationProviderSlug
 from sentry.integrations.utils.scope import bind_org_context_from_integration
-from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
 from sentry.issues.action_log import ActionSource, GroupActionActor, action_context_scope
 from sentry.locks import locks
 from sentry.models.activity import ActivityIntegration
@@ -73,7 +71,6 @@ from sentry.users.models import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
-from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 _logger = logging.getLogger(__name__)
 
@@ -184,22 +181,6 @@ def _is_message(data: Mapping[str, Any]) -> bool:
     Bot posted messages will not have the type at all.
     """
     return data.get("original_message", {}).get("type") == "message"
-
-
-# Slack requests carry no Sentry credential, so Seer calls made while handling them need a context.
-def _org_viewer_context(organization_id: int | None) -> contextlib.AbstractContextManager[None]:
-    if organization_id is None:
-        return contextlib.nullcontext()
-    return webhook_viewer_context(organization_id)
-
-
-def _user_viewer_context(user: RpcUser, group: Group) -> contextlib.AbstractContextManager[None]:
-    return viewer_context_scope(
-        ViewerContext(
-            actor=Actor(type=ActorType.USER, actor_id=user.id),
-            organization_id=group.project.organization_id,
-        )
-    )
 
 
 @all_silo_endpoint  # Only LINK_IDENTITY is handled at control
@@ -679,7 +660,7 @@ class SlackActionEndpoint(Endpoint):
         )
         lock = locks.get(lock_key, duration=10, name="autofix_entrypoint_slack")
         try:
-            with lock.acquire(), _user_viewer_context(user, group):
+            with lock.acquire():
                 SeerAutofixOperator(entrypoint=entrypoint).trigger_autofix(
                     group=group,
                     user=user,
@@ -728,10 +709,7 @@ class SlackActionEndpoint(Endpoint):
                 },
             )
             return
-        with _user_viewer_context(user, group):
-            SeerAutofixOperator(entrypoint=entrypoint).trigger_handoff(
-                group=group, run_id=int(run_id)
-            )
+        SeerAutofixOperator(entrypoint=entrypoint).trigger_handoff(group=group, run_id=int(run_id))
 
     @classmethod
     def get_action_option(cls, slack_request: SlackActionRequest) -> tuple[str | None, str | None]:
@@ -826,24 +804,22 @@ class SlackActionEndpoint(Endpoint):
                 else ""
             )
             routing_data = decode_action_id(encoded_action_id)
-            with _org_viewer_context(routing_data.organization_id):
-                return handle_seer_agent_write_approval(
-                    slack_request=slack_request,
-                    action=SlackAction(action_id),
-                    organization_id=routing_data.organization_id,
-                )
+            return handle_seer_agent_write_approval(
+                slack_request=slack_request,
+                action=SlackAction(action_id),
+                organization_id=routing_data.organization_id,
+            )
 
         if action_id == SlackAction.SEER_INVESTIGATION_START.value:
             identity_user = slack_request.get_identity_user()
             if not identity_user:
                 return self._respond_link_identity(slack_request)
             routing_data = decode_action_id(slack_request.data["actions"][0]["action_id"])
-            with _org_viewer_context(routing_data.organization_id):
-                return handle_seer_investigation_start(
-                    slack_request=slack_request,
-                    organization_id=routing_data.organization_id,
-                    identity_user=identity_user,
-                )
+            return handle_seer_investigation_start(
+                slack_request=slack_request,
+                organization_id=routing_data.organization_id,
+                identity_user=identity_user,
+            )
 
         # If a user is just clicking a button link we return a 200
         if action_option in (
