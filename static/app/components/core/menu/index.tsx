@@ -1,5 +1,6 @@
 /** Shared presentation; consumers own state, keyboard behavior, and ARIA roles. */
 export {
+  calculateMenuMinHeight,
   MenuFooterLayout as Footer,
   MenuHeaderLayout as Header,
   MenuHeading as Title,

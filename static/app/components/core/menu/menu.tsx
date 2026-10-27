@@ -19,6 +19,22 @@ import type {FormSize, Theme} from '@sentry/scraps/theme';
 import type {TooltipProps} from '@sentry/scraps/tooltip';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+/** Caps a requested menu height by the space available to its overlay. */
+export function calculateMenuMinHeight(
+  first: string | number | undefined,
+  second: string | number | undefined
+): string | undefined {
+  if (first === undefined) {
+    return typeof second === 'number' ? `${second}px` : second;
+  }
+  if (second === undefined) {
+    return typeof first === 'number' ? `${first}px` : first;
+  }
+  const firstHeight = typeof first === 'number' ? `${first}px` : first;
+  const secondHeight = typeof second === 'number' ? `${second}px` : second;
+  return `min(${firstHeight}, ${secondHeight})`;
+}
+
 /** Container for a menu header, with a divider below it. */
 export function MenuHeaderLayout(props: FlexProps) {
   return <Stack borderBottom="muted" gap="0" {...props} />;

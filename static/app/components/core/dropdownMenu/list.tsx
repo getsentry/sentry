@@ -13,9 +13,14 @@ import {useTreeState} from '@react-stately/tree';
 import type {Node} from '@react-types/shared';
 import type {LocationDescriptor} from 'history';
 
-import {minHeight} from '@sentry/scraps/compactSelect/utils';
 import {Container, Stack} from '@sentry/scraps/layout';
-import {Header, Search, SectionSeparator, Title} from '@sentry/scraps/menu';
+import {
+  calculateMenuMinHeight,
+  Header,
+  Search,
+  SectionSeparator,
+  Title,
+} from '@sentry/scraps/menu';
 import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
 import {Text} from '@sentry/scraps/text';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
@@ -339,7 +344,10 @@ function DropdownMenuList({
                 {...stackProps}
                 style={{
                   // Cap the requested height by the space available to the overlay.
-                  maxHeight: minHeight(maxHeight, overlayPositionProps.style?.maxHeight),
+                  maxHeight: calculateMenuMinHeight(
+                    maxHeight,
+                    overlayPositionProps.style?.maxHeight
+                  ),
                   maxWidth:
                     maxWidth === undefined
                       ? '100%'
