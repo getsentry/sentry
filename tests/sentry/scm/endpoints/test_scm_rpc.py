@@ -14,6 +14,7 @@ from scm.rpc.helpers import sign_get, sign_post
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.models.repository import Repository
+from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.testutils.cases import APITestCase
 from sentry.utils import json
 
@@ -112,6 +113,49 @@ class TestScmRpc(APITestCase):
         result = create_branch(self.rpc_client, "test", sha="123")
         assert result["data"]["ref"] == "test"
         assert result["data"]["sha"] == "123"
+        assert len(responses.calls) == 1
+
+    def test_does_not_retry_integration_proxy_get_requests(self):
+        self._assert_does_not_retry_integration_proxy_requests("GET")
+
+    def test_does_not_retry_integration_proxy_post_requests(self):
+        self._assert_does_not_retry_integration_proxy_requests("POST")
+
+    @responses.activate
+    @unittest.mock.patch.object(IntegrationProxyClient, "_use_proxy_url_for_tests", True)
+    def _assert_does_not_retry_integration_proxy_requests(self, method):
+        responses.add(
+            method,
+            "http://controlserver/api/0/internal/integration-proxy/",
+            status=503,
+        )
+        body = json.dumps(
+            {
+                "type": "action",
+                "data": {
+                    "method": method,
+                    "path": "/repos/test-org/test-repo",
+                    "headers": None,
+                    "data": None,
+                    "params": None,
+                    "allow_redirects": None,
+                    "stream": True,
+                },
+            }
+        ).encode()
+
+        with self.options({"hybridcloud.integrationproxy.retries": 5}):
+            response = self.client.post(
+                self.url,
+                data=body,
+                content_type="application/json",
+                headers={
+                    **self.default_headers,
+                    "Authorization": f"rpcsignature {sign_post(Secret('a-long-value-that-is-hard-to-guess'), body)}",
+                },
+            )
+
+        assert_streaming_coded_error(response, 503, "resource_service_unavailable")
         assert len(responses.calls) == 1
 
     def test_get(self):

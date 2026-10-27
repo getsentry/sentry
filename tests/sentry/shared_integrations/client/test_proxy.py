@@ -1,6 +1,7 @@
 import ipaddress
 from unittest.mock import MagicMock, patch
 
+import responses
 from django.test import override_settings
 from pytest import raises
 from requests import Request
@@ -238,6 +239,18 @@ class IntegrationProxyClientTest(TestCase):
         client.get(f"{self.base_url}/some/endpoint", params={"query": 1, "user": "me"})
         assert mock_session_send.call_count == 1
         assert mock_session_send.mock_calls[0].kwargs["timeout"] == 10
+
+    @responses.activate
+    def test_retries_proxy_requests_by_default(self) -> None:
+        proxy_url = "http://controlserver/api/0/internal/integration-proxy/"
+        responses.add(responses.POST, proxy_url, status=503)
+        responses.add(responses.POST, proxy_url, json={"ok": True})
+        client = self.client_cls(org_integration_id=self.oi_id)
+
+        with self.options({"hybridcloud.integrationproxy.retries": 1}):
+            assert client.post("/some/endpoint") == {"ok": True}
+
+        assert len(responses.calls) == 2
 
 
 def test_get_control_silo_ip_address() -> None:
