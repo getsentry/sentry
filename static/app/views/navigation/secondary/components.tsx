@@ -377,7 +377,7 @@ function SectionTitle(props: SectionTitleProps) {
   // chevron and title line up with the leading slot and label of each link.
   if (props.chevronPosition === 'leading') {
     const content = (
-      <Flex align="center" gap="sm" minWidth="0">
+      <Fragment>
         <SecondaryNavigationLeadingSlot>
           {props.canCollapse ? (
             <IconChevron direction={props.isCollapsed ? 'right' : 'down'} size="xs" />
@@ -386,22 +386,24 @@ function SectionTitle(props: SectionTitleProps) {
         <Text bold ellipsis align="left">
           {props.children}
         </Text>
-      </Flex>
+      </Fragment>
     );
 
     if (!props.canCollapse) {
       return (
-        <Flex align="center" width="100%" padding="md lg">
+        <Flex align="center" gap="sm" width="100%" padding="md lg">
           {content}
         </Flex>
       );
     }
 
+    // The button's inner span inherits display, justify and gap, so these
+    // Flex props lay out its content.
     return (
-      <Grid columns="1fr" align="center" width="100%">
-        {gridProps => (
+      <Flex align="center" justify="start" gap="sm" width="100%">
+        {flexProps => (
           <Button
-            {...gridProps}
+            {...flexProps}
             size="sm"
             variant="transparent"
             aria-expanded={!props.isCollapsed}
@@ -410,7 +412,7 @@ function SectionTitle(props: SectionTitleProps) {
             {content}
           </Button>
         )}
-      </Grid>
+      </Flex>
     );
   }
 
@@ -565,7 +567,14 @@ interface SecondaryNavigationLeadingSlotProps {
  */
 function SecondaryNavigationLeadingSlot(props: SecondaryNavigationLeadingSlotProps) {
   return (
-    <Flex align="center" justify="center" width="24px" height="24px" flexShrink={0}>
+    <Flex
+      as="span"
+      align="center"
+      justify="center"
+      width="24px"
+      height="24px"
+      flexShrink={0}
+    >
       {props.children}
     </Flex>
   );
