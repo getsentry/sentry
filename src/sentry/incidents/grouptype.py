@@ -191,7 +191,7 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
 
     def build_detector_evidence_data(
         self,
-        group_evaluation: DataConditionGroupEvaluation,
+        group_evaluation: DataConditionGroupEvaluation | None,
         data_packet: DataPacket[MetricUpdate],
         priority: DetectorPriorityLevel,
     ) -> dict[str, Any]:

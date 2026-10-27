@@ -1,4 +1,3 @@
-import dataclasses
 import logging
 
 from sentry.utils import metrics
@@ -113,8 +112,11 @@ class DetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationTy
                 # versus sending a resolve status change message.
                 continue
 
-            results[group_key] = self._build_detector_evaluation(
-                group_key, priority, trigger_evaluation, data_packet, evaluation_value
+            results[group_key] = self._create_occurrence(
+                DetectorEvaluation.create_issue(group_key, priority, trigger_evaluation),
+                trigger_evaluation,
+                data_packet,
+                evaluation_value,
             )
 
         return GroupedDetectorEvaluationResult(result=results, tainted=tainted)
@@ -160,40 +162,3 @@ class DetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationTy
             return group_evaluation, DetectorPriorityLevel.OK
 
         return group_evaluation, max(triggered_priorities)
-
-    def _build_detector_evaluation(
-        self,
-        group_key: DetectorGroupKey,
-        priority: DetectorPriorityLevel,
-        trigger_evaluation: DataConditionGroupEvaluation,
-        data_packet: DataPacket[DataPacketType],
-        evaluation_value: DataPacketEvaluationType,
-    ) -> DetectorEvaluation:
-        detector_occurrence, event_data = self.create_occurrence(
-            trigger_evaluation, data_packet, priority
-        )
-
-        event_id = self.get_event_id(event_data)
-
-        occurrence_id = self.get_occurrence_id(group_key, event_id)
-
-        issue_fingerprint = self.get_issue_fingerprint(group_key)
-
-        additional_evidence_data = self._build_workflow_engine_evidence_data(
-            trigger_evaluation, data_packet, evaluation_value
-        )
-
-        issue_occurrence = detector_occurrence.to_issue_occurrence(
-            occurrence_id=occurrence_id,
-            event_id=event_id,
-            project_id=self.detector.project_id,
-            status=priority,
-            additional_evidence_data=dataclasses.asdict(additional_evidence_data),
-            fingerprint=issue_fingerprint,
-        )
-
-        event_data = self._build_event_data(event_data, issue_occurrence)
-
-        return DetectorEvaluation.create_issue(group_key, priority, trigger_evaluation).with_result(
-            issue_occurrence, event_data=event_data
-        )
