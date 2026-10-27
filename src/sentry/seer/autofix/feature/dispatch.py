@@ -20,9 +20,11 @@ from sentry.seer.agent.on_completion_hook import extract_hook_definition
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException
 from sentry.seer.autofix.feature.models import (
+    AUTOFIX_SINGLE_RUN_FEATURE_ID,
     FEATURE_ID,
     LEGACY_FEATURE_ID,
     AutofixFeaturePayload,
+    AutofixSingleRunPayload,
     CodeChangesStepArgs,
     PrIterationStepArgs,
     RCAStepArgs,
@@ -120,6 +122,13 @@ def trigger_autofix_feature(
             )
             raise NoSeerQuotaException()
 
+    if (
+        is_new_run
+        and args.step == AutofixStep.ROOT_CAUSE
+        and features.has("organizations:autofix-single-run", group.organization)
+    ):
+        return _start_single_run(group, args, skip_quota)
+
     payload = AutofixFeaturePayload(
         group_id=group.id,
         project_id=group.project_id,
@@ -215,4 +224,61 @@ def trigger_autofix_feature(
         },
     )
 
+    return run
+
+
+def _start_single_run(group: Group, args: AutofixFeatureArgs, skip_quota: bool) -> SeerRun:
+    assert isinstance(args.step_args, RCAStepArgs)
+    stopping_point = args.stopping_point
+    # No stopping point means no stop: a set-up project goes straight to a PR.
+    enable_coding = stopping_point not in (
+        AutofixStoppingPoint.ROOT_CAUSE,
+        AutofixStoppingPoint.SOLUTION,
+    )
+    enable_write_pull_request = stopping_point in (None, AutofixStoppingPoint.OPEN_PR)
+
+    payload = AutofixSingleRunPayload(
+        group_id=group.id,
+        project_id=group.project_id,
+        short_id=group.qualified_short_id or str(group.id),
+        title=group.title or "Unknown error",
+        culprit=group.culprit or "unknown",
+        intelligence_level=args.step_args.intelligence_level,
+        reasoning_effort=args.step_args.reasoning_effort,
+        repo_pins=args.step_args.repo_pins,
+    )
+    client = SeerAgentClient(
+        organization=group.organization,
+        project=group.project,
+        group=group,
+        user=args.user,
+        enable_bash_mode=enable_coding,
+        enable_coding=enable_coding,
+    )
+    extras: dict[str, Any] = {"referrer": args.referrer.value}
+    if stopping_point is not None:
+        extras["stopping_point"] = stopping_point.value
+
+    run = client.start_feature_run(
+        feature_id=AUTOFIX_SINGLE_RUN_FEATURE_ID,
+        payload=payload.dict(),
+        referrer=args.referrer.value,
+        user_org_context=collect_user_org_context(args.user, group.organization),
+        proxy_headers=get_proxy_headers(),
+        agent_run_options=AgentRunOptions(
+            is_context_engine_enabled=False,
+            enable_frontend_code_search=False,
+            enable_coding=enable_coding,
+            enable_bash_mode=enable_coding,
+            enable_write_pull_request=enable_write_pull_request,
+            enable_code_mode_tools="only",
+        ),
+        title=f"Autofix — {payload.short_id}",
+        flush=args.flush,
+        extras=extras,
+    )
+    if not skip_quota:
+        quotas.backend.record_seer_run(
+            group.organization.id, group.project.id, DataCategory.SEER_AUTOFIX
+        )
     return run

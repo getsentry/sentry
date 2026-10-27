@@ -12,6 +12,7 @@ from sentry.seer.autofix.steps import AutofixStep
 FEATURE_ID = "autofix"
 # In-flight runs started before the rename still deliver and persist this id.
 LEGACY_FEATURE_ID = "autofix_rca"
+AUTOFIX_SINGLE_RUN_FEATURE_ID = "autofix_single_run"
 
 
 class RepoPin(BaseModel):
@@ -85,3 +86,17 @@ class AutofixFeaturePayload(BaseModel):
     # Not to be confused with user_org_context, this is free-form context added by the user.
     user_context: str | None = None
     stopping_point: str | None = None
+
+
+class AutofixSingleRunPayload(BaseModel):
+    class Config:
+        extra = "ignore"
+
+    group_id: int
+    project_id: int
+    short_id: str
+    title: str
+    culprit: str
+    intelligence_level: Literal["low", "medium", "high"] = "medium"
+    reasoning_effort: Literal["low", "medium", "high"] = "medium"
+    repo_pins: RepoPins | None = None
