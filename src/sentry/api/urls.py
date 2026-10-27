@@ -48,13 +48,6 @@ from sentry.api.endpoints.organization_sampling_effective_sample_rate import (
 from sentry.api.endpoints.organization_sampling_project_span_counts import (
     OrganizationSamplingProjectSpanCountsEndpoint,
 )
-from sentry.api.endpoints.organization_service_account_viewer_context import (
-    OrganizationServiceAccountViewerContextEndpoint,
-)
-from sentry.api.endpoints.organization_service_accounts import (
-    OrganizationServiceAccountDetailsEndpoint,
-    OrganizationServiceAccountIndexEndpoint,
-)
 from sentry.api.endpoints.organization_stats_summary import OrganizationStatsSummaryEndpoint
 from sentry.api.endpoints.organization_trace_item_attribute_context import (
     OrganizationTraceItemAttributeContextEndpoint,
@@ -302,6 +295,9 @@ from sentry.integrations.api.endpoints.organization_repository_platforms import 
 )
 from sentry.integrations.api.endpoints.organization_repository_settings import (
     OrganizationRepositorySettingsEndpoint,
+)
+from sentry.investigations.endpoints.organization_investigation_action_request_apply import (
+    OrganizationInvestigationActionRequestApplyEndpoint,
 )
 from sentry.investigations.endpoints.organization_investigation_block_details import (
     OrganizationInvestigationBlockDetailsEndpoint,
@@ -677,6 +673,13 @@ from sentry.sentry_apps.api.endpoints.sentry_internal_app_token_details import (
 from sentry.sentry_apps.api.endpoints.sentry_internal_app_tokens import (
     SentryInternalAppTokensEndpoint,
 )
+from sentry.service_accounts.endpoints.organization_service_account_viewer_context import (
+    OrganizationServiceAccountViewerContextEndpoint,
+)
+from sentry.service_accounts.endpoints.organization_service_accounts import (
+    OrganizationServiceAccountDetailsEndpoint,
+    OrganizationServiceAccountIndexEndpoint,
+)
 from sentry.synapse.endpoints.org_cell_mappings import OrgCellMappingsEndpoint
 from sentry.synapse.endpoints.project_key_cell_mappings import ProjectKeyCellMappingsEndpoint
 from sentry.tempest.endpoints.tempest_credentials import TempestCredentialsEndpoint
@@ -803,16 +806,8 @@ from .endpoints.organization_auth_providers import OrganizationAuthProvidersEndp
 from .endpoints.organization_events import OrganizationEventsEndpoint
 from .endpoints.organization_events_dropped import OrganizationEventsDroppedEndpoint
 from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
-from .endpoints.organization_events_facets_performance import (
-    OrganizationEventsFacetsPerformanceEndpoint,
-    OrganizationEventsFacetsPerformanceHistogramEndpoint,
-)
 from .endpoints.organization_events_heatmap import OrganizationEventsHeatmapEndpoint
-from .endpoints.organization_events_histogram import OrganizationEventsHistogramEndpoint
-from .endpoints.organization_events_meta import (
-    OrganizationEventsMetaEndpoint,
-    OrganizationEventsRelatedIssuesEndpoint,
-)
+from .endpoints.organization_events_meta import OrganizationEventsMetaEndpoint
 from .endpoints.organization_events_sql import OrganizationEventsSqlEndpoint
 from .endpoints.organization_events_stats import OrganizationEventsStatsEndpoint
 from .endpoints.organization_events_timeseries import OrganizationEventsTimeseriesEndpoint
@@ -1542,11 +1537,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-key-transactions-list",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/related-issues/$",
-        OrganizationEventsRelatedIssuesEndpoint.as_view(),
-        name="sentry-api-0-organization-related-issues",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/project-transaction-threshold-override/$",
         ProjectTransactionThresholdOverrideEndpoint.as_view(),
         name="sentry-api-0-organization-project-transaction-threshold-override",
@@ -1920,16 +1910,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-events-facets",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/events-facets-performance/$",
-        OrganizationEventsFacetsPerformanceEndpoint.as_view(),
-        name="sentry-api-0-organization-events-facets-performance",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/events-facets-performance-histogram/$",
-        OrganizationEventsFacetsPerformanceHistogramEndpoint.as_view(),
-        name="sentry-api-0-organization-events-facets-performance-histogram",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/events-meta/$",
         OrganizationEventsMetaEndpoint.as_view(),
         name="sentry-api-0-organization-events-meta",
@@ -1948,11 +1928,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/missing-members/$",
         OrganizationMissingMembersEndpoint.as_view(),
         name="sentry-api-0-organization-missing-members",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/events-histogram/$",
-        OrganizationEventsHistogramEndpoint.as_view(),
-        name="sentry-api-0-organization-events-histogram",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/trace/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
@@ -2473,6 +2448,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/duplicate/$",
         OrganizationInvestigationsDuplicateEndpoint.as_view(),
         name="sentry-api-0-organization-investigation-duplicate",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/action-requests/(?P<action_request_id>[^/]+)/apply/$",
+        OrganizationInvestigationActionRequestApplyEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-action-request-apply",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/presence/$",

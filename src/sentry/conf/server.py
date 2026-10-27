@@ -1901,6 +1901,7 @@ SENTRY_SCOPES = {
     "org:admin",
     "org:integrations",
     "org:ci",
+    "org:tokens",
     # "org:superuser",  Do not use for any type of superuser permission/access checks
     # Assigned to active SU sessions in src/sentry/auth/access.py to enable UI elements
     "member:invite",
@@ -1922,7 +1923,7 @@ SENTRY_SCOPES = {
     "alerts:write",
     "dashboard:read",
     "dashboard:create",
-    "dashboard:write",
+    "dashboard:update",
     "dashboard:delete",
     "seer:read",
     "seer:write",
@@ -1950,6 +1951,7 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
     "org:admin": {"org:read", "org:write", "org:admin", "org:integrations"},
     "org:integrations": {"org:integrations"},
     "org:ci": {"org:ci"},
+    "org:tokens": {"org:tokens"},
     "member:invite": {"member:read", "member:invite"},
     "member:read": {"member:read"},
     "member:write": {"member:read", "member:invite", "member:write"},
@@ -1969,11 +1971,11 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
     "alerts:write": {"alerts:read", "alerts:write"},
     "dashboard:read": {"dashboard:read"},
     "dashboard:create": {"dashboard:read", "dashboard:create"},
-    "dashboard:write": {"dashboard:read", "dashboard:create", "dashboard:write"},
+    "dashboard:update": {"dashboard:read", "dashboard:create", "dashboard:update"},
     "dashboard:delete": {
         "dashboard:read",
         "dashboard:create",
-        "dashboard:write",
+        "dashboard:update",
         "dashboard:delete",
     },
     "seer:read": {"seer:read"},
@@ -1989,6 +1991,7 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
 SENTRY_TOKEN_ONLY_SCOPES = frozenset(
     [
         "org:ci",  # CI workflows, releases, source maps, and code mappings
+        "org:tokens",  # OAuth consent to manage org auth tokens on the user's behalf
         "project:distribution",  # App distribution/preprod artifacts
     ]
 )
@@ -2001,7 +2004,7 @@ GRANULAR_SCOPES = frozenset(
     [
         "dashboard:read",
         "dashboard:create",
-        "dashboard:write",
+        "dashboard:update",
         "dashboard:delete",
     ]
 )
@@ -2026,6 +2029,16 @@ SENTRY_SCOPE_SETS = (
         (
             "org:ci",
             "Access to CI workflows including source map uploads, release creation, and code mappings.",
+        ),
+    ),
+    (
+        (
+            "org:tokens",
+            (
+                "Issue, list, rename, and revoke organization auth tokens with org:ci access, "
+                "such as tokens for release, source map, and debug file uploads. "
+                "Does not allow creating personal tokens."
+            ),
         ),
     ),
     (
@@ -2062,8 +2075,8 @@ SENTRY_SCOPE_SETS = (
         ("alerts:read", "Read alerts"),
     ),
     (
-        ("dashboard:delete", "Read, write, and delete access to dashboards."),
-        ("dashboard:write", "Read and write access to dashboards."),
+        ("dashboard:delete", "Read, update, and delete access to dashboards."),
+        ("dashboard:update", "Read and update access to dashboards."),
         ("dashboard:create", "Read and create access to dashboards."),
         ("dashboard:read", "Read access to dashboards."),
     ),
@@ -2287,7 +2300,7 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "alerts:write",
             "dashboard:read",
             "dashboard:create",
-            "dashboard:write",
+            "dashboard:update",
             "dashboard:delete",
             "seer:read",
             "seer:write",
@@ -2325,7 +2338,7 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "alerts:write",
             "dashboard:read",
             "dashboard:create",
-            "dashboard:write",
+            "dashboard:update",
             "dashboard:delete",
             "seer:read",
             "seer:write",
@@ -2358,7 +2371,7 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "alerts:write",
             "dashboard:read",
             "dashboard:create",
-            "dashboard:write",
+            "dashboard:update",
             "dashboard:delete",
             "seer:read",
             "seer:write",
@@ -2398,7 +2411,7 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "alerts:write",
             "dashboard:read",
             "dashboard:create",
-            "dashboard:write",
+            "dashboard:update",
             "dashboard:delete",
             "seer:read",
             "seer:write",

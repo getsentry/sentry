@@ -48,11 +48,11 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
-from sentry.types.superuser import SuperuserAccess
 from sentry.utils import json
 from sentry.viewer_context import (
     Actor,
     ActorType,
+    SuperuserAccess,
     ViewerContext,
     encode_viewer_context,
     get_viewer_context,
@@ -139,7 +139,7 @@ class SuperuserAgentTokenTest(APITestCase):
         assert issue_response.data["id"] == str(group.id)
         claims = agent_token.decode_agent_token(minted.data["token"])
         assert set(claims["scopes"]) <= agent_token.readonly_scopes()
-        assert claims["superuser"] == grant.dict()
+        assert claims["superuser"] == {"expires_at": grant.expires_at}
         assert claims["exp"] <= grant.expires_at
 
     def test_identity_alone_does_not_delegate_superuser(self):
@@ -196,7 +196,7 @@ class SuperuserAgentTokenTest(APITestCase):
     def test_invalid_expiry_cannot_mint(self):
         self._chat_authorization()
         with self.feature(FLAG):
-            assert self._mint(SuperuserAccess.construct(expires_at=True)).status_code == 401
+            assert self._mint(SuperuserAccess(expires_at=True)).status_code == 401
 
     def test_expired_elevation_cannot_mint_or_be_used(self):
         grant = self._chat_authorization()

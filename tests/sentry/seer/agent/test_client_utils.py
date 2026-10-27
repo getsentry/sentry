@@ -25,12 +25,7 @@ from sentry.seer.models.run import SeerRunType
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
 from sentry.testutils.requests import make_request
-from sentry.viewer_context import (
-    Actor,
-    ActorType,
-    ViewerContext,
-    viewer_context_scope,
-)
+from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
@@ -479,13 +474,11 @@ class TestGetProxyHeaders(TestCase):
         # Outside any viewer_context_scope — nothing to encode.
         assert get_proxy_headers() is None
 
-    def test_viewer_context_without_user_returns_none(self) -> None:
-        # System-only context (no user_id) shouldn't produce callback auth —
-        # callbacks only make sense for user-initiated runs.
+    def test_system_viewer_context_propagates(self) -> None:
         with viewer_context_scope(
             ViewerContext(actor=Actor(type=ActorType.UNKNOWN), organization_id=42)
         ):
-            assert get_proxy_headers() is None
+            assert get_proxy_headers() is not None
 
     @override_settings(SEER_API_SHARED_SECRET="")
     def test_no_shared_secret_returns_none(self) -> None:
@@ -517,8 +510,8 @@ class TestGetProxyHeaders(TestCase):
             issuer="sentry",
         )
         assert decoded["organization_id"] == 42
-        assert decoded["user_id"] == 7
-        assert decoded["actor_type"] == "user"
+        assert decoded["actor"]["id"] == 7
+        assert decoded["actor"]["type"] == "user"
         # Standard JWT claims present
         assert "iat" in decoded
         assert "exp" in decoded

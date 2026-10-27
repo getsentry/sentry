@@ -311,6 +311,9 @@ Use `trigger` when the default trigger does not fit the layout. The custom trigg
 - Menu items support keyboard focus and selection.
 - Links retain their destination and close the menu after selection.
 - Submenus support hover and left/right arrow navigation.
+- Escape closes one submenu level and returns focus to its parent item. At the root menu, Escape closes the menu.
+- In a searchable menu, Down Arrow moves from search to the items; Up Arrow on the first item returns to search.
+- When an item has a trailing action, Right Arrow moves focus to it and Left Arrow returns to the item.
 
 ### Developer responsibilities
 

@@ -9,7 +9,6 @@ import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {AggregationKey} from 'sentry/utils/fields';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {ConditionalAggregateFilterBar} from 'sentry/views/explore/components/conditionalAggregateFilterBar';
 import {
   ToolbarFooter,
@@ -25,7 +24,6 @@ import {
   ToolbarVisualizeDropdown,
   ToolbarVisualizeHeader,
 } from 'sentry/views/explore/components/toolbar/toolbarVisualize';
-import {VisualizeTransformations} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeTransformations';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import {
   useDatasetFormulas,
@@ -244,7 +242,6 @@ function VisualizeDropdown({
   numberTags,
   stringTags,
 }: VisualizeDropdownProps) {
-  const organization = useOrganization();
   const firstNumberKey = useMemo(
     () => Object.keys(numberTags).sort()[0] ?? null,
     [numberTags]
@@ -367,15 +364,6 @@ function VisualizeDropdown({
       onSearch={onSearch}
       loading={loading}
       fieldDefinitionType="log"
-      transformationControls={
-        organization.features.includes('explore-interpolation-and-smoothing') ? (
-          <VisualizeTransformations
-            traceItemDataset={TraceItemDataset.LOGS}
-            transformations={visualize.transformations}
-            onChange={transformations => onReplace(visualize.replace({transformations}))}
-          />
-        ) : undefined
-      }
       filterSearchBar={
         showFilterSearchBar ? (
           <ConditionalAggregateFilterBar

@@ -1,17 +1,26 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import Any, TypedDict, override
+from typing import Any, TypedDict, cast, override
 
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
+from sentry.auth.access import Access
 from sentry.investigations.models import (
+    Investigation,
     InvestigationActionRequest,
     InvestigationActionRequestAnchorType,
     InvestigationBlock,
 )
+from sentry.investigations.services.action_kinds import (
+    AppliedDetails,
+    get_action_kind,
+    shared_cannot_apply_reason,
+)
+from sentry.investigations.services.action_kinds.base import ActionRequestError, CannotApplyReason
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -32,9 +41,10 @@ class InvestigationActionRequestAnchorResponse(TypedDict):
 class InvestigationActionRequestSerializerResponse(TypedDict):
     """
     A step Seer suggests. `primary` marks the recommended next step after a run, and `anchor`
-    puts a request under a block or hypothesis. `action` is null when it's only advice. What's
-    in `appliedDetails` depends on the action kind, and `appliedBy` is null when Sentry applied
-    it automatically.
+    puts a request under a block or hypothesis. `action` is Seer's payload, or null when it's
+    only advice. `canApply` says whether this viewer can apply it now, and `cannotApplyReason`
+    says why not. What's in `appliedDetails` depends on the action kind, and `appliedBy` is null
+    when Sentry applied it automatically.
     """
 
     id: str
@@ -48,10 +58,12 @@ class InvestigationActionRequestSerializerResponse(TypedDict):
     state: str
     reason: str | None
     action: dict[str, Any] | None
+    canApply: bool
+    cannotApplyReason: CannotApplyReason | None
     appliedBy: UserSerializerResponse | None
-    appliedDetails: dict[str, Any] | None
+    appliedDetails: AppliedDetails | None
     dateApplied: datetime | None
-    error: dict[str, Any] | None
+    error: ActionRequestError | None
     dateCreated: datetime
 
 
@@ -59,6 +71,55 @@ class InvestigationActionRequestSerializerResponse(TypedDict):
 class InvestigationActionRequestSerializer(
     Serializer[InvestigationActionRequestSerializerResponse]
 ):
+    def __init__(
+        self,
+        access: Access | None = None,
+        investigations: Sequence[Investigation] | None = None,
+        **kwargs: Any,
+    ) -> None:
+        self.access = access
+        self.investigations = investigations
+        super().__init__(**kwargs)
+
+    def _cannot_apply_reasons(
+        self,
+        item_list: Sequence[InvestigationActionRequest],
+        user: User | RpcUser | AnonymousUser,
+    ) -> dict[int, CannotApplyReason | None]:
+        investigation_ids = {item.investigation_id for item in item_list}
+        investigations = {
+            investigation.id: investigation
+            for investigation in (
+                self.investigations
+                if self.investigations is not None
+                else Investigation.objects.filter(id__in=investigation_ids).select_related(
+                    "organization"
+                )
+            )
+        }
+        access = self.access
+        reasons: dict[int, CannotApplyReason | None] = {}
+        by_kind: dict[str, list[InvestigationActionRequest]] = defaultdict(list)
+        for item in item_list:
+            reason = shared_cannot_apply_reason(investigations[item.investigation_id], item)
+            if reason is not None:
+                reasons[item.id] = reason
+            elif access is None:
+                reasons[item.id] = CannotApplyReason.NO_ACCESS
+            else:
+                by_kind[item.action_kind or ""].append(item)
+        if access is None:
+            return reasons
+        for kind_name, items in by_kind.items():
+            kind = get_action_kind(kind_name)
+            assert kind is not None
+            reasons.update(
+                kind.cannot_apply_reasons(
+                    items, investigations=investigations, access=access, user=user
+                )
+            )
+        return reasons
+
     def _anchored_block_ids(
         self, item_list: Sequence[InvestigationActionRequest]
     ) -> dict[tuple[int, str], str]:
@@ -86,6 +147,7 @@ class InvestigationActionRequestSerializer(
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> MutableMapping[InvestigationActionRequest, dict[str, Any]]:
+        reasons = self._cannot_apply_reasons(item_list, user)
         anchored_blocks = self._anchored_block_ids(item_list)
         applier_ids = {item.applied_by_id for item in item_list if item.applied_by_id is not None}
         appliers = (
@@ -100,6 +162,7 @@ class InvestigationActionRequestSerializer(
         )
         return {
             item: {
+                "cannot_apply_reason": reasons.get(item.id, CannotApplyReason.UNSUPPORTED_ACTION),
                 "block_id": (
                     anchored_blocks.get((item.investigation_id, item.anchor_id or ""))
                     if item.anchor_type == InvestigationActionRequestAnchorType.BLOCK
@@ -134,9 +197,12 @@ class InvestigationActionRequestSerializer(
             "state": obj.state,
             "reason": obj.reason,
             "action": obj.action_payload,
+            "canApply": attrs["cannot_apply_reason"] is None,
+            "cannotApplyReason": attrs["cannot_apply_reason"],
             "appliedBy": attrs["applied_by"],
-            "appliedDetails": obj.applied_details,
+            # Only the shared apply path writes these columns.
+            "appliedDetails": cast(AppliedDetails | None, obj.applied_details),
             "dateApplied": obj.date_applied,
-            "error": obj.error,
+            "error": cast(ActionRequestError | None, obj.error),
             "dateCreated": obj.date_added,
         }

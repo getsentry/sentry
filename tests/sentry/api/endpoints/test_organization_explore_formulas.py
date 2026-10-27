@@ -215,6 +215,20 @@ class TestFormulaDetails(BaseFormulaTest):
             assert response.status_code == 400, response.content
         assert str(response.data["detail"]) == "Formula name must be unique"
 
+    def test_update_explore_formula_with_invalid_param_default(self) -> None:
+        formula = self.create_formula()
+        self.formula_object["params"][1]["value"] = "foobar"
+        with self.feature(self.feature_flags):
+            response = self.client.put(
+                reverse("sentry-api-0-explore-formulas-detail", args=[self.org.slug, formula.id]),
+                data=self.formula_object,
+            )
+            assert response.status_code == 400, response.content
+        assert (
+            str(response.data["params"]["value"][0])
+            == "'foobar' is an invalid value for a numeric default"
+        )
+
 
 class TestFormulas(BaseFormulaTest):
     def setUp(self) -> None:
@@ -553,6 +567,7 @@ class TestFormulas(BaseFormulaTest):
         assert len(response.data) == 2
         assert response.data[0]["name"] == "formula.apdex"
         assert response.data[1]["name"] == "formula.user_misery"
+        assert response.data[0]["params"][0]["value"] == "span.duration"
 
     def test_list_with_orderby(self) -> None:
         for i in range(5):
@@ -692,5 +707,5 @@ class TestFormulas(BaseFormulaTest):
             "name": "duration",
             "type": "column",
             "order": 0,
-            "value": "",
+            "value": "span.duration",
         }

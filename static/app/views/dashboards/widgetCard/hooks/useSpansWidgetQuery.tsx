@@ -5,12 +5,12 @@ import trimStart from 'lodash/trimStart';
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {toArray} from 'sentry/utils/array/toArray';
+import {defined} from 'sentry/utils/defined';
 import type {
   EventsTableData,
   TableData,
   TableDataWithTitle,
 } from 'sentry/utils/discover/discoverQuery';
-import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {
   getEquationAliasIndex,
   isEquation,
@@ -42,6 +42,7 @@ import {
   combineWidgetJsonQueryResults,
   combineWidgetQueryResults,
 } from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
+import {getSeriesConfidenceInformation} from 'sentry/views/dashboards/widgetCard/hooks/utils/getSeriesConfidenceInformation';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
 import {getTimeseriesWidgetQueryOptions} from 'sentry/views/dashboards/widgetCard/hooks/utils/getTimeseriesWidgetQueryOptions';
 import {
@@ -282,8 +283,6 @@ export function useSpansSeriesQuery(
     }
 
     const timeseriesResults: WidgetTimeSeries[] = [];
-    const timeseriesResultsTypes: Record<string, AggregationOutputType> = {};
-    const timeseriesResultsUnits: Record<string, DataUnit> = {};
 
     // Iterate active queries only and append densely so skipped invalid-_if
     // queries do not leave undefined holes in series/raw arrays (charts map
@@ -300,7 +299,6 @@ export function useSpansSeriesQuery(
         filteredWidget,
         requestIndex
       );
-      const queryForTransform = widgetForTransform.queries[requestIndex]!;
 
       timeseriesResults.push(
         ...spansResponseTransforms.transformTimeSeries!(
@@ -309,37 +307,26 @@ export function useSpansSeriesQuery(
           requestIndex
         )
       );
-
-      // Get result types and units from config
-      const resultTypes = spansResponseTransforms.getSeriesResultType?.(
-        responseData,
-        queryForTransform
-      );
-      const resultUnits = spansResponseTransforms.getSeriesResultUnit?.(
-        responseData,
-        queryForTransform
-      );
-
-      if (resultTypes) {
-        Object.assign(timeseriesResultsTypes, resultTypes);
-      }
-      if (resultUnits) {
-        Object.assign(timeseriesResultsUnits, resultUnits);
-      }
     });
 
     return {
       loading: false,
       errorMessage: undefined,
       timeseriesResults,
-      timeseriesResultsTypes,
-      timeseriesResultsUnits,
       ingestion: combineIngestionMeta(queryResults.map(q => q?.data)),
       rawData,
     };
   })();
 
-  return transformedData;
+  // When a widget has several queries, the last response's confidence is shown
+  const confidenceInformation = useMemo(() => {
+    const lastResponse = rawData.findLast(defined);
+    return lastResponse
+      ? getSeriesConfidenceInformation(lastResponse, widget.queries[0])
+      : undefined;
+  }, [rawData, widget.queries]);
+
+  return {...transformedData, ...confidenceInformation};
 }
 
 /**
