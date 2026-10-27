@@ -1,4 +1,4 @@
-minVersion: '2.33.1'
+minVersion: '3.3.0'
 workspaces:
   sentry:
     preReleaseCommand: bash scripts/bump-version.sh
@@ -28,74 +28,24 @@ workspaces:
         targetFormat: '{{{target}}}:latest'
     versioning:
       policy: calver
-  static/packages/scraps:
-    preReleaseCommand: >-
-      sh -c 'npm --prefix static/packages/scraps --no-git-tag-version --package-lock=false version "$CRAFT_NEW_VERSION"'
-    releaseBranchPrefix: scraps/release
+  static/packages/*:
+    releaseBranchPrefix: '{{workspaceName}}/release'
     changelog:
       policy: auto
     statusProvider:
       name: github
       config:
         contexts:
-          - scraps-package-pack
+          - '{{workspaceName}}-package-pack'
     artifactProvider:
       name: github
       config:
         artifacts:
-          Scraps package:
-            - scraps-tarball
+          Package pack:
+            - '{{workspaceName}}-tarball'
     targets:
       - name: github
-        tagPrefix: scraps@
-      - name: npm
-        access: public
-    versioning:
-      policy: auto
-  static/packages/icons:
-    preReleaseCommand: >-
-      sh -c 'npm --prefix static/packages/icons --no-git-tag-version --package-lock=false --allow-same-version version "$CRAFT_NEW_VERSION"'
-    releaseBranchPrefix: icons/release
-    changelog:
-      policy: auto
-    statusProvider:
-      name: github
-      config:
-        contexts:
-          - icons-package-pack
-    artifactProvider:
-      name: github
-      config:
-        artifacts:
-          Icons package:
-            - icons-tarball
-    targets:
-      - name: github
-        tagPrefix: icons@
-      - name: npm
-        access: public
-    versioning:
-      policy: auto
-  static/packages/search-syntax:
-    preReleaseCommand: >-
-      sh -c 'npm --prefix static/packages/search-syntax --no-git-tag-version --package-lock=false --allow-same-version version "$CRAFT_NEW_VERSION"'
-    releaseBranchPrefix: search-syntax/release
-    changelog:
-      policy: auto
-    statusProvider:
-      name: github
-      config:
-        contexts:
-          - search-syntax-package-pack
-    artifactProvider:
-      name: github
-      config:
-        artifacts:
-          Search syntax package:
-            - search-syntax-tarball
-    targets:
-      - name: github
-        tagPrefix: search-syntax@
+        tagPrefix: '{{workspaceName}}@'
       - name: npm
         access: public
     versioning:
