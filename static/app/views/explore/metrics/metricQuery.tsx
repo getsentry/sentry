@@ -1,4 +1,5 @@
 import type {Location} from 'history';
+import {z} from 'zod';
 
 import {defined} from 'sentry/utils/defined';
 import {EQUATION_PREFIX, type Sort} from 'sentry/utils/discover/fields';
@@ -25,21 +26,11 @@ export interface TraceMetric {
   unit?: string | null;
 }
 
-function isTraceMetric(value: unknown): value is TraceMetric {
-  if (value === null || !defined(value) || typeof value !== 'object') {
-    return false;
-  }
-
-  const unit = 'unit' in value ? value.unit : undefined;
-
-  return (
-    'name' in value &&
-    typeof value.name === 'string' &&
-    'type' in value &&
-    typeof value.type === 'string' &&
-    (unit === undefined || unit === null || typeof unit === 'string')
-  );
-}
+export const traceMetricSchema = z.looseObject({
+  name: z.string(),
+  type: z.string(),
+  unit: z.string().nullish(),
+});
 
 export interface BaseMetricQuery {
   metric: TraceMetric;
@@ -65,11 +56,11 @@ export function decodeMetricsQueryParams(value: string): BaseMetricQuery | null 
     return null;
   }
 
-  if (!isTraceMetric(json.metric)) {
+  if (!traceMetricSchema.safeParse(json.metric).success) {
     return null;
   }
 
-  const metric = json.metric;
+  const metric: TraceMetric = json.metric;
   const query = parseQuery(json.query);
   const visualizes = parseVisualizes(json.aggregateFields);
 
