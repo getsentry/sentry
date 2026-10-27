@@ -15,7 +15,6 @@ const intervalUnits = new Set(getScheduleIntervals(1).map(({value}) => value));
 export const CRON_DETECTOR_DRAFT_CONFIG: DetectorDraftConfig<CronDetectorFormData> = {
   shape: {
     checkinMargin: draftOptionalNumber,
-    description: z.string().nullable(),
     failureIssueThreshold: draftNumber,
     maxRuntime: draftOptionalNumber,
     name: z.string(),
