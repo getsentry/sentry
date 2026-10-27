@@ -2708,9 +2708,9 @@ class TestMigrations(TransactionTestCase):
         # `ExecutorStateTest` in tests/sentry/new_migrations/test_migrations.py.
         self.setup_before_migration(self._project_state_cache.apps)
 
-        # Run the migration to test
+        # A fresh executor loads the graph and applied migrations in its constructor.
+        # Run the migration to test without rebuilding the same graph a second time.
         executor = MigrationExecutor(conn)
-        executor.loader.build_graph()  # reload.
         self._project_state_cache = executor.migrate(migrate_to, state=self._project_state_cache)
 
         self.apps = self._project_state_cache.apps
@@ -2718,7 +2718,6 @@ class TestMigrations(TransactionTestCase):
     def tearDown(self):
         super().tearDownClass()
         executor = MigrationExecutor(connections[self.connection])
-        executor.loader.build_graph()  # reload.
         self._project_state_cache = executor.migrate(
             self.current_migration, state=self._project_state_cache
         )

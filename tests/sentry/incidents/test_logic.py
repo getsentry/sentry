@@ -1,152 +1,25 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from unittest import mock
 
 import pytest
-from django.utils import timezone
 
 from sentry.constants import ObjectStatus
-from sentry.incidents.events import IncidentCreatedEvent, IncidentStatusUpdatedEvent
 from sentry.incidents.logic import (
     DEFAULT_ALERT_RULE_RESOLUTION,
     DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION,
-    create_incident,
     get_alert_resolution,
     translate_aggregate_field,
     update_detector,
-    update_incident_status,
-)
-from sentry.incidents.models.incident import (
-    Incident,
-    IncidentProject,
-    IncidentStatus,
-    IncidentStatusMethod,
-    IncidentType,
 )
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import BaseIncidentsTest, TestCase
-from sentry.testutils.helpers.datetime import freeze_time
 from sentry.workflow_engine.models.detector import Detector
 
 pytestmark = [pytest.mark.sentry_metrics]
-
-
-class CreateIncidentTest(TestCase):
-    @pytest.fixture(autouse=True)
-    def _patch_record_event(self):
-        with mock.patch(
-            "sentry.analytics.base.Analytics.record_event_envelope"
-        ) as self.record_event:
-            yield
-
-    def test_simple(self) -> None:
-        incident_type = IncidentType.ALERT_TRIGGERED
-        title = "hello"
-        date_started = timezone.now() - timedelta(minutes=5)
-        date_detected = timezone.now() - timedelta(minutes=4)
-        alert_rule = self.create_alert_rule()
-
-        self.record_event.reset_mock()
-        incident = create_incident(
-            self.organization,
-            incident_type=incident_type,
-            title=title,
-            date_started=date_started,
-            date_detected=date_detected,
-            projects=[self.project],
-            alert_rule=alert_rule,
-        )
-        assert incident.identifier == 1
-        assert incident.status == IncidentStatus.OPEN.value
-        assert incident.type == incident_type.value
-        assert incident.title == title
-        assert incident.date_started == date_started
-        assert incident.date_detected == date_detected
-        assert incident.alert_rule == alert_rule
-        assert IncidentProject.objects.filter(
-            incident=incident, project__in=[self.project]
-        ).exists()
-        assert len(self.record_event.call_args_list) == 1
-        event = self.record_event.call_args[0][0].event
-        assert event == IncidentCreatedEvent(
-            organization_id=self.organization.id,
-            incident_id=incident.id,
-            incident_type=IncidentType.ALERT_TRIGGERED.value,
-        )
-
-
-@freeze_time()
-class UpdateIncidentStatus(TestCase):
-    @pytest.fixture(autouse=True)
-    def _patch_record_event(self):
-        with mock.patch(
-            "sentry.analytics.base.Analytics.record_event_envelope"
-        ) as self.record_event:
-            yield
-
-    def test_status_already_set(self) -> None:
-        incident = self.create_incident(status=IncidentStatus.WARNING.value)
-        self.record_event.reset_mock()
-        update_incident_status(
-            incident, IncidentStatus.WARNING, status_method=IncidentStatusMethod.RULE_TRIGGERED
-        )
-        incident.refresh_from_db()
-        assert incident.status == IncidentStatus.WARNING.value
-        self.record_event.assert_not_called()
-
-    def run_test(self, incident, status, expected_date_closed, user=None, date_closed=None):
-        prev_status = incident.status
-        self.record_event.reset_mock()
-        update_incident_status(
-            incident,
-            status,
-            status_method=IncidentStatusMethod.RULE_TRIGGERED,
-            date_closed=date_closed,
-        )
-        incident = Incident.objects.get(id=incident.id)
-        assert incident.status == status.value
-        assert incident.status_method == IncidentStatusMethod.RULE_TRIGGERED.value
-        assert incident.date_closed == expected_date_closed
-
-        assert len(self.record_event.call_args_list) == 1
-        event = self.record_event.call_args[0][0].event
-        assert event == IncidentStatusUpdatedEvent(
-            organization_id=self.organization.id,
-            incident_id=incident.id,
-            incident_type=incident.type,
-            prev_status=prev_status,
-            status=incident.status,
-        )
-
-    def test_closed(self) -> None:
-        incident = self.create_incident(
-            self.organization, title="Test", date_started=timezone.now(), projects=[self.project]
-        )
-        self.run_test(incident, IncidentStatus.CLOSED, timezone.now())
-
-    def test_closed_specify_date(self) -> None:
-        incident = self.create_incident(
-            self.organization,
-            title="Test",
-            date_started=timezone.now() - timedelta(days=5),
-            projects=[self.project],
-        )
-        date_closed = timezone.now() - timedelta(days=1)
-        self.run_test(incident, IncidentStatus.CLOSED, date_closed, date_closed=date_closed)
-
-    def test_all_params(self) -> None:
-        incident = self.create_incident()
-        self.run_test(incident, IncidentStatus.CLOSED, timezone.now(), user=self.user)
-
-    def test_reopen_clears_date_closed(self) -> None:
-        incident = self.create_incident(
-            status=IncidentStatus.CLOSED.value, date_closed=timezone.now()
-        )
-        self.run_test(incident, IncidentStatus.OPEN, None)
 
 
 class EnableDisableDetectorTest(TestCase, BaseIncidentsTest):

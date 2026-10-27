@@ -453,18 +453,6 @@ class Referrer(StrEnum):
     API_ORGANIZATION_EVENT_STATS_FIND_TOPN = "api.organization-event-stats.find-topn"
     API_ORGANIZATION_EVENT_STATS_METRICS_ENHANCED = "api.organization-event-stats.metrics-enhanced"
     API_ORGANIZATION_EVENT_STATS = "api.organization-event-stats"
-    API_ORGANIZATION_EVENTS_FACETS_PERFORMANCE_HISTOGRAM_TOP_TAGS = (
-        "api.organization-events-facets-performance-histogram.top_tags"
-    )
-    API_ORGANIZATION_EVENTS_FACETS_PERFORMANCE_HISTOGRAM = (
-        "api.organization-events-facets-performance-histogram"
-    )
-    API_ORGANIZATION_EVENTS_FACETS_PERFORMANCE_TOP_TAGS_ALL_TRANSACTIONS = (
-        "api.organization-events-facets-performance.top-tags.all_transactions"
-    )
-    API_ORGANIZATION_EVENTS_FACETS_PERFORMANCE_TOP_TAGS_TAG_VALUES = (
-        "api.organization-events-facets-performance.top-tags.tag_values"
-    )
     API_ORGANIZATION_EVENTS_FACETS_TOP_TAGS = "api.organization-events-facets.top-tags"
     API_ORGANIZATION_EVENTS_HISTOGRAM_MIN_MAX_METRICS_ENHANCED_PRIMARY = (
         "api.organization-events-histogram-min-max.metrics-enhanced.primary"
@@ -920,8 +908,6 @@ class Referrer(StrEnum):
     TSDB_MODELID_609 = "tsdb-modelid:609"
     TSDB_MODELID_610 = "tsdb-modelid:610"
     TSDB_MODELID_611 = "tsdb-modelid:611"
-    TSDB_MODELID_800 = "tsdb-modelid:800"
-    TSDB_MODELID_801 = "tsdb-modelid:801"
 
     TSDB_MODELID_4_frequency_snoozes = "tsdb-modelid:4.frequency_snoozes"
     TSDB_MODELID_300_user_count_snoozes = "tsdb-modelid:300.user_count_snoozes"

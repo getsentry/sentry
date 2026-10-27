@@ -102,9 +102,8 @@ describe('Dashboards > Dashboard', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      method: 'GET',
-      body: [],
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: []},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
@@ -451,15 +450,15 @@ describe('Dashboards > Dashboard', () => {
     describe('no interval set in URL', () => {
       it('defaults to the second-biggest valid interval for the dashboard period', async () => {
         const tenMinuteMock = MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events-stats/',
+          url: '/organizations/org-slug/events-timeseries/',
           method: 'GET',
-          body: [],
+          body: {timeSeries: []},
           match: [MockApiClient.matchQuery({interval: '10m'})],
         });
         const thirtyMinuteMock = MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events-stats/',
+          url: '/organizations/org-slug/events-timeseries/',
           method: 'GET',
-          body: [],
+          body: {timeSeries: []},
           match: [MockApiClient.matchQuery({interval: '30m'})],
         });
 
@@ -488,22 +487,22 @@ describe('Dashboards > Dashboard', () => {
     describe('interval set in URL', () => {
       it('uses the URL interval as the selector default and queries with that interval', async () => {
         const thirtyMinuteMock = MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events-stats/',
+          url: '/organizations/org-slug/events-timeseries/',
           method: 'GET',
-          body: [],
+          body: {timeSeries: []},
           match: [MockApiClient.matchQuery({interval: '30m'})],
         });
         const fiveMinuteMock = MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events-stats/',
+          url: '/organizations/org-slug/events-timeseries/',
           method: 'GET',
-          body: [],
+          body: {timeSeries: []},
           match: [MockApiClient.matchQuery({interval: '5m'})],
         });
 
         const tenMinuteMock = MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events-stats/',
+          url: '/organizations/org-slug/events-timeseries/',
           method: 'GET',
-          body: [],
+          body: {timeSeries: []},
           match: [MockApiClient.matchQuery({interval: '10m'})],
         });
 
@@ -541,15 +540,15 @@ describe('Dashboards > Dashboard', () => {
 
       it('ignores the URL interval and falls back to the period default', async () => {
         const sixHourMock = MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events-stats/',
+          url: '/organizations/org-slug/events-timeseries/',
           method: 'GET',
-          body: [],
+          body: {timeSeries: []},
           match: [MockApiClient.matchQuery({interval: '6h'})],
         });
         const fiveMinuteMock = MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events-stats/',
+          url: '/organizations/org-slug/events-timeseries/',
           method: 'GET',
-          body: [],
+          body: {timeSeries: []},
           match: [MockApiClient.matchQuery({interval: '5m'})],
         });
 
@@ -751,10 +750,10 @@ describe('Dashboards > Dashboard', () => {
       widgets: [spansWidget],
     };
 
-    const eventsStatsMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
+    const eventsTimeseriesMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
       method: 'GET',
-      body: [],
+      body: {timeSeries: []},
     });
 
     // URL has release= but no globalFilter — saved global filters must still
@@ -780,8 +779,8 @@ describe('Dashboards > Dashboard', () => {
       }
     );
 
-    await waitFor(() => expect(eventsStatsMock).toHaveBeenCalled());
-    const requestQuery = eventsStatsMock.mock.calls[0]![1]!.query!.query as string;
+    await waitFor(() => expect(eventsTimeseriesMock).toHaveBeenCalled());
+    const requestQuery = eventsTimeseriesMock.mock.calls[0]![1]!.query!.query as string;
     expect(requestQuery).toContain('span.op:db');
   });
 

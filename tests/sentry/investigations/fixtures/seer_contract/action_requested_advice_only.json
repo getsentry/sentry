@@ -1,0 +1,12 @@
+{
+  "request": {
+    "action": null,
+    "anchor": null,
+    "impact": null,
+    "key": "add-retry-spans",
+    "primary": true,
+    "rationale": "The retries hide where the time goes.",
+    "reportRevision": 2,
+    "title": "Add spans around retries"
+  }
+}

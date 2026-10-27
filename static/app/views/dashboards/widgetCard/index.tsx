@@ -19,11 +19,10 @@ import {Token} from 'sentry/components/searchSyntax/parser';
 import {t, tct} from 'sentry/locale';
 import {getOverride} from 'sentry/overrideRegistry';
 import type {PageFilters} from 'sentry/types/core';
-import type {Series} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import {CAN_MARK} from 'sentry/utils/analytics';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
@@ -44,6 +43,7 @@ import {
   WidgetType,
 } from 'sentry/views/dashboards/types';
 import {getWidgetConfigError} from 'sentry/views/dashboards/utils/getWidgetConfigError';
+import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {widgetCanUseTimeSeriesVisualization} from 'sentry/views/dashboards/utils/widgetCanUseTimeSeriesVisualization';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import type {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
@@ -67,8 +67,7 @@ import {readableConditions} from './widgetLLMContext';
 
 export type OnDataFetchedParams = {
   tableResults?: TableDataWithTitle[];
-  timeseriesResultsTypes?: Record<string, AggregationOutputType>;
-  timeseriesResultsUnits?: Record<string, DataUnit>;
+  timeseriesResults?: WidgetTimeSeries[];
 };
 
 const DAYS_TO_MS = 24 * 60 * 60 * 1000;
@@ -127,10 +126,7 @@ type Data = {
   pageLinks?: string;
   sampleCount?: number;
   tableResults?: TableDataWithTitle[];
-  timeseriesResults?: Series[];
-  timeseriesResultsTypes?: Record<string, AggregationOutputType>;
-  timeseriesResultsUnits?: Record<string, DataUnit>;
-  totalIssuesCount?: string;
+  timeseriesResults?: WidgetTimeSeries[];
 };
 
 function WidgetCard(props: Props) {
@@ -209,8 +205,7 @@ function WidgetCard(props: Props) {
       if (onDataFetched) {
         onDataFetched({
           tableResults: newData.tableResults,
-          timeseriesResultsTypes: newData.timeseriesResultsTypes,
-          timeseriesResultsUnits: newData.timeseriesResultsUnits,
+          timeseriesResults: newData.timeseriesResults,
         });
       }
 
@@ -231,7 +226,7 @@ function WidgetCard(props: Props) {
   }
 
   const hasSessionDuration = widget.queries.some(query =>
-    query.aggregates.some(aggregate => aggregate.includes('session.duration'))
+    (query.aggregates ?? []).some(aggregate => aggregate.includes('session.duration'))
   );
 
   const transactionsDeprecationWarning = useTransactionsDeprecationWarning({

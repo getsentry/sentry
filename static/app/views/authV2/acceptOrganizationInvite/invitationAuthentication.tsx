@@ -54,7 +54,7 @@ export function InvitationAuthentication({
         {activeMode === 'register' ? (
           <RegistrationForm
             hasNewsletter={authConfig?.hasNewsletter ?? false}
-            initialEmail={initialEmail}
+            lockedEmail={initialEmail}
             onSuccess={onAuthenticated}
             secondaryAction={
               <Text as="div" align="center" size="sm">

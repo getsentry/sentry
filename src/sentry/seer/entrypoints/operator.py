@@ -4,7 +4,8 @@ from typing import Any, NotRequired, TypedDict
 from taskbroker_client.retry import Retry
 
 from sentry import features, options
-from sentry.constants import DataCategory
+from sentry.constants import ENABLE_SEER_CODING_DEFAULT, DataCategory
+from sentry.investigations.access import has_investigations_access
 from sentry.investigations.models import Investigation, InvestigationOrchestrationRun
 from sentry.investigations.services import create_agentic_breached_metric_investigation
 from sentry.investigations.services.breached_metrics import BreachedMetricSource
@@ -534,10 +535,18 @@ class SeerAgentOperator[CachePayloadT]:
             )
 
             enable_code_mode_tools = "off"
+            has_create_pr = False
             if category_key == "slack_thread" and features.has(
                 "organizations:seer-slack-code-mode", organization
             ):
                 enable_code_mode_tools = "only"
+                # Same gate as Ask Seer; Seer only exposes write_pull_request with coding and bash on.
+                has_create_pr = features.has(
+                    "organizations:ask-seer-create-pr", organization, actor=user
+                )
+            enable_coding = has_create_pr and organization.get_option(
+                "sentry:enable_seer_coding", ENABLE_SEER_CODING_DEFAULT
+            )
 
             try:
                 # RpcUser is not in SeerAgentClient's type signature but works at runtime
@@ -548,7 +557,10 @@ class SeerAgentOperator[CachePayloadT]:
                     category_value=category_value,
                     on_completion_hook=SeerOperatorCompletionHook,
                     is_interactive=True,
-                    enable_coding=False,
+                    enable_coding=enable_coding,
+                    # The client still requires seer-explorer-allow-bash-mode.
+                    enable_bash_mode=enable_coding,
+                    enable_write_pull_request=enable_coding,
                     enable_code_mode_tools=enable_code_mode_tools,
                     # Entrypoints (e.g. Slack) render responses as plain markdown and
                     # can't display embed widgets, so the raw Markdoc tags would leak as
@@ -623,7 +635,7 @@ class SeerInvestigationOperator[CachePayloadT]:
 
     @classmethod
     def has_access(cls, *, organization: Organization, entrypoint_key: SeerEntrypointKey) -> bool:
-        if not features.has("organizations:investigations", organization):
+        if not has_investigations_access(organization):
             return False
         entrypoint_cls = investigation_entrypoint_registry.registrations.get(entrypoint_key)
         return entrypoint_cls is not None and entrypoint_cls.has_access(organization)
@@ -672,12 +684,7 @@ class SeerInvestigationOperator[CachePayloadT]:
 
             record_investigation_started(investigation)
 
-            with SeerOperatorEventLifecycleMetric(
-                interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_INVESTIGATION,
-                entrypoint_key=self.entrypoint.key,
-            ).capture():
-                self.entrypoint.on_trigger_investigation_success(investigation=investigation)
-
+            # Cache before any Slack call so a failed callback can't cut the thread off from updates.
             with SeerOperatorEventLifecycleMetric(
                 interaction_type=SeerOperatorInteractionType.ENTRYPOINT_CREATE_INVESTIGATION_CACHE_PAYLOAD,
                 entrypoint_key=self.entrypoint.key,
@@ -689,6 +696,17 @@ class SeerInvestigationOperator[CachePayloadT]:
                 investigation_id=investigation.id,
                 cache_payload=cache_payload,
             )
+
+            with SeerOperatorEventLifecycleMetric(
+                interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_INVESTIGATION,
+                entrypoint_key=self.entrypoint.key,
+            ).capture() as ept_lifecycle:
+                try:
+                    self.entrypoint.on_trigger_investigation_success(investigation=investigation)
+                except Exception as e:
+                    ept_lifecycle.record_failure(failure_reason=e)
+
+            process_investigation_updates.delay(investigation_id=investigation.id)
             return investigation, True
 
 
@@ -896,7 +914,7 @@ def process_autofix_updates(
     name="sentry.seer.entrypoints.operator.process_investigation_updates",
     namespace=seer_tasks,
     processing_deadline_duration=PROCESS_INVESTIGATION_TIMEOUT_SECONDS,
-    retry=None,
+    retry=Retry(times=4, delay=5, on=(UnableToAcquireLock,)),
 )
 def process_investigation_updates(*, investigation_id: int) -> None:
     """
@@ -925,7 +943,7 @@ def process_investigation_updates(*, investigation_id: int) -> None:
             {"investigation_id": investigation_id, "organization_id": organization.id}
         )
 
-        if not features.has("organizations:investigations", organization):
+        if not has_investigations_access(organization):
             lifecycle.record_halt(halt_reason="no_operator_access")
             return
 
@@ -956,6 +974,10 @@ def process_investigation_updates(*, investigation_id: int) -> None:
             ).capture() as ept_lifecycle:
                 try:
                     entrypoint_cls.on_investigation_update(cache_payload=cache_payload, run=run)
+                except UnableToAcquireLock as e:
+                    ept_lifecycle.record_halt(halt_reason=e)
+                    lifecycle.record_halt(halt_reason=e)
+                    raise
                 except Exception as e:
                     ept_lifecycle.record_failure(failure_reason=e)
 
@@ -1057,15 +1079,8 @@ def _refresh_agent_run(organization: Organization, run_id: int) -> None:
             lifecycle.record_halt(halt_reason="no_operator_access")
             return
 
-        summary: str | None = None
         try:
             state = fetch_run_status(run_id, organization)
-            for block in reversed(state.blocks):
-                if block.message.role == "user":
-                    break
-                if block.message.role == "assistant" and block.message.content:
-                    summary = block.message.content
-                    break
         except Exception as e:
             lifecycle.record_failure(failure_reason=e)
             return
@@ -1100,9 +1115,8 @@ def _refresh_agent_run(organization: Organization, run_id: int) -> None:
                 try:
                     entrypoint_cls.on_agent_update(
                         cache_payload=cache_payload,
-                        summary=summary,
                         run_id=run_id,
-                        pending_user_input=state.pending_user_input,
+                        state=state,
                     )
                 except IntegrationError:
                     # The refresh task retries integration errors.
@@ -1112,14 +1126,13 @@ def _refresh_agent_run(organization: Organization, run_id: int) -> None:
 
 
 class SeerOperatorCompletionHook(AgentOnCompletionHook):
-    """Completion hook that notifies all entrypoints when a Seer Agent invocation yields.
+    """Completion hook that queues a refresh of every entrypoint for a Seer Agent run.
 
-    Mirrors the pattern of process_autofix_updates: iterates through the entrypoint
-    registry and calls on_agent_update for each entrypoint that has access and
-    has a cached payload for this run.
+    Seer calls it when an invocation yields and when a PR push the agent queued finishes.
+    It only queues the work, so Seer gets a quick success; the task does the refresh and retries.
     """
 
     @classmethod
     def execute(cls, organization: Organization, run_id: int) -> None:
-        # Runs inline until every worker knows refresh_agent_run; Seer retries integration errors.
-        _refresh_agent_run(organization, run_id)
+        # If queueing fails this raises, and Seer retries the hook.
+        refresh_agent_run.apply_async(kwargs={"organization_id": organization.id, "run_id": run_id})

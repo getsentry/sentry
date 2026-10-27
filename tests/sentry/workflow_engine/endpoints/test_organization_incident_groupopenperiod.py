@@ -23,27 +23,15 @@ class OrganizationIncidentGroupOpenPeriodAPITestCase(APITestCase):
         self.open_period_2 = GroupOpenPeriod.objects.get(group=self.group_2)
         self.open_period_3 = GroupOpenPeriod.objects.get(group=self.group_3)
 
-        # Create incidents
-        self.alert_rule = self.create_alert_rule()
-        self.incident_1 = self.create_incident(
-            organization=self.organization, projects=[self.project], alert_rule=self.alert_rule
-        )
-        self.incident_2 = self.create_incident(
-            organization=self.organization, projects=[self.project], alert_rule=self.alert_rule
-        )
-        self.incident_3 = self.create_incident(
-            organization=self.organization, projects=[self.project], alert_rule=self.alert_rule
-        )
-
-        # Create incident-group-open-period relationships
+        # Historical identifiers must resolve without native Incident rows.
         self.igop_1 = self.create_incident_group_open_period(
-            incident=self.incident_1, group_open_period=self.open_period_1
+            group_open_period=self.open_period_1, incident_id=101, incident_identifier=1
         )
         self.igop_2 = self.create_incident_group_open_period(
-            incident=self.incident_2, group_open_period=self.open_period_2
+            group_open_period=self.open_period_2, incident_id=102, incident_identifier=2
         )
         self.igop_3 = self.create_incident_group_open_period(
-            incident=self.incident_3, group_open_period=self.open_period_3
+            group_open_period=self.open_period_3, incident_id=103, incident_identifier=3
         )
 
 
@@ -53,13 +41,13 @@ class OrganizationIncidentGroupOpenPeriodIndexGetTest(
 ):
     def test_get_with_incident_id_filter(self) -> None:
         response = self.get_success_response(
-            self.organization.slug, incident_id=str(self.incident_1.id)
+            self.organization.slug, incident_id=str(self.igop_1.incident_id)
         )
         assert response.data == serialize(self.igop_1, self.user)
 
     def test_get_with_incident_identifier_filter(self) -> None:
         response = self.get_success_response(
-            self.organization.slug, incident_identifier=str(self.incident_1.identifier)
+            self.organization.slug, incident_identifier=str(self.igop_1.incident_identifier)
         )
         assert response.data == serialize(self.igop_1, self.user)
 
@@ -76,7 +64,7 @@ class OrganizationIncidentGroupOpenPeriodIndexGetTest(
     def test_get_with_multiple_filters(self) -> None:
         response = self.get_success_response(
             self.organization.slug,
-            incident_id=str(self.incident_1.id),
+            incident_id=str(self.igop_1.incident_id),
             group_id=str(self.group_1.id),
         )
         assert response.data == serialize(self.igop_1, self.user)
@@ -84,7 +72,7 @@ class OrganizationIncidentGroupOpenPeriodIndexGetTest(
     def test_get_with_multiple_filters_with_invalid_filter(self) -> None:
         self.get_error_response(
             self.organization.slug,
-            incident_id=str(self.incident_1.id),
+            incident_id=str(self.igop_1.incident_id),
             group_id="99999",
         )
 
@@ -161,10 +149,12 @@ class OrganizationIncidentGroupOpenPeriodProjectAccessTest(
         assert response.data == serialize(self.igop_1, self.member)
 
     def test_incident_id_requires_project_access(self) -> None:
-        self.assert_mapping_requires_project_access(incident_id=self.incident_1.id)
+        self.assert_mapping_requires_project_access(incident_id=self.igop_1.incident_id)
 
     def test_incident_identifier_requires_project_access(self) -> None:
-        self.assert_mapping_requires_project_access(incident_identifier=self.incident_1.identifier)
+        self.assert_mapping_requires_project_access(
+            incident_identifier=self.igop_1.incident_identifier
+        )
 
     def test_group_id_requires_project_access(self) -> None:
         self.assert_mapping_requires_project_access(group_id=self.group_1.id)
@@ -197,7 +187,9 @@ class OrganizationIncidentGroupOpenPeriodProjectAccessTest(
     def test_open_membership_allows_project_access(self) -> None:
         self.organization.flags.allow_joinleave = True
         self.organization.save()
-        response = self.get_success_response(self.organization.slug, incident_id=self.incident_1.id)
+        response = self.get_success_response(
+            self.organization.slug, incident_id=self.igop_1.incident_id
+        )
         assert response.data == serialize(self.igop_1, self.member)
 
         group = self.create_group(project=self.project, type=MetricIssue.type_id)
@@ -215,11 +207,11 @@ class OrganizationIncidentGroupOpenPeriodProjectAccessTest(
         other_organization = self.create_organization(owner=self.member)
         self.create_team_membership(team=self.team, user=self.member)
         self.get_error_response(
-            other_organization.slug, incident_id=self.incident_1.id, status_code=404
+            other_organization.slug, incident_id=self.igop_1.incident_id, status_code=404
         )
         self.get_error_response(
             other_organization.slug,
-            incident_identifier=self.incident_1.identifier,
+            incident_identifier=self.igop_1.incident_identifier,
             status_code=404,
         )
         self.get_error_response(other_organization.slug, group_id=self.group_1.id, status_code=404)

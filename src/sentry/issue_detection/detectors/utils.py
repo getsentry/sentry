@@ -7,6 +7,7 @@ from datetime import timedelta
 from typing import Any, TypedDict
 from urllib.parse import ParseResult, parse_qs, urlparse
 
+from sentry.utils import metrics
 from sentry.utils.http import is_valid_ip
 from sentry.utils.safe import get_path
 
@@ -217,7 +218,12 @@ def safer_urlparse(url: str) -> ParseResult:
 
 # Creates a stable fingerprint for resource spans from their description (url), removing common cache busting tokens.
 def fingerprint_resource_span(span: Span) -> str:
-    url = safer_urlparse(span.get("description") or "")
+    # TODO: Check the `issue_detection.description_stripping` metric to determine if we can apply
+    # stripping here (IOW, how often it would change the value and thereby mess up existing
+    # fingerprints).
+    url = safer_urlparse(
+        get_span_description(span, strip=False, caller="fingerprint_resource_span")
+    )
     path = url.path
     path = UUID_REGEX.sub("*", path)
     path = CHUNK_HASH_REGEX.sub(".*.chunk", path)
@@ -318,7 +324,7 @@ def get_span_evidence_value(span: Span | None = None, include_op: bool = True) -
         return value
 
     op = (span.get("op") or "").strip()
-    desc = (span.get("description") or "").strip()
+    desc = get_span_description(span)
 
     if not op and desc:
         value = desc
@@ -395,7 +401,7 @@ def get_url_from_span(span: Span) -> str:
 
     # Attempt to parse the full URL from the span description, in case
     # the previous approaches did not yield a good result
-    description = span.get("description") or ""
+    description = get_span_description(span)
     parts = description.split(" ", 1)
     if len(parts) == 2:
         url = parts[1]
@@ -417,7 +423,7 @@ def fingerprint_spans(spans: list[Span], unique_only: bool = False) -> str:
 # Creates a stable fingerprint given the same span details using sha1.
 def fingerprint_span(span: Span) -> str | None:
     op = span.get("op", None)
-    description = span.get("description", None)
+    description = get_span_description(span)
     if not description or not op:
         return None
 
@@ -595,3 +601,24 @@ def get_browser_name(event: dict[str, Any]) -> str:
         ),
         "",
     )
+
+
+def get_span_description(span: Span, strip: bool = True, caller: str | None = None) -> str:
+    description = span.get("description") or ""
+    stripped = description.strip()
+
+    # TODO: In places where we use the description for fingerprinting, stripping could change the
+    # fingerprint value and erroneously create new issues. To determine whether this theoretical
+    # problem actually shows up in practice, for now we'll skip the stripping and just track how
+    # often doing it would change the description value.
+    if strip:
+        return stripped
+    else:
+        metrics.incr(
+            "issue_detection.description_stripping",
+            tags={
+                "value_changed": stripped != description,
+                "caller": caller,
+            },
+        )
+        return description

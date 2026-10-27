@@ -40,7 +40,7 @@ export function useSaveMultiQuery() {
       dataset: TRACE_EXPLORER_DATASET, // Only supported for trace explorer for now
       start,
       end,
-      range: period,
+      statsPeriod: period,
       interval,
       projects,
       environment: environments,
@@ -53,7 +53,7 @@ export function useSaveMultiQuery() {
         orderby: q.sortBys[0] ? encodeSort(q.sortBys[0]) : undefined, // Explore only handles a single sort by
         query: q.query ?? '',
         mode: q.groupBys.length > 0 ? 'aggregate' : 'samples',
-        caseInsensitive: q.caseInsensitive ? '1' : undefined,
+        caseInsensitive: q.caseInsensitive === '1' ? '1' : undefined,
       })),
     };
   }, [title, start, end, period, interval, projects, environments, queries]);

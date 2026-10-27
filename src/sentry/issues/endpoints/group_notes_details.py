@@ -10,32 +10,28 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.deprecation import deprecated
-from sentry.api.serializers import serialize
-from sentry.api.serializers.models.activity import ActivitySerializerResponse
+from sentry.api.serializers.models.activity import (
+    GroupNoteSerializerResponse,
+    serialize_group_notes,
+)
 from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
 from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.constants import RESPONSE_NO_CONTENT
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
-from sentry.issues.action_log import (
-    GroupActionActor,
-    publish_action,
-)
 from sentry.issues.action_log.read_metrics import (
     ActivityReadResult,
     activity_read_endpoint,
     record_activity_read,
 )
 from sentry.issues.action_log.request import resolve_action_source
-from sentry.issues.action_log.types import CommentDeleteAction, CommentEditAction
+from sentry.issues.action_log.types import GroupActionType, SentryActorRef
+from sentry.issues.comments import delete_comment, update_comment
 from sentry.issues.derived.gate import should_serve_action_log_activity
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.group import Group
-from sentry.models.groupsubscription import GroupSubscription
-from sentry.notifications.types import GroupSubscriptionReason
-from sentry.signals import comment_deleted, comment_updated
 from sentry.types.activity import ActivityType
 from sentry.utils.action_log.activity_translator import activity_action_idempotency_key
 
@@ -83,6 +79,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
         # Activity alone and preserve the pre-existing behavior.
         original_comment_log_action = GroupActionLogEntry.objects.filter(
             group_id=group.id,
+            type=GroupActionType.COMMENT.value,
             idempotency_key=activity_action_idempotency_key(note),
         ).first()
         endpoint = activity_read_endpoint(request)
@@ -96,48 +93,24 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
         if original_comment_log_action is None and serve_from_log:
             raise ResourceDoesNotExist
 
-        webhook_data = {
-            "comment_id": note.id,
-            "timestamp": note.datetime,
-            "comment": note.data.get("text"),
-            "project_slug": note.project.slug,
-        }
-
-        note.delete()
-
-        if original_comment_log_action is not None:
-            publish_action(
-                CommentDeleteAction(comment_id=original_comment_log_action.id),
+        try:
+            delete_comment(
+                note,
+                user=request.user,
                 source=resolve_action_source(request),
-                group_id=group.id,
-                project=group.project,
-                actor=GroupActionActor.user(request.user.id),
+                original_action_id=original_comment_log_action.id
+                if original_comment_log_action
+                else None,
             )
-        else:
-            logger.info("group_notes.groupactionlogentry.not_found", extra={"group_id": group.id})
-
-        comment_deleted.send_robust(
-            project=group.project,
-            user=request.user,
-            group=group,
-            data=webhook_data,
-            sender="delete",
-        )
-        # if the user left more than one comment, we want to keep the subscription
-        if len(notes_by_user) == 1:
-            GroupSubscription.objects.filter(
-                user_id=request.user.id,
-                group=group,
-                project=group.project,
-                reason=GroupSubscriptionReason.comment,
-            ).delete()
+        except Activity.DoesNotExist:
+            raise ResourceDoesNotExist
 
         return Response(status=204)
 
     @extend_schema(
         request=NoteSerializer,
         responses={
-            200: inline_sentry_response_serializer("UpdateGroupNote", ActivitySerializerResponse)
+            200: inline_sentry_response_serializer("UpdateGroupNote", GroupNoteSerializerResponse)
         },
     )
     @deprecated(
@@ -164,7 +137,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
             payload = serializer.validated_data
             # TODO: adding mentions to a note doesn't send notifications. Should it?
             # Remove mentions as they shouldn't go into the database
-            mentions = [mention.dict() for mention in payload.pop("mentions", [])]
+            mentions = [SentryActorRef(**mention.dict()) for mention in payload.pop("mentions", [])]
 
             # The Activity fetched above is what signals whether the note exists.
             # When the activity flag is on the GALE is authoritative for existence,
@@ -173,6 +146,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
             # on the Activity alone and preserve the pre-existing behavior.
             original_comment_log_action = GroupActionLogEntry.objects.filter(
                 group_id=group.id,
+                type=GroupActionType.COMMENT.value,
                 idempotency_key=activity_action_idempotency_key(note),
             ).first()
             endpoint = activity_read_endpoint(request)
@@ -184,55 +158,20 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
             if original_comment_log_action is None and serve_from_log:
                 raise ResourceDoesNotExist
 
-            # Would be nice to have a last_modified timestamp we could bump here
-            note.data.update(dict(payload))
-            note.save()
-
-            if original_comment_log_action is not None:
-                publish_action(
-                    CommentEditAction(
-                        comment_id=original_comment_log_action.id,
-                        text=payload.get("text"),
-                        mentions=mentions,
-                    ),
+            try:
+                note = update_comment(
+                    note,
+                    user=request.user,
+                    data=dict(payload),
+                    mentions=mentions,
                     source=resolve_action_source(request),
-                    group_id=group.id,
-                    project=group.project,
-                    actor=GroupActionActor.user(request.user.id),
+                    original_action_id=original_comment_log_action.id
+                    if original_comment_log_action
+                    else None,
                 )
-            else:
-                logger.info(
-                    "group_notes.groupactionlogentry.not_found", extra={"group_id": group.id}
-                )
+            except Activity.DoesNotExist:
+                raise ResourceDoesNotExist
 
-            if note.data.get("external_id"):
-                self.update_external_comment(request, group, note)
-
-            webhook_data = {
-                "comment_id": note.id,
-                "timestamp": note.datetime,
-                "comment": note.data.get("text"),
-                "project_slug": note.project.slug,
-            }
-
-            comment_updated.send_robust(
-                project=group.project,
-                user=request.user,
-                group=group,
-                data=webhook_data,
-                sender="put",
-            )
-
-            if serve_from_log and original_comment_log_action is not None:
-                # Edits append a COMMENT_EDIT rather than updating the COMMENT.
-                # Return the original entry's identity with the fresh text;
-                # commentId remains the reference for subsequent edits/deletes.
-                original_comment_log_action.data = {
-                    **original_comment_log_action.data,
-                    "text": payload.get("text"),
-                }
-                return Response(serialize(original_comment_log_action, request.user), status=200)
-
-            return Response(serialize(note, request.user), status=200)
+            return Response(serialize_group_notes(group, [note], request.user)[0], status=200)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
-import type {PopperProps} from 'react-popper';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
+import type {OverlayPlacement} from '@sentry/scraps/overlayPositioning';
 import {Radio} from '@sentry/scraps/radio';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -30,7 +30,7 @@ interface BaseRadioGroupProps<C extends string> {
    * Switch the radio items to flow left to right, instead of vertically.
    */
   orientInline?: boolean;
-  tooltipPosition?: PopperProps<any>['placement'];
+  tooltipPosition?: OverlayPlacement;
 }
 
 /**

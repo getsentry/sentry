@@ -147,6 +147,25 @@ class OrganizationsListTest(OrganizationIndexTest):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(org1.id)
 
+    def test_internal_integration_token_returns_installing_organization(self) -> None:
+        org = self.create_organization(owner=self.user)
+        self.create_organization(owner=self.user)
+        internal_integration = self.create_internal_integration(
+            name="Internal App", organization=org, scopes=["org:read"]
+        )
+        token = self.create_internal_integration_token(
+            user=self.user, internal_integration=internal_integration
+        )
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+        response = self.client.get(reverse(self.endpoint))
+        assert response.status_code == 200
+        assert [item["id"] for item in response.data] == [str(org.id)]
+
+        response = self.client.get(reverse(self.endpoint), {"member": 1})
+        assert response.status_code == 200
+        assert [item["id"] for item in response.data] == [str(org.id)]
+
 
 @control_silo_test(cells=create_test_cells("us", "de"))
 class OrganizationsControlListTest(OrganizationIndexTest):
@@ -175,6 +194,25 @@ class OrganizationsControlListTest(OrganizationIndexTest):
 
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(org1.id)
+
+    def test_internal_integration_token_returns_installing_organization(self) -> None:
+        org = self.create_organization(cell="us", owner=self.user)
+        self.create_organization(cell="de", owner=self.user)
+        internal_integration = self.create_internal_integration(
+            name="Internal App", organization=org, scopes=["org:read"]
+        )
+        token = self.create_internal_integration_token(
+            user=self.user, internal_integration=internal_integration
+        )
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+        response = self.client.get(reverse(self.endpoint))
+        assert response.status_code == 200
+        assert [item["id"] for item in response.data] == [str(org.id)]
+
+        response = self.client.get(reverse(self.endpoint), {"member": 1})
+        assert response.status_code == 200
+        assert [item["id"] for item in response.data] == [str(org.id)]
 
     def test_ownership_across_cells(self) -> None:
         org_a = self.create_organization(cell="us", name="A", owner=self.user)
@@ -414,23 +452,6 @@ class OrganizationsCreateControlTest(OrganizationIndexTest, HybridCloudTestMixin
             resp = self.get_error_response(**data)
             assert resp.status_code == 400, "Staff cannot create orgs in invalid locales"
 
-    @override_options(
-        {
-            "provision_organization.override.rate": 1.0,
-            "provision_organization.override.mapping": {"us": "de"},
-        }
-    )
-    def test_locality_to_cell_overrides(self) -> None:
-        # When these options are active we can redirect one storage location to another.
-        response = self.get_success_response(
-            name="implicit org", slug="implicit-org", dataStorageLocation="us"
-        )
-
-        organization_id = response.data["id"]
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            mapping = OrganizationMapping.objects.get(organization_id=organization_id)
-        assert mapping.cell_name == "de"
-
     def test_invalid_slug_values(self) -> None:
         with self.options({"api.rate-limit.org-create": 9001}):
             self.get_error_response(name="name", slug=" i have whitespace ", status_code=400)
@@ -656,6 +677,39 @@ class OrganizationsCreateControlTest(OrganizationIndexTest, HybridCloudTestMixin
 
     @mock.patch("sentry.analytics.record")
     def test_success_analytics_recorded(self, mock_record: mock.MagicMock) -> None:
+        self.login_as(user=self.user)
+
+        with outbox_runner():
+            response = self.get_success_response(name="org name", aggregatedDataConsent=True)
+        assert response.status_code == 201
+
+        with assume_test_silo_mode_of(Organization):
+            org = Organization.objects.get(slug="org-name")
+
+        assert_any_analytics_event(
+            mock_record,
+            OrganizationCreatedEvent(
+                id=org.id,
+                actor_id=self.user.id,
+                name=org.name,
+                slug=org.slug,
+            ),
+        )
+        assert_any_analytics_event(
+            mock_record, AggregatedDataConsentOrganizationCreatedEvent(organization_id=org.id)
+        )
+        assert_org_audit_log_exists(
+            organization=org,
+            event=audit_log.get_event_id("ORG_ADD"),
+        )
+        with assume_test_silo_mode_of(Organization):
+            assert org.get_option("sentry:aggregated_data_consent") is True
+
+    @mock.patch("sentry.analytics.record")
+    @override_options({"organization.provision-analytics-with-outbox": True})
+    def test_success_analytics_recorded_with_outbox_analytics(
+        self, mock_record: mock.MagicMock
+    ) -> None:
         self.login_as(user=self.user)
 
         with outbox_runner():

@@ -39,7 +39,13 @@ from sentry.utils.snuba import (
     SnubaError,
     UnqualifiedQueryError,
 )
-from sentry.utils.snuba_rpc import SnubaRPCError, SnubaRPCTooManySimultaneous, SnubaRPCUnavailable
+from sentry.utils.snuba_rpc import (
+    SnubaRPCBadRequest,
+    SnubaRPCError,
+    SnubaRPCInvalidRegex,
+    SnubaRPCTooManySimultaneous,
+    SnubaRPCUnavailable,
+)
 
 
 class GetDateRangeFromParamsTest(unittest.TestCase):
@@ -300,6 +306,34 @@ class HandleQueryErrorsTest(APITestCase):
         mock_set_tag.assert_called_once_with("query.error_reason", "Timeout")
         mock_set_attribute.assert_called_once_with("query.error_reason", "Timeout")
         mock_capture_exception.assert_not_called()
+
+    @patch("sentry.api.utils.sentry_sdk.capture_exception")
+    @patch("sentry.api.utils.sentry_sdk.set_attribute")
+    @patch("sentry.api.utils.sentry_sdk.set_tag")
+    def test_handle_snuba_rpc_invalid_regex(
+        self,
+        mock_set_tag: MagicMock,
+        mock_set_attribute: MagicMock,
+        mock_capture_exception: MagicMock,
+    ) -> None:
+        with pytest.raises(ParseError) as raised:
+            with handle_query_errors():
+                raise SnubaRPCInvalidRegex("cannot compile re2 (CANNOT_COMPILE_REGEXP)")
+
+        assert raised.value.status_code == 400
+        mock_set_tag.assert_called_once_with("query.error_reason", "InvalidRegex")
+        mock_set_attribute.assert_called_once_with("query.error_reason", "InvalidRegex")
+        mock_capture_exception.assert_not_called()
+
+    @patch("sentry.api.utils.sentry_sdk.capture_exception")
+    def test_handle_snuba_rpc_bad_request(self, mock_capture_exception: MagicMock) -> None:
+        error = SnubaRPCBadRequest("invalid routing_hint")
+        with pytest.raises(APIException) as raised:
+            with handle_query_errors():
+                raise error
+
+        assert raised.value.status_code == 500
+        mock_capture_exception.assert_called_once_with(error)
 
 
 class ClampDateRangeTest(unittest.TestCase):

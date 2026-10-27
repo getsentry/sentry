@@ -7,7 +7,18 @@ import {
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {SentryApp, SentryAppInstallation} from 'sentry/types/integrations';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+
+export function sentryAppInstallationsApiOptions({orgSlug}: {orgSlug: string}) {
+  return apiOptions.as<SentryAppInstallation[]>()(
+    '/organizations/$organizationIdOrSlug/sentry-app-installations/',
+    {
+      path: {organizationIdOrSlug: orgSlug},
+      staleTime: Infinity,
+    }
+  );
+}
 
 /**
  * Install a sentry application

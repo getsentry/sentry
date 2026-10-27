@@ -244,6 +244,22 @@ def process_check_suite_event(check_suite_event: CheckSuiteEvent) -> None:
 
     organization_id = autofix_run.repository.organization_id
     agent_state = autofix_run.run_state
+
+    # Lazy: pr_state imports the SCM factory, which can't load while this listener registers.
+    from sentry.seer.autofix.pr_iteration.pr_state import iteration_prs_any_external_head
+
+    # Someone else has pushed to the PR, so CI is no longer judging Seer's work alone.
+    if iteration_prs_any_external_head(organization_id, agent_state):
+        logger.info(
+            "autofix.pr_iteration.check_suite.external_head",
+            extra={
+                "run_id": agent_state.run_id,
+                "organization_id": organization_id,
+                "check_suite_id": check_suite_event.check_suite["id"],
+            },
+        )
+        return None
+
     feedback = Feedback(source=source)
     # One identity for both decisions below, so the queue line and the trigger
     # line of a single check suite are found by the same search.

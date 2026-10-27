@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from typing import Any
 from unittest.mock import MagicMock, patch
+
+import responses
+from responses import matchers
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationFeatures
@@ -9,6 +13,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.integrations.services.integration import (
+    RpcAccessToken,
     RpcIntegration,
     RpcOrganizationIntegration,
     integration_service,
@@ -25,6 +30,8 @@ from sentry.testutils.asserts import assert_count_of_metric, assert_failure_metr
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
+from sentry.users.models.identity import Identity
+from sentry.utils.http import absolute_uri
 
 
 class BaseIntegrationServiceTest(TestCase):
@@ -664,3 +671,292 @@ class StartGracePeriodForProviderTest(TestCase):
         assert self.org1_github_oi_2.grace_period_end is None
         assert self.org1_github_oi_3.id not in lof_grace_perioded_ois
         assert self.org1_github_oi_3.grace_period_end is None
+
+
+@all_silo_test
+@freeze_time("2025-01-01T05:22:00Z")
+class GetAccessTokenTest(TestCase):
+    def create_github(self, expires_at: str = "2025-01-01T06:22:00") -> Integration:
+        return self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="1",
+            metadata={"access_token": "gh-token", "expires_at": expires_at},
+        )
+
+    def create_github_enterprise(self, expires_at: str = "2025-01-01T06:22:00") -> Integration:
+        return self.create_integration(
+            organization=self.organization,
+            provider="github_enterprise",
+            external_id="ghe.example.com:2",
+            metadata={
+                "access_token": "ghe-token",
+                "expires_at": expires_at,
+                "domain_name": "ghe.example.com/org",
+                "installation_id": "2",
+                "installation": {"private_key": "key", "id": "3", "verify_ssl": True},
+            },
+        )
+
+    def get_token(
+        self, integration: Integration, organization_id: int | None = None
+    ) -> RpcAccessToken | None:
+        return integration_service.get_access_token(
+            integration_id=integration.id,
+            organization_id=organization_id or self.organization.id,
+        )
+
+    @responses.activate
+    def test_github_returns_the_stored_token(self) -> None:
+        token = self.get_token(self.create_github())
+
+        assert token == RpcAccessToken(
+            token="gh-token", expires_at=datetime(2025, 1, 1, 6, 22, tzinfo=timezone.utc)
+        )
+        assert "gh-token" not in repr(token)
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    @patch("sentry.integrations.github.client.get_jwt", return_value="app-jwt")
+    def test_github_mints_a_token_about_to_expire(self, mock_jwt: MagicMock) -> None:
+        integration = self.create_github(expires_at="2025-01-01T05:25:00")
+        responses.add(
+            responses.POST,
+            "https://api.github.com/app/installations/1/access_tokens",
+            json={"token": "gh-token-2", "expires_at": "2025-01-01T06:22:00Z", "permissions": {}},
+        )
+
+        assert self.get_token(integration) == RpcAccessToken(
+            token="gh-token-2", expires_at=datetime(2025, 1, 1, 6, 22, tzinfo=timezone.utc)
+        )
+
+    @responses.activate
+    def test_github_enterprise_returns_the_stored_token(self) -> None:
+        assert self.get_token(self.create_github_enterprise()) == RpcAccessToken(
+            token="ghe-token", expires_at=datetime(2025, 1, 1, 6, 22, tzinfo=timezone.utc)
+        )
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="app-jwt")
+    def test_github_enterprise_mints_a_token_about_to_expire(self, mock_jwt: MagicMock) -> None:
+        integration = self.create_github_enterprise(expires_at="2025-01-01T05:25:00")
+        responses.add(
+            responses.POST,
+            "https://ghe.example.com/api/v3/app/installations/2/access_tokens",
+            json={"token": "ghe-token-2", "expires_at": "2025-01-01T06:22:00Z", "permissions": {}},
+        )
+
+        assert self.get_token(integration) == RpcAccessToken(
+            token="ghe-token-2", expires_at=datetime(2025, 1, 1, 6, 22, tzinfo=timezone.utc)
+        )
+        mock_jwt.assert_called_once_with(github_id="3", github_private_key="key")
+
+    @responses.activate
+    def test_cursor_origin_returns_the_stored_token(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="cursor_origin",
+            external_id="i_01example",
+            metadata={"access_token": "oit_stored", "expires_at": "2025-01-01T05:36:00+00:00"},
+        )
+
+        assert self.get_token(integration) == RpcAccessToken(
+            token="oit_stored", expires_at=datetime(2025, 1, 1, 5, 36, tzinfo=timezone.utc)
+        )
+        assert len(responses.calls) == 0
+
+    def create_gitlab(self, **identity_data: Any) -> tuple[Integration, Identity]:
+        identity = self.create_identity(
+            user=self.user,
+            identity_provider=self.create_identity_provider(type="gitlab"),
+            external_id="gitlab-user-1",
+            data={
+                "access_token": "gl-token",
+                "refresh_token": "gl-refresh",
+                "client_id": "gl-client",
+                "client_secret": "gl-secret",
+                **identity_data,
+            },
+        )
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="gitlab",
+            external_id="gitlab.example.com:1",
+            metadata={"base_url": "https://gitlab.example.com", "verify_ssl": True},
+            oi_params={"default_auth_id": identity.id},
+        )
+        return integration, identity
+
+    @responses.activate
+    def test_gitlab_returns_the_stored_token(self) -> None:
+        integration, _ = self.create_gitlab(
+            expires=int(datetime(2025, 1, 1, 6, 22, tzinfo=timezone.utc).timestamp())
+        )
+
+        # A token is handed out only until five minutes before it expires: a refresh inside
+        # that margin revokes it.
+        assert self.get_token(integration) == RpcAccessToken(
+            token="gl-token", expires_at=datetime(2025, 1, 1, 6, 17, tzinfo=timezone.utc)
+        )
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    def test_gitlab_refreshes_a_token_about_to_expire(self) -> None:
+        integration, identity = self.create_gitlab(
+            expires=int(datetime(2025, 1, 1, 5, 25, tzinfo=timezone.utc).timestamp())
+        )
+        responses.add(
+            responses.POST,
+            "https://gitlab.example.com/oauth/token",
+            match=[
+                matchers.urlencoded_params_matcher(
+                    {
+                        "grant_type": "refresh_token",
+                        "refresh_token": "gl-refresh",
+                        "redirect_uri": absolute_uri("/extensions/gitlab/setup/"),
+                        "client_id": "gl-client",
+                        "client_secret": "gl-secret",
+                    }
+                )
+            ],
+            json={
+                "access_token": "gl-token-2",
+                "refresh_token": "gl-refresh-2",
+                "token_type": "bearer",
+                "expires_in": 7200,
+                "scope": "api",
+            },
+        )
+
+        assert self.get_token(integration) == RpcAccessToken(
+            token="gl-token-2", expires_at=datetime(2025, 1, 1, 7, 17, tzinfo=timezone.utc)
+        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            identity.refresh_from_db()
+        assert identity.data["access_token"] == "gl-token-2"
+        assert identity.data["refresh_token"] == "gl-refresh-2"
+        assert identity.data["expires"] == int(
+            datetime(2025, 1, 1, 7, 22, tzinfo=timezone.utc).timestamp()
+        )
+
+    @responses.activate
+    def test_gitlab_refreshes_a_short_lived_token_only_once(self) -> None:
+        """An instance can configure 5-minute tokens, which the RPC's 5-minute margin would
+        count as expiring as soon as they're issued, refreshing on every call."""
+        integration, _ = self.create_gitlab(
+            expires_in=300,
+            expires=int(datetime(2025, 1, 1, 5, 23, tzinfo=timezone.utc).timestamp()),
+        )
+        responses.add(
+            responses.POST,
+            "https://gitlab.example.com/oauth/token",
+            json={"access_token": "gl-token-2", "refresh_token": "gl-refresh-2", "expires_in": 300},
+        )
+
+        first = self.get_token(integration)
+        second = self.get_token(integration)
+
+        # Handed out until half its lifetime before it expires, rather than five minutes.
+        assert (
+            first
+            == second
+            == RpcAccessToken(
+                token="gl-token-2",
+                expires_at=datetime(2025, 1, 1, 5, 24, 30, tzinfo=timezone.utc),
+            )
+        )
+        assert len(responses.calls) == 1
+
+    @responses.activate
+    def test_gitlab_token_without_a_known_expiry(self) -> None:
+        """Stored before Sentry recorded GitLab's expiry, with no refresh token to get one."""
+        integration, _ = self.create_gitlab(refresh_token=None)
+
+        assert self.get_token(integration) == RpcAccessToken(token="gl-token", expires_at=None)
+        assert len(responses.calls) == 0
+
+    @patch("sentry.integrations.services.integration.impl.logger")
+    def test_none_for_a_gitlab_install_without_an_identity(self, mock_logger: MagicMock) -> None:
+        integration, _ = self.create_gitlab()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration_id=integration.id
+            ).update(default_auth_id=None)
+
+        assert self.get_token(integration) is None
+        mock_logger.warning.assert_called_once_with(
+            "integration_service.access_token.unavailable",
+            extra={
+                "integration_id": integration.id,
+                "organization_id": self.organization.id,
+                "provider": "gitlab",
+                "error": "IntegrationConfigurationError",
+                "status_code": None,
+            },
+        )
+
+    @responses.activate
+    @patch("sentry.integrations.github.client.get_jwt", return_value="app-jwt")
+    @patch("sentry.integrations.services.integration.impl.logger")
+    def test_none_when_the_provider_fails(
+        self, mock_logger: MagicMock, mock_jwt: MagicMock
+    ) -> None:
+        integration = self.create_github(expires_at="2025-01-01T05:25:00")
+        responses.add(
+            responses.POST, "https://api.github.com/app/installations/1/access_tokens", status=503
+        )
+
+        assert self.get_token(integration) is None
+        mock_logger.warning.assert_called_once_with(
+            "integration_service.access_token.unavailable",
+            extra={
+                "integration_id": integration.id,
+                "organization_id": self.organization.id,
+                "provider": "github",
+                "error": "ApiError",
+                "status_code": 503,
+            },
+        )
+
+    def test_none_for_another_provider(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization, provider="bitbucket", external_id="bitbucket:1"
+        )
+
+        assert self.get_token(integration) is None
+
+    def test_none_for_an_unknown_integration(self) -> None:
+        integration = self.create_github()
+
+        assert (
+            integration_service.get_access_token(
+                integration_id=integration.id + 1000, organization_id=self.organization.id
+            )
+            is None
+        )
+
+    def test_none_for_a_disabled_integration(self) -> None:
+        integration = self.create_github()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            Integration.objects.filter(id=integration.id).update(status=ObjectStatus.DISABLED)
+
+        assert self.get_token(integration) is None
+
+    def test_none_for_an_organization_without_the_install(self) -> None:
+        integration = self.create_github()
+
+        assert self.get_token(integration, organization_id=self.create_organization().id) is None
+
+    def test_none_for_an_install_being_removed(self) -> None:
+        integration = self.create_github()
+        # Another organization's active install of the same integration doesn't count.
+        self.create_organization_integration(
+            integration=integration, organization_id=self.create_organization().id
+        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration_id=integration.id
+            ).update(status=ObjectStatus.PENDING_DELETION)
+
+        assert self.get_token(integration) is None

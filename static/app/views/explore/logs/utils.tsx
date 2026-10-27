@@ -18,7 +18,9 @@ import {
   fieldAlignment,
   type Sort,
 } from 'sentry/utils/discover/fields';
+import {AggregationKey} from 'sentry/utils/fields';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
+import {getTimeSeriesForQuery} from 'sentry/utils/timeSeries/getTimeSeriesForQuery';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {getBodySearchTerms} from 'sentry/views/explore/bodySearchTerms';
@@ -54,6 +56,7 @@ import {
   type OurLogFieldKey,
   type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
+import type {ExploreCaseSensitivity} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {
   type BaseVisualize,
@@ -355,7 +358,10 @@ export function calculateAverageLogsPerSecond(
     return 0;
   }
 
-  const allSeries = Object.values(timeseriesResult.data)[0];
+  const allSeries = getTimeSeriesForQuery(
+    timeseriesResult.data,
+    `${AggregationKey.COUNT}(${OurLogKnownFieldKey.MESSAGE})`
+  );
   if (!Array.isArray(allSeries) || allSeries.length === 0) {
     return 0;
   }
@@ -400,7 +406,7 @@ type BaseGetLogsUrlParams = {
   aggregateFields?: Array<GroupBy | BaseVisualize>;
   aggregateFn?: string;
   aggregateParam?: string;
-  caseInsensitive?: '1' | null;
+  caseInsensitive?: ExploreCaseSensitivity;
   field?: string[];
   groupBy?: string[];
   id?: number;
@@ -506,14 +512,14 @@ export function getLogsUrlFromSavedQueryUrl({
     selection: {
       datetime: {
         end: savedQuery.end ?? null,
-        period: savedQuery.range ?? null,
+        period: savedQuery.statsPeriod ?? null,
         start: savedQuery.start ?? null,
         utc: null,
       },
       environments: savedQuery.environment ? [...savedQuery.environment] : [],
       projects: savedQuery.projects ? [...savedQuery.projects] : [],
     },
-    caseInsensitive: firstQuery.caseInsensitive ? '1' : null,
+    caseInsensitive: firstQuery.caseInsensitive ? '1' : '0',
   });
 }
 

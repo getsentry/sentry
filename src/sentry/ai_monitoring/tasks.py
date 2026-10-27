@@ -27,6 +27,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import ai_agent_monitoring_tasks
 from sentry.utils import metrics
 from sentry.viewer_context import (
+    Actor,
     ActorType,
     ViewerContext,
     get_viewer_context,
@@ -173,9 +174,9 @@ def spawn_conversation_title_generation(
     if get_viewer_context() is None:
         scope = viewer_context_scope(
             ViewerContext(
+                actor=Actor(type=ActorType.SYSTEM),
                 organization_id=project.organization_id,
                 project_id=project.id,
-                actor_type=ActorType.SYSTEM,
             )
         )
 

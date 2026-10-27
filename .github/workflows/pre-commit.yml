@@ -62,18 +62,19 @@ jobs:
               - 'static/**'
               - 'tests/js/**'
               - 'scripts/**'
-              - 'oxlint-suppressions.json'
-              - 'oxlint.config.ts'
+              - '**/oxlint-suppressions.json'
+              - '**/oxlint.config.ts'
+              - 'oxlint.base.ts'
               - 'package.json'
               - 'pnpm-lock.yaml'
-              - 'scripts/custom-oxlint.ts'
+              - 'scripts/oxlint-suppressions.ts'
               - 'stylelint.config.js'
 
       - uses: ./.github/actions/setup-node-pnpm
 
       - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
         with:
-          version: '0.12.10'
+          version: '0.13.5'
           # we just cache the venv-dir directly in action-setup-venv
           enable-cache: false
 
@@ -100,7 +101,7 @@ jobs:
 
       - name: Prune suppression budgets
         if: github.event_name == 'pull_request' && !cancelled() && (steps.prek.outcome == 'success' || steps.prek.outcome == 'failure') && steps.changes.outputs.frontend == 'true'
-        run: pnpm run lint:js --prune
+        run: pnpm run lint:suppressions --prune
 
       - name: Apply any pre-commit fixed files
         # Run after prek failures, but skip canceled runs that may have incomplete fixes.

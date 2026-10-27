@@ -1,3 +1,4 @@
+import os
 import zipfile
 from io import BytesIO
 from unittest.mock import patch
@@ -6,8 +7,13 @@ from uuid import uuid4
 import requests
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
+from symbolic.debuginfo import Archive
 
-from sentry.models.debugfile import ProjectDebugFile
+from sentry.models.debugfile import (
+    DifMeta,
+    ProjectDebugFile,
+    create_dif_from_file,
+)
 from sentry.models.files.file import File
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile
@@ -53,6 +59,51 @@ class DebugFilesTestCases(APITestCase):
             },
             format="multipart",
         )
+
+    def _upload_wasm(self):
+        """Uploads a WASM fixture."""
+
+        out = BytesIO()
+        with open(
+            os.path.join(os.path.dirname(__file__), "../../models/fixtures/index.wasm"), "rb"
+        ) as wasm:
+            f = zipfile.ZipFile(out, "w")
+            f.writestr("index.wasm", wasm.read())
+            f.close()
+
+        return self.client.post(
+            self.url,
+            {
+                "file": SimpleUploadedFile(
+                    "symbols.zip", out.getvalue(), content_type="application/zip"
+                )
+            },
+            format="multipart",
+        )
+
+    def _upload_wasm_legacy(self):
+        """
+        Uploads the same WASM fixture as `_upload_wasm`, but
+        with its legacy code and debug IDs.
+
+        This means we can't use the endpoint, but have to finagle
+        this manually.
+        """
+        wasm_path = os.path.join(os.path.dirname(__file__), "../../models/fixtures/index.wasm")
+        obj = Archive.open(wasm_path)._get_object(0)
+        meta = DifMeta.from_object(obj, wasm_path, name="index.wasm")
+
+        # Replace code and debug ID with their legacy values and clear
+        # those out, simulating an old upload.
+        meta.debug_id = meta.legacy_debug_id  # type: ignore[assignment]
+        meta.code_id = meta.legacy_code_id
+        meta.legacy_debug_id = None
+        meta.legacy_code_id = None
+
+        file = self.create_file(name="index.wasm")
+        file.size = 17
+        file.checksum = "foobar"
+        create_dif_from_file(self.project, meta, file)
 
     def _assert_successful_download(self, response, content: bytes, filename=None) -> None:
         if response.status_code == 302:
@@ -136,6 +187,62 @@ class DebugFilesTest(DebugFilesTestCases):
                 (False, "dfb8e43a-f242-3d73-a453-aeb6a777ef75", "000000000000000"),
             ],
         )
+
+    def test_wasm_legacy_ids(self) -> None:
+        self._upload_wasm()
+
+        debug_ids = [
+            "da03eb5d-63d7-50fa-ab0f-b8e7cc12a1c3",
+            "10da03eb-5d63-d750-faab-0fb8e7cc12a1",
+        ]
+        code_ids = [
+            "da03eb5d63d750faab0fb8e7cc12a1c3",
+            "10da03eb5d63d750faab0fb8e7cc12a1c3",
+        ]
+
+        # Try every combination of debug_id/code_id for the query.
+        with self.options({"debug-files.query-legacy-ids.rollout-rate": 1.0}):
+            for query in (
+                [f"debug_id={id}" for id in debug_ids]
+                + [f"query={id}" for id in debug_ids]
+                + [f"code_id={id}" for id in code_ids]
+                + [f"debug_id={did}&code_id={cid}" for did in debug_ids for cid in code_ids]
+                + [f"query={did}&code_id={cid}" for did in debug_ids for cid in code_ids]
+            ):
+                response = self.client.get(f"{self.url}?{query}")
+
+                assert response.status_code == 200, response.content
+
+                # The file that we find should have the correct debug ID.
+                assert response.data[0]["debugId"] == "da03eb5d-63d7-50fa-ab0f-b8e7cc12a1c3"
+
+    def test_wasm_legacy_ids_old_upload(self) -> None:
+        self._upload_wasm_legacy()
+
+        debug_ids = [
+            "da03eb5d-63d7-50fa-ab0f-b8e7cc12a1c3",
+            "10da03eb-5d63-d750-faab-0fb8e7cc12a1",
+        ]
+        code_ids = [
+            "da03eb5d63d750faab0fb8e7cc12a1c3",
+            "10da03eb5d63d750faab0fb8e7cc12a1c3",
+        ]
+
+        # Try every combination of debug_id/code_id for the query.
+        with self.options({"debug-files.query-legacy-ids.rollout-rate": 1.0}):
+            for query in (
+                [f"debug_id={id}" for id in debug_ids]
+                + [f"query={id}" for id in debug_ids]
+                + [f"code_id={id}" for id in code_ids]
+                + [f"debug_id={did}&code_id={cid}" for did in debug_ids for cid in code_ids]
+                + [f"query={did}&code_id={cid}" for did in debug_ids for cid in code_ids]
+            ):
+                response = self.client.get(f"{self.url}?{query}")
+
+                assert response.status_code == 200, response.content
+
+                # The file that we find should have the legacy debug ID.
+                assert response.data[0]["debugId"] == "10da03eb-5d63-d750-faab-0fb8e7cc12a1"
 
     def _do_test_dsyms_by_debugid_and_codeid(self, query, files):
         for _, debug_id, code_id in files:
@@ -356,7 +463,6 @@ class DebugFileObjectstoreRedirectTest(DebugFilesTestCases):
 
         with (
             self.feature("organizations:objectstore-debugfiles-read"),
-            self.feature("organizations:objectstore-debugfiles-direct-read"),
             patch("sentry.auth.system.is_internal_ip", return_value=True),
         ):
             response = self.client.get(f"{self.url}?id={download_id}")
@@ -371,7 +477,6 @@ class DebugFileObjectstoreRedirectTest(DebugFilesTestCases):
 
         with (
             self.feature("organizations:objectstore-debugfiles-read"),
-            self.feature("organizations:objectstore-debugfiles-direct-read"),
             patch("sentry.auth.system.is_internal_ip", return_value=False),
         ):
             response = self.client.get(f"{self.url}?id={download_id}")
@@ -383,11 +488,10 @@ class DebugFileObjectstoreRedirectTest(DebugFilesTestCases):
         )
         assert "os_auth=" in location
 
-    def test_direct_read_requires_read_gate(self) -> None:
+    def test_redirect_requires_read_gate(self) -> None:
         download_id = self._upload_and_get_download_id()
 
-        with self.feature("organizations:objectstore-debugfiles-direct-read"):
-            response = self.client.get(f"{self.url}?id={download_id}")
+        response = self.client.get(f"{self.url}?id={download_id}")
 
         assert response.status_code == 200
         assert close_streaming_response(response) == PROGUARD_SOURCE

@@ -1,96 +1,53 @@
-import {ThemeFixture} from 'sentry-fixture/theme';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 
-import {getOutcomeColors, reasonDescription, reasonTitle} from './outcomes';
+import {datasetNoun, droppedAndFilteredLabel, droppedDataLabel} from './outcomes';
 
-describe('getOutcomeColors', () => {
-  it('assigns the same colors regardless of input order', () => {
-    const theme = ThemeFixture();
-
-    expect(
-      getOutcomeColors(['rate_limited', 'client_discard', 'invalid'], theme)
-    ).toEqual(getOutcomeColors(['invalid', 'rate_limited', 'client_discard'], theme));
+describe('droppedDataLabel', () => {
+  it('names the telemetry type', () => {
+    expect(droppedDataLabel(DiscoverDatasets.SPANS)).toBe('Dropped Spans');
+    expect(droppedDataLabel(DiscoverDatasets.OURLOGS)).toBe('Dropped Logs');
+    expect(droppedDataLabel(DiscoverDatasets.TRACEMETRICS)).toBe('Dropped Metrics');
+    expect(droppedDataLabel(DiscoverDatasets.ERRORS)).toBe('Dropped Errors');
   });
 
-  it('gives each outcome a distinct color', () => {
-    const colors = getOutcomeColors(
-      ['client_discard', 'filtered', 'invalid', 'client_discard'],
-      ThemeFixture()
-    );
-
-    expect(Object.keys(colors).sort()).toEqual(['client_discard', 'filtered', 'invalid']);
-    expect(new Set(Object.values(colors)).size).toBe(3);
+  it('falls back to events for other datasets', () => {
+    expect(droppedDataLabel(DiscoverDatasets.TRANSACTIONS)).toBe('Dropped Events');
   });
 });
 
-describe('reasonTitle', () => {
-  it('maps a known reason code to its human title', () => {
-    expect(reasonTitle('sample_rate')).toBe('Dropped by sample rate');
-    expect(reasonTitle('too_large:span')).toBe('Span payload too large');
-  });
-
-  it('maps category-prefixed quota reasons to the quota title', () => {
-    expect(reasonTitle('span_usage_exceeded')).toBe('Quota exceeded');
-    expect(reasonTitle('log_bytes_usage_exceeded')).toBe('Quota exceeded');
-  });
-
-  it('titles the localhost filter and invalid timestamp reasons', () => {
-    expect(reasonTitle('localhost')).toBe('Localhost filter');
-    expect(reasonTitle('timestamp')).toBe('Invalid timestamp');
-  });
-
-  it("maps the JavaScript SDK's ignored reason to the ignored spans title", () => {
-    expect(reasonTitle('ignored')).toBe('Dropped by ignored spans');
-    expect(reasonDescription('ignored', 'span')).toBe(
-      'Span dropped by your ignored spans configuration.'
+describe('droppedAndFilteredLabel', () => {
+  it('names the telemetry type', () => {
+    expect(droppedAndFilteredLabel(DiscoverDatasets.SPANS)).toBe(
+      'Dropped and Filtered Spans'
+    );
+    expect(droppedAndFilteredLabel(DiscoverDatasets.OURLOGS)).toBe(
+      'Dropped and Filtered Logs'
+    );
+    expect(droppedAndFilteredLabel(DiscoverDatasets.TRACEMETRICS)).toBe(
+      'Dropped and Filtered Metrics'
+    );
+    expect(droppedAndFilteredLabel(DiscoverDatasets.ERRORS)).toBe(
+      'Dropped and Filtered Errors'
     );
   });
 
-  it('falls back to the raw code for an unknown reason', () => {
-    expect(reasonTitle('some_new_reason')).toBe('some_new_reason');
+  it('falls back to events for other datasets', () => {
+    expect(droppedAndFilteredLabel(DiscoverDatasets.TRANSACTIONS)).toBe(
+      'Dropped and Filtered Events'
+    );
   });
 });
 
-describe('reasonDescription', () => {
-  it('returns the short description for a known reason', () => {
-    expect(reasonDescription('queue_overflow', 'span')).toBe(
-      "SDK's send queue was full."
-    );
+describe('datasetNoun', () => {
+  it('pluralizes the telemetry type by count', () => {
+    expect(datasetNoun(DiscoverDatasets.SPANS, 1)).toBe('span');
+    expect(datasetNoun(DiscoverDatasets.SPANS, 0)).toBe('spans');
+    expect(datasetNoun(DiscoverDatasets.OURLOGS, 2)).toBe('logs');
+    expect(datasetNoun(DiscoverDatasets.TRACEMETRICS, 2)).toBe('metrics');
+    expect(datasetNoun(DiscoverDatasets.ERRORS, 1)).toBe('error');
   });
 
-  it('names the data type from the event category', () => {
-    expect(reasonDescription('project_abuse_limit', 'log_item')).toBe(
-      'Your log events exceeded the project abuse limit.'
-    );
-    expect(reasonDescription('usage_exceeded', 'trace_metric')).toBe(
-      'Your organization hit its quota for the application metric event type.'
-    );
-  });
-
-  it('describes category-prefixed quota reasons', () => {
-    expect(reasonDescription('span_usage_exceeded', 'span')).toBe(
-      'Your organization hit its quota for the span event type.'
-    );
-  });
-
-  it('returns undefined when a dynamic reason has no resolvable data type', () => {
-    expect(reasonDescription('too_large:event', 'unknown')).toBeUndefined();
-  });
-
-  it('returns undefined for an unknown reason', () => {
-    expect(reasonDescription('some_new_reason', 'span')).toBeUndefined();
-  });
-
-  it('describes the cors reason', () => {
-    expect(reasonTitle('cors')).toBe('Disallowed origin');
-    expect(reasonDescription('cors', 'span')).toBe(
-      "Origin not in project's Allowed Domains."
-    );
-  });
-
-  it('maps dynamic-sampling reasons that carry a rule-id suffix', () => {
-    expect(reasonTitle('Sampled:3000')).toBe('Dynamic sampling');
-    expect(reasonDescription('Sampled:0', 'span')).toBe(
-      'Dropped by a dynamic sampling rule.'
-    );
+  it('falls back to events for other datasets', () => {
+    expect(datasetNoun(DiscoverDatasets.TRANSACTIONS, 2)).toBe('events');
   });
 });
