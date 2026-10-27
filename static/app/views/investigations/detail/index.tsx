@@ -192,28 +192,49 @@ function useRefetchStaleActionRequests(
 
 const RECHECK_RUN_WAIT_MS = 60_000;
 
+type RecheckRunWait = {pending: string[]; waiting: string[]};
+
 /**
  * Seer can acknowledge a re-check before the investigation shows its run, and then
- * nothing would read the run again. Keep reading it until it goes live, for up to a minute.
+ * nothing would read the run again. Wait for the run only on re-checks this page saw
+ * pending, since an old acknowledged follow-up stays on the request after it's over.
  */
-function useRecheckRunWait(actionRequests: InvestigationActionRequest[] | undefined) {
-  const requestId =
-    actionRequests?.find(request => request.followUp?.status === 'acknowledged')?.id ??
-    null;
-  const [doneFor, setDoneFor] = useState<string | null>(null);
-  if (requestId === null && doneFor !== null) {
-    setDoneFor(null);
+function useRecheckRunWait(actionRequests: InvestigationActionRequest[] = []) {
+  const [wait, setWait] = useState<RecheckRunWait>({pending: [], waiting: []});
+  const acknowledged = new Set(
+    actionRequests
+      .filter(
+        request =>
+          request.state !== 'withdrawn' && request.followUp?.status === 'acknowledged'
+      )
+      .map(request => request.id)
+  );
+  const next: RecheckRunWait = {
+    pending: actionRequests.filter(isFollowUpPending).map(request => request.id),
+    waiting: [...new Set([...wait.waiting, ...wait.pending])].filter(id =>
+      acknowledged.has(id)
+    ),
+  };
+  if (
+    next.pending.join() !== wait.pending.join() ||
+    next.waiting.join() !== wait.waiting.join()
+  ) {
+    setWait(next);
   }
+  const waitingKey = next.waiting.join();
   useEffect(() => {
-    if (requestId === null) {
+    if (!waitingKey) {
       return;
     }
-    const timer = setTimeout(() => setDoneFor(requestId), RECHECK_RUN_WAIT_MS);
+    const timer = setTimeout(
+      () => setWait(current => ({...current, waiting: []})),
+      RECHECK_RUN_WAIT_MS
+    );
     return () => clearTimeout(timer);
-  }, [requestId]);
+  }, [waitingKey]);
   return {
-    waiting: requestId !== null && doneFor !== requestId,
-    stop: () => setDoneFor(requestId),
+    waiting: next.waiting.length > 0,
+    stop: () => setWait(current => ({...current, waiting: []})),
   };
 }
 

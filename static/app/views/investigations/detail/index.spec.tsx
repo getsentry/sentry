@@ -481,36 +481,49 @@ describe('Investigation detail', () => {
       ).toBeInTheDocument();
     });
 
+    const completedRun = InvestigationOrchestrationFixture({
+      phase: 'completed',
+      status: 'completed',
+    });
+    const processingRun = InvestigationOrchestrationFixture({
+      phase: 'metadata',
+      status: 'processing',
+    });
+
+    async function acknowledgeRecheck(
+      body: ReturnType<typeof investigationWith> = investigationWith('acknowledged')
+    ) {
+      MockApiClient.addMockResponse({url: detailUrl, body});
+      await act(() => jest.advanceTimersByTimeAsync(2000));
+      await waitFor(() =>
+        expect(
+          screen.queryByText(/Seer is checking the suggestion again/)
+        ).not.toBeInTheDocument()
+      );
+    }
+
     it('reads the run until it shows up after Seer picks up the re-check', async () => {
       MockApiClient.addMockResponse({
         url: detailUrl,
-        body: investigationWith('acknowledged'),
+        body: investigationWith('accepted'),
       });
-      const notLive = MockApiClient.addMockResponse({
-        url: orchestrationUrl,
-        body: InvestigationOrchestrationFixture({
-          phase: 'completed',
-          status: 'completed',
-        }),
-      });
+      MockApiClient.addMockResponse({url: orchestrationUrl, body: completedRun});
       renderView();
       expect(
-        await screen.findByText(/Ask Seer about this investigation/)
+        await screen.findByText(/Seer is checking the suggestion again…/)
       ).toBeInTheDocument();
+      await acknowledgeRecheck();
 
-      await act(() => jest.advanceTimersByTimeAsync(4000));
-      expect(notLive).toHaveBeenCalledTimes(3);
-
-      const processing = MockApiClient.addMockResponse({
+      const notLive = MockApiClient.addMockResponse({
         url: orchestrationUrl,
-        body: InvestigationOrchestrationFixture({
-          phase: 'metadata',
-          status: 'processing',
-        }),
+        body: completedRun,
       });
+      await act(() => jest.advanceTimersByTimeAsync(4000));
+      expect(notLive).toHaveBeenCalled();
+
+      MockApiClient.addMockResponse({url: orchestrationUrl, body: processingRun});
       await act(() => jest.advanceTimersByTimeAsync(2000));
 
-      expect(processing).toHaveBeenCalled();
       expect(
         await screen.findByText(/Seer is updating its suggestion…/)
       ).toBeInTheDocument();
@@ -519,30 +532,74 @@ describe('Investigation detail', () => {
     it('stops reading the run if the re-check never shows up', async () => {
       MockApiClient.addMockResponse({
         url: detailUrl,
+        body: investigationWith('accepted'),
+      });
+      MockApiClient.addMockResponse({url: orchestrationUrl, body: completedRun});
+      renderView();
+      expect(
+        await screen.findByText(/Seer is checking the suggestion again…/)
+      ).toBeInTheDocument();
+      await acknowledgeRecheck();
+
+      await act(() => jest.advanceTimersByTimeAsync(60_000));
+      const later = MockApiClient.addMockResponse({
+        url: orchestrationUrl,
+        body: completedRun,
+      });
+      await act(() => jest.advanceTimersByTimeAsync(10_000));
+      expect(later).not.toHaveBeenCalled();
+    });
+
+    it('does not wait on a re-check that was over before the page opened', async () => {
+      MockApiClient.addMockResponse({
+        url: detailUrl,
         body: investigationWith('acknowledged'),
       });
-      MockApiClient.addMockResponse({
-        url: orchestrationUrl,
-        body: InvestigationOrchestrationFixture({
-          phase: 'completed',
-          status: 'completed',
-        }),
-      });
+      MockApiClient.addMockResponse({url: orchestrationUrl, body: completedRun});
       renderView();
       expect(
         await screen.findByText(/Ask Seer about this investigation/)
       ).toBeInTheDocument();
 
-      await act(() => jest.advanceTimersByTimeAsync(60_000));
       const later = MockApiClient.addMockResponse({
         url: orchestrationUrl,
-        body: InvestigationOrchestrationFixture({
-          phase: 'completed',
-          status: 'completed',
-        }),
+        body: completedRun,
       });
       await act(() => jest.advanceTimersByTimeAsync(10_000));
       expect(later).not.toHaveBeenCalled();
+    });
+
+    it('waits on the newest re-check next to an old one', async () => {
+      function withOldRecheck(status: 'accepted' | 'acknowledged') {
+        const body = investigationWith(status);
+        const requests = body.actionRequests ?? [];
+        return {
+          ...body,
+          actionRequests: [
+            InvestigationActionRequestFixture({
+              ...requests[0],
+              id: '310',
+              followUp: {status: 'acknowledged', reason: null, rerun: null},
+            }),
+            ...requests,
+          ],
+        };
+      }
+      MockApiClient.addMockResponse({url: detailUrl, body: withOldRecheck('accepted')});
+      MockApiClient.addMockResponse({url: orchestrationUrl, body: completedRun});
+      renderView();
+      expect(
+        await screen.findByText(/Seer is checking the suggestion again…/)
+      ).toBeInTheDocument();
+      await act(() => jest.advanceTimersByTimeAsync(60_000));
+      await acknowledgeRecheck(withOldRecheck('acknowledged'));
+
+      MockApiClient.addMockResponse({url: orchestrationUrl, body: processingRun});
+      await act(() => jest.advanceTimersByTimeAsync(2000));
+
+      expect(
+        await screen.findByText(/Seer is updating its suggestion…/)
+      ).toBeInTheDocument();
     });
   });
 
