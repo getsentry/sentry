@@ -123,6 +123,7 @@ export function WidgetBuilderQueryFilterBuilder({
       dispatch({
         type: BuilderStateAction.SET_QUERY,
         payload: state.query?.filter((_, i) => i !== queryIndex) ?? [],
+        removedQueryIndex: queryIndex,
       });
       dispatch({
         type: BuilderStateAction.SET_LEGEND_ALIAS,
