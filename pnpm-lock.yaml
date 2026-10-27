@@ -863,9 +863,6 @@ importers:
       '@types/react-select':
         specifier: 4.0.18
         version: 4.0.18
-      '@types/reflux':
-        specifier: 0.4.1
-        version: 0.4.1
       expect-type:
         specifier: 1.4.0
         version: 1.4.0
@@ -1054,9 +1051,6 @@ importers:
       '@types/react':
         specifier: 19.3.0
         version: 19.3.0
-      '@types/reflux':
-        specifier: 0.4.1
-        version: 0.4.1
 
   static/oxlint/eslintPluginScraps:
     dependencies:
@@ -4764,9 +4758,6 @@ packages:
 
   '@types/readable-stream@4.0.18':
     resolution: {integrity: sha512-21jK/1j+Wg+7jVw1xnSwy/2Q1VgVjWuFssbYGTREPUBeZ+rqVFl2udq0IkxzPC0ZhOzVceUbyIACFZKLqKEBlA==}
-
-  '@types/reflux@0.4.1':
-    resolution: {integrity: sha512-XOavgwrJxBiSQufelsZ+ZAi6Xvrh/M/IlfKNrqnxHytK8WKkWF8G4QhZwwhLXk7NsgaUf3ZqcFFN9YhzBqmuNA==}
 
   '@types/stack-utils@2.0.3':
     resolution: {integrity: sha512-9aEbYZ3TbYMznPdcdr3SmIrLXwC/AKZXQeCf9Pgao5CKb8CyHuEX5jzWPTkvregvhRJHcpRO6BFoGW9ycaOkYw==}
@@ -12371,8 +12362,6 @@ snapshots:
     dependencies:
       '@types/node': 26.6.4
       safe-buffer: 5.1.2
-
-  '@types/reflux@0.4.1': {}
 
   '@types/stack-utils@2.0.3': {}
 
