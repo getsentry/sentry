@@ -72,12 +72,12 @@ function getShownActionRequests(actionRequests: InvestigationActionRequest[]) {
 }
 
 function getShownInGroup(group: InvestigationActionRequest[]) {
-  const newestCurrent = group.filter(isCurrentActionRequest).toSorted(byNewest)[0];
+  const current = group.filter(isCurrentActionRequest);
   const shown = group.filter(
     actionRequest =>
       isCurrentActionRequest(actionRequest) ||
       (isStaleActionRequest(actionRequest) &&
-        (!newestCurrent || byNewest(actionRequest, newestCurrent) < 0))
+        !current.some(newer => replaces(newer, actionRequest)))
   );
   if (shown.length > 0) {
     return shown;
@@ -86,6 +86,13 @@ function getShownInGroup(group: InvestigationActionRequest[]) {
     .filter(({state}) => state === 'withdrawn')
     .toSorted(byNewest)[0];
   return newestWithdrawn ? [newestWithdrawn] : [];
+}
+
+function replaces(newer: InvestigationActionRequest, stale: InvestigationActionRequest) {
+  return (
+    newer.reportRevision > stale.reportRevision ||
+    (newer.key === stale.key && byNewest(newer, stale) < 0)
+  );
 }
 
 function byNewest(a: InvestigationActionRequest, b: InvestigationActionRequest) {

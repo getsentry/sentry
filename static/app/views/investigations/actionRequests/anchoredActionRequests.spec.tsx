@@ -170,6 +170,48 @@ describe('AnchoredActionRequests', () => {
     ).toBeInTheDocument();
   });
 
+  it('keeps a stale request next to other advice from the same report', () => {
+    renderRequests([
+      staleRequest,
+      InvestigationActionRequestFixture({
+        ...advice,
+        id: '340',
+        key: 'check-decline-codes',
+        title: 'Check the decline codes',
+        reportRevision: staleRequest.reportRevision,
+        dateCreated: '2030-01-01T00:00:00Z',
+      }),
+    ]);
+
+    expect(
+      screen.getByRole('region', {name: 'Check the decline codes'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('region', {name: 'Widen the interval for declines'})
+    ).toBeInTheDocument();
+  });
+
+  it('drops a stale request once Seer replaces it in the same report', () => {
+    renderRequests([
+      staleRequest,
+      InvestigationActionRequestFixture({
+        ...advice,
+        id: '340',
+        key: staleRequest.key,
+        title: 'Widen the interval a little',
+        reportRevision: staleRequest.reportRevision,
+        dateCreated: '2030-01-01T00:00:00Z',
+      }),
+    ]);
+
+    expect(
+      screen.getByRole('region', {name: 'Widen the interval a little'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('region', {name: 'Widen the interval for declines'})
+    ).not.toBeInTheDocument();
+  });
+
   it('keeps a stale request without an anchor next to unrelated advice', () => {
     renderRequests([
       {...staleRequest, anchor: null},
