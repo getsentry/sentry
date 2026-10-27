@@ -1,6 +1,7 @@
-import {useCallback} from 'react';
+import {useCallback, useLayoutEffect} from 'react';
 import styled from '@emotion/styled';
 
+import {DRAWER_INSET_RIGHT_PROPERTY} from '@sentry/scraps/drawer';
 import {Stack} from '@sentry/scraps/layout';
 import {SplitPanel, type SplitPanelHandle} from '@sentry/scraps/splitPanel';
 
@@ -97,6 +98,21 @@ function SeerExplorerSidebarLayoutInSidebarMode({children}: {children: React.Rea
     },
     [contentSize]
   );
+
+  // Drawers are fixed to the viewport, so one opened beside Seer docked right
+  // would cover the Seer pane. Reserve the pane's width (and the divider) so
+  // drawers stop at the app content's right edge instead. Derived from Seer's
+  // persisted size, so mid-drag the drawer catches up when the drag ends.
+  const drawerInsetRight =
+    isOpen && isRight && available > 0 ? available - contentSize : 0;
+  useLayoutEffect(() => {
+    if (drawerInsetRight <= 0) {
+      return;
+    }
+    const root = document.documentElement;
+    root.style.setProperty(DRAWER_INSET_RIGHT_PROPERTY, `${drawerInsetRight}px`);
+    return () => root.style.removeProperty(DRAWER_INSET_RIGHT_PROPERTY);
+  }, [drawerInsetRight]);
 
   // Persist Seer's size from a drag (the app pane shrinks → Seer grows). Fires
   // only on drag end, never on programmatic/measure resizes, so a saved size is

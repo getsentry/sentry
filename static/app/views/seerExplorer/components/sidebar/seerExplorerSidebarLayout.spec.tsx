@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {GlobalDrawer} from '@sentry/scraps/drawer';
+import {DRAWER_INSET_RIGHT_PROPERTY, GlobalDrawer} from '@sentry/scraps/drawer';
 import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
 import * as analytics from 'sentry/utils/analytics';
@@ -521,6 +521,34 @@ describe('SeerExplorerSidebarLayout', () => {
       expect(screen.queryByTestId('seer-explorer-input')).not.toBeInTheDocument()
     );
     expect(splitOrientation()).toBeUndefined();
+  });
+
+  it('keeps drawers clear of Seer while it is docked right', async () => {
+    mockWideScreen(true);
+    renderSidebar(orgWithSidebar);
+    const insetRight = () =>
+      document.documentElement.style.getPropertyValue(DRAWER_INSET_RIGHT_PROPERTY);
+
+    expect(insetRight()).toBe('');
+
+    await userEvent.click(screen.getByText('open-seer'));
+    expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
+    // The default 420px Seer width, measured from the container's right edge.
+    expect(insetRight()).toBe('420px');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Close Seer'}));
+    await waitFor(() => expect(insetRight()).toBe(''));
+  });
+
+  it('does not inset drawers while Seer is docked to the bottom', async () => {
+    renderSidebar(orgWithSidebar);
+
+    await userEvent.click(screen.getByText('open-seer'));
+    expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
+    expect(splitOrientation()).toBe('vertical');
+    expect(
+      document.documentElement.style.getPropertyValue(DRAWER_INSET_RIGHT_PROPERTY)
+    ).toBe('');
   });
 
   describe('explorerRunId param', () => {
