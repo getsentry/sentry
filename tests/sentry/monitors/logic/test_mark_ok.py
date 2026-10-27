@@ -8,7 +8,10 @@ from sentry.analytics.events.cron_monitor_broken_status_recovery import (
     CronMonitorBrokenStatusRecovery,
 )
 from sentry.issues.producer import PayloadType
-from sentry.models.group import GroupStatus
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupopenperiod import GroupOpenPeriod
+from sentry.monitors.grouptype import MonitorIncidentType
+from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.logic.mark_ok import mark_ok
 from sentry.monitors.models import (
     CheckInStatus,
@@ -20,8 +23,10 @@ from sentry.monitors.models import (
     MonitorStatus,
     ScheduleType,
 )
+from sentry.monitors.utils import ensure_cron_detector
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
+from sentry.testutils.helpers.datetime import freeze_time
 
 
 class MarkOkTestCase(TestCase):
@@ -294,3 +299,78 @@ class MarkOkTestCase(TestCase):
                 monitor_env_id=monitor_environment.id,
             ),
         )
+
+    def test_mark_ok_closes_open_period_opened_by_a_delayed_failure_occurrence(self) -> None:
+        """
+        SENTRY-4EDG. A failure occurrence can reach the issue platform after relay has already
+        received the recovering OK check-in. The regression open period must start at the
+        failure's relay time, not at the time the occurrence was processed, so the resolve
+        stamped with the OK check-in's relay time can close it.
+        """
+        now = timezone.now().replace(second=0, microsecond=0)
+
+        monitor = self.create_monitor()
+
+        monitor_environment = self.create_monitor_environment(
+            monitor=monitor,
+            environment_id=self.environment.id,
+            status=MonitorStatus.OK,
+        )
+
+        ensure_cron_detector(monitor)
+
+        first_failed_at = now - timedelta(minutes=10)
+
+        first_recovered_at = now - timedelta(minutes=9)
+
+        second_failed_at = now - timedelta(minutes=5)
+
+        second_recovered_at = second_failed_at + timedelta(seconds=5)
+
+        second_failure_processed_at = second_failed_at + timedelta(seconds=10)
+
+        with freeze_time(first_failed_at):
+            failed_checkin = self.create_monitor_checkin(
+                monitor_environment=monitor_environment,
+                status=CheckInStatus.ERROR,
+                date_added=first_failed_at,
+            )
+
+            mark_failed(failed_checkin, failed_at=first_failed_at, received=first_failed_at)
+
+        with freeze_time(first_recovered_at):
+            ok_checkin = self.create_monitor_checkin(
+                monitor_environment=monitor_environment,
+                status=CheckInStatus.OK,
+                date_added=first_recovered_at,
+            )
+
+            mark_ok(ok_checkin, first_recovered_at)
+
+        with freeze_time(second_failure_processed_at):
+            failed_checkin = self.create_monitor_checkin(
+                monitor_environment=monitor_environment,
+                status=CheckInStatus.ERROR,
+                date_added=second_failed_at,
+            )
+
+            mark_failed(failed_checkin, failed_at=second_failed_at, received=second_failed_at)
+
+        with freeze_time(second_failure_processed_at + timedelta(seconds=1)):
+            ok_checkin = self.create_monitor_checkin(
+                monitor_environment=monitor_environment,
+                status=CheckInStatus.OK,
+                date_added=second_recovered_at,
+            )
+
+            mark_ok(ok_checkin, second_recovered_at)
+
+        group = Group.objects.get(project=self.project, type=MonitorIncidentType.type_id)
+
+        open_periods = GroupOpenPeriod.objects.filter(group=group).order_by("date_started")
+
+        assert group.status == GroupStatus.RESOLVED
+        assert [(period.date_started, period.date_ended) for period in open_periods] == [
+            (first_failed_at, first_recovered_at),
+            (second_failed_at, second_recovered_at),
+        ]

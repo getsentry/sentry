@@ -21,6 +21,8 @@ from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenP
 
 logger = logging.getLogger(__name__)
 
+MINIMUM_GAP_BETWEEN_OPEN_PERIODS = timedelta(microseconds=1)
+
 
 class TsTzRange(models.Func):
     function = "TSTZRANGE"
@@ -195,6 +197,8 @@ def create_open_period(group: Group, start_time: datetime, event_id: str | None 
         logger.warning("Latest open period is not closed", extra={"group_id": group.id})
         return
 
+    date_started = get_date_started_after(latest_open_period, start_time)
+
     # There are some historical cases where we log multiple regressions for the same group,
     # but we only want to create a new open period for the first regression
     with transaction.atomic(router.db_for_write(Group)):
@@ -207,19 +211,32 @@ def create_open_period(group: Group, start_time: datetime, event_id: str | None 
         open_period = GroupOpenPeriod.objects.create(
             group=group,
             project=group.project,
-            date_started=start_time,
+            date_started=date_started,
             date_ended=None,
         )
 
         # If we care about this group's activity, create activity entry
         if get_group_type_by_type_id(group.type).detector_settings is not None:
             GroupOpenPeriodActivity.objects.create(
-                date_added=start_time,
+                date_added=date_started,
                 group_open_period=open_period,
                 type=OpenPeriodActivityType.OPENED,
                 value=group.priority,
                 event_id=event_id,
             )
+
+
+def get_date_started_after(
+    previous_open_period: GroupOpenPeriod | None, start_time: datetime
+) -> datetime:
+    """
+    Open periods have inclusive bounds and may not overlap, so a period whose source reports a
+    start at or before the previous period ended starts immediately after that end instead.
+    """
+    if previous_open_period is None or previous_open_period.date_ended is None:
+        return start_time
+
+    return max(start_time, previous_open_period.date_ended + MINIMUM_GAP_BETWEEN_OPEN_PERIODS)
 
 
 def update_group_open_period(

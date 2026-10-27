@@ -700,14 +700,10 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert not group.is_resolved()
         assert send_robust.called
 
-        regression_activity = Activity.objects.get(
-            group=group, type=ActivityType.SET_REGRESSION.value
-        )
-
         open_periods = GroupOpenPeriod.objects.filter(group=group).order_by("-date_started")
         assert len(open_periods) == 2
         open_period = open_periods[0]
-        assert open_period.date_started == regression_activity.datetime
+        assert open_period.date_started == event2.datetime
         assert open_period.date_ended is None
         open_period = open_periods[1]
         assert open_period.date_started == group.first_seen
