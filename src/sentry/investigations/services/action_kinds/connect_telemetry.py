@@ -4,12 +4,18 @@ from collections.abc import Sequence
 from typing import Literal, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
+from django.db import router, transaction
+from django.db.models import QuerySet
 from rest_framework import serializers
 
 from sentry import features
 from sentry.auth.access import Access
 from sentry.investigations.contracts import ActionPayloadSerializer
-from sentry.investigations.models import Investigation, InvestigationActionRequest
+from sentry.investigations.models import (
+    Investigation,
+    InvestigationActionRequest,
+    InvestigationActionRequestState,
+)
 from sentry.investigations.services.action_kinds.base import (
     ActionInvalid,
     ActionKind,
@@ -25,7 +31,7 @@ CONNECT_TELEMETRY_ACTION = "connect_telemetry"
 TelemetryProvider = Literal["datadog", "gcp"]
 TELEMETRY_PROVIDERS: tuple[TelemetryProvider, ...] = ("datadog", "gcp")
 
-_FEATURE = "organizations:seer-infra-telemetry"
+TELEMETRY_FEATURE = "organizations:seer-infra-telemetry"
 # The scope the integration pipeline needs to install a provider.
 _INSTALL_SCOPE = "org:integrations"
 
@@ -53,6 +59,23 @@ def _provider(action_request: InvestigationActionRequest) -> TelemetryProvider:
     return payload["provider"]
 
 
+def telemetry_provider_for_integration(integration_provider: str) -> TelemetryProvider | None:
+    if integration_provider in TELEMETRY_PROVIDERS:
+        return integration_provider
+    return None
+
+
+def open_connect_requests(
+    organization_id: int, provider: TelemetryProvider
+) -> QuerySet[InvestigationActionRequest]:
+    return InvestigationActionRequest.objects.filter(
+        investigation__organization_id=organization_id,
+        action_kind=CONNECT_TELEMETRY_ACTION,
+        state=InvestigationActionRequestState.SUGGESTED,
+        action_payload__provider=provider,
+    )
+
+
 class ConnectTelemetryKind(ActionKind):
     kind = CONNECT_TELEMETRY_ACTION
     payload_serializer = ConnectTelemetryActionSerializer
@@ -68,7 +91,9 @@ class ConnectTelemetryKind(ActionKind):
         can_install = access.has_scope(_INSTALL_SCOPE)
         reasons: dict[int, CannotApplyReason | None] = {}
         for item in action_requests:
-            if not features.has(_FEATURE, investigations[item.investigation_id].organization):
+            if not features.has(
+                TELEMETRY_FEATURE, investigations[item.investigation_id].organization
+            ):
                 reasons[item.id] = CannotApplyReason.UNSUPPORTED_ACTION
             elif not can_install:
                 reasons[item.id] = CannotApplyReason.PERMISSION_DENIED
@@ -85,3 +110,18 @@ class ConnectTelemetryKind(ActionKind):
 
     def apply(self, context: ApplyContext) -> ConnectTelemetryAppliedDetails:
         return {"provider": _provider(context.action_request)}
+
+    def after_upsert(self, action_request: InvestigationActionRequest) -> None:
+        from sentry.tasks.seer.investigation import mark_investigation_telemetry_connected
+
+        provider = _provider(action_request)
+        organization_id = Investigation.objects.values_list("organization_id", flat=True).get(
+            id=action_request.investigation_id
+        )
+        # Let the task check the connection, so event ingest doesn't call the control silo.
+        transaction.on_commit(
+            lambda: mark_investigation_telemetry_connected.delay(
+                organization_id=organization_id, provider=provider, user_id=None, retry=False
+            ),
+            using=router.db_for_write(InvestigationActionRequest),
+        )

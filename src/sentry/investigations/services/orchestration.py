@@ -687,7 +687,7 @@ def accept_orchestration_command(
     expected_workflow_version: int,
     command_type: str,
     payload: dict[str, Any],
-    actor_id: int,
+    actor_id: int | None,
 ) -> AcceptedOrchestrationCommand:
     with transaction.atomic(using=router.db_for_write(InvestigationOrchestrationRun)):
         # Investigation-wide mutations lock the aggregate root before subordinate rows.
