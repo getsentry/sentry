@@ -27,7 +27,7 @@ export default function DetectorNewSettings() {
   const {fetching: isFetchingProjects} = useProjects();
   const [detectorType] = useDetectorTypeQueryState();
   const [duplicateFromParam] = useQueryState('duplicateFrom', parseAsString);
-  const draft = useInitialDetectorDraft(detectorType);
+  const draft = useInitialDetectorDraft();
   // A draft replaces the source monitor, which whoever opens a shared draft may
   // not be able to read, so the source's description is lost. Uptime drafts
   // also leave out headers, body, and URLs with credentials, so they still load
@@ -120,9 +120,7 @@ export default function DetectorNewSettings() {
     <DetectorFormProvider
       detectorType={detectorType}
       duplicateDetector={duplicateDetector}
-      initialHasSetDetectorName={
-        draft?.hasSetName === true && typeof draft.values.name === 'string'
-      }
+      initialHasSetDetectorName={typeof draft?.name === 'string'}
     >
       <SentryDocumentTitle
         title={

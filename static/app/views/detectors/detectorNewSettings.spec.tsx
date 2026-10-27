@@ -1322,22 +1322,25 @@ describe('DetectorEdit', () => {
   });
 
   describe('Metric Detector URL draft', () => {
-    function getDraftRouterConfig(draft: Record<string, unknown>) {
+    const newMetricQuery = {detectorType: 'metric_issue', project: project.id};
+
+    function getRouterConfig(query: Record<string, string>) {
       return {
         ...initialRouterConfig,
-        location: {
-          ...initialRouterConfig.location,
-          query: {
-            detectorType: 'metric_issue',
-            draft: JSON.stringify({
-              version: 1,
-              detectorType: 'metric_issue',
-              hasSetName: true,
-              ...draft,
-            }),
-          },
-        },
+        location: {...initialRouterConfig.location, query},
       };
+    }
+
+    function getDraftRouterConfig(draft: Record<string, unknown>) {
+      return getRouterConfig({
+        detectorType: 'metric_issue',
+        draft: JSON.stringify(draft),
+      });
+    }
+
+    function getDraft(router: {location: {query: Record<string, unknown>}}) {
+      const draft = router.location.query.draft;
+      return typeof draft === 'string' ? JSON.parse(draft) : undefined;
     }
 
     function mockCreateDetector() {
@@ -1348,25 +1351,14 @@ describe('DetectorEdit', () => {
       });
     }
 
-    it('writes edits to the URL draft and clears prefill params', async () => {
-      const prefillQuery = {
-        detectorType: 'metric_issue',
-        project: project.id,
-        dataset: 'errors',
-        aggregate: 'count()',
-      };
-      window.history.replaceState(
-        null,
-        '',
-        `${initialRouterConfig.location.pathname}?${new URLSearchParams(prefillQuery)}`
-      );
-
-      render(<DetectorNewSettings />, {
+    it('writes edits to the URL draft when a field changes', async () => {
+      const {router} = render(<DetectorNewSettings />, {
         organization,
-        initialRouterConfig: {
-          ...initialRouterConfig,
-          location: {...initialRouterConfig.location, query: prefillQuery},
-        },
+        initialRouterConfig: getRouterConfig({
+          ...newMetricQuery,
+          dataset: 'errors',
+          aggregate: 'count()',
+        }),
       });
 
       await userEvent.type(
@@ -1375,179 +1367,69 @@ describe('DetectorEdit', () => {
       );
 
       await waitFor(() => {
-        expect(new URLSearchParams(window.location.search).has('draft')).toBe(true);
-      });
-      const searchParams = new URLSearchParams(window.location.search);
-      expect([...searchParams.keys()]).toEqual(['detectorType', 'draft']);
-      expect(JSON.parse(searchParams.get('draft')!)).toEqual(
-        expect.objectContaining({
-          detectorType: 'metric_issue',
-          hasSetName: false,
-          values: expect.objectContaining({
+        expect(getDraft(router)).toEqual(
+          expect.objectContaining({
             aggregateFunction: 'count()',
             dataset: 'errors',
             highThreshold: '100',
             projectId: project.id,
-          }),
-        })
-      );
+          })
+        );
+      });
     });
 
-    it('restores the written draft when the URL is reopened', async () => {
-      const query = {detectorType: 'metric_issue', project: project.id};
-      window.history.replaceState(
-        null,
-        '',
-        `${initialRouterConfig.location.pathname}?${new URLSearchParams(query)}`
-      );
-      const {unmount} = render(<DetectorNewSettings />, {
-        organization,
-        initialRouterConfig: {
-          ...initialRouterConfig,
-          location: {...initialRouterConfig.location, query},
-        },
-      });
-      await userEvent.type(
-        await screen.findByRole('spinbutton', {name: 'High threshold'}),
-        '120'
-      );
-      await waitFor(() => {
-        expect(new URLSearchParams(window.location.search).has('draft')).toBe(true);
-      });
-      const sharedQuery = Object.fromEntries(new URLSearchParams(window.location.search));
-      unmount();
-
-      render(<DetectorNewSettings />, {
-        organization,
-        initialRouterConfig: {
-          ...initialRouterConfig,
-          location: {...initialRouterConfig.location, query: sharedQuery},
-        },
-      });
-
-      expect(await screen.findByRole('spinbutton', {name: 'High threshold'})).toHaveValue(
-        120
-      );
-    });
-
-    it('does not write a draft after leaving the page', async () => {
-      render(<DetectorNewSettings />, {
-        organization,
-        initialRouterConfig: {
-          ...initialRouterConfig,
-          location: {
-            ...initialRouterConfig.location,
-            query: {detectorType: 'metric_issue', project: project.id},
-          },
-        },
-      });
-      await userEvent.type(
-        await screen.findByRole('spinbutton', {name: 'High threshold'}),
-        '120'
-      );
-      window.history.replaceState(null, '', '/organizations/org-slug/monitors/1/');
-
-      await act(() => new Promise(resolve => setTimeout(resolve, 500)));
-
-      expect(window.location.search).toBe('');
-    });
-
-    it('removes the draft from the URL when the monitor is created', async () => {
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
-        method: 'POST',
-        body: MetricDetectorFixture({id: '123'}),
-      });
-      const query = {
-        detectorType: 'metric_issue',
-        draft: JSON.stringify({
-          version: 1,
-          detectorType: 'metric_issue',
-          hasSetName: true,
-          values: {highThreshold: '75', name: 'Created', projectId: project.id},
-        }),
-      };
-      window.history.replaceState(
-        null,
-        '',
-        `${initialRouterConfig.location.pathname}?${new URLSearchParams(query)}`
-      );
+    it('does not write a draft when nothing has changed', async () => {
       const {router} = render(<DetectorNewSettings />, {
         organization,
-        initialRouterConfig: {
-          ...initialRouterConfig,
-          location: {...initialRouterConfig.location, query},
-        },
+        initialRouterConfig: getRouterConfig(newMetricQuery),
       });
 
-      await userEvent.click(await screen.findByRole('button', {name: 'Create Monitor'}));
+      await screen.findByRole('spinbutton', {name: 'High threshold'});
+      await act(() => new Promise(resolve => setTimeout(resolve, 100)));
+
+      expect(router.location.query.draft).toBeUndefined();
+    });
+
+    it('leaves an automatic name out of the URL draft', async () => {
+      const {router} = render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: getRouterConfig(newMetricQuery),
+      });
+
+      await userEvent.type(
+        await screen.findByRole('spinbutton', {name: 'High threshold'}),
+        '90'
+      );
 
       await waitFor(() => {
-        expect(router.location.pathname).toBe('/organizations/org-slug/monitors/123/');
+        expect(getDraft(router)).toEqual(expect.objectContaining({highThreshold: '90'}));
       });
-      expect(new URLSearchParams(window.location.search).has('draft')).toBe(false);
+      expect(getDraft(router)).not.toHaveProperty('name');
     });
 
-    it.each([
-      ['invalid JSON', '{not json'],
-      [
-        'an unknown version',
-        JSON.stringify({
-          version: 99,
-          detectorType: 'metric_issue',
-          hasSetName: true,
-          values: {highThreshold: '75'},
-        }),
-      ],
-    ])('ignores the draft when it has %s', async (_, draft) => {
-      render(<DetectorNewSettings />, {
+    it('keeps a typed name in the URL draft', async () => {
+      const {router} = render(<DetectorNewSettings />, {
         organization,
-        initialRouterConfig: {
-          ...initialRouterConfig,
-          location: {
-            ...initialRouterConfig.location,
-            query: {detectorType: 'metric_issue', draft},
-          },
-        },
+        initialRouterConfig: getRouterConfig(newMetricQuery),
       });
 
-      expect(
-        await screen.findByRole('spinbutton', {name: 'High threshold'})
-      ).not.toHaveValue();
-    });
-
-    it('does not load the duplicated monitor when the URL has a draft', async () => {
-      const sourceRequest = MockApiClient.addMockResponse({
-        url: `/organizations/${organizationWithMonitorDuplication.slug}/detectors/1/`,
-        body: MetricDetectorFixture({id: '1'}),
-      });
-      const draftRouterConfig = getDraftRouterConfig({values: {highThreshold: '75'}});
-
-      render(<DetectorNewSettings />, {
-        organization: organizationWithMonitorDuplication,
-        initialRouterConfig: {
-          ...draftRouterConfig,
-          location: {
-            ...draftRouterConfig.location,
-            query: {...draftRouterConfig.location.query, duplicateFrom: '1'},
-          },
-        },
-      });
-
-      expect(await screen.findByRole('spinbutton', {name: 'High threshold'})).toHaveValue(
-        75
+      await userEvent.click(await screen.findByTestId('editable-text-label'));
+      await userEvent.clear(screen.getByRole('textbox', {name: 'Monitor Name'}));
+      await userEvent.type(
+        screen.getByRole('textbox', {name: 'Monitor Name'}),
+        'Typed name'
       );
-      expect(sourceRequest).not.toHaveBeenCalled();
+      await userEvent.keyboard('{Enter}');
+
+      await waitFor(() => {
+        expect(getDraft(router)).toEqual(expect.objectContaining({name: 'Typed name'}));
+      });
     });
 
     it('leaves the description out of the URL draft when one is typed', async () => {
-      const query = {detectorType: 'metric_issue', project: project.id};
-      render(<DetectorNewSettings />, {
+      const {router} = render(<DetectorNewSettings />, {
         organization,
-        initialRouterConfig: {
-          ...initialRouterConfig,
-          location: {...initialRouterConfig.location, query},
-        },
+        initialRouterConfig: getRouterConfig(newMetricQuery),
       });
 
       await userEvent.type(
@@ -1560,12 +1442,69 @@ describe('DetectorEdit', () => {
       );
 
       await waitFor(() => {
-        expect(
-          JSON.parse(new URLSearchParams(window.location.search).get('draft') ?? '{}')
-            .values
-        ).toEqual(expect.objectContaining({highThreshold: '90'}));
+        expect(getDraft(router)).toEqual(expect.objectContaining({highThreshold: '90'}));
       });
-      expect(window.location.search).not.toContain('Private');
+      expect(router.location.query.draft).not.toContain('Private');
+    });
+
+    it('restores the written draft when the URL is reopened', async () => {
+      const {router, unmount} = render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: getRouterConfig(newMetricQuery),
+      });
+      await userEvent.type(
+        await screen.findByRole('spinbutton', {name: 'High threshold'}),
+        '120'
+      );
+      await waitFor(() => {
+        expect(getDraft(router)).toEqual(expect.objectContaining({highThreshold: '120'}));
+      });
+      const sharedQuery = {...router.location.query} as Record<string, string>;
+      unmount();
+
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: getRouterConfig(sharedQuery),
+      });
+
+      expect(await screen.findByRole('spinbutton', {name: 'High threshold'})).toHaveValue(
+        120
+      );
+    });
+
+    it('ignores the draft when it is not valid JSON', async () => {
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: getRouterConfig({
+          detectorType: 'metric_issue',
+          draft: '{not json',
+        }),
+      });
+
+      expect(
+        await screen.findByRole('spinbutton', {name: 'High threshold'})
+      ).not.toHaveValue();
+    });
+
+    it('does not load the duplicated monitor when the URL has a draft', async () => {
+      const sourceRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${organizationWithMonitorDuplication.slug}/detectors/1/`,
+        body: MetricDetectorFixture({id: '1'}),
+      });
+
+      render(<DetectorNewSettings />, {
+        organization: organizationWithMonitorDuplication,
+        initialRouterConfig: getRouterConfig({
+          detectorType: 'metric_issue',
+          draft: JSON.stringify({highThreshold: '75'}),
+          duplicateFrom: '1',
+        }),
+      });
+
+      expect(await screen.findByRole('spinbutton', {name: 'High threshold'})).toHaveValue(
+        75
+      );
+      expect(sourceRequest).not.toHaveBeenCalled();
     });
 
     it('prefills from the URL draft and submits', async () => {
@@ -1574,15 +1513,13 @@ describe('DetectorEdit', () => {
       render(<DetectorNewSettings />, {
         organization,
         initialRouterConfig: getDraftRouterConfig({
-          values: {
-            aggregateFunction: 'count_unique(user)',
-            dataset: 'errors',
-            environment: 'production',
-            highThreshold: '250',
-            name: 'Shared monitor',
-            projectId: project.id,
-            query: '',
-          },
+          aggregateFunction: 'count_unique(user)',
+          dataset: 'errors',
+          environment: 'production',
+          highThreshold: '250',
+          name: 'Shared monitor',
+          projectId: project.id,
+          query: '',
         }),
       });
 
@@ -1620,7 +1557,9 @@ describe('DetectorEdit', () => {
       render(<DetectorNewSettings />, {
         organization,
         initialRouterConfig: getDraftRouterConfig({
-          values: {dataset: 'not-a-dataset', highThreshold: '75', name: 'Partial'},
+          dataset: 'not-a-dataset',
+          highThreshold: '75',
+          name: 'Partial',
         }),
       });
 
@@ -1642,28 +1581,15 @@ describe('DetectorEdit', () => {
       });
     }, 10000);
 
-    it('ignores a draft for a different monitor type', async () => {
-      render(<DetectorNewSettings />, {
-        organization,
-        initialRouterConfig: getDraftRouterConfig({
-          detectorType: 'uptime_domain_failure',
-          values: {highThreshold: '75', name: 'Uptime draft'},
-        }),
-      });
-
-      expect(
-        await screen.findByRole('spinbutton', {name: 'High threshold'})
-      ).not.toHaveValue();
-      expect(screen.queryByText('Uptime draft')).not.toBeInTheDocument();
-    });
-
     it('falls back to a writable project when the draft project is not writable', async () => {
       const createDetector = mockCreateDetector();
 
       render(<DetectorNewSettings />, {
         organization,
         initialRouterConfig: getDraftRouterConfig({
-          values: {highThreshold: '75', name: 'Other project', projectId: '999999'},
+          highThreshold: '75',
+          name: 'Other project',
+          projectId: '999999',
         }),
       });
 
@@ -1694,10 +1620,8 @@ describe('DetectorEdit', () => {
             query: {
               detectorType: 'preprod_size_analysis',
               draft: JSON.stringify({
-                version: 1,
-                detectorType: 'preprod_size_analysis',
-                hasSetName: true,
-                values: {measurement: 'download_size', name: 'Shared app size'},
+                measurement: 'download_size',
+                name: 'Shared app size',
               }),
             },
           },
@@ -2211,7 +2135,7 @@ describe('DetectorEdit', () => {
     });
 
     it('restores an edited cron draft when the URL is reopened', async () => {
-      const {unmount} = render(<DetectorNewSettings />, {
+      const {router, unmount} = render(<DetectorNewSettings />, {
         organization,
         initialRouterConfig: cronRouterConfig,
       });
@@ -2221,12 +2145,9 @@ describe('DetectorEdit', () => {
       await userEvent.clear(gracePeriod);
       await userEvent.type(gracePeriod, '7');
       await waitFor(() => {
-        expect(new URLSearchParams(window.location.search).has('draft')).toBe(true);
+        expect(router.location.query.draft).toContain('"checkinMargin":7');
       });
-      const sharedQuery = {
-        ...cronRouterConfig.location.query,
-        ...Object.fromEntries(new URLSearchParams(window.location.search)),
-      };
+      const sharedQuery = {...router.location.query} as Record<string, string>;
       unmount();
 
       render(<DetectorNewSettings />, {
@@ -2253,12 +2174,7 @@ describe('DetectorEdit', () => {
               ...cronRouterConfig.location.query,
               platform: 'php',
               guide: 'upsert',
-              draft: JSON.stringify({
-                version: 1,
-                detectorType: 'monitor_check_in_failure',
-                hasSetName: false,
-                values: {checkinMargin: ''},
-              }),
+              draft: JSON.stringify({checkinMargin: ''}),
             },
           },
         },
@@ -2286,12 +2202,7 @@ describe('DetectorEdit', () => {
             ...cronRouterConfig.location,
             query: {
               detectorType: 'monitor_check_in_failure',
-              draft: JSON.stringify({
-                version: 1,
-                detectorType: 'monitor_check_in_failure',
-                hasSetName: false,
-                values: {checkinMargin: '', projectId: phpProject.id},
-              }),
+              draft: JSON.stringify({checkinMargin: '', projectId: phpProject.id}),
             },
           },
         },
