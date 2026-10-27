@@ -14,7 +14,6 @@ import {
 export const PREPROD_DETECTOR_DRAFT_CONFIG: DetectorDraftConfig<PreprodDetectorFormData> =
   {
     shape: {
-      description: z.string().nullable(),
       highThreshold: draftNumericString,
       lowThreshold: draftNumericString,
       measurement: z.enum(ALL_METRIC_TYPES),
