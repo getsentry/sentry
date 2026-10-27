@@ -9,6 +9,7 @@ from typing import Any, Literal
 from uuid import UUID
 
 from django.db import router, transaction
+from django.db.models import QuerySet
 from django.utils import timezone
 from pydantic import ValidationError
 
@@ -37,35 +38,27 @@ class InvalidWorkflowTransition(ValueError):
     pass
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class SeerWorkflowRunLifecycle:
+    """Apply each transition to fresh state under the parent run's row lock.
+
+    Returned models do not carry a lock or refresh automatically. Lifecycle changes
+    should go through these methods, including changes to the run's executions.
+    """
+
     run_id: int
     organization_id: int
 
-    @classmethod
-    def get(cls, *, organization_id: int, run_id: int) -> SeerWorkflowRunLifecycle:
-        return cls.from_run(
-            SeerWorkflowRun.objects.using(router.db_for_write(SeerWorkflowRun)).get(
-                id=run_id, organization_id=organization_id, status__isnull=False
-            )
-        )
-
-    @classmethod
-    def from_run(cls, run: SeerWorkflowRun) -> SeerWorkflowRunLifecycle:
-        return cls(run_id=run.id, organization_id=run.organization_id)
-
-    @property
-    def run(self) -> SeerWorkflowRun:
-        return SeerWorkflowRun.objects.using(router.db_for_write(SeerWorkflowRun)).get(
-            id=self.run_id, organization_id=self.organization_id
-        )
+    def get_run(self) -> SeerWorkflowRun:
+        """Fetch the run without acquiring a lock."""
+        return self._run_queryset().get()
 
     @property
     def extras(self) -> SeerWorkflowRunExtras:
         return self.parse_extras(SeerWorkflowRunExtras)
 
     def parse_extras[Extras: SeerWorkflowRunExtras](self, extras_type: type[Extras]) -> Extras:
-        return self._parse_extras(self.run, extras_type)
+        return self._parse_extras(self.get_run(), extras_type)
 
     def start(self) -> SeerWorkflowRun:
         with self._lock_run() as run:
@@ -195,9 +188,12 @@ class SeerWorkflowRunLifecycle:
     @contextmanager
     def _lock_run(self) -> Iterator[SeerWorkflowRun]:
         with transaction.atomic(router.db_for_write(SeerWorkflowRun)):
-            yield SeerWorkflowRun.objects.select_for_update().get(
-                id=self.run_id, organization_id=self.organization_id, status__isnull=False
-            )
+            yield self._run_queryset().select_for_update().get(status__isnull=False)
+
+    def _run_queryset(self) -> QuerySet[SeerWorkflowRun]:
+        return SeerWorkflowRun.objects.using(router.db_for_write(SeerWorkflowRun)).filter(
+            id=self.run_id, organization_id=self.organization_id
+        )
 
     def _finish(
         self,

@@ -185,7 +185,9 @@ class BreachedMetricWorkflow(SeerWorkflow):
         trigger_key = f"issue_created:{group.id}"
         existing = self.get_runs().filter(trigger_key=trigger_key).first()
         if existing is not None:
-            lifecycle = SeerWorkflowRunLifecycle.from_run(existing)
+            lifecycle = SeerWorkflowRunLifecycle(
+                run_id=existing.id, organization_id=existing.organization_id
+            )
             admission = lifecycle.parse_extras(MetricBreachRunExtras).admission
             if admission.status == "rejected":
                 return RejectedMetricBreach(run=existing, reason=admission.reason, created=False)
@@ -202,16 +204,14 @@ class BreachedMetricWorkflow(SeerWorkflow):
         )
         workflow_run = result.lifecycle
         if admission.status == "rejected":
-            workflow_run.reject(
+            run = workflow_run.reject(
                 error=WorkflowRunError(code=admission.reason, message="Automation quota exceeded.")
             )
-            return RejectedMetricBreach(
-                run=workflow_run.run, reason=admission.reason, created=result.created
-            )
+            return RejectedMetricBreach(run=run, reason=admission.reason, created=result.created)
 
         workflow_run.start()
         # TODO(telkins): Replace this no-op execution with investigation dispatch.
         (execution,) = workflow_run.create_executions([MetricBreachExecutionExtras()])
         workflow_run.start_execution(execution.id)
         workflow_run.complete_execution(execution.id)
-        return AcceptedMetricBreach(run=workflow_run.run, created=result.created)
+        return AcceptedMetricBreach(run=workflow_run.get_run(), created=result.created)
