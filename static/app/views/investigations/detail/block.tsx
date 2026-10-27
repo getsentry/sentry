@@ -318,11 +318,12 @@ function BlockResult({
     <BlockHoverSurface
       flex={1}
       minWidth={0}
+      containerType="inline-size"
       data-test-id="text-block-result"
       data-block-variant="unbordered"
     >
       <Grid columns="minmax(0, 1fr) auto" gap="sm" align="start">
-        <Stack minWidth={0} gap="sm">
+        <TextBlockContent minWidth={0} gap="sm">
           <BlockExecutionAlert block={block} />
           {markdown ? (
             <SeerMarkdown raw={markdown} />
@@ -333,7 +334,7 @@ function BlockResult({
           ) : (
             <BlockProgress state={progressState} />
           )}
-        </Stack>
+        </TextBlockContent>
         {/* A hidden line of text, so the actions sit on the block's first line. */}
         <Grid>
           <Container area="1 / 1">
@@ -1225,6 +1226,20 @@ const BlockHoverSurface = styled(Stack)`
       opacity: 1;
       pointer-events: auto;
     }
+  }
+`;
+
+/**
+ * Prose wraps short of the actions column, but a block embed after the
+ * markdown's first element runs under it to the block's full width (`cqi`
+ * resolves against `BlockHoverSurface`), so its card lines up with a query
+ * block's card. An embed that opens the block keeps to the column so the
+ * actions can't cover its header. Only the markdown's own top-level embeds
+ * match, not ones nested in a list or inside another embed.
+ */
+const TextBlockContent = styled(Stack)`
+  & > div > :not(:first-child) > [data-seer-embed-block] {
+    width: 100cqi;
   }
 `;
 

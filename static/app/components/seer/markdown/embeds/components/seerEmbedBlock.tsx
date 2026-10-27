@@ -127,6 +127,7 @@ export function SeerEmbedBlock({
       background="primary"
       border="primary"
       containerType="inline-size"
+      data-seer-embed-block=""
       data-test-id={testId}
       overflow="hidden"
       radius="md"
