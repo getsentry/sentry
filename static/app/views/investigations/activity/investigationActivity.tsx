@@ -16,7 +16,10 @@ import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import {getAppliedActivityTitle} from 'sentry/views/investigations/actionRequests/actionRequestDetails';
+import {
+  getAppliedActivityNote,
+  getAppliedActivityTitle,
+} from 'sentry/views/investigations/actionRequests/actionRequestDetails';
 import {INVESTIGATION_COMMENTS_PAGE_SIZE} from 'sentry/views/investigations/api';
 import {CommentActions} from 'sentry/views/investigations/comments/commentActions';
 import {
@@ -185,6 +188,7 @@ function AppliedActionRow({
           appliedBy ? getActorName(appliedBy) : null,
           organization.slug
         )}
+        details={getAppliedActivityNote(actionRequest)}
         timestamp={<TimeSince date={dateApplied} />}
       />
     </ActivityLineRow>

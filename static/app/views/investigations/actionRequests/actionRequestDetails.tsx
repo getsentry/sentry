@@ -165,6 +165,11 @@ export function getAppliedActivityTitle(
     : tct('“[title]” was applied', {title: actionRequest.title});
 }
 
+export function getAppliedActivityNote(actionRequest: InvestigationActionRequest) {
+  const kind = getActionKind(actionRequest.action);
+  return kind?.ui.getActivityNote?.({action: kind.action, actionRequest}) ?? null;
+}
+
 export function getApplySuccessMessage(action: InvestigationAction | null) {
   return getActionKind(action)?.ui.getSuccessMessage?.() ?? null;
 }

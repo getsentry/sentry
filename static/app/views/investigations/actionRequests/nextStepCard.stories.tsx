@@ -237,6 +237,31 @@ export default Storybook.story('Investigations — Recommended Action', story =>
     />
   ));
 
+  story('Connect a provider', () => (
+    <Fragment>
+      <Text as="p">
+        When the run cannot confirm a cause because telemetry is missing, Seer asks to
+        connect the provider. The button opens its integration settings. Once the
+        integration is connected, Sentry applies the request and Seer re-runs the
+        investigation.
+      </Text>
+      <CardStory
+        id="connect"
+        actionRequests={[
+          {
+            ...intervalChange,
+            key: 'connect-telemetry-datadog-r1',
+            title: 'Connect Datadog',
+            rationale:
+              'The payment processor logs to Datadog, which Seer cannot read yet.',
+            impact: null,
+            action: {kind: 'connect_telemetry', provider: 'datadog'},
+          },
+        ]}
+      />
+    </Fragment>
+  ));
+
   story('Withdrawn', () => (
     <CardStory
       id="withdrawn"
