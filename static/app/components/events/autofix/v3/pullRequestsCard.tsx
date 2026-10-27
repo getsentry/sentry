@@ -82,6 +82,10 @@ export function PullRequestsCard({autofix, section}: PullRequestsCardProps) {
           );
         }
 
+        // A failed update leaves the PR it was pushing to open, so keep it reachable.
+        const existingPullRequestUrl = defined(pullRequest.pr_number)
+          ? pullRequest.pr_url
+          : null;
         return (
           <Flex key={pullRequest.repo_name} gap="xs" align="center">
             <Button
@@ -92,6 +96,11 @@ export function PullRequestsCard({autofix, section}: PullRequestsCardProps) {
             >
               {t('Retry PR in %s', pullRequest.repo_name)}
             </Button>
+            {existingPullRequestUrl && (
+              <LinkButton external href={existingPullRequestUrl} icon={<IconOpen />}>
+                {t('View %s#%s', pullRequest.repo_name, pullRequest.pr_number)}
+              </LinkButton>
+            )}
           </Flex>
         );
       })}
