@@ -1681,13 +1681,32 @@ describe('Investigation detail', () => {
           position: 1,
           title: 'Latency query',
           kind: 'query',
-          output: InvestigationQueryOutputFixture(),
+          output: InvestigationQueryOutputFixture().tableMarkdown,
           request: 'Find slow spans',
         },
       },
     });
     // The question goes to Seer Agent; nothing opens or runs in the block.
     expect(screen.queryByTestId('investigation-transcript')).not.toBeInTheDocument();
+  });
+
+  it('sends only the start of a long block result to Seer', async () => {
+    const investigation = investigationWithQueryResult();
+    const row = '| /api/checkout | 1.84s | 18,402 |\n';
+    investigation.blocks[1] = {
+      ...investigation.blocks[1]!,
+      output: InvestigationQueryOutputFixture({tableMarkdown: row.repeat(1000)}),
+    };
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+    const openChatPrompt = jest.fn();
+
+    renderView(askSeerOrganization, makeTestQueryClient(), false, openChatPrompt);
+    await chooseBlockAction('Latency query', 'Ask Seer');
+
+    const {block} = openChatPrompt.mock.calls[0][0].context;
+    expect(block.output).toHaveLength(4000);
+    expect(row.repeat(1000).startsWith(block.output)).toBe(true);
+    expect(block.outputTruncated).toBe(true);
   });
 
   it('asks Seer about a text block that has only content', async () => {
@@ -1711,7 +1730,7 @@ describe('Investigation detail', () => {
           position: 0,
           title: 'Summary',
           kind: 'text',
-          output: {markdown: 'Initial notes'},
+          output: 'Initial notes',
         },
       },
     });
@@ -2971,7 +2990,10 @@ describe('Investigation detail', () => {
   it('asks Seer about the whole investigation from the title menu', async () => {
     MockApiClient.addMockResponse({
       url: detailUrl,
-      body: InvestigationAgenticDetailFixture({summary: 'A cache regression'}),
+      body: InvestigationAgenticDetailFixture({
+        summary: 'A cache regression',
+        projectIds: [42],
+      }),
     });
     MockApiClient.addMockResponse({
       url: orchestrationUrl,
@@ -2993,6 +3015,10 @@ describe('Investigation detail', () => {
       expect.objectContaining({
         id: 'investigation-1',
         title: 'Investigate database latency',
+        status: 'active',
+        projectIds: [42],
+        sourceType: 'manual',
+        sourceRef: {},
         summary: 'A cache regression',
         runStatus: 'processing',
         runPhase: 'reporting',
@@ -3020,7 +3046,7 @@ describe('Investigation detail', () => {
         position: 0,
         title: 'Summary',
         kind: 'text',
-        output: {markdown: 'Initial notes'},
+        output: 'Initial notes',
       },
     ]);
   });

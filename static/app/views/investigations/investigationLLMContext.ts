@@ -62,7 +62,12 @@ export function getInvestigationLLMContext(
 ) {
   return {
     ...getInvestigationReference(investigation),
+    // Active or archived; where the run is lives in runStatus and runPhase.
+    status: investigation.status,
+    projectIds: investigation.projectIds,
     sourceType: investigation.sourceType,
+    // What it was started from, like a metric alert's open period.
+    sourceRef: investigation.source?.ref,
     summary: investigation.summary,
     summaryDescription: investigation.summaryDescription,
     runStatus: orchestration?.status,
@@ -112,10 +117,36 @@ export function getHypothesisLLMContext(
 }
 
 /**
- * The data of an "investigation-block" node: the block as it renders, which is
- * its persisted output or the content an older text block carries in its place.
+ * How much of a block's result its node carries, the same cut
+ * `_completion_block_context` in `src/sentry/investigations/agent.py` makes. A
+ * query's table can run to 100k characters, and every chat on the page sends
+ * every block on screen.
+ */
+const BLOCK_OUTPUT_MAX_CHARS = 4000;
+
+/**
+ * A block's result as text: a query's table, or a text block's markdown, which
+ * an older text block carries as its content instead.
+ */
+function getBlockOutputText(block: InvestigationBlock): string {
+  const {output} = block;
+  if (output && typeof output === 'object') {
+    if ('tableMarkdown' in output && typeof output.tableMarkdown === 'string') {
+      return output.tableMarkdown;
+    }
+    if ('markdown' in output && typeof output.markdown === 'string') {
+      return output.markdown;
+    }
+  }
+  return block.content;
+}
+
+/**
+ * The data of an "investigation-block" node: the block as it renders, cut to
+ * the start of its result.
  */
 export function getBlockLLMContext(block: InvestigationBlock) {
+  const output = getBlockOutputText(block).trim();
   return {
     // What Seer needs to refine this block, not just talk about it.
     id: block.id,
@@ -125,7 +156,9 @@ export function getBlockLLMContext(block: InvestigationBlock) {
     position: block.position,
     title: block.title,
     kind: block.kind,
-    output: block.output ?? (block.content.trim() ? {markdown: block.content} : null),
+    output: output.slice(0, BLOCK_OUTPUT_MAX_CHARS) || null,
+    // So Seer reads the block for the rest instead of taking this as all of it.
+    outputTruncated: output.length > BLOCK_OUTPUT_MAX_CHARS || undefined,
     // What the block was asked to show, which is what a refinement changes.
     request: block.generationPrompt || undefined,
   };
