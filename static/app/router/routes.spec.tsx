@@ -5,7 +5,8 @@ import {buildRoutes} from 'sentry/router/routes';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {AuthenticatedApiErrorHandler} from 'sentry/views/app/authenticatedApiErrorHandler';
-import type {SettingsBreadcrumb} from 'sentry/views/settings/components/settingsBreadcrumb/types';
+import {getRouteBreadcrumbs} from 'sentry/views/settings/components/settingsBreadcrumb/routeBreadcrumbs';
+import type {SettingsRouteBreadcrumb} from 'sentry/views/settings/components/settingsBreadcrumb/types';
 
 // Setup a module mock so that we can replace
 // USING_CUSTOMER_DOMAIN with a getter.
@@ -101,7 +102,7 @@ describe('buildRoutes()', () => {
         .mockReturnValue(customerDomain);
       const routeTree = buildRoutes();
       const prefix = customerDomain ? '/settings/' : '/settings/org-slug/';
-      const cases: Array<[string, SettingsBreadcrumb[]]> = [
+      const cases: Array<[string, SettingsRouteBreadcrumb[]]> = [
         [
           'members/member-1/',
           [
@@ -113,10 +114,7 @@ describe('buildRoutes()', () => {
           'projects/javascript/keys/key-1/',
           [
             {type: 'link', label: 'Settings', to: '/settings/'},
-            {
-              type: 'project',
-              to: '/settings/:orgId/projects/:projectId/',
-            },
+            {type: 'project'},
             {
               type: 'link',
               label: 'Client Keys',
@@ -162,8 +160,8 @@ describe('buildRoutes()', () => {
       ];
       for (const [path, expected] of cases) {
         const matches = matchRoutes(routeTree, prefix + path);
-        const parents = matches?.flatMap(
-          match => match.route.handle?.settingsBreadcrumb ?? []
+        const parents = matches?.flatMap(match =>
+          getRouteBreadcrumbs(match.route.handle)
         );
         expect({path, parents}).toEqual({
           path,

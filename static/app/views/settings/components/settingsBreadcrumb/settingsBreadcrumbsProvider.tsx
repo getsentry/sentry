@@ -8,19 +8,15 @@ import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 import {SettingsBreadcrumbsContext} from './context';
 import {IntegrationCrumb} from './integrationCrumb';
 import {ProjectCrumb} from './projectCrumb';
+import {getRouteBreadcrumbs} from './routeBreadcrumbs';
 import {SettingsBreadcrumbItemProvider} from './settingsBreadcrumbItemProvider';
 import {TeamCrumb} from './teamCrumb';
-import type {SettingsBreadcrumb} from './types';
 
 export function SettingsBreadcrumbsProvider({children}: {children: React.ReactNode}) {
   const matches = useMatches();
   const params = useParams();
   const settingsV3 = useSettingsV3();
-  const items = matches.flatMap(
-    match =>
-      (match.handle as {settingsBreadcrumb?: SettingsBreadcrumb} | undefined)
-        ?.settingsBreadcrumb ?? []
-  );
+  const items = matches.flatMap(match => getRouteBreadcrumbs(match.handle));
 
   const content = items.reduceRight<React.ReactNode>((child, item, index) => {
     if (
@@ -45,11 +41,7 @@ export function SettingsBreadcrumbsProvider({children}: {children: React.ReactNo
         if (settingsV3) {
           return child;
         }
-        return (
-          <ProjectCrumb key={index} to={item.to}>
-            {child}
-          </ProjectCrumb>
-        );
+        return <ProjectCrumb key={index}>{child}</ProjectCrumb>;
       case 'team':
         return (
           <TeamCrumb key={index} to={item.to} switchTo={item.switchTo}>

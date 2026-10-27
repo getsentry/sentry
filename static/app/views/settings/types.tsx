@@ -73,9 +73,11 @@ export type NavigationSection = {
  */
 export type SettingsRouteHandle = {
   /**
-   * Where to go when the user picks a different project while on this route.
-   * Drops entity-specific params (e.g. `:keyId`) so the destination exists for
-   * every project. Shared by the sidebar project selector and breadcrumbs.
+   * Marks the route as a page inside a project's settings. `page` is the path
+   * relative to the project root, without entity-specific params (e.g.
+   * `keys/`, not `keys/:keyId/`), so switching projects lands on a page that
+   * exists for every project. Drives the project switcher in both the sidebar
+   * and the breadcrumbs.
    */
-  settingsProjectSwitch?: {switchTo: string};
+  settingsProject?: {page: string};
 };

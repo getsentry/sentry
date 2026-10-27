@@ -165,13 +165,7 @@ describe('SettingsBreadcrumbsProvider', () => {
         children: [
           {
             handle: {
-              settingsBreadcrumb: {
-                type: 'project',
-                to: '/settings/:orgId/projects/:projectId/',
-              } satisfies SettingsBreadcrumb,
-              settingsProjectSwitch: {
-                switchTo: '/settings/:orgId/projects/:projectId/keys/',
-              },
+              settingsProject: {page: 'keys/'},
             },
             children: [
               {
