@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, MutableMapping, Sequence
@@ -54,6 +55,7 @@ from sentry.integrations.slack.webhooks.actions.seer_agent import (
 )
 from sentry.integrations.types import ExternalProviderEnum, IntegrationProviderSlug
 from sentry.integrations.utils.scope import bind_org_context_from_integration
+from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
 from sentry.issues.action_log import ActionSource, GroupActionActor, action_context_scope
 from sentry.locks import locks
 from sentry.models.activity import ActivityIntegration
@@ -804,11 +806,17 @@ class SlackActionEndpoint(Endpoint):
                 else ""
             )
             routing_data = decode_action_id(encoded_action_id)
-            return handle_seer_agent_write_approval(
-                slack_request=slack_request,
-                action=SlackAction(action_id),
-                organization_id=routing_data.organization_id,
-            )
+            # Slack requests carry no Sentry credential, so the Seer calls need a context here.
+            with (
+                webhook_viewer_context(routing_data.organization_id)
+                if routing_data.organization_id is not None
+                else contextlib.nullcontext()
+            ):
+                return handle_seer_agent_write_approval(
+                    slack_request=slack_request,
+                    action=SlackAction(action_id),
+                    organization_id=routing_data.organization_id,
+                )
 
         if action_id == SlackAction.SEER_INVESTIGATION_START.value:
             identity_user = slack_request.get_identity_user()

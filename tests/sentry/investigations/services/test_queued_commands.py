@@ -588,7 +588,7 @@ class QueuedCommandsTest(TestCase):
         )
         inherited: dict[str, AbstractContextManager[None]] = {
             "none": nullcontext(),
-            "unknown": viewer_context_scope(ViewerContext(actor=Actor(type=ActorType.UNKNOWN))),
+            "system": viewer_context_scope(ViewerContext(actor=Actor(type=ActorType.SYSTEM))),
             "someone_else": viewer_context_scope(
                 ViewerContext(
                     actor=Actor(type=ActorType.USER, actor_id=self.create_user().id),
