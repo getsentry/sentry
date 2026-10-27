@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Sequence
-from typing import TYPE_CHECKING, Any, Literal, assert_never
+from typing import TYPE_CHECKING, Any, assert_never
 
 from pydantic import ValidationError
 from slack_sdk.models.blocks import ActionsBlock, ButtonElement, LinkButtonElement, MarkdownBlock
@@ -52,6 +52,7 @@ from sentry.utils.registry import NoRegistrationExistsError
 if TYPE_CHECKING:
     from sentry.integrations.slack.integration import SlackIntegration
     from sentry.integrations.slack.requests.action import SlackActionRequest
+    from sentry.integrations.utils.metrics import EventLifecycle
     from sentry.seer.entrypoints.slack.entrypoint import SlackThreadDetails
 
 
@@ -260,60 +261,32 @@ def _transform_block_actions(
     return result
 
 
-def _update_alert_message(
+def _send_message_update(
     *,
-    request: SlackActionRequest,
     install: SlackIntegration,
     channel_id: str,
     message_ts: str,
     data: SeerAutofixUpdate | SeerInvestigationStarted,
-    content_key: Literal["blocks", "attachments"],
-    build_renderable: Callable[[list[dict[str, Any]], str], SlackRenderable],
+    renderable: SlackRenderable,
     link_decorator: NotificationLinkDecorator,
+    lifecycle: EventLifecycle,
 ) -> None:
-    """
-    Edit the alert message from an action request and record the send. `content_key` is where the
-    message keeps its blocks, and `build_renderable` gets that content and the original text.
-    """
-    with SlackEntrypointEventLifecycleMetric(
-        interaction_type=SlackEntrypointInteractionType.UPDATE_EXISTING_MESSAGE,
-        integration_id=install.model.id,
-        organization_id=data.organization_id,
-    ).capture() as lifecycle:
-        lifecycle.add_extras(
-            {
-                "channel_id": channel_id,
-                "message_ts": message_ts,
-                "organization_id": data.organization_id,
-            }
-        )
-        try:
-            message_data = request.data["message"]
-            original_content = message_data[content_key]
-            original_text = message_data["text"]
-        except (KeyError, TypeError) as e:
-            lifecycle.record_failure(failure_reason=e)
-            return
+    try:
+        install.update_message(channel_id=channel_id, message_ts=message_ts, renderable=renderable)
+    except (IntegrationError, IntegrationConfigurationError) as e:
+        lifecycle.record_halt(halt_reason=e)
+        return
 
-        renderable = build_renderable(original_content, original_text)
-        try:
-            install.update_message(
-                channel_id=channel_id, message_ts=message_ts, renderable=renderable
-            )
-        except (IntegrationError, IntegrationConfigurationError) as e:
-            lifecycle.record_halt(halt_reason=e)
-            return
-
-        record_sent(
-            NotificationTrackingContext(
-                source=data.source,
-                provider=NotificationProviderKey.SLACK,
-                category=template_registry.get(data.source).category,
-                notification_uuid=data.notification_uuid,
-                organization_id=data.organization_id,
-            ),
-            links=link_decorator.links,
-        )
+    record_sent(
+        NotificationTrackingContext(
+            source=data.source,
+            provider=NotificationProviderKey.SLACK,
+            category=template_registry.get(data.source).category,
+            notification_uuid=data.notification_uuid,
+            organization_id=data.organization_id,
+        ),
+        links=link_decorator.links,
+    )
 
 
 def update_existing_message(
@@ -341,23 +314,42 @@ def update_existing_message(
     def remove_all_buttons_transformer(_elem: dict[str, Any]) -> dict[str, Any] | None:
         return None
 
-    transformer: Callable[[dict[str, Any]], dict[str, Any] | None]
-    # The RCA button is on an issue alert, so we just remove the button from the list of actions.
-    # Later updates only have autofix buttons (View, Start), so we remove the whole actions block.
-    # This is because we add the View button back to the footer, along with some status text.
-    transformer = remove_all_buttons_transformer
-    if data.current_point == AutofixStoppingPoint.ROOT_CAUSE and data.handoff_target is None:
-        transformer = remove_autofix_button_transformer
+    with SlackEntrypointEventLifecycleMetric(
+        interaction_type=SlackEntrypointInteractionType.UPDATE_EXISTING_MESSAGE,
+        integration_id=install.model.id,
+        organization_id=data.organization_id,
+    ).capture() as lifecycle:
+        lifecycle.add_extras(
+            {
+                "channel_id": channel_id,
+                "message_ts": message_ts,
+                "organization_id": data.organization_id,
+            }
+        )
 
-    link_decorator = NotificationLinkDecorator(data=data, provider=NotificationProviderKey.SLACK)
+        transformer: Callable[[dict[str, Any]], dict[str, Any] | None]
+        # The RCA button is on an issue alert, so we just remove the button from the list of actions.
+        # Later updates only have autofix buttons (View, Start), so we remove the whole actions block.
+        # This is because we add the View button back to the footer, along with some status text.
+        transformer = remove_all_buttons_transformer
+        if data.current_point == AutofixStoppingPoint.ROOT_CAUSE and data.handoff_target is None:
+            transformer = remove_autofix_button_transformer
 
-    def build_renderable(
-        original_blocks: list[dict[str, Any]], original_text: str
-    ) -> SlackRenderable:
+        try:
+            message_data = request.data["message"]
+            original_blocks = message_data["blocks"]
+            original_text = message_data["text"]
+        except (KeyError, TypeError) as e:
+            lifecycle.record_failure(failure_reason=e)
+            return
+
         blocks = _transform_block_actions(original_blocks, transformer)
 
         parsed_blocks = [Block.parse(block) for block in blocks]
         footer_extra_text = f"(ty <@{slack_user_id}>)" if slack_user_id else None
+        link_decorator = NotificationLinkDecorator(
+            data=data, provider=NotificationProviderKey.SLACK
+        )
         footer_blocks = SeerSlackRenderer.render_footer_blocks(
             data=data,
             link_decorator=link_decorator,
@@ -366,21 +358,20 @@ def update_existing_message(
         )
         parsed_blocks.extend(footer_blocks)
 
-        return SlackRenderable(
+        renderable = SlackRenderable(
             blocks=[block for block in parsed_blocks if block is not None],
             text=original_text,
         )
 
-    _update_alert_message(
-        request=request,
-        install=install,
-        channel_id=channel_id,
-        message_ts=message_ts,
-        data=data,
-        content_key="blocks",
-        build_renderable=build_renderable,
-        link_decorator=link_decorator,
-    )
+        _send_message_update(
+            install=install,
+            channel_id=channel_id,
+            message_ts=message_ts,
+            data=data,
+            renderable=renderable,
+            link_decorator=link_decorator,
+            lifecycle=lifecycle,
+        )
 
 
 def update_investigation_alert_message(
@@ -404,9 +395,20 @@ def update_investigation_alert_message(
             return link_button
         return elem
 
-    def build_renderable(
-        original_attachments: list[dict[str, Any]], original_text: str
-    ) -> SlackRenderable:
+    with SlackEntrypointEventLifecycleMetric(
+        interaction_type=SlackEntrypointInteractionType.UPDATE_EXISTING_MESSAGE,
+        integration_id=install.model.id,
+        organization_id=data.organization_id,
+    ).capture() as lifecycle:
+        lifecycle.add_extras({"channel_id": channel_id, "message_ts": message_ts})
+        try:
+            message_data = request.data["message"]
+            original_attachments = message_data["attachments"]
+            original_text = message_data["text"]
+        except (KeyError, TypeError) as e:
+            lifecycle.record_failure(failure_reason=e)
+            return
+
         attachments = [
             {
                 **attachment,
@@ -416,18 +418,15 @@ def update_investigation_alert_message(
             }
             for attachment in original_attachments
         ]
-        return SlackRenderable(blocks=[], attachments=attachments, text=original_text)
-
-    _update_alert_message(
-        request=request,
-        install=install,
-        channel_id=channel_id,
-        message_ts=message_ts,
-        data=data,
-        content_key="attachments",
-        build_renderable=build_renderable,
-        link_decorator=link_decorator,
-    )
+        _send_message_update(
+            install=install,
+            channel_id=channel_id,
+            message_ts=message_ts,
+            data=data,
+            renderable=SlackRenderable(blocks=[], attachments=attachments, text=original_text),
+            link_decorator=link_decorator,
+            lifecycle=lifecycle,
+        )
 
 
 @all_silo_function
