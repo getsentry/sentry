@@ -783,7 +783,7 @@ class _RemoteSiloCall:
 
     def _fire_request(self, headers: MutableMapping[str, str], data: bytes) -> requests.Response:
         retry_count = self.get_method_retry_count()
-        report_retries = options.get("hybrid_cloud.enable_retry_reporting")
+        report_retries = options.get("hybridcloud.rpc.retry-reporting.enabled")
         http = _get_connection(retry_count, report_retries)
 
         url = self.address + self.path

@@ -2764,7 +2764,7 @@ register(
 )
 # Count urllib3 retries per RPC call and report them as hybrid_cloud.dispatch_rpc.retries.
 register(
-    "hybrid_cloud.enable_retry_reporting",
+    "hybridcloud.rpc.retry-reporting.enabled",
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
