@@ -1,5 +1,4 @@
 import {Fragment, type PropsWithChildren, type RefObject, useMemo, useRef} from 'react';
-import {matchPath} from 'react-router';
 import {mergeProps} from '@react-aria/utils';
 import {IconArrow} from '@sentry/icons/arrow';
 import {IconBuilding} from '@sentry/icons/building';
@@ -22,7 +21,6 @@ import Feature from 'sentry/components/acl/feature';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {Override} from 'sentry/components/override';
 import {t} from 'sentry/locale';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -43,10 +41,7 @@ import {
   useNavigationTour,
   useNavigationTourModal,
 } from 'sentry/views/navigation/navigationTour';
-import {
-  isPrimaryNavigationLinkActive,
-  PrimaryNavigation,
-} from 'sentry/views/navigation/primary/components';
+import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
 import {PrimaryNavigationHelpMenu} from 'sentry/views/navigation/primary/helpMenu';
 import {PrimaryNavigationOnboarding} from 'sentry/views/navigation/primary/onboarding';
 import {OrganizationDropdown} from 'sentry/views/navigation/primary/organizationDropdown';
@@ -67,6 +62,7 @@ import {
   getAutomationsPath,
   useAutomationsEnabled,
 } from 'sentry/views/seerWorkflows/utils';
+import {useSettingsScope} from 'sentry/views/settings/useSettingsScope';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 function NavigationImpl() {
@@ -206,13 +202,9 @@ export function SettingsPrimaryNavigationItems({
 }: {
   organizationSlug: string;
 }) {
-  const location = useLocation();
   const {projects} = useProjects();
-  const projectSettingsMatch = matchPath(
-    {path: '/settings/:orgId?/projects/:projectId', end: false},
-    location.pathname
-  );
-  const projectSlug = projectSettingsMatch?.params.projectId ?? projects[0]?.slug;
+  const {scope: activeScope, projectSlug: activeProjectSlug} = useSettingsScope();
+  const projectSlug = activeProjectSlug ?? projects[0]?.slug;
   const projectSettingsPath = `/settings/${organizationSlug}/projects/`;
   const items = [
     {
@@ -229,13 +221,6 @@ export function SettingsPrimaryNavigationItems({
     },
     {key: 'account', label: t('Account'), to: '/settings/account/', icon: <IconUser />},
   ];
-  const activeScope =
-    items.find(item =>
-      item.key === 'project'
-        ? !!projectSettingsMatch
-        : item.key === 'account' &&
-          isPrimaryNavigationLinkActive(item.to, location.pathname)
-    )?.key ?? 'org';
 
   return items.map(({key, label, to, icon}) => (
     <PrimaryNavigation.ListItem key={to}>

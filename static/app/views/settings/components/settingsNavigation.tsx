@@ -24,6 +24,7 @@ import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {SettingsNavigationGroup} from 'sentry/views/settings/components/settingsNavigationGroup';
 import type {NavigationProps, NavigationSection} from 'sentry/views/settings/types';
 import {useSettingsProjectSwitchTemplate} from 'sentry/views/settings/useSettingsProjectSwitchTemplate';
+import {useSettingsScope} from 'sentry/views/settings/useSettingsScope';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 type Props = NavigationProps & {
@@ -48,19 +49,15 @@ export function SettingsNavigation({
   ...otherProps
 }: Props) {
   const navWithHooks = navigationObjects.concat(hookConfigs);
-  const location = useLocation();
   const settingsV3 = useSettingsV3();
-  const isProjectSettings = !!matchPath(
-    {path: '/settings/:orgId?/projects/:projectId', end: false},
-    location.pathname
-  );
-  const showProjectSelector = settingsV3 && isProjectSettings;
+  const {scope} = useSettingsScope();
+  const showProjectSelector = settingsV3 && scope === 'project';
   const title = settingsV3
-    ? matchPath({path: '/settings/account', end: false}, location.pathname)
-      ? t('Account Settings')
-      : isProjectSettings
-        ? t('Project Settings')
-        : t('Org Settings')
+    ? {
+        account: t('Account Settings'),
+        project: t('Project Settings'),
+        org: t('Org Settings'),
+      }[scope]
     : t('Settings');
 
   return (
