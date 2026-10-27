@@ -4,7 +4,6 @@ import isEqual from 'lodash/isEqual';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {withMeta} from 'sentry/components/events/meta/metaProxy';
 import {LoadingError} from 'sentry/components/loadingError';
-import {useSentryAppComponentsData} from 'sentry/stores/useSentryAppComponentsData';
 import type {GroupActivityReprocess, GroupReprocessing} from 'sentry/types/group';
 import {IssueType} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
@@ -70,8 +69,6 @@ function GroupEventDetails() {
     },
     [event]
   );
-  // load the data
-  useSentryAppComponentsData({projectId: project?.id});
 
   // If environments are being actively changed and will no longer contain the
   // current event's environment, redirect to latest

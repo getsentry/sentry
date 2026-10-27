@@ -1,10 +1,10 @@
-import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
+import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {DroppedDataTooltip} from 'sentry/components/droppedData/band/droppedDataTooltip';
 import {groupIntoBuckets} from 'sentry/components/droppedData/buckets';
-import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
+import type {OutcomeRow} from 'sentry/components/droppedData/types';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 
 const START = Date.UTC(2024, 0, 12, 15, 0);
@@ -15,8 +15,8 @@ function ExampleDroppedDataTooltip({
   accepted = [],
   dataset = DiscoverDatasets.SPANS,
 }: {
-  dropped: DroppedEventsBucket[];
-  accepted?: DroppedEventsBucket[];
+  dropped: OutcomeRow[];
+  accepted?: OutcomeRow[];
   dataset?: DiscoverDatasets;
 }) {
   const [bucket] = groupIntoBuckets(dropped, accepted);
@@ -29,13 +29,13 @@ describe('DroppedDataTooltip', () => {
     render(
       <ExampleDroppedDataTooltip
         dropped={[
-          DroppedEventFixture({
+          OutcomeRowFixture({
             start: START,
             end: END,
             outcome: 'rate_limited',
             count: 40_000,
           }),
-          DroppedEventFixture({
+          OutcomeRowFixture({
             start: START,
             end: END,
             outcome: 'invalid',
@@ -43,7 +43,7 @@ describe('DroppedDataTooltip', () => {
           }),
         ]}
         accepted={[
-          DroppedEventFixture({
+          OutcomeRowFixture({
             start: START,
             end: END,
             outcome: 'accepted',
@@ -69,7 +69,7 @@ describe('DroppedDataTooltip', () => {
     render(
       <ExampleDroppedDataTooltip
         dataset={DiscoverDatasets.OURLOGS}
-        dropped={[DroppedEventFixture({start: START, end: END, count: 10})]}
+        dropped={[OutcomeRowFixture({start: START, end: END, count: 10})]}
       />
     );
 
@@ -79,8 +79,8 @@ describe('DroppedDataTooltip', () => {
   it('shows <0.01% for a drop ratio at or below 0.01%', () => {
     render(
       <ExampleDroppedDataTooltip
-        dropped={[DroppedEventFixture({start: START, end: END, count: 1})]}
-        accepted={[DroppedEventFixture({start: START, end: END, count: 9_999})]}
+        dropped={[OutcomeRowFixture({start: START, end: END, count: 1})]}
+        accepted={[OutcomeRowFixture({start: START, end: END, count: 9_999})]}
       />
     );
 
@@ -91,7 +91,7 @@ describe('DroppedDataTooltip', () => {
   it('reads a drop with no accepted volume as the whole bucket', () => {
     render(
       <ExampleDroppedDataTooltip
-        dropped={[DroppedEventFixture({start: START, end: END, count: 10})]}
+        dropped={[OutcomeRowFixture({start: START, end: END, count: 10})]}
       />
     );
 
@@ -104,7 +104,7 @@ describe('DroppedDataTooltip', () => {
       <ExampleDroppedDataTooltip
         dropped={[]}
         accepted={[
-          DroppedEventFixture({start: START, end: END, outcome: 'accepted', count: 500}),
+          OutcomeRowFixture({start: START, end: END, outcome: 'accepted', count: 500}),
         ]}
       />
     );
@@ -118,7 +118,7 @@ describe('DroppedDataTooltip', () => {
     render(
       <ExampleDroppedDataTooltip
         dropped={[
-          DroppedEventFixture({
+          OutcomeRowFixture({
             start: START,
             end: END,
             outcome: 'client_discard',
@@ -136,7 +136,7 @@ describe('DroppedDataTooltip', () => {
     render(
       <ExampleDroppedDataTooltip
         dropped={[
-          DroppedEventFixture({
+          OutcomeRowFixture({
             start: START,
             end: END,
             outcome: 'something_new',
@@ -153,7 +153,7 @@ describe('DroppedDataTooltip', () => {
     render(
       <ExampleDroppedDataTooltip
         dropped={[
-          DroppedEventFixture({
+          OutcomeRowFixture({
             start: START,
             end: END,
             outcome: 'filtered',
@@ -170,13 +170,13 @@ describe('DroppedDataTooltip', () => {
     render(
       <ExampleDroppedDataTooltip
         dropped={[
-          DroppedEventFixture({
+          OutcomeRowFixture({
             start: START,
             end: END,
             outcome: 'something_new',
             count: 10,
           }),
-          DroppedEventFixture({
+          OutcomeRowFixture({
             start: START,
             end: END,
             outcome: 'something_else',

@@ -1,7 +1,9 @@
 import type {AvatarUser} from 'sentry/types/user';
 import type {
   ActionRequestError,
+  ActionRequestFollowUp,
   CannotApplyReason,
+  InvestigationDetectorValues,
 } from 'sentry/views/investigations/api';
 import type {ToolResult} from 'sentry/views/seerExplorer/types';
 
@@ -79,11 +81,6 @@ export type InvestigationComment = {
   dateCreated: string;
   dateUpdated: string;
   id: string;
-};
-
-export type InvestigationBlockExecutionStart = {
-  id: string;
-  status: InvestigationExecutionStatus;
 };
 
 export type InvestigationExecutionStatus =
@@ -263,18 +260,7 @@ export type InvestigationHypothesisStatus = InvestigationOrchestrationOpenString
   | 'cancelled'
 >;
 
-export type InvestigationDetectorChangeKey =
-  | 'query'
-  | 'aggregate'
-  | 'environment'
-  | 'timeWindowSeconds'
-  | 'highThreshold'
-  | 'mediumThreshold'
-  | 'resolutionThreshold';
-
-type InvestigationDetectorValues = Partial<
-  Record<InvestigationDetectorChangeKey, number | string | null>
->;
+export type InvestigationDetectorChangeKey = keyof InvestigationDetectorValues;
 
 export type InvestigationUpdateDetectorAction = {
   before: InvestigationDetectorValues;
@@ -283,11 +269,16 @@ export type InvestigationUpdateDetectorAction = {
   kind: 'update_detector';
 };
 
+export type InvestigationConnectTelemetryAction = {
+  kind: 'connect_telemetry';
+  provider: 'datadog' | 'gcp';
+};
+
 export type InvestigationAction =
   | InvestigationUpdateDetectorAction
-  | {kind: 'connect_telemetry'; provider: 'datadog' | 'gcp'};
+  | InvestigationConnectTelemetryAction;
 
-type InvestigationActionRequestAnchor = {
+export type InvestigationActionRequestAnchor = {
   blockId: string | null;
   id: string;
   type: InvestigationOrchestrationOpenString<'block' | 'hypothesis'>;
@@ -303,6 +294,7 @@ export type InvestigationActionRequest = {
   dateApplied: string | null;
   dateCreated: string;
   error: ActionRequestError | null;
+  followUp: ActionRequestFollowUp | null;
   id: string;
   impact: string | null;
   key: string;

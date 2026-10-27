@@ -13,10 +13,7 @@ import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDisc
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {eventsResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/eventsResponseTransforms';
-import {
-  getSeriesRequestData,
-  convertEventStatsRequestDataToEventTimeseriesQueryParams,
-} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
+import {getTimeseriesRequestQuery} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {
   combineIngestionMeta,
@@ -61,26 +58,20 @@ export function useErrorsSeriesQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  const seriesRequestData = filteredWidget.queries.map((_, queryIndex) =>
-    getSeriesRequestData(
-      filteredWidget,
-      queryIndex,
-      organization,
-      pageFilters,
-      DiscoverDatasets.ERRORS,
-      getReferrer(filteredWidget.displayType),
-      widgetInterval
-    )
-  );
-
   const {results: queryResults, data: rawData} = useQueries({
-    queries: seriesRequestData.map(requestData =>
+    queries: filteredWidget.queries.map((_, queryIndex) =>
       getTimeseriesWidgetQueryOptions({
         organization,
         pageFilters,
         queue,
         enabled,
-        query: convertEventStatsRequestDataToEventTimeseriesQueryParams(requestData),
+        query: getTimeseriesRequestQuery(
+          filteredWidget,
+          queryIndex,
+          pageFilters,
+          DiscoverDatasets.ERRORS,
+          {referrer: getReferrer(filteredWidget.displayType), widgetInterval}
+        ),
       })
     ),
     combine: combineWidgetQueryResults,

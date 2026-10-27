@@ -224,6 +224,33 @@ function getRunningCopy(projection: InvestigationOrchestration): SeerStatusBlock
   }
 }
 
+export function isWritingMetadata(projection: InvestigationOrchestration) {
+  return projection.status === 'processing' && projection.phase === 'metadata';
+}
+
+export function isOnlyNextStepPending(projection: InvestigationOrchestration) {
+  const {metadata, status} = projection.report;
+  return (
+    isWritingMetadata(projection) &&
+    status === 'completed' &&
+    (metadata.status === 'completed' || metadata.status === 'failed')
+  );
+}
+
+function getCompleteContent(
+  projection: InvestigationOrchestration
+): SeerStatusBlockContent {
+  return {
+    variant: 'complete',
+    title: t('Your investigation is ready'),
+    meta: getMeta(projection),
+    description: t(
+      'Findings, supporting evidence, and recommended next steps are ready.'
+    ),
+    statusLabel: t('Completed'),
+  };
+}
+
 /**
  * The status block's content for a run, or `null` when there is nothing to say.
  *
@@ -271,17 +298,12 @@ export function getSeerStatusBlock(
         statusLabel: t('Cancelled'),
       };
     case 'completed':
-      return {
-        variant: 'complete',
-        title: t('Your investigation is ready'),
-        meta: getMeta(projection),
-        description: t(
-          'Findings, supporting evidence, and recommended next steps are ready.'
-        ),
-        statusLabel: t('Completed'),
-      };
-    case 'pending':
+      return getCompleteContent(projection);
     case 'processing':
+      return isOnlyNextStepPending(projection)
+        ? getCompleteContent(projection)
+        : getRunningContent(projection, receivedAt);
+    case 'pending':
       return getRunningContent(projection, receivedAt);
     default:
       // An unrecognized status is still a run in progress as far as the viewer

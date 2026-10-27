@@ -207,22 +207,74 @@ class BaseDetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationT
 
         return {None: value}
 
+    def _create_occurrence(
+        self,
+        evaluation: DetectorEvaluation,
+        trigger_evaluation: DataConditionGroupEvaluation,
+        data_packet: DataPacket[DataPacketType],
+        evaluation_value: DataPacketEvaluationType,
+        *,
+        fingerprint: list[str] | None = None,
+    ) -> DetectorEvaluation:
+        """
+        Builds the `IssueOccurrence` for a triggered evaluation and returns the evaluation
+        with it as the result.
+
+        The `DetectorOccurrence` from `create_occurrence` is decorated with the handler's
+        identifiers (`get_event_id`, `get_occurrence_id`), fingerprint, workflow engine evidence,
+        and event data.
+
+        `trigger_evaluation` is the condition group evaluation passed to `create_occurrence`.
+        `fingerprint` defaults to `get_issue_fingerprint` for the evaluation's group key.
+        """
+        detector_occurrence, event_data = self.create_occurrence(
+            trigger_evaluation, data_packet, evaluation.priority
+        )
+
+        group_key = evaluation.data["group_key"]
+        event_id = self.get_event_id(event_data)
+        evidence_data = self._build_workflow_engine_evidence_data(
+            evaluation, data_packet, evaluation_value
+        )
+
+        issue_occurrence = detector_occurrence.to_issue_occurrence(
+            occurrence_id=self.get_occurrence_id(group_key, event_id),
+            event_id=event_id,
+            project_id=self.detector.project_id,
+            status=evaluation.priority,
+            additional_evidence_data=dataclasses.asdict(evidence_data),
+            fingerprint=(
+                fingerprint if fingerprint is not None else self.get_issue_fingerprint(group_key)
+            ),
+        )
+
+        return evaluation.with_result(
+            issue_occurrence,
+            event_data=self._build_event_data(event_data, issue_occurrence),
+        )
+
     def _build_workflow_engine_evidence_data(
         self,
-        group_evaluation: DataConditionGroupEvaluation,
+        evaluation: DetectorEvaluation,
         data_packet: DataPacket[DataPacketType],
         evaluation_value: DataPacketEvaluationType,
     ) -> EvidenceData[DataPacketEvaluationType]:
         """
-        Build the workflow engine specific evidence data.
-        This is data that is common to all detectors.
-        """
+        Build the workflow engine evidence data, common to all detectors.
 
-        triggered_conditions = [
-            dict(condition_evaluation.condition.get_snapshot())
-            for condition_evaluation in group_evaluation.data["condition_evaluations"]
-            if condition_evaluation.triggered
-        ]
+        `conditions` are the triggered conditions of the evaluation's trigger group, and are empty
+        for detectors that don't evaluate a data condition group. `data_sources` are empty when
+        the packet's source is not connected to the detector.
+        """
+        trigger_evaluation = evaluation.data["trigger_group_evaluation"]
+        triggered_conditions: list[dict[str, Any]] = []
+
+        if trigger_evaluation is not None:
+            triggered_conditions = [
+                dict(condition_evaluation.condition.get_snapshot())
+                for condition_evaluation in trigger_evaluation.data["condition_evaluations"]
+                if condition_evaluation.triggered
+            ]
 
         return EvidenceData(
             detector_id=self.detector.id,

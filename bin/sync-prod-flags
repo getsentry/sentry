@@ -1,0 +1,73 @@
+#!/usr/bin/env python
+"""Write prod Flagpole flags, as the sentry org sees them, to $SENTRY_CONF/prod-flags.json."""
+
+import json  # noqa: S003
+import os
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+import sentry_options
+import yaml
+
+NAMESPACE = "getsentry-features"
+CONTEXT = {
+    "organization_id": 1,
+    "organization_slug": "sentry",
+    "sentry_cell": "us",
+    "sentry_region": "us",
+    "subscription_plan-tier": "am3",
+    "subscription_plan-family": ["enterprise", "business", "team"],
+    "subscription_is-free": False,
+    "subscription_on-non-enterprise-trial": False,
+}
+
+FLAGPOLE = "origin/main:options/default/flagpole.yaml"
+
+repo = os.environ.get(
+    "SENTRY_OPTIONS_AUTOMATOR_DIR", Path(__file__).resolve().parents[2] / "sentry-options-automator"
+)
+if Path(repo).is_dir():
+    source = subprocess.check_output(["git", "-C", str(repo), "show", FLAGPOLE], text=True)
+else:
+    sys.stderr.write(f"no checkout at {repo}, fetching flagpole.yaml from GitHub\n")
+    with tempfile.TemporaryDirectory() as clone:
+        subprocess.check_call(
+            [
+                "git",
+                "clone",
+                "--quiet",
+                "--depth=1",
+                "--filter=blob:none",
+                "--no-checkout",
+                "https://github.com/getsentry/sentry-options-automator",
+                clone,
+            ],
+            env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
+        )
+        source = subprocess.check_output(["git", "-C", clone, "show", FLAGPOLE], text=True)
+options = yaml.safe_load(source)["options"]
+
+with tempfile.TemporaryDirectory() as tmp:
+    Path(tmp, "schemas").mkdir()
+    Path(tmp, "values", NAMESPACE).mkdir(parents=True)
+    Path(tmp, "values", NAMESPACE, "values.json").write_text(
+        json.dumps({"options": options}, default=str)
+    )
+    schema = {
+        "version": "1.0",
+        "type": "object",
+        "patternProperties": {"^feature\\.": sentry_options.feature_property()},
+    }
+    os.environ["SENTRY_OPTIONS_DIR"] = tmp
+    sentry_options.init(additional_schemas={NAMESPACE: json.dumps(schema)})
+    checker = sentry_options.features(NAMESPACE)
+    context = sentry_options.FeatureContext(CONTEXT, identity_fields=["organization_id"])
+    flags = {
+        name: bool(checker.try_has(name, context))
+        for name in (key.removeprefix("feature.") for key in options)
+    }
+
+out = Path(os.environ.get("SENTRY_CONF", "~/.sentry")).expanduser() / "prod-flags.json"
+out.write_text(json.dumps(flags, indent=2, sort_keys=True))

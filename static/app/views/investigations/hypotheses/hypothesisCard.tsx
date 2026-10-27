@@ -17,6 +17,7 @@ import {
   getHypothesisCardBorder,
   HypothesisStatus,
 } from 'sentry/views/investigations/hypotheses/hypothesisStatus';
+import {HypothesisLLMContext} from 'sentry/views/investigations/investigationLLMContext';
 import type {InvestigationHypothesis} from 'sentry/views/investigations/types';
 
 /** States where missing checks mean "not yet"; anything else finished without them. */
@@ -29,8 +30,8 @@ type HypothesisCardProps = {
   hypothesis: InvestigationHypothesis;
   /**
    * Menu items for the card's overflow menu. The card does not own commands —
-   * the surface rendering it decides which of accept, reject, steer, and retry
-   * apply, and supplies them here. No menu renders when this is empty.
+   * the surface rendering it decides which of accept, reject, retry, and Ask
+   * Seer apply, and supplies them here. No menu renders when this is empty.
    */
   actions?: MenuItemProps[];
   /**
@@ -95,6 +96,7 @@ export function HypothesisCard({
       data-primary={isPrimary}
       data-test-id="investigation-hypothesis"
     >
+      <HypothesisLLMContext hypothesis={hypothesis} isConclusion={isPrimary} />
       <Flex justify="between" align="center" gap="sm">
         <Flex align="center" gap="md" wrap="wrap" minWidth={0}>
           <HypothesisNumber size="xs" variant="muted" tabular>

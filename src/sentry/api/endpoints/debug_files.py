@@ -56,12 +56,15 @@ from sentry.models.debugfile import (
     find_existing_dif,
     get_debug_id_from_dif_request,
     get_dif_download_filename,
+    wasm_legacy_code_id,
+    wasm_legacy_debug_id,
 )
 from sentry.models.files.file import File
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.models.release import Release, get_artifact_counts
 from sentry.models.releasefile import ReleaseFile
+from sentry.options.rollout import in_random_rollout
 from sentry.roles import organization_roles
 from sentry.tasks.assemble import (
     AssembleTask,
@@ -246,6 +249,68 @@ DSYM_FILE_FORMATS_PARAM = OpenApiParameter(
 )
 
 
+def code_id_queries(code_id: str, use_legacy: bool) -> list[Q]:
+    """Returns a list of queries that, for a given code ID:
+       1. compare it to the `code_id` field.
+       2. compare it to the `wasm_legacy_code_id` field.
+       3. compare the corresponding "legacy" code ID to the `code_id` field, if it is defined.
+
+    This exists to deal with a longstanding bug in both `symbolic` and the JS SDK that caused
+    code and debug IDs to be read incorrectly from WASM files. By querying the `wasm_legacy_code_id`
+    field, we catch cases where the file is uploaded with the correct ID, but the event still contains
+    the incorrect one. By computing the legacy code ID and comparing it to `code_id`, we catch the
+    converse case.
+
+    Clauses (2) and (3) are only relevant for WASM files. No non-WASM file has a
+    `wasm_legacy_code_id`, and the "legacy" code ID is extremely unlikely to be a match for
+    any file that never suffered from the WASM build ID bug.
+
+    The behavior is gated behind the `use_legacy` flag.
+    If it's turned off, only the first query is returned.
+    """
+
+    qs = [Q(code_id__exact=code_id)]
+
+    if use_legacy:
+        qs.append(Q(wasm_legacy_code_id__exact=code_id))
+
+        if legacy_id := wasm_legacy_code_id(code_id):
+            qs.append(Q(code_id__exact=legacy_id))
+
+    return qs
+
+
+def debug_id_queries(debug_id: str, use_legacy: bool) -> list[Q]:
+    """Returns a list of queries that, for a given debug ID:
+       1. compare it to the `debug_id` field.
+       2. compare it to the `wasm_legacy_debug_id` field.
+       3. compare the corresponding "legacy" debug ID to the `debug_id` field, if it is defined.
+
+    This exists to deal with a longstanding bug in both `symbolic` and the JS SDK that caused
+    code and debug IDs to be read incorrectly from WASM files. By querying the `wasm_legacy_debug_id`
+    field, we catch cases where the file is uploaded with the correct ID, but the event still contains
+    the incorrect one. By computing the legacy debug ID and comparing it to `debug_id`, we catch the
+    converse case.
+
+    Clauses (2) and (3) are only relevant for WASM files. No non-WASM file has a
+    `wasm_legacy_debug_id`, and the "legacy" debug ID is extremely unlikely to be a match for
+    any file that never suffered from the WASM build ID bug.
+
+    The behavior is gated behind the `use_legacy` flag.
+    If it's turned off, only the first query is returned.
+    """
+
+    qs = [Q(debug_id__exact=debug_id)]
+
+    if use_legacy:
+        qs.append(Q(wasm_legacy_debug_id__exact=debug_id))
+
+        if legacy_id := wasm_legacy_debug_id(debug_id):
+            qs.append(Q(debug_id__exact=legacy_id))
+
+    return qs
+
+
 @extend_schema(tags=["Projects"])
 @cell_silo_endpoint
 class DebugFilesEndpoint(ProjectEndpoint):
@@ -359,8 +424,10 @@ class DebugFilesEndpoint(ProjectEndpoint):
                     )
             q &= file_format_q
 
-        queryset = None
-        if debug_id and code_id:
+        query_legacy_ids = in_random_rollout("debug-files.query-legacy-ids.rollout-rate")
+
+        # If we have at least one of debug_id or code_id, use them to build the queryset
+        if debug_id or code_id:
             # Be lenient when searching for debug files, check either for a matching debug id
             # or a matching code id. We only fallback to code id if there is no debug id match.
             # While both identifiers should be unique, in practice they are not and the debug id
@@ -369,22 +436,36 @@ class DebugFilesEndpoint(ProjectEndpoint):
             # Ideally debug- and code-id yield the same files, but especially on Windows it is possible
             # that the debug id does not perfectly match due to 'age' differences, but the code-id
             # will match.
-            debug_id_qs = ProjectDebugFile.objects.filter(Q(debug_id__exact=debug_id) & q)
-            queryset = debug_id_qs.select_related("file").union(
-                ProjectDebugFile.objects.filter(Q(code_id__exact=code_id) & q)
-                # Only return any code id matches if there are *no* debug id matches.
-                .filter(~Exists(debug_id_qs))
-                .select_related("file")
-            )
-        elif debug_id:
-            q &= Q(debug_id__exact=debug_id)
-        elif code_id:
-            q &= Q(code_id__exact=code_id)
+            debug_id_qs = ProjectDebugFile.objects.none().select_related("file")
+            if debug_id:
+                for debug_id_q in debug_id_queries(debug_id, query_legacy_ids):
+                    debug_id_qs = debug_id_qs.union(
+                        ProjectDebugFile.objects.filter(debug_id_q & q).select_related("file")
+                    )
+
+            code_id_qs = ProjectDebugFile.objects.none().select_related("file")
+            if code_id:
+                for code_id_q in code_id_queries(code_id, query_legacy_ids):
+                    code_id_qs = code_id_qs.union(
+                        ProjectDebugFile.objects.filter(
+                            code_id_q
+                            & q
+                            # Only return any code id matches if there are *no* debug id matches.
+                            #
+                            # If we have no debug_id, debug_id_qs is the empty qs, so this always
+                            # succeeds.
+                            & ~Exists(debug_id_qs)
+                        ).select_related("file")
+                    )
+
+            queryset = debug_id_qs.union(code_id_qs)
         elif query:
             query_q = (
                 Q(object_name__icontains=query)
                 | Q(debug_id__icontains=query)
                 | Q(code_id__icontains=query)
+                | Q(wasm_legacy_debug_id__icontains=query)
+                | Q(wasm_legacy_code_id__icontains=query)
                 | Q(cpu_name__icontains=query)
                 | Q(file__headers__icontains=query)
                 | Q(content_type__icontains=query)
@@ -396,9 +477,8 @@ class DebugFilesEndpoint(ProjectEndpoint):
                     content_type__icontains=known_file_format
                 )
 
-            q &= query_q
-
-        if queryset is None:
+            queryset = ProjectDebugFile.objects.filter(query_q & q).select_related("file")
+        else:
             queryset = ProjectDebugFile.objects.filter(q).select_related("file")
 
         def on_results(difs: Sequence[ProjectDebugFile]):
