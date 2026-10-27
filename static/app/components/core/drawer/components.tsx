@@ -20,6 +20,12 @@ import {
   useDrawerResizing,
 } from './useDrawerResizing';
 
+/**
+ * Set on the document root by a layout that docks its own pane against the
+ * viewport's right edge, so drawers end at that pane instead of covering it.
+ */
+export const DRAWER_INSET_RIGHT_PROPERTY = '--drawer-inset-right';
+
 const DrawerWidthContext = createContext<number | undefined>(undefined);
 
 type DrawerContentContextType = Pick<DrawerOptions, 'ariaLabel' | 'onClose'>;
@@ -244,10 +250,13 @@ const DrawerSlidePanel = styled(SlideOverPanel)`
   /* Extend the panel's background 20px past its right edge so the bounce-in
      overshoot doesn't briefly expose the page beneath. A box-shadow is used
      (vs. a pseudo-element) because the panel's own overflow: auto would clip
-     anything positioned outside its bounds. */
+     anything positioned outside its bounds. With a right inset there's a
+     docked pane past that edge rather than the page, and the strip would sit
+     on top of it for as long as the drawer is open, so any inset drops it. */
   /* oxlint-disable-next-line @sentry/scraps/use-semantic-token -- Extend the drawer background beyond its scrollable bounds. */
   box-shadow:
-    20px 0 0 ${p => p.theme.tokens.background.overlay},
+    max(0px, 20px - var(${DRAWER_INSET_RIGHT_PROPERTY}, 0px) * 1000) 0 0
+      ${p => p.theme.tokens.background.overlay},
     ${p => p.theme.shadow.high};
 
   --drawer-width: ${DEFAULT_WIDTH_PERCENT}%;
@@ -259,6 +268,10 @@ const DrawerSlidePanel = styled(SlideOverPanel)`
     var(--drawer-width),
     var(--drawer-max-width)
   ) !important;
+
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+    right: var(${DRAWER_INSET_RIGHT_PROPERTY}, 0px);
+  }
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     top: 0;

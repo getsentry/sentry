@@ -294,4 +294,9 @@ export function useDrawer() {
   };
 }
 
-export {DrawerBody, DrawerHeader, useDrawerContentContext} from './components';
+export {
+  DRAWER_INSET_RIGHT_PROPERTY,
+  DrawerBody,
+  DrawerHeader,
+  useDrawerContentContext,
+} from './components';
