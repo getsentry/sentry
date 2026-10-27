@@ -1877,13 +1877,61 @@ describe('SeerExplorerContent', () => {
       expect(await getSeerExplorerInput()).toBeEmptyDOMElement();
     });
 
-    it('is not offered without investigations', async () => {
+    it('starts an investigation while Seer is responding', async () => {
+      const sendMessage = jest.fn();
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({...defaultHookReturn, isPolling: true, sendMessage});
+      const createMock = MockApiClient.addMockResponse({
+        url: `/organizations/${investigationsOrganization.slug}/investigations/`,
+        method: 'POST',
+        body: {id: '4567'},
+      });
+
+      renderContent();
+
+      await userEvent.type(
+        await getSeerExplorerInput(),
+        '/investigate why did checkout slow down?{Enter}'
+      );
+
+      await waitFor(() =>
+        expect(createMock).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            data: expect.objectContaining({
+              source: expect.objectContaining({prompt: 'why did checkout slow down?'}),
+            }),
+          })
+        )
+      );
+      expect(sendMessage).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      [
+        'the investigations feature',
+        OrganizationFixture({
+          openMembership: true,
+          features: ['seer-explorer'],
+          hideAiFeatures: false,
+        }),
+      ],
+      [
+        'open membership',
+        OrganizationFixture({
+          openMembership: false,
+          features: ['seer-explorer', 'investigations'],
+          hideAiFeatures: false,
+        }),
+      ],
+    ])('is not offered without %s', async (_, org) => {
       const sendMessage = jest.fn();
       jest
         .spyOn(useSeerExplorerModule, 'useSeerExplorer')
         .mockReturnValue({...defaultHookReturn, sendMessage});
 
-      renderContent(organization);
+      renderContent(org);
 
       await userEvent.type(await getSeerExplorerInput(), '/');
       await screen.findByText('Start a new session');

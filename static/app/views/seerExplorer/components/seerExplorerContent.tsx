@@ -560,16 +560,17 @@ export function SeerExplorerContent({
   const canSendMessage =
     !readOnly && !showLoadError && !isPolling && !!inputValue.text.trim();
   const handleSend = useCallback(() => {
-    if (!canSendMessage) {
-      return;
-    }
     const text = inputValue.text.trim();
     // The slash command menu only handles a bare `/investigate`, so one
-    // followed by a question lands here.
+    // followed by a question lands here. Like the menu, it doesn't wait for
+    // Seer to finish responding.
     const investigateMatch = /^\/investigate(?:\s+(.*))?$/s.exec(text);
     if (startInvestigation && investigateMatch) {
       startInvestigation(investigateMatch[1]);
       clearInput();
+      return;
+    }
+    if (!canSendMessage) {
       return;
     }
     sendMessage(text, blocks.length);
