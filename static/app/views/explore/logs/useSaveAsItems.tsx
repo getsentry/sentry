@@ -29,6 +29,7 @@ import {
   WidgetType,
 } from 'sentry/views/dashboards/types';
 import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
+import {useAlwaysMatchesCaseDetails} from 'sentry/views/explore/caseInsensitivityDefault';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {CHART_TYPE_TO_DISPLAY_TYPE} from 'sentry/views/explore/hooks/useAddToDashboard';
@@ -76,6 +77,13 @@ export function useSaveAsItems({
     () => visualizes.map(visualize => visualize.yAxis),
     [visualizes]
   );
+  const {alert: alertCaseDetails, dashboard: dashboardCaseDetails} =
+    useAlwaysMatchesCaseDetails({
+      query: search.formatString(),
+      yAxes: aggregates,
+      groupBys,
+      mode,
+    });
 
   const saveAsQuery = useMemo(() => {
     const items = [];
@@ -153,8 +161,19 @@ export function useSaveAsItems({
       };
     });
 
-    return getSaveAsAlertMenuItem({alertsUrls, submenu: true});
-  }, [aggregates, interval, organization, pageFilters, project, search]);
+    return {
+      ...getSaveAsAlertMenuItem({alertsUrls, submenu: true}),
+      details: alertCaseDetails,
+    };
+  }, [
+    aggregates,
+    alertCaseDetails,
+    interval,
+    organization,
+    pageFilters,
+    project,
+    search,
+  ]);
 
   const saveAsDashboard = useMemo(() => {
     const dashboardsUrls = aggregates.map((yAxis: string, index: number) => {
@@ -225,12 +244,14 @@ export function useSaveAsItems({
         </Feature>
       ),
       textValue: t('Dashboard widget'),
+      details: dashboardCaseDetails,
       children: dashboardsUrls,
       disabled: !dashboardsUrls || dashboardsUrls.length === 0,
       submenu: true,
     };
   }, [
     aggregates,
+    dashboardCaseDetails,
     groupBys,
     mode,
     organization,
