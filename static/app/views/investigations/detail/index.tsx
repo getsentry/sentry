@@ -39,6 +39,7 @@ import {
 } from 'sentry/views/investigations/actionRequests/anchoredActionRequests';
 import {
   getPrimaryActionRequest,
+  isRunWorking,
   NextStepCard,
 } from 'sentry/views/investigations/actionRequests/nextStepCard';
 import {InvestigationActivity} from 'sentry/views/investigations/activity/investigationActivity';
@@ -501,7 +502,7 @@ function InvestigationPageContentInner({
     shouldDisplayInvestigationBlock(block)
   );
   const awaitingReportBlock = isAwaitingReportBlock(investigation);
-  const runProcessing = orchestration?.status === 'processing';
+  const runProcessing = isRunWorking(orchestration) || recheckRunWait.waiting;
   const hypothesisStatements = new Map(
     orchestration?.hypotheses.map(({id, statement}) => [id, statement])
   );

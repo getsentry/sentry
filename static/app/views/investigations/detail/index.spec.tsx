@@ -1204,6 +1204,57 @@ describe('Investigation detail', () => {
         )
       );
     });
+
+    describe('before the re-check run shows up', () => {
+      beforeEach(() => {
+        jest.useFakeTimers();
+      });
+
+      afterEach(async () => {
+        try {
+          await act(() => jest.runOnlyPendingTimersAsync());
+        } finally {
+          jest.useRealTimers();
+        }
+      });
+
+      it('says Seer is updating a request under its block before the run shows up', async () => {
+        const rechecked = (status: 'accepted' | 'acknowledged') =>
+          InvestigationAgenticDetailFixture({
+            actionRequests: [
+              InvestigationActionRequestFixture({
+                id: '322',
+                primary: false,
+                anchor: {type: 'block', id: 'cause', blockId: 'block-1'},
+                title: 'Widen the interval',
+                state: 'superseded',
+                canApply: false,
+                cannotApplyReason: 'not_suggested',
+                error: {code: 'stale', current: {timeWindowSeconds: 600}},
+                followUp: {status, reason: null, rerun: null},
+              }),
+            ],
+          });
+        MockApiClient.addMockResponse({url: detailUrl, body: rechecked('accepted')});
+        MockApiClient.addMockResponse({url: orchestrationUrl, body: completedRun});
+        renderView();
+        const card = await screen.findByRole('region', {name: 'Widen the interval'});
+        expect(within(card).getByRole('status')).toHaveTextContent(
+          'Seer is checking the suggestion again…'
+        );
+
+        MockApiClient.addMockResponse({url: detailUrl, body: rechecked('acknowledged')});
+        await act(() => jest.advanceTimersByTimeAsync(2000));
+
+        await waitFor(() =>
+          expect(
+            within(screen.getByRole('region', {name: 'Widen the interval'})).getByRole(
+              'status'
+            )
+          ).toHaveTextContent('Seer is updating its suggestion…')
+        );
+      });
+    });
   });
 
   it('leaves out the investigation details heading without a summary', async () => {
