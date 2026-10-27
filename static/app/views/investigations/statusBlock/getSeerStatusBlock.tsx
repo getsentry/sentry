@@ -1,5 +1,8 @@
 import {t, tn} from 'sentry/locale';
-import {getInvestigationActiveTime} from 'sentry/views/investigations/detail/runTimer';
+import {
+  getInvestigationActiveTime,
+  isOnlyNextStepPending,
+} from 'sentry/views/investigations/runState';
 import type {SeerStatusBlockVariant} from 'sentry/views/investigations/statusBlock/seerStatusBlock';
 import {
   isThought,
@@ -259,19 +262,6 @@ function getRunningCopy(projection: InvestigationOrchestration): SeerStatusBlock
         statusLabel: t('Running…'),
       };
   }
-}
-
-export function isWritingMetadata(projection: InvestigationOrchestration) {
-  return projection.status === 'processing' && projection.phase === 'metadata';
-}
-
-export function isOnlyNextStepPending(projection: InvestigationOrchestration) {
-  const {metadata, status} = projection.report;
-  return (
-    isWritingMetadata(projection) &&
-    status === 'completed' &&
-    (metadata.status === 'completed' || metadata.status === 'failed')
-  );
 }
 
 function getCompleteContent(
