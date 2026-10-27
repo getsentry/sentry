@@ -65,6 +65,7 @@ import {useChatSuggestions} from 'sentry/views/seerExplorer/hooks/useChatSuggest
 import {useCopySessionDataToClipboard} from 'sentry/views/seerExplorer/hooks/useCopySessionDataToClipboard';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
+import {useStartInvestigation} from 'sentry/views/seerExplorer/hooks/useStartInvestigation';
 import {
   useSeerExplorerChatDispatch,
   useSeerExplorerChatState,
@@ -519,6 +520,8 @@ export function SeerExplorerContent({
     }
   }, [openFeedbackForm, runId]);
 
+  const startInvestigation = useStartInvestigation();
+
   // - Pop-up menu component --------------------------------------------------
 
   // Extract repo_pr_states from session
@@ -536,6 +539,7 @@ export function SeerExplorerContent({
     panelSize: 'max',
     slashCommandHandlers: {
       onNew: startNewSession,
+      onInvestigate: startInvestigation,
       onFeedback: openFeedbackForm ? handleFeedback : undefined,
       onConversations: conversationsUrl ? handleOpenConversations : undefined,
       onBashMode: organization?.features.includes('seer-explorer-allow-bash-mode')
@@ -559,10 +563,26 @@ export function SeerExplorerContent({
     if (!canSendMessage) {
       return;
     }
-    sendMessage(inputValue.text.trim(), blocks.length);
+    const text = inputValue.text.trim();
+    // The slash command menu only handles a bare `/investigate`, so one
+    // followed by a question lands here.
+    const investigateMatch = /^\/investigate(?:\s+(.*))?$/s.exec(text);
+    if (startInvestigation && investigateMatch) {
+      startInvestigation(investigateMatch[1]);
+      clearInput();
+      return;
+    }
+    sendMessage(text, blocks.length);
     clearInput();
     userScrolledUpRef.current = false;
-  }, [canSendMessage, inputValue, sendMessage, blocks.length, clearInput]);
+  }, [
+    canSendMessage,
+    inputValue,
+    startInvestigation,
+    sendMessage,
+    blocks.length,
+    clearInput,
+  ]);
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.defaultPrevented || e.nativeEvent.isComposing) {

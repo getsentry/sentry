@@ -194,6 +194,14 @@ export type MetricOpenPeriodInvestigationSource = {
   type: 'metric_open_period';
 };
 
+export type ManualInvestigationSource = {
+  type: 'manual';
+  /** Without a non-blank prompt, the run waits for input. */
+  prompt?: string;
+  /** Context forwarded to the investigation agent as evidence. */
+  seed?: Record<string, unknown>;
+};
+
 export type InvestigationCandidate =
   | {status: 'investigate'}
   | {status: 'unavailable'}

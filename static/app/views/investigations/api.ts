@@ -26,6 +26,7 @@ import type {
   InvestigationOrchestrationCommandVariables,
   InvestigationTitleGeneration,
   InvestigationViewer,
+  ManualInvestigationSource,
   MetricOpenPeriodInvestigationSource,
 } from 'sentry/views/investigations/types';
 
@@ -487,6 +488,31 @@ export function useLaunchInvestigationMutation(
       }),
     options,
     {invalidateCandidates: true}
+  );
+}
+
+type StartManualInvestigationVariables = {
+  projectIds: number[];
+  source: ManualInvestigationSource;
+};
+
+export function useStartManualInvestigationMutation(
+  organizationSlug: string,
+  options?: MutationOptions<InvestigationDetail, StartManualInvestigationVariables>
+) {
+  return useInvestigationMutation(
+    organizationSlug,
+    ({source, projectIds}) =>
+      fetchMutation<InvestigationDetail>({
+        url: getApiUrl('/organizations/$organizationIdOrSlug/investigations/', {
+          path: {organizationIdOrSlug: organizationSlug},
+        }),
+        method: 'POST',
+        // A manual run can only read the investigation's own projects, so
+        // without any it has nothing to query.
+        data: {source, projectIds},
+      }),
+    options
   );
 }
 

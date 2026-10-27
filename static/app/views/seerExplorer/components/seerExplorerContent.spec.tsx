@@ -1,5 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
@@ -13,11 +15,15 @@ import {
 
 import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ConfigStore} from 'sentry/stores/configStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {
   INPUT_STORAGE_KEY_PREFIX,
   SeerExplorerContent,
 } from 'sentry/views/seerExplorer/components/seerExplorerContent';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import * as useSeerExplorerModule from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
@@ -1747,6 +1753,146 @@ describe('SeerExplorerContent', () => {
       await screen.findByTestId('seer-explorer-input');
       expect(screen.queryByText(upgradeNudgeText)).not.toBeInTheDocument();
       expect(screen.queryByRole('button', {name: 'Update Now'})).not.toBeInTheDocument();
+    });
+  });
+
+  describe('/investigate command', () => {
+    const investigationsOrganization = OrganizationFixture({
+      openMembership: true,
+      features: ['seer-explorer', 'investigations'],
+      hideAiFeatures: false,
+    });
+
+    const IssueDetailContext = registerLLMContext('issue-detail', () => {
+      useLLMContext({title: 'TypeError in checkout'});
+      return null;
+    });
+
+    function renderContent(org = investigationsOrganization) {
+      return render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <IssueDetailContext />
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {organization: org}
+      );
+    }
+
+    beforeEach(() => {
+      HTMLElement.prototype.scrollIntoView = jest.fn();
+      ProjectsStore.loadInitialData([
+        ProjectFixture({id: '1', slug: 'member', isMember: true}),
+        ProjectFixture({id: '2', slug: 'other', isMember: false}),
+      ]);
+      // An empty selection is My Projects.
+      PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: []}));
+    });
+
+    it('starts an investigation from the page context and opens it', async () => {
+      const sendMessage = jest.fn();
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({...defaultHookReturn, sendMessage});
+      const createMock = MockApiClient.addMockResponse({
+        url: `/organizations/${investigationsOrganization.slug}/investigations/`,
+        method: 'POST',
+        body: {id: '4567'},
+      });
+
+      const {router} = renderContent();
+
+      await userEvent.type(await getSeerExplorerInput(), '/inv');
+      await screen.findByText(/Start an investigation of this page/);
+      await userEvent.keyboard('{Enter}');
+
+      await waitFor(() =>
+        expect(router.location.pathname).toBe(
+          `/organizations/${investigationsOrganization.slug}/seer/investigations/4567/`
+        )
+      );
+      expect(createMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {
+            source: {
+              type: 'manual',
+              prompt: 'Investigate what I am looking at on this page.',
+              seed: {
+                pageContext: expect.objectContaining({
+                  nodes: [
+                    expect.objectContaining({
+                      nodeType: 'issue-detail',
+                      data: {title: 'TypeError in checkout'},
+                    }),
+                  ],
+                }),
+              },
+            },
+            projectIds: [1],
+          },
+        })
+      );
+      expect(sendMessage).not.toHaveBeenCalled();
+    });
+
+    it('uses a question typed after the command as the prompt', async () => {
+      const sendMessage = jest.fn();
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({...defaultHookReturn, sendMessage});
+      PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [2]}));
+      const createMock = MockApiClient.addMockResponse({
+        url: `/organizations/${investigationsOrganization.slug}/investigations/`,
+        method: 'POST',
+        body: {id: '4567'},
+      });
+
+      renderContent();
+
+      await userEvent.type(
+        await getSeerExplorerInput(),
+        '/investigate why did checkout slow down?{Enter}'
+      );
+
+      await waitFor(() =>
+        expect(createMock).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            data: expect.objectContaining({
+              source: expect.objectContaining({
+                type: 'manual',
+                prompt: 'why did checkout slow down?',
+              }),
+              projectIds: [2],
+            }),
+          })
+        )
+      );
+      expect(sendMessage).not.toHaveBeenCalled();
+      expect(await getSeerExplorerInput()).toBeEmptyDOMElement();
+    });
+
+    it('is not offered without investigations', async () => {
+      const sendMessage = jest.fn();
+      jest
+        .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+        .mockReturnValue({...defaultHookReturn, sendMessage});
+
+      renderContent(organization);
+
+      await userEvent.type(await getSeerExplorerInput(), '/');
+      await screen.findByText('Start a new session');
+      expect(
+        screen.queryByText(/Start an investigation of this page/)
+      ).not.toBeInTheDocument();
+
+      await userEvent.keyboard('investigate why?{Enter}');
+      expect(sendMessage).toHaveBeenCalledWith('/investigate why?', 0);
     });
   });
 });

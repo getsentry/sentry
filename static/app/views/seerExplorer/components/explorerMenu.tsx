@@ -9,6 +9,7 @@ interface SlashCommandHandlers {
   onBashMode?: (value: boolean) => void;
   onCodeMode?: (value: 'off' | 'on' | 'only') => void;
   onConversations?: () => void;
+  onInvestigate?: () => void;
   onMaxSize?: () => void;
   onMedSize?: () => void;
 }
@@ -221,6 +222,7 @@ function useSlashCommands({
   onFeedback,
   onConversations,
   onCodeMode,
+  onInvestigate,
 }: SlashCommandHandlers): MenuItemProps[] {
   const isSentryEmployee = useIsSentryEmployee();
 
@@ -232,6 +234,17 @@ function useSlashCommands({
         description: 'Start a new session',
         handler: onNew,
       },
+      ...(onInvestigate
+        ? [
+            {
+              title: '/investigate',
+              key: '/investigate',
+              description:
+                'Start an investigation of this page. Add a question after the command to focus it',
+              handler: onInvestigate,
+            },
+          ]
+        : []),
       ...(onMaxSize
         ? [
             {
@@ -319,6 +332,7 @@ function useSlashCommands({
       onBashMode,
       onCodeMode,
       onConversations,
+      onInvestigate,
       isSentryEmployee,
     ]
   );
