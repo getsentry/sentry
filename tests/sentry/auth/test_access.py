@@ -528,6 +528,7 @@ class FromUserTest(AccessFactoryTestCase):
             assert not result.has_scope("project:read")
 
     @with_feature("organizations:granular-permission-scopes")
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
     def test_deprecated_token_scope_translated_to_granular_scopes(self) -> None:
         organization = self.create_organization()
         user = self.create_user()

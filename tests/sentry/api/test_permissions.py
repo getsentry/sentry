@@ -197,6 +197,7 @@ class DeprecatedScopeTranslationTest(DRFPermissionTestCase):
         token = AuthenticatedToken(kind="api_token", scopes=list(scopes), user_id=self.user.id)
         return self.make_request(user=self.user, auth=token, method="GET")
 
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
     @patch("sentry.auth.deprecated_scope_translation.metrics")
     def test_deprecated_scope_is_translated(self, mock_metrics) -> None:
         request = self._token_request(["org:read"])
@@ -206,12 +207,19 @@ class DeprecatedScopeTranslationTest(DRFPermissionTestCase):
             tags={"endpoint": "APIView", "deprecated_scope": "org:read"},
         )
 
+    @override_options({"auth.deprecated-scope-translation.enabled": False})
+    def test_deprecated_scope_not_translated_when_disabled(self) -> None:
+        request = self._token_request(["org:read"])
+        assert not self.permission.has_permission(request, APIView())
+
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
     @patch("sentry.auth.deprecated_scope_translation.metrics")
     def test_granular_scope_does_not_record_translation(self, mock_metrics) -> None:
         request = self._token_request(["dashboard:read"])
         assert self.permission.has_permission(request, APIView())
         mock_metrics.incr.assert_not_called()
 
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
     @patch("sentry.auth.deprecated_scope_translation.metrics")
     def test_translation_not_recorded_when_granular_scopes_already_held(self, mock_metrics) -> None:
         request = self._token_request(
