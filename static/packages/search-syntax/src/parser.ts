@@ -1,6 +1,9 @@
 /**
  * Structural parser for Sentry's search syntax.
  *
+ * This file is written by hand. Peggy only generates code from
+ * `grammar.pegjs`, at build time; that output is not checked in.
+ *
  * Runs `grammar.pegjs` and builds the same token tree as the Sentry
  * frontend's `parseSearch` (static/app/components/searchSyntax/parser.tsx):
  * the same token types, text, locations and filter classification. The shared

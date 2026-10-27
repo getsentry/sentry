@@ -1,6 +1,7 @@
 /**
- * A token represents a node in the syntax tree. These are all extrapolated
- * from the grammar and may not be named exactly the same.
+ * A token represents a node in the syntax tree. This file is written by hand,
+ * not generated: the names follow the rules in `grammar.pegjs` but may not
+ * match them exactly.
  */
 export enum Token {
   SPACES = 'spaces',
