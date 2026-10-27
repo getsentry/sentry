@@ -526,6 +526,12 @@ class TestTriggerAutofixFeature(TestCase):
         mock_client_cls.return_value.continue_feature_run.assert_called_once()
         mock_client_cls.return_value.start_feature_run.assert_not_called()
 
+    def test_single_run_records_last_triggered(self) -> None:
+        self._start_single_run(None)
+
+        self.group.refresh_from_db()
+        assert self.group.seer_explorer_autofix_last_triggered is not None
+
     def test_single_run_stops_at_root_cause_when_coding_disabled(self) -> None:
         self.organization.update_option("sentry:enable_seer_coding", False)
 

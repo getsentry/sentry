@@ -1290,6 +1290,18 @@ class TestIsGroupEligibleForAutomation(APITestCase, SnubaTestCase):
 
         mock_fixability.assert_not_called()
 
+    @patch("sentry.seer.autofix.issue_summary.get_and_update_group_fixability_score")
+    def test_returns_false_when_live_single_run_exists(self, mock_fixability):
+        run = self.create_seer_run(
+            organization=self.organization,
+            mirror_status="live",
+            seer_run_state_id=1,
+        )
+        self.create_seer_agent_run(run, source="autofix_single_run", group=self.group)
+        assert is_group_eligible_for_automation(self.group) is False
+
+        mock_fixability.assert_not_called()
+
     @patch("sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited")
     @patch("sentry.quotas.backend.check_seer_quota")
     @patch("sentry.seer.autofix.issue_summary.get_and_update_group_fixability_score")

@@ -6,6 +6,7 @@ from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q, QuerySet
+from django.utils import timezone
 
 from sentry import features, quotas
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT, DataCategory
@@ -279,6 +280,7 @@ def _start_single_run(group: Group, args: AutofixFeatureArgs, skip_quota: bool) 
         flush=args.flush,
         extras=extras,
     )
+    group.update(seer_explorer_autofix_last_triggered=timezone.now())
     if not skip_quota:
         quotas.backend.record_seer_run(
             group.organization.id, group.project.id, DataCategory.SEER_AUTOFIX
