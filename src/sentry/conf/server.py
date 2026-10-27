@@ -3592,7 +3592,7 @@ MARKETO_FORM_ID = os.getenv("MARKETO_FORM_ID")
 # Prod flag values written by bin/sync-prod-flags, run by devenv sync.
 if IS_DEV:
     _prod_flags = os.path.join(
-        os.environ.get("SENTRY_CONF", os.path.expanduser("~/.sentry")), "prod-flags.json"
+        os.path.expanduser(os.environ.get("SENTRY_CONF", "~/.sentry")), "prod-flags.json"
     )
     if os.path.exists(_prod_flags):
         with open(_prod_flags, "rb") as f:
