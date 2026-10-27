@@ -513,6 +513,10 @@ describe('Investigation detail', () => {
         await screen.findByText(/Seer is checking the suggestion again…/)
       ).toBeInTheDocument();
       await acknowledgeRecheck();
+      expect(screen.getByText(/Seer is updating its suggestion…/)).toBeInTheDocument();
+      expect(
+        screen.queryByText(/Ask Seer about this investigation/)
+      ).not.toBeInTheDocument();
 
       const notLive = MockApiClient.addMockResponse({
         url: orchestrationUrl,
@@ -542,6 +546,9 @@ describe('Investigation detail', () => {
       await acknowledgeRecheck();
 
       await act(() => jest.advanceTimersByTimeAsync(60_000));
+      expect(
+        await screen.findByText(/Ask Seer about this investigation/)
+      ).toBeInTheDocument();
       const later = MockApiClient.addMockResponse({
         url: orchestrationUrl,
         body: completedRun,

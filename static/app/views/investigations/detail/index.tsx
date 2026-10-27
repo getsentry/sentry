@@ -721,6 +721,7 @@ function InvestigationPageContentInner({
                 orchestrationLoading={
                   Boolean(investigation.orchestration) && orchestrationPending
                 }
+                waitingOnRun={recheckRunWait.waiting}
               />
 
               {showDetailsHeading ? <Separator orientation="horizontal" /> : null}
