@@ -480,6 +480,70 @@ describe('Investigation detail', () => {
         await screen.findByText(/Seer is updating its suggestion…/)
       ).toBeInTheDocument();
     });
+
+    it('reads the run until it shows up after Seer picks up the re-check', async () => {
+      MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: investigationWith('acknowledged'),
+      });
+      const notLive = MockApiClient.addMockResponse({
+        url: orchestrationUrl,
+        body: InvestigationOrchestrationFixture({
+          phase: 'completed',
+          status: 'completed',
+        }),
+      });
+      renderView();
+      expect(
+        await screen.findByText(/Ask Seer about this investigation/)
+      ).toBeInTheDocument();
+
+      await act(() => jest.advanceTimersByTimeAsync(4000));
+      expect(notLive).toHaveBeenCalledTimes(3);
+
+      const processing = MockApiClient.addMockResponse({
+        url: orchestrationUrl,
+        body: InvestigationOrchestrationFixture({
+          phase: 'metadata',
+          status: 'processing',
+        }),
+      });
+      await act(() => jest.advanceTimersByTimeAsync(2000));
+
+      expect(processing).toHaveBeenCalled();
+      expect(
+        await screen.findByText(/Seer is updating its suggestion…/)
+      ).toBeInTheDocument();
+    });
+
+    it('stops reading the run if the re-check never shows up', async () => {
+      MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: investigationWith('acknowledged'),
+      });
+      MockApiClient.addMockResponse({
+        url: orchestrationUrl,
+        body: InvestigationOrchestrationFixture({
+          phase: 'completed',
+          status: 'completed',
+        }),
+      });
+      renderView();
+      expect(
+        await screen.findByText(/Ask Seer about this investigation/)
+      ).toBeInTheDocument();
+
+      await act(() => jest.advanceTimersByTimeAsync(60_000));
+      const later = MockApiClient.addMockResponse({
+        url: orchestrationUrl,
+        body: InvestigationOrchestrationFixture({
+          phase: 'completed',
+          status: 'completed',
+        }),
+      });
+      await act(() => jest.advanceTimersByTimeAsync(10_000));
+      expect(later).not.toHaveBeenCalled();
+    });
   });
 
   it('waits for the re-check after a stale suggestion is rechecked', async () => {

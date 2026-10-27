@@ -190,6 +190,37 @@ function useRefetchStaleActionRequests(
   return detailUpdates === refresh.detailUpdates;
 }
 
+const RECHECK_RUN_WAIT_MS = 60_000;
+
+/**
+ * Seer can acknowledge a re-check before the investigation shows its run, and then
+ * nothing would read the run again. Keep reading it until it goes live, for up to a minute.
+ */
+function useRecheckRunWait(actionRequests: InvestigationActionRequest[] | undefined) {
+  const requestId =
+    actionRequests?.find(request => request.followUp?.status === 'acknowledged')?.id ??
+    null;
+  const [doneFor, setDoneFor] = useState<string | null>(null);
+  if (requestId === null && doneFor !== null) {
+    setDoneFor(null);
+  }
+  useEffect(() => {
+    if (requestId === null) {
+      return;
+    }
+    const timer = setTimeout(() => setDoneFor(requestId), RECHECK_RUN_WAIT_MS);
+    return () => clearTimeout(timer);
+  }, [requestId]);
+  return {
+    waiting: requestId !== null && doneFor !== requestId,
+    stop: () => setDoneFor(requestId),
+  };
+}
+
+function isRunLive(orchestration: InvestigationOrchestration | undefined) {
+  return orchestration !== undefined && shouldPollInvestigationRun(orchestration.status);
+}
+
 export function InvestigationBootstrapPage({investigationId}: {investigationId: string}) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
@@ -303,15 +334,21 @@ function InvestigationPageContentInner({
       ? titleGenerationQuery.data?.preview
       : null;
   const displayedTitle = draftTitle ?? generatedTitlePreview ?? investigation.title;
+  const recheckRunWait = useRecheckRunWait(investigation.actionRequests);
   const {data: orchestration, isPending: orchestrationPending} = useQuery({
     ...investigationOrchestrationQueryOptions(organization.slug, investigation.id),
     enabled: Boolean(investigation.orchestration),
-    refetchInterval:
-      investigation.orchestration &&
-      shouldPollInvestigationRun(investigation.orchestration.status)
+    refetchInterval: query =>
+      (investigation.orchestration &&
+        shouldPollInvestigationRun(investigation.orchestration.status)) ||
+      isRunLive(query.state.data?.json) ||
+      recheckRunWait.waiting
         ? 2000
         : false,
   });
+  if (recheckRunWait.waiting && isRunLive(orchestration)) {
+    recheckRunWait.stop();
+  }
   const actionRequestsStale = useRefetchStaleActionRequests(
     investigation.id,
     orchestration,
