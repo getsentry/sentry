@@ -4,13 +4,14 @@ import {IconFilter} from '@sentry/icons/filter';
 import {IconGroup} from '@sentry/icons/group';
 import {IconIssues} from '@sentry/icons/issues';
 import {IconSort} from '@sentry/icons/sort';
+import {useQueryClient} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {useModal} from '@sentry/scraps/modal';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {fetchFeatureFlagValues, fetchTagValues} from 'sentry/actionCreators/tags';
+import {fetchFeatureFlagValues} from 'sentry/actionCreators/tags';
 import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
 import {
   CMDKAction,
@@ -36,8 +37,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
-import {Dataset} from 'sentry/views/alerts/rules/metric/types';
-import {mergeAndSortTagValues} from 'sentry/views/issueDetails/utils';
+import {fetchIssueTagValues} from 'sentry/views/issueDetails/utils';
 import {IssueListMarkAllCommandPaletteAction} from 'sentry/views/issueList/issueListBulkCommandPaletteActions';
 import {createIssueViewFromUrl} from 'sentry/views/issueList/issueViews/createIssueViewFromUrl';
 import {CreateIssueViewModal} from 'sentry/views/issueList/issueViews/createIssueViewModal';
@@ -96,6 +96,7 @@ function FilterActions({
   onQueryChange,
 }: Pick<IssueListCommandPaletteActionsProps, 'query' | 'onQueryChange'>) {
   const api = useApi();
+  const queryClient = useQueryClient();
   const organization = useOrganization();
   const user = useUser();
   const {selection: pageFilters} = usePageFilters();
@@ -135,7 +136,6 @@ function FilterActions({
     const tagKey = key === FieldKey.FIRST_RELEASE ? 'release' : key;
 
     const fetchParams = {
-      api,
       orgSlug: organization.slug,
       tagKey,
       search: '',
@@ -145,16 +145,11 @@ function FilterActions({
     };
 
     if (filterKeys[key]?.kind === FieldKind.FEATURE_FLAG) {
-      const values = await fetchFeatureFlagValues({...fetchParams, organization});
+      const values = await fetchFeatureFlagValues({...fetchParams, api, organization});
       return values.map(v => v.value).filter(defined);
     }
 
-    const [errorsValues, platformValues] = await Promise.all([
-      fetchTagValues({...fetchParams, dataset: Dataset.ERRORS}),
-      fetchTagValues({...fetchParams, dataset: Dataset.ISSUE_PLATFORM}),
-    ]);
-
-    const values = mergeAndSortTagValues(errorsValues, platformValues, 'count')
+    const values = (await fetchIssueTagValues(queryClient, fetchParams, 'count'))
       .map(v => v.value)
       .filter(defined);
 

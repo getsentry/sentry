@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import {useQuery} from '@tanstack/react-query';
+import {useQuery, type QueryClient} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
 
 import {
@@ -7,6 +7,10 @@ import {
   fetchIssueTagApiOptions,
   issueTagValuesApiOptions,
 } from 'sentry/actionCreators/group';
+import {
+  organizationTagValuesApiOptions,
+  type OrganizationTagValuesParameters,
+} from 'sentry/actionCreators/tags';
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -18,6 +22,7 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {useGroupData} from 'sentry/views/issueDetails/groupDataContext';
 import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
 import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
@@ -51,7 +56,7 @@ export function useDefaultIssueEvent() {
 /**
  * Combines two TagValue arrays and combines TagValue.count upon conflict
  */
-export function mergeAndSortTagValues(
+function mergeAndSortTagValues(
   tagValues1: TagValue[],
   tagValues2: TagValue[],
   sort: 'count' | 'lastSeen' = 'lastSeen'
@@ -69,7 +74,9 @@ export function mergeAndSortTagValues(
         existing.lastSeen = tagValue.lastSeen;
       }
     } else {
-      tagValueCollection.set(key, tagValue);
+      // Copied because the counts get summed in place, and these come from the
+      // query cache.
+      tagValueCollection.set(key, {...tagValue});
     }
   }
   const allTagValues = [...tagValueCollection.values()];
@@ -79,6 +86,26 @@ export function mergeAndSortTagValues(
     allTagValues.sort((a, b) => (b.lastSeen < a.lastSeen ? -1 : 1));
   }
   return allTagValues;
+}
+
+/**
+ * Fetches a tag's values from the errors and issue platform datasets and
+ * merges them into one list.
+ */
+export async function fetchIssueTagValues(
+  queryClient: QueryClient,
+  params: Omit<OrganizationTagValuesParameters, 'dataset'>,
+  sort?: 'count' | 'lastSeen'
+): Promise<TagValue[]> {
+  const [errorsValues, issuePlatformValues] = await Promise.all([
+    queryClient.fetchQuery(
+      organizationTagValuesApiOptions({...params, dataset: Dataset.ERRORS})
+    ),
+    queryClient.fetchQuery(
+      organizationTagValuesApiOptions({...params, dataset: Dataset.ISSUE_PLATFORM})
+    ),
+  ]);
+  return mergeAndSortTagValues(errorsValues.json, issuePlatformValues.json, sort);
 }
 
 /**
