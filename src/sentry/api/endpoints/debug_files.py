@@ -64,6 +64,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.models.release import Release, get_artifact_counts
 from sentry.models.releasefile import ReleaseFile
+from sentry.options.rollout import in_random_rollout
 from sentry.roles import organization_roles
 from sentry.tasks.assemble import (
     AssembleTask,
@@ -263,11 +264,18 @@ def code_id_queries(code_id: str) -> list[Q]:
     Clauses (2) and (3) are only relevant for WASM files. No non-WASM file has a
     `wasm_legacy_code_id`, and the "legacy" code ID is extremely unlikely to be a match for
     any file that never suffered from the WASM build ID bug.
-    """
-    qs = [Q(code_id__exact=code_id), Q(wasm_legacy_code_id__exact=code_id)]
 
-    if legacy_id := wasm_legacy_code_id(code_id):
-        qs.append(Q(code_id__exact=legacy_id))
+    The behavior is (randomly) gated behind the "debug-files.query-legacy-ids.rollout-rate" option.
+    If it's turned off, only the first query is returned.
+    """
+
+    qs = [Q(code_id__exact=code_id)]
+
+    if in_random_rollout("debug-files.query-legacy-ids.rollout-rate"):
+        qs.append(Q(wasm_legacy_code_id__exact=code_id))
+
+        if legacy_id := wasm_legacy_code_id(code_id):
+            qs.append(Q(code_id__exact=legacy_id))
 
     return qs
 
@@ -287,11 +295,18 @@ def debug_id_queries(debug_id: str) -> list[Q]:
     Clauses (2) and (3) are only relevant for WASM files. No non-WASM file has a
     `wasm_legacy_debug_id`, and the "legacy" debug ID is extremely unlikely to be a match for
     any file that never suffered from the WASM build ID bug.
-    """
-    qs = [Q(debug_id__exact=debug_id), Q(wasm_legacy_debug_id__exact=debug_id)]
 
-    if legacy_id := wasm_legacy_debug_id(debug_id):
-        qs.append(Q(debug_id__exact=legacy_id))
+    The behavior is (randomly) gated behind the "debug-files.query-legacy-ids.rollout-rate" option.
+    If it's turned off, only the first query is returned.
+    """
+
+    qs = [Q(debug_id__exact=debug_id)]
+
+    if in_random_rollout("debug-files.query-legacy-ids.rollout-rate"):
+        qs.append(Q(wasm_legacy_debug_id__exact=debug_id))
+
+        if legacy_id := wasm_legacy_debug_id(debug_id):
+            qs.append(Q(debug_id__exact=legacy_id))
 
     return qs
 
