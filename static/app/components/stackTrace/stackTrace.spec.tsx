@@ -1,4 +1,5 @@
 import {useMemo, type ComponentProps} from 'react';
+import {useQuery} from '@tanstack/react-query';
 import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
 import {EventFixture} from 'sentry-fixture/event';
 import {EventEntryStacktraceFixture} from 'sentry-fixture/eventEntryStacktrace';
@@ -17,9 +18,14 @@ import {StackTraceFrames} from 'sentry/components/stackTrace/stackTraceFrames';
 import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
 import type {StackTraceViewStateProviderProps} from 'sentry/components/stackTrace/types';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {SentryAppComponentsStore} from 'sentry/stores/sentryAppComponentsStore';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
+import {sentryAppComponentsApiOptions} from 'sentry/utils/useSentryAppComponents';
+
+function FetchSentryAppComponents({projectId}: {projectId: string}) {
+  useQuery(sentryAppComponentsApiOptions({orgSlug: 'org-slug', projectId}));
+  return null;
+}
 
 type StacktraceWithFrames = StacktraceType & {
   frames: NonNullable<StacktraceType['frames']>;
@@ -550,26 +556,30 @@ describe('Core StackTrace', () => {
 
   it('renders sentry app frame links with line context', async () => {
     const {event, stacktrace} = makeStackTraceData();
-    SentryAppComponentsStore.loadComponents([
-      {
-        uuid: 'stacktrace-component',
-        type: 'stacktrace-link',
-        schema: {
-          uri: '/frame-link',
-          url: 'https://example.com/frame-link?projectSlug=sentry',
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sentry-app-components/',
+      body: [
+        {
+          uuid: 'stacktrace-component',
           type: 'stacktrace-link',
+          schema: {
+            uri: '/frame-link',
+            url: 'https://example.com/frame-link?projectSlug=sentry',
+            type: 'stacktrace-link',
+          },
+          sentryApp: {
+            uuid: 'sentry-app-1',
+            slug: 'source-lens',
+            name: 'Source Lens',
+            avatars: [],
+          },
         },
-        sentryApp: {
-          uuid: 'sentry-app-1',
-          slug: 'source-lens',
-          name: 'Source Lens',
-          avatars: [],
-        },
-      },
-    ]);
+      ],
+    });
 
     render(
       <TestStackTraceProvider event={event} stacktrace={stacktrace}>
+        <FetchSentryAppComponents projectId={event.projectID} />
         <DisplayOptions />
         <StackTraceFrames
           frameContextComponent={FrameContent}

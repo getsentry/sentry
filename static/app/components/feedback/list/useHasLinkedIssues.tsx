@@ -1,11 +1,12 @@
+import {useQuery} from '@tanstack/react-query';
+
+import {sentryAppInstallationsApiOptions} from 'sentry/actionCreators/sentryAppInstallations';
 import type {ExternalIssueComponent} from 'sentry/components/group/externalIssuesList/types';
 import {useIssueTrackingFilter} from 'sentry/components/group/externalIssuesList/useIssueTrackingFilter';
-import {SentryAppInstallationStore} from 'sentry/stores/sentryAppInstallationsStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useSentryAppComponentsStore} from 'sentry/utils/useSentryAppComponentsStore';
+import {useSentryAppComponents} from 'sentry/utils/useSentryAppComponents';
 
 type Props = {
   event: Event;
@@ -15,8 +16,13 @@ type Props = {
 export function useHasLinkedIssues({group, event}: Props) {
   const organization = useOrganization();
   const issueTrackingFilter = useIssueTrackingFilter();
-  const components = useSentryAppComponentsStore({componentType: 'issue-link'});
-  const sentryAppInstallations = useLegacyStore(SentryAppInstallationStore);
+  const components = useSentryAppComponents({
+    projectId: group.project.id,
+    componentType: 'issue-link',
+  });
+  const {data: sentryAppInstallations = []} = useQuery(
+    sentryAppInstallationsApiOptions({orgSlug: organization.slug})
+  );
 
   const renderSentryAppIssues = (): ExternalIssueComponent[] => {
     return components

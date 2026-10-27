@@ -40,7 +40,7 @@ import type {SentryAppSchemaStacktraceLink} from 'sentry/types/integrations';
 import type {PlatformKey} from 'sentry/types/platform';
 import {StackView, type StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils/defined';
-import {useSentryAppComponentsStore} from 'sentry/utils/useSentryAppComponentsStore';
+import {useSentryAppComponents} from 'sentry/utils/useSentryAppComponents';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/context';
 import {getFoldSectionKey} from 'sentry/views/issueDetails/foldSection';
@@ -97,7 +97,9 @@ export function NativeFrame({
   emptySourceNotation,
   isHoverPreviewed = false,
 }: Props) {
-  const components = useSentryAppComponentsStore<SentryAppSchemaStacktraceLink>({
+  const components = useSentryAppComponents<SentryAppSchemaStacktraceLink>({
+    projectId: event.projectID,
+    enabled: false,
     componentType: 'stacktrace-link',
   });
   const isDartAsyncSuspensionFrame =

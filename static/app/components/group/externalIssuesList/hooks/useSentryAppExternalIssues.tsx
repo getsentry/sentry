@@ -1,17 +1,18 @@
+import {useQuery} from '@tanstack/react-query';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {deleteExternalIssue} from 'sentry/actionCreators/platformExternalIssues';
+import {sentryAppInstallationsApiOptions} from 'sentry/actionCreators/sentryAppInstallations';
 import type {GroupIntegrationIssueResult} from 'sentry/components/group/externalIssuesList/hooks/types';
 import {useExternalIssues} from 'sentry/components/group/externalIssuesList/useExternalIssues';
 import {openSentryAppIssueModal} from 'sentry/components/group/sentryAppExternalIssueModal';
 import {SentryAppComponentIcon} from 'sentry/components/sentryAppComponentIcon';
 import {t} from 'sentry/locale';
-import {SentryAppInstallationStore} from 'sentry/stores/sentryAppInstallationsStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useSentryAppComponentsStore} from 'sentry/utils/useSentryAppComponentsStore';
+import {useSentryAppComponents} from 'sentry/utils/useSentryAppComponents';
 
 export function useSentryAppExternalIssues({
   group,
@@ -30,8 +31,13 @@ export function useSentryAppExternalIssues({
     group,
     organization,
   });
-  const sentryAppComponents = useSentryAppComponentsStore({componentType: 'issue-link'});
-  const sentryAppInstallations = useLegacyStore(SentryAppInstallationStore);
+  const sentryAppComponents = useSentryAppComponents({
+    projectId: group.project.id,
+    componentType: 'issue-link',
+  });
+  const {data: sentryAppInstallations = []} = useQuery(
+    sentryAppInstallationsApiOptions({orgSlug: organization.slug})
+  );
 
   const result: GroupIntegrationIssueResult = {
     integrations: [],

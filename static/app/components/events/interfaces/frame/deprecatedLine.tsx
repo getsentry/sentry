@@ -28,7 +28,7 @@ import type {PlatformKey} from 'sentry/types/platform';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useSentryAppComponentsStore} from 'sentry/utils/useSentryAppComponentsStore';
+import {useSentryAppComponents} from 'sentry/utils/useSentryAppComponents';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 
 import {Context} from './context';
@@ -105,7 +105,9 @@ export function DeprecatedLine({
   onShowFramesToggle,
   registersMeta,
 }: DeprecatedLineProps) {
-  const components = useSentryAppComponentsStore<SentryAppSchemaStacktraceLink>({
+  const components = useSentryAppComponents<SentryAppSchemaStacktraceLink>({
+    projectId: event.projectID,
+    enabled: false,
     componentType: 'stacktrace-link',
   });
   const {openModal} = useModal();

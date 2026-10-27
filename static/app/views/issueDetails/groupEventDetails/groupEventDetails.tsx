@@ -1,10 +1,10 @@
 import {useEffect, useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {withMeta} from 'sentry/components/events/meta/metaProxy';
 import {LoadingError} from 'sentry/components/loadingError';
-import {useSentryAppComponentsData} from 'sentry/stores/useSentryAppComponentsData';
 import type {GroupActivityReprocess, GroupReprocessing} from 'sentry/types/group';
 import {IssueType} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
@@ -19,6 +19,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import {useProjectFromSlug} from 'sentry/utils/useProjectFromSlug';
+import {sentryAppComponentsApiOptions} from 'sentry/utils/useSentryAppComponents';
 import {SourceMapIssueDetails} from 'sentry/views/issueDetails/configurationIssues/sourceMapIssues/sourceMapIssueDetails';
 import {EventDetails} from 'sentry/views/issueDetails/eventDetails';
 import {GroupEventDetailsLoading} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsLoading';
@@ -70,8 +71,10 @@ function GroupEventDetails() {
     },
     [event]
   );
-  // load the data
-  useSentryAppComponentsData({projectId: project?.id});
+  // Stack trace frames only read sentry app components from the cache
+  useQuery(
+    sentryAppComponentsApiOptions({orgSlug: organization.slug, projectId: project?.id})
+  );
 
   // If environments are being actively changed and will no longer contain the
   // current event's environment, redirect to latest

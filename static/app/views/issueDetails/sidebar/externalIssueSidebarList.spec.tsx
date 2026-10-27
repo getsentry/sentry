@@ -16,8 +16,6 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {SentryAppComponentsStore} from 'sentry/stores/sentryAppComponentsStore';
-import {SentryAppInstallationStore} from 'sentry/stores/sentryAppInstallationsStore';
 import type {GroupIntegration} from 'sentry/types/integrations';
 
 import {ExternalIssueSidebarList} from './externalIssueSidebarList';
@@ -36,7 +34,14 @@ describe('ExternalIssueSidebarList', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    SentryAppComponentsStore.init();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sentry-app-components/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sentry-app-installations/`,
+      body: [],
+    });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/integrations/`,
       body: [],
@@ -138,12 +143,18 @@ describe('ExternalIssueSidebarList', () => {
         name: 'Clickup',
       },
     });
-    SentryAppComponentsStore.loadComponents([component]);
-    SentryAppInstallationStore.load([
-      SentryAppInstallationFixture({
-        app: component.sentryApp,
-      }),
-    ]);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sentry-app-components/`,
+      body: [component],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sentry-app-installations/`,
+      body: [
+        SentryAppInstallationFixture({
+          app: component.sentryApp,
+        }),
+      ],
+    });
 
     render(<ExternalIssueSidebarList event={event} group={group} />);
 
@@ -207,12 +218,18 @@ describe('ExternalIssueSidebarList', () => {
         name: 'Asana',
       },
     });
-    SentryAppComponentsStore.loadComponents([asanaComponent]);
-    SentryAppInstallationStore.load([
-      SentryAppInstallationFixture({
-        app: asanaComponent.sentryApp,
-      }),
-    ]);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sentry-app-components/`,
+      body: [asanaComponent],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sentry-app-installations/`,
+      body: [
+        SentryAppInstallationFixture({
+          app: asanaComponent.sentryApp,
+        }),
+      ],
+    });
     mockExternalLinkRequests([
       GitHubIntegrationFixture({
         status: 'active',
