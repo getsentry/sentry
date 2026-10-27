@@ -526,6 +526,61 @@ def test_supabase_instrumentation_not_detected(
         assert mock_sdk_crash_reporter.report.call_count == 0
 
 
+@pytest.mark.parametrize(
+    ["function", "mechanism_type", "detected"],
+    [
+        # Real-world Hermes frame name for the PostgREST capture that the stack trace matcher
+        # misses. Regression for event a73b7559756f4382aaa0412515164c0f.
+        ("Proxy$argument_1.apply", "auto.db.supabase.postgres", False),
+        ("Reflect.apply.then$argument_0", "auto.db.supabase.postgres", False),
+        ("Proxy$argument_1.apply", "auto.db.supabase.auth", False),
+        # A genuine crash in the Supabase integration arrives with a different mechanism
+        # and must still be detected.
+        ("Proxy$argument_1.apply", "onerror", True),
+    ],
+)
+@decorators
+def test_supabase_mechanism_not_detected(
+    mock_sdk_crash_reporter,
+    mock_random,
+    store_event,
+    configs,
+    function: str,
+    mechanism_type: str,
+    detected: bool,
+) -> None:
+    event_data = get_crash_event(
+        exception={
+            "values": [
+                get_exception(
+                    frames=[
+                        {
+                            "function": function,
+                            "filename": "@sentry/core/build/esm/integrations/supabase.js",
+                            "abs_path": "@sentry/core/build/esm/integrations/supabase.js",
+                        },
+                    ],
+                    mechanism_type=mechanism_type,
+                ),
+            ]
+        }
+    )
+
+    event = store_event(data=event_data)
+
+    configs[1].organization_allowlist = [event.project.organization_id]
+
+    sdk_crash_detection.detect_sdk_crash(
+        event=event,
+        configs=configs,
+    )
+
+    if detected:
+        assert mock_sdk_crash_reporter.report.call_count == 1
+    else:
+        assert mock_sdk_crash_reporter.report.call_count == 0
+
+
 @decorators
 def test_sentry_wrapped_end_detected(
     mock_sdk_crash_reporter, mock_random, store_event, configs
