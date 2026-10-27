@@ -10,8 +10,10 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.deprecation import deprecated
-from sentry.api.serializers import serialize
-from sentry.api.serializers.models.activity import ActivitySerializerResponse, serialize_group_notes
+from sentry.api.serializers.models.activity import (
+    GroupNoteSerializerResponse,
+    serialize_group_notes,
+)
 from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
 from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.constants import RESPONSE_NO_CONTENT
@@ -91,21 +93,24 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
         if original_comment_log_action is None and serve_from_log:
             raise ResourceDoesNotExist
 
-        delete_comment(
-            note,
-            user=request.user,
-            source=resolve_action_source(request),
-            original_action_id=original_comment_log_action.id
-            if original_comment_log_action
-            else None,
-        )
+        try:
+            delete_comment(
+                note,
+                user=request.user,
+                source=resolve_action_source(request),
+                original_action_id=original_comment_log_action.id
+                if original_comment_log_action
+                else None,
+            )
+        except Activity.DoesNotExist:
+            raise ResourceDoesNotExist
 
         return Response(status=204)
 
     @extend_schema(
         request=NoteSerializer,
         responses={
-            200: inline_sentry_response_serializer("UpdateGroupNote", ActivitySerializerResponse)
+            200: inline_sentry_response_serializer("UpdateGroupNote", GroupNoteSerializerResponse)
         },
     )
     @deprecated(
@@ -153,20 +158,20 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
             if original_comment_log_action is None and serve_from_log:
                 raise ResourceDoesNotExist
 
-            note = update_comment(
-                note,
-                user=request.user,
-                data=dict(payload),
-                mentions=mentions,
-                source=resolve_action_source(request),
-                original_action_id=original_comment_log_action.id
-                if original_comment_log_action
-                else None,
-            )
+            try:
+                note = update_comment(
+                    note,
+                    user=request.user,
+                    data=dict(payload),
+                    mentions=mentions,
+                    source=resolve_action_source(request),
+                    original_action_id=original_comment_log_action.id
+                    if original_comment_log_action
+                    else None,
+                )
+            except Activity.DoesNotExist:
+                raise ResourceDoesNotExist
 
-            if serve_from_log and original_comment_log_action is not None:
-                return Response(serialize_group_notes(group, [note], request.user)[0], status=200)
-
-            return Response(serialize(note, request.user), status=200)
+            return Response(serialize_group_notes(group, [note], request.user)[0], status=200)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

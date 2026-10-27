@@ -212,3 +212,37 @@ class TestActionSerializer(TestWorkflowEngineSerializer):
             "desc": "Send a Slack notification to myChannel",
         }
         assert serialized == expected
+
+    def test_provider_description(self) -> None:
+        cases = [
+            (Action.Type.DISCORD, {}, "Send a Discord notification to test"),
+            (
+                Action.Type.PAGERDUTY,
+                {"priority": "critical"},
+                "Send a critical level PagerDuty notification to test",
+            ),
+            (Action.Type.PAGERDUTY, {}, "Send a PagerDuty notification to test"),
+            (
+                Action.Type.OPSGENIE,
+                {"priority": "P1"},
+                "Send a P1 level Opsgenie notification to test",
+            ),
+        ]
+        for action_type, data, expected_description in cases:
+            with self.subTest(action_type=action_type.value, data=data):
+                action = self.create_action(
+                    type=action_type,
+                    data=data,
+                    config={
+                        "target_type": ActionTarget.SPECIFIC,
+                        "target_identifier": "123",
+                        "target_display": "test",
+                    },
+                )
+                self.create_data_condition_group_action(
+                    action=action, condition_group=self.critical_action_group
+                )
+                serialized = serialize(action, self.user, WorkflowEngineActionSerializer())
+                assert serialized["type"] == action_type
+                assert serialized["priority"] == data.get("priority")
+                assert serialized["desc"] == expected_description

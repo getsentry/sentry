@@ -252,6 +252,35 @@ class GroupNoteTest(APITestCase):
         )
         assert self.client.get(previous_url, format="json").data == first_page.data
 
+    def test_normalizes_legacy_mcp_source_in_comments_and_activity(self) -> None:
+        self.login_as(user=self.user)
+        note = self.create_group_activity(
+            type=ActivityType.NOTE.value, user_id=self.user.id, data={"text": "hello world"}
+        )
+        entry = self.create_group_action_log_entry(
+            group=self.group,
+            type=GroupActionType.COMMENT,
+            data={"comment_id": note.id},
+            idempotency_key=activity_action_idempotency_key(note),
+            source="mcp:claude-desktop",
+        )
+
+        # Comment reads enrich from the log even when activity reads are disabled.
+        with self.feature({"projects:issue-action-log-activity": False}):
+            comments = self.client.get(f"/api/0/issues/{self.group.id}/comments/", format="json")
+        with action_log_activity_enabled():
+            activity = self.client.get(
+                f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/activities/",
+                format="json",
+            )
+
+        assert comments.status_code == activity.status_code == 200
+        assert comments.data[0]["source"] == "mcp:claude"
+        activity_note = next(item for item in activity.data["activity"] if item["type"] == "note")
+        assert activity_note == comments.data[0]
+        entry.refresh_from_db()
+        assert entry.source == "mcp:claude-desktop"
+
     def test_reads_activity_with_gale_source(self) -> None:
         group = self.group
         note = self.create_group_activity(
@@ -414,6 +443,32 @@ class GroupNoteTest(APITestCase):
 
 
 class GroupNoteCreateTest(APITestCase):
+    def test_outbox_failure_rolls_back_comment_and_subscription(self) -> None:
+        self.login_as(user=self.user)
+        group = self.group
+        initial_count = group.num_comments
+        with (
+            self.feature("projects:issue-action-log-write-to-db"),
+            patch("sentry.models.activity.in_test_environment", return_value=False),
+            patch(
+                "sentry.issues.models.groupactionlogoutbox.GroupActionLogOutbox.save",
+                side_effect=RuntimeError("enqueue failed"),
+            ),
+            patch("sentry.issues.comments._sync_comment") as sync,
+            patch("sentry.issues.comments.comment_created.send_robust") as webhook,
+            self.captureOnCommitCallbacks(execute=True),
+        ):
+            response = self.client.post(
+                f"/api/0/issues/{group.id}/comments/", data={"text": "rollback"}, format="json"
+            )
+            assert response.status_code == 500
+        assert not Activity.objects.filter(group=group, type=ActivityType.NOTE.value).exists()
+        assert not GroupSubscription.objects.filter(group=group, user_id=self.user.id).exists()
+        group.refresh_from_db()
+        assert group.num_comments == initial_count
+        sync.assert_not_called()
+        webhook.assert_not_called()
+
     def test_simple(self) -> None:
         group = self.group
 
@@ -429,6 +484,7 @@ class GroupNoteCreateTest(APITestCase):
 
         activity = Activity.objects.get(id=response.data["id"])
         assert response.data["commentId"] == str(activity.id)
+        assert response.data["source"] == "web"
         assert activity.user_id == self.user.id
         assert activity.group == group
         assert activity.data == {"text": "hello world"}
@@ -442,8 +498,18 @@ class GroupNoteCreateTest(APITestCase):
         assert response.status_code == 201, response.content
         assert response.data["commentId"] != str(activity.id)
 
-    @action_log_activity_enabled()
     def test_returns_activity_with_gale_source(self) -> None:
+        with action_log_activity_enabled():
+            self._assert_returns_activity_with_gale_source()
+
+    def test_returns_activity_with_gale_source_without_gal_serving(self) -> None:
+        with (
+            action_log_activity_enabled(),
+            self.feature({"projects:issue-action-log-activity": False}),
+        ):
+            self._assert_returns_activity_with_gale_source()
+
+    def _assert_returns_activity_with_gale_source(self) -> None:
         group = self.group
 
         self.login_as(user=self.user)
@@ -473,6 +539,22 @@ class GroupNoteCreateTest(APITestCase):
         assert response.data["user"]["id"] == str(self.user.id)
         assert response.data["data"]["text"] == "hello world"
         assert response.data["data"]["comment_id"] == activity.id
+
+    @with_feature({"projects:issue-action-log-write-to-db": False})
+    def test_returns_null_source_without_action_log_entry(self) -> None:
+        self.login_as(user=self.user)
+        response = self.client.post(
+            f"/api/0/issues/{self.group.id}/comments/",
+            data={"text": "hello world"},
+            format="json",
+            HTTP_USER_AGENT="sentry-mcp/1.0",
+            HTTP_X_SENTRY_MCP_CLIENT_FAMILY="claude-code",
+        )
+
+        assert response.status_code == 201, response.content
+        assert response.data["source"] is None
+        assert response.data["id"] == response.data["commentId"]
+        assert response.data["data"]["comment_id"] == int(response.data["commentId"])
 
     @action_log_activity_enabled()
     def test_returns_activity_for_body_free_creation(self) -> None:

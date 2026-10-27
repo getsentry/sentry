@@ -134,6 +134,13 @@ describe('Investigation detail', () => {
       body: {viewers: [], total: 0, heartbeatIntervalMs: 5000},
     });
     MockApiClient.addMockResponse({url: `${detailUrl}comments/`, body: []});
+    for (const id of ['312', '320']) {
+      MockApiClient.addMockResponse({
+        url: `${detailUrl}action-requests/${id}/apply/`,
+        method: 'POST',
+        body: {actionRequest: InvestigationActionRequestFixture({id})},
+      });
+    }
   });
 
   it('loads and renders the complete investigation response', async () => {

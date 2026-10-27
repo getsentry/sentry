@@ -10,9 +10,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.paginator import DateTimePaginator
-from sentry.api.serializers import serialize
 from sentry.api.serializers.models.activity import (
-    ActivitySerializerResponse,
     GroupNoteSerializerResponse,
     serialize_group_notes,
 )
@@ -74,7 +72,7 @@ class GroupNotesEndpoint(GroupEndpoint):
     @extend_schema(
         request=NoteSerializer,
         responses={
-            201: inline_sentry_response_serializer("CreateGroupNote", ActivitySerializerResponse)
+            201: inline_sentry_response_serializer("CreateGroupNote", GroupNoteSerializerResponse)
         },
     )
     @deprecated(
@@ -130,4 +128,4 @@ class GroupNotesEndpoint(GroupEndpoint):
             )
             logger.info("group_notes.groupactionlogentry.not_found", extra={"group_id": group.id})
 
-        return Response(serialize(activity, request.user), status=201)
+        return Response(serialize_group_notes(group, [activity], request.user)[0], status=201)

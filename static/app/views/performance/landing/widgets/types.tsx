@@ -17,7 +17,6 @@ enum VisualizationDataState {
 }
 
 export enum GenericPerformanceWidgetDataType {
-  HISTOGRAM = 'histogram',
   AREA = 'area',
   LINE_LIST = 'line_list',
   STACKED_AREA = 'stacked_area',

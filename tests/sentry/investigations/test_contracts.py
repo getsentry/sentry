@@ -34,7 +34,11 @@ from sentry.investigations.contracts import (
 )
 from sentry.investigations.models import Investigation, InvestigationActionRequest
 from sentry.investigations.services.action_kinds import ACTION_KINDS
-from sentry.investigations.services.action_kinds.base import ActionKind, CannotApplyReason
+from sentry.investigations.services.action_kinds.base import (
+    ActionKind,
+    ApplyContext,
+    CannotApplyReason,
+)
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import json
@@ -654,6 +658,12 @@ class RecordingKind(ActionKind):
         self.upserted: list[InvestigationActionRequest] = []
         # The arguments from each cannot_apply_reasons call.
         self.checked: list[tuple[list[int], list[int], Access, User | RpcUser | AnonymousUser]] = []
+        # Which of check and apply ran, in order.
+        self.calls: list[str] = []
+        # What check and apply raise, if anything.
+        self.raises: Exception | None = None
+        # A title for check to write on the request.
+        self.check_title: str | None = None
 
     def after_upsert(self, action_request: InvestigationActionRequest) -> None:
         self.upserted.append(action_request)
@@ -670,6 +680,21 @@ class RecordingKind(ActionKind):
             ([item.id for item in action_requests], sorted(investigations), access, user)
         )
         return {item.id: None for item in action_requests}
+
+    def check(self, context: ApplyContext) -> None:
+        self.calls.append("check")
+        if self.check_title is not None:
+            context.action_request.update(title=self.check_title)
+        if self.raises is not None:
+            raise self.raises
+
+    def apply(self, context: ApplyContext) -> dict[str, object]:
+        self.calls.append("apply")
+        if self.raises is not None:
+            raise self.raises
+        payload = context.action_request.action_payload
+        assert payload is not None
+        return {"target": payload["target"]}
 
 
 def fake_action(target: str = "a") -> dict[str, Any]:

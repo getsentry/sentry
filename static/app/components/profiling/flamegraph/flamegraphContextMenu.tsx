@@ -216,11 +216,11 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
               disabled={!sourceCodeLink.isSuccess || !sourceCodeLink.data?.sourceUrl}
               tooltip={
                 isSupportedPlatformForGitHubLink(props.profileGroup?.metadata?.platform)
-                  ? sourceCodeLink.isPending
+                  ? sourceCodeLink.isLoading
                     ? 'Resolving link'
-                    : sourceCodeLink.isSuccess &&
-                        (!sourceCodeLink.data.sourceUrl ||
-                          sourceCodeLink.data.config?.provider?.key !== 'github')
+                    : !sourceCodeLink.isSuccess ||
+                        !sourceCodeLink.data.sourceUrl ||
+                        sourceCodeLink.data.config?.provider?.key !== 'github'
                       ? t('Could not find source code location in GitHub')
                       : undefined
                   : t('Open in GitHub is not supported for this platform')
@@ -229,7 +229,7 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
                 onClick: onOpenInGithubClick,
               })}
               icon={
-                sourceCodeLink.isPending ? (
+                sourceCodeLink.isLoading ? (
                   <StyledLoadingIndicator size={10} />
                 ) : (
                   <IconGithub size="xs" />
@@ -474,11 +474,11 @@ export function ContinuousFlamegraphContextMenu(props: FlamegraphContextMenuProp
             <ProfilingContextMenuItemButton
               disabled={!sourceCodeLink.isSuccess || !sourceCodeLink.data?.sourceUrl}
               tooltip={
-                sourceCodeLink.isPending
+                sourceCodeLink.isLoading
                   ? 'Resolving link'
-                  : sourceCodeLink.isSuccess &&
-                      (!sourceCodeLink.data.sourceUrl ||
-                        sourceCodeLink.data.config?.provider?.key !== 'github')
+                  : !sourceCodeLink.isSuccess ||
+                      !sourceCodeLink.data.sourceUrl ||
+                      sourceCodeLink.data.config?.provider?.key !== 'github'
                     ? t('Could not find source code location in GitHub')
                     : undefined
               }
@@ -486,7 +486,7 @@ export function ContinuousFlamegraphContextMenu(props: FlamegraphContextMenuProp
                 onClick: onOpenInGithubClick,
               })}
               icon={
-                sourceCodeLink.isPending ? (
+                sourceCodeLink.isLoading ? (
                   <StyledLoadingIndicator size={10} />
                 ) : (
                   <IconGithub size="xs" />
