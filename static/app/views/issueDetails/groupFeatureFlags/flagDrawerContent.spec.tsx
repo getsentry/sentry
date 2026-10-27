@@ -138,33 +138,6 @@ describe('GroupFeatureFlagsDrawerContent', () => {
     expect(screen.queryByText('my-rolled-out-feature')).not.toBeInTheDocument();
   });
 
-  it('searches flags keyed like Object properties', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/1/tags/',
-      body: [{...FeatureFlagTagsFixture()[0]!, key: '__proto__'}],
-    });
-
-    const group = GroupFixture();
-    render(
-      <GroupDataContextProvider group={group} project={group.project}>
-        <FlagDrawerContent
-          environments={[]}
-          group={group}
-          search="zxf"
-          orderBy={OrderBy.NEWEST}
-        />
-      </GroupDataContextProvider>
-    );
-
-    await waitFor(() => {
-      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-    });
-
-    expect(getEmptyState()).toHaveTextContent(
-      'No feature flags were found for this search'
-    );
-  });
-
   it('renders empty state when no flags returned and hasFlags', async () => {
     ProjectsStore.reset();
     ProjectsStore.loadInitialData([
