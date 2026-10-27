@@ -949,7 +949,7 @@ class SharedApplyPathTest(APITestCase):
         assert response.data["code"] == "not_suggested"
         assert len(self.commands()) == 1
 
-    def test_a_failed_recheck_can_be_tried_again(self) -> None:
+    def test_a_recheck_seer_never_got_goes_out_again_as_the_same_command(self) -> None:
         self.kind.raises = ActionStale({"window": 600})
         assert self.recheck().status_code == 200
         [failed] = self.commands()
@@ -963,9 +963,40 @@ class SharedApplyPathTest(APITestCase):
 
         assert response.status_code == 200, response.data
         assert self.kind.calls == []
+        [command] = self.commands()
+        assert command.request_id == failed.request_id
+        assert command.status == InvestigationOrchestrationCommandStatus.ACCEPTED
+        assert command.expected_workflow_version == 4
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.workflow_version == 5
+        read = response.data["actionRequest"]
+        assert read["error"] == {"code": "stale", "current": {"window": 600}}
+        assert read["followUp"] == {"status": "accepted", "reason": None}
+
+    def test_a_recheck_seer_turned_down_goes_out_as_a_new_command(self) -> None:
+        self.kind.raises = ActionStale({"window": 600})
+        assert self.recheck().status_code == 200
+        [failed] = self.commands()
+        failed.update(
+            status=InvestigationOrchestrationCommandStatus.FAILED,
+            error={
+                "code": "seer_command_dispatch_failed",
+                "reason": "workflow_version_conflict",
+                "retryable": False,
+            },
+        )
+        # The conflict reconcile moves Sentry back to Seer's version.
+        self.orchestration_run.update(workflow_version=4)
+        self.kind.calls.clear()
+
+        response = self.recheck()
+
+        assert response.status_code == 200, response.data
+        assert self.kind.calls == []
         [command] = [command for command in self.commands() if command.id != failed.id]
         assert command.type == "recheck_action_requests"
         assert command.request_id != failed.request_id
+        assert command.expected_workflow_version == 4
         read = response.data["actionRequest"]
         assert read["error"] == {"code": "stale", "current": {"window": 600}}
         assert read["followUp"] == {"status": "accepted", "reason": None}

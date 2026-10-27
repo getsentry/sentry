@@ -270,7 +270,7 @@ def _requeue_failed_command(
     run.save(update_fields=["projection", "error", "date_updated"])
 
 
-def _command_can_be_requeued(command: InvestigationOrchestrationCommand) -> bool:
+def command_can_be_requeued(command: InvestigationOrchestrationCommand) -> bool:
     return (
         isinstance(command.error, dict)
         and command.error.get("code") == "seer_command_dispatch_failed"
@@ -725,7 +725,7 @@ def accept_orchestration_command(
                 _schedule_orchestration_create(run.id)
             elif (
                 existing.status == InvestigationOrchestrationCommandStatus.FAILED
-                and _command_can_be_requeued(existing)
+                and command_can_be_requeued(existing)
             ):
                 _requeue_failed_command(run, existing)
                 existing.refresh_from_db(fields=["status", "error"])

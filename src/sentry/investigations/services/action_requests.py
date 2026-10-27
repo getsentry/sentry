@@ -37,6 +37,7 @@ from sentry.investigations.services.action_kinds.base import (
 )
 from sentry.investigations.services.orchestration import (
     accept_orchestration_command,
+    command_can_be_requeued,
     rebuild_orchestration_source,
 )
 
@@ -419,18 +420,16 @@ def _record_stale(context: ApplyContext, current: dict[str, SettingValue]) -> No
     )
 
 
-def _recheck_failed(action_request: InvestigationActionRequest) -> bool:
-    return (
-        action_request.state == InvestigationActionRequestState.SUPERSEDED
-        and action_request.error is not None
-        and action_request.error["code"] == ApplyErrorCode.STALE
-        and action_request.followup_request_id is not None
-        and InvestigationOrchestrationCommand.objects.filter(
-            orchestration_run__investigation_id=action_request.investigation_id,
-            request_id=action_request.followup_request_id,
-            status=InvestigationOrchestrationCommandStatus.FAILED,
-        ).exists()
-    )
+def _failed_recheck(
+    action_request: InvestigationActionRequest,
+) -> InvestigationOrchestrationCommand | None:
+    if not _is_stale(action_request) or action_request.followup_request_id is None:
+        return None
+    return InvestigationOrchestrationCommand.objects.filter(
+        orchestration_run__investigation_id=action_request.investigation_id,
+        request_id=action_request.followup_request_id,
+        status=InvestigationOrchestrationCommandStatus.FAILED,
+    ).first()
 
 
 def _check_without_writes(kind: ActionKind, context: ApplyContext) -> None:
@@ -540,11 +539,23 @@ def _recheck(
 ) -> InvestigationActionRequest:
     context = _locked_context(investigation, action_request, request, actor_id, lock=True)
     action_request = context.action_request
-    if _recheck_failed(action_request):
+    failed = _failed_recheck(action_request)
+    if failed is not None:
         _check_can_apply(context.investigation, action_request, request, retry=True)
         _check_action_unchanged(action_request, expected_action)
-        assert action_request.error is not None
-        _record_stale(context, action_request.error["current"])
+        if command_can_be_requeued(failed):
+            # Seer never got it, and Sentry already moved the workflow version for it.
+            accept_orchestration_command(
+                investigation=context.investigation,
+                request_id=failed.request_id,
+                expected_workflow_version=failed.expected_workflow_version,
+                command_type=failed.type,
+                payload=failed.payload,
+                actor_id=_seer_actor(context.investigation, context.actor_id),
+            )
+        else:
+            assert action_request.error is not None
+            _record_stale(context, action_request.error["current"])
         return action_request
     kind = _check_can_apply(context.investigation, action_request, request)
     _check_action_unchanged(action_request, expected_action)
