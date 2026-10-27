@@ -91,7 +91,8 @@ export interface SeerEmbedBlockHostActions {
   /**
    * Called when a card takes the actions, so the host can drop its own copy.
    * Returns the release, called when the card unmounts. An embed that renders
-   * no card never claims them, and the host keeps showing its own.
+   * no card never claims them, and the host keeps showing its own. Keep it
+   * stable: a new function releases the actions and claims them again.
    */
   onClaim: () => () => void;
 }

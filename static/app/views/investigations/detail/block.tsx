@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconChat} from '@sentry/icons/chat';
 import {IconClose} from '@sentry/icons/close';
@@ -345,10 +345,11 @@ function BlockResult({
   // so the card can run the block's full width. Until one claims them -- or if
   // that embed renders no card -- they sit beside the first line.
   const [actionsInEmbed, setActionsInEmbed] = useState(false);
-  const claimActions = () => {
+  // Stable, so a re-render (each streamed chunk) doesn't release and reclaim them.
+  const claimActions = useCallback(() => {
     setActionsInEmbed(true);
     return () => setActionsInEmbed(false);
-  };
+  }, []);
   return (
     <BlockHoverSurface
       flex={1}

@@ -84,6 +84,25 @@ describe('SeerMarkdown', () => {
       expect(release).toHaveBeenCalledTimes(1);
     });
 
+    it('keeps a single claim while the message streams in', () => {
+      const release = jest.fn();
+      const onClaim = jest.fn(() => release);
+      const leadingEmbedActions = {actions: <Button>Block actions</Button>, onClaim};
+      const {rerender} = render(
+        <SeerMarkdown raw={CHART} leadingEmbedActions={leadingEmbedActions} />
+      );
+
+      rerender(
+        <SeerMarkdown
+          raw={`${CHART}\n\nErrors returned`}
+          leadingEmbedActions={{...leadingEmbedActions}}
+        />
+      );
+
+      expect(onClaim).toHaveBeenCalledTimes(1);
+      expect(release).not.toHaveBeenCalled();
+    });
+
     it('leaves them to the host when the message opens with prose', () => {
       const {onClaim} = renderWithLeadingEmbedActions(`Errors spiked.\n\n${CHART}`);
 
