@@ -45,6 +45,7 @@ export type ActionKindUI<A extends InvestigationAction> = {
   ) => ReactNode;
   getCannotApplyMessage: (reason: ApplyBlockReason) => string | null;
   Details?: ComponentType<ActionKindDetailsProps<A>>;
+  getActivityNote?: (props: KindProps<A>) => string | null;
   getSuccessMessage?: () => string;
 };
 

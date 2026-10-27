@@ -22,6 +22,14 @@ import type {
 export const connectTelemetryUI: ActionKindUI<InvestigationConnectTelemetryAction> = {
   Apply: ConnectTelemetryApply,
   checksBeforeApply: false,
+  getActivityTitle: ({action, actorName}) => {
+    const name = getProviderName(action.provider);
+    return actorName ? t('%s connected %s', actorName, name) : t('%s connected', name);
+  },
+  getActivityNote: ({action, actionRequest}) =>
+    actionRequest.followUp?.status === 'failed'
+      ? getRerunFailedNote(actionRequest.followUp, getProviderName(action.provider))
+      : null,
   getAppliedSummary: ({action, actionRequest}) => {
     const name = getProviderName(action.provider);
     const note = getRerunNote(actionRequest, name);
