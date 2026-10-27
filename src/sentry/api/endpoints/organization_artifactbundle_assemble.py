@@ -28,6 +28,9 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
+    # Assemble state is cached per checksum, so a resend reports it instead of
+    # starting a second job.
+    idempotent_methods = frozenset({"POST"})
 
     def post(self, request: Request, organization) -> Response:
         """

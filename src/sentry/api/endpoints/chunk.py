@@ -132,6 +132,8 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,
     }
+    # Blobs are unique per checksum, so resending a chunk leaves the same single blob.
+    idempotent_methods = frozenset({"POST"})
     owner = ApiOwner.OWNERS_INGEST
 
     authentication_classes = OrganizationEndpoint.authentication_classes + (
