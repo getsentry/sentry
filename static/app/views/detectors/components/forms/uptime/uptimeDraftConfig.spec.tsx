@@ -1,5 +1,4 @@
-import {parseDetectorDraftValues} from 'sentry/views/detectors/components/forms/common/detectorDraft';
-import {UPTIME_DETECTOR_DRAFT_CONFIG} from 'sentry/views/detectors/components/forms/uptime/uptimeDraftConfig';
+import {UPTIME_DETECTOR_DRAFT_SCHEMA} from 'sentry/views/detectors/components/forms/uptime/uptimeDraftConfig';
 
 const statusCheck = {
   id: 'status',
@@ -8,7 +7,7 @@ const statusCheck = {
   value: 300,
 };
 
-describe('UPTIME_DETECTOR_DRAFT_CONFIG', () => {
+describe('UPTIME_DETECTOR_DRAFT_SCHEMA', () => {
   it('keeps a nested assertion tree', () => {
     const assertion = {
       root: {
@@ -32,24 +31,24 @@ describe('UPTIME_DETECTOR_DRAFT_CONFIG', () => {
       },
     };
 
-    const values = parseDetectorDraftValues(UPTIME_DETECTOR_DRAFT_CONFIG, {assertion});
+    const values = UPTIME_DETECTOR_DRAFT_SCHEMA.parse({assertion});
 
-    expect(values).toEqual({assertion});
+    expect(values).toStrictEqual({assertion});
   });
 
   it('drops the assertion when any node is invalid', () => {
-    const values = parseDetectorDraftValues(UPTIME_DETECTOR_DRAFT_CONFIG, {
+    const values = UPTIME_DETECTOR_DRAFT_SCHEMA.parse({
       assertion: {
         root: {id: 'root', op: 'and', children: [{...statusCheck, value: 'oops'}]},
       },
       url: 'https://example.com',
     });
 
-    expect(values).toEqual({url: 'https://example.com'});
+    expect(values).toStrictEqual({assertion: undefined, url: 'https://example.com'});
   });
 
   it('restores a cleared status code as 200', () => {
-    const values = parseDetectorDraftValues(UPTIME_DETECTOR_DRAFT_CONFIG, {
+    const values = UPTIME_DETECTOR_DRAFT_SCHEMA.parse({
       assertion: {
         root: {id: 'root', op: 'and', children: [{...statusCheck, value: null}]},
       },
@@ -59,7 +58,7 @@ describe('UPTIME_DETECTOR_DRAFT_CONFIG', () => {
   });
 
   it('fills in a legacy JSON path assertion when it lacks an operator and operand', () => {
-    const values = parseDetectorDraftValues(UPTIME_DETECTOR_DRAFT_CONFIG, {
+    const values = UPTIME_DETECTOR_DRAFT_SCHEMA.parse({
       assertion: {
         root: {
           id: 'root',
@@ -81,25 +80,25 @@ describe('UPTIME_DETECTOR_DRAFT_CONFIG', () => {
   });
 
   it('drops methods and intervals the form does not offer', () => {
-    const values = parseDetectorDraftValues(UPTIME_DETECTOR_DRAFT_CONFIG, {
+    const values = UPTIME_DETECTOR_DRAFT_SCHEMA.parse({
       intervalSeconds: 7,
       method: 'TRACE',
     });
 
-    expect(values).toEqual({});
+    expect(values).toStrictEqual({intervalSeconds: undefined, method: undefined});
   });
 
   it('never restores headers or body', () => {
-    const values = parseDetectorDraftValues(UPTIME_DETECTOR_DRAFT_CONFIG, {
+    const values = UPTIME_DETECTOR_DRAFT_SCHEMA.parse({
       body: 'secret',
       headers: [['Authorization', 'secret']],
     });
 
-    expect(values).toEqual({});
+    expect(values).toStrictEqual({});
   });
 });
 
-describe('UPTIME_DETECTOR_DRAFT_CONFIG.redact', () => {
+describe('UPTIME_DETECTOR_DRAFT_SCHEMA url', () => {
   it.each([
     'https://user:secret@example.com/health',
     'https://admin:p@ssw0rd@example.com/x',
@@ -114,8 +113,9 @@ describe('UPTIME_DETECTOR_DRAFT_CONFIG.redact', () => {
     'user:secret',
     'user:pa/ss@example.com',
   ])('leaves out the URL when it may hold credentials, like %s', url => {
-    expect(UPTIME_DETECTOR_DRAFT_CONFIG.redact!({name: 'Monitor', url})).toEqual({
+    expect(UPTIME_DETECTOR_DRAFT_SCHEMA.parse({name: 'Monitor', url})).toStrictEqual({
       name: 'Monitor',
+      url: undefined,
     });
   });
 
@@ -128,6 +128,6 @@ describe('UPTIME_DETECTOR_DRAFT_CONFIG.redact', () => {
     'example.com/health',
     'localhost:8080/health',
   ])('keeps the URL when it has no credentials, like %s', url => {
-    expect(UPTIME_DETECTOR_DRAFT_CONFIG.redact!({url})).toEqual({url});
+    expect(UPTIME_DETECTOR_DRAFT_SCHEMA.parse({url})).toStrictEqual({url});
   });
 });

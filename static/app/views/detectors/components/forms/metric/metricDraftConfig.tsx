@@ -12,40 +12,46 @@ import {
 } from 'sentry/views/alerts/rules/metric/types';
 import {
   draftNumericString,
-  type DetectorDraftConfig,
+  type DetectorDraftSchema,
 } from 'sentry/views/detectors/components/forms/common/detectorDraft';
 import {DEFAULT_THRESHOLD_METRIC_FORM_DATA} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormFields';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 
-export const METRIC_DETECTOR_DRAFT_CONFIG: DetectorDraftConfig<MetricDetectorFormData> = {
-  shape: {
-    aggregateFunction: z.string(),
-    conditionComparisonAgo: z.number().optional(),
-    conditionType: z.enum([DataConditionType.GREATER, DataConditionType.LESS]).optional(),
-    dataset: z.enum(DetectorDataset),
-    detectionType: z.enum(['static', 'percent', 'dynamic']),
-    environment: z.string(),
-    extrapolationMode: z.enum(ExtrapolationMode).optional(),
-    highThreshold: draftNumericString.optional(),
-    initialPriorityLevel: z.union([
-      z.literal(DetectorPriorityLevel.MEDIUM),
-      z.literal(DetectorPriorityLevel.HIGH),
-    ]),
-    interval: z.number(),
-    mediumThreshold: draftNumericString.optional(),
-    name: z.string(),
-    owner: z.string(),
-    projectId: z.string(),
-    query: z.string(),
-    resolutionStrategy: z.enum(['default', 'custom']).optional(),
-    resolutionValue: draftNumericString.optional(),
-    sensitivity: z.enum(AlertRuleSensitivity),
-    thresholdType: z.enum(AlertRuleThresholdType),
-    workflowIds: z.array(z.string()),
-  },
-  normalize: values => {
+export const METRIC_DETECTOR_DRAFT_SCHEMA: DetectorDraftSchema<MetricDetectorFormData> = z
+  .object({
+    aggregateFunction: z.string().optional().catch(undefined),
+    conditionComparisonAgo: z.number().optional().catch(undefined),
+    conditionType: z
+      .enum([DataConditionType.GREATER, DataConditionType.LESS])
+      .optional()
+      .catch(undefined),
+    dataset: z.enum(DetectorDataset).optional().catch(undefined),
+    detectionType: z.enum(['static', 'percent', 'dynamic']).optional().catch(undefined),
+    environment: z.string().optional().catch(undefined),
+    extrapolationMode: z.enum(ExtrapolationMode).optional().catch(undefined),
+    highThreshold: draftNumericString.optional().catch(undefined),
+    initialPriorityLevel: z
+      .union([
+        z.literal(DetectorPriorityLevel.MEDIUM),
+        z.literal(DetectorPriorityLevel.HIGH),
+      ])
+      .optional()
+      .catch(undefined),
+    interval: z.number().optional().catch(undefined),
+    mediumThreshold: draftNumericString.optional().catch(undefined),
+    name: z.string().optional().catch(undefined),
+    owner: z.string().optional().catch(undefined),
+    projectId: z.string().optional().catch(undefined),
+    query: z.string().optional().catch(undefined),
+    resolutionStrategy: z.enum(['default', 'custom']).optional().catch(undefined),
+    resolutionValue: draftNumericString.optional().catch(undefined),
+    sensitivity: z.enum(AlertRuleSensitivity).optional().catch(undefined),
+    thresholdType: z.enum(AlertRuleThresholdType).optional().catch(undefined),
+    workflowIds: z.array(z.string()).optional().catch(undefined),
+  })
+  .transform(values => {
     const normalized =
       values.dataset === undefined
         ? omit(values, ['aggregateFunction', 'extrapolationMode', 'query'])
@@ -57,5 +63,4 @@ export const METRIC_DETECTOR_DRAFT_CONFIG: DetectorDraftConfig<MetricDetectorFor
       supportedDetectionTypes.includes(normalized.detectionType)
       ? normalized
       : omit(normalized, ['detectionType']);
-  },
-};
+  });

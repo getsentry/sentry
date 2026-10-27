@@ -27,7 +27,7 @@ import {UptimeRegionWarning} from 'sentry/views/detectors/components/forms/uptim
 import {UptimeDetectorResolveSection} from 'sentry/views/detectors/components/forms/uptime/resolve';
 import {
   getUptimeDuplicateFormData,
-  UPTIME_DETECTOR_DRAFT_CONFIG,
+  UPTIME_DETECTOR_DRAFT_SCHEMA,
 } from 'sentry/views/detectors/components/forms/uptime/uptimeDraftConfig';
 import {UptimeIssuePreview} from 'sentry/views/detectors/components/forms/uptime/uptimeIssuePreview';
 import {UptimeDetectorVerificationSection} from 'sentry/views/detectors/components/forms/uptime/verification';
@@ -97,16 +97,16 @@ function NewUptimeDetectorFormContent({
 }) {
   const {hasRuntimeAssertions} = useUptimeAssertionFeatures();
   const previewCheckResult = usePreviewCheckResult();
-  const draft = useInitialDetectorDraft('uptime_domain_failure');
+  const draft = useInitialDetectorDraft();
 
   return (
     <NewDetectorLayout
       detectorType="uptime_domain_failure"
-      draftConfig={UPTIME_DETECTOR_DRAFT_CONFIG}
+      draftSchema={UPTIME_DETECTOR_DRAFT_SCHEMA}
       formDataToEndpointPayload={uptimeFormDataToEndpointPayload}
       initialFormData={
         duplicateDetector
-          ? getUptimeDuplicateFormData(duplicateDetector, draft?.values)
+          ? getUptimeDuplicateFormData(duplicateDetector, draft ?? undefined)
           : {}
       }
       extraFooterButton={
