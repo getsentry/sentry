@@ -21,12 +21,19 @@ export function InvestigationRunTimer({
   const active = !settled && ['processing', 'pending'].includes(orchestration.status);
   let seconds = getActiveSeconds(orchestration, settled, active);
 
+  const frozenSeconds = settledSeconds?.runKey === runKey ? settledSeconds.seconds : null;
   if (settled && seconds !== null) {
-    if (settledSeconds?.runKey === runKey) {
-      seconds = settledSeconds.seconds;
-    } else {
+    if (frozenSeconds === null) {
       setSettledSeconds({runKey, seconds});
+    } else {
+      seconds = frozenSeconds;
     }
+  } else if (
+    frozenSeconds !== null &&
+    seconds !== null &&
+    orchestration.status === 'completed'
+  ) {
+    seconds = frozenSeconds;
   } else if (settledSeconds !== null) {
     setSettledSeconds(null);
   }

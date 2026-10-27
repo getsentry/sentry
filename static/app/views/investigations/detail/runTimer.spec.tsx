@@ -171,6 +171,19 @@ describe('InvestigationRunTimer', () => {
       />
     );
     expect(screen.getByRole('timer')).toHaveTextContent('34.5s');
+
+    rerender(
+      <InvestigationRunTimer
+        orchestration={InvestigationOrchestrationFixture({
+          ...timing,
+          status: 'completed',
+          finishedAt: '2025-01-01T00:05:20Z',
+          activeSince: null,
+          activeTimeElapsedSeconds: 44.5,
+        })}
+      />
+    );
+    expect(screen.getByRole('timer')).toHaveTextContent('34.5s');
   });
 
   it.each([
