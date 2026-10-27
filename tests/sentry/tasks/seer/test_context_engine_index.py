@@ -24,6 +24,7 @@ from sentry.viewer_context import (
     ViewerContext,
     decode_viewer_context,
     get_viewer_context,
+    viewer_context_scope,
 )
 
 
@@ -58,9 +59,15 @@ class TestIndexOrgProjectKnowledge(TestCase):
                     index_org_project_knowledge(self.org.id)
                     mock_request.assert_not_called()
 
+    def test_calls_seer_endpoint_with_correct_payload(self):
+        self._assert_system_index_request(Actor(type=ActorType.UNKNOWN))
+
+    def test_replaces_inherited_user_with_system(self):
+        self._assert_system_index_request(Actor(type=ActorType.USER, actor_id=123))
+
     @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
     @mock.patch("sentry.seer.signed_seer_api.seer_autofix_default_connection_pool.urlopen")
-    def test_calls_seer_endpoint_with_correct_payload(self, mock_urlopen):
+    def _assert_system_index_request(self, inherited_actor, mock_urlopen):
         mock_urlopen.return_value = HTTPResponse(b"", status=200)
 
         event_counts = {
@@ -84,7 +91,12 @@ class TestIndexOrgProjectKnowledge(TestCase):
                             "sentry.tasks.seer.context_engine_index.get_sdk_names_for_org_projects",
                             return_value={self.project.id: "sentry.python"},
                         ):
-                            index_org_project_knowledge(self.org.id)
+                            inherited_context = ViewerContext(
+                                actor=inherited_actor, organization_id=self.org.id + 1
+                            )
+                            with viewer_context_scope(inherited_context):
+                                index_org_project_knowledge(self.org.id)
+                                assert get_viewer_context() == inherited_context
 
         mock_urlopen.assert_called_once()
         request = mock_urlopen.call_args
