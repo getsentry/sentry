@@ -195,15 +195,16 @@ class BreachedMetricWorkflow(SeerWorkflow):
             if self.has_quota_available()
             else RejectedMetricBreachAdmission(reason="quota_exceeded", decided_at=decided_at)
         )
-        workflow_run, created = self.get_or_create_run(
+        result = self.get_or_create_run(
             trigger_key=trigger_key, inputs=trigger, extras={"admission": admission.dict()}
         )
+        workflow_run = result.lifecycle
         if isinstance(admission, RejectedMetricBreachAdmission):
             workflow_run.reject(
                 error=WorkflowRunError(code=admission.reason, message="Automation quota exceeded.")
             )
             return RejectedMetricBreach(
-                run=workflow_run.run, reason=admission.reason, created=created
+                run=workflow_run.run, reason=admission.reason, created=result.created
             )
 
         workflow_run.start()
@@ -211,4 +212,4 @@ class BreachedMetricWorkflow(SeerWorkflow):
         (execution,) = workflow_run.create_executions([MetricBreachExecutionExtras()])
         workflow_run.start_execution(execution.id)
         workflow_run.complete_execution(execution.id)
-        return AcceptedMetricBreach(run=workflow_run.run, created=created)
+        return AcceptedMetricBreach(run=workflow_run.run, created=result.created)

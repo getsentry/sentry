@@ -91,7 +91,7 @@ class SeerWorkflow:
         trigger_key: str,
         inputs: BaseModel,
         extras: Mapping[str, Any] | None = None,
-    ) -> tuple[SeerWorkflowRunLifecycle, bool]:
+    ) -> WorkflowRunCreationResult:
         """Retries preserve the original configuration and inputs."""
         if not trigger_key or len(trigger_key) > 256:
             raise ValueError("Trigger keys must contain between 1 and 256 characters")
@@ -102,7 +102,9 @@ class SeerWorkflow:
             )
             existing = self.get_runs().filter(trigger_key=trigger_key).first()
             if existing is not None:
-                return SeerWorkflowRunLifecycle(existing), False
+                return WorkflowRunCreationResult(
+                    lifecycle=SeerWorkflowRunLifecycle(existing), created=False
+                )
 
             snapshot = WorkflowRunSnapshot(
                 config_version=self.config.version,
@@ -120,7 +122,7 @@ class SeerWorkflow:
                 status=SeerWorkflowRunStatus.QUEUED,
                 extras=json.loads(run_extras.json()),
             )
-            return SeerWorkflowRunLifecycle(run), True
+            return WorkflowRunCreationResult(lifecycle=SeerWorkflowRunLifecycle(run), created=True)
 
     def get_runs(self) -> QuerySet[SeerWorkflowRun]:
         return SeerWorkflowRun.objects.filter(
@@ -198,3 +200,9 @@ class SeerWorkflow:
                 )
             )
         return projects
+
+
+@dataclass(frozen=True)
+class WorkflowRunCreationResult:
+    lifecycle: SeerWorkflowRunLifecycle
+    created: bool

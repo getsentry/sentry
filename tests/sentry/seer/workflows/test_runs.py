@@ -192,10 +192,11 @@ class ConfiguredWorkflowRunTest(TestCase):
     def test_retries_keep_original_snapshot_and_new_invocations_capture_edits(self) -> None:
         first = self.create_project()
         workflow = self.create_configured_workflow()
-        run, created = workflow.get_or_create_run(
+        result = workflow.get_or_create_run(
             trigger_key="manual:first", inputs=RunInputs(issue_limit=10)
         )
-        assert created is True
+        run = result.lifecycle
+        assert result.created is True
         assert run.run.status == SeerWorkflowRunStatus.QUEUED
         assert not run.run.executions.exists()
         snapshot = run.extras.snapshot
@@ -205,17 +206,19 @@ class ConfiguredWorkflowRunTest(TestCase):
 
         later = self.create_project()
         workflow.set_project_selection(SelectedProjects(project_ids=(later.id,)))
-        retry, created = workflow.get_or_create_run(
+        result = workflow.get_or_create_run(
             trigger_key="manual:first", inputs=RunInputs(issue_limit=20)
         )
-        assert created is False
+        retry = result.lifecycle
+        assert result.created is False
         assert retry.run.id == run.run.id
         assert retry.extras.snapshot == snapshot
 
-        next_run, created = workflow.get_or_create_run(
+        result = workflow.get_or_create_run(
             trigger_key="manual:next", inputs=RunInputs(issue_limit=20)
         )
-        assert created is True
+        next_run = result.lifecycle
+        assert result.created is True
         assert next_run.run.id != run.run.id
         assert next_run.extras.snapshot.config_version == 2
         assert next_run.extras.snapshot.project_ids == (later.id,)
@@ -226,13 +229,15 @@ class ConfiguredWorkflowRunTest(TestCase):
             self.create_configured_workflow(),
             self.create_configured_workflow(),
         )
-        first, _ = workflow.get_or_create_run(
+        first_result = workflow.get_or_create_run(
             trigger_key="event:occurrence", inputs=RunInputs(issue_limit=10)
         )
-        second, created = other_workflow.get_or_create_run(
+        first = first_result.lifecycle
+        second_result = other_workflow.get_or_create_run(
             trigger_key="event:occurrence", inputs=RunInputs(issue_limit=10)
         )
-        assert created is True
+        second = second_result.lifecycle
+        assert second_result.created is True
         assert first.run.id != second.run.id
         legacy = Factories.create_seer_workflow_run(
             self.organization, workflow_config=workflow.config
@@ -256,9 +261,10 @@ class ConfiguredWorkflowRunTest(TestCase):
 
     def test_deleted_config_cannot_be_retried(self) -> None:
         workflow = self.create_configured_workflow()
-        run, _ = workflow.get_or_create_run(
+        result = workflow.get_or_create_run(
             trigger_key="manual:first", inputs=RunInputs(issue_limit=10)
         )
+        run = result.lifecycle
         SeerWorkflowConfig.objects.filter(id=workflow.config.id).delete()
         with pytest.raises(SeerWorkflowConfig.DoesNotExist):
             workflow.get_or_create_run(trigger_key="manual:first", inputs=RunInputs(issue_limit=10))
@@ -444,10 +450,10 @@ class ConfiguredWorkflowRunTest(TestCase):
         assert run.run.executions.count() == 2
 
     def create_run(self) -> SeerWorkflowRunLifecycle:
-        run, _ = self.create_configured_workflow().get_or_create_run(
+        result = self.create_configured_workflow().get_or_create_run(
             trigger_key="manual:first", inputs=RunInputs(issue_limit=10)
         )
-        return run
+        return result.lifecycle
 
     def create_configured_workflow(self) -> SeerWorkflow:
         return SeerWorkflow(
@@ -492,9 +498,10 @@ def test_run_finishes_after_all_executions(
         strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
         filters={"all_projects": True},
     )
-    run, _ = SeerWorkflow(config).get_or_create_run(
+    result = SeerWorkflow(config).get_or_create_run(
         trigger_key="manual:first", inputs=RunInputs(issue_limit=10)
     )
+    run = result.lifecycle
     run.start()
     first, second = run.create_executions(
         [SeerWorkflowExecutionExtras(), SeerWorkflowExecutionExtras()]
