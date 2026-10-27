@@ -226,7 +226,12 @@ class ConnectTelemetryApplyTest(APITestCase, TelemetryFixtures):
         assert response.status_code == 200, response.data
         read = response.data["actionRequest"]
         assert read["state"] == "applied"
-        assert read["followUp"] == {"status": "accepted", "reason": None, "rerun": None}
+        assert read["followUp"] == {
+            "status": "accepted",
+            "reason": None,
+            "rerun": None,
+            "retryable": False,
+        }
         rerun = self.follow_up()
         assert rerun.id == failed.id
         assert rerun.status == InvestigationOrchestrationCommandStatus.ACCEPTED

@@ -26,6 +26,7 @@ from sentry.investigations.services.action_kinds import (
     shared_cannot_apply_reason,
 )
 from sentry.investigations.services.action_kinds.base import ActionRequestError, CannotApplyReason
+from sentry.investigations.services.orchestration import command_error_can_be_requeued
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -46,12 +47,13 @@ class InvestigationActionRequestAnchorResponse(TypedDict):
 class InvestigationActionRequestFollowUpResponse(TypedDict):
     """The re-check or re-run Sentry sent Seer for this request. `reason` is Seer's code when it
     turned it down or dropped it. `rerun` is what Seer did with a re-run, and null for a
-    re-check.
+    re-check. `retryable` is true when it never reached Seer and can be sent again.
     """
 
     status: InvestigationOrchestrationCommandStatus
     reason: CommandRejectionCode | None
     rerun: InvestigationOrchestrationRerun | None
+    retryable: bool
 
 
 class InvestigationActionRequestSerializerResponse(TypedDict):
@@ -171,6 +173,8 @@ class InvestigationActionRequestSerializer(
                 "status": InvestigationOrchestrationCommandStatus(status),
                 "reason": (error or {}).get("reason"),
                 "rerun": InvestigationOrchestrationRerun(rerun) if rerun is not None else None,
+                "retryable": status == InvestigationOrchestrationCommandStatus.FAILED
+                and command_error_can_be_requeued(error),
             }
             for investigation_id, request_id, status, error, rerun in (
                 InvestigationOrchestrationCommand.objects.filter(

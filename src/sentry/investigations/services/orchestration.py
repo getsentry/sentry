@@ -278,10 +278,14 @@ def _requeue_failed_command(
 
 
 def command_can_be_requeued(command: InvestigationOrchestrationCommand) -> bool:
+    return command_error_can_be_requeued(command.error)
+
+
+def command_error_can_be_requeued(error: object) -> bool:
     return (
-        isinstance(command.error, dict)
-        and command.error.get("code") == "seer_command_dispatch_failed"
-        and command.error.get("retryable") is True
+        isinstance(error, dict)
+        and error.get("code") == "seer_command_dispatch_failed"
+        and error.get("retryable") is True
     )
 
 

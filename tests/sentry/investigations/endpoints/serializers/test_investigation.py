@@ -384,7 +384,12 @@ class InvestigationActionRequestSerializationTest(TestCase):
 
         (serialized,) = self.serialize_requests()
 
-        assert serialized["followUp"] == {"status": "accepted", "reason": None, "rerun": None}
+        assert serialized["followUp"] == {
+            "status": "accepted",
+            "reason": None,
+            "rerun": None,
+            "retryable": False,
+        }
 
     def test_a_follow_up_seer_turned_down_has_seers_code(self) -> None:
         self.add_followed_up_request(
@@ -402,6 +407,7 @@ class InvestigationActionRequestSerializationTest(TestCase):
             "status": "failed",
             "reason": "action_requests_report_changed",
             "rerun": None,
+            "retryable": False,
         }
 
     def test_a_re_run_seer_dropped_says_so(self) -> None:
@@ -419,6 +425,7 @@ class InvestigationActionRequestSerializationTest(TestCase):
             "status": "failed",
             "reason": "run_failed",
             "rerun": "skipped",
+            "retryable": False,
         }
 
     def test_an_undelivered_follow_up_has_no_reason(self) -> None:
@@ -429,7 +436,27 @@ class InvestigationActionRequestSerializationTest(TestCase):
 
         (serialized,) = self.serialize_requests()
 
-        assert serialized["followUp"] == {"status": "failed", "reason": None, "rerun": None}
+        assert serialized["followUp"] == {
+            "status": "failed",
+            "reason": None,
+            "rerun": None,
+            "retryable": True,
+        }
+
+    def test_a_follow_up_that_failed_behind_another_command_cannot_be_sent_again(self) -> None:
+        self.add_followed_up_request(
+            status=InvestigationOrchestrationCommandStatus.FAILED,
+            error={"code": "earlier_command_conflicted"},
+        )
+
+        (serialized,) = self.serialize_requests()
+
+        assert serialized["followUp"] == {
+            "status": "failed",
+            "reason": None,
+            "rerun": None,
+            "retryable": False,
+        }
 
     def test_block_anchors_point_at_the_live_block(self) -> None:
         live = self.create_investigation_block(
