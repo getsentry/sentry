@@ -311,6 +311,41 @@ describe('Composer', () => {
     expect(getEditorValue()).toHaveTextContent('@Alice Example thanks|user:1');
   });
 
+  it('places the caret beside a clicked mention', async () => {
+    render(
+      <ControlledComposer
+        initialValue="Ask @Alice Example"
+        initialMentions={[
+          {id: 'user:1', sourceId: 'members', start: 4, end: 18, text: '@Alice Example'},
+        ]}
+      />
+    );
+
+    const mention = getEditor().querySelector('[data-mention]');
+    if (!(mention instanceof HTMLElement)) {
+      throw new Error('Expected a rendered mention');
+    }
+    jest
+      .spyOn(mention, 'getBoundingClientRect')
+      .mockReturnValue(DOMRect.fromRect({x: 100, y: 0, width: 80, height: 20}));
+
+    await userEvent.pointer({
+      target: mention,
+      coords: {clientX: 170, clientY: 10},
+      keys: '[MouseLeft]',
+    });
+    await userEvent.keyboard('!');
+    expect(getEditorValue()).toHaveTextContent('Ask @Alice Example!|user:1');
+
+    await userEvent.pointer({
+      target: mention,
+      coords: {clientX: 110, clientY: 10},
+      keys: '[MouseLeft]',
+    });
+    await userEvent.keyboard('?');
+    expect(getEditorValue()).toHaveTextContent('Ask ?@Alice Example!|user:1');
+  });
+
   it('renders mentions with the source renderer', async () => {
     render(
       <ControlledComposer

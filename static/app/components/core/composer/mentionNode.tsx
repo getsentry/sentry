@@ -2,11 +2,15 @@ import {createContext, useContext} from 'react';
 import {
   $create,
   $getDocument,
+  $getNearestNodeFromDOMNode,
   $getState,
   $setState,
+  CLICK_COMMAND,
+  COMMAND_PRIORITY_LOW,
   createState,
   DecoratorNode,
   stringValue,
+  type LexicalEditor,
   type LexicalNode,
 } from 'lexical';
 
@@ -102,4 +106,38 @@ export function $isComposerMentionNode(
   node: LexicalNode | null | undefined
 ): node is ComposerMentionNode {
   return node instanceof ComposerMentionNode;
+}
+
+/**
+ * Places the caret on the nearer side of a clicked mention. Mentions are not
+ * editable, so the browser otherwise drops the selection and the next
+ * keystroke lands at the start of the editor.
+ */
+export function registerMentionClick(editor: LexicalEditor) {
+  return editor.registerCommand(
+    CLICK_COMMAND,
+    event => {
+      const element =
+        event.target instanceof Element
+          ? event.target.closest<HTMLElement>('[data-mention]')
+          : null;
+      const node = element ? $getNearestNodeFromDOMNode(element) : null;
+      if (!element || !$isComposerMentionNode(node)) {
+        return false;
+      }
+
+      // A wrapped mention has one box per line, so compare against the clicked one.
+      const box =
+        Array.from(element.getClientRects()).find(
+          rect => event.clientY >= rect.top && event.clientY <= rect.bottom
+        ) ?? element.getBoundingClientRect();
+      if (event.clientX < box.left + box.width / 2) {
+        node.selectPrevious();
+      } else {
+        node.selectNext(0, 0);
+      }
+      return true;
+    },
+    COMMAND_PRIORITY_LOW
+  );
 }

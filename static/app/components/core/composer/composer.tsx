@@ -43,7 +43,11 @@ import {
   getDOMRange,
 } from './editorState';
 import {findActiveTrigger, getRequestKey, type ActiveTrigger} from './matching';
-import {ComposerMentionNode, MentionRendererContext} from './mentionNode';
+import {
+  ComposerMentionNode,
+  MentionRendererContext,
+  registerMentionClick,
+} from './mentionNode';
 import {isSameComposerValue, type ComposerValue} from './model';
 import {CaretAnchor, ComposerEditor, SuggestionListBox, SuggestionStatus} from './styles';
 import type {ComposerProps} from './types';
@@ -111,6 +115,7 @@ function useComposerEditor(initialValue: ComposerValue) {
     const cleanups = [
       registerPlainText(editor),
       registerHistory(editor, createEmptyHistoryState(), 300),
+      registerMentionClick(editor),
       // Composer handles keys in the capture phase, ahead of Lexical's root
       // listener. A handled key, or the Enter that confirms an IME candidate in
       // Safari, must not also insert a line break.
