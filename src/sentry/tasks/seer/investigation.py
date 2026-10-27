@@ -48,6 +48,8 @@ from sentry.investigations.services.action_requests import complete_action_reque
 from sentry.investigations.services.orchestration import (
     FOLLOW_UP_COMMAND_TYPES,
     INTERNAL_COMMAND_TYPES,
+    clear_command_dispatch_error,
+    requeue_commands_behind,
     schedule_orchestration_commands,
 )
 from sentry.investigations.services.orchestration_events import (
@@ -353,48 +355,8 @@ def _mark_command_dispatch_acknowledged(
             command.error = None
         command.save(update_fields=["status", "error", "rerun", "date_updated"])
         if recovered_dispatch_failure:
-            blocked_commands = list(
-                InvestigationOrchestrationCommand.objects.select_for_update()
-                .filter(
-                    orchestration_run=run,
-                    id__gt=command.id,
-                    status=InvestigationOrchestrationCommandStatus.FAILED,
-                )
-                .order_by("id")
-            )
-            now = timezone.now()
-            requeued_commands = []
-            for blocked_command in blocked_commands:
-                if (
-                    isinstance(blocked_command.error, dict)
-                    and blocked_command.error.get("code") == "earlier_command_failed"
-                ):
-                    blocked_command.status = InvestigationOrchestrationCommandStatus.ACCEPTED
-                    blocked_command.error = None
-                    blocked_command.date_updated = now
-                    requeued_commands.append(blocked_command)
-            if requeued_commands:
-                InvestigationOrchestrationCommand.objects.bulk_update(
-                    requeued_commands,
-                    ["status", "error", "date_updated"],
-                )
-        errors = run.projection.get("errors")
-        if isinstance(errors, list):
-            run.projection["errors"] = [
-                item
-                for item in errors
-                if not (
-                    isinstance(item, dict)
-                    and item.get("code") == "seer_command_dispatch_failed"
-                    and item.get("requestId") == str(command.request_id)
-                )
-            ]
-        if (
-            isinstance(run.error, dict)
-            and run.error.get("code") == "seer_command_dispatch_failed"
-            and run.error.get("requestId") == str(command.request_id)
-        ):
-            run.error = None
+            requeue_commands_behind(run, command)
+        clear_command_dispatch_error(run, request_id=command.request_id)
         run.save(update_fields=["error", "projection", "date_updated"])
 
 

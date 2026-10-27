@@ -221,7 +221,7 @@ def _validate_command_target(
         raise InvestigationValidationError({"detail": "Hypothesis was not found."})
 
 
-def _clear_command_dispatch_error(
+def clear_command_dispatch_error(
     run: InvestigationOrchestrationRun,
     *,
     request_id: UUID,
@@ -245,29 +245,35 @@ def _clear_command_dispatch_error(
         run.error = None
 
 
+def requeue_commands_behind(
+    run: InvestigationOrchestrationRun,
+    command: InvestigationOrchestrationCommand,
+) -> int:
+    """Queue the commands that failed because this one did, and return how many."""
+
+    return InvestigationOrchestrationCommand.objects.filter(
+        orchestration_run=run,
+        id__gt=command.id,
+        status=InvestigationOrchestrationCommandStatus.FAILED,
+        error__code="earlier_command_failed",
+    ).update(
+        status=InvestigationOrchestrationCommandStatus.ACCEPTED,
+        error=None,
+        date_updated=timezone.now(),
+    )
+
+
 def _requeue_failed_command(
     run: InvestigationOrchestrationRun,
     command: InvestigationOrchestrationCommand,
 ) -> None:
-    queued: list[InvestigationOrchestrationCommand] = []
-    now = timezone.now()
-    for candidate in InvestigationOrchestrationCommand.objects.filter(
-        orchestration_run=run,
-        id__gte=command.id,
-        status=InvestigationOrchestrationCommandStatus.FAILED,
-    ).order_by("id"):
-        error_code = candidate.error.get("code") if isinstance(candidate.error, dict) else None
-        if candidate.id == command.id or error_code == "earlier_command_failed":
-            candidate.status = InvestigationOrchestrationCommandStatus.ACCEPTED
-            candidate.error = None
-            candidate.date_updated = now
-            queued.append(candidate)
-    if queued:
-        InvestigationOrchestrationCommand.objects.bulk_update(
-            queued,
-            ["status", "error", "date_updated"],
-        )
-    _clear_command_dispatch_error(run, request_id=command.request_id)
+    command.update(
+        status=InvestigationOrchestrationCommandStatus.ACCEPTED,
+        error=None,
+        date_updated=timezone.now(),
+    )
+    requeue_commands_behind(run, command)
+    clear_command_dispatch_error(run, request_id=command.request_id)
     run.save(update_fields=["projection", "error", "date_updated"])
 
 

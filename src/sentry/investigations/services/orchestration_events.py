@@ -46,6 +46,12 @@ from sentry.investigations.services.action_requests import (
     upsert_action_request,
     withdraw_action_request,
 )
+from sentry.investigations.services.orchestration import (
+    clear_command_dispatch_error,
+    command_can_be_requeued,
+    requeue_commands_behind,
+    schedule_orchestration_commands,
+)
 from sentry.models.project import Project
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.utils import json
@@ -291,15 +297,24 @@ def _update_rerun(run: InvestigationOrchestrationRun, payload: dict[str, Any]) -
             error={"code": "rerun_skipped", "reason": payload["reason"]},
             date_updated=timezone.now(),
         )
-    else:
-        commands.update(rerun=InvestigationOrchestrationRerun.STARTED, date_updated=timezone.now())
+        return
+    for command in commands.select_for_update():
+        recovered = command.status == InvestigationOrchestrationCommandStatus.FAILED and (
+            command_can_be_requeued(command)
+        )
+        command.rerun = InvestigationOrchestrationRerun.STARTED
         # Seer has it, so a lost response can't fail it or the commands behind it.
-        commands.filter(
-            status__in=(
-                InvestigationOrchestrationCommandStatus.ACCEPTED,
-                InvestigationOrchestrationCommandStatus.DISPATCHED,
-            )
-        ).update(status=InvestigationOrchestrationCommandStatus.ACKNOWLEDGED, error=None)
+        if recovered or command.status in (
+            InvestigationOrchestrationCommandStatus.ACCEPTED,
+            InvestigationOrchestrationCommandStatus.DISPATCHED,
+        ):
+            command.status = InvestigationOrchestrationCommandStatus.ACKNOWLEDGED
+            command.error = None
+        command.save(update_fields=["rerun", "status", "error", "date_updated"])
+        if recovered:
+            if requeue_commands_behind(run, command):
+                schedule_orchestration_commands(run.id)
+            clear_command_dispatch_error(run, request_id=command.request_id)
 
 
 def _projection_is_stale(

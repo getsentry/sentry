@@ -491,6 +491,44 @@ class QueuedCommandsTest(TestCase):
         assert steer.status == InvestigationOrchestrationCommandStatus.ACCEPTED
         assert self.orchestration_run.error is None
 
+    def test_a_start_after_a_lost_response_recovers_the_queue(self) -> None:
+        rerun = self.rerun()
+        steer = self.steer()
+        _mark_command_dispatch_failed(rerun.id)
+        steer.refresh_from_db()
+        self.orchestration_run.refresh_from_db()
+        assert steer.status == InvestigationOrchestrationCommandStatus.FAILED
+        assert self.orchestration_run.error is not None
+        self.dispatch.reset_mock()
+
+        with self.capture_on_commit_callbacks(execute=True):
+            self.seer_sends_rerun_updated(rerun, "rerun_updated_started")
+
+        rerun.refresh_from_db()
+        steer.refresh_from_db()
+        self.orchestration_run.refresh_from_db()
+        assert rerun.status == InvestigationOrchestrationCommandStatus.ACKNOWLEDGED
+        assert rerun.rerun == InvestigationOrchestrationRerun.STARTED
+        assert rerun.error is None
+        assert steer.status == InvestigationOrchestrationCommandStatus.ACCEPTED
+        assert steer.error is None
+        assert self.orchestration_run.error is None
+        assert self.orchestration_run.projection["errors"] == []
+        self.dispatch.assert_called_once_with(self.orchestration_run.id)
+
+    @mock.patch("sentry.investigations.seer_client.make_signed_seer_api_request")
+    def test_a_start_does_not_recover_a_re_run_seer_turned_down(self, seer: mock.Mock) -> None:
+        self.seer_rejects_with(seer, "rejected_rerun_after_connection_run_failed")
+        rerun = self.rerun()
+        dispatch_investigation_orchestration_commands(self.orchestration_run.id)
+
+        self.seer_sends_rerun_updated(rerun, "rerun_updated_started")
+
+        rerun.refresh_from_db()
+        assert rerun.status == InvestigationOrchestrationCommandStatus.FAILED
+        assert rerun.error is not None
+        assert rerun.error["reason"] == "run_failed"
+
     @mock.patch("sentry.investigations.seer_client.make_signed_seer_api_request")
     def test_a_drop_that_lands_before_the_response_is_kept(self, seer: mock.Mock) -> None:
         self.seer_settles_it_before_answering(seer, "rerun_updated_skipped_run_failed")
