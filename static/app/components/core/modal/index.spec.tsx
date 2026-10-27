@@ -10,6 +10,7 @@ import {
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {InfoText} from '@sentry/scraps/info';
+import {useContainerBreakpoint} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 
 import {closeModal, openModal} from 'sentry/actionCreators/modal';
@@ -17,6 +18,10 @@ import {closeModal, openModal} from 'sentry/actionCreators/modal';
 describe('GlobalModal', () => {
   beforeEach(() => {
     jest.resetAllMocks();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it('uses actionCreators to open and close Modal', async () => {
@@ -295,6 +300,23 @@ describe('GlobalModal', () => {
     await userEvent.click(await screen.findByText('Click me'));
 
     expect(buttonClick).toHaveBeenCalled();
+  });
+
+  it('resolves container breakpoints against the modal overlay', () => {
+    jest.spyOn(Element.prototype, 'clientWidth', 'get').mockImplementation(function (
+      this: Element
+    ) {
+      return this.getAttribute('data-test-id') === 'modal-backdrop' ? 800 : 0;
+    });
+
+    function BreakpointProbe() {
+      return <div>breakpoint:{useContainerBreakpoint()}</div>;
+    }
+
+    renderGlobalModal();
+    act(() => openModal(() => <BreakpointProbe />));
+
+    expect(screen.getByText('breakpoint:xl')).toBeInTheDocument();
   });
 });
 
