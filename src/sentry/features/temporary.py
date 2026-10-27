@@ -84,6 +84,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:dashboards-starred", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables per-user "last visited" tracking and sorting for dashboards
     manager.add("organizations:dashboards-user-last-visited", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Serve the prebuilt Web Vitals dashboards from the trace metrics dataset instead of spans
+    manager.add("organizations:dashboards-web-vitals-trace-metrics", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables the use of the events timeseries endpoint for dashboard widgets
     # Data Secrecy
     manager.add("organizations:data-secrecy", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
