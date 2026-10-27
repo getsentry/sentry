@@ -1,3 +1,5 @@
+import logging
+
 import pydantic
 import sentry_sdk
 from rest_framework import status
@@ -22,6 +24,8 @@ from sentry.viewer_context import (
     observe_viewer_context_propagation,
     viewer_context_scope,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @internal_all_silo_endpoint
@@ -73,9 +77,10 @@ class InternalRpcServiceEndpoint(Endpoint):
         if vc_data:
             try:
                 vc = ViewerContext.deserialize(vc_data)
-            except Exception as e:
-                sentry_sdk.capture_exception()
-                raise ParseError from e
+            except Exception:
+                # A silo on another release can send an actor type this one doesn't know
+                # (e.g. the retired "unknown"); run without a context rather than fail the call.
+                logger.warning("rpc.viewer_context_unparseable", exc_info=True)
 
         observe_viewer_context_propagation("rpc_inbound", ctx=vc)
 
