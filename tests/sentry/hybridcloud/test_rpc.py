@@ -246,6 +246,7 @@ class DispatchRemoteCallTest(TestCase):
 
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CELL)
+    @override_options({"hybrid_cloud.enable_retry_reporting": True})
     @mock.patch("sentry.hybridcloud.rpc.service.metrics.distribution")
     def test_retry_count_emitted_without_retries(self, mock_distribution: mock.MagicMock) -> None:
         self._set_up_mock_response("organization/get_organization_by_id", None)
@@ -256,6 +257,7 @@ class DispatchRemoteCallTest(TestCase):
 
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CELL)
+    @override_options({"hybrid_cloud.enable_retry_reporting": True})
     @mock.patch("sentry.hybridcloud.rpc.service.metrics.distribution")
     def test_retry_count_emitted_on_success_after_retry(
         self, mock_distribution: mock.MagicMock
@@ -274,7 +276,7 @@ class DispatchRemoteCallTest(TestCase):
 
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CELL)
-    @override_options({"hybridcloud.rpc.retries": 2})
+    @override_options({"hybridcloud.rpc.retries": 2, "hybrid_cloud.enable_retry_reporting": True})
     @mock.patch("sentry.hybridcloud.rpc.service.metrics.distribution")
     def test_retry_count_emitted_on_exhausted_retries(
         self, mock_distribution: mock.MagicMock
@@ -292,7 +294,7 @@ class DispatchRemoteCallTest(TestCase):
         assert self._retry_metric_calls(mock_distribution) == [(2, "failure")]
 
     @override_settings(SILO_MODE=SiloMode.CELL)
-    @override_options({"hybridcloud.rpc.retries": 2})
+    @override_options({"hybridcloud.rpc.retries": 2, "hybrid_cloud.enable_retry_reporting": True})
     @mock.patch("sentry.hybridcloud.rpc.service.metrics.distribution")
     def test_retry_count_emitted_on_read_timeouts(self, mock_distribution: mock.MagicMock) -> None:
         # responses doesn't retry raised errors, so fail below urllib3's retry loop instead.
@@ -308,7 +310,7 @@ class DispatchRemoteCallTest(TestCase):
         assert self._retry_metric_calls(mock_distribution) == [(2, "failure")]
 
     @override_settings(SILO_MODE=SiloMode.CELL)
-    @override_options({"hybridcloud.rpc.retries": 2})
+    @override_options({"hybridcloud.rpc.retries": 2, "hybrid_cloud.enable_retry_reporting": True})
     @mock.patch("sentry.hybridcloud.rpc.service.metrics.distribution")
     def test_retry_count_emitted_on_connection_errors(
         self, mock_distribution: mock.MagicMock
@@ -323,6 +325,23 @@ class DispatchRemoteCallTest(TestCase):
 
         assert mock_make_request.call_count == 3
         assert self._retry_metric_calls(mock_distribution) == [(2, "failure")]
+
+    @responses.activate
+    @override_settings(SILO_MODE=SiloMode.CELL)
+    @mock.patch("sentry.hybridcloud.rpc.service.metrics.distribution")
+    def test_retry_count_not_emitted_when_disabled(self, mock_distribution: mock.MagicMock) -> None:
+        responses.add(
+            responses.POST,
+            f"{settings.SENTRY_CONTROL_ADDRESS}/api/0/internal/rpc/organization/get_organization_by_id/",
+            status=503,
+        )
+        self._set_up_mock_response("organization/get_organization_by_id", None)
+
+        result = dispatch_remote_call(None, "organization", "get_organization_by_id", {"id": 0})
+
+        assert result is None
+        assert len(responses.calls) == 2
+        assert self._retry_metric_calls(mock_distribution) == []
 
     @override_options(
         {"hybrid_cloud.rpc.disabled-service-methods": ["organization.get_organization_by_id"]}
