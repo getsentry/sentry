@@ -55,7 +55,6 @@ from sentry.viewer_context import (
     Actor,
     ActorType,
     ViewerContext,
-    get_viewer_context,
     viewer_context_scope,
 )
 
@@ -65,9 +64,6 @@ logger = logging.getLogger(__name__)
 def _organization_viewer_context_scope(
     organization_id: int,
 ) -> contextlib.AbstractContextManager[None]:
-    if get_viewer_context() is not None:
-        return contextlib.nullcontext()
-
     return viewer_context_scope(
         ViewerContext(actor=Actor(type=ActorType.SYSTEM), organization_id=organization_id)
     )
