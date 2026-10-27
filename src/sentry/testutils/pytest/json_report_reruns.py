@@ -68,24 +68,25 @@ class PytestRerunJSONReporter:
         self.pending_subtests[report.nodeid].append(
             {
                 **stage,
-                # pytest already stores each kwarg as its repr.
-                "context": {"msg": context.msg, "kwargs": dict(context.kwargs)},
+                "context": {
+                    "msg": context.msg,
+                    # pytest has already saferepr'd the values.
+                    "kwargs": dict(context.kwargs),
+                },
             }
         )
         return result
 
-    @pytest.hookimpl(tryfirst=True)
-    def pytest_report_from_serializable(self, data: dict[str, Any]) -> pytest.SubtestReport | None:
-        """Keep a subtest's kwargs as the xdist worker reported them.
-
-        pytest 9.1 reprs the kwargs again when an xdist controller deserializes
-        the report, so the default hook would turn the worker's ``'0'`` into
-        ``"'0'"``.
-        """
-        if data.get("_report_type") != "SubTestReport":
-            return None
-        report = pytest.SubtestReport._from_json(data)
-        object.__setattr__(report.context, "kwargs", data["_subtest.context"]["kwargs"])
+    @pytest.hookimpl(wrapper=True)
+    def pytest_report_from_serializable(
+        self, data: dict[str, Any]
+    ) -> Generator[None, object, object]:
+        report = yield
+        if isinstance(report, pytest.SubtestReport):
+            # On an xdist controller, pytest saferepr's the already saferepr'd
+            # kwargs again when it rebuilds the context, so restore the
+            # worker's values.
+            object.__setattr__(report.context, "kwargs", dict(data["_subtest.context"]["kwargs"]))
         return report
 
     def pytest_json_runtest_stage(self, report: pytest.TestReport) -> None:
