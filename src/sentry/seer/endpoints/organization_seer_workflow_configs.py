@@ -23,8 +23,17 @@ from sentry.seer.models.workflow import (
     SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
     SeerWorkflowConfig,
     SeerWorkflowConfigProject,
+    SeerWorkflowRun,
+    SeerWorkflowTriggerBinding,
 )
 from sentry.seer.workflows.workflow import SeerWorkflow
+from sentry.workflow_engine.models import DataConditionGroupAction
+
+
+class SeerWorkflowTriggerResponse(TypedDict):
+    actionId: str
+    workflowId: str | None
+    workflowName: str | None
 
 
 class SeerWorkflowConfigResponse(TypedDict):
@@ -38,6 +47,9 @@ class SeerWorkflowConfigResponse(TypedDict):
     filters: dict[str, Any]
     outputPolicy: dict[str, Any]
     seededDefault: str | None
+    lastRun: datetime | None
+    lastRunStatus: str | None
+    triggers: list[SeerWorkflowTriggerResponse]
     dateAdded: datetime
     dateUpdated: datetime
 
@@ -68,6 +80,9 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
         ``filters`` contains strategy-specific filters. ``seededDefault`` records
         the seeded strategy even after edits.
         ``outputPolicy`` is the saved, opaque policy document.
+        ``lastRun`` and ``lastRunStatus`` describe the most recent run, or are null if the
+        workflow has never run. ``triggers`` lists the alert actions that start the
+        workflow; an empty list means it only runs on its schedule.
         """
         if not features.has("organizations:seer-automations", organization, actor=request.user):
             raise NotFound
@@ -117,11 +132,10 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
             raise NotFound from e
 
         projects = self.get_projects(request, organization, include_all_accessible=True)
-        selected_projects = get_selected_project_ids(
-            [config], accessible_project_ids=[p.id for p in projects]
-        )
         return Response(
-            serialize_workflow_config(config, selected_project_ids=selected_projects[config.id])
+            serialize_workflow_configs([config], accessible_project_ids=[p.id for p in projects])[
+                "configs"
+            ][0]
         )
 
 
@@ -137,8 +151,60 @@ def get_selected_project_ids(
     return selected_projects
 
 
+def get_last_runs(configs: Sequence[SeerWorkflowConfig]) -> dict[int, SeerWorkflowRun]:
+    runs = (
+        SeerWorkflowRun.objects.filter(workflow_config__in=configs)
+        .order_by("workflow_config_id", "-date_added", "-id")
+        .distinct("workflow_config_id")
+    )
+    return {run.workflow_config_id: run for run in runs if run.workflow_config_id is not None}
+
+
+def get_triggers(
+    configs: Sequence[SeerWorkflowConfig],
+) -> defaultdict[int, list[SeerWorkflowTriggerResponse]]:
+    bindings = list(
+        SeerWorkflowTriggerBinding.objects.filter(workflow_config__in=configs)
+        .order_by("trigger_action_id")
+        .values_list("workflow_config_id", "trigger_action_id")
+    )
+    # The alert workflow whose action starts the automation, limited to the configs' orgs.
+    workflows_by_action: dict[int, tuple[int, str]] = {}
+    for action_id, workflow_id, workflow_name in (
+        DataConditionGroupAction.objects.filter(
+            action_id__in=[action_id for _, action_id in bindings],
+            condition_group__workflowdataconditiongroup__workflow__organization_id__in={
+                config.organization_id for config in configs
+            },
+        )
+        .order_by("id")
+        .values_list(
+            "action_id",
+            "condition_group__workflowdataconditiongroup__workflow_id",
+            "condition_group__workflowdataconditiongroup__workflow__name",
+        )
+    ):
+        workflows_by_action.setdefault(action_id, (workflow_id, workflow_name))
+
+    triggers: defaultdict[int, list[SeerWorkflowTriggerResponse]] = defaultdict(list)
+    for config_id, action_id in bindings:
+        workflow = workflows_by_action.get(action_id)
+        triggers[config_id].append(
+            {
+                "actionId": str(action_id),
+                "workflowId": str(workflow[0]) if workflow else None,
+                "workflowName": workflow[1] if workflow else None,
+            }
+        )
+    return triggers
+
+
 def serialize_workflow_config(
-    config: SeerWorkflowConfig, *, selected_project_ids: list[int]
+    config: SeerWorkflowConfig,
+    *,
+    selected_project_ids: list[int],
+    last_run: SeerWorkflowRun | None,
+    triggers: list[SeerWorkflowTriggerResponse],
 ) -> SeerWorkflowConfigResponse:
     workflow = SeerWorkflow(config)
     filters = workflow.filters
@@ -160,6 +226,9 @@ def serialize_workflow_config(
         ),
         "outputPolicy": config.output_policy,
         "seededDefault": workflow.extras.seeded_default,
+        "lastRun": last_run.date_added if last_run else None,
+        "lastRunStatus": last_run.status if last_run else None,
+        "triggers": triggers,
         "dateAdded": config.date_added,
         "dateUpdated": config.date_updated,
     }
@@ -171,9 +240,16 @@ def serialize_workflow_configs(
     selected_projects = get_selected_project_ids(
         configs, accessible_project_ids=accessible_project_ids
     )
+    last_runs = get_last_runs(configs)
+    triggers = get_triggers(configs)
     return {
         "configs": [
-            serialize_workflow_config(config, selected_project_ids=selected_projects[config.id])
+            serialize_workflow_config(
+                config,
+                selected_project_ids=selected_projects[config.id],
+                last_run=last_runs.get(config.id),
+                triggers=triggers[config.id],
+            )
             for config in configs
         ]
     }

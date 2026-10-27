@@ -1,6 +1,9 @@
+from datetime import timedelta
 from unittest.mock import patch
 
+from django.db import connections, router
 from django.test import override_settings
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
@@ -18,6 +21,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
+    SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
 )
 from sentry.seer.monitor_cleanup.runs import deliver_monitor_cleanup_result
@@ -26,6 +30,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.features import with_feature
+from sentry.workflow_engine.models import Action, Workflow
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
@@ -942,6 +947,9 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
             "filters": {"minEventCount": 10},
             "outputPolicy": {"review_mode": "manual"},
             "seededDefault": "agentic_triage_v2",
+            "lastRun": None,
+            "lastRunStatus": None,
+            "triggers": [],
             "dateAdded": config.date_added,
             "dateUpdated": config.date_updated,
         }
@@ -966,6 +974,91 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
 
         assert len(response.data["configs"]) == 1
         assert response.data["configs"][0]["projects"] == [accessible.id]
+
+    def test_last_run_is_latest_run_for_each_config(self) -> None:
+        now = timezone.now()
+        config = self.create_config()
+        never_run = self.create_config()
+        Factories.create_seer_workflow_run(
+            self.organization,
+            workflow_config=config,
+            status=SeerWorkflowRunStatus.FAILED,
+            date_added=now - timedelta(days=2),
+        )
+        latest = Factories.create_seer_workflow_run(
+            self.organization,
+            workflow_config=config,
+            status=SeerWorkflowRunStatus.COMPLETE,
+            date_added=now - timedelta(hours=1),
+        )
+        Factories.create_seer_workflow_run(self.organization, workflow_config=None, date_added=now)
+
+        response = self.get_success_response(self.organization.slug)
+
+        configs = {item["id"]: item for item in response.data["configs"]}
+        assert configs[str(config.id)]["lastRun"] == latest.date_added
+        assert configs[str(config.id)]["lastRunStatus"] == "complete"
+        assert configs[str(never_run.id)]["lastRun"] is None
+        assert configs[str(never_run.id)]["lastRunStatus"] is None
+
+    def test_triggers_include_alert_workflow(self) -> None:
+        alert = self.create_workflow(name="Error spike")
+        action = self.create_trigger_action(alert)
+        unattached = self.create_action(type=Action.Type.SEER_WORKFLOW)
+        config = self.create_config(trigger_actions=[action, unattached])
+        scheduled = self.create_config()
+
+        response = self.get_success_response(self.organization.slug)
+
+        configs = {item["id"]: item for item in response.data["configs"]}
+        assert configs[str(config.id)]["triggers"] == [
+            {
+                "actionId": str(action.id),
+                "workflowId": str(alert.id),
+                "workflowName": "Error spike",
+            },
+            {"actionId": str(unattached.id), "workflowId": None, "workflowName": None},
+        ]
+        assert configs[str(scheduled.id)]["triggers"] == []
+
+    def test_triggers_exclude_other_organization_workflow(self) -> None:
+        foreign_alert = self.create_workflow(organization=self.create_organization())
+        action = self.create_trigger_action(foreign_alert)
+        config = self.create_config(trigger_actions=[action])
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert response.data["configs"][0]["id"] == str(config.id)
+        assert response.data["configs"][0]["triggers"] == [
+            {"actionId": str(action.id), "workflowId": None, "workflowName": None}
+        ]
+
+    def test_query_count_does_not_grow_with_configs(self) -> None:
+        def add_config() -> None:
+            config = self.create_config(
+                trigger_actions=[self.create_trigger_action(self.create_workflow())]
+            )
+            Factories.create_seer_workflow_run(self.organization, workflow_config=config)
+
+        add_config()
+        # Warm per-request caches so both measurements do the same fixed work.
+        self.get_success_response(self.organization.slug)
+        with CaptureQueriesContext(connections[router.db_for_read(SeerWorkflowConfig)]) as one:
+            self.get_success_response(self.organization.slug)
+        add_config()
+        add_config()
+        with CaptureQueriesContext(connections[router.db_for_read(SeerWorkflowConfig)]) as three:
+            response = self.get_success_response(self.organization.slug)
+
+        assert len(response.data["configs"]) == 3
+        assert len(three.captured_queries) == len(one.captured_queries)
+
+    def create_trigger_action(self, alert: Workflow) -> Action:
+        action = self.create_action(type=Action.Type.SEER_WORKFLOW)
+        condition_group = self.create_data_condition_group(organization=alert.organization)
+        self.create_workflow_data_condition_group(workflow=alert, condition_group=condition_group)
+        self.create_data_condition_group_action(action=action, condition_group=condition_group)
+        return action
 
     def create_config(self, **kwargs) -> SeerWorkflowConfig:
         return Factories.create_seer_workflow_config(
@@ -1011,9 +1104,31 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
             "filters": {"minEventCount": 10},
             "outputPolicy": {"review_mode": "manual"},
             "seededDefault": "agentic_triage_v2",
+            "lastRun": None,
+            "lastRunStatus": None,
+            "triggers": [],
             "dateAdded": config.date_added,
             "dateUpdated": config.date_updated,
         }
+
+    def test_returns_last_run_and_triggers(self) -> None:
+        alert = self.create_workflow(name="Error spike")
+        action = self.create_action(type=Action.Type.SEER_WORKFLOW)
+        condition_group = self.create_data_condition_group()
+        self.create_workflow_data_condition_group(workflow=alert, condition_group=condition_group)
+        self.create_data_condition_group_action(action=action, condition_group=condition_group)
+        config = self.create_config(trigger_actions=[action])
+        run = Factories.create_seer_workflow_run(
+            self.organization, workflow_config=config, status=SeerWorkflowRunStatus.RUNNING
+        )
+
+        response = self.get_success_response(self.organization.slug, config.id)
+
+        assert response.data["lastRun"] == run.date_added
+        assert response.data["lastRunStatus"] == "running"
+        assert response.data["triggers"] == [
+            {"actionId": str(action.id), "workflowId": str(alert.id), "workflowName": "Error spike"}
+        ]
 
     def test_missing_config_returns_404(self) -> None:
         self.get_error_response(self.organization.slug, 999999, status_code=404)
