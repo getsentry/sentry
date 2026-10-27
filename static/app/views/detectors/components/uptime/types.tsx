@@ -315,28 +315,3 @@ export interface PreviewCheckPayload {
   headers?: Array<[string, string]>;
   method?: string;
 }
-
-// Assertion Suggestions Types (from Seer-powered endpoint)
-
-export enum UptimeAssertionType {
-  STATUS_CODE = 'status_code',
-  JSON_PATH = 'json_path',
-  HEADER = 'header',
-}
-
-export interface UptimeAssertionSuggestion {
-  assertion_json: UptimeOp;
-  assertion_type: UptimeAssertionType;
-  comparison: Exclude<UptimeComparisonType, UptimeComparisonType.NEVER>;
-  confidence: number;
-  expected_value: string;
-  explanation: string;
-  header_name: string | null;
-  json_path: string | null;
-}
-
-export interface UptimeAssertionSuggestionsResponse {
-  preview_result: PreviewCheckResult;
-  suggested_assertion: UptimeAssertion | null;
-  suggestions: UptimeAssertionSuggestion[] | null;
-}

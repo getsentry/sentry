@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import responses
+from responses import matchers
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationFeatures
@@ -28,6 +30,8 @@ from sentry.testutils.asserts import assert_count_of_metric, assert_failure_metr
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
+from sentry.users.models.identity import Identity
+from sentry.utils.http import absolute_uri
 
 
 class BaseIntegrationServiceTest(TestCase):
@@ -761,6 +765,136 @@ class GetAccessTokenTest(TestCase):
             token="oit_stored", expires_at=datetime(2025, 1, 1, 5, 36, tzinfo=timezone.utc)
         )
         assert len(responses.calls) == 0
+
+    def create_gitlab(self, **identity_data: Any) -> tuple[Integration, Identity]:
+        identity = self.create_identity(
+            user=self.user,
+            identity_provider=self.create_identity_provider(type="gitlab"),
+            external_id="gitlab-user-1",
+            data={
+                "access_token": "gl-token",
+                "refresh_token": "gl-refresh",
+                "client_id": "gl-client",
+                "client_secret": "gl-secret",
+                **identity_data,
+            },
+        )
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="gitlab",
+            external_id="gitlab.example.com:1",
+            metadata={"base_url": "https://gitlab.example.com", "verify_ssl": True},
+            oi_params={"default_auth_id": identity.id},
+        )
+        return integration, identity
+
+    @responses.activate
+    def test_gitlab_returns_the_stored_token(self) -> None:
+        integration, _ = self.create_gitlab(
+            expires=int(datetime(2025, 1, 1, 6, 22, tzinfo=timezone.utc).timestamp())
+        )
+
+        # A token is handed out only until five minutes before it expires: a refresh inside
+        # that margin revokes it.
+        assert self.get_token(integration) == RpcAccessToken(
+            token="gl-token", expires_at=datetime(2025, 1, 1, 6, 17, tzinfo=timezone.utc)
+        )
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    def test_gitlab_refreshes_a_token_about_to_expire(self) -> None:
+        integration, identity = self.create_gitlab(
+            expires=int(datetime(2025, 1, 1, 5, 25, tzinfo=timezone.utc).timestamp())
+        )
+        responses.add(
+            responses.POST,
+            "https://gitlab.example.com/oauth/token",
+            match=[
+                matchers.urlencoded_params_matcher(
+                    {
+                        "grant_type": "refresh_token",
+                        "refresh_token": "gl-refresh",
+                        "redirect_uri": absolute_uri("/extensions/gitlab/setup/"),
+                        "client_id": "gl-client",
+                        "client_secret": "gl-secret",
+                    }
+                )
+            ],
+            json={
+                "access_token": "gl-token-2",
+                "refresh_token": "gl-refresh-2",
+                "token_type": "bearer",
+                "expires_in": 7200,
+                "scope": "api",
+            },
+        )
+
+        assert self.get_token(integration) == RpcAccessToken(
+            token="gl-token-2", expires_at=datetime(2025, 1, 1, 7, 17, tzinfo=timezone.utc)
+        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            identity.refresh_from_db()
+        assert identity.data["access_token"] == "gl-token-2"
+        assert identity.data["refresh_token"] == "gl-refresh-2"
+        assert identity.data["expires"] == int(
+            datetime(2025, 1, 1, 7, 22, tzinfo=timezone.utc).timestamp()
+        )
+
+    @responses.activate
+    def test_gitlab_refreshes_a_short_lived_token_only_once(self) -> None:
+        """An instance can configure 5-minute tokens, which the RPC's 5-minute margin would
+        count as expiring as soon as they're issued, refreshing on every call."""
+        integration, _ = self.create_gitlab(
+            expires_in=300,
+            expires=int(datetime(2025, 1, 1, 5, 23, tzinfo=timezone.utc).timestamp()),
+        )
+        responses.add(
+            responses.POST,
+            "https://gitlab.example.com/oauth/token",
+            json={"access_token": "gl-token-2", "refresh_token": "gl-refresh-2", "expires_in": 300},
+        )
+
+        first = self.get_token(integration)
+        second = self.get_token(integration)
+
+        # Handed out until half its lifetime before it expires, rather than five minutes.
+        assert (
+            first
+            == second
+            == RpcAccessToken(
+                token="gl-token-2",
+                expires_at=datetime(2025, 1, 1, 5, 24, 30, tzinfo=timezone.utc),
+            )
+        )
+        assert len(responses.calls) == 1
+
+    @responses.activate
+    def test_gitlab_token_without_a_known_expiry(self) -> None:
+        """Stored before Sentry recorded GitLab's expiry, with no refresh token to get one."""
+        integration, _ = self.create_gitlab(refresh_token=None)
+
+        assert self.get_token(integration) == RpcAccessToken(token="gl-token", expires_at=None)
+        assert len(responses.calls) == 0
+
+    @patch("sentry.integrations.services.integration.impl.logger")
+    def test_none_for_a_gitlab_install_without_an_identity(self, mock_logger: MagicMock) -> None:
+        integration, _ = self.create_gitlab()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration_id=integration.id
+            ).update(default_auth_id=None)
+
+        assert self.get_token(integration) is None
+        mock_logger.warning.assert_called_once_with(
+            "integration_service.access_token.unavailable",
+            extra={
+                "integration_id": integration.id,
+                "organization_id": self.organization.id,
+                "provider": "gitlab",
+                "error": "IntegrationConfigurationError",
+                "status_code": None,
+            },
+        )
 
     @responses.activate
     @patch("sentry.integrations.github.client.get_jwt", return_value="app-jwt")
