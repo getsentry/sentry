@@ -162,6 +162,11 @@ describe('mobile navigation', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Toggle organization menu'}));
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Settings'}));
     expect(router.location.pathname).toBe('/settings/org-slug/');
+    expect(
+      within(screen.getByRole('navigation', {name: 'Secondary Navigation'})).getByText(
+        'Org Settings'
+      )
+    ).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Back to app'}));
     expect(router.location.pathname).toMatch(/^\/organizations\/org-slug\/explore\//);
     const secondaryNav = screen.getByRole('navigation', {name: 'Secondary Navigation'});
