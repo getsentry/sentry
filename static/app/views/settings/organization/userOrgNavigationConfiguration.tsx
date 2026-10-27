@@ -32,7 +32,12 @@ function getAccountNavigationConfiguration(): NavigationSection[] {
         {
           path: `${userSettingsPathPrefix}/details/`,
           title: t('Account Details'),
-          keywords: [t('user settings'), t('account settings')],
+          keywords: [
+            t('user settings'),
+            t('account settings'),
+            t('timezone'),
+            t('clock'),
+          ],
           description: t(
             'Change your account details and preferences (e.g. timezone/clock, avatar, language)'
           ),
@@ -40,6 +45,12 @@ function getAccountNavigationConfiguration(): NavigationSection[] {
         {
           path: `${userSettingsPathPrefix}/security/`,
           title: t('Security'),
+          keywords: [
+            t('2fa'),
+            t('two factor'),
+            t('2 factor authentication'),
+            t('password'),
+          ],
           description: t('Change your account password and/or two factor authentication'),
         },
         {
@@ -96,7 +107,13 @@ function getOrganizationNavigationConfiguration(): NavigationSection[] {
         {
           path: `${organizationSettingsPathPrefix}/`,
           title: t('General Settings'),
-          keywords: [t('slug'), t('org slug'), t('organization slug')],
+          keywords: [
+            t('slug'),
+            t('org slug'),
+            t('organization slug'),
+            // Fixed SDK/config env var name developers search for.
+            'SENTRY_ORG',
+          ],
           index: true,
           description: t('Configure general settings for an organization'),
           id: 'general',
@@ -131,8 +148,11 @@ function getOrganizationNavigationConfiguration(): NavigationSection[] {
           title: t('Security & Privacy'),
           keywords: [
             t('data scrubbing'),
+            t('data scrubber'),
             t('privacy'),
             t('pii'),
+            t('ip address'),
+            t('prevent storing of ip addresses'),
             t('attachments'),
             t('advanced data scrubbing'),
           ],
@@ -311,6 +331,8 @@ function getOrganizationNavigationConfiguration(): NavigationSection[] {
           keywords: [
             t('integration'),
             t('internal integration'),
+            t('internal integrations'),
+            t('new internal integration'),
             t('developer settings'),
             t('webhooks'),
             t('api key'),
@@ -336,12 +358,15 @@ function getDeveloperNavigationConfiguration(
         t('auth'),
         t('auth token'),
         t('auth tokens'),
+        t('auth-tokens'),
         t('api token'),
         t('api key'),
         t('api keys'),
         t('token'),
         t('credentials'),
         t('user auth tokens'),
+        t('create new token'),
+        t('sentry auth token'),
         'SENTRY_AUTH_TOKEN',
       ],
       description: t(
@@ -363,12 +388,17 @@ function getDeveloperNavigationConfiguration(
         t('auth'),
         t('auth token'),
         t('auth tokens'),
+        t('auth-tokens'),
         t('api token'),
         t('api key'),
         t('api keys'),
         t('token'),
         t('credentials'),
         t('user auth tokens'),
+        t('create new token'),
+        t('sentry auth token'),
+        t('organization auth tokens'),
+        t('organisation tokens'),
         'SENTRY_AUTH_TOKEN',
       ],
       description: t('Manage organization tokens'),
