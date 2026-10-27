@@ -1,5 +1,6 @@
 import uuid
 from collections.abc import Callable
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -305,7 +306,7 @@ def test_log_rage_click_events(
 @mock.patch("sentry.replays.usecases.ingest.event_logger.logger")
 def test_log_option_events_with_dict_payload(mock_logger: mock.MagicMock) -> None:
     """Test that option events with a normal dict payload are logged correctly."""
-    option = {"data": {"payload": {"tag": "input", "value": "test"}}}
+    option: dict[str, Any] = {"data": {"payload": {"tag": "input", "value": "test"}}}
     meta = ParsedEventMeta([], [], [], [], [], [option], [], [])
 
     log_option_events(meta, project_id=1, replay_id="test-replay-id")
@@ -322,7 +323,7 @@ def test_log_option_events_with_dict_payload(mock_logger: mock.MagicMock) -> Non
 @mock.patch("sentry.replays.usecases.ingest.event_logger.logger")
 def test_log_option_events_with_filtered_string_payload(mock_logger: mock.MagicMock) -> None:
     """Test that option events whose payload was Relay-scrubbed to a string do not raise."""
-    option = {"data": {"payload": "[Filtered]"}}
+    option: dict[str, Any] = {"data": {"payload": "[Filtered]"}}
     meta = ParsedEventMeta([], [], [], [], [], [option], [], [])
 
     # Must not raise AttributeError: 'str' object has no attribute 'copy'
@@ -338,7 +339,7 @@ def test_log_option_events_with_filtered_string_payload(mock_logger: mock.MagicM
 @mock.patch("sentry.replays.usecases.ingest.event_logger.logger")
 def test_log_option_events_with_missing_payload(mock_logger: mock.MagicMock) -> None:
     """Test that option events without a payload key are logged correctly."""
-    option = {"data": {}}
+    option: dict[str, Any] = {"data": {}}
     meta = ParsedEventMeta([], [], [], [], [], [option], [], [])
 
     log_option_events(meta, project_id=1, replay_id="test-replay-id")
