@@ -4,7 +4,7 @@ import logging
 from copy import deepcopy
 from dataclasses import dataclass
 from functools import partial
-from typing import Any
+from typing import Any, get_args
 from uuid import UUID, uuid5
 
 from django.db import IntegrityError, router, transaction
@@ -24,6 +24,7 @@ from sentry.investigations.models import (
     InvestigationSourceType,
     InvestigationStatus,
 )
+from sentry.investigations.services.action_kinds.base import FollowUpCommandType
 from sentry.investigations.services.breached_metrics import (
     BreachedMetricSource,
     resolve_breached_metric_sources,
@@ -305,7 +306,7 @@ def _reset_create_dispatch_failure(run: InvestigationOrchestrationRun) -> None:
 # workflow version for them.
 INTERNAL_COMMAND_TYPES = frozenset({"record_action_outcome"})
 # Commands Sentry sends for an action request, which shows how they went.
-FOLLOW_UP_COMMAND_TYPES = frozenset({"recheck_action_requests"})
+FOLLOW_UP_COMMAND_TYPES: frozenset[str] = frozenset(get_args(FollowUpCommandType))
 
 
 def _is_run_retry(command_type: str, payload: dict[str, Any]) -> bool:

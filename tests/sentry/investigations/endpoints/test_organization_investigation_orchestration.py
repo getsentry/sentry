@@ -395,7 +395,11 @@ class OrganizationInvestigationOrchestrationCommandsTest(APITestCase):
         assert not InvestigationOrchestrationCommand.objects.exists()
 
     def test_users_cannot_send_the_commands_sentry_sends_for_action_requests(self) -> None:
-        for name in ("command_record_action_outcome", "command_recheck_action_requests"):
+        for name in (
+            "command_record_action_outcome",
+            "command_recheck_action_requests",
+            "command_rerun_after_connection",
+        ):
             response = self.client.post(
                 self.command_url, data=self.command(command=fixture(name)), format="json"
             )

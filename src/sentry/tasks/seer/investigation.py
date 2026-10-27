@@ -22,6 +22,7 @@ from sentry.investigations.models import (
     InvestigationOrchestrationCommand,
     InvestigationOrchestrationCommandStatus,
     InvestigationOrchestrationPhase,
+    InvestigationOrchestrationRerun,
     InvestigationOrchestrationRun,
     InvestigationOrchestrationStatus,
 )
@@ -330,6 +331,7 @@ def _reconcile_command_version_conflict(
 def _mark_command_dispatch_acknowledged(
     orchestration_run_id: int,
     command_id: int,
+    rerun: InvestigationOrchestrationRerun | None,
 ) -> None:
     database = router.db_for_write(InvestigationOrchestrationCommand)
     with transaction.atomic(using=database):
@@ -343,9 +345,13 @@ def _mark_command_dispatch_acknowledged(
             and command.error.get("code") == "seer_command_dispatch_failed"
             and command.error.get("retryable") is True
         )
-        command.status = InvestigationOrchestrationCommandStatus.ACKNOWLEDGED
-        command.error = None
-        command.save(update_fields=["status", "error", "date_updated"])
+        # Seer's rerun_updated event can arrive before its response, and it's newer.
+        if command.rerun is None:
+            command.rerun = rerun
+        if command.rerun != InvestigationOrchestrationRerun.SKIPPED:
+            command.status = InvestigationOrchestrationCommandStatus.ACKNOWLEDGED
+            command.error = None
+        command.save(update_fields=["status", "error", "rerun", "date_updated"])
         if recovered_dispatch_failure:
             blocked_commands = list(
                 InvestigationOrchestrationCommand.objects.select_for_update()
@@ -567,7 +573,7 @@ def dispatch_investigation_orchestration_commands(orchestration_run_id: int) -> 
             _mark_command_dispatch_failed(command.id)
             return
 
-        _mark_command_dispatch_acknowledged(run.id, command.id)
+        _mark_command_dispatch_acknowledged(run.id, command.id, response["rerun"])
 
 
 @instrumented_task(

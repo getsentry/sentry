@@ -28,9 +28,12 @@ from sentry.investigations.models import (
     InvestigationBlockExecutionStatus,
     InvestigationBlockExecutor,
     InvestigationBlockKind,
+    InvestigationOrchestrationCommand,
+    InvestigationOrchestrationCommandStatus,
     InvestigationOrchestrationEvent,
     InvestigationOrchestrationEventStatus,
     InvestigationOrchestrationPhase,
+    InvestigationOrchestrationRerun,
     InvestigationOrchestrationRun,
     InvestigationOrchestrationStatus,
     InvestigationProject,
@@ -271,6 +274,25 @@ def _set_projection(
     projection_error = projection.get("error")
     if projection_error is None or isinstance(projection_error, dict):
         run.error = deepcopy(projection_error)
+
+
+def _update_rerun(run: InvestigationOrchestrationRun, payload: dict[str, Any]) -> None:
+    """Record whether Seer started or dropped a re-run it held. It can arrive before the
+    command's response.
+    """
+
+    commands = InvestigationOrchestrationCommand.objects.filter(
+        orchestration_run=run, request_id=payload["requestId"]
+    )
+    if payload["rerun"] == InvestigationOrchestrationRerun.SKIPPED:
+        commands.update(
+            rerun=InvestigationOrchestrationRerun.SKIPPED,
+            status=InvestigationOrchestrationCommandStatus.FAILED,
+            error={"code": "rerun_skipped", "reason": payload["reason"]},
+            date_updated=timezone.now(),
+        )
+    else:
+        commands.update(rerun=InvestigationOrchestrationRerun.STARTED, date_updated=timezone.now())
 
 
 def _projection_is_stale(
@@ -837,6 +859,12 @@ def _apply_event(
     # schemas change. Normalizing here is what lets the apply path read coerced
     # values and defaults without re-checking any types.
     payload = _validate_event_payload(event.type, _event_data(event), log_drops=True)
+    if event.type == "rerun_updated":
+        # It's about a command, so any generation counts. A re-run that starts sends it ahead
+        # of the new generation's projection.
+        _update_rerun(run, payload)
+        run.heartbeat_at = timezone.now()
+        return True, None
     generation = _event_generation(event)
     if generation < run.generation:
         return False, "stale_generation"

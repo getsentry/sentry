@@ -4,7 +4,7 @@ import abc
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 from rest_framework.request import Request
@@ -85,6 +85,16 @@ class ApplyContext:
     actor_id: int
 
 
+FollowUpCommandType = Literal["recheck_action_requests", "rerun_after_connection"]
+
+
+class FollowUpCommand(TypedDict):
+    """A command Sentry sends Seer for an action request."""
+
+    type: FollowUpCommandType
+    payload: dict[str, Any]
+
+
 class ActionStale(Exception):
     """What the action changes moved since Seer suggested it."""
 
@@ -137,6 +147,12 @@ class ActionKind(abc.ABC):
         ActionStale or ActionInvalid instead of updating the request; the caller records it.
         """
         raise NotImplementedError
+
+    def follow_up_command(
+        self, action_request: InvestigationActionRequest
+    ) -> FollowUpCommand | None:
+        """What to ask Seer to do once the request is applied, if anything."""
+        return None
 
     def after_upsert(self, action_request: InvestigationActionRequest) -> None:
         """Runs when Seer creates or changes a request, in the same transaction. Only requests

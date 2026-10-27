@@ -10,8 +10,13 @@ from django.test import override_settings
 from sentry.investigations.models import (
     InvestigationOrchestrationCommand,
     InvestigationOrchestrationCommandStatus,
+    InvestigationOrchestrationRerun,
 )
 from sentry.investigations.services.orchestration import accept_orchestration_command
+from sentry.investigations.services.orchestration_events import (
+    deliver_orchestration_event,
+    synchronize_orchestration_projection,
+)
 from sentry.seer.models.run import SeerRunMirrorStatus, SeerRunType
 from sentry.tasks.seer.investigation import (
     _mark_command_dispatch_failed,
@@ -285,6 +290,218 @@ class QueuedCommandsTest(TestCase):
         assert recheck.status == InvestigationOrchestrationCommandStatus.FAILED
         assert self.orchestration_run.error is None
         assert self.orchestration_run.projection["errors"] == []
+
+    def rerun(self) -> InvestigationOrchestrationCommand:
+        payload = fixture("command_rerun_after_connection")
+        del payload["type"]
+        return self.accept("rerun_after_connection", payload)
+
+    def assert_a_turned_down_re_run_keeps_seers_code(
+        self, seer: mock.Mock, code: str, *, fixture_name: str | None = None
+    ) -> None:
+        self.seer_rejects_with(seer, fixture_name or f"rejected_rerun_after_connection_{code}")
+        rerun = self.rerun()
+
+        dispatch_investigation_orchestration_commands(self.orchestration_run.id)
+
+        rerun.refresh_from_db()
+        self.orchestration_run.refresh_from_db()
+        assert rerun.status == InvestigationOrchestrationCommandStatus.FAILED
+        assert rerun.error is not None
+        assert rerun.error["reason"] == code
+        assert self.orchestration_run.error is None
+
+    @mock.patch("sentry.investigations.seer_client.make_signed_seer_api_request")
+    def test_a_re_run_turned_down_because_the_run_was_cancelled(self, seer: mock.Mock) -> None:
+        self.assert_a_turned_down_re_run_keeps_seers_code(seer, "run_cancelled")
+
+    @mock.patch("sentry.investigations.seer_client.make_signed_seer_api_request")
+    def test_a_re_run_turned_down_because_the_run_failed(self, seer: mock.Mock) -> None:
+        self.assert_a_turned_down_re_run_keeps_seers_code(seer, "run_failed")
+
+    @mock.patch("sentry.investigations.seer_client.make_signed_seer_api_request")
+    def test_a_re_run_turned_down_because_the_provider_is_not_connected(
+        self, seer: mock.Mock
+    ) -> None:
+        self.assert_a_turned_down_re_run_keeps_seers_code(seer, "provider_not_connected")
+
+    @mock.patch("sentry.investigations.seer_client.make_signed_seer_api_request")
+    def test_a_re_run_turned_down_because_the_provider_was_used(self, seer: mock.Mock) -> None:
+        self.assert_a_turned_down_re_run_keeps_seers_code(seer, "provider_already_used")
+
+    def seer_accepts_with(self, seer: mock.Mock, name: str) -> None:
+        """Seer accepts every command and answers with this fixture."""
+
+        self.orchestration_run.update(
+            seer_run=self.create_seer_run(
+                organization=self.organization,
+                type=SeerRunType.INVESTIGATION,
+                seer_run_state_id=self.seer_run_id,
+                mirror_status=SeerRunMirrorStatus.LIVE,
+            )
+        )
+
+        def respond(_pool: object, path: str, *, body: bytes, **_: object) -> mock.Mock:
+            accepted = {
+                "runId": self.seer_run_id,
+                "requestId": json.loads(body)["requestId"],
+                "accepted": True,
+                "duplicate": False,
+                "workflowVersion": 11,
+                "projection": self.projection(),
+                **fixture(name),
+            }
+            return mock.Mock(status=200, data=json.dumps(accepted).encode())
+
+        seer.side_effect = respond
+
+    def held_rerun(self, seer: mock.Mock) -> InvestigationOrchestrationCommand:
+        self.seer_accepts_with(seer, "rerun_after_connection_held")
+        rerun = self.rerun()
+        dispatch_investigation_orchestration_commands(self.orchestration_run.id)
+        rerun.refresh_from_db()
+        return rerun
+
+    def seer_sends_rerun_updated(
+        self, rerun: InvestigationOrchestrationCommand, name: str, *, generation: int = 1
+    ) -> None:
+        self.orchestration_run.refresh_from_db()
+        deliver_orchestration_event(
+            organization_id=self.organization.id,
+            event={
+                "schema_version": 1,
+                "event_id": uuid4(),
+                "run_id": self.seer_run_id,
+                "investigation_id": self.investigation.id,
+                "sequence": self.orchestration_run.last_event_sequence + 1,
+                "generation": generation,
+                "type": "rerun_updated",
+                "payload": {**fixture(name), "requestId": str(rerun.request_id)},
+            },
+        )
+
+    def run_becomes(self, status: str) -> None:
+        synchronize_orchestration_projection(
+            orchestration_run_id=self.orchestration_run.id,
+            seer_run_id=self.seer_run_id,
+            projection={**self.projection(), "workflowVersion": 11, "status": status},
+        )
+
+    @mock.patch("sentry.investigations.seer_client.make_signed_seer_api_request")
+    def test_a_re_run_seer_started_is_stored_as_started(self, seer: mock.Mock) -> None:
+        self.seer_accepts_with(seer, "rerun_after_connection_started")
+        rerun = self.rerun()
+
+        dispatch_investigation_orchestration_commands(self.orchestration_run.id)
+
+        rerun.refresh_from_db()
+        assert rerun.status == InvestigationOrchestrationCommandStatus.ACKNOWLEDGED
+        assert rerun.rerun == InvestigationOrchestrationRerun.STARTED
+
+    @mock.patch("sentry.investigations.seer_client.make_signed_seer_api_request")
+    def test_a_re_run_seer_held_is_stored_as_held(self, seer: mock.Mock) -> None:
+        rerun = self.held_rerun(seer)
+
+        assert rerun.status == InvestigationOrchestrationCommandStatus.ACKNOWLEDGED
+        assert rerun.rerun == InvestigationOrchestrationRerun.HELD
+
+    @mock.patch("sentry.investigations.seer_client.make_signed_seer_api_request")
+    def test_the_run_ending_leaves_a_held_re_run_to_seer(self, seer: mock.Mock) -> None:
+        rerun = self.held_rerun(seer)
+        self.run_becomes("processing")
+
+        self.run_becomes("failed")
+
+        rerun.refresh_from_db()
+        assert rerun.status == InvestigationOrchestrationCommandStatus.ACKNOWLEDGED
+        assert rerun.rerun == InvestigationOrchestrationRerun.HELD
+
+    @mock.patch("sentry.investigations.seer_client.make_signed_seer_api_request")
+    def test_a_held_re_run_seer_starts_in_its_new_generation(self, seer: mock.Mock) -> None:
+        rerun = self.held_rerun(seer)
+
+        self.seer_sends_rerun_updated(rerun, "rerun_updated_started", generation=2)
+
+        rerun.refresh_from_db()
+        assert rerun.status == InvestigationOrchestrationCommandStatus.ACKNOWLEDGED
+        assert rerun.rerun == InvestigationOrchestrationRerun.STARTED
+
+    def assert_a_dropped_re_run_fails_with_seers_reason(self, seer: mock.Mock, reason: str) -> None:
+        rerun = self.held_rerun(seer)
+
+        self.seer_sends_rerun_updated(rerun, f"rerun_updated_skipped_{reason}")
+
+        rerun.refresh_from_db()
+        assert rerun.status == InvestigationOrchestrationCommandStatus.FAILED
+        assert rerun.rerun == InvestigationOrchestrationRerun.SKIPPED
+        assert rerun.error == {"code": "rerun_skipped", "reason": reason}
+
+    @mock.patch("sentry.investigations.seer_client.make_signed_seer_api_request")
+    def test_a_held_re_run_dropped_because_the_run_failed(self, seer: mock.Mock) -> None:
+        self.assert_a_dropped_re_run_fails_with_seers_reason(seer, "run_failed")
+
+    @mock.patch("sentry.investigations.seer_client.make_signed_seer_api_request")
+    def test_a_held_re_run_dropped_because_the_run_was_cancelled(self, seer: mock.Mock) -> None:
+        self.assert_a_dropped_re_run_fails_with_seers_reason(seer, "run_cancelled")
+
+    @mock.patch("sentry.investigations.seer_client.make_signed_seer_api_request")
+    def test_a_held_re_run_dropped_because_the_provider_disconnected(self, seer: mock.Mock) -> None:
+        self.assert_a_dropped_re_run_fails_with_seers_reason(seer, "provider_not_connected")
+
+    def seer_settles_it_before_answering(self, seer: mock.Mock, name: str) -> None:
+        """Seer holds the re-run, and its rerun_updated event lands before its response."""
+
+        self.seer_accepts_with(seer, "rerun_after_connection_held")
+        answer = seer.side_effect
+
+        def respond(pool: object, path: str, *, body: bytes, **kwargs: object) -> mock.Mock:
+            command = InvestigationOrchestrationCommand.objects.get(
+                request_id=json.loads(body)["requestId"]
+            )
+            self.seer_sends_rerun_updated(command, name)
+            return answer(pool, path, body=body, **kwargs)
+
+        seer.side_effect = respond
+
+    @mock.patch("sentry.investigations.seer_client.make_signed_seer_api_request")
+    def test_a_start_that_lands_before_the_response_is_kept(self, seer: mock.Mock) -> None:
+        self.seer_settles_it_before_answering(seer, "rerun_updated_started")
+        rerun = self.rerun()
+
+        dispatch_investigation_orchestration_commands(self.orchestration_run.id)
+
+        rerun.refresh_from_db()
+        assert rerun.status == InvestigationOrchestrationCommandStatus.ACKNOWLEDGED
+        assert rerun.rerun == InvestigationOrchestrationRerun.STARTED
+
+    @mock.patch("sentry.investigations.seer_client.make_signed_seer_api_request")
+    def test_a_drop_that_lands_before_the_response_is_kept(self, seer: mock.Mock) -> None:
+        self.seer_settles_it_before_answering(seer, "rerun_updated_skipped_run_failed")
+        rerun = self.rerun()
+
+        dispatch_investigation_orchestration_commands(self.orchestration_run.id)
+
+        rerun.refresh_from_db()
+        assert rerun.status == InvestigationOrchestrationCommandStatus.FAILED
+        assert rerun.rerun == InvestigationOrchestrationRerun.SKIPPED
+        assert rerun.error == {"code": "rerun_skipped", "reason": "run_failed"}
+
+    @mock.patch("sentry.investigations.seer_client.make_signed_seer_api_request")
+    def test_a_resent_re_run_seer_started_is_started(self, seer: mock.Mock) -> None:
+        self.seer_accepts_with(seer, "duplicate_rerun_after_connection_started")
+        rerun = self.rerun()
+
+        dispatch_investigation_orchestration_commands(self.orchestration_run.id)
+
+        rerun.refresh_from_db()
+        assert rerun.status == InvestigationOrchestrationCommandStatus.ACKNOWLEDGED
+        assert rerun.rerun == InvestigationOrchestrationRerun.STARTED
+
+    @mock.patch("sentry.investigations.seer_client.make_signed_seer_api_request")
+    def test_a_resent_re_run_seer_dropped_fails_with_its_reason(self, seer: mock.Mock) -> None:
+        self.assert_a_turned_down_re_run_keeps_seers_code(
+            seer, "run_failed", fixture_name="duplicate_rerun_after_connection_skipped"
+        )
 
     @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
     @mock.patch("sentry.investigations.seer_client.investigation_connection_pool.urlopen")

@@ -25,6 +25,7 @@ from sentry.tasks.seer.investigation import (
 )
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.features import with_feature
+from tests.sentry.investigations.test_seer_contract import fixture
 
 TEST_FERNET_KEY = Fernet.generate_key().decode("utf-8")
 FEATURE = "organizations:seer-infra-telemetry"
@@ -180,12 +181,13 @@ class ConnectTelemetryApplyTest(APITestCase, TelemetryFixtures):
         assert action_request.state == InvestigationActionRequestState.APPLIED
         assert action_request.applied_by_id == self.user.id
         assert action_request.applied_details == {"provider": "datadog"}
-        assert [
-            command.type
-            for command in InvestigationOrchestrationCommand.objects.filter(
-                orchestration_run=self.orchestration_run
-            )
-        ] == ["record_action_outcome"]
+        outcome, rerun = InvestigationOrchestrationCommand.objects.filter(
+            orchestration_run=self.orchestration_run
+        ).order_by("id")
+        assert outcome.type == "record_action_outcome"
+        assert {"type": rerun.type, **rerun.payload} == fixture("command_rerun_after_connection")
+        assert (rerun.expected_workflow_version, rerun.resulting_workflow_version) == (4, 5)
+        assert action_request.followup_request_id == rerun.request_id
 
     def test_a_provider_that_is_not_connected_cannot_be_applied(self) -> None:
         self.suggest()
@@ -270,7 +272,7 @@ class ConnectionHookTest(TelemetryFixtures):
         assert request.state == InvestigationActionRequestState.APPLIED
         assert request.applied_by_id == self.user.id
         assert request.applied_details == {"provider": "datadog"}
-        [outcome] = self.commands()
+        outcome, rerun = self.commands()
         assert {"type": outcome.type, **outcome.payload} == {
             "type": "record_action_outcome",
             "key": "connect-telemetry-datadog-r1",
@@ -279,6 +281,20 @@ class ConnectionHookTest(TelemetryFixtures):
             "outcome": "applied",
             "appliedBy": self.user.id,
         }
+        assert {"type": rerun.type, **rerun.payload} == fixture("command_rerun_after_connection")
+        assert request.followup_request_id == rerun.request_id
+
+    def test_requests_for_the_same_provider_share_one_re_run(self) -> None:
+        first = self.connect_request()
+        second = self.connect_request(key="connect-telemetry-datadog-r2")
+
+        self.connected(self.user.id)
+
+        reruns = [command for command in self.commands() if command.type != "record_action_outcome"]
+        assert len(reruns) == 1
+        for request in (first, second):
+            request.refresh_from_db()
+            assert request.followup_request_id == reruns[0].request_id
 
     def test_a_second_hook_for_the_same_connection_does_nothing(self) -> None:
         self.connect_request()
@@ -286,7 +302,7 @@ class ConnectionHookTest(TelemetryFixtures):
 
         self.connected(None)
 
-        assert len(self.commands()) == 1
+        assert len(self.commands()) == 2
 
     def test_only_suggested_requests_for_the_provider_are_applied(self) -> None:
         gcp = self.connect_request(
@@ -316,9 +332,11 @@ class ConnectionHookTest(TelemetryFixtures):
 
         request.refresh_from_db()
         assert request.applied_by_id is None
-        [outcome] = self.commands()
+        outcome, rerun = self.commands()
         assert outcome.payload["appliedBy"] is None
         assert outcome.actor_id is None
+        assert rerun.actor_id is None
+        assert request.followup_request_id == rerun.request_id
 
     def test_the_installer_applies_it(self) -> None:
         installer = self.create_user()
@@ -327,9 +345,9 @@ class ConnectionHookTest(TelemetryFixtures):
 
         self.connected(installer.id)
 
-        [outcome] = self.commands()
+        outcome, rerun = self.commands()
         assert outcome.payload["appliedBy"] == installer.id
-        assert outcome.actor_id == installer.id
+        assert outcome.actor_id == rerun.actor_id == installer.id
 
     def test_requests_older_than_a_day_are_left_for_the_user(self) -> None:
         old = self.connect_request()

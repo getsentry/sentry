@@ -17,6 +17,7 @@ from sentry.investigations.models import (
     InvestigationBlock,
     InvestigationOrchestrationCommand,
     InvestigationOrchestrationCommandStatus,
+    InvestigationOrchestrationRerun,
 )
 from sentry.investigations.seer_client import CommandRejectionCode
 from sentry.investigations.services.action_kinds import (
@@ -44,11 +45,13 @@ class InvestigationActionRequestAnchorResponse(TypedDict):
 
 class InvestigationActionRequestFollowUpResponse(TypedDict):
     """The re-check or re-run Sentry sent Seer for this request. `reason` is Seer's code when it
-    turned it down.
+    turned it down or dropped it. `rerun` is what Seer did with a re-run, and null for a
+    re-check.
     """
 
     status: InvestigationOrchestrationCommandStatus
     reason: CommandRejectionCode | None
+    rerun: InvestigationOrchestrationRerun | None
 
 
 class InvestigationActionRequestSerializerResponse(TypedDict):
@@ -167,15 +170,16 @@ class InvestigationActionRequestSerializer(
             (investigation_id, request_id): {
                 "status": InvestigationOrchestrationCommandStatus(status),
                 "reason": (error or {}).get("reason"),
+                "rerun": InvestigationOrchestrationRerun(rerun) if rerun is not None else None,
             }
-            for investigation_id, request_id, status, error in (
+            for investigation_id, request_id, status, error, rerun in (
                 InvestigationOrchestrationCommand.objects.filter(
                     orchestration_run__investigation_id__in={
                         item.investigation_id for item in item_list
                     },
                     request_id__in=request_ids,
                 ).values_list(
-                    "orchestration_run__investigation_id", "request_id", "status", "error"
+                    "orchestration_run__investigation_id", "request_id", "status", "error", "rerun"
                 )
             )
         }
