@@ -102,7 +102,6 @@ function mayHoldCredentials(url: string) {
 export const UPTIME_DETECTOR_DRAFT_CONFIG: DetectorDraftConfig<UptimeDetectorFormData> = {
   shape: {
     assertion: z.object({root: andOp}),
-    description: z.string().nullable(),
     downtimeThreshold: draftNumber,
     environment: z.string(),
     intervalSeconds: z
