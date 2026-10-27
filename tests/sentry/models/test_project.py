@@ -1,4 +1,5 @@
 from collections.abc import Iterable
+from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -9,11 +10,12 @@ from sentry.db.models.fields.slug import SentrySlugField
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
 from sentry.grouping.grouptype import ErrorGroupType
-from sentry.ingest.legacy_filter_lists import STAGE_OPTION
+from sentry.incidents.grouptype import MetricIssue
+from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.types import ExternalProviders
-from sentry.models.custominboundfilter import CustomInboundFilter
+from sentry.models.custominboundfilter import CustomInboundFilter, LegacyFilter
 from sentry.models.environment import Environment, EnvironmentProject
 from sentry.models.grouplink import GroupLink
 from sentry.models.organizationmember import OrganizationMember
@@ -33,10 +35,11 @@ from sentry.notifications.models.notificationsettingoption import NotificationSe
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.notifications.utils.participants import get_notification_recipients
 from sentry.silo.base import SiloMode
-from sentry.snuba.models import SnubaQuery
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.snuba.subscriptions import create_snuba_query
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.actor import Actor
@@ -121,17 +124,6 @@ class ProjectTest(APITestCase, TestCase):
         assert team.id in {t.id for t in teams}
 
     @patch("sentry.models.project.locks.get")
-    def test_lock_is_acquired_when_creating_project(self, mock_lock: MagicMock) -> None:
-        # self.organization is cached property, which means it will be created
-        # only if it is accessed, so we need to simulate access and all potential mock
-        # calls before resetting the mock
-        assert self.organization
-        # Ensure the mock starts clean before the save operation
-        mock_lock.reset_mock()
-        Project.objects.create(organization=self.organization)
-        assert mock_lock.call_count == 3  # 1 lock for cached org, 2 locks for default detectors
-
-    @patch("sentry.models.project.locks.get")
     def test_lock_is_not_acquired_when_updating_project(self, mock_lock: MagicMock) -> None:
         # self.project is cached property, which means it will be created
         # only if it is accessed, so we need to simulate access and all potential mock
@@ -181,11 +173,6 @@ class TestProjectTransfer(TestCase):
 
     def test_transfer_to_organization(self) -> None:
         project_other = self.create_project(teams=[self.team])
-        rule = self.create_project_rule(
-            name="Golden Rule",
-            project=self.project,
-            environment_id=Environment.get_or_create(self.project, "production").id,
-        )
         environment_from_new = self.create_environment(organization=self.from_org)
         environment_from_existing = self.create_environment(organization=self.from_org)
         environment_to_existing = self.create_environment(
@@ -236,13 +223,6 @@ class TestProjectTransfer(TestCase):
 
         assert self.project.teams.count() == 0
         assert self.project.organization_id == self.to_org.id
-
-        updated_rule = self.project.rule_set.get(label="Golden Rule")
-        assert updated_rule.id == rule.id
-        assert updated_rule.environment_id != rule.environment_id
-        assert (
-            updated_rule.environment_id == Environment.get_or_create(self.project, "production").id
-        )
 
         # check to make sure old monitor is scheduled for deletion
         assert CellScheduledDeletion.objects.filter(
@@ -434,68 +414,74 @@ class TestProjectTransfer(TestCase):
 
         assert ProjectCodeOwners.objects.filter(project_id=self.project.id).count() == 0
 
-    def test_transfer_to_organization_alert_rules(self) -> None:
-        from_user = self.create_user()
-        self.create_member(user=from_user, role="member", organization=self.from_org)
-        to_team = self.create_team(organization=self.to_org)
-        to_user = self.create_user()
-        self.create_member(user=to_user, role="member", organization=self.to_org)
-
-        self.project = self.create_project(teams=[self.team])
+    def test_transfer_to_organization_remaps_detector_snuba_query_environment(self) -> None:
         environment = Environment.get_or_create(self.project, "production")
-
-        # should lose their owners
-        alert_rule = self.create_alert_rule(
-            organization=self.organization,
-            projects=[self.project],
-            owner=Actor.from_identifier(f"team:{self.team.id}"),
+        snuba_query = create_snuba_query(
+            query_type=SnubaQuery.Type.ERROR,
+            dataset=Dataset.Events,
+            query="",
+            aggregate="count()",
+            time_window=timedelta(minutes=5),
+            resolution=timedelta(minutes=1),
             environment=environment,
         )
-        snuba_query = SnubaQuery.objects.filter(id=alert_rule.snuba_query_id).get()
-        rule1 = self.create_project_rule(
-            name="another test rule", project=self.project, owner_team=self.team
+        subscription = QuerySubscription.objects.create(
+            project=self.project,
+            snuba_query=snuba_query,
+            type="test",
         )
-        rule2 = self.create_project_rule(
-            name="rule4", project=self.project, owner_user_id=from_user.id
+        data_source = self.create_data_source(
+            organization=self.from_org,
+            source_id=str(subscription.id),
+            type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
         )
-
-        # should keep their owners
-        rule3 = self.create_project_rule(name="rule2", project=self.project, owner_team=to_team)
-        rule4 = self.create_project_rule(
-            name="rule3", project=self.project, owner_user_id=to_user.id
+        detector = self.create_detector(project=self.project, type=MetricIssue.slug)
+        self.create_data_source_detector(data_source=data_source, detector=detector)
+        malformed_data_source = self.create_data_source(
+            organization=self.from_org,
+            source_id="not-a-query-subscription-id",
+            type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
         )
-
-        assert EnvironmentProject.objects.count() == 1
-        assert snuba_query.environment is not None
-        assert snuba_query.environment.id == environment.id
+        self.create_data_source_detector(data_source=malformed_data_source, detector=detector)
 
         self.project.transfer_to(organization=self.to_org)
 
-        alert_rule.refresh_from_db()
-        rule1.refresh_from_db()
-        rule2.refresh_from_db()
-        rule3.refresh_from_db()
-        rule4.refresh_from_db()
         snuba_query.refresh_from_db()
 
-        assert (
-            Environment.objects.exclude(id=environment.id).count() == 1
-        )  # not the same as the from_org env
-        assert EnvironmentProject.objects.count() == 1
-        assert snuba_query.environment != environment
-        assert alert_rule.organization_id == self.to_org.id
-        assert alert_rule.user_id is None
-        assert alert_rule.team_id is None
+        assert snuba_query.environment_id is not None
+        assert snuba_query.environment_id != environment.id
+        transferred_environment = Environment.objects.get(id=snuba_query.environment_id)
+        assert transferred_environment.organization_id == self.to_org.id
+        assert transferred_environment.name == environment.name
 
-        for rule in (rule1, rule2):
-            assert rule.owner_user_id is None
-            assert rule.owner_team_id is None
+    def test_transfer_to_organization_preserves_null_detector_snuba_query_environment(self) -> None:
+        snuba_query = create_snuba_query(
+            query_type=SnubaQuery.Type.ERROR,
+            dataset=Dataset.Events,
+            query="",
+            aggregate="count()",
+            time_window=timedelta(minutes=5),
+            resolution=timedelta(minutes=1),
+            environment=None,
+        )
+        subscription = QuerySubscription.objects.create(
+            project=self.project,
+            snuba_query=snuba_query,
+            type="test",
+        )
+        data_source = self.create_data_source(
+            organization=self.from_org,
+            source_id=str(subscription.id),
+            type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+        )
+        detector = self.create_detector(project=self.project, type=MetricIssue.slug)
+        self.create_data_source_detector(data_source=data_source, detector=detector)
 
-        assert rule3.owner_user_id is None
-        assert rule3.owner_team_id
+        self.project.transfer_to(organization=self.to_org)
 
-        assert rule4.owner_user_id
-        assert rule4.owner_team_id is None
+        snuba_query.refresh_from_db()
+
+        assert snuba_query.environment_id is None
 
     def test_transfer_to_organization_external_issues(self) -> None:
         group = self.create_group(project=self.project)
@@ -1080,8 +1066,7 @@ class CopyProjectSettingsTest(TestCase):
         self.assert_settings_copied(project)
         self.assert_other_project_settings_not_changed()
 
-    @override_options({STAGE_OPTION: {"releases": "double_write"}})
-    def test_copy_writes_the_row_of_a_double_written_list(self) -> None:
+    def test_copy_writes_the_row_of_a_list(self) -> None:
         self.other_project.update_option("sentry:releases", ["1.*"])
         project = self.create_project(fire_project_created=True)
 
@@ -1090,8 +1075,27 @@ class CopyProjectSettingsTest(TestCase):
         assert project.get_option("sentry:releases") == ["1.*"]
         row = CustomInboundFilter.objects.get(project_id=project.id)
         assert row.legacy_filter == "release-version"
-        assert row.conditions == [{"type": "release", "value": ["1.*"]}]
+        assert row.conditions == [{"type": "release", "operator": "glob", "value": ["1.*"]}]
         self.assert_settings_copied(project)
+
+    def test_copy_keeps_the_name_and_the_active_flag_of_a_list_row(self) -> None:
+        self.other_project.update_option("sentry:releases", ["1.*"])
+        self.create_project_custom_inbound_filter(
+            project=self.other_project,
+            name="Old builds",
+            active=False,
+            data_type="all",
+            conditions=[{"type": "release", "operator": "glob", "value": ["1.*"]}],
+            legacy_filter=LegacyFilter.RELEASE_VERSION,
+        )
+        project = self.create_project(fire_project_created=True)
+
+        assert project.copy_settings_from(self.other_project.id)
+
+        row = CustomInboundFilter.objects.get(project_id=project.id)
+        assert row.name == "Old builds"
+        assert row.active is False
+        assert row.conditions == [{"type": "release", "operator": "glob", "value": ["1.*"]}]
 
 
 @control_silo_test

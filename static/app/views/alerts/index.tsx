@@ -1,4 +1,4 @@
-import {Outlet} from 'react-router-dom';
+import {Outlet} from 'react-router';
 
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {Redirect} from 'sentry/components/redirect';

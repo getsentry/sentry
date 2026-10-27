@@ -1,26 +1,31 @@
 from __future__ import annotations
 
-from sentry import eventstore
+from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.notifications.platform.discord.provider import DiscordRenderable
 from sentry.notifications.platform.registry import renderer_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.service import NotificationRenderError
 from sentry.notifications.platform.templates.issue import IssueNotificationData
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
     NotificationRenderedTemplate,
     NotificationSource,
 )
-from sentry.services.eventstore.models import Event
+from sentry.workflow_engine.tasks.utils import fetch_event
 
 
 @renderer_registry.register(NotificationProviderKey.DISCORD, sources=[NotificationSource.ISSUE])
 class IssueDiscordRenderer(NotificationRenderer[DiscordRenderable]):
     @classmethod
     def render[DataT: NotificationData](
-        cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
+        cls,
+        *,
+        data: DataT,
+        rendered_template: NotificationRenderedTemplate,
+        link_decorator: NotificationLinkDecorator,
     ) -> DiscordRenderable:
         if not isinstance(data, IssueNotificationData):
             raise ValueError(f"IssueDiscordRenderer does not support {data.__class__.__name__}")
@@ -37,16 +42,13 @@ class IssueDiscordRenderer(NotificationRenderer[DiscordRenderable]):
         group_event = None
         if data.event_id:
             try:
-                event = eventstore.backend.get_event_by_id(
-                    project_id=group.project.id, event_id=data.event_id, group_id=data.group_id
-                )
-                if isinstance(event, Event):
-                    # Discord only supports GroupEvents, and we can't guarantee
-                    # the type passed by eventstore, so we convert base Events
-                    # to GroupEvents.
+                event = fetch_event(data.event_id, group.project_id)
+                if event is not None:
                     group_event = event.for_group(group)
-                else:
-                    group_event = event
+                    if data.occurrence_id:
+                        group_event.occurrence = IssueOccurrence.fetch(
+                            data.occurrence_id, group.project_id
+                        )
             except Exception:
                 raise NotificationRenderError(f"Failed to retrieve event {data.event_id}")
 
@@ -57,5 +59,5 @@ class IssueDiscordRenderer(NotificationRenderer[DiscordRenderable]):
             event=group_event,
             tags=set(data.tags) if data.tags else None,
             rules=rules,
-            link_to_event=True,
+            link_decorator=link_decorator,
         ).build(notification_uuid=data.notification_uuid)

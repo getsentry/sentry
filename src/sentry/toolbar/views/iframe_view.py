@@ -33,9 +33,6 @@ class IframeView(ProjectView):
     def handle_not_2fa_compliant(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
         return self._respond_with_state("logged-out")
 
-    def handle_sudo_required(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
-        return self._respond_with_state("logged-out")
-
     def handle_auth_required(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
         return self._respond_with_state("logged-out")
 

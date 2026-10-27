@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconPlay} from '@sentry/icons/play';
 import * as Sentry from '@sentry/react';
 import {useQuery} from '@tanstack/react-query';
 import type {Location} from 'history';
@@ -15,7 +16,6 @@ import {useStacktraceLink} from 'sentry/components/events/interfaces/frame/useSt
 import {ALL_DATE_TIME_QUERY_KEYS} from 'sentry/components/pageFilters/constants';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {Version} from 'sentry/components/version';
-import {IconPlay} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import type {PageFilterDatetime} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
@@ -64,7 +64,7 @@ import {
 } from 'sentry/views/explore/logs/utils';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {TraceItemMetaInfo} from 'sentry/views/explore/utils';
-import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
 import {TraceLayoutTabKeys} from 'sentry/views/performance/traceDetails/useTraceLayoutTabs';
 

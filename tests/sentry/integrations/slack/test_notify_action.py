@@ -15,6 +15,7 @@ from sentry.integrations.slack.analytics import SlackIntegrationNotificationSent
 from sentry.integrations.slack.utils.constants import SLACK_RATE_LIMITED_MESSAGE
 from sentry.integrations.types import ExternalProviders
 from sentry.notifications.additional_attachment_manager import manager
+from sentry.notifications.types import NotificationActionContext, NotificationOrigin
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.helpers.analytics import (
@@ -22,10 +23,11 @@ from sentry.testutils.helpers.analytics import (
     assert_last_analytics_event,
 )
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.notifications import create_notification_action_context
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.cache import cache
-from sentry.workflow_engine.models import Action
 from tests.sentry.integrations.slack.test_notifications import (
     additional_attachment_generator_block_kit,
 )
@@ -96,13 +98,12 @@ class SlackNotifyActionTest(RuleTestCase):
         event = self.get_event()
 
         fake_rule = self.create_project_rule()
-        action = Action.objects.all().order_by("id").first()
-        assert action
+        action = self.create_action(integration_id=self.integration.id)
         fake_rule.id = action.id
 
         rule = self.get_rule(
             data={"workspace": self.integration.id, "channel": "#my-channel"},
-            rule=fake_rule,
+            context=create_notification_action_context(fake_rule, with_workflow=False),
         )
 
         results = list(rule.after(event=event))
@@ -117,7 +118,7 @@ class SlackNotifyActionTest(RuleTestCase):
         assert event.title in blocks[0]["text"]["text"]
 
     @with_feature("organizations:slack-reinstall-nudge-on-issue-alert")
-    @patch("sentry.integrations.slack.utils.nudge.random.random", return_value=0.0)
+    @override_options({"slack.nudge-frequency": 1.0})
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     @patch(
         "slack_sdk.web.client.WebClient._perform_urllib_http_request",
@@ -127,12 +128,10 @@ class SlackNotifyActionTest(RuleTestCase):
             "status": 200,
         },
     )
-    def test_test_send_skips_nudge(
-        self, mock_api_call: MagicMock, mock_post: MagicMock, mock_random: MagicMock
-    ) -> None:
+    def test_test_send_skips_nudge(self, mock_api_call: MagicMock, mock_post: MagicMock) -> None:
         # Rule test sends use action_id -1. They are not real issue alerts, so they must
         # not append the reinstall nudge nor consume the per-channel weekly budget, even
-        # with the feature flag on and the random gate forced open.
+        # with the feature flag on and the sampling gate forced open.
         event = self.get_event()
 
         fake_rule = self.create_project_rule()
@@ -143,7 +142,16 @@ class SlackNotifyActionTest(RuleTestCase):
                 "channel": "#my-channel",
                 "channel_id": "123",
             },
-            rule=fake_rule,
+            context=NotificationActionContext(
+                origin=NotificationOrigin(
+                    label=fake_rule.label,
+                    environment_id=None,
+                    workflow_id=None,
+                    legacy_rule_id=-1,
+                ),
+                action_id=-1,
+                project=self.project,
+            ),
         )
 
         results = list(rule.after(event=event))
@@ -233,34 +241,19 @@ class SlackNotifyActionTest(RuleTestCase):
                 assert form.is_valid()
                 self.assert_form_valid(form, "morty-id", "@morty")
 
-    @responses.activate
     def test_invalid_channel_selected(self) -> None:
         rule = self.get_rule(
             data={"workspace": self.integration.id, "channel": "#my-channel", "tags": ""}
         )
 
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/chat.scheduleMessage",
-            status=200,
-            content_type="application/json",
-            body=orjson.dumps({"ok": False, "error": "channel_not_found"}),
-        )
+        members = [{"name": "other-member", "id": "member-id"}]
 
-        members = {"ok": "true", "members": [{"name": "other-member", "id": "member-id"}]}
+        with self.mock_msg_schedule_response("channel_not_found"):
+            with self.mock_list("users", members, "members"):
+                form = SlackNotifyServiceForm(rule.data, integrations=rule.get_integrations())
 
-        responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/users.list",
-            status=200,
-            content_type="application/json",
-            body=orjson.dumps(members),
-        )
-
-        form = SlackNotifyServiceForm(rule.data, integrations=rule.get_integrations())
-
-        assert not form.is_valid()
-        assert len(form.errors) == 1
+                assert not form.is_valid()
+                assert len(form.errors) == 1
 
     @responses.activate
     @patch("slack_sdk.web.client.WebClient.users_list")
@@ -411,8 +404,7 @@ class SlackNotifyActionTest(RuleTestCase):
             event = self.get_event()
 
             fake_rule = self.create_project_rule()
-            action = Action.objects.all().order_by("id").first()
-            assert action
+            action = self.create_action(integration_id=self.integration.id)
             fake_rule.id = action.id
             rule = self.get_rule(
                 data={
@@ -420,7 +412,7 @@ class SlackNotifyActionTest(RuleTestCase):
                     "channel": "#my-channel",
                     "channel_id": "123",
                 },
-                rule=fake_rule,
+                context=create_notification_action_context(fake_rule, with_workflow=False),
             )
 
             notification_uuid = "123e4567-e89b-12d3-a456-426614174000"

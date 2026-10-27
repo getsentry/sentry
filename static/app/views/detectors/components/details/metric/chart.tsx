@@ -1,5 +1,7 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import {type Theme} from '@emotion/react';
+import {IconInfo} from '@sentry/icons/info';
+import {IconWarning} from '@sentry/icons/warning';
 import type {YAXisComponentOption} from 'echarts';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -15,7 +17,6 @@ import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconInfo, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import type {GroupOpenPeriod} from 'sentry/types/group';
@@ -27,10 +28,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {EventTypes} from 'sentry/views/alerts/rules/metric/types';
-import {
-  buildDetectorZoomQuery,
-  computeZoomRangeMs,
-} from 'sentry/views/detectors/components/details/common/buildDetectorZoomQuery';
 import {AggregateSummaryTable} from 'sentry/views/detectors/components/details/metric/aggregateSummaryTable';
 import {getDetectorOpenInDestination} from 'sentry/views/detectors/components/details/metric/getDetectorOpenInDestination';
 import {useDetectorChartAxisBounds} from 'sentry/views/detectors/components/details/metric/utils/useDetectorChartAxisBounds';
@@ -48,6 +45,7 @@ import {useMetricDetectorThresholdSeries} from 'sentry/views/detectors/hooks/use
 import {useMetricTimestamps} from 'sentry/views/detectors/hooks/useMetricTimestamps';
 import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {getDetectorChartFormatters} from 'sentry/views/detectors/utils/detectorChartFormatting';
+import {getOpenPeriodIssuePath} from 'sentry/views/detectors/utils/getOpenPeriodIssuePath';
 
 /**
  * Shift data points from bucket-start to bucket-end timestamps.
@@ -130,6 +128,10 @@ interface UseMetricDetectorChartProps {
    * Display a persistent highlight area for the open period with the given ID.
    */
   highlightedOpenPeriodId?: string;
+  /**
+   * Called when an open period marker on the chart is clicked.
+   */
+  onOpenPeriodClick?: (openPeriod: GroupOpenPeriod) => void;
   start?: string | null;
   statsPeriod?: string | null;
 }
@@ -208,11 +210,9 @@ export function useMetricDetectorChart({
   enabled = true,
   openPeriods,
   highlightedOpenPeriodId,
+  onOpenPeriodClick,
   height = CHART_HEIGHT,
 }: UseMetricDetectorChartProps): UseMetricDetectorChartResult {
-  const navigate = useNavigate();
-  const location = useLocation();
-
   const detectionType = detector.config.detectionType;
   const comparisonDelta =
     detectionType === 'percent' ? detector.config.comparisonDelta : undefined;
@@ -301,6 +301,17 @@ export function useMetricDetectorChart({
     ]);
   }, [chartSeries, end, openPeriods, snubaQuery.timeWindow]);
 
+  const handleIncidentMarkerClick = useCallback(
+    (context: {period: IncidentPeriod}) => {
+      const clickedOpenPeriod = openPeriods.find(({id}) => id === context.period.id);
+
+      if (clickedOpenPeriod) {
+        onOpenPeriodClick?.(clickedOpenPeriod);
+      }
+    },
+    [openPeriods, onOpenPeriodClick]
+  );
+
   const openPeriodMarkerResult = useIncidentMarkers({
     incidents: incidentPeriods,
     highlightedIncidentId: highlightedOpenPeriodId,
@@ -309,20 +320,7 @@ export function useMetricDetectorChart({
     yAxisIndex: 1, // Use index 1 to avoid conflict with main chart axis
     seriesTooltip: incidentSeriesTooltip,
     markLineTooltip: incidentMarklineTooltip,
-    onClick: context => {
-      const startMs = context.period.start;
-      const endMs = context.period.end ?? Date.now();
-      const intervalSeconds = Number(snubaQuery.timeWindow) || 60;
-      const zoomRange = computeZoomRangeMs({
-        startMs,
-        endMs,
-        intervalSeconds,
-      });
-      navigate({
-        pathname: location.pathname,
-        query: buildDetectorZoomQuery(location.query, zoomRange),
-      });
-    },
+    onClick: handleIncidentMarkerClick,
   });
 
   const chartZoomProps = useChartZoom({
@@ -655,6 +653,7 @@ function ChartFooter({
 
 export function MetricDetectorDetailsChart({detector}: MetricDetectorDetailsChartProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const organization = useOrganization();
   const dateParams = normalizeDateTimeParams(location.query);
   const snubaQuery = detector.dataSources[0]?.queryObj?.snubaQuery;
@@ -676,10 +675,17 @@ export function MetricDetectorDetailsChart({detector}: MetricDetectorDetailsChar
     ...dateParams,
   });
 
+  const navigateToOpenPeriodIssue = useCallback(
+    (clickedOpenPeriod: GroupOpenPeriod) =>
+      navigate(getOpenPeriodIssuePath(clickedOpenPeriod, organization.slug)),
+    [navigate, organization.slug]
+  );
+
   const {chartProps, isLoading, error, isAnomalyThresholdCutOff} = useMetricDetectorChart(
     {
       detector,
       openPeriods,
+      onOpenPeriodClick: navigateToOpenPeriodIssue,
       height: CHART_HEIGHT,
       ...dateParams,
     }

@@ -1,17 +1,23 @@
+import type * as React from 'react';
 import {createRef, Fragment} from 'react';
+import {ThemeProvider} from '@emotion/react';
+import {render, screen} from '@testing-library/react';
 
 import {Surface} from '@sentry/scraps/layout';
+import {lightTheme} from '@sentry/scraps/theme';
 
-import {render, screen} from '../../test/env';
+function ThemeWrapper({children}: {children: React.ReactNode}) {
+  return <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>;
+}
 
 describe('Surface', () => {
   it('renders children', () => {
-    render(<Surface>Hello Surface</Surface>);
+    render(<Surface>Hello Surface</Surface>, {wrapper: ThemeWrapper});
     expect(screen.getByText('Hello Surface')).toBeInTheDocument();
   });
 
   it('passes attributes to the underlying element', () => {
-    render(<Surface data-test-id="surface">Hello</Surface>);
+    render(<Surface data-test-id="surface">Hello</Surface>, {wrapper: ThemeWrapper});
     expect(screen.getByTestId('surface')).toBeInTheDocument();
   });
 
@@ -19,7 +25,8 @@ describe('Surface', () => {
     render(
       <Surface variant="overlay" elevation="high" radius="xl">
         Hello
-      </Surface>
+      </Surface>,
+      {wrapper: ThemeWrapper}
     );
     expect(screen.getByText('Hello')).not.toHaveAttribute('variant');
     expect(screen.getByText('Hello')).not.toHaveAttribute('elevation');
@@ -28,7 +35,7 @@ describe('Surface', () => {
 
   it('attaches ref to the underlying element', () => {
     const ref = createRef<HTMLDivElement>();
-    render(<Surface ref={ref}>Hello</Surface>);
+    render(<Surface ref={ref}>Hello</Surface>, {wrapper: ThemeWrapper});
     expect(ref.current).toBeInTheDocument();
     expect(ref.current?.tagName).toBe('DIV');
   });
@@ -42,7 +49,8 @@ describe('Surface', () => {
         <Surface variant="primary" radius="md">
           Second
         </Surface>
-      </Fragment>
+      </Fragment>,
+      {wrapper: ThemeWrapper}
     );
 
     const first = screen.getByText('First').className;
@@ -56,7 +64,8 @@ describe('Surface', () => {
         <Surface variant="primary">Primary</Surface>
         <Surface variant="secondary">Secondary</Surface>
         <Surface variant="overlay">Overlay</Surface>
-      </Fragment>
+      </Fragment>,
+      {wrapper: ThemeWrapper}
     );
 
     const primary = screen.getByText('Primary').className;
@@ -80,7 +89,8 @@ describe('Surface', () => {
         <Surface variant="overlay" elevation="high">
           High
         </Surface>
-      </Fragment>
+      </Fragment>,
+      {wrapper: ThemeWrapper}
     );
 
     const low = screen.getByText('Low').className;

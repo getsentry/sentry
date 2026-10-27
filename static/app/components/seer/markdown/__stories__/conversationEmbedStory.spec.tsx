@@ -12,7 +12,6 @@ jest.mock('sentry/components/seer/markdown', () => ({
 function createConversation(conversation: Partial<Conversation>): Conversation {
   return {
     conversationId: 'conv-1',
-    duration: 1000,
     endTimestamp: Date.UTC(2026, 7, 25, 16, 39, 2),
     errors: 0,
     firstInput: 'Where is my refund?',
@@ -23,6 +22,7 @@ function createConversation(conversation: Partial<Conversation>): Conversation {
     outputTokens: 50,
     projectId: 11,
     startTimestamp: Date.UTC(2026, 7, 25, 16, 37, 12),
+    timeSpan: 110_000,
     title: null,
     toolCalls: 1,
     toolErrors: 0,

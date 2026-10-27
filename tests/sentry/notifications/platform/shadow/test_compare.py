@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
@@ -18,7 +17,12 @@ from sentry.notifications.platform.shadow.capture import (
     record_legacy_render,
     shadow_read,
 )
-from sentry.notifications.platform.shadow.compare import ShadowOutcome, _diff, _normalize
+from sentry.notifications.platform.shadow.compare import (
+    ShadowOutcome,
+    _diff,
+    _mask_group_stats,
+    _normalize,
+)
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.types import NotificationProviderKey, NotificationSource
 from sentry.testutils.helpers.options import override_options
@@ -32,24 +36,27 @@ from tests.sentry.notifications.platform.shadow.test_capture import (
 
 COMPARE_PATH = "sentry.notifications.platform.shadow.compare"
 
-_PATH_STEP = re.compile(r"(?:^|\.)(\w+)|\[(\d+)\]")
-
-
-def resolve(payload: Any, path: str) -> Any:
-    """
-    Returns the value at a diff path like `blocks[0].text.text`.
-    """
-    value = payload
-    for key, index in _PATH_STEP.findall(path):
-        value = value[key] if key else value[int(index)]
-    return value
-
 
 @dataclass
 class ShadowObservation:
     results: list[dict[str, str]] = field(default_factory=list)
-    mismatch_logs: list[dict[str, Any]] = field(default_factory=list)
+    result_logs: list[dict[str, Any]] = field(default_factory=list)
     compared: list[tuple[Any, Any]] = field(default_factory=list)
+
+    @property
+    def mismatch_logs(self) -> list[dict[str, Any]]:
+        return [log for log in self.result_logs if log["outcome"] == ShadowOutcome.MISMATCH]
+
+    @property
+    def legacy_not_captured_logs(self) -> list[dict[str, Any]]:
+        return [
+            log for log in self.result_logs if log["outcome"] == ShadowOutcome.LEGACY_NOT_CAPTURED
+        ]
+
+    @property
+    def result_log(self) -> dict[str, Any]:
+        [log] = self.result_logs
+        return log
 
     @property
     def payloads(self) -> tuple[Any, Any]:
@@ -89,10 +96,10 @@ def observe_shadow() -> Generator[ShadowObservation]:
                 for call in mock_metrics.incr.call_args_list
                 if call.args[0] == "notifications.platform.shadow.result"
             ]
-            observation.mismatch_logs = [
+            observation.result_logs = [
                 call.kwargs["extra"]
                 for call in mock_logger.info.call_args_list
-                if call.args[0] == "notifications.platform.shadow.mismatch"
+                if call.args[0] == "notifications.platform.shadow.result"
             ]
 
 
@@ -209,23 +216,127 @@ def test_normalize_leaves_discord_unchanged() -> None:
     assert _normalize(NotificationProviderKey.DISCORD, message) is message
 
 
+def _context_block(text: str) -> dict[str, Any]:
+    return {"type": "context", "elements": [{"type": "mrkdwn", "text": text}]}
+
+
+def _slack_stats(text: str) -> dict[str, Any]:
+    return {
+        "blocks": [
+            {"type": "section", "text": {"type": "mrkdwn", "text": "Error 123 in worker 7"}},
+            _context_block(text),
+        ]
+    }
+
+
+def test_mask_group_stats_masks_only_stat_values() -> None:
+    payload = {
+        "blocks": [
+            {"type": "section", "text": {"type": "mrkdwn", "text": "Events: *12*"}},
+            _context_block(
+                "State: *Ongoing*   Events: *12*   Users Affected: *3*   "
+                "First Seen: *2 days ago*   Suggested: #team-42"
+            ),
+            _context_block("Approx. Start Time: *2026-10-19 12:30:00*"),
+        ],
+        "text": "Events: *12*",
+    }
+
+    assert _mask_group_stats(payload) == {
+        "blocks": [
+            {"type": "section", "text": {"type": "mrkdwn", "text": "Events: *12*"}},
+            _context_block(
+                "State: *Ongoing*   Events: *#*   Users Affected: *#*   "
+                "First Seen: *relative*   Suggested: #team-42"
+            ),
+            _context_block("Approx. Start Time: *#-#-# #:#:#*"),
+        ],
+        "text": "Events: *12*",
+    }
+
+
+def test_mask_group_stats_ignore_counts() -> None:
+    payload = {
+        "blocks": [
+            _context_block(
+                "Events: *2*   Users Affected: *1*   State: *Ongoing*   First Seen: *2 days ago*"
+            ),
+            _context_block("Events: *2*"),
+        ]
+    }
+
+    assert _mask_group_stats(payload, ignore_counts=True) == {
+        "blocks": [
+            _context_block("State: *Ongoing*   First Seen: *relative*"),
+            _context_block(""),
+        ]
+    }
+
+
+@pytest.mark.parametrize(
+    "value", ["Just now", "1 minute ago", "Yesterday", "1 day, 2 hours ago", "4 days ago"]
+)
+def test_mask_group_stats_masks_relative_first_seen(value: str) -> None:
+    payload = {"blocks": [_context_block(f"State: *New*   First Seen: *{value}*")]}
+
+    assert _mask_group_stats(payload) == {
+        "blocks": [_context_block("State: *New*   First Seen: *relative*")]
+    }
+
+
+def test_mask_group_stats_masks_digits_of_a_first_seen_date() -> None:
+    payload = {"blocks": [_context_block("First Seen: *2026-10-01*")]}
+
+    assert _mask_group_stats(payload) == {"blocks": [_context_block("First Seen: *#-#-#*")]}
+
+
+@pytest.mark.parametrize(
+    ("legacy", "platform"),
+    [
+        ("State: *New*   First Seen: *just now*", "State: *Ongoing*   First Seen: *just now*"),
+        ("First Seen: *2026-10-01*", "First Seen: *Just now*"),
+        (
+            "Events: *12*   Users Affected: *3*   First Seen: *2 days ago*",
+            "First Seen: *2 days ago*",
+        ),
+    ],
+)
+def test_mask_group_stats_keeps_non_numeric_differences(legacy: str, platform: str) -> None:
+    assert _diff(_mask_group_stats(_slack_stats(legacy)), _mask_group_stats(_slack_stats(platform)))
+
+
 class ShadowReadOutcomeTest(ShadowInvocationTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.enterContext(override_options(SAMPLE_ALL))
 
     def test_legacy_not_captured(self) -> None:
+        invocation = self.create_invocation()
         build_data = mock.Mock()
 
         with observe_shadow() as observation:
-            with shadow_read(self.create_invocation(), NotificationSource.ISSUE, build_data):
+            with shadow_read(invocation, NotificationSource.ISSUE, build_data):
                 pass
 
         assert observation.outcome == ShadowOutcome.LEGACY_NOT_CAPTURED
         build_data.assert_not_called()
+        assert observation.mismatch is None
+        assert observation.result_log == {
+            "source": "issue",
+            "provider": "slack",
+            "variant": "issue:slack:error:event:no_tags:no_notes:unresolved:new:no_env:workflow:unassigned",
+            "action_id": invocation.action.id,
+            "workflow_id": self.workflow.id,
+            "organization_id": self.organization.id,
+            "group_id": self.issue_group.id,
+            "detector_id": self.detector.id,
+            "outcome": "legacy_not_captured",
+            "integration_id": invocation.action.integration_id,
+        }
 
     @mock.patch(
-        f"{COMPARE_PATH}.NotificationService.render_template", return_value={"type": "AdaptiveCard"}
+        f"{COMPARE_PATH}.NotificationService.render_template",
+        return_value=({"type": "AdaptiveCard"}, set()),
     )
     def test_renders_the_data_built_from_the_legacy_render(
         self, mock_render: mock.MagicMock
@@ -275,7 +386,8 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
 
     @mock.patch(f"{COMPARE_PATH}.sentry_sdk.capture_exception")
     @mock.patch(
-        f"{COMPARE_PATH}.NotificationService.render_template", return_value={"type": "AdaptiveCard"}
+        f"{COMPARE_PATH}.NotificationService.render_template",
+        return_value=({"type": "AdaptiveCard"}, set()),
     )
     def test_compare_error_is_captured(
         self, mock_render: mock.MagicMock, mock_capture: mock.MagicMock
@@ -291,7 +403,8 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
         mock_capture.assert_called_once_with(mock_diff.side_effect)
 
     @mock.patch(
-        f"{COMPARE_PATH}.NotificationService.render_template", return_value={"type": "AdaptiveCard"}
+        f"{COMPARE_PATH}.NotificationService.render_template",
+        return_value=({"type": "AdaptiveCard"}, set()),
     )
     def test_match_records_timing(self, mock_render: mock.MagicMock) -> None:
         with mock.patch(f"{COMPARE_PATH}.metrics") as mock_metrics:
@@ -311,7 +424,7 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
 
     @mock.patch(
         f"{COMPARE_PATH}.NotificationService.render_template",
-        return_value={"type": "Card", "extra": 1},
+        return_value=({"type": "Card", "extra": 1}, set()),
     )
     def test_mismatch_log(self, mock_render: mock.MagicMock) -> None:
         invocation = self.create_invocation(Action.Type.MSTEAMS)
@@ -324,18 +437,84 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
         assert observation.mismatch == {
             "source": "issue",
             "provider": "msteams",
-            "variant": "issue:msteams:error:event:no_tags:no_notes:unresolved:new:no_env",
+            "variant": "issue:msteams:error:event:no_tags:no_notes:unresolved:new:no_env:workflow:unassigned",
             "action_id": invocation.action.id,
             "workflow_id": self.workflow.id,
             "organization_id": self.organization.id,
             "group_id": self.issue_group.id,
             "detector_id": self.detector.id,
+            "outcome": "mismatch",
             "diff_count": 2,
             "diff": ["Extra in new: extra", "type: old=str(len=12), new=str(len=4)"],
+            "has_releases": False,
+            "has_chart": False,
         }
 
     @mock.patch(
-        f"{COMPARE_PATH}.NotificationService.render_template", return_value={"type": "AdaptiveCard"}
+        f"{COMPARE_PATH}.NotificationService.render_template",
+        return_value=({"type": "AdaptiveCard"}, set()),
+    )
+    def test_match_log(self, mock_render: mock.MagicMock) -> None:
+        self.project.flags.has_releases = True
+        self.project.save()
+
+        with observe_shadow() as observation:
+            with shadow(self.create_invocation(Action.Type.MSTEAMS), NotificationSource.ISSUE):
+                record_legacy_render(
+                    NotificationProviderKey.MSTEAMS, {"type": "AdaptiveCard"}, chart_url="https://c"
+                )
+
+        log = observation.result_log
+        assert log["outcome"] == "match"
+        assert log["variant"].startswith("issue:msteams:error:")
+        assert "diff" not in log
+        assert log["has_releases"] is True
+        assert log["has_chart"] is True
+        assert "has_suggested_assignees" not in log
+
+    @mock.patch(
+        f"{COMPARE_PATH}.NotificationService.render_template", return_value=({"blocks": []}, set())
+    )
+    def test_slack_traits_are_read_from_the_legacy_payload(
+        self, mock_render: mock.MagicMock
+    ) -> None:
+        blocks = [
+            {"type": "context", "elements": [{"type": "mrkdwn", "text": "Suggested: #team"}]},
+            {"type": "actions", "elements": [{"type": "button", "value": "root_cause"}]},
+            {"type": "context", "elements": [{"type": "mrkdwn", "text": "<url|View Replays>"}]},
+            {"type": "image", "image_url": "https://chart"},
+        ]
+
+        with observe_shadow() as observation:
+            with shadow(self.create_invocation(Action.Type.SLACK), NotificationSource.ISSUE):
+                record_legacy_render(NotificationProviderKey.SLACK, {"blocks": blocks})
+
+        log = observation.result_log
+        assert log["outcome"] == "mismatch"
+        assert {key: log[key] for key in log if key.startswith("has_")} == {
+            "has_releases": False,
+            "has_chart": True,
+            "has_suggested_assignees": True,
+            "has_replay_link": True,
+            "has_autofix_button": True,
+        }
+
+    @mock.patch(
+        f"{COMPARE_PATH}.NotificationService.render_template", return_value=({"blocks": []}, set())
+    )
+    def test_traits_failure_still_logs_the_result(self, mock_render: mock.MagicMock) -> None:
+        with (
+            observe_shadow() as observation,
+            mock.patch(f"{COMPARE_PATH}._render_traits", side_effect=RuntimeError("traits")),
+        ):
+            with shadow(self.create_invocation(Action.Type.SLACK), NotificationSource.ISSUE):
+                record_legacy_render(NotificationProviderKey.SLACK, {"blocks": []})
+
+        assert observation.result_log["outcome"] == "match"
+
+    @mock.patch(
+        f"{COMPARE_PATH}.NotificationService.render_template",
+        return_value=({"type": "AdaptiveCard"}, set()),
     )
     def test_compares_when_the_send_raises(self, mock_render: mock.MagicMock) -> None:
         error = RuntimeError("send failed")
@@ -387,3 +566,66 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
         assert (
             mock_logger.exception.call_args.args[0] == "notifications.platform.shadow.report_failed"
         )
+
+    def _shadow_slack(self, legacy: dict[str, Any], platform: dict[str, Any]) -> ShadowObservation:
+        with (
+            observe_shadow() as observation,
+            mock.patch(
+                f"{COMPARE_PATH}.NotificationService.render_template",
+                return_value=(platform, set()),
+            ),
+        ):
+            with shadow(self.create_invocation(Action.Type.SLACK), NotificationSource.ISSUE):
+                record_legacy_render(NotificationProviderKey.SLACK, legacy)
+        return observation
+
+    def test_group_stats_drift_is_group_changed(self) -> None:
+        observation = self._shadow_slack(
+            _slack_stats("State: *Ongoing*   Events: *12*   Users Affected: *3*"),
+            _slack_stats("State: *Ongoing*   Events: *13*   Users Affected: *3*"),
+        )
+
+        assert observation.outcome == ShadowOutcome.GROUP_CHANGED
+        assert observation.mismatch is None
+        assert "diff" not in observation.result_log
+
+    def test_group_stats_drift_with_another_difference_is_a_mismatch(self) -> None:
+        platform = _slack_stats("State: *Ongoing*   Events: *13*")
+        platform["text"] = "changed"
+
+        observation = self._shadow_slack(_slack_stats("State: *Ongoing*   Events: *12*"), platform)
+
+        assert observation.outcome == ShadowOutcome.MISMATCH
+        assert observation.mismatch is not None
+        assert observation.mismatch["diff"] == [
+            "blocks[1].elements[0].text: old=str(len=31), new=str(len=31)",
+            "text: old=str(len=0), new=str(len=7)",
+        ]
+
+    def test_dropped_group_stats_is_a_mismatch(self) -> None:
+        self.issue_group.update(times_seen=12)
+
+        observation = self._shadow_slack(
+            _slack_stats("Events: *12*   Users Affected: *3*   First Seen: *2 days ago*"),
+            _slack_stats("First Seen: *2 days ago*"),
+        )
+
+        assert observation.outcome == ShadowOutcome.MISMATCH
+
+    def test_dropped_counts_at_a_single_event_are_group_changed(self) -> None:
+        assert self.issue_group.times_seen == 1
+
+        observation = self._shadow_slack(
+            _slack_stats("Events: *2*   First Seen: *2 days ago*   Suggested: #team"),
+            _slack_stats("First Seen: *2 days ago*   Suggested: #team"),
+        )
+
+        assert observation.outcome == ShadowOutcome.GROUP_CHANGED
+
+    def test_other_stats_differences_at_a_single_event_are_a_mismatch(self) -> None:
+        observation = self._shadow_slack(
+            _slack_stats("Events: *2*   State: *Ongoing*   First Seen: *2 days ago*"),
+            _slack_stats("State: *Regressed*   First Seen: *2 days ago*"),
+        )
+
+        assert observation.outcome == ShadowOutcome.MISMATCH

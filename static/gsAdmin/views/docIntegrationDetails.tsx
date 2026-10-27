@@ -2,6 +2,7 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {DocIntegrationAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 
@@ -21,7 +22,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 
 import {DetailLabel} from 'admin/components/detailLabel';
-import {DetailList} from 'admin/components/detailList';
 import {DetailsContainer} from 'admin/components/detailsContainer';
 import type {ActionItem} from 'admin/components/detailsPage';
 import {DetailsPage} from 'admin/components/detailsPage';
@@ -153,7 +153,7 @@ export function DocIntegrationDetails() {
 
   const overview = (
     <DetailsContainer>
-      <DetailList>
+      <DescriptionList gap="md">
         <DetailLabel title="Name">{data.name}</DetailLabel>
         <DetailLabel title="Slug">{data.slug}</DetailLabel>
         <DetailLabel title="Status">
@@ -188,10 +188,10 @@ export function DocIntegrationDetails() {
             </div>
           ))}
         </DetailLabel>
-      </DetailList>
-      <DetailList>
+      </DescriptionList>
+      <DescriptionList gap="md">
         <DocIntegrationAvatar docIntegration={data} size={150} />
-      </DetailList>
+      </DescriptionList>
     </DetailsContainer>
   );
 

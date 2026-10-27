@@ -339,15 +339,7 @@ export function LaunchpadAdminPage() {
           }}
         />
 
-        <Grid
-          columns="1fr 1fr"
-          gap="xl"
-          css={css`
-            @media (max-width: 768px) {
-              grid-template-columns: 1fr;
-            }
-          `}
-        >
+        <Grid columns={{zero: '1fr', xl: '1fr 1fr'}} gap="xl">
           <form onSubmit={handleFetchInfoSubmit}>
             <Container background="secondary" border="primary" radius="md" padding="lg">
               <Stack gap="md">

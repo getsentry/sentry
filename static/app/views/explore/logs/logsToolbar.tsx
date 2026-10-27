@@ -1,6 +1,7 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {useDebouncedValue} from '@tanstack/react-pacer';
+import cloneDeep from 'lodash/cloneDeep';
 
 import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
 
@@ -8,6 +9,7 @@ import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {AggregationKey} from 'sentry/utils/fields';
+import {ConditionalAggregateFilterBar} from 'sentry/views/explore/components/conditionalAggregateFilterBar';
 import {
   ToolbarFooter,
   ToolbarSection,
@@ -23,6 +25,10 @@ import {
   ToolbarVisualizeHeader,
 } from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
+import {
+  useDatasetFormulas,
+  type SavedFormula,
+} from 'sentry/views/explore/hooks/useGetSavedFormulas';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {useLogItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {useValidatedGroupBys} from 'sentry/views/explore/hooks/useValidatedGroupBys';
@@ -47,9 +53,20 @@ import {
 } from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
+  applyConditionalFilter,
+  buildConditionalAggregate,
+  supportsConditionalAggregateFilter,
+} from 'sentry/views/explore/utils/conditionalAggregate';
+import {
+  buildFormulaYAxis,
+  findFormula,
+  getFormulaColumnFunction,
+} from 'sentry/views/explore/utils/formulaAggregate';
+import {
   mergeValidatedGroupByTags,
   shouldHideGroupByForValidation,
 } from 'sentry/views/explore/utils/groupByValidation';
+import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 
 import {HiddenLogSearchFields} from './constants';
 
@@ -132,6 +149,7 @@ function ToolbarVisualize() {
   const onSearch = setSearch;
   const onClose = useCallback(() => setSearch(undefined), []);
 
+  const formulas = useDatasetFormulas('logs');
   const visualizes = useQueryParamsVisualizes();
   const setVisualizes = useSetQueryParamsVisualizes();
 
@@ -177,6 +195,7 @@ function ToolbarVisualize() {
               onDelete={onDelete}
               onReplace={newVisualize => replaceOverlay(group, newVisualize)}
               visualize={visualize}
+              formulas={formulas}
               booleanTags={booleanTags}
               numberTags={numberTags}
               stringTags={stringTags}
@@ -200,6 +219,7 @@ function ToolbarVisualize() {
 
 interface VisualizeDropdownProps {
   booleanTags: TagCollection;
+  formulas: readonly SavedFormula[];
   loading: boolean;
   numberTags: TagCollection;
   onClose: () => void;
@@ -211,6 +231,7 @@ interface VisualizeDropdownProps {
 }
 
 function VisualizeDropdown({
+  formulas,
   loading,
   onDelete,
   onReplace,
@@ -233,54 +254,127 @@ function VisualizeDropdown({
     });
   }, [firstNumberKey]);
 
-  const aggregateFunction = visualize.parsedFunction?.name ?? '';
-  const aggregateParam = visualize.parsedFunction?.arguments?.[0] ?? '';
+  // Dropdowns operate on the base aggregate; strip the `_if` combinator and filter.
+  const parsedFunction = useMemo(
+    () => parseConditionalAggregate(visualize.yAxis),
+    [visualize.yAxis]
+  );
+  const formula = findFormula(formulas, parsedFunction?.name);
+
+  const filter = parsedFunction?.filter ?? '';
 
   const fieldOptions = useVisualizeFields({
     numberTags,
     stringTags,
     booleanTags,
-    parsedFunction: visualize.parsedFunction,
+    parsedFunction:
+      formula && parsedFunction
+        ? getFormulaColumnFunction(formula, parsedFunction)
+        : parsedFunction,
     traceItemType: TraceItemDataset.LOGS,
   });
 
   const onChangeAggregate = useCallback(
     (option: SelectOption<SelectKey>) => {
-      if (typeof option.value === 'string') {
-        const yAxis = updateVisualizeAggregate({
-          newAggregate: option.value,
-          oldAggregate: aggregateFunction,
-          oldArgument: aggregateParam,
-          firstNumberKey,
-        });
-        onReplace(visualize.replace({yAxis}));
+      if (typeof option.value !== 'string') {
+        return;
       }
+      const newFormula = findFormula(formulas, option.value);
+      if (newFormula) {
+        const formulaYAxis = buildFormulaYAxis(newFormula, firstNumberKey);
+        if (formulaYAxis) {
+          onReplace(visualize.replace({yAxis: formulaYAxis}));
+        }
+        return;
+      }
+      // Formula arguments don't map onto built in aggregates, so switch as if from the default.
+      const yAxis = updateVisualizeAggregate({
+        newAggregate: option.value,
+        oldAggregate: formula ? AggregationKey.COUNT : (parsedFunction?.name ?? ''),
+        oldArgument: formula
+          ? OurLogKnownFieldKey.MESSAGE
+          : (parsedFunction?.arguments?.[0] ?? ''),
+        firstNumberKey,
+      });
+      onReplace(
+        visualize.replace({
+          yAxis: supportsConditionalAggregateFilter(option.value)
+            ? applyConditionalFilter(yAxis, filter)
+            : yAxis,
+        })
+      );
     },
-    [onReplace, visualize, aggregateFunction, aggregateParam, firstNumberKey]
+    [filter, firstNumberKey, formula, formulas, onReplace, parsedFunction, visualize]
   );
 
   const onChangeArgument = useCallback(
-    (_index: number, option: SelectOption<SelectKey>) => {
-      if (typeof option.value === 'string') {
-        const yAxis = `${aggregateFunction}(${option.value})`;
-        onReplace(visualize.replace({yAxis}));
+    (index: number, value: string) => {
+      let args = cloneDeep(parsedFunction?.arguments);
+      if (args) {
+        args[index] = value;
+      } else {
+        args = [value];
       }
+      onReplace(
+        visualize.replace({
+          yAxis: buildConditionalAggregate({
+            name: parsedFunction?.name ?? '',
+            arguments: args,
+            filter,
+          }),
+        })
+      );
     },
-    [onReplace, aggregateFunction, visualize]
+    [filter, onReplace, parsedFunction, visualize]
+  );
+
+  const onFilterSearch = useCallback(
+    (newFilter: string) => {
+      if (!parsedFunction) {
+        return;
+      }
+      onReplace(
+        visualize.replace({
+          yAxis: buildConditionalAggregate({
+            name: parsedFunction.name,
+            arguments: parsedFunction.arguments,
+            filter: newFilter,
+          }),
+        })
+      );
+    },
+    [onReplace, parsedFunction, visualize]
+  );
+
+  const showFilterSearchBar = supportsConditionalAggregateFilter(
+    parsedFunction?.name ?? ''
   );
 
   return (
     <ToolbarVisualizeDropdown
       aggregateOptions={aggregateOptions}
       fieldOptions={fieldOptions}
+      formulaDefaultColumn={firstNumberKey}
+      formulas={formulas}
       onChangeAggregate={onChangeAggregate}
       onChangeArgument={onChangeArgument}
       onDelete={onDelete}
-      parsedFunction={visualize.parsedFunction}
+      parsedFunction={parsedFunction}
       onClose={onClose}
       onSearch={onSearch}
       loading={loading}
       fieldDefinitionType="log"
+      filterSearchBar={
+        showFilterSearchBar ? (
+          <ConditionalAggregateFilterBar
+            itemType={TraceItemDataset.LOGS}
+            menuPresentation="panel"
+            initialQuery={filter}
+            onSearch={onFilterSearch}
+            searchSource="explore-logs-conditional-aggregate"
+          />
+        ) : undefined
+      }
     />
   );
 }

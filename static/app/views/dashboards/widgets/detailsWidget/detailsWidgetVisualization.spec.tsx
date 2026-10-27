@@ -1,10 +1,13 @@
 // write some tests for the DetailsWidgetVisualization component
 
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DetailsWidgetVisualization} from 'sentry/views/dashboards/widgets/detailsWidget/detailsWidgetVisualization';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
 import type {SpanResponse} from 'sentry/views/insights/types';
@@ -13,6 +16,7 @@ type TestSpan = Pick<SpanResponse, DefaultDetailWidgetFields>;
 
 describe('DetailsWidgetVisualization', () => {
   beforeEach(() => {
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
     const organization = OrganizationFixture();
     const project = ProjectFixture();
 
@@ -50,6 +54,7 @@ describe('DetailsWidgetVisualization', () => {
   });
 
   afterEach(() => {
+    PageFiltersStore.reset();
     MockApiClient.clearMockResponses();
   });
 
@@ -68,23 +73,46 @@ describe('DetailsWidgetVisualization', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders a db span', async () => {
-    const span: TestSpan = {
-      id: '123',
-      'span.op': 'db',
-      'span.description': 'SELECT * FROM users',
-      'span.group': 'span_group',
-      'span.category': 'db',
-      'project.id': 1,
-    };
-    render(<DetailsWidgetVisualization span={span} />);
+  it.each(['span_group', '', null])(
+    'renders the selected db span and source with span.group=%s',
+    async spanGroup => {
+      const organization = OrganizationFixture();
+      const request = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+        body: {
+          data: [
+            {
+              'span.description': 'SELECT * FROM users',
+              'code.filepath': '/app/views/users.py',
+              'code.lineno': 78,
+            },
+          ],
+        },
+        match: [MockApiClient.matchQuery({query: 'id:123'})],
+      });
+      const span: TestSpan = {
+        id: '123',
+        'span.op': 'db',
+        'span.description': 'SELECT USERS FRO*',
+        'span.group': spanGroup,
+        'span.category': 'db',
+        'project.id': 1,
+      };
+      render(<DetailsWidgetVisualization span={span} />);
 
-    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-
-    const queryCodeSnippet = await screen.findByText(/select \* from users/i);
-    expect(queryCodeSnippet).toBeInTheDocument();
-    expect(queryCodeSnippet).toHaveClass('language-sql');
-  });
+      const queryCodeSnippet = await screen.findByText(/select \* from users/i);
+      expect(queryCodeSnippet).toHaveClass('language-sql');
+      expect(
+        screen.getByText(textWithMarkupMatcher('/app/views/users.py at line 78'))
+      ).toBeInTheDocument();
+      expect(request).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/events/`,
+        expect.objectContaining({
+          query: expect.objectContaining({query: 'id:123', per_page: 1}),
+        })
+      );
+    }
+  );
 
   it('renders an http domain status link', async () => {
     const span: TestSpan = {

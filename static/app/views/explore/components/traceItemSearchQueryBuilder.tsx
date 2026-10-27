@@ -21,7 +21,6 @@ import {
   getFieldDefinition,
 } from 'sentry/utils/fields';
 import {getHasTag} from 'sentry/utils/tag';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {useGetTraceItemAttributeTagKeys} from 'sentry/views/explore/hooks/useGetTraceItemAttributeTagKeys';
 import {useGetTraceItemAttributeValues} from 'sentry/views/explore/hooks/useGetTraceItemAttributeValues';
@@ -176,11 +175,8 @@ export function useTraceItemSearchQueryBuilderProps({
   invalidMessages,
 }: TraceItemSearchQueryBuilderProps) {
   const placeholderText = placeholder ?? itemTypeToDefaultPlaceholder(itemType);
-  const organization = useOrganization();
   const {selection} = usePageFilters();
-  const allowRegexOperators =
-    itemType === TraceItemDataset.LOGS &&
-    organization.features.includes('ourlogs-regex-searches');
+  const allowRegexOperators = itemType === TraceItemDataset.LOGS;
   const effectiveProjects = projects ?? selection.projects;
   const effectiveDatetime = datetime ?? selection.datetime;
 

@@ -2,10 +2,10 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Link} from '@sentry/scraps/link';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
 import {t} from 'sentry/locale';
@@ -64,10 +64,9 @@ export default Storybook.story('SimpleTable', story => {
     return (
       <Fragment>
         <p>
-          The <Storybook.JSXNode name="SimpleTable" /> component is a simplified variant
-          of the
-          <Storybook.JSXNode name="GridEditable" /> component. It does not support
-          adjustable column widths and provides a simplified API surface.
+          The <Storybook.JSXNode name="SimpleTable" /> component composes tables out of
+          rows and cells. To configure one from a list of columns and renderers instead,
+          use <Storybook.JSXNode name="DataGrid" />.
         </p>
 
         <p>
@@ -359,7 +358,60 @@ export default Storybook.story('SimpleTable', story => {
       </Fragment>
     );
   });
+
+  story('Density', () => {
+    return (
+      <Fragment>
+        <p>
+          Set{' '}
+          <Storybook.JSXProperty
+            name="density"
+            value="'compressed' | 'default' | 'comfortable'"
+          />{' '}
+          to change how much room each row takes. Compressed tables use small text, a
+          shorter header, tight cell padding, and no lines between rows, which suits long,
+          scannable lists such as a replay's network requests. Comfortable tables give
+          their cells more padding and also leave out the lines between rows.
+        </p>
+
+        {DENSITIES.map(density => (
+          <Fragment key={density}>
+            <p>
+              <code>density="{density}"</code>
+            </p>
+            <SimpleTableWithColumns
+              density={density}
+              header={
+                <SimpleTable.HeaderRow>
+                  {headers.map(header => (
+                    <SimpleTable.HeaderCell key={header.key}>
+                      {header.label}
+                    </SimpleTable.HeaderCell>
+                  ))}
+                </SimpleTable.HeaderRow>
+              }
+            >
+              {data.map(row => (
+                <SimpleTable.Row key={row.name}>
+                  <SimpleTable.RowCell>{row.name}</SimpleTable.RowCell>
+                  <SimpleTable.RowCell>
+                    {t('%s monitors', row.monitors.length)}
+                  </SimpleTable.RowCell>
+                  <SimpleTable.RowCell>{row.action}</SimpleTable.RowCell>
+                  <SimpleTable.RowCell>
+                    <TimeAgoCell date={row.lastTriggered} />
+                  </SimpleTable.RowCell>
+                </SimpleTable.Row>
+              ))}
+            </SimpleTableWithColumns>
+          </Fragment>
+        ))}
+      </Fragment>
+    );
+  });
 });
+
+const DENSITIES = ['compressed', 'default', 'comfortable'] as const;
 
 const SimpleTableWithColumns = styled(SimpleTable)`
   grid-template-columns: 1fr 1fr 1fr 1fr;

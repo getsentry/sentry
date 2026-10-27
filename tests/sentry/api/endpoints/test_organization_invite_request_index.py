@@ -116,6 +116,30 @@ class OrganizationInviteRequestCreateTest(
 
         self.assert_org_member_mapping(org_member=member)
 
+    def test_team_roles(self) -> None:
+        self.login_as(user=self.user)
+
+        with self.tasks(), outbox_runner():
+            response = self.client.post(
+                self.url,
+                {
+                    "email": "eric@localhost",
+                    "role": "member",
+                    "teamRoles": [{"teamSlug": self.team.slug, "role": "admin"}],
+                },
+                format="json",
+            )
+
+        assert response.status_code == 201
+
+        member = OrganizationMember.objects.get(
+            organization=self.organization, email=response.data["email"]
+        )
+        teams = OrganizationMemberTeam.objects.filter(organizationmember=member)
+
+        # Team-roles are not set on invite requests
+        assert [(omt.team_id, omt.role) for omt in teams] == [(self.team.id, None)]
+
     def test_cannot_request_higher_role(self) -> None:
         self.login_as(user=self.user)
         response = self.client.post(

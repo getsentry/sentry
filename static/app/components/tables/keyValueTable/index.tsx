@@ -1,6 +1,11 @@
-export {KeyValueTableCard, KeyValueTableCardGrid} from './keyValueTableCard';
+export {KeyValueColumns} from './keyValueColumns';
+export {KeyValueRow} from './keyValueRow';
+export {
+  KeyValueTableCard,
+  KeyValueTableCardGrid,
+  KeyValueTableCardPanel,
+} from './keyValueTableCard';
 export {
   KeyValueTableDataRow,
   type KeyValueTableDataRowProps,
-  KeyValueTableSubject,
 } from './keyValueTableDataRow';

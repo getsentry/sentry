@@ -38,8 +38,8 @@ describe('Dashboards > CreateDashboard', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: {data: []},
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: []},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',

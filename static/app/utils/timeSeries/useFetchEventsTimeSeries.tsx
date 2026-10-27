@@ -6,9 +6,9 @@ import type {PageFilters} from 'sentry/types/core';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
-import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {encodeSort} from 'sentry/utils/queryString';
 import {
   type AnyMutableSearch,
   formatSearchStringForQueryParam,
@@ -48,14 +48,6 @@ interface UseFetchEventsTimeSeriesOptions<YAxis, Attribute> {
    */
   groupBy?: Attribute[];
   /**
-   * Whether to request annotations (dropped-data outcomes) on the response's `meta.droppedAnnotations` and `meta.acceptedAnnotations`. Off by default, and gated behind the `explore-data-fidelity-annotations` feature flag.
-   */
-  includeAnnotations?: boolean;
-  /**
-   * Whether to request measured ingestion delay metadata.
-   */
-  includeMeasuredIngestionDelayMetadata?: boolean;
-  /**
    * Duration between items in the time series, as a string. e.g., `"5m"`
    */
   interval?: string;
@@ -92,6 +84,7 @@ interface UseFetchEventsTimeSeriesOptions<YAxis, Attribute> {
    * Number of groups for a `groupBy` request. e.g., if `topEvents` is `5` and `groupBy` is `["transaction"]` this will group the results by `transaction` and fetch the top 5 results
    */
   topEvents?: number;
+  transformations?: ReadonlyArray<readonly string[]>;
 }
 
 export function useFetchSpanTimeSeries<
@@ -126,8 +119,6 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
     enabled,
     groupBy,
     extrapolate,
-    includeAnnotations,
-    includeMeasuredIngestionDelayMetadata,
     query,
     sampling,
     caseInsensitive,
@@ -137,6 +128,7 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
     logQuery,
     metricQuery,
     spanQuery,
+    transformations,
   } = options;
 
   const organization = useOrganization();
@@ -159,6 +151,11 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
   const logQueryParams = logQuery?.map(formatSearchStringForQueryParam);
   const metricQueryParams = metricQuery?.map(formatSearchStringForQueryParam);
   const spanQueryParams = spanQuery?.map(formatSearchStringForQueryParam);
+  const transformationParams = Object.fromEntries(
+    (transformations ?? []).flatMap((steps, index) =>
+      steps.length ? [[`transformations[${index}]`, steps]] : []
+    )
+  );
 
   return useQuery({
     ...apiOptions.as<EventsTimeSeriesResponse>()(
@@ -171,6 +168,7 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
           dataset,
           referrer,
           yAxis,
+          ...transformationParams,
           ...normalizeDateTimeParams(selection.datetime),
           project: selection.projects,
           environment: selection.environments,
@@ -189,10 +187,6 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
           logQuery: logQueryParams,
           metricQuery: metricQueryParams,
           spanQuery: spanQueryParams,
-          includeAnnotations: includeAnnotations ? 1 : undefined,
-          includeMeasuredIngestionDelayMetadata: includeMeasuredIngestionDelayMetadata
-            ? 1
-            : undefined,
         },
         staleTime: Infinity,
       }
@@ -205,24 +199,7 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
   });
 }
 
-/**
- * One time bucket's volume for a system data-fidelity annotation.
- */
-export interface Annotation {
-  category: string;
-  end: number;
-  eventCount: number;
-  outcome: string;
-  reason: string;
-  start: number;
-  type: string;
-  /**
-   * Only sent for datasets with a paired byte category (logs today).
-   */
-  byteSize?: number;
-}
-
-interface IngestionMeta {
+export interface IngestionMeta {
   status: 'healthy' | 'stalled' | 'idle' | 'unknown';
   completeThrough?: number;
   delaySeconds?: number;
@@ -234,8 +211,6 @@ export type EventsTimeSeriesResponse = {
     dataset: DiscoverDatasets;
     end: number;
     start: number;
-    acceptedAnnotations?: Annotation[];
-    droppedAnnotations?: Annotation[];
     ingestion?: IngestionMeta;
   };
 };

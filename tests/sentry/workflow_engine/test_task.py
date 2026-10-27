@@ -1,8 +1,8 @@
 from typing import Any
 from unittest import mock
 
-import sentry_sdk
 from google.api_core.exceptions import RetryError
+from sentry_sdk import traces
 
 from sentry.incidents.grouptype import MetricIssue
 from sentry.issues.status_change_consumer import process_status_change_message, update_status
@@ -264,13 +264,8 @@ class TestProcessWorkflowActivity(TestCase):
         assert artifact["triggered_action_ids"] == [self.action.id]
         assert artifact["outcome"] == WorkflowEvaluationOutcome.ACTIONS_TRIGGERED
 
-    @mock.patch(
-        "sentry.workflow_engine.models.incident_groupopenperiod.update_incident_based_on_open_period_status_change"
-    )  # rollout code that is independently tested
     @mock.patch("sentry.workflow_engine.tasks.workflows.metrics.incr")
-    def test__e2e__issue_plat_to_processed(
-        self, mock_incr: mock.MagicMock, mock_update_igop: mock.MagicMock
-    ) -> None:
+    def test__e2e__issue_plat_to_processed(self, mock_incr: mock.MagicMock) -> None:
         self.message = StatusChangeMessageData(
             id="test-id",
             fingerprint=["group-1"],
@@ -295,14 +290,10 @@ class TestProcessWorkflowActivity(TestCase):
             )
 
     @mock.patch("sentry.issues.status_change_consumer.get_group_from_fingerprint")
-    @mock.patch(
-        "sentry.workflow_engine.models.incident_groupopenperiod.update_incident_based_on_open_period_status_change"
-    )  # rollout code that is independently tested
     @mock.patch("sentry.workflow_engine.tasks.workflows.metrics.incr")
     def test__e2e__issue_plat_to_processed_activity_data_is_set(
         self,
         mock_incr: mock.MagicMock,
-        mock_update_igop: mock.MagicMock,
         mock_get_group_from_fingerprint: mock.MagicMock,
     ) -> None:
         mock_get_group_from_fingerprint.return_value = self.group
@@ -319,12 +310,12 @@ class TestProcessWorkflowActivity(TestCase):
 
         with (
             self.tasks(),
-            sentry_sdk.start_transaction(
-                op="process_status_change_message",
+            traces.start_span(
                 name="issues.status_change_consumer",
-            ) as txn,
+                attributes={"sentry.op": "process_status_change_message"},
+            ) as span,
         ):
-            process_status_change_message(self.message, txn)
+            process_status_change_message(self.message, span)
 
             # Workflow engine evaluated activity update in process_workflows
             mock_incr.assert_any_call(

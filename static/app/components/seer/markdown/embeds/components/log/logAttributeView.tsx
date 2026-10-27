@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import {IconList} from '@sentry/icons/list';
 import {useQuery} from '@tanstack/react-query';
 
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -7,7 +8,6 @@ import {Text} from '@sentry/scraps/text';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {EmbedSection} from 'sentry/components/seer/markdown/embeds/components/embedSection';
 import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
-import {IconList} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';

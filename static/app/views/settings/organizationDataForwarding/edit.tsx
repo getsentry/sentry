@@ -1,4 +1,5 @@
 import {Fragment, useMemo} from 'react';
+import {IconArrow} from '@sentry/icons/arrow';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
@@ -13,7 +14,6 @@ import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {NotFound} from 'sentry/components/errors/notFound';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconArrow} from 'sentry/icons/iconArrow';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
@@ -22,6 +22,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
+import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import {ProjectOverrideForm} from 'sentry/views/settings/organizationDataForwarding/components/projectOverrideForm';
 import {
   useDataForwarders,
@@ -47,11 +48,21 @@ export default function OrganizationDataForwardingEditWrapper() {
   const dataForwarder = dataForwarders?.find(df => df.id === dataForwarderId);
 
   if (isLoading) {
-    return <LoadingIndicator />;
+    return (
+      <Fragment>
+        <BreadcrumbTitle title={t('Data Forwarding')} />
+        <LoadingIndicator />
+      </Fragment>
+    );
   }
 
   if (!dataForwarder) {
-    return <NotFound />;
+    return (
+      <Fragment>
+        <BreadcrumbTitle title={t('Data Forwarding')} />
+        <NotFound />
+      </Fragment>
+    );
   }
 
   return <OrganizationDataForwardingEdit dataForwarder={dataForwarder} />;
@@ -67,6 +78,7 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
 
   return (
     <Fragment>
+      <BreadcrumbTitle title={t('Data Forwarding')} />
       <SentryDocumentTitle
         title={t('Edit your %s forwarder', ProviderLabels[provider])}
       />

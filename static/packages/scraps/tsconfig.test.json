@@ -2,9 +2,17 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "rootDir": ".",
-    "noEmit": true,
+    "composite": true,
+    "declarationMap": true,
+    "outDir": ".types",
+    "tsBuildInfoFile": ".types/tsconfig.tsbuildinfo",
     "types": ["jest", "node", "@testing-library/jest-dom"]
   },
   "include": ["src", "test"],
-  "exclude": []
+  "exclude": [],
+  "references": [
+    {
+      "path": "../icons"
+    }
+  ]
 }

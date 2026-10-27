@@ -5,16 +5,16 @@ import {type AriaComboBoxProps} from '@react-aria/combobox';
 import {Item} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren} from '@react-types/shared';
+import {IconSearch} from '@sentry/icons/search';
 
 import {Badge} from '@sentry/scraps/badge';
 import {ListBox} from '@sentry/scraps/compactSelect';
 import {useHotkeys} from '@sentry/scraps/hotkey';
 import {InputGroup} from '@sentry/scraps/input';
+import {Overlay} from '@sentry/scraps/overlay';
 
-import {Overlay} from 'sentry/components/overlay';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {useRegistry} from 'sentry/debug/notifications/hooks/useRegistry';
-import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {fzf} from 'sentry/utils/search/fzf';
 import {useNavigate} from 'sentry/utils/useNavigate';

@@ -2,7 +2,14 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
@@ -11,7 +18,6 @@ import {
   INPUT_STORAGE_KEY_PREFIX,
   SeerExplorerContent,
 } from 'sentry/views/seerExplorer/components/seerExplorerContent';
-import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/seerExplorerHeader';
 import * as useSeerExplorerModule from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
@@ -34,7 +40,6 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   isTimedOut: false,
   runId: null,
   overrideBashModeEnabled: false,
-  overrideCtxEngEnable: true,
   overrideCodeModeEnable: 'off',
   hasSentInterrupt: false,
   sendMessage: jest.fn(),
@@ -43,9 +48,7 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   startNewSession: jest.fn(),
   interruptRun: jest.fn(),
   respondToUserInput: jest.fn(),
-  createPR: jest.fn(),
   setOverrideBashModeEnabled: jest.fn(),
-  setOverrideCtxEngEnable: jest.fn(),
   setOverrideCodeModeEnable: jest.fn(),
 };
 
@@ -571,11 +574,87 @@ describe('SeerExplorerContent', () => {
       );
 
       const question = await screen.findByText('Which project should we focus on?');
+      // Pinned above the composer, outside the scrolling transcript.
+      expect(screen.getByTestId('seer-explorer-pending-input')).toContainElement(
+        question
+      );
       const alert = screen.getByText(
         'There was an error sending your message, wait and try again.'
       );
       expect(
         alert.compareDocumentPosition(question) & Node.DOCUMENT_POSITION_FOLLOWING
+      ).toBeTruthy();
+    });
+
+    it('pins a pending write approval above the composer', async () => {
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        sessionData: {
+          blocks: [
+            {
+              id: 'msg-1',
+              message: {role: 'user', content: 'Mute this monitor'},
+              timestamp: '2024-01-01T00:00:00Z',
+              loading: false,
+            },
+            {
+              id: 'tool-1',
+              message: {
+                role: 'tool_use',
+                content: null,
+                tool_calls: [{id: 'call-1', function: 'sentry_api_execute', args: '{}'}],
+              },
+              timestamp: '2024-01-01T00:00:01Z',
+              loading: false,
+              tool_results: [
+                {
+                  tool_call_id: 'call-1',
+                  tool_call_function: 'sentry_api_execute',
+                  content: '{% agentWriteApproval /%}',
+                  structuredContent: {
+                    agentWriteApproval: {
+                      inputId: '11111111-1111-4111-8111-111111111111',
+                      requiredScopes: ['alerts:write'],
+                      sessionId: 'session-1',
+                      status: 'pending',
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+          status: 'awaiting_user_input',
+          pending_user_input: {
+            id: '11111111-1111-4111-8111-111111111111',
+            input_type: 'agent_write_approval',
+            data: {required_scopes: ['alerts:write'], session_id: 'session-1'},
+          },
+          updated_at: '2024-01-01T00:01:00Z',
+        },
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {
+          organization,
+        }
+      );
+
+      const block = await screen.findByTestId('agent-write-approval-block');
+      expect(screen.getByTestId('seer-explorer-pending-input')).toContainElement(block);
+      expect(within(block).getByRole('button', {name: 'Approve'})).toBeInTheDocument();
+      // Exactly one prompt: the transcript shows no actions of its own.
+      expect(screen.getAllByRole('button', {name: 'Approve'})).toHaveLength(1);
+      expect(
+        screen.getByText('Mute this monitor').compareDocumentPosition(block) &
+          Node.DOCUMENT_POSITION_FOLLOWING
       ).toBeTruthy();
     });
   });
@@ -1479,13 +1558,7 @@ describe('SeerExplorerContent', () => {
     });
   });
 
-  describe('Context Engine Toggle', () => {
-    const orgWithFlag = OrganizationFixture({
-      openMembership: true,
-      hideAiFeatures: false,
-      features: ['seer-explorer', 'seer-explorer-context-engine-fe-override-ui-flag'],
-    });
-
+  describe('Debug menu', () => {
     beforeEach(() => {
       ConfigStore.set(
         'user',
@@ -1511,37 +1584,6 @@ describe('SeerExplorerContent', () => {
       );
       await screen.findByTestId('seer-explorer-input');
       expect(screen.queryByRole('button', {name: 'Debug'})).not.toBeInTheDocument();
-    });
-
-    it('shows the context engine toggle in the debug menu when the flag is enabled', async () => {
-      render(
-        <SeerExplorerSessionsProvider>
-          <SeerExplorerHeader
-            onNewChatClick={() => {}}
-            onChangeSession={() => {}}
-            onCopySessionClick={undefined}
-            onCopyLinkClick={undefined}
-            overrideCtxEngEnable
-            onOverrideCtxEngEnableToggle={() => {}}
-            overrideBashModeEnabled={false}
-            onOverrideBashModeToggle={() => {}}
-            showThinking={false}
-            onShowThinkingToggle={() => {}}
-            isPipSupported={false}
-            isPoppedOut={false}
-            onTogglePictureInPicture={() => {}}
-          />
-        </SeerExplorerSessionsProvider>,
-        {
-          organization: orgWithFlag,
-        }
-      );
-
-      await screen.findByText('Seer Agent');
-      await userEvent.click(await screen.findByRole('button', {name: 'Debug'}));
-      expect(
-        await screen.findByRole('option', {name: /Context Engine/})
-      ).toBeInTheDocument();
     });
   });
 

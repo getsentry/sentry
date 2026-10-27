@@ -1,5 +1,3 @@
-import trimStart from 'lodash/trimStart';
-
 import type {SelectValue} from '@sentry/scraps/select';
 
 import type {Client} from 'sentry/api';
@@ -13,13 +11,9 @@ import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import type {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import type {
-  AggregationOutputType,
-  DataUnit,
-  QueryFieldValue,
-} from 'sentry/utils/discover/fields';
-import {isEquation} from 'sentry/utils/discover/fields';
+import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {
   DashboardFilters,
   DisplayType,
@@ -27,8 +21,8 @@ import type {
   WidgetQuery,
 } from 'sentry/views/dashboards/types';
 import {WidgetType} from 'sentry/views/dashboards/types';
-import {getNumEquations} from 'sentry/views/dashboards/utils';
 import type {AxisRange} from 'sentry/views/dashboards/utils/axisRange';
+import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';
@@ -273,20 +267,6 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     queries?: WidgetQuery[]
   ) => Record<string, SelectValue<FieldValue>>;
   /**
-   * Get the result type of the series. ie duration, size, percentage, etc
-   */
-  getSeriesResultType?: (
-    data: SeriesResponse,
-    widgetQuery: WidgetQuery
-  ) => Record<string, AggregationOutputType>;
-  /**
-   * Get the result unit of the series. ie milliseconds, bytes, etc
-   */
-  getSeriesResultUnit?: (
-    data: SeriesResponse,
-    widgetQuery: WidgetQuery
-  ) => Record<string, DataUnit>;
-  /**
    * Generate the list of sort options for table
    * displays on the 'Sort by' step of the Widget Builder.
    */
@@ -313,6 +293,15 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     widgetQuery: WidgetQuery,
     organization: Organization
   ) => Series[];
+  /**
+   * Wraps each series from an `/events-timeseries/` response with the widget
+   * query it came from and its legend key, applying any dataset-specific tweaks.
+   */
+  transformTimeSeries?: (
+    data: EventsTimeSeriesResponse,
+    widget: Widget,
+    queryIndex: number
+  ) => WidgetTimeSeries[];
   /**
    * Hook-based approach for fetching heat map data. Heat maps fetch from a
    * dedicated endpoint and need the rendered chart dimensions to size their
@@ -390,33 +379,4 @@ export function getDatasetConfig(widgetType?: WidgetType):
     default:
       throw new Error(`Unsupported widget type: ${widgetType}`);
   }
-}
-
-/**
- * A generic orderby reset helper function that updates the query's
- * orderby based on new selected fields.
- */
-export function handleOrderByReset(
-  widgetQuery: WidgetQuery,
-  newFields: string[]
-): WidgetQuery {
-  const rawOrderby = trimStart(widgetQuery.orderby, '-');
-  const isDescending = widgetQuery.orderby.startsWith('-');
-  const orderbyPrefix = isDescending ? '-' : '';
-
-  if (!newFields.includes(rawOrderby) && widgetQuery.orderby !== '') {
-    const isFromAggregates = widgetQuery.aggregates.includes(rawOrderby);
-    const isCustomEquation = isEquation(rawOrderby);
-    const isUsedInGrouping = widgetQuery.columns.includes(rawOrderby);
-
-    const keepCurrentOrderby = isFromAggregates || isCustomEquation || isUsedInGrouping;
-    const firstAggregateAlias = isEquation(widgetQuery.aggregates[0] ?? '')
-      ? `equation[${getNumEquations(widgetQuery.aggregates) - 1}]`
-      : newFields[0];
-
-    widgetQuery.orderby =
-      (keepCurrentOrderby && widgetQuery.orderby) ||
-      `${orderbyPrefix}${firstAggregateAlias}`;
-  }
-  return widgetQuery;
 }

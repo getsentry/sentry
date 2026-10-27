@@ -1,13 +1,14 @@
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Tag, type TagProps} from '@sentry/scraps/badge';
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Link} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {ResultTable} from 'sentry/components/resultTable';
+import {ResultTable, ResultTableRowHeader} from 'sentry/components/resultTable';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getCells} from 'sentry/utils/cells';
@@ -17,7 +18,6 @@ import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
 import {DetailLabel} from 'admin/components/detailLabel';
-import {DetailList} from 'admin/components/detailList';
 import {DetailsContainer} from 'admin/components/detailsContainer';
 import {DetailsPage} from 'admin/components/detailsPage';
 import {isBillingAdmin, prettyDate} from 'admin/utils';
@@ -145,7 +145,7 @@ export function InvoiceDetails() {
 
   const overviewPanel = (
     <DetailsContainer>
-      <DetailList>
+      <DescriptionList gap="md">
         <DetailLabel title="Customer">
           {customer.isDeleted ? (
             <span>
@@ -172,13 +172,13 @@ export function InvoiceDetails() {
             </div>
           )}
         </DetailLabel>
-      </DetailList>
-      <DetailList>
+      </DescriptionList>
+      <DescriptionList gap="md">
         <DetailLabel title="ID">{invoice.id}</DetailLabel>
         <DetailLabel title="Effective At">
           {invoice.effectiveAt ? prettyDate(invoice.effectiveAt) : 'n/a'}
         </DetailLabel>
-      </DetailList>
+      </DescriptionList>
     </DetailsContainer>
   );
 
@@ -193,7 +193,7 @@ export function InvoiceDetails() {
       <tbody>
         {invoice.items.map((item, num) => (
           <tr key={num}>
-            <td>{getItemDescription(item)}</td>
+            <ResultTableRowHeader>{getItemDescription(item)}</ResultTableRowHeader>
             <td data-label="Amount" style={{textAlign: 'right'}}>
               ${(item.amount / 100).toLocaleString()}
             </td>
@@ -217,9 +217,9 @@ export function InvoiceDetails() {
       <tbody>
         {invoice.charges.map(row => (
           <tr key={row.id}>
-            <td>
+            <ResultTableRowHeader>
               <DateTime date={row.dateCreated} />
-            </td>
+            </ResultTableRowHeader>
             <td data-label="Stripe ID" style={{textAlign: 'center'}}>
               {row.stripeID ? (
                 <a href={`https://dashboard.stripe.com/charges/${row.stripeID}`}>

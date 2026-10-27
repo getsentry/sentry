@@ -4,11 +4,10 @@ from typing import Any
 
 from django.utils.http import urlencode
 
-from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.models.rule import Rule
+from sentry.notifications.models.notificationaction import ActionService
 from sentry.notifications.types import NotificationOrigin
 from sentry.types.rules import NotificationRuleDetails
 
@@ -43,7 +42,7 @@ def get_email_link_extra_params(
             urlencode(
                 {
                     "referrer": referrer,
-                    "alert_type": str(AlertRuleTriggerAction.Type.EMAIL.name).lower(),
+                    "alert_type": str(ActionService.EMAIL.name).lower(),
                     "alert_timestamp": alert_timestamp_str,
                     "alert_rule_id": rule_detail.id,
                     **dict(
@@ -103,17 +102,13 @@ def get_issue_replay_link(group: Group, sentry_query_params: str = "") -> str:
 
 
 def get_rules(
-    rules: Sequence[Rule | NotificationOrigin],
+    rules: Sequence[NotificationOrigin],
     organization: Organization,
     project: Project,
     type_id: int | None = None,
 ) -> list[NotificationRuleDetails]:
-    origins = [
-        rule if isinstance(rule, NotificationOrigin) else NotificationOrigin.from_legacy_rule(rule)
-        for rule in rules
-    ]
-    legacy_rules = [origin for origin in origins if origin.legacy_rule_id is not None]
-    workflow_rules = [origin for origin in origins if origin.legacy_rule_id is None]
+    legacy_rules = [rule for rule in rules if rule.legacy_rule_id is not None]
+    workflow_rules = [rule for rule in rules if rule.legacy_rule_id is None]
 
     return get_workflow_links(workflow_rules, organization, project) + get_rules_with_legacy_ids(
         legacy_rules, organization, project

@@ -1,8 +1,6 @@
-import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import {parseAsString, useQueryState} from 'nuqs';
 
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -26,22 +24,17 @@ function NewDetectorBreadcrumbs() {
   const organization = useOrganization();
 
   return (
-    <Fragment>
-      <TopBar.Slot name="breadcrumbs">
-        <BreadcrumbList
-          items={[
-            {
-              type: 'link',
-              label: t('Monitors'),
-              to: makeMonitorBasePathname(organization.slug),
-            },
-          ]}
-        />
-      </TopBar.Slot>
-      <TopBar.Slot name="title">
-        <BreadcrumbList.Title item={{type: 'page-title', label: t('New Monitor')}} />
-      </TopBar.Slot>
-    </Fragment>
+    <TopBar.Slot
+      name="breadcrumbs"
+      title={{type: 'page-title', label: t('New Monitor')}}
+      items={[
+        {
+          type: 'link',
+          label: t('Monitors'),
+          to: makeMonitorBasePathname(organization.slug),
+        },
+      ]}
+    />
   );
 }
 

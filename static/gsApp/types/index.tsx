@@ -6,10 +6,6 @@ import type {DataCategory, DataCategoryInfo} from 'sentry/types/core';
 declare global {
   interface Window {
     /**
-     * Used in admin
-     */
-    __sendGridApiKey: string;
-    /**
      * Google analytics
      */
     ga: any;
@@ -47,7 +43,6 @@ declare module 'sentry/types/system' {
   interface Config {
     'getsentry.amplitudeApiKey'?: string;
     'getsentry.googleMapsApiKey'?: string;
-    'getsentry.sendgridApiKey'?: string;
     'getsentry.stripePublishKey'?: string;
   }
 }
@@ -513,6 +508,13 @@ export type InvoiceBase = StructuredAddress & {
   sentryTaxIds: SentryTaxIds | null;
   taxNumber: string | null;
   type: string | null;
+  /**
+   * Usage exports for the period (billing history or platform contract) the receipt bills usage for.
+   */
+  usageCsvLinks?: {
+    csv: string;
+    csvPerProject: string;
+  } | null;
 };
 
 export type Invoice = InvoiceBase & {

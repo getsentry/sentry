@@ -1,5 +1,5 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
-import {Outlet} from 'react-router-dom';
+import {Navigate, Outlet} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
@@ -20,6 +20,7 @@ import {TourContextProvider} from 'sentry/components/tours/components';
 import {useAssistant} from 'sentry/components/tours/useAssistant';
 import {featureFlagDrawerPlatforms} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
+import {legacyLocationDescriptorToTo} from 'sentry/router/legacy/location';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -51,6 +52,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
+import {hasAutofixPage, makeSeerLocation} from 'sentry/views/issueDetails/autofix/utils';
 import {ERROR_TYPES} from 'sentry/views/issueDetails/constants';
 import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 import {GroupDetailsLayout} from 'sentry/views/issueDetails/groupDetailsLayout';
@@ -631,7 +633,15 @@ function GroupDetailsContentInner({
   const {isAnyDrawerOpen} = useDrawer();
 
   const {currentTab} = useGroupDetailsRoute();
+  const location = useLocation();
+  const autofixPage = hasAutofixPage(organization);
+  // nuqs flips this as soon as the drawer closes, before the URL catches up, so
+  // closing the drawer doesn't reopen it.
   const [seerDrawer] = useQueryState('seerDrawer', parseAsBoolean.withDefault(false));
+  // Autofix has its own tab behind the flag, so legacy `?seerDrawer=true` links
+  // are redirected there instead of opening the drawer. This reads the router
+  // location, which updates with the redirect, so it renders only once.
+  const redirectToAutofixTab = autofixPage && location.query.seerDrawer === 'true';
 
   const {hasAutofixQuota} = useAiConfig(group, project);
 
@@ -640,7 +650,7 @@ function GroupDetailsContentInner({
       return;
     }
 
-    if (seerDrawer) {
+    if (seerDrawer && !autofixPage) {
       openSeerDrawer();
       return;
     }
@@ -658,6 +668,7 @@ function GroupDetailsContentInner({
   }, [
     currentTab,
     isAnyDrawerOpen,
+    autofixPage,
     seerDrawer,
     openDistributionsDrawer,
     openSimilarIssuesDrawer,
@@ -703,8 +714,11 @@ function GroupDetailsContentInner({
     title: group.title,
     level: group.level,
     status: group.status,
+    substatus: group.substatus,
     priority: group.priority,
     issueType: group.issueType,
+    subtitle: group.metadata?.value,
+    culprit: group.culprit,
     count: group.count,
     userCount: group.userCount,
     firstSeen: group.firstSeen,
@@ -722,6 +736,25 @@ function GroupDetailsContentInner({
     Tab.MERGED,
     Tab.ACTIVITY,
   ].includes(currentTab);
+
+  if (redirectToAutofixTab) {
+    return (
+      <Navigate
+        replace
+        to={legacyLocationDescriptorToTo(
+          makeSeerLocation({
+            organization,
+            groupId: group.id,
+            action:
+              typeof location.query.seerDrawerAction === 'string'
+                ? location.query.seerDrawerAction
+                : undefined,
+            query: location.query,
+          })
+        )}
+      />
+    );
+  }
 
   return (
     <GroupDetailsLayout group={group} event={event ?? undefined} project={project}>

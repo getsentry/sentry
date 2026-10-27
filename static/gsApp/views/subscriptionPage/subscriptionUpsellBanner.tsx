@@ -1,11 +1,12 @@
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/close';
 import businessUpgrade from 'getsentry-images/product_trial/business-upgrade-notrial.svg';
 import businessTrial from 'getsentry-images/product_trial/try-sentry-business-present.svg';
 
 import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
-import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
@@ -134,7 +135,7 @@ export function SubscriptionUpsellBanner({
             <TrialBadge subscription={subscription} organization={organization} />
           )}
         </IntegationBannerTitle>
-        <IntegationBannerDescription>
+        <Container marginBottom="lg" maxWidth="440px">
           {description}{' '}
           <Button
             size="zero"
@@ -145,7 +146,7 @@ export function SubscriptionUpsellBanner({
           >
             {t('Learn More')}
           </Button>
-        </IntegationBannerDescription>
+        </Container>
         <UpgradeOrTrialButton
           subscription={subscription}
           organization={organization}
@@ -161,7 +162,14 @@ export function SubscriptionUpsellBanner({
           }}
         </UpgradeOrTrialButton>
       </div>
-      <BannerImage src={subscription.canTrial ? businessTrial : businessUpgrade} />
+      <Container display={{zero: 'none', '5xl': 'block'}}>
+        {containerProps => (
+          <BannerImage
+            {...containerProps}
+            src={subscription.canTrial ? businessTrial : businessUpgrade}
+          />
+        )}
+      </Container>
       <CloseBannerButton
         variant="link"
         aria-label={t('Dismiss')}
@@ -196,11 +204,6 @@ const IntegationBannerTitle = styled('div')`
   font-weight: 600;
 `;
 
-const IntegationBannerDescription = styled('div')`
-  margin-bottom: ${p => p.theme.space.lg};
-  max-width: 440px;
-`;
-
 const CloseBannerButton = styled(Button)`
   position: absolute;
   display: block;
@@ -213,13 +216,8 @@ const CloseBannerButton = styled(Button)`
 
 const BannerImage = styled('img')`
   position: absolute;
-  display: none;
   bottom: 0px;
   right: 4rem;
   pointer-events: none;
   max-height: 90%;
-
-  @container (min-width: ${p => p.theme.container['5xl']}) {
-    display: block;
-  }
 `;

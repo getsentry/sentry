@@ -1,6 +1,8 @@
 import {Fragment, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconContract} from '@sentry/icons/contract';
+import {IconExpand} from '@sentry/icons/expand';
 import screenfull from 'screenfull';
 
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
@@ -8,10 +10,9 @@ import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid, type FlexProps} from '@sentry/scraps/layout';
 import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 import {Text} from '@sentry/scraps/text';
+import type {ContainerBreakpointSize} from '@sentry/scraps/theme';
 
-import {IconContract, IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {ContainerBreakpointSize} from 'sentry/utils/theme';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useFullscreen} from 'sentry/utils/window/useFullscreen';
 import {useIsFullscreen} from 'sentry/utils/window/useIsFullscreen';

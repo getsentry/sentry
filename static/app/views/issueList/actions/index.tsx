@@ -1,5 +1,4 @@
-import {Fragment, useMemo} from 'react';
-import {useTheme} from '@emotion/react';
+import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
@@ -10,8 +9,13 @@ import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {bulkDelete, mergeGroups} from 'sentry/actionCreators/group';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {IssueStreamHeaderLabel} from 'sentry/components/IssueStreamHeaderLabel';
-import {Sticky} from 'sentry/components/sticky';
+import {
+  STREAM_GROUP_HEADER_LABELS,
+  StreamGroupHeaderCell,
+  StreamGroupHeaderRow,
+  type StreamGroupColumn,
+} from 'sentry/components/stream/groupColumns';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -20,26 +24,25 @@ import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
 import {useApi} from 'sentry/utils/useApi';
-import {useMedia} from 'sentry/utils/useMedia';
+import {useIsStuck} from 'sentry/utils/useIsStuck';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {BULK_LIMIT, BULK_LIMIT_STR} from 'sentry/views/issueList/actions/constants';
 import {
   useIssueSelectionActions,
   useIssueSelectionSummary,
 } from 'sentry/views/issueList/issueSelectionContext';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
+import type {IssueSortOptions} from 'sentry/views/issueList/utils';
+import {TOP_BAR_HEIGHT_CSS_VAR} from 'sentry/views/navigation/constants';
+import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 
 import {ActionSet} from './actionSet';
-import {Headers} from './headers';
-import {
-  BULK_LIMIT,
-  BULK_LIMIT_STR,
-  ConfirmAction,
-  invalidateIssueQueries,
-  performBulkUpdate,
-} from './utils';
+import {TrendHeader} from './headers';
+import {ConfirmAction, invalidateIssueQueries, performBulkUpdate} from './utils';
 
 type IssueListActionsProps = {
   allResultsVisible: boolean;
+  columns: StreamGroupColumn[];
   displayReprocessingActions: boolean;
   groupIds: string[];
   onDelete: () => void;
@@ -47,20 +50,26 @@ type IssueListActionsProps = {
   query: string;
   queryCount: number;
   selection: PageFilters;
+  selectionEnabled: boolean;
+  sort: IssueSortOptions;
   statsPeriod: string;
   onActionTaken?: (itemIds: string[], data: IssueUpdateData) => void;
 };
 
-const animationProps: MotionNodeAnimationOptions = {
+const labelAnimationProps: MotionNodeAnimationOptions = {
   initial: {translateY: 8, opacity: 0},
   animate: {translateY: 0, opacity: 1},
-  exit: {translateY: -8, opacity: 0},
   transition: {duration: 0.1},
+};
+
+const actionsAnimationProps: MotionNodeAnimationOptions = {
+  ...labelAnimationProps,
+  exit: {translateY: -8, opacity: 0},
 };
 
 function ActionsBarPriority({
   anySelected,
-  narrowViewport,
+  columns,
   displayReprocessingActions,
   pageSelected,
   queryCount,
@@ -71,20 +80,23 @@ function ActionsBarPriority({
   handleDelete,
   handleMerge,
   handleUpdate,
+  isStuck,
   toggleSelectAllVisible,
   selectedProjectSlug,
+  selectionEnabled,
   onSelectStatsPeriod,
   statsPeriod,
   selection,
 }: {
   allInQuerySelected: boolean;
   anySelected: boolean;
+  columns: StreamGroupColumn[];
   displayReprocessingActions: boolean;
   handleDelete: () => void;
   handleMerge: () => void;
   handleUpdate: (data: IssueUpdateData) => void;
+  isStuck: boolean;
   multiSelected: boolean;
-  narrowViewport: boolean;
   onSelectStatsPeriod: (period: string) => void;
   pageSelected: boolean;
   query: string;
@@ -92,71 +104,105 @@ function ActionsBarPriority({
   selectedIdsSet: Set<string>;
   selectedProjectSlug: string | undefined;
   selection: PageFilters;
+  selectionEnabled: boolean;
   statsPeriod: string;
   toggleSelectAllVisible: () => void;
 }) {
-  const shouldDisplayActions = anySelected && !narrowViewport;
+  const shouldDisplayActions = anySelected && selectionEnabled;
 
   return (
-    <ActionsBarContainer>
-      {!narrowViewport && (
-        <Checkbox
-          onChange={toggleSelectAllVisible}
-          checked={pageSelected || (anySelected ? 'indeterminate' : false)}
-          aria-label={pageSelected ? t('Deselect all') : t('Select all')}
-          disabled={displayReprocessingActions}
-        />
-      )}
-      {!displayReprocessingActions && (
-        <AnimatePresence initial={false} mode="wait">
-          {shouldDisplayActions ? (
-            <HeaderButtonsWrapper
-              key="actions"
-              width={{zero: 'auto', '4xl': '50%'}}
-              gap="xs"
-              flow="column"
-              justify="start"
-              {...animationProps}
-            >
-              <ActionSet
-                queryCount={queryCount}
-                query={query}
-                issues={selectedIdsSet}
-                allInQuerySelected={allInQuerySelected}
-                anySelected={anySelected}
-                multiSelected={multiSelected}
-                selectedProjectSlug={selectedProjectSlug}
-                onShouldConfirm={action =>
-                  shouldConfirm(action, {pageSelected, selectedIdsSet})
-                }
-                onDelete={handleDelete}
-                onMerge={handleMerge}
-                onUpdate={handleUpdate}
-              />
-            </HeaderButtonsWrapper>
-          ) : (
-            <IssueStreamHeaderLabel hideDivider>{t('Issue')}</IssueStreamHeaderLabel>
-          )}
-        </AnimatePresence>
-      )}
-      <AnimatePresence initial={false} mode="wait">
-        {anySelected ? null : (
-          <AnimatedHeaderItemsContainer key="headers" {...animationProps}>
-            <Headers
-              onSelectStatsPeriod={onSelectStatsPeriod}
-              selection={selection}
-              statsPeriod={statsPeriod}
-              isReprocessingQuery={displayReprocessingActions}
-            />
-          </AnimatedHeaderItemsContainer>
-        )}
+    <StreamGroupHeaderRow square={isStuck}>
+      <AnimatePresence initial={false}>
+        {columns.map(column => {
+          if (column.key === 'select') {
+            return (
+              <SelectHeaderCell key={column.key}>
+                <Flex>
+                  <Checkbox
+                    onChange={toggleSelectAllVisible}
+                    checked={pageSelected || (anySelected ? 'indeterminate' : false)}
+                    aria-label={pageSelected ? t('Deselect all') : t('Select all')}
+                    disabled={displayReprocessingActions}
+                  />
+                </Flex>
+              </SelectHeaderCell>
+            );
+          }
+
+          if (column.key === 'issue') {
+            return (
+              <StreamGroupHeaderCell
+                key={column.key}
+                column={column}
+                variant={shouldDisplayActions ? 'remaining' : undefined}
+              >
+                <AnimatePresence initial={false} mode="wait">
+                  {shouldDisplayActions ? (
+                    displayReprocessingActions ? null : (
+                      <ActionSetGrid
+                        key="actions"
+                        width={{zero: 'auto', '4xl': '50%'}}
+                        gap="xs"
+                        flow="column"
+                        justify="start"
+                        whiteSpace="nowrap"
+                        {...actionsAnimationProps}
+                      >
+                        <ActionSet
+                          queryCount={queryCount}
+                          query={query}
+                          issues={selectedIdsSet}
+                          allInQuerySelected={allInQuerySelected}
+                          anySelected={anySelected}
+                          multiSelected={multiSelected}
+                          selectedProjectSlug={selectedProjectSlug}
+                          onShouldConfirm={action =>
+                            shouldConfirm(action, {pageSelected, selectedIdsSet})
+                          }
+                          onDelete={handleDelete}
+                          onMerge={handleMerge}
+                          onUpdate={handleUpdate}
+                        />
+                      </ActionSetGrid>
+                    )
+                  ) : (
+                    <motion.div key="label" {...labelAnimationProps}>
+                      {STREAM_GROUP_HEADER_LABELS[column.key]}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </StreamGroupHeaderCell>
+            );
+          }
+
+          if (shouldDisplayActions) {
+            return null;
+          }
+
+          return (
+            <StreamGroupHeaderCell key={column.key} column={column}>
+              <motion.div {...labelAnimationProps}>
+                {column.key === 'graph' ? (
+                  <TrendHeader
+                    onSelectStatsPeriod={onSelectStatsPeriod}
+                    selection={selection}
+                    statsPeriod={statsPeriod}
+                  />
+                ) : (
+                  STREAM_GROUP_HEADER_LABELS[column.key]
+                )}
+              </motion.div>
+            </StreamGroupHeaderCell>
+          );
+        })}
       </AnimatePresence>
-    </ActionsBarContainer>
+    </StreamGroupHeaderRow>
   );
 }
 
 export function IssueListActions({
   allResultsVisible,
+  columns,
   displayReprocessingActions,
   groupIds,
   onActionTaken,
@@ -165,6 +211,8 @@ export function IssueListActions({
   queryCount,
   query,
   selection,
+  selectionEnabled,
+  sort,
   statsPeriod,
 }: IssueListActionsProps) {
   const api = useApi();
@@ -181,10 +229,13 @@ export function IssueListActions({
     const uniqProjects = uniq(projects);
     return uniqProjects.length === 1 ? uniqProjects[0] : undefined;
   }, [selectedIdsSet]);
-  const theme = useTheme();
-  const disableActions = useMedia(`(width < ${theme.breakpoints.sm})`);
   const area = useAnalyticsArea();
   const numIssues = selectedIdsSet.size;
+  const stickyHeadRef = useRef<HTMLTableSectionElement>(null);
+  const {pageContentTop} = useTopOffset();
+  const isStuck = useIsStuck(stickyHeadRef, {
+    offset: Number.parseInt(pageContentTop, 10) || 0,
+  });
 
   function actionSelectedGroups(callback: (itemIds: string[] | undefined) => void) {
     const selectedIds = allInQuerySelected
@@ -207,14 +258,18 @@ export function IssueListActions({
           orgId: organization.slug,
           itemIds,
           query: queryExcludingPerformanceIssues,
+          sort,
           project: selection.projects,
           environment: selection.environments,
           ...selection.datetime,
         });
       } catch {
         // GroupStore already shows the error
+        // oxlint-disable-next-line react/todo
       } finally {
-        onDelete();
+        if (itemIds?.length !== 0) {
+          onDelete();
+        }
       }
     });
   }
@@ -237,6 +292,7 @@ export function IssueListActions({
           orgId: organization.slug,
           itemIds,
           query: queryExcludingPerformanceIssues,
+          sort,
           project: selection.projects,
           environment: selection.environments,
           ...selection.datetime,
@@ -256,6 +312,7 @@ export function IssueListActions({
         organizationSlug: organization.slug,
         query,
         selection,
+        sort,
         onSuccess: updatedItemIds => {
           onActionTaken?.(updatedItemIds ?? [], data);
           invalidateIssueQueries({
@@ -269,8 +326,9 @@ export function IssueListActions({
   }
 
   return (
-    <StickyActions>
+    <StyledStickyHead ref={stickyHeadRef}>
       <ActionsBarPriority
+        isStuck={isStuck}
         query={query}
         queryCount={queryCount}
         selection={selection}
@@ -284,53 +342,56 @@ export function IssueListActions({
         handleUpdate={handleUpdate}
         toggleSelectAllVisible={toggleSelectAllVisible}
         multiSelected={multiSelected}
-        narrowViewport={disableActions}
+        columns={columns}
+        selectionEnabled={selectionEnabled}
         selectedProjectSlug={selectedProjectSlug}
         anySelected={anySelected}
         onSelectStatsPeriod={onSelectStatsPeriod}
       />
       {!allResultsVisible && pageSelected && (
-        <Alert system variant="info">
-          <Flex justify="start" wrap="wrap" gap="md">
-            {allInQuerySelected ? (
-              queryCount >= BULK_LIMIT ? (
-                tct(
-                  'Selected up to the first [count] issues that match this search query.',
-                  {
-                    count: BULK_LIMIT_STR,
-                  }
+        <SimpleTable.FullWidthRow>
+          <Alert system variant="info">
+            <Flex justify="start" wrap="wrap" gap="md">
+              {allInQuerySelected ? (
+                queryCount >= BULK_LIMIT ? (
+                  tct(
+                    'Selected up to the first [count] issues that match this search query.',
+                    {
+                      count: BULK_LIMIT_STR,
+                    }
+                  )
+                ) : (
+                  tct('Selected all [count] issues that match this search query.', {
+                    count: queryCount,
+                  })
                 )
               ) : (
-                tct('Selected all [count] issues that match this search query.', {
-                  count: queryCount,
-                })
-              )
-            ) : (
-              <Fragment>
-                {tn(
-                  '%s issue on this page selected.',
-                  '%s issues on this page selected.',
-                  numIssues
-                )}
+                <Fragment>
+                  {tn(
+                    '%s issue on this page selected.',
+                    '%s issues on this page selected.',
+                    numIssues
+                  )}
 
-                <a onClick={() => setAllInQuerySelected(true)}>
-                  {queryCount >= BULK_LIMIT
-                    ? tct(
-                        'Select the first [count] issues that match this search query.',
-                        {
-                          count: BULK_LIMIT_STR,
-                        }
-                      )
-                    : tct('Select all [count] issues that match this search query.', {
-                        count: queryCount,
-                      })}
-                </a>
-              </Fragment>
-            )}
-          </Flex>
-        </Alert>
+                  <a onClick={() => setAllInQuerySelected(true)}>
+                    {queryCount >= BULK_LIMIT
+                      ? tct(
+                          'Select the first [count] issues that match this search query.',
+                          {
+                            count: BULK_LIMIT_STR,
+                          }
+                        )
+                      : tct('Select all [count] issues that match this search query.', {
+                          count: queryCount,
+                        })}
+                  </a>
+                </Fragment>
+              )}
+            </Flex>
+          </Alert>
+        </SimpleTable.FullWidthRow>
       )}
-    </StickyActions>
+    </StyledStickyHead>
   );
 }
 
@@ -355,42 +416,16 @@ function shouldConfirm(
   }
 }
 
-const StickyActions = styled(Sticky)`
+const ActionSetGrid = styled(motion.create(Grid))`
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+`;
+
+const SelectHeaderCell = styled(SimpleTable.HeaderCell)`
+  padding: 0 0 0 ${p => p.theme.space.xl};
+`;
+
+const StyledStickyHead = styled(SimpleTable.Head)`
+  position: sticky;
+  top: var(${TOP_BAR_HEIGHT_CSS_VAR}, 0px);
   z-index: ${p => p.theme.zIndex.header};
-
-  /* Remove border radius from the action bar when stuck. Without this there is
-   * a small gap where color can peek through. */
-  &[data-stuck] > div {
-    border-radius: 0;
-  }
-
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  border-top: none;
-  border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
-`;
-
-const ActionsBarContainer = styled('div')`
-  display: grid;
-  grid-template-columns: max-content 1fr max-content;
-  gap: ${p => p.theme.space.md};
-  min-height: 36px;
-  padding-top: ${p => p.theme.space.xs};
-  padding-bottom: ${p => p.theme.space.xs};
-  padding-left: ${p => p.theme.space.xl};
-  align-items: center;
-  background: ${p => p.theme.tokens.background.secondary};
-  border-radius: 6px 6px 0 0;
-`;
-
-const MotionGrid = motion.create(Grid);
-
-const HeaderButtonsWrapper = styled(MotionGrid)`
-  grid-column: 2 / -1;
-  white-space: nowrap;
-`;
-
-const AnimatedHeaderItemsContainer = styled(motion.div)`
-  grid-column: -1;
-  display: flex;
-  align-items: center;
 `;

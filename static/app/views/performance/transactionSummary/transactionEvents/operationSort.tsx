@@ -1,10 +1,11 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 import {createPortal} from 'react-dom';
-import {Manager, Popper, Reference} from 'react-popper';
 import styled from '@emotion/styled';
+import {autoUpdate, offset, useFloating} from '@floating-ui/react-dom';
 import type {Location, LocationDescriptorObject} from 'history';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Container} from '@sentry/scraps/layout';
+import {flipOverlay, shiftOverlay} from '@sentry/scraps/overlayPositioning';
 import {Radio} from '@sentry/scraps/radio';
 
 import {MenuItem} from 'sentry/components/menuItem';
@@ -20,6 +21,13 @@ export type TitleProps = {
   onMouseLeave?: (e: React.MouseEvent) => void;
 };
 
+const MENU_MIDDLEWARE = [
+  // Leaves room for the menu's arrow
+  offset(9),
+  flipOverlay(),
+  shiftOverlay({padding: 10}),
+];
+
 type Props = {
   eventView: EventView;
   location: Location;
@@ -30,29 +38,35 @@ type Props = {
 export function OperationSort({eventView, location, tableMeta, title: Title}: Props) {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
-  const menuEl = useRef<Element | null>(null);
+  const {
+    refs: {setReference, setFloating},
+    floatingStyles,
+    placement,
+  } = useFloating({
+    placement: 'top',
+    middleware: MENU_MIDDLEWARE,
+    whileElementsMounted: autoUpdate,
+  });
 
-  const handleClickOutside = useCallback((event: MouseEvent) => {
-    if (event.target instanceof Element && !menuEl.current?.contains(event.target)) {
-      setIsOpen(false);
-    }
-  }, []);
+  // Close the menu on any click outside of it, for as long as it is open
+  const menuRef = useCallback(
+    (menu: HTMLDivElement) => {
+      setFloating(menu);
 
-  useEffect(() => {
-    if (isOpen) {
+      const handleClickOutside = (event: MouseEvent) => {
+        if (event.target instanceof Element && !menu.contains(event.target)) {
+          setIsOpen(false);
+        }
+      };
       document.addEventListener('click', handleClickOutside, true);
-    } else {
-      document.removeEventListener('click', handleClickOutside, true);
-    }
 
-    return () => {
-      document.removeEventListener('click', handleClickOutside, true);
-    };
-  }, [handleClickOutside, isOpen]);
-
-  const toggleOpen = useCallback(() => {
-    setIsOpen(previousIsOpen => !previousIsOpen);
-  }, []);
+      return () => {
+        document.removeEventListener('click', handleClickOutside, true);
+        setFloating(null);
+      };
+    },
+    [setFloating]
+  );
 
   function generateSortLink(field: any): LocationDescriptorObject | undefined {
     if (!tableMeta) {
@@ -68,80 +82,49 @@ export function OperationSort({eventView, location, tableMeta, title: Title}: Pr
     };
   }
 
-  function renderMenu() {
-    const modifiers = [
-      {
-        name: 'hide',
-        enabled: false,
-      },
-      {
-        name: 'preventOverflow',
-        enabled: true,
-        options: {padding: 10},
-      },
-    ];
-    const menuContent = (
-      <DropdownContent>
-        {[
-          {operation: 'spans.http', title: t('Sort By HTTP')},
-          {operation: 'spans.db', title: t('Sort By DB')},
-          {operation: 'spans.resource', title: t('Sort By Resource')},
-          {operation: 'spans.browser', title: t('Sort By Browser')},
-        ].map(({operation, title}) => (
-          <DropdownMenuItem key={operation}>
-            <Flex justify="start" align="center" width="100%">
-              <RadioLabel>
-                <StyledRadio
-                  readOnly
-                  size="sm"
-                  checked={eventView.sorts.some(({field}) => field === operation)}
-                  onClick={() => {
-                    const sortLink = generateSortLink({field: operation});
-                    if (sortLink) {
-                      navigate(sortLink);
-                    }
-                  }}
-                />
-                <span>{title}</span>
-              </RadioLabel>
-            </Flex>
-          </DropdownMenuItem>
-        ))}
-      </DropdownContent>
-    );
-
-    return createPortal(
-      <Popper placement="top" modifiers={modifiers}>
-        {({ref: popperRef, style, placement}) => (
+  return (
+    <Fragment>
+      <TitleWrapper ref={setReference}>
+        <Title onClick={() => setIsOpen(open => !open)} />
+      </TitleWrapper>
+      {isOpen &&
+        createPortal(
           <DropdownWrapper
-            ref={ref => {
-              (popperRef as CallableFunction)(ref);
-              menuEl.current = ref;
-            }}
-            style={style}
+            ref={menuRef}
+            style={floatingStyles}
             data-placement={placement}
           >
-            {menuContent}
-          </DropdownWrapper>
+            <Container maxHeight="250px" overflowY="auto">
+              {[
+                {operation: 'spans.http', title: t('Sort By HTTP')},
+                {operation: 'spans.db', title: t('Sort By DB')},
+                {operation: 'spans.resource', title: t('Sort By Resource')},
+                {operation: 'spans.browser', title: t('Sort By Browser')},
+              ].map(({operation, title}) => (
+                <DropdownMenuItem key={operation}>
+                  <Flex justify="start" align="center" width="100%">
+                    <RadioLabel>
+                      <StyledRadio
+                        readOnly
+                        size="sm"
+                        checked={eventView.sorts.some(({field}) => field === operation)}
+                        onClick={() => {
+                          const sortLink = generateSortLink({field: operation});
+                          if (sortLink) {
+                            navigate(sortLink);
+                          }
+                        }}
+                      />
+                      <span>{title}</span>
+                    </RadioLabel>
+                  </Flex>
+                </DropdownMenuItem>
+              ))}
+            </Container>
+          </DropdownWrapper>,
+          document.body
         )}
-      </Popper>,
-      document.body
-    );
-  }
-
-  const menu = isOpen ? renderMenu() : null;
-
-  return (
-    <Manager>
-      <Reference>
-        {({ref}) => (
-          <TitleWrapper ref={ref}>
-            <Title onClick={toggleOpen} />
-          </TitleWrapper>
-        )}
-      </Reference>
-      {menu}
-    </Manager>
+    </Fragment>
   );
 }
 
@@ -183,32 +166,28 @@ const DropdownWrapper = styled('div')`
   }
 
   &[data-placement*='bottom'] {
-    margin-top: 9px;
-
     &:before {
-      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+      /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
       border-bottom: 9px solid ${p => p.theme.tokens.background.primary};
       top: -9px;
     }
 
     &:after {
-      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+      /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
       border-bottom: 8px solid ${p => p.theme.tokens.background.primary};
       top: -8px;
     }
   }
 
   &[data-placement*='top'] {
-    margin-bottom: 9px;
-
     &:before {
-      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+      /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
       border-top: 9px solid ${p => p.theme.tokens.background.primary};
       bottom: -9px;
     }
 
     &:after {
-      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+      /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
       border-top: 8px solid ${p => p.theme.tokens.background.primary};
       bottom: -8px;
     }
@@ -236,11 +215,6 @@ const RadioLabel = styled('label')`
 
 const StyledRadio = styled(Radio)`
   margin: 0;
-`;
-
-const DropdownContent = styled('div')`
-  max-height: 250px;
-  overflow-y: auto;
 `;
 
 const TitleWrapper = styled('div')`

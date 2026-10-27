@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
+import {IconClose} from '@sentry/icons/close';
 
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useSearchQueryBuilderState} from 'sentry/components/searchQueryBuilder/context';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
 import {InvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/tokens/invalidTokenTooltip';
@@ -18,7 +18,6 @@ import type {
   InvalidReason,
   ParseResultToken,
 } from 'sentry/components/searchSyntax/parser';
-import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 type DeletableTokenProps = {
@@ -93,7 +92,7 @@ const FloatingCloseButton = styled('button')`
   border: none;
   color: ${p => p.theme.tokens.content.secondary};
   border-radius: 2px 2px 0 0;
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: 0 0 0 1px ${p => p.theme.tokens.border.secondary};
   display: flex;
   align-items: center;

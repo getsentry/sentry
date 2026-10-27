@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {ExternalLink} from '@sentry/scraps/link';
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
 import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -15,16 +16,12 @@ import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPa
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SearchBar as TransactionNameSearchBar} from 'sentry/components/performance/searchBar';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {
-  canUseMetricsData,
-  useMEPSettingContext,
-} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayContext} from 'sentry/utils/performance/contexts/performanceDisplayContext';
+import {canUseMetricsData} from 'sentry/utils/performance/contexts/useMEPSettingContext';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -52,7 +49,6 @@ import {
   DoubleChartRow,
   TripleChartRow,
 } from 'sentry/views/performance/landing/widgets/components/widgetChartRow';
-import {filterAllowedChartsMetrics} from 'sentry/views/performance/landing/widgets/utils';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 import {Table} from 'sentry/views/performance/table';
@@ -71,17 +67,17 @@ const APDEX_TOOLTIP = tct(
 );
 
 const BACKEND_COLUMN_TITLES = [
-  {title: 'http method'},
-  {title: 'transaction'},
-  {title: 'operation'},
-  {title: 'project'},
-  {title: 'tpm'},
+  {title: 'HTTP method'},
+  {title: 'Transaction'},
+  {title: 'Operation'},
+  {title: 'Project'},
+  {title: 'TPM'},
   {title: 'p50()'},
   {title: 'p95()'},
-  {title: 'failure rate'},
-  {title: 'apdex', tooltip: APDEX_TOOLTIP},
-  {title: 'users'},
-  {title: 'user misery', tooltip: USER_MISERY_TOOLTIP},
+  {title: 'Failure rate'},
+  {title: 'Apdex', tooltip: APDEX_TOOLTIP},
+  {title: 'Users'},
+  {title: 'User misery', tooltip: USER_MISERY_TOOLTIP},
 ];
 
 interface AM1BackendOverviewPageProps {
@@ -99,7 +95,6 @@ export function Am1BackendOverviewPage({
   const onboardingProject = useOnboardingProject();
   const navigate = useNavigate();
   const {teams} = useUserTeams();
-  const mepSetting = useMEPSettingContext();
   const {selection} = usePageFilters();
 
   const withStaticFilters = canUseMetricsData(organization);
@@ -172,20 +167,15 @@ export function Am1BackendOverviewPage({
     PerformanceWidgetSetting.SLOW_DB_OPS,
     PerformanceWidgetSetting.MOST_RELATED_ISSUES,
   ];
-  const tripleChartRowCharts = filterAllowedChartsMetrics(
-    organization,
-    [
-      PerformanceWidgetSetting.TPM_AREA,
-      PerformanceWidgetSetting.DURATION_HISTOGRAM,
-      PerformanceWidgetSetting.P50_DURATION_AREA,
-      PerformanceWidgetSetting.P75_DURATION_AREA,
-      PerformanceWidgetSetting.P95_DURATION_AREA,
-      PerformanceWidgetSetting.P99_DURATION_AREA,
-      PerformanceWidgetSetting.FAILURE_RATE_AREA,
-      PerformanceWidgetSetting.APDEX_AREA,
-    ],
-    mepSetting
-  );
+  const tripleChartRowCharts = [
+    PerformanceWidgetSetting.TPM_AREA,
+    PerformanceWidgetSetting.P50_DURATION_AREA,
+    PerformanceWidgetSetting.P75_DURATION_AREA,
+    PerformanceWidgetSetting.P95_DURATION_AREA,
+    PerformanceWidgetSetting.P99_DURATION_AREA,
+    PerformanceWidgetSetting.FAILURE_RATE_AREA,
+    PerformanceWidgetSetting.APDEX_AREA,
+  ];
 
   if (organization.features.includes('insight-modules')) {
     doubleChartRowCharts.unshift(

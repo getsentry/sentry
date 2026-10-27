@@ -1,8 +1,14 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconClock} from '@sentry/icons/clock';
+import {IconInfo} from '@sentry/icons/info';
+import {IconLock} from '@sentry/icons/lock';
+import {IconPlay} from '@sentry/icons/play';
+import {IconTimer} from '@sentry/icons/timer';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
@@ -21,14 +27,6 @@ import {Pill} from 'sentry/components/pill';
 import {Pills} from 'sentry/components/pills';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {TextOverflow} from 'sentry/components/textOverflow';
-import {
-  IconChevron,
-  IconClock,
-  IconInfo,
-  IconLock,
-  IconPlay,
-  IconTimer,
-} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {EntryThreads, Event, ExceptionType, Thread} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -56,6 +54,7 @@ type Props = {
   group: Group | undefined;
   groupingCurrentLevel: Group['metadata']['current_level'];
   projectSlug: Project['slug'];
+  initialCollapse?: boolean;
 };
 
 function getIntendedStackView(
@@ -169,7 +168,14 @@ function ThreadStackTraceContent({
   );
 }
 
-export function Threads({data, event, projectSlug, groupingCurrentLevel, group}: Props) {
+export function Threads({
+  data,
+  event,
+  projectSlug,
+  groupingCurrentLevel,
+  group,
+  initialCollapse,
+}: Props) {
   // Sort threads by crashed first
   const threads = useMemo(
     () => (data.values ?? []).toSorted((a, b) => Number(b.crashed) - Number(a.crashed)),
@@ -245,7 +251,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
     <Fragment>
       {hasMoreThanOneThread && (
         <Fragment>
-          <Grid>
+          <Grid gap="xl" columns="auto 1fr">
             <div>
               <ThreadHeading>{t('Threads')}</ThreadHeading>
               {activeThread && (
@@ -317,6 +323,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
         }
       >
         <TraceEventDataSection
+          initialCollapse={initialCollapse}
           type={SectionKey.THREADS}
           projectSlug={projectSlug}
           event={event}
@@ -392,6 +399,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
   // If there is only one thread, we expect the stacktrace to wrap itself in a section
   return hasMoreThanOneThread ? (
     <FoldSection
+      initialCollapse={initialCollapse}
       sectionKey={SectionKey.STACKTRACE}
       title={tn('Stack Trace', 'Stack Traces', threads.length)}
       disableCollapsePersistence
@@ -402,12 +410,6 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
     threadComponent
   );
 }
-
-const Grid = styled('div')`
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: ${p => p.theme.space.xl};
-`;
 
 const TheadStateContainer = styled('div')`
   display: block;

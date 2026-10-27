@@ -2,21 +2,29 @@ import {useMemo} from 'react';
 import moment from 'moment-timezone';
 
 import {Tag} from '@sentry/scraps/badge';
-import {Grid, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+import {ToggleCard} from '@sentry/scraps/toggleCard';
 
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 
-import type {BillingConfig, Plan, Subscription} from 'getsentry/types';
+import {PAYG_BUSINESS_DEFAULT, PAYG_TEAM_DEFAULT} from 'getsentry/constants';
 import {
+  OnDemandBudgetMode,
+  type BillingConfig,
+  type Plan,
+  type Subscription,
+} from 'getsentry/types';
+import {
+  formatPrice,
   isBizPlanFamily,
   isDeveloperPlan,
   isNewPayingCustomer,
   isTrial,
 } from 'getsentry/utils/billing';
 import {PlanFeatures} from 'getsentry/views/amCheckout/components/planFeatures';
-import {PlanSelectCard} from 'getsentry/views/amCheckout/components/planSelectCard';
 import {StepHeader} from 'getsentry/views/amCheckout/components/stepHeader';
 import {ProductSelect} from 'getsentry/views/amCheckout/steps/productSelect';
 import type {CheckoutFormData, StepProps} from 'getsentry/views/amCheckout/types';
@@ -92,30 +100,67 @@ function PlanSubstep({
 
   return (
     <Stack gap="xl">
-      <Grid columns={{zero: '1fr', '4xl': `repeat(${planOptions.length}, 1fr)`}} gap="lg">
+      <Grid
+        columns={{zero: '1fr', '4xl': `repeat(${planOptions.length}, 1fr)`}}
+        gap="lg"
+        role="radiogroup"
+        aria-label={t('Plan')}
+      >
         {planOptions.map(plan => {
           const isSelected = plan.id === formData.plan;
           const shouldShowDefaultPayAsYouGo = isNewPayingCustomer(
             subscription,
             organization
           );
-          const basePrice = utils.formatPrice({cents: plan.basePrice});
+          const basePrice = formatPrice({cents: plan.basePrice});
           const planContent = utils.getContentForPlan(plan);
           const badge = getBadge(plan);
+          const billingInterval = utils.getShortInterval(plan.billingInterval);
 
           return (
-            <PlanSelectCard
+            <ToggleCard
               key={plan.id}
-              plan={plan}
-              isSelected={isSelected}
-              onUpdate={onUpdate}
-              planValue={plan.name}
-              planName={plan.name}
-              price={basePrice}
-              planContent={planContent}
-              shouldShowDefaultPayAsYouGo={shouldShowDefaultPayAsYouGo}
-              badge={badge}
-            />
+              variant="radio"
+              name="checkout-plan"
+              value={plan.id}
+              checked={isSelected}
+              data-test-id={`plan-option-${plan.id}`}
+              aria-label={plan.name}
+              onChange={() => {
+                const data: Partial<CheckoutFormData> = {plan: plan.id};
+                if (shouldShowDefaultPayAsYouGo) {
+                  data.onDemandMaxSpend = isBizPlanFamily(plan)
+                    ? PAYG_BUSINESS_DEFAULT
+                    : PAYG_TEAM_DEFAULT;
+                  data.onDemandBudget = {
+                    budgetMode: OnDemandBudgetMode.SHARED,
+                    sharedMaxBudget: data.onDemandMaxSpend,
+                  };
+                }
+                onUpdate(data);
+              }}
+            >
+              <Flex align="start" gap="md">
+                <ToggleCard.Indicator />
+                <Stack gap="sm" flexGrow={1}>
+                  <Flex align="center" justify="between" gap="sm">
+                    <Flex align="center" gap="sm">
+                      <Heading as="h3" variant="primary">
+                        {plan.name}
+                      </Heading>
+                      {badge}
+                    </Flex>
+                    <Flex>
+                      <Text size="lg" bold>{`$${basePrice}`}</Text>
+                      <Text size="lg" variant="muted">{`/${billingInterval}`}</Text>
+                    </Flex>
+                  </Flex>
+                  <Text size="md" variant="muted" textWrap="balance">
+                    {planContent.description}
+                  </Text>
+                </Stack>
+              </Flex>
+            </ToggleCard>
           );
         })}
       </Grid>

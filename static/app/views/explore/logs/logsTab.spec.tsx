@@ -1,8 +1,15 @@
-import {AnnotationFixture} from 'sentry-fixture/annotation';
 import {initializeLogsTest} from 'sentry-fixture/log';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
@@ -202,6 +209,103 @@ describe('LogsTabContent', () => {
       method: 'GET',
       body: {},
     });
+  });
+
+  it('edits per-series transformations beneath the charts through the log URL', async () => {
+    const {router} = render(
+      <LogsTabContentHarness datePageFilterProps={datePageFilterProps} />,
+      {
+        initialRouterConfig: {
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              ...initialRouterConfig.location.query,
+              aggregateField: [
+                {groupBy: 'severity'},
+                {yAxes: ['count(message)'], transformations: ['fill(zero)']},
+                {yAxes: ['avg(severity_number)'], transformations: ['smooth(asap,10)']},
+              ].map(field => JSON.stringify(field)),
+            },
+          },
+        },
+        organization: OrganizationFixture({
+          ...organization,
+          features: [...organization.features, 'explore-interpolation-and-smoothing'],
+        }),
+        additionalWrapper: ProviderWrapper,
+      }
+    );
+
+    expect(await screen.findByText('some log message1')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', {name: 'Add Transformation'})).toHaveLength(2);
+    await userEvent.click(screen.getByRole('button', {name: 'Max Window Size'}));
+    await userEvent.click(screen.getByRole('option', {name: '3'}));
+    await waitFor(() =>
+      expect(router.location.query.aggregateField).toEqual([
+        JSON.stringify({groupBy: 'severity'}),
+        JSON.stringify({yAxes: ['count(message)'], transformations: ['fill(zero)']}),
+        JSON.stringify({
+          yAxes: ['avg(severity_number)'],
+          transformations: ['smooth(asap,3)'],
+        }),
+      ])
+    );
+
+    await userEvent.click(screen.getAllByRole('button', {name: 'Collapse chart'})[1]!);
+    expect(
+      screen.queryByRole('button', {name: 'Max Window Size'})
+    ).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button', {name: 'Add Transformation'})).toHaveLength(1);
+    await userEvent.click(screen.getByRole('button', {name: 'Expand chart'}));
+    expect(screen.getByRole('button', {name: 'Max Window Size'})).toHaveTextContent('3');
+
+    const rows = screen.getAllByRole('group', {name: 'Transformation 1'});
+    await userEvent.click(
+      within(rows[1]!).getByRole('button', {name: 'Remove transformation'})
+    );
+    await userEvent.click(
+      screen.getAllByRole('button', {name: 'Add Transformation'})[1]!
+    );
+    await userEvent.click(screen.getByRole('option', {name: 'Smooth'}));
+    await waitFor(() =>
+      expect(router.location.query.aggregateField).toEqual([
+        JSON.stringify({groupBy: 'severity'}),
+        JSON.stringify({yAxes: ['count(message)'], transformations: ['fill(zero)']}),
+        JSON.stringify({
+          yAxes: ['avg(severity_number)'],
+          transformations: ['smooth(sma,3)'],
+        }),
+      ])
+    );
+  });
+
+  it('disables saving when any log series has transformations', async () => {
+    render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+      initialRouterConfig: {
+        location: {
+          ...initialRouterConfig.location,
+          query: {
+            ...initialRouterConfig.location.query,
+            aggregateField: [
+              JSON.stringify({yAxes: ['count(message)']}),
+              JSON.stringify({
+                yAxes: ['avg(severity_number)'],
+                visible: false,
+                transformations: ['fill(locf)'],
+              }),
+            ],
+          },
+        },
+      },
+      organization,
+      additionalWrapper: ProviderWrapper,
+    });
+
+    expect(screen.getByRole('button', {name: 'Save as'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(await screen.findByText('some log message1')).toBeInTheDocument();
   });
 
   it('should call APIs as expected', async () => {
@@ -725,9 +829,13 @@ describe('LogsTabContent', () => {
   it('refetches the chart and its dropped data annotations when the refresh button is clicked', async () => {
     PageFiltersStore.updateDateTime({period: '1h', start: null, end: null, utc: null});
     const droppedDataMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-timeseries/`,
+      url: `/organizations/${organization.slug}/events-dropped/`,
       method: 'GET',
-      body: {timeSeries: [TimeSeriesFixture()]},
+      body: {
+        meta: {dataset: 'logs', start: 0, end: 0, interval: 0},
+        droppedEvents: [],
+        acceptedEvents: [],
+      },
       match: [
         MockApiClient.matchQuery({referrer: 'api.explore.dropped-data-annotations'}),
       ],
@@ -831,14 +939,15 @@ describe('LogsTabContent', () => {
   describe('dropped data layer', () => {
     function mockDroppedData() {
       return MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/events-timeseries/`,
+        url: `/organizations/${organization.slug}/events-dropped/`,
         method: 'GET',
         match: [
           MockApiClient.matchQuery({referrer: 'api.explore.dropped-data-annotations'}),
         ],
         body: {
-          timeSeries: [],
-          meta: {droppedAnnotations: [AnnotationFixture()], acceptedAnnotations: []},
+          meta: {dataset: 'logs', start: 0, end: 0, interval: 0},
+          droppedEvents: [OutcomeRowFixture()],
+          acceptedEvents: [],
         },
       });
     }
@@ -857,9 +966,12 @@ describe('LogsTabContent', () => {
 
       expect(await screen.findByLabelText('Chart layers')).toBeInTheDocument();
       expect(droppedDataMock).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/events-timeseries/`,
+        `/organizations/${organization.slug}/events-dropped/`,
         expect.objectContaining({
-          query: expect.objectContaining({dataset: 'ourlogs', includeAnnotations: 1}),
+          query: expect.objectContaining({
+            dataset: 'ourlogs',
+            referrer: 'api.explore.dropped-data-annotations',
+          }),
         })
       );
     });

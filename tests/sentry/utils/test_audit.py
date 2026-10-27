@@ -18,7 +18,7 @@ from sentry.utils.audit import (
     create_audit_entry_from_user,
     create_system_audit_entry,
 )
-from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
+from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 username = "hello" * 20
 
@@ -92,9 +92,8 @@ class CreateAuditEntryTest(TestCase):
     def test_audit_entry_uses_agent_viewer_context_for_delegation(self) -> None:
         with viewer_context_scope(
             ViewerContext(
-                user_id=self.user.id,
+                actor=Actor(type=ActorType.AGENT, delegated_user_id=self.user.id),
                 organization_id=self.org.id,
-                actor_type=ActorType.AGENT,
             )
         ):
             entry = create_audit_entry_from_user(

@@ -78,10 +78,21 @@ class ResolvedColumn:
     # Normalizer transforms a search value before sending to Snuba (e.g. stripping dashes from UUIDs).
     # Called after validation, before building the AttributeValue proto.
     normalizer: Callable[[Any], Any] | None = None
+    # Values are stored and searched in one canonical case, so case insensitive search is skipped:
+    # wrapping an indexed column like trace_id in lower() stops ClickHouse from narrowing by it.
+    canonical_case: bool = False
     # Indicates this attribute is a secondary alias for the attribute.
     # It exists for compatibility or convenience reasons and should NOT be preferred.
     secondary_alias: bool = False
     is_aggregate: bool
+
+    def __post_init__(self) -> None:
+        # Without ignore_case, snuba parses ID values as UUIDs or integers and errors on anything
+        # else, so only validated and normalized values are safe to send in canonical case.
+        if self.canonical_case and (self.validator is None or self.normalizer is None):
+            raise ValueError(
+                f"{self.public_alias} needs a validator and normalizer to use canonical_case"
+            )
 
     def process_column(self, value: Any) -> Any:
         """Given the value from results, return a processed value if a processor is defined otherwise return it"""
@@ -197,6 +208,23 @@ class AttributeArgumentDefinition(BaseArgumentDefinition):
     # the allowed types of data stored in the attribute
     attribute_types: set[constants.SearchType] | None = None
     field_allowlist: set[str] | None = None
+
+
+@dataclass
+class NumericArgumentDefinition(AttributeArgumentDefinition):
+    """Helper so we don't have to define types everywhere"""
+
+    attribute_types: set[constants.SearchType] | None = field(
+        default_factory=lambda: {
+            "duration",
+            "number",
+            "percentage",
+            "integer",
+            "currency",
+            *constants.SIZE_TYPE,
+            *constants.DURATION_TYPE,
+        }
+    )
 
 
 @dataclass
@@ -478,6 +506,8 @@ class FunctionDefinition:
     processor: Callable[[Any], Any] | None = None
     # if a function is private, assume it can't be used unless it's provided in `SearchResolverConfig.functions_acl`
     private: bool = False
+    # Usable in arithmetic
+    valid_arithmetic: bool = False
 
     @property
     def required_arguments(

@@ -5,7 +5,7 @@ category: forms
 source: '@sentry/scraps/input'
 resources:
   figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/ChonkUI--App-Components--WIP-?node-id=384-2119&t=DdXZ7WIgTdURJlRv-4
-  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/input/inputGroup.tsx
+  js: https://github.com/getsentry/sentry/blob/master/static/packages/scraps/src/input/inputGroup.tsx
   a11y:
     WCAG 2.1.1: https://www.w3.org/TR/WCAG22/#keyboard
     WCAG 2.4.7: https://www.w3.org/TR/WCAG22/#focus-visible
@@ -16,7 +16,9 @@ resources:
 import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
 
-import {IconAttachment, IconSearch, IconSettings} from 'sentry/icons';
+import {IconAttachment} from '@sentry/icons/attachment';
+import {IconSearch} from '@sentry/icons/search';
+import {IconSettings} from '@sentry/icons/settings';
 import * as Storybook from 'sentry/stories';
 
 export const documentation = import('!!type-loader!@sentry/scraps/input');

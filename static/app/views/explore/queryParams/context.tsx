@@ -7,16 +7,17 @@ import {
   useMemo,
   useState,
 } from 'react';
-import type {NavigateOptions} from 'react-router-dom';
+import type {NavigateOptions} from 'react-router';
 import {parseAsString, useQueryStates} from 'nuqs';
 
 import {defined} from 'sentry/utils/defined';
 import type {Sort} from 'sentry/utils/discover/fields';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/topEventsConstants';
-import type {
-  AggregateField,
-  WritableAggregateField,
+import {
+  serializeAggregateFields,
+  type AggregateField,
+  type WritableAggregateField,
 } from 'sentry/views/explore/queryParams/aggregateField';
 import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
@@ -25,6 +26,7 @@ import type {Mode} from 'sentry/views/explore/queryParams/mode';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {ID_KEY, TITLE_KEY} from 'sentry/views/explore/queryParams/savedQuery';
 import {
+  hasVisualizeTransformations,
   isVisualize,
   isVisualizeEquation,
   type BaseVisualize,
@@ -344,13 +346,26 @@ export function useSetQueryParamsVisualizes() {
 
       const iter = visualizes[Symbol.iterator]();
 
+      // Each entry replaces one chart, so the visualizes sharing a chart group
+      // take up a single slot. Otherwise the extra group members would pull
+      // later charts in front of the group bys between them.
+      let previousAggregateField: AggregateField | undefined;
       for (const aggregateField of queryParams.aggregateFields) {
         if (isVisualize(aggregateField)) {
+          const continuesChartGroup =
+            defined(aggregateField.chartGroup) &&
+            isVisualize(previousAggregateField) &&
+            previousAggregateField.chartGroup === aggregateField.chartGroup;
+          previousAggregateField = aggregateField;
+          if (continuesChartGroup) {
+            continue;
+          }
           const {value: visualize, done} = iter.next();
           if (!done) {
             aggregateFields.push(visualize);
           }
         } else if (isGroupBy(aggregateField)) {
+          previousAggregateField = aggregateField;
           aggregateFields.push(aggregateField);
         } else {
           throw new Error(`Unknown aggregate field: ${JSON.stringify(aggregateField)}`);
@@ -365,6 +380,10 @@ export function useSetQueryParamsVisualizes() {
     },
     [queryParams, setQueryParams]
   );
+}
+
+export function useQueryParamsHasTransformations(): boolean {
+  return hasVisualizeTransformations(useQueryParamsVisualizes());
 }
 
 export function useQueryParamsGroupBys(): readonly string[] {
@@ -390,7 +409,7 @@ export function useSetQueryParamsGroupBys() {
         }
       }
 
-      const aggregateFields: WritableAggregateField[] = [];
+      const aggregateFields: AggregateField[] = [];
 
       const iter = groupBys[Symbol.iterator]();
 
@@ -403,7 +422,7 @@ export function useSetQueryParamsGroupBys() {
               aggregateFields.push({groupBy});
             }
           }
-          aggregateFields.push(aggregateField.serialize());
+          aggregateFields.push(aggregateField);
         } else if (isGroupBy(aggregateField)) {
           const {value: groupBy, done} = iter.next();
           if (!done) {
@@ -418,7 +437,7 @@ export function useSetQueryParamsGroupBys() {
         aggregateFields.push({groupBy});
       }
 
-      setQueryParams({aggregateFields, mode});
+      setQueryParams({aggregateFields: serializeAggregateFields(aggregateFields), mode});
     },
     [queryParams, setQueryParams]
   );

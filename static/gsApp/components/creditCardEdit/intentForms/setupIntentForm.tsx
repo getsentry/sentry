@@ -1,22 +1,18 @@
-import {useEffect, useState} from 'react';
-import type {
-  PaymentMethod,
-  SetupIntentResult,
-  Stripe,
-  StripeElements,
-} from '@stripe/stripe-js';
+import type {Stripe, StripeElements} from '@stripe/stripe-js';
 import {useMutation} from '@tanstack/react-query';
 
+import {toast} from '@sentry/scraps/toast';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 
 import {InnerIntentForm} from 'getsentry/components/creditCardEdit/intentForms/innerIntentForm';
 import type {IntentFormProps} from 'getsentry/components/creditCardEdit/intentForms/types';
-import {useSetupIntentData} from 'getsentry/hooks/useIntentData';
-import type {Subscription} from 'getsentry/types';
+import type {PaymentSetupCreateResponse, Subscription} from 'getsentry/types';
 
 export function SetupIntentForm(props: IntentFormProps) {
   const {
@@ -25,102 +21,83 @@ export function SetupIntentForm(props: IntentFormProps) {
     onSuccess,
     onSuccessWithSubscription,
   } = props;
-  const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const {url: setupIntentUrl} = parseQueryKey(props.intentDataQueryKey);
+  const {mutateAsync: savePaymentMethod, isPending} = useMutation({
+    mutationFn: async ({
+      stripe,
+      elements,
+    }: {
+      elements: StripeElements | null;
+      stripe: Stripe | null;
+    }) => {
+      if (!stripe || !elements) {
+        throw new Error(
+          t('Cannot complete your payment at this time, please try again later.')
+        );
+      }
 
-  const {intentData, isLoading, isError, error} = useSetupIntentData({
-    queryKey: props.intentDataQueryKey,
-  });
+      let intentData: PaymentSetupCreateResponse;
+      try {
+        intentData = await fetchMutation<PaymentSetupCreateResponse>({
+          url: setupIntentUrl,
+          method: 'POST',
+        });
+      } catch (error) {
+        throw new Error(
+          getRequestErrorUserMessage(error, t('Could not set up payment method.'))
+        );
+      }
 
-  const {mutateAsync: updateSubscription} = useMutation({
-    mutationFn: ({paymentMethod}: {paymentMethod: string | PaymentMethod | null}) =>
-      fetchMutation<Subscription>({
-        method: 'PUT',
-        url: getApiUrl('/customers/$organizationIdOrSlug/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        data: {
-          paymentMethod,
-          ftcConsentLocation,
-        },
-      }),
-    onSuccess: (data: Subscription) => {
-      addSuccessMessage(t('Updated payment method.'));
-      onSuccessWithSubscription?.(data);
-      onSuccess?.();
-      setIsSubmitting(false);
-    },
-    onError: () => {
-      setErrorMessage(t('Could not update payment method.'));
-      setIsSubmitting(false);
-    },
-  });
-
-  useEffect(() => {
-    if (isError) {
-      // oxlint-disable-next-line react/set-state-in-effect
-      setErrorMessage(error);
-    }
-  }, [isError, error]);
-
-  if (isLoading) {
-    return <LoadingIndicator />;
-  }
-
-  const handleSubmit = async ({
-    stripe,
-    elements,
-  }: {
-    elements: StripeElements | null;
-    stripe: Stripe | null;
-  }) => {
-    setIsSubmitting(true);
-    if (!stripe || !elements || !intentData) {
-      setErrorMessage(
-        t('Cannot complete your payment at this time, please try again later.')
-      );
-      setIsSubmitting(false);
-      return;
-    }
-
-    const stripeResult = await elements.submit();
-    if (stripeResult.error) {
-      setErrorMessage(stripeResult.error.message ?? t('Setup failed.'));
-      setIsSubmitting(false);
-      return;
-    }
-
-    stripe
-      .confirmSetup({
+      const result = await stripe.confirmSetup({
         elements,
         clientSecret: intentData.clientSecret,
         redirect: 'if_required', // if the payment method requires redirects, we redirect to the return_url on completion
         confirmParams: {
           return_url: window.location.href,
         },
-      })
-      .then((result: SetupIntentResult) => {
-        if (result.error) {
-          setErrorMessage(result.error.message ?? t('Setup failed.'));
-          setIsSubmitting(false);
-          return;
-        }
-        updateSubscription({
-          paymentMethod: result.setupIntent.payment_method,
-        });
       });
-  };
+      if (result.error) {
+        throw new Error(result.error.message ?? t('Setup failed.'));
+      }
+
+      return fetchMutation<Subscription>({
+        method: 'PUT',
+        url: getApiUrl('/customers/$organizationIdOrSlug/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
+        data: {
+          paymentMethod: result.setupIntent.payment_method,
+          ftcConsentLocation,
+        },
+      });
+    },
+    onSuccess: (data: Subscription) => {
+      addSuccessMessage(t('Updated payment method.'));
+      onSuccessWithSubscription?.(data);
+      onSuccess?.();
+    },
+    onError: error => {
+      toast.error(
+        getRequestErrorUserMessage(error, t('Could not update payment method.'))
+      );
+    },
+  });
 
   return (
     <InnerIntentForm
       {...props}
-      isSubmitting={isSubmitting}
-      busyButtonText={t('Saving Changes...')}
+      isSubmitting={isPending}
       buttonText={props.buttonText}
-      intentData={intentData}
-      onError={setErrorMessage}
-      handleSubmit={handleSubmit}
-      errorMessage={errorMessage}
+      handleSubmit={async ({stripe, elements}) => {
+        if (elements) {
+          const {error} = await elements.submit();
+          if (error) {
+            // Stripe displays validation errors beside the affected fields.
+            return;
+          }
+        }
+        await savePaymentMethod({stripe, elements});
+      }}
     />
   );
 }

@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import Any
 
 from django.db import models
 from django.utils import timezone
@@ -25,6 +26,7 @@ class GroupRelease(Model):
     group_id = BoundedBigIntegerField()
     # TODO: Should be BoundedBigIntegerField
     release_id = BoundedPositiveIntegerField(db_index=True)
+    new_release_id = BoundedBigIntegerField()
     environment = models.CharField(max_length=64, default="")
     first_seen = models.DateTimeField(default=timezone.now)
     last_seen = models.DateTimeField(default=timezone.now)
@@ -36,6 +38,11 @@ class GroupRelease(Model):
         indexes = (models.Index(fields=("group_id", "first_seen")),)
 
     __repr__ = sane_repr("group_id", "release_id")
+
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        # Dual-write: new_release_id is the int8 shadow of release_id until the column swap.
+        self.new_release_id = self.release_id
+        super().save(*args, **kwargs)
 
     @classmethod
     def get_cache_key(cls, group_id, release_id, environment):
