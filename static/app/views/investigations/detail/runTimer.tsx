@@ -20,8 +20,8 @@ export function InvestigationRunTimer({
     serverTime,
     status,
   } = orchestration;
-  const settled = Boolean(finishedAt) && isOnlyNextStepPending(orchestration);
-  const terminal = settled || ['completed', 'failed', 'cancelled'].includes(status);
+  const settled = isOnlyNextStepPending(orchestration);
+  const terminal = !settled && ['completed', 'failed', 'cancelled'].includes(status);
   const active = !settled && (status === 'processing' || status === 'pending');
   if (
     !startedAt ||
@@ -32,13 +32,13 @@ export function InvestigationRunTimer({
     activeTimeElapsedSeconds < 0 ||
     (terminal && (!finishedAt || !Number.isFinite(Date.parse(finishedAt)))) ||
     (active && finishedAt) ||
-    (!active && !terminal && status !== 'awaiting_input')
+    (!active && !terminal && !settled && status !== 'awaiting_input')
   ) {
     return null;
   }
 
   let seconds = activeTimeElapsedSeconds;
-  if (active) {
+  if (active || (settled && activeSince !== null)) {
     if (!activeSince || !serverTime) {
       return null;
     }

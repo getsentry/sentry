@@ -131,6 +131,23 @@ describe('InvestigationRunTimer', () => {
     expect(screen.getByRole('timer')).toHaveTextContent('1m 12s');
   });
 
+  it('stops while Seer writes the first next step', () => {
+    const completed = InvestigationOrchestrationFixture();
+    render(
+      <InvestigationRunTimer
+        orchestration={InvestigationOrchestrationFixture({
+          ...timing,
+          status: 'processing',
+          phase: 'metadata',
+          report: {...completed.report, status: 'completed'},
+        })}
+      />
+    );
+    expect(screen.getByRole('timer')).toHaveTextContent('34.5s');
+    act(() => jest.advanceTimersByTime(60_000));
+    expect(screen.getByRole('timer')).toHaveTextContent('34.5s');
+  });
+
   it.each([
     {},
     {...timing, startedAt: null},
