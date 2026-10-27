@@ -273,7 +273,7 @@ export type InvestigationAction =
   | InvestigationUpdateDetectorAction
   | {kind: 'connect_telemetry'; provider: 'datadog' | 'gcp'};
 
-type InvestigationActionRequestAnchor = {
+export type InvestigationActionRequestAnchor = {
   blockId: string | null;
   id: string;
   type: InvestigationOrchestrationOpenString<'block' | 'hypothesis'>;

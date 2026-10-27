@@ -40,6 +40,7 @@ import {
   InvestigationOrchestrationFixture,
   InvestigationQueryOutputFixture,
 } from 'sentry/views/investigations/fixtures';
+import type {InvestigationActionRequest} from 'sentry/views/investigations/types';
 import type {LLMContextNodeSnapshot} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
 import {
   SeerExplorerContext,
@@ -181,7 +182,7 @@ describe('Investigation detail', () => {
       body: {viewers: [], total: 0, heartbeatIntervalMs: 5000},
     });
     MockApiClient.addMockResponse({url: `${detailUrl}comments/`, body: []});
-    for (const id of ['312', '320']) {
+    for (const id of ['312', '320', '322']) {
       MockApiClient.addMockResponse({
         url: `${detailUrl}action-requests/${id}/apply/`,
         method: 'POST',
@@ -1074,6 +1075,135 @@ describe('Investigation detail', () => {
     expect(
       screen.getByRole('region', {name: 'Recommended action'})
     ).not.toHaveTextContent('Widen the interval');
+  });
+
+  describe('action requests about part of the report', () => {
+    const completedRun = InvestigationOrchestrationFixture({
+      phase: 'completed',
+      status: 'completed',
+    });
+
+    function mockAnchoredPage(actionRequests: InvestigationActionRequest[]) {
+      MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: InvestigationAgenticDetailFixture({actionRequests}),
+      });
+      MockApiClient.addMockResponse({url: orchestrationUrl, body: completedRun});
+    }
+
+    it('places a request under the possible cause it is about', async () => {
+      mockAnchoredPage([
+        InvestigationActionRequestFixture({
+          id: '320',
+          key: 'check-cache-hit-rate',
+          primary: false,
+          anchor: {type: 'hypothesis', id: 'hypothesis-1', blockId: null},
+          title: 'Check the cache hit rate',
+          action: null,
+        }),
+      ]);
+      renderView();
+
+      const card = await screen.findByRole('region', {name: 'Check the cache hit rate'});
+      expect(card).toHaveTextContent(
+        'About the possible cause: Database or cache degradation delayed the response'
+      );
+      expect(
+        screen.queryByRole('region', {name: 'Recommended action'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('places a request under the block it is about', async () => {
+      mockAnchoredPage([
+        InvestigationActionRequestFixture({
+          id: '322',
+          key: 'instrument-retries',
+          primary: false,
+          anchor: {type: 'block', id: 'cause', blockId: 'block-1'},
+          title: 'Instrument checkout retries',
+          action: null,
+        }),
+      ]);
+      renderView();
+
+      const card = await screen.findByRole('region', {
+        name: 'Instrument checkout retries',
+      });
+      expect(screen.getByText('Initial notes').compareDocumentPosition(card)).toBe(
+        Node.DOCUMENT_POSITION_FOLLOWING
+      );
+      expect(
+        screen.queryByRole('region', {name: 'Recommended action'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('hides a superseded request under its block', async () => {
+      const anchored = {
+        primary: false,
+        anchor: {type: 'block', id: 'cause', blockId: 'block-1'},
+        action: null,
+      } as const;
+      mockAnchoredPage([
+        InvestigationActionRequestFixture({
+          ...anchored,
+          id: '322',
+          key: 'instrument-retries',
+          title: 'Instrument checkout retries',
+        }),
+        InvestigationActionRequestFixture({
+          ...anchored,
+          id: '323',
+          key: 'old-advice',
+          reportRevision: completedRun.report.revision - 1,
+          state: 'superseded',
+          canApply: false,
+          cannotApplyReason: 'not_suggested',
+          title: 'Old advice',
+        }),
+      ]);
+      renderView();
+
+      expect(
+        await screen.findByRole('region', {name: 'Instrument checkout retries'})
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('region', {name: 'Old advice'})).not.toBeInTheDocument();
+    });
+
+    it('says Seer is updating a re-checked request under its block', async () => {
+      MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: InvestigationAgenticDetailFixture({
+          actionRequests: [
+            InvestigationActionRequestFixture({
+              id: '322',
+              primary: false,
+              anchor: {type: 'block', id: 'cause', blockId: 'block-1'},
+              title: 'Widen the interval',
+              state: 'superseded',
+              canApply: false,
+              cannotApplyReason: 'not_suggested',
+              error: {code: 'stale', current: {timeWindowSeconds: 600}},
+              followUp: {status: 'acknowledged', reason: null, rerun: null},
+            }),
+          ],
+        }),
+      });
+      MockApiClient.addMockResponse({
+        url: orchestrationUrl,
+        body: InvestigationOrchestrationFixture({
+          phase: 'metadata',
+          status: 'processing',
+        }),
+      });
+      renderView();
+
+      const card = await screen.findByRole('region', {name: 'Widen the interval'});
+      await waitFor(() =>
+        expect(within(card).getByRole('status')).toHaveTextContent(
+          'Seer is updating its suggestion…'
+        )
+      );
+    });
   });
 
   it('leaves out the investigation details heading without a summary', async () => {

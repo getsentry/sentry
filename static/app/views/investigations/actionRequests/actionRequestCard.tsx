@@ -47,6 +47,7 @@ type ActionRequestCardProps = {
   investigationId: string;
   finishing?: boolean;
   heading?: string;
+  label?: React.ReactNode;
   runProcessing?: boolean;
   source?: InvestigationDetail['source'];
 };
@@ -56,6 +57,7 @@ export function ActionRequestCard({
   finishing = false,
   heading,
   investigationId,
+  label,
   runProcessing = false,
   source,
 }: ActionRequestCardProps) {
@@ -119,11 +121,17 @@ export function ActionRequestCard({
       {heading}
     </Heading>
   ) : null;
+  const labelElement = label ? (
+    <Text as="p" size="sm" variant="muted">
+      {label}
+    </Text>
+  ) : null;
 
   if (actionRequest.state === 'withdrawn') {
     return (
       <Stack as="section" gap="md" {...labelProps}>
         {headingElement}
+        {labelElement}
         <Text as="p" size="md" density="comfortable" variant="muted">
           {actionRequest.reason
             ? tct('Seer no longer recommends “[title]”: [reason]', {
@@ -151,6 +159,7 @@ export function ActionRequestCard({
   return (
     <Stack as="section" gap="lg" {...labelProps}>
       {headingElement}
+      {labelElement}
       <Stack gap="xs">
         <Text as="p" size="md" density="comfortable">
           {appliedSummary ??
