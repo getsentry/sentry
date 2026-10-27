@@ -120,7 +120,12 @@ def null_zero(value: float) -> float | None:
 
 
 def cache_candidate(
-    dataset: Any, snuba_params: SnubaParams, query: str, query_columns: list[str], rollup: int
+    dataset: Any,
+    snuba_params: SnubaParams,
+    query: str,
+    query_columns: list[str],
+    rollup: int,
+    top_events: int,
 ) -> bool:
     """Check if this query is a good candidate for caching
 
@@ -132,6 +137,7 @@ def cache_candidate(
         and query == ""
         and query_columns == ["count(span.duration)"]
         and rollup == 1800
+        and top_events == 0
     ):
         return True
     return False
@@ -525,7 +531,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         if incremental_loading:
             with traces.start_span("get_cache"):
                 if is_cache_candidate := cache_candidate(
-                    dataset, snuba_params, query, query_columns, rollup
+                    dataset, snuba_params, query, query_columns, rollup, top_events
                 ):
                     original_start = None
                     cached_timestamps = None
