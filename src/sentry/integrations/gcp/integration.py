@@ -442,8 +442,9 @@ class GcpOrgMonitoringProvider(OrgMonitoringProvider):
             return None
 
         config = org_integration.config
-        # Seer can't read GCP until the customer's settings pass verification.
-        if config.get("connection_status") != GCP_STATUS_CONNECTED:
+        # Seer can't read GCP until the customer's settings pass verification. Integrations
+        # installed before verification existed have no status, so treat them as connected.
+        if config.get("connection_status", GCP_STATUS_CONNECTED) != GCP_STATUS_CONNECTED:
             return None
         projects: list[str] = config.get("projects", [])
         sentry_sa_email: str | None = config.get("sentry_sa_email")
