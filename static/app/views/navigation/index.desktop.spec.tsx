@@ -307,7 +307,7 @@ describe('desktop navigation', () => {
     }
   );
 
-  it('persists settings v3 section collapse state and supports keyboard expansion', async () => {
+  it('collapses a settings v3 section', async () => {
     render(
       <PrimaryNavigationContextProvider>
         <Navigation />
