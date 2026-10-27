@@ -72,11 +72,19 @@ export function SeerDrawerContent({
   }
 
   const isSingleRun = isSingleRunAutofix(autofix.runState);
+  const artifacts = (
+    <SeerDrawerArtifacts autofix={autofix} sections={sections} groupId={group.id} />
+  );
 
   return (
     <Stack gap="lg">
-      {isSingleRun && <SingleRunChat autofix={autofix} />}
-      <SeerDrawerArtifacts autofix={autofix} sections={sections} groupId={group.id} />
+      {isSingleRun ? (
+        <SingleRunChat autofix={autofix} groupId={group.id}>
+          {artifacts}
+        </SingleRunChat>
+      ) : (
+        artifacts
+      )}
       {!isSingleRun &&
         (autofix.runState?.status === 'completed' ||
           isLastStepPrIteration(autofix.runState)) && (
