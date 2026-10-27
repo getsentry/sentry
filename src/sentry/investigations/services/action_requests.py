@@ -546,7 +546,7 @@ def _recheck(
                 expected_workflow_version=failed.expected_workflow_version,
                 command_type=failed.type,
                 payload=failed.payload,
-                actor_id=_seer_actor(context.investigation, context.actor_id),
+                actor_id=context.actor_id,
             )
         elif (
             isinstance(failed.error, dict) and failed.error.get("code") == "earlier_command_failed"
