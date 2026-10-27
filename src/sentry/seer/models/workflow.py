@@ -187,8 +187,6 @@ class WorkflowRunError(BaseModel):
 
 
 class SeerWorkflowRunExtras(BaseModel):
-    """Run JSON metadata: the invocation snapshot and orchestration/admission error."""
-
     snapshot: WorkflowRunSnapshot
     error: WorkflowRunError | None = None
 
@@ -198,8 +196,6 @@ class SeerWorkflowRunExtras(BaseModel):
 
 
 class SeerWorkflowExecutionExtras(BaseModel):
-    """Metadata for one execution, including its error."""
-
     error: WorkflowRunError | None = None
 
     class Config:
@@ -225,7 +221,7 @@ class SeerWorkflowRun(DefaultFieldsModel):
     # Null for historical runs that have not adopted the shared lifecycle.
     status = models.CharField(max_length=256, choices=SeerWorkflowRunStatus.choices, null=True)
     date_completed = models.DateTimeField(null=True)
-    # Shared lifecycle metadata has the shape of SeerWorkflowRunExtras.
+    # Shape: SeerWorkflowRunExtras.
     extras = models.JSONField(db_default={}, default=dict)
 
     class Meta:
@@ -267,7 +263,7 @@ class SeerWorkflowRunExecution(DefaultFieldsModel):
         max_length=256, choices=SeerWorkflowExecutionStatus.choices, null=True
     )
     date_completed = models.DateTimeField(null=True)
-    # Shared lifecycle metadata has the shape of SeerWorkflowExecutionExtras.
+    # Shape: SeerWorkflowExecutionExtras.
     extras = models.JSONField(db_default={}, default=dict)
 
     class Meta:

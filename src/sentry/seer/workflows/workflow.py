@@ -92,7 +92,7 @@ class SeerWorkflow:
         inputs: BaseModel,
         extras: Mapping[str, Any] | None = None,
     ) -> tuple[SeerWorkflowRunLifecycle, bool]:
-        """Record an invocation once; retries keep its original snapshot and admission."""
+        """Retries preserve the original configuration and inputs."""
         if not trigger_key or len(trigger_key) > 256:
             raise ValueError("Trigger keys must contain between 1 and 256 characters")
 

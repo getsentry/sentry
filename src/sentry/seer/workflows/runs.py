@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Collection, Mapping
 from dataclasses import dataclass
+from datetime import datetime
 from functools import partial
-from typing import Any
+from typing import Any, Literal, assert_never
 from uuid import UUID
 
 from django.db import router, transaction
@@ -24,7 +25,6 @@ from sentry.seer.models.workflow import (
     SeerWorkflowStrategy,
     WorkflowRunError,
 )
-from sentry.seer.workflows import state as workflow_state
 from sentry.seer.workflows.schemas import WorkflowResult, WorkflowResultError, WorkflowRunExtras
 from sentry.utils import json
 
@@ -32,14 +32,20 @@ logger = logging.getLogger(__name__)
 TERMINAL_STATUSES = {"complete", "partial", "failed"}
 
 
+class InvalidWorkflowState(ValueError):
+    pass
+
+
+class InvalidWorkflowTransition(ValueError):
+    pass
+
+
 @dataclass
 class SeerWorkflowRunLifecycle:
-    """The lifecycle of one configurable automation invocation."""
-
     run: SeerWorkflowRun
 
     def __post_init__(self) -> None:
-        workflow_state.read_run_state(self.run)
+        self._validate_run()
 
     @classmethod
     def get(cls, *, organization_id: int, run_id: int) -> SeerWorkflowRunLifecycle:
@@ -53,18 +59,11 @@ class SeerWorkflowRunLifecycle:
     def extras(self) -> SeerWorkflowRunExtras:
         return SeerWorkflowRunExtras.parse_obj(self.run.extras)
 
-    @property
-    def state(self) -> workflow_state.RunState:
-        return workflow_state.read_run_state(self.run)
-
     def start(self) -> SeerWorkflowRun:
-        """Mark the start of orchestration, including work selection."""
         with transaction.atomic(router.db_for_write(SeerWorkflowRun)):
-            state, _ = self._load_locked()
-            if not isinstance(state, workflow_state.Queued):
-                raise workflow_state.InvalidWorkflowTransition(
-                    "Only queued workflow runs can start"
-                )
+            status, _ = self._load_locked()
+            if status != SeerWorkflowRunStatus.QUEUED:
+                raise InvalidWorkflowTransition("Only queued workflow runs can start")
             self.run.status = SeerWorkflowRunStatus.RUNNING
             self.run.save(update_fields=["status", "date_updated"])
         return self.run
@@ -72,178 +71,251 @@ class SeerWorkflowRunLifecycle:
     def create_execution(
         self, *, extras: SeerWorkflowExecutionExtras | None = None
     ) -> SeerWorkflowRunExecution:
-        """Plan all executions before dispatching any of them."""
         with transaction.atomic(router.db_for_write(SeerWorkflowRun)):
-            state, executions = self._load_locked()
-            if not isinstance(state, workflow_state.Running):
-                raise workflow_state.InvalidWorkflowTransition(
+            status, executions = self._load_locked()
+            if status != SeerWorkflowRunStatus.RUNNING:
+                raise InvalidWorkflowTransition(
                     "Executions can only be added to a running workflow"
                 )
-            for _, execution_state in executions.values():
-                if not isinstance(execution_state, workflow_state.Queued):
-                    raise workflow_state.InvalidWorkflowTransition(
-                        "The execution plan cannot change after work starts"
-                    )
+            if any(
+                execution.status != SeerWorkflowExecutionStatus.QUEUED
+                for execution in executions.values()
+            ):
+                raise InvalidWorkflowTransition(
+                    "The execution plan cannot change after work starts"
+                )
             execution = SeerWorkflowRunExecution.objects.create(
                 run=self.run,
                 status=SeerWorkflowExecutionStatus.QUEUED,
                 extras=json.loads((extras or SeerWorkflowExecutionExtras()).json()),
             )
-            workflow_state.read_execution_state(execution)
+            self._validate_execution(execution)
         return execution
 
     def start_execution(self, execution_id: int) -> SeerWorkflowRunExecution:
-        """Mark an execution running when its work starts."""
         with transaction.atomic(router.db_for_write(SeerWorkflowRun)):
-            state, executions = self._load_locked()
-            execution, execution_state = self._get_execution(executions, execution_id)
-            if not isinstance(state, workflow_state.Running):
-                raise workflow_state.InvalidWorkflowTransition(
+            status, executions = self._load_locked()
+            execution = self._get_execution(executions, execution_id)
+            if status != SeerWorkflowRunStatus.RUNNING:
+                raise InvalidWorkflowTransition(
                     "Executions can only start while their workflow is running"
                 )
-            if not isinstance(execution_state, workflow_state.Queued):
-                raise workflow_state.InvalidWorkflowTransition("Only queued executions can start")
+            if execution.status != SeerWorkflowExecutionStatus.QUEUED:
+                raise InvalidWorkflowTransition("Only queued executions can start")
             execution.status = SeerWorkflowExecutionStatus.RUNNING
             execution.save(update_fields=["status", "date_updated"])
         return execution
 
     def complete(self, *, error: WorkflowRunError | None = None) -> SeerWorkflowRun:
-        """Finish a run without executions; exact completion retries are allowed."""
+        """Exact completion retries are allowed."""
         with transaction.atomic(router.db_for_write(SeerWorkflowRun)):
-            state, executions = self._load_locked()
+            status, executions = self._load_locked()
             if executions:
-                raise workflow_state.InvalidWorkflowTransition(
+                raise InvalidWorkflowTransition(
                     "Finish the run's executions with complete_execution"
                 )
-            if isinstance(state, workflow_state.Complete) and error is None:
+            if status == SeerWorkflowRunStatus.COMPLETE and error is None:
                 return self.run
-            if isinstance(state, workflow_state.Failed) and state.error == error:
+            if status == SeerWorkflowRunStatus.FAILED and self.extras.error == error:
                 return self.run
-            if not isinstance(state, workflow_state.Queued | workflow_state.Running):
-                raise workflow_state.InvalidWorkflowTransition(
-                    "Run completion conflicts with its state"
-                )
-            completed_at = timezone.now()
+            if status not in {SeerWorkflowRunStatus.QUEUED, SeerWorkflowRunStatus.RUNNING}:
+                raise InvalidWorkflowTransition("Run completion conflicts with its state")
             self._finish(
-                workflow_state.Failed(completed_at, error)
-                if error
-                else workflow_state.Complete(completed_at)
+                SeerWorkflowRunStatus.FAILED if error else SeerWorkflowRunStatus.COMPLETE,
+                error=error,
+                completed_at=timezone.now(),
             )
         return self.run
 
     def reject(self, *, error: WorkflowRunError) -> SeerWorkflowRun:
-        """Reject a queued run; exact rejection retries are allowed."""
+        """Exact rejection retries are allowed."""
         with transaction.atomic(router.db_for_write(SeerWorkflowRun)):
-            state, executions = self._load_locked()
-            if isinstance(state, workflow_state.Rejected) and state.error == error:
+            status, _ = self._load_locked()
+            if status == SeerWorkflowRunStatus.REJECTED and self.extras.error == error:
                 return self.run
-            if not isinstance(state, workflow_state.Queued) or executions:
-                raise workflow_state.InvalidWorkflowTransition(
+            if status != SeerWorkflowRunStatus.QUEUED:
+                raise InvalidWorkflowTransition(
                     "Only queued runs without executions can be rejected"
                 )
-            self._finish(workflow_state.Rejected(timezone.now(), error))
+            self._finish(SeerWorkflowRunStatus.REJECTED, error=error, completed_at=timezone.now())
         return self.run
 
     def complete_execution(
         self, execution_id: int, *, error: WorkflowRunError | None = None
     ) -> SeerWorkflowRunExecution:
-        """Finish one execution; finalize the run after every execution finishes.
-
-        Execution errors stay on the execution; only status and completion time roll up.
-        Lock the parent before reading executions so simultaneous callbacks cannot
-        both miss the other execution's completion.
-        """
+        """Lock the parent so concurrent callbacks observe each other's completions."""
         with transaction.atomic(router.db_for_write(SeerWorkflowRun)):
-            run_state, executions = self._load_locked()
-            execution, state = self._get_execution(executions, execution_id)
-            if isinstance(state, workflow_state.Complete) and error is None:
+            status, executions = self._load_locked()
+            execution = self._get_execution(executions, execution_id)
+            execution_extras = SeerWorkflowExecutionExtras.parse_obj(execution.extras)
+            if execution.status == SeerWorkflowExecutionStatus.COMPLETE and error is None:
                 return execution
-            if isinstance(state, workflow_state.Failed) and state.error == error:
+            if (
+                execution.status == SeerWorkflowExecutionStatus.FAILED
+                and execution_extras.error == error
+            ):
                 return execution
-            if not isinstance(state, workflow_state.Queued | workflow_state.Running):
-                raise workflow_state.InvalidWorkflowTransition(
-                    "Execution completion conflicts with its state"
-                )
-            if not isinstance(run_state, workflow_state.Running):
-                raise workflow_state.InvalidWorkflowTransition(
+            if execution.status not in {
+                SeerWorkflowExecutionStatus.QUEUED,
+                SeerWorkflowExecutionStatus.RUNNING,
+            }:
+                raise InvalidWorkflowTransition("Execution completion conflicts with its state")
+            if status != SeerWorkflowRunStatus.RUNNING:
+                raise InvalidWorkflowTransition(
                     "Executions can only finish while their workflow is running"
                 )
-            other_states = [
-                other_state
-                for other_id, (_, other_state) in executions.items()
-                if other_id != execution_id
-            ]
             completed_at = timezone.now()
-            outcome = (
-                workflow_state.Failed(completed_at, error)
+            execution.status = (
+                SeerWorkflowExecutionStatus.FAILED
                 if error
-                else workflow_state.Complete(completed_at)
+                else SeerWorkflowExecutionStatus.COMPLETE
             )
-            execution.status = outcome.status
-            execution_extras = SeerWorkflowExecutionExtras.parse_obj(execution.extras)
-            execution_extras.error = (
-                outcome.error if isinstance(outcome, workflow_state.Failed) else None
-            )
+            execution_extras.error = error
             execution.extras = json.loads(execution_extras.json())
-            execution.date_completed = outcome.date_completed
+            execution.date_completed = completed_at
             execution.save(update_fields=["status", "extras", "date_completed", "date_updated"])
 
             unfinished = any(
-                isinstance(other, workflow_state.Queued | workflow_state.Running)
-                for other in other_states
+                other.status
+                in {SeerWorkflowExecutionStatus.QUEUED, SeerWorkflowExecutionStatus.RUNNING}
+                for other in executions.values()
             )
             if not unfinished:
-                failed = error is not None or any(
-                    isinstance(other, workflow_state.Failed) for other in other_states
+                failed = any(
+                    other.status == SeerWorkflowExecutionStatus.FAILED
+                    for other in executions.values()
                 )
-                run_outcome = (
-                    workflow_state.ExecutionsFailed(outcome.date_completed)
-                    if failed
-                    else workflow_state.Complete(outcome.date_completed)
+                self.run.status = (
+                    SeerWorkflowRunStatus.FAILED if failed else SeerWorkflowRunStatus.COMPLETE
                 )
-                self.run.status = run_outcome.status
-                self.run.date_completed = run_outcome.date_completed
+                self.run.date_completed = completed_at
                 self.run.save(update_fields=["status", "date_completed", "date_updated"])
         return execution
 
     def _load_locked(
         self,
     ) -> tuple[
-        workflow_state.RunState,
-        dict[int, tuple[SeerWorkflowRunExecution, workflow_state.ExecutionState]],
+        SeerWorkflowRunStatus,
+        dict[int, SeerWorkflowRunExecution],
     ]:
         self.run = SeerWorkflowRun.objects.select_for_update().get(
             id=self.run.id, organization_id=self.run.organization_id, status__isnull=False
         )
-        state = workflow_state.read_run_state(self.run)
-        executions = {
-            execution.id: (execution, workflow_state.read_execution_state(execution))
-            for execution in self.run.executions.all()
-        }
-        workflow_state.validate_run_executions(
-            state, [execution_state for _, execution_state in executions.values()]
-        )
-        return state, executions
+        status = self._validate_run()
+        executions = {execution.id: execution for execution in self.run.executions.all()}
+        for execution in executions.values():
+            self._validate_execution(execution)
+        self._validate_executions(status, executions.values())
+        return status, executions
+
+    def _validate_run(self) -> SeerWorkflowRunStatus:
+        if self.run.status is None:
+            raise InvalidWorkflowState("Shared workflow runs require a status")
+        try:
+            status = SeerWorkflowRunStatus(self.run.status)
+            error = self.extras.error
+        except ValueError as exc:
+            raise InvalidWorkflowState("Invalid workflow run status or metadata") from exc
+        _validate_completion(status, self.run.date_completed, error)
+        if status == SeerWorkflowRunStatus.REJECTED and error is None:
+            raise InvalidWorkflowState("Rejected runs require an error")
+        return status
+
+    def _validate_execution(self, execution: SeerWorkflowRunExecution) -> None:
+        if execution.status is None:
+            raise InvalidWorkflowState("Shared workflow executions require a status")
+        try:
+            status = SeerWorkflowExecutionStatus(execution.status)
+            extras = SeerWorkflowExecutionExtras.parse_obj(execution.extras)
+        except ValueError as exc:
+            raise InvalidWorkflowState("Invalid workflow execution status or metadata") from exc
+        _validate_completion(status, execution.date_completed, extras.error)
+        if status == SeerWorkflowExecutionStatus.FAILED and extras.error is None:
+            raise InvalidWorkflowState("Failed executions require an error")
+
+    def _validate_executions(
+        self, status: SeerWorkflowRunStatus, executions: Collection[SeerWorkflowRunExecution]
+    ) -> None:
+        match status:
+            case SeerWorkflowRunStatus.QUEUED | SeerWorkflowRunStatus.REJECTED:
+                if executions:
+                    raise InvalidWorkflowState("Queued or rejected runs cannot have executions")
+            case SeerWorkflowRunStatus.RUNNING:
+                if executions and all(
+                    execution.status
+                    in {SeerWorkflowExecutionStatus.COMPLETE, SeerWorkflowExecutionStatus.FAILED}
+                    for execution in executions
+                ):
+                    raise InvalidWorkflowState(
+                        "A run with only finished executions must be terminal"
+                    )
+            case SeerWorkflowRunStatus.COMPLETE:
+                if any(
+                    execution.status != SeerWorkflowExecutionStatus.COMPLETE
+                    for execution in executions
+                ):
+                    raise InvalidWorkflowState(
+                        "A completed run cannot have unfinished or failed executions"
+                    )
+            case SeerWorkflowRunStatus.FAILED:
+                if self.extras.error is not None:
+                    if executions:
+                        raise InvalidWorkflowState(
+                            "Orchestration-failed runs cannot have executions"
+                        )
+                elif any(
+                    execution.status
+                    in {SeerWorkflowExecutionStatus.QUEUED, SeerWorkflowExecutionStatus.RUNNING}
+                    for execution in executions
+                ) or not any(
+                    execution.status == SeerWorkflowExecutionStatus.FAILED
+                    for execution in executions
+                ):
+                    raise InvalidWorkflowState(
+                        "An execution-failed run requires finished executions and a failure"
+                    )
+            case _:
+                assert_never(status)
 
     def _get_execution(
         self,
-        executions: Mapping[int, tuple[SeerWorkflowRunExecution, workflow_state.ExecutionState]],
+        executions: Mapping[int, SeerWorkflowRunExecution],
         execution_id: int,
-    ) -> tuple[SeerWorkflowRunExecution, workflow_state.ExecutionState]:
+    ) -> SeerWorkflowRunExecution:
         try:
             return executions[execution_id]
         except KeyError as exc:
             raise SeerWorkflowRunExecution.DoesNotExist from exc
 
     def _finish(
-        self, state: workflow_state.Complete | workflow_state.Failed | workflow_state.Rejected
+        self,
+        status: Literal[
+            SeerWorkflowRunStatus.COMPLETE,
+            SeerWorkflowRunStatus.FAILED,
+            SeerWorkflowRunStatus.REJECTED,
+        ],
+        *,
+        error: WorkflowRunError | None,
+        completed_at: datetime,
     ) -> None:
         extras = self.extras
-        extras.error = None if isinstance(state, workflow_state.Complete) else state.error
-        self.run.status = state.status
+        extras.error = error
+        self.run.status = status
         self.run.extras = json.loads(extras.json())
-        self.run.date_completed = state.date_completed
+        self.run.date_completed = completed_at
         self.run.save(update_fields=["status", "extras", "date_completed", "date_updated"])
+
+
+def _validate_completion(
+    status: str, completed_at: datetime | None, error: WorkflowRunError | None
+) -> None:
+    if status in {"queued", "running"}:
+        if completed_at is not None or error is not None:
+            raise InvalidWorkflowState("Active workflows cannot have a completion time or error")
+    elif completed_at is None:
+        raise InvalidWorkflowState("Terminal workflows require a completion time")
+    elif status == "complete" and error is not None:
+        raise InvalidWorkflowState("Completed workflows cannot have an error")
 
 
 def create_workflow_run(
