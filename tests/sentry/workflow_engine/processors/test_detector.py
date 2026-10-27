@@ -6,7 +6,6 @@ from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock, call, patch
 
-import pytest
 from django.db.models import F
 from django.utils import timezone
 
@@ -534,18 +533,20 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             any_order=True,
         )
 
-    def test_no_handler(self) -> None:
-        detector = self.create_detector(type=self.no_handler_type.slug)
+    def test_no_detector_settings_skips_detector(self) -> None:
+        no_settings_detector = self.create_detector(type=self.no_handler_type.slug)
+        detector = self.create_detector(type=self.handler_type.slug)
         data_packet = self.build_data_packet()
-        with mock.patch("sentry.workflow_engine.models.detector.logger") as mock_logger:
-            with pytest.raises(ValueError):
-                results = process_detectors(data_packet, [detector])
-                assert (
-                    mock_logger.error.call_args[0][0]
-                    == "Registered grouptype for detector has no detector_handler"
-                )
 
-                assert results == []
+        with mock.patch("sentry.workflow_engine.models.detector.logger") as mock_logger:
+            results = process_detectors(data_packet, [no_settings_detector, detector])
+
+        mock_logger.error.assert_called_once()
+        assert (
+            mock_logger.error.call_args[0][0]
+            == "Registered grouptype for detector has no detector_handler"
+        )
+        assert [result_detector for result_detector, _ in results] == [detector]
 
     def test_sending_metric_before_evaluating(self) -> None:
         detector = self.create_detector(type=self.handler_type.slug)
@@ -675,13 +676,10 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         data_packet = self.build_data_packet()
 
         with mock.patch("sentry.utils.metrics.incr") as mock_incr:
-            with pytest.raises(ValueError):
-                process_detectors(data_packet, [detector])
+            process_detectors(data_packet, [detector])
 
-                calls = mock_incr.call_args_list
-                # We can have background threads emitting metrics as tasks are scheduled
-                filtered_calls = list(filter(lambda c: "taskworker" not in c.args[0], calls))
-                assert len(filtered_calls) == 0
+        metric_names = [c.args[0] for c in mock_incr.call_args_list]
+        assert "workflow_engine.process_detector" not in metric_names
 
 
 @django_db_all
