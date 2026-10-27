@@ -7,6 +7,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {
   type AutofixSection,
+  type ExplorerAutofixState,
   getAutofixArtifactFromSection,
   getOrderedAutofixSections,
   isCodeChangesArtifact,
@@ -17,6 +18,7 @@ import {
   isRootCauseArtifact,
   isRootCauseSection,
   isSolutionArtifact,
+  isSingleRunAutofix,
   isSolutionSection,
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
@@ -25,6 +27,7 @@ import {
   CodingAgentPreview,
   PullRequestsPreview,
   RootCausePreview,
+  SingleRunRootCausePreview,
   SolutionPreview,
 } from 'sentry/components/events/autofix/v3/autofixPreviews';
 import {
@@ -213,8 +216,9 @@ function AutofixArtifacts({autofix, group, project}: AutofixArtifactsProps) {
   );
 
   const referrer = autofix.runState?.blocks?.[0]?.message?.metadata?.referrer;
+  const singleRunState = isSingleRunAutofix(autofix.runState) ? autofix.runState : null;
 
-  if (!sections.length) {
+  if (!sections.length && !singleRunState) {
     return <AutofixEmptyState autofix={autofix} group={group} project={project} />;
   }
 
@@ -224,6 +228,7 @@ function AutofixArtifacts({autofix, group, project}: AutofixArtifactsProps) {
       group={group}
       project={project}
       referrer={referrer}
+      singleRunState={singleRunState}
     />
   );
 }
@@ -257,9 +262,16 @@ interface AutofixPreviewsProps {
   project: Project;
   sections: AutofixSection[];
   referrer?: string;
+  singleRunState?: ExplorerAutofixState | null;
 }
 
-function AutofixPreviews({group, project, sections, referrer}: AutofixPreviewsProps) {
+function AutofixPreviews({
+  group,
+  project,
+  sections,
+  referrer,
+  singleRunState,
+}: AutofixPreviewsProps) {
   const hasRootCause =
     sections.findLast(isRootCauseSection)?.artifacts?.some(isRootCauseArtifact) ?? false;
 
@@ -295,6 +307,7 @@ function AutofixPreviews({group, project, sections, referrer}: AutofixPreviewsPr
 
   return (
     <Stack gap="xl">
+      {singleRunState && <SingleRunRootCausePreview runState={singleRunState} />}
       {sections.map(section => {
         // there should only be 1 section of each type
         if (isRootCauseSection(section)) {
