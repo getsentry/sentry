@@ -412,6 +412,7 @@ class TestTriggerAutofixFeature(TestCase):
         self,
         stopping_point: AutofixStoppingPoint | None,
         step_args: RCAStepArgs | None = None,
+        can_open_pr: bool = True,
     ) -> dict[str, Any]:
         fake_run = self.create_seer_run(organization=self.organization, type="feature_run")
         with (
@@ -429,6 +430,7 @@ class TestTriggerAutofixFeature(TestCase):
                     step=AutofixStep.ROOT_CAUSE,
                     step_args=step_args or RCAStepArgs(),
                     stopping_point=stopping_point,
+                    can_open_pr=can_open_pr,
                 ),
             )
 
@@ -525,6 +527,12 @@ class TestTriggerAutofixFeature(TestCase):
 
         mock_client_cls.return_value.continue_feature_run.assert_called_once()
         mock_client_cls.return_value.start_feature_run.assert_not_called()
+
+    def test_single_run_without_publish_scope_codes_but_skips_pr(self) -> None:
+        options = self._start_single_run(None, can_open_pr=False)["agent_run_options"]
+
+        assert options["enable_coding"] is True
+        assert options["enable_write_pull_request"] is False
 
     def test_single_run_records_last_triggered(self) -> None:
         self._start_single_run(None)

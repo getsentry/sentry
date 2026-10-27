@@ -563,6 +563,9 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                         insert_index=data.get("insert_index"),
                         user=request.user,
                         enable_bash_mode=data.get("enable_bash_mode", False),
+                        can_open_pr=request.access.has_any_project_scope(
+                            group.project, PUBLISH_SCOPES
+                        ),
                         # TRIGGER_AUTOFIX attributes a kickoff, so only steps the
                         # user continues (or codes directly) carry them as the actor.
                         actor_user_id=(

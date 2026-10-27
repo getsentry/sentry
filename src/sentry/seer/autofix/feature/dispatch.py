@@ -55,6 +55,7 @@ class AutofixFeatureArgs:
     user: User | RpcUser | AnonymousUser | None = None
     enable_bash_mode: bool = False
     flush: bool = True
+    can_open_pr: bool = True
 
 
 def _run_mirrors(group: Group, run_id: int) -> QuerySet[SeerAgentRun]:
@@ -235,9 +236,10 @@ def _start_single_run(group: Group, args: AutofixFeatureArgs, skip_quota: bool) 
     enable_coding = group.organization.get_option(
         "sentry:enable_seer_coding", ENABLE_SEER_CODING_DEFAULT
     ) and stopping_point not in (AutofixStoppingPoint.ROOT_CAUSE, AutofixStoppingPoint.SOLUTION)
-    enable_write_pull_request = enable_coding and stopping_point in (
-        None,
-        AutofixStoppingPoint.OPEN_PR,
+    enable_write_pull_request = (
+        args.can_open_pr
+        and enable_coding
+        and stopping_point in (None, AutofixStoppingPoint.OPEN_PR)
     )
 
     payload = AutofixSingleRunPayload(

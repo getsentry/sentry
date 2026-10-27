@@ -449,6 +449,7 @@ def trigger_autofix_agent(
     commit_author: SeerCommitAuthor | None = None,
     iteration_id: int | None = None,
     allow_free_cohort: bool = False,
+    can_open_pr: bool = True,
 ) -> SeerRun:
     """
     Start or continue an agent-based autofix run.
@@ -526,6 +527,7 @@ def trigger_autofix_agent(
             allow_free_cohort=allow_free_cohort,
             user=user,
             enable_bash_mode=enable_bash_mode,
+            can_open_pr=can_open_pr,
         )
         feature_run = trigger_autofix_feature(group, args)
         feature_run_id = feature_run.seer_run_state_id

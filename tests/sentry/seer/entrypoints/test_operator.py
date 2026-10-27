@@ -192,6 +192,24 @@ class SeerOperatorTest(TestCase):
             referrer=AutofixReferrer.SLACK.value,
         )
 
+    @patch("sentry.seer.autofix.autofix_agent.get_autofix_agent_state", return_value=None)
+    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_agent")
+    def test_slack_autofix_passes_publish_scope(
+        self, mock_trigger_autofix, _mock_get_autofix_state
+    ):
+        mock_trigger_autofix.return_value = self.create_seer_run(
+            organization=self.organization,
+            seer_run_state_id=MOCK_RUN_ID,
+        )
+
+        for user, can_open_pr in ((self.user, True), (self.create_user(), False)):
+            self.operator.trigger_autofix(
+                group=self.group,
+                user=user,
+                stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
+            )
+            assert mock_trigger_autofix.call_args.kwargs["can_open_pr"] is can_open_pr
+
     @patch("sentry.seer.autofix.autofix_agent.get_autofix_agent_state")
     @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_agent")
     def test_slack_autofix_reuses_existing_single_run(

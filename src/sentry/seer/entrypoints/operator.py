@@ -16,6 +16,7 @@ from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import CodingAgentState, SeerRunState
@@ -270,6 +271,7 @@ class SeerAutofixOperator[CachePayloadT]:
                             referrer=AutofixReferrer.SLACK,
                             run_id=None,
                             user=user,
+                            can_open_pr=_can_publish(group.organization, user),
                         )
                         run_id = run.seer_run_state_id
                         Activity.objects.create_group_activity(
@@ -988,6 +990,13 @@ def process_investigation_updates(*, investigation_id: int) -> None:
                     raise
                 except Exception as e:
                     ept_lifecycle.record_failure(failure_reason=e)
+
+
+def _can_publish(organization: Organization, user: User | RpcUser) -> bool:
+    from sentry.seer.endpoints.group_ai_autofix import PUBLISH_SCOPES
+
+    member = OrganizationMember.objects.filter(organization=organization, user_id=user.id).first()
+    return member is not None and not PUBLISH_SCOPES.isdisjoint(member.get_scopes())
 
 
 def get_autofix_explorer_status(
