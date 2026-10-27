@@ -444,7 +444,6 @@ module = [
     "fixtures.sdk_crash_detection.crash_event_dotnet",
     "fixtures.sdk_crash_detection.crash_event_native",
     "fixtures.sdk_crash_detection.crash_event_react_native",
-    "fixtures.sudo_testutils",
     "fixtures.vsts",
     "sentry",
     "sentry.__main__",
