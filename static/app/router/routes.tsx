@@ -530,7 +530,11 @@ function buildRoutes(): RouteObject[] {
     routeHook('routes:project-settings'),
     {
       handle: {
-        settingsProject: {page: ''},
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {switchTo: '/settings/:orgId/projects/:projectId/'},
       },
       index: true,
       name: t('General'),
@@ -542,7 +546,11 @@ function buildRoutes(): RouteObject[] {
     },
     {
       handle: {
-        settingsProject: {page: 'teams/'},
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {switchTo: '/settings/:orgId/projects/:projectId/teams/'},
       },
       path: 'teams/',
       name: t('Teams'),
@@ -550,7 +558,11 @@ function buildRoutes(): RouteObject[] {
     },
     {
       handle: {
-        settingsProject: {page: 'alerts/'},
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {switchTo: '/settings/:orgId/projects/:projectId/alerts/'},
       },
       path: 'alerts/',
       name: t('Alerts'),
@@ -588,7 +600,13 @@ function buildRoutes(): RouteObject[] {
     },
     {
       handle: {
-        settingsProject: {page: 'attributes/'},
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
+          switchTo: '/settings/:orgId/projects/:projectId/attributes/',
+        },
       },
       path: 'attributes/',
       name: t('Attributes'),
@@ -596,7 +614,11 @@ function buildRoutes(): RouteObject[] {
     },
     {
       handle: {
-        settingsProject: {page: 'tags/'},
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {switchTo: '/settings/:orgId/projects/:projectId/tags/'},
       },
       path: 'tags/',
       name: t('Tags & Context'),
@@ -604,7 +626,13 @@ function buildRoutes(): RouteObject[] {
     },
     {
       handle: {
-        settingsProject: {page: 'environments/'},
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
+          switchTo: '/settings/:orgId/projects/:projectId/environments/',
+        },
       },
       path: 'environments/',
       name: t('Environments'),
@@ -620,7 +648,13 @@ function buildRoutes(): RouteObject[] {
     },
     {
       handle: {
-        settingsProject: {page: 'ownership/'},
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
+          switchTo: '/settings/:orgId/projects/:projectId/ownership/',
+        },
       },
       path: 'ownership/',
       name: t('Ownership Rules'),
@@ -632,7 +666,13 @@ function buildRoutes(): RouteObject[] {
     },
     {
       handle: {
-        settingsProject: {page: 'user-feedback/'},
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
+          switchTo: '/settings/:orgId/projects/:projectId/user-feedback/',
+        },
       },
       path: 'user-feedback/',
       name: t('User Feedback'),
@@ -640,7 +680,13 @@ function buildRoutes(): RouteObject[] {
     },
     {
       handle: {
-        settingsProject: {page: 'toolbar/'},
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
+          switchTo: '/settings/:orgId/projects/:projectId/toolbar/',
+        },
       },
       path: 'toolbar/',
       name: t('Developer Toolbar'),
@@ -648,7 +694,13 @@ function buildRoutes(): RouteObject[] {
     },
     {
       handle: {
-        settingsProject: {page: 'filters/'},
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
+          switchTo: '/settings/:orgId/projects/:projectId/filters/',
+        },
       },
       path: 'filters/',
       name: t('Inbound Filters'),
@@ -665,7 +717,13 @@ function buildRoutes(): RouteObject[] {
     },
     {
       handle: {
-        settingsProject: {page: 'security-and-privacy/'},
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
+          switchTo: '/settings/:orgId/projects/:projectId/security-and-privacy/',
+        },
       },
       path: 'security-and-privacy/',
       name: t('Security & Privacy'),
@@ -686,7 +744,13 @@ function buildRoutes(): RouteObject[] {
     },
     {
       handle: {
-        settingsProject: {page: 'issue-grouping/'},
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
+          switchTo: '/settings/:orgId/projects/:projectId/issue-grouping/',
+        },
       },
       path: 'issue-grouping/',
       name: t('Issue Grouping'),
@@ -694,7 +758,13 @@ function buildRoutes(): RouteObject[] {
     },
     {
       handle: {
-        settingsProject: {page: 'debug-symbols/'},
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
+          switchTo: '/settings/:orgId/projects/:projectId/debug-symbols/',
+        },
       },
       path: 'debug-symbols/',
       name: t('Debug Information Files'),
@@ -702,7 +772,13 @@ function buildRoutes(): RouteObject[] {
     },
     {
       handle: {
-        settingsProject: {page: 'proguard/'},
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
+          switchTo: '/settings/:orgId/projects/:projectId/proguard/',
+        },
       },
       path: 'proguard/',
       name: t('ProGuard Mappings'),
@@ -710,7 +786,13 @@ function buildRoutes(): RouteObject[] {
     },
     {
       handle: {
-        settingsProject: {page: 'source-maps/'},
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
+          switchTo: '/settings/:orgId/projects/:projectId/source-maps/',
+        },
       },
       path: 'source-maps/',
       name: t('Source Maps'),
@@ -743,7 +825,13 @@ function buildRoutes(): RouteObject[] {
     },
     {
       handle: {
-        settingsProject: {page: 'performance/'},
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
+          switchTo: '/settings/:orgId/projects/:projectId/performance/',
+        },
       },
       path: 'performance/',
       name: t('Performance'),
@@ -755,7 +843,13 @@ function buildRoutes(): RouteObject[] {
     },
     {
       handle: {
-        settingsProject: {page: 'replays/'},
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
+          switchTo: '/settings/:orgId/projects/:projectId/replays/',
+        },
       },
       path: 'replays/',
       name: t('Replays'),
@@ -763,7 +857,11 @@ function buildRoutes(): RouteObject[] {
     },
     {
       handle: {
-        settingsProject: {page: 'logs/'},
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {switchTo: '/settings/:orgId/projects/:projectId/logs/'},
       },
       path: 'logs/',
       name: t('Logs'),
@@ -771,7 +869,13 @@ function buildRoutes(): RouteObject[] {
     },
     {
       handle: {
-        settingsProject: {page: 'playstation/'},
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
+          switchTo: '/settings/:orgId/projects/:projectId/playstation/',
+        },
       },
       path: 'playstation/',
       name: t('PlayStation'),
@@ -779,7 +883,13 @@ function buildRoutes(): RouteObject[] {
     },
     {
       handle: {
-        settingsProject: {page: 'mobile-builds/'},
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
+          switchTo: '/settings/:orgId/projects/:projectId/mobile-builds/',
+        },
       },
       path: 'mobile-builds/',
       name: t('Mobile Builds'),
@@ -787,7 +897,13 @@ function buildRoutes(): RouteObject[] {
     },
     {
       handle: {
-        settingsProject: {page: 'snapshots/'},
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
+          switchTo: '/settings/:orgId/projects/:projectId/snapshots/',
+        },
       },
       path: 'snapshots/',
       name: t('Snapshots'),
@@ -795,7 +911,11 @@ function buildRoutes(): RouteObject[] {
     },
     {
       handle: {
-        settingsProject: {page: 'keys/'},
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {switchTo: '/settings/:orgId/projects/:projectId/keys/'},
       },
       path: 'keys/',
       name: t('Client Keys'),
@@ -822,7 +942,13 @@ function buildRoutes(): RouteObject[] {
     },
     {
       handle: {
-        settingsProject: {page: 'loader-script/'},
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
+          switchTo: '/settings/:orgId/projects/:projectId/loader-script/',
+        },
       },
       path: 'loader-script/',
       name: t('Loader Script'),
@@ -830,7 +956,13 @@ function buildRoutes(): RouteObject[] {
     },
     {
       handle: {
-        settingsProject: {page: 'release-tracking/'},
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
+          switchTo: '/settings/:orgId/projects/:projectId/release-tracking/',
+        },
       },
       path: 'release-tracking/',
       name: t('Release Tracking'),
@@ -840,7 +972,13 @@ function buildRoutes(): RouteObject[] {
     },
     {
       handle: {
-        settingsProject: {page: 'security-headers/'},
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
+          switchTo: '/settings/:orgId/projects/:projectId/security-headers/',
+        },
       },
       path: 'security-headers/',
       name: t('Security Headers'),
@@ -871,7 +1009,13 @@ function buildRoutes(): RouteObject[] {
     },
     {
       handle: {
-        settingsProject: {page: 'legacy-webhooks/'},
+        settingsBreadcrumb: {
+          type: 'project',
+          to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
+          switchTo: '/settings/:orgId/projects/:projectId/legacy-webhooks/',
+        },
       },
       path: 'legacy-webhooks/',
       name: t('Webhooks'),

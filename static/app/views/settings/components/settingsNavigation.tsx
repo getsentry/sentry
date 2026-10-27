@@ -23,7 +23,7 @@ import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components'
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {SettingsNavigationGroup} from 'sentry/views/settings/components/settingsNavigationGroup';
 import type {NavigationProps, NavigationSection} from 'sentry/views/settings/types';
-import {useSettingsProjectPageTemplate} from 'sentry/views/settings/useSettingsProjectPage';
+import {useSettingsProjectSwitchTemplate} from 'sentry/views/settings/useSettingsProjectSwitchTemplate';
 import {useSettingsScope} from 'sentry/views/settings/useSettingsScope';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
@@ -89,7 +89,7 @@ function SettingsProjectSelector() {
     ?.params['*'];
   const params = useParams<{projectId: string; orgId?: string}>();
   const {projectId} = params;
-  const switchTo = useSettingsProjectPageTemplate();
+  const switchTo = useSettingsProjectSwitchTemplate();
   const {projects, onSearch} = useProjects();
   const selectedProject = projects.find(project => project.slug === projectId);
   const organization = useOrganization();

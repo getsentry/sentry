@@ -329,7 +329,13 @@ describe('desktop navigation', () => {
             {
               path: 'keys/',
               handle: {
-                settingsProject: {page: 'keys/'},
+                settingsBreadcrumb: {
+                  type: 'project',
+                  to: '/settings/:orgId/projects/:projectId/',
+                },
+                settingsProjectSwitch: {
+                  switchTo: '/settings/:orgId/projects/:projectId/keys/',
+                },
               },
               children: [
                 {path: ':keyId/', element: <div />},
