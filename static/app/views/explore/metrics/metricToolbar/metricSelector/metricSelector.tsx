@@ -573,7 +573,11 @@ export function MetricSelector({
         : optionCenter - popoverRect.top - sidePanelHeight / 2;
       const maxOffset = Math.max(0, popoverRect.height - sidePanelHeight);
 
-      setSidePanelAnchorOffset(Math.min(Math.max(0, offset), maxOffset));
+      const nextOffset = Math.min(Math.max(0, offset), maxOffset);
+      // Skip sub-pixel changes so layout jitter can't keep scheduling updates.
+      setSidePanelAnchorOffset(prev =>
+        prev !== null && Math.abs(prev - nextOffset) < 0.5 ? prev : nextOffset
+      );
     },
     [activeOptionIndex, isOpen, isOverlayAboveTrigger]
   );
