@@ -399,9 +399,9 @@ function SectionTitle(props: SectionTitleProps) {
 
     return (
       <Grid columns="1fr" align="center" width="100%">
-        {p => (
+        {gridProps => (
           <Button
-            {...p}
+            {...gridProps}
             size="sm"
             variant="transparent"
             aria-expanded={!props.isCollapsed}
