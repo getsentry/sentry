@@ -1,8 +1,8 @@
-import {useId} from 'react';
+import {useEffect, useId, useRef} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
@@ -22,6 +22,7 @@ import {
 } from 'sentry/views/investigations/actionRequests/actionRequestDetails';
 import type {ApplyCheck} from 'sentry/views/investigations/actionRequests/applyButton';
 import {
+  canRetryFollowUp,
   isFollowUpPending,
   parseApplyError,
   useInvestigationActionRequestMutation,
@@ -108,6 +109,35 @@ export function ActionRequestCard({
     }
   );
 
+  const retryFollowUpMutation = useInvestigationActionRequestMutation(
+    organization.slug,
+    investigationId,
+    'retry-follow-up',
+    {
+      onError: (error, retried) => {
+        const retryError = parseApplyError(error);
+        toast.error(
+          retryError
+            ? getCannotApplyMessage(retried.action, retryError.code)
+            : t('Unable to send this to Seer again.')
+        );
+      },
+    }
+  );
+
+  const previousCheckStatus = useRef(check.status);
+  const {error: applyMutationError, reset: resetApplyMutation} = applyMutation;
+  useEffect(() => {
+    if (
+      check.status === 'passed' &&
+      previousCheckStatus.current !== 'passed' &&
+      applyMutationError
+    ) {
+      resetApplyMutation();
+    }
+    previousCheckStatus.current = check.status;
+  }, [check.status, applyMutationError, resetApplyMutation]);
+
   if (!isShownActionRequest(actionRequest)) {
     return null;
   }
@@ -152,6 +182,9 @@ export function ActionRequestCard({
   const staleError = getStaleError(actionRequest, check, applyError);
   const rechecking =
     recheckMutation.isPending && recheckMutation.variables?.id === actionRequest.id;
+  const retryingFollowUp =
+    retryFollowUpMutation.isPending &&
+    retryFollowUpMutation.variables?.id === actionRequest.id;
   const appliedSummary =
     actionRequest.state === 'applied' ? getAppliedSummary(actionRequest, source) : null;
 
@@ -171,6 +204,14 @@ export function ActionRequestCard({
           <AppliedBy actionRequest={actionRequest} />
         ) : null}
       </Stack>
+      {canRetryFollowUp(actionRequest) ? (
+        <Flex>
+          <TryAgainButton
+            busy={retryingFollowUp}
+            onClick={() => retryFollowUpMutation.mutate(actionRequest)}
+          />
+        </Flex>
+      ) : null}
       {staleError ? (
         <Alert.Container>
           <Alert
@@ -178,13 +219,10 @@ export function ActionRequestCard({
             role="status"
             trailingItems={
               actionRequest.followUp?.status === 'failed' ? (
-                <Button
-                  size="xs"
+                <TryAgainButton
                   busy={rechecking}
                   onClick={() => recheckMutation.mutate(actionRequest)}
-                >
-                  {t('Try again')}
-                </Button>
+                />
               ) : undefined
             }
           >
@@ -221,6 +259,14 @@ export function ActionRequestCard({
         rechecking={rechecking}
       />
     </Stack>
+  );
+}
+
+function TryAgainButton({busy, onClick}: {busy: boolean; onClick: () => void}) {
+  return (
+    <Button size="xs" busy={busy} disabled={busy} onClick={onClick}>
+      {t('Try again')}
+    </Button>
   );
 }
 

@@ -96,20 +96,21 @@ export function useApplyCheck(
   const checksBeforeApply =
     getActionKind(actionRequest.action)?.ui.checksBeforeApply ?? false;
   const enabled = actionRequest.canApply && checksBeforeApply;
-  const {data, isError, isPending} = useQuery({
+  const {data, isError} = useQuery({
     ...actionRequestDryRunQueryOptions(organization.slug, investigationId, actionRequest),
     enabled,
+    refetchOnWindowFocus: shouldRefreshOnFocus(actionRequest) ? 'always' : false,
   });
   if (!enabled) {
     return {status: 'passed'};
   }
+  if (data !== undefined) {
+    return data ? {status: 'blocked', error: data} : {status: 'passed'};
+  }
   if (isError) {
     return {status: 'unavailable'};
   }
-  if (isPending) {
-    return {status: 'pending'};
-  }
-  return data ? {status: 'blocked', error: data} : {status: 'passed'};
+  return {status: 'pending'};
 }
 
 function getApplyMessage(
@@ -170,6 +171,10 @@ export function getAppliedActivityNote(actionRequest: InvestigationActionRequest
   return kind?.ui.getActivityNote?.({action: kind.action, actionRequest}) ?? null;
 }
 
+export function shouldRefreshOnFocus(actionRequest: InvestigationActionRequest) {
+  return getActionKind(actionRequest.action)?.ui.refreshOnFocus?.(actionRequest) ?? false;
+}
+
 export function getApplySuccessMessage(action: InvestigationAction | null) {
   return getActionKind(action)?.ui.getSuccessMessage?.() ?? null;
 }
@@ -214,6 +219,8 @@ function getSharedCannotApplyMessage(reason: ApplyBlockReason) {
       return t("This change wasn't valid.");
     case 'not_stale':
       return t('Nothing changed since Seer suggested this.');
+    case 'not_retryable':
+      return t("This can't be sent to Seer again.");
     default:
       return null;
   }

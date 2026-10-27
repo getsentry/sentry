@@ -1,5 +1,6 @@
 import {Fragment, useId} from 'react';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
+import {IconRefresh} from '@sentry/icons/refresh';
 import {IconSettings} from '@sentry/icons/settings';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -13,6 +14,7 @@ import type {
   ActionKindApplyProps,
   ActionKindUI,
 } from 'sentry/views/investigations/actionRequests/actionKinds';
+import {ApplyButton} from 'sentry/views/investigations/actionRequests/applyButton';
 import type {ActionRequestFollowUp} from 'sentry/views/investigations/api';
 import type {
   InvestigationActionRequest,
@@ -21,7 +23,7 @@ import type {
 
 export const connectTelemetryUI: ActionKindUI<InvestigationConnectTelemetryAction> = {
   Apply: ConnectTelemetryApply,
-  checksBeforeApply: false,
+  checksBeforeApply: true,
   getActivityTitle: ({action, actorName}) => {
     const name = getProviderName(action.provider);
     return actorName ? t('%s connected %s', actorName, name) : t('%s connected', name);
@@ -44,22 +46,62 @@ export const connectTelemetryUI: ActionKindUI<InvestigationConnectTelemetryActio
     reason === 'permission_denied'
       ? t('You need permission to install integrations.')
       : null,
+  refreshOnFocus: actionRequest =>
+    actionRequest.state === 'suggested' && actionRequest.canApply,
 };
 
 function ConnectTelemetryApply({
   action,
   actionRequest,
+  applying,
+  check,
+  finishing,
   message,
+  onApply,
+  onRecheck,
+  rechecking,
 }: ActionKindApplyProps<InvestigationConnectTelemetryAction>) {
   const organization = useOrganization();
   const messageId = useId();
   const to = normalizeUrl(
     `/settings/${organization.slug}/integrations/${action.provider}/`
   );
+  const name = getProviderName(action.provider);
 
   switch (actionRequest.state) {
     case 'suggested':
-      return (
+      if (actionRequest.canApply && check.status === 'pending') {
+        return (
+          <ApplyButton
+            canApply
+            applying={false}
+            check={check}
+            disabled={false}
+            message={null}
+            onApply={onApply}
+            onRecheck={onRecheck}
+            rechecking={false}
+            icon={<IconRefresh />}
+            label={t('Checking the %s connection…', name)}
+            busyLabel={t('Checking the %s connection…', name)}
+          />
+        );
+      }
+      return actionRequest.canApply && check.status === 'passed' ? (
+        <ApplyButton
+          canApply
+          applying={applying}
+          check={check}
+          disabled={finishing}
+          message={message}
+          onApply={onApply}
+          onRecheck={onRecheck}
+          rechecking={rechecking}
+          icon={<IconRefresh />}
+          label={t('Re-run with %s', name)}
+          busyLabel={t('Re-running with %s…', name)}
+        />
+      ) : (
         <Flex align="center" gap="md" wrap="wrap">
           <LinkButton
             variant="primary"
@@ -69,7 +111,7 @@ function ConnectTelemetryApply({
             disabled={!actionRequest.canApply}
             aria-describedby={actionRequest.canApply ? undefined : messageId}
           >
-            {t('Connect %s', getProviderName(action.provider))}
+            {t('Connect %s', name)}
             <NewTabNote />
           </LinkButton>
           {actionRequest.canApply ? null : (

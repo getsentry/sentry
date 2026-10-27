@@ -33,6 +33,7 @@ import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {shouldRefreshOnFocus} from 'sentry/views/investigations/actionRequests/actionRequestDetails';
 import {
   AnchoredActionRequests,
   groupActionRequestsByPlacement,
@@ -283,6 +284,10 @@ export function InvestigationBootstrapPage({investigationId}: {investigationId: 
         ? 2000
         : false;
     },
+    refetchOnWindowFocus: query =>
+      query.state.data?.json.actionRequests?.some(shouldRefreshOnFocus)
+        ? 'always'
+        : false,
   });
 
   const wasSeerWorking = useRef(isSeerWorking);
