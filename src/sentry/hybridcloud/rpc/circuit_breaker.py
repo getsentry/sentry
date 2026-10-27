@@ -37,11 +37,11 @@ class RpcCircuitBreaker:
         )
 
     def _build_breaker(self) -> CircuitBreaker | None:
-        base_config: RateBasedTripStrategyConfig = options.get(
-            "hybridcloud.rpc.circuit-breaker.config"
-        )
-        config: RateBasedTripStrategyConfig = {**base_config, "metrics_key": "hybridcloud.rpc"}
         try:
+            base_config: RateBasedTripStrategyConfig = options.get(
+                "hybridcloud.rpc.circuit-breaker.config"
+            )
+            config: RateBasedTripStrategyConfig = {**base_config, "metrics_key": "hybridcloud.rpc"}
             # One breaker per destination, so a failing cell doesn't block calls to the others.
             return CircuitBreaker(
                 key=f"hybridcloud.rpc.{self.destination}",
