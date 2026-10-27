@@ -27,6 +27,8 @@ from sentry.seer.agent.client_utils import (
     has_seer_agent_access_with_detail,
     snapshot_to_markdown,
 )
+from sentry.seer.autofix.constants import PUBLISH_SCOPES
+from sentry.seer.autofix.feature.models import AUTOFIX_RUN_SOURCES
 from sentry.seer.endpoints.utils import ResolvedSeerRun, resolve_seer_run
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerAgentRun
@@ -197,6 +199,23 @@ class OrganizationSeerAgentChatPermission(OrganizationPermission):
                 return False
             return True
         return super().has_object_permission(request, view, obj)
+
+
+def _can_open_pr_on_run(
+    request: Request, organization: Organization, resolved: ResolvedSeerRun
+) -> bool:
+    autofix_run = (
+        SeerAgentRun.objects.filter(
+            run__organization_id=organization.id,
+            run__seer_run_state_id=resolved.seer_run_state_id,
+            source__in=AUTOFIX_RUN_SOURCES,
+        )
+        .select_related("group__project")
+        .first()
+    )
+    if autofix_run is None or autofix_run.group is None:
+        return True
+    return request.access.has_any_project_scope(autofix_run.group.project, PUBLISH_SCOPES)
 
 
 def _is_dashboard_generate_run(organization: Organization, resolved: ResolvedSeerRun) -> bool:
@@ -392,7 +411,8 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 # The client still requires seer-explorer-allow-bash-mode.
                 enable_bash_mode=override_bash_mode_enabled or has_create_pr,
                 enable_coding=enable_coding,
-                enable_write_pull_request=has_create_pr,
+                enable_write_pull_request=has_create_pr
+                and (resolved is None or _can_open_pr_on_run(request, organization, resolved)),
                 enable_code_mode_tools=enable_code_mode_tools,
                 enable_investigation_tools=True,
                 reasoning_effort="medium",
