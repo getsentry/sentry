@@ -63,6 +63,39 @@ describe('useLogsAggregatesTable', () => {
     expect(result.current.error?.message).toEqual(expect.any(String));
   });
 
+  it('sends caseInsensitive as 1 when ignoring case', async () => {
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [], meta: {dataScanned: 'full', fields: {}}},
+      method: 'GET',
+    });
+
+    renderHookWithProviders(
+      () =>
+        useLogsAggregatesTable({
+          enabled: true,
+          limit: 100,
+        }),
+      {
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/logs/',
+            query: {caseInsensitive: '1', logsQuery: 'message:Deleted'},
+          },
+        },
+      }
+    );
+
+    await waitFor(() => expect(mockRequest).toHaveBeenCalled());
+    expect(mockRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/events/',
+      expect.objectContaining({
+        query: expect.objectContaining({caseInsensitive: '1'}),
+      })
+    );
+  });
+
   it('triggers the high accuracy request when there is no data and a partial scan', async () => {
     const mockNormalRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
