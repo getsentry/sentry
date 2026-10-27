@@ -33,6 +33,9 @@ import {QUEUE_DETAILS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebu
 import {QUEUES_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/queues/queues';
 import {SESSION_HEALTH_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/sessionHealth';
 import {WEB_VITALS_DETAILS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/pageDetails';
+import {WEB_VITALS_TRACE_METRICS_FEATURE} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/settings';
+import {WEB_VITALS_DETAILS_TRACE_METRICS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/traceMetrics/pageDetails';
+import {WEB_VITALS_TRACE_METRICS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/traceMetrics/webVitals';
 import {WEB_VITALS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
 import type {ModulesWithOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 
@@ -164,7 +167,16 @@ type PrebuiltDashboardVariant = {
  */
 export const PREBUILT_DASHBOARD_VARIANTS: Partial<
   Record<PrebuiltDashboardId, PrebuiltDashboardVariant>
-> = {};
+> = {
+  [PrebuiltDashboardId.WEB_VITALS]: {
+    feature: WEB_VITALS_TRACE_METRICS_FEATURE,
+    config: WEB_VITALS_TRACE_METRICS_PREBUILT_CONFIG,
+  },
+  [PrebuiltDashboardId.WEB_VITALS_SUMMARY]: {
+    feature: WEB_VITALS_TRACE_METRICS_FEATURE,
+    config: WEB_VITALS_DETAILS_TRACE_METRICS_PREBUILT_CONFIG,
+  },
+};
 
 /**
  * Resolves the config for a prebuilt dashboard.
