@@ -32,9 +32,12 @@ FAILED_METRIC = "sentry.scm.git.request.failed"
 
 
 def report_git_error(error: Exception, context: dict[str, str]) -> None:
-    code = error.code if isinstance(error, SCMCodedError) else type(error).__name__
-    detail = error.detail if isinstance(error, SCMCodedError) else str(error)
-    _report_failure(code, detail, context, error)
+    # An SCMCodedError's detail never holds a URL or a credential. Any other exception is named
+    # rather than quoted, since its message could hold either.
+    if isinstance(error, SCMCodedError):
+        _report_failure(error.code, error.detail, context)
+    else:
+        _report_failure(type(error).__name__, type(error).__name__, context)
 
 
 def make_git_server() -> GitServer:
@@ -92,7 +95,7 @@ class ScmGitEndpoint(Endpoint):
         try:
             grant = verify_grant(_grant_secrets(), request.headers.get(GRANT_HEADER, ""))
         except SCMCodedError as e:
-            return _refuse(e.code, 403, e.detail, context, tags={}, error=e)
+            return _refuse(e.code, 403, e.detail, context, tags={})
 
         context |= {"organization_id": str(grant.organization_id), "referrer": grant.referrer}
         tags = {"referrer": grant.referrer}
@@ -127,9 +130,13 @@ class ScmGitEndpoint(Endpoint):
         except RestrictedIPAddress as e:
             # The provider host resolves to an internal address. GitServer counts that as an
             # unhandled_exception and doesn't report it, so the report is what names the repository.
-            # The client gets a 503 without the address, like the ApiHostError Sentry's API clients
-            # raise.
-            _report_failure("restricted_ip_address", str(e), context, e)
+            # Neither the report nor the client's 503 carries the address, like the ApiHostError
+            # Sentry's API clients raise.
+            _report_failure(
+                "restricted_ip_address",
+                "The provider host resolves to an address Sentry doesn't connect to.",
+                context,
+            )
             return _plain_text(ApiHostError.from_exception(e).text, 503)
         return StreamingHttpResponse(
             response.content, status=response.status_code, headers=response.headers
@@ -154,23 +161,16 @@ def _request_body(request: HttpRequest) -> Readable | None:
 
 
 def _refuse(
-    code: str,
-    status: int,
-    detail: str,
-    context: dict[str, str],
-    tags: dict[str, str],
-    error: SCMCodedError | None = None,
+    code: str, status: int, detail: str, context: dict[str, str], tags: dict[str, str]
 ) -> HttpResponse:
     # Counted and reported like the refusals GitServer answers itself.
     record_count_metric(FAILED_METRIC, 1, {"code": code} | tags)
-    _report_failure(code, detail, context, error)
+    _report_failure(code, detail, context)
     # Never a 401: on a 401 git asks for credentials, which a coding job doesn't have.
     return _plain_text(detail, status)
 
 
-def _report_failure(
-    code: str, detail: str, context: dict[str, str], error: Exception | None
-) -> None:
+def _report_failure(code: str, detail: str, context: dict[str, str]) -> None:
     # git shows the client only the message, which leaves out the repository, organization and
     # provider, so the log and the issue's tags carry them. The detail can vary within a code, so
     # the fingerprint groups by code alone.
@@ -178,10 +178,10 @@ def _report_failure(
     with sentry_sdk.new_scope() as scope:
         scope.fingerprint = ["scm-git", code]
         scope.set_tags(context)
-        if error is None:
-            sentry_sdk.capture_message(detail, level="error")
-        else:
-            sentry_sdk.capture_exception(error)
+        # A message, never the exception: Sentry's SDK sends every frame's local variables
+        # unscrubbed, and the frames a refusal is raised from hold the provider token, and
+        # requests' hold its Authorization header.
+        sentry_sdk.capture_message(detail, level="error")
 
 
 def _plain_text(message: str, status: int) -> HttpResponse:

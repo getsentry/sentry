@@ -13,14 +13,13 @@ from django.test import override_settings
 from django.urls import resolve, reverse
 from responses import matchers
 from scm import Secret
-from scm.errors import SCMCodedError
 from scm.git.grant import sign_grant
 from scm.git.types import GRANT_HEADER, GitOperation, Grant
 from scm.types import RepositoryId
 from sentry_sdk.data_collection import _apply_key_value_collection_filtering
 
 from sentry.constants import ObjectStatus
-from sentry.exceptions import RestrictedIPAddress
+from sentry.scm.endpoints.scm_git import report_git_error
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import cell_silo_test
@@ -110,10 +109,10 @@ class ScmGitEndpointTest(TestCase):
         assert scope.fingerprint == ["scm-git", code]
         scope.set_tags.assert_called_once_with(tags)
 
-    def reported_exception(self, mock_sdk: mock.MagicMock) -> BaseException:
-        mock_sdk.capture_exception.assert_called_once()
-        mock_sdk.capture_message.assert_not_called()
-        return mock_sdk.capture_exception.call_args.args[0]
+    def assert_reported_message(self, mock_sdk: mock.MagicMock, detail: str) -> None:
+        # Never the exception, whose frames hold the provider token.
+        mock_sdk.capture_message.assert_called_once_with(detail, level="error")
+        mock_sdk.capture_exception.assert_not_called()
 
     @responses.activate
     @mock.patch("sentry.scm.endpoints.scm_git.sentry_sdk")
@@ -178,9 +177,7 @@ class ScmGitEndpointTest(TestCase):
                 "repository_id": str(self.repo.id),
             },
         )
-        error = self.reported_exception(mock_sdk)
-        assert isinstance(error, SCMCodedError)
-        assert error.code == "git_invalid_grant"
+        self.assert_reported_message(mock_sdk, "The git grant is missing.")
         self.assert_reported(mock_sdk, "git_invalid_grant", {"repository_id": str(self.repo.id)})
 
     @responses.activate
@@ -199,6 +196,7 @@ class ScmGitEndpointTest(TestCase):
         mock_record_count.assert_called_once_with(
             "sentry.scm.git.request.failed", 1, {"code": "git_invalid_grant"}
         )
+        self.assert_reported_message(mock_sdk, "The git grant was not signed with a known secret.")
         self.assert_reported(mock_sdk, "git_invalid_grant", {"repository_id": str(self.repo.id)})
 
     @responses.activate
@@ -245,10 +243,9 @@ class ScmGitEndpointTest(TestCase):
                 "referrer": REFERRER,
             },
         )
-        mock_sdk.capture_message.assert_called_once_with(
-            "The git endpoint is not enabled for this organization.", level="error"
+        self.assert_reported_message(
+            mock_sdk, "The git endpoint is not enabled for this organization."
         )
-        mock_sdk.capture_exception.assert_not_called()
         self.assert_reported(
             mock_sdk,
             "git_endpoint_disabled",
@@ -292,9 +289,7 @@ class ScmGitEndpointTest(TestCase):
                 "referrer": REFERRER,
             },
         )
-        error = self.reported_exception(mock_sdk)
-        assert isinstance(error, SCMCodedError)
-        assert error.code == "git_operation_not_granted"
+        self.assert_reported_message(mock_sdk, "The git grant allows fetch, not push.")
         self.assert_reported(
             mock_sdk,
             "git_operation_not_granted",
@@ -477,13 +472,15 @@ class ScmGitEndpointTest(TestCase):
             "scm.git.request_failed",
             extra={
                 "code": "restricted_ip_address",
-                "detail": "(127.0.0.1) matches the URL blocklist",
+                "detail": "The provider host resolves to an address Sentry doesn't connect to.",
                 "repository_id": str(repo.id),
                 "organization_id": str(self.organization.id),
                 "referrer": REFERRER,
             },
         )
-        assert isinstance(self.reported_exception(mock_sdk), RestrictedIPAddress)
+        self.assert_reported_message(
+            mock_sdk, "The provider host resolves to an address Sentry doesn't connect to."
+        )
         self.assert_reported(
             mock_sdk,
             "restricted_ip_address",
@@ -518,6 +515,23 @@ class ScmGitEndpointTest(TestCase):
 )
 def test_does_not_route(path: str) -> None:
     assert resolve(path).url_name == "sentry-api-catchall"
+
+
+@mock.patch("sentry.scm.endpoints.scm_git.sentry_sdk")
+@mock.patch("sentry.scm.endpoints.scm_git.logger")
+def test_reports_an_uncoded_error_by_its_name_alone(
+    mock_logger: mock.MagicMock, mock_sdk: mock.MagicMock
+) -> None:
+    error = ValueError("https://x-access-token:a-token@github.com/getsentry/sentry.git")
+
+    report_git_error(error, {"repository_id": "1"})
+
+    mock_logger.error.assert_called_once_with(
+        "scm.git.request_failed",
+        extra={"code": "ValueError", "detail": "ValueError", "repository_id": "1"},
+    )
+    mock_sdk.capture_message.assert_called_once_with("ValueError", level="error")
+    mock_sdk.capture_exception.assert_not_called()
 
 
 def test_the_sdk_filters_the_grant_header_out_of_telemetry() -> None:
