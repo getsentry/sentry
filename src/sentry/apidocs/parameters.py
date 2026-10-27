@@ -1536,6 +1536,13 @@ class InvestigationParams:
         type=str,
         description="The ID of an investigation in this organization.",
     )
+    ACTION_REQUEST_ID = OpenApiParameter(
+        name="action_request_id",
+        location="path",
+        required=True,
+        type=str,
+        description="The ID of an action request in this investigation.",
+    )
     CURSOR = OpenApiParameter(
         name="cursor",
         location="query",

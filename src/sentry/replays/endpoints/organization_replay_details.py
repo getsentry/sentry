@@ -33,7 +33,7 @@ from sentry.replays.lib.eap import read as eap_read
 from sentry.replays.lib.eap.snuba_transpiler import RequestMeta, Settings
 from sentry.replays.post_process import ReplayDetailsResponse, process_raw_response
 from sentry.replays.query import query_replay_instance
-from sentry.replays.validators import ReplayValidator
+from sentry.replays.validators import ReplayValidator, validate_fields
 
 
 class GetReplayResponse(TypedDict):
@@ -252,6 +252,7 @@ class OrganizationReplayDetailsEndpoint(OrganizationReplayEndpoint):
         Return details on an individual replay.
         """
         self.check_replay_access(request, organization)
+        fields = validate_fields(request.query_params.getlist("field"))
 
         try:
             filter_params = self.get_filter_params(
@@ -306,7 +307,7 @@ class OrganizationReplayDetailsEndpoint(OrganizationReplayEndpoint):
 
         replay_data = process_raw_response(
             snuba_response,
-            fields=request.query_params.getlist("field"),
+            fields=fields,
         )
 
         if len(replay_data) == 0:

@@ -19,7 +19,7 @@
     "@tanstack/react-query": "5.101.4",
     "color": "5.0.2",
     "core-js": "3.45.0",
-    "dompurify": "3.4.16",
+    "dompurify": "3.4.17",
     "echarts": "6.1.0",
     "framer-motion": "12.38.0",
     "getsentry": "workspace:@sentry-internal/gs-app@*",
@@ -28,10 +28,10 @@
     "moment-timezone": "0.6.2",
     "query-string": "7.0.1",
     "react": "19.3.0",
-    "react-router": "6.30.6",
+    "react-router": "8.4.0",
     "reflux": "0.4.1",
     "sentry": "workspace:@sentry-internal/app@*",
-    "zod": "4.3.5"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@types/history": "^3.2.5",

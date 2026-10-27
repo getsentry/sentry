@@ -1,14 +1,19 @@
 import {
+  queryOptions,
   useMutation,
   useQueryClient,
   type UseMutationOptions,
 } from '@tanstack/react-query';
+import {z} from 'zod';
 
-import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import type {
+  InvestigationActionRequest,
+  InvestigationActionRequestApplyResponse,
   InvestigationCandidate,
   InvestigationBlock,
   InvestigationBlockExecutionStart,
@@ -475,7 +480,7 @@ export function useLaunchInvestigationMutation(
         method: 'POST',
         // No `templateKey`: the metric snapshot is enough for the server to
         // build an agentic run, which is what gives this investigation
-        // hypotheses instead of a fixed sequence of notebook cells. The
+        // hypotheses instead of a fixed sequence of notebook blocks. The
         // candidates endpoint matches agentic and template lineage keys alike,
         // so an already-investigated breach still resolves to "View".
         data: {source},
@@ -665,6 +670,153 @@ export function useRunInvestigationBlockMutation(
     },
     onError: async () => {
       await queryClient.invalidateQueries({queryKey: detailOptions.queryKey});
+    },
+  });
+}
+
+const cannotApplyReasonSchema = z.enum([
+  'investigation_archived',
+  'not_suggested',
+  'unsupported_action',
+  'no_access',
+  'permission_denied',
+  'not_target_detector',
+  'detector_not_found',
+  'dynamic_detector',
+]);
+
+export type CannotApplyReason = z.infer<typeof cannotApplyReasonSchema>;
+
+const actionRequestErrorSchema = z.discriminatedUnion('code', [
+  z.object({
+    code: z.enum([
+      ...cannotApplyReasonSchema.options,
+      'already_applied',
+      'withdrawn',
+      'stale',
+      'action_changed',
+    ]),
+  }),
+  z.object({code: z.literal('validation_failed'), messages: z.array(z.string())}),
+]);
+
+export type ActionRequestError = z.infer<typeof actionRequestErrorSchema>;
+
+export function parseApplyError(error: unknown): ActionRequestError | null {
+  const parsed = actionRequestErrorSchema.safeParse(
+    error instanceof RequestError ? error.responseJSON : undefined
+  );
+  return parsed.success ? parsed.data : null;
+}
+
+function getActionRequestApplyUrl(
+  organizationSlug: string,
+  investigationId: string,
+  actionRequestId: string
+) {
+  return getApiUrl(
+    '/organizations/$organizationIdOrSlug/investigations/$investigationId/action-requests/$actionRequestId/apply/',
+    {
+      path: {
+        organizationIdOrSlug: organizationSlug,
+        investigationId,
+        actionRequestId,
+      },
+    }
+  );
+}
+
+export function actionRequestDryRunQueryOptions(
+  organizationSlug: string,
+  investigationId: string,
+  actionRequest: InvestigationActionRequest
+) {
+  const url = getActionRequestApplyUrl(
+    organizationSlug,
+    investigationId,
+    actionRequest.id
+  );
+  const endpoint = {
+    method: 'POST',
+    data: {dryRun: true, action: actionRequest.action},
+  } as const;
+  return queryOptions({
+    queryKey: [url, endpoint] as const,
+    queryFn: async (): Promise<ActionRequestError | null> => {
+      try {
+        await apiFetch<InvestigationActionRequestApplyResponse>({
+          queryKey: [url, endpoint],
+        });
+        return null;
+      } catch (error) {
+        const applyError = parseApplyError(error);
+        if (applyError) {
+          return applyError;
+        }
+        throw error;
+      }
+    },
+    staleTime: 0,
+    retry: false,
+  });
+}
+
+export function useApplyInvestigationActionRequestMutation(
+  organizationSlug: string,
+  investigationId: string,
+  options?: MutationOptions<
+    InvestigationActionRequestApplyResponse,
+    InvestigationActionRequest
+  >
+) {
+  const queryClient = useQueryClient();
+  const detailOptions = getInvestigationDetailQueryOptions(
+    organizationSlug,
+    investigationId
+  );
+  const orchestrationOptions = investigationOrchestrationQueryOptions(
+    organizationSlug,
+    investigationId
+  );
+
+  return useMutation({
+    ...options,
+    mutationFn: actionRequest =>
+      fetchMutation<InvestigationActionRequestApplyResponse>({
+        url: getActionRequestApplyUrl(
+          organizationSlug,
+          investigationId,
+          actionRequest.id
+        ),
+        method: 'POST',
+        data: {action: actionRequest.action},
+      }),
+    onSuccess: async (response, variables, onMutateResult, context) => {
+      await queryClient.cancelQueries({queryKey: detailOptions.queryKey});
+      queryClient.setQueryData(detailOptions.queryKey, current =>
+        current
+          ? {
+              ...current,
+              json: {
+                ...current.json,
+                actionRequests: current.json.actionRequests?.map(actionRequest =>
+                  actionRequest.id === response.actionRequest.id
+                    ? response.actionRequest
+                    : actionRequest
+                ),
+              },
+            }
+          : current
+      );
+      void queryClient.invalidateQueries({queryKey: orchestrationOptions.queryKey});
+      await options?.onSuccess?.(response, variables, onMutateResult, context);
+    },
+    onError: async (error, variables, onMutateResult, context) => {
+      await Promise.all([
+        queryClient.invalidateQueries({queryKey: detailOptions.queryKey}),
+        queryClient.invalidateQueries({queryKey: orchestrationOptions.queryKey}),
+      ]);
+      await options?.onError?.(error, variables, onMutateResult, context);
     },
   });
 }

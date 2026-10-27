@@ -32,7 +32,7 @@ from sentry.seer.oneshot import run_oneshot
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
 from sentry.workflow_engine.endpoints.organization_detector_details import (
-    _check_metric_detector_allowed,
+    check_metric_detector_allowed,
 )
 from sentry.workflow_engine.endpoints.validators.utils import (
     ORGANIZATION_WORKFLOW_WRITE_SCOPES,
@@ -233,7 +233,7 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
                 return None
 
             try:
-                _check_metric_detector_allowed(detector, organization)
+                check_metric_detector_allowed(detector, organization)
             except ResourceDoesNotExist:
                 return None
             if can_edit_detector(detector, request):

@@ -153,6 +153,7 @@ class ConfigTransformer(ABC):
 class ActionHandler:
     config_schema: ClassVar[dict[str, Any]]
     data_schema: ClassVar[dict[str, Any]]
+    required_features: ClassVar[tuple[FeatureGate, ...]] = ()
 
     class Group(StrEnum):
         NOTIFICATION = "notification"
@@ -160,6 +161,26 @@ class ActionHandler:
         OTHER = "other"
 
     group: ClassVar[Group]
+
+    @classmethod
+    def get_dedup_key(cls, action: Action) -> str:
+        key_parts = [action.type]
+        if action.integration_id:
+            key_parts.append(str(action.integration_id))
+
+        if action.config:
+            config = action.config.copy()
+            config.pop("target_display", None)
+            key_parts.append(str(config))
+
+        if action.data:
+            data = action.data.copy()
+            if "dynamic_form_fields" in data:
+                data = data["dynamic_form_fields"]
+
+            key_parts.append(str(data))
+
+        return ":".join(key_parts)
 
     @classmethod
     def get_config_transformer(cls) -> ConfigTransformer | None:

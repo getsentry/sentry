@@ -881,6 +881,20 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
             response.data["detail"]
         )
 
+    def test_high_accuracy_flex_time_rejects_aggregates(self):
+        response = self.do_request(
+            {
+                "field": ["timestamp", "count()"],
+                "query": "",
+                "orderby": "-timestamp",
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "sampling": "HIGHEST_ACCURACY_FLEX_TIME",
+            },
+        )
+        assert response.status_code == 400, response.content
+        assert "aggregates are not supported with flextime sampling" in str(response.data["detail"])
+
     def test_high_accuracy_flex_time_ascending_orderby(self):
         response = self.do_request(
             {

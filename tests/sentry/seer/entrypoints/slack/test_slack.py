@@ -34,6 +34,7 @@ from sentry.seer.agent.client_models import (
     MemoryBlock,
     Message,
     PendingUserInput,
+    RepoPRState,
     SeerRunState,
 )
 from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
@@ -259,7 +260,9 @@ class SlackAutofixEntrypointTest(TestCase):
         data = self._create_update(AutofixStoppingPoint.SOLUTION)
         install = self.integration.get_installation(organization_id=self.organization.id)
 
-        send_thread_update(install=install, thread=self.thread, data=data)
+        assert send_thread_update(install=install, thread=self.thread, data=data) == (
+            "1234567890.000100"
+        )
         mock_send_threaded_message.assert_called_with(
             channel_id=self.thread["channel_id"],
             thread_ts=self.thread["thread_ts"],
@@ -721,6 +724,7 @@ class SlackAgentEntrypointTest(TestCase):
             organization=self.organization,
             external_id="TXXXXXXXXX2",
             provider="slack",
+            metadata={"access_token": "xoxb-test-token"},
         )
 
     def _get_entrypoint(self, thread_ts: str | None = None) -> SlackAgentEntrypoint:
@@ -830,12 +834,12 @@ class SlackAgentEntrypointTest(TestCase):
             "input_id": "approval-1",
         }
 
-    @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
+    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
     @patch(
         "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
         return_value=True,
     )
-    def test_on_agent_update(self, mock_has_history_scope, mock_schedule_all_thread_updates):
+    def test_on_agent_update(self, mock_has_history_scope, mock_send):
         ep = self._get_entrypoint()
         cache_payload = ep.create_agent_cache_payload()
         run_id = 12345
@@ -846,19 +850,18 @@ class SlackAgentEntrypointTest(TestCase):
             state=_agent_state("Test summary"),
         )
 
-        mock_schedule_all_thread_updates.assert_called_once_with(
-            threads=[cache_payload["thread"]],
-            integration_id=self.integration.id,
-            organization_id=self.organization.id,
+        mock_send.assert_called_once_with(
+            install=ANY,
+            thread=cache_payload["thread"],
             data=ANY,
         )
-        call_data = mock_schedule_all_thread_updates.call_args.kwargs["data"]
+        call_data = mock_send.call_args.kwargs["data"]
         assert call_data.run_id == run_id
         assert call_data.organization_id == self.organization.id
         assert call_data.summary == "Test summary"
 
-    @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
-    def test_on_agent_update_with_no_summary(self, mock_schedule_all_thread_updates):
+    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
+    def test_on_agent_update_with_no_summary(self, mock_send):
         ep = self._get_entrypoint()
         cache_payload = ep.create_agent_cache_payload()
 
@@ -868,17 +871,17 @@ class SlackAgentEntrypointTest(TestCase):
             state=_agent_state(None),
         )
 
-        mock_schedule_all_thread_updates.assert_called_once()
-        call_data = mock_schedule_all_thread_updates.call_args.kwargs["data"]
+        mock_send.assert_called_once()
+        call_data = mock_send.call_args.kwargs["data"]
         assert isinstance(call_data, SeerAgentError)
         assert call_data.error_message == "Seer was unable to generate a response."
 
-    @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
-    def test_on_agent_update_does_not_reuse_the_previous_turns_answer(
-        self, mock_schedule_all_thread_updates
-    ):
+    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
+    def test_on_agent_update_does_not_reuse_the_previous_turns_answer(self, mock_send):
         cache_payload = self._get_entrypoint().create_agent_cache_payload()
         state = _agent_state("First answer")
+        SlackAgentEntrypoint.on_agent_update(cache_payload=cache_payload, run_id=12345, state=state)
+        mock_send.reset_mock()
         state.blocks.append(
             MemoryBlock(
                 id="b3",
@@ -889,14 +892,13 @@ class SlackAgentEntrypointTest(TestCase):
 
         SlackAgentEntrypoint.on_agent_update(cache_payload=cache_payload, run_id=12345, state=state)
 
-        call_data = mock_schedule_all_thread_updates.call_args.kwargs["data"]
-        assert isinstance(call_data, SeerAgentError)
+        mock_send.assert_not_called()
 
-    @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
-    @patch("sentry.seer.entrypoints.slack.entrypoint._send_agent_write_approval")
-    def test_on_agent_update_with_write_approval(
-        self, mock_send_write_approval, mock_schedule_all_thread_updates
-    ):
+    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
+    @patch(
+        "sentry.seer.entrypoints.slack.entrypoint._send_agent_write_approval", return_value="9.9"
+    )
+    def test_on_agent_update_with_write_approval(self, mock_send_write_approval, mock_send):
         ep = self._get_entrypoint()
         cache_payload = ep.create_agent_cache_payload()
 
@@ -919,7 +921,7 @@ class SlackAgentEntrypointTest(TestCase):
         assert call_data.input_id == "approval-1"
         assert call_data.scopes == ["org:write"]
         assert mock_send_write_approval.call_args.kwargs["slack_user_id"] == self.slack_user_id
-        response_data = mock_schedule_all_thread_updates.call_args.kwargs["data"]
+        response_data = mock_send.call_args.kwargs["data"]
         assert isinstance(response_data, SeerAgentResponse)
         assert response_data.summary == (
             f"<@{self.slack_user_id}> I need your approval to make changes in Sentry. "
@@ -951,8 +953,8 @@ class SlackAgentEntrypointTest(TestCase):
         mock_send_message.assert_not_called()
         mock_send_ephemeral.assert_not_called()
 
-    @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
-    def test_on_agent_update_rejects_invalid_write_approval(self, mock_schedule_all_thread_updates):
+    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
+    def test_on_agent_update_rejects_invalid_write_approval(self, mock_send):
         ep = self._get_entrypoint()
         cache_payload = ep.create_agent_cache_payload()
 
@@ -969,17 +971,15 @@ class SlackAgentEntrypointTest(TestCase):
             ),
         )
 
-        call_data = mock_schedule_all_thread_updates.call_args.kwargs["data"]
+        call_data = mock_send.call_args.kwargs["data"]
         assert isinstance(call_data, SeerAgentError)
 
-    def test_on_agent_update_skips_clear_when_integration_not_found(self) -> None:
+    def test_on_agent_update_skips_when_integration_not_found(self) -> None:
         ep = self._get_entrypoint()
         cache_payload = ep.create_agent_cache_payload()
 
         with (
-            patch(
-                "sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates"
-            ) as mock_schedule,
+            patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update") as mock_send,
             patch(
                 "sentry.integrations.services.integration.service.integration_service.get_integration",
                 return_value=None,
@@ -991,15 +991,14 @@ class SlackAgentEntrypointTest(TestCase):
                 state=_agent_state(None),
             )
 
-        # Still schedules the thread update even without a fresh integration
-        mock_schedule.assert_called_once()
+        mock_send.assert_not_called()
 
-    @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
+    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
     @patch(
         "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
         return_value=False,
     )
-    def test_on_agent_update_sets_missing_scope_url(self, mock_has_history_scope, mock_schedule):
+    def test_on_agent_update_sets_missing_scope_url(self, mock_has_history_scope, mock_send):
         """When history scope is missing, on_agent_update sets missing_scope_settings_url."""
         ep = self._get_entrypoint()
         cache_payload = ep.create_agent_cache_payload()
@@ -1010,18 +1009,18 @@ class SlackAgentEntrypointTest(TestCase):
             state=_agent_state("Test summary"),
         )
 
-        call_data = mock_schedule.call_args.kwargs["data"]
+        call_data = mock_send.call_args.kwargs["data"]
         assert isinstance(call_data, SeerAgentResponse)
         assert call_data.missing_scope_settings_url is not None
         assert "/integrations/slack/" in call_data.missing_scope_settings_url
 
-    @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
+    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
     @patch(
         "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
         return_value=True,
     )
     def test_on_agent_update_no_missing_scope_url_when_has_scope(
-        self, mock_has_history_scope, mock_schedule
+        self, mock_has_history_scope, mock_send
     ):
         """When history scope is present, missing_scope_settings_url should be None."""
         ep = self._get_entrypoint()
@@ -1033,17 +1032,17 @@ class SlackAgentEntrypointTest(TestCase):
             state=_agent_state("Test summary"),
         )
 
-        call_data = mock_schedule.call_args.kwargs["data"]
+        call_data = mock_send.call_args.kwargs["data"]
         assert isinstance(call_data, SeerAgentResponse)
         assert call_data.missing_scope_settings_url is None
 
-    @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
+    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
     @patch(
         "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
         return_value=False,
     )
     def test_on_agent_update_missing_scope_url_cached_per_thread(
-        self, mock_has_history_scope, mock_schedule
+        self, mock_has_history_scope, mock_send
     ):
         """Second call for the same thread should not set the URL (cached)."""
         ep = self._get_entrypoint()
@@ -1054,18 +1053,181 @@ class SlackAgentEntrypointTest(TestCase):
             run_id=12345,
             state=_agent_state("First response"),
         )
-        first_data = mock_schedule.call_args.kwargs["data"]
+        first_data = mock_send.call_args.kwargs["data"]
         assert first_data.missing_scope_settings_url is not None
 
-        mock_schedule.reset_mock()
+        mock_send.reset_mock()
 
         SlackAgentEntrypoint.on_agent_update(
             cache_payload=cache_payload,
             run_id=12346,
             state=_agent_state("Second response"),
         )
-        second_data = mock_schedule.call_args.kwargs["data"]
+        second_data = mock_send.call_args.kwargs["data"]
         assert second_data.missing_scope_settings_url is None
+
+    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
+    def test_on_agent_update_does_not_duplicate_answers(self, mock_send):
+        cache_payload = self._get_entrypoint().create_agent_cache_payload()
+        state = _agent_state("Test summary")
+
+        SlackAgentEntrypoint.on_agent_update(cache_payload=cache_payload, run_id=12345, state=state)
+        SlackAgentEntrypoint.on_agent_update(cache_payload=cache_payload, run_id=12345, state=state)
+
+        mock_send.assert_called_once()
+        assert isinstance(mock_send.call_args.kwargs["data"], SeerAgentResponse)
+        assert mock_send.call_args.kwargs["data"].summary == "Test summary"
+
+    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
+    @patch(
+        "sentry.seer.entrypoints.slack.entrypoint._send_agent_write_approval", return_value="9.9"
+    )
+    def test_on_agent_update_does_not_duplicate_approval_dm_or_notice(
+        self, mock_send_write_approval, mock_send
+    ):
+        cache_payload = self._get_entrypoint().create_agent_cache_payload()
+        state = _agent_state(
+            None,
+            pending_user_input=PendingUserInput(
+                id="approval-1",
+                input_type="agent_write_approval",
+                data={"required_scopes": ["org:write"], "session_id": "12345"},
+            ),
+        )
+
+        SlackAgentEntrypoint.on_agent_update(cache_payload=cache_payload, run_id=12345, state=state)
+        SlackAgentEntrypoint.on_agent_update(cache_payload=cache_payload, run_id=12345, state=state)
+
+        mock_send_write_approval.assert_called_once()
+        mock_send.assert_called_once()
+        assert isinstance(mock_send.call_args.kwargs["data"], SeerAgentResponse)
+        assert mock_send.call_args.kwargs["data"].summary == (
+            f"<@{self.slack_user_id}> I need your approval to make changes in Sentry. "
+            "I sent you a message."
+        )
+
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
+        return_value=True,
+    )
+    @patch("slack_sdk.web.client.WebClient.chat_update")
+    @patch("slack_sdk.web.client.WebClient.chat_postMessage")
+    def test_messages_and_pr_footers_across_conversation_turns(
+        self, post: Mock, update: Mock, _scope: Mock
+    ) -> None:
+        post.side_effect = [
+            _slack_response({"ok": True, "ts": "1.1"}),
+            _slack_response({"ok": True, "ts": "2.2"}),
+            _slack_response({"ok": True, "ts": "3.3"}),
+        ]
+        update.return_value = _slack_response({"ok": True})
+        slack = Mock()
+        slack.attach_mock(post, "post")
+        slack.attach_mock(update, "update")
+        cache_payload = self._get_entrypoint().create_agent_cache_payload()
+        state = _agent_state("I found a missing cache key.")
+        state.blocks[0].message.content = "Investigate the cache error."
+
+        def add_message(role: str, content: str) -> None:
+            state.blocks.append(
+                MemoryBlock(
+                    id=f"b{len(state.blocks) + 1}",
+                    message=Message(role=role, content=content),
+                    timestamp="2024-01-01T00:00:00Z",
+                )
+            )
+
+        def refresh() -> None:
+            SlackAgentEntrypoint.on_agent_update(
+                cache_payload=cache_payload, run_id=state.run_id, state=state
+            )
+
+        refresh()
+
+        add_message("user", "Open a PR to fix it.")
+        state.status = "processing"
+        pr = RepoPRState(repo_name="acme/web", pr_creation_status="creating")
+        state.repo_pr_states[pr.repo_name] = pr
+        refresh()
+
+        add_message("assistant", "I'm opening a PR with the fix.")
+        state.status = "completed"
+        refresh()
+
+        pr.pr_number = 7
+        pr.pr_url = "https://github.com/acme/web/pull/7"
+        pr.pr_creation_status = "completed"
+        pr.commit_sha = "abcdef1234567890"
+        refresh()
+
+        add_message("user", "Also handle empty cache keys.")
+        state.status = "processing"
+        pr.pr_creation_status = "creating"
+        refresh()
+
+        add_message("assistant", "I've added empty-key handling.")
+        state.status = "completed"
+        refresh()
+
+        pr.pr_creation_status = "completed"
+        pr.commit_sha = "1234567890abcdef"
+        refresh()
+        refresh()
+
+        def blocks(summary: str, *footers: str) -> list[dict[str, Any]]:
+            return [{"type": "markdown", "text": summary}] + [
+                {"type": "context", "elements": [{"type": "mrkdwn", "text": footer}]}
+                for footer in footers
+            ]
+
+        pr_link = "<https://github.com/acme/web/pull/7|acme/web#7>"
+        for _, _, kwargs in slack.mock_calls:
+            assert kwargs["channel"] == self.channel_id
+            assert kwargs["text"] == "Seer Agent has finished"
+        assert [
+            (
+                method,
+                kwargs.get("ts", kwargs.get("thread_ts")),
+                [block.to_dict() for block in kwargs["blocks"]],
+            )
+            for method, _, kwargs in slack.mock_calls
+        ] == [
+            ("post", self.thread_ts, blocks("I found a missing cache key.")),
+            (
+                "update",
+                "1.1",
+                blocks("I found a missing cache key.", "Creating a PR in `acme/web`..."),
+            ),
+            (
+                "post",
+                self.thread_ts,
+                blocks("I'm opening a PR with the fix.", "Creating a PR in `acme/web`..."),
+            ),
+            ("update", "1.1", blocks("I found a missing cache key.")),
+            (
+                "update",
+                "2.2",
+                blocks(
+                    "I'm opening a PR with the fix.",
+                    f"Latest push complete for {pr_link} (`abcdef1`)",
+                ),
+            ),
+            ("update", "2.2", blocks("I'm opening a PR with the fix.", f"Updating {pr_link}...")),
+            (
+                "post",
+                self.thread_ts,
+                blocks("I've added empty-key handling.", f"Updating {pr_link}..."),
+            ),
+            ("update", "2.2", blocks("I'm opening a PR with the fix.")),
+            (
+                "update",
+                "3.3",
+                blocks(
+                    "I've added empty-key handling.",
+                    f"Latest push complete for {pr_link} (`1234567`)",
+                ),
+            ),
+        ]
 
 
 def _slack_response(data: dict[str, Any]) -> SlackResponse:

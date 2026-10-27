@@ -1,11 +1,11 @@
-import {Grid} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
+import {ToggleCard} from '@sentry/scraps/toggleCard';
 
 import {t} from 'sentry/locale';
 import {capitalize} from 'sentry/utils/string/capitalize';
 
 import {OnDemandBudgetMode, type OnDemandBudgets, type Plan} from 'getsentry/types';
-import {CheckoutOption} from 'getsentry/views/amCheckout/components/checkoutOption';
 import {convertOnDemandBudget} from 'getsentry/views/spendLimits/utils';
 
 export interface BudgetModeSettingsProps {
@@ -28,26 +28,31 @@ export function BudgetModeSettings({
       columns={{zero: '1fr', lg: 'repeat(2, minmax(0, 1fr))'}}
       gap="lg"
       role="radiogroup"
+      aria-label={t('Spending limit mode')}
     >
       {Object.values(OnDemandBudgetMode).map(budgetMode => {
         const budgetModeName = capitalize(budgetMode.replace('_', '-'));
         const isSelected = onDemandBudgets.budgetMode === budgetMode;
         const nextOnDemandBudget = convertOnDemandBudget(onDemandBudgets, budgetMode);
         return (
-          <CheckoutOption
+          <ToggleCard
+            name="spending-limit-mode"
             key={budgetMode}
-            ariaLabel={`${budgetModeName} spending limit mode`}
-            ariaRole="radio"
-            isSelected={isSelected}
-            onClick={() => onUpdate({onDemandBudgets: nextOnDemandBudget})}
-            optionHeader={
+            value={budgetMode}
+            aria-label={`${budgetModeName} spending limit mode`}
+            variant="radio"
+            checked={isSelected}
+            onChange={() => onUpdate({onDemandBudgets: nextOnDemandBudget})}
+          >
+            <Flex align="start" gap="md">
+              <ToggleCard.Indicator />
               <Heading as="h3" variant={isSelected ? 'accent' : 'primary'}>
                 {budgetMode === OnDemandBudgetMode.PER_CATEGORY
                   ? t('Set a spending limit for each product')
                   : t('Set a spending limit shared across all products')}
               </Heading>
-            }
-          />
+            </Flex>
+          </ToggleCard>
         );
       })}
     </Grid>

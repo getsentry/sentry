@@ -48,7 +48,7 @@ from sentry.explore.models import (
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.search.eap.types import SearchResolverConfig
-from sentry.search.eap.utils import parse_formula
+from sentry.search.eap.utils import check_numeric, parse_formula
 from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS, DurationUnit, SizeUnit
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.ourlogs import OurLogs
@@ -65,6 +65,9 @@ DATASETS = {
     ExploreSavedQueryDataset.OURLOGS: OurLogs,
     ExploreSavedQueryDataset.METRICS: TraceMetrics,
 }
+MAX_INPUT_PARAMS = 2
+MAX_GENERIC_PARAMS = 7
+MAX_REFERENCES = 5
 FORMULA_PREFIX = "formula."
 
 
@@ -112,13 +115,13 @@ PREBUILT_FORMULAS: list[PrebuiltFormula] = [
                 "name": "duration",
                 "type": "column",
                 "order": 0,
-                "value": "",
+                "value": "span.duration",
             },
             {
                 "name": "threshold",
                 "type": "number",
                 "order": 1,
-                "value": "",
+                "value": "300",
             },
             {
                 "name": "frustrated",
@@ -150,13 +153,13 @@ PREBUILT_FORMULAS: list[PrebuiltFormula] = [
                 "name": "duration",
                 "type": "column",
                 "order": 0,
-                "value": "",
+                "value": "span.duration",
             },
             {
                 "name": "threshold",
                 "type": "number",
                 "order": 1,
-                "value": "",
+                "value": "300",
             },
             {
                 "name": "frustrated",
@@ -319,10 +322,10 @@ class ReferenceSerializer(RequestSerializer):
 
 class ParamSerializer(ReferenceSerializer):
     type = CharField(source="param_type")
-    order = IntegerField(min_value=0, max_value=3)
+    order = IntegerField(min_value=0, max_value=MAX_GENERIC_PARAMS)
 
     def validate_value(self, value: str) -> str:
-        return value
+        return value.lower()
 
     def validate_type(self, parameter_type: str) -> int:
         param_type = ParamItemTypes.get_id_for_type_name(parameter_type)
@@ -333,6 +336,15 @@ class ParamSerializer(ReferenceSerializer):
     def validate(self, data: FormulaParamData) -> FormulaParamData:
         if data["param_type"] == ParamItemTypes.CALCULATION and not data["value"]:
             raise ValidationError({"value": "Calculations must have a value"})
+        elif data["param_type"] == ParamItemTypes.NUMBER and data["value"]:
+            try:
+                check_numeric(data["value"], data["name"])
+            except ValueError:
+                raise ValidationError(
+                    {"value": f"'{data['value']}' is an invalid value for a numeric default"}
+                )
+            except InvalidSearchQuery as e:
+                raise ValidationError({"value": str(e)})
         return data
 
 
@@ -359,6 +371,29 @@ class FormulaSerializer(RequestSerializer):
 
     def validate_formula(self, formula: str) -> str:
         return formula.lower()
+
+    def validate_params(self, params: list[FormulaParamData]) -> list[FormulaParamData]:
+        non_calculation_params = [
+            param
+            for param in params
+            if param["param_type"] != ParamItemTypes.get_id_for_type_name("calculation")
+        ]
+        if len(non_calculation_params) > MAX_INPUT_PARAMS:
+            raise ValidationError(
+                f"Cannot have more than {MAX_INPUT_PARAMS} number or column parameters per formula"
+            )
+        if len(params) > MAX_GENERIC_PARAMS:
+            raise ValidationError(
+                f"Cannot have more than {MAX_GENERIC_PARAMS} parameters per formula"
+            )
+        return params
+
+    def validate_references(
+        self, references: list[FormulaReferenceData]
+    ) -> list[FormulaReferenceData]:
+        if len(references) > MAX_REFERENCES:
+            raise ValidationError(f"Cannot have more than {MAX_REFERENCES} references per formula")
+        return references
 
     def validate_name(self, name: str) -> str:
         name = name.lower()
@@ -631,7 +666,7 @@ class OrganizationExploreFormulas(OrganizationExploreFormulaBase):
             on_results=lambda formula: serialize(
                 formula, request.user, serializer=ExploreSavedFormulaSerializer()
             ),
-            default_per_page=50,
+            default_per_page=100,
         )
 
     def post(
