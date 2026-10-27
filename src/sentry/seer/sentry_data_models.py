@@ -9,6 +9,8 @@ from typing import Annotated, Any, Literal, Union
 
 from pydantic import BaseModel, Field
 
+from sentry.seer.autofix.commit_author import SeerCommitAuthor
+
 
 class Transaction(BaseModel):
     name: str
@@ -116,17 +118,9 @@ class OrganizationSlugResponse(BaseModel):
     slug: str
 
 
-class CommitAuthor(BaseModel):
-    """Wire-compatible with ``SeerCommitAuthor``; ``scm_login`` is the GitHub handle behind ``email``."""
-
-    name: str
-    email: str
-    scm_login: str | None = None
-
-
 class CommitAuthorResponse(BaseModel):
     # None when the viewer has no github.com identity Sentry can credit.
-    author: CommitAuthor | None = None
+    author: SeerCommitAuthor | None = None
 
 
 class ReferencedFixStatementsResponse(BaseModel):

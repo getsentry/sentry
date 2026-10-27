@@ -1617,6 +1617,15 @@ class TestGetCommitAuthor(APITestCase):
         )
         assert data["author"]["scm_login"] == "octocat"
 
+    def test_preserves_an_author_without_scm_login(self) -> None:
+        author = {"name": "Mona Lisa", "email": "octocat@users.noreply.github.com"}
+        with patch("sentry.seer.endpoints.seer_rpc.commit_author_for_user", return_value=author):
+            data = self._call(
+                actor=Actor(type=ActorType.USER, actor_id=self.actor.id),
+                viewer_org_id=self.organization.id,
+            )
+        assert data == {"author": author}
+
     def test_no_author_without_a_github_identity(self) -> None:
         data = self._call(
             actor=Actor(type=ActorType.USER, actor_id=self.actor.id),

@@ -122,7 +122,6 @@ from sentry.seer.public_caller import restrict_projects
 from sentry.seer.pull_requests import notify_seer_pr_created
 from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.sentry_data_models import (
-    CommitAuthor,
     CommitAuthorResponse,
     GetRepoInstallationIdErrorResponse,
     GetRepoInstallationIdSuccessResponse,
@@ -426,8 +425,9 @@ def get_commit_author(*, org_id: int) -> CommitAuthorResponse:
     if viewer is None or viewer.organization_id != org_id or user_id is None:
         return CommitAuthorResponse()
     user = user_service.get_user(user_id=user_id)
-    author = commit_author_for_user(user, org_id, referrer="seer_agent_write_pull_request")
-    return CommitAuthorResponse(author=CommitAuthor(**author) if author else None)
+    return CommitAuthorResponse(
+        author=commit_author_for_user(user, org_id, referrer="seer_agent_write_pull_request")
+    )
 
 
 def find_referenced_fix_statements(*, org_id: int, text: str) -> ReferencedFixStatementsResponse:
