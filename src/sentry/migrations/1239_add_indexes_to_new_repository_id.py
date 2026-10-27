@@ -8,6 +8,7 @@ from sentry.new_migrations.monkey.special import SafeRunSQL
 
 # Matches the generated names django makes
 NOT_NULL_ID = "sentry_commit_new_repository_id_a9e403a0_notnull"
+UNIQUE_ID = "sentry_commit_new_repository_id_key_4b0e0740_uniq"
 INDEX_ID = "sentry_comm_new_rep_002dfe_idx"
 
 
@@ -27,7 +28,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "1233_backfill_grouprelease_new_release_id"),
+        ("sentry", "1238_grouprelease_new_release_id_not_null"),
     ]
 
     operations = [
@@ -39,17 +40,31 @@ class Migration(CheckedMigration):
             # The drop waits for open transactions, which can outlast the timeout.
             use_statement_timeout=False,
         ),
-        migrations.AlterField(
-            model_name="commit",
-            name="new_repository_id",
-            field=sentry.db.models.fields.bounded.BoundedBigIntegerField(),
-        ),
         SafeRunSQL(
             f'ALTER TABLE "sentry_commit" DROP CONSTRAINT IF EXISTS "{NOT_NULL_ID}"',
             reverse_sql=migrations.RunSQL.noop,
             hints={"tables": ["sentry_commit"]},
             # The drop waits for open transactions, which can outlast the timeout.
             use_statement_timeout=False,
+        ),
+        SafeRunSQL(
+            f'ALTER TABLE "sentry_commit" DROP CONSTRAINT IF EXISTS "{UNIQUE_ID}"',
+            reverse_sql=migrations.RunSQL.noop,
+            hints={"tables": ["sentry_commit"]},
+            # The drop waits for open transactions, which can outlast the timeout.
+            use_statement_timeout=False,
+        ),
+        SafeRunSQL(
+            f'DROP INDEX CONCURRENTLY IF EXISTS "{UNIQUE_ID}"',
+            reverse_sql=migrations.RunSQL.noop,
+            hints={"tables": ["sentry_commit"]},
+            # The drop waits for open transactions, which can outlast the timeout.
+            use_statement_timeout=False,
+        ),
+        migrations.AlterField(
+            model_name="commit",
+            name="new_repository_id",
+            field=sentry.db.models.fields.bounded.BoundedBigIntegerField(),
         ),
         migrations.AlterUniqueTogether(
             name="commit",
