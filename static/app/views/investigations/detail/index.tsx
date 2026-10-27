@@ -509,8 +509,11 @@ function InvestigationPageContentInner({
   const placedActionRequests = groupActionRequestsByPlacement(
     investigation.actionRequests ?? [],
     anchor => {
-      if (anchor?.type === 'hypothesis') {
-        return hypothesisStatements.has(anchor.id) ? 'hypotheses' : null;
+      if (anchor?.type === 'hypothesis' && investigation.orchestration) {
+        if (orchestration) {
+          return hypothesisStatements.has(anchor.id) ? 'hypotheses' : 'unplaced';
+        }
+        return orchestrationPending ? null : 'unplaced';
       }
       if (
         anchor?.type === 'block' &&
@@ -518,7 +521,7 @@ function InvestigationPageContentInner({
       ) {
         return `block:${anchor.blockId}`;
       }
-      return null;
+      return 'unplaced';
     }
   );
   const source = getInvestigationSource(investigation);
@@ -746,6 +749,12 @@ function InvestigationPageContentInner({
                   Boolean(investigation.orchestration) && orchestrationPending
                 }
                 waitingOnRun={recheckRunWait.waiting}
+              />
+              <AnchoredActionRequests
+                actionRequests={placedActionRequests.get('unplaced')}
+                investigationId={investigation.id}
+                runProcessing={runProcessing}
+                source={investigation.source}
               />
 
               {showDetailsHeading ? <Separator orientation="horizontal" /> : null}

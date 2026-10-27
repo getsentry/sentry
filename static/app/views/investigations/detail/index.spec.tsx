@@ -1137,6 +1137,54 @@ describe('Investigation detail', () => {
       ).not.toBeInTheDocument();
     });
 
+    it.each([
+      ['whose block was removed', {type: 'block', id: 'cause', blockId: null}],
+      [
+        'about a cause that is gone',
+        {type: 'hypothesis', id: 'hypothesis-9', blockId: null},
+      ],
+      ['with an unknown anchor', {type: 'span', id: 'span-1', blockId: null}],
+    ] as const)('shows a request %s above the report', async (_case, anchor) => {
+      mockAnchoredPage([
+        InvestigationActionRequestFixture({
+          primary: false,
+          anchor,
+          title: 'Instrument checkout retries',
+          action: null,
+        }),
+      ]);
+      renderView();
+
+      const card = await screen.findByRole('region', {
+        name: 'Instrument checkout retries',
+      });
+      expect(screen.getByText('Initial notes').compareDocumentPosition(card)).toBe(
+        Node.DOCUMENT_POSITION_PRECEDING
+      );
+      expect(card).not.toHaveTextContent('About the possible cause');
+    });
+
+    it('shows requests about a possible cause above the report when the run cannot load', async () => {
+      MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: InvestigationAgenticDetailFixture({
+          actionRequests: [
+            InvestigationActionRequestFixture({
+              primary: false,
+              anchor: {type: 'hypothesis', id: 'hypothesis-1', blockId: null},
+              title: 'Check the cache hit rate',
+              action: null,
+            }),
+          ],
+        }),
+      });
+      MockApiClient.addMockResponse({url: orchestrationUrl, statusCode: 500, body: {}});
+      renderView();
+
+      const card = await screen.findByRole('region', {name: 'Check the cache hit rate'});
+      expect(card).not.toHaveTextContent('About the possible cause');
+    });
+
     it('hides a superseded request under its block', async () => {
       const anchored = {
         primary: false,
@@ -1169,7 +1217,10 @@ describe('Investigation detail', () => {
       expect(screen.queryByRole('region', {name: 'Old advice'})).not.toBeInTheDocument();
     });
 
-    it('says Seer is updating a re-checked request under its block', async () => {
+    it.each([
+      ['under its block', 'block-1'],
+      ['above the report', null],
+    ])('says Seer is updating a re-checked request %s', async (_case, blockId) => {
       MockApiClient.addMockResponse({
         url: detailUrl,
         body: InvestigationAgenticDetailFixture({
@@ -1177,7 +1228,7 @@ describe('Investigation detail', () => {
             InvestigationActionRequestFixture({
               id: '322',
               primary: false,
-              anchor: {type: 'block', id: 'cause', blockId: 'block-1'},
+              anchor: {type: 'block', id: 'cause', blockId},
               title: 'Widen the interval',
               state: 'superseded',
               canApply: false,
