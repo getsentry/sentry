@@ -33,6 +33,10 @@ INVESTIGATION_UNAVAILABLE_MESSAGE = "Seer can't start an investigation for this 
 INVESTIGATION_NOT_MEMBER_MESSAGE = (
     "You must be a member of the *{org_name}* Sentry organization to start a Seer investigation."
 )
+INVESTIGATION_CLOSED_MEMBERSHIP_MESSAGE = (
+    "Seer investigations need *Open Team Membership* turned on for *{org_name}*. "
+    "An owner or manager can turn it on in <{link}|organization settings>."
+)
 INVESTIGATION_EXISTS_MESSAGE = (
     "Seer is already investigating this alert. <{link}|View investigation>"
 )
@@ -139,12 +143,16 @@ def handle_seer_investigation_start(
         organization=organization, entrypoint_key=SeerEntrypointKey.SLACK
     ):
         # Open membership is part of the operator's check; keep it a separate reason.
-        log_unavailable(
-            InvestigationUnavailableReason.NO_ACCESS
-            if organization.flags.allow_joinleave
-            else InvestigationUnavailableReason.CLOSED_MEMBERSHIP
+        if organization.flags.allow_joinleave:
+            log_unavailable(InvestigationUnavailableReason.NO_ACCESS)
+            return _respond_ephemeral(INVESTIGATION_UNAVAILABLE_MESSAGE)
+        log_unavailable(InvestigationUnavailableReason.CLOSED_MEMBERSHIP)
+        return _respond_ephemeral(
+            INVESTIGATION_CLOSED_MEMBERSHIP_MESSAGE.format(
+                org_name=organization.name,
+                link=organization.absolute_url(f"/settings/{organization.slug}/"),
+            )
         )
-        return _respond_ephemeral(INVESTIGATION_UNAVAILABLE_MESSAGE)
 
     member = OrganizationMember.objects.filter(
         user_id=identity_user.id,

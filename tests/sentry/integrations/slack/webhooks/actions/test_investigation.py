@@ -207,13 +207,19 @@ class SeerInvestigationStartActionTest(BaseEventTest):
         assert self.investigations() == []
 
     @with_feature(FEATURES)
-    def test_closed_membership_organization_is_unavailable(self) -> None:
+    def test_closed_membership_organization_explains_why(self) -> None:
         self.organization.flags.allow_joinleave = False
         self.organization.save()
 
         response = self.click()
 
-        assert response.data["text"] == "Seer can't start an investigation for this alert."
+        assert response.data["response_type"] == "ephemeral"
+        assert response.data["text"] == (
+            "Seer investigations need *Open Team Membership* turned on for "
+            f"*{self.organization.name}*. An owner or manager can turn it on in "
+            f"<{self.organization.absolute_url(f'/settings/{self.organization.slug}/')}"
+            "|organization settings>."
+        )
         assert self.investigations() == []
 
     @with_feature(FEATURES)
