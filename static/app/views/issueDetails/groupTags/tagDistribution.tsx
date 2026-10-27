@@ -138,8 +138,8 @@ export function TagDistributionPanel({
  * Returns nothing for every other key, and for a missing value, so the panel
  * falls back to the raw string and to its own "(empty)" marker.
  */
-function renderTagValue(tagKey: string, value: string): React.ReactNode {
-  if (value === '') {
+function renderTagValue(tagKey: string, value: string | null): React.ReactNode {
+  if (!value) {
     return undefined;
   }
   if (tagKey === 'release') {
@@ -164,7 +164,8 @@ export function TagDistribution({tag}: {tag: GroupTag}) {
       totalValues={tag.totalValues}
       values={tag.topValues.map(topValue => ({
         count: topValue.count,
-        value: topValue.value,
+        // A null value is a missing tag, same as ''
+        value: topValue.value ?? '',
         node: renderTagValue(tag.key, topValue.value),
       }))}
     />

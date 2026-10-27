@@ -12,7 +12,8 @@ export interface GroupTag {
     firstSeen: string;
     lastSeen: string;
     name: string;
-    value: string;
+    // null for tags like user when Snuba stores them in their own column
+    value: string | null;
     /**
      * Provided for tags like `user` to help query on specific tags
      * Example: user -> `'user.id:\"1\"'`

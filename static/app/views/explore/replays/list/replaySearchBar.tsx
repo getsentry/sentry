@@ -13,6 +13,7 @@ import {SavedSearchType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {defined} from 'sentry/utils/defined';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import {
   FieldKind,
@@ -190,7 +191,10 @@ export function ReplaySearchBar(props: Props) {
         includeReplays: true,
       }).then(
         tagValues =>
-          tagValues.filter(tagValue => tagValue.name !== '').map(({value}) => value),
+          tagValues
+            .filter(tagValue => tagValue.name !== '')
+            .map(({value}) => value)
+            .filter(defined),
         () => {
           throw new Error('Unable to fetch event field values');
         }

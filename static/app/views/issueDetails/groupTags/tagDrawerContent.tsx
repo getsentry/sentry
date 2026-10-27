@@ -45,12 +45,10 @@ export function TagDrawerContent({
     return detailedProject?.highlightTags ?? [];
   }, [detailedProject]);
 
+  // A Map, because a tag key like "__proto__" can't be stored on a plain object.
   const tagValues = useMemo(
     () =>
-      data.reduce<Record<string, string>>((valueMap, tag) => {
-        valueMap[tag.key] = tag.topValues.map(tv => tv.value).join(' ');
-        return valueMap;
-      }, {}),
+      new Map(data.map(tag => [tag.key, tag.topValues.map(tv => tv.value).join(' ')])),
     [data]
   );
 
@@ -66,7 +64,7 @@ export function TagDrawerContent({
       tag =>
         tag.key.includes(search) ||
         tag.name.includes(search) ||
-        tagValues[tag.key]?.includes(search)
+        tagValues.get(tag.key)?.includes(search)
     );
     return searchedTags;
   }, [data, search, tagValues, highlightTagKeys]);

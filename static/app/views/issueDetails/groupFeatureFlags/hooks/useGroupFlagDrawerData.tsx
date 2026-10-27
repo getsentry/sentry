@@ -39,16 +39,19 @@ export function useGroupFlagDrawerData({
 
   // Flatten all the tag values together into a big string. This is meant as a
   // perf improvement: here we iterate over all tags&values once, (N*M) then
-  // later only iterate through each tag (N) as the search term changes.
+  // later only iterate through each tag (N) as the search term changes. A Map,
+  // because a flag key like "__proto__" can't be stored on a plain object.
   const tagValues = useMemo(
     () =>
-      groupFlags.reduce<Record<string, string>>((valueMap, flag) => {
-        valueMap[flag.key] = flag.topValues
-          .map(tv => tv.value)
-          .join(' ')
-          .toLowerCase();
-        return valueMap;
-      }, {}),
+      new Map(
+        groupFlags.map(flag => [
+          flag.key,
+          flag.topValues
+            .map(tv => tv.value)
+            .join(' ')
+            .toLowerCase(),
+        ])
+      ),
     [groupFlags]
   );
 
@@ -58,7 +61,7 @@ export function useGroupFlagDrawerData({
       return (
         flag.name.includes(searchLower) ||
         flag.key.includes(searchLower) ||
-        tagValues[flag.key]?.includes(searchLower)
+        tagValues.get(flag.key)?.includes(searchLower)
       );
     });
   }, [groupFlags, search, tagValues]);

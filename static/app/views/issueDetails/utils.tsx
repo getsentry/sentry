@@ -56,24 +56,23 @@ export function mergeAndSortTagValues(
   tagValues2: TagValue[],
   sort: 'count' | 'lastSeen' = 'lastSeen'
 ): TagValue[] {
-  const tagValueCollection = tagValues1.reduce<Record<string, TagValue>>(
-    (acc, tagValue) => {
-      acc[tagValue.value] = tagValue;
-      return acc;
-    },
-    {}
-  );
-  tagValues2.forEach(tagValue => {
-    if (tagValueCollection[tagValue.value]) {
-      tagValueCollection[tagValue.value]!.count += tagValue.count;
-      if (tagValue.lastSeen > tagValueCollection[tagValue.value]!.lastSeen) {
-        tagValueCollection[tagValue.value]!.lastSeen = tagValue.lastSeen;
+  // A Map, because tag values like "constructor" or "__proto__" collide with
+  // properties every plain object already has.
+  const tagValueCollection = new Map<string, TagValue>();
+  for (const tagValue of [...tagValues1, ...tagValues2]) {
+    // A null value and '' both mean the tag is missing, so they share a key.
+    const key = tagValue.value ?? '';
+    const existing = tagValueCollection.get(key);
+    if (existing) {
+      existing.count += tagValue.count;
+      if (tagValue.lastSeen > existing.lastSeen) {
+        existing.lastSeen = tagValue.lastSeen;
       }
     } else {
-      tagValueCollection[tagValue.value] = tagValue;
+      tagValueCollection.set(key, tagValue);
     }
-  });
-  const allTagValues = Object.values(tagValueCollection);
+  }
+  const allTagValues = [...tagValueCollection.values()];
   if (sort === 'count') {
     allTagValues.sort((a, b) => b.count - a.count);
   } else {
@@ -346,5 +345,5 @@ export function getUserTagValue(tagValue: TagValue): {
   }
 
   // Fall back to the raw tag value if no user-specific fields are available
-  return {title: title || tagValue.value, subtitle};
+  return {title: title || tagValue.value || '', subtitle};
 }
