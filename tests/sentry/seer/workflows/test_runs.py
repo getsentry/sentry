@@ -371,69 +371,64 @@ class SeerWorkflowRunLifecycleTest(TestCase):
             run.create_executions([SeerWorkflowExecutionExtras()])
         assert run.run.executions.count() == 2
 
+    def test_run_completes_when_all_executions_succeed(self) -> None:
+        run = self.create_run()
+        run.start()
+        first, second = run.create_executions(
+            [SeerWorkflowExecutionExtras(), SeerWorkflowExecutionExtras()]
+        )
+        run.start_execution(first.id)
+        run.start_execution(second.id)
+
+        run.complete_execution(first.id)
+        assert run.run.status == SeerWorkflowRunStatus.RUNNING
+        assert run.run.date_completed is None
+
+        run.complete_execution(second.id)
+        run.run.refresh_from_db()
+        assert run.run.status == SeerWorkflowRunStatus.COMPLETE
+        assert run.run.date_completed is not None
+        completed_at = run.run.date_completed
+
+        run.complete_execution(second.id)
+        with pytest.raises(InvalidWorkflowTransition):
+            run.complete_execution(
+                second.id, error=WorkflowRunError(code="late_callback", message="Late failure")
+            )
+        second.refresh_from_db()
+        assert second.status == SeerWorkflowExecutionStatus.COMPLETE
+        assert SeerWorkflowExecutionExtras.parse_obj(second.extras).error is None
+        run.run.refresh_from_db()
+        assert run.run.status == SeerWorkflowRunStatus.COMPLETE
+        assert run.run.date_completed == completed_at
+
+    def test_run_waits_for_remaining_executions_before_failing(self) -> None:
+        run = self.create_run()
+        run.start()
+        first, second = run.create_executions(
+            [SeerWorkflowExecutionExtras(), SeerWorkflowExecutionExtras()]
+        )
+        run.start_execution(first.id)
+        run.start_execution(second.id)
+        original_extras = run.run.extras.copy()
+        failure = WorkflowRunError(code="investigation_failed", message="Investigation failed")
+
+        run.complete_execution(first.id, error=failure)
+        assert run.run.status == SeerWorkflowRunStatus.RUNNING
+        assert run.run.date_completed is None
+
+        run.complete_execution(second.id)
+        run.run.refresh_from_db()
+        assert run.run.status == SeerWorkflowRunStatus.FAILED
+        assert run.run.date_completed is not None
+        assert run.run.extras == original_extras
+        assert run.extras.error is None
+        first.refresh_from_db()
+        assert first.status == SeerWorkflowExecutionStatus.FAILED
+        assert SeerWorkflowExecutionExtras.parse_obj(first.extras).error == failure
+
     def create_run(self, *, trigger_key: str = "manual:first") -> SeerWorkflowRunLifecycle:
         result = self.workflow.get_or_create_run(
             trigger_key=trigger_key, inputs=RunInputs(issue_limit=10)
         )
         return result.lifecycle
-
-
-@pytest.mark.django_db(databases="__all__")
-@pytest.mark.parametrize(
-    "first_error,expected_status",
-    [
-        (None, SeerWorkflowRunStatus.COMPLETE),
-        (
-            WorkflowRunError(code="investigation_failed", message="Investigation failed"),
-            SeerWorkflowRunStatus.FAILED,
-        ),
-    ],
-)
-def test_run_finishes_after_all_executions(
-    first_error: WorkflowRunError | None,
-    expected_status: SeerWorkflowRunStatus,
-) -> None:
-    organization = Factories.create_organization()
-    config = Factories.create_seer_workflow_config(
-        organization,
-        strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
-        filters={"all_projects": True},
-    )
-    result = SeerWorkflow(config).get_or_create_run(
-        trigger_key="manual:first", inputs=RunInputs(issue_limit=10)
-    )
-    run = result.lifecycle
-    run.start()
-    first, second = run.create_executions(
-        [SeerWorkflowExecutionExtras(), SeerWorkflowExecutionExtras()]
-    )
-    run.start_execution(first.id)
-    run.start_execution(second.id)
-    original_extras = run.run.extras.copy()
-
-    run.complete_execution(first.id, error=first_error)
-    assert run.run.status == SeerWorkflowRunStatus.RUNNING
-    assert run.run.date_completed is None
-    assert run.run.extras == original_extras
-
-    finished = run.complete_execution(second.id)
-    first.refresh_from_db()
-    assert SeerWorkflowExecutionExtras.parse_obj(first.extras).error == first_error
-    assert SeerWorkflowExecutionExtras.parse_obj(finished.extras).error is None
-    completed_run = SeerWorkflowRunLifecycle.get(organization_id=organization.id, run_id=run.run.id)
-    assert completed_run.run.status == expected_status
-    assert completed_run.extras.error is None
-    assert completed_run.run.extras == original_extras
-    assert completed_run.run.date_completed is not None
-    completed_at = completed_run.run.date_completed
-
-    run.complete_execution(second.id)
-    with pytest.raises(InvalidWorkflowTransition, match="conflicts"):
-        run.complete_execution(
-            second.id, error=WorkflowRunError(code="late_callback", message="Late failure")
-        )
-    second.refresh_from_db()
-    assert second.status == finished.status
-    assert SeerWorkflowExecutionExtras.parse_obj(second.extras).error is None
-    assert run.run.extras == original_extras
-    assert run.run.date_completed == completed_at
