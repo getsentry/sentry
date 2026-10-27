@@ -11,7 +11,7 @@ import {Button} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {type MarkdownTableColumn} from '@sentry/scraps/markdown';
+import {type MarkdownProps, type MarkdownTableColumn} from '@sentry/scraps/markdown';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -339,8 +339,7 @@ function BlockResult({
   progressState: BlockProgressState;
   streamedMarkdown?: string | null;
 }) {
-  const markdown =
-    streamedMarkdown ?? getTextOutput(block.output) ?? (block.content.trim() || null);
+  const markdown = streamedMarkdown ?? getTextBlockMarkdown(block);
   // An embed the markdown opens with takes the actions into its card's header,
   // so the card can run the block's full width. Until one claims them -- or if
   // that embed renders no card -- they sit beside the first line.
@@ -380,6 +379,7 @@ function BlockResult({
         >
           <SeerMarkdown
             raw={markdown}
+            components={TEXT_BLOCK_MARKDOWN_COMPONENTS}
             leadingEmbedActions={{actions: headerActions, onClaim: claimActions}}
           />
           {actionsBesideFirstLine}
@@ -399,6 +399,18 @@ function BlockResult({
     </BlockHoverSurface>
   );
 }
+
+/**
+ * Renders headings the way `SeerMarkdown` does, marked so the outline can find
+ * the block's own headings apart from any inside its embeds.
+ */
+const TEXT_BLOCK_MARKDOWN_COMPONENTS: MarkdownProps['components'] = {
+  Heading: ({children, level}) => (
+    <Heading as={`h${level}`} size="lg" data-investigation-block-heading="">
+      {children}
+    </Heading>
+  ),
+};
 
 function QueryResult({
   actions,
@@ -1157,6 +1169,26 @@ type RenderableQueryOutput = Pick<
 
 export function getBlockElementId(blockId: string) {
   return `investigation-block-${blockId}`;
+}
+
+/**
+ * The nth heading in a text block's own Markdown, leaving out any inside its
+ * embeds.
+ */
+export function getBlockHeadingElement(blockId: string, index: number) {
+  return (
+    document
+      .getElementById(getBlockElementId(blockId))
+      ?.querySelectorAll<HTMLElement>('[data-investigation-block-heading]')[index] ?? null
+  );
+}
+
+/**
+ * What a text block shows once it has settled: its output, or the content a
+ * person wrote.
+ */
+export function getTextBlockMarkdown(block: InvestigationBlock) {
+  return getTextOutput(block.output) ?? (block.content.trim() || null);
 }
 
 export function getBlockDisplayTitle(block: InvestigationBlock) {

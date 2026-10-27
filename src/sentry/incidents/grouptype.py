@@ -32,7 +32,7 @@ from sentry.workflow_engine.handlers.detector.base import EventData, EvidenceDat
 from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.models.data_source import DataPacket
-from sentry.workflow_engine.processors import DataConditionGroupEvaluation
+from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
 from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
     DetectorException,
@@ -210,10 +210,11 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
 
     def create_occurrence(
         self,
-        group_evaluation: DataConditionGroupEvaluation,
+        evaluation: DetectorEvaluation,
         data_packet: DataPacket[MetricUpdate],
-        priority: DetectorPriorityLevel,
     ) -> tuple[DetectorOccurrence, EventData]:
+        priority = evaluation.priority
+
         try:
             detector_trigger = DataCondition.objects.get(
                 condition_group=self.detector.workflow_condition_group, condition_result=priority
@@ -249,7 +250,9 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
                 issue_title=self.detector.name,
                 subtitle=self.construct_title(snuba_query, detector_trigger, priority),
                 evidence_data={
-                    **self.build_detector_evidence_data(group_evaluation, data_packet, priority),
+                    **self.build_detector_evidence_data(
+                        evaluation.data["trigger_group_evaluation"], data_packet, priority
+                    ),
                 },
                 evidence_display=[],  # XXX: may need to pass more info here for the front end
                 type=MetricIssue,
