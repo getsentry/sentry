@@ -123,11 +123,8 @@ export const seerSettingsRoutes = (): SentryRouteObject => ({
 
 export const seerProjectSettingsRoutes = (): SentryRouteObject => ({
   handle: {
-    settingsBreadcrumb: {
-      type: 'project',
-      to: '/settings/:orgId/projects/:projectId/',
-      switchTo: '/settings/:orgId/projects/:projectId/seer/',
-    },
+    settingsBreadcrumb: {type: 'project', to: '/settings/:orgId/projects/:projectId/'},
+    settingsProjectSwitch: {switchTo: '/settings/:orgId/projects/:projectId/seer/'},
   },
   path: 'seer/',
   name: t('Seer'),

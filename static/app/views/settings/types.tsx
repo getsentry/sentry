@@ -67,3 +67,15 @@ export type NavigationSection = {
    */
   name: string;
 };
+
+/**
+ * Settings metadata a route can declare on its `handle`.
+ */
+export type SettingsRouteHandle = {
+  /**
+   * Where to go when the user picks a different project while on this route.
+   * Drops entity-specific params (e.g. `:keyId`) so the destination exists for
+   * every project. Shared by the sidebar project selector and breadcrumbs.
+   */
+  settingsProjectSwitch?: {switchTo: string};
+};

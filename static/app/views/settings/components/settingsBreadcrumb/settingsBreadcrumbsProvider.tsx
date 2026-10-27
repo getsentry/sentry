@@ -46,7 +46,7 @@ export function SettingsBreadcrumbsProvider({children}: {children: React.ReactNo
           return child;
         }
         return (
-          <ProjectCrumb key={index} to={item.to} switchTo={item.switchTo}>
+          <ProjectCrumb key={index} to={item.to}>
             {child}
           </ProjectCrumb>
         );

@@ -1,5 +1,5 @@
 import {cloneElement, Fragment} from 'react';
-import {matchPath, useMatches} from 'react-router';
+import {matchPath} from 'react-router';
 import {mergeProps} from '@react-aria/utils';
 import {IconAdd} from '@sentry/icons/add';
 
@@ -11,7 +11,6 @@ import {Text} from '@sentry/scraps/text';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
-import type {SentryRouteObject} from 'sentry/router/types';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
@@ -24,6 +23,7 @@ import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components'
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {SettingsNavigationGroup} from 'sentry/views/settings/components/settingsNavigationGroup';
 import type {NavigationProps, NavigationSection} from 'sentry/views/settings/types';
+import {useSettingsProjectSwitchTemplate} from 'sentry/views/settings/useSettingsProjectSwitchTemplate';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 type Props = NavigationProps & {
@@ -92,12 +92,7 @@ function SettingsProjectSelector() {
     ?.params['*'];
   const params = useParams<{projectId: string; orgId?: string}>();
   const {projectId} = params;
-  const matches = useMatches();
-  const projectBreadcrumb = matches
-    .flatMap(
-      match => (match.handle as SentryRouteObject['handle'])?.settingsBreadcrumb ?? []
-    )
-    .findLast(item => item.type === 'project');
+  const switchTo = useSettingsProjectSwitchTemplate();
   const {projects, onSearch} = useProjects();
   const selectedProject = projects.find(project => project.slug === projectId);
   const organization = useOrganization();
@@ -157,8 +152,8 @@ function SettingsProjectSelector() {
           onChange={selection =>
             navigate(
               normalizeUrl(
-                projectBreadcrumb?.type === 'project'
-                  ? replaceRouterParams(projectBreadcrumb.switchTo, {
+                switchTo
+                  ? replaceRouterParams(switchTo, {
                       ...params,
                       orgId: organization.slug,
                       projectId: selection.value,

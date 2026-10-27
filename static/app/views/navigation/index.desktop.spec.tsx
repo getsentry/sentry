@@ -331,6 +331,8 @@ describe('desktop navigation', () => {
                 settingsBreadcrumb: {
                   type: 'project',
                   to: '/settings/:orgId/projects/:projectId/',
+                },
+                settingsProjectSwitch: {
                   switchTo: '/settings/:orgId/projects/:projectId/keys/',
                 },
               },
