@@ -36,10 +36,15 @@ export function useCaptureReturnPath({key, excludePrefix}: CaptureReturnPathOpti
   }, [key, excludePrefix, pathname, search, hash]);
 }
 
+// A path on this site. Links treat `//host` and `/\host` as another site, and
+// unmatched routes can capture such a pathname.
+const SAME_ORIGIN_PATH = /^\/(?![/\\])/;
+
 /**
  * The page captured by `useCaptureReturnPath`, or `fallback` when none was
  * captured, e.g. when the section was entered directly.
  */
 export function getReturnPath(key: string, fallback: string): string {
-  return sessionStorageWrapper.getItem(key) ?? fallback;
+  const path = sessionStorageWrapper.getItem(key);
+  return path && SAME_ORIGIN_PATH.test(path) ? path : fallback;
 }
