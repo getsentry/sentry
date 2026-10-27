@@ -1,4 +1,4 @@
-import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
+import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 
 import {
   droppedEventsToOutcomeGroups,
@@ -14,14 +14,14 @@ describe('droppedEventsToOutcomeSections', () => {
   it('groups by outcome then reason, labeling the outcome', () => {
     const sections = droppedEventsToOutcomeSections(
       [
-        DroppedEventFixture({outcome: 'invalid', reason: 'cors', start: 0, count: 5}),
-        DroppedEventFixture({
+        OutcomeRowFixture({outcome: 'invalid', reason: 'cors', start: 0, count: 5}),
+        OutcomeRowFixture({
           outcome: 'invalid',
           reason: 'timestamp',
           start: 0,
           count: 3,
         }),
-        DroppedEventFixture({
+        OutcomeRowFixture({
           outcome: 'filtered',
           reason: 'web-crawlers',
           start: 0,
@@ -42,14 +42,14 @@ describe('droppedEventsToOutcomeSections', () => {
   it('sums events for a reason across buckets', () => {
     const sections = droppedEventsToOutcomeSections(
       [
-        DroppedEventFixture({outcome: 'invalid', reason: 'cors', start: 0, count: 2}),
-        DroppedEventFixture({
+        OutcomeRowFixture({outcome: 'invalid', reason: 'cors', start: 0, count: 2}),
+        OutcomeRowFixture({
           outcome: 'invalid',
           reason: 'cors',
           start: 60_000,
           count: 4,
         }),
-        DroppedEventFixture({outcome: 'invalid', reason: 'cors', start: 0, count: 1}),
+        OutcomeRowFixture({outcome: 'invalid', reason: 'cors', start: 0, count: 1}),
       ],
       []
     );
@@ -59,9 +59,9 @@ describe('droppedEventsToOutcomeSections', () => {
 
   it('computes share against total events (accepted + dropped)', () => {
     const sections = droppedEventsToOutcomeSections(
-      [DroppedEventFixture({outcome: 'invalid', reason: 'cors', start: 0, count: 25})],
+      [OutcomeRowFixture({outcome: 'invalid', reason: 'cors', start: 0, count: 25})],
       [
-        DroppedEventFixture({
+        OutcomeRowFixture({
           outcome: 'accepted',
           reason: 'accepted',
           start: 0,
@@ -76,7 +76,7 @@ describe('droppedEventsToOutcomeSections', () => {
 
   it('guards divide-by-zero when there are no events', () => {
     const sections = droppedEventsToOutcomeSections(
-      [DroppedEventFixture({outcome: 'invalid', reason: 'cors', start: 0, count: 0})],
+      [OutcomeRowFixture({outcome: 'invalid', reason: 'cors', start: 0, count: 0})],
       []
     );
 
@@ -89,17 +89,17 @@ describe('droppedEventsToOutcomeGroups', () => {
   it('splits reasons by tag, treating untagged drops as intentional', () => {
     const {unintentional, intentional} = droppedEventsToOutcomeGroups(
       [
-        DroppedEventFixture({
+        OutcomeRowFixture({
           outcome: 'client_discard',
           reason: 'queue_overflow',
           tags: ['unintentional'],
         }),
-        DroppedEventFixture({
+        OutcomeRowFixture({
           outcome: 'client_discard',
           reason: 'sample_rate',
           tags: ['intentional'],
         }),
-        DroppedEventFixture({outcome: 'invalid', reason: 'cors', tags: []}),
+        OutcomeRowFixture({outcome: 'invalid', reason: 'cors', tags: []}),
       ],
       [],
       'all'
@@ -115,11 +115,11 @@ describe('droppedEventsToOutcomeGroups', () => {
   });
 
   const scopedDroppedEvents = [
-    DroppedEventFixture({count: 10, tags: ['unintentional']}),
-    DroppedEventFixture({outcome: 'filtered', count: 30, tags: ['intentional']}),
+    OutcomeRowFixture({count: 10, tags: ['unintentional']}),
+    OutcomeRowFixture({outcome: 'filtered', count: 30, tags: ['intentional']}),
   ];
   const scopedAcceptedEvents = [
-    DroppedEventFixture({outcome: 'accepted', reason: 'accepted', count: 60}),
+    OutcomeRowFixture({outcome: 'accepted', reason: 'accepted', count: 60}),
   ];
 
   it('computes shares against accepted and every drop in the all scope', () => {
@@ -133,11 +133,11 @@ describe('droppedEventsToOutcomeGroups', () => {
     expect(intentional[0]!.shareRatio).toBe(0.3);
   });
 
-  it('excludes intentional drops from groups and shares in the contributing scope', () => {
+  it('excludes intentional drops from groups and shares in the unexpected scope', () => {
     const {unintentional, intentional} = droppedEventsToOutcomeGroups(
       scopedDroppedEvents,
       scopedAcceptedEvents,
-      'contributing'
+      'unexpected'
     );
 
     expect(intentional).toEqual([]);
@@ -149,14 +149,14 @@ describe('droppedEventsToOutcomeGroups', () => {
 
 describe('filterDroppedEventsByScope', () => {
   const droppedEvents = [
-    DroppedEventFixture({reason: 'queue_overflow', tags: ['unintentional']}),
-    DroppedEventFixture({reason: 'sample_rate', tags: ['intentional']}),
-    DroppedEventFixture({reason: 'cors', tags: []}),
+    OutcomeRowFixture({reason: 'queue_overflow', tags: ['unintentional']}),
+    OutcomeRowFixture({reason: 'sample_rate', tags: ['intentional']}),
+    OutcomeRowFixture({reason: 'cors', tags: []}),
   ];
 
-  it('keeps only unintentional drops in the contributing scope', () => {
+  it('keeps only unintentional drops in the unexpected scope', () => {
     expect(
-      filterDroppedEventsByScope(droppedEvents, 'contributing').map(e => e.reason)
+      filterDroppedEventsByScope(droppedEvents, 'unexpected').map(e => e.reason)
     ).toEqual(['queue_overflow']);
   });
 

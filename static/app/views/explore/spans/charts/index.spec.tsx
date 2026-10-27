@@ -1,6 +1,6 @@
 import {useMemo, useState} from 'react';
-import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
@@ -13,7 +13,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
+import type {OutcomeRow} from 'sentry/components/droppedData/types';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
@@ -428,8 +428,8 @@ describe('ExploreCharts', () => {
       organizationFeatures = features,
       query = '',
     }: {
-      acceptedEvents?: DroppedEventsBucket[];
-      droppedEvents?: DroppedEventsBucket[];
+      acceptedEvents?: OutcomeRow[];
+      droppedEvents?: OutcomeRow[];
       organizationFeatures?: string[];
       query?: string;
     }) {
@@ -465,7 +465,7 @@ describe('ExploreCharts', () => {
     }
 
     it('notes that dropped spans ignore the search while the layer is on', async () => {
-      renderCharts({droppedEvents: [DroppedEventFixture()], query: 'span.op:db'});
+      renderCharts({droppedEvents: [OutcomeRowFixture()], query: 'span.op:db'});
 
       expect(
         await screen.findByText('Dropped spans are not filtered by search')
@@ -480,7 +480,7 @@ describe('ExploreCharts', () => {
     });
 
     it('omits the filter note without a search or environment', async () => {
-      renderCharts({droppedEvents: [DroppedEventFixture()]});
+      renderCharts({droppedEvents: [OutcomeRowFixture()]});
 
       expect(await screen.findByLabelText('Chart layers')).toBeInTheDocument();
       expect(screen.queryByText(/are not filtered by/)).not.toBeInTheDocument();
@@ -489,7 +489,7 @@ describe('ExploreCharts', () => {
     it('hides the Layers control without the feature flag', async () => {
       const request = renderCharts({
         organizationFeatures: [],
-        droppedEvents: [DroppedEventFixture()],
+        droppedEvents: [OutcomeRowFixture()],
       });
 
       expect(await screen.findByLabelText('Collapse chart')).toBeInTheDocument();
@@ -499,7 +499,7 @@ describe('ExploreCharts', () => {
 
     it('hides the Layers control when only accepted annotations are present', async () => {
       const request = renderCharts({
-        acceptedEvents: [DroppedEventFixture({outcome: 'accepted', count: 8000})],
+        acceptedEvents: [OutcomeRowFixture({outcome: 'accepted', count: 8000})],
       });
 
       await waitFor(() => expect(request).toHaveBeenCalled());
@@ -509,7 +509,7 @@ describe('ExploreCharts', () => {
 
     it('hides the Layers control when every drop is intentional', async () => {
       const request = renderCharts({
-        droppedEvents: [DroppedEventFixture({tags: ['intentional']})],
+        droppedEvents: [OutcomeRowFixture({tags: ['intentional']})],
       });
 
       await waitFor(() => expect(request).toHaveBeenCalled());
@@ -519,15 +519,15 @@ describe('ExploreCharts', () => {
 
     it('shows the Layers control when a drop ratio is below 5%', async () => {
       renderCharts({
-        droppedEvents: [DroppedEventFixture({count: 4})],
-        acceptedEvents: [DroppedEventFixture({outcome: 'accepted', count: 96})],
+        droppedEvents: [OutcomeRowFixture({count: 4})],
+        acceptedEvents: [OutcomeRowFixture({outcome: 'accepted', count: 96})],
       });
 
       expect(await screen.findByLabelText('Chart layers')).toBeInTheDocument();
     });
 
     it('shows the Layers control and toggles the dropped-data layer', async () => {
-      renderCharts({droppedEvents: [DroppedEventFixture()]});
+      renderCharts({droppedEvents: [OutcomeRowFixture()]});
 
       await userEvent.click(await screen.findByLabelText('Chart layers'));
 
