@@ -70,8 +70,9 @@ export function getInvestigationLLMContext(
     sourceRef: investigation.source?.ref,
     summary: investigation.summary,
     summaryDescription: investigation.summaryDescription,
-    runStatus: orchestration?.status,
-    runPhase: orchestration?.phase,
+    // The investigation carries where the run was until the full run arrives.
+    runStatus: orchestration?.status ?? investigation.orchestration?.status,
+    runPhase: orchestration?.phase ?? investigation.orchestration?.phase,
   };
 }
 

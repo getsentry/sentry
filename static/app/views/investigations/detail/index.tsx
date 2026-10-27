@@ -444,7 +444,9 @@ function InvestigationPageContentInner({
   // Push the investigation into the LLM context tree for Seer Explorer. Its
   // hypotheses and blocks register their own nodes beneath it.
   const {getLLMContext} = useLLMContext(
-    getInvestigationLLMContext(investigation, orchestration)
+    getInvestigationLLMContext(investigation, orchestration),
+    // Page context waits for the run, so its state and hypotheses come along.
+    {isLoading: Boolean(investigation.orchestration) && orchestrationPending}
   );
   const askSeer = useInvestigationAskSeer();
   const askSeerAboutInvestigation = askSeer

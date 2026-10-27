@@ -3128,6 +3128,33 @@ describe('Investigation detail', () => {
     ]);
   });
 
+  it("sends the investigation's run state before the full run arrives", async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationAgenticDetailFixture(),
+    });
+    let finishOrchestration!: () => void;
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture(),
+      asyncDelay: new Promise<void>(resolve => {
+        finishOrchestration = resolve;
+      }),
+    });
+    const openChatPrompt = jest.fn();
+
+    renderView(askSeerOrganization, makeTestQueryClient(), false, openChatPrompt);
+    await userEvent.click(await screen.findByLabelText('Investigation actions'));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Ask Seer'}));
+
+    const {context} = openChatPrompt.mock.calls[0][0];
+    expect(context.data).toEqual(
+      expect.objectContaining({runStatus: 'processing', runPhase: 'investigating'})
+    );
+    finishOrchestration();
+    expect(await screen.findAllByTestId('investigation-hypothesis')).toHaveLength(3);
+  });
+
   it('asks Seer about a hypothesis from its menu', async () => {
     MockApiClient.addMockResponse({
       url: detailUrl,
