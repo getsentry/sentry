@@ -27,14 +27,48 @@ import {
   isRootCauseArtifact,
   isSolutionArtifact,
   type AutofixSection,
+  type ExplorerAutofixState,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {t, tn} from 'sentry/locale';
+import {collectArtifacts} from 'sentry/views/seerExplorer/utils';
 
 interface ArtifactPreviewProps {
   section: AutofixSection;
+}
+
+export function SingleRunRootCausePreview({runState}: {runState: ExplorerAutofixState}) {
+  const headline = useMemo(() => {
+    const data = collectArtifacts(runState.blocks).findLast(
+      artifact => artifact.key === 'single_run_root_cause'
+    )?.data;
+    return typeof data?.headline === 'string' ? data.headline : null;
+  }, [runState.blocks]);
+
+  if (!headline && runState.status !== 'processing' && runState.status !== 'error') {
+    return null;
+  }
+
+  return (
+    <ArtifactCard icon={<IconBug />} title={t('Root Cause')}>
+      {headline ? (
+        <SeerMarkdown raw={headline} />
+      ) : runState.status === 'processing' ? (
+        <Flex direction="row" gap="md">
+          <StyledLoadingIndicator size={16} />
+          <Text>{t('Finding the root cause\u2026')}</Text>
+        </Flex>
+      ) : (
+        <Text variant="muted">
+          {t(
+            'Seer failed to generate a root cause. This one is on us. Try running it again.'
+          )}
+        </Text>
+      )}
+    </ArtifactCard>
+  );
 }
 
 export function RootCausePreview({section}: ArtifactPreviewProps) {

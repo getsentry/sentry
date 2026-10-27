@@ -426,6 +426,103 @@ describe('AutofixSection', () => {
     expect(screen.getByRole('button', {name: 'Open Autofix'})).toBeInTheDocument();
   });
 
+  describe('single runs', () => {
+    function mockSingleRun(overrides: Record<string, unknown>) {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+        body: {
+          autofix: {
+            run_id: 1,
+            feature_id: 'autofix_single_run',
+            status: 'completed',
+            updated_at: new Date().toISOString(),
+            blocks: [
+              {
+                id: 'block-1',
+                message: {content: 'Fix issue', role: 'user'},
+                timestamp: new Date().toISOString(),
+              },
+            ],
+            ...overrides,
+          },
+        },
+      });
+    }
+
+    it('shows a working root cause instead of the start card while running', async () => {
+      mockSingleRun({status: 'processing'});
+
+      render(<AutofixSection group={mockGroup} project={mockProject} />, {
+        organization,
+      });
+
+      expect(await screen.findByText('Finding the root cause…')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Open Autofix'})).toBeInTheDocument();
+      expect(screen.queryByText('Have Seer...')).not.toBeInTheDocument();
+    });
+
+    it('shows the root cause headline and the pull request', async () => {
+      mockSingleRun({
+        blocks: [
+          {
+            id: 'block-1',
+            message: {content: 'Found it', role: 'assistant'},
+            timestamp: new Date().toISOString(),
+            artifacts: [
+              {
+                key: 'single_run_root_cause',
+                reason: 'Root cause',
+                data: {
+                  headline: 'Spans missing from the event schema',
+                  cause: 'Because.',
+                },
+              },
+            ],
+          },
+        ],
+        repo_pr_states: {
+          'org/repo': {
+            repo_name: 'org/repo',
+            pr_number: 42,
+            pr_url: 'https://github.com/org/repo/pull/42',
+            branch_name: 'fix/issue',
+            commit_sha: 'abc123',
+            pr_creation_error: null,
+            pr_creation_status: 'completed',
+            pr_id: 1,
+            title: 'Fix null pointer',
+          },
+        },
+      });
+
+      render(<AutofixSection group={mockGroup} project={mockProject} />, {
+        organization,
+      });
+
+      expect(
+        await screen.findByText('Spans missing from the event schema')
+      ).toBeInTheDocument();
+      expect(screen.getByRole('link', {name: 'org/repo#42'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Open Autofix'})).toBeInTheDocument();
+    });
+
+    it('shows the root cause failure when an errored run has no root cause', async () => {
+      mockSingleRun({status: 'error'});
+
+      render(<AutofixSection group={mockGroup} project={mockProject} />, {
+        organization,
+      });
+
+      expect(
+        await screen.findByText(
+          'Seer failed to generate a root cause. This one is on us. Try running it again.'
+        )
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Open Autofix'})).toBeInTheDocument();
+      expect(screen.queryByText('Have Seer...')).not.toBeInTheDocument();
+    });
+  });
+
   it('shows empty state when autofix returns null', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
