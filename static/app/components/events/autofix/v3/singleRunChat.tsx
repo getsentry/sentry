@@ -17,6 +17,7 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
+import {useAutoScroll} from 'sentry/utils/useAutoScroll';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {SeerExplorerTranscript} from 'sentry/views/seerExplorer/components/chat/transcript';
@@ -81,25 +82,36 @@ function SingleRunTranscript({
   runState: ExplorerAutofixState | null;
 }) {
   const {getPageReferrer} = usePageReferrer();
+  const {containerRef, onScrollHandler} = useAutoScroll({key: runState});
   const blocks = useMemo(() => withoutKickoffPrompt(runState?.blocks ?? []), [runState]);
 
   return (
-    <Stack gap="lg">
-      {blocks.length ? (
-        <SeerExplorerTranscript
-          blocks={blocks}
-          runId={runId}
-          readOnly
-          showThinking={false}
-          getPageReferrer={getPageReferrer}
-        />
-      ) : (
-        runState?.status === 'processing' && <Placeholder height="15rem" />
-      )}
-      {runState?.status === 'error' && (
-        <Alert variant="danger">{t('Autofix ran into an error and stopped.')}</Alert>
-      )}
-      {children}
+    <Stack flex="1" minHeight="0" background="primary">
+      <Stack
+        ref={containerRef}
+        onScroll={onScrollHandler}
+        flex="1"
+        minHeight="0"
+        overflowY="auto"
+        padding="xl 2xl"
+        gap="lg"
+      >
+        {blocks.length ? (
+          <SeerExplorerTranscript
+            blocks={blocks}
+            runId={runId}
+            readOnly
+            showThinking={false}
+            getPageReferrer={getPageReferrer}
+          />
+        ) : (
+          runState?.status === 'processing' && <Placeholder height="15rem" />
+        )}
+        {runState?.status === 'error' && (
+          <Alert variant="danger">{t('Autofix ran into an error and stopped.')}</Alert>
+        )}
+        {children}
+      </Stack>
     </Stack>
   );
 }
@@ -128,8 +140,8 @@ function SingleRunLiveChat({
     respondToUserInput,
   } = useSeerExplorer();
   const [inputValue, setInputValue] = useState<ComposerValue>(EMPTY_INPUT);
+  const {containerRef, onScrollHandler} = useAutoScroll({key: sessionData});
   const composerRef = useRef<HTMLDivElement>(null);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const userScrolledUpRef = useRef(false);
 
   const blocks = useMemo(
@@ -143,7 +155,7 @@ function SingleRunLiveChat({
     isAwaitingUserInput,
     pendingInput,
     respondToUserInput,
-    scrollContainerRef,
+    scrollContainerRef: containerRef,
     userScrolledUpRef,
   });
 
@@ -184,29 +196,39 @@ function SingleRunLiveChat({
   } = pendingUserInputState;
 
   return (
-    <Stack gap="lg" ref={scrollContainerRef}>
-      {blocks.length ? (
-        <SeerExplorerTranscript
-          blocks={blocks}
-          runId={runId}
-          readOnly={readOnly}
-          showThinking={false}
-          getPageReferrer={getPageReferrer}
-          pendingInput={pendingInput}
-          interactionPending={isFileApprovalPending || isQuestionPending}
-        />
-      ) : (
-        (!sessionData || isPolling) && <Placeholder height="15rem" />
-      )}
-      {sessionData?.status === 'error' && (
-        <Alert variant="danger">{t('Autofix ran into an error and stopped.')}</Alert>
-      )}
-      {children}
-      <Flex>
-        <Button size="sm" icon={<IconBot />} onClick={onOpenInExplorer}>
-          {t('Open in Seer Explorer')}
-        </Button>
-      </Flex>
+    <Stack flex="1" minHeight="0" background="primary">
+      <Stack
+        ref={containerRef}
+        onScroll={onScrollHandler}
+        flex="1"
+        minHeight="0"
+        overflowY="auto"
+        padding="xl 2xl"
+        gap="lg"
+      >
+        {blocks.length ? (
+          <SeerExplorerTranscript
+            blocks={blocks}
+            runId={runId}
+            readOnly={readOnly}
+            showThinking={false}
+            getPageReferrer={getPageReferrer}
+            pendingInput={pendingInput}
+            interactionPending={isFileApprovalPending || isQuestionPending}
+          />
+        ) : (
+          (!sessionData || isPolling) && <Placeholder height="15rem" />
+        )}
+        {sessionData?.status === 'error' && (
+          <Alert variant="danger">{t('Autofix ran into an error and stopped.')}</Alert>
+        )}
+        {children}
+        <Flex>
+          <Button size="sm" icon={<IconBot />} onClick={onOpenInExplorer}>
+            {t('Open in Seer Explorer')}
+          </Button>
+        </Flex>
+      </Stack>
       <PendingUserInputDock>
         <PendingUserInputPicker
           isAwaitingUserInput={isAwaitingUserInput}
