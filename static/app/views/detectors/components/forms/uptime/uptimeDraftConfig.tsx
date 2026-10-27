@@ -1,11 +1,9 @@
-import omit from 'lodash/omit';
 import {z} from 'zod';
 
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
-import type {DetectorDraftConfig} from 'sentry/views/detectors/components/forms/common/detectorDraft';
 import {
   draftNumber,
-  parseDetectorDraftValues,
+  type DetectorDraftSchema,
 } from 'sentry/views/detectors/components/forms/common/detectorDraft';
 import {
   UPTIME_HTTP_METHOD_OPTIONS,
@@ -99,31 +97,32 @@ function mayHoldCredentials(url: string) {
   return authority.includes('@') || /:(?!\d*$)/.test(authority);
 }
 
-export const UPTIME_DETECTOR_DRAFT_CONFIG: DetectorDraftConfig<UptimeDetectorFormData> = {
-  shape: {
-    assertion: z.object({root: andOp}),
-    downtimeThreshold: draftNumber,
-    environment: z.string(),
+export const UPTIME_DETECTOR_DRAFT_SCHEMA: DetectorDraftSchema<UptimeDetectorFormData> =
+  z.object({
+    assertion: z.object({root: andOp}).optional().catch(undefined),
+    downtimeThreshold: draftNumber.optional().catch(undefined),
+    environment: z.string().optional().catch(undefined),
     intervalSeconds: z
       .number()
-      .refine(value => UPTIME_VALID_INTERVALS_SEC.includes(value)),
-    method: z.enum(UPTIME_HTTP_METHOD_OPTIONS),
-    name: z.string(),
-    owner: z.string(),
-    projectId: z.string(),
-    recoveryThreshold: draftNumber,
-    timeoutMs: z.number(),
-    traceSampling: z.boolean(),
-    url: z.string(),
-    workflowIds: z.array(z.string()),
-  },
-  // Headers and body aren't in the shape since they often hold credentials,
-  // and a URL that may hold them is left out for the same reason.
-  redact: values =>
-    typeof values.url === 'string' && mayHoldCredentials(values.url)
-      ? omit(values, 'url')
-      : values,
-};
+      .refine(value => UPTIME_VALID_INTERVALS_SEC.includes(value))
+      .optional()
+      .catch(undefined),
+    method: z.enum(UPTIME_HTTP_METHOD_OPTIONS).optional().catch(undefined),
+    name: z.string().optional().catch(undefined),
+    owner: z.string().optional().catch(undefined),
+    projectId: z.string().optional().catch(undefined),
+    recoveryThreshold: draftNumber.optional().catch(undefined),
+    timeoutMs: z.number().optional().catch(undefined),
+    traceSampling: z.boolean().optional().catch(undefined),
+    // Headers and body are left out since they often hold credentials, and so
+    // is a URL that may hold them.
+    url: z
+      .string()
+      .refine(value => !mayHoldCredentials(value))
+      .optional()
+      .catch(undefined),
+    workflowIds: z.array(z.string()).optional().catch(undefined),
+  });
 
 function isSameUrl(a: string, b: string) {
   try {
@@ -143,7 +142,7 @@ export function getUptimeDuplicateFormData(
 ): UptimeDetectorFormData {
   const formData = uptimeSavedDetectorToFormData(duplicateDetector);
   const {method, projectId, url} = draftValues
-    ? parseDetectorDraftValues(UPTIME_DETECTOR_DRAFT_CONFIG, draftValues)
+    ? UPTIME_DETECTOR_DRAFT_SCHEMA.parse(draftValues)
     : {};
   const isSameRequest =
     (url === undefined || isSameUrl(url, formData.url)) &&
