@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+from contextlib import AbstractContextManager, nullcontext
 from typing import Any
 from unittest import mock
 from uuid import uuid4
+
+from django.test import override_settings
 
 from sentry.investigations.models import (
     InvestigationOrchestrationCommand,
@@ -16,6 +19,13 @@ from sentry.tasks.seer.investigation import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.utils import json
+from sentry.viewer_context import (
+    Actor,
+    ActorType,
+    ViewerContext,
+    decode_viewer_context,
+    viewer_context_scope,
+)
 from tests.sentry.investigations.test_seer_contract import fixture
 
 OUTCOME = {
@@ -275,3 +285,54 @@ class QueuedCommandsTest(TestCase):
         assert recheck.status == InvestigationOrchestrationCommandStatus.FAILED
         assert self.orchestration_run.error is None
         assert self.orchestration_run.projection["errors"] == []
+
+    @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
+    @mock.patch("sentry.investigations.seer_client.investigation_connection_pool.urlopen")
+    def test_a_command_without_a_user_goes_out_as_sentry(self, urlopen: mock.Mock) -> None:
+        self.orchestration_run.update(
+            seer_run=self.create_seer_run(
+                organization=self.organization,
+                type=SeerRunType.INVESTIGATION,
+                seer_run_state_id=self.seer_run_id,
+                mirror_status=SeerRunMirrorStatus.LIVE,
+            )
+        )
+        inherited: dict[str, AbstractContextManager[None]] = {
+            "none": nullcontext(),
+            "unknown": viewer_context_scope(ViewerContext(actor=Actor(type=ActorType.UNKNOWN))),
+            "someone_else": viewer_context_scope(
+                ViewerContext(
+                    actor=Actor(type=ActorType.USER, actor_id=self.create_user().id),
+                    organization_id=self.organization.id,
+                )
+            ),
+        }
+        for name, scope in inherited.items():
+            with self.subTest(inherited=name):
+                outcome = self.outcome()
+                outcome.update(actor_id=None)
+                urlopen.return_value = mock.Mock(
+                    status=200,
+                    data=json.dumps(
+                        {
+                            "runId": self.seer_run_id,
+                            "requestId": str(outcome.request_id),
+                            "accepted": True,
+                            "duplicate": False,
+                            "workflowVersion": 10,
+                            "projection": self.projection(),
+                        }
+                    ).encode(),
+                )
+
+                with scope:
+                    dispatch_investigation_orchestration_commands(self.orchestration_run.id)
+
+                outcome.refresh_from_db()
+                assert outcome.status == InvestigationOrchestrationCommandStatus.ACKNOWLEDGED
+                viewer_context = decode_viewer_context(
+                    urlopen.call_args.kwargs["headers"]["X-Viewer-Context"],
+                    key="viewer-context-test-secret",
+                )
+                assert viewer_context.actor == Actor(type=ActorType.SYSTEM)
+                assert viewer_context.organization_id == self.organization.id

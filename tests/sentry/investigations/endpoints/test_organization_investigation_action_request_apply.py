@@ -25,7 +25,11 @@ from sentry.investigations.models import (
     InvestigationStatus,
 )
 from sentry.investigations.services.action_kinds import ACTION_KINDS
-from sentry.investigations.services.action_kinds.base import ActionInvalid, ActionStale
+from sentry.investigations.services.action_kinds.base import (
+    ActionInvalid,
+    ActionStale,
+    CannotApplyReason,
+)
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.environment import Environment
 from sentry.models.groupopenperiod import GroupOpenPeriod
@@ -1045,7 +1049,7 @@ class SharedApplyPathTest(APITestCase):
         response = self.post(dryRun=True)
 
         assert response.status_code == 200, response.data
-        assert self.kind.calls == ["check"]
+        assert self.kind.calls == ["check_remote", "check"]
         self.action_request.refresh_from_db()
         assert self.action_request.state == InvestigationActionRequestState.SUGGESTED
 
@@ -1063,7 +1067,7 @@ class SharedApplyPathTest(APITestCase):
         response = self.post()
 
         assert response.status_code == 200, response.data
-        assert self.kind.calls == ["apply"]
+        assert self.kind.calls == ["check_remote", "apply"]
         self.action_request.refresh_from_db()
         assert self.action_request.state == InvestigationActionRequestState.APPLIED
         assert self.action_request.applied_by_id == self.user.id
@@ -1084,7 +1088,7 @@ class SharedApplyPathTest(APITestCase):
         self.orchestration_run.refresh_from_db()
         assert self.orchestration_run.workflow_version == 4
 
-    def test_the_outcome_goes_to_seer_as_the_investigation_creator(self) -> None:
+    def test_the_outcome_goes_to_seer_as_the_user_who_applied_it(self) -> None:
         applier = self.create_user()
         self.create_member(user=applier, organization=self.organization, role="owner")
         self.login_as(applier)
@@ -1092,7 +1096,7 @@ class SharedApplyPathTest(APITestCase):
         assert self.post().status_code == 200
 
         [command] = self.commands()
-        assert command.actor_id == self.user.id
+        assert command.actor_id == applier.id
         assert command.payload["appliedBy"] == applier.id
 
     def test_only_a_successful_apply_tells_seer(self) -> None:
@@ -1103,6 +1107,32 @@ class SharedApplyPathTest(APITestCase):
         assert self.post().status_code == 409
 
         assert [command.type for command in self.commands()] == ["recheck_action_requests"]
+
+    def test_a_failed_remote_check_stops_before_the_kind_applies(self) -> None:
+        self.kind.remote_raises = ActionInvalid(["Not connected."])
+
+        response = self.post()
+
+        assert response.status_code == 400
+        assert response.data["messages"] == ["Not connected."]
+        assert self.kind.calls == ["check_remote"]
+        self.action_request.refresh_from_db()
+        assert self.action_request.state == InvestigationActionRequestState.SUGGESTED
+
+    def test_a_request_the_viewer_cannot_apply_skips_the_remote_check(self) -> None:
+        self.kind.reason = CannotApplyReason.PERMISSION_DENIED
+
+        response = self.post()
+
+        assert response.status_code == 403
+        assert response.data["code"] == "permission_denied"
+        assert self.kind.calls == []
+
+    def test_requests_that_are_not_suggested_skip_the_remote_check(self) -> None:
+        self.action_request.update(state=InvestigationActionRequestState.APPLIED)
+
+        assert self.post().data["code"] == "already_applied"
+        assert self.kind.calls == []
 
     def test_a_stale_action_is_superseded_with_what_moved(self) -> None:
         self.kind.raises = ActionStale({"window": 600})

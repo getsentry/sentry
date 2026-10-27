@@ -7,6 +7,7 @@ import orjson
 import pytest
 from django.test import override_settings
 
+from sentry.hybridcloud.rpc.service import RpcException
 from sentry.investigations.seer_client import (
     create_investigation_orchestration_run,
     dispatch_investigation_orchestration_command,
@@ -76,7 +77,7 @@ class InvestigationOrchestrationSeerClientTest(TestCase):
         command = self.create_investigation_orchestration_command(
             orchestration_run=run,
             request_id=uuid4(),
-            actor_id=self.user.id,
+            actor_id=self.create_user().id,
             expected_workflow_version=1,
             type="retry",
             payload={"target": "run"},
@@ -164,6 +165,10 @@ class InvestigationOrchestrationSeerClientTest(TestCase):
             "command": {"type": "retry", "target": "run"},
             "monitoringProviders": [provider.dict.return_value],
         }
+        # Another user's command still sends the creator's connections.
+        assert get_connections.call_args == mock.call(
+            self.organization, self.user.id, skip_rpc_errors=False
+        )
         assert "Authorization" in command_request.kwargs["headers"]
         assert "X-Viewer-Context" in command_request.kwargs["headers"]
 
@@ -180,11 +185,21 @@ class InvestigationOrchestrationSeerClientTest(TestCase):
                 }
             ),
         )
+        get_connections.return_value = []
         with pytest.raises(SeerApiError):
             dispatch_investigation_orchestration_command(
                 command,
                 viewer_context=viewer_context,
             )
+        assert orjson.loads(pool.urlopen.call_args.kwargs["body"])["monitoringProviders"] == []
+
+        get_connections.side_effect = RpcException("integration", "organization_context", "boom")
+        with pytest.raises(SeerApiError):
+            dispatch_investigation_orchestration_command(
+                command,
+                viewer_context=viewer_context,
+            )
+        assert "monitoringProviders" not in orjson.loads(pool.urlopen.call_args.kwargs["body"])
 
     def test_create_rejects_a_mismatched_viewer_organization(self) -> None:
         _, run = create_agentic_manual_investigation(
