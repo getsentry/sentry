@@ -46,6 +46,7 @@ CommandRejectionCode = Literal[
     "workflow_version_conflict",
     "idempotency_conflict",
     "invalid_command_target",
+    "action_requests_report_changed",
 ]
 
 

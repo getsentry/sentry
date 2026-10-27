@@ -304,6 +304,8 @@ def _reset_create_dispatch_failure(run: InvestigationOrchestrationRun) -> None:
 # Commands that only keep Seer's action requests in sync. Neither side checks or moves the
 # workflow version for them.
 INTERNAL_COMMAND_TYPES = frozenset({"record_action_outcome"})
+# Commands Sentry sends for an action request, which shows how they went.
+FOLLOW_UP_COMMAND_TYPES = frozenset({"recheck_action_requests"})
 
 
 def _is_run_retry(command_type: str, payload: dict[str, Any]) -> bool:

@@ -34,6 +34,7 @@ from sentry.investigations.services import (
     mark_block_execution_dispatch_started,
 )
 from sentry.investigations.services.orchestration import (
+    FOLLOW_UP_COMMAND_TYPES,
     INTERNAL_COMMAND_TYPES,
     schedule_orchestration_commands,
 )
@@ -108,18 +109,22 @@ def _fail_commands_after(
     run: InvestigationOrchestrationRun,
     command: InvestigationOrchestrationCommand,
     error: dict[str, str],
-) -> None:
-    """Fail the user commands queued behind a failed one. Internal commands still go out."""
+) -> bool:
+    """Fail the commands queued behind a failed one, and say whether a user command was among
+    them. Internal commands still go out.
+    """
 
     later = InvestigationOrchestrationCommand.objects.filter(
         orchestration_run=run, id__gt=command.id
     )
-    later.filter(
+    blocked = later.filter(
         status__in=(
             InvestigationOrchestrationCommandStatus.ACCEPTED,
             InvestigationOrchestrationCommandStatus.DISPATCHED,
         )
-    ).exclude(type__in=INTERNAL_COMMAND_TYPES).update(
+    ).exclude(type__in=INTERNAL_COMMAND_TYPES)
+    blocked_user_command = blocked.exclude(type__in=FOLLOW_UP_COMMAND_TYPES).exists()
+    blocked.update(
         status=InvestigationOrchestrationCommandStatus.FAILED,
         error=error,
         date_updated=timezone.now(),
@@ -128,6 +133,7 @@ def _fail_commands_after(
         type__in=INTERNAL_COMMAND_TYPES, status=InvestigationOrchestrationCommandStatus.ACCEPTED
     ).exists():
         schedule_orchestration_commands(run.id)
+    return blocked_user_command
 
 
 def _mark_command_dispatch_failed(command_id: int) -> None:
@@ -163,7 +169,7 @@ def _mark_command_dispatch_failed(command_id: int) -> None:
             # Losing it isn't a run error, and no other command waits on it.
             schedule_orchestration_commands(run.id)
             return
-        _fail_commands_after(
+        blocked_user_command = _fail_commands_after(
             run,
             command,
             {
@@ -171,6 +177,9 @@ def _mark_command_dispatch_failed(command_id: int) -> None:
                 "message": "An earlier workflow command could not be delivered.",
             },
         )
+        # A follow-up's request shows how it went, unless user commands failed behind it.
+        if command.type in FOLLOW_UP_COMMAND_TYPES and not blocked_user_command:
+            return
         errors = run.projection.setdefault("errors", [])
         if isinstance(errors, list):
             errors.append(detail)
@@ -178,7 +187,7 @@ def _mark_command_dispatch_failed(command_id: int) -> None:
         run.save(update_fields=["error", "projection", "date_updated"])
 
 
-def _mark_command_version_conflicted(command_id: int) -> None:
+def _mark_command_version_conflicted(command_id: int, reason: CommandRejectionCode) -> None:
     database = router.db_for_write(InvestigationOrchestrationCommand)
     with transaction.atomic(using=database):
         command_snapshot = InvestigationOrchestrationCommand.objects.filter(id=command_id).first()
@@ -202,13 +211,13 @@ def _mark_command_version_conflicted(command_id: int) -> None:
             "message": COMMAND_VERSION_CONFLICT_MESSAGE,
             "requestId": str(command.request_id),
             "commandType": command.type,
-            "reason": "workflow_version_conflict",
+            "reason": reason,
             "retryable": False,
         }
         command.status = InvestigationOrchestrationCommandStatus.FAILED
         command.error = detail
         command.save(update_fields=["status", "error", "date_updated"])
-        _fail_commands_after(
+        blocked_user_command = _fail_commands_after(
             run,
             command,
             {
@@ -216,6 +225,9 @@ def _mark_command_version_conflicted(command_id: int) -> None:
                 "message": "An earlier workflow update conflicted with Seer's current state.",
             },
         )
+        # A follow-up's request shows how it went, unless user commands failed behind it.
+        if command.type in FOLLOW_UP_COMMAND_TYPES and not blocked_user_command:
+            return
         errors = run.projection.setdefault("errors", [])
         if isinstance(errors, list):
             run.projection["errors"] = [detail, *errors]
@@ -264,6 +276,7 @@ def _reconcile_command_version_conflict(
     run: InvestigationOrchestrationRun,
     command: InvestigationOrchestrationCommand,
     viewer_context: SeerViewerContext,
+    reason: CommandRejectionCode,
 ) -> None:
     run.refresh_from_db()
     if run.seer_run_id is None:
@@ -283,7 +296,7 @@ def _reconcile_command_version_conflict(
                 expected_last_event_sequence=run.last_event_sequence,
                 expected_workflow_version=run.workflow_version,
             )
-            _mark_command_version_conflicted(command.id)
+            _mark_command_version_conflicted(command.id, reason)
     except InvestigationOrchestrationEventConflict as error:
         raise SeerApiError("Investigation changed while reconciling", 502) from error
 
@@ -479,6 +492,11 @@ def dispatch_investigation_orchestration_commands(orchestration_run_id: int) -> 
                 _mark_internal_command_rejected(command.id, code)
                 return
             if error.status == 409:
+                reason: CommandRejectionCode = (
+                    error.code
+                    if isinstance(error, SeerCommandRejected)
+                    else "workflow_version_conflict"
+                )
                 logger.warning(
                     "investigations.orchestration.command_version_conflict",
                     extra={
@@ -486,10 +504,11 @@ def dispatch_investigation_orchestration_commands(orchestration_run_id: int) -> 
                         "seer_run_id": run.seer_run_id,
                         "command_id": command.id,
                         "expected_workflow_version": command.expected_workflow_version,
+                        "reason": reason,
                     },
                 )
                 try:
-                    _reconcile_command_version_conflict(run, command, viewer_context)
+                    _reconcile_command_version_conflict(run, command, viewer_context, reason)
                 except (SeerApiError, HTTPError):
                     if _is_last_dispatch_attempt():
                         logger.exception(
