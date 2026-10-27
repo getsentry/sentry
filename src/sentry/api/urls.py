@@ -656,7 +656,6 @@ from sentry.sentry_apps.api.endpoints.sentry_app_components import (
 from sentry.sentry_apps.api.endpoints.sentry_app_details import SentryAppDetailsEndpoint
 from sentry.sentry_apps.api.endpoints.sentry_app_features import SentryAppFeaturesEndpoint
 from sentry.sentry_apps.api.endpoints.sentry_app_installations import SentryAppInstallationsEndpoint
-from sentry.sentry_apps.api.endpoints.sentry_app_interaction import SentryAppInteractionEndpoint
 from sentry.sentry_apps.api.endpoints.sentry_app_publish_request import (
     SentryAppPublishRequestEndpoint,
 )
@@ -3580,11 +3579,6 @@ SENTRY_APP_URLS = [
         r"^(?P<sentry_app_id_or_slug>[^/]+)/webhook-requests/$",
         SentryAppWebhookRequestsEndpoint.as_view(),
         name="sentry-api-0-sentry-app-webhook-requests",
-    ),
-    re_path(
-        r"^(?P<sentry_app_id_or_slug>[^/]+)/interaction/$",
-        SentryAppInteractionEndpoint.as_view(),
-        name="sentry-api-0-sentry-app-interaction",
     ),
 ]
 
