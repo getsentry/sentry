@@ -1,22 +1,19 @@
 import {useMemo} from 'react';
 import {IconBot} from '@sentry/icons/bot';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
-import {
-  getOrderedAutofixSections,
-  isPullRequestsSection,
-  type useExplorerAutofix,
-} from 'sentry/components/events/autofix/useExplorerAutofix';
-import {PullRequestsCard} from 'sentry/components/events/autofix/v3/pullRequestsCard';
+import type {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {SeerExplorerTranscript} from 'sentry/views/seerExplorer/components/chat/transcript';
 import {useSeerExplorerDrawer} from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
-import {SeerExplorerTranscript} from 'sentry/views/seerExplorer/components/seerExplorerContent';
 import type {Block} from 'sentry/views/seerExplorer/types';
 import {usePageReferrer} from 'sentry/views/seerExplorer/utils';
 
@@ -36,32 +33,32 @@ export function SingleRunChat({autofix}: SingleRunChatProps) {
   const {runState} = autofix;
   const runId = getAutofixRunId(runState);
   const blocks = useMemo(() => withoutKickoffPrompt(runState?.blocks ?? []), [runState]);
-  const pullRequestSections = useMemo(
-    () => getOrderedAutofixSections(runState).filter(isPullRequestsSection),
-    [runState]
-  );
+  const canOpenInExplorer = isSeerExplorerEnabled(organization) && defined(runId);
 
   return (
     <Stack gap="lg">
-      <Stack gap="md">
+      {blocks.length ? (
         <SeerExplorerTranscript
           blocks={blocks}
-          runId={runId ?? null}
+          runId={runId}
           readOnly
           showThinking={false}
-          interactionPending={false}
-          pendingInput={null}
           getPageReferrer={getPageReferrer}
         />
-      </Stack>
-      {pullRequestSections.map(section => (
-        <PullRequestsCard
-          key={`${section.step}-${section.blocks[0]?.id ?? null}`}
-          autofix={autofix}
-          section={section}
-        />
-      ))}
-      {isSeerExplorerEnabled(organization) && defined(runId) && (
+      ) : (
+        runState?.status === 'processing' && <Placeholder height="15rem" />
+      )}
+      {runState?.status === 'error' && (
+        <Alert variant="danger">{t('Autofix ran into an error and stopped.')}</Alert>
+      )}
+      {runState?.status === 'awaiting_user_input' && (
+        <Alert variant="warning">
+          {canOpenInExplorer
+            ? t('Seer needs your input. Open the run in Seer Explorer to respond.')
+            : t('Seer is waiting for input to continue.')}
+        </Alert>
+      )}
+      {canOpenInExplorer && (
         <Flex>
           <Button
             size="sm"
