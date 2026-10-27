@@ -278,3 +278,7 @@ class InvestigationActionRequestApplyResponse(TypedDict):
 
 class InvestigationActionRequestRecheckResponse(TypedDict):
     actionRequest: InvestigationActionRequestSerializerResponse
+
+
+class InvestigationActionRequestRetryFollowUpResponse(TypedDict):
+    actionRequest: InvestigationActionRequestSerializerResponse

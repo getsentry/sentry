@@ -904,7 +904,12 @@ class SharedApplyPathTest(APITestCase):
         read = response.data["actionRequest"]
         assert read["state"] == "superseded"
         assert read["error"] == {"code": "stale", "current": {"window": 600}}
-        assert read["followUp"] == {"status": "accepted", "reason": None}
+        assert read["followUp"] == {
+            "status": "accepted",
+            "reason": None,
+            "rerun": None,
+            "retryable": False,
+        }
         self.action_request.refresh_from_db()
         assert self.action_request.followup_request_id == command.request_id
 
@@ -975,7 +980,12 @@ class SharedApplyPathTest(APITestCase):
         assert self.orchestration_run.workflow_version == 5
         read = response.data["actionRequest"]
         assert read["error"] == {"code": "stale", "current": {"window": 600}}
-        assert read["followUp"] == {"status": "accepted", "reason": None}
+        assert read["followUp"] == {
+            "status": "accepted",
+            "reason": None,
+            "rerun": None,
+            "retryable": False,
+        }
 
     def test_a_recheck_behind_an_undelivered_command_waits_for_it(self) -> None:
         self.kind.raises = ActionStale({"window": 600})
@@ -1018,7 +1028,12 @@ class SharedApplyPathTest(APITestCase):
         assert command.expected_workflow_version == 4
         read = response.data["actionRequest"]
         assert read["error"] == {"code": "stale", "current": {"window": 600}}
-        assert read["followUp"] == {"status": "accepted", "reason": None}
+        assert read["followUp"] == {
+            "status": "accepted",
+            "reason": None,
+            "rerun": None,
+            "retryable": False,
+        }
 
     def test_a_recheck_of_an_action_seer_changed_since_the_user_saw_it_conflicts(self) -> None:
         self.kind.raises = ActionStale({"window": 600})
@@ -1174,7 +1189,12 @@ class SharedApplyPathTest(APITestCase):
             )
         )
         [read] = details.data["actionRequests"]
-        assert read["followUp"] == {"status": "accepted", "reason": None}
+        assert read["followUp"] == {
+            "status": "accepted",
+            "reason": None,
+            "rerun": None,
+            "retryable": False,
+        }
 
     def test_a_stale_action_seer_cant_recheck_stops_being_listed(self) -> None:
         for phase, report in (

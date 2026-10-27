@@ -17,6 +17,7 @@ from sentry.investigations.models import (
     InvestigationBlock,
     InvestigationOrchestrationCommand,
     InvestigationOrchestrationCommandStatus,
+    InvestigationOrchestrationRerun,
 )
 from sentry.investigations.seer_client import CommandRejectionCode
 from sentry.investigations.services.action_kinds import (
@@ -25,6 +26,7 @@ from sentry.investigations.services.action_kinds import (
     shared_cannot_apply_reason,
 )
 from sentry.investigations.services.action_kinds.base import ActionRequestError, CannotApplyReason
+from sentry.investigations.services.orchestration import follow_up_can_be_retried
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -44,11 +46,14 @@ class InvestigationActionRequestAnchorResponse(TypedDict):
 
 class InvestigationActionRequestFollowUpResponse(TypedDict):
     """The re-check or re-run Sentry sent Seer for this request. `reason` is Seer's code when it
-    turned it down.
+    turned it down or dropped it. `rerun` is what Seer did with a re-run, and null for a
+    re-check. `retryable` says whether the user can try it again.
     """
 
     status: InvestigationOrchestrationCommandStatus
     reason: CommandRejectionCode | None
+    rerun: InvestigationOrchestrationRerun | None
+    retryable: bool
 
 
 class InvestigationActionRequestSerializerResponse(TypedDict):
@@ -167,15 +172,23 @@ class InvestigationActionRequestSerializer(
             (investigation_id, request_id): {
                 "status": InvestigationOrchestrationCommandStatus(status),
                 "reason": (error or {}).get("reason"),
+                "rerun": InvestigationOrchestrationRerun(rerun) if rerun is not None else None,
+                "retryable": status == InvestigationOrchestrationCommandStatus.FAILED
+                and follow_up_can_be_retried(command_type, error),
             }
-            for investigation_id, request_id, status, error in (
+            for investigation_id, request_id, command_type, status, error, rerun in (
                 InvestigationOrchestrationCommand.objects.filter(
                     orchestration_run__investigation_id__in={
                         item.investigation_id for item in item_list
                     },
                     request_id__in=request_ids,
                 ).values_list(
-                    "orchestration_run__investigation_id", "request_id", "status", "error"
+                    "orchestration_run__investigation_id",
+                    "request_id",
+                    "type",
+                    "status",
+                    "error",
+                    "rerun",
                 )
             )
         }

@@ -22,6 +22,7 @@ from sentry.investigations.models import (
     InvestigationActionRequestState,
     InvestigationBlockExecutionStatus,
     InvestigationOrchestrationCommandStatus,
+    InvestigationOrchestrationRerun,
     InvestigationStatus,
 )
 from sentry.investigations.services.action_kinds import ACTION_KINDS
@@ -365,9 +366,11 @@ class InvestigationActionRequestSerializationTest(TestCase):
             actor_id=self.user.id,
             expected_workflow_version=1,
             resulting_workflow_version=2,
-            type="recheck_action_requests",
-            payload={"reportRevision": 0, "source": {"type": "manual"}},
-            **command,
+            **{
+                "type": "recheck_action_requests",
+                "payload": {"reportRevision": 0, "source": {"type": "manual"}},
+                **command,
+            },
         )
         self.add_request(
             key,
@@ -381,7 +384,12 @@ class InvestigationActionRequestSerializationTest(TestCase):
 
         (serialized,) = self.serialize_requests()
 
-        assert serialized["followUp"] == {"status": "accepted", "reason": None}
+        assert serialized["followUp"] == {
+            "status": "accepted",
+            "reason": None,
+            "rerun": None,
+            "retryable": False,
+        }
 
     def test_a_follow_up_seer_turned_down_has_seers_code(self) -> None:
         self.add_followed_up_request(
@@ -398,6 +406,26 @@ class InvestigationActionRequestSerializationTest(TestCase):
         assert serialized["followUp"] == {
             "status": "failed",
             "reason": "action_requests_report_changed",
+            "rerun": None,
+            "retryable": False,
+        }
+
+    def test_a_re_run_seer_dropped_says_so(self) -> None:
+        self.add_followed_up_request(
+            type="rerun_after_connection",
+            payload={"provider": "datadog"},
+            status=InvestigationOrchestrationCommandStatus.FAILED,
+            rerun=InvestigationOrchestrationRerun.SKIPPED,
+            error={"code": "rerun_skipped", "reason": "run_failed"},
+        )
+
+        (serialized,) = self.serialize_requests()
+
+        assert serialized["followUp"] == {
+            "status": "failed",
+            "reason": "run_failed",
+            "rerun": "skipped",
+            "retryable": False,
         }
 
     def test_an_undelivered_follow_up_has_no_reason(self) -> None:
@@ -408,7 +436,57 @@ class InvestigationActionRequestSerializationTest(TestCase):
 
         (serialized,) = self.serialize_requests()
 
-        assert serialized["followUp"] == {"status": "failed", "reason": None}
+        assert serialized["followUp"] == {
+            "status": "failed",
+            "reason": None,
+            "rerun": None,
+            "retryable": True,
+        }
+
+    def test_a_re_check_that_failed_behind_another_command_can_be_tried_again(self) -> None:
+        self.add_followed_up_request(
+            status=InvestigationOrchestrationCommandStatus.FAILED,
+            error={"code": "earlier_command_conflicted"},
+        )
+
+        (serialized,) = self.serialize_requests()
+
+        assert serialized["followUp"] == {
+            "status": "failed",
+            "reason": None,
+            "rerun": None,
+            "retryable": True,
+        }
+
+    def test_a_re_check_behind_an_undelivered_command_cannot_be_tried_again(self) -> None:
+        self.add_followed_up_request(
+            status=InvestigationOrchestrationCommandStatus.FAILED,
+            error={"code": "earlier_command_failed"},
+        )
+
+        (serialized,) = self.serialize_requests()
+
+        assert serialized["followUp"]["retryable"] is False
+
+    def test_a_re_run_behind_a_conflict_can_be_tried_again_but_not_behind_a_failure(
+        self,
+    ) -> None:
+        for key, code, retryable in (
+            ("conflicted", "earlier_command_conflicted", True),
+            ("failed", "earlier_command_failed", False),
+        ):
+            self.add_followed_up_request(
+                key,
+                type="rerun_after_connection",
+                payload={"provider": "datadog"},
+                status=InvestigationOrchestrationCommandStatus.FAILED,
+                error={"code": code},
+            )
+
+        assert {row["key"]: row["followUp"]["retryable"] for row in self.serialize_requests()} == {
+            "conflicted": True,
+            "failed": False,
+        }
 
     def test_block_anchors_point_at_the_live_block(self) -> None:
         live = self.create_investigation_block(

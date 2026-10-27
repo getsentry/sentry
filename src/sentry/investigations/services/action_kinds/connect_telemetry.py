@@ -21,6 +21,7 @@ from sentry.investigations.services.action_kinds.base import (
     ActionKind,
     ApplyContext,
     CannotApplyReason,
+    FollowUpCommand,
 )
 from sentry.models.organization import Organization
 from sentry.seer.agent.monitoring_providers import org_monitoring_provider_registry
@@ -110,6 +111,13 @@ class ConnectTelemetryKind(ActionKind):
 
     def apply(self, context: ApplyContext) -> ConnectTelemetryAppliedDetails:
         return {"provider": _provider(context.action_request)}
+
+    def follow_up_command(self, action_request: InvestigationActionRequest) -> FollowUpCommand:
+        # Seer starts the re-run, or holds it until the busy run completes.
+        return {
+            "type": "rerun_after_connection",
+            "payload": {"provider": _provider(action_request)},
+        }
 
     def after_upsert(self, action_request: InvestigationActionRequest) -> None:
         from sentry.tasks.seer.investigation import mark_investigation_telemetry_connected

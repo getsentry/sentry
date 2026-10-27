@@ -10,9 +10,11 @@ from pydantic import BaseModel, Field, StrictBool, StrictInt, ValidationError
 from urllib3 import BaseHTTPResponse
 
 from sentry.hybridcloud.rpc.service import RpcException
+from sentry.investigations.contracts import RerunSkipReason
 from sentry.investigations.models import (
     Investigation,
     InvestigationOrchestrationCommand,
+    InvestigationOrchestrationRerun,
     InvestigationOrchestrationRun,
 )
 from sentry.net.http import connection_from_url
@@ -44,6 +46,8 @@ class InvestigationCommandResponse(TypedDict):
     duplicate: bool
     workflowVersion: int
     projection: dict[str, Any]
+    # Only rerun_after_connection has it.
+    rerun: InvestigationOrchestrationRerun | None
 
 
 # Why Seer turned down a command.
@@ -52,6 +56,8 @@ CommandRejectionCode = Literal[
     "idempotency_conflict",
     "invalid_command_target",
     "action_requests_report_changed",
+    RerunSkipReason,
+    "provider_already_used",
 ]
 
 
@@ -78,6 +84,7 @@ class _InvestigationCommandResponseModel(BaseModel):
     duplicate: StrictBool
     workflow_version: StrictInt = Field(alias="workflowVersion")
     projection: dict[str, Any]
+    rerun: InvestigationOrchestrationRerun | None = None
 
 
 __all__ = [
@@ -161,6 +168,7 @@ def _validate_command_response(value: dict[str, Any]) -> InvestigationCommandRes
         "duplicate": model.duplicate,
         "workflowVersion": model.workflow_version,
         "projection": model.projection,
+        "rerun": model.rerun,
     }
     return cast(InvestigationCommandResponse, normalized)
 

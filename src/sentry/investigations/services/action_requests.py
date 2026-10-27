@@ -33,11 +33,13 @@ from sentry.investigations.services.action_kinds.base import (
     ApplyErrorCode,
     ApplyFailed,
     CannotApplyReason,
+    FollowUpCommand,
     SettingValue,
 )
 from sentry.investigations.services.orchestration import (
     accept_orchestration_command,
     command_can_be_requeued,
+    command_can_be_resent,
     rebuild_orchestration_source,
 )
 
@@ -323,8 +325,8 @@ def _check_can_apply(
     *,
     retry: bool = False,
 ) -> ActionKind:
-    """Return the request's kind, or raise ApplyFailed if the viewer can't apply it. A retry of
-    a failed re-check is for a request that already went stale, so its state doesn't count.
+    """Return the request's kind, or raise ApplyFailed if the viewer can't apply it. A retry is
+    for a request that already went stale or was applied, so its state doesn't count.
     """
 
     reason = shared_cannot_apply_reason(investigation, action_request)
@@ -349,6 +351,41 @@ def _check_can_apply(
     )
 
 
+def _queue_follow_up(
+    investigation: Investigation,
+    run: InvestigationOrchestrationRun,
+    command: FollowUpCommand,
+    actor_id: int | None,
+) -> UUID:
+    """Send Seer a command for an action request, and return its request ID. Requests that
+    need the same command share it while it's queued.
+    """
+
+    queued = (
+        InvestigationOrchestrationCommand.objects.filter(
+            orchestration_run=run,
+            type=command["type"],
+            payload=command["payload"],
+            status__in=(
+                InvestigationOrchestrationCommandStatus.ACCEPTED,
+                InvestigationOrchestrationCommandStatus.DISPATCHED,
+            ),
+        )
+        .values_list("request_id", flat=True)
+        .first()
+    )
+    if queued is not None:
+        return queued
+    return accept_orchestration_command(
+        investigation=investigation,
+        request_id=uuid4(),
+        expected_workflow_version=run.workflow_version,
+        command_type=command["type"],
+        payload=command["payload"],
+        actor_id=actor_id,
+    ).request_id
+
+
 def _complete_action_request(
     investigation: Investigation,
     run: InvestigationOrchestrationRun,
@@ -361,13 +398,6 @@ def _complete_action_request(
     applied it for the user. Callers hold the investigation, run, and request locks.
     """
 
-    action_request.update(
-        state=InvestigationActionRequestState.APPLIED,
-        applied_by_id=applied_by,
-        date_applied=timezone.now(),
-        applied_details=details,
-        error=None,
-    )
     accept_orchestration_command(
         investigation=investigation,
         request_id=uuid5(_OUTCOME_NAMESPACE, f"{action_request.id}:applied"),
@@ -381,6 +411,21 @@ def _complete_action_request(
             "appliedBy": applied_by,
         },
         actor_id=applied_by,
+    )
+    kind = get_action_kind(action_request.action_kind)
+    assert kind is not None
+    command = kind.follow_up_command(action_request)
+    action_request.update(
+        state=InvestigationActionRequestState.APPLIED,
+        applied_by_id=applied_by,
+        date_applied=timezone.now(),
+        applied_details=details,
+        error=None,
+        followup_request_id=(
+            _queue_follow_up(investigation, run, command, applied_by)
+            if command is not None
+            else None
+        ),
     )
 
 
@@ -440,15 +485,15 @@ def _queue_recheck(context: ApplyContext) -> UUID | None:
     source = rebuild_orchestration_source(context.investigation)
     if source is None:
         return None
-    accepted = accept_orchestration_command(
-        investigation=context.investigation,
-        request_id=uuid4(),
-        expected_workflow_version=context.run.workflow_version,
-        command_type="recheck_action_requests",
-        payload={"reportRevision": context.action_request.report_revision, "source": source},
-        actor_id=context.actor_id,
+    return _queue_follow_up(
+        context.investigation,
+        context.run,
+        {
+            "type": "recheck_action_requests",
+            "payload": {"reportRevision": context.action_request.report_revision, "source": source},
+        },
+        context.actor_id,
     )
-    return accepted.request_id
 
 
 def _record_stale(context: ApplyContext, current: dict[str, SettingValue]) -> None:
@@ -471,6 +516,31 @@ def _failed_recheck(
         request_id=action_request.followup_request_id,
         status=InvestigationOrchestrationCommandStatus.FAILED,
     ).first()
+
+
+def _undelivered_follow_up(
+    action_request: InvestigationActionRequest,
+) -> InvestigationOrchestrationCommand | None:
+    """The applied request's follow-up, if Seer never got it and it can go out again. One Seer
+    turned down or dropped has a reason, and one that failed behind an undelivered command goes
+    out again when that command does.
+    """
+
+    if (
+        action_request.state != InvestigationActionRequestState.APPLIED
+        or action_request.followup_request_id is None
+    ):
+        return None
+    command = InvestigationOrchestrationCommand.objects.filter(
+        orchestration_run__investigation_id=action_request.investigation_id,
+        request_id=action_request.followup_request_id,
+        status=InvestigationOrchestrationCommandStatus.FAILED,
+    ).first()
+    return (
+        command
+        if command is not None and command_can_be_resent(command.type, command.error)
+        else None
+    )
 
 
 def _check_without_writes(kind: ActionKind, context: ApplyContext) -> None:
@@ -621,6 +691,35 @@ def _recheck(
     )
 
 
+def _retry_follow_up(
+    *,
+    investigation: Investigation,
+    action_request: InvestigationActionRequest,
+    request: Request,
+    actor_id: int,
+    expected_action: Mapping[str, Any] | None,
+) -> InvestigationActionRequest:
+    context = _locked_context(investigation, action_request, request, actor_id, lock=True)
+    action_request = context.action_request
+    command = _undelivered_follow_up(action_request)
+    if command is None:
+        raise ApplyFailed(
+            {"detail": "There's nothing to send Seer again.", "code": ApplyErrorCode.NOT_RETRYABLE}
+        )
+    _check_can_apply(context.investigation, action_request, request, retry=True)
+    _check_action_unchanged(action_request, expected_action)
+    # Seer never got it, so send the same command again.
+    accept_orchestration_command(
+        investigation=context.investigation,
+        request_id=command.request_id,
+        expected_workflow_version=command.expected_workflow_version,
+        command_type=command.type,
+        payload=command.payload,
+        actor_id=command.actor_id,
+    )
+    return action_request
+
+
 def _get_action_request(
     investigation: Investigation, action_request_id: str
 ) -> InvestigationActionRequest:
@@ -694,6 +793,30 @@ def recheck_action_request(
     action_request = _get_action_request(investigation, action_request_id)
     return _commit_then_raise(
         lambda: _recheck(
+            investigation=investigation,
+            action_request=action_request,
+            request=request,
+            actor_id=actor_id,
+            expected_action=expected_action,
+        )
+    )
+
+
+def retry_follow_up(
+    *,
+    investigation: Investigation,
+    action_request_id: str,
+    request: Request,
+    actor_id: int,
+    expected_action: Mapping[str, Any] | None = None,
+) -> InvestigationActionRequest:
+    """Send the applied request's follow-up command to Seer again if Seer never got it, or
+    raise ApplyFailed with `not_retryable`.
+    """
+
+    action_request = _get_action_request(investigation, action_request_id)
+    return _commit_then_raise(
+        lambda: _retry_follow_up(
             investigation=investigation,
             action_request=action_request,
             request=request,

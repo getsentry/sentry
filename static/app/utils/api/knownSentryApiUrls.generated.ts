@@ -195,6 +195,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/investigations/$investigationId/'
   | '/organizations/$organizationIdOrSlug/investigations/$investigationId/action-requests/$actionRequestId/apply/'
   | '/organizations/$organizationIdOrSlug/investigations/$investigationId/action-requests/$actionRequestId/recheck/'
+  | '/organizations/$organizationIdOrSlug/investigations/$investigationId/action-requests/$actionRequestId/retry-follow-up/'
   | '/organizations/$organizationIdOrSlug/investigations/$investigationId/blocks/'
   | '/organizations/$organizationIdOrSlug/investigations/$investigationId/blocks/$blockId/'
   | '/organizations/$organizationIdOrSlug/investigations/$investigationId/blocks/$blockId/executions/'

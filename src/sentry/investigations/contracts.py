@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any, Literal, TypedDict, cast
+from typing import Any, Literal, TypedDict, cast, get_args
 
 import orjson
 from django.utils import timezone
@@ -13,6 +13,7 @@ from sentry.db.models.fields.bounded import I32_MAX, I64_MAX
 from sentry.investigations.models.block import InvestigationBlockKind
 from sentry.investigations.models.orchestration import (
     InvestigationOrchestrationPhase,
+    InvestigationOrchestrationRerun,
     InvestigationOrchestrationStatus,
 )
 
@@ -948,6 +949,18 @@ class ActionWithdrawnPayloadSerializer(RelaxedContractSerializer):
     reason = StrictCharField(max_length=1_000)
 
 
+# Why Seer dropped a re-run it held.
+RerunSkipReason = Literal["run_cancelled", "run_failed", "provider_not_connected"]
+
+
+class RerunUpdatedPayloadSerializer(RelaxedContractSerializer):
+    requestId = serializers.UUIDField()
+    rerun = serializers.ChoiceField(
+        choices=[InvestigationOrchestrationRerun.STARTED, InvestigationOrchestrationRerun.SKIPPED]
+    )
+    reason = serializers.ChoiceField(choices=get_args(RerunSkipReason), allow_null=True)
+
+
 class WorkflowFailedPayloadSerializer(RelaxedContractSerializer):
     error = ProjectionErrorSerializer()
     projection = OrchestrationProjectionSerializer(required=False, allow_null=True)
@@ -1013,5 +1026,6 @@ EVENT_PAYLOAD_SERIALIZERS: dict[str, type[RelaxedContractSerializer]] = {
     "metadata_completed": MetadataCompletedPayloadSerializer,
     "action_requested": ActionRequestedPayloadSerializer,
     "action_withdrawn": ActionWithdrawnPayloadSerializer,
+    "rerun_updated": RerunUpdatedPayloadSerializer,
     "workflow_failed": WorkflowFailedPayloadSerializer,
 }

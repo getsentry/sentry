@@ -22,6 +22,7 @@ from sentry.investigations.models import (
     InvestigationOrchestrationCommand,
     InvestigationOrchestrationCommandStatus,
     InvestigationOrchestrationPhase,
+    InvestigationOrchestrationRerun,
     InvestigationOrchestrationRun,
     InvestigationOrchestrationStatus,
 )
@@ -47,6 +48,8 @@ from sentry.investigations.services.action_requests import complete_action_reque
 from sentry.investigations.services.orchestration import (
     FOLLOW_UP_COMMAND_TYPES,
     INTERNAL_COMMAND_TYPES,
+    clear_command_dispatch_error,
+    requeue_commands_behind,
     schedule_orchestration_commands,
 )
 from sentry.investigations.services.orchestration_events import (
@@ -143,10 +146,6 @@ def _fail_commands_after(
         error=error,
         date_updated=timezone.now(),
     )
-    if later.filter(
-        type__in=INTERNAL_COMMAND_TYPES, status=InvestigationOrchestrationCommandStatus.ACCEPTED
-    ).exists():
-        schedule_orchestration_commands(run.id)
     return blocked_user_command
 
 
@@ -159,14 +158,18 @@ def _mark_command_dispatch_failed(command_id: int) -> None:
         run = _lock_orchestration_run(command_snapshot.orchestration_run_id)
         if run is None:
             return
+        # The dispatch task stops after this, so send whatever's still queued.
+        schedule_orchestration_commands(run.id)
         command = (
             InvestigationOrchestrationCommand.objects.select_for_update()
             .filter(id=command_id)
             .first()
         )
+        # A rerun_updated event means Seer has it, whatever happened to the response.
         if (
             command is None
             or command.status == InvestigationOrchestrationCommandStatus.ACKNOWLEDGED
+            or command.rerun is not None
         ):
             return
         detail = {
@@ -181,7 +184,6 @@ def _mark_command_dispatch_failed(command_id: int) -> None:
         command.save(update_fields=["status", "error", "date_updated"])
         if command.type in INTERNAL_COMMAND_TYPES:
             # Losing it isn't a run error, and no other command waits on it.
-            schedule_orchestration_commands(run.id)
             return
         blocked_user_command = _fail_commands_after(
             run,
@@ -210,6 +212,8 @@ def _mark_command_version_conflicted(command_id: int, reason: CommandRejectionCo
         run = _lock_orchestration_run(command_snapshot.orchestration_run_id)
         if run is None:
             return
+        # The dispatch task stops after this, so send whatever's still queued.
+        schedule_orchestration_commands(run.id)
         command = (
             InvestigationOrchestrationCommand.objects.select_for_update()
             .filter(id=command_id)
@@ -218,6 +222,7 @@ def _mark_command_version_conflicted(command_id: int, reason: CommandRejectionCo
         if (
             command is None
             or command.status == InvestigationOrchestrationCommandStatus.ACKNOWLEDGED
+            or command.rerun is not None
         ):
             return
         detail = {
@@ -263,6 +268,8 @@ def _mark_internal_command_rejected(command_id: int, code: CommandRejectionCode 
         run = _lock_orchestration_run(command_snapshot.orchestration_run_id)
         if run is None:
             return
+        # The dispatch task stops after this, so send whatever's still queued.
+        schedule_orchestration_commands(run.id)
         command = (
             InvestigationOrchestrationCommand.objects.select_for_update()
             .filter(id=command_id)
@@ -283,7 +290,6 @@ def _mark_internal_command_rejected(command_id: int, code: CommandRejectionCode 
             "retryable": False,
         }
         command.save(update_fields=["status", "error", "date_updated"])
-        schedule_orchestration_commands(run.id)
 
 
 def _command_viewer_scope(
@@ -330,6 +336,7 @@ def _reconcile_command_version_conflict(
 def _mark_command_dispatch_acknowledged(
     orchestration_run_id: int,
     command_id: int,
+    rerun: InvestigationOrchestrationRerun | None,
 ) -> None:
     database = router.db_for_write(InvestigationOrchestrationCommand)
     with transaction.atomic(using=database):
@@ -343,52 +350,16 @@ def _mark_command_dispatch_acknowledged(
             and command.error.get("code") == "seer_command_dispatch_failed"
             and command.error.get("retryable") is True
         )
-        command.status = InvestigationOrchestrationCommandStatus.ACKNOWLEDGED
-        command.error = None
-        command.save(update_fields=["status", "error", "date_updated"])
+        # Seer's rerun_updated event can arrive before its response, and it's newer.
+        if command.rerun is None:
+            command.rerun = rerun
+        if command.rerun != InvestigationOrchestrationRerun.SKIPPED:
+            command.status = InvestigationOrchestrationCommandStatus.ACKNOWLEDGED
+            command.error = None
+        command.save(update_fields=["status", "error", "rerun", "date_updated"])
         if recovered_dispatch_failure:
-            blocked_commands = list(
-                InvestigationOrchestrationCommand.objects.select_for_update()
-                .filter(
-                    orchestration_run=run,
-                    id__gt=command.id,
-                    status=InvestigationOrchestrationCommandStatus.FAILED,
-                )
-                .order_by("id")
-            )
-            now = timezone.now()
-            requeued_commands = []
-            for blocked_command in blocked_commands:
-                if (
-                    isinstance(blocked_command.error, dict)
-                    and blocked_command.error.get("code") == "earlier_command_failed"
-                ):
-                    blocked_command.status = InvestigationOrchestrationCommandStatus.ACCEPTED
-                    blocked_command.error = None
-                    blocked_command.date_updated = now
-                    requeued_commands.append(blocked_command)
-            if requeued_commands:
-                InvestigationOrchestrationCommand.objects.bulk_update(
-                    requeued_commands,
-                    ["status", "error", "date_updated"],
-                )
-        errors = run.projection.get("errors")
-        if isinstance(errors, list):
-            run.projection["errors"] = [
-                item
-                for item in errors
-                if not (
-                    isinstance(item, dict)
-                    and item.get("code") == "seer_command_dispatch_failed"
-                    and item.get("requestId") == str(command.request_id)
-                )
-            ]
-        if (
-            isinstance(run.error, dict)
-            and run.error.get("code") == "seer_command_dispatch_failed"
-            and run.error.get("requestId") == str(command.request_id)
-        ):
-            run.error = None
+            requeue_commands_behind(run, command)
+        clear_command_dispatch_error(run, request_id=command.request_id)
         run.save(update_fields=["error", "projection", "date_updated"])
 
 
@@ -567,7 +538,7 @@ def dispatch_investigation_orchestration_commands(orchestration_run_id: int) -> 
             _mark_command_dispatch_failed(command.id)
             return
 
-        _mark_command_dispatch_acknowledged(run.id, command.id)
+        _mark_command_dispatch_acknowledged(run.id, command.id, response["rerun"])
 
 
 @instrumented_task(
