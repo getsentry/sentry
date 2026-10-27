@@ -1970,6 +1970,26 @@ describe('SeerExplorerContent', () => {
       expect(seed).not.toHaveProperty('screenshot');
     });
 
+    it("doesn't widen a selection that matches no project", async () => {
+      // A pinned project that isn't loaded, e.g. one from a stale URL.
+      PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [99]}));
+      const createMock = MockApiClient.addMockResponse({
+        url: `/organizations/${investigationsOrganization.slug}/investigations/`,
+        method: 'POST',
+        body: {id: '4567'},
+      });
+
+      renderContent();
+
+      await userEvent.type(await getSeerExplorerInput(), '/investigate why?{Enter}');
+
+      expect(
+        await screen.findByText('There are no projects to investigate.')
+      ).toBeInTheDocument();
+      expect(createMock).not.toHaveBeenCalled();
+      expect(await getSeerExplorerInput()).toHaveTextContent('/investigate why?');
+    });
+
     it("sends the page's date range and environments", async () => {
       PageFiltersStore.onInitializeUrlState(
         PageFiltersFixture({

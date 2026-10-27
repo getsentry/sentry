@@ -43,14 +43,16 @@ function isProjectSelected(project: Project, selectedProjects: number[]) {
 /**
  * The run can only read the investigation's projects. My Projects is empty for
  * someone on no project's team, and investigations need open membership, so
- * that falls back to every project they can access.
+ * that falls back to every project they can access. Any other selection that
+ * matches nothing stays empty rather than widening to the whole organization.
  */
 function getProjectIds(selectedProjects: number[], projects: Project[]) {
   const selected = projects.filter(project =>
     isProjectSelected(project, selectedProjects)
   );
+  const isEmptyMyProjects = selectedProjects.length === 0 && selected.length === 0;
   return (
-    selected.length > 0 ? selected : projects.filter(project => project.hasAccess)
+    isEmptyMyProjects ? projects.filter(project => project.hasAccess) : selected
   ).map(project => Number(project.id));
 }
 
