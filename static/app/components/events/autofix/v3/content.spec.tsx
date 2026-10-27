@@ -83,9 +83,7 @@ describe('SeerDrawerContent', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Start Analysis'}));
 
-    expect(startStep).toHaveBeenCalledWith('root_cause', {
-      enableBashMode: true,
-    });
+    expect(startStep).toHaveBeenCalledWith('root_cause', {enableBashMode: true});
   });
 
   describe('single run', () => {
@@ -169,6 +167,42 @@ describe('SeerDrawerContent', () => {
       expect(
         screen.queryByRole('button', {name: 'Open in Seer Explorer'})
       ).not.toBeInTheDocument();
+    });
+
+    it('shows a placeholder while the run has only its kickoff prompt', () => {
+      render(
+        <SeerDrawerContent
+          aiConfig={makeAiConfig()}
+          autofix={makeAutofix({
+            runState: {
+              ...runState,
+              status: 'processing',
+              blocks: runState.blocks.slice(0, 1),
+              repo_pr_states: {},
+            },
+          })}
+          group={GroupFixture()}
+        />
+      );
+
+      expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument();
+      expect(
+        screen.queryByText('Fix issue SENTRY-1 end to end.')
+      ).not.toBeInTheDocument();
+    });
+
+    it('says when the run errored', () => {
+      render(
+        <SeerDrawerContent
+          aiConfig={makeAiConfig()}
+          autofix={makeAutofix({runState: {...runState, status: 'error'}})}
+          group={GroupFixture()}
+        />
+      );
+
+      expect(
+        screen.getByText('Autofix ran into an error and stopped.')
+      ).toBeInTheDocument();
     });
   });
 });

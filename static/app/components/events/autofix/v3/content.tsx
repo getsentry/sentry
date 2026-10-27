@@ -71,19 +71,19 @@ export function SeerDrawerContent({
     return <AutofixStartCard autofix={autofix} group={group} />;
   }
 
-  if (isSingleRunAutofix(autofix.runState)) {
-    return <SingleRunChat autofix={autofix} />;
-  }
+  const isSingleRun = isSingleRunAutofix(autofix.runState);
 
   return (
     <Stack gap="lg">
+      {isSingleRun && <SingleRunChat autofix={autofix} />}
       <SeerDrawerArtifacts autofix={autofix} sections={sections} groupId={group.id} />
-      {(autofix.runState?.status === 'completed' ||
-        isLastStepPrIteration(autofix.runState)) && (
-        <NextStepWrap isSticky={stickyNextStep}>
-          <SeerDrawerNextStep group={group} autofix={autofix} sections={sections} />
-        </NextStepWrap>
-      )}
+      {!isSingleRun &&
+        (autofix.runState?.status === 'completed' ||
+          isLastStepPrIteration(autofix.runState)) && (
+          <NextStepWrap isSticky={stickyNextStep}>
+            <SeerDrawerNextStep group={group} autofix={autofix} sections={sections} />
+          </NextStepWrap>
+        )}
       {autofix.codingAgentErrors.map(({id, message}) => (
         <Alert
           key={id}
