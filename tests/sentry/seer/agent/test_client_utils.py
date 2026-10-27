@@ -476,7 +476,7 @@ class TestGetProxyHeaders(TestCase):
 
     def test_system_viewer_context_propagates(self) -> None:
         with viewer_context_scope(
-            ViewerContext(actor=Actor(type=ActorType.UNKNOWN), organization_id=42)
+            ViewerContext(actor=Actor(type=ActorType.SYSTEM), organization_id=42)
         ):
             assert get_proxy_headers() is not None
 

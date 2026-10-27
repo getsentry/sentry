@@ -36,7 +36,9 @@ class TestEncodeEarlyAdopterClaim(TestCase):
         organization.save()
 
         claims = self._claims(
-            ViewerContext(actor=Actor(type=ActorType.UNKNOWN), organization_id=organization.id)
+            ViewerContext(
+                actor=Actor(type=ActorType.USER, actor_id=7), organization_id=organization.id
+            )
         )
 
         assert claims["organization_is_early_adopter"] is True
@@ -50,7 +52,9 @@ class TestEncodeEarlyAdopterClaim(TestCase):
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             claims = self._claims(
-                ViewerContext(actor=Actor(type=ActorType.UNKNOWN), organization_id=organization.id)
+                ViewerContext(
+                    actor=Actor(type=ActorType.USER, actor_id=7), organization_id=organization.id
+                )
             )
 
         assert claims["organization_is_early_adopter"] is True
@@ -60,7 +64,9 @@ class TestEncodeEarlyAdopterClaim(TestCase):
         organization = self.create_organization()
 
         claims = self._claims(
-            ViewerContext(actor=Actor(type=ActorType.UNKNOWN), organization_id=organization.id)
+            ViewerContext(
+                actor=Actor(type=ActorType.USER, actor_id=7), organization_id=organization.id
+            )
         )
 
         assert "organization_is_early_adopter" not in claims
@@ -68,7 +74,7 @@ class TestEncodeEarlyAdopterClaim(TestCase):
     @override_settings(SEER_API_SHARED_SECRET="test-secret-key")
     def test_missing_organization_omits_claim(self):
         claims = self._claims(
-            ViewerContext(actor=Actor(type=ActorType.UNKNOWN), organization_id=987654321)
+            ViewerContext(actor=Actor(type=ActorType.USER, actor_id=7), organization_id=987654321)
         )
 
         assert "organization_is_early_adopter" not in claims
@@ -144,7 +150,7 @@ class TestEncodeViewerContext(TestCase):
 
     @override_settings(SEER_API_SHARED_SECRET="test-secret-key")
     def test_standard_claims_present(self):
-        vc = ViewerContext(actor=Actor(type=ActorType.UNKNOWN), organization_id=1)
+        vc = ViewerContext(actor=Actor(type=ActorType.USER, actor_id=7), organization_id=1)
         token = encode_viewer_context(vc)
 
         claims = pyjwt.decode(token, options={"verify_signature": False})
@@ -155,14 +161,14 @@ class TestEncodeViewerContext(TestCase):
 
     @override_settings(SEER_API_SHARED_SECRET="test-secret-key")
     def test_custom_ttl(self):
-        vc = ViewerContext(actor=Actor(type=ActorType.UNKNOWN), organization_id=1)
+        vc = ViewerContext(actor=Actor(type=ActorType.USER, actor_id=7), organization_id=1)
         token = encode_viewer_context(vc, ttl=300)
 
         claims = pyjwt.decode(token, options={"verify_signature": False})
         assert claims["exp"] - claims["iat"] == 300
 
     def test_custom_key_parameter(self):
-        vc = ViewerContext(actor=Actor(type=ActorType.UNKNOWN), organization_id=1)
+        vc = ViewerContext(actor=Actor(type=ActorType.USER, actor_id=7), organization_id=1)
         token = encode_viewer_context(vc, key="my-custom-key")
         result = decode_viewer_context(token, key="my-custom-key")
 
@@ -170,13 +176,13 @@ class TestEncodeViewerContext(TestCase):
 
     @override_settings(SEER_API_SHARED_SECRET="")
     def test_no_key_raises_value_error(self):
-        vc = ViewerContext(actor=Actor(type=ActorType.UNKNOWN), organization_id=1)
+        vc = ViewerContext(actor=Actor(type=ActorType.USER, actor_id=7), organization_id=1)
         with pytest.raises(ValueError, match="No signing key available"):
             encode_viewer_context(vc)
 
     @override_settings(SEER_API_SHARED_SECRET="test-secret-key")
     def test_token_field_not_in_jwt(self):
-        vc = ViewerContext(actor=Actor(type=ActorType.UNKNOWN), organization_id=1)
+        vc = ViewerContext(actor=Actor(type=ActorType.USER, actor_id=7), organization_id=1)
         jwt_token = encode_viewer_context(vc)
 
         result = decode_viewer_context(jwt_token)
@@ -209,7 +215,7 @@ class TestDecodeViewerContext(TestCase):
             decode_viewer_context(expired_token)
 
     def test_wrong_key_rejected(self):
-        vc = ViewerContext(actor=Actor(type=ActorType.UNKNOWN), organization_id=1)
+        vc = ViewerContext(actor=Actor(type=ActorType.USER, actor_id=7), organization_id=1)
         token = encode_viewer_context(vc, key="correct-key")
 
         with pytest.raises(pyjwt.exceptions.InvalidTokenError, match="No verification key"):
@@ -234,7 +240,7 @@ class TestDecodeViewerContext(TestCase):
 
     @override_settings(SEER_API_SHARED_SECRET="")
     def test_no_verification_key_raises(self):
-        vc = ViewerContext(actor=Actor(type=ActorType.UNKNOWN), organization_id=1)
+        vc = ViewerContext(actor=Actor(type=ActorType.USER, actor_id=7), organization_id=1)
         token = encode_viewer_context(vc, key="some-key")
 
         with pytest.raises(ValueError, match="No verification keys available"):
