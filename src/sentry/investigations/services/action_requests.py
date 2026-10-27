@@ -517,22 +517,25 @@ def _failed_recheck(
     ).first()
 
 
-def _follow_up_retryable(action_request: InvestigationActionRequest) -> bool:
-    """Whether the applied request's follow-up failed without Seer turning it down. A command
-    Seer turned down, or a re-run it dropped, has a reason, and sending it again won't change it.
+def _undelivered_follow_up(
+    action_request: InvestigationActionRequest,
+) -> InvestigationOrchestrationCommand | None:
+    """The applied request's follow-up, if Seer never got it and it can go out again. One Seer
+    turned down or dropped has a reason, and one that failed behind an earlier command goes out
+    again when that command does.
     """
 
     if (
         action_request.state != InvestigationActionRequestState.APPLIED
         or action_request.followup_request_id is None
     ):
-        return False
+        return None
     command = InvestigationOrchestrationCommand.objects.filter(
         orchestration_run__investigation_id=action_request.investigation_id,
         request_id=action_request.followup_request_id,
         status=InvestigationOrchestrationCommandStatus.FAILED,
     ).first()
-    return command is not None and (command.error or {}).get("reason") is None
+    return command if command is not None and command_can_be_requeued(command) else None
 
 
 def _check_without_writes(kind: ActionKind, context: ApplyContext) -> None:
@@ -693,16 +696,21 @@ def _retry_follow_up(
 ) -> InvestigationActionRequest:
     context = _locked_context(investigation, action_request, request, actor_id, lock=True)
     action_request = context.action_request
-    if not _follow_up_retryable(action_request):
+    command = _undelivered_follow_up(action_request)
+    if command is None:
         raise ApplyFailed(
             {"detail": "There's nothing to send Seer again.", "code": ApplyErrorCode.NOT_RETRYABLE}
         )
-    kind = _check_can_apply(context.investigation, action_request, request, retry=True)
+    _check_can_apply(context.investigation, action_request, request, retry=True)
     _check_action_unchanged(action_request, expected_action)
-    command = kind.follow_up_command(action_request)
-    assert command is not None
-    action_request.update(
-        followup_request_id=_queue_follow_up(context.investigation, context.run, command, actor_id)
+    # Seer is still at the version the command expected, so send the same command again.
+    accept_orchestration_command(
+        investigation=context.investigation,
+        request_id=command.request_id,
+        expected_workflow_version=command.expected_workflow_version,
+        command_type=command.type,
+        payload=command.payload,
+        actor_id=command.actor_id,
     )
     return action_request
 
@@ -797,8 +805,8 @@ def retry_follow_up(
     actor_id: int,
     expected_action: Mapping[str, Any] | None = None,
 ) -> InvestigationActionRequest:
-    """Send the applied request's follow-up command to Seer again under a new request ID, or
-    raise ApplyFailed with `not_retryable` if it didn't fail or Seer turned it down.
+    """Send the applied request's follow-up command to Seer again if Seer never got it, or
+    raise ApplyFailed with `not_retryable`.
     """
 
     action_request = _get_action_request(investigation, action_request_id)

@@ -66,8 +66,8 @@ class OrganizationInvestigationActionRequestRetryFollowUpEndpoint(
         action_request_id: str,
     ) -> Response:
         """
-        Send Seer the follow-up command for an applied action request again, when the last one
-        failed without Seer turning it down. It's a 409 with code `not_retryable` otherwise.
+        Send Seer the follow-up command for an applied action request again, when Seer never
+        got it. It's a 409 with code `not_retryable` otherwise.
         Other errors are the same as apply's.
         """
         actor_id = require_authenticated_user(request)

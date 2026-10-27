@@ -20,14 +20,17 @@ from sentry.investigations.models import (
 )
 from sentry.investigations.services.action_kinds.connect_telemetry import telemetry_available
 from sentry.investigations.services.action_requests import upsert_action_request
+from sentry.seer.models.run import SeerRunMirrorStatus, SeerRunType
 from sentry.signals import integration_added
 from sentry.tasks.seer.investigation import (
     TelemetryNotConnectedYet,
     _mark_command_dispatch_failed,
+    dispatch_investigation_orchestration_commands,
     mark_investigation_telemetry_connected,
 )
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.utils import json
 from tests.sentry.investigations.test_seer_contract import fixture
 
 TEST_FERNET_KEY = Fernet.generate_key().decode("utf-8")
@@ -225,20 +228,90 @@ class ConnectTelemetryApplyTest(APITestCase, TelemetryFixtures):
         assert read["state"] == "applied"
         assert read["followUp"] == {"status": "accepted", "reason": None, "rerun": None}
         rerun = self.follow_up()
-        assert rerun.request_id != failed.request_id
+        assert rerun.id == failed.id
+        assert rerun.status == InvestigationOrchestrationCommandStatus.ACCEPTED
+        assert rerun.error is None
         assert {"type": rerun.type, **rerun.payload} == fixture("command_rerun_after_connection")
-        assert rerun.actor_id == self.user.id
-        assert rerun.expected_workflow_version == 5
 
-    def test_a_re_run_blocked_by_an_earlier_failure_can_be_tried_again(self) -> None:
+    @mock.patch("sentry.investigations.seer_client.make_signed_seer_api_request")
+    def test_a_retried_re_run_goes_out_at_the_version_seer_is_at(self, seer: mock.Mock) -> None:
+        # Accepting the re-run moved Sentry to version 5, but Seer never saw it and is at 4.
+        failed = self.applied_rerun()
+        _mark_command_dispatch_failed(failed.id)
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.workflow_version == 5
+        seer_run = self.create_seer_run(
+            organization=self.organization,
+            type=SeerRunType.INVESTIGATION,
+            seer_run_state_id=4815,
+            mirror_status=SeerRunMirrorStatus.LIVE,
+        )
+        self.orchestration_run.update(seer_run=seer_run)
+        sent: list[dict[str, Any]] = []
+
+        def respond(_pool: object, path: str, *, body: bytes, **_: object) -> mock.Mock:
+            command = json.loads(body)
+            sent.append(command)
+            return mock.Mock(
+                status=200,
+                data=json.dumps(
+                    {
+                        "runId": 4815,
+                        "requestId": command["requestId"],
+                        "accepted": True,
+                        "duplicate": False,
+                        "workflowVersion": 5,
+                        "projection": {
+                            "runId": 4815,
+                            "investigationId": str(self.investigation.id),
+                            "sourceType": "manual",
+                            "workflowVersion": 5,
+                            "generation": 1,
+                            "phase": "completed",
+                            "status": "completed",
+                            "broadScan": {"status": "completed"},
+                            "hypotheses": [],
+                            "report": {
+                                "revision": 1,
+                                "status": "completed",
+                                "notebookRevision": 0,
+                                "metadata": {"status": "completed"},
+                            },
+                            "pendingInput": None,
+                            "errors": [],
+                            "heartbeatAt": "2025-01-01T00:00:00+00:00",
+                        },
+                        **fixture("rerun_after_connection_started"),
+                    }
+                ).encode(),
+            )
+
+        seer.side_effect = respond
+
+        assert self.retry_follow_up().status_code == 200
+        dispatch_investigation_orchestration_commands(self.orchestration_run.id)
+
+        rerun = self.follow_up()
+        assert rerun.status == InvestigationOrchestrationCommandStatus.ACKNOWLEDGED, rerun.error
+        assert rerun.rerun == InvestigationOrchestrationRerun.STARTED
+        reruns = [
+            command for command in sent if command["command"]["type"] == "rerun_after_connection"
+        ]
+        assert [
+            (command["requestId"], command["expectedWorkflowVersion"]) for command in reruns
+        ] == [(str(failed.request_id), 4)]
+
+    def test_a_re_run_blocked_by_an_earlier_failure_goes_out_with_that_command(self) -> None:
         failed = self.applied_rerun()
         failed.update(
             status=InvestigationOrchestrationCommandStatus.FAILED,
             error={"code": "earlier_command_failed"},
         )
 
-        assert self.retry_follow_up().status_code == 200
-        assert self.reloaded().followup_request_id != failed.request_id
+        response = self.retry_follow_up()
+
+        assert response.status_code == 409
+        assert response.data["code"] == "not_retryable"
 
     def test_a_re_run_seer_turned_down_is_not_sent_again(self) -> None:
         # Seer would turn it down again for the same reason.
