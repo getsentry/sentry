@@ -11,6 +11,7 @@ import {TOP_N} from 'sentry/utils/discover/types';
 import type {IngestionMeta} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
+import {useDashboardSamplingMode} from 'sentry/views/dashboards/hooks/useDashboardQueryPriority';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DEFAULT_TABLE_LIMIT, DisplayType} from 'sentry/views/dashboards/types';
 import {
@@ -163,6 +164,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
 
   const organization = useOrganization();
   const hookPageFilters = usePageFilters();
+  const dashboardSamplingMode = useDashboardSamplingMode(samplingMode);
 
   // Use override selection if provided (for modal zoom), otherwise use hook
   const selection = propsSelection ?? hookPageFilters.selection;
@@ -191,7 +193,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     pageFilters: selection,
     dashboardFilters,
     skipDashboardFilterParens,
-    samplingMode,
+    samplingMode: dashboardSamplingMode,
     enabled: isTimeSeriesData && !propsLoading,
     limit,
     cursor,
@@ -205,7 +207,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     pageFilters: selection,
     dashboardFilters,
     skipDashboardFilterParens,
-    samplingMode,
+    samplingMode: dashboardSamplingMode,
     enabled: enableTableHook || (enableSeriesHook && needsBreakdownTable),
     limit: limit ?? DEFAULT_TABLE_LIMIT,
     cursor,
@@ -220,6 +222,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     dashboardFilters,
     skipDashboardFilterParens,
     enabled: isHeatmap && !propsLoading,
+    samplingMode: dashboardSamplingMode,
     widgetInterval,
     yBuckets,
   });

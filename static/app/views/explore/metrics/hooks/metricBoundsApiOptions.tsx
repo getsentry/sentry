@@ -5,6 +5,7 @@ import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import type {TraceMetricEventsResult} from 'sentry/views/explore/metrics/types';
 import {createTraceMetricEventsFilter} from 'sentry/views/explore/metrics/utils';
@@ -19,6 +20,7 @@ interface MetricBoundsApiOptions {
   query: string;
   selection: PageFilters;
   traceMetric: TraceMetric;
+  sampling?: SamplingMode;
 }
 
 /**
@@ -31,6 +33,7 @@ export function metricBoundsApiOptions({
   selection,
   traceMetric,
   query,
+  sampling,
 }: MetricBoundsApiOptions) {
   const traceMetricFilter = createTraceMetricEventsFilter([traceMetric]);
   const combinedQuery = query ? `${traceMetricFilter} (${query})` : traceMetricFilter;
@@ -51,7 +54,7 @@ export function metricBoundsApiOptions({
         query: {
           dataset: DiscoverDatasets.TRACEMETRICS,
           field: [MIN_VALUE_FIELD, MAX_VALUE_FIELD],
-          sampling: undefined,
+          sampling,
           query: combinedQuery,
           project: selection.projects,
           environment: selection.environments,

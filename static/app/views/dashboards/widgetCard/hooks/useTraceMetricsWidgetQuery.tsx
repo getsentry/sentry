@@ -303,6 +303,7 @@ export function useTraceMetricsHeatmapQuery(
     enabled,
     dashboardFilters,
     skipDashboardFilterParens,
+    samplingMode,
     widgetInterval = '',
     yBuckets = 0,
   } = params;
@@ -332,6 +333,7 @@ export function useTraceMetricsHeatmapQuery(
     selection: pageFilters,
     query: query?.conditions ?? '',
     interval: widgetInterval,
+    sampling: samplingMode,
     yBuckets,
   });
 

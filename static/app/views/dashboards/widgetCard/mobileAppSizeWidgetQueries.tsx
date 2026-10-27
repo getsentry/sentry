@@ -3,6 +3,7 @@ import type {PageFilters} from 'sentry/types/core';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {MobileAppSizeConfig} from 'sentry/views/dashboards/datasetConfig/mobileAppSize';
+import {useDashboardSamplingMode} from 'sentry/views/dashboards/hooks/useDashboardQueryPriority';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 
 import type {GenericWidgetQueriesResult} from './genericWidgetQueries';
@@ -25,6 +26,7 @@ export function MobileAppSizeWidgetQueries({
   const organization = useOrganization();
   const hookPageFilters = usePageFilters();
   const pageFilters = propsSelection ?? hookPageFilters.selection;
+  const samplingMode = useDashboardSamplingMode(undefined);
 
   const result = MobileAppSizeConfig.useSeriesQuery!({
     widget,
@@ -32,6 +34,7 @@ export function MobileAppSizeWidgetQueries({
     pageFilters,
     dashboardFilters,
     enabled: true,
+    samplingMode,
     widgetInterval,
   });
 
