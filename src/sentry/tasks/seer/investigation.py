@@ -167,9 +167,11 @@ def _mark_command_dispatch_failed(command_id: int) -> None:
             .filter(id=command_id)
             .first()
         )
+        # A rerun_updated event means Seer has it, whatever happened to the response.
         if (
             command is None
             or command.status == InvestigationOrchestrationCommandStatus.ACKNOWLEDGED
+            or command.rerun is not None
         ):
             return
         detail = {

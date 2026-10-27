@@ -474,60 +474,84 @@ class QueuedCommandsTest(TestCase):
         assert rerun.status == InvestigationOrchestrationCommandStatus.ACKNOWLEDGED
         assert rerun.rerun == InvestigationOrchestrationRerun.STARTED
 
-    def test_a_started_re_run_survives_a_lost_response(self) -> None:
-        rerun = self.rerun()
-        steer = self.steer()
-        rerun.update(status=InvestigationOrchestrationCommandStatus.DISPATCHED)
+    def test_a_re_run_update_settles_it_whatever_came_before(self) -> None:
+        rejected = {"code": "seer_command_rejected", "reason": "run_failed", "retryable": False}
+        for prior in ("accepted", "dispatched", "lost_response", "rejected"):
+            for outcome in ("started", "skipped"):
+                with self.subTest(prior=prior, outcome=outcome):
+                    rerun = self.rerun()
+                    steer = self.steer()
+                    if prior == "dispatched":
+                        rerun.update(status=InvestigationOrchestrationCommandStatus.DISPATCHED)
+                    elif prior == "lost_response":
+                        _mark_command_dispatch_failed(rerun.id)
+                    elif prior == "rejected":
+                        rerun.update(
+                            status=InvestigationOrchestrationCommandStatus.FAILED, error=rejected
+                        )
+                    self.dispatch.reset_mock()
 
-        self.seer_sends_rerun_updated(rerun, "rerun_updated_started")
-        _mark_command_dispatch_failed(rerun.id)
+                    with self.capture_on_commit_callbacks(execute=True):
+                        self.seer_sends_rerun_updated(
+                            rerun,
+                            "rerun_updated_started"
+                            if outcome == "started"
+                            else "rerun_updated_skipped_run_failed",
+                        )
 
-        rerun.refresh_from_db()
-        steer.refresh_from_db()
-        self.orchestration_run.refresh_from_db()
-        assert rerun.status == InvestigationOrchestrationCommandStatus.ACKNOWLEDGED
-        assert rerun.rerun == InvestigationOrchestrationRerun.STARTED
-        assert rerun.error is None
-        assert steer.status == InvestigationOrchestrationCommandStatus.ACCEPTED
-        assert self.orchestration_run.error is None
+                    rerun.refresh_from_db()
+                    steer.refresh_from_db()
+                    self.orchestration_run.refresh_from_db()
+                    if prior == "rejected":
+                        assert (rerun.status, rerun.error, rerun.rerun) == (
+                            InvestigationOrchestrationCommandStatus.FAILED,
+                            rejected,
+                            None,
+                        )
+                    elif outcome == "started":
+                        assert (rerun.status, rerun.error, rerun.rerun) == (
+                            InvestigationOrchestrationCommandStatus.ACKNOWLEDGED,
+                            None,
+                            InvestigationOrchestrationRerun.STARTED,
+                        )
+                    else:
+                        assert (rerun.status, rerun.error, rerun.rerun) == (
+                            InvestigationOrchestrationCommandStatus.FAILED,
+                            {"code": "rerun_skipped", "reason": "run_failed"},
+                            InvestigationOrchestrationRerun.SKIPPED,
+                        )
+                    assert (steer.status, steer.error) == (
+                        InvestigationOrchestrationCommandStatus.ACCEPTED,
+                        None,
+                    )
+                    assert self.orchestration_run.error is None
+                    assert self.orchestration_run.projection["errors"] == []
+                    if prior == "lost_response":
+                        self.dispatch.assert_called_once_with(self.orchestration_run.id)
 
-    def test_a_start_after_a_lost_response_recovers_the_queue(self) -> None:
-        rerun = self.rerun()
-        steer = self.steer()
-        _mark_command_dispatch_failed(rerun.id)
-        steer.refresh_from_db()
-        self.orchestration_run.refresh_from_db()
-        assert steer.status == InvestigationOrchestrationCommandStatus.FAILED
-        assert self.orchestration_run.error is not None
-        self.dispatch.reset_mock()
+    def test_a_lost_response_after_a_re_run_update_leaves_the_queue_alone(self) -> None:
+        for outcome in ("started", "skipped"):
+            with self.subTest(outcome=outcome):
+                rerun = self.rerun()
+                steer = self.steer()
+                rerun.update(status=InvestigationOrchestrationCommandStatus.DISPATCHED)
+                self.seer_sends_rerun_updated(
+                    rerun,
+                    "rerun_updated_started"
+                    if outcome == "started"
+                    else "rerun_updated_skipped_run_failed",
+                )
+                rerun.refresh_from_db()
+                settled = (rerun.status, rerun.error)
 
-        with self.capture_on_commit_callbacks(execute=True):
-            self.seer_sends_rerun_updated(rerun, "rerun_updated_started")
+                _mark_command_dispatch_failed(rerun.id)
 
-        rerun.refresh_from_db()
-        steer.refresh_from_db()
-        self.orchestration_run.refresh_from_db()
-        assert rerun.status == InvestigationOrchestrationCommandStatus.ACKNOWLEDGED
-        assert rerun.rerun == InvestigationOrchestrationRerun.STARTED
-        assert rerun.error is None
-        assert steer.status == InvestigationOrchestrationCommandStatus.ACCEPTED
-        assert steer.error is None
-        assert self.orchestration_run.error is None
-        assert self.orchestration_run.projection["errors"] == []
-        self.dispatch.assert_called_once_with(self.orchestration_run.id)
-
-    @mock.patch("sentry.investigations.seer_client.make_signed_seer_api_request")
-    def test_a_start_does_not_recover_a_re_run_seer_turned_down(self, seer: mock.Mock) -> None:
-        self.seer_rejects_with(seer, "rejected_rerun_after_connection_run_failed")
-        rerun = self.rerun()
-        dispatch_investigation_orchestration_commands(self.orchestration_run.id)
-
-        self.seer_sends_rerun_updated(rerun, "rerun_updated_started")
-
-        rerun.refresh_from_db()
-        assert rerun.status == InvestigationOrchestrationCommandStatus.FAILED
-        assert rerun.error is not None
-        assert rerun.error["reason"] == "run_failed"
+                rerun.refresh_from_db()
+                steer.refresh_from_db()
+                self.orchestration_run.refresh_from_db()
+                assert (rerun.status, rerun.error) == settled
+                assert steer.status == InvestigationOrchestrationCommandStatus.ACCEPTED
+                assert self.orchestration_run.error is None
 
     @mock.patch("sentry.investigations.seer_client.make_signed_seer_api_request")
     def test_a_drop_that_lands_before_the_response_is_kept(self, seer: mock.Mock) -> None:

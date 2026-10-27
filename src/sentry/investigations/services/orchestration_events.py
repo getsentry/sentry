@@ -284,37 +284,35 @@ def _set_projection(
 
 def _update_rerun(run: InvestigationOrchestrationRun, payload: dict[str, Any]) -> None:
     """Record whether Seer started or dropped a re-run it held. It can arrive before the
-    command's response.
+    command's response, or after Sentry gave up on one that was lost. Either way Seer has the
+    command, so it doesn't hold up the commands behind it. A command Seer turned down is left
+    alone.
     """
 
-    commands = InvestigationOrchestrationCommand.objects.filter(
+    for command in InvestigationOrchestrationCommand.objects.select_for_update().filter(
         orchestration_run=run, request_id=payload["requestId"]
-    )
-    if payload["rerun"] == InvestigationOrchestrationRerun.SKIPPED:
-        commands.update(
-            rerun=InvestigationOrchestrationRerun.SKIPPED,
-            status=InvestigationOrchestrationCommandStatus.FAILED,
-            error={"code": "rerun_skipped", "reason": payload["reason"]},
-            date_updated=timezone.now(),
-        )
-        return
-    for command in commands.select_for_update():
-        recovered = command.status == InvestigationOrchestrationCommandStatus.FAILED and (
+    ):
+        lost_response = command.status == InvestigationOrchestrationCommandStatus.FAILED and (
             command_can_be_requeued(command)
         )
-        command.rerun = InvestigationOrchestrationRerun.STARTED
-        # Seer has it, so a lost response can't fail it or the commands behind it.
-        if recovered or command.status in (
+        if not lost_response and command.status not in (
             InvestigationOrchestrationCommandStatus.ACCEPTED,
             InvestigationOrchestrationCommandStatus.DISPATCHED,
+            InvestigationOrchestrationCommandStatus.ACKNOWLEDGED,
         ):
-            command.status = InvestigationOrchestrationCommandStatus.ACKNOWLEDGED
-            command.error = None
-        command.save(update_fields=["rerun", "status", "error", "date_updated"])
-        if recovered:
+            continue
+        if lost_response:
             if requeue_commands_behind(run, command):
                 schedule_orchestration_commands(run.id)
             clear_command_dispatch_error(run, request_id=command.request_id)
+        command.rerun = payload["rerun"]
+        if payload["rerun"] == InvestigationOrchestrationRerun.SKIPPED:
+            command.status = InvestigationOrchestrationCommandStatus.FAILED
+            command.error = {"code": "rerun_skipped", "reason": payload["reason"]}
+        else:
+            command.status = InvestigationOrchestrationCommandStatus.ACKNOWLEDGED
+            command.error = None
+        command.save(update_fields=["rerun", "status", "error", "date_updated"])
 
 
 def _projection_is_stale(
