@@ -261,4 +261,79 @@ describe('ActionNodeList', () => {
       screen.getByText('This action will not fire for metric issues.')
     ).toBeInTheDocument();
   });
+
+  it('warns when an action will not fire for resolved issues', async () => {
+    const jiraAction = ActionFixture({type: ActionType.JIRA});
+    render(
+      <AutomationBuilderTestProvider
+        builderState={{
+          triggers: {
+            id: 'triggers',
+            conditions: [
+              {
+                id: 'condition-1',
+                type: DataConditionType.FIRST_SEEN_EVENT,
+                comparison: true,
+                conditionResult: true,
+              },
+              {
+                id: 'condition-2',
+                type: DataConditionType.ISSUE_RESOLVED_TRIGGER,
+                comparison: true,
+                conditionResult: true,
+              },
+            ],
+            logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
+          },
+        }}
+      >
+        <AutomationFormProvider>
+          <Form model={new FormModel()}>
+            <ActionNodeList {...defaultProps} actions={[jiraAction]} />
+          </Form>
+        </AutomationFormProvider>
+      </AutomationBuilderTestProvider>,
+      {organization}
+    );
+
+    expect(
+      await screen.findByText(
+        'This action is incompatible with the current configuration.'
+      )
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
+    expect(
+      screen.getByText('This action will not fire when an issue is resolved.')
+    ).toBeInTheDocument();
+  });
+
+  it('does not warn about supported actions when an issue is resolved', async () => {
+    const slackAction = ActionFixture();
+    render(
+      <AutomationBuilderTestProvider
+        builderState={{
+          triggers: {
+            id: 'triggers',
+            conditions: [
+              {
+                id: 'condition-1',
+                type: DataConditionType.ISSUE_RESOLVED_TRIGGER,
+                comparison: true,
+                conditionResult: true,
+              },
+            ],
+            logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
+          },
+        }}
+      >
+        <ActionNodeList {...defaultProps} actions={[slackAction]} />
+      </AutomationBuilderTestProvider>,
+      {organization}
+    );
+
+    await screen.findByText(textWithMarkupMatcher('Slack message'));
+    expect(
+      screen.queryByText('This action is incompatible with the current configuration.')
+    ).not.toBeInTheDocument();
+  });
 });
