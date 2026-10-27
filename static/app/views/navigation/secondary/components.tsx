@@ -303,11 +303,21 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
   );
 }
 
-function SecondaryNavigationHeaderTitle({children}: {children: ReactNode}) {
+function SecondaryNavigationHeaderTitle({
+  children,
+  padding,
+}: {
+  children: ReactNode;
+  padding?: React.ComponentProps<typeof Container>['padding'];
+}) {
   const {layout} = usePrimaryNavigation();
 
   return (
-    <Container minWidth="0" paddingLeft={layout === 'mobile' ? undefined : 'lg'}>
+    <Container
+      minWidth="0"
+      padding={padding}
+      paddingLeft={padding === undefined && layout !== 'mobile' ? 'lg' : undefined}
+    >
       <Text size="md" bold>
         {children}
       </Text>
@@ -380,10 +390,10 @@ function SectionTitle(props: SectionTitleProps) {
       <Fragment>
         <SecondaryNavigationLeadingSlot>
           {props.canCollapse ? (
-            <IconChevron direction={props.isCollapsed ? 'right' : 'down'} size="xs" />
+            <IconChevron direction={props.isCollapsed ? 'right' : 'down'} size="md" />
           ) : null}
         </SecondaryNavigationLeadingSlot>
-        <Text bold ellipsis align="left">
+        <Text bold ellipsis align="left" density="fixed">
           {props.children}
         </Text>
       </Fragment>
@@ -391,16 +401,16 @@ function SectionTitle(props: SectionTitleProps) {
 
     if (!props.canCollapse) {
       return (
-        <Flex align="center" gap="sm" width="100%" padding="md lg">
+        <Flex align="center" gap="xs" width="100%" height="32px" padding="0 xs 0 md">
           {content}
         </Flex>
       );
     }
 
-    // Like the trailing title below, the grid stretches the button's inner
-    // wrapper to the full row so the content starts at the left edge.
+    // Keep the button's inner wrapper in a flex layout so its contents stay
+    // centered vertically, including when the leading slot is taller than text.
     return (
-      <Grid columns="1fr" align="center" width="100%">
+      <Flex align="center" width="100%">
         {gridProps => (
           <Button
             {...gridProps}
@@ -408,13 +418,20 @@ function SectionTitle(props: SectionTitleProps) {
             variant="transparent"
             aria-expanded={!props.isCollapsed}
             onClick={() => props.setIsCollapsed(!props.isCollapsed)}
+            css={theme => css`
+              height: 32px;
+              width: 100%;
+              padding: 0 ${theme.space.xs} 0 ${theme.space.md};
+              border: 1px solid transparent;
+              justify-content: flex-start;
+            `}
           >
-            <Flex as="span" align="center" gap="sm" flex="1" minWidth="0">
+            <Flex as="span" align="center" gap="xs" flex="1" minWidth="0">
               {content}
             </Flex>
           </Button>
         )}
-      </Grid>
+      </Flex>
     );
   }
 
@@ -477,7 +494,10 @@ function SecondaryNavigationSection(props: SecondaryNavigationSectionProps) {
   const isCollapsed = canCollapse ? isCollapsedState : false;
 
   return (
-    <Container padding="md sm" data-nav-section>
+    <Container
+      padding={props.chevronPosition === 'leading' ? '0 xs' : 'md sm'}
+      data-nav-section
+    >
       {props.title ? (
         <SectionTitle
           canCollapse={canCollapse}
@@ -582,11 +602,23 @@ function SecondaryNavigationLeadingSlot(props: SecondaryNavigationLeadingSlotPro
   );
 }
 
-function SecondaryNavigationSeparator() {
+function SecondaryNavigationSeparator({indented = false}: {indented?: boolean}) {
   return (
-    <Container padding="0 xl">
+    <Stack
+      justify="center"
+      height={indented ? '16px' : undefined}
+      padding={indented ? '0' : '0 xl'}
+      css={
+        indented
+          ? theme => css`
+              padding-left: 40px;
+              padding-right: ${theme.space.lg};
+            `
+          : undefined
+      }
+    >
       <Separator orientation="horizontal" border="muted" />
-    </Container>
+    </Stack>
   );
 }
 
@@ -642,6 +674,7 @@ function Collapsible(props: CollapsibleProps) {
             },
             expanded: {
               height: 'auto',
+              transitionEnd: {overflow: 'visible'},
             },
           }}
           initial="collapsed"

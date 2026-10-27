@@ -53,7 +53,7 @@ function getSettingsScopeTitle(scope: SettingsScope): string {
     case 'project':
       return t('Project Settings');
     case 'org':
-      return t('Org Settings');
+      return t('Org settings');
     default:
       return unreachable(scope);
   }
@@ -77,17 +77,21 @@ export function SettingsNavigation({
         {showProjectSelector ? (
           <SettingsProjectSelector />
         ) : (
-          <SecondaryNavigation.HeaderTitle>{title}</SecondaryNavigation.HeaderTitle>
+          <SecondaryNavigation.HeaderTitle padding={settingsV3 ? 'md xs' : undefined}>
+            {title}
+          </SecondaryNavigation.HeaderTitle>
         )}
       </SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
-        {navWithHooks.map((config, index) => (
-          <Fragment key={config.name}>
-            {index > 0 && <SecondaryNavigation.Separator />}
-            <SettingsNavigationGroup {...otherProps} {...config} />
-          </Fragment>
-        ))}
-        {hooks.map((Hook, i) => cloneElement(Hook, {key: `hook-${i}`}))}
+        <Container padding={settingsV3 ? 'md 0' : undefined}>
+          {navWithHooks.map((config, index) => (
+            <Fragment key={config.name}>
+              {index > 0 && <SecondaryNavigation.Separator indented={settingsV3} />}
+              <SettingsNavigationGroup {...otherProps} {...config} />
+            </Fragment>
+          ))}
+          {hooks.map((Hook, i) => cloneElement(Hook, {key: `hook-${i}`}))}
+        </Container>
       </SecondaryNavigation.Body>
     </ErrorBoundary>
   );

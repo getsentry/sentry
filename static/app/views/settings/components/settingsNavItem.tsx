@@ -1,5 +1,6 @@
 import type {ReactElement} from 'react';
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Badge, FeatureBadge} from '@sentry/scraps/badge';
@@ -49,6 +50,20 @@ export function SettingsNavItem({badge, label, id, to, index, ...props}: Props) 
   return (
     <SecondaryNavigation.ListItem>
       <SecondaryNavigation.Link
+        css={
+          settingsV3
+            ? theme => css`
+                height: 32px;
+                padding: 0 ${theme.space.xs} 0 ${theme.space.md};
+                gap: ${theme.space.xs};
+                justify-content: flex-start;
+
+                > span {
+                  line-height: ${theme.font.lineHeight.fixed};
+                }
+              `
+            : undefined
+        }
         to={to}
         end={index}
         leadingItems={
