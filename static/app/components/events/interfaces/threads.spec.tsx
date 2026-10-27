@@ -34,6 +34,10 @@ describe('Threads', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sentry-app-components/',
+      body: [],
+    });
     const promptResponse = {
       dismissed_ts: undefined,
       snoozed_ts: undefined,

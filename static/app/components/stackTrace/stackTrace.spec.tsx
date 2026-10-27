@@ -17,7 +17,6 @@ import {StackTraceFrames} from 'sentry/components/stackTrace/stackTraceFrames';
 import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
 import type {StackTraceViewStateProviderProps} from 'sentry/components/stackTrace/types';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {SentryAppComponentsStore} from 'sentry/stores/sentryAppComponentsStore';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 
@@ -99,6 +98,10 @@ function ExampleStackTrace() {
 describe('Core StackTrace', () => {
   const longFilename = `/source/${'long directory with spaces/'.repeat(10)}runner.py`;
   beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sentry-app-components/',
+      body: [],
+    });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/prompts-activity/',
       body: {
@@ -550,23 +553,26 @@ describe('Core StackTrace', () => {
 
   it('renders sentry app frame links with line context', async () => {
     const {event, stacktrace} = makeStackTraceData();
-    SentryAppComponentsStore.loadComponents([
-      {
-        uuid: 'stacktrace-component',
-        type: 'stacktrace-link',
-        schema: {
-          uri: '/frame-link',
-          url: 'https://example.com/frame-link?projectSlug=sentry',
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sentry-app-components/',
+      body: [
+        {
+          uuid: 'stacktrace-component',
           type: 'stacktrace-link',
+          schema: {
+            uri: '/frame-link',
+            url: 'https://example.com/frame-link?projectSlug=sentry',
+            type: 'stacktrace-link',
+          },
+          sentryApp: {
+            uuid: 'sentry-app-1',
+            slug: 'source-lens',
+            name: 'Source Lens',
+            avatars: [],
+          },
         },
-        sentryApp: {
-          uuid: 'sentry-app-1',
-          slug: 'source-lens',
-          name: 'Source Lens',
-          avatars: [],
-        },
-      },
-    ]);
+      ],
+    });
 
     render(
       <TestStackTraceProvider event={event} stacktrace={stacktrace}>
