@@ -50,9 +50,14 @@ def ViewerContextMiddleware(
         request_ctx = _viewer_context_from_request(request)
         jwt_ctx = _viewer_context_from_jwt_header(request)
 
+        ctx: ViewerContext | None
         if jwt_ctx is not None and is_user_from_viewer_context(request):
             ctx = jwt_ctx
-        elif jwt_ctx is not None and get_acting_user_id(request_ctx) is not None:
+        elif (
+            jwt_ctx is not None
+            and request_ctx is not None
+            and get_acting_user_id(request_ctx) is not None
+        ):
             # Direct user or agent authentication is authoritative when both are present.
             if (
                 jwt_ctx.organization_id is not None
@@ -85,7 +90,7 @@ def _viewer_context_from_jwt_header(request: HttpRequest) -> ViewerContext | Non
     return viewer_context_from_header(header_value)
 
 
-def _viewer_context_from_request(request: HttpRequest) -> ViewerContext:
+def _viewer_context_from_request(request: HttpRequest) -> ViewerContext | None:
     user = request.user
     auth = getattr(request, "auth", None)
 
@@ -106,11 +111,12 @@ def _viewer_context_from_request(request: HttpRequest) -> ViewerContext:
     )
     if auth is not None and is_agent_auth(auth):
         actor = Actor(type=ActorType.AGENT, delegated_user_id=auth.user_id, superuser=superuser)
+    elif user_id is not None:
+        actor = Actor(type=ActorType.USER, actor_id=user_id, superuser=superuser)
+    elif auth is not None:
+        # A credential with no user behind it, e.g. an org auth token.
+        actor = Actor(type=ActorType.INTEGRATION)
     else:
-        actor = (
-            Actor(type=ActorType.USER, actor_id=user_id, superuser=superuser)
-            if user_id is not None
-            else Actor(type=ActorType.UNKNOWN)
-        )
+        return None
 
     return ViewerContext(actor=actor, organization_id=organization_id)

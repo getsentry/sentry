@@ -1,6 +1,6 @@
 import {Fragment, useState} from 'react';
-import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {
@@ -23,8 +23,8 @@ const organization = OrganizationFixture({
   features: ['explore-data-fidelity-annotations'],
 });
 
-const droppedEvents = [DroppedEventFixture({count: 10})];
-const acceptedEvents = [DroppedEventFixture({outcome: 'accepted', count: 90})];
+const droppedEvents = [OutcomeRowFixture({count: 10})];
+const acceptedEvents = [OutcomeRowFixture({outcome: 'accepted', count: 90})];
 
 function droppedEventsBody() {
   return {

@@ -23,13 +23,15 @@ import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 // Read utils begin
 
+export type ExploreCaseSensitivity = '1' | '0' | null;
+
 export type ReadableExploreQueryParts = {
   fields: string[];
   groupBys: string[];
   query: string;
   sortBys: Sort[];
   yAxes: string[];
-  caseInsensitive?: '1' | null;
+  caseInsensitive?: ExploreCaseSensitivity;
   chartType?: ChartType;
 };
 
@@ -168,7 +170,7 @@ function parseQuery(raw: string): ReadableExploreQueryParts {
     const parsedSortBys = decodeSorts(parsed.sortBys);
     const sortBys = validateSortBys(parsedSortBys, groupBys, fields, yAxes);
 
-    const caseInsensitive = parsed.caseInsensitive ?? undefined;
+    const caseInsensitive = decodeCompareCaseInsensitive(parsed.caseInsensitive);
 
     const normalized = normalizeCompareQueryParts({
       yAxes,
@@ -220,7 +222,7 @@ export function useReadQueriesFromLocation(): ReadableExploreQueryParts[] {
 // Write utils begin
 
 type WritableExploreQueryParts = {
-  caseInsensitive?: '1' | null;
+  caseInsensitive?: ExploreCaseSensitivity;
   chartType?: ChartType;
   fields?: string[];
   groupBys?: readonly string[];
@@ -229,11 +231,37 @@ type WritableExploreQueryParts = {
   yAxes?: string[];
 };
 
+export function encodeCompareCaseInsensitive(
+  caseInsensitive: ExploreCaseSensitivity | undefined
+) {
+  // Older bundles/URLs read this value by truthiness, so explicit match case
+  // is written as `false` rather than '0' to stay falsy for them.
+  if (caseInsensitive === '0') {
+    return false;
+  }
+
+  return caseInsensitive === '1' ? '1' : undefined;
+}
+
+function decodeCompareCaseInsensitive(
+  value: unknown
+): ExploreCaseSensitivity | undefined {
+  switch (value) {
+    case '0':
+    case '1':
+      return value;
+    case false:
+      return '0';
+    default:
+      return undefined;
+  }
+}
+
 function getQueriesAsUrlParam(queries: WritableExploreQueryParts[]): string[] {
   return queries.map(query =>
     JSON.stringify({
       chartType: query.chartType,
-      caseInsensitive: query.caseInsensitive,
+      caseInsensitive: encodeCompareCaseInsensitive(query.caseInsensitive),
       fields: query.fields,
       groupBys: query.groupBys,
       query: query.query,

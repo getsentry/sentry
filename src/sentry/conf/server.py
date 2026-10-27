@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 from typing import Any, Final, Literal, Union, overload
 from urllib.parse import urlparse
 
+import orjson
 from taskbroker_client.scheduler.config import ScheduleConfigMap, crontab
 
 import sentry
@@ -1440,6 +1441,7 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ("sentry.api.permissions.NoPermission",),
     "EXCEPTION_HANDLER": "sentry.api.handlers.custom_exception_handler",
     "DEFAULT_SCHEMA_CLASS": "sentry.apidocs.schema.SentrySchema",
+    "LIST_SERIALIZER_ERRORS_AS_DICT": False,
 }
 
 
@@ -3291,8 +3293,6 @@ SEER_FIXABILITY_TIMEOUT = 0.6  # 600 milliseconds
 
 SEER_GROUPING_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 
-SEER_SCORING_URL = SEER_DEFAULT_URL  # for local development, these share a URL
-
 SEER_ANOMALY_DETECTION_MODEL_VERSION = "v1"
 SEER_ANOMALY_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 SEER_ANOMALY_DETECTION_TIMEOUT = 5
@@ -3588,6 +3588,15 @@ MARKETO_CLIENT_SECRET = os.getenv("MARKETO_CLIENT_SECRET")
 MARKETO_FORM_ID = os.getenv("MARKETO_FORM_ID")
 
 # Devserver configuration overrides.
+# Prod flag values written by bin/sync-prod-flags, run by devenv sync.
+if IS_DEV:
+    _prod_flags = os.path.join(
+        os.path.expanduser(os.environ.get("SENTRY_CONF", "~/.sentry")), "prod-flags.json"
+    )
+    if os.path.exists(_prod_flags):
+        with open(_prod_flags, "rb") as f:
+            SENTRY_FEATURES.update(orjson.loads(f.read()))
+
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")
 if ngrok_host:
     SENTRY_OPTIONS["system.url-prefix"] = f"https://{ngrok_host}"

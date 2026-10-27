@@ -212,6 +212,36 @@ describe('getSeerStatusBlock', () => {
     expect(block).toMatchObject({variant: 'running', title, statusLabel});
   });
 
+  it('reads a run with only the next step outstanding as complete', () => {
+    const fixture = InvestigationOrchestrationFixture();
+    const block = getSeerStatusBlock(
+      InvestigationOrchestrationFixture({
+        status: 'processing',
+        phase: 'metadata',
+        report: {...fixture.report, status: 'completed'},
+      })
+    );
+
+    expect(block).toMatchObject({variant: 'complete', statusLabel: 'Completed'});
+  });
+
+  it('keeps synthesizing while the report metadata is still generating', () => {
+    const fixture = InvestigationOrchestrationFixture();
+    const block = getSeerStatusBlock(
+      InvestigationOrchestrationFixture({
+        status: 'processing',
+        phase: 'metadata',
+        report: {
+          ...fixture.report,
+          status: 'completed',
+          metadata: {...fixture.report.metadata, status: 'generating'},
+        },
+      })
+    );
+
+    expect(block).toMatchObject({variant: 'running', statusLabel: 'Synthesizing…'});
+  });
+
   it('counts the hypotheses it is checking', () => {
     const block = getSeerStatusBlock(
       InvestigationOrchestrationFixture({status: 'processing', phase: 'investigating'})

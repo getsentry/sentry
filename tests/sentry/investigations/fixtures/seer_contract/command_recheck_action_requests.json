@@ -1,0 +1,34 @@
+{
+  "reportRevision": 2,
+  "source": {
+    "detectorId": 4821,
+    "monitor": {
+      "aggregate": "count()",
+      "conditions": [
+        {
+          "comparison": 500,
+          "result": 75,
+          "type": "gt"
+        },
+        {
+          "comparison": 500.0,
+          "result": 0,
+          "type": "lte"
+        }
+      ],
+      "detectionType": "static",
+      "direction": "above",
+      "environment": "production",
+      "groupBy": [],
+      "id": "4821",
+      "query": "transaction:/checkout",
+      "timeWindowSeconds": 600
+    },
+    "projectIds": [
+      123
+    ],
+    "seed": {},
+    "type": "breached_metric"
+  },
+  "type": "recheck_action_requests"
+}

@@ -23,6 +23,22 @@ import type {
   SelectSectionWithKey,
 } from './types';
 
+/**
+ * Whether any visible option has custom leading items, so options without them
+ * should reserve matching space to keep labels aligned.
+ */
+export function hasVisibleLeadingItems(
+  listItems: Array<Node<unknown>>,
+  hiddenOptions: Set<SelectKey>
+) {
+  return listItems
+    .flatMap(node => (node.type === 'section' ? [...node.childNodes] : [node]))
+    .some(node => {
+      const {leadingItems}: {leadingItems?: unknown} = node.props;
+      return !hiddenOptions.has(node.key) && Boolean(leadingItems);
+    });
+}
+
 // Avoid the relatively expensive CSS.escape call for common keys while preserving
 // full escaping for values that are not already simple CSS identifiers.
 const SIMPLE_CSS_IDENTIFIER = /^-?(?!\d)\w[-\w]*$/;

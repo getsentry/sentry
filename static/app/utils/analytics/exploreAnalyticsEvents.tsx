@@ -33,7 +33,7 @@ export type ExploreAnalyticsEventParameters = {
   'explore.dropped_data.scope_toggled': {
     dataset: DiscoverDatasets;
     organization: Organization;
-    scope: 'contributing' | 'all';
+    scope: 'unexpected' | 'all';
   };
   'explore.floating_trigger.clear_selection': {
     organization: Organization;

@@ -1460,6 +1460,7 @@ describe('ExploreToolbar', () => {
       expect(router.location.query.queries).toEqual([
         JSON.stringify({
           chartType: 1,
+          caseInsensitive: false,
           fields: ['id', 'span.duration', 'timestamp'],
           groupBys: [],
           query: 'span.status:ok span.op:db',
@@ -1468,6 +1469,7 @@ describe('ExploreToolbar', () => {
         }),
         JSON.stringify({
           chartType: 1,
+          caseInsensitive: false,
           fields: ['id', 'span.duration', 'timestamp'],
           groupBys: [],
           query: 'span.status:ok span.op:http',
@@ -1567,8 +1569,8 @@ describe('ExploreToolbar', () => {
     expect(router.location.query).toEqual(
       expect.objectContaining({
         queries: [
-          '{"chartType":0,"fields":["id","span.duration","timestamp"],"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["count(span.duration)"]}',
-          '{"chartType":0,"fields":["id","span.duration","timestamp"],"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["count(span.duration)"]}',
+          '{"chartType":0,"caseInsensitive":false,"fields":["id","span.duration","timestamp"],"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["count(span.duration)"]}',
+          '{"chartType":0,"caseInsensitive":false,"fields":["id","span.duration","timestamp"],"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["count(span.duration)"]}',
         ],
       })
     );

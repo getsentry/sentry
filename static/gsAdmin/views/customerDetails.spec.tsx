@@ -652,6 +652,10 @@ function setUpMocks(
     body: PoliciesFixture(),
   });
   MockApiClient.addMockResponse({
+    url: `/_admin/customers/${organization.slug}/contracts/`,
+    body: [],
+  });
+  MockApiClient.addMockResponse({
     url: `/customers/${organization.slug}/invoices/`,
     body: [InvoiceFixture()],
   });

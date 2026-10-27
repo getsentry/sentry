@@ -4,6 +4,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import {formatElapsedDuration} from 'sentry/utils/duration/formatElapsedDuration';
+import {isOnlyNextStepPending} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
 import type {InvestigationOrchestration} from 'sentry/views/investigations/types';
 
 /**
@@ -18,6 +19,62 @@ import type {InvestigationOrchestration} from 'sentry/views/investigations/types
 export function getInvestigationActiveTime(
   orchestration: InvestigationOrchestration
 ): {active: boolean; seconds: number} | null {
+  const settled = isOnlyNextStepPending(orchestration);
+  const active = !settled && ['processing', 'pending'].includes(orchestration.status);
+  const seconds = getActiveSeconds(orchestration, settled, active);
+  return seconds === null ? null : {active, seconds};
+}
+
+export function InvestigationRunTimer({
+  orchestration,
+}: {
+  orchestration: InvestigationOrchestration;
+}) {
+  const [settledSeconds, setSettledSeconds] = useState<{
+    runKey: string;
+    seconds: number;
+  } | null>(null);
+  const runKey = `${orchestration.runId}:${orchestration.generation}`;
+  const settled = isOnlyNextStepPending(orchestration);
+  const activeTime = getInvestigationActiveTime(orchestration);
+  const active = activeTime?.active ?? false;
+  let seconds = activeTime?.seconds ?? null;
+
+  const frozenSeconds = settledSeconds?.runKey === runKey ? settledSeconds.seconds : null;
+  if (settled && seconds !== null) {
+    if (frozenSeconds === null) {
+      setSettledSeconds({runKey, seconds});
+    } else {
+      seconds = frozenSeconds;
+    }
+  } else if (
+    frozenSeconds !== null &&
+    seconds !== null &&
+    orchestration.status === 'completed'
+  ) {
+    seconds = frozenSeconds;
+  } else if (settledSeconds !== null) {
+    setSettledSeconds(null);
+  }
+
+  if (seconds === null) {
+    return null;
+  }
+
+  return (
+    <LiveDuration
+      key={`${runKey}:${orchestration.serverTime}:${seconds}:${active}`}
+      seconds={seconds}
+      active={active}
+    />
+  );
+}
+
+function getActiveSeconds(
+  orchestration: InvestigationOrchestration,
+  settled: boolean,
+  active: boolean
+): number | null {
   const {
     startedAt,
     finishedAt,
@@ -26,8 +83,7 @@ export function getInvestigationActiveTime(
     serverTime,
     status,
   } = orchestration;
-  const terminal = ['completed', 'failed', 'cancelled'].includes(status);
-  const active = status === 'processing' || status === 'pending';
+  const terminal = !settled && ['completed', 'failed', 'cancelled'].includes(status);
   if (
     !startedAt ||
     !Number.isFinite(Date.parse(startedAt)) ||
@@ -37,13 +93,13 @@ export function getInvestigationActiveTime(
     activeTimeElapsedSeconds < 0 ||
     (terminal && (!finishedAt || !Number.isFinite(Date.parse(finishedAt)))) ||
     (active && finishedAt) ||
-    (!active && !terminal && status !== 'awaiting_input')
+    (!active && !terminal && !settled && status !== 'awaiting_input')
   ) {
     return null;
   }
 
   let seconds = activeTimeElapsedSeconds;
-  if (active) {
+  if (active || (settled && activeSince !== null)) {
     if (!activeSince || !serverTime) {
       return null;
     }
@@ -56,28 +112,7 @@ export function getInvestigationActiveTime(
     // A partial or stale projection cannot authoritatively freeze an active interval.
     return null;
   }
-
-  return {active, seconds};
-}
-
-export function InvestigationRunTimer({
-  orchestration,
-}: {
-  orchestration: InvestigationOrchestration;
-}) {
-  const activeTime = getInvestigationActiveTime(orchestration);
-  if (!activeTime) {
-    return null;
-  }
-  const {active, seconds} = activeTime;
-
-  return (
-    <LiveDuration
-      key={`${orchestration.runId}:${orchestration.generation}:${orchestration.serverTime}:${seconds}:${active}`}
-      seconds={seconds}
-      active={active}
-    />
-  );
+  return seconds;
 }
 
 function LiveDuration({seconds, active}: {active: boolean; seconds: number}) {
