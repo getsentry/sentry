@@ -9,7 +9,16 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 interface UseStacktraceLinkProps {
   event: Partial<Pick<Event, 'platform' | 'release' | 'sdk' | 'groupID'>>;
   frame: Partial<
-    Pick<Frame, 'absPath' | 'filename' | 'function' | 'module' | 'package' | 'lineNo'>
+    Pick<
+      Frame,
+      | 'absPath'
+      | 'fileRevision'
+      | 'filename'
+      | 'function'
+      | 'module'
+      | 'package'
+      | 'lineNo'
+    >
   >;
   orgSlug: string;
   projectSlug: string | undefined;
@@ -21,6 +30,7 @@ type StacktraceLinkQuery = {
   platform: string;
   absPath?: string;
   commitId?: string;
+  fileRevision?: string;
   groupId?: string;
   module?: string;
   package?: string;
@@ -39,6 +49,7 @@ export function buildStacktraceLinkQuery(
     commitId: event.release?.lastCommit?.id,
     ...(event.sdk?.name && {sdkName: event.sdk.name}),
     ...(frame.absPath && {absPath: frame.absPath}),
+    ...(frame.fileRevision && {fileRevision: frame.fileRevision}),
     ...(frame.module && {module: frame.module}),
     ...(frame.package && {package: frame.package}),
   };

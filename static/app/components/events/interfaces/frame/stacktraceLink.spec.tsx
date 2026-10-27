@@ -58,6 +58,26 @@ describe('StacktraceLink', () => {
     expect(link).toHaveAttribute('href', 'https://something.io#L233');
   });
 
+  it("requests the link for the frame's file revision", async () => {
+    const request = MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
+      body: {config, sourceUrl: 'https://something.io', integrations: [integration]},
+      match: [MockApiClient.matchQuery({fileRevision: '12345'})],
+    });
+    render(
+      <StacktraceLink
+        frame={{...frame, fileRevision: '12345'}}
+        event={event}
+        line="foo()"
+        disableSetup={false}
+      />
+    );
+    expect(
+      await screen.findByRole('button', {name: 'Open this line in GitHub'})
+    ).toBeInTheDocument();
+    expect(request).toHaveBeenCalled();
+  });
+
   it('displays fix modal on error', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
