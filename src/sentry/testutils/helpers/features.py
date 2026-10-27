@@ -186,7 +186,10 @@ class FeatureContextManagerOrDecorator:
 
             name = f"{_feature_fixture.__name__}[{feature_names}]"
             _feature_fixture.__name__ = name
-            fixture = pytest.fixture(scope="class", autouse=True)(classmethod(_feature_fixture))
+            # classmethod isn't Callable in typeshed, but pytest unwraps it.
+            fixture = pytest.fixture(scope="class", autouse=True)(
+                classmethod(_feature_fixture)  # type: ignore[arg-type]
+            )
             setattr(func_or_cls, name, fixture)
 
             # Additionally, wrap each test method directly so it works when called manually

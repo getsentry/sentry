@@ -22,7 +22,6 @@ from typing import Any
 
 import pytest
 import pytest_jsonreport.plugin
-from _pytest._io.saferepr import saferepr
 
 JSONTestItem = dict[str, Any]
 JSONTestItems = dict[str, JSONTestItem]
@@ -69,13 +68,25 @@ class PytestRerunJSONReporter:
         self.pending_subtests[report.nodeid].append(
             {
                 **stage,
-                "context": {
-                    "msg": context.msg,
-                    "kwargs": {str(k): saferepr(v) for k, v in context.kwargs.items()},
-                },
+                # pytest already stores each kwarg as its repr.
+                "context": {"msg": context.msg, "kwargs": dict(context.kwargs)},
             }
         )
         return result
+
+    @pytest.hookimpl(tryfirst=True)
+    def pytest_report_from_serializable(self, data: dict[str, Any]) -> pytest.SubtestReport | None:
+        """Keep a subtest's kwargs as the xdist worker reported them.
+
+        pytest 9.1 reprs the kwargs again when an xdist controller deserializes
+        the report, so the default hook would turn the worker's ``'0'`` into
+        ``"'0'"``.
+        """
+        if data.get("_report_type") != "SubTestReport":
+            return None
+        report = pytest.SubtestReport._from_json(data)
+        object.__setattr__(report.context, "kwargs", data["_subtest.context"]["kwargs"])
+        return report
 
     def pytest_json_runtest_stage(self, report: pytest.TestReport) -> None:
         if isinstance(report, pytest.SubtestReport):
