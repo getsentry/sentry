@@ -449,7 +449,7 @@ def trigger_autofix_agent(
     commit_author: SeerCommitAuthor | None = None,
     iteration_id: int | None = None,
     allow_free_cohort: bool = False,
-    can_open_pr: bool = True,
+    can_open_pr: bool = False,
 ) -> SeerRun:
     """
     Start or continue an agent-based autofix run.

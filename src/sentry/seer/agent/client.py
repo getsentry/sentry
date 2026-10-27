@@ -953,7 +953,7 @@ class SeerAgentClient:
         """Most recent run for this source; ordering by last_triggered_at keeps a continued run current."""
         qs = SeerAgentRun.objects.filter(
             run__organization_id=self.organization.id,
-            source__in=sources or (self.category_key or "",),
+            source__in=(self.category_key or "",) if sources is None else sources,
         )
         if (
             only_current_user

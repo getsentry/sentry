@@ -55,7 +55,7 @@ class AutofixFeatureArgs:
     user: User | RpcUser | AnonymousUser | None = None
     enable_bash_mode: bool = False
     flush: bool = True
-    can_open_pr: bool = True
+    can_open_pr: bool = False
 
 
 def _run_mirrors(group: Group, run_id: int) -> QuerySet[SeerAgentRun]:
@@ -232,7 +232,6 @@ def trigger_autofix_feature(
 def _start_single_run(group: Group, args: AutofixFeatureArgs, skip_quota: bool) -> SeerRun:
     assert isinstance(args.step_args, RCAStepArgs)
     stopping_point = args.stopping_point
-    # No stopping point means no stop: a set-up project goes straight to a PR.
     enable_coding = group.organization.get_option(
         "sentry:enable_seer_coding", ENABLE_SEER_CODING_DEFAULT
     ) and stopping_point not in (AutofixStoppingPoint.ROOT_CAUSE, AutofixStoppingPoint.SOLUTION)
@@ -287,4 +286,9 @@ def _start_single_run(group: Group, args: AutofixFeatureArgs, skip_quota: bool) 
         quotas.backend.record_seer_run(
             group.organization.id, group.project.id, DataCategory.SEER_AUTOFIX
         )
+    metrics.incr(
+        "autofix_feature.trigger",
+        tags={"referrer": args.referrer.value, "step": "single_run"},
+        sample_rate=1,
+    )
     return run

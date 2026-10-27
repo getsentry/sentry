@@ -202,7 +202,18 @@ class SeerOperatorTest(TestCase):
             seer_run_state_id=MOCK_RUN_ID,
         )
 
-        for user, can_open_pr in ((self.user, True), (self.create_user(), False)):
+        self.group.organization.flags.allow_joinleave = False
+        self.group.organization.save()
+        member_without_project = self.create_user()
+        self.create_member(
+            organization=self.organization, user=member_without_project, role="member", teams=[]
+        )
+
+        for user, can_open_pr in (
+            (self.user, True),
+            (self.create_user(), False),
+            (member_without_project, False),
+        ):
             self.operator.trigger_autofix(
                 group=self.group,
                 user=user,

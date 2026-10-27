@@ -4,6 +4,7 @@ from typing import Any, NotRequired, TypedDict
 from taskbroker_client.retry import Retry
 
 from sentry import features, options
+from sentry.auth import access
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT, DataCategory
 from sentry.investigations.access import has_investigations_access
 from sentry.investigations.models import Investigation, InvestigationOrchestrationRun
@@ -16,14 +17,13 @@ from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
-from sentry.models.organizationmember import OrganizationMember
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import CodingAgentState, SeerRunState
 from sentry.seer.agent.client_utils import fetch_run_status
 from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
 from sentry.seer.autofix.commit_author import commit_author_for_user
-from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.constants import PUBLISH_SCOPES, AutofixReferrer
 from sentry.seer.autofix.utils import AutofixStoppingPoint, get_automation_handoff
 from sentry.seer.entrypoints.cache import (
     SeerOperatorAgentCache,
@@ -271,7 +271,7 @@ class SeerAutofixOperator[CachePayloadT]:
                             referrer=AutofixReferrer.SLACK,
                             run_id=None,
                             user=user,
-                            can_open_pr=_can_publish(group.organization, user),
+                            can_open_pr=_can_publish(group, user),
                         )
                         run_id = run.seer_run_state_id
                         Activity.objects.create_group_activity(
@@ -992,11 +992,10 @@ def process_investigation_updates(*, investigation_id: int) -> None:
                     ept_lifecycle.record_failure(failure_reason=e)
 
 
-def _can_publish(organization: Organization, user: User | RpcUser) -> bool:
-    from sentry.seer.endpoints.group_ai_autofix import PUBLISH_SCOPES
-
-    member = OrganizationMember.objects.filter(organization=organization, user_id=user.id).first()
-    return member is not None and not PUBLISH_SCOPES.isdisjoint(member.get_scopes())
+def _can_publish(group: Group, user: User | RpcUser) -> bool:
+    return access.from_user(user, group.organization).has_any_project_scope(
+        group.project, PUBLISH_SCOPES
+    )
 
 
 def get_autofix_explorer_status(

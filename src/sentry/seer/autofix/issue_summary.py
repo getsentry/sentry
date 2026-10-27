@@ -197,6 +197,7 @@ def _trigger_autofix_task(
                 referrer=referrer,
                 run_id=None,
                 stopping_point=stopping_point,
+                can_open_pr=True,
             )
             with action_context_scope(ActionSource.SYSTEM, SYSTEM_ACTOR):
                 Activity.objects.create_group_activity(
