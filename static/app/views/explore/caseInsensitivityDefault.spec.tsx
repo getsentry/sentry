@@ -12,6 +12,7 @@ import {
 } from 'sentry/views/explore/caseInsensitivityDefault';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {useSetQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
+import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 
 const organization = OrganizationFixture({features: ['explore-ignore-case-default']});
@@ -207,7 +208,7 @@ describe('useAlwaysMatchesCaseDetails', () => {
   function renderDetails(
     query: string,
     caseInsensitive: string,
-    options: {groupBys?: string[]; queryCaseInsensitive?: boolean} = {}
+    options: {groupBys?: string[]; mode?: Mode; queryCaseInsensitive?: boolean} = {}
   ) {
     return renderHookWithProviders(
       () =>
@@ -215,6 +216,7 @@ describe('useAlwaysMatchesCaseDetails', () => {
           query,
           yAxes: ['count(message)'],
           groupBys: options.groupBys,
+          mode: options.mode ?? Mode.AGGREGATE,
           caseInsensitive: options.queryCaseInsensitive,
         }),
       {
@@ -242,6 +244,12 @@ describe('useAlwaysMatchesCaseDetails', () => {
     const {result} = renderDetails('', '1', {groupBys: ['message']});
 
     expect(result.current).toEqual({alert: null, dashboard: 'Always matches case'});
+  });
+
+  it('returns nothing when ignoring case on a grouped view in samples mode', () => {
+    const {result} = renderDetails('', '1', {groupBys: ['message'], mode: Mode.SAMPLES});
+
+    expect(result.current).toEqual({alert: null, dashboard: null});
   });
 
   it('returns notes when a compare query ignores case', () => {

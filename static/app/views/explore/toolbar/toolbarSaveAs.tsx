@@ -91,7 +91,7 @@ export function ToolbarSaveAs() {
   const [caseInsensitive] = useCaseInsensitivity();
   const yAxes = visualizes.map(visualize => visualize.yAxis);
   const {alert: alertCaseDetails, dashboard: dashboardCaseDetails} =
-    useAlwaysMatchesCaseDetails({query, yAxes, groupBys});
+    useAlwaysMatchesCaseDetails({query, yAxes, groupBys, mode});
 
   const sortBys = mode === Mode.SAMPLES ? sampleSortBys : aggregateSortBys;
 

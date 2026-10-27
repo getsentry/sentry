@@ -17,6 +17,7 @@ import {useAddToDashboard} from 'sentry/views/explore/hooks/useAddToDashboard';
 import {
   useQueryParamsGroupBys,
   useQueryParamsHasTransformations,
+  useQueryParamsMode,
 } from 'sentry/views/explore/queryParams/context';
 import {
   isVisualizeEquation,
@@ -47,9 +48,10 @@ export function ChartContextMenu({
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
   const groupBys = useQueryParamsGroupBys();
+  const mode = useQueryParamsMode();
   const yAxes = visualizeYAxes.map(visualizeYAxis => visualizeYAxis.yAxis);
   const {alert: alertCaseDetails, dashboard: dashboardCaseDetails} =
-    useAlwaysMatchesCaseDetails({query, yAxes, groupBys});
+    useAlwaysMatchesCaseDetails({query, yAxes, groupBys, mode});
 
   const items = useMemo(() => {
     const menuItems = [];

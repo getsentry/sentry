@@ -100,6 +100,7 @@ export function MultiQueryModeChart({
       query: queryParts.query,
       yAxes,
       groupBys: queryParts.groupBys,
+      mode,
       caseInsensitive: queryParts.caseInsensitive === '1',
     });
 

@@ -82,6 +82,7 @@ export function useSaveAsItems({
       query: search.formatString(),
       yAxes: aggregates,
       groupBys,
+      mode,
     });
 
   const saveAsQuery = useMemo(() => {

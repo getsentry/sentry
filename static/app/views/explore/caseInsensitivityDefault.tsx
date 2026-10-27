@@ -15,6 +15,7 @@ import {
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
+import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {IF_SUFFIX} from 'sentry/views/explore/utils/parseConditionalAggregate';
 
 export function hasIgnoreCaseDefault(organization: Organization) {
@@ -51,8 +52,10 @@ export function useAlwaysMatchesCaseDetails({
   query,
   yAxes,
   groupBys,
+  mode,
   caseInsensitive: queryCaseInsensitive,
 }: Pick<CaseIndependenceOptions, 'query' | 'yAxes' | 'groupBys'> & {
+  mode: Mode;
   caseInsensitive?: boolean;
 }) {
   const organization = useOrganization();
@@ -65,10 +68,14 @@ export function useAlwaysMatchesCaseDetails({
 
   const details = t('Always matches case');
 
-  // Monitors don't keep group bys, so only dashboard widgets are affected by them.
+  // Monitors and sample-mode dashboard widgets don't keep group bys.
+  const dashboardGroupBys = mode === Mode.SAMPLES ? undefined : groupBys;
+
   return {
     alert: isCaseIndependent({query, yAxes}) ? null : details,
-    dashboard: isCaseIndependent({query, yAxes, groupBys}) ? null : details,
+    dashboard: isCaseIndependent({query, yAxes, groupBys: dashboardGroupBys})
+      ? null
+      : details,
   };
 }
 

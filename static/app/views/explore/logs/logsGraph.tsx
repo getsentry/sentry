@@ -450,6 +450,7 @@ function ContextMenu({interval, visualize}: {interval: string; visualize: Visual
       query: search.formatString(),
       yAxes: [visualize.yAxis],
       groupBys,
+      mode,
     });
 
   const items = useMemo(() => {
