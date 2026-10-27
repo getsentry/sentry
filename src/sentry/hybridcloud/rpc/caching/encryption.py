@@ -25,6 +25,10 @@ class InvalidEncodingError(ValueError):
     pass
 
 
+class DecryptionError(ValueError):
+    pass
+
+
 class EncryptionMethod(StrEnum):
     PLAINTEXT = "plaintext"
     FERNET = "fernet"
@@ -113,11 +117,11 @@ class CacheEncrypter:
         try:
             with metrics.timer("hybridcloud.caching.decrypt.duration", tags=tags):
                 decrypted = handler.decrypt(base64.b64decode(parsed.payload), parsed.key_id)
-        except (InvalidToken, ValueError):
+        except (InvalidToken, ValueError) as e:
             # Expected data problems: ciphertext that fails authentication, corrupt
             # base64, or a key id this process does not have (e.g. after rotation).
             metrics.incr("hybridcloud.caching.decrypt", tags={**tags, "status": "failure"})
-            return value
+            raise DecryptionError from e
         except Exception as e:
             sentry_sdk.capture_exception(e)
             logger.exception("Failed to decrypt cache value with %s", parsed.method)

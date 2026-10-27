@@ -9,6 +9,7 @@ from django.test import override_settings
 
 from sentry.hybridcloud.rpc.caching.encryption import (
     CacheEncrypter,
+    DecryptionError,
     EncryptionMethod,
     InvalidEncodingError,
     InvalidEncryptionMethod,
@@ -70,20 +71,25 @@ def test_decrypt_unknown_method_raises() -> None:
 
 
 @no_silo_test
-def test_decrypt_corrupt_base64_returns_original() -> None:
+def test_decrypt_corrupt_base64_raises() -> None:
     fernet_value = "enc:fernet:k1:not*base64!"
 
-    with fernet_keys("k1", {"k1": Fernet(Fernet.generate_key())}):
-        assert CacheEncrypter.decrypt(fernet_value) == fernet_value
-        assert CacheEncrypter.decrypt("enc:fernet:missing-key-id") == "enc:fernet:missing-key-id"
+    with (
+        fernet_keys("k1", {"k1": Fernet(Fernet.generate_key())}),
+        pytest.raises(DecryptionError),
+    ):
+        CacheEncrypter.decrypt(fernet_value)
 
 
 @no_silo_test
-def test_decrypt_invalid_token_returns_original() -> None:
+def test_decrypt_invalid_token_raises() -> None:
     value = f"enc:fernet:k1:{_b64(b'not a fernet token')}"
 
-    with fernet_keys("k1", {"k1": Fernet(Fernet.generate_key())}):
-        assert CacheEncrypter.decrypt(value) == value
+    with (
+        fernet_keys("k1", {"k1": Fernet(Fernet.generate_key())}),
+        pytest.raises(DecryptionError),
+    ):
+        CacheEncrypter.decrypt(value)
 
 
 @no_silo_test
@@ -98,15 +104,18 @@ def test_decrypt_non_utf8_plaintext_raises() -> None:
 
 
 @no_silo_test
-def test_decrypt_unknown_key_id_returns_original_without_reporting() -> None:
+def test_decrypt_unknown_key_id_raises() -> None:
     with fernet_keys("k1", {"k1": Fernet(Fernet.generate_key())}):
         stored = CacheEncrypter.encrypt(PAYLOAD, EncryptionMethod.FERNET)
         relabelled = stored.replace("enc:fernet:k1:", "enc:fernet:k2:", 1)
 
-        with patch(
-            "sentry.hybridcloud.rpc.caching.encryption.sentry_sdk.capture_exception"
-        ) as capture_exception:
-            assert CacheEncrypter.decrypt(relabelled) == relabelled
+        with (
+            patch(
+                "sentry.hybridcloud.rpc.caching.encryption.sentry_sdk.capture_exception"
+            ) as capture_exception,
+            pytest.raises(DecryptionError),
+        ):
+            CacheEncrypter.decrypt(relabelled)
 
     capture_exception.assert_not_called()
 
@@ -155,8 +164,9 @@ def test_decrypt_failure_records_metric() -> None:
     with (
         fernet_keys("k1", {"k1": Fernet(Fernet.generate_key())}),
         patch("sentry.hybridcloud.rpc.caching.encryption.metrics") as metrics,
+        pytest.raises(DecryptionError),
     ):
-        assert CacheEncrypter.decrypt(value) == value
+        CacheEncrypter.decrypt(value)
 
     metrics.incr.assert_called_once_with(
         "hybridcloud.caching.decrypt", tags={"method": "fernet", "status": "failure"}
