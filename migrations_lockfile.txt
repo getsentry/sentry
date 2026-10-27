@@ -19,7 +19,7 @@ hybridcloud: 0045_drop_scopes_bitfield_columns
 
 insights: 0001_squashed_0002_backfill_team_starred
 
-investigations: 0011_add_investigation_action_request
+investigations: 0012_add_followup_fields_drop_precheck
 
 monitors: 0023_drop_checkin_monitor
 
