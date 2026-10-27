@@ -458,6 +458,16 @@ class InvestigationActionRequestSerializationTest(TestCase):
             "retryable": True,
         }
 
+    def test_a_re_check_behind_an_undelivered_command_cannot_be_tried_again(self) -> None:
+        self.add_followed_up_request(
+            status=InvestigationOrchestrationCommandStatus.FAILED,
+            error={"code": "earlier_command_failed"},
+        )
+
+        (serialized,) = self.serialize_requests()
+
+        assert serialized["followUp"]["retryable"] is False
+
     def test_a_re_run_behind_a_conflict_can_be_tried_again_but_not_behind_a_failure(
         self,
     ) -> None:

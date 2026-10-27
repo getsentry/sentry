@@ -307,8 +307,13 @@ def follow_up_can_be_retried(command_type: str, error: object) -> bool:
 
     if command_type == "recheck_action_requests":
         # A retried re-check goes out as a new command, unless Seer said the report moved on.
+        # One behind an undelivered command goes out when that command does.
         return not (
-            isinstance(error, dict) and error.get("reason") == "action_requests_report_changed"
+            isinstance(error, dict)
+            and (
+                error.get("reason") == "action_requests_report_changed"
+                or error.get("code") == "earlier_command_failed"
+            )
         )
     return command_can_be_resent(command_type, error)
 
