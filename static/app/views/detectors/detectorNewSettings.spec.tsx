@@ -520,12 +520,7 @@ describe('DetectorEdit', () => {
             ...duplicateRouterConfig.location,
             query: {
               ...duplicateRouterConfig.location.query,
-              draft: JSON.stringify({
-                version: 1,
-                detectorType: sourceDetector.type,
-                hasSetName: true,
-                values: {name: 'Edited copy'},
-              }),
+              draft: JSON.stringify({name: 'Edited copy'}),
             },
           },
         },
@@ -551,18 +546,35 @@ describe('DetectorEdit', () => {
     });
 
     it.each([
-      ['another host', {url: 'https://attacker.example/collect'}, []],
-      ['another path', {url: 'https://example.com/v1/projects/prod'}, []],
-      ['another method', {method: 'DELETE'}, []],
-      ['another project', {projectId: '999'}, []],
+      [
+        'another host',
+        {url: 'https://attacker.example/collect'},
+        'https://attacker.example/collect',
+        [],
+      ],
+      [
+        'another path',
+        {url: 'https://example.com/v1/projects/prod'},
+        'https://example.com/v1/projects/prod',
+        [],
+      ],
+      ['another method', {method: 'DELETE'}, 'https://example.com', []],
+      ['another project', {projectId: '999'}, 'https://example.com', []],
+      [
+        'a URL with credentials',
+        {url: 'https://user:pass@attacker.example'},
+        'https://example.com',
+        [['Authorization', 'Bearer secret']],
+      ],
       [
         'the same request',
         {url: 'https://example.com', method: 'GET'},
+        'https://example.com',
         [['Authorization', 'Bearer secret']],
       ],
     ])(
       'only keeps the source headers when an uptime copy draft sets %s',
-      async (_, draftRequest, expectedHeaders) => {
+      async (_, draftRequest, expectedUrl, expectedHeaders) => {
         const sourceDetector = UptimeDetectorFixture({
           id: 'source-uptime',
           projectId: project.id,
@@ -592,12 +604,7 @@ describe('DetectorEdit', () => {
               ...duplicateRouterConfig.location,
               query: {
                 ...duplicateRouterConfig.location.query,
-                draft: JSON.stringify({
-                  version: 1,
-                  detectorType: sourceDetector.type,
-                  hasSetName: true,
-                  values: {name: 'Edited copy', ...draftRequest},
-                }),
+                draft: JSON.stringify({name: 'Edited copy', ...draftRequest}),
               },
             },
           },
@@ -612,7 +619,9 @@ describe('DetectorEdit', () => {
             expect.any(String),
             expect.objectContaining({
               data: expect.objectContaining({
-                dataSources: [expect.objectContaining({headers: expectedHeaders})],
+                dataSources: [
+                  expect.objectContaining({headers: expectedHeaders, url: expectedUrl}),
+                ],
               }),
             })
           );
@@ -640,10 +649,8 @@ describe('DetectorEdit', () => {
             query: {
               ...duplicateRouterConfig.location.query,
               draft: JSON.stringify({
-                version: 1,
-                detectorType: 'uptime_domain_failure',
-                hasSetName: true,
-                values: {name: 'Shared copy', url: 'https://shared.example.com'},
+                name: 'Shared copy',
+                url: 'https://shared.example.com',
               }),
             },
           },
@@ -1891,13 +1898,13 @@ describe('DetectorEdit', () => {
       await userEvent.paste('{"token": "secret"}');
     }
 
-    function getWindowDraftValues() {
-      const draft = new URLSearchParams(window.location.search).get('draft');
-      return draft ? JSON.parse(draft).values : undefined;
+    function getDraftValues(router: {location: {query: Record<string, unknown>}}) {
+      const draft = router.location.query.draft;
+      return typeof draft === 'string' ? JSON.parse(draft) : undefined;
     }
 
     it('leaves headers and body out of the URL draft', async () => {
-      render(<DetectorNewSettings />, {
+      const {router} = render(<DetectorNewSettings />, {
         organization,
         initialRouterConfig: uptimeRouterConfig,
       });
@@ -1907,51 +1914,39 @@ describe('DetectorEdit', () => {
       await userEvent.click(screen.getByRole('checkbox', {name: 'Allow Sampling'}));
 
       await waitFor(() => {
-        expect(getWindowDraftValues()?.traceSampling).toBe(true);
+        expect(getDraftValues(router)?.traceSampling).toBe(true);
       });
-      const values = getWindowDraftValues();
+      const values = getDraftValues(router);
       expect(values).toEqual(
         expect.objectContaining({method: 'POST', url: 'https://uptime.example.com'})
       );
       expect(JSON.stringify(values)).not.toContain('secret');
     });
 
-    it('removes headers from the address bar as soon as a link is opened', async () => {
-      const query = {
-        ...uptimeRouterConfig.location.query,
-        draft: JSON.stringify({
-          version: 1,
-          detectorType: 'uptime_domain_failure',
-          hasSetName: true,
-          values: {
-            headers: [['Authorization', 'Bearer secret']],
-            name: 'Shared uptime',
-            url: 'https://user:secret@shared.example.com',
-          },
-        }),
-      };
-      window.history.replaceState(
-        null,
-        '',
-        `${uptimeRouterConfig.location.pathname}?${new URLSearchParams(query)}`
-      );
-
+    it('does not restore headers or a URL with credentials from a link', async () => {
       render(<DetectorNewSettings />, {
         organization,
         initialRouterConfig: {
           ...uptimeRouterConfig,
-          location: {...uptimeRouterConfig.location, query},
+          location: {
+            ...uptimeRouterConfig.location,
+            query: {
+              ...uptimeRouterConfig.location.query,
+              draft: JSON.stringify({
+                headers: [['Authorization', 'Bearer secret']],
+                name: 'Shared uptime',
+                url: 'https://user:secret@shared.example.com',
+              }),
+            },
+          },
         },
       });
 
-      expect(await screen.findByRole('textbox', {name: 'URL'})).toHaveValue(
-        'https://user:secret@shared.example.com'
-      );
+      expect(
+        await screen.findByRole('heading', {name: 'Shared uptime'})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('textbox', {name: 'URL'})).toHaveValue('');
       expect(screen.getByRole('textbox', {name: 'Name of header 1'})).toHaveValue('');
-      expect(getWindowDraftValues()).toEqual(
-        expect.objectContaining({name: 'Shared uptime'})
-      );
-      expect(JSON.stringify(getWindowDraftValues())).not.toContain('secret');
     });
 
     it('restores an uptime draft from the URL', async () => {
@@ -1964,14 +1959,9 @@ describe('DetectorEdit', () => {
             query: {
               ...uptimeRouterConfig.location.query,
               draft: JSON.stringify({
-                version: 1,
-                detectorType: 'uptime_domain_failure',
-                hasSetName: true,
-                values: {
-                  method: 'POST',
-                  name: 'Shared uptime',
-                  url: 'https://shared.example.com',
-                },
+                method: 'POST',
+                name: 'Shared uptime',
+                url: 'https://shared.example.com',
               }),
             },
           },
