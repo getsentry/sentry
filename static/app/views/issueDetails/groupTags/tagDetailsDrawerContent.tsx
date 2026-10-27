@@ -26,7 +26,7 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import type {Group, Tag, TagValue} from 'sentry/types/group';
-import {percent} from 'sentry/utils';
+import {escapeDoubleQuotes, percent} from 'sentry/utils';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {escapeIssueTagKey, generateQueryWithTag} from 'sentry/utils/queryString';
@@ -44,6 +44,8 @@ import {getUserTagValue} from 'sentry/views/issueDetails/utils';
 import {TagDetailsTable, type TagSort} from './tagDetailsTable';
 
 const DEFAULT_SORT: TagSort = 'count';
+
+type NullableTagValue = Omit<TagValue, 'value'> & {value: string | null};
 
 export function TagDetailsDrawerContent({group}: {group: Group}) {
   const location = useLocation();
@@ -67,7 +69,11 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
     }),
     select: selectJsonWithHeaders,
   });
-  const tagValues = tagValuesResponse?.json;
+  // The API can return `value: null` (e.g. the `user` tag for events without a
+  // user). Normalize to an empty string so rows render the "(empty)" state.
+  const tagValues = (tagValuesResponse?.json as NullableTagValue[] | undefined)?.map(
+    (tv): TagValue => ({...tv, value: tv.value ?? ''})
+  );
 
   const {
     data: tag,
@@ -154,7 +160,9 @@ function TagDetailsRow({
           query: undefined,
         }
       : {
-          query: tagValue.query || `${escapeIssueTagKey(key)}:"${tagValue.value}"`,
+          query:
+            tagValue.query ||
+            `${escapeIssueTagKey(key)}:"${escapeDoubleQuotes(tagValue.value)}"`,
         };
 
   const allEventsLocation = {

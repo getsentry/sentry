@@ -1,4 +1,8 @@
 import type {AvatarUser} from 'sentry/types/user';
+import type {
+  ActionRequestError,
+  CannotApplyReason,
+} from 'sentry/views/investigations/api';
 import type {ToolResult} from 'sentry/views/seerExplorer/types';
 
 /**
@@ -163,11 +167,17 @@ export type InvestigationQueryOutput = {
 };
 
 export type InvestigationDetail = InvestigationListItem & {
+  actionRequests?: InvestigationActionRequest[];
   blocks?: InvestigationBlock[];
   filters?: Record<string, unknown>;
   parameters?: unknown[];
   projectIds?: number[];
-  source?: Record<string, unknown>;
+  source?: {
+    ref: Record<string, unknown>;
+    revision: number | null;
+    type: string;
+    snapshot?: Record<string, unknown>;
+  };
   template?: {key: string; version: number} | null;
 };
 
@@ -252,6 +262,63 @@ export type InvestigationHypothesisStatus = InvestigationOrchestrationOpenString
   | 'failed'
   | 'cancelled'
 >;
+
+export type InvestigationDetectorChangeKey =
+  | 'query'
+  | 'aggregate'
+  | 'environment'
+  | 'timeWindowSeconds'
+  | 'highThreshold'
+  | 'mediumThreshold'
+  | 'resolutionThreshold';
+
+type InvestigationDetectorValues = Partial<
+  Record<InvestigationDetectorChangeKey, number | string | null>
+>;
+
+export type InvestigationUpdateDetectorAction = {
+  before: InvestigationDetectorValues;
+  changes: InvestigationDetectorValues;
+  detectorId: string;
+  kind: 'update_detector';
+};
+
+export type InvestigationAction =
+  | InvestigationUpdateDetectorAction
+  | {kind: 'connect_telemetry'; provider: 'datadog' | 'gcp'};
+
+type InvestigationActionRequestAnchor = {
+  blockId: string | null;
+  id: string;
+  type: InvestigationOrchestrationOpenString<'block' | 'hypothesis'>;
+};
+
+export type InvestigationActionRequest = {
+  action: InvestigationAction | null;
+  anchor: InvestigationActionRequestAnchor | null;
+  appliedBy: AvatarUser | null;
+  appliedDetails: Record<string, unknown> | null;
+  canApply: boolean;
+  cannotApplyReason: InvestigationOrchestrationOpenString<CannotApplyReason> | null;
+  dateApplied: string | null;
+  dateCreated: string;
+  error: ActionRequestError | null;
+  id: string;
+  impact: string | null;
+  key: string;
+  primary: boolean;
+  rationale: string;
+  reason: string | null;
+  reportRevision: number;
+  state: InvestigationOrchestrationOpenString<
+    'suggested' | 'applied' | 'failed' | 'superseded' | 'withdrawn'
+  >;
+  title: string;
+};
+
+export type InvestigationActionRequestApplyResponse = {
+  actionRequest: InvestigationActionRequest;
+};
 
 type InvestigationOrchestrationError = {
   code: string;
@@ -369,6 +436,13 @@ type InvestigationOrchestrationReport = {
   currentBlockStatus?: InvestigationOrchestrationWorkStatus | null;
   currentBlockToolActivity?: InvestigationToolActivity[];
   heartbeatAt?: string | null;
+  nextStep?: {
+    error: InvestigationOrchestrationError | null;
+    status: InvestigationOrchestrationOpenString<
+      'not_started' | 'generating' | 'completed' | 'failed'
+    >;
+    automaticRetryCount?: number;
+  } | null;
   suggestedHypotheses?: Array<{
     statement: string;
     rationale?: string | null;

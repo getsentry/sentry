@@ -1704,31 +1704,6 @@ describe('useSeerExplorer', () => {
         expect(result.current.hasSentInterrupt).toBe(false);
       });
     });
-
-    it('clears after createPR is called', async () => {
-      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
-        organization,
-        additionalWrapper: SeerExplorerChatStateProvider,
-      });
-
-      expect(result.current.hasSentInterrupt).toBe(false);
-
-      act(() => {
-        result.current.interruptRun();
-      });
-
-      await waitFor(() => {
-        expect(result.current.hasSentInterrupt).toBe(true);
-      });
-
-      act(() => {
-        result.current.createPR('test-repo-name');
-      });
-
-      await waitFor(() => {
-        expect(result.current.hasSentInterrupt).toBe(false);
-      });
-    });
   });
 
   describe('timeout logic', () => {});

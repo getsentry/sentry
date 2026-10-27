@@ -874,7 +874,6 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
                 DateUpdatedComparator("date_updated"),
                 DateUpdatedComparator("date_added"),
             ],
-            "sentry.incident": [UUID4Comparator("detection_uuid")],
             "sentry.integration": [DateUpdatedComparator("date_updated")],
             "sentry.orgauthtoken": [
                 HashObfuscatingComparator("token_hashed", "token_last_characters")
@@ -918,6 +917,10 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
                 EmailObfuscatingComparator("creator_label"),
             ],
             "sentry.sentryappinstallation": [DateUpdatedComparator("date_updated")],
+            "service_accounts.serviceaccount": [DateUpdatedComparator("date_updated")],
+            "service_accounts.serviceaccountproject": [
+                DateUpdatedComparator("date_updated", "date_added")
+            ],
             "sentry.servicehook": [HashObfuscatingComparator("secret")],
             "sentry.team": [
                 # TODO(getsentry/sentry#66247): Remove once self-hosted 24.4.0 is released.

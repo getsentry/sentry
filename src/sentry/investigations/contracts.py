@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from typing import Any
+import logging
+import re
+from typing import Any, Literal, TypedDict, cast
 
 import orjson
 from django.utils import timezone
@@ -14,12 +16,15 @@ from sentry.investigations.models.orchestration import (
     InvestigationOrchestrationStatus,
 )
 
+logger = logging.getLogger(__name__)
+
 MAX_TABLE_ROWS = 100
 MAX_CHART_SERIES = 5
 MAX_POINTS_PER_SERIES = 200
 MAX_ARTIFACT_BYTES = 1024 * 1024
 MAX_MARKDOWN_CHARS = 100_000
 MAX_PROJECTION_BYTES = 512 * 1024
+MAX_THOUGHT_TEXT_CHARS = 1_500
 
 
 def json_byte_size(value: Any) -> int:
@@ -424,6 +429,15 @@ class ToolActivitySerializer(RelaxedContractSerializer):
     status = serializers.ChoiceField(choices=["queued", "running", "completed", "failed"])
 
 
+class ThoughtSerializer(RelaxedContractSerializer):
+    """The agent's reasoning before the calls that follow it in the same phase's tool activity."""
+
+    id = StrictCharField(max_length=128)
+    text = StrictCharField(max_length=MAX_THOUGHT_TEXT_CHARS)
+    # The tool activity entry this reasoning came before; null until a call follows it.
+    beforeActivityId = OptionalStrictCharField(128)
+
+
 class ProjectScopedSerializer(RelaxedContractSerializer):
     projectIds = serializers.ListField(
         child=StrictIntegerField(min_value=1, max_value=I64_MAX),
@@ -534,6 +548,11 @@ class HypothesisSerializer(RelaxedContractSerializer):
         required=False,
         max_length=MAX_TOOL_ACTIVITIES,
     )
+    thoughts = serializers.ListField(
+        child=ThoughtSerializer(),
+        required=False,
+        max_length=MAX_TOOL_ACTIVITIES,
+    )
     evidence = serializers.ListField(
         child=EvidenceSerializer(), required=False, max_length=MAX_EVIDENCE_ITEMS
     )
@@ -554,6 +573,12 @@ class BroadScanSerializer(RelaxedContractSerializer):
     error = ProjectionErrorSerializer(required=False, allow_null=True, default=None)
     toolActivity = serializers.ListField(
         child=ToolActivitySerializer(),
+        required=False,
+        default=list,
+        max_length=MAX_TOOL_ACTIVITIES,
+    )
+    thoughts = serializers.ListField(
+        child=ThoughtSerializer(),
         required=False,
         default=list,
         max_length=MAX_TOOL_ACTIVITIES,
@@ -599,6 +624,12 @@ class ReportSerializer(RelaxedContractSerializer):
     currentBlockStatus = serializers.ChoiceField(choices=sorted(WORK_STATUSES), required=False)
     currentBlockToolActivity = serializers.ListField(
         child=ToolActivitySerializer(),
+        required=False,
+        default=list,
+        max_length=MAX_TOOL_ACTIVITIES,
+    )
+    currentBlockThoughts = serializers.ListField(
+        child=ThoughtSerializer(),
         required=False,
         default=list,
         max_length=MAX_TOOL_ACTIVITIES,
@@ -715,6 +746,30 @@ class OrchestrationProjectionSerializer(RelaxedContractSerializer):
 
 
 MAX_REPORT_BLOCKS = 200
+MAX_ACTION_REQUESTS = 50
+ACTION_REQUEST_KEY_PATTERN = re.compile(r"[a-z0-9][a-z0-9_-]{0,63}")
+ANCHOR_TYPES = ("block", "hypothesis")
+
+
+class ActionRequestAnchor(TypedDict):
+    type: Literal["block", "hypothesis"]
+    id: str
+
+
+class ActionRequestItem(TypedDict):
+    """A request from Seer that has passed validation."""
+
+    key: str
+    reportRevision: int
+    title: str
+    rationale: str
+    impact: str | None
+    primary: bool
+    anchor: ActionRequestAnchor | None
+    # The action kind owns this, so nothing else should read inside it.
+    action: dict[str, Any] | None
+
+
 MAX_TEXT_DELTA_CHARS = 64 * 1024
 MAX_SUMMARY_DESCRIPTION_CHARS = 10_000
 
@@ -738,6 +793,7 @@ class StateSnapshotPayloadSerializer(RelaxedContractSerializer):
         child=serializers.DictField(), required=False, max_length=MAX_REPORT_BLOCKS
     )
     metadata = serializers.DictField(required=False, allow_null=True)
+    actionRequests = serializers.ListField(child=serializers.JSONField(), required=False)
 
 
 class ReportClearPayloadSerializer(_ReportRevisionMixin):
@@ -778,6 +834,118 @@ class MetadataCompletedPayloadSerializer(_ReportRevisionMixin):
     summary = StrictCharField(max_length=255)
     summaryDescription = StrictCharField(max_length=MAX_SUMMARY_DESCRIPTION_CHARS)
     title = StrictCharField(required=False, max_length=255)
+
+
+class ActionPayloadSerializer(RelaxedContractSerializer):
+    """Base class for an action kind's payload. Each kind validates its own fields."""
+
+    kind = StrictCharField(max_length=64)
+
+    @classmethod
+    def trim(cls, action: dict[str, Any]) -> dict[str, Any] | None:
+        """Remove values this kind won't accept. Return None to keep the request as advice."""
+        return action
+
+
+def _payload_serializer(action: Any) -> type[ActionPayloadSerializer] | None:
+    from sentry.investigations.services.action_kinds import get_action_kind
+
+    kind = action.get("kind") if isinstance(action, dict) else None
+    action_kind = get_action_kind(kind) if isinstance(kind, str) else None
+    return action_kind.payload_serializer if action_kind is not None else None
+
+
+class ActionRequestAnchorSerializer(StrictContractSerializer):
+    type = serializers.ChoiceField(choices=ANCHOR_TYPES)
+    id = StrictCharField(max_length=128)
+
+
+class ActionRequestSerializer(RelaxedContractSerializer):
+    key = StrictCharField(max_length=64)
+    reportRevision = StrictIntegerField(min_value=0, max_value=I32_MAX)
+    title = StrictCharField(max_length=200)
+    rationale = StrictCharField(max_length=1_000)
+    impact = OptionalStrictCharField(1_000)
+    primary = StrictBooleanField(required=False, default=False)
+    anchor = ActionRequestAnchorSerializer(required=False, allow_null=True, default=None)
+    action = serializers.JSONField(required=False, allow_null=True, default=None)
+
+    def validate_key(self, value: str) -> str:
+        if ACTION_REQUEST_KEY_PATTERN.fullmatch(value) is None:
+            raise serializers.ValidationError("Must be a lowercase slug.")
+        return value
+
+    def validate_action(self, value: Any) -> dict[str, Any] | None:
+        if value is None:
+            return None
+        serializer_cls = _payload_serializer(value)
+        if serializer_cls is None:
+            raise serializers.ValidationError("Unknown action kind.")
+        validator = serializer_cls(data=value)
+        if not validator.is_valid():
+            raise serializers.ValidationError(validator.errors)
+        return dict(validator.validated_data)
+
+
+def _log_extra(item: Any) -> dict[str, Any]:
+    key = item.get("key") if isinstance(item, dict) else None
+    action = item.get("action") if isinstance(item, dict) else None
+    kind = action.get("kind") if isinstance(action, dict) else None
+    return {
+        "key": key[:64] if isinstance(key, str) else None,
+        "kind": kind[:64] if isinstance(kind, str) else None,
+    }
+
+
+def _trimmed(item: Any, *, log: bool) -> Any:
+    action = item.get("action") if isinstance(item, dict) else None
+    serializer_cls = _payload_serializer(action)
+    if serializer_cls is None or not isinstance(action, dict):
+        return item
+    trimmed = serializer_cls.trim(action)
+    if log and trimmed != action:
+        logger.warning("investigations.action_requests.action_trimmed", extra=_log_extra(item))
+    return {**item, "action": trimmed}
+
+
+def valid_action_request(item: Any, *, log: bool = False) -> ActionRequestItem | None:
+    """Return the request in a form Sentry can store, or None if we can't use it.
+
+    Seer can ship kinds, providers, or fields before Sentry knows about them, so we drop a bad
+    request instead of rejecting its whole event. Only the apply path logs, so each drop is
+    logged once.
+    """
+    trimmed = _trimmed(item, log=log)
+    validator = ActionRequestSerializer(data=trimmed)
+    if validator.is_valid():
+        return cast(ActionRequestItem, dict(validator.validated_data))
+    if log:
+        logger.warning(
+            "investigations.action_requests.dropped",
+            extra={**_log_extra(item), "fields": sorted(validator.errors)[:10]},
+        )
+    return None
+
+
+def valid_action_requests(items: list[Any], *, log: bool = False) -> list[ActionRequestItem]:
+    kept: list[ActionRequestItem] = []
+    for item in items[:MAX_ACTION_REQUESTS]:
+        request = valid_action_request(item, log=log)
+        if request is not None and all(other["key"] != request["key"] for other in kept):
+            kept.append(request)
+    return kept
+
+
+class ActionRequestedPayloadSerializer(RelaxedContractSerializer):
+    request = serializers.JSONField()
+
+    def validate_request(self, value: Any) -> ActionRequestItem | None:
+        return valid_action_request(value, log=self.context.get("log_drops", False))
+
+
+class ActionWithdrawnPayloadSerializer(RelaxedContractSerializer):
+    key = StrictCharField(max_length=64)
+    reason = StrictCharField(max_length=1_000)
 
 
 class WorkflowFailedPayloadSerializer(RelaxedContractSerializer):
@@ -843,5 +1011,7 @@ EVENT_PAYLOAD_SERIALIZERS: dict[str, type[RelaxedContractSerializer]] = {
     "report_failed": ReportFailedPayloadSerializer,
     "title_delta": TitleDeltaPayloadSerializer,
     "metadata_completed": MetadataCompletedPayloadSerializer,
+    "action_requested": ActionRequestedPayloadSerializer,
+    "action_withdrawn": ActionWithdrawnPayloadSerializer,
     "workflow_failed": WorkflowFailedPayloadSerializer,
 }

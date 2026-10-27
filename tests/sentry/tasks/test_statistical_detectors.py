@@ -1,19 +1,27 @@
 import itertools
 import uuid
+from copy import deepcopy
 from datetime import UTC, datetime, timedelta
 from unittest import mock
 
 import orjson
 import pytest
+from arroyo.backends.kafka import KafkaPayload
+from arroyo.backends.local.backend import LocalBroker
+from arroyo.backends.local.storages.memory import MemoryMessageStorage
+from arroyo.types import Partition
+from arroyo.types import Topic as ArroyoTopic
 from django.db.models import F
 from django.test import override_settings
 from urllib3.response import HTTPResponse
 
+from sentry.conf.types.kafka_definition import Topic
 from sentry.issues.endpoints.project_performance_issue_settings import InternalProjectOptions
 from sentry.issues.grouptype import (
     ProfileFunctionRegressionType,
 )
-from sentry.issues.occurrence_consumer import _process_message
+from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.issues.occurrence_consumer import _get_kwargs, _process_message
 from sentry.issues.producer import PayloadType
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
@@ -46,14 +54,16 @@ from sentry.tasks.statistical_detectors import (
     query_functions,
     run_detection,
 )
-from sentry.testutils.cases import ProfilesSnubaTestCase
+from sentry.testutils.cases import ProfilesSnubaTestCase, TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.group import GroupSubStatus
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
+from sentry.utils.kafka_config import get_topic_definition
 from sentry.viewer_context import (
+    Actor,
     ActorType,
     ViewerContext,
     decode_viewer_context,
@@ -981,7 +991,8 @@ def test_process_function_change_points_groups_by_start(detect, timestamp):
     ]
 
 
-@mock.patch("sentry.tasks.statistical_detectors.emit_function_regression_issue")
+@mock.patch("sentry.tasks.statistical_detectors.metrics.incr")
+@mock.patch("sentry.tasks.statistical_detectors.emit_function_regression_issue", return_value=3)
 @mock.patch("sentry.seer.breakpoints.seer_breakpoint_connection_pool.urlopen")
 @mock.patch("sentry.search.events.builder.base.raw_snql_query")
 @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
@@ -990,6 +1001,7 @@ def test_detect_function_change_points(
     mock_raw_snql_query,
     mock_urlopen,
     mock_emit_function_regression_issue,
+    mock_metrics_incr,
     timestamp,
     project,
 ):
@@ -1047,13 +1059,22 @@ def test_detect_function_change_points(
         detect_function_change_points([(project.id, fingerprint)], timestamp.isoformat())
 
     assert mock_emit_function_regression_issue.called
+    mock_metrics_incr.assert_has_calls(
+        [
+            mock.call(
+                "statistical_detectors.breakpoint.emitted",
+                amount=3,
+                tags={"source": "profile", "kind": "function", "producer": "sentry"},
+                sample_rate=1.0,
+            ),
+        ]
+    )
     viewer_context = decode_viewer_context(
         mock_urlopen.call_args.kwargs["headers"]["X-Viewer-Context"],
         key="viewer-context-test-secret",
     )
     assert viewer_context == ViewerContext(
-        organization_id=project.organization_id,
-        actor_type=ActorType.SYSTEM,
+        actor=Actor(type=ActorType.SYSTEM), organization_id=project.organization_id
     )
 
 
@@ -1103,16 +1124,14 @@ def test_detect_function_change_points_groups_viewer_context_by_organization(
         (
             [project.id],
             ViewerContext(
-                organization_id=project.organization_id,
-                actor_type=ActorType.SYSTEM,
+                actor=Actor(type=ActorType.SYSTEM), organization_id=project.organization_id
             ),
             SeerViewerContext(organization_id=project.organization_id),
         ),
         (
             [other_project.id],
             ViewerContext(
-                organization_id=other_project.organization_id,
-                actor_type=ActorType.SYSTEM,
+                actor=Actor(type=ActorType.SYSTEM), organization_id=other_project.organization_id
             ),
             SeerViewerContext(organization_id=other_project.organization_id),
         ),
@@ -1597,6 +1616,202 @@ def test_redirect_escalations(
         )
 
 
+@override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
+class EmitFunctionRegressionOccurrencesTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.now = datetime(2023, 8, 1, 12, tzinfo=UTC)
+        self.broker = LocalBroker(MemoryMessageStorage[KafkaPayload]())
+        self.topic = ArroyoTopic(get_topic_definition(Topic.INGEST_OCCURRENCES)["real_topic_name"])
+        self.broker.create_topic(self.topic, partitions=1)
+        producer_patch = mock.patch(
+            "sentry.issues.producer._occurrence_producer", self.broker.get_producer()
+        )
+        producer_patch.start()
+        self.addCleanup(producer_patch.stop)
+        query_patch = mock.patch("sentry.tasks.statistical_detectors.functions.query")
+        self.query = query_patch.start()
+        self.addCleanup(query_patch.stop)
+        self.query.return_value = {
+            "data": [
+                {
+                    "project.id": self.project.id,
+                    "fingerprint": 1176630088,
+                    "all_examples()": [{"profile_id": "a" * 32}],
+                }
+            ]
+        }
+        vroom_patch = mock.patch("sentry.tasks.statistical_detectors.get_from_profiling_service")
+        self.vroom = vroom_patch.start()
+        self.addCleanup(vroom_patch.stop)
+        self.payload = {
+            "culprit": "work",
+            "detection_time": "2023-08-01T12:00:00.123456789Z",
+            "event": {
+                "debug_meta": {},
+                "event_id": "a" * 32,
+                "platform": "node",
+                "project_id": self.project.id,
+                "received": "2023-08-01T12:00:00.123456789Z",
+                "stacktrace": {"frames": None},
+                "tags": {},
+                "timestamp": "2023-08-01T12:00:00.123456789Z",
+            },
+            "evidence_data": {
+                "organization_id": self.organization.id,
+                "project_id": self.project.id,
+                "file": "",
+                "fingerprint": 1176630088,
+                "function": "work",
+                "module": "",
+                "package": "",
+                "path": "",
+                "symbol": "",
+                "absolute_percentage_change": 1,
+                "aggregate_range_1": 100_000_000,
+                "aggregate_range_2": 200_000_000,
+                "breakpoint": 1690804800,
+                "trend_difference": 100_000_000,
+                "trend_percentage": 2,
+                "unweighted_p_value": 0.01,
+                "unweighted_t_value": 1.23,
+            },
+            "evidence_display": [
+                {
+                    "name": "Regression",
+                    "value": "work duration increased from 100ms to 200ms (P95).",
+                    "important": True,
+                },
+                {"name": "Breakpoint", "value": "1690804800", "important": False},
+                {"name": "Fully qualified name", "value": "work", "important": False},
+            ],
+            "fingerprint": ["4621f348"],
+            "id": "b" * 32,
+            "issue_title": "Function Regression",
+            "level": "info",
+            "payload_type": "occurrence",
+            "project_id": self.project.id,
+            "subtitle": "Duration increased from 100ms to 200ms (P95).",
+            "type": 2011,
+        }
+        self.vroom.return_value = HTTPResponse(
+            status=200,
+            body=orjson.dumps(
+                {"occurrences": 1, "emitted": [], "occurrence_payloads": [self.payload]}
+            ),
+        )
+
+    def regression(self, project: Project) -> BreakpointData:
+        return {
+            "project": str(project.id),
+            "transaction": "1176630088",
+            "aggregate_range_1": 100_000_000,
+            "aggregate_range_2": 200_000_000,
+            "unweighted_t_value": 1.23,
+            "unweighted_p_value": 0.01,
+            "trend_percentage": 2,
+            "absolute_percentage_change": 1,
+            "trend_difference": 100_000_000,
+            "breakpoint": 1690804800,
+        }
+
+    def emit(self) -> int:
+        return emit_function_regression_issue(
+            {self.project.id: self.project}, [self.regression(self.project)], self.now
+        )
+
+    def test_payload_compatibility(self) -> None:
+        assert self.emit() == 1
+        assert self.vroom.call_args.kwargs["path"] == "/regressed?produce=false"
+        message = self.broker.consume(Partition(self.topic, 0), 0)
+        assert message is not None
+        payload = orjson.loads(message.payload.value)
+        assert message.payload.key == f"4621f348-{self.project.id}".encode()
+        assert payload["event_id"] == self.payload["event"]["event_id"]
+        assert payload["resource_id"] is None
+        assert payload["type"] == ProfileFunctionRegressionType.type_id
+        assert (
+            payload["detection_time"]
+            == datetime(2023, 8, 1, 12, 0, 0, 123456, tzinfo=UTC).timestamp()
+        )
+        assert payload["evidence_data"] == self.payload["evidence_data"]
+        assert payload["evidence_display"] == self.payload["evidence_display"]
+        assert payload["fingerprint"] == self.payload["fingerprint"]
+        assert payload["payload_type"] == "occurrence"
+        assert payload["event"].items() >= self.payload["event"].items()
+        original = _get_kwargs(deepcopy(self.payload))
+        produced = _get_kwargs(payload)
+        assert (
+            IssueOccurrence.from_dict(original["occurrence_data"]).to_dict()
+            == IssueOccurrence.from_dict(produced["occurrence_data"]).to_dict()
+        )
+        original["event_data"]["contexts"]["trace"].pop("trace_id")
+        produced["event_data"]["contexts"]["trace"].pop("trace_id")
+        assert original["event_data"] == produced["event_data"]
+        assert self.broker.consume(Partition(self.topic, 0), 1) is None
+
+    def test_multiple_organizations(self) -> None:
+        other_project = self.create_project(organization=self.create_organization())
+        self.query.return_value["data"].append(
+            {
+                "project.id": other_project.id,
+                "fingerprint": 1176630088,
+                "all_examples()": [{"profile_id": "c" * 32}],
+            }
+        )
+        other_payload = deepcopy(self.payload)
+        other_payload["project_id"] = other_project.id
+        other_payload["event"]["project_id"] = other_project.id
+        other_payload["evidence_data"]["project_id"] = other_project.id
+        other_payload["evidence_data"]["organization_id"] = other_project.organization_id
+        self.vroom.return_value = HTTPResponse(
+            status=200,
+            body=orjson.dumps({"occurrence_payloads": [self.payload, other_payload]}),
+        )
+        assert (
+            emit_function_regression_issue(
+                {self.project.id: self.project, other_project.id: other_project},
+                [self.regression(self.project), self.regression(other_project)],
+                self.now,
+            )
+            == 2
+        )
+        self.vroom.assert_called_once()
+        assert self.vroom.call_args.kwargs["path"] == "/regressed?produce=false"
+        assert [p["project_id"] for p in self.vroom.call_args.kwargs["json_data"]] == [
+            self.project.id,
+            other_project.id,
+        ]
+        assert self.broker.consume(Partition(self.topic, 0), 0) is not None
+        assert self.broker.consume(Partition(self.topic, 0), 1) is not None
+        assert self.broker.consume(Partition(self.topic, 0), 2) is None
+
+    def test_empty_response(self) -> None:
+        self.vroom.return_value = HTTPResponse(
+            status=200, body=b'{"occurrences":0,"emitted":[],"occurrence_payloads":[]}'
+        )
+        assert self.emit() == 0
+        assert self.broker.consume(Partition(self.topic, 0), 0) is None
+
+    def test_no_examples(self) -> None:
+        self.query.return_value = {"data": []}
+        assert self.emit() == 0
+        self.vroom.assert_not_called()
+        assert self.broker.consume(Partition(self.topic, 0), 0) is None
+
+    def test_failed_response(self) -> None:
+        self.vroom.return_value = HTTPResponse(status=500)
+        assert self.emit() == 0
+        assert self.broker.consume(Partition(self.topic, 0), 0) is None
+
+    def test_missing_payloads_does_not_fall_back(self) -> None:
+        self.vroom.return_value = HTTPResponse(status=200, body=b'{"occurrences":1}')
+        with pytest.raises(KeyError, match="occurrence_payloads"):
+            self.emit()
+        assert self.vroom.call_count == 1
+        assert self.broker.consume(Partition(self.topic, 0), 0) is None
+
+
 class FunctionsTasksTest(ProfilesSnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -1702,7 +1917,7 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
     ):
         mock_value = mock.MagicMock()
         mock_value.status = 200
-        mock_value.data = b'{"occurrences":2}'
+        mock_value.data = b'{"occurrence_payloads":[]}'
         mock_get_from_profiling_service.return_value = mock_value
 
         fingerprint = self.function_fingerprint({"package": "foo", "function": "foo"})
@@ -1736,7 +1951,7 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
             [
                 mock.call(
                     method="POST",
-                    path="/regressed",
+                    path="/regressed?produce=false",
                     json_data=[
                         {
                             "organization_id": self.organization.id,
@@ -1783,7 +1998,7 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
 
         mock_value = mock.MagicMock()
         mock_value.status = 200
-        mock_value.data = b'{"occurrences":2}'
+        mock_value.data = b'{"occurrence_payloads":[]}'
         mock_get_from_profiling_service.return_value = mock_value
 
         fingerprint = self.function_fingerprint({"package": "bar", "function": "bar"})
@@ -1821,7 +2036,7 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
             [
                 mock.call(
                     method="POST",
-                    path="/regressed",
+                    path="/regressed?produce=false",
                     json_data=[
                         {
                             "organization_id": self.organization.id,
@@ -1849,7 +2064,7 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
     ) -> None:
         mock_value = mock.MagicMock()
         mock_value.status = 200
-        mock_value.data = b'{"occurrences":2}'
+        mock_value.data = b'{"occurrence_payloads":[]}'
         mock_get_from_profiling_service.return_value = mock_value
 
         fingerprint = self.function_fingerprint({"package": "foo", "function": "foo"})
@@ -1884,7 +2099,7 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
             [
                 mock.call(
                     method="POST",
-                    path="/regressed",
+                    path="/regressed?produce=false",
                     json_data=[
                         {
                             "organization_id": self.organization.id,

@@ -500,7 +500,7 @@ class SeerSlackRendererInvestigationTest(TestCase):
             data=SeerInvestigationStarted(
                 organization_id=1,
                 slack_user_id="U0123456789",
-                investigation_url="https://example.sentry.io/explore/investigations/1/",
+                investigation_url="https://example.sentry.io/seer/investigations/1/",
             ),
             template=SeerInvestigationStartedTemplate(),
             provider=SlackNotificationProvider,
@@ -519,7 +519,7 @@ class SeerSlackRendererInvestigationTest(TestCase):
         }
     )
     def test_render_investigation_link_button(self) -> None:
-        url = "https://acme.sentry.io/explore/investigations/1/"
+        url = "https://acme.sentry.io/seer/investigations/1/"
         data = SeerInvestigationStarted(
             organization_id=1, slack_user_id="U0123456789", investigation_url=url
         )
@@ -579,7 +579,7 @@ class SeerSlackRendererInvestigationTest(TestCase):
         }
     )
     def test_render_investigation_status_decorates_link(self) -> None:
-        url = "https://acme.sentry.io/explore/investigations/1/"
+        url = "https://acme.sentry.io/seer/investigations/1/"
 
         renderable, links = NotificationService.render_template(
             data=SeerInvestigationStatus(

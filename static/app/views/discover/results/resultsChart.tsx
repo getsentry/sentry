@@ -215,7 +215,12 @@ export const ResultsChartContainer = memo(
       isErrorsDataset && hasDroppedData(droppedEvents, acceptedEvents);
     const showDroppedDataBand = canShowDroppedData && isDroppedDataLayerOn;
     const droppedData = showDroppedDataBand
-      ? {droppedEvents, acceptedEvents, onClick: openDroppedDataDrawer}
+      ? {
+          dataset: DiscoverDatasets.ERRORS,
+          droppedEvents,
+          acceptedEvents,
+          onClick: openDroppedDataDrawer,
+        }
       : undefined;
 
     const yAxisOptions = useMemo(() => eventView.getYAxisOptions(), [eventView]);
@@ -271,6 +276,7 @@ export const ResultsChartContainer = memo(
           droppedDataLayer={
             canShowDroppedData
               ? {
+                  dataset: DiscoverDatasets.ERRORS,
                   showDroppedData: isDroppedDataLayerOn,
                   onChange: setIsDroppedDataLayerOn,
                 }

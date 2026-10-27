@@ -38,7 +38,11 @@ import {
   type FieldDefinitionGetter,
   type FilterKeySection,
 } from 'sentry/components/searchQueryBuilder/types';
-import {InvalidReason, WildcardOperators} from 'sentry/components/searchSyntax/parser';
+import {
+  InvalidReason,
+  TermOperator,
+  WildcardOperators,
+} from 'sentry/components/searchSyntax/parser';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import * as analytics from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -2029,6 +2033,21 @@ describe('SearchQueryBuilder', () => {
         name: `!browser.name:${WildcardOperators.CONTAINS}""`,
       });
       expect(browserNameFilter).toBeInTheDocument();
+    });
+
+    it.each([
+      ['!has:', '!has:""'],
+      ['!timesSeen:', '!timesSeen:100'],
+    ])('uses the filter key definition when typing %s', async (typed, filter) => {
+      render(<SearchQueryBuilder {...defaultProps} />);
+      await userEvent.click(getLastInput());
+
+      await userEvent.type(
+        screen.getByRole('combobox', {name: 'Add a search term'}),
+        typed
+      );
+
+      expect(await screen.findByRole('row', {name: filter})).toBeInTheDocument();
     });
 
     it('selects [Filtered] from dropdown', async () => {
@@ -6743,6 +6762,27 @@ describe('SearchQueryBuilder', () => {
     });
   });
 
+  describe('showAllFilterValues', () => {
+    it('lists every selected value instead of a count', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          showAllFilterValues
+          initialQuery="browser.name:[one,two,three,four,five]"
+        />
+      );
+
+      const valueButton = await screen.findByRole('button', {
+        name: 'Edit value for filter: browser.name',
+      });
+      for (const value of ['one', 'two', 'three', 'four', 'five']) {
+        expect(within(valueButton).getByText(value)).toBeInTheDocument();
+      }
+      expect(within(valueButton).queryByText(/^\+\d+$/)).not.toBeInTheDocument();
+      expect(within(valueButton).getAllByText('or')).toHaveLength(4);
+    });
+  });
+
   describe('highlightUnsupportedFilters', () => {
     it('should mark unsupported filters as invalid', async () => {
       render(
@@ -7341,6 +7381,36 @@ describe('SearchQueryBuilder', () => {
       );
 
       expect(await screen.findByRole('button', {name: 'Match case'})).toBeInTheDocument();
+    });
+
+    it('should explicitly match case when toggled off', async () => {
+      const onCaseInsensitiveClick = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          caseInsensitive
+          onCaseInsensitiveClick={onCaseInsensitiveClick}
+        />
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Match case'}));
+
+      expect(onCaseInsensitiveClick).toHaveBeenCalledWith(false);
+    });
+
+    it('should ignore case when toggled on', async () => {
+      const onCaseInsensitiveClick = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          caseInsensitive={false}
+          onCaseInsensitiveClick={onCaseInsensitiveClick}
+        />
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Ignore case'}));
+
+      expect(onCaseInsensitiveClick).toHaveBeenCalledWith(true);
     });
   });
 
@@ -8135,6 +8205,102 @@ describe('SearchQueryBuilder', () => {
         });
         expect(mockAskSeer).not.toHaveBeenCalled();
       });
+    });
+  });
+
+  describe('field definition options', () => {
+    const addressFilterKeys: TagCollection = {
+      ip_address: {key: 'ip_address', name: 'ip_address', kind: FieldKind.FIELD},
+    };
+    const addressProps: SearchQueryBuilderProps = {
+      ...defaultProps,
+      filterKeys: addressFilterKeys,
+      filterKeySections: [],
+      fieldDefinitionGetter: () => ({
+        kind: FieldKind.FIELD,
+        valueType: FieldValueType.STRING,
+        allowWildcard: false,
+        disallowWildcardOperators: true,
+        operatorLabels: {
+          [TermOperator.DEFAULT]: 'matches',
+          [TermOperator.NOT_EQUAL]: 'does not match',
+        },
+        valueHint: () => 'An address or a range',
+      }),
+    };
+
+    it('names the operators the way the field asks', async () => {
+      render(
+        <SearchQueryBuilder {...addressProps} initialQuery="ip_address:10.0.0.0/8" />
+      );
+
+      const editOpBtn = screen.getByRole('button', {
+        name: 'Edit operator for filter: ip_address',
+      });
+      expect(within(editOpBtn).getByText('matches')).toBeInTheDocument();
+
+      await userEvent.click(editOpBtn);
+      expect(screen.getByRole('option', {name: 'does not match'})).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'is not'})).not.toBeInTheDocument();
+    });
+
+    it('shows the value hint of the field instead of the wildcard hint', async () => {
+      render(
+        <SearchQueryBuilder {...addressProps} initialQuery="ip_address:10.0.0.0/8" />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: ip_address'})
+      );
+
+      expect(await screen.findByText('An address or a range')).toBeInTheDocument();
+      expect(screen.queryByText('Wildcard (*) matching allowed')).not.toBeInTheDocument();
+    });
+
+    it('lists the comparison operators first when the field asks', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          filterKeys={{release: {key: 'release', name: 'release', kind: FieldKind.FIELD}}}
+          filterKeySections={[]}
+          fieldDefinitionGetter={() => ({
+            kind: FieldKind.FIELD,
+            valueType: FieldValueType.STRING,
+            allowComparisonOperators: true,
+            comparisonOperatorsFirst: true,
+          })}
+          initialQuery="release:1.0"
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit operator for filter: release'})
+      );
+
+      const names = screen.getAllByRole('option').map(option => option.textContent);
+      expect(names.slice(0, 6)).toEqual(['is', 'is not', '>=', '<=', '>', '<']);
+      expect(names).toContain('contains');
+    });
+
+    it('keeps the contains operator on a value pick when asked', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          keepOperatorOnValueSelect
+          initialQuery={`browser.name:${WildcardOperators.CONTAINS}""`}
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+      await userEvent.click(await screen.findByRole('option', {name: 'Firefox'}));
+
+      expect(
+        await screen.findByRole('row', {
+          name: `browser.name:${WildcardOperators.CONTAINS}Firefox`,
+        })
+      ).toBeInTheDocument();
     });
   });
 

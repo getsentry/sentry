@@ -1,5 +1,5 @@
 import {type InputProps} from '@sentry/scraps/input';
-import {InputGroup} from '@sentry/scraps/input/inputGroup';
+import {InputGroup} from '@sentry/scraps/input';
 
 import {BaseField, type BaseFieldProps} from './baseField';
 

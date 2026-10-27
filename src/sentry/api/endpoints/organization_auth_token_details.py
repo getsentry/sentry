@@ -8,9 +8,16 @@ from sentry import analytics, audit_log
 from sentry.analytics.events.org_auth_token_deleted import OrgAuthTokenDeleted
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.authentication import SessionNoAuthTokenAuthentication
+from sentry.api.authentication import (
+    SessionNoAuthTokenAuthentication,
+    UserAuthTokenAuthentication,
+)
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrgAuthTokenPermission
+from sentry.api.bases.organization import (
+    ControlSiloOrganizationEndpoint,
+    OrgAuthTokenPermission,
+    get_issuing_token_audit_log_data,
+)
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import DisallowImpersonatedTokenCreation
 from sentry.api.serializers import serialize
@@ -27,7 +34,7 @@ class OrganizationAuthTokenDetailsEndpoint(ControlSiloOrganizationEndpoint):
         "PUT": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.FOUNDATIONS
-    authentication_classes = (SessionNoAuthTokenAuthentication,)
+    authentication_classes = (SessionNoAuthTokenAuthentication, UserAuthTokenAuthentication)
     permission_classes = (OrgAuthTokenPermission, DisallowImpersonatedTokenCreation)
 
     def convert_args(
@@ -89,7 +96,7 @@ class OrganizationAuthTokenDetailsEndpoint(ControlSiloOrganizationEndpoint):
             organization=organization,
             target_object=instance.id,
             event=audit_log.get_event_id("ORGAUTHTOKEN_REMOVE"),
-            data=instance.get_audit_log_data(),
+            data={**instance.get_audit_log_data(), **get_issuing_token_audit_log_data(request)},
         )
 
         analytics.record(

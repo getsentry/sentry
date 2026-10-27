@@ -8,6 +8,7 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.workflow_engine.handlers.detector import DetectorGroupValues
 from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
 from sentry.workflow_engine.types import (
     DataConditionResult,
@@ -572,9 +573,9 @@ class TestDetectorStateManagerRedisOptimization(TestCase):
         assert result == {}
 
 
-class TestStatefulDetectorHandlerExtractValueFromPacket(TestCase):
+class TestStatefulDetectorHandlerExtractValue(TestCase):
     """
-    Correctness tests for _extract_value_from_packet and _is_detector_group_value
+    Correctness tests for normalizing `extract_value` into group key and value pairs
     """
 
     def setUp(self) -> None:
@@ -585,25 +586,28 @@ class TestStatefulDetectorHandlerExtractValueFromPacket(TestCase):
 
         self.handler = MockDetectorStateHandler(detector=self.detector)
 
-    def extract_value_from_packet(self, group_values: Any) -> dict[DetectorGroupKey, Any]:
-        packet: DataPacket[Any] = DataPacket(
-            source_id=str(self.detector.id),
-            packet={"dedupe": 1, "group_vals": group_values},
-        )
+    def extract_value(self, value: Any) -> dict[DetectorGroupKey, Any]:
+        packet: DataPacket[Any] = DataPacket(source_id=str(self.detector.id), packet={})
 
-        return dict(self.handler._extract_value_from_packet(packet))
+        with mock.patch.object(self.handler, "extract_value", return_value=value):
+            return dict(self.handler._extract_value(packet))
 
     def test_detector_keys_an_ungrouped_value_by_none(self) -> None:
-        assert self.extract_value_from_packet(10) == {None: 10}
+        assert self.extract_value(10) == {None: 10}
 
-    def test_detector_keys_an_empty_mapping_by_none(self) -> None:
-        assert self.extract_value_from_packet({}) == {None: {}}
+    def test_detector_keys_a_dict_value_by_none(self) -> None:
+        # A dict value, like anomaly detection values, is not mistaken for grouped values
+        value = {"group-one": 10, "group-two": 20}
+        assert self.extract_value(value) == {None: value}
 
     def test_detector_leaves_grouped_values_alone(self) -> None:
-        assert self.extract_value_from_packet({"group-one": 10, "group-two": 20}) == {
+        assert self.extract_value(DetectorGroupValues({"group-one": 10, "group-two": 20})) == {
             "group-one": 10,
             "group-two": 20,
         }
+
+    def test_detector_has_no_groups_for_empty_grouped_values(self) -> None:
+        assert self.extract_value(DetectorGroupValues()) == {}
 
 
 class MockRotatingDetectorStateHandler(MockDetectorStateHandler):

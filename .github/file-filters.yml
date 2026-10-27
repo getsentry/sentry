@@ -18,7 +18,6 @@ testable_modified: &testable_modified
 testable_rules_changed: &testable_rules_changed
   - *sentry_frontend_workflow_file
   - added|modified: '.github/file-filters.yml'
-  - added|deleted|modified: 'build-utils/react-router{,.test}.ts'
   - added|deleted|modified: '.github/workflows/scripts/jest-test-config.sh'
   - added|deleted|modified: 'tests/js/jest.config.mjs'
   - added|deleted|modified: 'tests/js/jest.config.ci.mjs'
@@ -175,6 +174,7 @@ migrations_added:
 # Migration tests only exercise migrations, so PRs only run them when these change.
 migration_tests:
   - '.github/workflows/backend.yml'
+  - '.github/workflows/scripts/migration-test-db.py'
   - 'Makefile'
   - 'src/**/migrations/**'
   - 'tests/**/migrations/**'

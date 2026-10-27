@@ -22,7 +22,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Confidence} from 'sentry/types/organization';
 import {CAN_MARK} from 'sentry/utils/analytics';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
@@ -67,8 +67,7 @@ import {readableConditions} from './widgetLLMContext';
 
 export type OnDataFetchedParams = {
   tableResults?: TableDataWithTitle[];
-  timeseriesResultsTypes?: Record<string, AggregationOutputType>;
-  timeseriesResultsUnits?: Record<string, DataUnit>;
+  timeseriesResults?: WidgetTimeSeries[];
 };
 
 const DAYS_TO_MS = 24 * 60 * 60 * 1000;
@@ -128,9 +127,6 @@ type Data = {
   sampleCount?: number;
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: WidgetTimeSeries[];
-  timeseriesResultsTypes?: Record<string, AggregationOutputType>;
-  timeseriesResultsUnits?: Record<string, DataUnit>;
-  totalIssuesCount?: string;
 };
 
 function WidgetCard(props: Props) {
@@ -209,8 +205,7 @@ function WidgetCard(props: Props) {
       if (onDataFetched) {
         onDataFetched({
           tableResults: newData.tableResults,
-          timeseriesResultsTypes: newData.timeseriesResultsTypes,
-          timeseriesResultsUnits: newData.timeseriesResultsUnits,
+          timeseriesResults: newData.timeseriesResults,
         });
       }
 
@@ -231,7 +226,7 @@ function WidgetCard(props: Props) {
   }
 
   const hasSessionDuration = widget.queries.some(query =>
-    query.aggregates.some(aggregate => aggregate.includes('session.duration'))
+    (query.aggregates ?? []).some(aggregate => aggregate.includes('session.duration'))
   );
 
   const transactionsDeprecationWarning = useTransactionsDeprecationWarning({

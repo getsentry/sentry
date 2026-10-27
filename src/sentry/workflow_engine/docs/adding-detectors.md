@@ -37,11 +37,11 @@ flowchart TD
 
 ### Handler hierarchy
 
-| Class                                                         | Role                                                                                                                                                                |
-| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`BaseDetectorHandler`](../handlers/detector/base.py)         | Abstract interface: `_evaluate`, `evaluate`, `extract_value`, and `create_occurrence`. Holds the detector and nothing else.                                         |
-| [`DetectorHandler`](../handlers/detector/base.py)             | Shared implementation: condition-group loading, evaluation metrics, a default stateless `evaluate`, and shared evidence and event data. The base for new detectors. |
-| [`StatefulDetectorHandler`](../handlers/detector/stateful.py) | `DetectorHandler` plus dedupe, priority thresholds, durable state, and resolution. Replaces the default `evaluate`.                                                 |
+| Class                                                         | Role                                                                                                                                                              |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`BaseDetectorHandler`](../handlers/detector/base.py)         | Abstract interface: `_evaluate`, `evaluate`, `extract_value`, and `create_occurrence`. Shared occurrence identity, fingerprint, evidence, and event data helpers. |
+| [`DetectorHandler`](../handlers/detector/condition.py)        | Data condition implementation: condition-group loading, evaluation metrics, and a default stateless `evaluate`. The base for new detectors.                       |
+| [`StatefulDetectorHandler`](../handlers/detector/stateful.py) | `DetectorHandler` plus dedupe, priority thresholds, durable state, and resolution. Replaces the default `evaluate`.                                               |
 
 ### `BaseDetectorHandler`
 
@@ -52,7 +52,7 @@ that associates error issues with a detector. It does not get evaluated in the n
 
 ### `DetectorHandler`
 
-[`DetectorHandler`](../handlers/detector/base.py) is the base class for every detector
+[`DetectorHandler`](../handlers/detector/condition.py) is the base class for every detector
 that does not need persisted state. It loads the detector's trigger condition group and
 provides a default stateless `evaluate`. A concrete subclass implements `extract_value`
 and `create_occurrence`.
@@ -127,7 +127,7 @@ Every handler implements `extract_value`. A stateful handler also implements
 ```python
 def extract_value(
     self, data_packet: DataPacket[ExamplePacket]
-) -> float | dict[DetectorGroupKey, float]:
+) -> float | DetectorGroupValues[float]:
     return data_packet.packet.value
 
 
@@ -135,9 +135,10 @@ def extract_dedupe_value(self, data_packet: DataPacket[ExamplePacket]) -> int:
     return data_packet.packet.sequence
 ```
 
-`extract_value` can return one value or a mapping of group key to value. Group keys
-create independent Issue Platform fingerprints for one detector, and independent
-detector state for stateful handlers.
+`extract_value` can return one value, or `DetectorGroupValues` mapping group key to value.
+Group keys create independent Issue Platform fingerprints for one detector, and independent
+detector state for stateful handlers. Any other return value, including a plain `dict`, is
+one ungrouped value.
 
 `extract_dedupe_value` must return a positive integer whose ordering matches the source
 stream. Missing Redis state is read as zero, so a first value of zero or less is skipped.
@@ -155,7 +156,7 @@ orchestration.
 A `DetectorGroupKey` is `str | None`:
 
 - Return one value for an ungrouped detector; the state key is `None`.
-- Return a mapping for independent substreams.
+- Return `DetectorGroupValues` for independent substreams.
 - Use non-empty strings no longer than 200 characters. Do not use `""`: state-key
   construction and the database uniqueness constraint treat it like ungrouped `None`.
 - Keep keys stable across trigger and recovery packets.
@@ -163,9 +164,7 @@ A `DetectorGroupKey` is `str | None`:
   Issue Platform group.
 - Do not put unbounded IDs or raw user-controlled values into group keys without a
   product-level retention and cardinality plan.
-- Do not return an empty dictionary to mean "no groups." Both the default and stateful
-  evaluations treat an empty dictionary as one ungrouped evaluation value. Override
-  `evaluate` if a packet can legitimately contain no groups to evaluate.
+- Return an empty `DetectorGroupValues` to mean "no groups"; nothing is evaluated.
 
 ## Implement Occurrence Creation
 
@@ -388,7 +387,7 @@ The group type describes the issue. The detector components live in a
 
 ```python
 from sentry.workflow_engine.registry import detector_settings_registry
-from sentry.workflow_engine.types import DetectorSettings
+from sentry.workflow_engine.types import DetectorAPIOperation, DetectorSettings, FeatureGate
 
 
 @detector_settings_registry.register(ExampleGroupType.slug)
@@ -412,12 +411,68 @@ imported during application startup.
 
 [`DetectorSettings`](../types.py) fields are:
 
-| Field           | Purpose                                                                 |
-| --------------- | ----------------------------------------------------------------------- |
-| `handler`       | Runtime `DetectorHandler` class                                         |
-| `validator`     | Native detector API validator                                           |
-| `config_schema` | Save-time JSON schema for `Detector.config`                             |
-| `filter`        | Optional `Q` filter controlling user-visible detector rows of this type |
+| Field              | Purpose                                                                                |
+| ------------------ | -------------------------------------------------------------------------------------- |
+| `api_availability` | Optional operation-to-`bool`/`FeatureGate` overrides; inherits the all-enabled default |
+| `handler`          | Runtime `DetectorHandler` class                                                        |
+| `validator`        | Native detector API validator                                                          |
+| `config_schema`    | Save-time JSON schema for `Detector.config`                                            |
+| `filter`           | Optional `Q` filter controlling user-visible detector rows of this type                |
+
+Settings classes inherit `DetectorSettings.DEFAULT_API_AVAILABILITY` unless they override
+`api_availability`. This shared mapping is immutable and sets each `DetectorAPIOperation`
+member to `True`, so ordinary detector implementations need no availability declaration.
+Missing entries in custom maps still default to `True`. The supported enum members are
+`LIST`, `GET`, `POST`, `PUT`, and `DELETE`.
+
+Each gate is either `True`, `False`, or `FeatureGate("organizations:feature-name")`.
+`FeatureGate` checks a registered organization-scoped feature at request time using the
+authorized organization and actor. Feature names remain strings, but raw strings are not
+valid gate values.
+
+To hide a type from the list and its counts without disabling other operations:
+
+```python
+api_availability = {
+    **DetectorSettings.DEFAULT_API_AVAILABILITY,
+    DetectorAPIOperation.LIST: False,
+}
+```
+
+For a rollout across every detector-platform API, assign the same feature gate to all
+operations:
+
+```python
+api_availability = {
+    operation: FeatureGate("organizations:example-detector-api")
+    for operation in DetectorAPIOperation
+}
+```
+
+`LIST` additionally requires `GET`, so a denied `GET` gate hides a type from both listing
+and counts even when `LIST` is explicitly allowed. Gate checks short-circuit in that order:
+implied `GET` for `LIST`, then the requested operation.
+
+Generic detector-platform APIs evaluate these gates through `get_excluded_detector_types`,
+which reads registered settings without fetching detector rows. List filtering happens
+before pagination and hit counting, including requests that filter by detector ID or type.
+Counts use the same `LIST` policy. `GET` also controls detail retrieval and type discovery;
+`LIST` alone does not restrict those other reads. Gates are independent of the group type's
+`released` state and the detector's `enabled` state.
+
+Product-specific APIs, such as anomaly-data retrieval, do not inherit these platform API
+exclusions.
+
+Individual requests for a detector excluded from `GET`, `PUT`, or `DELETE` return 404.
+Creation of a type excluded from `POST`, or an update targeting a type excluded from
+`PUT`, returns a 400 type-field validation error before saving.
+
+Bulk updates and deletions filter excluded types before mutation. Query/project selections
+operate on the remaining types; explicit ID selections return 400 without changing any
+detectors if an excluded ID was requested.
+
+Read exclusions do not restrict creation, updates, or deletion. Write exclusions do not
+affect listing, and API exclusions never change detector evaluation.
 
 Both registrations happen at import time. The `GroupType` subclass registers itself
 with the global Issue Platform registry when the class is created. The settings class

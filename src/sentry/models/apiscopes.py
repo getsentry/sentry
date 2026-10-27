@@ -41,7 +41,7 @@ class ApiScopes(Sequence[str]):
     dashboard = (
         ("dashboard:read"),
         ("dashboard:create"),
-        ("dashboard:write"),
+        ("dashboard:update"),
         ("dashboard:delete"),
     )
 

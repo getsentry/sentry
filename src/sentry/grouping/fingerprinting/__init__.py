@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from collections.abc import Generator, Mapping, Sequence
 from pathlib import Path
 from typing import Any, Self
@@ -20,6 +21,50 @@ VERSION = 1
 
 CONFIGS_DIR: Path = Path(__file__).with_name("configs")
 DEFAULT_GROUPING_FINGERPRINTING_BASES: list[str] = []
+
+QUOTED_STRING_REGEX = re.compile(r'"(?:[^"\\]|\\.)*"')
+# Lookalikes for `->`, including em and en dash variants
+LOOKALIKE_ARROW_REGEX = re.compile(r"→|⟶|⇒|➔|=>|—>|–>")
+# An unquoted matcher value swallows a `->` written directly after it
+GLUED_ARROW_REGEX = re.compile(r"[^\s-]->")
+
+
+def _blank_quoted_strings(text: str) -> str:
+    """Blank out quoted strings without shifting offsets."""
+    return QUOTED_STRING_REGEX.sub(lambda m: " " * len(m.group()), text)
+
+
+def _describe_syntax_error(e: ParseError) -> str:
+    """
+    The parser reports a rule it can't read at all, such as one with a bad arrow, at the start of
+    its line. Look for common mistakes in that rule and point at them instead.
+    """
+    line_start = e.text.rfind("\n", 0, e.pos) + 1
+    # Quoted strings can span lines, so blank them to keep the rule on one line
+    rule = _blank_quoted_strings(e.text[line_start:]).split("\n", 1)[0]
+
+    pos = e.pos
+    hint = None
+    if not e.text[line_start : e.pos].strip():
+        if "->" not in rule:
+            if lookalike := LOOKALIKE_ARROW_REGEX.search(rule):
+                pos = line_start + lookalike.start()
+                hint = f'use "->" instead of "{lookalike.group()}"'
+            else:
+                hint = 'expected "->" between the matchers and the fingerprint'
+        elif glued := GLUED_ARROW_REGEX.search(rule):
+            pos = line_start + glued.start() + 1
+            hint = 'add a space before "->"'
+
+    pos_line_start = e.text.rfind("\n", 0, pos) + 1
+    pos_line_end = e.text.find("\n", pos)
+    context = e.text[pos : pos_line_end if pos_line_end != -1 else len(e.text)].rstrip("\r")
+    if len(context) > 32:
+        context = context[:32] + "..."
+    line_number = e.text.count("\n", 0, pos) + 1
+    column = pos - pos_line_start + 1
+    message = f'Invalid syntax near "{context}" (line {line_number}, column {column})'
+    return f"{message}: {hint}" if hint else message
 
 
 class FingerprintingConfig:
@@ -98,12 +143,7 @@ class FingerprintingConfig:
         try:
             tree = fingerprinting_grammar.parse(s)
         except ParseError as e:
-            context = e.text[e.pos : e.pos + 33]
-            if len(context) == 33:
-                context = context[:-1] + "..."
-            raise InvalidFingerprintingConfig(
-                f'Invalid syntax near "{context}" (line {e.line()}, column {e.column()})'
-            )
+            raise InvalidFingerprintingConfig(_describe_syntax_error(e))
 
         rules = FingerprintingVisitor().visit(tree)
 
