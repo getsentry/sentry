@@ -11,9 +11,6 @@ import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/co
 
 const DETECTOR_DRAFT_VERSION = 1;
 
-// Leaves room under common 8 KB request line limits.
-const MAX_URL_LENGTH = 6000;
-
 const detectorDraftSchema = z.object({
   version: z.literal(DETECTOR_DRAFT_VERSION),
   detectorType: z.string(),
@@ -130,25 +127,12 @@ function replaceDraftInUrl(draft: DetectorDraft) {
   }
 
   url.searchParams.set('draft', parseAsDetectorDraft.serialize(draft));
-  if (url.href.length > MAX_URL_LENGTH) {
-    // A long description is the likeliest culprit, and the least costly to
-    // drop: the rest of the draft still opens.
-    const {description: _description, ...values} = draft.values;
-    url.searchParams.set('draft', parseAsDetectorDraft.serialize({...draft, values}));
-  }
-  if (url.href.length > MAX_URL_LENGTH) {
-    // Better no draft than one that looks current but isn't. The link's own
-    // prefill params stay, since there's no draft to supersede them.
-    removeDetectorDraftFromUrl();
-    return;
-  }
-
   window.history.replaceState(window.history.state, '', url);
 }
 
 /**
- * Also used once the monitor is created, so going back doesn't reopen the
- * whole draft.
+ * Used once the monitor is created, so going back doesn't reopen the whole
+ * draft.
  */
 export function removeDetectorDraftFromUrl() {
   const url = new URL(window.location.href);
