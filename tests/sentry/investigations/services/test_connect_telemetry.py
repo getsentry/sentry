@@ -1,23 +1,35 @@
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import Any
+from unittest import mock
 
+import pytest
 from cryptography.fernet import Fernet
 from django.test import override_settings
 from django.urls import reverse
+from django.utils import timezone
 
 from sentry.investigations.models import (
     InvestigationActionRequest,
     InvestigationActionRequestState,
     InvestigationOrchestrationCommand,
+    InvestigationStatus,
 )
 from sentry.investigations.services.action_kinds.connect_telemetry import telemetry_available
+from sentry.investigations.services.action_requests import upsert_action_request
+from sentry.signals import integration_added
+from sentry.tasks.seer.investigation import (
+    TelemetryNotConnectedYet,
+    mark_investigation_telemetry_connected,
+)
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.features import with_feature
 
 TEST_FERNET_KEY = Fernet.generate_key().decode("utf-8")
 FEATURE = "organizations:seer-infra-telemetry"
 USER_LEVEL_AUTH = "organizations:seer-infra-telemetry-user-level-auth"
+CONNECT = {"kind": "connect_telemetry", "provider": "datadog"}
 
 
 class TelemetryFixtures(TestCase):
@@ -129,12 +141,15 @@ class ConnectTelemetryApplyTest(APITestCase, TelemetryFixtures):
             status="completed",
             projection={"workflowVersion": 4, "report": {"revision": 1, "status": "completed"}},
         )
+
+    def suggest(self) -> None:
+        # Suggest after connecting, so the install hook has nothing to apply.
         self.action_request = self.create_investigation_action_request(
             investigation=self.investigation,
             key="connect-telemetry-datadog-r1",
             report_revision=1,
             action_kind="connect_telemetry",
-            action_payload={"kind": "connect_telemetry", "provider": "datadog"},
+            action_payload=CONNECT,
         )
 
     def apply(self, **data: Any) -> Any:
@@ -154,7 +169,10 @@ class ConnectTelemetryApplyTest(APITestCase, TelemetryFixtures):
 
     def test_applying_a_connected_provider_records_it(self) -> None:
         self.create_datadog()
+        self.suggest()
 
+        assert self.apply(dryRun=True).status_code == 200
+        assert self.reloaded().state == InvestigationActionRequestState.SUGGESTED
         response = self.apply()
 
         assert response.status_code == 200, response.data
@@ -170,6 +188,9 @@ class ConnectTelemetryApplyTest(APITestCase, TelemetryFixtures):
         ] == ["record_action_outcome"]
 
     def test_a_provider_that_is_not_connected_cannot_be_applied(self) -> None:
+        self.suggest()
+
+        assert self.apply(dryRun=True).status_code == 400
         response = self.apply()
 
         assert response.status_code == 400
@@ -186,6 +207,7 @@ class ConnectTelemetryApplyTest(APITestCase, TelemetryFixtures):
         member = self.create_user()
         self.create_member(user=member, organization=self.organization, role="member")
         self.login_as(member)
+        self.suggest()
 
         response = self.apply()
 
@@ -193,16 +215,237 @@ class ConnectTelemetryApplyTest(APITestCase, TelemetryFixtures):
         assert response.data["code"] == "permission_denied"
 
     def test_without_infra_telemetry_it_is_unsupported(self) -> None:
+        self.suggest()
+
         with self.feature({FEATURE: False}):
             response = self.apply()
 
         assert response.status_code == 400
         assert response.data["code"] == "unsupported_action"
 
-    def test_a_dry_run_says_whether_the_provider_is_connected(self) -> None:
-        assert self.apply(dryRun=True).status_code == 400
 
+@with_feature(FEATURE)
+@override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
+class ConnectionHookTest(TelemetryFixtures):
+    def setUp(self) -> None:
+        super().setUp()
+        self.create_datadog()
+        self.investigation = self.create_investigation(
+            organization=self.organization, created_by=self.user
+        )
+        self.orchestration_run = self.create_investigation_orchestration_run(
+            investigation=self.investigation,
+            workflow_version=4,
+            phase="completed",
+            status="completed",
+            projection={"workflowVersion": 4, "report": {"revision": 1, "status": "completed"}},
+        )
+
+    def connect_request(self, **values: Any) -> InvestigationActionRequest:
+        values.setdefault("key", "connect-telemetry-datadog-r1")
+        values.setdefault("action_payload", CONNECT)
+        return self.create_investigation_action_request(
+            investigation=values.pop("investigation", self.investigation),
+            report_revision=1,
+            action_kind="connect_telemetry",
+            **values,
+        )
+
+    def commands(self) -> list[InvestigationOrchestrationCommand]:
+        return list(
+            InvestigationOrchestrationCommand.objects.filter(
+                orchestration_run=self.orchestration_run
+            ).order_by("id")
+        )
+
+    def connected(self, user_id: int | None) -> None:
+        mark_investigation_telemetry_connected(self.organization.id, "datadog", user_id)
+
+    def test_a_connection_applies_the_request_like_the_endpoint(self) -> None:
+        request = self.connect_request()
+
+        self.connected(self.user.id)
+
+        request.refresh_from_db()
+        assert request.state == InvestigationActionRequestState.APPLIED
+        assert request.applied_by_id == self.user.id
+        assert request.applied_details == {"provider": "datadog"}
+        [outcome] = self.commands()
+        assert {"type": outcome.type, **outcome.payload} == {
+            "type": "record_action_outcome",
+            "key": "connect-telemetry-datadog-r1",
+            "action": CONNECT,
+            "reportRevision": 1,
+            "outcome": "applied",
+            "appliedBy": self.user.id,
+        }
+
+    def test_a_second_hook_for_the_same_connection_does_nothing(self) -> None:
+        self.connect_request()
+        self.connected(self.user.id)
+
+        self.connected(None)
+
+        assert len(self.commands()) == 1
+
+    def test_only_suggested_requests_for_the_provider_are_applied(self) -> None:
+        gcp = self.connect_request(
+            key="connect-telemetry-gcp-r1", action_payload={**CONNECT, "provider": "gcp"}
+        )
+        withdrawn = self.connect_request(
+            key="old-connect", state=InvestigationActionRequestState.WITHDRAWN
+        )
+        other_org = self.create_investigation(
+            organization=self.create_organization(), created_by=self.user
+        )
+        self.create_investigation_orchestration_run(investigation=other_org)
+        foreign = self.connect_request(investigation=other_org)
+
+        self.connected(self.user.id)
+
+        for row in (gcp, withdrawn, foreign):
+            state = row.state
+            row.refresh_from_db()
+            assert row.state == state
+        assert self.commands() == []
+
+    def test_an_automatic_apply_has_no_applier(self) -> None:
+        request = self.connect_request()
+
+        self.connected(None)
+
+        request.refresh_from_db()
+        assert request.applied_by_id is None
+        [outcome] = self.commands()
+        assert outcome.payload["appliedBy"] is None
+        assert outcome.actor_id is None
+
+    def test_the_installer_applies_it(self) -> None:
+        installer = self.create_user()
+        self.create_member(user=installer, organization=self.organization, role="manager")
+        self.connect_request()
+
+        self.connected(installer.id)
+
+        [outcome] = self.commands()
+        assert outcome.payload["appliedBy"] == installer.id
+        assert outcome.actor_id == installer.id
+
+    def test_requests_older_than_a_day_are_left_for_the_user(self) -> None:
+        old = self.connect_request()
+        old.update(date_added=timezone.now() - timedelta(days=1, minutes=1))
+        recent = self.connect_request(key="connect-telemetry-datadog-r2")
+
+        self.connected(self.user.id)
+
+        old.refresh_from_db()
+        recent.refresh_from_db()
+        assert old.state == InvestigationActionRequestState.SUGGESTED
+        assert recent.state == InvestigationActionRequestState.APPLIED
+
+    def test_archived_investigations_are_left_alone(self) -> None:
+        request = self.connect_request()
+        self.investigation.update(status=InvestigationStatus.ARCHIVED)
+
+        self.connected(self.user.id)
+
+        request.refresh_from_db()
+        assert request.state == InvestigationActionRequestState.SUGGESTED
+
+
+@override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
+class MarkInvestigationTelemetryConnectedTaskTest(TelemetryFixtures):
+    def setUp(self) -> None:
+        super().setUp()
+        self.investigation = self.create_investigation(
+            organization=self.organization, created_by=self.user
+        )
+        self.orchestration_run = self.create_investigation_orchestration_run(
+            investigation=self.investigation,
+            projection={"workflowVersion": 1, "report": {"revision": 0, "status": "completed"}},
+        )
+        self.create_investigation_action_request(
+            investigation=self.investigation,
+            key="connect-telemetry-datadog-r0",
+            action_kind="connect_telemetry",
+            action_payload=CONNECT,
+        )
+
+    def connect_request_state(self) -> str:
+        return InvestigationActionRequest.objects.get(investigation=self.investigation).state
+
+    @with_feature(FEATURE)
+    def test_applies_requests_once_connected(self) -> None:
         self.create_datadog()
 
-        assert self.apply(dryRun=True).status_code == 200
-        assert self.reloaded().state == InvestigationActionRequestState.SUGGESTED
+        mark_investigation_telemetry_connected(self.organization.id, "datadog", self.user.id)
+
+        assert self.connect_request_state() == InvestigationActionRequestState.APPLIED
+
+    @with_feature(FEATURE)
+    def test_retries_until_the_settings_are_saved(self) -> None:
+        with pytest.raises(TelemetryNotConnectedYet):
+            mark_investigation_telemetry_connected(self.organization.id, "datadog", None)
+        mark_investigation_telemetry_connected(self.organization.id, "datadog", None, retry=False)
+        with mock.patch(
+            "sentry.tasks.seer.investigation.current_task",
+            return_value=mock.Mock(retries_remaining=False),
+        ):
+            mark_investigation_telemetry_connected(self.organization.id, "datadog", None)
+
+        assert self.connect_request_state() == InvestigationActionRequestState.SUGGESTED
+
+    @with_feature(FEATURE)
+    def test_skips_organizations_with_nothing_to_connect(self) -> None:
+        # GCP isn't connected, so checking it would ask for a retry.
+        mark_investigation_telemetry_connected(self.organization.id, "gcp", None)
+
+    def test_does_nothing_without_infra_telemetry(self) -> None:
+        self.create_datadog()
+
+        mark_investigation_telemetry_connected(self.organization.id, "datadog", self.user.id)
+
+        assert self.connect_request_state() == InvestigationActionRequestState.SUGGESTED
+
+    @mock.patch("sentry.receivers.seer.mark_investigation_telemetry_connected.delay")
+    def test_an_installed_integration_triggers_the_check(self, delay: mock.MagicMock) -> None:
+        datadog = self.create_integration(
+            organization=self.organization, provider="datadog", external_id="dd"
+        )
+        slack = self.create_integration(
+            organization=self.organization, provider="slack", external_id="sl"
+        )
+        delay.reset_mock()
+
+        for integration in (datadog, slack):
+            integration_added.send_robust(
+                sender=None,
+                integration_id=integration.id,
+                organization_id=self.organization.id,
+                user_id=self.user.id,
+            )
+
+        delay.assert_called_once_with(
+            organization_id=self.organization.id, provider="datadog", user_id=self.user.id
+        )
+
+    @mock.patch("sentry.tasks.seer.investigation.mark_investigation_telemetry_connected.delay")
+    def test_a_new_connect_request_schedules_one_check(self, delay: mock.MagicMock) -> None:
+        with self.capture_on_commit_callbacks(execute=True):
+            upsert_action_request(
+                self.orchestration_run,
+                {
+                    "key": "connect-telemetry-gcp-r0",
+                    "reportRevision": 0,
+                    "title": "Connect Google Cloud",
+                    "rationale": "Logs live there.",
+                    "impact": None,
+                    "primary": False,
+                    "anchor": None,
+                    "action": {"kind": "connect_telemetry", "provider": "gcp"},
+                },
+            )
+
+        delay.assert_called_once_with(
+            organization_id=self.organization.id, provider="gcp", user_id=None, retry=False
+        )

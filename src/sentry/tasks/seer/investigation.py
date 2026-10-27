@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from contextlib import AbstractContextManager, nullcontext
+from datetime import timedelta
 
 from django.db import router, transaction
 from django.utils import timezone
@@ -10,6 +11,7 @@ from taskbroker_client.retry import Retry
 from taskbroker_client.state import current_task
 from urllib3.exceptions import HTTPError
 
+from sentry import features
 from sentry.investigations.agent import (
     cancel_investigation_executions_after_failure,
     start_execution_run,
@@ -34,6 +36,14 @@ from sentry.investigations.services import (
     mark_block_execution_dispatch_failed,
     mark_block_execution_dispatch_started,
 )
+from sentry.investigations.services.action_kinds.connect_telemetry import (
+    TELEMETRY_FEATURE,
+    ConnectTelemetryAppliedDetails,
+    TelemetryProvider,
+    open_connect_requests,
+    telemetry_available,
+)
+from sentry.investigations.services.action_requests import complete_action_requests
 from sentry.investigations.services.orchestration import (
     FOLLOW_UP_COMMAND_TYPES,
     INTERNAL_COMMAND_TYPES,
@@ -46,6 +56,7 @@ from sentry.investigations.services.orchestration_events import (
     synchronize_orchestration_projection,
 )
 from sentry.investigations.telemetry import record_execution_failed
+from sentry.models.organization import Organization
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.tasks.base import instrumented_task
@@ -63,6 +74,7 @@ COMMAND_VERSION_CONFLICT_MESSAGE = (
     "Progress was refreshed; try again."
 )
 INTERNAL_COMMAND_REJECTED_MESSAGE = "Seer turned down this update."
+AUTO_CONNECT_MAX_AGE = timedelta(days=1)
 
 
 def _is_last_dispatch_attempt() -> bool:
@@ -591,3 +603,42 @@ def dispatch_investigation_execution(execution_id: int) -> None:
             execution.refresh_from_db(fields=["completed_at"])
             record_execution_failed(execution, reason="dispatch_failed", seer_run_id=None)
             cancel_investigation_executions_after_failure(execution)
+
+
+class TelemetryNotConnectedYet(Exception):
+    pass
+
+
+@instrumented_task(
+    name="sentry.tasks.seer.investigation.mark_investigation_telemetry_connected",
+    namespace=seer_tasks,
+    retry=Retry(times=2, delay=60, on=(TelemetryNotConnectedYet,)),
+)
+def mark_investigation_telemetry_connected(
+    organization_id: int,
+    provider: TelemetryProvider,
+    user_id: int | None = None,
+    retry: bool = True,
+) -> None:
+    """Apply open connect requests when the organization connects a provider.
+
+    Install hooks retry, because a hook can run before the integration's settings are saved.
+    """
+
+    connect_requests = open_connect_requests(organization_id, provider).filter(
+        date_added__gte=timezone.now() - AUTO_CONNECT_MAX_AGE
+    )
+    if not connect_requests.exists():
+        return
+    organization = Organization.objects.filter(id=organization_id).first()
+    if organization is None or not features.has(TELEMETRY_FEATURE, organization):
+        return
+    if not telemetry_available(organization, provider):
+        if retry and not _is_last_dispatch_attempt():
+            raise TelemetryNotConnectedYet
+        return
+    complete_action_requests(
+        connect_requests,
+        applied_by=user_id,
+        details=ConnectTelemetryAppliedDetails(provider=provider),
+    )

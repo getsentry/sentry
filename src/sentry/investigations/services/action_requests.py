@@ -349,24 +349,70 @@ def _check_can_apply(
     )
 
 
-def _queue_outcome(context: ApplyContext) -> None:
-    """Tell Seer the request was applied."""
+def _complete_action_request(
+    investigation: Investigation,
+    run: InvestigationOrchestrationRun,
+    action_request: InvestigationActionRequest,
+    *,
+    applied_by: int | None,
+    details: Mapping[str, object],
+) -> None:
+    """Record that the request was applied, and tell Seer. `applied_by` is None when Sentry
+    applied it for the user. Callers hold the investigation, run, and request locks.
+    """
 
-    action_request = context.action_request
+    action_request.update(
+        state=InvestigationActionRequestState.APPLIED,
+        applied_by_id=applied_by,
+        date_applied=timezone.now(),
+        applied_details=details,
+        error=None,
+    )
     accept_orchestration_command(
-        investigation=context.investigation,
+        investigation=investigation,
         request_id=uuid5(_OUTCOME_NAMESPACE, f"{action_request.id}:applied"),
-        expected_workflow_version=context.run.workflow_version,
+        expected_workflow_version=run.workflow_version,
         command_type="record_action_outcome",
         payload={
             "key": action_request.key,
             "action": action_request.action_payload,
             "reportRevision": action_request.report_revision,
             "outcome": "applied",
-            "appliedBy": context.actor_id,
+            "appliedBy": applied_by,
         },
-        actor_id=context.actor_id,
+        actor_id=applied_by,
     )
+
+
+def complete_action_requests(
+    action_requests: QuerySet[InvestigationActionRequest],
+    *,
+    applied_by: int | None,
+    details: Mapping[str, object],
+) -> None:
+    """Record these requests as applied and tell Seer, under the apply endpoint's locks. Use it
+    when Sentry applies requests itself. Requests no one can apply now, like ones in archived
+    investigations, are skipped.
+    """
+
+    investigation_ids = list(action_requests.values_list("investigation_id", flat=True).distinct())
+    for investigation_id in investigation_ids:
+        with transaction.atomic(using=router.db_for_write(InvestigationActionRequest)):
+            investigation = (
+                Investigation.objects.select_for_update(of=("self",))
+                .filter(id=investigation_id)
+                .first()
+            )
+            if investigation is None:
+                continue
+            run = InvestigationOrchestrationRun.objects.select_for_update().get(
+                investigation=investigation
+            )
+            for row in action_requests.filter(investigation=investigation).select_for_update():
+                if shared_cannot_apply_reason(investigation, row) is None:
+                    _complete_action_request(
+                        investigation, run, row, applied_by=applied_by, details=details
+                    )
 
 
 def _seer_can_recheck(
@@ -513,14 +559,13 @@ def _apply(
         )
     except ActionInvalid as invalid:
         raise ApplyFailed(_invalid_error(invalid))
-    context.action_request.update(
-        state=InvestigationActionRequestState.APPLIED,
-        applied_by_id=actor_id,
-        date_applied=timezone.now(),
-        applied_details=details,
-        error=None,
+    _complete_action_request(
+        context.investigation,
+        context.run,
+        context.action_request,
+        applied_by=actor_id,
+        details=details,
     )
-    _queue_outcome(context)
     return context.action_request
 
 
