@@ -249,7 +249,7 @@ DSYM_FILE_FORMATS_PARAM = OpenApiParameter(
 )
 
 
-def code_id_queries(code_id: str) -> list[Q]:
+def code_id_queries(code_id: str, use_legacy: bool) -> list[Q]:
     """Returns a list of queries that, for a given code ID:
        1. compare it to the `code_id` field.
        2. compare it to the `wasm_legacy_code_id` field.
@@ -265,13 +265,13 @@ def code_id_queries(code_id: str) -> list[Q]:
     `wasm_legacy_code_id`, and the "legacy" code ID is extremely unlikely to be a match for
     any file that never suffered from the WASM build ID bug.
 
-    The behavior is (randomly) gated behind the "debug-files.query-legacy-ids.rollout-rate" option.
+    The behavior is gated behind the `use_legacy` flag.
     If it's turned off, only the first query is returned.
     """
 
     qs = [Q(code_id__exact=code_id)]
 
-    if in_random_rollout("debug-files.query-legacy-ids.rollout-rate"):
+    if use_legacy:
         qs.append(Q(wasm_legacy_code_id__exact=code_id))
 
         if legacy_id := wasm_legacy_code_id(code_id):
@@ -280,7 +280,7 @@ def code_id_queries(code_id: str) -> list[Q]:
     return qs
 
 
-def debug_id_queries(debug_id: str) -> list[Q]:
+def debug_id_queries(debug_id: str, use_legacy: bool) -> list[Q]:
     """Returns a list of queries that, for a given debug ID:
        1. compare it to the `debug_id` field.
        2. compare it to the `wasm_legacy_debug_id` field.
@@ -296,13 +296,13 @@ def debug_id_queries(debug_id: str) -> list[Q]:
     `wasm_legacy_debug_id`, and the "legacy" debug ID is extremely unlikely to be a match for
     any file that never suffered from the WASM build ID bug.
 
-    The behavior is (randomly) gated behind the "debug-files.query-legacy-ids.rollout-rate" option.
+    The behavior is gated behind the `use_legacy` flag.
     If it's turned off, only the first query is returned.
     """
 
     qs = [Q(debug_id__exact=debug_id)]
 
-    if in_random_rollout("debug-files.query-legacy-ids.rollout-rate"):
+    if use_legacy:
         qs.append(Q(wasm_legacy_debug_id__exact=debug_id))
 
         if legacy_id := wasm_legacy_debug_id(debug_id):
@@ -424,6 +424,8 @@ class DebugFilesEndpoint(ProjectEndpoint):
                     )
             q &= file_format_q
 
+        query_legacy_ids = in_random_rollout("debug-files.query-legacy-ids.rollout-rate")
+
         # If we have at least one of debug_id or code_id, use them to build the queryset
         if debug_id or code_id:
             # Be lenient when searching for debug files, check either for a matching debug id
@@ -436,14 +438,14 @@ class DebugFilesEndpoint(ProjectEndpoint):
             # will match.
             debug_id_qs = ProjectDebugFile.objects.none().select_related("file")
             if debug_id:
-                for debug_id_q in debug_id_queries(debug_id):
+                for debug_id_q in debug_id_queries(debug_id, query_legacy_ids):
                     debug_id_qs = debug_id_qs.union(
                         ProjectDebugFile.objects.filter(debug_id_q & q).select_related("file")
                     )
 
             code_id_qs = ProjectDebugFile.objects.none().select_related("file")
             if code_id:
-                for code_id_q in code_id_queries(code_id):
+                for code_id_q in code_id_queries(code_id, query_legacy_ids):
                     code_id_qs = code_id_qs.union(
                         ProjectDebugFile.objects.filter(
                             code_id_q
