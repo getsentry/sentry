@@ -70,6 +70,23 @@ function ConnectTelemetryApply({
 
   switch (actionRequest.state) {
     case 'suggested':
+      if (actionRequest.canApply && check.status === 'pending') {
+        return (
+          <ApplyButton
+            canApply
+            applying={false}
+            check={check}
+            disabled={false}
+            message={null}
+            onApply={onApply}
+            onRecheck={onRecheck}
+            rechecking={false}
+            icon={<IconRefresh />}
+            label={t('Checking the %s connection…', name)}
+            busyLabel={t('Checking the %s connection…', name)}
+          />
+        );
+      }
       return actionRequest.canApply && check.status === 'passed' ? (
         <ApplyButton
           canApply

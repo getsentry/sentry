@@ -1342,10 +1342,10 @@ describe('NextStepCard', () => {
 
     await waitFor(() => expect(dryRun).toHaveBeenCalled());
     const card = getCard();
-    expect(card).toHaveTextContent('Connect Datadog. Checkout logs live in Datadog.');
-    const connect = within(card).getByRole('button', {
+    const connect = await within(card).findByRole('button', {
       name: 'Connect Datadog (opens in a new tab)',
     });
+    expect(card).toHaveTextContent('Connect Datadog. Checkout logs live in Datadog.');
     expect(connect).toHaveAttribute('href', '/settings/org-slug/integrations/datadog/');
     expect(connect).toHaveAttribute('target', '_blank');
   });
@@ -1392,6 +1392,45 @@ describe('NextStepCard', () => {
       applyUrl,
       expect.objectContaining({method: 'POST', data: {action: connected.action}})
     );
+  });
+
+  it('checks the connection before offering either button', () => {
+    mockDryRun({asyncDelay: 1_000_000});
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[connectRequest()]}
+      />
+    );
+
+    expect(
+      within(getCard()).getByRole('button', {name: 'Checking the Datadog connection…'})
+    ).toBeDisabled();
+    expect(
+      screen.queryByRole('button', {name: 'Connect Datadog (opens in a new tab)'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps the re-run when a later connection check fails', async () => {
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[connectRequest()]}
+      />
+    );
+    await screen.findByRole('button', {name: 'Re-run with Datadog'});
+
+    const failed = mockDryRun({statusCode: 500, body: {}});
+    act(() => focusManager.setFocused(false));
+    act(() => focusManager.setFocused(true));
+    await waitFor(() => expect(failed).toHaveBeenCalled());
+
+    expect(screen.getByRole('button', {name: 'Re-run with Datadog'})).toBeEnabled();
+    expect(
+      screen.queryByRole('button', {name: 'Connect Datadog (opens in a new tab)'})
+    ).not.toBeInTheDocument();
   });
 
   it('offers to connect again when the re-run finds no connection', async () => {

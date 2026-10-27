@@ -96,7 +96,7 @@ export function useApplyCheck(
   const checksBeforeApply =
     getActionKind(actionRequest.action)?.ui.checksBeforeApply ?? false;
   const enabled = actionRequest.canApply && checksBeforeApply;
-  const {data, isError, isPending} = useQuery({
+  const {data, isError} = useQuery({
     ...actionRequestDryRunQueryOptions(organization.slug, investigationId, actionRequest),
     enabled,
     refetchOnWindowFocus: shouldRefreshOnFocus(actionRequest) ? 'always' : false,
@@ -104,13 +104,13 @@ export function useApplyCheck(
   if (!enabled) {
     return {status: 'passed'};
   }
+  if (data !== undefined) {
+    return data ? {status: 'blocked', error: data} : {status: 'passed'};
+  }
   if (isError) {
     return {status: 'unavailable'};
   }
-  if (isPending) {
-    return {status: 'pending'};
-  }
-  return data ? {status: 'blocked', error: data} : {status: 'passed'};
+  return {status: 'pending'};
 }
 
 function getApplyMessage(
