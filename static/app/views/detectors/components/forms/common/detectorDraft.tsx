@@ -52,10 +52,14 @@ export function DetectorDraftUrlSync<TFormData>({
     if (changeCount === 0) {
       return;
     }
-    const values = schema.parse(formModel.getData());
-    // An automatic name is left out so it keeps updating for whoever opens the
-    // draft.
-    setDraft(hasSetDetectorName ? values : omit(values, 'name'));
+    // Each write is a navigation, so wait for a pause in typing.
+    const timeout = setTimeout(() => {
+      const values = schema.parse(formModel.getData());
+      // An automatic name is left out so it keeps updating for whoever opens
+      // the draft.
+      setDraft(hasSetDetectorName ? values : omit(values, 'name'));
+    }, 300);
+    return () => clearTimeout(timeout);
   }, [changeCount, formModel, hasSetDetectorName, schema, setDraft]);
 
   return null;
