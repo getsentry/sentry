@@ -425,6 +425,21 @@ class GcpOrgMonitoringProvider(OrgMonitoringProvider):
 
     provider_key = IntegrationProviderSlug.GCP.value
 
+    def is_verified(self, organization: Organization) -> bool:
+        org_integration = integration_service.organization_context(
+            organization_id=organization.id, provider=self.provider_key
+        ).organization_integration
+        if org_integration is None:
+            return False
+        config = org_integration.config
+        # Integrations installed before verification existed have no status.
+        if "connection_status" not in config:
+            return True
+        return any(
+            project.get("connection_status") == GCP_STATUS_CONNECTED
+            for project in config.get("project_statuses", [])
+        )
+
     def build_connection(
         self, organization: Organization
     ) -> list[GcpSaImpersonationConnectionData] | None:
@@ -442,10 +457,6 @@ class GcpOrgMonitoringProvider(OrgMonitoringProvider):
             return None
 
         config = org_integration.config
-        # Seer can't read GCP until the customer's settings pass verification. Integrations
-        # installed before verification existed have no status, so treat them as connected.
-        if config.get("connection_status", GCP_STATUS_CONNECTED) != GCP_STATUS_CONNECTED:
-            return None
         projects: list[str] = config.get("projects", [])
         sentry_sa_email: str | None = config.get("sentry_sa_email")
         customer_sa_email: str | None = config.get("customer_sa_email")

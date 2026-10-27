@@ -38,6 +38,10 @@ class OrgMonitoringProvider(abc.ABC):
         separate logging, monitoring, and trace endpoints).
         """
 
+    def is_verified(self, organization: Organization) -> bool:
+        """Whether the integration's settings passed the provider's own checks, if it has any."""
+        return True
+
 
 org_monitoring_provider_registry = Registry[type[OrgMonitoringProvider]]()
 

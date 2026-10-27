@@ -41,7 +41,10 @@ class ConnectTelemetryAppliedDetails(TypedDict):
 def telemetry_available(organization: Organization, provider: TelemetryProvider) -> bool:
     """Whether Seer can read this provider for the organization. Only org integrations count."""
 
-    return bool(org_monitoring_provider_registry.get(provider)().build_connection(organization))
+    monitoring_provider = org_monitoring_provider_registry.get(provider)()
+    return bool(monitoring_provider.build_connection(organization)) and (
+        monitoring_provider.is_verified(organization)
+    )
 
 
 def _provider(action_request: InvestigationActionRequest) -> TelemetryProvider:

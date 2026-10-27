@@ -477,10 +477,8 @@ class TestGetMonitoringProviderConnections(TestCase):
             **kwargs,
         )
 
-    def test_org_gcp_connection_sent_when_verified_or_installed_before_verification(
-        self,
-    ) -> None:
-        for connection_status in ("connected", None):
+    def test_org_gcp_connection_sent_whatever_its_verification_status(self) -> None:
+        for connection_status in ("connected", None, "unverified", "permission_denied", "error"):
             with self.subTest(connection_status=connection_status):
                 organization = self.create_organization()
                 self._create_org_gcp_integration(
@@ -491,16 +489,6 @@ class TestGetMonitoringProviderConnections(TestCase):
 
                 assert len(result) == 3
                 assert all(c["provider_key"] == "gcp" for c in result)
-
-    def test_org_gcp_connection_waits_for_verified_settings(self) -> None:
-        for connection_status in ("unverified", "permission_denied", "error"):
-            with self.subTest(connection_status=connection_status):
-                organization = self.create_organization()
-                self._create_org_gcp_integration(
-                    connection_status=connection_status, organization=organization
-                )
-
-                assert get_monitoring_provider_connections(organization, None) == []
 
     def test_personal_gcp_is_sent_without_a_verified_org_integration(self) -> None:
         self._create_org_gcp_integration(connection_status="unverified")

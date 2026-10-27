@@ -30,21 +30,32 @@ class TelemetryFixtures(TestCase):
             metadata={"api_key": "key", "app_key": "app", "site": "datadoghq.com", **metadata},
         )
 
-    def create_gcp(self, connection_status: str) -> None:
+    def create_gcp(self, *project_statuses: str) -> None:
+        config: dict[str, Any] = {
+            "sentry_sa_email": "sentry@sentry-connectors.iam.gserviceaccount.com",
+            "customer_sa_email": "reader@my-project.iam.gserviceaccount.com",
+            "projects": [f"project-{i}" for i in range(max(len(project_statuses), 1))],
+        }
+        if project_statuses:
+            config["connection_status"] = (
+                "connected" if set(project_statuses) == {"connected"} else project_statuses[0]
+            )
+            config["project_statuses"] = [
+                {
+                    "gcp_project_id": f"project-{i}",
+                    "connection_status": status,
+                    "services": [],
+                    "error_detail": None,
+                }
+                for i, status in enumerate(project_statuses)
+            ]
         self.create_integration(
             organization=self.organization,
             provider="gcp",
             external_id=str(self.organization.id),
             name="Google Cloud Platform",
             metadata={},
-            oi_params={
-                "config": {
-                    "sentry_sa_email": "sentry@sentry-connectors.iam.gserviceaccount.com",
-                    "customer_sa_email": "reader@my-project.iam.gserviceaccount.com",
-                    "projects": ["my-project-prod"],
-                    "connection_status": connection_status,
-                }
-            },
+            oi_params={"config": config},
         )
 
 
@@ -66,14 +77,26 @@ class TelemetryAvailableTest(TelemetryFixtures):
         assert not telemetry_available(self.organization, "datadog")
 
     @with_feature(FEATURE)
-    def test_gcp_counts_once_its_settings_are_verified(self) -> None:
-        self.create_gcp("unverified")
+    def test_gcp_counts_once_a_project_is_verified(self) -> None:
+        for statuses in (("unverified",), ("error", "api_disabled")):
+            with self.subTest(statuses=statuses):
+                self.organization = self.create_organization()
+                self.create_gcp(*statuses)
 
-        assert not telemetry_available(self.organization, "gcp")
+                assert not telemetry_available(self.organization, "gcp")
 
     @with_feature(FEATURE)
     def test_verified_gcp_is_available(self) -> None:
-        self.create_gcp("connected")
+        for statuses in (("connected",), ("api_disabled", "connected")):
+            with self.subTest(statuses=statuses):
+                self.organization = self.create_organization()
+                self.create_gcp(*statuses)
+
+                assert telemetry_available(self.organization, "gcp")
+
+    @with_feature(FEATURE)
+    def test_gcp_installed_before_verification_is_available(self) -> None:
+        self.create_gcp()
 
         assert telemetry_available(self.organization, "gcp")
 
