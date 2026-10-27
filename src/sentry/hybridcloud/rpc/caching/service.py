@@ -13,6 +13,7 @@ import sentry_sdk
 
 from sentry.hybridcloud.rpc.caching.encryption import (
     CacheEncrypter,
+    DecryptionError,
     EncryptionMethod,
     InvalidEncodingError,
 )
@@ -164,7 +165,13 @@ class SiloCacheBackedCallable(Generic[*_Params, _R]):
                 if self.encrypt_contents and CacheEncrypter.is_encrypted(value):
                     value = CacheEncrypter.decrypt(value)
                 return self.type_(**json.loads(value))
-            except (pydantic.ValidationError, JSONDecodeError, TypeError, InvalidEncodingError):
+            except (
+                pydantic.ValidationError,
+                JSONDecodeError,
+                TypeError,
+                InvalidEncodingError,
+                DecryptionError,
+            ):
                 version = yield from _delete_cache(key, self.silo_mode)
         else:
             version = value
