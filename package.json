@@ -96,8 +96,7 @@
     "ts-checker-rspack-plugin": "1.7.1",
     "tslib": "^2.8.1",
     "yaml": "2.9.0",
-    "zrender": "6.1.0",
-    "zustand": "5.0.16"
+    "zrender": "6.1.0"
   },
   "devDependencies": {
     "@boundaries/eslint-plugin": "7.2.0",

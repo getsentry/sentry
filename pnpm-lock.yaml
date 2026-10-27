@@ -316,9 +316,6 @@ importers:
       zrender:
         specifier: 6.1.0
         version: 6.1.0(patch_hash=183ccabb66e5590ca8a810519f1df210e5a87bb8e48b4bae25e76a619954a193)
-      zustand:
-        specifier: 5.0.16
-        version: 5.0.16(@types/react@19.3.0)(react@19.3.0)(use-sync-external-store@1.6.0(react@19.3.0))
     devDependencies:
       '@boundaries/eslint-plugin':
         specifier: 7.2.0
