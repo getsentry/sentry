@@ -113,8 +113,8 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                 organization=organization,
                 strategy__in=SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
             )
-        except (ValueError, SeerWorkflowConfig.DoesNotExist):
-            raise NotFound
+        except (ValueError, SeerWorkflowConfig.DoesNotExist) as e:
+            raise NotFound from e
 
         projects = self.get_projects(request, organization, include_all_accessible=True)
         selected_projects = get_selected_project_ids(
