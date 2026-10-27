@@ -270,6 +270,7 @@ export function useIssuesTableQuery(
 
   const tableResults: any[] = [];
   let responsePageLinks: string | undefined;
+  let totalCount: string | undefined;
 
   queryResults.forEach((q, i) => {
     if (!q?.data?.json) {
@@ -296,6 +297,8 @@ export function useIssuesTableQuery(
     tableResults.push(transformedDataItem);
 
     responsePageLinks = q.data.headers.Link;
+    const hits = q.data.headers['X-Hits'];
+    totalCount = hits === undefined ? undefined : String(hits);
   });
 
   return {
@@ -303,6 +306,7 @@ export function useIssuesTableQuery(
     errorMessage: undefined,
     tableResults,
     pageLinks: responsePageLinks,
+    totalCount,
     rawData,
   };
 }
