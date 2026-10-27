@@ -182,7 +182,7 @@ function buildItemCards(item: SidebarItem, contentWidth: number): GroupCard[] {
         id: `c:${item.key}:${image.image_file_name}`,
         image,
         cardType: item.type,
-        viewedKey: item.type === 'unchanged' ? null : viewedKeyForImage(image),
+        viewedKey: item.type === 'unchanged' ? null : viewedKeyForImage(image, item.type),
         estimatedHeight: estimateCardHeight(image, false, contentWidth),
       });
     }

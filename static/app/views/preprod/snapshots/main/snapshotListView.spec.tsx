@@ -16,7 +16,11 @@ import type {
 } from 'sentry/views/preprod/types/snapshotTypes';
 
 import {SnapshotListView} from './snapshotListView';
-import {VIEWED_SNAPSHOTS_STORAGE_KEY, viewedKeyForPair} from './useViewedSnapshots';
+import {
+  VIEWED_SNAPSHOTS_STORAGE_KEY,
+  viewedKeyForImage,
+  viewedKeyForPair,
+} from './useViewedSnapshots';
 
 const mockZoom = {
   containerRef: {current: null},
@@ -529,6 +533,28 @@ describe('SnapshotListView', () => {
 
     await userEvent.click(groupCheckbox);
     expect(screen.queryAllByRole('checkbox', {checked: true})).toHaveLength(0);
+  });
+
+  it('does not carry a viewed mark from an added image to its removal', () => {
+    localStorage.setItem(
+      VIEWED_SNAPSHOTS_STORAGE_KEY,
+      JSON.stringify({[viewedKeyForImage(image(), 'added')]: Date.now()})
+    );
+    render(
+      <ExampleSnapshotListView
+        items={[
+          {
+            key: 'removed:Login',
+            name: 'Login',
+            displayName: 'Login',
+            type: 'removed',
+            images: [image()],
+          },
+        ]}
+      />
+    );
+
+    expect(screen.getByRole('checkbox', {name: 'Login screen viewed'})).not.toBeChecked();
   });
 
   it('ignores shortcuts while a modal is open', () => {
