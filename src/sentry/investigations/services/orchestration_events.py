@@ -293,6 +293,13 @@ def _update_rerun(run: InvestigationOrchestrationRun, payload: dict[str, Any]) -
         )
     else:
         commands.update(rerun=InvestigationOrchestrationRerun.STARTED, date_updated=timezone.now())
+        # Seer has it, so a lost response can't fail it or the commands behind it.
+        commands.filter(
+            status__in=(
+                InvestigationOrchestrationCommandStatus.ACCEPTED,
+                InvestigationOrchestrationCommandStatus.DISPATCHED,
+            )
+        ).update(status=InvestigationOrchestrationCommandStatus.ACKNOWLEDGED, error=None)
 
 
 def _projection_is_stale(

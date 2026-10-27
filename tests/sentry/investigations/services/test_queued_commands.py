@@ -474,6 +474,23 @@ class QueuedCommandsTest(TestCase):
         assert rerun.status == InvestigationOrchestrationCommandStatus.ACKNOWLEDGED
         assert rerun.rerun == InvestigationOrchestrationRerun.STARTED
 
+    def test_a_started_re_run_survives_a_lost_response(self) -> None:
+        rerun = self.rerun()
+        steer = self.steer()
+        rerun.update(status=InvestigationOrchestrationCommandStatus.DISPATCHED)
+
+        self.seer_sends_rerun_updated(rerun, "rerun_updated_started")
+        _mark_command_dispatch_failed(rerun.id)
+
+        rerun.refresh_from_db()
+        steer.refresh_from_db()
+        self.orchestration_run.refresh_from_db()
+        assert rerun.status == InvestigationOrchestrationCommandStatus.ACKNOWLEDGED
+        assert rerun.rerun == InvestigationOrchestrationRerun.STARTED
+        assert rerun.error is None
+        assert steer.status == InvestigationOrchestrationCommandStatus.ACCEPTED
+        assert self.orchestration_run.error is None
+
     @mock.patch("sentry.investigations.seer_client.make_signed_seer_api_request")
     def test_a_drop_that_lands_before_the_response_is_kept(self, seer: mock.Mock) -> None:
         self.seer_settles_it_before_answering(seer, "rerun_updated_skipped_run_failed")
