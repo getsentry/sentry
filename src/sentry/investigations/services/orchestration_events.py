@@ -289,6 +289,8 @@ def _update_rerun(run: InvestigationOrchestrationRun, payload: dict[str, Any]) -
     alone.
     """
 
+    # It can settle a command the dispatch task gave up on, so send whatever's still queued.
+    schedule_orchestration_commands(run.id)
     for command in InvestigationOrchestrationCommand.objects.select_for_update().filter(
         orchestration_run=run, request_id=payload["requestId"]
     ):
@@ -302,8 +304,7 @@ def _update_rerun(run: InvestigationOrchestrationRun, payload: dict[str, Any]) -
         ):
             continue
         if lost_response:
-            if requeue_commands_behind(run, command):
-                schedule_orchestration_commands(run.id)
+            requeue_commands_behind(run, command)
             clear_command_dispatch_error(run, request_id=command.request_id)
         command.rerun = payload["rerun"]
         if payload["rerun"] == InvestigationOrchestrationRerun.SKIPPED:

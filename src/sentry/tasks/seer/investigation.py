@@ -146,10 +146,6 @@ def _fail_commands_after(
         error=error,
         date_updated=timezone.now(),
     )
-    if later.filter(
-        type__in=INTERNAL_COMMAND_TYPES, status=InvestigationOrchestrationCommandStatus.ACCEPTED
-    ).exists():
-        schedule_orchestration_commands(run.id)
     return blocked_user_command
 
 
@@ -162,6 +158,8 @@ def _mark_command_dispatch_failed(command_id: int) -> None:
         run = _lock_orchestration_run(command_snapshot.orchestration_run_id)
         if run is None:
             return
+        # The dispatch task stops after this, so send whatever's still queued.
+        schedule_orchestration_commands(run.id)
         command = (
             InvestigationOrchestrationCommand.objects.select_for_update()
             .filter(id=command_id)
@@ -186,7 +184,6 @@ def _mark_command_dispatch_failed(command_id: int) -> None:
         command.save(update_fields=["status", "error", "date_updated"])
         if command.type in INTERNAL_COMMAND_TYPES:
             # Losing it isn't a run error, and no other command waits on it.
-            schedule_orchestration_commands(run.id)
             return
         blocked_user_command = _fail_commands_after(
             run,
@@ -215,6 +212,8 @@ def _mark_command_version_conflicted(command_id: int, reason: CommandRejectionCo
         run = _lock_orchestration_run(command_snapshot.orchestration_run_id)
         if run is None:
             return
+        # The dispatch task stops after this, so send whatever's still queued.
+        schedule_orchestration_commands(run.id)
         command = (
             InvestigationOrchestrationCommand.objects.select_for_update()
             .filter(id=command_id)
@@ -223,6 +222,7 @@ def _mark_command_version_conflicted(command_id: int, reason: CommandRejectionCo
         if (
             command is None
             or command.status == InvestigationOrchestrationCommandStatus.ACKNOWLEDGED
+            or command.rerun is not None
         ):
             return
         detail = {
@@ -268,6 +268,8 @@ def _mark_internal_command_rejected(command_id: int, code: CommandRejectionCode 
         run = _lock_orchestration_run(command_snapshot.orchestration_run_id)
         if run is None:
             return
+        # The dispatch task stops after this, so send whatever's still queued.
+        schedule_orchestration_commands(run.id)
         command = (
             InvestigationOrchestrationCommand.objects.select_for_update()
             .filter(id=command_id)
@@ -288,7 +290,6 @@ def _mark_internal_command_rejected(command_id: int, code: CommandRejectionCode 
             "retryable": False,
         }
         command.save(update_fields=["status", "error", "date_updated"])
-        schedule_orchestration_commands(run.id)
 
 
 def _command_viewer_scope(
