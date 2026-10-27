@@ -197,6 +197,59 @@ describe('SettingsBreadcrumbsProvider', () => {
     );
   });
 
+  it('leaves scope crumbs to the settings navigation with settings v3', () => {
+    ProjectsStore.loadInitialData([ProjectFixture({id: '1', slug: 'javascript'})]);
+    render(<Page />, {
+      organization: OrganizationFixture({slug: 'org-slug', features: ['settings-v3']}),
+      initialRouterConfig: {
+        route: '/settings/:orgId/projects/:projectId/',
+        location: {
+          pathname: `/settings/${organization.slug}/projects/javascript/keys/key-1/`,
+        },
+        children: [
+          {
+            handle: {
+              settingsBreadcrumb: {
+                type: 'link',
+                label: 'Settings',
+                to: '/settings/',
+              } satisfies SettingsBreadcrumb,
+            },
+            children: [
+              {
+                handle: {
+                  settingsBreadcrumb: {
+                    type: 'project',
+                    to: '/settings/:orgId/projects/:projectId/',
+                  } satisfies SettingsBreadcrumb,
+                },
+                children: [
+                  {
+                    path: 'keys/:keyId/',
+                    handle: {
+                      settingsBreadcrumb: {
+                        type: 'link',
+                        label: 'Client Keys',
+                        to: '/settings/:orgId/projects/:projectId/keys/',
+                      } satisfies SettingsBreadcrumb,
+                    },
+                    element: <div />,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    expect(screen.getByRole('link', {name: 'Client Keys'})).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: 'Settings'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Switch javascript'})
+    ).not.toBeInTheDocument();
+  });
+
   it('keeps the declared section when switching teams', async () => {
     const teams = [
       TeamFixture({id: '1', slug: 'frontend'}),
