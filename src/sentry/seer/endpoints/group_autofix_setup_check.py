@@ -31,7 +31,7 @@ def get_autofix_integration_setup_problems(
 ) -> str | None:
     """
     Runs through the checks to see if we can use the SCM integration for Autofix.
-    Supports GitHub, GitHub Enterprise, and GitLab (when the seer-gitlab-support flag is enabled).
+    Supports GitHub, GitHub Enterprise, and GitLab.
 
     If there are no issues, returns None.
     If there is an issue, returns the reason.

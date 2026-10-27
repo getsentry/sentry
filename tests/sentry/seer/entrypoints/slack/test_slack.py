@@ -34,6 +34,7 @@ from sentry.seer.agent.client_models import (
     MemoryBlock,
     Message,
     PendingUserInput,
+    RepoPRState,
     SeerRunState,
 )
 from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
@@ -723,6 +724,7 @@ class SlackAgentEntrypointTest(TestCase):
             organization=self.organization,
             external_id="TXXXXXXXXX2",
             provider="slack",
+            metadata={"access_token": "xoxb-test-token"},
         )
 
     def _get_entrypoint(self, thread_ts: str | None = None) -> SlackAgentEntrypoint:
@@ -1103,6 +1105,129 @@ class SlackAgentEntrypointTest(TestCase):
             f"<@{self.slack_user_id}> I need your approval to make changes in Sentry. "
             "I sent you a message."
         )
+
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
+        return_value=True,
+    )
+    @patch("slack_sdk.web.client.WebClient.chat_update")
+    @patch("slack_sdk.web.client.WebClient.chat_postMessage")
+    def test_messages_and_pr_footers_across_conversation_turns(
+        self, post: Mock, update: Mock, _scope: Mock
+    ) -> None:
+        post.side_effect = [
+            _slack_response({"ok": True, "ts": "1.1"}),
+            _slack_response({"ok": True, "ts": "2.2"}),
+            _slack_response({"ok": True, "ts": "3.3"}),
+        ]
+        update.return_value = _slack_response({"ok": True})
+        slack = Mock()
+        slack.attach_mock(post, "post")
+        slack.attach_mock(update, "update")
+        cache_payload = self._get_entrypoint().create_agent_cache_payload()
+        state = _agent_state("I found a missing cache key.")
+        state.blocks[0].message.content = "Investigate the cache error."
+
+        def add_message(role: str, content: str) -> None:
+            state.blocks.append(
+                MemoryBlock(
+                    id=f"b{len(state.blocks) + 1}",
+                    message=Message(role=role, content=content),
+                    timestamp="2024-01-01T00:00:00Z",
+                )
+            )
+
+        def refresh() -> None:
+            SlackAgentEntrypoint.on_agent_update(
+                cache_payload=cache_payload, run_id=state.run_id, state=state
+            )
+
+        refresh()
+
+        add_message("user", "Open a PR to fix it.")
+        state.status = "processing"
+        pr = RepoPRState(repo_name="acme/web", pr_creation_status="creating")
+        state.repo_pr_states[pr.repo_name] = pr
+        refresh()
+
+        add_message("assistant", "I'm opening a PR with the fix.")
+        state.status = "completed"
+        refresh()
+
+        pr.pr_number = 7
+        pr.pr_url = "https://github.com/acme/web/pull/7"
+        pr.pr_creation_status = "completed"
+        pr.commit_sha = "abcdef1234567890"
+        refresh()
+
+        add_message("user", "Also handle empty cache keys.")
+        state.status = "processing"
+        pr.pr_creation_status = "creating"
+        refresh()
+
+        add_message("assistant", "I've added empty-key handling.")
+        state.status = "completed"
+        refresh()
+
+        pr.pr_creation_status = "completed"
+        pr.commit_sha = "1234567890abcdef"
+        refresh()
+        refresh()
+
+        def blocks(summary: str, *footers: str) -> list[dict[str, Any]]:
+            return [{"type": "markdown", "text": summary}] + [
+                {"type": "context", "elements": [{"type": "mrkdwn", "text": footer}]}
+                for footer in footers
+            ]
+
+        pr_link = "<https://github.com/acme/web/pull/7|acme/web#7>"
+        for _, _, kwargs in slack.mock_calls:
+            assert kwargs["channel"] == self.channel_id
+            assert kwargs["text"] == "Seer Agent has finished"
+        assert [
+            (
+                method,
+                kwargs.get("ts", kwargs.get("thread_ts")),
+                [block.to_dict() for block in kwargs["blocks"]],
+            )
+            for method, _, kwargs in slack.mock_calls
+        ] == [
+            ("post", self.thread_ts, blocks("I found a missing cache key.")),
+            (
+                "update",
+                "1.1",
+                blocks("I found a missing cache key.", "Creating a PR in `acme/web`..."),
+            ),
+            (
+                "post",
+                self.thread_ts,
+                blocks("I'm opening a PR with the fix.", "Creating a PR in `acme/web`..."),
+            ),
+            ("update", "1.1", blocks("I found a missing cache key.")),
+            (
+                "update",
+                "2.2",
+                blocks(
+                    "I'm opening a PR with the fix.",
+                    f"Latest push complete for {pr_link} (`abcdef1`)",
+                ),
+            ),
+            ("update", "2.2", blocks("I'm opening a PR with the fix.", f"Updating {pr_link}...")),
+            (
+                "post",
+                self.thread_ts,
+                blocks("I've added empty-key handling.", f"Updating {pr_link}..."),
+            ),
+            ("update", "2.2", blocks("I'm opening a PR with the fix.")),
+            (
+                "update",
+                "3.3",
+                blocks(
+                    "I've added empty-key handling.",
+                    f"Latest push complete for {pr_link} (`1234567`)",
+                ),
+            ),
+        ]
 
 
 def _slack_response(data: dict[str, Any]) -> SlackResponse:

@@ -2796,11 +2796,6 @@
       "count": 3
     }
   },
-  "views/performance/landing/widgets/widgets/histogramWidget.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
   "views/performance/landing/widgets/widgets/mobileReleaseComparisonListWidget.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -3127,11 +3122,6 @@
   "views/seerExplorer/xray/seerXRayOverlay.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
-    }
-  },
-  "views/seerWorkflows/index.spec.tsx": {
-    "@sentry/require-fake-timer-cleanup": {
-      "count": 2
     }
   },
   "views/seerWorkflows/overview/index.spec.tsx": {

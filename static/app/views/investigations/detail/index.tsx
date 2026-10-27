@@ -574,6 +574,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
               <NextStepCard
                 actionRequests={investigation.actionRequests}
                 actionRequestsStale={actionRequestsStale}
+                investigationId={investigation.id}
                 source={investigation.source}
                 orchestration={orchestration}
                 orchestrationLoading={

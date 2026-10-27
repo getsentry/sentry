@@ -1,5 +1,5 @@
-import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {
@@ -31,8 +31,8 @@ const organization = OrganizationFixture({
 });
 
 function mockDroppedData(count: number, statsPeriod: string) {
-  const dropped = [DroppedEventFixture({count})];
-  const accepted = [DroppedEventFixture({outcome: 'accepted', count: 90})];
+  const dropped = [OutcomeRowFixture({count})];
+  const accepted = [OutcomeRowFixture({outcome: 'accepted', count: 90})];
 
   return MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/events-dropped/`,
@@ -51,20 +51,20 @@ function mockMultiOutcomeDroppedData() {
     body: {
       meta: {dataset: 'spans', start: 0, end: 0, interval: 0},
       droppedEvents: [
-        DroppedEventFixture({outcome: 'client_discard', reason: 'before_send', count: 4}),
-        DroppedEventFixture({
+        OutcomeRowFixture({outcome: 'client_discard', reason: 'before_send', count: 4}),
+        OutcomeRowFixture({
           outcome: 'client_discard',
           reason: 'network_error',
           count: 6,
         }),
-        DroppedEventFixture({
+        OutcomeRowFixture({
           outcome: 'filtered',
           reason: 'ignore_spans',
           count: 30,
           tags: ['intentional'],
         }),
       ],
-      acceptedEvents: [DroppedEventFixture({outcome: 'accepted', count: 60})],
+      acceptedEvents: [OutcomeRowFixture({outcome: 'accepted', count: 60})],
     },
   });
 }
@@ -569,14 +569,14 @@ describe('useDroppedDataDrawer', () => {
         body: {
           meta: {dataset: 'spans', start: 0, end: 0, interval: 0},
           droppedEvents: [
-            DroppedEventFixture({
+            OutcomeRowFixture({
               outcome: 'filtered',
               reason: 'ignore_spans',
               count: 30,
               tags: ['intentional'],
             }),
           ],
-          acceptedEvents: [DroppedEventFixture({outcome: 'accepted', count: 60})],
+          acceptedEvents: [OutcomeRowFixture({outcome: 'accepted', count: 60})],
         },
       });
 
@@ -607,7 +607,7 @@ describe('useDroppedDataDrawer', () => {
         body: {
           meta: {dataset: 'spans', start: 0, end: 0, interval: 0},
           droppedEvents: [],
-          acceptedEvents: [DroppedEventFixture({outcome: 'accepted', count: 60})],
+          acceptedEvents: [OutcomeRowFixture({outcome: 'accepted', count: 60})],
         },
       });
 
@@ -631,26 +631,26 @@ describe('useDroppedDataDrawer', () => {
       ).toBeInTheDocument();
     });
 
-    it('keeps contributing shares when a legend outcome is deselected', async () => {
+    it('keeps unexpected shares when a legend outcome is deselected', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events-dropped/`,
         body: {
           meta: {dataset: 'spans', start: 0, end: 0, interval: 0},
           droppedEvents: [
-            DroppedEventFixture({
+            OutcomeRowFixture({
               outcome: 'client_discard',
               reason: 'before_send',
               count: 10,
             }),
-            DroppedEventFixture({count: 20}),
-            DroppedEventFixture({
+            OutcomeRowFixture({count: 20}),
+            OutcomeRowFixture({
               outcome: 'filtered',
               reason: 'ignore_spans',
               count: 30,
               tags: ['intentional'],
             }),
           ],
-          acceptedEvents: [DroppedEventFixture({outcome: 'accepted', count: 40})],
+          acceptedEvents: [OutcomeRowFixture({outcome: 'accepted', count: 40})],
         },
       });
 
