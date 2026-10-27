@@ -73,9 +73,10 @@ class InternalRpcServiceEndpoint(Endpoint):
         if vc_data:
             try:
                 vc = ViewerContext.deserialize(vc_data)
-            except Exception as e:
+            except Exception:
+                # A silo on another release can send an actor type this one doesn't know
+                # (e.g. the retired "unknown"); run without a context rather than fail the call.
                 sentry_sdk.capture_exception()
-                raise ParseError from e
 
         observe_viewer_context_propagation("rpc_inbound", ctx=vc)
 
