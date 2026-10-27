@@ -4,7 +4,7 @@ from typing import NamedTuple, cast
 
 import sentry_sdk
 from django.db.models import Q
-from scm.errors import GitProviderNotSupported, SCMCodedError, UnhandledException
+from scm.errors import SCMCodedError, UnhandledException
 from scm.git.types import GitOperation
 from scm.providers.cursor_origin.provider import CursorOriginProvider
 from scm.providers.github.provider import GitHubProvider
@@ -87,14 +87,12 @@ def fetch_service_provider(
 
 
 def fetch_access_token(repository: Repository, operation: GitOperation) -> str | None:
-    """Return a token that can run git against the repository, minted in control.
+    """Return a token that can run git against the repository, minted or refreshed in control.
 
-    The token reaches everything the installation can, so a fetch gets the same token as a push.
+    The token is the integration's: an installation token for GitHub and Cursor Origin, or the OAuth
+    token of the user who installed GitLab. It isn't scoped to the repository or the operation, so a
+    fetch gets the same token as a push.
     """
-    if repository["provider_name"] == "gitlab":
-        # The token RPC leaves GitLab out until GitLab's client refreshes tokens before they expire.
-        # Its None would reach git as a 502, which reads like an outage rather than a refusal.
-        raise GitProviderNotSupported(detail="Sentry can't relay git for gitlab repositories yet.")
     try:
         access_token = integration_service.get_access_token(
             integration_id=repository["integration_id"],
