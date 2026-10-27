@@ -392,7 +392,7 @@ function isEventType(value: string): value is EventTypes {
 }
 
 function isMetricAlertType(value: string | undefined): value is MetricAlertType {
-  return defined(value) && Object.hasOwn(AlertWizardRuleTemplates, value);
+  return !!value && Object.hasOwn(AlertWizardRuleTemplates, value);
 }
 
 const LEGACY_ALERT_TYPES_BY_WIZARD_OPTION: Record<string, string> = {
