@@ -1783,7 +1783,7 @@ wheels = [
 
 [[package]]
 name = "pytest"
-version = "9.0.3"
+version = "9.1.1"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "iniconfig" },
@@ -1792,7 +1792,7 @@ dependencies = [
     { name = "pygments" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/pytest-9.0.3-py3-none-any.whl", hash = "sha256:2c5efc453d45394fdd706ade797c0a81091eccd1d6e4bccfcd476e2b8e0ab5d9" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/pytest-9.1.1-py3-none-any.whl", hash = "sha256:37a86b45efb9a47a61a36449063e8e18d0cab3161329fc099eb21783169c4f0c" },
 ]
 
 [[package]]
@@ -1866,7 +1866,7 @@ wheels = [
 
 [[package]]
 name = "pytest-sentry"
-version = "0.3.0"
+version = "0.7.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "pytest" },
@@ -1874,7 +1874,7 @@ dependencies = [
     { name = "wrapt" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/pytest_sentry-0.3.0-py3-none-any.whl", hash = "sha256:ae182f11c18179533d4d760fd79f1992cc351062e69d253297a4cc7639535db7" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/pytest_sentry-0.7.0-py3-none-any.whl", hash = "sha256:e99cbd3013db309edbc86c82195ecb464f76515b43681fbcad883c7eac34ad22" },
 ]
 
 [[package]]
@@ -2484,13 +2484,13 @@ dev = [
     { name = "openapi-core", specifier = ">=0.18.2" },
     { name = "openapi-pydantic", specifier = ">=0.4.0" },
     { name = "prek", specifier = ">=0.3.6" },
-    { name = "pytest", specifier = ">=9.0.3" },
+    { name = "pytest", specifier = ">=9.1.1" },
     { name = "pytest-cov", specifier = ">=4.0.0" },
     { name = "pytest-django", specifier = ">=4.12.0" },
     { name = "pytest-fail-slow", specifier = ">=0.3.0" },
     { name = "pytest-json-report", specifier = ">=1.5.0" },
     { name = "pytest-rerunfailures", specifier = ">=16.2" },
-    { name = "pytest-sentry", specifier = ">=0.3.0" },
+    { name = "pytest-sentry", specifier = ">=0.7.0" },
     { name = "pytest-xdist", specifier = ">=3.8.0" },
     { name = "responses", specifier = ">=0.23.1" },
     { name = "ruff", specifier = ">=0.14.0" },
@@ -3236,13 +3236,15 @@ wheels = [
 
 [[package]]
 name = "wrapt"
-version = "1.17.0"
+version = "2.5.1"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/wrapt-1.17.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:714c12485aa52efbc0fc0ade1e9ab3a70343db82627f90f2ecbc898fdf0bb181" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/wrapt-1.17.0-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:da427d311782324a376cacb47c1a4adc43f99fd9d996ffc1b3e8529c4074d393" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/wrapt-1.17.0-cp313-cp313-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e711fc1acc7468463bc084d1b68561e40d1eaa135d8c509a65dd534403d83d7b" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/wrapt-1.17.0-py3-none-any.whl", hash = "sha256:d2c63b93548eda58abf5188e505ffed0229bf675f7c3090f8e36ad55b8cbc371" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/wrapt-2.5.1-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:ab6db7d2a18d366cc57c2228253cf26443190aba0a6dd0939b3c1e8ac6e29e2c" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/wrapt-2.5.1-cp313-cp313-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:f1630201b0e2a96bb26304b7adfbd91a4ef486abb5a4c48377444a0bed749f37" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/wrapt-2.5.1-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:d800c7689154622b0ba2922ceca44a3cf2ef61c3b9a4c4eeb1d8b3050d7ededa" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/wrapt-2.5.1-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:9f0750cbc2e29e4f3c9529d3587d4e7ed8f60638ceafb80b87a95833b0c5acd9" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/wrapt-2.5.1-cp314-cp314-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:3cf273b7e8d2038abb7f0a8c6550aff4f617b9d486a9965c8e8acc96a3a04de9" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/wrapt-2.5.1-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:380f72610181883f66b41442cfc7c0f7552b42169efb2113def26e6380013d37" },
 ]
 
 [[package]]

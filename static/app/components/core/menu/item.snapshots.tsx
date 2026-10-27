@@ -1,7 +1,7 @@
 import {IconCircle} from '@sentry/icons/circle';
 
 import {Tag} from '@sentry/scraps/badge';
-import {ListItem, type ListItemProps} from '@sentry/scraps/menu';
+import {ListItem, ReserveLeadingSlot, type ListItemProps} from '@sentry/scraps/menu';
 
 const sizes: Array<NonNullable<ListItemProps['size']>> = ['xs', 'sm', 'md'];
 const variants = ['plain', 'leading', 'details', 'leading-details'] as const;
@@ -47,6 +47,23 @@ describe('ListItem', () => {
               </Tag>
             }
           />
+        </ul>
+      ),
+      {tags: {area: 'core', size}}
+    );
+
+    it.snapshot(
+      'reserved-leading-slot',
+      () => (
+        <ul style={{padding: 8, width: 300, listStyle: 'none'}}>
+          <ReserveLeadingSlot reserve>
+            <ListItem
+              size={size}
+              label="With icon"
+              leadingItems={<IconCircle aria-hidden />}
+            />
+            <ListItem size={size} label="Without icon" />
+          </ReserveLeadingSlot>
         </ul>
       ),
       {tags: {area: 'core', size}}

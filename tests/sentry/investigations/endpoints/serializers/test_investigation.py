@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
+from uuid import uuid4
 
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
@@ -20,6 +21,7 @@ from sentry.investigations.models import (
     InvestigationActionRequest,
     InvestigationActionRequestState,
     InvestigationBlockExecutionStatus,
+    InvestigationOrchestrationCommandStatus,
     InvestigationStatus,
 )
 from sentry.investigations.services.action_kinds import ACTION_KINDS
@@ -297,7 +299,7 @@ class InvestigationActionRequestSerializationTest(TestCase):
         self.investigation = self.create_investigation(
             organization=self.organization, created_by=self.user, title="Investigation"
         )
-        self.create_investigation_orchestration_run(
+        self.orchestration_run = self.create_investigation_orchestration_run(
             investigation=self.investigation,
             source={"type": "breached_metric", "detectorId": str(self.detector.id)},
         )
@@ -351,9 +353,62 @@ class InvestigationActionRequestSerializationTest(TestCase):
                 "appliedDetails": None,
                 "dateApplied": None,
                 "error": None,
+                "followUp": None,
                 "dateCreated": action_request.date_added,
             }
         ]
+
+    def add_followed_up_request(self, key: str = "widen-window", **command: Any) -> None:
+        sent = self.create_investigation_orchestration_command(
+            orchestration_run=self.orchestration_run,
+            request_id=uuid4(),
+            actor_id=self.user.id,
+            expected_workflow_version=1,
+            resulting_workflow_version=2,
+            type="recheck_action_requests",
+            payload={"reportRevision": 0, "source": {"type": "manual"}},
+            **command,
+        )
+        self.add_request(
+            key,
+            state=InvestigationActionRequestState.SUPERSEDED,
+            error={"code": "stale", "current": {"timeWindowSeconds": 600}},
+            followup_request_id=sent.request_id,
+        )
+
+    def test_shows_the_follow_up_sentry_sent(self) -> None:
+        self.add_followed_up_request()
+
+        (serialized,) = self.serialize_requests()
+
+        assert serialized["followUp"] == {"status": "accepted", "reason": None}
+
+    def test_a_follow_up_seer_turned_down_has_seers_code(self) -> None:
+        self.add_followed_up_request(
+            status=InvestigationOrchestrationCommandStatus.FAILED,
+            error={
+                "code": "seer_command_dispatch_failed",
+                "reason": "action_requests_report_changed",
+                "retryable": False,
+            },
+        )
+
+        (serialized,) = self.serialize_requests()
+
+        assert serialized["followUp"] == {
+            "status": "failed",
+            "reason": "action_requests_report_changed",
+        }
+
+    def test_an_undelivered_follow_up_has_no_reason(self) -> None:
+        self.add_followed_up_request(
+            status=InvestigationOrchestrationCommandStatus.FAILED,
+            error={"code": "seer_command_dispatch_failed", "retryable": True},
+        )
+
+        (serialized,) = self.serialize_requests()
+
+        assert serialized["followUp"] == {"status": "failed", "reason": None}
 
     def test_block_anchors_point_at_the_live_block(self) -> None:
         live = self.create_investigation_block(
@@ -398,6 +453,19 @@ class InvestigationActionRequestSerializationTest(TestCase):
         )
         older = self.add_request("older", report_revision=0)
         self.add_request("superseded", state=InvestigationActionRequestState.SUPERSEDED)
+        stale = self.add_request(
+            "stale",
+            report_revision=0,
+            state=InvestigationActionRequestState.SUPERSEDED,
+            error={"code": "stale", "current": {"timeWindowSeconds": 600}},
+            followup_request_id=uuid4(),
+        )
+        self.add_request(
+            "dropped-stale",
+            report_revision=0,
+            state=InvestigationActionRequestState.SUPERSEDED,
+            error={"code": "stale", "current": {"timeWindowSeconds": 600}},
+        )
         newer = self.add_request("newer", report_revision=1)
         primary = self.add_request("primary", report_revision=1, primary=True)
 
@@ -406,6 +474,7 @@ class InvestigationActionRequestSerializationTest(TestCase):
             str(newer.id),
             str(old_primary.id),
             str(older.id),
+            str(stale.id),
         ]
 
     def test_serializes_who_applied_it_failures_and_withdrawals(self) -> None:
@@ -595,14 +664,17 @@ class InvestigationActionRequestSerializationTest(TestCase):
         self.project.add_team(team)
         self.create_team_membership(team=team, user=member, role="admin")
         self.add_request()
+        self.add_followed_up_request("followed-up")
         with CaptureQueriesContext(connection) as one:
-            assert self.serialize_for(member)[0]["canApply"] is True
+            serialized = {item["key"]: item for item in self.serialize_for(member)}
+        assert serialized["widen-window"]["canApply"] is True
 
+        self.add_followed_up_request("second-followed-up")
         self.add_request("second")
         self.add_request("third")
         for index in range(5):
             self.add_request(f"applied-{index}", state=InvestigationActionRequestState.APPLIED)
         with CaptureQueriesContext(connection) as many:
-            assert len(self.serialize_for(member)) == 8
+            assert len(self.serialize_for(member)) == 10
 
         assert len(many.captured_queries) == len(one.captured_queries)

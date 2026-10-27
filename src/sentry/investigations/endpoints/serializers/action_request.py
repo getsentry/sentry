@@ -4,6 +4,7 @@ from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
 from typing import Any, TypedDict, cast, override
+from uuid import UUID
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -14,7 +15,10 @@ from sentry.investigations.models import (
     InvestigationActionRequest,
     InvestigationActionRequestAnchorType,
     InvestigationBlock,
+    InvestigationOrchestrationCommand,
+    InvestigationOrchestrationCommandStatus,
 )
+from sentry.investigations.seer_client import CommandRejectionCode
 from sentry.investigations.services.action_kinds import (
     AppliedDetails,
     get_action_kind,
@@ -38,13 +42,23 @@ class InvestigationActionRequestAnchorResponse(TypedDict):
     blockId: str | None
 
 
+class InvestigationActionRequestFollowUpResponse(TypedDict):
+    """The re-check or re-run Sentry sent Seer for this request. `reason` is Seer's code when it
+    turned it down.
+    """
+
+    status: InvestigationOrchestrationCommandStatus
+    reason: CommandRejectionCode | None
+
+
 class InvestigationActionRequestSerializerResponse(TypedDict):
     """
     A step Seer suggests. `primary` marks the recommended next step after a run, and `anchor`
     puts a request under a block or hypothesis. `action` is Seer's payload, or null when it's
     only advice. `canApply` says whether this viewer can apply it now, and `cannotApplyReason`
     says why not. What's in `appliedDetails` depends on the action kind, and `appliedBy` is null
-    when Sentry applied it automatically.
+    when Sentry applied it automatically. `followUp` is what Seer did with the re-check or re-run
+    Sentry sent for this request.
     """
 
     id: str
@@ -64,6 +78,7 @@ class InvestigationActionRequestSerializerResponse(TypedDict):
     appliedDetails: AppliedDetails | None
     dateApplied: datetime | None
     error: ActionRequestError | None
+    followUp: InvestigationActionRequestFollowUpResponse | None
     dateCreated: datetime
 
 
@@ -140,6 +155,31 @@ class InvestigationActionRequestSerializer(
             if key is not None
         }
 
+    def _follow_ups(
+        self, item_list: Sequence[InvestigationActionRequest]
+    ) -> dict[tuple[int, UUID], InvestigationActionRequestFollowUpResponse]:
+        request_ids = {
+            item.followup_request_id for item in item_list if item.followup_request_id is not None
+        }
+        if not request_ids:
+            return {}
+        return {
+            (investigation_id, request_id): {
+                "status": InvestigationOrchestrationCommandStatus(status),
+                "reason": (error or {}).get("reason"),
+            }
+            for investigation_id, request_id, status, error in (
+                InvestigationOrchestrationCommand.objects.filter(
+                    orchestration_run__investigation_id__in={
+                        item.investigation_id for item in item_list
+                    },
+                    request_id__in=request_ids,
+                ).values_list(
+                    "orchestration_run__investigation_id", "request_id", "status", "error"
+                )
+            )
+        }
+
     @override
     def get_attrs(
         self,
@@ -149,6 +189,7 @@ class InvestigationActionRequestSerializer(
     ) -> MutableMapping[InvestigationActionRequest, dict[str, Any]]:
         reasons = self._cannot_apply_reasons(item_list, user)
         anchored_blocks = self._anchored_block_ids(item_list)
+        follow_ups = self._follow_ups(item_list)
         applier_ids = {item.applied_by_id for item in item_list if item.applied_by_id is not None}
         appliers = (
             {
@@ -169,6 +210,11 @@ class InvestigationActionRequestSerializer(
                     else None
                 ),
                 "applied_by": appliers.get(str(item.applied_by_id)),
+                "follow_up": (
+                    follow_ups.get((item.investigation_id, item.followup_request_id))
+                    if item.followup_request_id is not None
+                    else None
+                ),
             }
             for item in item_list
         }
@@ -204,5 +250,6 @@ class InvestigationActionRequestSerializer(
             "appliedDetails": cast(AppliedDetails | None, obj.applied_details),
             "dateApplied": obj.date_applied,
             "error": cast(ActionRequestError | None, obj.error),
+            "followUp": attrs["follow_up"],
             "dateCreated": obj.date_added,
         }
