@@ -636,6 +636,7 @@ const actionRequestErrorSchema = z.discriminatedUnion('code', [
       'withdrawn',
       'action_changed',
       'not_stale',
+      'not_retryable',
     ]),
   }),
   z.object({
@@ -671,6 +672,14 @@ export function isFollowUpPending(actionRequest: InvestigationActionRequest) {
   return status === 'accepted' || status === 'dispatched';
 }
 
+export function canRetryFollowUp(actionRequest: InvestigationActionRequest) {
+  return (
+    actionRequest.state === 'applied' &&
+    actionRequest.followUp?.status === 'failed' &&
+    actionRequest.followUp.reason === null
+  );
+}
+
 export function parseApplyError(error: unknown): ActionRequestError | null {
   const parsed = actionRequestErrorSchema.safeParse(
     error instanceof RequestError ? error.responseJSON : undefined
@@ -678,7 +687,7 @@ export function parseApplyError(error: unknown): ActionRequestError | null {
   return parsed.success ? parsed.data : null;
 }
 
-type ActionRequestCommand = 'apply' | 'recheck';
+type ActionRequestCommand = 'apply' | 'recheck' | 'retry-follow-up';
 
 function getActionRequestUrl(
   organizationSlug: string,
@@ -687,15 +696,23 @@ function getActionRequestUrl(
   command: ActionRequestCommand
 ) {
   const path = {organizationIdOrSlug: organizationSlug, investigationId, actionRequestId};
-  return command === 'apply'
-    ? getApiUrl(
+  switch (command) {
+    case 'apply':
+      return getApiUrl(
         '/organizations/$organizationIdOrSlug/investigations/$investigationId/action-requests/$actionRequestId/apply/',
         {path}
-      )
-    : getApiUrl(
+      );
+    case 'recheck':
+      return getApiUrl(
         '/organizations/$organizationIdOrSlug/investigations/$investigationId/action-requests/$actionRequestId/recheck/',
         {path}
       );
+    case 'retry-follow-up':
+      return getApiUrl(
+        '/organizations/$organizationIdOrSlug/investigations/$investigationId/action-requests/$actionRequestId/retry-follow-up/',
+        {path}
+      );
+  }
 }
 
 export function actionRequestDryRunQueryOptions(

@@ -219,6 +219,8 @@ function getSharedCannotApplyMessage(reason: ApplyBlockReason) {
       return t("This change wasn't valid.");
     case 'not_stale':
       return t('Nothing changed since Seer suggested this.');
+    case 'not_retryable':
+      return t("This can't be sent to Seer again.");
     default:
       return null;
   }

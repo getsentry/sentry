@@ -139,6 +139,8 @@ const applyUrl =
   '/organizations/org-slug/investigations/investigation-1/action-requests/312/apply/';
 const recheckUrl =
   '/organizations/org-slug/investigations/investigation-1/action-requests/312/recheck/';
+const retryFollowUpUrl =
+  '/organizations/org-slug/investigations/investigation-1/action-requests/312/retry-follow-up/';
 
 type MockResponse = Parameters<typeof MockApiClient.addMockResponse>[0];
 
@@ -1521,6 +1523,73 @@ describe('NextStepCard', () => {
     expect(getCard()).toHaveTextContent(
       "Datadog connected. Seer couldn't re-run the investigation with it."
     );
+  });
+
+  it('tries a re-run that never reached Seer again', async () => {
+    const retry = MockApiClient.addMockResponse({
+      url: retryFollowUpUrl,
+      method: 'POST',
+      body: {
+        actionRequest: connectedRequest({status: 'accepted', reason: null, rerun: null}),
+      },
+    });
+    const failed = connectedRequest({status: 'failed', reason: null, rerun: null});
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[failed]}
+      />
+    );
+
+    await userEvent.click(within(getCard()).getByRole('button', {name: 'Try again'}));
+
+    expect(retry).toHaveBeenCalledWith(
+      retryFollowUpUrl,
+      expect.objectContaining({data: {action: failed.action}})
+    );
+  });
+
+  it('says when a re-run can no longer be sent again', async () => {
+    MockApiClient.addMockResponse({
+      url: retryFollowUpUrl,
+      method: 'POST',
+      statusCode: 409,
+      body: {detail: "There's nothing to send Seer again.", code: 'not_retryable'},
+    });
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[connectedRequest({status: 'failed', reason: null, rerun: null})]}
+      />
+    );
+
+    await userEvent.click(within(getCard()).getByRole('button', {name: 'Try again'}));
+
+    expect(
+      await screen.findByText("This can't be sent to Seer again.")
+    ).toBeInTheDocument();
+  });
+
+  it('does not offer to retry a re-run Seer turned down', () => {
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[
+          connectedRequest({
+            status: 'failed',
+            reason: 'provider_already_used',
+            rerun: null,
+          }),
+        ]}
+      />
+    );
+
+    expect(
+      within(getCard()).queryByRole('button', {name: 'Try again'})
+    ).not.toBeInTheDocument();
   });
 
   it('keeps the title of an applied change of a kind it does not know', () => {
