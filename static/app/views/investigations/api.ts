@@ -787,15 +787,13 @@ export function useInvestigationActionRequestMutation(
       await options?.onSuccess?.(response, variables, onMutateResult, context);
     },
     onError: async (error, variables, onMutateResult, context) => {
-      if (parseApplyError(error)?.code === 'not_stale') {
-        void queryClient.invalidateQueries({
-          queryKey: actionRequestDryRunQueryOptions(
-            organizationSlug,
-            investigationId,
-            variables
-          ).queryKey,
-        });
-      }
+      void queryClient.invalidateQueries({
+        queryKey: actionRequestDryRunQueryOptions(
+          organizationSlug,
+          investigationId,
+          variables
+        ).queryKey,
+      });
       await Promise.all([
         queryClient.invalidateQueries({queryKey: detailOptions.queryKey}),
         queryClient.invalidateQueries({queryKey: orchestrationOptions.queryKey}),

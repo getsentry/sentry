@@ -99,6 +99,7 @@ export function useApplyCheck(
   const {data, isError, isPending} = useQuery({
     ...actionRequestDryRunQueryOptions(organization.slug, investigationId, actionRequest),
     enabled,
+    refetchOnWindowFocus: shouldRefreshOnFocus(actionRequest) ? 'always' : false,
   });
   if (!enabled) {
     return {status: 'passed'};
@@ -168,6 +169,10 @@ export function getAppliedActivityTitle(
 export function getAppliedActivityNote(actionRequest: InvestigationActionRequest) {
   const kind = getActionKind(actionRequest.action);
   return kind?.ui.getActivityNote?.({action: kind.action, actionRequest}) ?? null;
+}
+
+export function shouldRefreshOnFocus(actionRequest: InvestigationActionRequest) {
+  return getActionKind(actionRequest.action)?.ui.refreshOnFocus?.(actionRequest) ?? false;
 }
 
 export function getApplySuccessMessage(action: InvestigationAction | null) {

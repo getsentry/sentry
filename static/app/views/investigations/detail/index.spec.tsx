@@ -1077,6 +1077,135 @@ describe('Investigation detail', () => {
     ).not.toHaveTextContent('Widen the interval');
   });
 
+  describe('a connect suggestion when the window gets focus', () => {
+    const connectSuggestion = InvestigationActionRequestFixture({
+      title: 'Connect Datadog',
+      impact: null,
+      action: {kind: 'connect_telemetry', provider: 'datadog'},
+    });
+
+    function mockDetail(actionRequests: InvestigationActionRequest[]) {
+      return MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: InvestigationAgenticDetailFixture({
+          blocks: [],
+          orchestration: {
+            phase: 'completed',
+            status: 'completed',
+            heartbeatAt: null,
+            notebookRevision: 5,
+          },
+          actionRequests,
+        }),
+      });
+    }
+
+    async function focusWindow() {
+      act(() => {
+        window.dispatchEvent(new Event('visibilitychange'));
+      });
+      await act(() => Promise.resolve());
+    }
+
+    function mockConnectionCheck(connected: boolean) {
+      return MockApiClient.addMockResponse({
+        url: `${detailUrl}action-requests/312/apply/`,
+        method: 'POST',
+        match: [MockApiClient.matchData({dryRun: true})],
+        ...(connected
+          ? {body: {actionRequest: connectSuggestion}}
+          : {
+              statusCode: 400,
+              body: {
+                detail: "The change wasn't valid.",
+                code: 'validation_failed',
+                messages: ["This provider isn't connected yet."],
+              },
+            }),
+      });
+    }
+
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: orchestrationUrl,
+        body: InvestigationOrchestrationFixture({
+          phase: 'completed',
+          status: 'completed',
+        }),
+      });
+      mockConnectionCheck(false);
+    });
+
+    it('offers a re-run once the provider is connected in another tab', async () => {
+      mockDetail([connectSuggestion]);
+      renderView();
+      expect(
+        await screen.findByRole('button', {name: 'Connect Datadog (opens in a new tab)'})
+      ).toBeInTheDocument();
+
+      const reloaded = mockDetail([connectSuggestion]);
+      const check = mockConnectionCheck(true);
+      await focusWindow();
+
+      expect(reloaded).toHaveBeenCalled();
+      expect(check).toHaveBeenCalled();
+      expect(
+        await screen.findByRole('button', {name: 'Re-run with Datadog'})
+      ).toBeEnabled();
+    });
+
+    it('shows the provider as connected once Sentry applies it', async () => {
+      mockDetail([connectSuggestion]);
+      renderView();
+      expect(
+        await screen.findByRole('button', {name: 'Connect Datadog (opens in a new tab)'})
+      ).toBeInTheDocument();
+
+      const reloaded = mockDetail([
+        {
+          ...connectSuggestion,
+          state: 'applied',
+          canApply: false,
+          cannotApplyReason: 'not_suggested',
+        },
+      ]);
+      await focusWindow();
+
+      expect(reloaded).toHaveBeenCalled();
+      expect(
+        await screen.findByRole('button', {name: 'View integration (opens in a new tab)'})
+      ).toBeInTheDocument();
+    });
+
+    it('does not reload one the viewer cannot apply', async () => {
+      mockDetail([
+        {...connectSuggestion, canApply: false, cannotApplyReason: 'permission_denied'},
+      ]);
+      renderView();
+      expect(
+        await screen.findByRole('button', {name: 'Connect Datadog (opens in a new tab)'})
+      ).toBeInTheDocument();
+
+      const reloaded = mockDetail([connectSuggestion]);
+      await focusWindow();
+
+      expect(reloaded).not.toHaveBeenCalled();
+    });
+
+    it('does not reload without a connect suggestion', async () => {
+      mockDetail([InvestigationActionRequestFixture()]);
+      renderView();
+      expect(
+        await screen.findByRole('button', {name: 'Update monitor'})
+      ).toBeInTheDocument();
+
+      const reloaded = mockDetail([InvestigationActionRequestFixture()]);
+      await focusWindow();
+
+      expect(reloaded).not.toHaveBeenCalled();
+    });
+  });
+
   describe('action requests about part of the report', () => {
     const completedRun = InvestigationOrchestrationFixture({
       phase: 'completed',

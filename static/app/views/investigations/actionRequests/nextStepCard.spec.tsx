@@ -118,6 +118,12 @@ function connectRequest(overrides: Partial<InvestigationActionRequest> = {}) {
   });
 }
 
+const notConnectedBody = {
+  detail: "The change wasn't valid.",
+  code: 'validation_failed',
+  messages: ["This provider isn't connected yet."],
+};
+
 function connectedRequest(followUp: InvestigationActionRequest['followUp']) {
   return connectRequest({
     state: 'applied',
@@ -1317,7 +1323,8 @@ describe('NextStepCard', () => {
     expect(card).not.toHaveTextContent('Applied by');
   });
 
-  it('offers to connect a provider through its integration settings', () => {
+  it('offers to connect a provider through its integration settings', async () => {
+    const dryRun = mockDryRun({statusCode: 400, body: notConnectedBody});
     render(
       <NextStepCard
         investigationId="investigation-1"
@@ -1326,6 +1333,7 @@ describe('NextStepCard', () => {
       />
     );
 
+    await waitFor(() => expect(dryRun).toHaveBeenCalled());
     const card = getCard();
     expect(card).toHaveTextContent('Connect Datadog. Checkout logs live in Datadog.');
     const connect = within(card).getByRole('button', {
@@ -1354,8 +1362,13 @@ describe('NextStepCard', () => {
     expect(connect).toHaveAccessibleDescription(message);
   });
 
-  it('does not check a connection in advance', () => {
-    const dryRun = mockDryRun();
+  it('offers a re-run once the provider is connected', async () => {
+    const connected = connectRequest({
+      state: 'applied',
+      canApply: false,
+      cannotApplyReason: 'not_suggested',
+    });
+    const apply = mockApply({body: {actionRequest: connected}});
     render(
       <NextStepCard
         investigationId="investigation-1"
@@ -1364,12 +1377,39 @@ describe('NextStepCard', () => {
       />
     );
 
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Re-run with Datadog'})
+    );
+
+    expect(apply).toHaveBeenCalledWith(
+      applyUrl,
+      expect.objectContaining({method: 'POST', data: {action: connected.action}})
+    );
+  });
+
+  it('offers to connect again when the re-run finds no connection', async () => {
+    mockApply({statusCode: 400, body: notConnectedBody});
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[connectRequest()]}
+      />
+    );
+
+    const rerun = await screen.findByRole('button', {name: 'Re-run with Datadog'});
+    mockDryRun({statusCode: 400, body: notConnectedBody});
+    await userEvent.click(rerun);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      "This change could not be applied. This provider isn't connected yet."
+    );
     expect(
-      within(getCard()).getByRole('button', {
-        name: 'Connect Datadog (opens in a new tab)',
-      })
-    ).toBeEnabled();
-    expect(dryRun).not.toHaveBeenCalled();
+      await screen.findByRole('button', {name: 'Connect Datadog (opens in a new tab)'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Re-run with Datadog'})
+    ).not.toBeInTheDocument();
   });
 
   it.each([
