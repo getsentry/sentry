@@ -11,6 +11,7 @@ import {InvestigationActivity} from 'sentry/views/investigations/activity/invest
 import {
   InvestigationCommentFixture,
   InvestigationDetailFixture,
+  InvestigationActionRequestFixture,
 } from 'sentry/views/investigations/fixtures';
 
 const uncommentedInvestigation = InvestigationDetailFixture({
@@ -18,6 +19,23 @@ const uncommentedInvestigation = InvestigationDetailFixture({
   dateCreated: '2026-08-27T14:08:00Z',
   blocks: [],
 });
+const appliedInvestigation = {
+  ...commentedInvestigation,
+  actionRequests: [
+    InvestigationActionRequestFixture({
+      state: 'applied',
+      canApply: false,
+      cannotApplyReason: 'not_suggested',
+      appliedBy: commentStoryAuthors.GRACE,
+      appliedDetails: {
+        detectorId: '789',
+        detectorName: 'Cart p95 latency',
+        fields: ['timeWindowSeconds'],
+      },
+      dateApplied: '2026-08-27T15:00:00Z',
+    }),
+  ],
+};
 const archivedInvestigation = {...commentedInvestigation, status: 'archived' as const};
 const ownComments = [
   InvestigationCommentFixture({
@@ -76,6 +94,18 @@ export default Storybook.story('Investigations — Activity', story => {
     >
       <Container maxWidth="960px">
         <InvestigationActivity investigation={commentedInvestigation} />
+      </Container>
+    </InvestigationFixtureApi>
+  ));
+
+  story('Applied action request', () => (
+    <InvestigationFixtureApi
+      organizationSlug="storybook-investigation-activity-applied"
+      details={[appliedInvestigation]}
+      comments={{[appliedInvestigation.id]: commentedInvestigationComments}}
+    >
+      <Container maxWidth="960px">
+        <InvestigationActivity investigation={appliedInvestigation} />
       </Container>
     </InvestigationFixtureApi>
   ));

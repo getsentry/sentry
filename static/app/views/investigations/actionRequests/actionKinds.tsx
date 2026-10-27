@@ -34,6 +34,9 @@ export type ActionKindDetailsProps<A> = KindProps<A> & {
 export type ActionKindUI<A extends InvestigationAction> = {
   Apply: ComponentType<ActionKindApplyProps<A>>;
   checksBeforeApply: boolean;
+  getActivityTitle: (
+    props: KindProps<A> & {actorName: string | null; organizationSlug: string}
+  ) => ReactNode;
   getAppliedSummary: (
     props: KindProps<A> & {source: InvestigationDetail['source'] | undefined}
   ) => ReactNode;

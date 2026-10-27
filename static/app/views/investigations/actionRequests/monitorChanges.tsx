@@ -22,18 +22,47 @@ import type {
 } from 'sentry/views/investigations/types';
 
 type ChangeField = {
+  getActivityLabel: () => string;
   getLabel: () => string;
   monospace: boolean;
 };
 
 const CHANGE_FIELDS = {
-  query: {getLabel: () => t('Query'), monospace: true},
-  aggregate: {getLabel: () => t('Aggregate'), monospace: true},
-  environment: {getLabel: () => t('Environment'), monospace: false},
-  timeWindowSeconds: {getLabel: () => t('Interval'), monospace: false},
-  highThreshold: {getLabel: () => t('High threshold'), monospace: false},
-  mediumThreshold: {getLabel: () => t('Medium threshold'), monospace: false},
-  resolutionThreshold: {getLabel: () => t('Resolution threshold'), monospace: false},
+  query: {
+    getLabel: () => t('Query'),
+    getActivityLabel: () => t('query'),
+    monospace: true,
+  },
+  aggregate: {
+    getLabel: () => t('Aggregate'),
+    getActivityLabel: () => t('aggregate'),
+    monospace: true,
+  },
+  environment: {
+    getLabel: () => t('Environment'),
+    getActivityLabel: () => t('environment'),
+    monospace: false,
+  },
+  timeWindowSeconds: {
+    getLabel: () => t('Interval'),
+    getActivityLabel: () => t('interval'),
+    monospace: false,
+  },
+  highThreshold: {
+    getLabel: () => t('High threshold'),
+    getActivityLabel: () => t('threshold'),
+    monospace: false,
+  },
+  mediumThreshold: {
+    getLabel: () => t('Medium threshold'),
+    getActivityLabel: () => t('threshold'),
+    monospace: false,
+  },
+  resolutionThreshold: {
+    getLabel: () => t('Resolution threshold'),
+    getActivityLabel: () => t('threshold'),
+    monospace: false,
+  },
 } satisfies Record<InvestigationDetectorChangeKey, ChangeField>;
 
 const CHANGE_KEYS = Object.keys(CHANGE_FIELDS) as InvestigationDetectorChangeKey[];
@@ -42,6 +71,13 @@ const PRIORITY_CHANGE_KEYS: Partial<Record<number, InvestigationDetectorChangeKe
   [DetectorPriorityLevel.HIGH]: 'highThreshold',
   [DetectorPriorityLevel.MEDIUM]: 'mediumThreshold',
 };
+
+export function getChangedFieldLabels(fields: string[]) {
+  const labels = CHANGE_KEYS.filter(key => fields.includes(key)).map(key =>
+    CHANGE_FIELDS[key].getActivityLabel()
+  );
+  return [...new Set(labels)];
+}
 
 type MonitorChangesProps = {
   action: InvestigationUpdateDetectorAction;
