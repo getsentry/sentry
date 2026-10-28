@@ -30,8 +30,6 @@ export {createFilter, mergeStyles} from 'react-select';
 export type {
   NamedProps as Props,
   StylesConfig,
-  GroupedOptionsType,
   OptionsType,
-  OptionTypeBase,
   ValueType,
 } from 'react-select';
