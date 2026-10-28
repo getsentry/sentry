@@ -7,16 +7,17 @@ import {
   type SamplingMode,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 
-const DASHBOARD_QUERY_PRIORITIES = ['normal', 'low'] as const;
+const DASHBOARD_QUERY_PRIORITIES = ['normal', 'faster'] as const;
 
 type DashboardQueryPriority = (typeof DASHBOARD_QUERY_PRIORITIES)[number];
 
 const DASHBOARD_QUERY_PRIORITY_OPTIONS: Array<{
+  details: string;
   label: string;
   value: DashboardQueryPriority;
 }> = [
-  {value: 'normal', label: t('Normal')},
-  {value: 'low', label: t('Low priority')},
+  {value: 'normal', label: t('Normal'), details: t('Relatively Accurate')},
+  {value: 'faster', label: t('Faster'), details: t('Low Accuracy')},
 ];
 
 const queryPriorityParser = parseAsStringLiteral(DASHBOARD_QUERY_PRIORITIES).withDefault(
@@ -42,14 +43,14 @@ export function useDashboardQueryPriority() {
 
 /**
  * Dashboard query priority. Normal keeps the caller's existing sampling mode.
- * Low priority sends `sampling=LOW_PRIORITY`, and only when the
+ * Faster sends `sampling=LOW_PRIORITY`, and only when the
  * `low-priority-queries` flag is enabled.
  */
 export function useDashboardSamplingMode(
   fallback: SamplingMode | undefined
 ): SamplingMode | undefined {
   const {priority} = useDashboardQueryPriority();
-  if (priority === 'low') {
+  if (priority === 'faster') {
     return SAMPLING_MODE.LOW_PRIORITY;
   }
   return fallback;
