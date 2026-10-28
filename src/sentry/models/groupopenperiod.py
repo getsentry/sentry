@@ -209,21 +209,36 @@ def create_open_period(group: Group, start_time: datetime, event_id: str | None 
 
         # There are some historical cases where we log multiple regressions for the same group,
         # but we only want to create a new open period for the first regression
-        open_period = GroupOpenPeriod.objects.create(
+        GroupOpenPeriod.objects.create(
             group=group,
             project=group.project,
             date_started=start_time,
             date_ended=None,
         )
 
-        if should_record_open_period_activity(group):
-            GroupOpenPeriodActivity.objects.create(
-                date_added=start_time,
-                group_open_period=open_period,
-                type=OpenPeriodActivityType.OPENED,
-                value=group.priority,
-                event_id=event_id,
-            )
+        record_open_period_opened_activity(group, event_id)
+
+
+def record_open_period_opened_activity(group: Group, event_id: str | None = None) -> None:
+    """Record OPENED once, including when association follows open-period creation."""
+    if not should_record_open_period_activity(group):
+        return
+
+    with transaction.atomic(router.db_for_write(Group)):
+        # Serialize with period creation and other attempts to record the same opening.
+        Group.objects.select_for_update().filter(id=group.id).first()
+        open_period = get_latest_open_period(group)
+        if open_period is None or open_period.date_ended is not None:
+            return
+
+        GroupOpenPeriodActivity.objects.get_or_create(
+            group_open_period=open_period,
+            type=OpenPeriodActivityType.OPENED,
+            defaults={
+                "value": group.priority,
+                "event_id": event_id,
+            },
+        )
 
 
 def update_group_open_period(

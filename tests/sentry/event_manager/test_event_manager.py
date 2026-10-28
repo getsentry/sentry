@@ -4416,7 +4416,7 @@ class TestSaveGroupHashAndGroup(TestCase):
             "workflow_engine.ensure_detector_association": True,
         }
     )
-    def test_regression_establishes_association_before_open_period(self) -> None:
+    def test_regression_records_opened_after_association(self) -> None:
         self.create_detector(project=self.project, type=ErrorGroupType.slug)
         event = EventManager(
             make_event(
@@ -4451,8 +4451,9 @@ class TestSaveGroupHashAndGroup(TestCase):
             group_open_period=new_period, type=OpenPeriodActivityType.OPENED
         ).exists()
 
-    def test_explicit_detector_association_precedes_open_period(self) -> None:
-        detector = self.create_detector(project=self.project)
+    @override_options({"workflow_engine.associate_error_detectors": True})
+    def test_shared_group_creation_does_not_associate_detector(self) -> None:
+        self.create_detector(project=self.project, type=ErrorGroupType.slug)
         event = _get_event_instance(
             make_event(**load_data("transaction-n-plus-one", timestamp=before_now(minutes=10))),
             project_id=self.project.id,
@@ -4461,31 +4462,27 @@ class TestSaveGroupHashAndGroup(TestCase):
         group, created, _ = save_grouphash_and_group(
             self.project,
             event,
-            "detector-finding",
-            type=PerformanceSlowDBQueryGroupType.type_id,
-            detector_id=detector.id,
+            "unassociated-finding",
         )
 
         assert created
+        assert not group.detectorgroup_set.exists()
+        assert GroupOpenPeriod.objects.filter(group=group).exists()
+        assert not GroupOpenPeriodActivity.objects.filter(group_open_period__group=group).exists()
+
+    @override_options({"workflow_engine.associate_error_detectors": True})
+    def test_new_error_records_opened_after_default_association(self) -> None:
+        self.create_detector(project=self.project, type=ErrorGroupType.slug)
+        event = EventManager(make_event(timestamp=before_now(minutes=1).isoformat())).save(
+            self.project.id
+        )
+        assert event.group_id is not None
+        group = Group.objects.get(id=event.group_id)
+        assert group.detectorgroup_set.exists()
         activity = GroupOpenPeriodActivity.objects.get(
             group_open_period__group=group, type=OpenPeriodActivityType.OPENED
         )
         assert activity.event_id == event.event_id
-
-    @override_options({"workflow_engine.associate_error_detectors": True})
-    def test_default_detector_association_precedes_open_period(self) -> None:
-        self.create_detector(project=self.project, type=ErrorGroupType.slug)
-        event = _get_event_instance(
-            make_event(**load_data("transaction-n-plus-one", timestamp=before_now(minutes=10))),
-            project_id=self.project.id,
-        )
-
-        group, created, _ = save_grouphash_and_group(self.project, event, "error-finding")
-
-        assert created
-        assert GroupOpenPeriodActivity.objects.filter(
-            group_open_period__group=group, type=OpenPeriodActivityType.OPENED
-        ).exists()
 
     @override_options({"workflow_engine.associate_error_detectors": False})
     def test_unassociated_group_has_open_period_without_activities(self) -> None:

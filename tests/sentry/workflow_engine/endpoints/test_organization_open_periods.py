@@ -19,6 +19,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.groupopenperiod import (
     GroupOpenPeriod,
     create_open_period,
+    record_open_period_opened_activity,
     update_group_open_period,
 )
 from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
@@ -875,3 +876,30 @@ def test_existing_open_period_closes_without_occurrence_or_opened_activity(
     assert GroupOpenPeriodActivity.objects.filter(
         group_open_period=open_period, type=OpenPeriodActivityType.CLOSED
     ).exists()
+
+
+@django_db_all
+def test_opened_activity_can_follow_association_without_duplicates(
+    factories: Factories, default_project: Project
+) -> None:
+    detector = factories.create_detector(project=default_project, type=MetricIssue.slug)
+    group = factories.create_group(project=default_project, create_open_period=False)
+    start_time = timezone.now() - timedelta(minutes=1)
+    create_open_period(group, start_time, "a" * 32)
+    open_period = GroupOpenPeriod.objects.get(group=group)
+    assert not GroupOpenPeriodActivity.objects.filter(group_open_period=open_period).exists()
+
+    factories.create_detector_group(detector=detector, group=group)
+    record_open_period_opened_activity(group, "a" * 32)
+    original_activity = GroupOpenPeriodActivity.objects.get(
+        group_open_period=open_period, type=OpenPeriodActivityType.OPENED
+    )
+    record_open_period_opened_activity(group, "b" * 32)
+
+    activity = GroupOpenPeriodActivity.objects.get(
+        group_open_period=open_period, type=OpenPeriodActivityType.OPENED
+    )
+    open_period.refresh_from_db()
+    assert open_period.date_started == start_time
+    assert activity.date_added == original_activity.date_added
+    assert activity.event_id == "a" * 32
