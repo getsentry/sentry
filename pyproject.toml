@@ -1933,7 +1933,6 @@ module = [
     "tests.sentry.seer.test_breakpoints",
     "tests.sentry.seer.test_issue_detection",
     "tests.sentry.seer.test_signed_seer_api",
-    "tests.sentry.seer.test_test_generation",
     "tests.sentry.sentry_apps",
     "tests.sentry.sentry_apps.tasks.*",
     "tests.sentry.sentry_apps.test_sentry_app_component_preparer",
