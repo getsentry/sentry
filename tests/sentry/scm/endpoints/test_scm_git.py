@@ -3,7 +3,6 @@ from __future__ import annotations
 import base64
 import time
 from collections.abc import Sequence
-from typing import cast
 from unittest import mock
 
 import pytest
@@ -16,11 +15,10 @@ from responses import matchers
 from scm import Secret
 from scm.git.grant import sign_grant
 from scm.git.types import GRANT_HEADER, GitOperation, Grant
-from scm.types import PROVIDER_SET, ProviderName, RepositoryId
+from scm.types import RepositoryId
 from sentry_sdk.data_collection import _apply_key_value_collection_filtering
 
 from sentry.constants import ObjectStatus
-from sentry.models.repository import Repository
 from sentry.scm.endpoints.scm_git import report_git_error
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
@@ -33,8 +31,6 @@ FEATURE = "organizations:scm-git-endpoint"
 REFERRER = "seer.coding_job"
 # Far enough ahead that the GitHub client never refreshes the token over the network.
 TOKEN_EXPIRES_AT = "3000-01-01T00:00:00"
-# How refusals tag the test's GitHub repository, the same way GitServer tags its own.
-REPOSITORY_TAG = "('github', '12345')"
 
 
 def sign(
@@ -53,11 +49,6 @@ def sign(
         referrer=REFERRER,
     )
     return sign_grant(Secret(secret), grant)
-
-
-def repository_id(repo: Repository) -> tuple[ProviderName, str]:
-    assert repo.provider is not None and repo.external_id is not None
-    return (cast(ProviderName, repo.provider.removeprefix("integrations:")), repo.external_id)
 
 
 @cell_silo_test
@@ -81,7 +72,7 @@ class ScmGitEndpointTest(TestCase):
         )
 
     def fetch_grant(self) -> str:
-        return sign(self.organization.id, "fetch", [repository_id(self.repo)])
+        return sign(self.organization.id, "fetch", [self.repo.id])
 
     def git(
         self,
@@ -89,13 +80,12 @@ class ScmGitEndpointTest(TestCase):
         route: str,
         query: str,
         grant: str,
-        repo: tuple[ProviderName, str] | None = None,
+        repository_id: int | None = None,
         body: bytes = b"",
     ) -> HttpResponseBase:
-        provider, external_id = repo or repository_id(self.repo)
         url = reverse(
             "sentry-api-0-scm-git",
-            kwargs={"provider": provider, "external_id": external_id, "route": route},
+            kwargs={"repository_id": repository_id or self.repo.id, "route": route},
         )
         return self.client.generic(
             method,
@@ -105,10 +95,8 @@ class ScmGitEndpointTest(TestCase):
             headers={GRANT_HEADER: grant},
         )
 
-    def fetch_refs(
-        self, grant: str, repo: tuple[ProviderName, str] | None = None
-    ) -> HttpResponseBase:
-        return self.git("GET", "info/refs", "service=git-upload-pack", grant, repo)
+    def fetch_refs(self, grant: str, repository_id: int | None = None) -> HttpResponseBase:
+        return self.git("GET", "info/refs", "service=git-upload-pack", grant, repository_id)
 
     def assert_refused(self, response: HttpResponseBase, status: int, message: bytes) -> None:
         assert response.status_code == status
@@ -157,7 +145,7 @@ class ScmGitEndpointTest(TestCase):
             body=b"000eunpack ok\n0000",
             content_type="application/x-git-receive-pack-result",
         )
-        grant = sign(self.organization.id, "push", [repository_id(self.repo)])
+        grant = sign(self.organization.id, "push", [self.repo.id])
 
         response = self.git("POST", "git-receive-pack", "", grant, body=b"0000PACK-bytes")
 
@@ -186,11 +174,11 @@ class ScmGitEndpointTest(TestCase):
             extra={
                 "code": "git_invalid_grant",
                 "detail": "The git grant is missing.",
-                "repository_id": REPOSITORY_TAG,
+                "repository_id": str(self.repo.id),
             },
         )
         self.assert_reported_message(mock_sdk, "The git grant is missing.")
-        self.assert_reported(mock_sdk, "git_invalid_grant", {"repository_id": REPOSITORY_TAG})
+        self.assert_reported(mock_sdk, "git_invalid_grant", {"repository_id": str(self.repo.id)})
 
     @responses.activate
     @mock.patch("sentry.scm.endpoints.scm_git.sentry_sdk")
@@ -200,9 +188,7 @@ class ScmGitEndpointTest(TestCase):
     ) -> None:
         # Anyone can write a referrer into a grant they sign themselves, so only a verified one
         # may tag metrics and issues.
-        grant = sign(
-            self.organization.id, "fetch", [repository_id(self.repo)], secret="some-other-secret"
-        )
+        grant = sign(self.organization.id, "fetch", [self.repo.id], secret="some-other-secret")
 
         response = self.fetch_refs(grant)
 
@@ -211,7 +197,7 @@ class ScmGitEndpointTest(TestCase):
             "sentry.scm.git.request.failed", 1, {"code": "git_invalid_grant"}
         )
         self.assert_reported_message(mock_sdk, "The git grant was not signed with a known secret.")
-        self.assert_reported(mock_sdk, "git_invalid_grant", {"repository_id": REPOSITORY_TAG})
+        self.assert_reported(mock_sdk, "git_invalid_grant", {"repository_id": str(self.repo.id)})
 
     @responses.activate
     @override_settings(SCM_GIT_GRANT_SECRETS=None)
@@ -222,7 +208,7 @@ class ScmGitEndpointTest(TestCase):
 
     @responses.activate
     def test_refuses_an_expired_grant(self) -> None:
-        grant = sign(self.organization.id, "fetch", [repository_id(self.repo)], expires_in=-1)
+        grant = sign(self.organization.id, "fetch", [self.repo.id], expires_in=-1)
 
         response = self.fetch_refs(grant)
 
@@ -252,7 +238,7 @@ class ScmGitEndpointTest(TestCase):
             extra={
                 "code": "git_endpoint_disabled",
                 "detail": "The git endpoint is not enabled for this organization.",
-                "repository_id": REPOSITORY_TAG,
+                "repository_id": str(self.repo.id),
                 "organization_id": str(self.organization.id),
                 "referrer": REFERRER,
             },
@@ -264,7 +250,7 @@ class ScmGitEndpointTest(TestCase):
             mock_sdk,
             "git_endpoint_disabled",
             {
-                "repository_id": REPOSITORY_TAG,
+                "repository_id": str(self.repo.id),
                 "organization_id": str(self.organization.id),
                 "referrer": REFERRER,
             },
@@ -272,7 +258,7 @@ class ScmGitEndpointTest(TestCase):
 
     @responses.activate
     def test_refuses_a_grant_for_an_organization_that_does_not_exist(self) -> None:
-        grant = sign(self.organization.id + 1000, "fetch", [repository_id(self.repo)])
+        grant = sign(self.organization.id + 1000, "fetch", [self.repo.id])
 
         response = self.fetch_refs(grant)
 
@@ -298,7 +284,7 @@ class ScmGitEndpointTest(TestCase):
             extra={
                 "code": "git_operation_not_granted",
                 "detail": "The git grant allows fetch, not push.",
-                "repository_id": REPOSITORY_TAG,
+                "repository_id": str(self.repo.id),
                 "organization_id": str(self.organization.id),
                 "referrer": REFERRER,
             },
@@ -308,7 +294,7 @@ class ScmGitEndpointTest(TestCase):
             mock_sdk,
             "git_operation_not_granted",
             {
-                "repository_id": REPOSITORY_TAG,
+                "repository_id": str(self.repo.id),
                 "organization_id": str(self.organization.id),
                 "referrer": REFERRER,
             },
@@ -316,7 +302,7 @@ class ScmGitEndpointTest(TestCase):
 
     @responses.activate
     def test_refuses_a_fetch_with_a_push_grant(self) -> None:
-        grant = sign(self.organization.id, "push", [repository_id(self.repo)])
+        grant = sign(self.organization.id, "push", [self.repo.id])
 
         response = self.git("POST", "git-upload-pack", "", grant, body=b"0000")
 
@@ -338,15 +324,13 @@ class ScmGitEndpointTest(TestCase):
             external_id="67890",
         )
 
-        response = self.fetch_refs(self.fetch_grant(), repository_id(other_repo))
+        response = self.fetch_refs(self.fetch_grant(), other_repo.id)
 
         self.assert_refused(response, 403, b"The git grant does not cover this repository.")
 
     @responses.activate
-    def test_refuses_a_grant_that_names_the_repository_by_its_sentry_id(self) -> None:
-        # authorize_request matches the request's form exactly, so the same repository's database
-        # id doesn't cover it.
-        grant = sign(self.organization.id, "fetch", [self.repo.id])
+    def test_refuses_a_grant_that_names_the_repository_by_external_id(self) -> None:
+        grant = sign(self.organization.id, "fetch", [("github", "12345")])
 
         response = self.fetch_refs(grant)
 
@@ -354,42 +338,12 @@ class ScmGitEndpointTest(TestCase):
 
     @responses.activate
     def test_refuses_a_repository_the_organization_has_not_connected(self) -> None:
-        unconnected: tuple[ProviderName, str] = ("github", "99999")
-        grant = sign(self.organization.id, "fetch", [unconnected])
+        unconnected_id = self.repo.id + 1000
+        grant = sign(self.organization.id, "fetch", [unconnected_id])
 
-        response = self.fetch_refs(grant, unconnected)
-
-        self.assert_refused(response, 404, b"A repository could not be found.")
-
-    @responses.activate
-    def test_refuses_a_repository_named_like_the_granted_external_id(self) -> None:
-        # A name is chosen on the provider, so a repository named after the granted external id
-        # mustn't stand in for the repository that has it.
-        self.create_repo(
-            self.project,
-            name="99999",
-            provider="integrations:github",
-            integration_id=self.integration.id,
-            external_id="67890",
-        )
-        granted: tuple[ProviderName, str] = ("github", "99999")
-        grant = sign(self.organization.id, "fetch", [granted])
-
-        response = self.fetch_refs(grant, granted)
+        response = self.fetch_refs(grant, unconnected_id)
 
         self.assert_refused(response, 404, b"A repository could not be found.")
-
-    @responses.activate
-    def test_answers_an_unknown_provider_with_a_not_found(self) -> None:
-        grant = sign(self.organization.id, "fetch", [repository_id(self.repo)])
-
-        response = self.client.get(
-            "/api/0/internal/scm-git/repositories/gitea/12345.git/info/refs?service=git-upload-pack",
-            headers={GRANT_HEADER: grant},
-        )
-
-        assert response.status_code == 404
-        assert len(responses.calls) == 0
 
     @responses.activate
     def test_refuses_another_organizations_repository(self) -> None:
@@ -407,9 +361,9 @@ class ScmGitEndpointTest(TestCase):
             integration_id=other_integration.id,
             external_id="24680",
         )
-        grant = sign(self.organization.id, "fetch", [repository_id(other_repo)])
+        grant = sign(self.organization.id, "fetch", [other_repo.id])
 
-        response = self.fetch_refs(grant, repository_id(other_repo))
+        response = self.fetch_refs(grant, other_repo.id)
 
         self.assert_refused(response, 404, b"A repository could not be found.")
 
@@ -460,14 +414,9 @@ class ScmGitEndpointTest(TestCase):
             body=b"001e# service=git-upload-pack\n0000",
             content_type="application/x-git-upload-pack-advertisement",
         )
-        grant = sign(self.organization.id, "fetch", [("gitlab", "gitlab.com:42")])
+        grant = sign(self.organization.id, "fetch", [repo.id])
 
-        # Percent-encoded, as Seer sends it.
-        response = self.client.get(
-            "/api/0/internal/scm-git/repositories/gitlab/gitlab.com%3A42.git/info/refs"
-            "?service=git-upload-pack",
-            headers={GRANT_HEADER: grant},
-        )
+        response = self.fetch_refs(grant, repo.id)
 
         assert response.status_code == 200
         assert b"".join(response) == b"001e# service=git-upload-pack\n0000"
@@ -512,9 +461,9 @@ class ScmGitEndpointTest(TestCase):
             integration_id=integration.id,
             external_id="13579",
         )
-        grant = sign(self.organization.id, "fetch", [repository_id(repo)])
+        grant = sign(self.organization.id, "fetch", [repo.id])
 
-        response = self.fetch_refs(grant, repository_id(repo))
+        response = self.fetch_refs(grant, repo.id)
 
         assert response.status_code == 503
         assert response["Content-Type"] == "text/plain; charset=utf-8"
@@ -524,7 +473,7 @@ class ScmGitEndpointTest(TestCase):
             extra={
                 "code": "restricted_ip_address",
                 "detail": "The provider host resolves to an address Sentry doesn't connect to.",
-                "repository_id": str(("github_enterprise", "13579")),
+                "repository_id": str(repo.id),
                 "organization_id": str(self.organization.id),
                 "referrer": REFERRER,
             },
@@ -536,40 +485,32 @@ class ScmGitEndpointTest(TestCase):
             mock_sdk,
             "restricted_ip_address",
             {
-                "repository_id": str(("github_enterprise", "13579")),
+                "repository_id": str(repo.id),
                 "organization_id": str(self.organization.id),
                 "referrer": REFERRER,
             },
         )
 
 
-@pytest.mark.parametrize("provider", sorted(PROVIDER_SET))
-def test_routes_every_provider(provider: str) -> None:
-    match = resolve(f"/api/0/internal/scm-git/repositories/{provider}/42.git/info/refs")
-
-    assert match.url_name == "sentry-api-0-scm-git"
-    assert match.kwargs == {"provider": provider, "external_id": "42", "route": "info/refs"}
-
-
 @pytest.mark.parametrize(
     "path",
     [
-        "/api/0/internal/scm-git/repositories/gitea/42.git/info/refs",
-        "/api/0/internal/scm-git/repositories/42.git/info/refs",
-        "/api/0/internal/scm-git/repositories/github/getsentry/sentry.git/info/refs",
-        "/api/0/internal/scm-git/repositories/github/.git/info/refs",
-        "/api/0/internal/scm-git/repositories/github/42/info/refs",
-        "/api/0/internal/scm-git/repositories/github/42.git/",
-        "/api/0/internal/scm-git/repositories/github/42.git",
+        "/api/0/internal/scm-git/repositories/getsentry/sentry.git/info/refs",
+        "/api/0/internal/scm-git/repositories/42/info/refs",
+        "/api/0/internal/scm-git/repositories/42.git/",
+        "/api/0/internal/scm-git/repositories/42.git",
+        # More digits than any Repository.id, which int() would refuse with a 500 at 4,301.
+        f"/api/0/internal/scm-git/repositories/{'4' * 20}.git/info/refs",
+        # Arabic-Indic digits, which int() would read as 42.
+        "/api/0/internal/scm-git/repositories/\u0664\u0662.git/info/refs",
     ],
     ids=[
-        "unknown-provider",
-        "no-provider",
-        "slash-in-external-id",
-        "empty-external-id",
+        "name",
         "no-git-suffix",
         "nothing-after-git",
         "no-slash-after-git",
+        "20-digits",
+        "arabic-indic",
     ],
 )
 def test_does_not_route(path: str) -> None:
