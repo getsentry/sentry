@@ -24,7 +24,7 @@ from sentry.api.negotiation import PassthroughContentNegotiation
 from sentry.exceptions import RestrictedIPAddress
 from sentry.models.organization import Organization
 from sentry.net.http import BlacklistAdapter
-from sentry.scm.private.helpers import fetch_access_token, make_fetchers, record_count_metric
+from sentry.scm.private.helpers import fetch_access_token, make_git_fetchers, record_count_metric
 from sentry.shared_integrations.exceptions import ApiHostError
 from sentry.utils.http import request_body_stream
 
@@ -43,9 +43,7 @@ def report_git_error(error: Exception, context: dict[str, str]) -> None:
 
 
 def make_git_server() -> GitServer:
-    # By external id alone: a repository's name is chosen on the provider, so matching names too
-    # could resolve a granted external id to another repository whose name is that id.
-    fetchers = make_fetchers(match_names=False)
+    fetchers = make_git_fetchers()
     return GitServer(
         secrets=_grant_secrets(),
         fetch_repository=fetchers.fetch_repository,
