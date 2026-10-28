@@ -3,6 +3,7 @@ from unittest import mock
 
 import pytest
 from django.conf import settings
+from django.db import router, transaction
 from django.test import override_settings
 from pytest import raises
 
@@ -1034,6 +1035,27 @@ class DisableUptimeDetectorTest(UptimeTestCase):
         disable_uptime_detector(detector)
 
         mock_disable_seat.assert_not_called()
+
+    @mock.patch("sentry.quotas.backend.disable_seat")
+    @mock.patch("sentry.uptime.subscriptions.subscriptions.delete_remote_uptime_subscription")
+    def test_remote_delete_waits_for_outer_commit(
+        self, mock_delete_remote: mock.MagicMock, mock_disable_seat: mock.MagicMock
+    ) -> None:
+        detector = create_uptime_detector(
+            self.project,
+            self.environment,
+            url="https://sentry.io",
+            interval_seconds=3600,
+            timeout_ms=1000,
+            mode=UptimeMonitorMode.MANUAL,
+        )
+        uptime_subscription = get_uptime_subscription(detector)
+
+        with transaction.atomic(router.db_for_write(UptimeSubscription)):
+            disable_uptime_detector(detector)
+            mock_delete_remote.delay.assert_not_called()
+
+        mock_delete_remote.delay.assert_called_once_with(uptime_subscription.id)
 
     @mock.patch("sentry.quotas.backend.disable_seat")
     def test_skip_quotas(self, mock_disable_seat: mock.MagicMock) -> None:

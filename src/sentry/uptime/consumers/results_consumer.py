@@ -648,8 +648,17 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
 
         organization = detector.linked_project.organization
 
-        # Nothing to do if this subscription is disabled.
         if not detector.enabled:
+            # A DISABLED subscription has no enabled detectors left, so any result means the
+            # checker missed the removal. Remove it again; an ACTIVE subscription may still be
+            # serving another detector.
+            if subscription.status == UptimeSubscription.Status.DISABLED.value:
+                send_uptime_config_deletion(result["region"], result["subscription_id"])
+                metrics.incr(
+                    "uptime.result_processor.disabled_subscription_config_removed",
+                    sample_rate=1.0,
+                    tags={"uptime_region": result.get("region", "default")},
+                )
             return
 
         # Nothing to do if the feature isn't enabled

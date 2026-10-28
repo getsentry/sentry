@@ -301,6 +301,29 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 "default", UptimeSubscription(subscription_id=subscription_id), "delete", None
             )
 
+    @mock.patch("sentry.uptime.consumers.results_consumer.send_uptime_config_deletion")
+    def test_disabled_subscription_removes_config(self, mock_deletion: MagicMock) -> None:
+        self.detector.update(enabled=False)
+        self.subscription.update(status=UptimeSubscription.Status.DISABLED.value)
+        result = self.create_uptime_result(self.subscription.subscription_id)
+
+        with self.feature("organizations:uptime"):
+            self.send_result(result)
+
+        mock_deletion.assert_called_once_with(result["region"], self.subscription.subscription_id)
+
+    @mock.patch("sentry.uptime.consumers.results_consumer.send_uptime_config_deletion")
+    def test_disabled_detector_on_active_subscription_keeps_config(
+        self, mock_deletion: MagicMock
+    ) -> None:
+        self.detector.update(enabled=False)
+        result = self.create_uptime_result(self.subscription.subscription_id)
+
+        with self.feature("organizations:uptime"):
+            self.send_result(result)
+
+        mock_deletion.assert_not_called()
+
     def test_organization_feature_disabled(self) -> None:
         """
         Tests that we do not process results for disabled project subscriptions

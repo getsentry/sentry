@@ -520,7 +520,13 @@ def disable_uptime_detector(detector: Detector, skip_quotas: bool = False):
         # and remove the remote subscription.
         if not has_active_subscription:
             uptime_subscription.update(status=UptimeSubscription.Status.DISABLED.value)
-            delete_remote_uptime_subscription.delay(uptime_subscription.id)
+            # Callers such as billing rollover disable detectors inside a longer outer
+            # transaction. Queued before commit, the task can still read ACTIVE, skip the
+            # removal, and leave the checker running a disabled monitor indefinitely.
+            transaction.on_commit(
+                lambda: delete_remote_uptime_subscription.delay(uptime_subscription.id),
+                using=router.db_for_write(UptimeSubscription),
+            )
 
 
 def ensure_uptime_seat(detector: Detector) -> None:
