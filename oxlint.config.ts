@@ -30,6 +30,7 @@ const tableComponentFiles = [
 // but suppress pre-existing violations on `master`
 export const incubator = defineConfig({
   rules: {
+    '@sentry/scraps/no-dom-coupling': 'error',
     '@sentry/scraps/no-manual-table': 'error',
     '@sentry/scraps/prefer-primitives': 'error',
     '@sentry/scraps/prefer-container-responsive-props': 'error',
@@ -37,7 +38,10 @@ export const incubator = defineConfig({
   overrides: [
     {
       files: coreComponentFiles,
-      rules: {'@sentry/scraps/prefer-primitives': 'off'},
+      rules: {
+        '@sentry/scraps/no-dom-coupling': 'off',
+        '@sentry/scraps/prefer-primitives': 'off',
+      },
     },
     {
       files: [
