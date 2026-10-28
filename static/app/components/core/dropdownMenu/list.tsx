@@ -328,6 +328,12 @@ function DropdownMenuList({
       value={searchState.value}
       onChange={event => searchState.onChange(event.target.value)}
       onKeyDown={event => {
+        if (event.key === 'ArrowLeft' && parentMenuState) {
+          event.preventDefault();
+          event.stopPropagation();
+          parentMenuState.selectionManager.clearSelection();
+          return;
+        }
         // ArrowDown moves from the search field into the filtered menu items.
         if (event.key === 'ArrowDown') {
           event.preventDefault();
@@ -350,6 +356,14 @@ function DropdownMenuList({
             {stackProps => (
               <Overlay
                 {...stackProps}
+                onKeyDownCapture={event => {
+                  // Handle Escape before React Aria closes the entire menu tree.
+                  if (event.key === 'Escape' && parentMenuState && hasFocus) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    parentMenuState.selectionManager.clearSelection();
+                  }
+                }}
                 style={{
                   // Cap the requested height by the space available to the overlay.
                   maxHeight: calculateMenuMinHeight(
