@@ -11,8 +11,10 @@ from sentry.models.repository import Repository as RepositoryModel
 from sentry.scm.private.helpers import (
     fetch_access_token,
     fetch_repository,
+    fetch_repository_by_external_id,
     fetch_service_provider,
     make_fetchers,
+    make_git_fetchers,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import cell_silo_test
@@ -81,35 +83,6 @@ class TestFetchRepository(TestCase):
         )
 
         result = fetch_repository(self.organization.id, ("github", "test-org/test-repo"))
-
-        assert result is not None
-        assert result["name"] == "test-org/test-repo"
-
-    def test_fetch_by_provider_and_name_returns_none_without_name_matching(self) -> None:
-        self.create_repo(
-            self.project,
-            name="test-org/test-repo",
-            provider="integrations:github",
-            external_id="99999",
-            integration_id=1,
-        )
-
-        result = fetch_repository(
-            self.organization.id, ("github", "test-org/test-repo"), match_names=False
-        )
-
-        assert result is None
-
-    def test_fetch_by_provider_and_external_id_without_name_matching(self) -> None:
-        self.create_repo(
-            self.project,
-            name="test-org/test-repo",
-            provider="integrations:github",
-            external_id="99999",
-            integration_id=1,
-        )
-
-        result = fetch_repository(self.organization.id, ("github", "99999"), match_names=False)
 
         assert result is not None
         assert result["name"] == "test-org/test-repo"
@@ -464,6 +437,45 @@ class TestFetchServiceProvider(TestCase):
             assert fetch_service_provider(self.organization.id, repository) is None
 
 
+class TestFetchRepositoryByExternalId(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.repo = self.create_repo(
+            self.project,
+            name="test-org/test-repo",
+            provider="integrations:github",
+            external_id="99999",
+            integration_id=1,
+        )
+
+    def test_returns_the_repository(self) -> None:
+        result = fetch_repository_by_external_id(self.organization.id, ("github", "99999"))
+
+        assert result is not None
+        assert result["id"] == self.repo.id
+        assert result["name"] == "test-org/test-repo"
+
+    def test_does_not_match_a_name(self) -> None:
+        result = fetch_repository_by_external_id(
+            self.organization.id, ("github", "test-org/test-repo")
+        )
+
+        assert result is None
+
+    def test_does_not_match_sentrys_id(self) -> None:
+        assert fetch_repository_by_external_id(self.organization.id, self.repo.id) is None
+
+    def test_does_not_match_another_provider(self) -> None:
+        result = fetch_repository_by_external_id(self.organization.id, ("gitlab", "99999"))
+
+        assert result is None
+
+    def test_does_not_match_another_organizations_repository(self) -> None:
+        result = fetch_repository_by_external_id(self.create_organization().id, ("github", "99999"))
+
+        assert result is None
+
+
 class TestMakeFetchers(TestCase):
     def test_fetchers_fetch_the_integration_once(self) -> None:
         integration = self.create_integration(
@@ -490,6 +502,39 @@ class TestMakeFetchers(TestCase):
             "sentry.scm.private.helpers.integration_service", wraps=integration_service
         ) as service:
             repository = fetchers.fetch_repository(self.organization.id, repo.id)
+            assert repository is not None
+            provider = fetchers.fetch_provider(self.organization.id, repository)
+
+        assert isinstance(provider, GitHubProvider)
+        assert service.get_integration.call_count == 1
+
+    def test_git_fetchers_fetch_the_integration_once(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github_enterprise",
+            name="GHE Acme",
+            external_id="ghe-fetchers-1",
+            metadata={
+                "domain_name": "github.acme.com",
+                "installation_id": "1",
+                "installation": {"id": "1", "private_key": "x", "verify_ssl": True},
+            },
+        )
+        self.create_repo(
+            project=self.project,
+            name="acme/widget",
+            provider="integrations:github_enterprise",
+            external_id="9001",
+            integration_id=integration.id,
+        )
+        fetchers = make_git_fetchers()
+
+        with patch(
+            "sentry.scm.private.helpers.integration_service", wraps=integration_service
+        ) as service:
+            repository = fetchers.fetch_repository(
+                self.organization.id, ("github_enterprise", "9001")
+            )
             assert repository is not None
             provider = fetchers.fetch_provider(self.organization.id, repository)
 
