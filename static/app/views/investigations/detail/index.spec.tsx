@@ -266,7 +266,6 @@ describe('Investigation detail', () => {
       url: detailUrl,
       body: InvestigationDetailFixture({
         sourceType: 'metric_open_period',
-        template: {key: 'breached_metric', version: 1},
       }),
     });
 
@@ -284,7 +283,6 @@ describe('Investigation detail', () => {
             'feedback.owner': 'ml-ai',
             'investigation.id': 'investigation-1',
             'investigation.source_type': 'metric_open_period',
-            'investigation.template': 'breached_metric',
           },
         })
       );
@@ -2242,11 +2240,6 @@ describe('Investigation detail', () => {
         error: null,
       },
     };
-    investigation.blocks[1] = {
-      ...investigation.blocks[1]!,
-      config: {autoRun: true},
-      dependencies: ['block-1'],
-    };
     MockApiClient.addMockResponse({url: detailUrl, body: investigation});
     MockApiClient.addMockResponse({
       url: `${detailUrl}blocks/block-1/executions/execution-1/`,
@@ -2263,7 +2256,7 @@ describe('Investigation detail', () => {
     const {queryClient} = renderView();
 
     await screen.findByText('Investigate database latency');
-    // The block waiting behind the running one is not shown at all.
+    // The block that hasn't started is not shown at all.
     expect(screen.getByLabelText('Block actions for Summary')).toBeInTheDocument();
     expect(screen.getByTestId('investigation-block-placeholder')).toBeInTheDocument();
     expect(
@@ -2297,55 +2290,6 @@ describe('Investigation detail', () => {
       'aria-expanded',
       'true'
     );
-  });
-
-  describe('keeps polling while an auto-run block is waiting to start with fake timers', () => {
-    beforeEach(() => {
-      jest.useFakeTimers();
-    });
-
-    afterEach(async () => {
-      try {
-        await act(() => jest.runOnlyPendingTimersAsync());
-      } finally {
-        jest.useRealTimers();
-      }
-    });
-
-    it('keeps polling while an auto-run block is waiting to start', async () => {
-      const investigation = InvestigationDetailFixture({
-        template: {key: 'breached_metric', version: 1},
-      });
-      investigation.blocks = [
-        {
-          ...investigation.blocks[0]!,
-          outputStatus: 'completed',
-          currentExecution: {
-            id: 'execution-completed',
-            status: 'completed',
-            startedAt: '2026-08-17T10:00:00Z',
-            completedAt: '2026-08-17T10:00:10Z',
-            error: null,
-          },
-        },
-        {
-          ...investigation.blocks[1]!,
-          config: {autoRun: true},
-          dependencies: ['block-1'],
-        },
-      ];
-      const request = MockApiClient.addMockResponse({
-        url: detailUrl,
-        body: investigation,
-      });
-
-      renderView();
-
-      await screen.findByText('Initial notes');
-      expect(screen.queryByTestId('investigation-block-block-2')).not.toBeInTheDocument();
-      await act(() => jest.advanceTimersByTimeAsync(2000));
-      expect(request).toHaveBeenCalledTimes(2);
-    });
   });
 
   describe('refetches while Seer Agent works with fake timers', () => {
@@ -2501,64 +2445,6 @@ describe('Investigation detail', () => {
     await screen.findByText('Initial notes');
     expect(
       screen.queryByLabelText('Block actions for Latency query')
-    ).not.toBeInTheDocument();
-  });
-
-  it('shows available results and hides blocks blocked by a failed branch', async () => {
-    const investigation = InvestigationDetailFixture();
-    const textBlock = investigation.blocks[0]!;
-    const queryBlock = investigation.blocks[1]!;
-    investigation.blocks = [
-      {
-        ...textBlock,
-        outputStatus: 'failed',
-        currentExecution: {
-          id: 'execution-failed',
-          status: 'failed',
-          startedAt: '2026-08-17T10:00:00Z',
-          completedAt: '2026-08-17T10:00:10Z',
-          error: {message: 'Summary failed'},
-        },
-      },
-      {
-        ...queryBlock,
-        config: {autoRun: true},
-        dependencies: ['block-1'],
-      },
-      {
-        ...textBlock,
-        id: 'block-3',
-        position: 2,
-        title: 'Independent analysis',
-        outputStatus: 'completed',
-        currentExecution: {
-          id: 'execution-completed',
-          status: 'completed',
-          startedAt: '2026-08-17T10:00:00Z',
-          completedAt: '2026-08-17T10:00:10Z',
-          error: null,
-        },
-      },
-      {
-        ...queryBlock,
-        id: 'block-4',
-        position: 3,
-        title: 'Independent follow-up',
-        config: {autoRun: true},
-        dependencies: ['block-3'],
-      },
-    ];
-    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
-
-    renderView();
-
-    expect(
-      await screen.findByLabelText('Block actions for Independent analysis')
-    ).toBeInTheDocument();
-    expect(screen.queryByTestId('investigation-block-block-2')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('investigation-block-block-4')).not.toBeInTheDocument();
-    expect(
-      screen.queryByTestId('investigation-execution-failed')
     ).not.toBeInTheDocument();
   });
 
