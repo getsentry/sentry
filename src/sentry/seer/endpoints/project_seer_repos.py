@@ -229,14 +229,11 @@ def _validate_branch_overrides(value):
 
 
 class BranchOverrideSerializer(CamelSnakeSerializer):
-    tag_name = serializers.CharField(
-        required=True, help_text="The tag name that selects this branch override."
-    )
-    tag_value = serializers.CharField(
-        required=True, help_text="The tag value that selects this branch override."
-    )
+    tag_name = serializers.CharField(required=True, help_text="Event tag key to match.")
+    tag_value = serializers.CharField(required=True, help_text="Event tag value to match.")
     branch_name = serializers.CharField(
-        required=True, help_text="The repository branch to use when the tag matches."
+        required=True,
+        help_text="The repository branch Seer uses for issues whose events have this tag value.",
     )
 
 
@@ -283,13 +280,13 @@ class SeerProjectRepoCreateSerializer(CamelSnakeSerializer):
         required=False,
         allow_null=True,
         allow_blank=True,
-        help_text="Override the default branch for this repository.",
+        help_text="The branch Seer works from in this repository. Leave empty to use the repository's default branch.",
     )
     instructions = serializers.CharField(
         required=False,
         allow_null=True,
         allow_blank=True,
-        help_text="Instructions Seer should follow when working with this repository.",
+        help_text="Extra context Seer should use when working with this repository.",
     )
     branch_overrides = BranchOverrideSerializer(
         many=True,
@@ -304,7 +301,10 @@ class SeerProjectRepoCreateSerializer(CamelSnakeSerializer):
 
 class SeerProjectReposBulkSerializer(CamelSnakeSerializer):
     repos = SeerProjectRepoCreateSerializer(
-        many=True, required=True, allow_empty=True, help_text="Repository settings to apply."
+        many=True,
+        required=True,
+        allow_empty=True,
+        help_text="Repositories to link and configure for Seer in this project.",
     )
 
     def validate_repos(self, value):
@@ -413,9 +413,9 @@ class ProjectSeerReposEndpoint(ProjectEndpoint):
                 "query",
                 type=str,
                 description=(
-                    "Filter repositories using Seer search syntax. `name` supports substring "
+                    "Filter repositories using Sentry search syntax. `name` supports substring "
                     "matching and is also the free-text key. `provider` supports `=`, `!=`, `IN`, "
-                    "and `NOT IN` operators."
+                    "and `NOT IN` operators, and matches with or without the `integrations:` prefix."
                 ),
             ),
             OpenApiParameter(
