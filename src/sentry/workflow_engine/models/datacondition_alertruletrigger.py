@@ -13,6 +13,7 @@ from sentry.db.models import (
 class DataConditionAlertRuleTrigger(DefaultFieldsModel):
     """
     A lookup model for detector trigger data conditions and alert rule triggers.
+    Keep historical IDs after native table retirement for compatibility serialization.
     """
 
     __relocation_scope__ = RelocationScope.Organization

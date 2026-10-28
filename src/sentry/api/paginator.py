@@ -145,6 +145,9 @@ class BasePaginator:
         if cursor is None:
             cursor = Cursor(0, 0, 0)
 
+        if cursor.offset < 0:
+            raise BadPaginationError("Pagination offset cannot be negative")
+
         limit = min(limit, self.max_limit)
 
         if cursor.value:

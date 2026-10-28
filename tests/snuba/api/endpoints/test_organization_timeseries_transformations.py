@@ -88,9 +88,9 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
         cases = [
             (
                 ["smooth(ema,3)"],
-                [2, None, 4, 4, None, None],
+                [2, 1, 3.5, 3.75, 1.875, 0.9375],
                 None,
-                [True, False, True, True, False, False],
+                [True, True, True, True, True, True],
             ),
             (
                 ["fill(locf)", "smooth(sma,2)"],
@@ -182,8 +182,8 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
         assert smoothed["values"] == build_expected_transformed_timeseries(
             self.start,
             15_000,
-            [2, None, 6, 5, None, None],
-            smoothed=[True, False, True, True, False, False],
+            [2, 1, 3, 5, 2, 0],
+            smoothed=[True, True, True, True, True, True],
             ignore_accuracy=True,
         )
 
@@ -195,12 +195,12 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
         cases: list[tuple[int, list[float | None], list[float | None], list[int], list[int]]] = [
             (
                 15,
-                [None, None, None, 8, 6, None, None, None],
-                [10, 5.5, None, None, None, None, None, None],
+                [0, 0, 0, 4, 6, 2, 0, 0],
+                [10, 5.5, 0.5, 0, 0, 0, 0, 0],
                 [0, 0, 0, 8, 4, 0, 0, 0],
                 [10, 1, 0, 0, 0, 0, 0, 0],
             ),
-            (60, [8, 6], [15.5, None], [8, 4], [11, 0]),
+            (60, [8, 6], [11, 5.5], [8, 4], [11, 0]),
         ]
         for interval, selected_values, other_values, selected_counts, other_counts in cases:
             response = self._do_request(
@@ -235,6 +235,32 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
                     sample_rate=[1 if count else None for count in sample_counts],
                     confidence=[any_confidence if count else None for count in sample_counts],
                 )
+
+    def test_smooth_only_uses_rpc_zero_fill_in_comparison_period(self) -> None:
+        self.end = self.start + timedelta(seconds=90)
+        self._store_spans_in_buckets([2, 0, 6, 4, 0, 0], self.start, interval_seconds=15)
+        self._store_spans_in_buckets([0, 8, 0, 2, 0, 0], self.two_days_ago, interval_seconds=15)
+
+        response = self._do_request(
+            data={
+                "interval": "15s",
+                "yAxis": "count()",
+                "comparisonDelta": 24 * 60 * 60,
+                "transformations[0]": ["smooth(sma,2)"],
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        (timeseries,) = response.data["timeSeries"]
+        assert timeseries["values"] == build_expected_transformed_timeseries(
+            self.start,
+            15_000,
+            [2, 1, 3, 5, 2, 0],
+            [0, 4, 4, 1, 1, 0],
+            smoothed=[True, True, True, True, True, True],
+            comparison_smoothed=[True, True, True, True, True, True],
+            ignore_accuracy=True,
+        )
 
     def test_transformations_apply_to_comparison_period_independently(self) -> None:
         self.end = self.start + timedelta(seconds=90)
@@ -382,7 +408,7 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
         assert [point["value"] for point in transformed["values"][:2]] == [10, 100]
         assert transformed["meta"]["interval"] == 300_000
 
-    def test_transformations_rebucket_filled_and_smoothed_flags(self) -> None:
+    def test_transformations_fill_and_smooth_at_requested_interval(self) -> None:
         self.end = self.start + timedelta(minutes=2)
         self.store_spans(
             [
@@ -405,8 +431,8 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
         assert timeseries["values"] == build_expected_transformed_timeseries(
             self.start,
             60_000,
-            [17.5, 55],
-            filled=[True, True],
+            [25, 100],
+            filled=[False, False],
             smoothed=[True, True],
             ignore_accuracy=True,
         )
@@ -435,7 +461,7 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
             )
         assert timeseries["values"] == expected
 
-    def test_transformations_smooth_before_rebucketing(self) -> None:
+    def test_transformations_smooth_at_requested_interval(self) -> None:
         self.end = self.start + timedelta(minutes=2)
         self.store_spans(
             [
@@ -472,14 +498,14 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
         assert smoothed["values"] == build_expected_transformed_timeseries(
             self.start,
             60_000,
-            [22.5, 117.5],
+            [30, 80],
             smoothed=[True, True],
             sample_count=[4, 4],
             sample_rate=[1, 1],
             confidence=[any_confidence, any_confidence],
         )
 
-    def test_transformations_rebuild_rate_formulas_at_source_interval(self) -> None:
+    def test_transformations_smooth_rates_at_requested_interval(self) -> None:
         self.end = self.start + timedelta(minutes=2)
         self._store_spans_in_buckets([1, 3, 5, 7, 2, 4, 6, 8], self.start, interval_seconds=15)
 
@@ -496,8 +522,8 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
         rate, smoothed, equation = response.data["timeSeries"]
         for timeseries, expected in [
             (rate, [0.26666666666666666, 0.3333333333333333]),
-            (smoothed, [0.21666666666666667, 0.325]),
-            (equation, [0.43333333333333335, 0.65]),
+            (smoothed, [0.26666666666666666, 0.3]),
+            (equation, [0.5333333333333333, 0.6]),
         ]:
             assert [point["value"] for point in timeseries["values"]] == pytest.approx(expected)
             assert timeseries["meta"]["interval"] == 60_000
@@ -537,7 +563,7 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
             )
             assert timeseries["meta"]["interval"] == 60_000
 
-    def test_transformations_sum_counts_and_sums_when_rebucketing(self) -> None:
+    def test_transformations_smooth_aggregates_at_requested_interval(self) -> None:
         self.end = self.start + timedelta(minutes=2)
         axes = [
             "count(span.duration)",
@@ -563,7 +589,7 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
 
         for transformation, expected_counts, expected_sums in [
             ("smooth(sma,1)", [16, 20], [160, 200]),
-            ("smooth(sma,2)", [13, 19.5], [130, 195]),
+            ("smooth(sma,2)", [16, 18], [160, 180]),
         ]:
             response = self._do_request(
                 data={
@@ -583,7 +609,7 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
                     "yAxis"
                 ]
 
-    def test_transformations_rebucket_comparison_independently(self) -> None:
+    def test_transformations_smooth_comparison_at_requested_interval(self) -> None:
         self.end = self.start + timedelta(minutes=2)
         self.store_spans(
             [
@@ -597,9 +623,9 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
         )
 
         for axis, expected, comparison in [
-            ("avg(span.duration)", [22.5, 117.5], [32.5, 127.5]),
+            ("avg(span.duration)", [30, 80], [40, 90]),
             ("count()", [4, 4], [4, 4]),
-            ("sum(span.duration)", [90, 470], [130, 510]),
+            ("sum(span.duration)", [120, 320], [160, 360]),
         ]:
             response = self._do_request(
                 data={

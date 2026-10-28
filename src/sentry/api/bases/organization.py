@@ -15,8 +15,13 @@ from rest_framework.request import Request
 from rest_framework.views import APIView
 from sentry_sdk import traces
 
+from sentry.api.authentication import UserAuthTokenAuthentication
 from sentry.api.base import Endpoint
-from sentry.api.exceptions import ResourceDoesNotExist, SuperuserRequired
+from sentry.api.exceptions import (
+    INSUFFICIENT_SCOPE_ATTR,
+    ResourceDoesNotExist,
+    SuperuserRequired,
+)
 from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.projects import (
     ParsedProjectIdOrSlugParams,
@@ -26,6 +31,7 @@ from sentry.api.helpers.projects import (
 )
 from sentry.api.permissions import DemoSafePermission, StaffPermissionMixin
 from sentry.api.utils import get_date_range_from_params, is_member_disabled_from_limit
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG, ObjectStatus
 from sentry.exceptions import InvalidParams
@@ -265,11 +271,52 @@ class OrganizationDetectorPermission(OrganizationPermission):
 
 
 class OrgAuthTokenPermission(OrganizationPermission):
+    """
+    Org auth tokens can be managed from a browser session, or by an OAuth application
+    token (e.g. the Sentry CLI) acting for a member who consented to `org:tokens`.
+
+    Every other token type is rejected: personal tokens cannot hold token-only scopes
+    like `org:tokens`, and org auth / integration tokens must never mint new tokens.
+    """
+
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],
         "POST": ["org:read", "org:write", "org:admin"],
         "PUT": ["org:read", "org:write", "org:admin"],
         "DELETE": ["org:write", "org:admin"],
+    }
+
+    def has_permission(self, request: Request, view: APIView) -> bool:
+        if request.auth is not None:
+            if not self._is_oauth_application_token(request):
+                return False
+            if not request.auth.has_scope("org:tokens"):
+                setattr(request, INSUFFICIENT_SCOPE_ATTR, {"org:tokens"})
+                return False
+        return super().has_permission(request, view)
+
+    @staticmethod
+    def _is_oauth_application_token(request: Request) -> bool:
+        return (
+            isinstance(request.successful_authenticator, UserAuthTokenAuthentication)
+            and is_api_token_auth(request.auth)
+            and request.auth.application_id is not None
+            and not getattr(request.user, "is_sentry_app", False)
+        )
+
+
+def get_issuing_token_audit_log_data(request: Request) -> dict[str, int]:
+    """
+    Record which OAuth application and token managed an org auth token, so tokens minted by
+    a compromised OAuth grant can be traced back to it.
+    """
+    if not is_api_token_auth(request.auth) or request.auth.application_id is None:
+        return {}
+    issuing_token = AuthenticatedToken.from_token(request.auth)
+    assert issuing_token is not None and issuing_token.entity_id is not None
+    return {
+        "application_id": request.auth.application_id,
+        "api_token_id": issuing_token.entity_id,
     }
 
 

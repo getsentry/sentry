@@ -9,6 +9,7 @@ from typing import IO, Any
 import click
 from django.conf import settings
 
+from sentry.runner import gc_metrics
 from sentry.silo.patches.silo_aware_transaction_patch import patch_silo_aware_atomic
 from sentry.utils import warnings
 from sentry.utils.arroyo import initialize_arroyo_main
@@ -520,6 +521,9 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
             # For first time users that have not yet set system url prefix, let's default to localhost url
             settings.CSRF_TRUSTED_ORIGINS = ["http://localhost:9000", "http://127.0.0.1:9000"]
 
+    _trace("gc_metrics")
+    gc_metrics.install()
+
     _trace("done")
 
 
@@ -769,7 +773,11 @@ def validate_snuba() -> None:
         and
         # TODO(mattrobenolt): Remove ServiceDelegator check
         settings.SENTRY_TSDB
-        in ("sentry.tsdb.redissnuba.RedisSnubaTSDB", "sentry.utils.services.ServiceDelegator")
+        in (
+            "sentry.tsdb.snuba.SnubaTSDB",
+            "sentry.tsdb.redissnuba.RedisSnubaTSDB",
+            "sentry.utils.services.ServiceDelegator",
+        )
     )
 
     eventstream_is_snuba = (

@@ -23,7 +23,7 @@ from sentry_sdk.scope import Scope
 
 from sentry.runner.decorators import log_options
 from sentry.silo.base import SiloLimit, SiloMode
-from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
+from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
 
@@ -242,7 +242,7 @@ def task_execution(
             ViewerContext(
                 organization_id=organization_id,
                 project_id=project_id,
-                actor_type=ActorType.SYSTEM,
+                actor=Actor(type=ActorType.SYSTEM),
             )
         )
         if organization_id is not None and project_id is not None

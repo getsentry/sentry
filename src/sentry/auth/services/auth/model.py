@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any, Optional, Union
 from django.http.request import HttpRequest
 from pydantic.fields import Field
 
+from sentry.auth.deprecated_scope_translation import translate_deprecated_scopes
 from sentry.auth.scope_declaration import check_scope_declaration
 from sentry.hybridcloud.rpc import RpcModel
 from sentry.types.superuser import SuperuserAccess
@@ -127,6 +128,11 @@ class AuthenticatedToken(RpcModel):
         return self.allowed_origins
 
     def get_scopes(self) -> list[str]:
+        """The scopes the token grants, with deprecated scopes translated to granular ones."""
+        return sorted(translate_deprecated_scopes(self.scopes))
+
+    def get_stored_scopes(self) -> list[str]:
+        """The scopes stored on the token, without deprecated scope translation."""
         return self.scopes
 
     def has_scope(self, scope: str) -> bool:

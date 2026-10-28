@@ -43,7 +43,6 @@
     "./discover": "./fixtures/discover.ts",
     "./docIntegration": "./fixtures/docIntegration.ts",
     "./dragMove": "./sentry-test/dragMove.tsx",
-    "./droppedEvent": "./fixtures/droppedEvent.ts",
     "./entries": "./fixtures/entries.ts",
     "./environments": "./fixtures/environments.ts",
     "./event": "./fixtures/event.ts",
@@ -95,6 +94,7 @@
     "./organization": "./fixtures/organization.ts",
     "./organizationIntegrations": "./fixtures/organizationIntegrations.ts",
     "./organizations": "./fixtures/organizations.ts",
+    "./outcomeRow": "./fixtures/outcomeRow.ts",
     "./pageFilters": "./fixtures/pageFilters.ts",
     "./performance/initializePerformanceData": "./sentry-test/performance/initializePerformanceData.ts",
     "./performance/utils": "./sentry-test/performance/utils.ts",
@@ -108,7 +108,6 @@
     "./projectSdkUpdates": "./fixtures/projectSdkUpdates.ts",
     "./pullRequest": "./fixtures/pullRequest.ts",
     "./queryClient": "./sentry-test/queryClient.tsx",
-    "./reactRouter": "./sentry-test/reactRouter.tsx",
     "./reactTestingLibrary": "./sentry-test/reactTestingLibrary.tsx",
     "./release": "./fixtures/release.ts",
     "./releaseMeta": "./fixtures/releaseMeta.ts",
@@ -130,6 +129,7 @@
     "./runner": "./sentry-test/runner.ts",
     "./search": "./fixtures/search.ts",
     "./secret": "./fixtures/secret.ts",
+    "./seerWorkflowConfig": "./fixtures/seerWorkflowConfig.ts",
     "./selectEvent": "./sentry-test/selectEvent.tsx",
     "./sentryApp": "./fixtures/sentryApp.ts",
     "./sentryAppComponent": "./fixtures/sentryAppComponent.ts",
@@ -224,10 +224,9 @@
     "query-string": "7.0.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "react-router": "6.30.6",
+    "react-router": "8.4.0",
     "sentry": "workspace:@sentry-internal/app@*",
     "sentry-fixture": "workspace:@sentry-internal/sentry-test@*",
-    "sentry-test": "workspace:@sentry-internal/sentry-test@*",
-    "sonner": "2.0.8"
+    "sentry-test": "workspace:@sentry-internal/sentry-test@*"
   }
 }

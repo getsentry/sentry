@@ -113,7 +113,7 @@ export function AutofixSection({group, project}: AutofixSectionProps) {
   );
 }
 
-export const AutofixQuotaContent = registerLLMContext(
+const AutofixQuotaContent = registerLLMContext(
   'autofix',
   OverrideOrDefault({
     overrideName: 'component:ai-configure-seer-quota-sidebar',

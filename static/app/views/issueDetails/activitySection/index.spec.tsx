@@ -351,7 +351,7 @@ describe('ActivitySection', () => {
           commentId: 'note-1',
           data: {text: 'User note'},
           dateCreated: '2020-01-01T00:00:00',
-          source: 'mcp:claude-code',
+          source: 'mcp:claude',
           user,
         },
         {
@@ -1905,53 +1905,191 @@ describe('ActivitySection', () => {
     expect(await screen.findByText('f7f395d')).toBeInTheDocument();
   });
 
-  it('hides an adjacent Seer creation activity for the same pull request', async () => {
+  describe('adjacent Seer pull request activities', () => {
     const repository = RepositoryFixture({name: 'example/repository'});
     const pullRequest = PullRequestFixture({
       externalUrl: 'https://github.com/example/repository/pull/1234',
       repository,
     });
-    const activityGroup = GroupFixture({
-      activity: [
+    const seerData = {
+      run_id: 123,
+      pull_requests: [
         {
-          type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
-          id: 'referenced-in-pull-request',
-          dateCreated: '2020-01-01T00:00:03Z',
-          data: {pullRequest},
-          user: null,
-        },
-        {
-          type: GroupActivityType.SEER_PR_CREATED,
-          id: 'seer-pull-request-created',
-          dateCreated: '2020-01-01T00:00:00Z',
-          data: {
-            run_id: 123,
-            pull_requests: [
-              {
-                provider: 'github',
-                repo_name: repository.name,
-                pull_request: {
-                  pr_number: 1234,
-                  pr_url: pullRequest.externalUrl,
-                },
-              },
-            ],
-          },
-          user: null,
+          provider: 'github',
+          repo_name: repository.name,
+          pull_request: {pr_number: 1234, pr_url: pullRequest.externalUrl},
         },
       ],
-      project,
+    };
+    const reference = ActivityFeedFixture({
+      type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
+      id: 'referenced-in-pull-request',
+      data: {pullRequest},
+      user: null,
+    });
+    const ready = ActivityFeedFixture({
+      type: GroupActivityType.SEER_PR_READY_FOR_REVIEW,
+      id: 'seer-pull-request-ready',
+      data: seerData,
+      user: null,
+    });
+    const created = ActivityFeedFixture({
+      type: GroupActivityType.SEER_PR_CREATED,
+      id: 'seer-pull-request-created',
+      data: seerData,
+      user,
     });
 
-    render(
-      <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
-        <ActivitySection group={activityGroup} />
-      </GroupDataContextProvider>
-    );
+    it('keeps one reference row and the creation actor with the reference on either side', async () => {
+      const activityGroup = GroupFixture({
+        activity: [reference, ready, created],
+        project,
+      });
+      const {rerender} = render(
+        <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
+          <ActivitySection group={activityGroup} />
+        </GroupDataContextProvider>
+      );
 
-    expect(await screen.findByText('Referenced in pull request')).toBeInTheDocument();
-    expect(screen.getByRole('img', {name: 'Seer activity'})).toBeInTheDocument();
-    expect(screen.getAllByRole('link', {name: `#${pullRequest.id}`})).toHaveLength(1);
+      expect(await screen.findByText('Referenced in pull request')).toBeInTheDocument();
+      expect(screen.getByTestId('user-activity-actor')).toBeInTheDocument();
+      expect(screen.getAllByRole('link', {name: `#${pullRequest.id}`})).toHaveLength(1);
+      expect(screen.queryByText(/ready for review/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/created/)).not.toBeInTheDocument();
+
+      rerender(
+        <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
+          <ActivitySection
+            group={activityGroup}
+            activities={[ready, created, reference]}
+          />
+        </GroupDataContextProvider>
+      );
+
+      expect(screen.getByText('Referenced in pull request')).toBeInTheDocument();
+      expect(screen.getByTestId('user-activity-actor')).toBeInTheDocument();
+      expect(screen.getAllByRole('link', {name: `#${pullRequest.id}`})).toHaveLength(1);
+      expect(screen.queryByText(/ready for review/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/created/)).not.toBeInTheDocument();
+    });
+
+    it('collapses creations on both sides, including one that references multiple PRs', async () => {
+      const multiplePrs = ActivityFeedFixture({
+        ...created,
+        type: GroupActivityType.SEER_PR_CREATED,
+        data: {
+          ...seerData,
+          pull_requests: [
+            {
+              provider: 'github',
+              repo_name: 'example/other-repository',
+              pull_request: {
+                pr_number: 5678,
+                pr_url: 'https://github.com/example/other-repository/pull/5678',
+              },
+            },
+            ...seerData.pull_requests,
+          ],
+        },
+      });
+      const olderCreated = {...created, id: 'older-created', user: null};
+      const activityGroup = GroupFixture({
+        activity: [multiplePrs, reference, olderCreated],
+        project,
+      });
+      render(
+        <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
+          <ActivitySection group={activityGroup} />
+        </GroupDataContextProvider>
+      );
+
+      expect(await screen.findByText('Referenced in pull request')).toBeInTheDocument();
+      expect(screen.getByRole('img', {name: 'Seer activity'})).toBeInTheDocument();
+      expect(screen.getAllByRole('link', {name: `#${pullRequest.id}`})).toHaveLength(1);
+      expect(screen.queryByText(/created/)).not.toBeInTheDocument();
+    });
+
+    it('uses ready attribution when creation is absent', async () => {
+      const activityGroup = GroupFixture({activity: [ready, reference], project});
+      render(
+        <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
+          <ActivitySection group={activityGroup} />
+        </GroupDataContextProvider>
+      );
+
+      expect(await screen.findByText('Referenced in pull request')).toBeInTheDocument();
+      expect(screen.getByRole('img', {name: 'Seer activity'})).toBeInTheDocument();
+      expect(screen.getAllByRole('link', {name: `#${pullRequest.id}`})).toHaveLength(1);
+      expect(screen.queryByText(/ready for review/)).not.toBeInTheDocument();
+    });
+
+    it('keeps creation when a reference is absent', async () => {
+      const activityGroup = GroupFixture({activity: [ready, created], project});
+      render(
+        <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
+          <ActivitySection group={activityGroup} />
+        </GroupDataContextProvider>
+      );
+
+      expect(await screen.findByText(/created/)).toBeInTheDocument();
+      expect(screen.getByTestId('user-activity-actor')).toBeInTheDocument();
+      expect(screen.queryByText('Referenced in pull request')).not.toBeInTheDocument();
+      expect(screen.queryByText(/ready for review/)).not.toBeInTheDocument();
+    });
+
+    it('keeps milestones separated by a comment or a different PR', async () => {
+      const comment = ActivityFeedFixture({
+        id: 'comment',
+        type: GroupActivityType.NOTE,
+        data: {text: 'Checking this fix'},
+      });
+      const otherReference = ActivityFeedFixture({
+        ...reference,
+        type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
+        id: 'other-reference',
+        data: {
+          pullRequest: {
+            ...pullRequest,
+            externalUrl: 'https://github.com/example/other-repository/pull/1234',
+          },
+        },
+      });
+      const activityGroup = GroupFixture({
+        activity: [reference, comment, created, otherReference, ready],
+        project,
+      });
+      render(
+        <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
+          <ActivitySection group={activityGroup} variant="standalone" />
+        </GroupDataContextProvider>
+      );
+
+      expect(await screen.findByText('Checking this fix')).toBeInTheDocument();
+      expect(screen.getAllByText('Referenced in pull request')).toHaveLength(2);
+      expect(screen.getByText(/created/)).toBeInTheDocument();
+      expect(screen.getByText(/ready for review/)).toBeInTheDocument();
+    });
+
+    it('keeps milestones separate when the intervening PR identity is missing', async () => {
+      const unknownReady = ActivityFeedFixture({
+        ...ready,
+        type: GroupActivityType.SEER_PR_READY_FOR_REVIEW,
+        data: {run_id: seerData.run_id},
+      });
+      const activityGroup = GroupFixture({
+        activity: [reference, unknownReady, created],
+        project,
+      });
+      render(
+        <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
+          <ActivitySection group={activityGroup} />
+        </GroupDataContextProvider>
+      );
+
+      expect(await screen.findByText('Referenced in pull request')).toBeInTheDocument();
+      expect(screen.getByText(/created/)).toBeInTheDocument();
+      expect(screen.getByText('Pull request ready for review')).toBeInTheDocument();
+    });
   });
 
   it('prefers commit repository details for resolved commit activity line items', async () => {
@@ -2238,6 +2376,58 @@ describe('ActivitySection', () => {
     expect(screen.getByText('Root cause analysis started')).toBeInTheDocument();
     expect(screen.getByText('Plan started')).toBeInTheDocument();
   });
+
+  it.each([
+    [
+      GroupActivityType.SEER_RCA_STARTED,
+      GroupActivityType.SEER_RCA_COMPLETED,
+      'Root cause found',
+    ],
+    [
+      GroupActivityType.SEER_SOLUTION_STARTED,
+      GroupActivityType.SEER_SOLUTION_COMPLETED,
+      'Plan created',
+    ],
+    [
+      GroupActivityType.SEER_CODING_STARTED,
+      GroupActivityType.SEER_CODING_COMPLETED,
+      'Code changes suggested',
+    ],
+  ] as const)(
+    'attributes a collapsed %s pair to the user who started it',
+    async (startedType, completedType, title) => {
+      const seerGroup = GroupFixture({
+        id: '1343',
+        activity: [
+          {
+            type: completedType,
+            id: 'seer-completed',
+            dateCreated: '2020-01-01T00:30:00Z',
+            data: {run_id: 123},
+            user: null,
+          },
+          {
+            type: startedType,
+            id: 'seer-started',
+            dateCreated: '2020-01-01T00:20:00Z',
+            data: {run_id: 123},
+            user,
+          },
+        ],
+        project,
+      });
+
+      render(
+        <GroupDataContextProvider group={seerGroup} project={seerGroup.project}>
+          <ActivitySection group={seerGroup} variant="standalone" />
+        </GroupDataContextProvider>
+      );
+
+      expect(await screen.findByText(title)).toBeInTheDocument();
+      expect(screen.getByTestId('user-activity-actor')).toBeInTheDocument();
+      expect(screen.queryByRole('img', {name: 'Seer activity'})).not.toBeInTheDocument();
+    }
+  );
 
   it('collapses Seer PR iteration activity', async () => {
     const seerIterationGroup = GroupFixture({

@@ -10,6 +10,7 @@ import {InsightsSecondaryNavigation} from 'sentry/views/navigation/secondary/sec
 import {IssuesSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/issues/issuesSecondaryNavigation';
 import {MonitorsSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/monitors/monitorsSecondaryNavigation';
 import {ProjectsSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/projects/projectsSecondaryNavigation';
+import {SeerSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/seer/seerSecondaryNavigation';
 import {SettingsSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/settings/settingsSecondaryNavigation';
 
 export function SecondaryNavigationContent(): ReactNode {
@@ -28,6 +29,8 @@ export function SecondaryNavigationContent(): ReactNode {
       return <DashboardsSecondaryNavigation />;
     case 'explore':
       return <ExploreSecondaryNavigation />;
+    case 'seer':
+      return <SeerSecondaryNavigation />;
     case 'projects':
       return <ProjectsSecondaryNavigation />;
     case 'monitors':

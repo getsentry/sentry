@@ -4,6 +4,7 @@ from unittest import mock
 
 import pytest
 from django.urls import reverse
+from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 
 from sentry.testutils.helpers.datetime import before_now, freeze_time
@@ -2766,6 +2767,41 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             "interval": 3_600_000,
         }
 
+    @mock.patch(
+        "sentry.utils.snuba_rpc._make_rpc_requests",
+        wraps=_make_rpc_requests,
+    )
+    def test_low_priority_sampling_mode(self, mock_rpc_request: mock.MagicMock) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.start,
+                ),
+            ]
+        )
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1h",
+                "yAxis": "count()",
+                "project": self.project.id,
+                "dataset": "spans",
+                "sampling": "LOW_PRIORITY",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert (
+            mock_rpc_request.call_args.kwargs["timeseries_requests"][
+                0
+            ].meta.downsampled_storage_config.mode
+            == DownsampledStorageConfig.MODE_LOW_PRIORITY
+        )
+        assert len(response.data["timeSeries"]) == 1
+        assert response.data["timeSeries"][0]["yAxis"] == "count()"
+
     def test_top_events_with_timestamp(self) -> None:
         """Users shouldn't groupby timestamp for top events"""
         response = self._do_request(
@@ -2975,3 +3011,102 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert time_series_by_status[404]["groupBy"] == [
             {"key": "http.response_status_code", "value": 404}
         ]
+
+    def test_incremental_cache(self) -> None:
+        event_counts = [6, 0, 6, 3, 0, 3]
+        spans = []
+        for hour, count in enumerate(event_counts):
+            spans.extend(
+                [
+                    self.create_span(
+                        {
+                            "description": "foo",
+                            "sentry_tags": {"status": "success"},
+                            "measurements": {"server_sample_rate": {"value": 0.1}},
+                        },
+                        start_ts=self.start + timedelta(hours=hour, minutes=minute),
+                    )
+                    for minute in range(count)
+                ],
+            )
+        self.store_spans(spans)
+
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "30m",
+                "yAxis": "count(span.duration)",
+                "project": self.project.id,
+                "dataset": "spans",
+            },
+            features={
+                "organizations:discover-basic": True,
+                "organizations:explore-incremental-timeseries": True,
+            },
+        )
+        assert response.status_code == 200, response.content
+        initial_data = response.data
+
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "30m",
+                "yAxis": "count(span.duration)",
+                "project": self.project.id,
+                "dataset": "spans",
+            },
+            features={
+                "organizations:discover-basic": True,
+                "organizations:explore-incremental-timeseries": True,
+            },
+        )
+        assert response.status_code == 200, response.content
+        # assert response.data["meta"] == initial_data["meta"]
+        assert len(response.data["timeSeries"]) == len(initial_data["timeSeries"])
+
+        timeseries = response.data["timeSeries"][0]
+        initial_timeseries = initial_data["timeSeries"][0]
+        assert len(timeseries["values"]) == len(initial_timeseries["values"])
+        assert timeseries["yAxis"] == "count(span.duration)"
+        expected = [row["value"] for row in initial_timeseries["values"]]
+        assert timeseries["values"] == build_expected_timeseries(
+            self.start, 1_800_000, expected, ignore_accuracy=True
+        )
+
+    def test_skip_cache_bypasses_incremental_cache(self) -> None:
+        data = {
+            "start": self.start,
+            "end": self.end,
+            "interval": "30m",
+            "yAxis": "count(span.duration)",
+            "project": self.project.id,
+            "dataset": "spans",
+            "skipCache": "1",
+        }
+        features = {
+            "organizations:discover-basic": True,
+            "organizations:explore-incremental-timeseries": True,
+        }
+        with (
+            mock.patch(
+                "sentry.api.endpoints.organization_events_timeseries.default_cache.get"
+            ) as cache_get,
+            mock.patch(
+                "sentry.api.endpoints.organization_events_timeseries.default_cache.set"
+            ) as cache_set,
+        ):
+            response = self._do_request(data=data, features=features)
+        assert response.status_code == 200, response.content
+        cache_get.assert_not_called()
+        cache_set.assert_not_called()
+
+        data.pop("skipCache")
+        with mock.patch(
+            "sentry.api.endpoints.organization_events_timeseries.default_cache.get",
+            return_value=None,
+        ) as cache_get:
+            response = self._do_request(data=data, features=features)
+        assert response.status_code == 200, response.content
+        cache_get.assert_called()

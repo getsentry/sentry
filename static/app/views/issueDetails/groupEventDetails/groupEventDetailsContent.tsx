@@ -57,6 +57,7 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {isJavascriptPlatform, isMobilePlatform} from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useInvestigationsEnabled} from 'sentry/views/investigations/utils';
 import {LowValueSpanProblemSection} from 'sentry/views/issueDetails/configurationIssues/lowValueSpanIssues/lowValueSpanProblemSection';
 import {LowValueSpanTroubleshootingSection} from 'sentry/views/issueDetails/configurationIssues/lowValueSpanIssues/lowValueSpanTroubleshootingSection';
 import {SectionKey} from 'sentry/views/issueDetails/context';
@@ -72,6 +73,12 @@ import {SizeAnalysisTriggeredSection} from 'sentry/views/issueDetails/sidebar/si
 import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/traceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/traceDetails/traceState/traceStateProvider';
+
+const LazyEventFlamegraph = lazy(() =>
+  import('sentry/components/events/eventFlamegraph').then(module => ({
+    default: module.EventFlamegraph,
+  }))
+);
 
 const LazyEventViewHierarchy = lazy(() =>
   import('sentry/components/events/eventViewHierarchy').then(module => ({
@@ -91,6 +98,7 @@ export function EventDetailsContent({
   project,
 }: Required<Pick<EventDetailsContentProps, 'group' | 'event' | 'project'>>) {
   const organization = useOrganization();
+  const investigationsEnabled = useInvestigationsEnabled();
   const tagsRef = useRef<HTMLDivElement>(null);
   const eventEntries = useMemo(() => {
     const {entries} = event;
@@ -151,10 +159,8 @@ export function EventDetailsContent({
       {group.issueType === IssueType.UPTIME_DOMAIN_FAILURE && (
         <UptimeAssertionsSection event={event} />
       )}
-      {group.issueType === IssueType.METRIC_ISSUE && (
-        <Feature features="organizations:investigations">
-          <MetricIssueSeerInvestigationSection group={group} event={event} />
-        </Feature>
+      {group.issueType === IssueType.METRIC_ISSUE && investigationsEnabled && (
+        <MetricIssueSeerInvestigationSection group={group} event={event} />
       )}
       {defined(eventEntries[EntryType.MESSAGE]) && (
         <EntryErrorBoundary type={EntryType.MESSAGE}>
@@ -261,6 +267,12 @@ export function EventDetailsContent({
         <EventFeatureFlagSection group={group} project={project} event={event} />
       </ErrorBoundary>
       <EventExtraData event={event} />
+      <LazyLoad
+        LazyComponent={LazyEventFlamegraph}
+        event={event}
+        project={project}
+        loadingFallback={null}
+      />
       <LazyLoad
         LazyComponent={LazyEventViewHierarchy}
         event={event}

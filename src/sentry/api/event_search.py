@@ -590,7 +590,7 @@ def _is_wildcard(raw_value: object) -> TypeIs[str]:
 
 
 class SearchValue(NamedTuple):
-    raw_value: str | float | datetime | Sequence[float] | Sequence[str]
+    raw_value: str | float | datetime | Sequence[float] | Sequence[str] | None
     # Used for top events where we don't want to modify the raw value at all
     use_raw_value: bool = False
     is_regex: bool = False
@@ -829,6 +829,9 @@ class SearchConfig[TAllowBoolean: (Literal[True], Literal[False]) = Literal[True
 
     # Disallow the use of the !has filter
     allow_not_has_filter: bool = True
+
+    # What the value for has filters should be
+    has_filter_value: str | None = ""
 
     @overload
     @classmethod
@@ -1440,7 +1443,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         (search_key,) = self._validate_has_search_keys(negation, [search_key])
 
         operator = "=" if is_negated(negation) else "!="
-        return SearchFilter(search_key, operator, SearchValue(""))
+        return SearchFilter(search_key, operator, SearchValue(self.config.has_filter_value))
 
     def _validate_has_search_keys(
         self, negation: Node | tuple[Node], search_keys: Sequence[SearchKey]
@@ -2002,7 +2005,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         search_keys = self._validate_has_search_keys(negation, search_keys)
 
         operator = "=" if is_negated(negation) else "!="
-        search_value = SearchValue("")
+        search_value = SearchValue(self.config.has_filter_value)
         all_filters = [
             SearchFilter(search_key, operator, search_value) for search_key in search_keys
         ]

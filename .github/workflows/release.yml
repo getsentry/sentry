@@ -11,6 +11,7 @@ on:
           - sentry
           - static/packages/scraps
           - static/packages/icons
+          - static/packages/search-syntax
       version:
         description: Exact version, bump type (major, minor, patch), or auto; leave blank for the workspace policy
         required: false
@@ -49,7 +50,7 @@ jobs:
         with:
           node-version-file: '.node-version'
       - name: Prepare release
-        uses: getsentry/craft@3f2abdc5703191d12ef2cc013f792f1bd220f44d # 2.34.1
+        uses: getsentry/craft@4b763f5419255bb520e3e5a49f5b91426dcd374d # 3.3.0
         env:
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
         with:

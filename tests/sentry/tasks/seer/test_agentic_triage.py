@@ -77,8 +77,7 @@ def _dispatched_feature_body(organization):
 
 @override_settings(SENTRY_SELF_HOSTED=False)
 @django_db_all
-@pytest.mark.parametrize("enabled,mode", [(False, "off"), (True, "only")])
-def test_code_mode_flag_applies_to_every_dispatched_shard(default_organization, enabled, mode):
+def test_dispatch_leaves_tool_mode_to_seer(default_organization):
     run = Factories.create_seer_workflow_run(organization=default_organization)
     plan = AgenticTriageShardPlan(payload={"candidates": []}, title="Triage")
     shards = [
@@ -86,58 +85,41 @@ def test_code_mode_flag_applies_to_every_dispatched_shard(default_organization, 
         for _ in range(3)
     ]
 
-    with with_feature(
-        {
-            "organizations:seer-night-shift-code-mode": enabled,
-        }
-    ):
-        status = _dispatch_pending_shards(run, default_organization, {}, time.monotonic())
+    status = _dispatch_pending_shards(run, default_organization, {}, time.monotonic())
 
     assert status == ShardDispatchStatus.COMPLETE
     for shard in shards:
         shard.refresh_from_db()
-        assert shard.extras == {**plan.to_extras(), "enable_code_mode_tools": mode}
+        assert shard.extras == plan.to_extras()
         outbox = CellOutbox.objects.get(
             category=OutboxCategory.SEER_RUN_CREATE, object_identifier=shard.seer_run_id
         )
         assert outbox.payload is not None
-        assert outbox.payload["body"]["agent_run_options"]["enable_code_mode_tools"] == mode
+        assert "enable_code_mode_tools" not in outbox.payload["body"]["agent_run_options"]
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
 @django_db_all
-def test_redispatch_preserves_recorded_code_mode_after_flag_is_disabled(default_organization):
+def test_redispatch_preserves_original_request(default_organization):
     run = Factories.create_seer_workflow_run(organization=default_organization)
     plan = AgenticTriageShardPlan(payload={"candidates": []}, title="Triage")
     shard = Factories.create_seer_workflow_run_execution(run=run, extras=plan.to_extras())
 
-    with with_feature(
-        {
-            "organizations:seer-night-shift-code-mode": True,
-        }
-    ):
-        assert (
-            _dispatch_pending_shards(run, default_organization, {}, time.monotonic())
-            == ShardDispatchStatus.COMPLETE
-        )
+    assert (
+        _dispatch_pending_shards(run, default_organization, {}, time.monotonic())
+        == ShardDispatchStatus.COMPLETE
+    )
     original_run, original_body = _dispatched_feature_body(default_organization)
 
-    with with_feature(
-        {
-            "organizations:seer-night-shift-code-mode": False,
-        }
-    ):
-        assert (
-            _dispatch_pending_shards(run, default_organization, {}, time.monotonic())
-            == ShardDispatchStatus.COMPLETE
-        )
+    assert (
+        _dispatch_pending_shards(run, default_organization, {}, time.monotonic())
+        == ShardDispatchStatus.COMPLETE
+    )
 
     seer_run, body = _dispatched_feature_body(default_organization)
     shard.refresh_from_db()
     assert seer_run.id == original_run.id == shard.seer_run_id
     assert body == original_body
-    assert body["agent_run_options"]["enable_code_mode_tools"] == "only"
-    assert shard.extras["enable_code_mode_tools"] == "only"
 
 
 class AgenticTriageFixtures(Fixtures):
@@ -747,8 +729,10 @@ class TestRunAgenticTriageForOrg(AgenticTriageFixtures, TestCase, SnubaTestCase)
             first_run_id = run_agentic_triage_for_org(org.id, schedule_id="2024-07-22T22:00")
             second_run_id = run_agentic_triage_for_org(org.id, schedule_id="2024-07-22T22:00")
 
+        assert first_run_id is not None
         assert first_run_id == second_run_id
         assert SeerWorkflowRun.objects.filter(organization=org).count() == 1
+        assert SeerWorkflowRun.objects.get(id=first_run_id).trigger_key == "2024-07-22T22:00"
         assert mock_execute.call_count == 2
 
     def test_completed_schedule_id_returns_same_run_without_quota(self) -> None:
@@ -819,7 +803,7 @@ class TestRunAgenticTriageForOrg(AgenticTriageFixtures, TestCase, SnubaTestCase)
             run_agentic_triage_for_org(org.id)
 
         assert (
-            SeerWorkflowRun.objects.filter(organization=org, schedule_id__isnull=True).count() == 2
+            SeerWorkflowRun.objects.filter(organization=org, trigger_key__isnull=True).count() == 2
         )
 
     def test_no_eligible_projects(self) -> None:

@@ -508,6 +508,23 @@ class WebhookTest(GitLabWebhookTestCase):
             assert author.name
             assert author.organization_id == self.organization.id
 
+    def test_push_event_preloads_users_once_per_author(self) -> None:
+        self.create_gitlab_repo("getsentry/sentry")
+        push_event = orjson.loads(PUSH_EVENT)
+        first_commit = push_event["commits"][0]
+        repeat_commit = dict(first_commit, id="f" * 40)
+        push_event["commits"] = [first_commit, repeat_commit, push_event["commits"][1]]
+
+        with patch.object(
+            CommitAuthor, "preload_users", autospec=True, return_value=[]
+        ) as mock_preload:
+            self._post_push_event(orjson.dumps(push_event))
+
+        assert Commit.objects.count() == 3
+        assert CommitAuthor.objects.count() == 2
+        preloaded_emails = sorted(call.args[0].email for call in mock_preload.call_args_list)
+        assert preloaded_emails == ["gitlabdev@example.org", "jordi@example.org"]
+
     def test_push_event_ignore_commit(self) -> None:
         self.create_gitlab_repo("getsentry/sentry")
         response = self.client.post(

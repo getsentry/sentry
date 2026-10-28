@@ -178,34 +178,14 @@ _S030_LEGACY_NAMES = frozenset(("LlmGenerateRequest", "make_llm_generate_request
 _S030_LEGACY_ROUTE = "/v1/llm/generate"
 _S030_MODULE_SCOPE = "<module>"
 
+S031_msg = (
+    "S031 Do not assign to settings in tests; use override_settings(...) or "
+    "override_options(...) so the change is undone in order"
+)
+
 # Existing callers are pinned to their exact function and occurrence count. This is a
 # shrink-only migration baseline: remove entries as callers move to named Seer one-shots.
-S030_allowlist: dict[str, dict[tuple[str, str], int]] = {
-    "src/sentry/integrations/utils/external_issues.py": {
-        (_S030_MODULE_SCOPE, "import LlmGenerateRequest"): 1,
-        (_S030_MODULE_SCOPE, "import make_llm_generate_request"): 1,
-        ("_make_generate_external_issue_details_request", "call LlmGenerateRequest"): 1,
-        ("_make_generate_external_issue_details_request", "call make_llm_generate_request"): 1,
-    },
-    "src/sentry/seer/endpoints/issue_view_title_generate.py": {
-        (_S030_MODULE_SCOPE, "import LlmGenerateRequest"): 1,
-        (_S030_MODULE_SCOPE, "import make_llm_generate_request"): 1,
-        ("generate_title_from_query", "call LlmGenerateRequest"): 1,
-        ("generate_title_from_query", "call make_llm_generate_request"): 1,
-    },
-    "src/sentry/tasks/seer/autofix_issue_data.py": {
-        (_S030_MODULE_SCOPE, "import LlmGenerateRequest"): 1,
-        (_S030_MODULE_SCOPE, "import make_llm_generate_request"): 1,
-        ("_judge_issue", "call LlmGenerateRequest"): 1,
-        ("_judge_issue", "call make_llm_generate_request"): 1,
-    },
-    "src/sentry/uptime/seer_assertions.py": {
-        (_S030_MODULE_SCOPE, "import LlmGenerateRequest"): 1,
-        (_S030_MODULE_SCOPE, "import make_llm_generate_request"): 1,
-        ("generate_assertion_suggestions", "call LlmGenerateRequest"): 1,
-        ("generate_assertion_suggestions", "call make_llm_generate_request"): 1,
-    },
-}
+S030_allowlist: dict[str, dict[tuple[str, str], int]] = {}
 
 
 # Rules whose diagnostics are fatal. Empty ships every rule off; adding one
@@ -249,6 +229,18 @@ def _s015_msg() -> str:
 
 def _is_tests_path(filename: str) -> bool:
     return "tests/" in filename or "testutils/" in filename
+
+
+def _is_settings_target(node: ast.expr) -> bool:
+    """`settings.FOO`, `settings.FOO["x"]`, `settings.FOO["x"]["y"]`, ..."""
+    while isinstance(node, ast.Subscript):
+        node = node.value
+    return (
+        isinstance(node, ast.Attribute)
+        and node.attr.isupper()
+        and isinstance(node.value, ast.Name)
+        and node.value.id == "settings"
+    )
 
 
 def _is_platform_path(filename: str) -> bool:
@@ -992,7 +984,27 @@ class SentryVisitor(ast.NodeVisitor):
             y = _wall_clock_year_from_datetime_call(node.value)
             if y is not None and y >= self._s015_year:
                 self.errors.append((node.lineno, node.col_offset, self._s015_msg))
+        self._check_S031(node.targets)
         self.generic_visit(node)
+
+    def visit_AugAssign(self, node: ast.AugAssign) -> None:
+        self._check_S031([node.target])
+        self.generic_visit(node)
+
+    def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
+        self._check_S031([node.target])
+        self.generic_visit(node)
+
+    def visit_Delete(self, node: ast.Delete) -> None:
+        self._check_S031(node.targets)
+        self.generic_visit(node)
+
+    def _check_S031(self, targets: list[ast.expr]) -> None:
+        if not _is_tests_path(self.filename):
+            return
+        for target in targets:
+            if _is_settings_target(target):
+                self.errors.append((target.lineno, target.col_offset, S031_msg))
 
     def _check_S021(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
         annot = _extract_response_annotation_Ts(node.returns)

@@ -9,6 +9,11 @@ from django.contrib.auth.models import AnonymousUser
 from django.db.models import Count, Q
 
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.auth.access import Access
+from sentry.investigations.endpoints.serializers.action_request import (
+    InvestigationActionRequestSerializer,
+    InvestigationActionRequestSerializerResponse,
+)
 from sentry.investigations.endpoints.serializers.block import (
     InvestigationBlockSerializer,
     InvestigationBlockSerializerResponse,
@@ -19,6 +24,8 @@ from sentry.investigations.endpoints.serializers.parameter import (
 )
 from sentry.investigations.models import (
     Investigation,
+    InvestigationActionRequest,
+    InvestigationActionRequestState,
     InvestigationBlock,
     InvestigationFavoriteUser,
     InvestigationOrchestrationRun,
@@ -26,6 +33,7 @@ from sentry.investigations.models import (
     InvestigationProject,
     InvestigationSourceType,
 )
+from sentry.investigations.services.action_requests import STALE
 from sentry.investigations.services.investigations import (
     investigation_filters,
     investigation_source,
@@ -111,6 +119,8 @@ class InvestigationDetailsSerializerResponse(InvestigationSerializerResponse):
     """
     Full notebook with ordered active blocks, parameter definitions and saved values, project
     IDs, and source context. source.snapshot is present only for source-backed investigations.
+    actionRequests has Seer's action requests that aren't superseded, plus stale ones while Seer
+    re-checks them, newest report first, with that report's primary at the top.
     """
 
     template: InvestigationTemplateSerializerResponse | None
@@ -119,6 +129,7 @@ class InvestigationDetailsSerializerResponse(InvestigationSerializerResponse):
     projectIds: list[int]
     parameters: list[InvestigationParameterSerializerResponse]
     blocks: list[InvestigationBlockSerializerResponse]
+    actionRequests: list[InvestigationActionRequestSerializerResponse]
 
 
 @register(Investigation)
@@ -187,8 +198,13 @@ class InvestigationDetailsSerializer(InvestigationSerializer):
     """
     Serializes an investigation along with its project selection, parameters,
     and blocks. Use this for single-investigation reads; the base serializer
-    omits the nested collections so list reads stay cheap.
+    omits the nested collections so list reads stay cheap. access decides which
+    action requests the viewer can apply; without it none can.
     """
+
+    def __init__(self, access: Access | None = None, **kwargs: Any) -> None:
+        self.access = access
+        super().__init__(**kwargs)
 
     def _blocks_by_investigation(
         self, item_list: Sequence[Investigation], user: User | RpcUser | AnonymousUser
@@ -228,6 +244,27 @@ class InvestigationDetailsSerializer(InvestigationSerializer):
             by_investigation[parameter.investigation_id].append(parameter_response)
         return by_investigation
 
+    def _action_requests_by_investigation(
+        self, item_list: Sequence[Investigation], user: User | RpcUser | AnonymousUser
+    ) -> MutableMapping[int, list[InvestigationActionRequestSerializerResponse]]:
+        action_requests = list(
+            InvestigationActionRequest.objects.filter(investigation__in=item_list)
+            .filter(~Q(state=InvestigationActionRequestState.SUPERSEDED) | STALE)
+            .order_by("-report_revision", "-primary", "id")
+        )
+        serialized = serialize(
+            action_requests,
+            user,
+            InvestigationActionRequestSerializer(access=self.access, investigations=item_list),
+        )
+
+        by_investigation: MutableMapping[
+            int, list[InvestigationActionRequestSerializerResponse]
+        ] = defaultdict(list)
+        for action_request, response in zip(action_requests, serialized):
+            by_investigation[action_request.investigation_id].append(response)
+        return by_investigation
+
     @override
     def get_attrs(
         self,
@@ -239,6 +276,7 @@ class InvestigationDetailsSerializer(InvestigationSerializer):
 
         blocks_by_investigation = self._blocks_by_investigation(item_list, user)
         parameters_by_investigation = self._parameters_by_investigation(item_list, user)
+        action_requests_by_investigation = self._action_requests_by_investigation(item_list, user)
 
         project_ids_by_investigation: MutableMapping[int, list[int]] = defaultdict(list)
         for investigation_id, project_id in (
@@ -252,6 +290,9 @@ class InvestigationDetailsSerializer(InvestigationSerializer):
             attrs[investigation]["blocks"] = blocks_by_investigation[investigation.id]
             attrs[investigation]["parameters"] = parameters_by_investigation[investigation.id]
             attrs[investigation]["project_ids"] = project_ids_by_investigation[investigation.id]
+            attrs[investigation]["action_requests"] = action_requests_by_investigation[
+                investigation.id
+            ]
 
         return attrs
 
@@ -284,5 +325,6 @@ class InvestigationDetailsSerializer(InvestigationSerializer):
             "projectIds": attrs["project_ids"],
             "parameters": attrs["parameters"],
             "blocks": attrs["blocks"],
+            "actionRequests": attrs["action_requests"],
             "titleGeneration": {"status": obj.title_generation_status},
         }

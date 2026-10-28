@@ -4,7 +4,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TeamFixture} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {selectEvent} from 'sentry-test/selectEvent';
 
 import {
   openInviteMembersModal,
@@ -64,6 +65,90 @@ describe('TeamMembers', () => {
       url: `/organizations/${organization.slug}/members/${member.id}/teams/${team.slug}/`,
       method: 'POST',
     });
+  });
+
+  it('renders each team member in column order when the members load', async () => {
+    render(<TeamMembers />, {
+      outletContext: {team},
+      initialRouterConfig,
+      organization,
+    });
+
+    const table = screen.getByRole('table', {name: 'Members'});
+    const row = await within(table).findByRole('row', {name: /Sentry 2 Name/});
+
+    expect(
+      within(table)
+        .getAllByRole('columnheader')
+        .map(header => header.textContent)
+    ).toEqual(['Members', 'Team Roles', 'Add Member']);
+    expect(within(table).getAllByRole('row')).toHaveLength(members.length + 1);
+    expect(within(row).getAllByRole('cell')).toHaveLength(3);
+    expect(within(row).getByText('Pending')).toBeInTheDocument();
+    expect(within(row).getByRole('button', {name: 'Remove'})).toBeEnabled();
+  });
+
+  it('renders an empty message when the team has no members', async () => {
+    MockApiClient.addMockResponse({
+      url: `/teams/${organization.slug}/${team.slug}/members/`,
+      method: 'GET',
+      body: [],
+    });
+
+    render(<TeamMembers />, {
+      outletContext: {team},
+      initialRouterConfig,
+      organization,
+    });
+
+    const table = screen.getByRole('table', {name: 'Members'});
+
+    expect(
+      await within(table).findByText('This team has no members')
+    ).toBeInTheDocument();
+  });
+
+  it('renders an error with a retry when the team members request fails', async () => {
+    MockApiClient.addMockResponse({
+      url: `/teams/${organization.slug}/${team.slug}/members/`,
+      method: 'GET',
+      statusCode: 500,
+    });
+
+    render(<TeamMembers />, {
+      outletContext: {team},
+      initialRouterConfig,
+      organization,
+    });
+
+    const table = screen.getByRole('table', {name: 'Members'});
+
+    expect(await within(table).findByRole('button', {name: 'Retry'})).toBeInTheDocument();
+    expect(within(table).getByRole('button', {name: 'Add Member'})).toBeDisabled();
+  });
+
+  it('updates a team role when a member is given a new role', async () => {
+    const updateMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/members/${members[1]!.id}/teams/${team.slug}/`,
+      method: 'PUT',
+    });
+    const orgWithTeamRoles = OrganizationFixture({features: ['team-roles']});
+
+    render(<TeamMembers />, {
+      outletContext: {team},
+      initialRouterConfig,
+      organization: orgWithTeamRoles,
+    });
+
+    const row = await screen.findByRole('row', {name: /Sentry 2 Name/});
+    await selectEvent.select(within(row).getByText('Contributor'), 'Team Admin', {
+      container: document.body,
+    });
+
+    expect(updateMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({data: {teamRole: 'admin'}})
+    );
   });
 
   it('can add member to team with open membership', async () => {

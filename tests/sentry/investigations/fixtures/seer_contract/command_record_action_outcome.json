@@ -1,0 +1,23 @@
+{
+  "action": {
+    "before": {
+      "aggregate": "count()",
+      "environment": "production",
+      "highThreshold": 500.0,
+      "query": "transaction:/checkout",
+      "resolutionThreshold": 500.0,
+      "timeWindowSeconds": 300
+    },
+    "changes": {
+      "query": "transaction:/checkout !error.handled:true",
+      "timeWindowSeconds": 900
+    },
+    "detectorId": "4821",
+    "kind": "update_detector"
+  },
+  "appliedBy": 7,
+  "key": "widen-time-window",
+  "outcome": "applied",
+  "reportRevision": 2,
+  "type": "record_action_outcome"
+}

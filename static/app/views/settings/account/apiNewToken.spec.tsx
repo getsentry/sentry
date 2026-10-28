@@ -244,7 +244,6 @@ describe('ApiNewToken', () => {
       );
 
       const expectedScopes = [
-        'dashboard:create',
         'dashboard:read',
         'dashboard:write',
         'member:invite',

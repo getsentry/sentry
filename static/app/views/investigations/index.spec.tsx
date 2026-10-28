@@ -42,7 +42,7 @@ function renderView({
     organization: renderOrganization,
     initialRouterConfig: {
       location: {
-        pathname: '/organizations/org-slug/explore/investigations/',
+        pathname: '/organizations/org-slug/seer/investigations/',
         query,
       },
     },
@@ -105,7 +105,7 @@ describe('Explore Investigations', () => {
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     expect(
       await screen.findByRole('link', {name: 'Database latency investigation'})
-    ).toHaveAttribute('href', '/explore/investigations/1/');
+    ).toHaveAttribute('href', '/seer/investigations/1/');
   });
 
   it('renders the dashboard-style empty state', async () => {
@@ -133,9 +133,7 @@ describe('Explore Investigations', () => {
     await userEvent.type(screen.getByPlaceholderText('Search Investigations'), 'latency');
     await userEvent.keyboard('{Enter}');
 
-    expect(router.location.pathname).toBe(
-      '/organizations/org-slug/explore/investigations/'
-    );
+    expect(router.location.pathname).toBe('/organizations/org-slug/seer/investigations/');
     expect(router.location.query).toEqual({query: 'latency'});
   });
 
@@ -382,7 +380,7 @@ describe('Explore Investigations', () => {
 
     await waitFor(() =>
       expect(writeText).toHaveBeenCalledWith(
-        `${window.location.origin}/organizations/org-slug/explore/investigations/1/`
+        `${window.location.origin}/organizations/org-slug/seer/investigations/1/`
       )
     );
     expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
