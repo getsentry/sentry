@@ -39,7 +39,6 @@ import {defined} from 'sentry/utils/defined';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/components/fileDiffViewer';
 
 interface CodeChangesCardProps {
@@ -65,32 +64,18 @@ function getFinalExplanation(section: AutofixSection): string | null {
 }
 
 export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProps) {
-  const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
-  // Reporting on an iteration applies to both flows; only the form is manual.
-  const hasPrIterationFeature =
-    organization.features.includes('autofix-pr-iteration') ||
-    organization.features.includes('autofix-pr-iteration-manual');
-  const hasManualPrIterationFeature = organization.features.includes(
-    'autofix-pr-iteration-manual'
-  );
 
   const isIterating =
-    hasPrIterationFeature &&
-    section.status === 'processing' &&
-    section.blocks.some(isPrIterationBlock);
+    section.status === 'processing' && section.blocks.some(isPrIterationBlock);
 
   const currentStepStart = useMemo(
     () => section.blocks.findLastIndex(block => defined(block.message.metadata?.step)),
     [section.blocks]
   );
 
-  const {feedback, latestIterationIndex} = usePrIterationFeedback(
-    section,
-    autofix,
-    hasPrIterationFeature
-  );
+  const {feedback, latestIterationIndex} = usePrIterationFeedback(section, autofix);
 
   const loadingBlocks = useMemo(() => {
     if (section.status !== 'processing') {
@@ -121,13 +106,13 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
 
   const isPaused = isPrIterationPaused(autofix.runState);
 
-  // Reset-after-PR is only reachable where reset opens the manual form.
+  // Once a PR exists, reset opens the PR iteration form, so it stays available
+  // while an iteration is processing.
   const isResetEligible =
     !isPaused &&
     !hasFailedOnlyPRs &&
-    (hasManualPrIterationFeature
-      ? noCodingAgents && (hasPRs || autofix.runState?.status !== 'processing')
-      : noCodingAgents && !hasPRs && autofix.runState?.status !== 'processing');
+    noCodingAgents &&
+    (hasPRs || autofix.runState?.status !== 'processing');
 
   const {canReset, shouldShowReset, setShouldShowReset, handleReset} =
     useResetAutofixStep({
@@ -192,7 +177,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     return t('%s files changed in %s repos', filesChanged.size, reposChanged);
   }, [patchesByRepo]);
 
-  const showPrIterationForm = hasPRs && hasManualPrIterationFeature;
+  const showPrIterationForm = hasPRs;
 
   const rethinkInChat = useRethinkInChat({
     prompt: t('How can this code change be improved?'),
