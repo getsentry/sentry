@@ -9,6 +9,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 
 import {ResultGrid} from 'sentry/components/resultGrid';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 
 import {EditAdminOptionModal} from 'admin/components/editAdminOptionModal';
 import {PageHeader} from 'admin/components/pageHeader';
@@ -23,9 +24,17 @@ export interface SerializedOption {
   };
 }
 
-const getRow = (row: SerializedOption, allRows: SerializedOption[]) => [
-  <EditableOption key="option" row={row} allRows={allRows} path="/_admin/options/" />,
-];
+const getRow = (row: SerializedOption, allRows: SerializedOption[]) =>
+  row.groupingInfo && row.groupingInfo.order !== 0
+    ? []
+    : [
+        <EditableOption
+          key="option"
+          row={row}
+          allRows={allRows}
+          path="/_admin/options/"
+        />,
+      ];
 
 function EditableOption({
   row,
@@ -38,13 +47,9 @@ function EditableOption({
 }) {
   const {openModal} = useModal();
 
-  if (row.groupingInfo && row.groupingInfo.order !== 0) {
-    return null;
-  }
-
   return (
     <Fragment>
-      <td key="name">
+      <SimpleTable.RowCell key="name">
         {row.groupingInfo ? (
           <Flex as="span" align="center" gap="md">
             {row.groupingInfo.name} <IconStack size="xs" />
@@ -52,18 +57,18 @@ function EditableOption({
         ) : (
           row.name
         )}
-      </td>
-      <td key="value">
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell key="value" justify="end">
         {row.groupingInfo ? null : (
-          <Flex justify="end" align="center" gap="md">
+          <Flex align="center" gap="md">
             {row.fieldType === 'rate' && isNum(row.value) ? (
               <FormattedValue>{`(${row.value * 100}%)`}</FormattedValue>
             ) : null}
             <span>{JSON.stringify(row.value)}</span>
           </Flex>
         )}
-      </td>
-      <td key="edit">
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell key="edit">
         <Button
           variant="transparent"
           icon={<IconEdit size="xs" />}
@@ -85,7 +90,7 @@ function EditableOption({
             )
           }
         />
-      </td>
+      </SimpleTable.RowCell>
     </Fragment>
   );
 }
@@ -99,11 +104,9 @@ export function Options() {
         path="/_admin/options/"
         endpoint="/_admin/options/"
         columns={[
-          <th key="name">Option Name</th>,
-          <th key="value" style={{textAlign: 'right'}}>
-            Option Value
-          </th>,
-          <th key="edit" style={{width: 50, textAlign: 'right'}} />,
+          {key: 'name', label: 'Option Name'},
+          {key: 'value', label: 'Option Value', align: 'right'},
+          {key: 'edit', label: 'Edit', hideLabel: true, width: 50},
         ]}
         columnsForRow={getRow}
         hasSearch

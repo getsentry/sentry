@@ -181,6 +181,74 @@ describe('useTraceMetricsSeriesQuery', () => {
       );
     });
   });
+
+  it('returns dense results when queries return different numbers of series', async () => {
+    const aggregate = 'avg(value,test_metric,millisecond,none)';
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      queries: [
+        {
+          name: 'first',
+          fields: [aggregate],
+          aggregates: [aggregate],
+          columns: [],
+          conditions: 'environment:first',
+          orderby: '',
+        },
+        {
+          name: 'second',
+          fields: [aggregate],
+          aggregates: [aggregate],
+          columns: [],
+          conditions: 'environment:second',
+          orderby: '',
+        },
+      ],
+    });
+
+    const makeTimeSeries = (value: number) => ({
+      yAxis: aggregate,
+      values: [{timestamp: 1, value}],
+      groupBy: [],
+      meta: {interval: 0, valueType: 'number', valueUnit: null},
+    });
+
+    const matchesCondition =
+      (condition: string) => (_url: string, options: Record<string, any>) =>
+        String(options?.query?.query ?? '').includes(condition);
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: [makeTimeSeries(1)]},
+      match: [matchesCondition('environment:first')],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: [makeTimeSeries(2), makeTimeSeries(3)]},
+      match: [matchesCondition('environment:second')],
+    });
+
+    const {result} = renderHookWithProviders(() =>
+      useTraceMetricsSeriesQuery({
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      })
+    );
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    const timeseriesResults = result.current.timeseriesResults!;
+    expect(timeseriesResults).toHaveLength(3);
+    // Every index must be populated; holes would crash index-based consumers
+    // such as determineSeriesSampleCountAndIsSampled.
+    for (const timeseriesResult of timeseriesResults) {
+      expect(timeseriesResult).toBeDefined();
+    }
+    expect(timeseriesResults.map(r => r.queryIndex)).toEqual([0, 1, 1]);
+    expect(timeseriesResults.map(r => r.timeSeries.values[0]!.value)).toEqual([1, 2, 3]);
+  });
 });
 
 describe('useTraceMetricsTableQuery', () => {

@@ -517,15 +517,13 @@ describe('useSpansSeriesQuery', () => {
       expect(result.current.loading).toBe(false);
     });
 
-    expect(result.current.timeseriesResultsUnits?.['p95(span.duration)']).toBe(
-      DurationUnit.MILLISECOND
+    expect(result.current.timeseriesResults).toHaveLength(1);
+    expect(result.current.timeseriesResults![0]!.timeSeries.meta).toEqual(
+      expect.objectContaining({
+        valueType: 'duration',
+        valueUnit: DurationUnit.MILLISECOND,
+      })
     );
-    expect(result.current.timeseriesResultsTypes?.['p95(span.duration)']).toBe(
-      'duration'
-    );
-    expect(
-      result.current.timeseriesResultsUnits?.['avg_if(``,span.duration)']
-    ).toBeUndefined();
   });
 
   it('retargets orderby when it pointed at a stripped invalid _if aggregate', async () => {

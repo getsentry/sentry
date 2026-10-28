@@ -26,7 +26,12 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.event_tracker import TransactionStageStatus
-from sentry.viewer_context import ActorType, decode_viewer_context, get_viewer_context
+from sentry.viewer_context import (
+    ActorType,
+    ViewerContext,
+    decode_viewer_context,
+    get_viewer_context,
+)
 
 EVENT_ID = "cc3e6c2bb6b6498097f336d1e6979f4b"
 
@@ -425,10 +430,10 @@ def test_save_event_sets_viewer_context(default_project) -> None:
     with mock.patch.object(EventManager, "save", side_effect=capture_vc):
         save_event(data=data, start_time=time())
 
-    assert captured_vc is not None
+    assert isinstance(captured_vc, ViewerContext)
     assert captured_vc.organization_id == default_project.organization_id
     assert captured_vc.project_id == default_project.id
-    assert captured_vc.actor_type == ActorType.SYSTEM
+    assert captured_vc.actor.type == ActorType.SYSTEM
 
 
 @django_db_all
@@ -468,10 +473,11 @@ def test_save_event_passes_system_viewer_context_to_seer(mock_urlopen, default_p
         mock_urlopen.call_args.kwargs["headers"]["X-Viewer-Context"],
         key="viewer-context-test-secret",
     )
+    assert isinstance(viewer_context, ViewerContext)
     assert viewer_context.organization_id == default_project.organization_id
     assert viewer_context.project_id == default_project.id
-    assert viewer_context.user_id is None
-    assert viewer_context.actor_type == ActorType.SYSTEM
+    assert viewer_context.actor.actor_id is None
+    assert viewer_context.actor.type == ActorType.SYSTEM
 
 
 @django_db_all

@@ -3,7 +3,7 @@ import os
 import re
 from collections import OrderedDict
 from collections.abc import Mapping
-from typing import Any, Literal, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 from drf_spectacular.generators import EndpointEnumerator, SchemaGenerator
 
@@ -19,6 +19,7 @@ from sentry.apidocs.omission_guard import (
     recording_omissions,
 )
 from sentry.apidocs.utils import SentryApiBuildError
+from sentry.silo.base import SiloLimit, SiloMode
 
 HTTP_METHOD_NAME = Literal[
     "GET", "POST", "PUT", "OPTIONS", "HEAD", "DELETE", "TRACE", "CONNECT", "PATCH"
@@ -135,6 +136,42 @@ _ENDPOINT_SERVERS: dict[str, list[dict[str, Any]]] = {}
 # filters endpoint tuples, so the marker has to be stamped onto the operation later.
 _EXPERIMENTAL_OPERATIONS: set[tuple[str, str]] = set()
 
+DeclaredSilo = Literal["control", "cell", "both", "unknown"]
+
+
+class RoutingMetadata(TypedDict):
+    silo: DeclaredSilo
+    organizationParameter: NotRequired[str]
+
+
+# (canonical path, lowercased method) pairs whose endpoint lists the method in
+# `idempotent_methods`. Collected for unpublished endpoints too, like silos.
+_IDEMPOTENT_OPERATIONS: set[tuple[str, str]] = set()
+
+# RFC 9110 9.2.1: these never change server state, so clients may always resend them.
+_SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS", "TRACE"})
+
+# Include non-spectacular endpoints so existing APPEND_PATHS operations can use
+# their backend declaration without changing which methods are published.
+_OPERATION_SILOS: dict[tuple[str, str], DeclaredSilo] = {}
+
+
+def _declared_silo(view_class: type) -> DeclaredSilo:
+    """Export class availability, not host preference or handler-level behavior."""
+    silo_limit = getattr(view_class, "silo_limit", None)
+    if not isinstance(silo_limit, SiloLimit):
+        return "unknown"
+    control = SiloMode.CONTROL in silo_limit.modes
+    cell = SiloMode.CELL in silo_limit.modes
+    if control and cell:
+        return "both"
+    if control:
+        return "control"
+    if cell:
+        return "cell"
+    return "unknown"
+
+
 # Prepended to the description of every PUBLIC_EXPERIMENTAL operation. The docs render
 # operation descriptions as markdown but have no badge for `x-sentry-experimental`, so
 # this is what actually warns a reader. Wording matches the note endpoints used to write
@@ -145,6 +182,8 @@ EXPERIMENTAL_NOTICE = "**Experimental:** This API is under active development an
 def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, rename
     _ENDPOINT_SERVERS.clear()
     _EXPERIMENTAL_OPERATIONS.clear()
+    _OPERATION_SILOS.clear()
+    _IDEMPOTENT_OPERATIONS.clear()
 
     filtered = []
     ownership_data: dict[ApiOwner, dict] = {}
@@ -177,10 +216,26 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
                 f"All methods must declare a publish_status. Please add a valid publish status for Endpoint {callback.view_class} {method} method.",
             )
 
+        idempotent_methods: frozenset[str] = getattr(
+            callback.view_class, "idempotent_methods", frozenset()
+        )
+        if not idempotent_methods <= callback.view_class.publish_status.keys():
+            raise SentryApiBuildError(
+                f"Endpoint {callback.view_class} declares idempotent_methods that it does not implement: {sorted(idempotent_methods - callback.view_class.publish_status.keys())}.",
+            )
+        if idempotent_methods & _SAFE_METHODS:
+            raise SentryApiBuildError(
+                f"Endpoint {callback.view_class} lists safe methods in idempotent_methods: {sorted(idempotent_methods & _SAFE_METHODS)}. Safe methods are always idempotent; only list non-safe methods such as POST.",
+            )
+
         if any(path.startswith(p) for p in EXCLUSION_PATH_PREFIXES):
             pass
 
-        elif callback.view_class.publish_status:
+        else:
+            operation_key = (_canonical_issue_path(path), method.lower())
+            _OPERATION_SILOS[operation_key] = _declared_silo(callback.view_class)
+            if method in idempotent_methods:
+                _IDEMPOTENT_OPERATIONS.add(operation_key)
             # endpoints that are documented via tooling
             status = callback.view_class.publish_status.get(method)
             if status is not None and status.is_published:
@@ -189,10 +244,6 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
                 filtered.append((path, path_regex, method, callback))
                 if status is ApiPublishStatus.PUBLIC_EXPERIMENTAL:
                     _EXPERIMENTAL_OPERATIONS.add((path, method.lower()))
-
-        else:
-            # if an endpoint doesn't have any registered public methods, don't check it.
-            pass
 
         ownership_data[owner_team][callback.view_class.publish_status[method]].add(
             f"{callback.view_class.__name__}::{method}"
@@ -266,6 +317,15 @@ def _validate_request_body(
 
 
 def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> Any:
+    # Stamp before alias canonicalization so metadata stays with its operation.
+    for path, operations in result["paths"].items():
+        for method, operation in operations.items():
+            operation_key = (_canonical_issue_path(path), method)
+            routing: RoutingMetadata = {"silo": _OPERATION_SILOS.get(operation_key, "unknown")}
+            operation["x-sentry-routing"] = routing
+            if operation_key in _IDEMPOTENT_OPERATIONS:
+                operation["x-sentry-idempotent"] = True
+
     # Add servers override from endpoint class definitions
     for path, servers in _ENDPOINT_SERVERS.items():
         if path in result["paths"]:
@@ -295,6 +355,21 @@ def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> An
 
     for path, endpoints in result["paths"].items():
         for method_info in endpoints.values():
+            # These are the organization kwargs understood by the API gateway.
+            # Require the generated path parameter as well as its placeholder:
+            # aliases and legacy schemas can have incomplete parameter metadata.
+            organization_parameters = {
+                param["name"]
+                for param in method_info.get("parameters", [])
+                if param["in"] == "path"
+                and param["name"] in ("organization_id_or_slug", "organization_slug")
+                and "{" + param["name"] + "}" in path
+            }
+            if len(organization_parameters) == 1:
+                method_info["x-sentry-routing"]["organizationParameter"] = (
+                    organization_parameters.pop()
+                )
+
             endpoint_name = f"'{method_info['operationId']}'"
 
             summary = method_info.get("summary")
@@ -376,6 +451,17 @@ def _fix_nullable_enums(node: Any) -> None:
             _fix_nullable_enums(item)
 
 
+def _canonical_issue_path(path: str) -> str:
+    if "{var}/{issue_id}" not in path:
+        return path
+    path = path.replace("{var}/{issue_id}", "issues/{issue_id}")
+    if path.startswith("/api/0/issues/"):
+        path = path.replace(
+            "/api/0/issues/", "/api/0/organizations/{organization_id_or_slug}/issues/"
+        )
+    return path
+
+
 def _fix_issue_paths(result: Any) -> Any:
     """
     The way we define `/issues/` paths causes some problems with drf-spectacular:
@@ -396,11 +482,7 @@ def _fix_issue_paths(result: Any) -> Any:
             modified_paths.append(path)
 
     for path in modified_paths:
-        updated_path = path.replace("{var}/{issue_id}", "issues/{issue_id}")
-        if updated_path.startswith("/api/0/issues/"):
-            updated_path = updated_path.replace(
-                "/api/0/issues/", "/api/0/organizations/{organization_id_or_slug}/issues/"
-            )
+        updated_path = _canonical_issue_path(path)
         endpoint = result["paths"][path]
         for method in endpoint.keys():
             endpoint[method]["parameters"] = [

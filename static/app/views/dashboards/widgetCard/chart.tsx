@@ -21,7 +21,7 @@ import {defined} from 'sentry/utils/defined';
 import {decodeColumnOrder} from 'sentry/utils/discover/decodeColumnOrder';
 import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
-import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
+import type {DataUnit, Sort} from 'sentry/utils/discover/fields';
 import {
   isAggregateField,
   parseFunction,
@@ -116,8 +116,6 @@ type WidgetCardChartProps = {
     shouldResize?: boolean;
     showConfidenceWarning?: boolean;
     showLoadingText?: boolean;
-    timeseriesResultsTypes?: Record<string, AggregationOutputType>;
-    timeseriesResultsUnits?: Record<string, DataUnit>;
     windowWidth?: number;
   };
 

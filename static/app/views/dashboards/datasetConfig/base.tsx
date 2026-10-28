@@ -11,11 +11,7 @@ import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import type {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import type {
-  AggregationOutputType,
-  DataUnit,
-  QueryFieldValue,
-} from 'sentry/utils/discover/fields';
+import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {
@@ -127,6 +123,7 @@ export type HeatmapWidgetQueryParams = Pick<
   | 'dashboardFilters'
   | 'skipDashboardFilterParens'
   | 'widgetInterval'
+  | 'samplingMode'
 > & {
   yBuckets?: number;
 };
@@ -270,20 +267,6 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     api?: Client,
     queries?: WidgetQuery[]
   ) => Record<string, SelectValue<FieldValue>>;
-  /**
-   * Get the result type of the series. ie duration, size, percentage, etc
-   */
-  getSeriesResultType?: (
-    data: SeriesResponse,
-    widgetQuery: WidgetQuery
-  ) => Record<string, AggregationOutputType>;
-  /**
-   * Get the result unit of the series. ie milliseconds, bytes, etc
-   */
-  getSeriesResultUnit?: (
-    data: SeriesResponse,
-    widgetQuery: WidgetQuery
-  ) => Record<string, DataUnit>;
   /**
    * Generate the list of sort options for table
    * displays on the 'Sort by' step of the Widget Builder.

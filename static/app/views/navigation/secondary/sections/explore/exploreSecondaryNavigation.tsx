@@ -12,15 +12,29 @@ import {
   getSavedQueryDatasetLabel,
   isExploreSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {
+  getInvestigationsPath,
+  useInvestigationsEnabled,
+} from 'sentry/views/investigations/utils';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {ExploreSavedQueryNavigationItems} from 'sentry/views/navigation/secondary/sections/explore/exploreSavedQueryNavigationItems';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+import {
+  getAutomationsPath,
+  useAutomationsEnabled,
+} from 'sentry/views/seerWorkflows/utils';
 
 function ExploreSecondaryNavigationImpl() {
   const organization = useOrganization();
 
   const baseUrl = `/organizations/${organization.slug}/explore`;
+  // Seer tabs live here until Seer primary nav release.
+  const showSeerTabs = !organization.features.includes('seer-primary-nav');
+  const automationsEnabled = useAutomationsEnabled() && showSeerTabs;
+  const investigationsEnabled = useInvestigationsEnabled() && showSeerTabs;
+  const automationsPath = getAutomationsPath(organization.slug);
+  const investigationsPath = getInvestigationsPath(organization.slug);
 
   const {data: starredQueries} = useGetSavedQueries({
     starred: true,
@@ -68,12 +82,11 @@ function ExploreSecondaryNavigationImpl() {
       to: `${baseUrl}/${EXPLORE_AGENTS_SUB_PATH}/`,
     });
   }
-  if (organization.openMembership && organization.features.includes('investigations')) {
-    navItems.push({
-      label: 'Investigations',
-      badge: 'alpha',
-      to: `${baseUrl}/investigations/`,
-    });
+  if (automationsEnabled) {
+    navItems.push({label: 'Automations', badge: 'alpha', to: automationsPath});
+  }
+  if (investigationsEnabled) {
+    navItems.push({label: 'Investigations', badge: 'alpha', to: investigationsPath});
   }
   if (organization.features.includes('explore-saved-formulas')) {
     navItems.push({
@@ -101,7 +114,9 @@ function ExploreSecondaryNavigationImpl() {
 
   return (
     <Fragment>
-      <SecondaryNavigation.Header>{t('Explore')}</SecondaryNavigation.Header>
+      <SecondaryNavigation.Header>
+        <SecondaryNavigation.HeaderTitle>{t('Explore')}</SecondaryNavigation.HeaderTitle>
+      </SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
         <SecondaryNavigation.Section id="explore-main">
           <SecondaryNavigation.List>
@@ -216,19 +231,27 @@ function ExploreSecondaryNavigationImpl() {
                 </SecondaryNavigation.Link>
               </SecondaryNavigation.ListItem>
             </Feature>
-            {organization.openMembership && (
-              <Feature features="organizations:investigations">
-                <SecondaryNavigation.ListItem>
-                  <SecondaryNavigation.Link
-                    to={`${baseUrl}/investigations/`}
-                    activeTo={`${baseUrl}/investigations/`}
-                    analyticsItemName="explore_investigations"
-                    trailingItems={<FeatureBadge type="alpha" />}
-                  >
-                    {t('Investigations')}
-                  </SecondaryNavigation.Link>
-                </SecondaryNavigation.ListItem>
-              </Feature>
+            {automationsEnabled && (
+              <SecondaryNavigation.ListItem>
+                <SecondaryNavigation.Link
+                  to={automationsPath}
+                  analyticsItemName="explore_automations"
+                  trailingItems={<FeatureBadge type="alpha" />}
+                >
+                  {t('Automations')}
+                </SecondaryNavigation.Link>
+              </SecondaryNavigation.ListItem>
+            )}
+            {investigationsEnabled && (
+              <SecondaryNavigation.ListItem>
+                <SecondaryNavigation.Link
+                  to={investigationsPath}
+                  analyticsItemName="explore_investigations"
+                  trailingItems={<FeatureBadge type="alpha" />}
+                >
+                  {t('Investigations')}
+                </SecondaryNavigation.Link>
+              </SecondaryNavigation.ListItem>
             )}
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>

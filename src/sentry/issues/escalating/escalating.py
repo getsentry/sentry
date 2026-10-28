@@ -12,7 +12,6 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, TypedDict
 
 from django.db import router, transaction
-from django.db.models.signals import post_save
 from snuba_sdk import (
     Column,
     Condition,
@@ -27,7 +26,6 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry import options
 from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.escalating.escalating_issues_alg import GroupCount
 from sentry.issues.grouptype import GroupCategory
@@ -535,13 +533,6 @@ def manage_issue_states(
         if updated:
             group.status = GroupStatus.UNRESOLVED
             group.substatus = GroupSubStatus.ESCALATING
-            if not options.get("groups.enable-post-update-signal"):
-                post_save.send_robust(
-                    sender=Group,
-                    instance=group,
-                    created=False,
-                    update_fields=["status", "substatus"],
-                )
             add_group_to_inbox(group, GroupInboxReason.ESCALATING, snooze_details)
             record_group_history(group, GroupHistoryStatus.ESCALATING)
             kick_off_status_syncs.apply_async(
@@ -575,13 +566,6 @@ def manage_issue_states(
             if updated:
                 group.status = GroupStatus.UNRESOLVED
                 group.substatus = GroupSubStatus.ONGOING
-                if not options.get("groups.enable-post-update-signal"):
-                    post_save.send_robust(
-                        sender=Group,
-                        instance=group,
-                        created=False,
-                        update_fields=["status", "substatus"],
-                    )
                 add_group_to_inbox(group, GroupInboxReason.ONGOING, snooze_details)
                 record_group_history(group, GroupHistoryStatus.ONGOING)
 
@@ -599,13 +583,6 @@ def manage_issue_states(
         if updated:
             group.status = GroupStatus.UNRESOLVED
             group.substatus = GroupSubStatus.ONGOING
-            if not options.get("groups.enable-post-update-signal"):
-                post_save.send_robust(
-                    sender=Group,
-                    instance=group,
-                    created=False,
-                    update_fields=["status", "substatus"],
-                )
             add_group_to_inbox(group, GroupInboxReason.UNIGNORED, snooze_details)
             record_group_history(group, GroupHistoryStatus.UNIGNORED)
             Activity.objects.create_group_activity(

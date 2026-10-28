@@ -33,12 +33,12 @@ import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t} from 'sentry/locale';
+import {LegacyOnRouteLeave} from 'sentry/router/legacy/onRouteLeave';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
 import {decodeBoolean} from 'sentry/utils/queryString';
-import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
 import {scheduleMicroTask} from 'sentry/utils/scheduleMicroTask';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
@@ -172,6 +172,7 @@ function getDashboardLocation({
     'start',
     'end',
     'interval',
+    'queryPriority',
   ]);
 
   const commonPath = defined(dashboardId)
@@ -1367,7 +1368,7 @@ class DashboardDetail extends Component<Props, State> {
 
     return (
       <SentryDocumentTitle title={dashboard.title} orgSlug={organization.slug}>
-        <OnRouteLeave
+        <LegacyOnRouteLeave
           message={UNSAVED_MESSAGE}
           when={locationChange => {
             // The widget builder uses its own pathname at the moment, so check if we're navigating

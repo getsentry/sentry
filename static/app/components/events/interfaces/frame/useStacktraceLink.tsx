@@ -1,3 +1,4 @@
+import {isUnlinkableFilename} from 'sentry/components/events/interfaces/frame/utils';
 import type {Event, Frame} from 'sentry/types/event';
 import type {StacktraceLinkResult} from 'sentry/types/integrations';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
@@ -69,6 +70,7 @@ export function useStacktraceLink(
       staleTime: Infinity,
       retry: false,
       ...options,
+      enabled: (options.enabled ?? true) && !isUnlinkableFilename(frame.filename ?? ''),
     }
   );
 }

@@ -4,7 +4,7 @@ import {RouterProvider} from 'react-router/dom';
 import {wrapCreateBrowserRouter} from '@sentry/react';
 import * as Sentry from '@sentry/react';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
-import {NuqsAdapter} from 'nuqs/adapters/react-router/v6';
+import {NuqsAdapter} from 'nuqs/adapters/react-router/v8';
 
 import {setApiNavigate} from 'sentry/api';
 import {commonInitialization} from 'sentry/bootstrap/commonInitialization';

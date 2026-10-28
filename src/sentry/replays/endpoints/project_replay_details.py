@@ -26,6 +26,7 @@ from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_instance
 from sentry.replays.tasks import delete_replay
 from sentry.replays.usecases.reader import has_archived_segment
+from sentry.replays.validators import validate_fields
 
 
 class ReplayDetailsPermission(ProjectPermission):
@@ -75,13 +76,11 @@ class ProjectReplayDetailsEndpoint(ProjectReplayEndpoint):
         Return details on an individual replay within a project.
         """
         self.check_replay_access(request, project)
+        fields = validate_fields(request.query_params.getlist("field"))
 
         filter_params = self.get_filter_params(request, project)
 
-        try:
-            replay_id = str(uuid.UUID(replay_id))
-        except ValueError:
-            return Response(status=404)
+        replay_id = str(uuid.UUID(replay_id))
 
         with handle_query_errors():
             snuba_response = query_replay_instance(
@@ -95,7 +94,7 @@ class ProjectReplayDetailsEndpoint(ProjectReplayEndpoint):
 
         replay_data = process_raw_response(
             snuba_response,
-            fields=request.query_params.getlist("field"),
+            fields=fields,
         )
 
         if len(replay_data) == 0:

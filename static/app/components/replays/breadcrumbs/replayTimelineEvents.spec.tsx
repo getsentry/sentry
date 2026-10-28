@@ -1,5 +1,5 @@
 import {Fragment, useState} from 'react';
-import {NuqsAdapter} from 'nuqs/adapters/react-router/v6';
+import {NuqsAdapter} from 'nuqs/adapters/react-router/v8';
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {ReplayClickFrameFixture} from 'sentry-fixture/replay/replayBreadcrumbFrameData';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';

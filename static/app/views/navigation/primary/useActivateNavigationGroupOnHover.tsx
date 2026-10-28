@@ -31,7 +31,7 @@ interface UseActivateNavigationGroupOnHoverProps {
 export function useActivateNavigationGroupOnHover({
   ref,
 }: UseActivateNavigationGroupOnHoverProps) {
-  const {layout, setActiveGroup, activeGroup} = usePrimaryNavigation();
+  const {layout, features, setActiveGroup, activeGroup} = usePrimaryNavigation();
   const {view} = useSecondaryNavigation();
   const location = useLocation();
 
@@ -117,7 +117,11 @@ export function useActivateNavigationGroupOnHover({
       }
     };
 
-    const onClick = () => {
+    const onClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+      // On touch mobile devices, activate the group without navigating.
+      if (layout === 'mobile' && !features.hover) {
+        e.preventDefault();
+      }
       setActiveGroup(group);
     };
 

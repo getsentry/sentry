@@ -82,13 +82,13 @@ describe('TagDistribution', () => {
     expect(screen.queryByText('100%')).not.toBeInTheDocument(); // Should never show 100%
   });
 
-  it('renders empty tag value as "(empty)"', () => {
+  it.each(['', null])('renders a %p tag value as "(empty)"', value => {
     const tag: GroupTag = {
       topValues: [
         {
           count: 100,
           name: '',
-          value: '',
+          value,
           lastSeen: '2018-11-16T22:52:24Z',
           firstSeen: '2018-05-06T03:48:28.855Z',
         },

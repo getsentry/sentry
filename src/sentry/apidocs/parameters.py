@@ -1115,6 +1115,16 @@ class EventParams:
     )
 
 
+class TraceParams:
+    TRACE_ID = OpenApiParameter(
+        name="trace_id",
+        location="path",
+        required=True,
+        type=str,
+        description="The ID of the trace, a 32-character hexadecimal string.",
+    )
+
+
 class ProjectParams:
     CUSTOM_INBOUND_FILTER_ID = OpenApiParameter(
         name="filter_id",
@@ -1535,6 +1545,13 @@ class InvestigationParams:
         required=True,
         type=str,
         description="The ID of an investigation in this organization.",
+    )
+    ACTION_REQUEST_ID = OpenApiParameter(
+        name="action_request_id",
+        location="path",
+        required=True,
+        type=str,
+        description="The ID of an action request in this investigation.",
     )
     CURSOR = OpenApiParameter(
         name="cursor",
