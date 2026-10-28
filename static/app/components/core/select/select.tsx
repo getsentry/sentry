@@ -466,17 +466,6 @@ function Menu(props: React.ComponentProps<typeof selectComponents.Menu>) {
   );
 }
 
-// Standalone selects can be uncontrolled or read-only. Keep each union member's
-// value and callback types when making these props optional.
-type OptionalSelectionProps<Props extends {onChange: unknown; value: unknown}> =
-  Props extends unknown
-    ? Omit<Props, 'value' | 'onChange'> & {
-        defaultValue?: Props['value'];
-        onChange?: Props['onChange'];
-        value?: Props['value'];
-      }
-    : never;
-
 /** Props shared by form fields and standalone selects. Implementation components stay private. */
 export interface BaseSelectProps<
   TValue,
@@ -557,8 +546,7 @@ export interface BaseSelectProps<
 export type ControlProps<
   TValue,
   TOption extends SelectValue<TValue> = SelectValue<TValue>,
-> = OptionalSelectionProps<SelectSelectionProps<TValue, TOption>> &
-  BaseSelectProps<TValue, TOption>;
+> = SelectSelectionProps<TValue, TOption> & BaseSelectProps<TValue, TOption>;
 
 export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue<TValue>>(
   props: ControlProps<TValue, TOption>
@@ -595,7 +583,6 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
     clearable,
     styles,
     value,
-    defaultValue,
     emptyOptionLabel,
     onInputChange,
     filterOption,
@@ -623,45 +610,22 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
     'options' in option ? option.options : [option]
   );
 
-  const mapValue = (rawValue: typeof value) => {
-    let mappedValue: ValueType<TOption, boolean> | undefined;
-    if (rawValue === undefined) {
-      mappedValue = undefined;
-    } else if (props.multiple) {
-      mappedValue = [];
-    } else {
-      mappedValue = null;
+  const compare = (a: TValue | null | undefined, b: TValue | null | undefined) => {
+    if (props.isValueEqual && defined(a) && defined(b)) {
+      return props.isValueEqual(a, b);
     }
-
-    const compare = (a: TValue | null | undefined, b: TValue | null | undefined) => {
-      if (props.isValueEqual && defined(a) && defined(b)) {
-        return props.isValueEqual(a, b);
-      }
-      return a === b;
-    };
-
-    const toOption = (val: TValue | null | undefined) =>
-      creatable && defined(val)
-        ? ({value: val, label: String(val)} as TOption)
-        : undefined;
-
-    if (Array.isArray(rawValue)) {
-      mappedValue = rawValue
-        .map(
-          val => flatOptions.find(option => compare(option.value, val)) ?? toOption(val)
-        )
-        .filter(defined);
-    } else {
-      mappedValue =
-        flatOptions.find(option => compare(option.value, rawValue)) ??
-        toOption(rawValue) ??
-        mappedValue;
-    }
-
-    return mappedValue;
+    return a === b;
   };
-  const mappedValue = mapValue(value);
-  const mappedDefaultValue = mapValue(defaultValue);
+
+  const toOption = (val: TValue | null | undefined) =>
+    flatOptions.find(option => compare(option.value, val)) ??
+    (creatable && defined(val)
+      ? ({value: val, label: String(val)} as TOption)
+      : undefined);
+
+  const mappedValue = props.multiple
+    ? props.value.map(toOption).filter(defined)
+    : (toOption(props.value) ?? null);
   const showEmptyOption =
     !props.multiple && !defined(value) && emptyOptionLabel !== undefined;
   const emptyOption = {value: null, label: emptyOptionLabel, disabled: true};
@@ -733,7 +697,6 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
       isClearable={clearable}
       backspaceRemovesValue={clearable}
       value={mappedValue}
-      defaultValue={mappedDefaultValue}
       isMulti={props.multiple}
       isDisabled={isDisabled}
       isSearchable={isSearchable ?? true}
@@ -771,12 +734,11 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
 
 type SelectPickerProps<TValue, TOption extends SelectValue<TValue>> = Omit<
   ControlProps<TValue, TOption>,
-  'value' | 'styles' | 'defaultValue' | 'filterOption' | 'onInputChange'
+  'value' | 'styles' | 'filterOption' | 'onInputChange'
 > &
   Pick<
     ReactSelectProps<TOption, boolean>,
     | 'styles'
-    | 'defaultValue'
     | 'filterOption'
     | 'backspaceRemovesValue'
     | 'blurInputOnSelect'
@@ -796,7 +758,7 @@ type SelectPickerProps<TValue, TOption extends SelectValue<TValue>> = Omit<
     | 'menuIsOpen'
     | 'onMenuOpen'
     | 'onMenuClose'
-  > & {value?: ValueType<TOption, boolean>};
+  > & {value: ValueType<TOption, boolean>};
 
 function SelectPicker<TValue, TOption extends SelectValue<TValue>>({
   creatable,

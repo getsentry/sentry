@@ -185,6 +185,7 @@ function EnsureSingleProject({
         </Alert>
         <Select
           options={projectOptions}
+          value={null}
           placeholder={t('Select a project')}
           onChange={(option: {value: string} | null) => {
             if (option?.value) {

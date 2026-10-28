@@ -345,7 +345,7 @@ export function AuditLogList({
         clearable
         disabled={isLoading}
         name="eventFilter"
-        value={eventType}
+        value={eventType ?? null}
         placeholder={t('Select Action: ')}
         options={getEventOptions(eventTypes) ?? []}
         onChange={(options: any) => {

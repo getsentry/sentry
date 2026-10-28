@@ -6,6 +6,7 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
+import {Form} from 'sentry/components/forms/form';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 
@@ -38,11 +39,13 @@ describe('SentryMemberTeamSelectorField', () => {
   it('can select a team', async () => {
     const mock = jest.fn();
     render(
-      <SentryMemberTeamSelectorField
-        label="Select Owner"
-        onChange={mock}
-        name="team-or-member"
-      />
+      <Form>
+        <SentryMemberTeamSelectorField
+          label="Select Owner"
+          onChange={mock}
+          name="team-or-member"
+        />
+      </Form>
     );
 
     await selectEvent.select(
@@ -65,11 +68,13 @@ describe('SentryMemberTeamSelectorField', () => {
 
     const mock = jest.fn();
     render(
-      <SentryMemberTeamSelectorField
-        label="Select Owner"
-        onChange={mock}
-        name="team-or-member"
-      />
+      <Form>
+        <SentryMemberTeamSelectorField
+          label="Select Owner"
+          onChange={mock}
+          name="team-or-member"
+        />
+      </Form>
     );
 
     await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Select Owner'}));
@@ -80,11 +85,13 @@ describe('SentryMemberTeamSelectorField', () => {
   it('can select a member', async () => {
     const mock = jest.fn();
     render(
-      <SentryMemberTeamSelectorField
-        label="Select Owner"
-        onChange={mock}
-        name="team-or-member"
-      />
+      <Form>
+        <SentryMemberTeamSelectorField
+          label="Select Owner"
+          onChange={mock}
+          name="team-or-member"
+        />
+      </Form>
     );
 
     await selectEvent.select(
@@ -101,12 +108,14 @@ describe('SentryMemberTeamSelectorField', () => {
   it('can multiselect a member', async () => {
     const mock = jest.fn();
     render(
-      <SentryMemberTeamSelectorField
-        label="Select Owner"
-        onChange={mock}
-        name="team-or-member"
-        multiple
-      />
+      <Form>
+        <SentryMemberTeamSelectorField
+          label="Select Owner"
+          onChange={mock}
+          name="team-or-member"
+          multiple
+        />
+      </Form>
     );
 
     await selectEvent.select(
@@ -133,13 +142,15 @@ describe('SentryMemberTeamSelectorField', () => {
 
     const mock = jest.fn();
     render(
-      <SentryMemberTeamSelectorField
-        label="Select Owner"
-        onChange={mock}
-        memberOfProjectSlugs={[project.slug]}
-        name="team-or-member"
-        multiple
-      />
+      <Form>
+        <SentryMemberTeamSelectorField
+          label="Select Owner"
+          onChange={mock}
+          memberOfProjectSlugs={[project.slug]}
+          name="team-or-member"
+          multiple
+        />
+      </Form>
     );
 
     await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Select Owner'}));

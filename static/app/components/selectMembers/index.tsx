@@ -171,6 +171,8 @@ function SelectMembers({
         aria-label={ariaLabel}
         disabled
         options={[]}
+        value={null}
+        onChange={onChange}
         placeholder={t('Loading')}
         styles={selectStyles}
       />
@@ -187,7 +189,7 @@ function SelectMembers({
       isLoading={searchLoading}
       onInputChange={setSearch}
       onChange={option => onChange(option)}
-      value={selectedValue}
+      value={selectedValue ?? null}
       styles={selectStyles}
     />
   );

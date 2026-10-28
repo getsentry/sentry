@@ -153,7 +153,7 @@ export function TeamStatsControls({
       <TeamSelector
         name="select-team"
         inFieldLabel={t('Team: ')}
-        value={currentTeam?.slug}
+        value={currentTeam?.slug ?? null}
         onChange={(choice: any) => handleChangeTeam(choice.actor.id)}
         teamFilter={
           isSuperuser || isOrgOwner ? undefined : (filterTeam: any) => filterTeam.isMember

@@ -46,8 +46,12 @@ const organization = OrganizationFixture({access: ['project:write']});
 act(() => OrganizationStore.onUpdate(organization, {replace: true}));
 
 function createWrapper(
-  props: DistributedOmit<React.ComponentProps<typeof TeamSelector>, 'onChange'> & {
+  props: DistributedOmit<
+    React.ComponentProps<typeof TeamSelector>,
+    'onChange' | 'value'
+  > & {
     onChange?: React.ComponentProps<typeof TeamSelector>['onChange'];
+    value?: React.ComponentProps<typeof TeamSelector>['value'];
   } = {},
   org?: Organization
 ) {
@@ -57,6 +61,9 @@ function createWrapper(
       aria-label="Select a team"
       onChange={() => {}}
       {...props}
+      {...(props.multiple
+        ? {multiple: true, value: Array.isArray(props.value) ? props.value : []}
+        : {multiple: false, value: typeof props.value === 'string' ? props.value : null})}
     />,
     {organization: org ?? organization}
   );
@@ -216,9 +223,10 @@ describe('Team Selector', () => {
     const onChangeMock = jest.fn();
     const orgWithAccess = OrganizationFixture({access: ['project:admin']});
 
-    createWrapper(
+    const {rerender} = createWrapper(
       {
         allowCreate: true,
+        multiple: true,
         onChange: onChangeMock,
       },
       orgWithAccess
@@ -228,7 +236,11 @@ describe('Team Selector', () => {
     // it does no open the create team modal yet
     expect(openCreateTeamModal).not.toHaveBeenCalled();
 
-    await selectEvent.select(screen.getByText('#team1'), ['#team2', 'Create team']);
+    rerender(
+      <TeamSelector allowCreate multiple value={['team1']} onChange={onChangeMock} />
+    );
+
+    await selectEvent.select(screen.getByRole('textbox'), ['#team2', 'Create team']);
     // it opens the create team modal since the create team option is selected
     expect(openCreateTeamModal).toHaveBeenCalled();
   });

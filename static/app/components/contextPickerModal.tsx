@@ -304,7 +304,7 @@ function ContextPickerContent({
               placeholder={t('Select an Organization')}
               name="organization"
               options={orgChoices}
-              value={selectedOrgSlug}
+              value={selectedOrgSlug ?? null}
               onChange={handleSelectOrganization}
               dropdownIndicator={null}
               styles={selectStyles}
@@ -410,6 +410,7 @@ function ProjectSelector({
       ref={autoFocus ? autoFocusSelect : undefined}
       placeholder={t('Select a Project to continue')}
       name="project"
+      value={null}
       options={projectOptions}
       onChange={onSelectProject}
       dropdownIndicator={null}
@@ -453,6 +454,7 @@ function TeamSelector({
       ref={autoFocus ? autoFocusSelect : undefined}
       placeholder={t('Select a Team to continue')}
       name="team"
+      value={null}
       options={options}
       onChange={onSelectTeam}
       dropdownIndicator={null}
@@ -565,7 +567,7 @@ function ConfigPickerContent({
               placeholder={t('Select an Organization')}
               name="organization"
               options={orgChoices}
-              value={selectedOrgSlug}
+              value={selectedOrgSlug ?? null}
               onChange={handleSelectOrganization}
               dropdownIndicator={null}
               styles={selectStyles}
@@ -578,6 +580,7 @@ function ConfigPickerContent({
               ref={autoFocusSelect}
               placeholder={t('Select a configuration to continue')}
               name="configurations"
+              value={null}
               options={[
                 {
                   label: tct('[providerName] Configurations', {
