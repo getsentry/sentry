@@ -96,13 +96,6 @@ function getTestsForGroup(
     return [];
   }
 
-  const speculatedSuiteDuration = Object.values(testStats).reduce((a, b) => a + b, 0);
-  const targetDuration = speculatedSuiteDuration / nodeTotal;
-
-  if (speculatedSuiteDuration <= 0) {
-    throw new Error('Speculated suite duration is <= 0');
-  }
-
   // We are going to take all of our tests and split them into groups.
   // If we have a test without a known duration, we will default it to 2 second
   // This is to ensure that we still assign some weight to the tests and still attempt to somewhat balance them.
@@ -136,6 +129,13 @@ function getTestsForGroup(
     throw new Error(
       `All tests should be accounted for, missing ${allTests.length - tests.size}`
     );
+  }
+
+  const speculatedSuiteDuration = Array.from(tests.values()).reduce((a, b) => a + b, 0);
+  const targetDuration = speculatedSuiteDuration / nodeTotal;
+
+  if (speculatedSuiteDuration <= 0) {
+    throw new Error('Speculated suite duration is <= 0');
   }
 
   const groups: string[][] = [];
