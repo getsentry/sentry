@@ -117,7 +117,6 @@ export function NewCronDetectorForm({
 }) {
   const hasDraft = Boolean(useInitialDetectorDraft());
   const hideInstrumentationGuide = Boolean(duplicateDetector);
-  // Guide params can outlive the guide, e.g. when duplicating.
   const showingPlatformGuide = useIsShowingPlatformGuide() && !hideInstrumentationGuide;
 
   return (
