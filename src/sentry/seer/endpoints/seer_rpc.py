@@ -73,7 +73,6 @@ from sentry.seer.agent.tools import (
     execute_timeseries_query,
     execute_trace_table_query,
     get_baseline_tag_distribution,
-    get_dsn,
     get_event_details,
     get_group_assignees,
     get_issue_committers,
@@ -1006,7 +1005,6 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     "get_log_attributes_for_trace": seer_rpc(get_log_attributes_for_trace),
     "get_metric_attributes_for_trace": seer_rpc(get_metric_attributes_for_trace),
     "get_baseline_tag_distribution": seer_rpc(get_baseline_tag_distribution),
-    "get_dsn": seer_rpc(get_dsn),
     "get_commit_author": seer_rpc(get_commit_author),
     #
     # Replays
