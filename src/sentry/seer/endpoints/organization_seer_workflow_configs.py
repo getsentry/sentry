@@ -1,5 +1,6 @@
 from collections import defaultdict
 from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import datetime
 from functools import partial
 from typing import Any, NotRequired, TypedDict
@@ -48,6 +49,12 @@ class SeerWorkflowConfigResponse(TypedDict):
 
 class SeerWorkflowConfigsResponse(TypedDict):
     configs: list[SeerWorkflowConfigResponse]
+
+
+@dataclass(frozen=True)
+class WorkflowConfigLastRun:
+    config_id: int
+    last_run_at: datetime | None
 
 
 @cell_silo_endpoint
@@ -150,17 +157,18 @@ def serialize_workflow_configs(
     selected_projects = get_selected_project_ids(
         configs, accessible_project_ids=accessible_project_ids
     )
-    last_run_dates = get_last_run_dates(
+    last_runs = get_config_last_runs(
         configs,
         accessible_project_ids=accessible_project_ids,
         has_global_access=has_global_access,
     )
+    last_run_dates_by_config_id = {run.config_id: run.last_run_at for run in last_runs}
     return {
         "configs": [
             serialize_workflow_config(
                 config,
                 selected_project_ids=selected_projects[config.id],
-                last_run=last_run_dates.get(config.id),
+                last_run=last_run_dates_by_config_id.get(config.id),
             )
             for config in configs
         ]
@@ -179,22 +187,26 @@ def get_selected_project_ids(
     return selected_projects
 
 
-def get_last_run_dates(
+def get_config_last_runs(
     configs: Sequence[SeerWorkflowConfig],
     *,
     accessible_project_ids: Sequence[int],
     has_global_access: bool,
-) -> dict[int, datetime | None]:
+) -> list[WorkflowConfigLastRun]:
     runs = SeerWorkflowRun.objects.filter(
         workflow_config_id=OuterRef("id"), organization_id=OuterRef("organization_id")
     )
     if not has_global_access:
         runs = runs.filter(extras__snapshot__project_ids__contained_by=list(accessible_project_ids))
-    return dict(
+    last_runs = (
         SeerWorkflowConfig.objects.filter(id__in=[config.id for config in configs])
-        .annotate(last_run=Subquery(runs.order_by("-date_added").values("date_added")[:1]))
-        .values_list("id", "last_run")
+        .annotate(last_run_at=Subquery(runs.order_by("-date_added").values("date_added")[:1]))
+        .values_list("id", "last_run_at")
     )
+    return [
+        WorkflowConfigLastRun(config_id=config_id, last_run_at=last_run_at)
+        for config_id, last_run_at in last_runs
+    ]
 
 
 def serialize_workflow_config(
