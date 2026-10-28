@@ -48,20 +48,6 @@ def make_fetchers(*, disable_proxy_retries: bool = False) -> Fetchers:
     )
 
 
-def make_git_fetchers() -> Fetchers:
-    """Return the lookups to build one GitServer with, which share an integration like make_fetchers'.
-
-    The repository is found with fetch_repository_by_external_id, the only form a git grant names.
-    """
-    get_integration = functools.cache(_get_integration)
-    return Fetchers(
-        fetch_repository=functools.partial(
-            fetch_repository_by_external_id, get_integration=get_integration
-        ),
-        fetch_provider=functools.partial(fetch_service_provider, get_integration=get_integration),
-    )
-
-
 def _get_integration(organization_id: int, integration_id: int) -> RpcIntegration | None:
     return integration_service.get_integration(
         integration_id=integration_id,
@@ -138,38 +124,7 @@ def fetch_repository(
             )
     except RepositoryModel.DoesNotExist:
         return None
-    return _to_scm_repository(repo, organization_id, get_integration)
 
-
-def fetch_repository_by_external_id(
-    organization_id: int,
-    repository_id: RepositoryId,
-    *,
-    get_integration: IntegrationGetter = _get_integration,
-) -> Repository | None:
-    """Look up the organization's repository by ``(provider, external id)`` alone.
-
-    Unlike fetch_repository, never by Sentry's id or by name. ``(organization, provider, external
-    id)`` is unique, but a name is chosen on the provider, so matching names could resolve an
-    external id to another repository that is named after it.
-    """
-    if isinstance(repository_id, int):
-        return None
-    provider, external_id = repository_id
-    try:
-        repo = RepositoryModel.objects.get(
-            organization_id=organization_id,
-            provider=f"integrations:{provider}",
-            external_id=external_id,
-        )
-    except RepositoryModel.DoesNotExist:
-        return None
-    return _to_scm_repository(repo, organization_id, get_integration)
-
-
-def _to_scm_repository(
-    repo: RepositoryModel, organization_id: int, get_integration: IntegrationGetter
-) -> Repository | None:
     # Tag the current Sentry scope with the organization so that any exceptions
     # captured later in this request (e.g. ResourceForbidden from the SCM
     # provider) include the affected customer for distribution analysis.

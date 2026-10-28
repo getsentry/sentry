@@ -3708,12 +3708,9 @@ INTERNAL_URLS = [
     # No trailing slash, because git never sends one. scm-git/hosts/ is kept free for a later route
     # that names repositories by their provider host.
     re_path(
-        # A repository is named the way Seer's grants name it, by provider and external id, since a
-        # grant only covers a request whose repository is in the same form. The providers are
-        # scm's ProviderName. The external id is one percent-encoded segment, which Django decodes
-        # before matching, e.g. GitLab's "gitlab.example.com:123".
-        r"^scm-git/repositories/(?P<provider>bitbucket|cursor_origin|github|github_enterprise|gitlab)"
-        r"/(?P<external_id>[^/]+)\.git/(?P<route>.+)$",
+        # [0-9] rather than \d, which also matches other scripts' digits. 19 digits hold any
+        # Repository.id, and keep int() from refusing a longer id with a 500.
+        r"^scm-git/repositories/(?P<repository_id>[0-9]{1,19})\.git/(?P<route>.+)$",
         ScmGitEndpoint.as_view(),
         name="sentry-api-0-scm-git",
     ),

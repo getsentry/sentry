@@ -1,7 +1,6 @@
 import io
 import logging
 from collections.abc import Generator
-from typing import cast
 
 import sentry_sdk
 from django.conf import settings
@@ -13,7 +12,6 @@ from scm.git.grant import verify_grant
 from scm.git.relay import GitRelay
 from scm.git.server import GitServer
 from scm.git.types import GRANT_HEADER, Readable
-from scm.types import ProviderName, RepositoryId
 from sentry_sdk import traces
 
 from sentry import features
@@ -24,7 +22,7 @@ from sentry.api.negotiation import PassthroughContentNegotiation
 from sentry.exceptions import RestrictedIPAddress
 from sentry.models.organization import Organization
 from sentry.net.http import BlacklistAdapter
-from sentry.scm.private.helpers import fetch_access_token, make_git_fetchers, record_count_metric
+from sentry.scm.private.helpers import fetch_access_token, make_fetchers, record_count_metric
 from sentry.shared_integrations.exceptions import ApiHostError
 from sentry.utils.http import request_body_stream
 
@@ -43,7 +41,7 @@ def report_git_error(error: Exception, context: dict[str, str]) -> None:
 
 
 def make_git_server() -> GitServer:
-    fetchers = make_git_fetchers()
+    fetchers = make_fetchers()
     return GitServer(
         secrets=_grant_secrets(),
         fetch_repository=fetchers.fetch_repository,
@@ -62,8 +60,7 @@ class ScmGitEndpoint(Endpoint):
     """
     Serves git's smart-HTTP protocol to coding jobs, relaying each request to the repository's
     provider with the organization's integration credentials. A grant Seer signs authorizes each
-    request, so the job never holds a provider credential. Requests name the repository by its
-    provider and external id, as the grants do, never by Sentry's Repository.id.
+    request, so the job never holds a provider credential.
 
     Only the credential proxy Seer's jobs go through can reach this route, so every refusal is
     reported as a Sentry issue: a refusal means Sentry or Seer is misconfigured, not that a
@@ -81,24 +78,19 @@ class ScmGitEndpoint(Endpoint):
     enforce_rate_limit = False
 
     @traces.trace
-    def get(
-        self, request: Request, provider: str, external_id: str, route: str
-    ) -> HttpResponseBase:
-        return self._relay(request, _repository_id(provider, external_id), route)
+    def get(self, request: Request, repository_id: str, route: str) -> HttpResponseBase:
+        return self._relay(request, int(repository_id), route)
 
     @traces.trace
-    def post(
-        self, request: Request, provider: str, external_id: str, route: str
-    ) -> HttpResponseBase:
-        return self._relay(request, _repository_id(provider, external_id), route)
+    def post(self, request: Request, repository_id: str, route: str) -> HttpResponseBase:
+        return self._relay(request, int(repository_id), route)
 
-    def _relay(self, request: Request, repository_id: RepositoryId, route: str) -> HttpResponseBase:
+    def _relay(self, request: Request, repository_id: int, route: str) -> HttpResponseBase:
         # The grant names the organization whose flag gates the endpoint, and it's verified before
         # the organization is looked up, so a request without a valid grant never reaches the
         # database. GitServer verifies the JWT again, which costs one HMAC-SHA256. With no secret
         # configured, every grant is refused here as unknown, before GitServer, which can't be built
-        # without one. The repository is tagged the way GitServer tags its own refusals, e.g.
-        # "('github', '12345')", so both kinds of refusal group under one value.
+        # without one.
         context = {"repository_id": str(repository_id)}
         try:
             grant = verify_grant(_grant_secrets(), request.headers.get(GRANT_HEADER, ""))
@@ -149,11 +141,6 @@ class ScmGitEndpoint(Endpoint):
         return StreamingHttpResponse(
             response.content, status=response.status_code, headers=response.headers
         )
-
-
-def _repository_id(provider: str, external_id: str) -> RepositoryId:
-    # The URL only routes scm's provider names.
-    return (cast(ProviderName, provider), external_id)
 
 
 def _grant_secrets() -> list[Secret]:
