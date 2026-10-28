@@ -34,8 +34,6 @@ export function SettingsNavItem({badge, label, id, to, index, ...props}: Props) 
       <Flex
         align="center"
         height={settingsV3 ? '32px' : undefined}
-        padding={settingsV3 ? '0 xs 0 md' : undefined}
-        gap={settingsV3 ? 'xs' : undefined}
         justify={settingsV3 ? 'start' : undefined}
       >
         {layoutProps => (

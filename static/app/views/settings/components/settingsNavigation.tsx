@@ -81,15 +81,13 @@ export function SettingsNavigation({
         )}
       </SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
-        <Container padding={settingsV3 ? 'md 0' : undefined}>
-          {navWithHooks.map((config, index) => (
-            <Fragment key={config.name}>
-              {index > 0 && <SecondaryNavigation.Separator />}
-              <SettingsNavigationGroup {...otherProps} {...config} />
-            </Fragment>
-          ))}
-          {hooks.map((Hook, i) => cloneElement(Hook, {key: `hook-${i}`}))}
-        </Container>
+        {navWithHooks.map((config, index) => (
+          <Fragment key={config.name}>
+            {index > 0 && <SecondaryNavigation.Separator />}
+            <SettingsNavigationGroup {...otherProps} {...config} />
+          </Fragment>
+        ))}
+        {hooks.map((Hook, i) => cloneElement(Hook, {key: `hook-${i}`}))}
       </SecondaryNavigation.Body>
     </ErrorBoundary>
   );

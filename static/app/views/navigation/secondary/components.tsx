@@ -35,7 +35,7 @@ import {IconGrabbable} from '@sentry/icons/grabbable';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack, type FlexProps} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
@@ -359,12 +359,13 @@ interface SecondaryNavigationBodyProps {
 
 function SecondaryNavigationBody(props: SecondaryNavigationBodyProps) {
   const {layout} = usePrimaryNavigation();
+  const settingsV3 = useSettingsV3();
 
   return (
     <Container
       overflow="auto"
       overscrollBehavior="contain"
-      padding={layout === 'mobile' ? '0 0 md 0' : undefined}
+      padding={settingsV3 ? 'md xs' : layout === 'mobile' ? '0 0 md 0' : undefined}
     >
       {props.children}
     </Container>
@@ -390,9 +391,11 @@ function SectionTitle(props: SectionTitleProps) {
             <IconChevron direction={props.isCollapsed ? 'right' : 'down'} size="md" />
           ) : null}
         </SecondaryNavigationLeadingSlot>
-        <Text bold ellipsis align="left" density="fixed">
-          {props.children}
-        </Text>
+        <Container flex="1" minWidth="0">
+          <Text bold ellipsis align="left" density="fixed">
+            {props.children}
+          </Text>
+        </Container>
       </Fragment>
     );
 
@@ -405,16 +408,28 @@ function SectionTitle(props: SectionTitleProps) {
     }
 
     return (
-      <Button
-        size="sm"
-        variant="transparent"
-        aria-expanded={!props.isCollapsed}
-        onClick={() => props.setIsCollapsed(!props.isCollapsed)}
+      <Flex
+        align="center"
+        gap="xs"
+        justify="start"
+        position="relative"
+        height="32px"
+        padding="0 sm 0 md"
+        radius="md"
+        width="100%"
+        cursor="pointer"
       >
-        <Flex as="span" align="center" gap="xs" minWidth="0">
-          {content}
-        </Flex>
-      </Button>
+        {layoutProps => (
+          <SidebarNavigationSectionButton
+            {...layoutProps}
+            type="button"
+            aria-expanded={!props.isCollapsed}
+            onClick={() => props.setIsCollapsed(!props.isCollapsed)}
+          >
+            {content}
+          </SidebarNavigationSectionButton>
+        )}
+      </Flex>
     );
   }
 
@@ -473,7 +488,7 @@ function SecondaryNavigationSection(props: SecondaryNavigationSectionProps) {
   const isCollapsed = canCollapse ? isCollapsedState : false;
 
   return (
-    <Container padding={settingsV3 ? '0 xs' : 'md sm'} data-nav-section>
+    <Container padding={settingsV3 ? '0' : 'md sm'} data-nav-section>
       {props.title ? (
         <SectionTitle
           canCollapse={canCollapse}
@@ -544,17 +559,31 @@ function SecondaryNavigationLink({
   };
 
   return (
-    <SidebarNavigationLink {...sharedLinkProps}>
-      <SecondaryNavigationLeadingSlot>{leadingItems}</SecondaryNavigationLeadingSlot>
-      <Text ellipsis variant="inherit">
-        {children}
-      </Text>
-      {trailingItems}
-    </SidebarNavigationLink>
+    <Flex
+      align="center"
+      gap="xs"
+      justify="start"
+      position="relative"
+      height="32px"
+      padding="0 sm 0 md"
+      radius="md"
+    >
+      {layoutProps => (
+        <SidebarNavigationLink {...sharedLinkProps} {...layoutProps}>
+          <SecondaryNavigationLeadingSlot>{leadingItems}</SecondaryNavigationLeadingSlot>
+          <Container flex="1" minWidth="0">
+            <Text ellipsis variant="inherit">
+              {children}
+            </Text>
+          </Container>
+          {trailingItems}
+        </SidebarNavigationLink>
+      )}
+    </Flex>
   );
 }
 
-interface SecondaryNavigationLeadingSlotProps {
+interface SecondaryNavigationLeadingSlotProps extends Pick<FlexProps, 'height'> {
   children?: ReactNode;
 }
 
@@ -568,7 +597,7 @@ function SecondaryNavigationLeadingSlot(props: SecondaryNavigationLeadingSlotPro
       align="center"
       justify="center"
       width="24px"
-      height="24px"
+      height={props.height ?? '24px'}
       flexShrink={0}
     >
       {props.children}
@@ -578,18 +607,31 @@ function SecondaryNavigationLeadingSlot(props: SecondaryNavigationLeadingSlotPro
 
 function SecondaryNavigationSeparator() {
   const settingsV3 = useSettingsV3();
-  return (
-    <Grid
-      // Align with labels: 4px section inset + 8px padding + 24px slot + 4px gap.
-      columns={settingsV3 ? '40px minmax(0, 1fr)' : 'minmax(0, 1fr)'}
-      align="center"
-      height={settingsV3 ? '16px' : undefined}
-      padding={settingsV3 ? '0 lg 0 0' : '0 xl'}
-    >
-      <Container column={settingsV3 ? '2' : undefined}>
-        <Separator orientation="horizontal" border="muted" />
+
+  if (settingsV3) {
+    return (
+      <Container>
+        <Flex
+          align="center"
+          padding="md"
+          gap="xs"
+          css={css`
+            border: 1px solid transparent;
+          `}
+        >
+          <SecondaryNavigationLeadingSlot height="auto" />
+          <Container flex="1" minWidth="0">
+            <Separator orientation="horizontal" border="muted" />
+          </Container>
+        </Flex>
       </Container>
-    </Grid>
+    );
+  }
+
+  return (
+    <Container padding="0 xl">
+      <Separator orientation="horizontal" border="muted" />
+    </Container>
   );
 }
 
@@ -907,19 +949,41 @@ function SecondaryNavigationReorderableLink({
 
   const content = (
     <Fragment>
-      <Flex justify="center" align="center" data-reorderable-handle-slot>
+      <Flex
+        justify="center"
+        align="center"
+        width="24px"
+        height="24px"
+        flexShrink={0}
+        data-reorderable-handle-slot
+      >
         {icon}
       </Flex>
-      {children}
+      <Container flex="1" minWidth="0">
+        {children}
+      </Container>
       {trailingItems}
     </Fragment>
   );
 
   return (
     <Fragment>
-      <StyledReorderableLink {...sharedProps} layout="sidebar">
-        {content}
-      </StyledReorderableLink>
+      <Flex
+        align="center"
+        gap="xs"
+        justify="start"
+        position="relative"
+        height="32px"
+        padding="0 sm 0 md"
+        radius="md"
+        cursor="pointer"
+      >
+        {layoutProps => (
+          <StyledReorderableLink {...sharedProps} {...layoutProps} layout="sidebar">
+            {content}
+          </StyledReorderableLink>
+        )}
+      </Flex>
       <GrabHandle />
     </Fragment>
   );
@@ -960,8 +1024,8 @@ const GrabHandleAnimation = styled('div')`
   pointer-events: none;
   opacity: 0;
   z-index: 1;
-  /* Overlay the project icon, which sits at the link's left padding. */
-  left: ${p => p.theme.space.lg};
+  /* Center the 18px handle in the 24px leading slot after the link's border and padding. */
+  left: ${p => `calc(${p.theme.space.md} + 4px)`};
   transition: opacity ${p => p.theme.motion.smooth.moderate};
   transform: translateY(-50%);
 
@@ -1002,19 +1066,8 @@ const StyledReorderableLink = styled(Link, {
 })<{
   layout: 'mobile' | 'sidebar';
 }>`
-  display: flex;
-  gap: ${p => p.theme.space.sm};
-  justify-content: center;
-  align-items: center;
-  position: relative;
   color: ${p => p.theme.tokens.interactive.link.neutral.rest};
-  /* We need to cap the height at sm size as some items like the reorderable link with icons
-   * will otherwise cause the links to be taller, visually standing out when they are laid out in a list */
-  height: ${p => p.theme.form.sm.height};
-  padding: ${p => `${p.theme.space.md} ${p.theme.space.lg}`};
-  border-radius: ${p => p.theme.radius.md};
   border: 1px solid transparent;
-  cursor: pointer;
   user-select: none;
 
   &:focus-visible {
@@ -1049,17 +1102,7 @@ const StyledReorderableLink = styled(Link, {
 `;
 
 const SidebarNavigationLink = styled(Link)`
-  display: flex;
-  gap: ${p => p.theme.space.sm};
-  justify-content: center;
-  align-items: center;
-  position: relative;
   color: ${p => p.theme.tokens.interactive.link.neutral.rest};
-  /* We need to cap the height at sm size as some items like the reorderable link with icons
-   * will otherwise cause the links to be taller, visually standing out when they are laid out in a list */
-  height: ${p => p.theme.form.sm.height};
-  padding: ${p => `${p.theme.space.md} ${p.theme.space.lg}`};
-  border-radius: ${p => p.theme.radius.md};
   border: 1px solid transparent;
 
   &:hover {
@@ -1086,6 +1129,17 @@ const SidebarNavigationLink = styled(Link)`
       background-color: ${p =>
         p.theme.tokens.interactive.transparent.accent.selected.background.hover};
     }
+  }
+`;
+
+const SidebarNavigationSectionButton = styled(
+  SidebarNavigationLink.withComponent('button')
+)`
+  background: transparent;
+  font: inherit;
+
+  &:focus-visible {
+    ${p => p.theme.focusRing()}
   }
 `;
 

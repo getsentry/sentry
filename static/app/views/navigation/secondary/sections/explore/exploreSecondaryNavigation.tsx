@@ -158,7 +158,7 @@ function ExploreSecondaryNavigationImpl() {
                   to={`${baseUrl}/errors-v2/`}
                   activeTo={`${baseUrl}/errors-v2/`}
                   analyticsItemName="explore_errors"
-                  trailingItems={<FeatureBadge type="alpha" />}
+                  leadingItems={<FeatureBadge type="alpha" />}
                 >
                   {t('Errors')}
                 </SecondaryNavigation.Link>
@@ -225,7 +225,7 @@ function ExploreSecondaryNavigationImpl() {
                     search: '?statsPeriod=24h&referrer=sidebar',
                   }}
                   analyticsItemName="explore_conversations"
-                  trailingItems={<FeatureBadge type="new" />}
+                  leadingItems={<FeatureBadge type="new" />}
                 >
                   {t('Agents')}
                 </SecondaryNavigation.Link>
@@ -236,7 +236,7 @@ function ExploreSecondaryNavigationImpl() {
                 <SecondaryNavigation.Link
                   to={automationsPath}
                   analyticsItemName="explore_automations"
-                  trailingItems={<FeatureBadge type="alpha" />}
+                  leadingItems={<FeatureBadge type="alpha" />}
                 >
                   {t('Automations')}
                 </SecondaryNavigation.Link>
@@ -247,7 +247,7 @@ function ExploreSecondaryNavigationImpl() {
                 <SecondaryNavigation.Link
                   to={investigationsPath}
                   analyticsItemName="explore_investigations"
-                  trailingItems={<FeatureBadge type="alpha" />}
+                  leadingItems={<FeatureBadge type="alpha" />}
                 >
                   {t('Investigations')}
                 </SecondaryNavigation.Link>
@@ -270,7 +270,7 @@ function ExploreSecondaryNavigationImpl() {
                     <SecondaryNavigation.Link
                       to={`${baseUrl}/saved-formulas/`}
                       analyticsItemName="explore_saved_formulas"
-                      trailingItems={<FeatureBadge type="alpha" />}
+                      leadingItems={<FeatureBadge type="alpha" />}
                     >
                       {t('Saved Formulas')}
                     </SecondaryNavigation.Link>

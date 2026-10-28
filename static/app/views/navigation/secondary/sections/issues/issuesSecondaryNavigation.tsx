@@ -79,12 +79,8 @@ function IssuesSecondaryNavigationImpl() {
                   to={`${baseUrl}/inbox/`}
                   end
                   analyticsItemName="issues_inbox"
-                  trailingItems={
-                    <Fragment>
-                      <InboxCountBadge />
-                      <FeatureBadge type="new" />
-                    </Fragment>
-                  }
+                  leadingItems={<FeatureBadge type="new" />}
+                  trailingItems={<InboxCountBadge />}
                 >
                   {t('Inbox')}
                 </SecondaryNavigation.Link>
@@ -101,7 +97,7 @@ function IssuesSecondaryNavigationImpl() {
                   to={`${baseUrl}/${key}/`}
                   end
                   analyticsItemName={`issues_types_${key}`}
-                  trailingItems={badge ? <FeatureBadge type={badge} /> : null}
+                  leadingItems={badge ? <FeatureBadge type={badge} /> : null}
                 >
                   {label}
                 </SecondaryNavigation.Link>
@@ -128,7 +124,7 @@ function IssuesSecondaryNavigationImpl() {
                       to={`${baseUrl}/autofix/`}
                       analyticsItemName="issues_autofix_overview"
                       end
-                      trailingItems={<FeatureBadge type="new" />}
+                      leadingItems={<FeatureBadge type="new" />}
                     >
                       {t('Overview')}
                     </SecondaryNavigation.Link>

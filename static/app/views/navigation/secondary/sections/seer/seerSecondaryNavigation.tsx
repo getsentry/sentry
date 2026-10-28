@@ -52,7 +52,7 @@ function SeerSecondaryNavigationImpl() {
                 <SecondaryNavigation.Link
                   to={automationsPath}
                   analyticsItemName="seer_automations"
-                  trailingItems={<FeatureBadge type="alpha" />}
+                  leadingItems={<FeatureBadge type="alpha" />}
                 >
                   {t('Automations')}
                 </SecondaryNavigation.Link>
@@ -63,7 +63,7 @@ function SeerSecondaryNavigationImpl() {
                 <SecondaryNavigation.Link
                   to={investigationsPath}
                   analyticsItemName="seer_investigations"
-                  trailingItems={<FeatureBadge type="alpha" />}
+                  leadingItems={<FeatureBadge type="alpha" />}
                 >
                   {t('Investigations')}
                 </SecondaryNavigation.Link>
