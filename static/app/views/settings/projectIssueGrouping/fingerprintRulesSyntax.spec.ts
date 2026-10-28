@@ -56,6 +56,10 @@ describe('tokenizeFingerprintRules', () => {
     'error.type:A -> title="only a title"',
     'message:"x → y" -> a',
     'message:"multi\\"quote" -> {{ tags.foo }}',
+    // Names are checked by the backend on save
+    'error.typo:A -> {{ x }}, name="y"',
+    // Not whitespace to the backend
+    'message:a -> x\uFEFFy',
   ])('has no diagnostics for %j', text => {
     expect(getDiagnostics(text)).toEqual([]);
   });
@@ -66,31 +70,18 @@ describe('tokenizeFingerprintRules', () => {
     ['error.type:A → a', 'lookalike-arrow', 'error', '→'],
     ['error.type:A→ a', 'lookalike-arrow', 'error', '→'],
     ['error.type:A a', 'missing-arrow', 'error', 'error.type:A a'],
+    ['message:"a=>b" x', 'missing-arrow', 'error', 'message:"a=>b" x'],
     ['error.type:A', 'missing-arrow', 'error', 'error.type:A'],
     ['error.type A -> a', 'invalid-syntax', 'error', 'error.type'],
     ['error.type: A -> a', 'invalid-syntax', 'error', 'error.type:'],
     ['error.type:A ->', 'invalid-syntax', 'error', '->'],
     ['-> a', 'invalid-syntax', 'error', '->'],
     ['error.type:A\t-> a', 'invalid-syntax', 'error', '\t'],
+    ['error.type:A\x85-> a', 'invalid-syntax', 'error', '\x85'],
     ['error.type:A -> a,,b', 'invalid-syntax', 'error', ','],
     ['error.type:A -> {x}', 'invalid-syntax', 'error', '{x}'],
-    ['error.typo:A -> a', 'unknown-matcher', 'error', 'error.typo'],
-    ['error.type:A -> name="x"', 'unknown-attribute', 'error', 'name'],
-    ['error.type:A -> {{ x }}', 'unknown-variable', 'warning', '{{ x }}'],
-    [
-      'error.type:A -> a title="{{ default }}"',
-      'unknown-variable',
-      'warning',
-      '{{ default }}',
-    ],
     ['error.type:A -> a title=T', 'unquoted-title', 'warning', 'title=T'],
     ['error.type:A -> a # b c', 'inline-comment', 'warning', '# b c'],
-    [
-      'message:"a -> a\nmessage:"b" -> b',
-      'multiline-quote',
-      'warning',
-      '"a -> a\nmessage:"',
-    ],
   ])('flags %j', (text, code, severity, highlighted) => {
     expect(getDiagnostics(text)).toContainEqual([code, severity, highlighted]);
   });

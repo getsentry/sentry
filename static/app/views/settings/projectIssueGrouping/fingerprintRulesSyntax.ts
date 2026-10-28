@@ -1,7 +1,8 @@
 /**
  * Tokenizer for fingerprint rules, used to highlight them and to point out mistakes before
  * they're saved. It follows the grammar in `src/sentry/grouping/fingerprinting/parser.py`,
- * so a config gets an error diagnostic when the backend would reject it.
+ * so a config gets an error diagnostic when the backend can't parse it. Matcher and
+ * variable names aren't checked, so it doesn't need updating when the backend adds one.
  */
 
 export type FingerprintTokenType =
@@ -29,12 +30,8 @@ export type FingerprintDiagnosticCode =
   | 'invalid-syntax'
   | 'lookalike-arrow'
   | 'missing-arrow'
-  | 'unknown-attribute'
-  | 'unknown-matcher'
   // Warnings, these save but probably don't do what was intended
   | 'inline-comment'
-  | 'multiline-quote'
-  | 'unknown-variable'
   | 'unquoted-title';
 
 export interface FingerprintDiagnostic {
@@ -42,111 +39,52 @@ export interface FingerprintDiagnostic {
   end: number;
   severity: 'error' | 'warning';
   start: number;
-  /**
-   * The text the diagnostic is about, such as an unknown matcher name
-   */
-  text?: string;
 }
 
 const WARNING_CODES = new Set<FingerprintDiagnosticCode>([
   'inline-comment',
-  'multiline-quote',
-  'unknown-variable',
   'unquoted-title',
-]);
-
-// `MATCHERS` in src/sentry/grouping/fingerprinting/matchers.py, plus any `tags.*`
-const MATCHERS = new Set([
-  'error.type',
-  'error.value',
-  'stack.module',
-  'stack.abs_path',
-  'stack.package',
-  'stack.function',
-  'message',
-  'logger',
-  'level',
-  'type',
-  'value',
-  'module',
-  'path',
-  'package',
-  'function',
-  'family',
-  'app',
-  'sdk',
-  'release',
-]);
-
-// `resolve_fingerprint_variable` in src/sentry/grouping/fingerprinting/utils.py, plus any
-// `tags.*`. `{{ default }}` is only valid as a fingerprint value, not inside a title.
-const VARIABLES = new Set([
-  'transaction',
-  'message',
-  'raw_message',
-  'type',
-  'error.type',
-  'value',
-  'raw_value',
-  'error.value',
-  'error.raw_value',
-  'function',
-  'stack.function',
-  'path',
-  'stack.abs_path',
-  'stack.filename',
-  'module',
-  'stack.module',
-  'package',
-  'stack.package',
-  'level',
-  'logger',
 ]);
 
 // Sticky versions of the backend grammar's regexes. `[^\n]` stands in for Python's `.`
 const KEY = /[\w.-]+/y;
-const QUOTED_KEY = /"([\w.:-]+)"/y;
+const QUOTED_KEY = /"[\w.:-]+"/y;
 const QUOTED = /"([^"\\]*(?:\\[^\n][^"\\]*)*)"/y;
 const UNQUOTED = /\S+/y;
 const UNQUOTED_NO_COMMA = /\{\{\s*\S+\s*\}\}|[^\s{,]+/y;
 const COMMENT = /#[^\r\n]*/y;
 const NON_NEWLINE_WHITESPACE = /[^\S\r\n]+/y;
 const INVALID_FINGERPRINT_TEXT = /[^\s,]+/y;
-const LOOKALIKE_ARROW = /[→⟶⇒➔]|=>|—>|–>/y;
 
-const VARIABLE = /\{\{\s*(\S+)\s*\}\}/g;
-const WHOLE_VARIABLE = /^\{\{\s*(\S+)\s*\}\}$/;
-const ANY_ARROW = /->|[→⟶⇒➔]|=>|—>|–>/;
+const VARIABLE = /\{\{\s*\S+\s*\}\}/g;
+const WHOLE_VARIABLE = /^\{\{\s*\S+\s*\}\}$/;
+
+// The same hints as `_describe_syntax_error` in src/sentry/grouping/fingerprinting/__init__.py
+const QUOTED_STRINGS = new RegExp(QUOTED.source, 'g');
+const LOOKALIKE_ARROW = /[→⟶⇒➔]|=>|—>|–>/;
+const GLUED_ARROW = /[^\s-]->/;
 
 function matchAt(regex: RegExp, text: string, pos: number) {
   regex.lastIndex = pos;
   return regex.exec(text);
 }
 
-function isKnownVariable(name: string, {inTitle}: {inTitle: boolean}) {
-  return (
-    VARIABLES.has(name) || name.startsWith('tags.') || (!inTitle && name === 'default')
-  );
-}
-
-export function tokenizeFingerprintRules(text: string) {
+export function tokenizeFingerprintRules(rules: string) {
+  // The backend's `\s` is Unicode White_Space, which includes \x85 but not \ufeff, the
+  // reverse of JavaScript's. Swap both for characters JavaScript sees the same way, keeping
+  // every offset where it was.
+  const text = rules.replaceAll('\x85', '\t').replaceAll('\uFEFF', '\u200B');
   const tokens: FingerprintToken[] = [];
   const diagnostics: FingerprintDiagnostic[] = [];
 
   const addToken = (type: FingerprintTokenType, start: number, end: number) =>
     tokens.push({type, start, end});
-  const addDiagnostic = (
-    code: FingerprintDiagnosticCode,
-    start: number,
-    end: number,
-    diagnosticText?: string
-  ) =>
+  const addDiagnostic = (code: FingerprintDiagnosticCode, start: number, end: number) =>
     diagnostics.push({
       code,
       severity: WARNING_CODES.has(code) ? 'warning' : 'error',
       start,
       end,
-      text: diagnosticText,
     });
 
   const isLineEnd = (pos: number) =>
@@ -166,21 +104,8 @@ export function tokenizeFingerprintRules(text: string) {
     return end;
   };
 
-  // Quoted strings can span lines, which is almost always a missing closing quote
-  const checkMultiline = (start: number, end: number) => {
-    if (/[\r\n]/.test(text.slice(start, end))) {
-      addDiagnostic('multiline-quote', start, end);
-    }
-  };
-
-  const checkVariable = (name: string, start: number, end: number, inTitle = false) => {
-    if (!isKnownVariable(name, {inTitle})) {
-      addDiagnostic('unknown-variable', start, end, name);
-    }
-  };
-
   // A quoted attribute value, with any variables in it highlighted
-  const scanTemplate = (start: number, end: number, inTitle: boolean) => {
+  const scanTemplate = (start: number, end: number) => {
     let pos = start;
     for (const match of text.slice(start, end).matchAll(VARIABLE)) {
       const variableStart = start + match.index;
@@ -189,76 +114,42 @@ export function tokenizeFingerprintRules(text: string) {
         addToken('string', pos, variableStart);
       }
       addToken('variable', variableStart, variableEnd);
-      checkVariable(match[1]!, variableStart, variableEnd, inTitle);
       pos = variableEnd;
     }
     if (pos < end) {
       addToken('string', pos, end);
     }
-    checkMultiline(start, end);
   };
 
   // matcher = negation? matcher_type sep argument
-  const scanMatcher = (
-    pos: number,
-    {splitArrow}: {splitArrow: boolean}
-  ): {end: number; arrowStart?: number; hasArrow?: boolean} => {
+  const scanMatcher = (pos: number) => {
     let cursor = pos;
     if (text[cursor] === '!') {
       cursor++;
     }
-    const quotedKey = matchAt(QUOTED_KEY, text, cursor);
-    const key = quotedKey ?? matchAt(KEY, text, cursor);
+    const key = matchAt(QUOTED_KEY, text, cursor) ?? matchAt(KEY, text, cursor);
     const keyEnd = key ? cursor + key[0].length : cursor;
     const valueStart = keyEnd + 1;
-    const quoted = matchAt(QUOTED, text, valueStart);
     const value =
       key && text[keyEnd] === ':'
-        ? (quoted ?? matchAt(UNQUOTED, text, valueStart))
+        ? (matchAt(QUOTED, text, valueStart) ?? matchAt(UNQUOTED, text, valueStart))
         : null;
 
     if (!key || !value) {
       const end = pos + matchAt(UNQUOTED, text, pos)![0].length;
       addToken('invalid', pos, end);
       addDiagnostic('invalid-syntax', pos, end);
-      return {end};
+      return end;
     }
 
     if (cursor > pos) {
       addToken('negation', pos, cursor);
     }
     addToken('matcher', cursor, keyEnd);
-    const name = quotedKey ? quotedKey[1]! : key[0];
-    if (!MATCHERS.has(name) && !name.startsWith('tags.')) {
-      addDiagnostic('unknown-matcher', cursor, keyEnd, name);
-    }
     addToken('punctuation', keyEnd, valueStart);
-
-    // An unquoted value runs until the next space, so it swallows an arrow written right
-    // after it. The rule is scanned again with `splitArrow` if it turns out to have no other.
     const valueEnd = valueStart + value[0].length;
-    const glued = quoted ? null : ANY_ARROW.exec(value[0]);
-    if (glued && splitArrow) {
-      const arrowStart = valueStart + glued.index;
-      const arrowEnd = arrowStart + glued[0].length;
-      const isArrow = glued[0] === '->';
-      if (glued.index > 0) {
-        addToken('pattern', valueStart, arrowStart);
-      }
-      addToken(isArrow ? 'arrow' : 'invalid', arrowStart, arrowEnd);
-      if (!isArrow) {
-        addDiagnostic('lookalike-arrow', arrowStart, arrowEnd, glued[0]);
-      } else if (glued.index > 0) {
-        addDiagnostic('glued-arrow', arrowStart, arrowEnd, glued[0]);
-      } else {
-        addDiagnostic('invalid-syntax', pos, arrowEnd);
-      }
-      return {end: arrowEnd, arrowStart};
-    }
-
     addToken('pattern', valueStart, valueEnd);
-    checkMultiline(valueStart, valueEnd);
-    return {end: valueEnd, hasArrow: glued !== null};
+    return valueEnd;
   };
 
   // fp_argument = fp_attribute / quoted / unquoted_no_comma
@@ -269,11 +160,8 @@ export function tokenizeFingerprintRules(text: string) {
       const equals = pos + key.length;
       addToken('attribute', pos, equals);
       addToken('punctuation', equals, equals + 1);
-      if (key !== 'title') {
-        addDiagnostic('unknown-attribute', pos, equals, key);
-      }
       const end = equals + 1 + attributeValue[0].length;
-      scanTemplate(equals + 1, end, key === 'title');
+      scanTemplate(equals + 1, end);
       return end;
     }
 
@@ -284,14 +172,9 @@ export function tokenizeFingerprintRules(text: string) {
     }
     const end = pos + word.length;
     // A quoted value is a variable too, as long as the whole value is one
-    const variable = WHOLE_VARIABLE.exec(quoted ? quoted[1]! : word)?.[1];
-    addToken(variable === undefined ? 'value' : 'variable', pos, end);
-    if (variable !== undefined) {
-      checkVariable(variable, pos, end);
-    }
-    if (quoted) {
-      checkMultiline(pos, end);
-    } else if (word.startsWith('#')) {
+    const isVariable = WHOLE_VARIABLE.test(quoted ? quoted[1]! : word);
+    addToken(isVariable ? 'variable' : 'value', pos, end);
+    if (word.startsWith('#')) {
       let lineEnd = end;
       while (!isLineEnd(lineEnd)) {
         lineEnd++;
@@ -304,7 +187,8 @@ export function tokenizeFingerprintRules(text: string) {
   };
 
   // fingerprint = fp_value+, where fp_value = fp_argument ","?
-  const scanFingerprint = (pos: number, arrowStart: number, arrowEnd: number) => {
+  const scanFingerprint = (arrowStart: number, arrowEnd: number) => {
+    let pos = arrowEnd;
     let valueCount = 0;
     let canComma = false;
     while (true) {
@@ -350,52 +234,48 @@ export function tokenizeFingerprintRules(text: string) {
     const firstDiagnostic = diagnostics.length;
     let pos = start;
     let lastEnd = start;
-    let gluedArrow: {diagnosticCount: number; pos: number; tokenCount: number} | null =
-      null;
     while (true) {
       pos = skipSpaces(pos);
       if (isLineEnd(pos)) {
         break;
       }
-      const lookalike = matchAt(LOOKALIKE_ARROW, text, pos)?.[0];
-      if (text.startsWith('->', pos) || lookalike) {
-        const end = pos + (lookalike ?? '->').length;
-        addToken(lookalike ? 'invalid' : 'arrow', pos, end);
-        if (lookalike) {
-          addDiagnostic('lookalike-arrow', pos, end, lookalike);
-        }
+      if (text.startsWith('->', pos)) {
+        addToken('arrow', pos, pos + 2);
         if (pos === start) {
-          addDiagnostic('invalid-syntax', pos, end);
+          addDiagnostic('invalid-syntax', pos, pos + 2);
         }
-        return scanFingerprint(end, pos, end);
+        return scanFingerprint(pos, pos + 2);
       }
       if (/\s/.test(text[pos]!)) {
         pos = scanWhitespace(pos);
-        continue;
+      } else {
+        pos = lastEnd = scanMatcher(pos);
       }
-      const checkpoint = {
-        pos,
-        tokenCount: tokens.length,
-        diagnosticCount: diagnostics.length,
-      };
-      const matcher = scanMatcher(pos, {splitArrow: false});
-      gluedArrow ??= matcher.hasArrow ? checkpoint : null;
-      pos = lastEnd = matcher.end;
     }
 
-    if (gluedArrow) {
-      tokens.length = gluedArrow.tokenCount;
-      diagnostics.length = gluedArrow.diagnosticCount;
-      const matcher = scanMatcher(gluedArrow.pos, {splitArrow: true});
-      return scanFingerprint(matcher.end, matcher.arrowStart!, matcher.end);
-    }
-
-    // Without an arrow, report the whole rule once instead of each piece of it
+    // Without an arrow, report the whole rule once instead of each piece of it, pointing
+    // at a lookalike or glued arrow outside of quotes like the backend does
     const kept = diagnostics
       .splice(firstDiagnostic)
       .filter(({code}) => code !== 'invalid-syntax');
     diagnostics.push(...kept);
-    addDiagnostic('missing-arrow', start, lastEnd);
+    const rule = text
+      .slice(start, lastEnd)
+      .replace(QUOTED_STRINGS, quoted => ' '.repeat(quoted.length));
+    const lookalike = rule.includes('->') ? null : LOOKALIKE_ARROW.exec(rule);
+    const glued = GLUED_ARROW.exec(rule);
+    if (lookalike) {
+      const lookalikeStart = start + lookalike.index;
+      addDiagnostic(
+        'lookalike-arrow',
+        lookalikeStart,
+        lookalikeStart + lookalike[0].length
+      );
+    } else if (glued) {
+      addDiagnostic('glued-arrow', start + glued.index + 1, start + glued.index + 3);
+    } else {
+      addDiagnostic('missing-arrow', start, lastEnd);
+    }
     return pos;
   };
 

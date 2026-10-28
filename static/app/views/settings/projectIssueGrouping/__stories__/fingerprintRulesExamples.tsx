@@ -19,18 +19,10 @@ error.type:DatabaseUnavailable => system-down
 error.type:SocketError → sockets
 # No space before the arrow
 error.type:TimeoutError-> timeouts
-# A typo in the matcher name
-stack.functoin:malloc -> memory
-# An unknown variable
-error.type:ValueError -> {{ errror.type }}
 # An unquoted title becomes more fingerprint values
 error.type:KeyError -> key-errors title=Key errors
 # A trailing comment becomes part of the fingerprint
 error.type:TypeError -> type-errors # group type errors`;
-
-export const unclosedQuote = `message:"Connection refused -> network
-error.type:TimeoutError -> timeouts
-message:"disk full" -> disk`;
 
 export const longRules = Array.from(
   {length: 40},
@@ -38,12 +30,7 @@ export const longRules = Array.from(
     `error.type:GeneratedError${i} message:"Something went wrong in step ${i} of the pipeline" -> pipeline-step-${i}, {{ default }}`
 ).join('\n');
 
-export function EditorDemo({
-  initialValue = '',
-  ...props
-}: Partial<React.ComponentProps<typeof FingerprintRulesEditor>> & {
-  initialValue?: string;
-}) {
+export function EditorDemo({initialValue}: {initialValue: string}) {
   const [value, setValue] = useState(initialValue);
   return (
     <FingerprintRulesEditor
@@ -52,7 +39,6 @@ export function EditorDemo({
       onChange={setValue}
       rows={2}
       maxRows={20}
-      {...props}
     />
   );
 }

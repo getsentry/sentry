@@ -1,9 +1,10 @@
-import {useId, useMemo, useRef, useState} from 'react';
-import {css, type Theme} from '@emotion/react';
+import {useId, useMemo, useRef} from 'react';
+import {type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 import {IconNot} from '@sentry/icons/not';
 import {IconWarning} from '@sentry/icons/warning';
+import * as Sentry from '@sentry/react';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 
 import {Button} from '@sentry/scraps/button';
@@ -12,7 +13,6 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {TextArea, type TextAreaProps} from '@sentry/scraps/textarea';
 import {type FormSize} from '@sentry/scraps/theme';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t, tn} from 'sentry/locale';
 import {
@@ -22,23 +22,15 @@ import {
   type FingerprintToken,
 } from 'sentry/views/settings/projectIssueGrouping/fingerprintRulesSyntax';
 
-const DIAGNOSTIC_MESSAGES: Record<FingerprintDiagnosticCode, (text?: string) => string> =
-  {
-    'glued-arrow': arrow => t('Add a space before "%s"', arrow),
-    'invalid-syntax': () => t('Invalid syntax'),
-    'lookalike-arrow': arrow => t('Use "->" instead of "%s"', arrow),
-    'missing-arrow': () => t('Missing "->" before the fingerprint'),
-    'unknown-attribute': name =>
-      t('Unknown attribute "%s", only title is supported', name),
-    'unknown-matcher': name => t('Unknown matcher "%s"', name),
-    'inline-comment': () => t('This comment becomes part of the fingerprint'),
-    'multiline-quote': () => t('Quoted value spans lines, missing a closing quote?'),
-    'unknown-variable': name => t('Unknown variable "%s"', name),
-    'unquoted-title': () => t('Unquoted title becomes part of the fingerprint'),
-  };
-
-const getMessage = ({code, text}: FingerprintDiagnostic) =>
-  DIAGNOSTIC_MESSAGES[code](text);
+// Each gets the text it underlines
+const DIAGNOSTIC_MESSAGES: Record<FingerprintDiagnosticCode, (text: string) => string> = {
+  'glued-arrow': () => t('Add a space before "->"'),
+  'invalid-syntax': () => t('Invalid syntax'),
+  'lookalike-arrow': arrow => t('Use "->" instead of "%s"', arrow),
+  'missing-arrow': () => t('Missing "->" before the fingerprint'),
+  'inline-comment': () => t('This comment becomes part of the fingerprint'),
+  'unquoted-title': () => t('Unquoted title becomes part of the fingerprint'),
+};
 
 function getLineNumber(text: string, offset: number) {
   return text.slice(0, offset).split('\n').length;
@@ -47,6 +39,17 @@ function getLineNumber(text: string, offset: number) {
 // The textarea normalizes line endings, so highlight the same text it displays
 function normalizeNewlines(text: string) {
   return text.replace(/\r\n?/g, '\n');
+}
+
+// The highlighting is only a hint, so a tokenizer bug shows plain text instead of breaking
+// the field. The backend still validates the rules on save.
+function tokenize(text: string) {
+  try {
+    return tokenizeFingerprintRules(text);
+  } catch (error) {
+    Sentry.captureException(error);
+    return {tokens: [], diagnostics: []};
+  }
 }
 
 /**
@@ -84,62 +87,12 @@ function getSegments(
   });
 }
 
-function HighlightedRules({
-  text,
-  tokens,
-  diagnostics,
-}: {
-  diagnostics: FingerprintDiagnostic[];
-  text: string;
-  tokens: FingerprintToken[];
-}) {
-  return getSegments(text, tokens, diagnostics).map(({start, end, type, severity}) =>
-    type || severity ? (
-      <span
-        key={start}
-        data-token={type}
-        data-severity={severity}
-        data-start={severity ? start : undefined}
-        data-end={severity ? end : undefined}
-      >
-        {text.slice(start, end)}
-      </span>
-    ) : (
-      text.slice(start, end)
-    )
-  );
-}
-
 function DiagnosticIcon({severity}: {severity: FingerprintDiagnostic['severity']}) {
   return severity === 'error' ? (
     <IconNot size="xs" variant="danger" />
   ) : (
     <IconWarning size="xs" variant="warning" />
   );
-}
-
-/**
- * Fingerprint rules with syntax highlighting, for showing rules that can't be edited.
- */
-export function FingerprintRulesCode({rules}: {rules: string}) {
-  const text = normalizeNewlines(rules);
-  const {tokens} = tokenizeFingerprintRules(text);
-
-  return (
-    <Container background="secondary" padding="md lg" radius="md" width="100%">
-      <Text as="div" monospace size="sm" wrap="pre-wrap">
-        <Highlight>
-          <HighlightedRules text={text} tokens={tokens} diagnostics={[]} />
-        </Highlight>
-      </Text>
-    </Container>
-  );
-}
-
-interface HoveredUnderline {
-  diagnostics: FingerprintDiagnostic[];
-  key: string;
-  rect: {height: number; left: number; top: number; width: number};
 }
 
 interface FingerprintRulesEditorProps extends Omit<
@@ -152,8 +105,8 @@ interface FingerprintRulesEditorProps extends Omit<
 
 /**
  * A textarea for fingerprint rules that highlights the syntax and underlines mistakes that
- * would stop the rules from saving, or make them behave differently than they read.
- * Hovering an underline explains it, and a summary below lists them all.
+ * would stop the rules from saving, or make them behave differently than they read. A
+ * collapsed summary below the field explains each one.
  */
 export function FingerprintRulesEditor({
   ref,
@@ -169,61 +122,17 @@ export function FingerprintRulesEditor({
   const layerRef = useRef<HTMLDivElement>(null);
   const mergedRef = useMemo(() => mergeRefs(ref, textAreaRef), [ref, textAreaRef]);
   const summaryId = useId();
-  const [hovered, setHovered] = useState<HoveredUnderline | null>(null);
 
   const text = normalizeNewlines(value);
-  const {tokens, diagnostics} = tokenizeFingerprintRules(text);
+  const {tokens, diagnostics} = tokenize(text);
 
   // Hold diagnostics back while typing, so a half-written rule isn't flagged. The summary
   // keeps showing the last settled ones so the layout doesn't jump.
   const [settledText] = useDebouncedValue(text, {wait: 500});
   const isSettled = settledText === text;
-  const settledDiagnostics = isSettled
-    ? diagnostics
-    : tokenizeFingerprintRules(settledText).diagnostics;
+  const settledDiagnostics = isSettled ? diagnostics : tokenize(settledText).diagnostics;
   const errorCount = settledDiagnostics.filter(d => d.severity === 'error').length;
   const warningCount = settledDiagnostics.length - errorCount;
-
-  // The highlight layer lets the mouse through to the textarea, so its underlines can't be
-  // hovered directly. Find the one under the pointer instead.
-  const handleMouseMove = (event: React.MouseEvent) => {
-    const layer = layerRef.current;
-    if (!layer || !isSettled) {
-      return;
-    }
-    for (const span of layer.querySelectorAll<HTMLElement>('[data-severity]')) {
-      for (const rect of span.getClientRects()) {
-        // The wavy underline sits a little below the text
-        if (
-          event.clientX >= rect.left &&
-          event.clientX <= rect.right &&
-          event.clientY >= rect.top &&
-          event.clientY <= rect.bottom + 4
-        ) {
-          const start = Number(span.dataset.start);
-          const end = Number(span.dataset.end);
-          const covering = diagnostics.filter(d => d.start <= start && d.end >= end);
-          const key = covering.map(d => `${d.code}-${d.start}`).join();
-          // Moving along the same underline keeps the tooltip where it opened
-          if (hovered?.key !== key) {
-            const origin = layer.getBoundingClientRect();
-            setHovered({
-              key,
-              diagnostics: covering,
-              rect: {
-                top: rect.top - origin.top,
-                left: rect.left - origin.left,
-                width: rect.width,
-                height: rect.height,
-              },
-            });
-          }
-          return;
-        }
-      }
-    }
-    setHovered(null);
-  };
 
   const selectDiagnostic = ({start, end}: FingerprintDiagnostic) => {
     textAreaRef.current?.focus();
@@ -232,25 +141,17 @@ export function FingerprintRulesEditor({
 
   return (
     <Stack gap="xs" width="100%">
-      <Container
-        position="relative"
-        onMouseMove={handleMouseMove}
-        onMouseLeave={() => setHovered(null)}
-      >
+      <Container position="relative">
         <EditorTextArea
           {...props}
           ref={mergedRef}
           value={value}
-          onChange={e => {
-            setHovered(null);
-            onChange(e.target.value);
-          }}
+          onChange={e => onChange(e.target.value)}
           onScroll={e => {
             if (layerRef.current) {
               layerRef.current.scrollTop = e.currentTarget.scrollTop;
               layerRef.current.scrollLeft = e.currentTarget.scrollLeft;
             }
-            setHovered(null);
             onScroll?.(e);
           }}
           size={size}
@@ -266,58 +167,33 @@ export function FingerprintRulesEditor({
           }
         />
         <HighlightLayer ref={layerRef} aria-hidden size={size} disabled={!!disabled}>
-          <HighlightedRules
-            text={text}
-            tokens={tokens}
-            diagnostics={isSettled ? diagnostics : []}
-          />
+          {getSegments(text, tokens, isSettled ? diagnostics : []).map(
+            ({start, end, type, severity}) =>
+              type || severity ? (
+                <span key={start} data-token={type} data-severity={severity}>
+                  {text.slice(start, end)}
+                </span>
+              ) : (
+                text.slice(start, end)
+              )
+          )}
           {/* Gives a trailing newline a line to occupy, like the textarea does */}
           {text.endsWith('\n') && ' '}
         </HighlightLayer>
-        {hovered && isSettled ? (
-          <Tooltip
-            key={hovered.key}
-            title={
-              <Tooltip.Grid columns="max-content 1fr">
-                {hovered.diagnostics.map(diagnostic => (
-                  <Tooltip.Row
-                    key={`${diagnostic.code}-${diagnostic.start}`}
-                    leadingItems={<DiagnosticIcon severity={diagnostic.severity} />}
-                  >
-                    <Text>{getMessage(diagnostic)}</Text>
-                  </Tooltip.Row>
-                ))}
-              </Tooltip.Grid>
-            }
-            maxWidth="none"
-            forceVisible="delayed"
-            position="top"
-            skipWrapper
-          >
-            <TooltipAnchor style={hovered.rect} />
-          </Tooltip>
-        ) : null}
       </Container>
       {settledDiagnostics.length > 0 && (
         <Disclosure size="xs">
           <Disclosure.Title id={summaryId}>
-            <Flex gap="md" align="center">
-              {errorCount > 0 && (
-                <Flex gap="xs" align="center">
-                  <DiagnosticIcon severity="error" />
-                  <Text size="sm" bold={false}>
-                    {tn('%s error', '%s errors', errorCount)}
-                  </Text>
-                </Flex>
-              )}
-              {warningCount > 0 && (
-                <Flex gap="xs" align="center">
-                  <DiagnosticIcon severity="warning" />
-                  <Text size="sm" bold={false}>
-                    {tn('%s warning', '%s warnings', warningCount)}
-                  </Text>
-                </Flex>
-              )}
+            <Flex gap="xs" align="center">
+              <DiagnosticIcon severity={errorCount > 0 ? 'error' : 'warning'} />
+              <Text size="sm" bold={false}>
+                {[
+                  errorCount > 0 && tn('%s error', '%s errors', errorCount),
+                  warningCount > 0 && tn('%s warning', '%s warnings', warningCount),
+                ]
+                  .filter(Boolean)
+                  .join(', ')}
+              </Text>
             </Flex>
           </Disclosure.Title>
           <Disclosure.Content>
@@ -338,7 +214,9 @@ export function FingerprintRulesEditor({
                     >
                       {t('Line %s', getLineNumber(settledText, diagnostic.start))}
                     </Button>{' '}
-                    {getMessage(diagnostic)}
+                    {DIAGNOSTIC_MESSAGES[diagnostic.code](
+                      settledText.slice(diagnostic.start, diagnostic.end)
+                    )}
                   </Text>
                 </Flex>
               ))}
@@ -349,51 +227,6 @@ export function FingerprintRulesEditor({
     </Stack>
   );
 }
-
-const highlightStyles = (theme: Theme) => css`
-  [data-token='comment'] {
-    color: ${theme.tokens.syntax.comment};
-  }
-  [data-token='negation'] {
-    color: ${theme.tokens.syntax.keyWord};
-  }
-  [data-token='matcher'],
-  [data-token='attribute'] {
-    color: ${theme.tokens.syntax.property};
-  }
-  [data-token='pattern'],
-  [data-token='string'] {
-    color: ${theme.tokens.syntax.selector};
-  }
-  [data-token='punctuation'] {
-    color: ${theme.tokens.content.secondary};
-  }
-  [data-token='arrow'] {
-    color: ${theme.tokens.content.promotion};
-  }
-  [data-token='variable'] {
-    color: ${theme.tokens.content.warning};
-  }
-  [data-token='invalid'] {
-    color: ${theme.tokens.content.danger};
-  }
-  [data-severity] {
-    text-decoration-line: underline;
-    text-decoration-style: wavy;
-    text-decoration-skip-ink: none;
-    text-underline-offset: 0.2em;
-  }
-  [data-severity='error'] {
-    text-decoration-color: ${theme.tokens.graphics.danger.vibrant};
-  }
-  [data-severity='warning'] {
-    text-decoration-color: ${theme.tokens.graphics.warning.vibrant};
-  }
-`;
-
-const Highlight = styled('span')`
-  ${p => highlightStyles(p.theme)}
-`;
 
 // Matches TextArea, whose vertical padding centers one line in the input's height
 const verticalPadding = (theme: Theme, size: FormSize) =>
@@ -419,13 +252,45 @@ const HighlightLayer = styled('div')<{disabled: boolean; size: FormSize}>`
   white-space: pre-wrap;
   overflow-wrap: break-word;
   ${p => p.disabled && 'opacity: 60%;'}
-  ${p => highlightStyles(p.theme)}
-`;
 
-// Marks where an underline is, for its tooltip to point at
-const TooltipAnchor = styled('span')`
-  position: absolute;
-  pointer-events: none;
+  [data-token='comment'] {
+    color: ${p => p.theme.tokens.syntax.comment};
+  }
+  [data-token='negation'] {
+    color: ${p => p.theme.tokens.syntax.keyWord};
+  }
+  [data-token='matcher'],
+  [data-token='attribute'] {
+    color: ${p => p.theme.tokens.syntax.property};
+  }
+  [data-token='pattern'],
+  [data-token='string'] {
+    color: ${p => p.theme.tokens.syntax.selector};
+  }
+  [data-token='punctuation'] {
+    color: ${p => p.theme.tokens.content.secondary};
+  }
+  [data-token='arrow'] {
+    color: ${p => p.theme.tokens.content.promotion};
+  }
+  [data-token='variable'] {
+    color: ${p => p.theme.tokens.content.warning};
+  }
+  [data-token='invalid'] {
+    color: ${p => p.theme.tokens.content.danger};
+  }
+  [data-severity] {
+    text-decoration-line: underline;
+    text-decoration-style: wavy;
+    text-decoration-skip-ink: none;
+    text-underline-offset: 0.2em;
+  }
+  [data-severity='error'] {
+    text-decoration-color: ${p => p.theme.tokens.graphics.danger.vibrant};
+  }
+  [data-severity='warning'] {
+    text-decoration-color: ${p => p.theme.tokens.graphics.warning.vibrant};
+  }
 `;
 
 const EditorTextArea = styled(TextArea)`

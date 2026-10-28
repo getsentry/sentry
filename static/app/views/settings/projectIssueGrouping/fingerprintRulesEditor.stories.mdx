@@ -5,19 +5,17 @@ source: sentry/views/settings/projectIssueGrouping/fingerprintRulesEditor
 ---
 
 import * as Storybook from 'sentry/stories';
-import {FingerprintRulesCode} from 'sentry/views/settings/projectIssueGrouping/fingerprintRulesEditor';
 
 import {
   EditorDemo,
   longRules,
   mistakes,
-  unclosedQuote,
   validRules,
 } from './__stories__/fingerprintRulesExamples';
 
 `<FingerprintRulesEditor>` is a textarea for [fingerprint rules](https://docs.sentry.io/product/data-management-settings/event-grouping/fingerprint-rules/). It highlights each part of a rule, and underlines mistakes that would stop the rules from saving or make them behave differently than they read.
 
-The highlighting is a layer over the textarea, whose own text is transparent, so typing, selection, undo, and autosize all stay native. The tokenizer in `fingerprintRulesSyntax.ts` follows the backend grammar, so a config gets an error when the backend would reject it.
+The highlighting is a layer over the textarea, whose own text is transparent, so typing, selection, undo, and autosize all stay native. The tokenizer in `fingerprintRulesSyntax.ts` follows the backend grammar, so a config gets an error when the backend can't parse it. It doesn't check matcher or variable names, so it never goes stale when the backend adds one. The backend still validates on save, so if the tokenizer throws, the editor quietly shows plain text and reports the error.
 
 ## Highlighting
 
@@ -33,18 +31,10 @@ Matchers are on the left of `->`, and the fingerprint is on the right. Variables
 
 ## Catching Mistakes
 
-Errors (red) stop the rules from saving, and warnings (yellow) save but probably don't do what was meant. Hover an underline to see what's wrong, or expand the summary to list them all. Problems show up once typing pauses, so a half-written rule isn't flagged.
+Errors (red) stop the rules from saving, and warnings (yellow) save but probably don't do what was meant. Expand the summary below the field to see what's wrong, and pick a line to select it. Problems show up once typing pauses, so a half-written rule isn't flagged.
 
 <Storybook.Demo standalone>
   <EditorDemo initialValue={mistakes} />
-</Storybook.Demo>
-
-## Missing Closing Quote
-
-A quoted value can span lines, so a missing closing quote swallows the following rules until the next quote.
-
-<Storybook.Demo standalone>
-  <EditorDemo initialValue={unclosedQuote} />
 </Storybook.Demo>
 
 ## Long Configs
@@ -55,18 +45,6 @@ Past `maxRows`, the textarea scrolls and the highlighting scrolls with it.
   <EditorDemo initialValue={longRules} />
 </Storybook.Demo>
 
-## Read-Only
-
-`<FingerprintRulesCode>` shows highlighted rules that can't be edited, like the example on the Issue Grouping settings page.
-
-<Storybook.Demo>
-  <FingerprintRulesCode rules={validRules} />
-</Storybook.Demo>
-
-```tsx
-<FingerprintRulesCode rules={exampleRules} />
-```
-
 ## Accessibility
 
-The highlighting layer is hidden from assistive technology. The error and warning counts are linked to the textarea with `aria-describedby`, and the expanded list reaches every problem without hovering.
+The highlighting layer is hidden from assistive technology. The error and warning counts are linked to the textarea with `aria-describedby`, and the expanded list explains every problem.

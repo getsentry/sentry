@@ -21,7 +21,7 @@ describe('FingerprintRulesEditor', () => {
   it('summarizes problems and selects one picked from the list', async () => {
     render(
       <Editor
-        initialValue={'error.type:A -> {{ x }}\nerror.type:B => b\nerror.typo:C -> c'}
+        initialValue={'error.type:A -> a title=T\nerror.type:B => b\nerror.type:C-> c'}
       />
     );
 
@@ -29,9 +29,11 @@ describe('FingerprintRulesEditor', () => {
     expect(screen.getByText('Use "->" instead of "=>"')).not.toBeVisible();
 
     await userEvent.click(summary);
-    expect(screen.getByText('Unknown variable "x"')).toBeVisible();
+    expect(
+      screen.getByText('Unquoted title becomes part of the fingerprint')
+    ).toBeVisible();
     expect(screen.getByText('Use "->" instead of "=>"')).toBeVisible();
-    expect(screen.getByText('Unknown matcher "error.typo"')).toBeVisible();
+    expect(screen.getByText('Add a space before "->"')).toBeVisible();
 
     await userEvent.click(screen.getByRole('button', {name: 'Line 2'}));
 
