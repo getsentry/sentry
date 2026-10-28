@@ -397,6 +397,29 @@ function getActivityItemContent({
         ) : undefined,
       };
     }
+    case GroupActivityType.UNLINK_EXTERNAL_ISSUE:
+    case GroupActivityType.LEGACY_UNLINK_EXTERNAL_ISSUE:
+      return {
+        title: t('Unlinked external issue'),
+        details: tct('[key] on [provider]', {
+          key: activity.data.external_issue_key,
+          provider: getProviderName(activity.data.provider),
+        }),
+      };
+    case GroupActivityType.UNLINK_PLATFORM_EXTERNAL_ISSUE:
+    case GroupActivityType.LEGACY_UNLINK_PLATFORM_EXTERNAL_ISSUE:
+      return {
+        title: t('Unlinked external issue'),
+        details: activity.data.web_url ? (
+          <ExternalIssueChip
+            label={activity.data.display_name}
+            location={activity.data.web_url}
+            provider={activity.data.service_type}
+          />
+        ) : (
+          activity.data.display_name
+        ),
+      };
     case GroupActivityType.CREATE_ISSUE:
       return {
         title:
