@@ -39,7 +39,9 @@ class WriteConvertedNotebookTest(TestCase):
         assert investigation.title == "Checkout crashes"
         assert investigation.source == {"type": "autofix", "seerRunId": 1}
         assert investigation.source_revision == 1
-        blocks = list(InvestigationBlock.objects.filter(investigation=investigation))
+        blocks = list(
+            InvestigationBlock.objects.filter(investigation=investigation).order_by("position")
+        )
         assert [(b.stable_agent_key, b.position) for b in blocks] == [
             ("root_cause", 0),
             ("solution", 1),

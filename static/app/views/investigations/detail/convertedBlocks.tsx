@@ -296,7 +296,9 @@ function TriageVerdicts({rows}: {rows: z.infer<typeof triageVerdictsSchema>['row
               </Tag>
             </SimpleTable.RowCell>
             <SimpleTable.RowCell>
-              <Text size="sm">{row.verdict.reason ?? ''}</Text>
+              <Text size="sm" wordBreak="break-word">
+                {row.verdict.reason ?? ''}
+              </Text>
             </SimpleTable.RowCell>
           </SimpleTable.Row>
         ))}
