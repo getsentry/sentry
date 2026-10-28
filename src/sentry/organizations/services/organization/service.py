@@ -68,13 +68,16 @@ class OrganizationService(RpcService):
         user_id: int | None = None,
         include_resource_ids: bool = False,
     ) -> RpcOrganizationAccessContext | None:
-        """Return organization/member data for access checks without full resource collections.
+        """
+        Return organization/member data for access checks without full resource collections.
 
         include_resource_ids batches org-wide enumeration into this response; it does not
         authorize the user to access those resources. Callers must apply access policies.
         """
         pass
 
+    @cell_rpc_method(resolve=ByOrganizationSlug(), return_none_if_mapping_not_found=True)
+    @abstractmethod
     def get_access_context_by_slug(
         self,
         *,
@@ -83,24 +86,14 @@ class OrganizationService(RpcService):
         user_id: int | None = None,
         include_resource_ids: bool = False,
     ) -> RpcOrganizationAccessContext | None:
-        from sentry.models.organization import OrganizationStatus
-
-        organization_id = self.check_organization_by_slug(slug=slug, only_visible=only_visible)
-        if organization_id is None:
-            return None
-        context = self.get_access_context(
-            organization_id=organization_id,
-            user_id=user_id,
-            include_resource_ids=include_resource_ids,
-        )
-        if only_visible and context and context.organization.status != OrganizationStatus.ACTIVE:
-            return None
-        return context
+        """Slug-addressed get_access_context. only_visible excludes inactive organizations."""
+        pass
 
     @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def get_project_summary(self, *, organization_id: int) -> RpcOrganizationProjectSummary:
-        """Return distinct platforms and aggregate flags for broadcast targeting.
+        """
+        Return distinct platforms and aggregate flags for broadcast targeting.
 
         Includes inactive projects to preserve existing targeting semantics.
         """

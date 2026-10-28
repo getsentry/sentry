@@ -1,6 +1,8 @@
 from unittest import mock
 
 from django.conf import settings
+from django.db import connections, router
+from django.test.utils import CaptureQueriesContext
 
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.rpc.service import dispatch_to_local_service
@@ -17,6 +19,13 @@ from sentry.organizations.services.organization.service import organization_serv
 from sentry.testutils.asserts import assert_no_organization_resource_hydration
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode_of
+
+
+def count_organization_reads(queries: CaptureQueriesContext) -> int:
+    return sum(
+        f'FROM "{Organization._meta.db_table}" ' in query["sql"]
+        for query in queries.captured_queries
+    )
 
 
 @all_silo_test
@@ -113,6 +122,47 @@ class ActiveOrganizationResourcesTest(TestCase):
         assert value["organization"]["teams"] == []
         assert value["resource_ids"] == {"project_ids": [project.id], "team_ids": [team.id]}
 
+        with assume_test_silo_mode_of(Project):
+            response = dispatch_to_local_service(
+                "organization",
+                "get_access_context_by_slug",
+                {"slug": org.slug, "only_visible": True, "include_resource_ids": True},
+            )
+        assert response["value"] == value
+
+    def test_access_contexts_read_organization_once(self) -> None:
+        org = self.create_organization(owner=self.user)
+        team = self.create_team(organization=org)
+        project = self.create_project(organization=org, teams=[team])
+        connection = connections[router.db_for_read(Organization)]
+
+        with CaptureQueriesContext(connection) as by_id_queries:
+            by_id = organization_service.get_access_context(
+                organization_id=org.id, user_id=self.user.id
+            )
+        with CaptureQueriesContext(connection) as by_slug_queries:
+            context = organization_service.get_access_context_by_slug(
+                slug=org.slug, only_visible=True, user_id=self.user.id, include_resource_ids=True
+            )
+
+        assert count_organization_reads(by_id_queries) == 1
+        assert count_organization_reads(by_slug_queries) == 1
+        assert by_id is not None
+        assert by_id.member is not None
+        assert context is not None
+        assert context.organization.id == org.id
+        assert context.member is not None
+        assert context.member.user_id == self.user.id
+        assert "org:admin" in context.member.scopes
+        assert context.member.scopes == by_id.member.scopes
+        assert context.resource_ids is not None
+        assert context.resource_ids.project_ids == [project.id]
+        assert context.resource_ids.team_ids == [team.id]
+        assert (
+            organization_service.get_access_context_by_slug(slug="missing-org", only_visible=False)
+            is None
+        )
+
     def test_access_context_visibility(self) -> None:
         org = self.create_organization()
         context = organization_service.get_access_context_by_slug(
@@ -120,6 +170,7 @@ class ActiveOrganizationResourcesTest(TestCase):
         )
         assert context is not None
         assert context.member is None
+        assert context.resource_ids is None
         with assume_test_silo_mode_of(Organization):
             org.update(status=OrganizationStatus.PENDING_DELETION)
         assert (
