@@ -51,3 +51,8 @@ def iteration_identity_from_run(
     if features.has(AD_HOC_FLAG, Organization.objects.get_from_cache(id=organization_id)):
         return AdHocIterationIdentity()
     return None
+
+
+def is_ad_hoc_run(run_state: SeerRunState) -> bool:
+    """For a run already resolved as eligible: ad hoc runs are the ones without an issue."""
+    return (run_state.metadata or {}).get("group_id") is None

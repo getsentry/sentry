@@ -48,6 +48,7 @@ from sentry.seer.autofix.pr_iteration.constants import (
 from sentry.seer.autofix.pr_iteration.identity import (
     AutofixIterationIdentity,
     IterationIdentity,
+    is_ad_hoc_run,
     iteration_identity_from_run,
 )
 from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
@@ -435,6 +436,28 @@ def compare_live_pull_request_head(
     matched = check_suite_matches_pr_head(event, pr_head_sha=live_head_sha).matched
     return _record_github_request(
         LivePullRequestHead("match" if matched else "mismatch", live_head_sha)
+    )
+
+
+def check_suite_matches_run_head(
+    event: GithubCheckSuiteEvent, run_state: SeerRunState, repository: Repository
+) -> CheckSuiteHeadMatch:
+    """Whether the check suite ran on the head this run's iteration judges.
+
+    Ad-hoc iterations push from their own Seer runs, so this run's recorded
+    ``commit_sha`` lags their pushes: ad-hoc runs match the live PR head instead,
+    falling back to the recorded head when GitHub doesn't answer. Whether that
+    head is Seer's is ``iteration_prs_any_external_head``'s call.
+    """
+    if not is_ad_hoc_run(run_state):
+        return check_suite_head_match(event, run_state)
+    live_head = compare_live_pull_request_head(event, run_state, repository)
+    if live_head.result not in ("match", "mismatch"):
+        return check_suite_head_match(event, run_state)
+    return CheckSuiteHeadMatch(
+        head_sha=event.check_suite.head_sha,
+        repo_name=event.repository.full_name,
+        matched=live_head.result == "match",
     )
 
 
