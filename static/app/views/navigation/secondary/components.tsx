@@ -35,7 +35,7 @@ import {IconGrabbable} from '@sentry/icons/grabbable';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex, Grid, Stack, type FlexProps} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
@@ -73,6 +73,7 @@ import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigatio
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 const MotionContainer = motion.create(Container);
+const LEADING_SLOT_SIZE = '24px';
 
 interface SecondarySidebarProps {
   children: ReactNode;
@@ -584,7 +585,7 @@ function SecondaryNavigationLink({
   );
 }
 
-interface SecondaryNavigationLeadingSlotProps extends Pick<FlexProps, 'height'> {
+interface SecondaryNavigationLeadingSlotProps {
   children?: ReactNode;
 }
 
@@ -597,8 +598,8 @@ function SecondaryNavigationLeadingSlot(props: SecondaryNavigationLeadingSlotPro
       as="span"
       align="center"
       justify="center"
-      width="24px"
-      height={props.height ?? '24px'}
+      width={LEADING_SLOT_SIZE}
+      height={LEADING_SLOT_SIZE}
       flexShrink={0}
     >
       {props.children}
@@ -613,7 +614,7 @@ function SecondaryNavigationSeparator() {
     return (
       <Container>
         <Flex align="center" padding="md" gap="xs">
-          <SecondaryNavigationLeadingSlot height="auto" />
+          <Container width={LEADING_SLOT_SIZE} flexShrink={0} />
           <Container flex="1" minWidth="0">
             <Separator orientation="horizontal" border="muted" />
           </Container>
@@ -946,8 +947,8 @@ function SecondaryNavigationReorderableLink({
       <Flex
         justify="center"
         align="center"
-        width="24px"
-        height="24px"
+        width={LEADING_SLOT_SIZE}
+        height={LEADING_SLOT_SIZE}
         flexShrink={0}
         data-reorderable-handle-slot
       >
