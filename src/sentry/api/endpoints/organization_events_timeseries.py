@@ -532,7 +532,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         skip_cache = incremental_loading and request.GET.get("skipCache") == "1"
         is_cache_candidate = False
         if incremental_loading and not skip_cache:
-            with traces.start_span("get_cache"):
+            with traces.start_span("get_cache") as span:
                 if is_cache_candidate := cache_candidate(
                     dataset, snuba_params, query, query_columns, rollup, top_events
                 ):
@@ -546,6 +546,8 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                         # Don't use the cache if we haven't queried the start before
                         # If this works well we can fork two queries in the future but keeping it simple for now
                         if cached_timestamps[0] > snuba_params.start_date.timestamp():
+                            span.set_attribute("query.invalid_cache_reason", "missing_start")
+                            span.set_attribute("query.truncated", "None")
                             is_cache_candidate = False
                         # still query the last 3 timestamps
                         elif len(cached_timestamps) > 3:
@@ -553,6 +555,13 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                             snuba_params.start = datetime.fromtimestamp(
                                 cached_timestamps[-3], tz=timezone.utc
                             )
+                            span.set_attribute("query.truncated", "by_cache")
+                        else:
+                            span.set_attribute("query.truncated", "None")
+                    else:
+                        span.set_attribute("query.cache_hit", "missing")
+                else:
+                    span.set_attribute("query.invalid_cache_reason", "non_candidate")
 
         self._emit_analytics_event(organization, referrer)
 
