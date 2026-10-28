@@ -32,7 +32,7 @@ import {
   ToolbarFooterButton,
   ToolbarHeader,
   ToolbarLabel,
-  ToolbarRow,
+  ToolbarVisualizeRow,
 } from 'sentry/views/explore/components/toolbar/styles';
 import {ExpandableFilterSearchBar} from 'sentry/views/explore/components/toolbar/toolbarVisualize/expandableFilterSearchBar';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
@@ -155,7 +155,7 @@ export function ToolbarVisualizeDropdown({
   };
 
   return (
-    <ToolbarRow
+    <ToolbarVisualizeRow
       ref={setNodeRef}
       style={{
         transform: CSS.Transform.toString(transform),
@@ -261,7 +261,7 @@ export function ToolbarVisualizeDropdown({
           aria-label={deleteLabel ?? t('Remove Overlay')}
         />
       ) : null}
-    </ToolbarRow>
+    </ToolbarVisualizeRow>
   );
 }
 
