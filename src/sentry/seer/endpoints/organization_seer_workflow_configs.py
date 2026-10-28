@@ -6,8 +6,8 @@ from functools import partial
 from typing import Any, NotRequired, TypedDict
 
 from django.db.models import OuterRef, Subquery
-from drf_spectacular.utils import extend_schema
-from rest_framework.exceptions import NotFound
+from drf_spectacular.utils import OpenApiParameter, extend_schema
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -18,6 +18,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
+from sentry.api.utils import to_valid_int_id_list
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ALL_ACCESS_PROJECT_ID
@@ -44,11 +45,15 @@ class SeerWorkflowConfigResponse(TypedDict):
     seededDefault: str | None
     dateAdded: datetime
     dateUpdated: datetime
-    lastRun: NotRequired[int]
+    dateLastRun: NotRequired[datetime]
 
 
 class SeerWorkflowConfigsResponse(TypedDict):
     configs: list[SeerWorkflowConfigResponse]
+
+
+class WorkflowConfigListErrorResponse(TypedDict):
+    detail: dict[str, str]
 
 
 @dataclass(frozen=True)
@@ -66,10 +71,24 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
 
     @extend_schema(
         operation_id="List Seer automation workflows",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG, CursorQueryParam],
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            CursorQueryParam,
+            OpenApiParameter(
+                name="id",
+                type=int,
+                location=OpenApiParameter.QUERY,
+                many=True,
+                explode=True,
+                description="Filter by config IDs. Repeat the parameter for multiple IDs.",
+            ),
+        ],
         responses={
             200: inline_sentry_response_serializer(
                 "SeerWorkflowConfigs", SeerWorkflowConfigsResponse
+            ),
+            400: inline_sentry_response_serializer(
+                "SeerWorkflowConfigListError", WorkflowConfigListErrorResponse
             ),
         },
     )
@@ -77,22 +96,31 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
         """List saved Seer automation workflows.
 
         The ``configs`` list contains the current page; pagination links are in headers.
+        Filter by config IDs with ``?id=123&id=456``; omit ``id`` to list all configs.
+        Invalid IDs return 400; no visible matches return ``{"configs": []}``.
         ``projects`` is ``[-1]`` for all projects, ``[]`` for no projects, or a list
         of selected active project IDs accessible to the caller. An empty
         ``environments`` list means all environments; otherwise it contains names.
         ``filters`` contains strategy-specific filters. ``seededDefault`` records
         the seeded strategy even after edits.
         ``outputPolicy`` is the saved, opaque policy document.
-        ``lastRun`` is the latest visible run's creation time in Unix seconds,
+        ``dateLastRun`` is the latest visible run's creation time,
         omitted if none are visible under the runs endpoint's project-scope rules.
         """
         if not features.has("organizations:seer-automations", organization, actor=request.user):
             raise NotFound
 
+        try:
+            config_ids = to_valid_int_id_list("id", request.query_params.getlist("id"))
+        except ValidationError as error:
+            return Response({"detail": error.detail}, status=400)
+
         projects = self.get_projects(request, organization, include_all_accessible=True)
         configs = SeerWorkflowConfig.objects.filter(
             organization=organization, strategy__in=SEER_CONFIGURABLE_WORKFLOW_STRATEGIES
         )
+        if config_ids:
+            configs = configs.filter(id__in=config_ids)
         return self.paginate(
             request=request,
             queryset=configs,
@@ -104,48 +132,6 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
                 has_global_access=request.access.has_global_access,
             ),
         )
-
-
-@cell_silo_endpoint
-@extend_schema(tags=["Seer"])
-class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
-    owner = ApiOwner.ML_AI
-    publish_status = {"GET": ApiPublishStatus.PRIVATE}
-    permission_classes = (OrganizationPermission,)
-
-    @extend_schema(
-        operation_id="Retrieve a Seer automation workflow",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG],
-        responses={
-            200: inline_sentry_response_serializer(
-                "SeerWorkflowConfig", SeerWorkflowConfigResponse
-            ),
-        },
-    )
-    def get(self, request: Request, organization: Organization, config_id: str) -> Response:
-        """Retrieve a saved Seer automation workflow by ID.
-
-        The response has the same shape as an item in the list endpoint's ``configs``.
-        """
-        if not features.has("organizations:seer-automations", organization, actor=request.user):
-            raise NotFound
-
-        try:
-            config = SeerWorkflowConfig.objects.get(
-                id=int(config_id),
-                organization=organization,
-                strategy__in=SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
-            )
-        except (ValueError, SeerWorkflowConfig.DoesNotExist) as e:
-            raise NotFound from e
-
-        projects = self.get_projects(request, organization, include_all_accessible=True)
-        result = serialize_workflow_configs(
-            [config],
-            accessible_project_ids=[p.id for p in projects],
-            has_global_access=request.access.has_global_access,
-        )
-        return Response(result["configs"][0])
 
 
 def serialize_workflow_configs(
@@ -236,5 +222,5 @@ def serialize_workflow_config(
         "dateUpdated": config.date_updated,
     }
     if last_run is not None:
-        result["lastRun"] = int(last_run.timestamp())
+        result["dateLastRun"] = last_run
     return result

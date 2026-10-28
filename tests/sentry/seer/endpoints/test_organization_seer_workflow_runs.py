@@ -1,11 +1,10 @@
 from collections.abc import Sequence
-from datetime import timedelta
+from datetime import datetime, timedelta
 from unittest.mock import patch
 
 from django.db import connections, router
 from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
-from django.urls import reverse
 from django.utils import timezone
 from openapi_schema_validator import OAS30Validator
 
@@ -619,6 +618,53 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
         }
         assert response.data["configs"][1]["projects"] == []
 
+    def test_id_filter_is_scoped_and_applies_before_pagination(self) -> None:
+        self.create_config()
+        first = self.create_config()
+        second = self.create_config()
+        foreign = Factories.create_seer_workflow_config(
+            self.create_organization(owner=self.user),
+            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+        )
+        legacy = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            id=[second.id, first.id, first.id, foreign.id, legacy.id, I64_MAX],
+            per_page=1,
+        )
+        assert [config["id"] for config in response.data["configs"]] == [str(first.id)]
+        next_url = next(
+            url
+            for url, link in parse_link_header(response.headers["Link"]).items()
+            if link["rel"] == "next"
+        )
+        next_page = self.client.get(next_url)
+        assert next_page.status_code == 200
+        assert [config["id"] for config in next_page.data["configs"]] == [str(second.id)]
+        assert (
+            next(
+                link
+                for link in parse_link_header(next_page.headers["Link"]).values()
+                if link["rel"] == "next"
+            )["results"]
+            == "false"
+        )
+
+        unavailable = self.get_success_response(
+            self.organization.slug, id=[foreign.id, legacy.id, I64_MAX]
+        )
+        assert unavailable.data == {"configs": []}
+
+    def test_invalid_config_ids(self) -> None:
+        config = self.create_config()
+        for invalid_id in ("invalid", "-1", str(I64_MAX + 1)):
+            response = self.get_error_response(
+                self.organization.slug, id=[config.id, invalid_id], status_code=400
+            )
+            assert "id" in response.data["detail"]
+
     def test_last_run_uses_each_configs_latest_invocation(self) -> None:
         config = self.create_config()
         other_config = self.create_config()
@@ -641,21 +687,19 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
         )
 
         response = self.get_success_response(self.organization.slug)
-        assert {item["id"]: item.get("lastRun") for item in response.data["configs"]} == {
-            str(config.id): int(latest.date_added.timestamp()),
-            str(other_config.id): int(other_run.date_added.timestamp()),
+        assert {item["id"]: item.get("dateLastRun") for item in response.data["configs"]} == {
+            str(config.id): latest.date_added,
+            str(other_config.id): other_run.date_added,
             str(empty_config.id): None,
         }
-        assert "lastRun" not in response.data["configs"][2]
+        assert "dateLastRun" not in response.data["configs"][2]
 
-        details = self.client.get(
-            reverse(
-                "sentry-api-0-organization-seer-workflow-config-details",
-                args=[self.organization.slug, config.id],
-            )
+        assert (
+            datetime.fromisoformat(response.json()["configs"][0]["dateLastRun"])
+            == latest.date_added
         )
-        assert details.status_code == 200
-        assert details.data["lastRun"] == int(latest.date_added.timestamp())
+        filtered = self.get_success_response(self.organization.slug, id=config.id)
+        assert filtered.data["configs"] == [response.data["configs"][0]]
 
     def test_last_run_only_includes_visible_history(self) -> None:
         self.organization.flags.allow_joinleave = False
@@ -689,24 +733,8 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
         self.login_as(member)
 
         response = self.get_success_response(self.organization.slug)
-        assert response.data["configs"][0]["lastRun"] == int(visible_run.date_added.timestamp())
-        assert "lastRun" not in response.data["configs"][1]
-        details = self.client.get(
-            reverse(
-                "sentry-api-0-organization-seer-workflow-config-details",
-                args=[self.organization.slug, config.id],
-            )
-        )
-        assert details.status_code == 200
-        assert details.data["lastRun"] == int(visible_run.date_added.timestamp())
-        hidden_details = self.client.get(
-            reverse(
-                "sentry-api-0-organization-seer-workflow-config-details",
-                args=[self.organization.slug, hidden_config.id],
-            )
-        )
-        assert hidden_details.status_code == 200
-        assert "lastRun" not in hidden_details.data
+        assert response.data["configs"][0]["dateLastRun"] == visible_run.date_added
+        assert "dateLastRun" not in response.data["configs"][1]
 
     def test_serialization_batches_database_reads(self) -> None:
         configs = [self.create_config() for _ in range(3)]
@@ -722,8 +750,8 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
             )
 
         assert len(queries) == 2
-        assert [config["lastRun"] for config in result["configs"]] == [
-            int(run.date_added.timestamp()) for run in runs
+        assert [config["dateLastRun"] for config in result["configs"]] == [
+            run.date_added for run in runs
         ]
 
     def test_scope_only_includes_accessible_active_projects(self) -> None:
@@ -745,70 +773,6 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
 
         assert len(response.data["configs"]) == 1
         assert response.data["configs"][0]["projects"] == [accessible.id]
-
-    def create_config(self, **kwargs) -> SeerWorkflowConfig:
-        return Factories.create_seer_workflow_config(
-            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2, **kwargs
-        )
-
-
-@override_settings(SENTRY_SELF_HOSTED=False)
-@with_feature("organizations:seer-automations")
-class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
-    endpoint = "sentry-api-0-organization-seer-workflow-config-details"
-
-    def setUp(self) -> None:
-        super().setUp()
-        self.login_as(user=self.user)
-
-    def test_feature_disabled_returns_404(self) -> None:
-        config = self.create_config()
-        with self.feature({"organizations:seer-automations": False}):
-            self.get_error_response(self.organization.slug, config.id, status_code=404)
-
-    def test_returns_config(self) -> None:
-        project = self.create_project()
-        config = self.create_config(
-            enabled=False,
-            version=4,
-            filters={"environments": ["production"], "min_event_count": 10},
-            output_policy={"review_mode": "manual"},
-            extras={"seeded_default": "agentic_triage_v2"},
-        )
-        Factories.create_seer_workflow_config_project(config, project)
-
-        response = self.get_success_response(self.organization.slug, config.id)
-
-        assert response.data == {
-            "id": str(config.id),
-            "strategy": "agentic_triage_v2",
-            "enabled": False,
-            "schedule": "daily",
-            "version": 4,
-            "projects": [project.id],
-            "environments": ["production"],
-            "filters": {"minEventCount": 10},
-            "outputPolicy": {"review_mode": "manual"},
-            "seededDefault": "agentic_triage_v2",
-            "dateAdded": config.date_added,
-            "dateUpdated": config.date_updated,
-        }
-
-    def test_missing_config_returns_404(self) -> None:
-        self.get_error_response(self.organization.slug, 999999, status_code=404)
-
-    def test_other_organization_config_returns_404(self) -> None:
-        config = Factories.create_seer_workflow_config(
-            self.create_organization(owner=self.user),
-            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
-        )
-        self.get_error_response(self.organization.slug, config.id, status_code=404)
-
-    def test_non_configurable_strategy_returns_404(self) -> None:
-        config = Factories.create_seer_workflow_config(
-            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE
-        )
-        self.get_error_response(self.organization.slug, config.id, status_code=404)
 
     def create_config(self, **kwargs) -> SeerWorkflowConfig:
         return Factories.create_seer_workflow_config(
