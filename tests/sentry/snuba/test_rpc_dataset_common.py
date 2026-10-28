@@ -9,26 +9,19 @@ from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import (
     DataPoint,
-    Expression,
     TimeSeries,
-    TimeSeriesRequest,
+    TimeSeriesResponse,
 )
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     TraceItemColumnValues,
     TraceItemTableRequest,
     TraceItemTableResponse,
 )
-from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
-from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeValue
 
-from sentry.api.helpers.timeseries_transformations import (
-    FillTransformation,
-    SmaSmoothTransformation,
-)
+from sentry.api.helpers.timeseries_transformations import SmaSmoothTransformation
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.columns import ResolvedAttribute
-from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.occurrences_rpc import Occurrences
@@ -37,219 +30,45 @@ from sentry.snuba.rpc_dataset_common import LimitBy, RPCBase, TableQuery, TableR
 from sentry.snuba.spans_rpc import Spans
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 
 
-@pytest.fixture
-def timeseries_resolver() -> SearchResolver:
-    return Spans.get_resolver(SnubaParams(granularity_secs=60), SearchResolverConfig())
-
-
-@pytest.mark.parametrize(
-    "start,end,interval,expected",
-    [
-        (0, 3600, 60, 15),
-        (0, 7 * 86400, 3600, 60),
-        (0, 30 * 86400, 3600, 300),
-        (0, 14 * 86400, 900, 300),
-        (0, 151500, 300, 15),
-        (1, 151501, 300, 15),
-    ],
-)
-def test_transformation_query_finest_supported_granularity(
-    start, end, interval, expected, timeseries_resolver
-) -> None:
-    request = TimeSeriesRequest(
-        meta=RequestMeta(
-            start_timestamp=Timestamp(seconds=start), end_timestamp=Timestamp(seconds=end)
-        ),
-        granularity_secs=interval,
-        expressions=[Expression(label="count()"), Expression(label="avg(span.duration)")],
-        group_by=[AttributeKey(name="sentry.raw_description")],
-        filter=TraceItemFilter(
-            comparison_filter=ComparisonFilter(key=AttributeKey(name="example"))
-        ),
+def test_timeseries_smooths_requested_interval() -> None:
+    start = datetime(2024, 1, 1, tzinfo=timezone.utc)
+    timestamps = [int(start.timestamp()), int(start.timestamp()) + 60]
+    response = TimeSeriesResponse(
+        result_timeseries=[
+            TimeSeries(
+                label="avg(span.duration)",
+                buckets=[Timestamp(seconds=timestamp) for timestamp in timestamps],
+                data_points=[
+                    DataPoint(data=30, data_present=True),
+                    DataPoint(data=130, data_present=True),
+                ],
+            )
+        ]
     )
-    original = request.SerializeToString()
-
-    query = Spans.get_transformation_query(
-        request,
-        ["count()", "avg(span.duration)", "count()"],
-        {
-            0: [FillTransformation(mode="locf")],
-            1: [FillTransformation(mode="linear")],
-            2: [SmaSmoothTransformation(mode="sma", window_size=2)],
-        },
-        timeseries_resolver,
-    )
-
-    assert query is not None
-    assert query.granularity_secs == expected
-    assert [expression.label for expression in query.expressions] == ["count()"]
-    assert query.meta == request.meta
-    assert query.filter == request.filter
-    assert query.group_by == request.group_by
-    assert request.SerializeToString() == original
-
-
-@pytest.mark.parametrize(
-    "end,interval",
-    [(60, 15), (8 * 86400, 300), (14 * 86400, 300)],
-)
-def test_transformation_query_without_finer_interval(end, interval, timeseries_resolver) -> None:
-    request = TimeSeriesRequest(
-        meta=RequestMeta(end_timestamp=Timestamp(seconds=end)),
-        granularity_secs=interval,
-        expressions=[Expression(label="count()")],
-    )
-    transformations = {0: [SmaSmoothTransformation(mode="sma", window_size=2)]}
-
-    assert (
-        Spans.get_transformation_query(request, ["count()"], transformations, timeseries_resolver)
-        is None
-    )
-
-
-def test_transformation_query_rejects_oversized_range(timeseries_resolver) -> None:
-    request = TimeSeriesRequest(
-        meta=RequestMeta(end_timestamp=Timestamp(seconds=151515)),
-        granularity_secs=15,
-        expressions=[Expression(label="count()")],
-    )
-
-    with pytest.raises(InvalidSearchQuery, match="too many buckets"):
-        Spans.get_transformation_query(
-            request,
-            ["count()"],
-            {0: [SmaSmoothTransformation(mode="sma", window_size=2)]},
-            timeseries_resolver,
+    with mock.patch("sentry.utils.snuba_rpc.timeseries_rpc", return_value=[response]) as rpc:
+        result = Spans.run_timeseries_query(
+            params=SnubaParams(
+                start=start,
+                end=start + timedelta(minutes=2),
+                granularity_secs=60,
+                organization=mock.Mock(id=1),
+            ),
+            query_string="",
+            y_axes=["avg(span.duration)"],
+            referrer="test",
+            config=SearchResolverConfig(),
+            sampling_mode=None,
+            transformations={0: [SmaSmoothTransformation(mode="sma", window_size=2)]},
         )
 
-
-@pytest.mark.parametrize(
-    "transformations",
-    [
-        None,
-        {},
-        {0: [FillTransformation(mode="locf")]},
-        {0: [FillTransformation(mode="linear")]},
-        {0: [FillTransformation(mode="zero")]},
-    ],
-)
-def test_transformation_query_without_smoothing(transformations, timeseries_resolver) -> None:
-    request = TimeSeriesRequest(
-        meta=RequestMeta(end_timestamp=Timestamp(seconds=60)),
-        granularity_secs=60,
-        expressions=[Expression(label="count()")],
-    )
-
-    assert (
-        Spans.get_transformation_query(request, ["count()"], transformations, timeseries_resolver)
-        is None
-    )
-
-
-@pytest.mark.parametrize("axis,divisor", [("eps()", 15), ("epm()", 0.25), ("tpm()", 0.25)])
-def test_transformation_query_resolves_fine_rate_divisor(
-    axis, divisor, timeseries_resolver
-) -> None:
-    request = TimeSeriesRequest(
-        meta=RequestMeta(end_timestamp=Timestamp(seconds=120)),
-        granularity_secs=60,
-        expressions=[Expression(label=axis)],
-    )
-
-    query = Spans.get_transformation_query(
-        request,
-        [axis],
-        {0: [SmaSmoothTransformation(mode="sma", window_size=2)]},
-        timeseries_resolver,
-    )
-
-    assert query is not None
-    assert query.expressions[0].formula.right.literal.val_double == divisor
-    assert timeseries_resolver.params.granularity_secs == 60
-
-
-@pytest.mark.parametrize(
-    "timestamps,values,output_timestamps,interval,sum_values,expected",
-    [
-        ([0, 15, 30, 45], [0, 2, None, 8], [0, 30], 30, False, [1, 8]),
-        ([0, 15, 30, 45], [None, None, 0, None], [0, 30], 30, False, [None, 0]),
-        ([0, 15, 30, 45, 60], [2, 4, 6, 8, 100], [10, 40], 30, False, [5, 54]),
-        ([17, 77, 137, 197, 257, 317, 377], [1, 2, 3, 4, 5, 6, 8], [17, 317], 300, False, [3, 7]),
-        ([0, 15], [1, 3], [], 30, False, []),
-        ([0, 15, 30, 45], [0, 2, None, 8], [0, 30], 30, True, [2, 8]),
-        ([0, 15, 30, 45], [None, None, 0, None], [0, 30], 30, True, [None, 0]),
-        ([0, 15, 30, 45, 60], [2, 4, 6, 8, 100], [10, 40], 30, True, [10, 108]),
-    ],
-)
-def test_rebucket_timeseries(
-    timestamps, values, output_timestamps, interval, sum_values, expected
-) -> None:
-    assert (
-        RPCBase.rebucket_timeseries(
-            timestamps, values, output_timestamps, interval, sum_values=sum_values
-        )
-        == expected
-    )
-
-
-def test_transform_fine_points_before_rebucketing(timeseries_resolver) -> None:
-    coarse = TimeSeries(
-        label="avg(span.duration)",
-        buckets=[Timestamp(seconds=0), Timestamp(seconds=30)],
-        data_points=[DataPoint(data=2, data_present=True), DataPoint(data=8, data_present=True)],
-    )
-    fine = TimeSeries(
-        label="avg(span.duration)",
-        buckets=[Timestamp(seconds=value) for value in [0, 15, 30, 45]],
-        data_points=[
-            DataPoint(data=2, data_present=True),
-            DataPoint(data_present=False),
-            DataPoint(data=8, data_present=True),
-            DataPoint(data_present=False),
-        ],
-    )
-    original = fine.SerializeToString()
-    result = RPCBase.process_timeseries_list([coarse], SearchResolverConfig())
-
-    RPCBase.apply_timeseries_transformations(
-        result,
-        [coarse],
-        ["avg(span.duration)", "avg(span.duration)", "avg(span.duration)"],
-        {
-            1: [FillTransformation(mode="linear")],
-            2: [
-                FillTransformation(mode="linear"),
-                SmaSmoothTransformation(mode="sma", window_size=1),
-            ],
-        },
-        30,
-        resolved_columns=timeseries_resolver.resolve_functions(["avg(span.duration)"])[0],
-        fine_timeseries_list=[fine],
-    )
-
-    assert result.timeseries == [
-        {
-            "time": 0,
-            "avg(span.duration)": 2,
-            "__transformed_y_axis_1": 2,
-            "__transformed_y_axis_2": 3.5,
-        },
-        {
-            "time": 30,
-            "avg(span.duration)": 8,
-            "__transformed_y_axis_1": 8,
-            "__transformed_y_axis_2": 8,
-        },
-    ]
-    assert fine.SerializeToString() == original
-    assert result.transformation_flags[1].filled == [False, False]
-    assert result.transformation_flags[1].smoothed == [False, False]
-    assert result.transformation_flags[2].filled == [True, False]
-    assert result.transformation_flags[2].smoothed == [True, True]
+    assert [row["__transformed_y_axis_0"] for row in result.data["data"]] == [30, 80]
+    assert [
+        request.granularity_secs for call in rpc.call_args_list for request in call.args[0]
+    ] == [60]
 
 
 @pytest.mark.parametrize("routing_hint", ["", "opaque+/=="])
@@ -909,3 +728,61 @@ def test_force_sampling_mode_in_timeseries(dataset, query, mode):
     )
 
     assert rpc_request.meta.downsampled_storage_config.mode == mode
+
+
+@django_db_all
+@freeze_time()
+def test_table_caps_end_at_now_when_end_is_in_the_future() -> None:
+    organization = Factories.create_organization(owner=Factories.create_user())
+    now = datetime.now(timezone.utc)
+    snuba_params = SnubaParams(
+        start=now - timedelta(minutes=10),
+        end=now + timedelta(minutes=10),
+        organization=organization,
+    )
+    resolver = OurLogs.get_resolver(snuba_params, SearchResolverConfig())
+    table_query = TableQuery("", ["message"], None, 0, 1, "TestReferrer", None, resolver)
+
+    rpc_request = RPCBase.get_table_rpc_request(table_query)
+
+    assert rpc_request.rpc_request.meta.end_timestamp.ToDatetime(tzinfo=timezone.utc) == now
+
+
+@django_db_all
+@freeze_time()
+def test_table_keeps_end_when_end_is_in_the_past() -> None:
+    organization = Factories.create_organization(owner=Factories.create_user())
+    end = datetime.now(timezone.utc) - timedelta(minutes=5)
+    snuba_params = SnubaParams(
+        start=end - timedelta(minutes=10),
+        end=end,
+        organization=organization,
+    )
+    resolver = OurLogs.get_resolver(snuba_params, SearchResolverConfig())
+    table_query = TableQuery("", ["message"], None, 0, 1, "TestReferrer", None, resolver)
+
+    rpc_request = RPCBase.get_table_rpc_request(table_query)
+
+    assert rpc_request.rpc_request.meta.end_timestamp.ToDatetime(tzinfo=timezone.utc) == end
+
+
+@django_db_all
+@freeze_time(before_now(days=1).replace(minute=5, second=0, microsecond=0))
+def test_timeseries_caps_filter_end_at_now_when_end_is_in_the_future() -> None:
+    organization = Factories.create_organization(owner=Factories.create_user())
+    now = datetime.now(timezone.utc)
+    snuba_params = SnubaParams(
+        start=now - timedelta(minutes=5),
+        end=now + timedelta(minutes=5),
+        granularity_secs=3600,
+        organization=organization,
+    )
+    resolver = OurLogs.get_resolver(snuba_params, SearchResolverConfig())
+
+    timeseries_filter, params = RPCBase.update_timestamps(snuba_params, resolver)
+
+    assert timeseries_filter is not None
+    assert timeseries_filter.and_filter.filters[1].comparison_filter.value.val_int == int(
+        now.timestamp()
+    )
+    assert params.end == now.replace(minute=0, tzinfo=None) + timedelta(hours=1)

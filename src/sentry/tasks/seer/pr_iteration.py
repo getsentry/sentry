@@ -104,6 +104,7 @@ from sentry.seer.autofix.pr_iteration.pause import (
 )
 from sentry.seer.autofix.pr_iteration.pr_state import (
     iteration_prs_any_closed,
+    iteration_prs_any_external_head,
     record_pr_closed,
 )
 from sentry.seer.autofix.pr_iteration.queue import (
@@ -1910,6 +1911,15 @@ def _trigger_pr_iteration_from_review(
             username=author_username,
             external_id=author_external_id,
         )
+
+    # Someone else has pushed to the PR, so the review may not be about Seer's
+    # work. Only an explicit request (an @sentry comment, the UI) acts now.
+    if iteration_prs_any_external_head(organization_id, agent_state):
+        logger.info(
+            "autofix.pr_iteration.review_trigger.external_head",
+            extra={**log_extra, "run_id": agent_state.run_id},
+        )
+        return None
 
     inline_comments = _fetch_all_review_comments(scm, pr_number=pr_number, review_id=review_id)
 

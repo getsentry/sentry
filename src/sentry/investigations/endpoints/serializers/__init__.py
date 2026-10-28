@@ -1,4 +1,6 @@
 __all__ = (
+    "InvestigationActionRequestSerializer",
+    "InvestigationActionRequestSerializerResponse",
     "InvestigationBlockSerializer",
     "InvestigationBlockSerializerResponse",
     "InvestigationDetailsSerializer",
@@ -11,6 +13,10 @@ __all__ = (
 )
 
 
+from .action_request import (
+    InvestigationActionRequestSerializer,
+    InvestigationActionRequestSerializerResponse,
+)
 from .block import InvestigationBlockSerializer, InvestigationBlockSerializerResponse
 from .investigation import (
     InvestigationDetailsSerializer,

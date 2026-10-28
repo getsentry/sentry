@@ -82,6 +82,39 @@ describe('deno agentMonitoring onboarding', () => {
     });
   });
 
+  describe.each([
+    ['openai', 'npm:openai'],
+    ['anthropic', 'npm:@anthropic-ai/sdk'],
+    ['google_genai', 'npm:@google/genai'],
+    ['langchain', 'npm:@langchain/openai'],
+    ['langgraph', 'npm:@langchain/langgraph/prebuilt'],
+  ])('%s', (integration, verifyImport) => {
+    const params = makeParams({integration});
+
+    it('requires the SDK version that auto-instruments it', () => {
+      const text = collectText(agentMonitoring.install!(params));
+
+      expect(text).toContain('11.0.0');
+    });
+
+    it('preloads the Sentry import hook', () => {
+      const code = collectCode(agentMonitoring.configure(params));
+
+      expect(code).toContain('import * as Sentry from "npm:@sentry/deno";');
+      expect(code).toContain('"nodeModulesDir": "auto"');
+      expect(code).toContain('--allow-net=o1.ingest.sentry.io \\');
+      expect(code).toContain('--preload=npm:@sentry/deno/import');
+      expect(code).not.toContain('experimental_telemetry');
+    });
+
+    it('verifies with a Deno-compatible snippet', () => {
+      const code = collectCode(agentMonitoring.verify(params));
+
+      expect(code).toContain(verifyImport);
+      expect(code).not.toContain('require(');
+    });
+  });
+
   it('keeps the Vercel AI SDK setup as the default', () => {
     const code = collectCode(agentMonitoring.configure(makeParams()));
 

@@ -142,3 +142,74 @@ class OAuthAuthorizeContextTest(APITestCase):
             **{**self.query, "response_type": "invalid"}, status_code=400
         )
         assert "response_type" in response.data
+
+    def test_pkce_challenge_validation(self) -> None:
+        for challenge in ("", "a" * 42, "a" * 129, "!" * 43):
+            with self.subTest(challenge=challenge):
+                response = self.get_success_response(
+                    **{**self.query, "code_challenge": challenge, "code_challenge_method": "S256"}
+                )
+
+                assert parse_qs(urlsplit(response.data["redirectUrl"]).query)["error"] == [
+                    "invalid_request"
+                ]
+
+    def test_unregistered_callback_with_invalid_pkce(self) -> None:
+        response = self.get_error_response(
+            **{
+                **self.query,
+                "redirect_uri": "https://other.example/callback",
+                "code_challenge": "invalid",
+            },
+            status_code=400,
+        )
+
+        assert response.data == {"detail": "Missing or invalid redirect_uri parameter."}
+
+    def test_state_whitespace_is_preserved(self) -> None:
+        response = self.get_success_response(
+            **{**self.query, "scope": "invalid", "state": "  opaque state  "}
+        )
+
+        assert parse_qs(urlsplit(response.data["redirectUrl"]).query)["state"] == [
+            "  opaque state  "
+        ]
+
+    def test_custom_scheme_callback(self) -> None:
+        for scheme, response_type in (
+            ("sentry-apple", "code"),
+            ("sentry-apple", "token"),
+            ("sentry-replay-debugger", "code"),
+            ("sentry-replay-debugger", "token"),
+        ):
+            with self.subTest(scheme=scheme, response_type=response_type):
+                self.application.update(redirect_uris=f"{scheme}://callback")
+
+                response = self.get_success_response(
+                    **{**self.query, "response_type": response_type, "scope": "invalid"}
+                )
+
+                callback = urlsplit(response.data["redirectUrl"])
+                assert callback.scheme == scheme
+                assert callback.netloc == "callback"
+                parameters = callback.fragment if response_type == "token" else callback.query
+                assert parse_qs(parameters) == {
+                    "error": ["invalid_scope"],
+                    "state": [self.query["state"]],
+                }
+
+    def test_callback_is_normalized(self) -> None:
+        for redirect_uri in (
+            "https://example.com/new/path///../../callback/",
+            "https://example.com/evil////../callback/",
+        ):
+            with self.subTest(redirect_uri=redirect_uri):
+                self.application.update(redirect_uris="https://example.com/callback/", version=0)
+
+                response = self.get_success_response(
+                    **{**self.query, "redirect_uri": redirect_uri, "scope": "invalid"}
+                )
+
+                callback = urlsplit(response.data["redirectUrl"])
+                assert callback.netloc == "example.com"
+                assert callback.path == "/callback/"

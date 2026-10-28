@@ -1,14 +1,17 @@
 import {Fragment, useCallback, useEffect, useId, useMemo, useRef, useState} from 'react';
-import {useTheme} from '@emotion/react';
+import {useTheme, css} from '@emotion/react';
 import {IconBroadcast} from '@sentry/icons/broadcast';
 import {useDebouncedCallback} from '@tanstack/react-pacer';
 import {motion} from 'framer-motion';
+import {PlatformIcon} from 'platformicons';
 
 import {Button} from '@sentry/scraps/button';
+import {InfoText} from '@sentry/scraps/info';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {Select, type StylesConfig, createFilter} from '@sentry/scraps/select';
 import {Heading, Text} from '@sentry/scraps/text';
+import {ToggleCard} from '@sentry/scraps/toggleCard';
 
 import {closeModal, openConsoleModal} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -32,7 +35,6 @@ import {
   trackScmPlatformSelected,
 } from './scmAnalyticsFlow';
 import {ScmPickerSection} from './scmPickerSection';
-import {ScmPlatformCard} from './scmPlatformCard';
 import {
   DEFAULT_SCM_FEATURES,
   getPlatformInfo,
@@ -113,6 +115,7 @@ export function ScmPlatformFeaturesCore({
       ? focusRequest.target
       : null;
   const headingId = useId();
+  const platformGroupName = useId();
   // Guards the auto-detect analytics event below so it fires once per repo.
   const autoDetectionTrackedRef = useRef(false);
 
@@ -509,16 +512,40 @@ export function ScmPlatformFeaturesCore({
             animate="animate"
           >
             {resolvedPlatforms.map(({platform, info}) => (
-              <ScmPlatformCard
+              <MotionToggleCard
                 key={platform}
-                platform={platform}
-                name={info.name}
-                isSelected={currentPlatformKey === platform}
-                onClick={() => handleSelectDetectedPlatform(platform)}
+                variant="radio"
+                name={platformGroupName}
+                value={platform}
+                checked={currentPlatformKey === platform}
+                onChange={() => handleSelectDetectedPlatform(platform)}
+                aria-label={info.name}
                 autoFocus={
                   focusTarget === 'selectedCard' && platform === focusedDetectedPlatform
                 }
-              />
+                {...ONBOARDING_ENTER}
+              >
+                <Flex gap="lg" align="center">
+                  <Flex flexShrink={0}>
+                    <PlatformIcon platform={platform} size={20} format="lg" alt="" />
+                  </Flex>
+                  <Flex flexGrow={1} minWidth={0}>
+                    <InfoText
+                      css={css`
+                        position: relative;
+                      `}
+                      title={info.name}
+                      mode="overflowOnly"
+                      bold
+                      size="md"
+                      textWrap="nowrap"
+                    >
+                      {info.name}
+                    </InfoText>
+                  </Flex>
+                  <ToggleCard.Indicator />
+                </Flex>
+              </MotionToggleCard>
             ))}
           </MotionGrid>
         )
@@ -577,3 +604,5 @@ export function ScmPlatformFeaturesCore({
 const MotionFlex = motion.create(Flex);
 const MotionGrid = motion.create(Grid);
 const MotionStack = motion.create(Stack);
+
+const MotionToggleCard = motion.create(ToggleCard);

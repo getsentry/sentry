@@ -84,7 +84,7 @@ class DiscoverToExploreTranslationTest(TestCase):
 
         base_query = new_explore_query.query
         assert base_query["environment"] == []
-        assert base_query["range"] == "14d"
+        assert base_query["statsPeriod"] == "14d"
 
         query = base_query["query"][0]
         assert query["fields"] == ["id", "transaction", "timestamp"]

@@ -3,11 +3,13 @@ import {IconStack} from '@sentry/icons/stack';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 
+import {droppedDataLabel} from 'sentry/components/droppedData/outcomes';
 import {t} from 'sentry/locale';
+import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 
 const DROPPED_DATA_LAYER = 'dropped-data';
 
-function layersTrigger(triggerProps: TriggerProps) {
+function layersTrigger(triggerProps: TriggerProps, hasSelectedLayer: boolean) {
   return (
     <OverlayTrigger.Button
       {...triggerProps}
@@ -17,7 +19,9 @@ function layersTrigger(triggerProps: TriggerProps) {
       showChevron={false}
       size="xs"
       tooltipProps={{title: t('Show or hide additional layers on this chart')}}
-    />
+    >
+      {hasSelectedLayer ? triggerProps.children : t('Layers')}
+    </OverlayTrigger.Button>
   );
 }
 
@@ -26,12 +30,14 @@ function includesDroppedDataLayer(selected: Array<SelectOption<string>>): boolea
 }
 
 interface DroppedDataLayerControlProps {
+  dataset: DiscoverDatasets;
   onChange: (showDroppedData: boolean) => void;
   showDroppedData: boolean;
 }
 
 // TODO: refactor this component to also handle feature flags and releases
 export function DroppedDataLayerControl({
+  dataset,
   showDroppedData,
   onChange,
 }: DroppedDataLayerControlProps) {
@@ -43,9 +49,9 @@ export function DroppedDataLayerControl({
     <CompactSelect
       multiple
       value={showDroppedData ? [DROPPED_DATA_LAYER] : []}
-      options={[{value: DROPPED_DATA_LAYER, label: t('Dropped Events')}]}
+      options={[{value: DROPPED_DATA_LAYER, label: droppedDataLabel(dataset)}]}
       menuTitle={t('Layers')}
-      trigger={layersTrigger}
+      trigger={triggerProps => layersTrigger(triggerProps, showDroppedData)}
       onChange={handleChange}
     />
   );

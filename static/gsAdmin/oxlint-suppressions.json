@@ -25,6 +25,9 @@
     }
   },
   "components/customers/customerOverview.tsx": {
+    "@sentry/scraps/no-manual-table": {
+      "count": 6
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
@@ -54,6 +57,11 @@
       "count": 3
     }
   },
+  "components/policies/policyRevisions.tsx": {
+    "@sentry/scraps/no-manual-table": {
+      "count": 5
+    }
+  },
   "components/provisionSubscriptionAction.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 5
@@ -69,14 +77,22 @@
       "count": 1
     }
   },
-  "views/billingPlans.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 8
+  "components/users/userEmailLog.tsx": {
+    "@sentry/scraps/no-manual-table": {
+      "count": 9
     }
   },
-  "views/customerContractDetails.tsx": {
+  "components/users/userEmails.tsx": {
+    "@sentry/scraps/no-manual-table": {
+      "count": 4
+    }
+  },
+  "views/billingPlans.tsx": {
+    "@sentry/scraps/no-manual-table": {
+      "count": 13
+    },
     "@sentry/scraps/prefer-primitives": {
-      "count": 2
+      "count": 8
     }
   },
   "views/debuggingTools.tsx": {
@@ -90,13 +106,24 @@
     }
   },
   "views/giftRecurringCredits.tsx": {
+    "@sentry/scraps/no-manual-table": {
+      "count": 10
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 4
     }
   },
   "views/invoiceComparison.tsx": {
+    "@sentry/scraps/no-manual-table": {
+      "count": 12
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
+    }
+  },
+  "views/invoiceDetails.tsx": {
+    "@sentry/scraps/no-manual-table": {
+      "count": 11
     }
   },
   "views/launchpadAdminPage.tsx": {

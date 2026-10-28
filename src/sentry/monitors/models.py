@@ -5,6 +5,7 @@ import uuid
 import zoneinfo
 from collections.abc import Sequence
 from datetime import datetime
+from functools import cache
 from typing import TYPE_CHECKING, ClassVar, Self, override
 from uuid import uuid4
 
@@ -34,15 +35,13 @@ from sentry.db.models import (
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH, SentrySlugField
 from sentry.db.models.manager.base import BaseManager
-from sentry.db.models.utils import slugify_instance
+from sentry.db.models.utils import save_with_unique_slug, slugify_instance
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.deletions.base import ModelRelation
-from sentry.locks import locks
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR, CrontabSchedule, IntervalSchedule
 from sentry.types.actor import Actor
-from sentry.utils.retries import TimedRetryPolicy
 from sentry.workflow_engine.models import DataSource, Detector
 from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DataSourceTypeHandler
@@ -69,6 +68,13 @@ MONITOR_CONFIG = {
     "required": ["checkin_margin", "max_runtime", "schedule_type", "schedule"],
     "additionalProperties": False,
 }
+
+
+@cache
+def get_monitor_config_validator() -> jsonschema.protocols.Validator:
+    validator_cls = jsonschema.validators.validator_for(MONITOR_CONFIG)
+    validator_cls.check_schema(MONITOR_CONFIG)
+    return validator_cls(MONITOR_CONFIG)
 
 
 class MonitorLimitsExceeded(Exception):
@@ -285,16 +291,16 @@ class Monitor(Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            lock = locks.get(
-                f"slug:monitor:{self.organization_id}", duration=5, name="monitor_slug"
-            )
-            with TimedRetryPolicy(10)(lock.acquire):
-                slugify_instance(
+            return save_with_unique_slug(
+                self,
+                pick_slug=lambda: slugify_instance(
                     self,
                     self.name,
                     organization_id=self.organization_id,
                     max_length=DEFAULT_SLUG_MAX_LENGTH,
-                )
+                ),
+                save_callback=lambda: super(Monitor, self).save(*args, **kwargs),
+            )
         return super().save(*args, **kwargs)
 
     @property
@@ -365,7 +371,7 @@ class Monitor(Model):
 
     def get_validated_config(self):
         try:
-            jsonschema.validate(self.config, MONITOR_CONFIG)
+            get_monitor_config_validator().validate(self.config)
         except jsonschema.ValidationError:
             logging.warning("Monitor: %s invalid config: %s", self.id, self.config, exc_info=True)
         # We should always return the config here - just log an error if we detect that it doesn't
@@ -543,8 +549,6 @@ class MonitorCheckIn(Model):
     Trace ID associated during this check-in. Useful to find associated events
     that occurred during the check-in.
     """
-
-    objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=("guid",))
 
     class Meta:
         app_label = "monitors"

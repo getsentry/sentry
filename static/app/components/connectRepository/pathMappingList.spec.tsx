@@ -21,7 +21,9 @@ function renderList({
   defaultBranch,
   providerKey,
   existingMappings,
+  allowEmpty,
 }: {
+  allowEmpty?: boolean;
   defaultBranch?: string;
   existingMappings?: RepositoryProjectPathConfig[];
   initialPathMappings?: PathMappingValue[];
@@ -42,6 +44,7 @@ function renderList({
       <form.AppForm form={form}>
         <PathMappingList
           form={form}
+          allowEmpty={allowEmpty}
           defaultBranch={defaultBranch}
           providerKey={providerKey}
           existingMappings={existingMappings}
@@ -264,6 +267,22 @@ describe('PathMappingList', () => {
         'aria-disabled',
         'true'
       );
+    });
+  });
+
+  describe('allowEmpty', () => {
+    it('adds a row from the empty state then deletes back to empty', async () => {
+      renderList({pathMappings: [], allowEmpty: true});
+
+      expect(screen.getByText('No paths configured')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Add path'}));
+      expect(
+        screen.getByRole('textbox', {name: /stack trace prefix/i})
+      ).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Delete path mapping'}));
+      expect(screen.getByText('No paths configured')).toBeInTheDocument();
     });
   });
 

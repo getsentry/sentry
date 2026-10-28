@@ -41,6 +41,7 @@ from sentry import options
 from sentry.api.event_search import (
     ParenExpression,
     QueryToken,
+    SearchBoolean,
     SearchFilter,
     SearchKey,
     SearchValue,
@@ -109,6 +110,8 @@ def handle_search_filters(
     search_filters: Sequence[QueryToken],
 ) -> list[Condition]:
     """Convert search filters to snuba conditions."""
+    validate_boolean_operators(search_filters)
+
     result: list[Condition] = []
     look_back = None
     for search_filter in search_filters:
@@ -151,6 +154,27 @@ def handle_search_filters(
             look_back = search_filter
 
     return result
+
+
+def validate_boolean_operators(search_filters: Sequence[QueryToken]) -> None:
+    """Reject dangling or adjacent boolean operators.
+
+    Mirrors the sanitization in the event search query builders so replays return the same
+    errors for the same malformed queries.
+    """
+    previous: QueryToken | None = None
+    for term in search_filters:
+        if SearchBoolean.is_operator(term):
+            if previous is None:
+                raise ParseError(f"Condition is missing on the left side of '{term}' operator")
+            if SearchBoolean.is_operator(previous):
+                raise ParseError(
+                    f"Missing condition in between two condition operators: '{previous} {term}'"
+                )
+        previous = term
+
+    if SearchBoolean.is_operator(previous):
+        raise ParseError(f"Condition is missing on the right side of '{previous}' operator")
 
 
 def attempt_compressed_condition(
@@ -427,6 +451,12 @@ def make_full_aggregation_query(
 
     select = select_from_fields(fields, user_id=request_user_id)
 
+    try:
+        padded_start = period_start - timedelta(hours=1)
+        padded_end = period_end + timedelta(hours=1)
+    except OverflowError:
+        raise ParseError("Invalid date range: start or end is out of range")
+
     return Query(
         match=Entity("replays"),
         select=select,
@@ -438,8 +468,8 @@ def make_full_aggregation_query(
             # We can scan an extended time range to account for replays which span either end of
             # the range.  These timestamps are an optimization and could be removed with minimal
             # performance impact.  It's a point query.  Its super fast.
-            Condition(Column("timestamp"), Op.GTE, period_start - timedelta(hours=1)),
-            Condition(Column("timestamp"), Op.LT, period_end + timedelta(hours=1)),
+            Condition(Column("timestamp"), Op.GTE, padded_start),
+            Condition(Column("timestamp"), Op.LT, padded_end),
         ],
         # NOTE: Refer to this note: "make_scalar_search_conditions_query".
         #

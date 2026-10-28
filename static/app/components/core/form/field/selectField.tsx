@@ -1,6 +1,6 @@
 import {useRef} from 'react';
 
-import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
+import {useAutoSaveContext} from '@sentry/scraps/formPresentation';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import type {

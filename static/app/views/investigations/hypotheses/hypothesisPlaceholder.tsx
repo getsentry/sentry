@@ -23,7 +23,7 @@ export function HypothesisEvidencePlaceholder({
       {Array.from({length: rows}, (_, index) => (
         <Flex key={index} gap="md" align="center">
           <Dot />
-          <Bar
+          <PlaceholderBar
             height="12px"
             width={EVIDENCE_ROW_WIDTHS[index % EVIDENCE_ROW_WIDTHS.length]}
           />
@@ -52,9 +52,9 @@ export function HypothesisCardPlaceholder() {
       data-test-id="investigation-hypothesis-placeholder"
     >
       {/* The hypothesis number and its status. */}
-      <Bar height="16px" width="65%" />
+      <PlaceholderBar height="16px" width="65%" />
       {/* The statement. */}
-      <Bar height="20px" width="100%" />
+      <PlaceholderBar height="20px" width="100%" />
       <Stack paddingTop="md">
         <HypothesisEvidencePlaceholder />
       </Stack>
@@ -68,7 +68,7 @@ const PlaceholderCard = styled(Stack)`
 `;
 
 /** `Placeholder` defaults to a card's corner radius, too round at bar height. */
-const Bar = styled(Placeholder)`
+export const PlaceholderBar = styled(Placeholder)`
   border-radius: ${p => p.theme.radius.sm};
 `;
 

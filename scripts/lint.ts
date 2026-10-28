@@ -25,6 +25,17 @@ function run(options: string[], cwd = process.cwd()) {
   return result.status ?? 1;
 }
 
+// `pnpm run` joins arguments into one shell string, which overflows on large file lists.
+function scriptCommand(directory: string, name: string) {
+  const manifest = JSON.parse(readFileSync(path.join(directory, 'package.json'), 'utf8'));
+  const script: unknown = manifest?.scripts?.[name];
+  assert(
+    typeof script === 'string' && /^[\w@./:=-]+( [\w@./:=-]+)*$/.test(script),
+    `Expected ${name} in ${directory} to be a plain command`
+  );
+  return ['exec', ...script.split(' ')];
+}
+
 const {positionals, tokens} = parseArgs({
   args: inspect ? [] : args,
   strict: false,
@@ -141,7 +152,10 @@ if (inspect) {
   let status = 0;
   const rootFiles = selected.get(process.cwd());
   if (rootFiles) {
-    status = run(['run', `lint:${language}:root`, ...lintArgs(rootFiles)]);
+    status = run([
+      ...scriptCommand(process.cwd(), `lint:${language}:root`),
+      ...lintArgs(rootFiles),
+    ]);
     selected.delete(process.cwd());
   }
   if (status === 0) {
@@ -151,7 +165,7 @@ if (inspect) {
       const command =
         language === 'css'
           ? ['exec', 'stylelint', '--allow-empty-input']
-          : ['run', 'lint:js'];
+          : scriptCommand(project, 'lint:js');
       const result = run([...command, ...lintArgs(files)], project);
       status ||= result;
     }

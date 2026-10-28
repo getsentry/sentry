@@ -71,7 +71,6 @@ class CrossEventResponseType(CrossEventResponseTypeOptional):
 class ExploreSavedQueryResponseOptional(TypedDict, total=False):
     environment: list[str]
     query: list[QueryResponseType]
-    range: str
     statsPeriod: str
     start: str
     end: str
@@ -157,7 +156,7 @@ class ExploreSavedQueryModelSerializer(Serializer[ExploreSavedQueryResponse]):
         query_keys = [
             "environment",
             "query",
-            "range",
+            "statsPeriod",
             "start",
             "end",
             "interval",
@@ -185,9 +184,9 @@ class ExploreSavedQueryModelSerializer(Serializer[ExploreSavedQueryResponse]):
             if obj.query.get(key) is not None:
                 data[key] = obj.query[key]  # type: ignore[literal-required]
 
-        # Saved queries store the period as `range`. Return it as `statsPeriod` too.
-        if data.get("range") is not None:
-            data["statsPeriod"] = data["range"]
+        # Older rows stored the relative period as `range`.
+        if data.get("statsPeriod") is None and obj.query.get("range") is not None:
+            data["statsPeriod"] = obj.query["range"]
 
         # expire queries that are beyond the retention period
         if "start" in obj.query:

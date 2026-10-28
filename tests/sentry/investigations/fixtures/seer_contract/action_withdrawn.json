@@ -1,0 +1,4 @@
+{
+  "key": "add-retry-spans",
+  "reason": "The new evidence shows the retries are not slow."
+}

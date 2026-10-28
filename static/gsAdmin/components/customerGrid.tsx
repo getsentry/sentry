@@ -3,9 +3,11 @@ import moment from 'moment-timezone';
 import {OrganizationAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {ResultGrid} from 'sentry/components/resultGrid';
+import {ResultGrid, type ResultGridColumn} from 'sentry/components/resultGrid';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 
 import {CustomerContact} from 'admin/components/customerContact';
 import {CustomerName} from 'admin/components/customerName';
@@ -47,46 +49,34 @@ const sortValueForRow = (row: Subscription, sortBy: string): number => {
   }
 };
 
-const columns = [
-  <th key="customer">Customer</th>,
-  <th key="events" style={{width: 130, textAlign: 'center'}}>
-    Events (30d)
-  </th>,
-  <th key="members" style={{width: 85, textAlign: 'center'}}>
-    Members
-  </th>,
-  <th key="status" style={{width: 150, textAlign: 'center'}}>
-    Status
-  </th>,
-  <th key="ondemand" style={{width: 100, textAlign: 'center'}}>
-    OnDemand
-  </th>,
-  <th key="acv" style={{width: 100, textAlign: 'center'}}>
-    ACV
-  </th>,
-  <th key="joined" style={{width: 150, textAlign: 'right'}}>
-    Joined
-  </th>,
+const columns: ResultGridColumn[] = [
+  {key: 'customer', label: 'Customer'},
+  {key: 'events', label: 'Events (30d)', width: 130, align: 'center'},
+  {key: 'members', label: 'Members', width: 85, align: 'center'},
+  {key: 'status', label: 'Status', width: 150, align: 'center'},
+  {key: 'ondemand', label: 'OnDemand', width: 100, align: 'center'},
+  {key: 'acv', label: 'ACV', width: 100, align: 'center'},
+  {key: 'joined', label: 'Joined', width: 150, align: 'right'},
 ];
 
 const getRow = (row: Subscription) => [
-  <td key="customer">
+  <SimpleTable.RowCell key="customer">
     <CustomerName>
       <OrganizationAvatar size={36} organization={row as any} />
       <div>
         <strong>
           <Link to={`/_admin/customers/${row.slug}/`}>{row.name}</Link>
         </strong>
-        <small> — {row.slug}</small>
+        <Text size="xs"> — {row.slug}</Text>
       </div>
       <div>
-        <small>
+        <Text size="xs">
           {row.owner && (
             <span>
               <CustomerContact owner={row.owner} />
             </span>
           )}
-        </small>
+        </Text>
         {row.isSuspended && (
           <Tooltip title={row.suspensionReason}>
             <Tag variant="danger">Suspended</Tag>
@@ -94,35 +84,35 @@ const getRow = (row: Subscription) => [
         )}
       </div>
     </CustomerName>
-  </td>,
-  <td key="events" style={{textAlign: 'center'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="events" direction="column" gap="xs">
     {row.stats?.events30d.toLocaleString()}
-    <br />
-    <small>
+    <Text size="xs">
       {row.stats ? (
         <PercentChange current={row.stats.events30d} prev={row.stats.eventsPrev30d} />
       ) : (
         'Unknown'
       )}
-    </small>
-  </td>,
-  <td key="members" style={{textAlign: 'center'}}>
+    </Text>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="members" justify="center">
     {row.totalMembers?.toLocaleString()}
-  </td>,
-  <td key="status" style={{textAlign: 'center'}}>
-    <CustomerStatus customer={row} />
-  </td>,
-  <td key="ondemand" style={{textAlign: 'center'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="status" justify="center">
+    <Text align="center">
+      <CustomerStatus customer={row} />
+    </Text>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="ondemand" justify="center">
     {displayPrice({cents: row.onDemandSpendUsed || 0})}
-  </td>,
-  <td key="acv" style={{textAlign: 'center'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="acv" justify="center">
     {row.acv ? displayPrice({cents: row.acv}) : 'unknown'}
-  </td>,
-  <td key="joined" style={{textAlign: 'right'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="joined" direction="column" align="end" gap="xs">
     {moment(row.dateJoined).format('MMMM YYYY')}
-    <br />
-    <small>{moment(row.dateJoined).fromNow()}</small>
-  </td>,
+    <Text size="xs">{moment(row.dateJoined).fromNow()}</Text>
+  </SimpleTable.RowCell>,
 ];
 
 export function CustomerGrid(props: Props) {

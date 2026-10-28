@@ -85,6 +85,7 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
   });
 
   const filterButtonProps = useFilterButtonProps({state, item});
+  const {showAllFilterValues} = useSearchQueryBuilderLayout();
 
   if (editSource) {
     return (
@@ -127,6 +128,7 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
         onActiveChange(true);
       }}
       disabled={disabled}
+      showAllValues={showAllFilterValues}
       {...filterButtonProps}
     >
       <InteractionStateLayer />
@@ -164,6 +166,7 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
   const {dispatch} = useSearchQueryBuilderState();
   const {invalidFilterKeys, invalidFilterKeyMessage, filterKeyAliases} =
     useSearchQueryBuilderConfig();
+  const {showAllFilterValues} = useSearchQueryBuilderLayout();
   const {rowProps, gridCellProps} = useQueryBuilderGridItem(item, state, ref);
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -200,6 +203,8 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
       aria-label={token.text}
       aria-invalid={tokenHasError}
       state={tokenHasError ? 'invalid' : tokenHasWarning ? 'warning' : 'valid'}
+      height={showAllFilterValues ? 'auto' : '24px'}
+      minHeight={showAllFilterValues ? '24px' : undefined}
       ref={ref}
       {...modifiedRowProps}
     >
@@ -208,6 +213,8 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
         state={state}
         item={item}
         columnCount={4}
+        height={showAllFilterValues ? 'auto' : undefined}
+        minHeight={showAllFilterValues ? '22px' : undefined}
         containerDisplayMode="grid"
         forceVisible={filterMenuOpen ? false : undefined}
         warning={
@@ -267,13 +274,13 @@ const FilterValueGridCell = styled(BaseGridCell)`
   min-width: 0;
 `;
 
-const ValueButton = styled(UnstyledButton)`
+const ValueButton = styled(UnstyledButton)<{showAllValues: boolean}>`
   padding: 0 ${p => p.theme.space['2xs']};
   color: ${p => p.theme.tokens.content.accent};
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
   width: 100%;
-  max-width: 400px;
+  max-width: ${p => (p.showAllValues ? 'none' : '400px')};
 
   :focus {
     background-color: ${p => p.theme.tokens.background.transparent.accent.muted};

@@ -8,7 +8,7 @@ import type {HeadingSize} from '@sentry/scraps/theme';
 import {getFontSize, getLineHeight, getTextDecoration} from './styles';
 import {type BaseTextProps} from './text';
 
-type BaseHeadingProps = Omit<BaseTextProps, 'bold' | 'uppercase'>;
+type BaseHeadingProps = Omit<BaseTextProps, 'bold' | 'uppercase' | 'trim'>;
 
 type ExclusiveHeadingEllipsisProps =
   | {ellipsis?: true; wrap?: never}

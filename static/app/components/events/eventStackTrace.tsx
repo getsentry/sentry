@@ -5,7 +5,8 @@ import {Exception} from 'sentry/components/events/interfaces/exception';
 import {StackTrace} from 'sentry/components/events/interfaces/stackTrace';
 import {Threads} from 'sentry/components/events/interfaces/threads';
 import {IssueStackTrace} from 'sentry/components/stackTrace/issueStackTrace';
-import type {Entry, EntryMap, Event} from 'sentry/types/event';
+import {getOrderedExceptions} from 'sentry/components/stackTrace/issueStackTrace/utils';
+import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -21,51 +22,81 @@ interface EventStackTraceProps {
   event: Event;
   group: Group;
   projectSlug: Project['slug'];
-  collapseAll?: boolean;
+  /** Use a local initial section state instead of saved collapse preferences. */
+  initialCollapse?: boolean;
+}
+
+function getEventStackTraceData(event: Event, group: Group) {
+  const shouldUseNewStackTrace = !isNativePlatform(event.platform);
+  const issueTypeConfig = getConfigForIssueType(group, group.project);
+  const threads = event.entries.findLast(entry => entry.type === EntryType.THREADS);
+  let exception = event.entries.findLast(entry => entry.type === EntryType.EXCEPTION);
+  let stacktrace = event.entries.findLast(entry => entry.type === EntryType.STACKTRACE);
+  const mechanism = event.tags?.find(({key}) => key === 'mechanism')?.value;
+  const hangProfileData =
+    mechanism === 'mx_hang_diagnostic' ? getHangProfileData(event) : null;
+
+  if (
+    shouldUseNewStackTrace &&
+    exception &&
+    !getOrderedExceptions(exception.data.values ?? [], false, 'app').length
+  ) {
+    exception = undefined;
+  }
+  if (
+    !issueTypeConfig.stacktrace.enabled ||
+    (shouldUseNewStackTrace && !stacktrace?.data.frames?.length)
+  ) {
+    stacktrace = undefined;
+  }
+
+  return {exception, stacktrace, threads, hangProfileData, shouldUseNewStackTrace};
+}
+
+export function hasEventStackTrace(event: Event, group: Group): boolean {
+  const {exception, stacktrace, threads, hangProfileData} = getEventStackTraceData(
+    event,
+    group
+  );
+  return Boolean(hangProfileData || exception || stacktrace || threads);
 }
 
 export function EventStackTrace({
   event,
   group,
   projectSlug,
-  collapseAll,
+  initialCollapse,
 }: EventStackTraceProps) {
-  const shouldUseNewStackTrace =
-    // New stack trace is currently only non-native platforms.
-    !isNativePlatform(event.platform);
-  const eventEntries = useMemo(() => {
-    return event.entries.reduce<Partial<EntryMap>>((entryMap, entry) => {
-      (entryMap as Record<string, Entry>)[entry.type] = entry;
-      return entryMap;
-    }, {});
-  }, [event]);
-  const mechanism = event.tags?.find(({key}) => key === 'mechanism')?.value;
-  const hangProfileData =
-    mechanism === 'mx_hang_diagnostic' ? getHangProfileData(event) : null;
+  const {exception, stacktrace, threads, hangProfileData, shouldUseNewStackTrace} =
+    useMemo(() => getEventStackTraceData(event, group), [event, group]);
   const groupingCurrentLevel = group?.metadata?.current_level;
-  const issueTypeConfig = getConfigForIssueType(group, group.project);
 
   if (hangProfileData) {
-    return <MetricKitHangProfileSection data={hangProfileData} />;
+    return (
+      <MetricKitHangProfileSection
+        data={hangProfileData}
+        initialCollapse={initialCollapse}
+      />
+    );
   }
 
   return (
     <Fragment>
-      {defined(eventEntries[EntryType.EXCEPTION]) && (
+      {defined(exception) && (
         <EntryErrorBoundary type={EntryType.EXCEPTION}>
           {shouldUseNewStackTrace ? (
             <IssueStackTrace
-              collapseAll={collapseAll}
+              initialCollapse={initialCollapse}
               event={event}
-              values={eventEntries[EntryType.EXCEPTION].data.values ?? []}
+              values={exception.data.values ?? []}
               projectSlug={projectSlug}
               group={group}
             />
           ) : (
             <Exception
-              collapseAll={collapseAll}
+              initialCollapse={initialCollapse}
               event={event}
-              data={eventEntries[EntryType.EXCEPTION].data}
+              data={exception.data}
               projectSlug={projectSlug}
               group={group}
               groupingCurrentLevel={groupingCurrentLevel}
@@ -73,34 +104,33 @@ export function EventStackTrace({
           )}
         </EntryErrorBoundary>
       )}
-      {issueTypeConfig.stacktrace.enabled &&
-        defined(eventEntries[EntryType.STACKTRACE]) && (
-          <EntryErrorBoundary type={EntryType.STACKTRACE}>
-            {shouldUseNewStackTrace ? (
-              <IssueStackTrace
-                collapseAll={collapseAll}
-                event={event}
-                stacktrace={eventEntries[EntryType.STACKTRACE].data}
-                projectSlug={projectSlug}
-                group={group}
-              />
-            ) : (
-              <StackTrace
-                collapseAll={collapseAll}
-                event={event}
-                data={eventEntries[EntryType.STACKTRACE].data}
-                projectSlug={projectSlug}
-                groupingCurrentLevel={groupingCurrentLevel}
-              />
-            )}
-          </EntryErrorBoundary>
-        )}
-      {defined(eventEntries[EntryType.THREADS]) && (
+      {defined(stacktrace) && (
+        <EntryErrorBoundary type={EntryType.STACKTRACE}>
+          {shouldUseNewStackTrace ? (
+            <IssueStackTrace
+              initialCollapse={initialCollapse}
+              event={event}
+              stacktrace={stacktrace.data}
+              projectSlug={projectSlug}
+              group={group}
+            />
+          ) : (
+            <StackTrace
+              initialCollapse={initialCollapse}
+              event={event}
+              data={stacktrace.data}
+              projectSlug={projectSlug}
+              groupingCurrentLevel={groupingCurrentLevel}
+            />
+          )}
+        </EntryErrorBoundary>
+      )}
+      {defined(threads) && (
         <EntryErrorBoundary type={EntryType.THREADS}>
           <Threads
-            collapseAll={collapseAll}
+            initialCollapse={initialCollapse}
             event={event}
-            data={eventEntries[EntryType.THREADS].data}
+            data={threads.data}
             projectSlug={projectSlug}
             groupingCurrentLevel={groupingCurrentLevel}
             group={group}

@@ -22,6 +22,9 @@ from sentry.api.serializers.models.seer_agentic_triage_run import (  # noqa: F40
     SeerAgenticTriageRunResponse,
     SeerAgenticTriageRunSerializer,
 )
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.db.models.fields.bounded import I64_MAX
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.models.workflow import SeerWorkflowRun, SeerWorkflowStrategy
@@ -39,6 +42,14 @@ class WorkflowRunCreateResponse(TypedDict):
     runId: str
 
 
+class WorkflowRunListSerializer(serializers.Serializer):
+    workflow_config_id = serializers.IntegerField(required=False, min_value=1, max_value=I64_MAX)
+
+
+class WorkflowRunListErrorResponse(TypedDict):
+    detail: str | dict[str, list[str]]
+
+
 class OrganizationSeerWorkflowsPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read"],
@@ -47,6 +58,7 @@ class OrganizationSeerWorkflowsPermission(OrganizationPermission):
 
 
 @cell_silo_endpoint
+@extend_schema(tags=["Seer"])
 class OrganizationSeerWorkflowsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -63,13 +75,38 @@ class OrganizationSeerWorkflowsEndpoint(OrganizationEndpoint):
         }
     )
 
+    @extend_schema(
+        operation_id="List Seer workflow runs",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, CursorQueryParam, WorkflowRunListSerializer],
+        responses={
+            200: inline_sentry_response_serializer(
+                "SeerWorkflowRuns", list[SeerAgenticTriageRunResponse | MonitorCleanupRunResponse]
+            ),
+            400: inline_sentry_response_serializer(
+                "SeerWorkflowRunListError", WorkflowRunListErrorResponse
+            ),
+        },
+    )
     def get(self, request: Request, organization: Organization) -> Response:
+        """List visible workflow runs, newest first.
+
+        Optionally filter by one positive integer ``workflow_config_id``. Invalid or
+        repeated values return 400 with a ``detail`` error. Unknown configurations
+        and configurations with no visible matching runs return an empty list.
+        Pagination links are returned in headers.
+        """
         triage_enabled = features.has("organizations:seer-night-shift", organization)
         cleanup_enabled = features.has(
             "organizations:seer-workflows-monitor-cleanup", organization, actor=request.user
         )
         if not triage_enabled and not cleanup_enabled:
             raise NotFound
+
+        if len(request.query_params.getlist("workflow_config_id")) > 1:
+            return Response({"detail": "Supply only one workflow_config_id."}, status=400)
+        serializer = WorkflowRunListSerializer(data=request.query_params.dict())
+        if not serializer.is_valid():
+            return Response({"detail": serializer.errors}, status=400)
 
         # Owners, managers, and open membership can already open every project.
         # Everyone else only sees runs that name projects they can access.
@@ -115,6 +152,9 @@ class OrganizationSeerWorkflowsEndpoint(OrganizationEndpoint):
             .select_related("workflow_config")
             .distinct()
         )
+        workflow_config_id = serializer.validated_data.get("workflow_config_id")
+        if workflow_config_id is not None:
+            runs = runs.filter(workflow_config_id=workflow_config_id)
 
         return self.paginate(
             request=request,

@@ -99,8 +99,7 @@ const SEER_EMBED_COMPONENTS: MarkdownProps['components'] = {
       if (level === 'inline') {
         return embed;
       }
-      // `data-seer-embed` lets the surrounding layout style block embeds.
-      return <Container data-seer-embed="">{embed}</Container>;
+      return <Container>{embed}</Container>;
     }
     // Unknown embeds are expected to be registered here; drop them and report
     // instead of echoing plaintext like default Markdown.

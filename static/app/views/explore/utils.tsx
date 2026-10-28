@@ -55,6 +55,7 @@ import type {
 import {getLogsUrlFromSavedQueryUrl} from 'sentry/views/explore/logs/utils';
 import {getMetricsUrlFromSavedQueryUrl} from 'sentry/views/explore/metrics/utils';
 import {
+  encodeCompareCaseInsensitive,
   getFieldsForConstructedQuery,
   normalizeCompareQueryParts,
   type ReadableExploreQueryParts,
@@ -89,6 +90,13 @@ export interface GetExploreUrlArgs {
   table?: 'trace' | 'attribute_breakdowns';
   title?: string;
   visualize?: BaseVisualize[];
+}
+
+function encodeCaseInsensitive(caseInsensitive: CaseInsensitive | undefined) {
+  if (!defined(caseInsensitive)) {
+    return null;
+  }
+  return caseInsensitive ? '1' : '0';
 }
 
 export function getExploreUrl({
@@ -134,7 +142,7 @@ export function getExploreUrl({
     table,
     title,
     referrer,
-    caseInsensitive: caseInsensitive ? '1' : undefined,
+    caseInsensitive: encodeCaseInsensitive(caseInsensitive),
     chartSelection: chartSelection ? JSON.stringify(chartSelection) : undefined,
     crossEvents: crossEvents?.length ? JSON.stringify(crossEvents) : undefined,
   };
@@ -175,7 +183,7 @@ function getExploreUrlFromSavedQueryUrl({
           groupBys: groupBys ?? [],
           query: q.query ?? '',
           sortBys: decodeSorts(q.orderby),
-          caseInsensitive: q.caseInsensitive ? '1' : null,
+          caseInsensitive: q.caseInsensitive ? '1' : '0',
         });
         const yAxes = normalized.yAxes ?? [];
 
@@ -213,6 +221,7 @@ function getExploreUrlFromSavedQueryUrl({
         : savedQuery.query[0].groupby,
     sort: savedQuery.query[0].orderby,
     query: savedQuery.query[0].query,
+    caseInsensitive: savedQuery.query[0].caseInsensitive ?? false,
     title: savedQuery.name,
     mode: savedQuery.query[0].mode,
     field: savedQuery.query[0].fields,
@@ -265,7 +274,7 @@ export function getExploreMultiQueryUrl({
           query,
           sortBys: sortBys[0] ? encodeSort(sortBys[0]) : undefined, // Explore only handles a single sort by
           yAxes,
-          caseInsensitive: caseInsensitive ? '1' : undefined,
+          caseInsensitive: encodeCompareCaseInsensitive(caseInsensitive),
         })
     ),
     title,
@@ -636,6 +645,7 @@ function getConversationsUrlFromSavedQueryUrl({
     start: normalizeDateTimeString(savedQuery.start),
     end: normalizeDateTimeString(savedQuery.end),
     statsPeriod: savedQuery.statsPeriod,
+    errorsOnly: savedQuery.errorsOnly ? true : undefined,
     id: savedQuery.id,
     title: savedQuery.name,
   };
@@ -706,6 +716,7 @@ export const ATTRIBUTE_VALUE_TYPES: Record<
   float: FieldValueType.NUMBER,
   int: FieldValueType.INTEGER,
   str: FieldValueType.STRING,
+  array: FieldValueType.ARRAY,
 };
 
 /**
