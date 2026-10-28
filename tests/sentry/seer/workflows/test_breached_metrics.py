@@ -179,7 +179,7 @@ class BreachedMetricWorkflowAdmissionTest(BreachedMetricWorkflowTestCase):
         assert result == IgnoredMetricBreach("out_of_scope")
         assert not SeerWorkflowRun.objects.exists()
 
-    def test_accept_reuses_locked_config_for_run_snapshot(self) -> None:
+    def test_admission_and_run_creation_lock_current_config(self) -> None:
         workflow = BreachedMetricWorkflow(
             config_id=self.config.id, organization_id=self.organization.id
         )
@@ -203,8 +203,8 @@ class BreachedMetricWorkflowAdmissionTest(BreachedMetricWorkflowTestCase):
         config_reads = [
             query["sql"] for query in queries if 'FROM "seer_workflowconfig"' in query["sql"]
         ]
-        assert len(config_reads) == 1
-        assert "FOR UPDATE" in config_reads[0]
+        assert len(config_reads) == 2
+        assert all("FOR UPDATE" in query for query in config_reads)
 
     def test_ignored_configuration_reports_reason_without_starting_work(self) -> None:
         self.config.update(enabled=False)

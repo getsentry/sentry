@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Annotated, Any, Literal
 
+from django.db import router, transaction
 from django.utils import timezone
 from pydantic import BaseModel, Field, PositiveInt, ValidationError
 
@@ -22,7 +23,7 @@ from sentry.seer.models.workflow import (
     WorkflowRunError,
 )
 from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
-from sentry.seer.workflows.workflow import SeerWorkflow, SeerWorkflowTransaction
+from sentry.seer.workflows.workflow import SeerWorkflow, matches_workflow_scope
 from sentry.services.eventstore.models import GroupEvent
 
 
@@ -160,56 +161,67 @@ class BreachedMetricWorkflow(SeerWorkflow):
         except ValidationError:
             return IgnoredMetricBreach("invalid_source")
 
-        try:
-            with self.transaction() as transaction:
-                config = transaction.config
-                if (
-                    config.strategy != SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
-                    or not config.enabled
-                ):
-                    return IgnoredMetricBreach("configuration_unavailable")
-                if not transaction.matches_scope(group.project_id, trigger.environment):
-                    return IgnoredMetricBreach("out_of_scope")
-                return self._record_run(transaction, group, trigger)
-        except SeerWorkflowConfig.DoesNotExist:
-            return IgnoredMetricBreach("configuration_unavailable")
+        return self._record_run(group, trigger)
 
     def _record_run(
         self,
-        transaction: SeerWorkflowTransaction,
         group: Group,
         trigger: MetricBreachTrigger,
-    ) -> AcceptedMetricBreach | RejectedMetricBreach:
-        trigger_key = f"issue_created:{group.id}"
-        existing = transaction.get_runs().filter(trigger_key=trigger_key).first()
-        if existing is not None:
-            lifecycle = SeerWorkflowRunLifecycle(
-                run_id=existing.id, organization_id=existing.organization_id
+    ) -> AcceptedMetricBreach | RejectedMetricBreach | IgnoredMetricBreach:
+        database = router.db_for_write(SeerWorkflowConfig)
+        with transaction.atomic(database):
+            config = (
+                SeerWorkflowConfig.objects.using(database)
+                .select_for_update()
+                .filter(
+                    id=self.config_id,
+                    organization_id=self.organization_id,
+                    strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
+                    enabled=True,
+                )
+                .first()
             )
-            admission = lifecycle.parse_extras(MetricBreachRunExtras).admission
+            if config is None:
+                return IgnoredMetricBreach("configuration_unavailable")
+            if not matches_workflow_scope(config, group.project_id, trigger.environment):
+                return IgnoredMetricBreach("out_of_scope")
+
+            trigger_key = f"issue_created:{group.id}"
+            existing = self.get_runs().filter(trigger_key=trigger_key).first()
+            if existing is not None:
+                lifecycle = SeerWorkflowRunLifecycle(
+                    run_id=existing.id, organization_id=existing.organization_id
+                )
+                admission = lifecycle.parse_extras(MetricBreachRunExtras).admission
+                if admission.status == "rejected":
+                    return RejectedMetricBreach(
+                        run=existing, reason=admission.reason, created=False
+                    )
+                return AcceptedMetricBreach(run=existing, created=False)
+
+            decided_at = timezone.now()
+            admission = (
+                AcceptedMetricBreachAdmission(decided_at=decided_at)
+                if self.has_quota_available()
+                else RejectedMetricBreachAdmission(reason="quota_exceeded", decided_at=decided_at)
+            )
+            result = self.get_or_create_run(
+                trigger_key=trigger_key, inputs=trigger, extras={"admission": admission.dict()}
+            )
+            workflow_run = result.lifecycle
             if admission.status == "rejected":
-                return RejectedMetricBreach(run=existing, reason=admission.reason, created=False)
-            return AcceptedMetricBreach(run=existing, created=False)
+                run = workflow_run.reject(
+                    error=WorkflowRunError(
+                        code=admission.reason, message="Automation quota exceeded."
+                    )
+                )
+                return RejectedMetricBreach(
+                    run=run, reason=admission.reason, created=result.created
+                )
 
-        decided_at = timezone.now()
-        admission = (
-            AcceptedMetricBreachAdmission(decided_at=decided_at)
-            if self.has_quota_available()
-            else RejectedMetricBreachAdmission(reason="quota_exceeded", decided_at=decided_at)
-        )
-        result = transaction.get_or_create_run(
-            trigger_key=trigger_key, inputs=trigger, extras={"admission": admission.dict()}
-        )
-        workflow_run = result.lifecycle
-        if admission.status == "rejected":
-            run = workflow_run.reject(
-                error=WorkflowRunError(code=admission.reason, message="Automation quota exceeded.")
-            )
-            return RejectedMetricBreach(run=run, reason=admission.reason, created=result.created)
-
-        workflow_run.start()
-        # TODO(telkins): Replace this no-op execution with investigation dispatch.
-        (execution,) = workflow_run.create_executions([MetricBreachExecutionExtras()])
-        workflow_run.start_execution(execution.id)
-        workflow_run.complete_execution(execution.id)
-        return AcceptedMetricBreach(run=workflow_run.get_run(), created=result.created)
+            workflow_run.start()
+            # TODO(telkins): Replace this no-op execution with investigation dispatch.
+            (execution,) = workflow_run.create_executions([MetricBreachExecutionExtras()])
+            workflow_run.start_execution(execution.id)
+            workflow_run.complete_execution(execution.id)
+            return AcceptedMetricBreach(run=workflow_run.get_run(), created=result.created)

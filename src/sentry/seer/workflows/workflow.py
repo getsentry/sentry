@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from collections.abc import Iterator, Mapping
-from contextlib import AbstractContextManager, contextmanager
-from dataclasses import dataclass, field
+from contextlib import contextmanager
+from dataclasses import dataclass
 from typing import Any, assert_never
 
 from django.db import router, transaction
@@ -89,7 +89,7 @@ class SeerWorkflow:
 
     def get_config(self) -> SeerWorkflowConfig:
         """Fetch the config without acquiring a lock."""
-        return _config_queryset(self.config_id, self.organization_id).get()
+        return self._config_queryset().get()
 
     @property
     def extras(self) -> SeerWorkflowConfigExtras:
@@ -107,15 +107,52 @@ class SeerWorkflow:
         extras: Mapping[str, Any] | None = None,
     ) -> WorkflowRunCreationResult:
         """Retries preserve the original configuration and inputs."""
-        with self.transaction() as locked:
-            return locked.get_or_create_run(trigger_key=trigger_key, inputs=inputs, extras=extras)
+        if not trigger_key or len(trigger_key) > 256:
+            raise ValueError("Trigger keys must contain between 1 and 256 characters")
+
+        with self._lock_config() as config:
+            existing = self.get_runs().filter(trigger_key=trigger_key).first()
+            if existing is not None:
+                return WorkflowRunCreationResult(
+                    lifecycle=SeerWorkflowRunLifecycle(
+                        run_id=existing.id, organization_id=existing.organization_id
+                    ),
+                    created=False,
+                )
+
+            snapshot = WorkflowRunSnapshot(
+                config_version=config.version,
+                strategy=SeerWorkflowStrategy(config.strategy),
+                filters=config.filters,
+                project_ids=tuple(_get_project_ids(config)),
+                output_policy=config.output_policy,
+                inputs=json.loads(inputs.json()),
+            )
+            run_extras = SeerWorkflowRunExtras.parse_obj({**(extras or {}), "snapshot": snapshot})
+            run = SeerWorkflowRun.objects.create(
+                organization_id=config.organization_id,
+                workflow_config=config,
+                trigger_key=trigger_key,
+                status=SeerWorkflowRunStatus.QUEUED,
+                extras=json.loads(run_extras.json()),
+            )
+            return WorkflowRunCreationResult(
+                lifecycle=SeerWorkflowRunLifecycle(
+                    run_id=run.id, organization_id=run.organization_id
+                ),
+                created=True,
+            )
 
     def get_runs(self) -> QuerySet[SeerWorkflowRun]:
-        return _run_queryset(self.config_id, self.organization_id)
+        return (
+            SeerWorkflowRun.objects.using(router.db_for_write(SeerWorkflowRun))
+            .filter(organization_id=self.organization_id, workflow_config_id=self.config_id)
+            .order_by("-date_added", "-id")
+        )
 
     def matches_scope(self, project_id: int, environment: str | None) -> bool:
         """Check the automation's scope before recording an admission decision."""
-        return _matches_scope(self.get_config(), project_id, environment)
+        return matches_workflow_scope(self.get_config(), project_id, environment)
 
     def has_quota_available(self) -> bool:
         """Allow runs until automation quota enforcement is implemented."""
@@ -128,8 +165,7 @@ class SeerWorkflow:
 
     def set_service_account(self, service_account_id: int | None) -> None:
         """Store the control account ID after validating its current cell replica."""
-        with self.transaction() as locked:
-            config = locked.config
+        with self._lock_config() as config:
             if service_account_id is not None:
                 try:
                     replica = ServiceAccountReplica.objects.get(
@@ -177,8 +213,7 @@ class SeerWorkflow:
             case _:
                 assert_never(selection)
 
-        with self.transaction() as locked:
-            config = locked.config
+        with self._lock_config() as config:
             if (
                 config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
                 and not all_projects
@@ -205,84 +240,15 @@ class SeerWorkflow:
             config.version += 1
             config.save(update_fields=["filters", "version", "date_updated"])
 
-    def transaction(self) -> AbstractContextManager[SeerWorkflowTransaction]:
-        """Share one locked config across an atomic workflow operation."""
-        return SeerWorkflowTransaction.open(
-            config_id=self.config_id, organization_id=self.organization_id
-        )
-
-
-@dataclass
-class SeerWorkflowTransaction:
-    """Workflow operations available only while the config's row lock is held."""
-
-    _config: SeerWorkflowConfig | None = field(default=None, init=False, repr=False)
-
-    @classmethod
     @contextmanager
-    def open(cls, *, config_id: int, organization_id: int) -> Iterator[SeerWorkflowTransaction]:
+    def _lock_config(self) -> Iterator[SeerWorkflowConfig]:
         with transaction.atomic(router.db_for_write(SeerWorkflowConfig)):
-            locked = cls()
-            locked._config = _config_queryset(config_id, organization_id).select_for_update().get()
-            try:
-                yield locked
-            finally:
-                locked._config = None
+            yield self._config_queryset().select_for_update().get()
 
-    def get_or_create_run(
-        self,
-        *,
-        trigger_key: str,
-        inputs: BaseModel,
-        extras: Mapping[str, Any] | None = None,
-    ) -> WorkflowRunCreationResult:
-        """Retries preserve the original configuration and inputs."""
-        config = self.config
-        if not trigger_key or len(trigger_key) > 256:
-            raise ValueError("Trigger keys must contain between 1 and 256 characters")
-
-        existing = self.get_runs().filter(trigger_key=trigger_key).first()
-        if existing is not None:
-            return WorkflowRunCreationResult(
-                lifecycle=SeerWorkflowRunLifecycle(
-                    run_id=existing.id, organization_id=existing.organization_id
-                ),
-                created=False,
-            )
-
-        snapshot = WorkflowRunSnapshot(
-            config_version=config.version,
-            strategy=SeerWorkflowStrategy(config.strategy),
-            filters=config.filters,
-            project_ids=tuple(_get_project_ids(config)),
-            output_policy=config.output_policy,
-            inputs=json.loads(inputs.json()),
+    def _config_queryset(self) -> QuerySet[SeerWorkflowConfig]:
+        return SeerWorkflowConfig.objects.using(router.db_for_write(SeerWorkflowConfig)).filter(
+            id=self.config_id, organization_id=self.organization_id
         )
-        run_extras = SeerWorkflowRunExtras.parse_obj({**(extras or {}), "snapshot": snapshot})
-        run = SeerWorkflowRun.objects.create(
-            organization_id=config.organization_id,
-            workflow_config=config,
-            trigger_key=trigger_key,
-            status=SeerWorkflowRunStatus.QUEUED,
-            extras=json.loads(run_extras.json()),
-        )
-        return WorkflowRunCreationResult(
-            lifecycle=SeerWorkflowRunLifecycle(run_id=run.id, organization_id=run.organization_id),
-            created=True,
-        )
-
-    def get_runs(self) -> QuerySet[SeerWorkflowRun]:
-        config = self.config
-        return _run_queryset(config.id, config.organization_id)
-
-    def matches_scope(self, project_id: int, environment: str | None) -> bool:
-        return _matches_scope(self.config, project_id, environment)
-
-    @property
-    def config(self) -> SeerWorkflowConfig:
-        if self._config is None:
-            raise RuntimeError("Workflow transaction is not active")
-        return self._config
 
 
 @dataclass(frozen=True)
@@ -291,21 +257,10 @@ class WorkflowRunCreationResult:
     created: bool
 
 
-def _config_queryset(config_id: int, organization_id: int) -> QuerySet[SeerWorkflowConfig]:
-    return SeerWorkflowConfig.objects.using(router.db_for_write(SeerWorkflowConfig)).filter(
-        id=config_id, organization_id=organization_id
-    )
-
-
-def _run_queryset(config_id: int, organization_id: int) -> QuerySet[SeerWorkflowRun]:
-    return (
-        SeerWorkflowRun.objects.using(router.db_for_write(SeerWorkflowRun))
-        .filter(organization_id=organization_id, workflow_config_id=config_id)
-        .order_by("-date_added", "-id")
-    )
-
-
-def _matches_scope(config: SeerWorkflowConfig, project_id: int, environment: str | None) -> bool:
+def matches_workflow_scope(
+    config: SeerWorkflowConfig, project_id: int, environment: str | None
+) -> bool:
+    """Check scope using a config snapshot without modifying it or acquiring a lock."""
     filters = SeerWorkflowFilters.parse_obj(config.filters)
     return (
         config.enabled
