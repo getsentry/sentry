@@ -33,10 +33,7 @@ type NewDetectorLayoutProps<TFormData, TUpdatePayload> = {
   formDataToEndpointPayload: (formData: TFormData) => TUpdatePayload;
   initialFormData: Partial<TFormData>;
   disabledCreate?: string;
-  /**
-   * Syncs the in-progress monitor to the URL so it can be shared.
-   * Must be a stable reference.
-   */
+  /** Must be a stable reference. */
   draftSchema?: DetectorDraftSchema<TFormData>;
   extraFooterButton?: React.ReactNode;
   mapFormErrors?: (error: any) => any;
