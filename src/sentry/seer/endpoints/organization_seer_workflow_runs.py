@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from datetime import datetime
-from typing import TypedDict
+from typing import Literal, TypedDict
 
 from django.db.models import Prefetch, prefetch_related_objects
 from drf_spectacular.utils import extend_schema
@@ -17,6 +17,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
+from sentry.apidocs.examples import seer_workflow_examples as SeerWorkflowExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.db.models.fields.bounded import I64_MAX
@@ -58,25 +59,47 @@ class SeerWorkflowErrorResponse(TypedDict):
     message: str
 
 
-class SeerWorkflowExecutionResponse(TypedDict):
+class SeerWorkflowExecutionResponseBase(TypedDict):
     id: str
     seerRunId: str | None
-    status: str | None
     dateAdded: datetime
     dateUpdated: datetime
     dateCompleted: datetime | None
-    error: SeerWorkflowErrorResponse | None
 
 
-class SeerWorkflowRunResponse(TypedDict):
+class SeerWorkflowExecutionStateResponse(SeerWorkflowExecutionResponseBase):
+    status: Literal["queued", "running", "complete"] | None
+
+
+class SeerWorkflowExecutionErrorResponse(SeerWorkflowExecutionResponseBase):
+    status: Literal["failed"]
+    error: SeerWorkflowErrorResponse
+
+
+SeerWorkflowExecutionResponse = (
+    SeerWorkflowExecutionStateResponse | SeerWorkflowExecutionErrorResponse
+)
+
+
+class SeerWorkflowRunResponseBase(TypedDict):
     id: str
     workflowConfigId: str
-    status: str | None
     dateAdded: datetime
     dateUpdated: datetime
     dateCompleted: datetime | None
-    error: SeerWorkflowErrorResponse | None
     executions: list[SeerWorkflowExecutionResponse]
+
+
+class SeerWorkflowRunStateResponse(SeerWorkflowRunResponseBase):
+    status: Literal["queued", "running", "complete"] | None
+
+
+class SeerWorkflowRunErrorResponse(SeerWorkflowRunResponseBase):
+    status: Literal["failed", "rejected"]
+    error: SeerWorkflowErrorResponse
+
+
+SeerWorkflowRunResponse = SeerWorkflowRunStateResponse | SeerWorkflowRunErrorResponse
 
 
 class SeerWorkflowRunsResponse(TypedDict):
@@ -110,6 +133,7 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
 
     @extend_schema(
         operation_id="List Seer workflow runs",
+        examples=SeerWorkflowExamples.WORKFLOW_RUNS_RESPONSE,
         parameters=[GlobalParams.ORG_ID_OR_SLUG, CursorQueryParam, WorkflowRunListSerializer],
         responses={
             200: inline_sentry_response_serializer("SeerWorkflowRuns", SeerWorkflowRunsResponse),
@@ -125,10 +149,12 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
         Invalid or repeated IDs return 400; no visible matches return ``{"runs": []}``.
         Pagination links are in headers.
 
-        Historical rows without lifecycle tracking have null statuses. ``seerRunId``
-        is the linked Seer UUID or null. ``error`` contains a display-safe code and
-        message or null. Limited-access members must be able to access every project
-        in the saved run snapshot; runs without a saved scope are hidden from them.
+        ``status`` distinguishes failed/rejected records, which include an ``error``
+        code and display-safe message, from other records, which omit ``error``.
+        Missing error details use code ``unknown``. Historical rows without lifecycle
+        tracking retain a null status. ``seerRunId`` is the linked Seer UUID or null.
+        Limited-access members must be able to access every project in the saved run
+        snapshot; runs without a saved scope are hidden from them.
         """
         if not features.has("organizations:seer-automations", organization, actor=request.user):
             raise NotFound
@@ -186,50 +212,66 @@ def serialize_workflow_runs(runs: Sequence[SeerWorkflowRun]) -> SeerWorkflowRuns
             queryset=SeerWorkflowRunExecution.objects.select_related("seer_run").order_by("id"),
         ),
     )
-    return {
-        "runs": [
-            {
-                "id": str(run.id),
-                "workflowConfigId": str(run.workflow_config_id),
-                "status": run.status,
-                "dateAdded": run.date_added,
-                "dateUpdated": run.date_updated,
-                "dateCompleted": run.date_completed,
-                "error": serialize_workflow_error(run.extras.get("error")),
-                "executions": [
-                    serialize_workflow_execution(execution, organization_id=run.organization_id)
-                    for execution in run.executions.all()
-                ],
-            }
-            for run in runs
-        ]
+    return {"runs": [serialize_workflow_run(run) for run in runs]}
+
+
+def serialize_workflow_run(run: SeerWorkflowRun) -> SeerWorkflowRunResponse:
+    result: SeerWorkflowRunResponseBase = {
+        "id": str(run.id),
+        "workflowConfigId": str(run.workflow_config_id),
+        "dateAdded": run.date_added,
+        "dateUpdated": run.date_updated,
+        "dateCompleted": run.date_completed,
+        "executions": [
+            serialize_workflow_execution(execution, organization_id=run.organization_id)
+            for execution in run.executions.all()
+        ],
     }
+    match run.status:
+        case "failed" | "rejected" as status:
+            return {
+                **result,
+                "status": status,
+                "error": serialize_workflow_error(run.extras.get("error")),
+            }
+        case "queued" | "running" | "complete" | None as status:
+            return {**result, "status": status}
+        case _:
+            raise ValueError("Unknown workflow run status")
 
 
 def serialize_workflow_execution(
     execution: SeerWorkflowRunExecution, *, organization_id: int
 ) -> SeerWorkflowExecutionResponse:
     seer_run = execution.seer_run
-    return {
+    result: SeerWorkflowExecutionResponseBase = {
         "id": str(execution.id),
         "seerRunId": (
             str(seer_run.uuid)
             if seer_run is not None and seer_run.organization_id == organization_id
             else None
         ),
-        "status": execution.status,
         "dateAdded": execution.date_added,
         "dateUpdated": execution.date_updated,
         "dateCompleted": execution.date_completed,
-        "error": serialize_workflow_error(execution.extras.get("error")),
     }
+    match execution.status:
+        case "failed":
+            return {
+                **result,
+                "status": "failed",
+                "error": serialize_workflow_error(execution.extras.get("error")),
+            }
+        case "queued" | "running" | "complete" | None as status:
+            return {**result, "status": status}
+        case _:
+            raise ValueError("Unknown workflow execution status")
 
 
-def serialize_workflow_error(error: object) -> SeerWorkflowErrorResponse | None:
-    if not isinstance(error, dict):
-        return None
-    code = error.get("code")
-    message = error.get("message")
-    if not isinstance(code, str) or not isinstance(message, str):
-        return None
-    return {"code": code, "message": message}
+def serialize_workflow_error(error: object) -> SeerWorkflowErrorResponse:
+    if isinstance(error, dict):
+        code = error.get("code")
+        message = error.get("message")
+        if isinstance(code, str) and isinstance(message, str):
+            return {"code": code, "message": message}
+    return {"code": "unknown", "message": "No error details are available."}

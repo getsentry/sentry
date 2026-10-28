@@ -2,18 +2,27 @@ from collections.abc import Sequence
 from datetime import timedelta
 from unittest.mock import patch
 
+import pytest
 from django.db import connections, router
 from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
+from jsonschema.exceptions import ValidationError
+from openapi_schema_validator import OAS30Validator
 
+from sentry.apidocs.examples.seer_workflow_examples import WORKFLOW_RUNS_RESPONSE
+from sentry.apidocs.spectacular_ports import resolve_type_hint
 from sentry.constants import ObjectStatus
 from sentry.db.models.fields.bounded import I64_MAX
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.seer.endpoints.organization_seer_workflow_configs import serialize_workflow_configs
-from sentry.seer.endpoints.organization_seer_workflow_runs import serialize_workflow_runs
+from sentry.seer.endpoints.organization_seer_workflow_runs import (
+    SeerWorkflowRunsResponse,
+    WorkflowRunListErrorResponse,
+    serialize_workflow_runs,
+)
 from sentry.seer.models.run import SeerAgentRun
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
@@ -23,6 +32,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowRunExecution,
     SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
+    WorkflowRunError,
 )
 from sentry.seer.monitor_cleanup.runs import deliver_monitor_cleanup_result
 from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
@@ -78,7 +88,6 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
                     "dateAdded": run.date_added,
                     "dateUpdated": run.date_updated,
                     "dateCompleted": None,
-                    "error": None,
                     "executions": [
                         {
                             "id": str(completed.id),
@@ -87,7 +96,6 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
                             "dateAdded": completed.date_added,
                             "dateUpdated": completed.date_updated,
                             "dateCompleted": completed.date_completed,
-                            "error": None,
                         },
                         {
                             "id": str(failed.id),
@@ -105,7 +113,6 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
                             "dateAdded": queued.date_added,
                             "dateUpdated": queued.date_updated,
                             "dateCompleted": None,
-                            "error": None,
                         },
                     ],
                 }
@@ -142,9 +149,11 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
         assert "extras" not in serialized_execution
         assert private_value not in response.content.decode()
 
-    def test_malformed_errors_are_not_exposed(self) -> None:
-        run = self.create_run()
-        execution = Factories.create_seer_workflow_run_execution(run)
+    def test_missing_or_malformed_errors_use_safe_fallback(self) -> None:
+        run = self.create_run(status=SeerWorkflowRunStatus.FAILED)
+        execution = Factories.create_seer_workflow_run_execution(
+            run, status=SeerWorkflowExecutionStatus.FAILED
+        )
         for error in (
             None,
             "internal-error-canary",
@@ -157,8 +166,11 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
             execution.update(extras={"error": error})
             response = self.get_success_response(self.organization.slug, config=self.config.id)
             (serialized_run,) = response.json()["runs"]
-            assert serialized_run["error"] is None
-            assert serialized_run["executions"][0]["error"] is None
+            assert serialized_run["error"] == {
+                "code": "unknown",
+                "message": "No error details are available.",
+            }
+            assert serialized_run["executions"][0]["error"] == serialized_run["error"]
             assert "internal-error-canary" not in response.content.decode()
 
     def test_tracks_execution_completion(self) -> None:
@@ -195,6 +207,93 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
             "complete",
             "complete",
         ]
+
+    def test_failed_execution_returns_parent_and_execution_error_variants(self) -> None:
+        run = self.create_run()
+        lifecycle = SeerWorkflowRunLifecycle(run_id=run.id, organization_id=self.organization.id)
+        lifecycle.start()
+        (execution,) = lifecycle.create_executions([SeerWorkflowExecutionExtras()])
+        error = WorkflowRunError(code="dispatch_failed", message="Could not start execution.")
+        lifecycle.complete_execution(execution.id, error=error)
+        assert lifecycle.extras.error is None
+
+        response = self.get_success_response(self.organization.slug, config=self.config.id)
+        (failed_run,) = response.json()["runs"]
+        assert failed_run["status"] == "failed"
+        assert failed_run["error"] == {
+            "code": "unknown",
+            "message": "No error details are available.",
+        }
+        (failed_execution,) = failed_run["executions"]
+        assert failed_execution["status"] == "failed"
+        assert failed_execution["error"] == error.dict()
+
+    def test_rejected_run_returns_error_variant(self) -> None:
+        run = self.create_run()
+        error = WorkflowRunError(code="quota_exceeded", message="Automation quota exceeded.")
+        SeerWorkflowRunLifecycle(run_id=run.id, organization_id=self.organization.id).reject(
+            error=error
+        )
+
+        response = self.get_success_response(self.organization.slug, config=self.config.id)
+        (rejected,) = response.json()["runs"]
+        assert rejected["status"] == "rejected"
+        assert rejected["error"] == error.dict()
+        assert rejected["executions"] == []
+
+    def test_non_error_records_omit_stale_errors(self) -> None:
+        error = {"code": "internal-only", "message": "Internal error canary"}
+        for status in ("queued", "running", "complete", None):
+            run = self.create_run(status=status, extras={"error": error})
+            Factories.create_seer_workflow_run_execution(
+                run, status=status, extras={"error": error}
+            )
+
+        response = self.get_success_response(self.organization.slug, config=self.config.id)
+        for run_data in response.json()["runs"]:
+            assert "error" not in run_data
+            assert "error" not in run_data["executions"][0]
+
+    def test_response_schema_discriminates_status_and_requires_errors(self) -> None:
+        schema = resolve_type_hint(SeerWorkflowRunsResponse)
+        state, failure = schema["properties"]["runs"]["items"]["anyOf"]
+        assert set(state["properties"]["status"]["enum"]) | set(
+            failure["properties"]["status"]["enum"]
+        ) == set(SeerWorkflowRunStatus.values)
+        assert "error" not in state["properties"]
+        assert "error" in failure["required"]
+        execution_state, execution_failure = state["properties"]["executions"]["items"]["anyOf"]
+        assert set(execution_state["properties"]["status"]["enum"]) | set(
+            execution_failure["properties"]["status"]["enum"]
+        ) == set(SeerWorkflowExecutionStatus.values)
+        assert "error" not in execution_state["properties"]
+        assert "error" in execution_failure["required"]
+
+        run = self.create_run(status=SeerWorkflowRunStatus.FAILED)
+        Factories.create_seer_workflow_run_execution(run, status=SeerWorkflowExecutionStatus.FAILED)
+        response = self.get_success_response(self.organization.slug, config=self.config.id)
+        payload = response.json()
+        validator = OAS30Validator(schema, format_checker=OAS30Validator.FORMAT_CHECKER)
+        validator.validate(payload)
+        error = payload["runs"][0].pop("error")
+        with pytest.raises(ValidationError):
+            validator.validate(payload)
+        payload["runs"][0]["error"] = error
+        payload["runs"][0]["executions"][0].pop("error")
+        with pytest.raises(ValidationError):
+            validator.validate(payload)
+
+    def test_openapi_examples_match_response_contracts(self) -> None:
+        success, failure, invalid_filter = WORKFLOW_RUNS_RESPONSE
+        validator = OAS30Validator(
+            resolve_type_hint(SeerWorkflowRunsResponse),
+            format_checker=OAS30Validator.FORMAT_CHECKER,
+        )
+        validator.validate(success.value)
+        validator.validate(failure.value)
+        OAS30Validator(resolve_type_hint(WorkflowRunListErrorResponse)).validate(
+            invalid_filter.value
+        )
 
     def test_lists_runs_across_configs(self) -> None:
         older = self.create_run()
@@ -278,7 +377,14 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
         assert {run["id"]: run["status"] for run in response.data["runs"]} == {
             str(run.id): run.status for run in runs
         }
-        assert [run["error"] for run in response.data["runs"]] == [None] * 6
+        by_id = {run["id"]: run for run in response.data["runs"]}
+        for run in runs[:3] + runs[5:]:
+            assert "error" not in by_id[str(run.id)]
+        for run in runs[3:5]:
+            assert by_id[str(run.id)]["error"] == {
+                "code": "unknown",
+                "message": "No error details are available.",
+            }
         assert [run["executions"] for run in response.data["runs"]] == [[]] * 6
 
     def test_feature_disabled_returns_404(self) -> None:
