@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react';
 import {css} from '@emotion/react';
 import {IconClock} from '@sentry/icons/clock';
-import {IconLightning} from '@sentry/icons/lightning';
+import {IconTimer} from '@sentry/icons/timer';
 import type {Location} from 'history';
 import {createParser, useQueryState} from 'nuqs';
 
@@ -393,13 +393,14 @@ export function FiltersBar({
             trigger={triggerProps => (
               <OverlayTrigger.Button
                 {...triggerProps}
-                icon={<IconLightning />}
+                icon={<IconTimer />}
                 aria-label={t('Query priority: %s', queryPriorityLabel)}
               >
                 {queryPriorityLabel}
               </OverlayTrigger.Button>
             )}
             menuTitle={t('Query priority')}
+            menuWidth={240}
             options={queryPriorityOptions}
           />
         )}

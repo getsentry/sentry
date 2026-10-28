@@ -588,7 +588,11 @@ class ExhaustiveFixtures(Fixtures):
             widget_type=DashboardWidgetTypes.DISCOVER,
         )
         widget_query = DashboardWidgetQuery.objects.create(
-            widget=widget, order=1, name=f"Test Query for {slug}"
+            widget=widget,
+            order=1,
+            name=f"Test Query for {slug}",
+            aggregates=["count()"],
+            transformations={"0": ["fill(locf)", "smooth(sma,3)"]},
         )
         DashboardWidgetQueryOnDemand.objects.create(
             dashboard_widget_query=widget_query,
