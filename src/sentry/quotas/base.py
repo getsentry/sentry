@@ -742,3 +742,9 @@ class Quota(Service):
         Checks if the organization has access to Seer for the given data category and seat object.
         """
         return True
+
+    def has_seer_credits(self, org_id: int, feature_id: str, predicted_credit_usage: int) -> bool:
+        """
+        Checks if the organization has enough Seer credits for the predicted usage.
+        """
+        return True
