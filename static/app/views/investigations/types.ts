@@ -1,7 +1,9 @@
 import type {AvatarUser} from 'sentry/types/user';
 import type {
   ActionRequestError,
+  ActionRequestFollowUp,
   CannotApplyReason,
+  InvestigationDetectorValues,
 } from 'sentry/views/investigations/api';
 import type {ToolResult} from 'sentry/views/seerExplorer/types';
 
@@ -79,11 +81,6 @@ export type InvestigationComment = {
   dateCreated: string;
   dateUpdated: string;
   id: string;
-};
-
-export type InvestigationBlockExecutionStart = {
-  id: string;
-  status: InvestigationExecutionStatus;
 };
 
 export type InvestigationExecutionStatus =
@@ -194,6 +191,16 @@ export type MetricOpenPeriodInvestigationSource = {
   type: 'metric_open_period';
 };
 
+export type ManualInvestigationSource = {
+  type: 'manual';
+  /** Without a non-blank prompt, the run waits for input. */
+  prompt?: string;
+  /** Context forwarded to the investigation agent as evidence. */
+  seed?: Record<string, unknown>;
+  /** Timezone-aware ISO-8601 range for the run to look at. */
+  timeRange?: {end: string; start: string};
+};
+
 export type InvestigationCandidate =
   | {status: 'investigate'}
   | {status: 'unavailable'}
@@ -263,18 +270,7 @@ export type InvestigationHypothesisStatus = InvestigationOrchestrationOpenString
   | 'cancelled'
 >;
 
-export type InvestigationDetectorChangeKey =
-  | 'query'
-  | 'aggregate'
-  | 'environment'
-  | 'timeWindowSeconds'
-  | 'highThreshold'
-  | 'mediumThreshold'
-  | 'resolutionThreshold';
-
-type InvestigationDetectorValues = Partial<
-  Record<InvestigationDetectorChangeKey, number | string | null>
->;
+export type InvestigationDetectorChangeKey = keyof InvestigationDetectorValues;
 
 export type InvestigationUpdateDetectorAction = {
   before: InvestigationDetectorValues;
@@ -283,11 +279,16 @@ export type InvestigationUpdateDetectorAction = {
   kind: 'update_detector';
 };
 
+export type InvestigationConnectTelemetryAction = {
+  kind: 'connect_telemetry';
+  provider: 'datadog' | 'gcp';
+};
+
 export type InvestigationAction =
   | InvestigationUpdateDetectorAction
-  | {kind: 'connect_telemetry'; provider: 'datadog' | 'gcp'};
+  | InvestigationConnectTelemetryAction;
 
-type InvestigationActionRequestAnchor = {
+export type InvestigationActionRequestAnchor = {
   blockId: string | null;
   id: string;
   type: InvestigationOrchestrationOpenString<'block' | 'hypothesis'>;
@@ -303,6 +304,7 @@ export type InvestigationActionRequest = {
   dateApplied: string | null;
   dateCreated: string;
   error: ActionRequestError | null;
+  followUp: ActionRequestFollowUp | null;
   id: string;
   impact: string | null;
   key: string;

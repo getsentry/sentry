@@ -690,12 +690,16 @@ class RecordingKind(ActionKind):
         self.upserted: list[InvestigationActionRequest] = []
         # The arguments from each cannot_apply_reasons call.
         self.checked: list[tuple[list[int], list[int], Access, User | RpcUser | AnonymousUser]] = []
-        # Which of check and apply ran, in order.
+        # Which of check_remote, check and apply ran, in order.
         self.calls: list[str] = []
         # What check and apply raise, if anything.
         self.raises: Exception | None = None
         # A title for check to write on the request.
         self.check_title: str | None = None
+        # What check_remote raises, if anything.
+        self.remote_raises: Exception | None = None
+        # Why cannot_apply_reasons says the viewer can't apply, if they can't.
+        self.reason: CannotApplyReason | None = None
 
     def after_upsert(self, action_request: InvestigationActionRequest) -> None:
         self.upserted.append(action_request)
@@ -711,7 +715,14 @@ class RecordingKind(ActionKind):
         self.checked.append(
             ([item.id for item in action_requests], sorted(investigations), access, user)
         )
-        return {item.id: None for item in action_requests}
+        return {item.id: self.reason for item in action_requests}
+
+    def check_remote(
+        self, investigation: Investigation, action_request: InvestigationActionRequest
+    ) -> None:
+        self.calls.append("check_remote")
+        if self.remote_raises is not None:
+            raise self.remote_raises
 
     def check(self, context: ApplyContext) -> None:
         self.calls.append("check")

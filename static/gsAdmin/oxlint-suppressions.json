@@ -95,11 +95,6 @@
       "count": 8
     }
   },
-  "views/customerContractDetails.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 2
-    }
-  },
   "views/debuggingTools.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2

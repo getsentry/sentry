@@ -380,7 +380,8 @@ jobs:
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          mode: default
+          mode: migrations
+          early-devservices: 'true'
 
       # Only master saves, so PRs restore the newest master dump.
       - name: Restore migrated test databases

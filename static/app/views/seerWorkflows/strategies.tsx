@@ -20,27 +20,37 @@ type StrategyMeta = {
   runAction?: {feature: string; label: string};
 };
 
-// TODO(aliu): Add the other backend strategies (e.g. agentic_triage_v2) once SeerWorkflowRun
-// covers them. Automation cards fall back to the raw strategy name until then.
 export const STRATEGY_META: Record<WorkflowStrategy, StrategyMeta> = {
+  agentic_triage: {
+    label: t('Agentic triage'),
+    description: t('Automatically triage and fix the most fixable Issues.'),
+  },
+  agentic_triage_v2: {
+    label: t('Agentic triage'),
+    description: t('Automatically triage and fix the most fixable Issues.'),
+  },
+  breached_metrics: {
+    label: t('Breached metrics'),
+    description: t(
+      'Monitors backend metrics and investigates why certain key metrics were breached.'
+    ),
+  },
   duplicate_monitors: {
+    label: t('Duplicate monitors'),
     runAction: {
       feature: 'seer-workflows-monitor-cleanup',
       label: t('Monitor scan'),
     },
-    label: 'Duplicate monitors',
-  },
-  agentic_triage: {
-    label: 'Agentic triage',
-    description: t('Automatically triage and fix the most fixable Issues'),
   },
 };
 
 export function getWorkflowStatus(run: SeerWorkflowRun): WorkflowDisplayStatus {
   switch (run.strategy) {
     case 'agentic_triage':
+    case 'agentic_triage_v2':
       return getAgenticTriageStatus(run);
     case 'duplicate_monitors':
+    case 'breached_metrics':
       return run.extras.status === 'complete' ? 'succeeded' : run.extras.status;
   }
 }
@@ -51,6 +61,10 @@ export function getWorkflowSummary(run: SeerWorkflowRun): string {
       return getAgenticTriageSummary(run);
     case 'duplicate_monitors':
       return getMonitorRunSummary(run);
+    case 'agentic_triage_v2':
+    case 'breached_metrics':
+      // TODO: add other strategies
+      return '(no summary)';
   }
 }
 
@@ -66,6 +80,10 @@ export function WorkflowResults({
       return <AgenticTriageResults run={run} organizationSlug={organizationSlug} />;
     case 'duplicate_monitors':
       return <MonitorCleanupRunResults run={run} organizationSlug={organizationSlug} />;
+    case 'agentic_triage_v2':
+    case 'breached_metrics':
+      // TODO: add other strategies
+      return null;
   }
 }
 

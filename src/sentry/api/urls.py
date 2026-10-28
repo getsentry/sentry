@@ -299,6 +299,12 @@ from sentry.integrations.api.endpoints.organization_repository_settings import (
 from sentry.investigations.endpoints.organization_investigation_action_request_apply import (
     OrganizationInvestigationActionRequestApplyEndpoint,
 )
+from sentry.investigations.endpoints.organization_investigation_action_request_recheck import (
+    OrganizationInvestigationActionRequestRecheckEndpoint,
+)
+from sentry.investigations.endpoints.organization_investigation_action_request_retry_follow_up import (
+    OrganizationInvestigationActionRequestRetryFollowUpEndpoint,
+)
 from sentry.investigations.endpoints.organization_investigation_block_details import (
     OrganizationInvestigationBlockDetailsEndpoint,
 )
@@ -595,6 +601,7 @@ from sentry.seer.endpoints.organization_seer_rpc import OrganizationSeerRpcEndpo
 from sentry.seer.endpoints.organization_seer_runs import OrganizationSeerRunsEndpoint
 from sentry.seer.endpoints.organization_seer_setup_check import OrganizationSeerSetupCheckEndpoint
 from sentry.seer.endpoints.organization_seer_workflow_configs import (
+    OrganizationSeerWorkflowConfigDetailsEndpoint,
     OrganizationSeerWorkflowConfigsEndpoint,
 )
 from sentry.seer.endpoints.organization_seer_workflows import OrganizationSeerWorkflowsEndpoint
@@ -656,7 +663,6 @@ from sentry.sentry_apps.api.endpoints.sentry_app_components import (
 from sentry.sentry_apps.api.endpoints.sentry_app_details import SentryAppDetailsEndpoint
 from sentry.sentry_apps.api.endpoints.sentry_app_features import SentryAppFeaturesEndpoint
 from sentry.sentry_apps.api.endpoints.sentry_app_installations import SentryAppInstallationsEndpoint
-from sentry.sentry_apps.api.endpoints.sentry_app_interaction import SentryAppInteractionEndpoint
 from sentry.sentry_apps.api.endpoints.sentry_app_publish_request import (
     SentryAppPublishRequestEndpoint,
 )
@@ -2452,6 +2458,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-investigation-action-request-apply",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/action-requests/(?P<action_request_id>[^/]+)/recheck/$",
+        OrganizationInvestigationActionRequestRecheckEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-action-request-recheck",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/action-requests/(?P<action_request_id>[^/]+)/retry-follow-up/$",
+        OrganizationInvestigationActionRequestRetryFollowUpEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-action-request-retry-follow-up",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/presence/$",
         OrganizationInvestigationPresenceEndpoint.as_view(),
         name="sentry-api-0-organization-investigation-presence",
@@ -2520,6 +2536,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/seer/workflows/configs/$",
         OrganizationSeerWorkflowConfigsEndpoint.as_view(),
         name="sentry-api-0-organization-seer-workflow-configs",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/workflows/configs/(?P<config_id>\d+)/$",
+        OrganizationSeerWorkflowConfigDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-workflow-config-details",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/workflows/runs/$",
@@ -3580,11 +3601,6 @@ SENTRY_APP_URLS = [
         r"^(?P<sentry_app_id_or_slug>[^/]+)/webhook-requests/$",
         SentryAppWebhookRequestsEndpoint.as_view(),
         name="sentry-api-0-sentry-app-webhook-requests",
-    ),
-    re_path(
-        r"^(?P<sentry_app_id_or_slug>[^/]+)/interaction/$",
-        SentryAppInteractionEndpoint.as_view(),
-        name="sentry-api-0-sentry-app-interaction",
     ),
 ]
 

@@ -136,7 +136,7 @@ def cache_candidate(
         dataset == Spans
         and query == ""
         and query_columns == ["count(span.duration)"]
-        and rollup == 1800
+        and rollup in [1800, 10_800]
         and top_events == 0
     ):
         return True
@@ -528,7 +528,10 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             organization,
             actor=request.user,
         )
-        if incremental_loading:
+        # skipCache only applies while incremental caching is enabled.
+        skip_cache = incremental_loading and request.GET.get("skipCache") == "1"
+        is_cache_candidate = False
+        if incremental_loading and not skip_cache:
             with traces.start_span("get_cache"):
                 if is_cache_candidate := cache_candidate(
                     dataset, snuba_params, query, query_columns, rollup, top_events
@@ -610,19 +613,18 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 additional_queries=additional_queries,
                 transformations=transformations,
             )
-            if incremental_loading:
+            if incremental_loading and not skip_cache and is_cache_candidate:
                 with traces.start_span("set_cache"):
-                    if is_cache_candidate:
-                        # Query columns 0 is fine here since we only have 1 cache candidate right now
-                        update_result_with_cache(
-                            cache_key,
-                            cached,
-                            result,
-                            cached_timestamps,
-                            original_start,
-                            snuba_params,
-                            query_columns[0],
-                        )
+                    # Query columns 0 is fine here since we only have 1 cache candidate right now
+                    update_result_with_cache(
+                        cache_key,
+                        cached,
+                        result,
+                        cached_timestamps,
+                        original_start,
+                        snuba_params,
+                        query_columns[0],
+                    )
             return result
 
         return dataset.timeseries_query(

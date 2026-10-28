@@ -1,10 +1,8 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconArrow} from '@sentry/icons/arrow';
 import {IconChat} from '@sentry/icons/chat';
 import {IconClose} from '@sentry/icons/close';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
-import {IconReturn} from '@sentry/icons/return';
 import {IconSeer} from '@sentry/icons/seer';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
@@ -13,10 +11,9 @@ import {Button} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {type MarkdownTableColumn} from '@sentry/scraps/markdown';
+import {type MarkdownProps, type MarkdownTableColumn} from '@sentry/scraps/markdown';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
-import {TextArea} from '@sentry/scraps/textarea';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
@@ -34,11 +31,14 @@ import {
   investigationExecutionDetailQueryOptions,
   useDeleteInvestigationBlockMutation,
   useResumeInvestigationExecutionMutation,
-  useRunInvestigationBlockMutation,
   useStopInvestigationExecutionMutation,
-  useUpdateInvestigationBlockPromptMutation,
 } from 'sentry/views/investigations/api';
 import {InvestigationBlockPlaceholder} from 'sentry/views/investigations/detail/blockPlaceholder';
+import {
+  getBlockLLMContext,
+  getInvestigationReference,
+  useInvestigationAskSeer,
+} from 'sentry/views/investigations/investigationLLMContext';
 import type {
   InvestigationBlock,
   InvestigationBlockKind,
@@ -52,6 +52,8 @@ import {visibleCallRecords} from 'sentry/views/seerExplorer/callRecords';
 import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/components/askUserQuestionBlock';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
 import {MessagePlaceholder} from 'sentry/views/seerExplorer/components/chat/shared';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import type {Block} from 'sentry/views/seerExplorer/types';
 
@@ -63,7 +65,7 @@ type InvestigationNotebookBlockProps = {
   onComment?: (blockId: string) => void;
 };
 
-export function InvestigationNotebookBlock({
+function InvestigationNotebookBlockInner({
   block,
   canRun,
   investigation,
@@ -78,8 +80,8 @@ export function InvestigationNotebookBlock({
   const awaitingInput = block.currentExecution?.status === 'awaiting_input';
   // A block that has nothing in it yet is showing a placeholder, so opening the
   // Seer panel over it would bury that. A block waiting on an answer is the
-  // exception — the question lives in the panel. Runs started from this page
-  // still open it, through `openPanel` and the effects below.
+  // exception — the question lives in the panel. Runs that start while the
+  // page is open still open it, through the effects below.
   const [panelOpen, setPanelOpen] = useState(
     Boolean(activeExecutionId) && (hasRenderableContent(block) || awaitingInput)
   );
@@ -87,15 +89,12 @@ export function InvestigationNotebookBlock({
   const [traceExecutionId, setTraceExecutionId] = useState<string | null>(
     activeExecutionId
   );
-  const [showPrompt, setShowPrompt] = useState(!activeExecutionId);
-  const [prompt, setPrompt] = useState(() =>
-    block.outputStatus === 'notRun' ? block.generationPrompt : ''
-  );
+  // Push the block into the LLM context tree for Seer Explorer. The same object
+  // is the context when "Ask Seer" asks about this block.
+  const blockLLMContext = getBlockLLMContext(block);
+  useLLMContext(blockLLMContext);
+  const askSeer = useInvestigationAskSeer();
   const progressState = getBlockProgressState(block, investigation.blocks ?? []);
-  const waitingForDependencies =
-    progressState === 'waiting' ||
-    progressState === 'blockedByFailure' ||
-    progressState === 'blockedByCancellation';
   const executionId = block.currentExecution?.id;
   const streamedTextQuery = useQuery({
     ...investigationExecutionDetailQueryOptions({
@@ -127,7 +126,6 @@ export function InvestigationNotebookBlock({
     // eslint-disable react-you-might-not-need-an-effect/no-derived-state
     setPanelOpen(true);
     setTraceExecutionId(activeExecutionId);
-    setShowPrompt(false);
     // eslint-enable react-you-might-not-need-an-effect/no-derived-state
   }, [activeExecutionId]);
 
@@ -146,20 +144,21 @@ export function InvestigationNotebookBlock({
     // eslint-disable react-you-might-not-need-an-effect/no-derived-state
     setPanelOpen(true);
     setTraceExecutionId(activeExecutionId);
-    setShowPrompt(false);
     // eslint-enable react-you-might-not-need-an-effect/no-derived-state
   }, [awaitingInput, activeExecutionId]);
 
-  function openPanel() {
-    setPanelOpen(true);
-    if (block.currentExecution && isExecutionActive(block.currentExecution.status)) {
-      setTraceExecutionId(block.currentExecution.id);
-      setShowPrompt(false);
-      return;
-    }
-    setShowPrompt(true);
-    setPrompt(block.outputStatus === 'notRun' ? block.generationPrompt : '');
-  }
+  const handleAskSeer = askSeer
+    ? () =>
+        askSeer({
+          prompt: block.title
+            ? t('How do you want to steer the investigation: "%s"?', block.title)
+            : t('How do you want to steer this block?'),
+          context: {
+            investigation: getInvestigationReference(investigation),
+            block: blockLLMContext,
+          },
+        })
+    : undefined;
 
   const actionItems: MenuItemProps[] = [
     {
@@ -169,10 +168,21 @@ export function InvestigationNotebookBlock({
       onAction: () => onComment?.(block.id),
     },
     {
-      key: 'refine',
-      label: t('Refine'),
-      disabled: waitingForDependencies,
-      onAction: openPanel,
+      key: 'ask-seer',
+      label: t('Ask Seer'),
+      hidden: !handleAskSeer,
+      onAction: handleAskSeer,
+    },
+    {
+      // Closing the panel of a run still going would otherwise leave no way back
+      // to it, or to a question Seer is waiting on.
+      key: 'show-activity',
+      label: t('Show Seer activity'),
+      hidden: !activeExecutionId || panelOpen,
+      onAction: () => {
+        setPanelOpen(true);
+        setTraceExecutionId(activeExecutionId);
+      },
     },
     {
       key: 'delete',
@@ -239,20 +249,16 @@ export function InvestigationNotebookBlock({
     </Flex>
   );
 
-  const panel = panelOpen ? (
-    <RefinementPanel
-      block={block}
-      canRun={canRun}
-      investigation={investigation}
-      prompt={prompt}
-      setPrompt={setPrompt}
-      showPrompt={showPrompt}
-      setShowPrompt={setShowPrompt}
-      traceExecutionId={traceExecutionId}
-      setTraceExecutionId={setTraceExecutionId}
-      onClose={() => setPanelOpen(false)}
-    />
-  ) : null;
+  const panel =
+    panelOpen && traceExecutionId ? (
+      <AgentActivityPanel
+        block={block}
+        executionId={traceExecutionId}
+        investigation={investigation}
+        onAskSeer={handleAskSeer}
+        onClose={() => setPanelOpen(false)}
+      />
+    ) : null;
 
   return (
     <Stack
@@ -290,6 +296,11 @@ export function InvestigationNotebookBlock({
   );
 }
 
+export const InvestigationNotebookBlock = registerLLMContext(
+  'investigation-block',
+  InvestigationNotebookBlockInner
+);
+
 function BlockResult({
   actions,
   block,
@@ -301,8 +312,7 @@ function BlockResult({
   progressState: BlockProgressState;
   streamedMarkdown?: string | null;
 }) {
-  const markdown =
-    streamedMarkdown ?? getTextOutput(block.output) ?? (block.content.trim() || null);
+  const markdown = streamedMarkdown ?? getTextBlockMarkdown(block);
   return (
     <BlockHoverSurface
       flex={1}
@@ -314,7 +324,7 @@ function BlockResult({
         <Stack minWidth={0} gap="sm">
           <BlockExecutionAlert block={block} />
           {markdown ? (
-            <SeerMarkdown raw={markdown} />
+            <SeerMarkdown raw={markdown} components={TEXT_BLOCK_MARKDOWN_COMPONENTS} />
           ) : isBlockWorking(block) ? (
             <Container paddingBottom="xl">
               <InvestigationBlockPlaceholder title={block.title} />
@@ -338,6 +348,18 @@ function BlockResult({
     </BlockHoverSurface>
   );
 }
+
+/**
+ * Renders headings the way `SeerMarkdown` does, marked so the outline can find
+ * the block's own headings apart from any inside its embeds.
+ */
+const TEXT_BLOCK_MARKDOWN_COMPONENTS: MarkdownProps['components'] = {
+  Heading: ({children, level}) => (
+    <Heading as={`h${level}`} size="lg" data-investigation-block-heading="">
+      {children}
+    </Heading>
+  ),
+};
 
 function QueryResult({
   actions,
@@ -640,41 +662,27 @@ function QueryResultTable({
   );
 }
 
-type RefinementPanelProps = {
+type AgentActivityPanelProps = {
   block: InvestigationBlock;
-  canRun: boolean;
+  executionId: string;
   investigation: InvestigationDetail;
   onClose: () => void;
-  prompt: string;
-  setPrompt: (prompt: string) => void;
-  setShowPrompt: (showPrompt: boolean) => void;
-  setTraceExecutionId: (executionId: string | null) => void;
-  showPrompt: boolean;
-  traceExecutionId: string | null;
+  onAskSeer?: () => void;
 };
 
-function RefinementPanel({
+/**
+ * What Seer did on one run of a block: its transcript, any question it is
+ * waiting on, and a way to stop it.
+ */
+function AgentActivityPanel({
   block,
-  canRun,
+  executionId,
   investigation,
+  onAskSeer,
   onClose,
-  prompt,
-  setPrompt,
-  setShowPrompt,
-  setTraceExecutionId,
-  showPrompt,
-  traceExecutionId,
-}: RefinementPanelProps) {
+}: AgentActivityPanelProps) {
   const organizationSlug = useOrganization().slug;
   const queryClient = useQueryClient();
-  const updatePromptMutation = useUpdateInvestigationBlockPromptMutation(
-    organizationSlug,
-    investigation.id
-  );
-  const runMutation = useRunInvestigationBlockMutation(
-    organizationSlug,
-    investigation.id
-  );
   const stopMutation = useStopInvestigationExecutionMutation(
     organizationSlug,
     investigation.id,
@@ -687,16 +695,13 @@ function RefinementPanel({
     investigation.id,
     {onError: () => addErrorMessage(t('Unable to resume this Seer run.'))}
   );
-  const executionId = traceExecutionId;
-  const executionOptions = investigationExecutionDetailQueryOptions({
-    organizationSlug,
-    investigationId: investigation.id,
-    blockId: block.id,
-    executionId: executionId ?? 'disabled',
-  });
   const executionQuery = useQuery({
-    ...executionOptions,
-    enabled: Boolean(executionId),
+    ...investigationExecutionDetailQueryOptions({
+      organizationSlug,
+      investigationId: investigation.id,
+      blockId: block.id,
+      executionId,
+    }),
     refetchInterval: query =>
       isExecutionActive(query.state.data?.json.status) ? 1000 : false,
   });
@@ -720,93 +725,8 @@ function RefinementPanel({
     }
   }, [investigation.id, organizationSlug, queryClient, status]);
 
-  async function submit() {
-    const nextPrompt = prompt.trim();
-    if (!nextPrompt) {
-      return;
-    }
-
-    try {
-      const updatedBlock = await updatePromptMutation.mutateAsync({
-        block,
-        investigationVersion: investigation.version,
-        prompt: nextPrompt,
-      });
-      const investigationVersion =
-        investigation.version + (updatedBlock.version === block.version ? 0 : 1);
-      const started = await runMutation.mutateAsync({
-        block: updatedBlock,
-        investigationVersion,
-      });
-      setTraceExecutionId(started.id);
-      setShowPrompt(false);
-    } catch {
-      addErrorMessage(t('Unable to start this Seer run.'));
-    }
-  }
-
-  function handlePromptKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
-      event.preventDefault();
-      void submit();
-    }
-  }
-
-  const isSubmitting = updatePromptMutation.isPending || runMutation.isPending;
-
-  if (showPrompt) {
-    return (
-      <Stack width="100%" marginTop="lg" gap="md">
-        <Flex align="center" justify="between" gap="sm">
-          <Flex align="center" gap="sm">
-            <IconSeer size="xs" />
-            <Text monospace>{t('Ask Seer to refine')}</Text>
-          </Flex>
-          {elapsed === null ? null : <ElapsedDuration milliseconds={elapsed} />}
-        </Flex>
-        <Stack gap="md">
-          <RefinementPrompt>
-            <RefinementTextArea
-              aria-label={t('Instructions for Seer')}
-              autosize
-              autoFocus
-              rows={3}
-              placeholder={t(
-                "Tell Seer how you'd like to refine or explore this analysis"
-              )}
-              value={prompt}
-              onChange={event => setPrompt(event.target.value)}
-              onKeyDown={handlePromptKeyDown}
-            />
-            <RefinementReturnIcon aria-hidden="true">
-              <IconReturn size="xs" />
-            </RefinementReturnIcon>
-          </RefinementPrompt>
-          <Flex align="center" gap="sm">
-            <Button
-              size="sm"
-              icon={<IconClose size="xs" />}
-              aria-label={t('Cancel Seer request')}
-              onClick={onClose}
-              disabled={isSubmitting}
-            />
-            <Button
-              size="sm"
-              icon={<IconArrow direction="right" size="xs" />}
-              busy={isSubmitting}
-              disabled={!canRun || !prompt.trim()}
-              onClick={() => void submit()}
-            >
-              {t('Submit')}
-            </Button>
-          </Flex>
-        </Stack>
-      </Stack>
-    );
-  }
-
   return (
-    <RefinementDisclosure defaultExpanded size="sm">
+    <AgentActivityDisclosure defaultExpanded size="sm">
       <AgentActivityDisclosureTitle
         leadingItems={<IconSeer size="xs" animation={active ? 'idle' : undefined} />}
         trailingItems={
@@ -824,7 +744,7 @@ function RefinementPanel({
       >
         <AgentActivityTitle monospace>{getExecutionTitle(status)}</AgentActivityTitle>
       </AgentActivityDisclosureTitle>
-      <RefinementDisclosureContent>
+      <AgentActivityDisclosureContent>
         <Stack gap="md">
           <Transcript
             blockKind={block.kind}
@@ -832,7 +752,7 @@ function RefinementPanel({
             completedAt={currentExecution?.completedAt ?? null}
             active={active}
           />
-          {executionId && execution?.pendingUserInput ? (
+          {execution?.pendingUserInput ? (
             <PendingInvestigationQuestion
               pendingInput={execution.pendingUserInput}
               responding={resumeMutation.isPending}
@@ -863,7 +783,7 @@ function RefinementPanel({
             </Alert.Container>
           ) : null}
           <Flex align="center" gap="sm">
-            {active && executionId ? (
+            {active ? (
               <Button
                 size="sm"
                 busy={stopMutation.isPending}
@@ -872,22 +792,15 @@ function RefinementPanel({
                 {t('Stop')}
               </Button>
             ) : null}
-            {status && !active ? (
-              <Button
-                size="sm"
-                variant="primary"
-                onClick={() => {
-                  setPrompt('');
-                  setShowPrompt(true);
-                }}
-              >
-                {t('Ask Seer again')}
+            {status && !active && onAskSeer ? (
+              <Button size="sm" variant="primary" onClick={onAskSeer}>
+                {t('Ask Seer')}
               </Button>
             ) : null}
           </Flex>
         </Stack>
-      </RefinementDisclosureContent>
-    </RefinementDisclosure>
+      </AgentActivityDisclosureContent>
+    </AgentActivityDisclosure>
   );
 }
 
@@ -1207,6 +1120,26 @@ export function getBlockElementId(blockId: string) {
   return `investigation-block-${blockId}`;
 }
 
+/**
+ * The nth heading in a text block's own Markdown, leaving out any inside its
+ * embeds.
+ */
+export function getBlockHeadingElement(blockId: string, index: number) {
+  return (
+    document
+      .getElementById(getBlockElementId(blockId))
+      ?.querySelectorAll<HTMLElement>('[data-investigation-block-heading]')[index] ?? null
+  );
+}
+
+/**
+ * What a text block shows once it has settled: its output, or the content a
+ * person wrote.
+ */
+export function getTextBlockMarkdown(block: InvestigationBlock) {
+  return getTextOutput(block.output) ?? (block.content.trim() || null);
+}
+
 export function getBlockDisplayTitle(block: InvestigationBlock) {
   const chartTitle =
     block.kind === 'query'
@@ -1330,11 +1263,16 @@ const BlockHoverSurface = styled(Stack)`
  * The table runs edge to edge in the query card, whose own border already
  * frames it, so `SimpleTable`'s border and rounding would draw a second box
  * inside the first. Only the top rule stays, dividing the header from the
- * card's header band or the content inset above it.
+ * card's header band or the content inset above it, plus a bottom rule when
+ * prose follows the table, since the card's border no longer closes it off.
  */
 const FlushSimpleTable = styled(SimpleTable)`
   border-width: 1px 0 0;
   border-radius: 0;
+
+  &:not(:last-child) {
+    border-bottom-width: 1px;
+  }
 `;
 
 /**
@@ -1365,7 +1303,7 @@ const QueryResultHeaderRow = styled(SimpleTable.HeaderRow)`
   min-height: ${p => p.theme.space['3xl']};
 `;
 
-const RefinementDisclosure = styled(Disclosure)`
+const AgentActivityDisclosure = styled(Disclosure)`
   width: 100%;
   margin-top: ${p => p.theme.space.lg};
 
@@ -1388,24 +1326,7 @@ const AgentActivityTitle = styled(Text)`
   font-variant-numeric: lining-nums tabular-nums;
 `;
 
-const RefinementPrompt = styled('div')`
-  position: relative;
-`;
-
-const RefinementTextArea = styled(TextArea)`
-  width: 100%;
-  padding-right: ${p => p.theme.space['2xl']};
-`;
-
-const RefinementReturnIcon = styled('span')`
-  position: absolute;
-  top: ${p => p.theme.space.md};
-  right: ${p => p.theme.space.md};
-  color: ${p => p.theme.tokens.content.secondary};
-  pointer-events: none;
-`;
-
-const RefinementDisclosureContent = styled(Disclosure.Content)`
+const AgentActivityDisclosureContent = styled(Disclosure.Content)`
   && {
     padding: ${p => p.theme.space.sm} 0 0;
   }

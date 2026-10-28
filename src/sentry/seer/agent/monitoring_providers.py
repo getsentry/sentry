@@ -38,6 +38,10 @@ class OrgMonitoringProvider(abc.ABC):
         separate logging, monitoring, and trace endpoints).
         """
 
+    def is_verified(self, organization: Organization) -> bool:
+        """Whether the integration's settings passed the provider's own checks, if it has any."""
+        return True
+
 
 org_monitoring_provider_registry = Registry[type[OrgMonitoringProvider]]()
 
@@ -58,7 +62,7 @@ def provider_family(provider_key: str) -> str:
 
 
 def get_org_monitoring_connections(
-    organization: Organization,
+    organization: Organization, *, skip_rpc_errors: bool = True
 ) -> list[MonitoringProviderConnectionData]:
     """Build connections from all registered org-level (shared) monitoring integrations.
 
@@ -72,6 +76,8 @@ def get_org_monitoring_connections(
         try:
             result = provider.build_connection(organization)
         except RpcException:
+            if not skip_rpc_errors:
+                raise
             logger.warning(
                 "seer.monitoring_providers.org_fetch_failed",
                 extra={
@@ -87,7 +93,7 @@ def get_org_monitoring_connections(
 
 
 def _get_personal_monitoring_connections(
-    organization: Organization, user_id: int
+    organization: Organization, user_id: int, *, skip_rpc_errors: bool
 ) -> list[MonitoringProviderConnectionData]:
     """Build connections from the user's connected monitoring-provider identities."""
     connections: list[MonitoringProviderConnectionData] = []
@@ -102,6 +108,8 @@ def _get_personal_monitoring_connections(
                 organization_id=organization.id, user_id=user_id, provider_type=provider_type
             )
         except RpcException:
+            if not skip_rpc_errors:
+                raise
             # Monitoring providers are optional enrichment. A control-silo RPC failure
             # shouldn't fail a run--just move on to the next provider.
             logger.warning(
@@ -142,18 +150,20 @@ def _get_personal_monitoring_connections(
 
 
 def get_monitoring_provider_connections(
-    organization: Organization, user_id: int | None
+    organization: Organization, user_id: int | None, *, skip_rpc_errors: bool = True
 ) -> list[MonitoringProviderConnectionData]:
     """Build monitoring-provider connections for Seer.
 
     Combines the user's personal provider identities with org-level integrations.
-    Personal identities take priority over org level for the same provider.
+    Personal identities take priority over org level for the same provider. With
+    `skip_rpc_errors=False`, a control-silo failure raises RpcException instead of leaving
+    that provider out.
     """
     if not features.has("organizations:seer-infra-telemetry", organization):
         return []
 
     personal_connections = (
-        _get_personal_monitoring_connections(organization, user_id)
+        _get_personal_monitoring_connections(organization, user_id, skip_rpc_errors=skip_rpc_errors)
         if features.has("organizations:seer-infra-telemetry-user-level-auth", organization)
         and user_id is not None
         else []
@@ -161,7 +171,9 @@ def get_monitoring_provider_connections(
     connected_families = {provider_family(c.provider_key) for c in personal_connections}
     org_connections = [
         connection
-        for connection in get_org_monitoring_connections(organization)
+        for connection in get_org_monitoring_connections(
+            organization, skip_rpc_errors=skip_rpc_errors
+        )
         if provider_family(connection.provider_key) not in connected_families
     ]
 

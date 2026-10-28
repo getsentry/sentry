@@ -18,10 +18,7 @@ import type {
   HeatmapWidgetQueryParams,
   WidgetQueryParams,
 } from 'sentry/views/dashboards/datasetConfig/base';
-import {
-  getSeriesRequestData,
-  convertEventStatsRequestDataToEventTimeseriesQueryParams,
-} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
+import {getTimeseriesRequestQuery} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {traceMetricsResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/traceMetricsResponseTransforms';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {
@@ -74,30 +71,25 @@ export function useTraceMetricsSeriesQuery(
   );
 
   const {results: queryResults, data: rawData} = useQueries({
-    queries: filteredWidget.queries.map((_, queryIndex) => {
-      const requestData = getSeriesRequestData(
-        filteredWidget,
-        queryIndex,
-        organization,
-        pageFilters,
-        DiscoverDatasets.TRACEMETRICS,
-        getReferrer(filteredWidget.displayType),
-        widgetInterval
-      );
-
-      // Add sampling mode if provided
-      if (samplingMode) {
-        requestData.sampling = samplingMode;
-      }
-
-      return getTimeseriesWidgetQueryOptions({
+    queries: filteredWidget.queries.map((_, queryIndex) =>
+      getTimeseriesWidgetQueryOptions({
         organization,
         pageFilters,
         queue,
         enabled,
-        query: convertEventStatsRequestDataToEventTimeseriesQueryParams(requestData),
-      });
-    }),
+        query: getTimeseriesRequestQuery(
+          filteredWidget,
+          queryIndex,
+          pageFilters,
+          DiscoverDatasets.TRACEMETRICS,
+          {
+            referrer: getReferrer(filteredWidget.displayType),
+            widgetInterval,
+            sampling: samplingMode,
+          }
+        ),
+      })
+    ),
     combine: combineWidgetQueryResults,
   });
 
