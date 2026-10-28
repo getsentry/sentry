@@ -1,7 +1,3 @@
-import {Fragment} from 'react';
-
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
-
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -13,17 +9,13 @@ import {
   EXPLORE_AGENTS_SUB_PATH,
   CONVERSATIONS_SIDEBAR_LABEL,
 } from 'sentry/views/explore/conversations/settings';
+import {getConversationDisplayId} from 'sentry/views/explore/conversations/utils/conversationDisplayId';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 const COPY_ID_LABEL = t('Copy conversation ID');
 
 interface ConversationsBreadcrumbsProps {
   conversationId: string;
-}
-
-/** UUIDs are shown truncated, so the full value needs a tooltip to stay readable. */
-function getDisplayId(conversationId: string) {
-  return isUUID(conversationId) ? conversationId.slice(0, 8) : conversationId;
 }
 
 export function ConversationsBreadcrumbs({
@@ -47,37 +39,31 @@ export function ConversationsBreadcrumbs({
   };
 
   return (
-    <Fragment>
-      <TopBar.Slot name="breadcrumbs">
-        <BreadcrumbList
-          items={[
-            {
-              type: 'link',
-              label: CONVERSATIONS_SIDEBAR_LABEL,
-              to: {pathname: conversationsBaseUrl, query},
-            },
-          ]}
-        />
-      </TopBar.Slot>
-      <TopBar.Slot name="title">
-        <BreadcrumbList.Title
-          item={{
-            type: 'page-title',
-            label: t('Conversation %s', getDisplayId(conversationId)),
-            labelTooltip: isUUID(conversationId) ? conversationId : undefined,
-            trailingActions: {
-              type: 'copy',
-              text: conversationId,
-              label: COPY_ID_LABEL,
-              tooltip: COPY_ID_LABEL,
-              onCopy: () =>
-                trackAnalytics('conversations.detail.copy-conversation-id', {
-                  organization,
-                }),
-            },
-          }}
-        />
-      </TopBar.Slot>
-    </Fragment>
+    <TopBar.Slot
+      name="breadcrumbs"
+      title={{
+        type: 'page-title',
+        label: t('Conversation %s', getConversationDisplayId(conversationId)),
+        // UUIDs are shown truncated, so the full value needs a tooltip to stay readable.
+        labelTooltip: isUUID(conversationId) ? conversationId : undefined,
+        trailingActions: {
+          type: 'copy',
+          text: conversationId,
+          label: COPY_ID_LABEL,
+          tooltip: COPY_ID_LABEL,
+          onCopy: () =>
+            trackAnalytics('conversations.detail.copy-conversation-id', {
+              organization,
+            }),
+        },
+      }}
+      items={[
+        {
+          type: 'link',
+          label: CONVERSATIONS_SIDEBAR_LABEL,
+          to: {pathname: conversationsBaseUrl, query},
+        },
+      ]}
+    />
   );
 }

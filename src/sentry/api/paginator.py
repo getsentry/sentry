@@ -145,6 +145,9 @@ class BasePaginator:
         if cursor is None:
             cursor = Cursor(0, 0, 0)
 
+        if cursor.offset < 0:
+            raise BadPaginationError("Pagination offset cannot be negative")
+
         limit = min(limit, self.max_limit)
 
         if cursor.value:
@@ -260,6 +263,16 @@ class OffsetPaginator(PaginatorLike):
         self.max_offset = max_offset
         self.on_results = on_results
 
+    def _validate_cursor(self, cursor: Cursor) -> None:
+        if not isinstance(cursor.value, int):
+            raise BadPaginationError("Pagination limit must be an integer")
+        if cursor.value < 0:
+            raise BadPaginationError("Pagination limit cannot be negative")
+        if cursor.value > self.max_limit:
+            raise BadPaginationError("Pagination limit too large")
+        if cursor.offset < 0:
+            raise BadPaginationError("Pagination offset cannot be negative")
+
     def get_result(
         self,
         limit: int = 100,
@@ -274,6 +287,7 @@ class OffsetPaginator(PaginatorLike):
             cursor = Cursor(0, 0, 0)
 
         limit = min(limit, self.max_limit)
+        self._validate_cursor(cursor)
 
         queryset = self.queryset
         if self.key:
@@ -352,6 +366,7 @@ class MergingOffsetPaginator(OffsetPaginator):
             cursor = Cursor(0, 0, 0)
 
         limit = min(limit, self.max_limit)
+        self._validate_cursor(cursor)
 
         page = cursor.offset
         offset = cursor.offset * cursor.value

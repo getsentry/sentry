@@ -47,7 +47,7 @@ export type PreprodBuildEventParameters = {
   };
   'preprod.builds.distribution.download_csv': BasePreprodBuildEvent;
   'preprod.builds.install_modal.opened': BasePreprodBuildEvent & {
-    source: 'build_details_sidebar' | 'builds_table';
+    source: 'build_details_header' | 'build_details_sidebar' | 'builds_table';
   };
   'preprod.builds.list.metadata': {
     build_count_on_page: number;

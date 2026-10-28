@@ -3,7 +3,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
 
 import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/getConfigFromTimeRange';
 import {GroupStore} from 'sentry/stores/groupStore';
@@ -11,6 +11,7 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import {CheckStatus} from 'sentry/views/detectors/components/uptime/types';
 import {statusToText} from 'sentry/views/insights/uptime/timelineConfig';
+import {IssueDetailsContext} from 'sentry/views/issueDetails/context';
 import {IssueUptimeCheckTimeline} from 'sentry/views/issueDetails/issueUptimeCheckTimeline';
 import {useIssueTimeWindowConfig} from 'sentry/views/issueDetails/useIssueTimeWindowConfig';
 
@@ -58,6 +59,10 @@ describe('IssueUptimeCheckTimeline', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/events/recommended/`,
       body: event,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {data: [{'count()': 0}]},
     });
   });
 
@@ -153,5 +158,41 @@ describe('IssueUptimeCheckTimeline', () => {
     expect(
       within(legend).getByText(statusToText[CheckStatus.FAILURE_INCIDENT])
     ).toBeInTheDocument();
+  });
+
+  it('reports how many events the issue has to the events tab', async () => {
+    const dispatch = jest.fn();
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/uptime-stats/`,
+      body: {},
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {data: [{'count()': 4}]},
+      match: [MockApiClient.matchQuery({field: ['count()']})],
+    });
+
+    render(
+      <IssueDetailsContext
+        value={{
+          sectionData: {},
+          detectorDetails: {},
+          isSidebarOpen: true,
+          navScrollMargin: 0,
+          eventCount: 0,
+          eventNavigationHeight: 0,
+          dispatch,
+        }}
+      >
+        <IssueUptimeCheckTimeline group={group} />
+      </IssueDetailsContext>,
+      {organization}
+    );
+
+    await waitFor(() => {
+      expect(dispatch).toHaveBeenCalledWith({type: 'UPDATE_EVENT_COUNT', count: 4});
+    });
   });
 });

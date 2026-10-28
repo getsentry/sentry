@@ -2,6 +2,7 @@ import logging
 from collections.abc import Sequence
 
 from sentry_relay.processing import validate_sampling_condition
+from sentry_sdk import traces
 
 from sentry import features, options
 from sentry.models.dashboard_widget import (
@@ -22,7 +23,6 @@ from sentry.snuba.metrics.extraction import (
     should_use_on_demand_metrics,
 )
 from sentry.utils import json, metrics
-from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -157,10 +157,13 @@ def _convert_aggregate_and_query_to_metrics(
         "groupbys": groupbys,
     }
 
-    with start_span(
-        op="converting_aggregate_and_query", name="converting_aggregate_and_query"
-    ) as span:
-        set_span_data(span, "widget_query_args", {"query": query, "aggregate": aggregate})
+    with traces.start_span(
+        name="converting_aggregate_and_query",
+        attributes={
+            "sentry.op": "converting_aggregate_and_query",
+            "widget_query_args": repr({"query": query, "aggregate": aggregate}),
+        },
+    ):
         # Create as many specs as we support
         for spec_version in OnDemandMetricSpecVersioning.get_spec_versions():
             try:

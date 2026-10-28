@@ -1,15 +1,17 @@
 import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconOpen} from '@sentry/icons/open';
 import {useQuery} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
 
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
+import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 import {Text} from '@sentry/scraps/text';
 
 import {
@@ -19,14 +21,12 @@ import {
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {DeviceName} from 'sentry/components/deviceName';
 import {getContextIcon} from 'sentry/components/events/contexts/utils';
-import {LoadingError} from 'sentry/components/loadingError';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconArrow, IconEllipsis, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Group, Tag, TagValue} from 'sentry/types/group';
-import {percent} from 'sentry/utils';
+import {escapeDoubleQuotes, percent} from 'sentry/utils';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {escapeIssueTagKey, generateQueryWithTag} from 'sentry/utils/queryString';
@@ -41,15 +41,17 @@ import {TagBar} from 'sentry/views/issueDetails/groupTags/tagDistribution';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/useIssueDetailsDiscoverQuery';
 import {getUserTagValue} from 'sentry/views/issueDetails/utils';
 
-type TagSort = 'date' | 'count';
+import {TagDetailsTable, type TagSort} from './tagDetailsTable';
+
 const DEFAULT_SORT: TagSort = 'count';
+
+type NullableTagValue = Omit<TagValue, 'value'> & {value: string | null};
 
 export function TagDetailsDrawerContent({group}: {group: Group}) {
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
   const {tagKey} = useParams<{tagKey: string}>();
-  const sortArrow = <IconArrow variant="muted" size="xs" direction="down" />;
 
   const sort = (location.query.tagDrawerSort as TagSort | undefined) ?? DEFAULT_SORT;
 
@@ -67,7 +69,11 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
     }),
     select: selectJsonWithHeaders,
   });
-  const tagValues = tagValuesResponse?.json;
+  // The API can return `value: null` (e.g. the `user` tag for events without a
+  // user). Normalize to an empty string so rows render the "(empty)" state.
+  const tagValues = (tagValuesResponse?.json as NullableTagValue[] | undefined)?.map(
+    (tv): TagValue => ({...tv, value: tv.value ?? ''})
+  );
 
   const {
     data: tag,
@@ -83,74 +89,53 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
     count: (tag?.uniqueValues ?? 0).toLocaleString(),
   });
 
-  if (isPending) {
-    return <LoadingIndicator />;
-  }
-
-  if (isError) {
-    return <LoadingError message={t('There was an error loading tag details')} />;
-  }
+  const getSortLocation = (newSort: TagSort) => ({
+    pathname: location.pathname,
+    query: {
+      ...currentQuery,
+      tagDrawerCursor: undefined,
+      tagDrawerSort: newSort,
+    },
+  });
 
   return (
     <Fragment>
-      {tag && tagValues?.length && (
-        <Table data-test-id="group-tag-value">
-          <Header>
-            <ColumnTitle>{t('Value')}</ColumnTitle>
-            <ColumnSort
-              to={{
-                pathname: location.pathname,
-                query: {
-                  ...currentQuery,
-                  tagDrawerCursor: undefined,
-                  tagDrawerSort: 'date',
-                },
-              }}
-            >
-              {sort === 'date' && sortArrow}
-              {t('Last Seen')}
-            </ColumnSort>
-            <ColumnSort
-              to={{
-                pathname: location.pathname,
-                query: {
-                  ...currentQuery,
-                  tagDrawerCursor: undefined,
-                  tagDrawerSort: 'count',
-                },
-              }}
-            >
-              {sort === 'count' && sortArrow}
-              {t('Count')}
-            </ColumnSort>
-            <ShareColumnTitle>{t('Share')}</ShareColumnTitle>
-          </Header>
-          <Body>
-            {tagValues.map((tv, i) => (
+      <Container flexShrink={0}>
+        <TagDetailsTable sort={sort} getSortLocation={getSortLocation}>
+          {isPending ? (
+            <SimpleTable.Loading />
+          ) : isError ? (
+            <SimpleTable.Error message={t('There was an error loading tag details')} />
+          ) : tag && tagValues?.length ? (
+            tagValues.map((tv, i) => (
               <TagDetailsRow
                 key={`${tv.value}-${i}`}
                 group={group}
                 tag={tag}
                 tagValue={tv}
               />
-            ))}
-          </Body>
-        </Table>
+            ))
+          ) : (
+            <SimpleTable.Empty>{t('No tag values found')}</SimpleTable.Empty>
+          )}
+        </TagDetailsTable>
+      </Container>
+      {isPending || isError ? null : (
+        <Pagination
+          caption={paginationCaption}
+          onCursor={(cursor, path, query) =>
+            navigate({
+              pathname: path,
+              query: {
+                ...query,
+                tagDrawerCursor: cursor,
+              },
+            })
+          }
+          size="xs"
+          pageLinks={tagValuesResponse?.headers.Link}
+        />
       )}
-      <Pagination
-        caption={paginationCaption}
-        onCursor={(cursor, path, query) =>
-          navigate({
-            pathname: path,
-            query: {
-              ...query,
-              tagDrawerCursor: cursor,
-            },
-          })
-        }
-        size="xs"
-        pageLinks={tagValuesResponse?.headers.Link}
-      />
     </Fragment>
   );
 }
@@ -164,7 +149,6 @@ function TagDetailsRow({
   tag: Tag;
   tagValue: TagValue;
 }) {
-  const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
 
@@ -176,7 +160,9 @@ function TagDetailsRow({
           query: undefined,
         }
       : {
-          query: tagValue.query || `${key}:"${tagValue.value}"`,
+          query:
+            tagValue.query ||
+            `${escapeIssueTagKey(key)}:"${escapeDoubleQuotes(tagValue.value)}"`,
         };
 
   const allEventsLocation = {
@@ -198,22 +184,40 @@ function TagDetailsRow({
         : `${cappedPercentage.toFixed(0)}%`;
 
   return (
-    <Row>
-      <TagDetailsValue
-        valueLocation={allEventsLocation}
-        tagKey={key}
-        tagValue={tagValue}
-      />
-      <OverflowTimeSince date={tagValue.lastSeen} />
-      <RightAlignedValue>{tagValue.count.toLocaleString()}</RightAlignedValue>
-      <RightAlignedValue>{displayPercentage}</RightAlignedValue>
-      {tag.totalValues ? (
-        <TagBar percentage={percentage} style={{height: theme.space.lg}} />
-      ) : (
-        '--'
+    <RevealOnHover>
+      {props => (
+        <SimpleTable.Row {...props} data-test-id="group-tag-value">
+          <SimpleTable.RowCell>
+            <TagDetailsValue
+              valueLocation={allEventsLocation}
+              tagKey={key}
+              tagValue={tagValue}
+            />
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell>
+            <Text ellipsis variant="inherit">
+              {textProps => <TimeSince {...textProps} date={tagValue.lastSeen} />}
+            </Text>
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell justify="end">
+            {tagValue.count.toLocaleString()}
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell justify="end" gap="md">
+            {displayPercentage}
+            {tag.totalValues ? (
+              <Container width="45px">
+                <TagBar percentage={percentage} />
+              </Container>
+            ) : (
+              '--'
+            )}
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell>
+            <TagValueActionsMenu group={group} tag={tag} tagValue={tagValue} />
+          </SimpleTable.RowCell>
+        </SimpleTable.Row>
       )}
-      <TagValueActionsMenu group={group} tag={tag} tagValue={tagValue} />
-    </Row>
+    </RevealOnHover>
   );
 }
 
@@ -257,16 +261,34 @@ function TagDetailsValue({
 
   return (
     <Flex gap="xs" align="center" minWidth={0} overflow="hidden">
-      <ValueLink to={valueLocation}>{valueComponent}</ValueLink>
+      <Container minWidth={0} overflow="hidden">
+        {layoutProps => (
+          <Text variant="primary">
+            {textProps => (
+              <Link
+                className={`${layoutProps.className} ${textProps.className}`}
+                to={valueLocation}
+              >
+                {valueComponent}
+              </Link>
+            )}
+          </Text>
+        )}
+      </Container>
       {isValidUrl(tagValue.value) && (
-        <ExternalLinkbutton
-          variant="link"
-          icon={<IconOpen />}
-          aria-label="Open link"
-          data-test-id="group-tag-url"
-          size="xs"
-          onClick={() => openNavigateToExternalLinkModal({linkText: tagValue.value})}
-        />
+        <Text variant="muted">
+          {props => (
+            <Button
+              {...props}
+              variant="link"
+              icon={<IconOpen />}
+              aria-label="Open link"
+              data-test-id="group-tag-url"
+              size="xs"
+              onClick={() => openNavigateToExternalLinkModal({linkText: tagValue.value})}
+            />
+          )}
+        </Text>
       )}
     </Flex>
   );
@@ -297,151 +319,56 @@ function TagValueActionsMenu({
   const [isVisible, setIsVisible] = useState(false);
 
   return (
-    <DropdownMenu
-      size="xs"
-      onOpenChange={isOpen => setIsVisible(isOpen)}
-      trigger={triggerProps => (
-        <OverlayTrigger.IconButton
-          {...triggerProps}
-          aria-label={t('Tag Value Actions Menu')}
-          className={isVisible ? '' : 'invisible'}
-          icon={<IconEllipsis />}
-        />
-      )}
-      items={[
-        {
-          key: 'open-in-discover',
-          label: t('Open in Explore'),
-          to: eventView.getResultsViewUrlTarget(
-            organization,
-            false,
-            hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
-          ),
-          hidden: !group || !organization.features.includes('discover-basic'),
-        },
-        {
-          key: 'view-events',
-          label: t('View other events with this tag value'),
-          to: {
-            pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
-            query: {...globalSelectionParams, ...query},
+    <RevealOnHover.Action visible={isVisible}>
+      <DropdownMenu
+        size="xs"
+        strategy="fixed"
+        onOpenChange={isOpen => setIsVisible(isOpen)}
+        trigger={triggerProps => (
+          <OverlayTrigger.IconButton
+            {...triggerProps}
+            aria-label={t('Tag Value Actions Menu')}
+            icon={<IconEllipsis />}
+          />
+        )}
+        items={[
+          {
+            key: 'open-in-discover',
+            label: t('Open in Explore'),
+            to: eventView.getResultsViewUrlTarget(
+              organization,
+              false,
+              hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
+            ),
+            hidden: !group || !organization.features.includes('discover-basic'),
           },
-        },
-        {
-          key: 'view-issues',
-          label: t('Search issues with this tag value'),
-          to: {
-            pathname: `/organizations/${organization.slug}/issues/`,
-            query: {...globalSelectionParams, ...query},
+          {
+            key: 'view-events',
+            label: t('View other events with this tag value'),
+            to: {
+              pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
+              query: {...globalSelectionParams, ...query},
+            },
           },
-        },
-        {
-          key: 'copy-value',
-          label: t('Copy tag value to clipboard'),
-          onAction: () =>
-            copy(tagValue.value, {successMessage: t('Copied tag value to clipboard')}),
-          hidden: tagValue.value === '',
-        },
-      ]}
-    />
+          {
+            key: 'view-issues',
+            label: t('Search issues with this tag value'),
+            to: {
+              pathname: `/organizations/${organization.slug}/issues/`,
+              query: {...globalSelectionParams, ...query},
+            },
+          },
+          {
+            key: 'copy-value',
+            label: t('Copy tag value to clipboard'),
+            onAction: () =>
+              copy(tagValue.value, {
+                successMessage: t('Copied tag value to clipboard'),
+              }),
+            hidden: tagValue.value === '',
+          },
+        ]}
+      />
+    </RevealOnHover.Action>
   );
 }
-
-const Table = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 0.22fr min-content min-content 45px min-content;
-  column-gap: ${p => p.theme.space.md};
-  row-gap: ${p => p.theme.space.xs};
-  margin: 0 -${p => p.theme.space.md};
-
-  @media (min-width: ${p => p.theme.breakpoints.xl}) {
-    column-gap: ${p => p.theme.space.xl};
-  }
-`;
-
-const ColumnTitle = styled('div')`
-  white-space: nowrap;
-  color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-`;
-
-const ShareColumnTitle = styled(ColumnTitle)`
-  text-align: center;
-`;
-
-const ColumnSort = styled(Link)`
-  display: flex;
-  gap: ${p => p.theme.space.xs};
-  align-items: center;
-  white-space: nowrap;
-  color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  text-decoration: underline;
-  text-decoration-style: dotted;
-  text-decoration-color: ${p => p.theme.tokens.content.primary};
-  &:hover {
-    color: ${p => p.theme.tokens.content.secondary};
-  }
-`;
-
-const Body = styled('div')`
-  display: grid;
-  grid-column: 1 / -1;
-  grid-template-columns: subgrid;
-`;
-
-const Header = styled(Body)`
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  margin: 0 ${p => p.theme.space.md};
-`;
-
-const Row = styled(Body)`
-  &:nth-child(even) {
-    background: ${p => p.theme.tokens.background.tertiary};
-  }
-  align-items: center;
-  border-radius: ${p => p.theme.radius.md};
-  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.md};
-
-  .invisible {
-    /* Keep the trigger focusable when closing the menu restores focus. */
-    opacity: 0;
-    pointer-events: none;
-  }
-  &:hover,
-  &:active,
-  &:focus-within {
-    .invisible {
-      opacity: 1;
-      pointer-events: auto;
-    }
-  }
-  @media (hover: none) {
-    .invisible {
-      opacity: 1;
-      pointer-events: auto;
-    }
-  }
-`;
-
-const RightAlignedValue = styled('div')`
-  text-align: right;
-`;
-
-const ValueLink = styled(Link)`
-  color: ${p => p.theme.tokens.content.primary};
-  min-width: 0;
-  overflow: hidden;
-`;
-
-const OverflowTimeSince = styled(TimeSince)`
-  display: block;
-  width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
-
-const ExternalLinkbutton = styled(Button)`
-  color: ${p => p.theme.tokens.content.secondary};
-`;

@@ -12,6 +12,11 @@ from sentry.users.services.user.model import RpcUser
 
 
 class InvestigationParameterSerializerResponse(TypedDict):
+    """
+    Parameter definition and saved override. type and constraints govern accepted values;
+    defaultValue and savedValue may be null. Use key in the parameter-values update request.
+    """
+
     id: str
     key: str
     label: str
@@ -19,8 +24,8 @@ class InvestigationParameterSerializerResponse(TypedDict):
     type: str
     required: bool
     constraints: dict[str, Any]
-    defaultValue: Any | None
-    savedValue: Any | None
+    defaultValue: Any
+    savedValue: Any
     source: str
     position: int
     version: int

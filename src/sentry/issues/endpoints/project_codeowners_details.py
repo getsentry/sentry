@@ -21,6 +21,7 @@ from sentry.api.serializers.models.projectcodeowners import (
     ProjectCodeOwnersResponse,
     ProjectCodeOwnersSerializer,
 )
+from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -75,7 +76,8 @@ class ProjectCodeOwnersDetailsEndpoint(ProjectCodeOwnersBase):
         )
         try:
             kwargs["codeowners"] = ProjectCodeOwners.objects.get(
-                id=codeowners_id, project=kwargs["project"]
+                id=to_valid_int_id("codeowners_id", codeowners_id, raise_404=True),
+                project=kwargs["project"],
             )
         except ProjectCodeOwners.DoesNotExist:
             raise ResourceDoesNotExist

@@ -1,22 +1,30 @@
 import {Fragment, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconClock} from '@sentry/icons/clock';
+import {IconContract} from '@sentry/icons/contract';
+import {IconExpand} from '@sentry/icons/expand';
+import {IconGraph} from '@sentry/icons/graph';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Container, Flex, type ContainerProps} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {hasDroppedData} from 'sentry/components/droppedData/buckets';
+import {useDroppedDataDrawer} from 'sentry/components/droppedData/drawer/useDroppedDataDrawer';
+import {DroppedDataFilterNote} from 'sentry/components/droppedData/droppedDataFilterNote';
 import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
+import {DroppedDataLLMContext} from 'sentry/components/droppedData/droppedDataLLMContext';
 import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
-import {useDroppedDataDrawer} from 'sentry/components/droppedData/useDroppedDataDrawer';
-import {hasDroppedData} from 'sentry/components/droppedData/utils';
-import {IconClock, IconContract, IconExpand, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
+import {getTimeSeriesForQuery} from 'sentry/utils/timeSeries/getTimeSeriesForQuery';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -26,19 +34,30 @@ import {CHART_SELECTION_ALERT_KEY} from 'sentry/views/explore/components/attribu
 import {FloatingTrigger} from 'sentry/views/explore/components/attributeBreakdowns/floatingTrigger';
 import {
   ChartVisualization,
-  useChartVisualizationPlottables,
+  useChartInfosPlottables,
 } from 'sentry/views/explore/components/chart/chartVisualization';
 import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import {ChartContextMenu} from 'sentry/views/explore/components/chartContextMenu';
+import {
+  AddTransformationButton,
+  VisualizeTransformationRows,
+} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeTransformations';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {type SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
-import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
+import {
+  groupVisualizes,
+  isVisualizeFunction,
+  serializeVisualizes,
+  type Visualize,
+} from 'sentry/views/explore/queryParams/visualize';
 import {CHART_HEIGHT} from 'sentry/views/explore/settings';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
+import {hasMultiAggregateCharts} from 'sentry/views/explore/spans/sharedChartAggregates';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {RawCounts} from 'sentry/views/explore/useRawCounts';
 import {
   combineConfidenceForSeries,
@@ -82,6 +101,10 @@ export const EXPLORE_CHART_TYPE_OPTIONS = [
 
 const EXPLORE_CHART_GROUP = 'explore-charts_group';
 
+// Several aggregates over the top groups can share a chart, which can put
+// dozens of series in one tooltip.
+const MAX_TOOLTIP_SERIES = 10;
+
 export function ExploreCharts({
   query,
   extrapolate,
@@ -93,48 +116,53 @@ export function ExploreCharts({
 }: ExploreChartsProps) {
   const topEvents = useTopEvents();
 
-  function handleChartTypeChange(index: number, chartType: ChartType) {
+  function updateVisualizes(
+    indices: number[],
+    options: {
+      chartType?: ChartType;
+      transformations?: readonly string[];
+      visible?: boolean;
+    }
+  ) {
     const newVisualizes = visualizes.map((visualize, i) => {
-      if (i === index) {
-        visualize = visualize.replace({chartType});
+      if (indices.includes(i)) {
+        visualize = visualize.replace(options);
       }
-      return visualize.serialize();
+      return visualize;
     });
-    setVisualizes(newVisualizes);
+    setVisualizes(serializeVisualizes(newVisualizes));
   }
 
-  function handleChartVisibilityChange(index: number, visible: boolean) {
-    const newVisualizes = visualizes.map((visualize, i) => {
-      if (i === index) {
-        visualize = visualize.replace({visible});
-      }
-      return visualize.serialize();
-    });
-    setVisualizes(newVisualizes);
-  }
+  // Aggregates selected together in the toolbar share a chart and Y axis.
+  const chartGroups = useMemo(() => groupVisualizes(visualizes), [visualizes]);
 
   useSynchronizeCharts(
-    visualizes.length,
+    chartGroups.length,
     !timeseriesResult.isPending,
     EXPLORE_CHART_GROUP
   );
 
+  const dataset = useSpansDataset();
+
   return (
     <ChartList>
+      <DroppedDataLLMContext dataset={dataset} />
       <WidgetSyncContextProvider groupName={EXPLORE_CHART_GROUP}>
-        {visualizes.map((visualize, index) => {
+        {chartGroups.map(group => {
+          const indices = group.visualizes.map((_, i) => group.index + i);
           return (
             <Chart
-              key={`${index}`}
+              key={`${group.index}-${group.visualizes.map(v => v.yAxis).join(',')}`}
               extrapolate={extrapolate}
-              index={index}
-              onChartTypeChange={chartType => handleChartTypeChange(index, chartType)}
-              onChartVisibilityChange={visible =>
-                handleChartVisibilityChange(index, visible)
+              index={group.index}
+              onChartTypeChange={chartType => updateVisualizes(indices, {chartType})}
+              onChartVisibilityChange={visible => updateVisualizes(indices, {visible})}
+              onTransformationsChange={transformations =>
+                updateVisualizes(indices, {transformations})
               }
               query={query}
               timeseriesResult={timeseriesResult}
-              visualize={visualize}
+              visualizes={group.visualizes}
               samplingMode={samplingMode}
               topEvents={topEvents}
               rawSpanCounts={rawSpanCounts}
@@ -146,15 +174,103 @@ export function ExploreCharts({
   );
 }
 
+function getChartInfo({
+  samplingMode,
+  timeseriesResult,
+  topEvents,
+  visualize,
+}: {
+  timeseriesResult: SortedTimeSeries;
+  visualize: Visualize;
+  samplingMode?: SamplingMode;
+  topEvents?: number;
+}): ChartInfo {
+  const isTopN = defined(topEvents) && topEvents > 0;
+  const series = getTimeSeriesForQuery(
+    timeseriesResult.data,
+    visualize.yAxis,
+    isVisualizeFunction(visualize) ? visualize.transformations : []
+  );
+
+  let confidenceSeries = series;
+
+  let samplingMeta = determineSeriesSampleCountAndIsSampled(confidenceSeries, isTopN);
+
+  // This implies that the sampling meta data is not available.
+  // When this happens, we override it with the sampling meta
+  // data from the DEFAULT_VISUALIZATION.
+  if (samplingMeta.sampleCount === 0 && !defined(samplingMeta.isSampled)) {
+    confidenceSeries = getTimeSeriesForQuery(
+      timeseriesResult.data,
+      DEFAULT_VISUALIZATION,
+      []
+    );
+    samplingMeta = determineSeriesSampleCountAndIsSampled(confidenceSeries, isTopN);
+  }
+
+  // Invalid `_if` filters skip the backend request; surface that as a chart error
+  // instead of an empty/no-data state.
+  const hasValidConditionalFilter = isConditionalAggregateYAxisValid(visualize.yAxis);
+  const resultForChart = (
+    hasValidConditionalFilter
+      ? timeseriesResult
+      : {
+          ...timeseriesResult,
+          error: new Error(
+            getConditionalFilterInvalidSeriesMessageForYAxis(visualize.yAxis)
+          ),
+          isError: true,
+          isPending: false,
+          isLoading: false,
+          isFetching: false,
+          isSuccess: false,
+          status: 'error' as const,
+        }
+  ) as SortedTimeSeries;
+
+  return {
+    chartType: visualize.chartType,
+    confidence: combineConfidenceForSeries(confidenceSeries),
+    series: hasValidConditionalFilter ? series : [],
+    timeseriesResult: resultForChart,
+    yAxis: visualize.yAxis,
+    dataScanned: samplingMeta.dataScanned,
+    isSampled: samplingMeta.isSampled,
+    sampleCount: samplingMeta.sampleCount,
+    samplingMode,
+  };
+}
+
+/**
+ * Merges the chart info of several visualizes plotted on the same chart. All
+ * visualizes come from the same timeseries request, so the sampling metadata
+ * of the first one is representative of the whole chart.
+ */
+function combineChartInfos(chartInfos: ChartInfo[]): ChartInfo {
+  const first = chartInfos[0]!;
+  return {
+    ...first,
+    series: chartInfos.flatMap(chartInfo => chartInfo.series),
+    // Only surface an error when none of the visualizes can be plotted.
+    timeseriesResult:
+      chartInfos.find(chartInfo => !chartInfo.timeseriesResult.error)?.timeseriesResult ??
+      first.timeseriesResult,
+  };
+}
+
 interface ChartProps {
   extrapolate: boolean;
   index: number;
   onChartTypeChange: (chartType: ChartType) => void;
   onChartVisibilityChange: (visible: boolean) => void;
+  onTransformationsChange: (transformations: readonly string[]) => void;
   query: string;
   rawSpanCounts: RawCounts;
   timeseriesResult: SortedTimeSeries;
-  visualize: Visualize;
+  /**
+   * The visualizes plotted on this chart.
+   */
+  visualizes: readonly Visualize[];
   samplingMode?: SamplingMode;
   topEvents?: number;
 }
@@ -164,20 +280,31 @@ function Chart({
   index,
   onChartTypeChange,
   onChartVisibilityChange,
+  onTransformationsChange,
   query,
   rawSpanCounts,
-  visualize,
+  visualizes,
   timeseriesResult,
   samplingMode,
   topEvents,
 }: ChartProps) {
+  // Every visualize in a chart shares the chart type and visibility, so the
+  // first one is used to read them.
+  const visualize = visualizes[0]!;
+
+  const organization = useOrganization();
+  const showTransformationControls =
+    visualize.visible &&
+    isVisualizeFunction(visualize) &&
+    visualize.chartType !== ChartType.HEATMAP &&
+    organization.features.includes('explore-interpolation-and-smoothing');
   const {chartSelection, setChartSelection} = useChartSelection();
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const dataset = useSpansDataset();
-  const {droppedAnnotations, acceptedAnnotations} = useDroppedData({dataset});
+  const {droppedEvents, acceptedEvents} = useDroppedData({dataset, interval});
   const [isDroppedDataLayerOn, setIsDroppedDataLayerOn] = useState(true);
-  const openDroppedDataDrawer = useDroppedDataDrawer(dataset);
-  const canShowDroppedData = hasDroppedData(droppedAnnotations, acceptedAnnotations);
+  const openDroppedDataDrawer = useDroppedDataDrawer({dataset});
+  const canShowDroppedData = hasDroppedData(droppedEvents, acceptedEvents);
   const showDroppedDataBand = canShowDroppedData && isDroppedDataLayerOn;
 
   const {
@@ -193,59 +320,27 @@ function Chart({
   const chartWrapperRef = useRef<HTMLDivElement | null>(null);
 
   const chartType = visualize.chartType;
+  const isCombinedChart = visualizes.length > 1;
   const chartIcon =
     chartType === ChartType.LINE ? 'line' : chartType === ChartType.AREA ? 'area' : 'bar';
 
-  const chartInfo: ChartInfo = useMemo(() => {
-    const isTopN = defined(topEvents) && topEvents > 0;
-    const series = timeseriesResult.data[visualize.yAxis] ?? [];
+  const chartInfos = useMemo(
+    () =>
+      visualizes.map(v => ({
+        ...getChartInfo({visualize: v, timeseriesResult, topEvents, samplingMode}),
+        // A combined chart has a single chart type control, so every
+        // visualize is drawn with the type it shows.
+        chartType,
+      })),
+    [timeseriesResult, visualizes, samplingMode, topEvents, chartType]
+  );
 
-    let confidenceSeries = series;
+  const chartInfo: ChartInfo = useMemo(
+    () => (chartInfos.length === 1 ? chartInfos[0]! : combineChartInfos(chartInfos)),
+    [chartInfos]
+  );
 
-    let samplingMeta = determineSeriesSampleCountAndIsSampled(confidenceSeries, isTopN);
-
-    // This implies that the sampling meta data is not available.
-    // When this happens, we override it with the sampling meta
-    // data from the DEFAULT_VISUALIZATION.
-    if (samplingMeta.sampleCount === 0 && !defined(samplingMeta.isSampled)) {
-      confidenceSeries = timeseriesResult.data[DEFAULT_VISUALIZATION] ?? [];
-      samplingMeta = determineSeriesSampleCountAndIsSampled(confidenceSeries, isTopN);
-    }
-
-    // Invalid `_if` filters skip the backend request; surface that as a chart error
-    // instead of an empty/no-data state.
-    const hasValidConditionalFilter = isConditionalAggregateYAxisValid(visualize.yAxis);
-    const resultForChart = (
-      hasValidConditionalFilter
-        ? timeseriesResult
-        : {
-            ...timeseriesResult,
-            error: new Error(
-              getConditionalFilterInvalidSeriesMessageForYAxis(visualize.yAxis)
-            ),
-            isError: true,
-            isPending: false,
-            isLoading: false,
-            isFetching: false,
-            isSuccess: false,
-            status: 'error' as const,
-          }
-    ) as SortedTimeSeries;
-
-    return {
-      chartType,
-      confidence: combineConfidenceForSeries(confidenceSeries),
-      series: hasValidConditionalFilter ? series : [],
-      timeseriesResult: resultForChart,
-      yAxis: visualize.yAxis,
-      dataScanned: samplingMeta.dataScanned,
-      isSampled: samplingMeta.isSampled,
-      sampleCount: samplingMeta.sampleCount,
-      samplingMode,
-    };
-  }, [chartType, timeseriesResult, visualize, samplingMode, topEvents]);
-
-  const plottables = useChartVisualizationPlottables(chartInfo);
+  const plottables = useChartInfosPlottables(chartInfos);
 
   const Title = (
     <Widget.WidgetTitle
@@ -259,32 +354,44 @@ function Chart({
           />
         ) : null
       }
-      title={prettifyAggregation(visualize.yAxis) ?? visualize.yAxis}
+      title={visualizes.map(v => prettifyAggregation(v.yAxis) ?? v.yAxis).join(', ')}
     />
   );
 
-  const samplingWarningReason = getSamplingWarningReason(
-    visualize.yAxis,
-    chartInfo.series,
-    chartInfo.dataScanned
-  );
-  const TitleBadges = samplingWarningReason ? (
-    <SamplingWarning yAxis={visualize.yAxis} reason={samplingWarningReason} />
+  const samplingWarnings = chartInfos.flatMap(info => {
+    const reason = getSamplingWarningReason(info.yAxis, info.series, info.dataScanned);
+    return reason ? [{yAxis: info.yAxis, reason}] : [];
+  });
+  const TitleBadges = samplingWarnings.length ? (
+    <Fragment>
+      {samplingWarnings.map(({yAxis, reason}, i) => (
+        <SamplingWarning key={`${yAxis}-${i}`} yAxis={yAxis} reason={reason} />
+      ))}
+    </Fragment>
   ) : null;
 
   const Actions = visualize.visible ? (
     <Fragment>
       {canShowDroppedData ? (
         <DroppedDataLayerControl
+          dataset={dataset}
           showDroppedData={isDroppedDataLayerOn}
           onChange={setIsDroppedDataLayerOn}
         />
       ) : null}
-      <Tooltip title={t('Type of chart displayed in this visualization (ex. line)')}>
+      <Tooltip
+        title={
+          isCombinedChart
+            ? t('Charts with multiple aggregates are always displayed as line charts')
+            : t('Type of chart displayed in this visualization (ex. line)')
+        }
+      >
         <CompactSelect
+          disabled={isCombinedChart}
           trigger={triggerProps => (
             <OverlayTrigger.Button
               {...triggerProps}
+              aria-label={t('Chart type')}
               icon={<IconGraph type={chartIcon} />}
               variant="transparent"
               showChevron={false}
@@ -316,7 +423,7 @@ function Chart({
       </Tooltip>
       <ChartContextMenu
         key="context"
-        visualizeYAxes={[visualize]}
+        visualizeYAxes={visualizes}
         query={query}
         interval={interval}
         visualizeIndex={index}
@@ -341,7 +448,7 @@ function Chart({
     chartSelection?.chartIndex === index ? chartSelection.selection : undefined;
 
   return (
-    <ChartWrapper ref={chartWrapperRef}>
+    <ChartWrapper ref={chartWrapperRef} border="primary" radius="md" background="primary">
       <Widget
         Title={Title}
         TitleBadges={TitleBadges}
@@ -351,11 +458,16 @@ function Chart({
             <ChartVisualization
               chartInfo={chartInfo}
               chartRef={chartRef}
+              plottables={plottables}
+              tooltipLimit={
+                hasMultiAggregateCharts(organization) ? MAX_TOOLTIP_SERIES : undefined
+              }
               droppedData={
                 showDroppedDataBand
                   ? {
-                      droppedAnnotations,
-                      acceptedAnnotations,
+                      dataset,
+                      droppedEvents,
+                      acceptedEvents,
                       onClick: openDroppedDataDrawer,
                     }
                   : undefined
@@ -400,32 +512,61 @@ function Chart({
         }
         Footer={
           visualize.visible && (
-            <ConfidenceFooter
-              extrapolate={extrapolate}
-              sampleCount={chartInfo.sampleCount}
-              isLoading={chartInfo.timeseriesResult?.isPending || false}
-              isSampled={chartInfo.isSampled}
-              confidence={chartInfo.confidence}
-              topEvents={
-                topEvents ? Math.min(topEvents, chartInfo.series.length) : undefined
-              }
-              dataScanned={chartInfo.dataScanned}
-              rawSpanCounts={rawSpanCounts}
-              userQuery={query.trim()}
-            />
+            <Flex align="center" justify="between" gap="sm" wrap="wrap">
+              <ConfidenceFooter
+                extrapolate={extrapolate}
+                sampleCount={chartInfo.sampleCount}
+                isLoading={chartInfo.timeseriesResult?.isPending || false}
+                isSampled={chartInfo.isSampled}
+                confidence={chartInfo.confidence}
+                topEvents={
+                  topEvents
+                    ? Math.min(topEvents, chartInfos[0]!.series.length)
+                    : undefined
+                }
+                dataScanned={chartInfo.dataScanned}
+                rawSpanCounts={rawSpanCounts}
+                userQuery={query.trim()}
+              />
+              <Flex align="center" gap="md">
+                {showDroppedDataBand ? (
+                  <DroppedDataFilterNote
+                    dataset={dataset}
+                    hasUserQuery={!!query.trim()}
+                  />
+                ) : null}
+                {showTransformationControls ? (
+                  <AddTransformationButton
+                    traceItemDataset={TraceItemDataset.SPANS}
+                    transformations={visualize.transformations}
+                    onChange={onTransformationsChange}
+                  />
+                ) : null}
+              </Flex>
+            </Flex>
           )
         }
         height={chartHeight}
         revealActions="always"
+        borderless
       />
+      {showTransformationControls && visualize.transformations.length > 0 ? (
+        <Container padding="xl" paddingTop="0" paddingBottom="md">
+          <VisualizeTransformationRows
+            traceItemDataset={TraceItemDataset.SPANS}
+            transformations={visualize.transformations}
+            layout="inline"
+            onChange={onTransformationsChange}
+          />
+        </Container>
+      ) : null}
     </ChartWrapper>
   );
 }
 
-export const ChartWrapper = styled('div')`
-  position: relative;
-  min-width: 0;
-`;
+export function ChartWrapper(props: ContainerProps) {
+  return <Container minWidth="0" position="relative" {...props} />;
+}
 
 export const ChartList = styled('div')`
   position: relative;

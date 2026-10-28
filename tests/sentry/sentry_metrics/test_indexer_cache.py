@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest.mock import patch
 
 import pytest
 from django.conf import settings
@@ -216,7 +217,14 @@ def test_ttl_jitter() -> None:
     ttl_2 = indexer_cache.randomized_ttl
     assert base_ttl <= ttl_2 <= max_ttl
 
-    assert not ttl_1 == ttl_2
+    # Two real draws land on the same whole second about once in 1800 runs, so check the spread
+    # with fixed draws instead.
+    with patch("sentry.sentry_metrics.indexer.cache.random") as mock_random:
+        mock_random.uniform.side_effect = [0.0, 0.1, 0.25]
+        assert indexer_cache.randomized_ttl == base_ttl
+        assert indexer_cache.randomized_ttl == base_ttl + 720
+        assert indexer_cache.randomized_ttl == max_ttl
+    mock_random.uniform.assert_called_with(0, 0.25)
 
 
 def test_separate_namespacing() -> None:

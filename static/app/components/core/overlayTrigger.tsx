@@ -1,9 +1,8 @@
 import * as React from 'react';
 import type {DistributedOmit, SetRequired} from 'type-fest';
 
-import {DropdownButton, type DropdownButtonProps} from '@sentry/scraps/dropdownMenu';
-
-import {ControlContext} from './compactSelect/control';
+import {ControlContext} from './compactSelect/controlContext';
+import {DropdownButton, type DropdownButtonProps} from './dropdownMenu/dropdownButton';
 
 type TriggerEl =
   | HTMLButtonElement
@@ -16,13 +15,16 @@ export type TriggerProps = Omit<React.HTMLAttributes<TriggerEl>, 'children'> & {
   ref?: React.Ref<TriggerEl>;
 };
 
-type ButtonTriggerProps = DistributedOmit<DropdownButtonProps, 'ref' | 'children'> & {
+export type OverlayTriggerButtonProps = DistributedOmit<
+  DropdownButtonProps,
+  'ref' | 'children' | 'onClick'
+> & {
   children: NonNullable<React.ReactNode>;
   ref?: React.Ref<TriggerEl> | React.Ref<HTMLButtonElement>;
 };
 
-type IconButtonTriggerProps = SetRequired<
-  DistributedOmit<DropdownButtonProps, 'ref' | 'showChevron'>,
+export type OverlayTriggerIconButtonProps = SetRequired<
+  DistributedOmit<DropdownButtonProps, 'ref' | 'showChevron' | 'onClick'>,
   'aria-label' | 'icon'
 > & {
   ref?: React.Ref<TriggerEl> | React.Ref<HTMLButtonElement>;
@@ -38,7 +40,7 @@ const useContextProps = () => {
 };
 
 export const OverlayTrigger = {
-  Button({ref, ...props}: ButtonTriggerProps) {
+  Button({ref, ...props}: OverlayTriggerButtonProps) {
     return (
       <DropdownButton
         {...useContextProps()}
@@ -50,7 +52,7 @@ export const OverlayTrigger = {
 
   // omit children prop to prevent usage of children in IconButton
   // we still need children on type level to allow ergonomic object spreading of triggerProps
-  IconButton({ref, children: _, ...props}: IconButtonTriggerProps) {
+  IconButton({ref, children: _, ...props}: OverlayTriggerIconButtonProps) {
     return (
       <DropdownButton
         {...useContextProps()}

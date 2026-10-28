@@ -3,8 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Container} from '@sentry/scraps/layout';
-
-import {useStableMergeRef} from 'sentry/utils/useStableMergeRef';
+import {useStableMergeRef} from '@sentry/scraps/useStableMergeRef';
 
 const MIN_WIDTH = 100;
 const MIN_HEIGHT = 60;
@@ -101,7 +100,7 @@ const WindowRoot = styled(Container)`
 
   &[data-dragging] {
     user-select: none;
-    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
     border-color: ${p => p.theme.tokens.graphics.neutral.moderate};
   }
 `;

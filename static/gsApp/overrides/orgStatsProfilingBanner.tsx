@@ -1,16 +1,26 @@
-import styled from '@emotion/styled';
+import {IconShow} from '@sentry/icons/show';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {Container, Grid} from '@sentry/scraps/layout';
 
-import {IconShow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 
 export function OrgStatsProfilingBanner() {
   const location = useLocation();
   return (
-    <BannerGrid>
-      <HeaderItem>
+    <Grid
+      columns={{zero: '1fr', '3xl': 'repeat(2, 1fr)', '4xl': 'repeat(3, 1fr)'}}
+      border="primary"
+      radius="md"
+      marginBottom="xl"
+    >
+      <Container
+        column={{zero: 'span 1', '3xl': 'span 2', '4xl': 'span 1'}}
+        padding="xl"
+        background="secondary"
+        borderBottom={{zero: 'primary', '4xl': 'none'}}
+      >
         <h6>{t('Profiling has a new billing model!')}</h6>
         <span>
           {t(`
@@ -19,8 +29,13 @@ export function OrgStatsProfilingBanner() {
           products are billed separately.
           `)}
         </span>
-      </HeaderItem>
-      <CategoryItemLeft>
+      </Container>
+      <Container
+        padding="xl"
+        borderBottom={{zero: 'primary', '3xl': 'none'}}
+        borderRight={{zero: 'none', '3xl': 'primary'}}
+        borderLeft={{zero: 'none', '4xl': 'primary'}}
+      >
         <h6>{t('UI Profile Hours')}</h6>
         <span>
           {t(`
@@ -28,8 +43,8 @@ export function OrgStatsProfilingBanner() {
           times and unresponsive interactions.
           `)}
         </span>
-        <div>
-          <StyledProfilingButton
+        <Container marginTop="md">
+          <LinkButton
             size="sm"
             icon={<IconShow />}
             to={{
@@ -38,10 +53,10 @@ export function OrgStatsProfilingBanner() {
             }}
           >
             {t('Go to UI Profile Hours')}
-          </StyledProfilingButton>
-        </div>
-      </CategoryItemLeft>
-      <CategoryItemRight>
+          </LinkButton>
+        </Container>
+      </Container>
+      <Container padding="xl">
         <h6>{t('Continuous Profile Hours')}</h6>
         <span>
           {t(`
@@ -49,8 +64,8 @@ export function OrgStatsProfilingBanner() {
           and excessive infrastructure costs.
           `)}
         </span>
-        <div>
-          <StyledProfilingButton
+        <Container marginTop="md">
+          <LinkButton
             size="sm"
             icon={<IconShow />}
             to={{
@@ -59,67 +74,9 @@ export function OrgStatsProfilingBanner() {
             }}
           >
             {t('Go to Continuous Profile Hours')}
-          </StyledProfilingButton>
-        </div>
-      </CategoryItemRight>
-    </BannerGrid>
+          </LinkButton>
+        </Container>
+      </Container>
+    </Grid>
   );
 }
-
-const BannerGrid = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr;
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
-  margin-bottom: ${p => p.theme.space.xl};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    grid-template-columns: repeat(3, 1fr);
-  }
-`;
-
-const HeaderItem = styled('div')`
-  grid-column: span 1;
-
-  padding: ${p => p.theme.space.xl};
-  background-color: ${p => p.theme.tokens.background.secondary};
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    grid-column: span 2;
-    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    grid-column: span 1;
-    border-bottom: none;
-  }
-`;
-
-const CategoryItemLeft = styled('div')`
-  grid-column: span 1;
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  padding: ${p => p.theme.space.xl};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    border-right: 1px solid ${p => p.theme.tokens.border.primary};
-    border-bottom: none;
-  }
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    border-left: 1px solid ${p => p.theme.tokens.border.primary};
-    border-right: 1px solid ${p => p.theme.tokens.border.primary};
-    border-bottom: none;
-  }
-`;
-
-const CategoryItemRight = styled('div')`
-  grid-column: span 1;
-  padding: ${p => p.theme.space.xl};
-`;
-
-const StyledProfilingButton = styled(LinkButton)`
-  margin-top: ${p => p.theme.space.md};
-`;

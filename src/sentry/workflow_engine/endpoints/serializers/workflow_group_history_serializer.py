@@ -140,15 +140,19 @@ def fetch_workflow_groups_paginated(
     cursor: Cursor | None = None,
     per_page: int = 25,
     sort: Sequence[str] = (),
+    *,
+    project_ids: Sequence[int],
 ) -> CursorResult[WorkflowGroupHistory]:
-    filtered_history = WorkflowFireHistory.objects.filter(
+    history = WorkflowFireHistory.objects.filter(
         workflow=workflow,
         date_added__gte=start,
         date_added__lt=end,
     )
+    filtered_history = history.filter(group__project_id__in=project_ids)
 
-    # subquery that retrieves row with the largest date in a group
-    group_max_dates = filtered_history.filter(group=OuterRef("group")).order_by("-date_added")[:1]
+    # The outer query checks project access for this same group, so the latest-event
+    # subquery can avoid repeating the project join.
+    group_max_dates = history.filter(group=OuterRef("group")).order_by("-date_added")[:1]
 
     # Subquery to get the detector_id from DetectorGroup.
     # The detector does not currently need to be connected to the workflow.

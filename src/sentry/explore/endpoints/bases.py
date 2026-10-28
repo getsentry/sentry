@@ -46,6 +46,17 @@ class ExploreSavedQueryPermission(OrganizationPermission):
         return True
 
 
+class ExploreSavedFormulaPermission(OrganizationPermission):
+    # Any organization member can read and change any formula, including ones
+    # created by someone else.
+    scope_map = {
+        "GET": ["org:read", "org:write", "org:admin"],
+        "POST": ["org:read", "org:write", "org:admin"],
+        "PUT": ["org:read", "org:write", "org:admin"],
+        "DELETE": ["org:read", "org:write", "org:admin"],
+    }
+
+
 def filter_to_accessible_explore_queries(
     request, queryset: QuerySet[ExploreSavedQuery]
 ) -> QuerySet[ExploreSavedQuery]:

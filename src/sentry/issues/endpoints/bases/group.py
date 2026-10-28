@@ -4,7 +4,7 @@ import logging
 from typing import Any
 
 import sentry_sdk
-from django.db.models import QuerySet
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import SAFE_METHODS
 from rest_framework.request import Request
 from rest_framework.views import APIView
@@ -14,11 +14,9 @@ from sentry.api.base import Endpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_org, is_demo_user
-from sentry.integrations.tasks import create_comment, update_comment
-from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus, get_group_with_redirect
-from sentry.models.grouplink import GroupLink
 from sentry.models.organization import Organization
+from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.utils.sdk import bind_organization_context
 from sentry.viewer_context import set_viewer_context_project
 
@@ -110,31 +108,6 @@ class GroupEndpoint(Endpoint):
 
         return (args, kwargs)
 
-    def get_external_issue_ids(self, group: Group) -> QuerySet[Any]:
-        return GroupLink.objects.filter(
-            project_id=group.project_id, group_id=group.id, linked_type=GroupLink.LinkedType.issue
-        ).values_list("linked_id", flat=True)
-
-    def create_external_comment(self, request: Request, group: Group, group_note: Activity) -> None:
-        for external_issue_id in self.get_external_issue_ids(group):
-            create_comment.apply_async(
-                kwargs={
-                    "external_issue_id": external_issue_id,
-                    "group_note_id": group_note.id,
-                    "user_id": request.user.id,
-                }
-            )
-
-    def update_external_comment(self, request: Request, group: Group, group_note: Activity) -> None:
-        for external_issue_id in self.get_external_issue_ids(group):
-            update_comment.apply_async(
-                kwargs={
-                    "external_issue_id": external_issue_id,
-                    "group_note_id": group_note.id,
-                    "user_id": request.user.id,
-                }
-            )
-
 
 class GroupAiPermission(GroupPermission):
     scope_map = {
@@ -165,7 +138,15 @@ class GroupAiPermission(GroupPermission):
                 return False
 
             return True
-        return super().has_object_permission(request, view, group)
+
+        if not super().has_object_permission(request, view, group):
+            return False
+
+        has_access, detail = has_seer_access_with_detail(group.organization)
+        if not has_access:
+            raise PermissionDenied(detail)
+
+        return True
 
 
 class GroupAiEndpoint(GroupEndpoint):

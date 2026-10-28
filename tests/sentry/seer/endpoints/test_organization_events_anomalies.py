@@ -2,6 +2,7 @@ from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
 import orjson
+from django.test import override_settings
 from urllib3 import HTTPResponse
 from urllib3.exceptions import TimeoutError
 
@@ -22,6 +23,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
+from sentry.viewer_context import ActorType, ViewerContext, decode_viewer_context
 
 
 @freeze_time()
@@ -43,6 +45,10 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
     historical_timestamp_2 = (four_weeks_ago + timedelta(days=10)).timestamp()
     current_timestamp_1 = one_week_ago.timestamp()
     current_timestamp_2 = (one_week_ago + timedelta(minutes=10)).timestamp()
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.enterContext(override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret"))
 
     def get_test_data(self, project_id: int) -> dict:
         return {
@@ -83,6 +89,7 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
         )
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
     @patch(
         "sentry.seer.anomaly_detection.get_historical_anomalies.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -112,6 +119,15 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
             resp = self.get_success_response(
                 self.organization.slug, status_code=200, raw_data=orjson.dumps(data)
             )
+
+        viewer_context = decode_viewer_context(
+            mock_seer_request.call_args.kwargs["headers"]["X-Viewer-Context"],
+            key="viewer-context-test-secret",
+        )
+        assert isinstance(viewer_context, ViewerContext)
+        assert viewer_context.organization_id == self.organization.id
+        assert viewer_context.actor.actor_id == self.user.id
+        assert viewer_context.actor.type == ActorType.USER
 
         assert mock_seer_request.call_count == 1
         assert resp.data == seer_return_value["timeseries"]

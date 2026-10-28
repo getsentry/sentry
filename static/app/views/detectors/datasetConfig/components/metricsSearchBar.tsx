@@ -8,7 +8,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
-} from 'sentry/views/detectors/components/forms/metric/metricFormData';
+} from 'sentry/views/detectors/components/forms/metric/metricFormFields';
 import type {DetectorSearchBarProps} from 'sentry/views/detectors/datasetConfig/base';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {

@@ -64,10 +64,7 @@ from sentry.workflow_engine.endpoints.serializers.workflow_serializer import (
     WorkflowSerializerResponse,
 )
 from sentry.workflow_engine.endpoints.utils.filters import apply_filter
-from sentry.workflow_engine.endpoints.utils.permissions import (
-    can_edit_workflows,
-    enforce_workflow_creation_permissions,
-)
+from sentry.workflow_engine.endpoints.utils.permissions import enforce_workflow_creation_permissions
 from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
 from sentry.workflow_engine.endpoints.validators.detector_workflow_mutation import (
@@ -75,6 +72,7 @@ from sentry.workflow_engine.endpoints.validators.detector_workflow_mutation impo
 )
 from sentry.workflow_engine.endpoints.validators.utils import (
     enforce_workflow_access,
+    enforce_workflow_edit_permissions,
     should_include_all_projects_detector_workflows,
     should_include_all_projects_detector_workflows_or_raise,
 )
@@ -261,8 +259,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         if not workflows:
             return queryset, workflows
 
-        if not can_edit_workflows(workflows, request):
-            raise PermissionDenied
+        enforce_workflow_edit_permissions(request=request, workflows=workflows)
 
         return queryset, workflows
 

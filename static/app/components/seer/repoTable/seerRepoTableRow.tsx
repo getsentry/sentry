@@ -1,8 +1,8 @@
-import styled from '@emotion/styled';
+import type {ComponentProps} from 'react';
+import {IconOpen} from '@sentry/icons/open';
 import {useQueryClient} from '@tanstack/react-query';
 
-import {Checkbox} from '@sentry/scraps/checkbox';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
@@ -16,7 +16,6 @@ import {getRepoStatusLabel} from 'sentry/components/repositories/getRepoStatusLa
 import {useBulkUpdateRepositorySettings} from 'sentry/components/repositories/useBulkUpdateRepositorySettings';
 import {getRepositoryWithSettingsQueryKey} from 'sentry/components/repositories/useRepositoryWithSettings';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconOpen} from 'sentry/icons/iconOpen';
 import {t} from 'sentry/locale';
 import {
   DEFAULT_CODE_REVIEW_TRIGGERS,
@@ -24,54 +23,34 @@ import {
   type RepositoryWithSettings,
 } from 'sentry/types/integrations';
 import type {CodeReviewTrigger} from 'sentry/types/seer';
-import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
+import {ListItemSelectCheckbox} from 'sentry/utils/list/listItemSelectCheckbox';
 import {setApiQueryData} from 'sentry/utils/queryClient';
 import {useCanWriteSettings} from 'sentry/utils/seer/useCanWriteSettings';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-interface Props {
-  gridColumns: string;
+interface Props extends Omit<ComponentProps<typeof SimpleTable.Row>, 'children'> {
   mutateRepositorySettings: ReturnType<typeof useBulkUpdateRepositorySettings>['mutate'];
   repository: RepositoryWithSettings;
-  style?: React.CSSProperties;
 }
 
 export function SeerRepoTableRow({
-  gridColumns,
   mutateRepositorySettings,
   repository,
-  style,
+  ...rowProps
 }: Props) {
   const queryClient = useQueryClient();
   const organization = useOrganization();
   const location = useLocation();
   const canWrite = useCanWriteSettings();
-  const {isSelected, toggleSelected} = useListItemCheckboxContext();
 
   return (
-    <Grid
-      columns={gridColumns}
-      align="center"
-      style={style}
-      role="row"
-      position="absolute"
-      top="0"
-      left="0"
-      width="100%"
-      borderBottom="muted"
-    >
+    <SimpleTable.Row {...rowProps}>
       <SimpleTable.RowCell>
-        <CheckboxClickTarget htmlFor={`replay-table-select-${repository.id}`}>
-          <Checkbox
-            id={`replay-table-select-${repository.id}`}
-            disabled={isSelected(repository.id) === 'all-selected'}
-            checked={isSelected(repository.id) !== false}
-            onChange={() => {
-              toggleSelected(repository.id);
-            }}
-          />
-        </CheckboxClickTarget>
+        <ListItemSelectCheckbox
+          htmlPrefix="seer-repo-table-select"
+          value={repository.id}
+        />
       </SimpleTable.RowCell>
       <SimpleTable.RowCell>
         <Stack gap="xs">
@@ -167,7 +146,7 @@ export function SeerRepoTableRow({
             ))}
         </Text>
       </SimpleTable.RowCell>
-    </Grid>
+    </SimpleTable.Row>
   );
 }
 
@@ -181,12 +160,3 @@ function triggerToLabel(trigger: CodeReviewTrigger) {
       return trigger;
   }
 }
-
-const CheckboxClickTarget = styled('label')`
-  cursor: pointer;
-  display: block;
-  margin: -${p => p.theme.space.md};
-  padding: ${p => p.theme.space.md};
-  max-width: unset;
-  line-height: 0;
-`;

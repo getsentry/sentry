@@ -11,7 +11,7 @@ export {
 
 export {CompositeSelect} from './composite';
 
-export {ControlContext} from './control';
+export {ControlContext} from './controlContext';
 
 export {HighlightText} from './highlightText';
 
@@ -20,10 +20,6 @@ export {MenuComponents} from './menuComponents';
 export {
   LeadWrap,
   SectionSeparator,
-  SectionGroup,
-  SectionHeader,
-  SectionTitle,
-  SectionWrap,
   SizeLimitMessage,
   ListLabel,
   ListSeparator,
@@ -48,7 +44,7 @@ export {
 
 export {useVirtualizedItems} from './useVirtualizedItems';
 
-export {SelectFilterContext} from './list';
+export {SelectFilterContext} from './selectFilterContext';
 export {TriggerLabel} from './control';
 
 export {ListBox} from './listBox';

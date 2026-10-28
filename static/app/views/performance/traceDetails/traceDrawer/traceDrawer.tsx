@@ -1,19 +1,20 @@
 import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconCircleFill} from '@sentry/icons/circleFill';
+import {IconClose} from '@sentry/icons/close';
+import {IconPin} from '@sentry/icons/pin';
 
 import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
-import {IconCircleFill, IconClose, IconPin} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
   cancelAnimationTimeout,
   requestAnimationTimeout,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 import {traceAnalytics} from 'sentry/views/performance/traceDetails/traceAnalytics';
-import {DrawerContainerRefContext} from 'sentry/views/performance/traceDetails/traceDrawer/details/drawerContainerRefContext';
 import {
   usePassiveResizableDrawer,
   type UsePassiveResizableDrawerOptions,
@@ -36,7 +37,6 @@ import {type TraceTabsReducerState} from 'sentry/views/performance/traceDetails/
 type TraceDrawerProps = {
   manager: VirtualizedViewManager;
   onTabScrollToNode: (node: BaseNode) => void;
-  replay: ReplayRecord | null;
   scheduler: TraceScheduler;
   trace: TraceTree;
   traceGridRef: HTMLElement | null;
@@ -48,7 +48,6 @@ export function TraceDrawer(props: TraceDrawerProps) {
   const organization = useOrganization();
   const traceState = useTraceState();
   const traceDispatch = useTraceStateDispatch();
-  const contentContainerRef = useRef<HTMLDivElement>(null);
 
   const traceStateRef = useRef(traceState);
   traceStateRef.current = traceState;
@@ -189,18 +188,6 @@ export function TraceDrawer(props: TraceDrawerProps) {
   }, [onResize, drawerOptions, traceState.preferences.layout]);
 
   const {onMouseDown, size} = usePassiveResizableDrawer(resizableDrawerOptions);
-  const onParentClick = useCallback(
-    (node: BaseNode) => {
-      props.onTabScrollToNode(node);
-      traceDispatch({
-        type: 'activate tab',
-        payload: node,
-        pin_previous: true,
-      });
-    },
-    [props, traceDispatch]
-  );
-
   const onMinimizeClick = useCallback(() => {
     traceAnalytics.trackDrawerMinimize(organization);
     traceDispatch({
@@ -316,7 +303,13 @@ export function TraceDrawer(props: TraceDrawerProps) {
         onDoubleClick={onDoubleClickResetToDefault}
         hasIndicators={hasIndicators}
       >
-        <TabsLayout data-test-id="trace-drawer-tabs">
+        <Grid
+          paddingLeft="md"
+          paddingRight="xs"
+          width="100%"
+          columns="auto 1fr auto"
+          data-test-id="trace-drawer-tabs"
+        >
           <TabActions>
             <TabLayoutControlItem>
               <TraceLayoutMinimizeButton
@@ -362,32 +355,23 @@ export function TraceDrawer(props: TraceDrawerProps) {
               />
             ) : null}
           </TabsContainer>
-        </TabsLayout>
+        </Grid>
       </TabsHeightContainer>
       {isDrawerMinimized ? null : (
-        <DrawerContainerRefContext value={contentContainerRef}>
-          <Content
-            ref={contentContainerRef}
-            layout={traceState.preferences.layout}
-            data-test-id="trace-drawer"
-          >
-            <ContentWrapper>
-              {traceState.tabs.current_tab &&
-              typeof traceState.tabs.current_tab.node !== 'string'
-                ? traceState.tabs.current_tab.node.renderDetails({
-                    manager: props.manager,
-                    node: traceState.tabs.current_tab.node,
-                    onParentClick,
-                    onTabScrollToNode: props.onTabScrollToNode,
-                    organization,
-                    replay: props.replay,
-                    traceId: props.traceId,
-                    tree: props.trace,
-                  })
-                : null}
-            </ContentWrapper>
-          </Content>
-        </DrawerContainerRefContext>
+        <Content layout={traceState.preferences.layout} data-test-id="trace-drawer">
+          <ContentWrapper>
+            {traceState.tabs.current_tab &&
+            typeof traceState.tabs.current_tab.node !== 'string'
+              ? traceState.tabs.current_tab.node.renderDetails({
+                  node: traceState.tabs.current_tab.node,
+                  onTabScrollToNode: props.onTabScrollToNode,
+                  organization,
+                  traceId: props.traceId,
+                  tree: props.trace,
+                })
+              : null}
+          </ContentWrapper>
+        </Content>
       )}
     </PanelWrapper>
   );
@@ -550,14 +534,6 @@ const TabsHeightContainer = styled('div')<{
   display: flex;
 `;
 
-const TabsLayout = styled('div')`
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  padding-left: ${p => p.theme.space.md};
-  padding-right: ${p => p.theme.space.xs};
-  width: 100%;
-`;
-
 const TabsContainer = styled('ul')`
   display: grid;
   list-style-type: none;
@@ -589,7 +565,7 @@ const TabSeparator = styled('span')`
   margin-right: ${p => p.theme.space.xs};
   height: 16px;
   width: 1px;
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   background-color: ${p => p.theme.tokens.border.primary};
   transform: translateY(3px);
 `;
@@ -624,7 +600,7 @@ const Tab = styled('li')`
       transform: translateY(-50%);
       height: 16px;
       width: 1px;
-      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+      /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
       background-color: ${p => p.theme.tokens.border.primary};
     }
   }

@@ -4,14 +4,17 @@ import releasesImg from 'sentry-images/spot/releases.svg';
 
 import {Container, Grid} from '@sentry/scraps/layout';
 
-import * as Layout from 'sentry/components/layouts/thirds';
 import {ResourceCard} from 'sentry/components/resourceCard';
 import {t} from 'sentry/locale';
+import {TopBar} from 'sentry/views/navigation/topBar';
 
 export function Resources() {
   return (
     <Container borderTop="primary" padding="xl 3xl">
-      <Layout.Title>{t('Resources')}</Layout.Title>
+      <TopBar.Slot
+        name="breadcrumbs"
+        title={{type: 'page-title', label: t('Resources')}}
+      />
       <Grid
         columns={{
           zero: 'minmax(100px, 1fr)',

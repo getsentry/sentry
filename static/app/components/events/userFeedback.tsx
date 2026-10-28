@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {IconCopy} from '@sentry/icons/copy';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -7,7 +8,6 @@ import {Text} from '@sentry/scraps/text';
 
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {UserReport} from 'sentry/types/group';
 import type {AvatarUser} from 'sentry/types/user';
@@ -135,7 +135,7 @@ const FeedbackBubble = styled('div')`
     height: 0;
     border-top: 6px solid transparent;
     border-bottom: 6px solid transparent;
-    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
     border-right: 6px solid ${p => p.theme.tokens.background.primary};
     position: absolute;
     left: -6px;

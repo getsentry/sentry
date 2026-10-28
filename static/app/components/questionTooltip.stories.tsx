@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import * as Storybook from 'sentry/stories';
@@ -45,7 +44,7 @@ export default Storybook.story('QuestionTooltip', story => {
           icon. Remember to keep the size relative to the text or content it is near.
           Valid values are
         </p>
-        <IconExamples>
+        <Grid gap="md">
           <div>
             "xs" <QuestionTooltip size="xs" title="xs" />
           </div>
@@ -64,7 +63,7 @@ export default Storybook.story('QuestionTooltip', story => {
           <div>
             "2xl" <QuestionTooltip size="2xl" title="2xl" />
           </div>
-        </IconExamples>
+        </Grid>
       </Fragment>
     );
   });
@@ -92,8 +91,3 @@ export default Storybook.story('QuestionTooltip', story => {
     );
   });
 });
-
-const IconExamples = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space.md};
-`;

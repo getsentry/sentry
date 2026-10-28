@@ -31,6 +31,22 @@ def _relay_server_container_name() -> str:
     return "sentry_test_relay_server"
 
 
+def _wait_until_ready(url: str, timeout: float) -> None:
+    deadline = time.monotonic() + timeout
+    last_result = "not probed"
+    while (remaining := deadline - time.monotonic()) > 0:
+        try:
+            status = requests.get(url, timeout=min(1, remaining)).status_code
+        except requests.RequestException as e:
+            last_result = f"{type(e).__name__}: {e}"
+        else:
+            if status == 200:
+                return
+            last_result = f"HTTP {status}"
+        time.sleep(max(0, min(0.05, deadline - time.monotonic())))
+    raise TimeoutError(last_result)
+
+
 def _get_template_dir():
     return path.abspath(path.join(path.dirname(__file__), "template"))
 
@@ -144,12 +160,11 @@ def relay_server_setup(live_server, tmpdir_factory):
 
 
 @pytest.fixture(scope="function")
-def relay_server(relay_server_setup, settings):
+def relay_server(relay_server_setup):
     # Imported lazily: this module is loaded as a pytest plugin before Django is set up,
     # and override_options pulls in app code that requires configured settings.
     from sentry.testutils.helpers.options import override_options
 
-    adjust_settings_for_relay_tests(settings)
     options = relay_server_setup["options"]
 
     # `relay.endpoint-fetch-config.enabled` (default True since #114947) makes Relay's
@@ -160,7 +175,10 @@ def relay_server(relay_server_setup, settings):
     # so turn it off.
     # It is served to the test Relay via the upstream global config, hence the override
     # must wrap Relay startup.
-    with override_options({"relay.endpoint-fetch-config.enabled": False}):
+    with (
+        relay_test_settings(),
+        override_options({"relay.endpoint-fetch-config.enabled": False}),
+    ):
         # Keep the docker client open through the readiness wait so the error paths
         # below can still fetch `container.logs()` for diagnostics.
         with get_docker_client() as docker_client:
@@ -188,51 +206,52 @@ def relay_server(relay_server_setup, settings):
             # (authenticated with the upstream, spool capacity, memory); posting before then
             # races startup and Relay rejects the request with a 503. This mirrors production,
             # where load balancers route ingest traffic only to Relays passing this same probe.
+            #
+            # Poll at a fixed short interval: Relay is usually ready within a couple of
+            # seconds, and exponential backoff overshoots that by up to the last sleep.
+            # The deadline matches the previous backoff schedule's total.
             readiness_url = f"{url}/api/relay/healthcheck/ready/"
-            for i in range(8):
+            try:
+                _wait_until_ready(readiness_url, timeout=25.5)
+            except TimeoutError as e:
                 try:
-                    if requests.get(readiness_url).status_code == 200:
-                        break
-                except Exception as ex:
-                    if i == 7:
-                        _log.exception(str(ex))
-                        raise ValueError(
-                            f"relay did not start in time (now: {datetime.datetime.now().isoformat()}) {url}:\n{container.logs().decode()}"
-                        ) from ex
-                time.sleep(0.1 * 2**i)
-            else:
+                    logs = container.logs().decode()
+                finally:
+                    if not environ.get("RELAY_TEST_KEEP_CONTAINER", False):
+                        _remove_container_if_exists(docker_client, container_name)
                 raise ValueError(
-                    f"relay did not become ready in time (now: {datetime.datetime.now().isoformat()}) {readiness_url}:\n{container.logs().decode()}"
-                )
+                    f"relay did not become ready in time (now: {datetime.datetime.now().isoformat()}, last result: {e}) {readiness_url}:\n{logs}"
+                ) from e
 
         yield {"url": relay_server_setup["url"]}
 
 
-def adjust_settings_for_relay_tests(settings):
+def relay_test_settings():
     """
-    Adjusts the application settings to accept calls from a Relay instance running inside a
-    docker container.
+    Settings that let a Relay instance running inside a docker container call the app.
+    """
+    from django.test import override_settings
 
-    :param settings: the app settings
-    """
-    settings.ALLOWED_HOSTS = [
-        "localhost",
-        "testserver",
-        "host.docker.internal",
-        "0.0.0.0",
-        "127.0.0.1",
-    ]
-    settings.KAFKA_CLUSTERS = {
-        "default": {
-            "common": {"bootstrap.servers": "127.0.0.1:9092"},
-            "producers": {
-                "compression.type": "lz4",
-                "message.max.bytes": 50000000,  # 50MB, default is 1MB
-            },
-        }
-    }
-    settings.SENTRY_RELAY_WHITELIST_PK = ["SMSesqan65THCV6M4qs4kBzPai60LzuDn-xNsvYpuP8"]
-    settings.SENTRY_USE_RELAY = True
+    return override_settings(
+        ALLOWED_HOSTS=[
+            "localhost",
+            "testserver",
+            "host.docker.internal",
+            "0.0.0.0",
+            "127.0.0.1",
+        ],
+        KAFKA_CLUSTERS={
+            "default": {
+                "common": {"bootstrap.servers": "127.0.0.1:9092"},
+                "producers": {
+                    "compression.type": "lz4",
+                    "message.max.bytes": 50000000,  # 50MB, default is 1MB
+                },
+            }
+        },
+        SENTRY_RELAY_WHITELIST_PK=["SMSesqan65THCV6M4qs4kBzPai60LzuDn-xNsvYpuP8"],
+        SENTRY_USE_RELAY=True,
+    )
 
 
 @pytest.fixture

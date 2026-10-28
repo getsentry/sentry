@@ -5,23 +5,18 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from typing import Any, NamedTuple, TypeAlias
 
-import sentry_sdk
-
 from sentry import tsdb
-from sentry.digests.types import IdentifierKey, Notification, Record, RecordWithRuleObjects
+from sentry.digests.types import Notification, Record, RecordWithRuleObjects
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
-from sentry.models.rule import Rule
-from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
-from sentry.notifications.utils.rules import get_rule_or_workflow_id
-from sentry.services.eventstore.models import Event, GroupEvent
+from sentry.notifications.types import ActionTargetType, FallthroughChoiceType, NotificationOrigin
+from sentry.notifications.utils.rules import get_notification_origins
+from sentry.services.eventstore.models import GroupEvent
 from sentry.tsdb.base import TSDBModel
-from sentry.workflow_engine.models import Workflow
-from sentry.workflow_engine.models.alertrule_workflow import AlertRuleWorkflow
 
 logger = logging.getLogger("sentry.digests")
 
-Digest: TypeAlias = dict[Rule, dict[Group, list[RecordWithRuleObjects]]]
+Digest: TypeAlias = dict[NotificationOrigin, dict[Group, list[RecordWithRuleObjects]]]
 
 
 class DigestInfo(NamedTuple):
@@ -77,27 +72,28 @@ def unsplit_key(
 
 
 def event_to_record(
-    event: Event | GroupEvent,
-    rules: Sequence[Rule],
+    event: GroupEvent,
+    origins: Sequence[NotificationOrigin],
     notification_uuid: str | None = None,
-    identifier_key: IdentifierKey = IdentifierKey.RULE,
 ) -> Record:
-    if not rules:
-        logger.warning("Creating record for %s that does not contain any rules!", event)
+    if not origins:
+        logger.warning(
+            "Creating record for %s that does not contain any notification origins!", event
+        )
 
-    # TODO(iamrajjoshi): The typing on this function is wrong, the type should be GroupEvent
-    # TODO(iamrajjoshi): Creating a PR to fix this
-    assert event.group is not None
-    rule_ids = [int(get_rule_or_workflow_id(rule)[1]) for rule in rules]
+    workflow_ids = []
+    for origin in origins:
+        assert origin.workflow_id is not None
+        workflow_ids.append(origin.workflow_id)
     return Record(
         event.event_id,
-        Notification(event, rule_ids, notification_uuid, identifier_key),
+        Notification(event, workflow_ids, notification_uuid),
         event.datetime.timestamp(),
     )
 
 
 def _bind_records(
-    records: Sequence[Record], groups: dict[int, Group], rules: dict[int, Rule]
+    records: Sequence[Record], groups: dict[int, Group], rules: dict[int, NotificationOrigin]
 ) -> list[RecordWithRuleObjects]:
     ret = []
     for record in records:
@@ -123,7 +119,9 @@ def _bind_records(
 
 
 def _group_records(
-    records: Sequence[RecordWithRuleObjects], groups: dict[int, Group], rules: dict[int, Rule]
+    records: Sequence[RecordWithRuleObjects],
+    groups: dict[int, Group],
+    rules: dict[int, NotificationOrigin],
 ) -> Digest:
     grouped: Digest = defaultdict(lambda: defaultdict(list))
     for record in records:
@@ -161,7 +159,7 @@ def _sort_digest(
 def _build_digest_impl(
     records: Sequence[Record],
     groups: dict[int, Group],
-    rules: dict[int, Rule],
+    rules: dict[int, NotificationOrigin],
     event_counts: dict[int, int],
     user_counts: Mapping[Any, int],
 ) -> Digest:
@@ -171,53 +169,11 @@ def _build_digest_impl(
     return _sort_digest(grouped, event_counts=event_counts, user_counts=user_counts)
 
 
-def get_rules_from_workflows(project: Project, workflow_ids: set[int]) -> dict[int, Rule]:
-    rules: dict[int, Rule] = {}
-    if not workflow_ids:
-        return rules
-
-    # Fetch all workflows in bulk
-    workflows = Workflow.objects.filter(organization_id=project.organization_id).in_bulk(
-        workflow_ids
-    )
-
-    # Try to fetch rules for workflows, if not use the workflow id
-    alert_rule_workflows = AlertRuleWorkflow.objects.filter(workflow_id__in=workflow_ids)
-    alert_rule_workflows_map = {awf.workflow_id: awf for awf in alert_rule_workflows}
-
-    rule_ids_to_fetch = {awf.rule_id for awf in alert_rule_workflows}
-
-    bulk_rules = Rule.objects.filter(project_id=project.id).in_bulk(rule_ids_to_fetch)
-
-    for workflow_id, workflow in workflows.items():
-        alert_workflow = alert_rule_workflows_map.get(workflow_id)
-        if alert_workflow:
-            if rule := bulk_rules.get(alert_workflow.rule_id):
-                assert rule.project_id == project.id, "Rule must belong to Project"
-                rule.environment_id = workflow.environment_id
-                try:
-                    rule.data["actions"][0]["legacy_rule_id"] = rule.id
-                    rule.data["actions"][0]["workflow_id"] = workflow_id
-                except KeyError:
-                    # This shouldn't happen, but isn't a deal breaker if it does
-                    sentry_sdk.capture_exception(
-                        Exception(f"Rule {rule.id} does not have a legacy_rule_id"),
-                        level="warning",
-                    )
-                rules[workflow_id] = rule
-                continue
-
-        # Create synthetic Rule when no AlertRuleWorkflow or no Rule found
-        rules[workflow_id] = Rule(
-            label=workflow.name,
-            id=workflow_id,
-            project_id=project.id,
-            environment_id=workflow.environment_id,
-            # We need to do this so that the links are built correctly downstream
-            data={"actions": [{"workflow_id": workflow_id}]},
-        )
-
-    return rules
+def get_rules_from_workflows(
+    project: Project, workflow_ids: set[int]
+) -> dict[int, NotificationOrigin]:
+    origins = get_notification_origins(project, workflow_ids=workflow_ids)
+    return {origin.workflow_id: origin for origin in origins if origin.workflow_id is not None}
 
 
 def build_digest(project: Project, records: Sequence[Record]) -> DigestInfo:
@@ -231,33 +187,15 @@ def build_digest(project: Project, records: Sequence[Record]) -> DigestInfo:
     start = records[-1].datetime
     end = records[0].datetime
 
-    rule_ids: set[int] = set()
     workflow_ids: set[int] = set()
 
     for record in records:
-        identifier_key = getattr(record.value, "identifier_key", IdentifierKey.RULE)
-        # record.value is Notification, record.value.rules is Sequence[int]
-        ids_to_add = record.value.rules
-        if identifier_key == IdentifierKey.RULE:
-            rule_ids.update(ids_to_add)
-        elif identifier_key == IdentifierKey.WORKFLOW:
-            workflow_ids.update(ids_to_add)
+        workflow_ids.update(record.value.rules)
 
     groups = Group.objects.in_bulk(record.value.event.group_id for record in records)
     group_ids = list(groups)
-    rules = Rule.objects.in_bulk(rule_ids)
-
-    for rule in rules.values():
-        try:
-            rule.data["actions"][0]["legacy_rule_id"] = rule.id
-        except KeyError:
-            # This shouldn't happen, but isn't a deal breaker if it does
-            sentry_sdk.capture_exception(
-                Exception(f"Rule {rule.id} does not have a legacy_rule_id"),
-                level="warning",
-            )
-
-    rules.update(get_rules_from_workflows(project, workflow_ids))
+    origins = get_notification_origins(project, workflow_ids=workflow_ids)
+    rules = {origin.workflow_id: origin for origin in origins if origin.workflow_id is not None}
 
     for group_id, g in groups.items():
         assert g.project_id == project.id, "Group must belong to Project"

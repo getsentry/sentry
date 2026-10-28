@@ -14,6 +14,7 @@ from django.conf import settings
 from requests import RequestException, Response
 from requests.exceptions import ChunkedEncodingError, ConnectionError, Timeout
 from rest_framework import status
+from sentry_sdk import traces
 
 from sentry import options
 from sentry.exceptions import RestrictedIPAddress
@@ -49,7 +50,6 @@ from sentry.utils.circuit_breaker2 import CircuitBreaker, RateBasedTripStrategy
 from sentry.utils.http import absolute_uri
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 from sentry.utils.sentry_apps.circuit_breaker import circuit_breaker_tracking
-from sentry.utils.tracing import trace
 
 if TYPE_CHECKING:
     from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
@@ -161,6 +161,7 @@ def _notify_webhook_disabled(
         return
 
     data = SentryAppWebhookDisabled(
+        organization_id=owner_org.id,
         sentry_app_slug=sentry_app.slug,
         sentry_app_name=sentry_app.name,
         webhook_url=sentry_app.webhook_url or "",
@@ -243,11 +244,15 @@ def _webhook_timeout(
             yield timeout_seconds
         return
 
-    with sentry_sdk.start_span(op="sentry-app.webhook.overridden_timeout") as span:
-        span.set_tag("app_slug", installation.sentry_app.slug)
-        span.set_tag("organization_id", installation.organization_id)
-        span.set_tag("timeout_seconds", timeout_override)
-        span.set_tag("hard_timeout_seconds", hard_timeout_override)
+    with sentry_sdk.traces.start_span(name="sentry-app.webhook.overridden_timeout") as span:
+        span.set_attributes(
+            {
+                "app_slug": installation.sentry_app.slug,
+                "organization_id": installation.organization_id,
+                "timeout_seconds": timeout_override,
+                "hard_timeout_seconds": hard_timeout_override,
+            }
+        )
 
         with timeout_alarm(hard_timeout_override, _handle_webhook_timeout):
             yield timeout_override
@@ -276,7 +281,7 @@ def _send_webhook_request(
         )
 
 
-@trace(name="send_and_save_webhook_request")
+@traces.trace(name="send_and_save_webhook_request")
 @ignore_unpublished_app_errors
 def send_and_save_webhook_request(
     sentry_app: SentryApp | RpcSentryApp,

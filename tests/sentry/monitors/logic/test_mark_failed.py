@@ -47,9 +47,7 @@ class MarkFailedTestCase(TestCase):
         trace_id = uuid.uuid4()
 
         checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             status=CheckInStatus.ERROR,
             trace_id=trace_id,
             date_added=last_checkin,
@@ -92,9 +90,7 @@ class MarkFailedTestCase(TestCase):
         )
         assert monitor_environment.active_incident is None
         checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             status=CheckInStatus.UNKNOWN,
         )
         assert mark_failed(checkin, failed_at=checkin.date_added)
@@ -131,9 +127,7 @@ class MarkFailedTestCase(TestCase):
         )
 
         MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             status=CheckInStatus.OK,
         )
 
@@ -142,9 +136,7 @@ class MarkFailedTestCase(TestCase):
         for _ in range(0, failure_issue_threshold - 1):
             status = next(failure_statuses)
             checkin = MonitorCheckIn.objects.create(
-                monitor=monitor,
                 monitor_environment=monitor_environment,
-                project_id=self.project.id,
                 status=status,
             )
             mark_failed(checkin, failed_at=checkin.date_added)
@@ -155,18 +147,14 @@ class MarkFailedTestCase(TestCase):
 
         # create another OK check-in to break the chain
         MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             status=CheckInStatus.OK,
         )
 
         for _ in range(0, failure_issue_threshold):
             status = next(failure_statuses)
             checkin = MonitorCheckIn.objects.create(
-                monitor=monitor,
                 monitor_environment=monitor_environment,
-                project_id=self.project.id,
                 status=status,
             )
             if _ == 0:
@@ -190,9 +178,7 @@ class MarkFailedTestCase(TestCase):
         # send another check-in to make sure the incident does not change
         status = next(failure_statuses)
         checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             status=status,
         )
         mark_failed(checkin, failed_at=checkin.date_added)
@@ -209,9 +195,7 @@ class MarkFailedTestCase(TestCase):
 
         # Resolve the incident with an OK check-in
         ok_checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             status=MonitorStatus.OK,
         )
         monitor_incident.resolving_checkin = ok_checkin
@@ -224,9 +208,7 @@ class MarkFailedTestCase(TestCase):
         for _ in range(0, failure_issue_threshold):
             status = next(failure_statuses)
             checkin = MonitorCheckIn.objects.create(
-                monitor=monitor,
                 monitor_environment=monitor_environment,
-                project_id=self.project.id,
                 status=status,
             )
             mark_failed(checkin, failed_at=checkin.date_added)
@@ -260,9 +242,7 @@ class MarkFailedTestCase(TestCase):
         )
 
         MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             status=CheckInStatus.OK,
         )
 
@@ -270,9 +250,7 @@ class MarkFailedTestCase(TestCase):
         checkins = []
         for i in range(0, failure_issue_threshold + 1):
             checkin = MonitorCheckIn.objects.create(
-                monitor=monitor,
                 monitor_environment=monitor_environment,
-                project_id=self.project.id,
                 status=CheckInStatus.IN_PROGRESS,
             )
             checkins.append(checkin)
@@ -334,9 +312,7 @@ class MarkFailedTestCase(TestCase):
         assert monitor_environment.active_incident is None
         for _ in range(0, failure_issue_threshold):
             checkin = MonitorCheckIn.objects.create(
-                monitor=monitor,
                 monitor_environment=monitor_environment,
-                project_id=self.project.id,
                 status=CheckInStatus.UNKNOWN,
             )
             mark_failed(checkin, failed_at=checkin.date_added)
@@ -374,9 +350,7 @@ class MarkFailedTestCase(TestCase):
 
         for _ in range(failure_issue_threshold - 1):
             checkin = MonitorCheckIn.objects.create(
-                monitor=monitor,
                 monitor_environment=monitor_environment,
-                project_id=self.project.id,
                 status=CheckInStatus.ERROR,
             )
             assert not mark_failed(checkin, failed_at=checkin.date_added)
@@ -387,9 +361,7 @@ class MarkFailedTestCase(TestCase):
         mock_dispatch_incident_occurrence.assert_not_called()
 
         checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             status=CheckInStatus.ERROR,
         )
         assert mark_failed(checkin, failed_at=checkin.date_added)
@@ -419,16 +391,12 @@ class MarkFailedTestCase(TestCase):
         )
 
         MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             status=CheckInStatus.OK,
         )
 
         checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             status=CheckInStatus.IN_PROGRESS,
         )
         mark_failed(checkin, failed_at=checkin.date_added)
@@ -476,9 +444,7 @@ class MarkFailedTestCase(TestCase):
 
         for i in range(3):
             checkin = MonitorCheckIn.objects.create(
-                monitor=monitor,
                 monitor_environment=monitor_environment,
-                project_id=self.project.id,
                 status=CheckInStatus.ERROR,
             )
             mark_failed(checkin, failed_at=checkin.date_added)
@@ -487,9 +453,7 @@ class MarkFailedTestCase(TestCase):
         assert first_incident.grouphash == expected_fingerprint
 
         ok_checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             status=CheckInStatus.OK,
         )
 
@@ -505,9 +469,7 @@ class MarkFailedTestCase(TestCase):
 
         for i in range(3):
             checkin = MonitorCheckIn.objects.create(
-                monitor=monitor,
                 monitor_environment=monitor_environment,
-                project_id=self.project.id,
                 status=CheckInStatus.ERROR,
             )
             mark_failed(checkin, failed_at=checkin.date_added)

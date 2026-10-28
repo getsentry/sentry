@@ -12,6 +12,7 @@ from sentry.hybridcloud.rpc.pagination import RpcPaginationArgs, RpcPaginationRe
 from sentry.hybridcloud.rpc.service import RpcService, rpc_method
 from sentry.integrations.services.integration import RpcIntegration, RpcOrganizationIntegration
 from sentry.integrations.services.integration.model import (
+    RpcAccessToken,
     RpcIntegrationExternalProject,
     RpcIntegrationIdentityContext,
     RpcOrganizationContext,
@@ -319,6 +320,24 @@ class IntegrationService(RpcService):
         self, *, integration_id: int, organization_id: int
     ) -> RpcIntegration | None:
         pass
+
+    @rpc_method
+    @abstractmethod
+    def get_access_token(
+        self, *, integration_id: int, organization_id: int
+    ) -> RpcAccessToken | None:
+        """Return an access token for the integration's provider, minted or refreshed in control.
+
+        For callers outside control that hand the token on: they can't mint or refresh one, and
+        can't retry after a 401, so the token has at least five minutes left. A GitLab instance
+        can configure tokens that last under ten minutes; those have at least half their
+        lifetime left instead. For a new token once ``expires_at`` passes, call this again.
+        Supports GitHub, GitHub Enterprise, Cursor Origin and GitLab.
+
+        None when the organization has no active install of an active integration with that id
+        from one of those providers, or when there's no token to give (the provider refused or
+        failed, or a GitLab install has no identity to take one from).
+        """
 
     @rpc_method
     @abstractmethod

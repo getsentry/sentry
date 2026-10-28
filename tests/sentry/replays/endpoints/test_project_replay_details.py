@@ -68,6 +68,24 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
             assert "data" in response_data
             assert response_data["data"]["id"] == replay2_id
 
+    def test_get_replay_invalid_field(self) -> None:
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.get(self.url + "?field=id&field=release")
+
+        assert response.status_code == 400
+        assert response.json() == {"detail": "Invalid field: release"}
+
+    def test_get_replay_restricted_fields(self) -> None:
+        self.store_replays(mock_replay(datetime.datetime.now(), self.project.id, self.replay_id))
+
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.get(
+                self.url + "?field=id&field=releases&field=ota_updates&field=replay_type"
+            )
+
+        assert response.status_code == 200
+        assert response.json()["data"].keys() == {"id", "releases", "ota_updates", "replay_type"}
+
     def test_get_replay_schema(self) -> None:
         """Test replay schema is well-formed."""
         replay1_id = self.replay_id
@@ -160,6 +178,14 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(REPLAYS_FEATURES):
             response = self.client.delete(self.url)
             assert response.status_code == 403
+
+    def test_delete_invalid_replay_id_returns_400(self) -> None:
+        """Assert a malformed replay id returns a 400 instead of a 500."""
+        url = reverse(self.endpoint, args=(self.organization.slug, self.project.slug, "abc123"))
+
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.delete(url)
+            assert response.status_code == 400
 
     def test_delete_replay_from_filestore(self) -> None:
         """Test deleting files uploaded through the filestore interface."""

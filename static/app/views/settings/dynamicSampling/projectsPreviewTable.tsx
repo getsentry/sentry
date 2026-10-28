@@ -5,7 +5,6 @@ import {useDebouncedValue} from '@tanstack/react-pacer';
 import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {mapArrayToObject} from 'sentry/utils/array/mapArrayToObject';
-import {OrganizationSampleRateInput} from 'sentry/views/settings/dynamicSampling/organizationSampleRateInput';
 import {ProjectsTable} from 'sentry/views/settings/dynamicSampling/projectsTable';
 import {SamplingBreakdown} from 'sentry/views/settings/dynamicSampling/samplingBreakdown';
 import {formatPercent} from 'sentry/views/settings/dynamicSampling/utils/formatPercent';
@@ -19,12 +18,11 @@ import type {
 interface ProjectsPreviewTableProps {
   actions: React.ReactNode;
   isLoading: boolean;
-  onTargetSampleRateChange: (value: string) => void;
   period: ProjectionSamplePeriod;
   sampleCounts: ProjectSampleCount[];
   savedTargetSampleRate: string;
   targetSampleRate: string;
-  targetSampleRateError?: string;
+  targetSampleRateInput: React.ReactNode;
 }
 
 export function ProjectsPreviewTable({
@@ -34,8 +32,7 @@ export function ProjectsPreviewTable({
   sampleCounts,
   targetSampleRate,
   savedTargetSampleRate,
-  onTargetSampleRateChange,
-  targetSampleRateError,
+  targetSampleRateInput,
 }: ProjectsPreviewTableProps) {
   const [debouncedTargetSampleRate] = useDebouncedValue(targetSampleRate, {
     // For longer lists we debounce the input to avoid too many re-renders
@@ -101,17 +98,7 @@ export function ProjectsPreviewTable({
         isLoading={isLoading}
       />
       <Panel>
-        <OrganizationSampleRateInput
-          value={targetSampleRate}
-          onChange={onTargetSampleRateChange}
-          previousValue={savedTargetSampleRate}
-          showPreviousValue={targetSampleRate !== savedTargetSampleRate}
-          error={targetSampleRateError}
-          label={t('Target Sample Rate')}
-          help={t(
-            'Set a global sample rate for your entire organization. This will determine how much incoming traffic should be stored across all your projects.'
-          )}
-        />
+        {targetSampleRateInput}
         <ProjectsTable
           rateHeader={t('Target Rate')}
           canEdit={false}

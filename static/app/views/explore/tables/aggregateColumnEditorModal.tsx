@@ -2,6 +2,8 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconDelete} from '@sentry/icons/delete';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -16,8 +18,6 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
 import {SPAN_PROPS_DOCS_URL} from 'sentry/constants';
-import {IconAdd} from 'sentry/icons/iconAdd';
-import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {
@@ -31,7 +31,6 @@ import {
   getFieldDefinition,
   NO_ARGUMENT_SPAN_AGGREGATES,
 } from 'sentry/utils/fields';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {ConditionalAggregateFilterBar} from 'sentry/views/explore/components/conditionalAggregateFilterBar';
 import {ExploreEquationArithmeticBuilder} from 'sentry/views/explore/components/exploreEquationArithmeticBuilder';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
@@ -49,9 +48,10 @@ import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
-import type {
-  AggregateField,
-  WritableAggregateField,
+import {
+  serializeAggregateFields,
+  type AggregateField,
+  type WritableAggregateField,
 } from 'sentry/views/explore/queryParams/aggregateField';
 import {
   isVisualizeEquation,
@@ -64,9 +64,9 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   applyConditionalFilter,
   buildConditionalAggregate,
-  parseConditionalAggregate,
   supportsConditionalAggregateFilter,
 } from 'sentry/views/explore/utils/conditionalAggregate';
+import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
 
 interface AggregateColumnEditorModalProps extends ModalRenderProps {
@@ -97,17 +97,7 @@ export function AggregateColumnEditorModal({
   }, [columns]);
 
   const handleApply = () => {
-    const newColumns: WritableAggregateField[] = [];
-
-    for (const col of tempColumns) {
-      if (isGroupBy(col)) {
-        newColumns.push(col);
-      } else if (isVisualize(col)) {
-        newColumns.push(col.serialize());
-      }
-    }
-
-    onColumnsChange(newColumns);
+    onColumnsChange(serializeAggregateFields(tempColumns));
     closeModal();
   };
 
@@ -169,13 +159,14 @@ export function AggregateColumnEditorModal({
                   },
                 ]}
                 trigger={triggerProps => (
-                  <Button
+                  <OverlayTrigger.Button
+                    showChevron={false}
                     {...triggerProps}
                     aria-label={t('Add a Column')}
                     icon={<IconAdd />}
                   >
                     {t('Add a Column')}
-                  </Button>
+                  </OverlayTrigger.Button>
                 )}
               />
             </RowContainer>
@@ -418,11 +409,6 @@ function AggregateSelector({
   visualize,
 }: VisualizeSelectorProps) {
   const yAxis = visualize.yAxis;
-  const organization = useOrganization();
-  const hasConditionalAggregates = organization.features.includes(
-    'explore-conditional-aggregates'
-  );
-
   // The dropdowns operate on the base aggregate, with the `_if` combinator and its
   // filter argument stripped off.
   const parsedFunction = useMemo(() => parseConditionalAggregate(yAxis), [yAxis]);
@@ -431,9 +417,7 @@ function AggregateSelector({
     ? getFieldDefinition(aggregateFunc, 'span')
     : undefined;
 
-  // Filters only survive a swap to another aggregate that supports them, and are dropped
-  // entirely while the feature is off so that toggling it never leaves a stale filter.
-  const filter = hasConditionalAggregates ? (parsedFunction?.filter ?? '') : '';
+  const filter = parsedFunction?.filter ?? '';
 
   const aggregateOptions: Array<SelectOption<string>> = useMemo(() => {
     return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
@@ -458,6 +442,9 @@ function AggregateSelector({
           yAxis: supportsConditionalAggregateFilter(newAggregate)
             ? applyConditionalFilter(newYAxis, filter)
             : newYAxis,
+          // Aggregates on a shared chart are edited together from the
+          // toolbar. Editing one here moves it to a chart of its own.
+          chartGroup: null,
         })
       );
     },
@@ -479,6 +466,7 @@ function AggregateSelector({
             arguments: args,
             filter,
           }),
+          chartGroup: null,
         })
       );
     }
@@ -496,15 +484,16 @@ function AggregateSelector({
             arguments: parsedFunction.arguments,
             filter: newFilter,
           }),
+          chartGroup: null,
         })
       );
     },
     [onChange, parsedFunction, visualize]
   );
 
-  const showFilterSearchBar =
-    hasConditionalAggregates &&
-    supportsConditionalAggregateFilter(parsedFunction?.name ?? '');
+  const showFilterSearchBar = supportsConditionalAggregateFilter(
+    parsedFunction?.name ?? ''
+  );
 
   return (
     <Stack flex="3" minWidth="0" gap="sm">
@@ -766,7 +755,6 @@ const RowContainer = styled('div')`
    * icons to the top of the row. */
   &:has([data-test-id='editor-visualize-filter']) {
     align-items: flex-start;
-
     > button {
       height: ${p => p.theme.form.md.height};
     }

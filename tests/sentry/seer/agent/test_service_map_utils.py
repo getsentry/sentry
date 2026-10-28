@@ -24,7 +24,7 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
-from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context
+from sentry.viewer_context import Actor, ActorType, ViewerContext, get_viewer_context
 
 
 def _make_snuba_params(organization, projects):
@@ -167,7 +167,7 @@ class TestBuildServiceMap(TestCase):
         assert isinstance(snuba_params, SnubaParams)
         mock_send.assert_called_once()
         assert observed_contexts == [
-            ViewerContext(organization_id=org.id, actor_type=ActorType.SYSTEM)
+            ViewerContext(actor=Actor(type=ActorType.SYSTEM), organization_id=org.id)
         ]
         assert get_viewer_context() is None
 

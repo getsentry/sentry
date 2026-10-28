@@ -64,7 +64,7 @@ describe('ProjectDetail', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues-count/?project=${project.id}&query=is%3Aunresolved%20is%3Afor_review&query=&query=is%3Aresolved&query=error.unhandled%3Atrue%20is%3Aunresolved&query=regressed_in_release%3Alatest&statsPeriod=14d`,
+      url: `/organizations/${organization.slug}/issues-count/`,
       body: {},
     });
     MockApiClient.addMockResponse({

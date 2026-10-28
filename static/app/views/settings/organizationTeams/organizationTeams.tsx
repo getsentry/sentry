@@ -1,17 +1,16 @@
 import {useState} from 'react';
-import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
 import {useDebouncedCallback} from '@tanstack/react-pacer';
 import partition from 'lodash/partition';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {AccessRequest, Organization} from 'sentry/types/organization';
 import {useTeams} from 'sentry/utils/useTeams';
@@ -89,7 +88,7 @@ export function OrganizationTeams({
         requestList={requestList}
         onRemoveAccessRequest={onRemoveAccessRequest}
       />
-      <SearchWrapper>
+      <Container marginBottom="xl">
         <Flex align="center" gap="md">
           <Container flex={1}>
             {containerProps => (
@@ -103,7 +102,7 @@ export function OrganizationTeams({
           </Container>
           {action}
         </Flex>
-      </SearchWrapper>
+      </Container>
       <YourTeamsTable
         teams={userTeams}
         isLoading={!initiallyLoaded}
@@ -119,23 +118,11 @@ export function OrganizationTeams({
         allTeamsCount={teams.length}
       />
       {hasMore && (
-        <LoadMoreWrapper>
+        <Grid justify="end" align="center" gap="xl" flow="column">
           {fetching && <LoadingIndicator mini />}
           <Button onClick={() => loadMore(teamQuery)}>{t('Show more')}</Button>
-        </LoadMoreWrapper>
+        </Grid>
       )}
     </div>
   );
 }
-
-const SearchWrapper = styled('div')`
-  margin-bottom: ${p => p.theme.space.xl};
-`;
-
-const LoadMoreWrapper = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space.xl};
-  align-items: center;
-  justify-content: end;
-  grid-auto-flow: column;
-`;

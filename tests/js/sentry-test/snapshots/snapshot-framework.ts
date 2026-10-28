@@ -2,7 +2,7 @@ import type {ReactElement} from 'react';
 
 import {Tooltip as mockTooltip} from 'sentry-test/snapshots/mocks/tooltip';
 
-import {lightTheme} from 'sentry/utils/theme/theme';
+import {lightTheme} from '@sentry/scraps/theme';
 
 import {closeBrowser, takeSnapshot, type SnapshotInteraction} from './snapshot';
 import type {SnapshotTestMetadata} from './snapshot-image-metadata';
@@ -10,7 +10,10 @@ import {expandSnapshotScenarios} from './snapshotScenarios';
 import {renderWithSnapshotTheme} from './snapshotThemeProvider';
 
 // Tooltip portals to document.body, unavailable under SSR; mock globally.
-jest.mock('@sentry/scraps/tooltip', () => ({Tooltip: mockTooltip}));
+jest.mock('@sentry/scraps/tooltip', () => ({
+  ...jest.requireActual('@sentry/scraps/tooltip'),
+  Tooltip: mockTooltip,
+}));
 
 const BREAKPOINT_WIDTHS = Object.fromEntries(
   Object.entries(lightTheme.breakpoints).map(([k, v]) => [k, parseInt(v, 10)])

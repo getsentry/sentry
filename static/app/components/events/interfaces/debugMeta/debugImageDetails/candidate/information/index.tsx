@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconWarning} from '@sentry/icons/warning';
 import moment from 'moment-timezone';
 
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -10,7 +11,6 @@ import {DateTime} from 'sentry/components/dateTime';
 import {INTERNAL_SOURCE} from 'sentry/components/events/interfaces/debugMeta/debugImageDetails/utils';
 import {FileSize} from 'sentry/components/fileSize';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {
   ImageCandidate,

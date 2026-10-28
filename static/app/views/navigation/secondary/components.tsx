@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import type {To} from 'react-router-dom';
+import type {To} from 'react-router';
 import {
   closestCenter,
   DndContext,
@@ -28,10 +28,12 @@ import {
 import {CSS} from '@dnd-kit/utilities';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {mergeProps, mergeRefs} from '@react-aria/utils';
+import {mergeProps, useObjectRef} from '@react-aria/utils';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconClose} from '@sentry/icons/close';
+import {IconGrabbable} from '@sentry/icons/grabbable';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import {ProjectsBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
@@ -39,8 +41,8 @@ import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
+import {ProjectsBadge} from 'sentry/components/core/badge/projectsBadge';
 import {useHovercardContext} from 'sentry/components/hovercard';
-import {IconChevron, IconClose, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -49,7 +51,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useResizable} from 'sentry/utils/useResizable';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {
-  NAVIGATION_MOBILE_CONTENT_HEIGHT,
   NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE,
   NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
   PRIMARY_HEADER_HEIGHT,
@@ -78,9 +79,41 @@ interface SecondarySidebarProps {
 function SecondarySidebar({children}: SecondarySidebarProps) {
   const {currentStepId} = useNavigationTour();
   const stepId = currentStepId ?? NavigationTour.ISSUES;
-  const resizableContainerRef = useRef<HTMLDivElement>(null);
+
+  return (
+    <SecondarySidebarWrapper
+      id={stepId}
+      description={NAVIGATION_TOUR_CONTENT[stepId].description}
+      title={NAVIGATION_TOUR_CONTENT[stepId].title}
+    >
+      {({ref, ...props}) => (
+        <SecondarySidebarPanel {...props} tourRef={ref}>
+          {children}
+        </SecondarySidebarPanel>
+      )}
+    </SecondarySidebarWrapper>
+  );
+}
+
+interface SecondarySidebarPanelProps {
+  children: ReactNode;
+  tourRef: React.Ref<HTMLDivElement>;
+  'aria-expanded'?: boolean;
+  className?: string;
+}
+
+function SecondarySidebarPanel({
+  children,
+  tourRef,
+  'aria-expanded': _ariaExpanded,
+  ...props
+}: SecondarySidebarPanelProps) {
+  // One stable ref for both the resizer and the tour. The tour keeps this element
+  // in state, so a new ref on every render would detach and reattach it, which
+  // re-renders the tour and can hit React's update depth limit.
+  const containerRef = useObjectRef(tourRef);
   const resizeHandleRef = useRef<HTMLDivElement>(null);
-  const {layout} = usePrimaryNavigation();
+  const {layout, activeGroup} = usePrimaryNavigation();
 
   const [secondarySidebarWidth, setSecondarySidebarWidth] = useSyncedLocalStorageState(
     NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
@@ -88,7 +121,7 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
   );
 
   const {onMouseDown: handleStartResize, size} = useResizable({
-    ref: resizableContainerRef,
+    ref: containerRef,
     initialSize: secondarySidebarWidth,
     minWidth: SECONDARY_SIDEBAR_MIN_WIDTH,
     maxWidth: SECONDARY_SIDEBAR_MAX_WIDTH,
@@ -97,76 +130,67 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
     },
   });
 
-  const {activeGroup} = usePrimaryNavigation();
   const isMobile = layout === 'mobile';
 
   return (
-    <SecondarySidebarWrapper
-      id={stepId}
-      description={NAVIGATION_TOUR_CONTENT[stepId].description}
-      title={NAVIGATION_TOUR_CONTENT[stepId].title}
+    // aria-expanded is omitted here because TourGuide passes it via useOverlay's
+    // triggerProps (designed for button/disclosure triggers), but this element is
+    // a plain container div with no role that supports aria-expanded. Spreading it
+    // would cause a Lighthouse a11y violation: aria-expanded is invalid on a div
+    // without a matching ARIA role.
+    <Container
+      height="100%"
+      right="0"
+      {...props}
+      width={isMobile ? '100%' : `${size}px`}
+      ref={isMobile ? undefined : containerRef}
+      {...{
+        [NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE]: true,
+      }}
     >
-      {({ref, 'aria-expanded': _ariaExpanded, ...props}) => (
-        // aria-expanded is omitted here because TourGuide passes it via useOverlay's
-        // triggerProps (designed for button/disclosure triggers), but this element is
-        // a plain container div with no role that supports aria-expanded. Spreading it
-        // would cause a Lighthouse a11y violation: aria-expanded is invalid on a div
-        // without a matching ARIA role.
-        <Container
+      <AnimatePresence mode="popLayout" initial={false}>
+        <MotionContainer
+          width="100%"
           height="100%"
-          right="0"
-          {...props}
-          width={isMobile ? '100%' : `${size}px`}
-          ref={isMobile ? undefined : mergeRefs(resizableContainerRef, ref)}
-          {...{
-            [NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE]: true,
-          }}
+          key={activeGroup}
+          initial={{x: -6, opacity: 0}}
+          animate={{x: 0, opacity: 1}}
+          exit={{x: 6, opacity: 0}}
+          transition={{duration: 0.06}}
         >
-          <AnimatePresence mode="popLayout" initial={false}>
-            <MotionContainer
-              width="100%"
-              height="100%"
-              key={activeGroup}
-              initial={{x: -6, opacity: 0}}
-              animate={{x: 0, opacity: 1}}
-              exit={{x: 6, opacity: 0}}
-              transition={{duration: 0.06}}
-            >
-              <Grid
-                rows="auto 1fr auto"
-                role="navigation"
-                aria-label="Secondary Navigation"
-                height="100%"
-              >
-                {children}
-              </Grid>
-              <Container
-                top="0"
-                right="0"
-                bottom="0"
-                width="8px"
-                radius="lg"
-                position="absolute"
-                display={isMobile ? 'none' : undefined}
-              >
-                {p => (
-                  <ResizeHandle
-                    {...p}
-                    ref={resizeHandleRef}
-                    onMouseDown={handleStartResize}
-                    onDoubleClick={() => {
-                      setSecondarySidebarWidth(SECONDARY_SIDEBAR_WIDTH);
-                    }}
-                    atMinWidth={size === SECONDARY_SIDEBAR_MIN_WIDTH}
-                    atMaxWidth={size === SECONDARY_SIDEBAR_MAX_WIDTH}
-                  />
-                )}
-              </Container>
-            </MotionContainer>
-          </AnimatePresence>
-        </Container>
-      )}
-    </SecondarySidebarWrapper>
+          <Grid
+            rows="auto 1fr auto"
+            role="navigation"
+            aria-label="Secondary Navigation"
+            height="100%"
+          >
+            {children}
+          </Grid>
+          <Container
+            top="0"
+            right="0"
+            bottom="0"
+            width="8px"
+            radius="lg"
+            position="absolute"
+            display={isMobile ? 'none' : undefined}
+          >
+            {p => (
+              <ResizeHandle
+                {...p}
+                ref={resizeHandleRef}
+                onMouseDown={handleStartResize}
+                onDoubleClick={() => {
+                  setSecondarySidebarWidth(SECONDARY_SIDEBAR_WIDTH);
+                }}
+                atMinWidth={size === SECONDARY_SIDEBAR_MIN_WIDTH}
+                atMaxWidth={size === SECONDARY_SIDEBAR_MAX_WIDTH}
+              />
+            )}
+          </Container>
+        </MotionContainer>
+      </AnimatePresence>
+    </Container>
   );
 }
 
@@ -263,50 +287,62 @@ interface SecondaryNavigationHeaderProps {
 
 function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
   const {layout} = usePrimaryNavigation();
-  const {view, setView} = useSecondaryNavigation();
-  const isCollapsed = view !== 'expanded';
   const isMobile = layout === 'mobile';
 
   return (
     <Grid
-      columns="1fr auto"
+      columns="minmax(0, 1fr) auto"
       align="center"
       borderBottom="primary"
-      height={
-        isMobile ? `${NAVIGATION_MOBILE_CONTENT_HEIGHT}px` : `${PRIMARY_HEADER_HEIGHT}px`
-      }
-      padding={isMobile ? 'md lg' : '0 md 0 xl'}
+      height={`${PRIMARY_HEADER_HEIGHT}px`}
+      padding={isMobile ? 'md lg' : '0 sm 0 sm'}
     >
-      <div>
-        <Text size="md" bold>
-          {props.children}
-        </Text>
-      </div>
-      <div>
-        {isMobile ? (
-          <Button
-            size="xs"
-            icon={<IconClose />}
-            aria-label={isCollapsed ? t('Expand') : t('Collapse')}
-            onClick={() => setView(view === 'expanded' ? 'collapsed' : 'expanded')}
-            variant="transparent"
-          />
-        ) : (
-          <Button
-            size="xs"
-            icon={<IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />}
-            aria-label={isCollapsed ? t('Expand') : t('Collapse')}
-            onClick={() => setView(view === 'expanded' ? 'collapsed' : 'expanded')}
-            variant={isCollapsed ? 'primary' : 'transparent'}
-            analyticsEventName="Sidebar: Secondary Toggle Button Clicked"
-            analyticsEventKey="sidebar_secondary_toggle_button_clicked"
-            analyticsParams={{
-              is_collapsed: isCollapsed,
-            }}
-          />
-        )}
-      </div>
+      {props.children}
+      <SecondaryNavigationToggle />
     </Grid>
+  );
+}
+
+function SecondaryNavigationHeaderTitle({children}: {children: ReactNode}) {
+  const {layout} = usePrimaryNavigation();
+
+  return (
+    <Container minWidth="0" paddingLeft={layout === 'mobile' ? undefined : 'lg'}>
+      <Text size="md" bold>
+        {children}
+      </Text>
+    </Container>
+  );
+}
+
+function SecondaryNavigationToggle() {
+  const {layout} = usePrimaryNavigation();
+  const {view, setView} = useSecondaryNavigation();
+  const isCollapsed = view !== 'expanded';
+
+  if (layout === 'mobile') {
+    return (
+      <Button
+        size="sm"
+        icon={<IconClose />}
+        aria-label={isCollapsed ? t('Expand') : t('Collapse')}
+        onClick={() => setView(isCollapsed ? 'expanded' : 'collapsed')}
+        variant="transparent"
+      />
+    );
+  }
+
+  return (
+    <Button
+      size="sm"
+      icon={<IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />}
+      aria-label={isCollapsed ? t('Expand') : t('Collapse')}
+      onClick={() => setView(isCollapsed ? 'expanded' : 'collapsed')}
+      variant={isCollapsed ? 'primary' : 'transparent'}
+      analyticsEventName="Sidebar: Secondary Toggle Button Clicked"
+      analyticsEventKey="sidebar_secondary_toggle_button_clicked"
+      analyticsParams={{is_collapsed: isCollapsed}}
+    />
   );
 }
 
@@ -374,6 +410,9 @@ function SectionTitle(props: SectionTitleProps) {
 interface SecondaryNavigationSectionProps {
   children: ReactNode;
   id: string;
+  /**
+   * The title is the collapse toggle, so only titled sections can collapse.
+   */
   title?: ReactNode;
 }
 
@@ -383,7 +422,7 @@ function SecondaryNavigationSection(props: SecondaryNavigationSectionProps) {
     `secondary-nav-section-${props.id}-collapsed`,
     false
   );
-  const canCollapse = layout === 'sidebar';
+  const canCollapse = layout === 'sidebar' && !!props.title;
   const isCollapsed = canCollapse ? isCollapsedState : false;
 
   return (
@@ -972,6 +1011,7 @@ const SidebarNavigationLink = styled(Link)`
 
 export const SecondaryNavigation = {
   Header: SecondaryNavigationHeader,
+  HeaderTitle: SecondaryNavigationHeaderTitle,
   Body: SecondaryNavigationBody,
   Section: SecondaryNavigationSection,
   Separator: SecondaryNavigationSeparator,

@@ -16,6 +16,7 @@ import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {useValidatedGroupBys} from 'sentry/views/explore/hooks/useValidatedGroupBys';
+import {useQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
 import {useValidateSpansTab} from 'sentry/views/explore/spans/hooks/useValidateSpansTab';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
@@ -38,6 +39,13 @@ export function ToolbarGroupBy({groupBys, setGroupBys}: ToolbarGroupByProps) {
   } = useValidateSpansTab();
   const validationIsPending =
     validationFetching || validationLoading || validationIsPlaceholderData;
+
+  // Offer only attributes present on spans matching the search query. The
+  // attributes endpoint rejects an invalid query, which would leave the
+  // dropdown empty, so fall back to every attribute in that case.
+  const query = useQueryParamsQuery();
+  const attributeQuery =
+    validatedSearchQueryData?.query.valid === false ? undefined : query || undefined;
 
   const cleanupInvalidGroupBys = useCallback(
     (validatedGroupBys: string[]) => {
@@ -89,6 +97,7 @@ export function ToolbarGroupBy({groupBys, setGroupBys}: ToolbarGroupByProps) {
               onColumnChange={c => updateColumnAtIndex(i, c)}
               onColumnDelete={() => deleteColumnAtIndex(i)}
               groupBys={visibleGroupBys}
+              attributeQuery={attributeQuery}
               validationIsPending={validationIsPending}
               validatedSearchQueryData={validatedSearchQueryData}
             />
@@ -103,6 +112,7 @@ export function ToolbarGroupBy({groupBys, setGroupBys}: ToolbarGroupByProps) {
 }
 
 interface ToolbarGroupByItemProps {
+  attributeQuery: string | undefined;
   canDelete: boolean;
   column: Column<string>;
   groupBys: readonly string[];
@@ -113,6 +123,7 @@ interface ToolbarGroupByItemProps {
 }
 
 function ToolbarGroupByItem({
+  attributeQuery,
   groupBys,
   canDelete,
   column,
@@ -125,15 +136,15 @@ function ToolbarGroupByItem({
   const [debouncedSearch] = useDebouncedValue(search, {wait: 200});
 
   const {attributes: numberTags, isLoading: numberTagsLoading} = useSpanItemAttributes(
-    {search: debouncedSearch},
+    {search: debouncedSearch, query: attributeQuery},
     'number'
   );
   const {attributes: stringTags, isLoading: stringTagsLoading} = useSpanItemAttributes(
-    {search: debouncedSearch},
+    {search: debouncedSearch, query: attributeQuery},
     'string'
   );
   const {attributes: booleanTags, isLoading: booleanTagsLoading} = useSpanItemAttributes(
-    {search: debouncedSearch},
+    {search: debouncedSearch, query: attributeQuery},
     'boolean'
   );
 

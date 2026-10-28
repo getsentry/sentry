@@ -11,7 +11,7 @@ from rest_framework.exceptions import ParseError
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry import nodestore
-from sentry.api import client
+from sentry.api.client import client
 from sentry.constants import ObjectStatus
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.issues.ownership.grammar import Matcher, Owner, Rule, dump_schema
@@ -23,13 +23,12 @@ from sentry.models.grouprelease import GroupRelease
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.repository import Repository
 from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
-from sentry.replays.testutils import mock_replay, mock_replay_click
+from sentry.replays.testutils import mock_replay
 from sentry.search.utils import parse_iso_timestamp
 from sentry.seer.agent.tools import (
     EVENT_TIMESERIES_RESOLUTIONS,
     _get_issue_event_timeseries,
     _get_recommended_event,
-    execute_replays_query,
     execute_table_query,
     execute_timeseries_query,
     execute_trace_table_query,
@@ -3129,11 +3128,10 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
 
     def test_get_repository_definition_unsupported_provider(self) -> None:
         """Test that repositories with unsupported providers are filtered out"""
-        # Create a GitLab repo (unsupported provider)
         Repository.objects.create(
             organization_id=self.organization.id,
             name="getsentry/seer",
-            provider="integrations:gitlab",
+            provider="integrations:unsupported-provider",
             external_id="12345678",
             integration_id=123,
             status=ObjectStatus.ACTIVE,
@@ -3144,7 +3142,6 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
             repo_full_name="getsentry/seer",
         )
 
-        # Should return None since GitLab is not a supported provider
         assert result is None
 
     def test_get_repository_definition_github_enterprise(self) -> None:
@@ -3207,7 +3204,7 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
         Repository.objects.create(
             organization_id=self.organization.id,
             name="getsentry/seer",
-            provider="integrations:gitlab",
+            provider="integrations:unsupported-provider",
             external_id="99999999",
             integration_id=999,
             status=ObjectStatus.ACTIVE,
@@ -3227,7 +3224,6 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
             repo_full_name="getsentry/seer",
         )
 
-        # Should return the GitHub repo, not GitLab
         assert result is not None
         assert result.provider == "integrations:github"
         assert result.external_id == "12345678"
@@ -3596,15 +3592,22 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
             mock_replay(datetime.now(UTC) - timedelta(seconds=5), self.project.id, replay1_id)
         )
 
-        # Store a replay at the very start of the retention period.
+        # Store a replay at the very start of the retention period. mock_replay defaults to
+        # 30-day retention, which ClickHouse's TTL would already have expired.
         self.store_replays(
             mock_replay(
-                datetime.now(UTC) - timedelta(days=89, seconds=10), self.project.id, replay2_id
+                datetime.now(UTC) - timedelta(days=89, seconds=10),
+                self.project.id,
+                replay2_id,
+                retention_days=90,
             )
         )
         self.store_replays(
             mock_replay(
-                datetime.now(UTC) - timedelta(days=89, seconds=5), self.project.id, replay2_id
+                datetime.now(UTC) - timedelta(days=89, seconds=5),
+                self.project.id,
+                replay2_id,
+                retention_days=90,
             )
         )
 
@@ -3658,134 +3661,6 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
                 )
                 is None
             )
-
-    def test_execute_replays_query(self) -> None:
-        replay_id = uuid.uuid4().hex
-        replay_timestamp = datetime.now(UTC) - timedelta(minutes=10)
-        self.store_replays(
-            mock_replay(
-                replay_timestamp,
-                self.project.id,
-                replay_id,
-                urls=["https://example.com/checkout"],
-            )
-        )
-        self.store_replays(
-            mock_replay_click(
-                replay_timestamp + timedelta(seconds=5),
-                self.project.id,
-                replay_id,
-                node_id=1,
-                tag="button",
-                is_dead=1,
-                is_rage=1,
-            )
-        )
-
-        with self.feature({"organizations:session-replay": True}):
-            result = execute_replays_query(
-                organization_id=self.organization.id,
-                project_ids=[self.project.id],
-                query="count_rage_clicks:>0",
-                fields=["id", "project_id", "started_at", "count_rage_clicks", "urls"],
-                sort="-started_at",
-                stats_period="7d",
-                per_page=5,
-            )
-
-        assert result is not None
-        assert len(result["data"]) == 1
-        row = result["data"][0]
-        assert row["id"] == replay_id
-        assert row["project_id"] == str(self.project.id)
-        assert row["started_at"] == replay_timestamp.replace(microsecond=0).isoformat()
-        assert row["count_rage_clicks"] == 1
-        assert row["urls"] == ["https://example.com/checkout"]
-
-    def test_execute_replays_query_with_project_slugs(self) -> None:
-        replay_id = uuid.uuid4().hex
-        replay_timestamp = datetime.now(UTC) - timedelta(minutes=10)
-        self.store_replays(
-            mock_replay(
-                replay_timestamp,
-                self.project.id,
-                replay_id,
-                urls=["https://example.com/checkout"],
-            )
-        )
-
-        with self.feature({"organizations:session-replay": True}):
-            result = execute_replays_query(
-                organization_id=self.organization.id,
-                project_slugs=[self.project.slug],
-                query="url:*checkout*",
-                fields=["id", "project_id", "started_at", "urls"],
-                sort="-started_at",
-                stats_period="7d",
-                per_page=5,
-            )
-
-        assert result is not None
-        assert len(result["data"]) == 1
-        row = result["data"][0]
-        assert row["id"] == replay_id
-        assert row["project_id"] == str(self.project.id)
-        assert row["started_at"] == replay_timestamp.replace(microsecond=0).isoformat()
-        assert row["urls"] == ["https://example.com/checkout"]
-
-    def test_execute_replays_query_rejects_invalid_fields(self) -> None:
-        with self.feature({"organizations:session-replay": True}):
-            result = execute_replays_query(
-                organization_id=self.organization.id,
-                project_ids=[self.project.id],
-                fields=["id", "not_a_replay_field"],
-                stats_period="7d",
-                per_page=5,
-            )
-
-        assert result == {"error": "Invalid replay field(s): not_a_replay_field"}
-
-    def test_execute_replays_query_handles_invalid_sort(self) -> None:
-        replay_id = uuid.uuid4().hex
-        replay_timestamp = datetime.now(UTC) - timedelta(minutes=10)
-        self.store_replays(mock_replay(replay_timestamp, self.project.id, replay_id))
-
-        with self.feature({"organizations:session-replay": True}):
-            result = execute_replays_query(
-                organization_id=self.organization.id,
-                project_ids=[self.project.id],
-                fields=["id", "started_at"],
-                sort="-not_a_sortable_field",
-                stats_period="7d",
-                per_page=5,
-            )
-
-        assert result is not None
-        assert "not_a_sortable_field" in result["error"]
-        assert "sortable field" in result["error"]
-
-    def test_execute_replays_query_pagination_has_more(self) -> None:
-        older_replay_id = uuid.uuid4().hex
-        newer_replay_id = uuid.uuid4().hex
-        older_timestamp = datetime.now(UTC) - timedelta(minutes=10)
-        newer_timestamp = datetime.now(UTC) - timedelta(minutes=5)
-        self.store_replays(mock_replay(older_timestamp, self.project.id, older_replay_id))
-        self.store_replays(mock_replay(newer_timestamp, self.project.id, newer_replay_id))
-
-        with self.feature({"organizations:session-replay": True}):
-            result = execute_replays_query(
-                organization_id=self.organization.id,
-                project_ids=[self.project.id],
-                fields=["id", "started_at"],
-                sort="-started_at",
-                stats_period="7d",
-                per_page=1,
-            )
-
-        assert result is not None
-        assert len(result["data"]) == 1
-        assert result["data"][0]["id"] == newer_replay_id
-        assert result["meta"]["has_more"] is True
 
 
 class TestLogsQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):

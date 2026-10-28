@@ -242,6 +242,7 @@ class Symbolicator:
                 "options": {
                     "dif_candidates": True,
                     "extract_variables": self._should_extract_variables(),
+                    "apply_source_server_info": self._should_apply_source_server_info(),
                 },
                 "symbolicate": {
                     "type": "minidump",
@@ -263,7 +264,11 @@ class Symbolicator:
             "sources": orjson.dumps(sources).decode(),
             "scraping": orjson.dumps(scraping_config).decode(),
             "options": orjson.dumps(
-                {"dif_candidates": True, "extract_variables": self._should_extract_variables()}
+                {
+                    "dif_candidates": True,
+                    "extract_variables": self._should_extract_variables(),
+                    "apply_source_server_info": self._should_apply_source_server_info(),
+                }
             ).decode(),
             "rewrite_first_module": orjson.dumps(rewrite_first_module).decode(),
         }
@@ -339,6 +344,7 @@ class Symbolicator:
                 "apply_source_context": apply_source_context,
                 "frame_order": frame_order.value,
                 "extract_variables": self._should_extract_variables(),
+                "apply_source_server_info": self._should_apply_source_server_info(),
             },
             "stacktraces": stacktraces,
             "modules": modules,
@@ -396,7 +402,6 @@ class Symbolicator:
         exceptions,
         stacktraces,
         modules,
-        release_package,
         classes,
         frame_order,
         apply_source_context=True,
@@ -411,8 +416,6 @@ class Symbolicator:
                             Frames are expected to be ordered according to the frame_order (see below).
         :param modules: ProGuard modules and source bundles. They must contain a `uuid` and have a
                         `type` of either "proguard" or "source".
-        :param release_package: The name of the release's package. This is optional.
-                                Used for determining whether frames are in-app.
         :param frame_order: The order of frames within stacktraces. See the documentation of `FrameOrder`.
         :param apply_source_context: Whether to add source context to frames.
         """
@@ -432,9 +435,6 @@ class Symbolicator:
             },
         }
 
-        if release_package is not None:
-            json["release_package"] = release_package
-
         return self._process("symbolicate_jvm_stacktraces", "symbolicate-jvm", json=json)
 
     def _should_extract_variables(self) -> bool:
@@ -443,6 +443,9 @@ class Symbolicator:
         This just reads the "organizations:native-variable-extraction" feature flag.
         """
         return features.has("organizations:native-variable-extraction", self.project.organization)
+
+    def _should_apply_source_server_info(self) -> bool:
+        return self.project.get_option("sentry:enable_native_source_server_mapping")
 
 
 class TaskIdNotFound(Exception):

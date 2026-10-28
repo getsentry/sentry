@@ -1,11 +1,9 @@
 import type React from 'react';
-import {createContext, useContext} from 'react';
 
+import {WidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/useWidgetBuilderContext';
 import {useWidgetBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 
-const WidgetBuilderContext = createContext<
-  ReturnType<typeof useWidgetBuilderState> | undefined
->(undefined);
+export {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/useWidgetBuilderContext';
 
 interface WidgetBuilderProviderProps {
   children: React.ReactNode;
@@ -26,16 +24,3 @@ function WidgetBuilderStateProvider({children}: WidgetBuilderProviderProps) {
 export function WidgetBuilderProvider({children}: WidgetBuilderProviderProps) {
   return <WidgetBuilderStateProvider>{children}</WidgetBuilderStateProvider>;
 }
-
-/**
- * Custom hook to get state and dispatch from the WidgetBuilderContext
- */
-export const useWidgetBuilderContext = () => {
-  const context = useContext(WidgetBuilderContext);
-  if (!context) {
-    throw new Error(
-      'useWidgetBuilderContext must be used within a WidgetBuilderProvider'
-    );
-  }
-  return context;
-};

@@ -13,11 +13,9 @@ import type {OpenSeerExplorerDrawerOptions} from 'sentry/views/seerExplorer/comp
 import {SeerExplorerSidebarLayout} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerSidebarLayout';
 import * as useSeerExplorerModule from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
+import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/seerExplorerContextProvider';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
-import {
-  SeerExplorerContextProvider,
-  useSeerExplorerContext,
-} from 'sentry/views/seerExplorer/useSeerExplorerContext';
+import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 const POSITION_KEY = 'seer-explorer-sidebar-position';
 
@@ -32,7 +30,6 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   isTimedOut: false,
   runId: null,
   overrideBashModeEnabled: false,
-  overrideCtxEngEnable: true,
   overrideCodeModeEnable: 'off',
   hasSentInterrupt: false,
   sendMessage: jest.fn(),
@@ -41,9 +38,7 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   startNewSession: jest.fn(),
   interruptRun: jest.fn(),
   respondToUserInput: jest.fn(),
-  createPR: jest.fn(),
   setOverrideBashModeEnabled: jest.fn(),
-  setOverrideCtxEngEnable: jest.fn(),
   setOverrideCodeModeEnable: jest.fn(),
 };
 
@@ -132,7 +127,7 @@ describe('SeerExplorerSidebarLayout', () => {
   const orgWithSidebar = OrganizationFixture({
     openMembership: true,
     hideAiFeatures: false,
-    features: [...seerFeatures, 'seer-explorer-persistent-sidebar'],
+    features: seerFeatures,
   });
 
   beforeEach(() => {
@@ -165,14 +160,14 @@ describe('SeerExplorerSidebarLayout', () => {
     delete window.documentPictureInPicture;
   });
 
-  it('renders content untouched (no split panel) when the flag is off', async () => {
-    const orgNoFlag = OrganizationFixture({
+  it('renders content untouched (no split panel) when Seer Explorer is disabled', async () => {
+    const orgWithoutExplorer = OrganizationFixture({
       openMembership: true,
       hideAiFeatures: false,
-      features: seerFeatures,
+      features: [],
     });
 
-    renderSidebar(orgNoFlag);
+    renderSidebar(orgWithoutExplorer);
 
     expect(await screen.findByText('main app content')).toBeInTheDocument();
     expect(splitOrientation()).toBeUndefined();

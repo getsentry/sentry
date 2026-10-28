@@ -25,9 +25,8 @@ from sentry.auth.system import is_system_auth
 from sentry.constants import ATTACHMENTS_ROLE_DEFAULT
 from sentry.issues.action_log import (
     action_context_scope,
-    resolve_action_actor,
-    resolve_action_source,
 )
+from sentry.issues.action_log.request import resolve_action_actor, resolve_action_source
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.organizationmember import OrganizationMember

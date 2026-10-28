@@ -1,16 +1,15 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
 import {parseAsStringLiteral, useQueryState} from 'nuqs';
-import * as qs from 'query-string';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
-import type {Client} from 'sentry/api';
 import {DiscoverButton} from 'sentry/components/discoverButton';
 import {GroupList} from 'sentry/components/issues/groupList';
 import {URL_PARAM} from 'sentry/components/pageFilters/constants';
@@ -22,6 +21,7 @@ import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {appendQueryDatasetParam} from 'sentry/views/dashboards/utils';
@@ -36,91 +36,56 @@ enum IssuesType {
   ALL = 'all',
 }
 
-enum IssuesQuery {
-  NEW = 'is:unresolved is:for_review',
-  UNHANDLED = 'error.unhandled:true is:unresolved',
-  REGRESSED = 'regressed_in_release:latest',
-  RESOLVED = 'is:resolved',
-  ALL = '',
-}
+const ISSUE_QUERIES = {
+  [IssuesType.NEW]: 'is:unresolved is:for_review',
+  [IssuesType.UNHANDLED]: 'error.unhandled:true is:unresolved',
+  [IssuesType.REGRESSED]: 'regressed_in_release:latest',
+  [IssuesType.RESOLVED]: 'is:resolved',
+  [IssuesType.ALL]: '',
+};
 
 type Props = {
-  api: Client;
   location: Location;
   organization: Organization;
   projectId: number;
   query?: string;
 };
 
-export function ProjectIssues({organization, location, projectId, query, api}: Props) {
+export function ProjectIssues({organization, location, projectId, query = ''}: Props) {
   const [pageLinks, setPageLinks] = useState<string | undefined>();
   const [onCursor, setOnCursor] = useState<(() => void) | undefined>();
   const [issuesType, setIssuesType] = useQueryState('issuesType', {
     ...parseAsStringLiteral(Object.values(IssuesType)),
     defaultValue: IssuesType.UNHANDLED,
   });
-  const [issuesCount, setIssuesCount] = useState({
-    all: 0,
-    new: 0,
-    regressed: 0,
-    resolved: 0,
-    unhandled: 0,
-  });
-
-  const fetchIssuesCount = useCallback(async () => {
-    const getIssueCountEndpoint = (queryParameters: any) => {
-      const issuesCountPath = `/organizations/${organization.slug}/issues-count/`;
-
-      return `${issuesCountPath}?${qs.stringify(queryParameters)}`;
-    };
-    const params = [
-      IssuesQuery.NEW,
-      IssuesQuery.ALL,
-      IssuesQuery.RESOLVED,
-      IssuesQuery.UNHANDLED,
-      IssuesQuery.REGRESSED,
-    ];
-    const queryParams = params.map(param => param);
-    const queryParameters = {
-      project: projectId,
-      query: queryParams,
-      ...(!location.query.start && {
-        statsPeriod: location.query.statsPeriod || DEFAULT_STATS_PERIOD,
-      }),
-      start: location.query.start,
-      end: location.query.end,
-      environment: location.query.environment,
-      cursor: location.query.cursor,
-    };
-
-    const issueCountEndpoint = getIssueCountEndpoint(queryParameters);
-
-    try {
-      const data = await api.requestPromise(issueCountEndpoint);
-      setIssuesCount({
-        all: data[IssuesQuery.ALL] || 0,
-        new: data[IssuesQuery.NEW] || 0,
-        resolved: data[IssuesQuery.RESOLVED] || 0,
-        unhandled: data[IssuesQuery.UNHANDLED] || 0,
-        regressed: data[IssuesQuery.REGRESSED] || 0,
-      });
-    } catch {
-      // do nothing
-    }
-  }, [
-    api,
-    location.query.cursor,
-    location.query.end,
-    location.query.environment,
-    location.query.start,
-    location.query.statsPeriod,
-    organization.slug,
-    projectId,
-  ]);
-  useEffect(() => {
-    // oxlint-disable-next-line react/set-state-in-effect
-    fetchIssuesCount();
-  }, [fetchIssuesCount]);
+  const withSearch = (baseQuery: string, search = query) =>
+    [baseQuery, search].join(' ').trim();
+  const {data: counts} = useQuery(
+    apiOptions.as<Record<string, number | null>>()(
+      '/organizations/$organizationIdOrSlug/issues-count/',
+      {
+        path: {organizationIdOrSlug: organization.slug},
+        query: {
+          project: projectId,
+          query: Object.values(ISSUE_QUERIES).map(baseQuery => withSearch(baseQuery)),
+          ...(!location.query.start && {
+            statsPeriod: location.query.statsPeriod || DEFAULT_STATS_PERIOD,
+          }),
+          start: location.query.start,
+          end: location.query.end,
+          environment: location.query.environment,
+        },
+        staleTime: 0,
+      }
+    )
+  );
+  const [lastCounts, setLastCounts] = useState<{
+    data: Record<string, number | null>;
+    query: string;
+  }>();
+  if (counts && (counts !== lastCounts?.data || query !== lastCounts.query)) {
+    setLastCounts({data: counts, query});
+  }
 
   function handleOpenInIssuesClick() {
     trackAnalytics('project_detail.open_issues', {organization});
@@ -160,10 +125,7 @@ export function ProjectIssues({organization, location, projectId, query, api}: P
 
   const endpointPath = `/organizations/${organization.slug}/issues/`;
 
-  const issueQuery = (Object.values(IssuesType) as string[]).includes(issuesType)
-    ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      [`${IssuesQuery[issuesType.toUpperCase()]}`, query].join(' ').trim()
-    : [IssuesQuery.ALL, query].join(' ').trim();
+  const issueQuery = withSearch(ISSUE_QUERIES[issuesType]);
 
   const queryParams = {
     limit: 5,
@@ -209,23 +171,11 @@ export function ProjectIssues({organization, location, projectId, query, api}: P
   }
 
   const issuesTypes = [
-    {value: IssuesType.ALL, label: t('All Issues'), issueCount: issuesCount.all},
-    {value: IssuesType.NEW, label: t('New Issues'), issueCount: issuesCount.new},
-    {
-      value: IssuesType.UNHANDLED,
-      label: t('Unhandled'),
-      issueCount: issuesCount.unhandled,
-    },
-    {
-      value: IssuesType.REGRESSED,
-      label: t('Regressed'),
-      issueCount: issuesCount.regressed,
-    },
-    {
-      value: IssuesType.RESOLVED,
-      label: t('Resolved'),
-      issueCount: issuesCount.resolved,
-    },
+    {value: IssuesType.ALL, label: t('All Issues')},
+    {value: IssuesType.NEW, label: t('New Issues')},
+    {value: IssuesType.UNHANDLED, label: t('Unhandled')},
+    {value: IssuesType.REGRESSED, label: t('Regressed')},
+    {value: IssuesType.RESOLVED, label: t('Resolved')},
   ];
 
   return (
@@ -237,10 +187,18 @@ export function ProjectIssues({organization, location, projectId, query, api}: P
           onChange={setIssuesType}
           size="xs"
         >
-          {issuesTypes.map(({value, label, issueCount}) => (
+          {issuesTypes.map(({value, label}) => (
             <SegmentedControl.Item key={value} textValue={label}>
               {label}&nbsp;
-              <QueryCount count={issueCount} max={99} hideParens hideIfEmpty={false} />
+              <QueryCount
+                count={
+                  lastCounts?.data[withSearch(ISSUE_QUERIES[value], lastCounts.query)] ??
+                  0
+                }
+                max={99}
+                hideParens
+                hideIfEmpty={false}
+              />
             </SegmentedControl.Item>
           ))}
         </SegmentedControl>

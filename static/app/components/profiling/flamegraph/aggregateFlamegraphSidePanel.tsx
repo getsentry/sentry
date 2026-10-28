@@ -1,6 +1,7 @@
 import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -128,7 +129,7 @@ function FrameInformation({frame}: FrameInformationProps) {
   }
 
   return (
-    <FunctionContainer>
+    <Grid gap="xs" columns="auto 1fr">
       <FunctionRowContainer>
         <div>{t('Name')}</div>
         <DetailsContainer>
@@ -151,7 +152,7 @@ function FrameInformation({frame}: FrameInformationProps) {
           {frame.frame.is_application ? t('Application Frame') : t('System Frame')}
         </code>
       </FunctionRowContainer>
-    </FunctionContainer>
+    </Grid>
   );
 }
 
@@ -243,12 +244,6 @@ const RowContainer = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
   background-color: ${p => p.theme.tokens.background.primary};
   box-shadow: inset 0 0 0 1px transparent;
-`;
-
-const FunctionContainer = styled('div')`
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: ${p => p.theme.space.xs};
 `;
 
 const FunctionRowContainer = styled(RowContainer)`

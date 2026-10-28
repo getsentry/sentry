@@ -3,6 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {
+  act,
   render,
   renderGlobalModal,
   screen,
@@ -41,7 +42,7 @@ function renderView({
     organization: renderOrganization,
     initialRouterConfig: {
       location: {
-        pathname: '/organizations/org-slug/explore/investigations/',
+        pathname: '/organizations/org-slug/seer/investigations/',
         query,
       },
     },
@@ -104,7 +105,7 @@ describe('Explore Investigations', () => {
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     expect(
       await screen.findByRole('link', {name: 'Database latency investigation'})
-    ).toHaveAttribute('href', '/explore/investigations/1/');
+    ).toHaveAttribute('href', '/seer/investigations/1/');
   });
 
   it('renders the dashboard-style empty state', async () => {
@@ -132,9 +133,7 @@ describe('Explore Investigations', () => {
     await userEvent.type(screen.getByPlaceholderText('Search Investigations'), 'latency');
     await userEvent.keyboard('{Enter}');
 
-    expect(router.location.pathname).toBe(
-      '/organizations/org-slug/explore/investigations/'
-    );
+    expect(router.location.pathname).toBe('/organizations/org-slug/seer/investigations/');
     expect(router.location.query).toEqual({query: 'latency'});
   });
 
@@ -194,45 +193,58 @@ describe('Explore Investigations', () => {
     await waitFor(() => expect(detailRequest).toHaveBeenCalledTimes(1));
   });
 
-  it('refreshes running title and summary generation in the list', async () => {
-    MockApiClient.addMockResponse({
-      url: listUrl,
-      body: [
-        InvestigationFixture({
-          title: 'Untitled investigation',
-          titleGeneration: {status: 'running'},
-        }),
-      ],
+  describe('refreshes running title and summary generation in the list with fake timers', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
     });
 
-    const {queryClient} = renderView();
-    await screen.findByText('Untitled investigation');
-    const completedRequest = MockApiClient.addMockResponse({
-      url: listUrl,
-      body: [
-        InvestigationFixture({
-          title: 'Checkout errors across releases',
+    afterEach(async () => {
+      try {
+        await act(() => jest.runOnlyPendingTimersAsync());
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it('refreshes running title and summary generation in the list', async () => {
+      MockApiClient.addMockResponse({
+        url: listUrl,
+        body: [
+          InvestigationFixture({
+            title: 'Untitled investigation',
+            titleGeneration: {status: 'running'},
+          }),
+        ],
+      });
+
+      const {queryClient} = renderView();
+      await screen.findByText('Untitled investigation');
+      const completedRequest = MockApiClient.addMockResponse({
+        url: listUrl,
+        body: [
+          InvestigationFixture({
+            title: 'Checkout errors across releases',
+            summary: 'Errors rose across releases',
+            summaryDescription: 'All active releases increased together.',
+            titleGeneration: {status: 'completed'},
+          }),
+        ],
+      });
+
+      await act(() => jest.advanceTimersByTimeAsync(2000));
+      expect(screen.getByText('Checkout errors across releases')).toBeInTheDocument();
+      expect(completedRequest).toHaveBeenCalled();
+      expect(
+        queryClient.getQueryData(
+          investigationListQueryOptions({organizationSlug: 'org-slug'}).queryKey
+        )?.json[0]
+      ).toEqual(
+        expect.objectContaining({
           summary: 'Errors rose across releases',
           summaryDescription: 'All active releases increased together.',
-          titleGeneration: {status: 'completed'},
-        }),
-      ],
+        })
+      );
     });
-
-    expect(
-      await screen.findByText('Checkout errors across releases', {}, {timeout: 3000})
-    ).toBeInTheDocument();
-    expect(completedRequest).toHaveBeenCalled();
-    expect(
-      queryClient.getQueryData(
-        investigationListQueryOptions({organizationSlug: 'org-slug'}).queryKey
-      )?.json[0]
-    ).toEqual(
-      expect.objectContaining({
-        summary: 'Errors rose across releases',
-        summaryDescription: 'All active releases increased together.',
-      })
-    );
   });
 
   it('toggles an investigation favorite and refreshes the list', async () => {
@@ -368,7 +380,7 @@ describe('Explore Investigations', () => {
 
     await waitFor(() =>
       expect(writeText).toHaveBeenCalledWith(
-        `${window.location.origin}/organizations/org-slug/explore/investigations/1/`
+        `${window.location.origin}/organizations/org-slug/seer/investigations/1/`
       )
     );
     expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
