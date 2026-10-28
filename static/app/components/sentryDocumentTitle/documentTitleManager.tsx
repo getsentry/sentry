@@ -43,6 +43,7 @@ export function DocumentTitleManager({children}: React.PropsWithChildren) {
     setPrefix: (id, prefix) => {
       setPrefixes(prev => {
         if (!prefix) {
+          // oxlint-disable-next-line react/todo
           const {[id]: _, ...rest} = prev;
           return rest;
         }

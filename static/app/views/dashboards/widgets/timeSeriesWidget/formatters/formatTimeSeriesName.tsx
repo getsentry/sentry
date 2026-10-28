@@ -11,5 +11,7 @@ export function formatTimeSeriesName(timeSeries: TimeSeries): string {
       .join(',')}`;
   }
 
-  return name;
+  return timeSeries.requestedTransformations?.length
+    ? JSON.stringify([name, timeSeries.requestedTransformations])
+    : name;
 }

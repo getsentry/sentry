@@ -1,8 +1,10 @@
-import {Fragment} from 'react';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconSettings} from '@sentry/icons/settings';
+import {IconStar} from '@sentry/icons/star';
 import type {Location} from 'history';
 
 import {TeamAvatar} from '@sentry/scraps/avatar';
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 
 import {IdBadge} from 'sentry/components/idBadge';
@@ -11,7 +13,6 @@ import {
   useTeamKeyTransactions,
 } from 'sentry/components/performance/teamKeyTransactionsManager';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconCheckmark, IconEllipsis, IconSettings, IconStar} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -19,6 +20,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {MAX_TEAM_KEY_TRANSACTIONS} from 'sentry/utils/performance/constants';
 import {useTeams} from 'sentry/utils/useTeams';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {getTransactionSummaryParentCrumbs} from 'sentry/views/performance/breadcrumb';
 
@@ -164,10 +166,13 @@ function TransactionBreadcrumbsContent({
     projects,
     transactionName,
   });
+  // Apdex and User Misery thresholds only apply to the transactions dataset.
+  const isInsightsEap = useInsightsEap();
   const {isLoading: isThresholdLoading, openThresholdModal} = useTransactionThreshold({
     eventView,
     organization,
     transactionName,
+    enabled: !isInsightsEap,
     onChangeThreshold,
   });
 
@@ -180,45 +185,44 @@ function TransactionBreadcrumbsContent({
   }).map(crumb => ({type: 'link' as const, ...crumb}));
 
   return (
-    <Fragment>
-      <TopBar.Slot name="breadcrumbs">
-        <BreadcrumbList items={parentItems} />
-      </TopBar.Slot>
-      <TopBar.Slot name="title">
-        <BreadcrumbList.Title
-          item={{
-            type: 'page-title',
-            label: transactionName,
-            leadingGraphic: project ? (
-              <IdBadge
-                disableLink
-                project={project}
-                avatarSize={16}
-                hideName
-                avatarProps={{hasTooltip: true, tooltip: project.slug}}
-              />
-            ) : (
-              <Placeholder width="16px" height="16px" />
-            ),
-            trailingActions: {
-              type: 'menu',
-              triggerLabel: t('Transaction Actions'),
-              triggerIcon: <IconEllipsis />,
-              items: [
-                starForTeamItem,
-                {
-                  key: 'set-transaction-threshold',
-                  label: t('Transaction Settings'),
-                  leadingItems: <IconSettings variant="muted" />,
-                  disabled: isThresholdLoading,
-                  onAction: openThresholdModal,
-                },
-              ],
-            },
-          }}
-        />
-      </TopBar.Slot>
-    </Fragment>
+    <TopBar.Slot
+      name="breadcrumbs"
+      title={{
+        type: 'page-title',
+        label: transactionName,
+        leadingGraphic: project ? (
+          <IdBadge
+            disableLink
+            project={project}
+            avatarSize={16}
+            hideName
+            avatarProps={{hasTooltip: true, tooltip: project.slug}}
+          />
+        ) : (
+          <Placeholder width="16px" height="16px" />
+        ),
+        trailingActions: {
+          type: 'menu',
+          triggerLabel: t('Transaction Actions'),
+          triggerIcon: <IconEllipsis />,
+          items: [
+            starForTeamItem,
+            ...(isInsightsEap
+              ? []
+              : [
+                  {
+                    key: 'set-transaction-threshold',
+                    label: t('Transaction Settings'),
+                    leadingItems: <IconSettings variant="muted" />,
+                    disabled: isThresholdLoading,
+                    onAction: openThresholdModal,
+                  },
+                ]),
+          ],
+        },
+      }}
+      items={parentItems}
+    />
   );
 }
 

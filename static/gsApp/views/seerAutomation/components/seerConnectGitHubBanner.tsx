@@ -7,10 +7,10 @@ import seerConfigMainBg from 'sentry-images/spot/seer-config-main-bg.svg';
 
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
+import {useInvertedTheme} from '@sentry/scraps/theme';
 
 import {t} from 'sentry/locale';
 import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
-import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {GithubButton} from 'getsentry/views/seerAutomation/onboarding/githubButton';

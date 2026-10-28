@@ -60,6 +60,17 @@ proxy.route(
 )(proxy_cell_from_org)
 
 
+# NOTE: this is defined before `proxy_control_from_org` since viewer-context is
+#       a cell endpoint (called by Seer) under the service-accounts path, which
+#       is otherwise routed to control
+proxy.route(
+    "/api/0/organizations/<str:org>/service-accounts/<str:subp>/viewer-context",
+    methods=["get", "post", "put", "patch", "delete", "head", "options"],
+    pipeline=[db.pipe_ctx],
+    name="proxy_cell_from_org_service_account_viewer_context",
+)(proxy_cell_from_org)
+
+
 # NOTE: this is defined before other cells routes to catch paths that should
 #       reach control, but due to wider routing rules would instead reach
 #       cells through below route `proxy_cell_from_org`
@@ -87,6 +98,7 @@ proxy.route(
         "/api/0/organizations/<str:org>/sentry-app-components",
         "/api/0/organizations/<str:org>/sentry-app-installations(/<any:subp>)?",
         "/api/0/organizations/<str:org>/sentry-apps(/<any:subp>)?",
+        "/api/0/organizations/<str:org>/service-accounts(/<any:subp>)?",
         "/organizations/<str:org>/payments/<str:subp>",
     ],
     methods=["get", "post", "put", "patch", "delete", "head", "options"],

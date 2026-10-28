@@ -1,10 +1,10 @@
 import {Fragment, useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconWarning} from 'sentry/icons/iconWarning';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDynamicText} from 'sentry/utils/getDynamicText';

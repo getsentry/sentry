@@ -22,6 +22,7 @@ class UnableToDeleteRepository(NotificationData):
 class UnableToDeleteRepositoryTemplate(NotificationTemplate[UnableToDeleteRepository]):
     category = NotificationCategory.REPOSITORY
     example_data = UnableToDeleteRepository(
+        organization_id=1,
         repository_name="getsentry/sentry",
         provider_name="GitHub",
         error_message="An internal server error occurred",

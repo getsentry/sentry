@@ -1,17 +1,14 @@
-import {Link} from 'react-router-dom';
+import {Link} from 'react-router';
 import styled from '@emotion/styled';
+import {IconSeer} from '@sentry/icons/seer';
 import {useQuery} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
 
 import {Flex} from '@sentry/scraps/layout';
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
 import {DateTime} from 'sentry/components/dateTime';
-import {
-  COL_WIDTH_UNDEFINED,
-  GridEditable,
-  type GridColumnOrder,
-} from 'sentry/components/tables/gridEditable';
-import {IconSeer} from 'sentry/icons';
+import {DataGrid, type GridColumnOrder} from 'sentry/components/tables/dataGrid';
 import {t} from 'sentry/locale';
 import type {GroupOpenPeriodActivity} from 'sentry/types/group';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
@@ -24,6 +21,10 @@ import {useParams} from 'sentry/utils/useParams';
 import {openPeriodsApiOptions} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {investigationCandidatesQueryOptions} from 'sentry/views/investigations/api';
 import type {MetricOpenPeriodInvestigationSource} from 'sentry/views/investigations/types';
+import {
+  getInvestigationPath,
+  useInvestigationsEnabled,
+} from 'sentry/views/investigations/utils';
 import {EventListTable} from 'sentry/views/issueDetails/eventListTable';
 
 interface OpenPeriodDisplayData {
@@ -68,7 +69,7 @@ function IssueOpenPeriodsList() {
     select: selectJsonWithHeaders,
   });
   const openPeriods = response?.json ?? [];
-  const investigationsEnabled = organization.features.includes('investigations');
+  const investigationsEnabled = useInvestigationsEnabled();
   const candidateSources: MetricOpenPeriodInvestigationSource[] = openPeriods.map(
     period => ({
       type: 'metric_open_period',
@@ -99,11 +100,11 @@ function IssueOpenPeriodsList() {
       return {
         openPeriod: activity.type === 'opened' ? `#${period.id}` : undefined,
         eventId: activity.eventId ? (
-          <Link
+          <EventIdLink
             to={`/organizations/${organization.slug}/issues/${params.groupId}/events/${activity.eventId}/`}
           >
             {getShortEventId(activity.eventId)}
-          </Link>
+          </EventIdLink>
         ) : (
           '—'
         ),
@@ -112,9 +113,7 @@ function IssueOpenPeriodsList() {
         end: endDate ? <DateTime date={endDate} /> : undefined,
         investigation:
           activity.type === 'opened' && candidate?.status === 'view' ? (
-            <Link
-              to={`/organizations/${organization.slug}/explore/investigations/${candidate.investigationId}/`}
-            >
+            <Link to={getInvestigationPath(organization.slug, candidate.investigationId)}>
               <Flex as="span" align="center" gap="xs">
                 <IconSeer size="xs" />
                 {candidate.investigationId}
@@ -170,7 +169,7 @@ function IssueOpenPeriodsList() {
         tableUnits: t('open periods'),
       }}
     >
-      <GridEditable
+      <DataGrid
         isLoading={isPending}
         data={data}
         error={error}
@@ -186,6 +185,19 @@ function IssueOpenPeriodsList() {
 const AlignLeft = styled('span')`
   text-align: left;
   width: 100%;
+`;
+
+// The EventListTable hides link styling if they aren't in the first column
+// so we have to style it manually
+const EventIdLink = styled(Link)`
+  &&& {
+    color: ${p => p.theme.tokens.interactive.link.accent.rest};
+    text-decoration: none;
+
+    &:hover {
+      color: ${p => p.theme.tokens.interactive.link.accent.hover};
+    }
+  }
 `;
 
 export default IssueOpenPeriodsList;

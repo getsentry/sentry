@@ -1,9 +1,15 @@
 import {Fragment} from 'react';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconClose} from '@sentry/icons/close';
+import {IconDownload} from '@sentry/icons/download';
+import {IconTimer} from '@sentry/icons/timer';
+import {IconWarning} from '@sentry/icons/warning';
 import {useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {Tag, type TagProps} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {
   Container,
   Flex,
@@ -12,29 +18,25 @@ import {
   useResponsivePropValue,
 } from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {
-  IconCheckmark,
-  IconClose,
-  IconDownload,
-  IconTimer,
-  IconWarning,
-} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import type {InvoiceBase} from 'getsentry/types';
 import {formatCurrency} from 'getsentry/utils/formatCurrency';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 import {ContactBillingMembers} from 'getsentry/views/contactBillingMembers';
 import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
@@ -79,6 +81,71 @@ function ReceiptStatusTag({payment}: {payment: InvoiceBase}) {
     <Tag icon={icon} variant={tagType}>
       {capitalize(status.replace('_', ' '))}
     </Tag>
+  );
+}
+
+function UsageCsvDownloads({
+  links,
+  iconOnly,
+}: {
+  iconOnly: boolean;
+  links: NonNullable<InvoiceBase['usageCsvLinks']>;
+}) {
+  const organization = useOrganization();
+  const {projects, onSearch: onProjectSearch} = useProjects();
+
+  return (
+    <Fragment>
+      <LinkButton
+        icon={<IconDownload />}
+        href={links.csv}
+        aria-label={t('Download Usage CSV')}
+        onClick={() =>
+          trackGetsentryAnalytics('subscription_page.download_reports.clicked', {
+            organization,
+            reportType: 'summary',
+          })
+        }
+      >
+        {iconOnly ? undefined : t('Usage CSV')}
+      </LinkButton>
+      <CompactSelect
+        trigger={triggerProps =>
+          iconOnly ? (
+            <OverlayTrigger.IconButton
+              {...triggerProps}
+              icon={<IconDownload />}
+              aria-label={t('Download Project Usage CSV')}
+            />
+          ) : (
+            <OverlayTrigger.Button
+              {...triggerProps}
+              icon={<IconDownload />}
+              aria-label={t('Download Project Usage CSV')}
+            >
+              {t('Project Usage CSV')}
+            </OverlayTrigger.Button>
+          )
+        }
+        search={{
+          placeholder: t('Filter projects'),
+          onChange: onProjectSearch,
+        }}
+        options={projects.map(project => ({
+          value: project.slug,
+          label: project.slug,
+          textValue: project.slug,
+        }))}
+        value={undefined}
+        onChange={(option: SelectOption<string>) => {
+          trackGetsentryAnalytics('subscription_page.download_reports.clicked', {
+            organization,
+            reportType: 'project_breakdown',
+          });
+          window.open(`${links.csvPerProject}${option.value}/`, '_blank');
+        }}
+      />
+    </Fragment>
   );
 }
 
@@ -186,7 +253,14 @@ function ReceiptGrid({
                   {payment.id}
                 </Text>
               )}
-              <Flex justify="end">
+              <Flex justify="end" gap="md" wrap="wrap">
+                {organization.features.includes('invoice-usage-downloads') &&
+                  payment.usageCsvLinks && (
+                    <UsageCsvDownloads
+                      links={payment.usageCsvLinks}
+                      iconOnly={isSmallContainer}
+                    />
+                  )}
                 <LinkButton icon={<IconDownload />} href={payment.receipt.url}>
                   {isSmallContainer ? undefined : t('Download PDF')}
                 </LinkButton>

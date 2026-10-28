@@ -1,10 +1,5 @@
 import type {TagCollection} from 'sentry/types/group';
-import type {
-  EventsStats,
-  GroupedMultiSeriesEventsStats,
-  MultiSeriesEventsStats,
-  Organization,
-} from 'sentry/types/organization';
+import type {Organization} from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
@@ -20,16 +15,11 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {AggregationKey} from 'sentry/utils/fields';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {eventsResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/eventsResponseTransforms';
+import {handleOrderByReset} from 'sentry/views/dashboards/datasetConfig/utils/handleOrderByReset';
 import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
-import {isEventsTimeSeriesResponse} from 'sentry/views/dashboards/utils/isEventsStats';
-import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
-import {
-  getTimeSeriesResultTypes,
-  getTimeSeriesResultUnits,
-  transformTimeSeriesResponseToSeries,
-} from 'sentry/views/dashboards/utils/transformTimeSeriesResponseToSeries';
 import {EventsSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
 import {
   useErrorsSeriesQuery,
@@ -41,7 +31,6 @@ import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 
 import {
-  handleOrderByReset,
   type DatasetConfig,
   type SearchBarData,
   type SearchBarDataProviderProps,
@@ -54,7 +43,6 @@ import {
   getTimeseriesSortOptions,
   renderEventIdAsLinkable,
   renderTraceAsLinkable,
-  transformEventsResponseToTable,
 } from './events';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
@@ -94,10 +82,7 @@ function useEventsSearchBarDataProvider(
 }
 
 export const ErrorsConfig: DatasetConfig<
-  | EventsStats
-  | MultiSeriesEventsStats
-  | GroupedMultiSeriesEventsStats
-  | EventsTimeSeriesResponse,
+  EventsTimeSeriesResponse,
   TableData | EventsTableData
 > = {
   defaultCategoryField: 'title',
@@ -127,15 +112,7 @@ export const ErrorsConfig: DatasetConfig<
   ],
   useSeriesQuery: useErrorsSeriesQuery,
   useTableQuery: useErrorsTableQuery,
-  transformTable: transformEventsResponseToTable,
-  transformSeries: (data, widgetQuery) =>
-    isEventsTimeSeriesResponse(data)
-      ? transformTimeSeriesResponseToSeries(data, widgetQuery)
-      : transformEventsResponseToSeries(data, widgetQuery),
-  getSeriesResultType: data =>
-    isEventsTimeSeriesResponse(data) ? getTimeSeriesResultTypes(data) : {},
-  getSeriesResultUnit: data =>
-    isEventsTimeSeriesResponse(data) ? getTimeSeriesResultUnits(data) : {},
+  ...eventsResponseTransforms,
   filterAggregateParams,
 };
 

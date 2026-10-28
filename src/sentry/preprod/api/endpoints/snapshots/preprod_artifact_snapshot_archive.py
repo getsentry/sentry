@@ -16,7 +16,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationReleasePermission
 from sentry.auth.staff import is_active_staff
-from sentry.issues.action_log import resolve_action_source
+from sentry.issues.action_log.request import resolve_action_source
 from sentry.models.organization import Organization
 from sentry.preprod.analytics import PreprodArtifactApiSnapshotArchiveDownloadEvent
 from sentry.preprod.models import PreprodArtifact

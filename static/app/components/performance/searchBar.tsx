@@ -236,6 +236,7 @@ export function SearchBar(props: SearchBarProps) {
             setSearchResults([parsedResults]);
           } catch (_) {
             throw new Error('Unable to fetch event field values');
+            // oxlint-disable-next-line react/todo
           } finally {
             setLoading(false);
           }

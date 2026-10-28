@@ -17,6 +17,8 @@ import {
 
 export const NONE_UNIT = 'none';
 
+export const METRICS_CHART_GROUP = 'metrics-charts-group';
+
 const AlwaysHiddenTraceMetricFields: TraceMetricFieldKey[] = [
   TraceMetricKnownFieldKey.ID,
   TraceMetricKnownFieldKey.ORGANIZATION_ID,

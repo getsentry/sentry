@@ -27,10 +27,17 @@ class InvestigationBlockExecutionSerializerResponse(TypedDict):
     schemaVersion: int
     startedAt: datetime | None
     completedAt: datetime | None
-    error: Any | None
+    error: Any
 
 
 class InvestigationBlockSerializerResponse(TypedDict):
+    """
+    Notebook block. version is the block concurrency token; dependencies are block IDs and
+    parameterKeys reference notebook parameters. output is the latest successful result and may
+    remain available during a rerun; currentExecution describes the latest attempt. Poll
+    execution details for transcript and pending input.
+    """
+
     id: str
     position: int
     kind: str
@@ -38,7 +45,7 @@ class InvestigationBlockSerializerResponse(TypedDict):
     content: str
     generationPrompt: str
     generatedContent: str
-    output: Any | None
+    output: Any
     outputStatus: str
     currentExecution: InvestigationBlockExecutionSerializerResponse | None
     config: dict[str, Any]

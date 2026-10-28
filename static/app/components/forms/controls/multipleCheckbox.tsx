@@ -98,7 +98,9 @@ function Item<T extends string | number>({
           }}
           value={value.toString()}
         />
-        <CheckboxLabel>{children}</CheckboxLabel>
+        <Container as="span" marginLeft="md">
+          {children}
+        </Container>
       </Label>
     </Container>
   );
@@ -114,8 +116,4 @@ const Label = styled('label')`
   margin-right: 10px;
   margin-bottom: 10px;
   width: 20%;
-`;
-
-const CheckboxLabel = styled('span')`
-  margin-left: ${p => p.theme.space.md};
 `;

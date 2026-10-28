@@ -14,6 +14,7 @@ export function useFeedbackInit() {
 
   useEffect(() => {
     async function init() {
+      // oxlint-disable-next-line react/todo
       const {feedbackIntegration} = await import('@sentry/react');
       const client = getClient();
 

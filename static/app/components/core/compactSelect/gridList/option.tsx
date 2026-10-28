@@ -1,23 +1,19 @@
 import {Fragment, useContext, useMemo, useRef, useState} from 'react';
-import styled from '@emotion/styled';
 import type {AriaGridListItemOptions} from '@react-aria/gridlist';
 import {useGridListItem, useGridListSelectionCheckbox} from '@react-aria/gridlist';
 import {useFocusWithin, useHover} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
+import {IconCheckmark} from '@sentry/icons/checkmark';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {ControlContext, HighlightText, LeadWrap} from '@sentry/scraps/compactSelect';
+import {ControlContext} from '@sentry/scraps/compactSelect/controlContext';
+import {HighlightText} from '@sentry/scraps/compactSelect/highlightText';
+import {getOptionPaddingLeft, LeadWrap} from '@sentry/scraps/compactSelect/styles';
 import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
-import {
-  InnerWrap,
-  MenuListItem,
-  type MenuListItemProps,
-} from '@sentry/scraps/menuListItem';
-
-import {IconCheckmark} from 'sentry/icons';
-import type {FormSize} from 'sentry/utils/theme';
+import {ListItem, useReserveLeadingSlot, type ListItemProps} from '@sentry/scraps/menu';
+import type {FormSize} from '@sentry/scraps/theme';
 
 export interface GridListOptionProps<
   T extends ListItemBase,
@@ -88,7 +84,8 @@ export function GridListOption<T extends ListItemBase>({
     [label]
   );
 
-  const leadingItems = (node.props as MenuListItemProps).leadingItems;
+  const reserveLeadingSlot = useReserveLeadingSlot();
+  const {leadingItems}: Pick<ListItemProps, 'leadingItems'> = node.props;
   const leadingItemsMemo = useMemo(() => {
     const checkboxSize = size === 'xs' ? 'xs' : 'sm';
 
@@ -113,17 +110,37 @@ export function GridListOption<T extends ListItemBase>({
               readOnly
             />
           ) : (
-            isSelected && <IconCheckmark size={checkboxSize} {...checkboxProps} />
+            isSelected && (
+              <IconCheckmark size={checkboxSize} variant="accent" {...checkboxProps} />
+            )
           )}
         </LeadWrap>
-        {leading ? <LeadWrap role="presentation">{leading}</LeadWrap> : null}
+        {/* When any option has an icon, every option gets a 16px icon column so
+            labels line up. */}
+        {leading || reserveLeadingSlot ? (
+          <LeadWrap
+            role="presentation"
+            minWidth={reserveLeadingSlot ? '16px' : undefined}
+          >
+            {leading}
+          </LeadWrap>
+        ) : null}
       </Fragment>
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [multiple, isSelected, isDisabled, isFocused, size, leadingItems, hideCheck]);
+  }, [
+    multiple,
+    isSelected,
+    isDisabled,
+    isFocused,
+    size,
+    leadingItems,
+    hideCheck,
+    reserveLeadingSlot,
+  ]);
 
   return (
-    <StyledMenuListItem
+    <ListItem
       {...rowPropsMerged}
       ref={ref}
       size={size}
@@ -133,8 +150,14 @@ export function GridListOption<T extends ListItemBase>({
       isSelected={isSelected}
       isPressed={isPressed}
       isFocused={isFocusWithin}
-      priority={(priority ?? (isSelected && !multiple)) ? 'primary' : 'default'}
-      innerWrapProps={gridCellProps}
+      priority={priority ? 'primary' : 'default'}
+      innerWrapProps={{
+        ...gridCellProps,
+        paddingLeft: getOptionPaddingLeft({
+          hasCheck: !hideCheck,
+          hasLeadingItems: Boolean(leadingItems) || reserveLeadingSlot,
+        }),
+      }}
       labelProps={labelPropsMemo}
       leadingItems={leadingItemsMemo}
       trailingItems={trailingItems}
@@ -144,9 +167,3 @@ export function GridListOption<T extends ListItemBase>({
     />
   );
 }
-
-const StyledMenuListItem = styled(MenuListItem)`
-  > ${InnerWrap} {
-    padding-left: ${p => p.theme.space.md};
-  }
-`;

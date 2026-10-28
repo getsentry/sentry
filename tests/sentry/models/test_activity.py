@@ -1,13 +1,22 @@
 import logging
 from datetime import datetime, timezone
+from threading import Barrier
 from unittest.mock import MagicMock, patch
+
+import pytest
+from django.db import connections, router, transaction
 
 from sentry.event_manager import EventManager
 from sentry.incidents.grouptype import MetricIssue
+from sentry.issues.attributes import Operation
+from sentry.issues.comments import create_comment, delete_comment
 from sentry.models.activity import Activity
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import TestCase, TransactionTestCase
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.iterators import chunked
 from tests.sentry.event_manager.test_event_manager import make_event
 
@@ -36,6 +45,11 @@ class ActivityTest(TestCase):
         Activity.objects.create_group_activity(
             group=group,
             type=ActivityType.SMART_ASSIGNMENT_COMPLETED,
+            data={
+                "run_id": 123,
+                "run_uuid": "00000000-0000-0000-0000-000000000001",
+                "predicted_assignee_user_ids": [],
+            },
             send_notification=False,
         )
 
@@ -472,3 +486,127 @@ class ActivityTest(TestCase):
 
         activity.refresh_from_db()
         assert activity.ident is None
+
+    @patch("sentry.issues.attributes.produce_snapshot_to_kafka")
+    def test_creating_note_emits_snapshot(self, produce_snapshot: MagicMock) -> None:
+        group = self.create_group()
+
+        produce_snapshot.reset_mock()
+
+        self.create_group_activity(group=group, type=ActivityType.NOTE.value, data={"text": "hi"})
+
+        assert produce_snapshot.called
+
+    @patch("sentry.issues.attributes.produce_snapshot_to_kafka")
+    def test_deleting_note_emits_snapshot(self, produce_snapshot: MagicMock) -> None:
+        group = self.create_group()
+
+        note = self.create_group_activity(
+            group=group, type=ActivityType.NOTE.value, data={"text": "hi"}
+        )
+
+        produce_snapshot.reset_mock()
+
+        note.delete()
+
+        assert produce_snapshot.called
+
+
+class CommentCommitTest(TestCase):
+    def test_counter_snapshots_and_notifications_follow_commit(self) -> None:
+        group = self.group
+        user = self.user
+        for post_update_enabled in (False, True):
+            with (
+                override_options({"groups.enable-post-update-signal": post_update_enabled}),
+                patch("sentry.issues.attributes.bulk_send_snapshot_values") as snapshot,
+                patch("sentry.issues.attributes._log_group_attributes_changed") as log_change,
+                patch("sentry.tasks.activity.send_activity_notifications.delay") as notification,
+                self.captureOnCommitCallbacks(execute=True),
+            ):
+                with pytest.raises(RuntimeError, match="rollback"):
+                    with transaction.atomic(using=router.db_for_write(Activity)):
+                        create_comment(
+                            group=group,
+                            user=user,
+                            data={"text": "rolled back"},
+                            source="email",
+                            from_email=True,
+                        )
+                        snapshot.assert_not_called()
+                        notification.assert_not_called()
+                        raise RuntimeError("rollback")
+                snapshot.assert_not_called()
+                notification.assert_not_called()
+                log_change.reset_mock()
+                with transaction.atomic(using=router.db_for_write(Activity)):
+                    note = create_comment(
+                        group=group,
+                        user=user,
+                        data={"text": str(post_update_enabled)},
+                        source="email",
+                        from_email=True,
+                    )
+                    assert note is not None
+                    snapshot.assert_not_called()
+                    notification.assert_not_called()
+            snapshot.assert_called_once_with([group.id], None)
+            notification.assert_called_once_with(note.id)
+            log_change.assert_called_once_with(Operation.UPDATED, "group", "num_comments")
+
+
+@with_feature({"projects:issue-action-log-write-to-db": False})
+class CommentConcurrencyTest(TransactionTestCase):
+    def test_duplicate_creates_are_serialized(self) -> None:
+        group, user = self.group, self.user
+        ready = Barrier(2, timeout=20)
+
+        def create() -> bool:
+            try:
+                ready.wait()
+                return (
+                    create_comment(
+                        group=group,
+                        user=user,
+                        data={"text": "same email"},
+                        source="email",
+                        from_email=True,
+                    )
+                    is not None
+                )
+            finally:
+                connections.close_all()
+
+        with ContextPropagatingThreadPoolExecutor(max_workers=2) as executor:
+            results = [executor.submit(create) for _ in range(2)]
+            assert sorted(result.result(timeout=30) for result in results) == [False, True]
+        group.refresh_from_db()
+        assert group.num_comments == 1
+        assert Activity.objects.filter(group=group, type=ActivityType.NOTE.value).count() == 1
+
+    def test_concurrent_deletes_decrement_once(self) -> None:
+        group, user = self.group, self.user
+        note = create_comment(
+            group=group, user=user, data={"text": "delete once"}, source="email", from_email=True
+        )
+        assert note is not None
+        ready = Barrier(2, timeout=20)
+
+        def delete() -> bool:
+            try:
+                stale_note = Activity.objects.get(id=note.id)
+                ready.wait()
+                try:
+                    delete_comment(stale_note, user=user, source="api", original_action_id=None)
+                except Activity.DoesNotExist:
+                    return False
+                return True
+            finally:
+                connections.close_all()
+
+        with ContextPropagatingThreadPoolExecutor(max_workers=2) as executor:
+            results = [executor.submit(delete) for _ in range(2)]
+            assert sorted(result.result(timeout=30) for result in results) == [False, True]
+        group.refresh_from_db()
+        assert group.num_comments == 0
+        assert not Activity.objects.filter(id=note.id).exists()

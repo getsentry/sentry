@@ -1,15 +1,21 @@
+import type * as React from 'react';
 import {createRef, Fragment} from 'react';
+import {ThemeProvider} from '@emotion/react';
+import {render, screen} from '@testing-library/react';
 import {expectTypeOf} from 'expect-type';
 
 import type {Responsive} from '@sentry/scraps/layout';
-
-import {render, screen} from '../../test/env';
+import {lightTheme} from '@sentry/scraps/theme';
 
 import {Flex, type FlexProps, type FlexPropsWithRenderFunction} from './flex';
 
+function ThemeWrapper({children}: {children: React.ReactNode}) {
+  return <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>;
+}
+
 describe('Flex', () => {
   it('renders children', () => {
-    render(<Flex>Hello</Flex>);
+    render(<Flex>Hello</Flex>, {wrapper: ThemeWrapper});
     expect(screen.getByText('Hello')).toBeInTheDocument();
   });
 
@@ -17,7 +23,8 @@ describe('Flex', () => {
     render(
       <section>
         <Flex justify="between">{props => <p {...props}>Hello</p>}</Flex>
-      </section>
+      </section>,
+      {wrapper: ThemeWrapper}
     );
 
     expect(screen.getByText('Hello')?.tagName).toBe('P');
@@ -32,7 +39,8 @@ describe('Flex', () => {
       <Flex justify="between" aria-activedescendant="what">
         {/* @ts-expect-error - this should be a React.ElementType */}
         {props => <p {...props}>Hello</p>}
-      </Flex>
+      </Flex>,
+      {wrapper: ThemeWrapper}
     );
 
     expect(screen.getByText('Hello')).not.toHaveAttribute('aria-activedescendant');
@@ -48,7 +56,8 @@ describe('Flex', () => {
       <Flex justify="between" padding="md">
         {/* @ts-expect-error - className is incompatible */}
         {props => <Child {...props} />}
-      </Flex>
+      </Flex>,
+      {wrapper: ThemeWrapper}
     );
   });
 
@@ -56,23 +65,24 @@ describe('Flex', () => {
     render(
       <Flex as="label" htmlFor="test-id">
         Hello World
-      </Flex>
+      </Flex>,
+      {wrapper: ThemeWrapper}
     );
     expectTypeOf<FlexProps<'label'>>().toHaveProperty('htmlFor');
   });
 
   it('passes attributes to the underlying element', () => {
-    render(<Flex data-test-id="container">Hello</Flex>);
+    render(<Flex data-test-id="container">Hello</Flex>, {wrapper: ThemeWrapper});
     expect(screen.getByTestId('container')).toBeInTheDocument();
   });
 
   it('renders as a different element if specified', () => {
-    render(<Flex as="section">Hello</Flex>);
+    render(<Flex as="section">Hello</Flex>, {wrapper: ThemeWrapper});
     expect(screen.getByText('Hello').tagName).toBe('SECTION');
   });
 
   it('does not bleed attributes to the underlying element', () => {
-    render(<Flex radius="sm">Hello</Flex>);
+    render(<Flex radius="sm">Hello</Flex>, {wrapper: ThemeWrapper});
     expect(screen.getByText('Hello')).not.toHaveAttribute('radius');
   });
 
@@ -80,7 +90,8 @@ describe('Flex', () => {
     render(
       <Flex align="center" justify="center">
         Hello
-      </Flex>
+      </Flex>,
+      {wrapper: ThemeWrapper}
     );
 
     expect(screen.getByText('Hello')).not.toHaveAttribute('align');
@@ -88,7 +99,7 @@ describe('Flex', () => {
   });
 
   it('allows settings native html attributes', () => {
-    render(<Flex style={{color: 'red'}}>Hello</Flex>);
+    render(<Flex style={{color: 'red'}}>Hello</Flex>, {wrapper: ThemeWrapper});
     expect(screen.getByText('Hello')).toHaveStyle({color: 'rgb(255, 0, 0)'});
   });
 
@@ -97,7 +108,8 @@ describe('Flex', () => {
     render(
       <Flex ref={ref} as="ol">
         Hello
-      </Flex>
+      </Flex>,
+      {wrapper: ThemeWrapper}
     );
     expect(ref.current).toBeInTheDocument();
     expect(ref.current?.tagName).toBe('OL');
@@ -112,7 +124,8 @@ describe('Flex', () => {
         <Flex radius="sm" padding="md">
           PaddingBottom First
         </Flex>
-      </Fragment>
+      </Fragment>,
+      {wrapper: ThemeWrapper}
     );
 
     const paddingFirst = screen.getByText('Padding First').className;

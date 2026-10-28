@@ -1,10 +1,10 @@
 import type {ReactNode} from 'react';
 import {useEffect, useEffectEvent, useMemo} from 'react';
-import styled from '@emotion/styled';
+import {IconQuestion} from '@sentry/icons/question';
 
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack, Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -12,7 +12,6 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {FeatureDisabledModal} from 'sentry/components/acl/featureDisabledModal';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useOnboardingQueryParams} from 'sentry/components/onboarding/useOnboardingQueryParams';
-import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
@@ -370,6 +369,12 @@ export const platformProductAvailability = {
     ProductSolution.LOGS,
     ProductSolution.METRICS,
   ],
+  'node-pi-durable': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
   'node-cloudflare-workers': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.LOGS,
@@ -585,7 +590,7 @@ function Product({
         disabled={isDisabled}
         aria-label={label}
       >
-        <ProductButtonInner>
+        <Grid align="center" gap="md" columns="repeat(3, max-content)">
           <Checkbox
             readOnly
             size="xs"
@@ -599,7 +604,7 @@ function Product({
           />
           {label}
           <IconQuestion size="xs" />
-        </ProductButtonInner>
+        </Grid>
       </ProductButton>
     </Tooltip>
   );
@@ -772,10 +777,3 @@ export function ProductSelection({
 }
 
 const ProductButton = Button;
-
-const ProductButtonInner = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(3, max-content);
-  gap: ${p => p.theme.space.md};
-  align-items: center;
-`;

@@ -1,4 +1,4 @@
-import {Outlet} from 'react-router-dom';
+import {Outlet} from 'react-router';
 
 import {SettingsLayout} from 'sentry/views/settings/components/settingsLayout';
 

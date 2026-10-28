@@ -374,12 +374,14 @@ class InvestigationOrchestrationDispatchTest(TestCase):
         }
         dispatch_commands.assert_called_once_with(self.orchestration_run.id)
 
+    @mock.patch("sentry.seer.entrypoints.operator.process_investigation_updates.delay")
     @mock.patch("sentry.tasks.seer.investigation.current_task")
     @mock.patch("sentry.tasks.seer.investigation.create_investigation_orchestration_run")
     def test_create_dispatch_retries_then_persists_retryable_failure(
         self,
         create_run: mock.Mock,
         current_task: mock.Mock,
+        process_updates: mock.Mock,
     ) -> None:
         create_run.side_effect = SeerApiError("unavailable: secret=do-not-expose", 503)
         current_task.return_value = SimpleNamespace(retries_remaining=True)
@@ -388,6 +390,7 @@ class InvestigationOrchestrationDispatchTest(TestCase):
             dispatch_investigation_orchestration_create(self.orchestration_run.id)
         self.orchestration_run.refresh_from_db()
         assert self.orchestration_run.status == "pending"
+        process_updates.assert_not_called()
 
         current_task.return_value = SimpleNamespace(retries_remaining=False)
         dispatch_investigation_orchestration_create(self.orchestration_run.id)
@@ -399,6 +402,7 @@ class InvestigationOrchestrationDispatchTest(TestCase):
             "retryable": True,
         }
         assert "do-not-expose" not in str(self.orchestration_run.projection)
+        process_updates.assert_called_once_with(investigation_id=self.investigation.id)
 
     @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_command")
     def test_command_dispatch_acknowledges_in_order(self, dispatch: mock.Mock) -> None:
@@ -433,11 +437,13 @@ class InvestigationOrchestrationDispatchTest(TestCase):
             {
                 "runId": self.seer_run_id,
                 "requestId": str(first.request_id),
+                "rerun": None,
                 "projection": self.projection(workflow_version=2),
             },
             {
                 "runId": self.seer_run_id,
                 "requestId": str(second.request_id),
+                "rerun": None,
                 "projection": self.projection(workflow_version=3),
             },
         ]
@@ -539,6 +545,7 @@ class InvestigationOrchestrationDispatchTest(TestCase):
         dispatch.return_value = {
             "runId": self.seer_run_id,
             "requestId": str(request_id),
+            "rerun": None,
             "projection": self.projection(workflow_version=2),
         }
         dispatch_investigation_orchestration_commands(self.orchestration_run.id)
@@ -587,6 +594,7 @@ class InvestigationOrchestrationDispatchTest(TestCase):
             return {
                 "runId": self.seer_run_id,
                 "requestId": str(command.request_id),
+                "rerun": None,
                 "projection": self.projection(workflow_version=command.resulting_workflow_version),
             }
 
@@ -786,6 +794,7 @@ class InvestigationOrchestrationDispatchTest(TestCase):
                 self.orchestration_run,
                 command,
                 {"organization_id": self.organization.id, "user_id": self.user.id},
+                "workflow_version_conflict",
             )
 
         self.orchestration_run.refresh_from_db()

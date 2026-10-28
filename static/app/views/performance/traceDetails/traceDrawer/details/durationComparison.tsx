@@ -1,10 +1,10 @@
 import type {Theme} from '@emotion/react';
 
+import type {TagVariant} from '@sentry/scraps/theme';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {tct} from 'sentry/locale';
 import {getDuration} from 'sentry/utils/duration/getDuration';
-import type {TagVariant} from 'sentry/utils/theme';
 
 /** Hide comparisons below this delta so tiny, noisy differences aren't shown. */
 export const MIN_PCT_DURATION_DIFFERENCE = 10;

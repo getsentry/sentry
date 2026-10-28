@@ -1,14 +1,14 @@
 import styled from '@emotion/styled';
+import {IconCalendar} from '@sentry/icons/calendar';
+import {IconDelete} from '@sentry/icons/delete';
 import invariant from 'invariant';
 
 import {ProjectAvatar, UserAvatar} from '@sentry/scraps/avatar';
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconCalendar} from 'sentry/icons/iconCalendar';
-import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import {getShortEventId} from 'sentry/utils/events';
 import {useOrganization} from 'sentry/utils/useOrganization';

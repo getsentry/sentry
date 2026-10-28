@@ -1,0 +1,90 @@
+---
+title: Toggle Card
+description: Cards for mutually exclusive choices, independent choices, and actions.
+category: forms
+source: '@sentry/scraps/toggleCard'
+---
+
+import {useState} from 'react';
+
+import {Input} from '@sentry/scraps/input';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {ToggleCard} from '@sentry/scraps/toggleCard';
+
+import * as Storybook from 'sentry/stories';
+
+export const documentation = import('!!type-loader!@sentry/scraps/toggleCard');
+
+Use `variant="radio"` for mutually exclusive choices, `variant="checkbox"` for
+independent choices, and `variant="button"` for an action. Radio cards in a group
+must share a `name` so arrow keys move between choices. Name the group with a
+fieldset and legend or `role="radiogroup"` and `aria-label`.
+
+`ToggleCard.Indicator` shares the card's variant and checked state. Compose the
+remaining content with layout and text components. Content has `xl` padding by
+default; `padding` supports denser form layouts. Disabled cards stay focusable so
+a tooltip can explain why they are unavailable.
+
+Put editable controls in `details`. They render outside the selection label while
+the card is checked, so editing a field does not change the selection.
+
+export function ToggleCardExample() {
+  const [value, setValue] = useState('shared');
+  const [checked, setChecked] = useState(false);
+  return (
+    <Stack gap="xl">
+      <Grid
+        columns="repeat(2, minmax(0, 1fr))"
+        gap="lg"
+        role="radiogroup"
+        aria-label="Budget mode"
+      >
+        {['shared', 'per-category'].map(option => (
+          <ToggleCard
+            variant="radio"
+            key={option}
+            name="example-budget-mode"
+            value={option}
+            checked={value === option}
+            onChange={event => setValue(event.currentTarget.value)}
+          >
+            <Flex align="start" gap="md">
+              <ToggleCard.Indicator />
+              <Stack gap="sm">
+                <Text bold>
+                  {option === 'shared' ? 'Shared budget' : 'Per-category budget'}
+                </Text>
+                <Text variant="secondary">Choose how to manage your budget.</Text>
+              </Stack>
+            </Flex>
+          </ToggleCard>
+        ))}
+      </Grid>
+      <ToggleCard
+        variant="checkbox"
+        checked={checked}
+        onChange={event => setChecked(event.currentTarget.checked)}
+        details={<Input aria-label="Threshold" type="number" defaultValue="10" />}
+      >
+        <Flex align="center" gap="md">
+          <ToggleCard.Indicator />
+          <Text>Enable a custom threshold</Text>
+        </Flex>
+      </ToggleCard>
+      <ToggleCard variant="button" onClick={() => {}}>
+        <Text>Set up manually</Text>
+      </ToggleCard>
+      <ToggleCard variant="radio" checked={false} disabled onChange={() => {}}>
+        <Flex align="center" gap="md">
+          <ToggleCard.Indicator />
+          <Text>Unavailable option</Text>
+        </Flex>
+      </ToggleCard>
+    </Stack>
+  );
+}
+
+<Storybook.Demo>
+  <ToggleCardExample />
+</Storybook.Demo>

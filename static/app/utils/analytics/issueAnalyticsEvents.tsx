@@ -206,6 +206,11 @@ export type IssueEventParameters = {
   };
   'issue_inbox.issue_viewed': IssueInboxItemParams;
   'issue_inbox.item_clicked': IssueInboxItemParams;
+  'issue_inbox.open_in_desktop_app_clicked': {
+    agent: 'cursor' | 'codex' | 'claude-code';
+    group_id: string;
+    event_id?: string;
+  };
   'issue_search.empty': {
     query: string;
     search_source: string;
@@ -374,6 +379,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_inbox.assignment_filter_changed': 'Issue Inbox: Assignment Filter Changed',
   'issue_inbox.issue_viewed': 'Issue Inbox: Issue Viewed',
   'issue_inbox.item_clicked': 'Issue Inbox: Item Clicked',
+  'issue_inbox.open_in_desktop_app_clicked': 'Issue Inbox: Open in Desktop App Clicked',
   'issues_stream.archived': 'Issues Stream: Archived',
   'issues_stream.updated_priority': 'Issues Stream: Updated Priority',
   'issues_stream.realtime_clicked': 'Issues Stream: Realtime Clicked',

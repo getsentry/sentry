@@ -773,20 +773,9 @@ class IssueDefaultTest(TestCase):
         }
 
     def test_annotations(self) -> None:
-        label = self.installation.get_issue_display_name(self.external_issue)
-        link = self.installation.get_issue_url(self.external_issue.key)
-
-        assert self.installation.get_annotations_for_group_list([self.group]) == {
-            self.group.id: [{"url": link, "displayName": label}]
-        }
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = self.create_provider_integration(provider="example", external_id="4444")
-            integration.add_organization(self.group.organization, self.user)
-        installation = integration.get_installation(self.group.organization.id)
-        assert isinstance(installation, ExampleIntegration)
-
-        assert installation.get_annotations_for_group_list([self.group]) == {self.group.id: []}
+        assert self.installation.map_external_issues_to_annotations([self.external_issue]) == [
+            {"url": "https://example/issues/APP-123", "displayName": "display name: APP-123"}
+        ]
 
     @patch("sentry.integrations.mixins.issues.maybe_generate_external_issue_details")
     def test_ai_text_replaces_defaults(self, mock_generate: MagicMock) -> None:
@@ -813,7 +802,7 @@ class IssueDefaultTest(TestCase):
         title_field = next(f for f in config if f["name"] == "title")
         assert title_field["default"] == self.group.get_latest_event().title
 
-    @patch("sentry.integrations.utils.external_issues.make_llm_generate_request")
+    @patch("sentry.integrations.utils.external_issues.run_oneshot")
     def test_feature_flag_disabled_skips_ai(self, mock_request: MagicMock) -> None:
         config = self.installation.get_create_issue_config(self.group, self.user)
 
@@ -821,7 +810,7 @@ class IssueDefaultTest(TestCase):
         assert title_field["default"] == self.group.get_latest_event().title
         mock_request.assert_not_called()
 
-    @patch("sentry.integrations.utils.external_issues.make_llm_generate_request")
+    @patch("sentry.integrations.utils.external_issues.run_oneshot")
     def test_hide_ai_features_skips_ai(self, mock_request: MagicMock) -> None:
         self.group.organization.update_option("sentry:hide_ai_features", True)
 
@@ -832,7 +821,7 @@ class IssueDefaultTest(TestCase):
         assert title_field["default"] == self.group.get_latest_event().title
         mock_request.assert_not_called()
 
-    @patch("sentry.integrations.utils.external_issues.make_llm_generate_request")
+    @patch("sentry.integrations.utils.external_issues.run_oneshot")
     def test_ai_exception_falls_back(self, mock_request: MagicMock) -> None:
         mock_request.side_effect = Exception("Connection error")
 

@@ -1,5 +1,5 @@
 import React, {Fragment} from 'react';
-import {Link} from 'react-router-dom';
+import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import {useTimezone} from '@sentry/scraps/datetime';

@@ -12,7 +12,7 @@ from datetime import UTC, datetime, timedelta
 from enum import Enum
 from io import BytesIO
 from typing import Any, Literal, TypedDict, Union
-from unittest import mock
+from unittest import TestLoader, mock
 from urllib.parse import urlencode
 from uuid import UUID, uuid4
 from zlib import compress
@@ -126,7 +126,6 @@ from sentry.notifications.models.notificationsettingprovider import (
 from sentry.notifications.notifications.base import alert_page_needs_org_id
 from sentry.notifications.types import FineTuningAPIKey
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
-from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.search.events.constants import (
@@ -2666,6 +2665,20 @@ class TestMigrations(TransactionTestCase):
 
     app = "sentry"
     connection = "default"
+    # Every test method reruns the whole migration, so set this only when the cases can't
+    # share one run.
+    allow_multiple_tests = False
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        tests = TestLoader().getTestCaseNames(cls)
+        if len(tests) > 1 and not cls.allow_multiple_tests:
+            raise TypeError(
+                f"{cls.__name__} has {len(tests)} test methods, and each one reruns the migration. "
+                "Seed every case in setup_before_migration and check them in one test, using "
+                "self.subTest() to keep cases separate. Set allow_multiple_tests = True if they "
+                "really can't share a run."
+            )
 
     @property
     def migrate_from(self):
@@ -2696,25 +2709,29 @@ class TestMigrations(TransactionTestCase):
         self.setup_initial_state()
 
         executor = MigrationExecutor(conn)
-        old_apps = executor.loader.project_state(migrate_from).apps
 
         # Reverse to the original migration
         # XXX: We don't pass project state here, since Django doesn't use it when rolling back migrations.
         self._project_state_cache = executor.migrate(migrate_from)
 
-        self.setup_before_migration(old_apps)
+        # Reuse the states `migrate` returns rather than rebuilding them from the whole
+        # migration history with `loader.project_state()`, which takes several seconds.
+        # These reflect what's applied in the database, so they also include migrations in
+        # other apps that stay applied, even if the target doesn't depend on them. The graph
+        # state only follows the target's dependencies. See
+        # `ExecutorStateTest` in tests/sentry/new_migrations/test_migrations.py.
+        self.setup_before_migration(self._project_state_cache.apps)
 
-        # Run the migration to test
+        # A fresh executor loads the graph and applied migrations in its constructor.
+        # Run the migration to test without rebuilding the same graph a second time.
         executor = MigrationExecutor(conn)
-        executor.loader.build_graph()  # reload.
         self._project_state_cache = executor.migrate(migrate_to, state=self._project_state_cache)
 
-        self.apps = executor.loader.project_state(migrate_to).apps
+        self.apps = self._project_state_cache.apps
 
     def tearDown(self):
         super().tearDownClass()
         executor = MigrationExecutor(connections[self.connection])
-        executor.loader.build_graph()  # reload.
         self._project_state_cache = executor.migrate(
             self.current_migration, state=self._project_state_cache
         )
@@ -3097,7 +3114,7 @@ class MonitorTestCase(APITestCase):
             **monitorenvironment_defaults,
         )
 
-    def _create_issue_alert_rule(self, monitor, exclude_slug_filter=False):
+    def _create_issue_alert_rule(self, monitor):
         conditions = [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
@@ -3106,15 +3123,14 @@ class MonitorTestCase(APITestCase):
                 "id": "sentry.rules.conditions.regression_event.RegressionEventCondition",
             },
         ]
-        if not exclude_slug_filter:
-            conditions.append(
-                {
-                    "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
-                    "key": "monitor.slug",
-                    "match": "eq",
-                    "value": monitor.slug,
-                },
-            )
+        conditions.append(
+            {
+                "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+                "key": "monitor.slug",
+                "match": "eq",
+                "value": monitor.slug,
+            },
+        )
         actions = [
             {
                 "id": "sentry.mail.actions.NotifyEmailAction",
@@ -3123,17 +3139,17 @@ class MonitorTestCase(APITestCase):
                 "uuid": str(uuid4()),
             },
         ]
-        rule = ProjectRuleCreator(
-            name="New Cool Rule",
+        rule = self.create_project_rule(
             project=self.project,
-            conditions=conditions,
+            name="New Cool Rule",
+            condition_data=conditions,
             filter_match="all",
             action_match="any",
-            actions=actions,
+            action_data=actions,
             frequency=5,
-            environment=self.environment.id,
-        ).run()
-        rule.update(source=RuleSource.CRON_MONITOR)
+            environment_id=self.environment.id,
+            source=RuleSource.CRON_MONITOR,
+        )
 
         config = monitor.config
         config["alert_rule_id"] = rule.id
@@ -3500,9 +3516,10 @@ class OurLogTestCase(BaseTestCase, TraceItemTestCase):
             attributes_proto["sentry.observed_timestamp_nanos"] = AnyValue(
                 int_value=int(timestamp.timestamp() * 1e9)
             )
-        attributes_proto["sentry.timestamp_precise"] = AnyValue(
-            int_value=int(timestamp.timestamp() * 1e9)
-        )
+        if "sentry.timestamp_precise" not in attributes:
+            attributes_proto["sentry.timestamp_precise"] = AnyValue(
+                int_value=int(timestamp.timestamp() * 1e9)
+            )
 
         return TraceItem(
             organization_id=organization.id,

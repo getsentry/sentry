@@ -1,12 +1,12 @@
 import type React from 'react';
 import {Fragment} from 'react';
+import {IconWarning} from '@sentry/icons/warning';
 import upperFirst from 'lodash/upperFirst';
 
 import {InfoTip} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -21,6 +21,7 @@ import {
 } from 'getsentry/types';
 import {
   displayBudgetName,
+  displayPrice,
   formatReservedWithUnits,
   getReservedBudgetCategoryForAddOn,
 } from 'getsentry/utils/billing';
@@ -31,7 +32,6 @@ import {
 } from 'getsentry/utils/dataCategory';
 import {PerformanceHovercard} from 'getsentry/views/amCheckout/components/volumeSliders';
 import {getProductCheckoutDescription} from 'getsentry/views/amCheckout/steps/productSelect';
-import {displayPrice} from 'getsentry/views/amCheckout/utils';
 import {BudgetModeSettings} from 'getsentry/views/spendLimits/budgetModeSettings';
 import {
   formatPaygPricePerUnit,

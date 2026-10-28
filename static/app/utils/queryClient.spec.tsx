@@ -3,7 +3,8 @@ import {Fragment} from 'react';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {DEFAULT_QUERY_CLIENT_CONFIG, useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import {DEFAULT_QUERY_CLIENT_CONFIG} from 'sentry/utils/queryClientConfig';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
 type ResponseData = {

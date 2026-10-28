@@ -5,6 +5,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {SplitPanel, type SplitPanelHandle} from '@sentry/scraps/splitPanel';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useIsSeerExplorerSidebarEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -14,7 +15,6 @@ import {
   getSeerExplorerAnalyticsBrowserSize,
   roundSeerExplorerAnalyticsPixels,
   SEER_EXPLORER_SIDEBAR_SEER_SIZE_KEY,
-  useIsSeerExplorerSidebarEnabled,
   useSeerExplorerSidebarOrientation,
 } from 'sentry/views/seerExplorer/utils';
 
@@ -41,7 +41,7 @@ export function SeerExplorerSidebarLayout({children}: {children: React.ReactNode
 /**
  * Wraps the main app content so Seer Explorer can render as a resizable split
  * panel beside it (right when both panes fit side by side, bottom otherwise)
- * when the persistent sidebar flag is on. When off, the content is returned untouched (drawer mode).
+ * when Seer Explorer is enabled. Otherwise the content is returned untouched (drawer mode).
  *
  * The app content is `SplitPanel`'s `sized` pane and Seer is the optional `fill`
  * pane: when Seer is closed there's no `fill`, so `SplitPanel` collapses to the

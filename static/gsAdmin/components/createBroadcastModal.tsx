@@ -56,9 +56,6 @@ type CreateBroadcastPayload = Omit<
   region?: string;
 };
 
-const options = (choices: ReadonlyArray<readonly [string, string]>) =>
-  choices.map(([value, label]) => ({value, label}));
-
 export function CreateBroadcastModal({
   Header,
   Body,
@@ -206,7 +203,7 @@ export function CreateBroadcastModal({
                     clearable
                     value={field.state.value}
                     onChange={value => field.handleChange(value ?? '')}
-                    options={options(CATEGORYCHOICES)}
+                    options={CATEGORYCHOICES}
                   />
                 </field.Layout.Stack>
               )}
@@ -218,7 +215,7 @@ export function CreateBroadcastModal({
                     clearable
                     value={field.state.value}
                     onChange={value => field.handleChange(value ?? '')}
-                    options={options(REGIONCHOICES)}
+                    options={REGIONCHOICES}
                   />
                 </field.Layout.Stack>
               )}
@@ -242,7 +239,7 @@ export function CreateBroadcastModal({
                     multiple
                     value={field.state.value}
                     onChange={field.handleChange}
-                    options={options(PRODUCTCHOICES)}
+                    options={PRODUCTCHOICES}
                   />
                 </field.Layout.Stack>
               )}
@@ -254,7 +251,7 @@ export function CreateBroadcastModal({
                     multiple
                     value={field.state.value}
                     onChange={field.handleChange}
-                    options={options(ROLECHOICES)}
+                    options={ROLECHOICES}
                   />
                 </field.Layout.Stack>
               )}
@@ -266,7 +263,7 @@ export function CreateBroadcastModal({
                     multiple
                     value={field.state.value}
                     onChange={field.handleChange}
-                    options={options(AVAILABLE_PLANCHOICES)}
+                    options={AVAILABLE_PLANCHOICES}
                   />
                 </field.Layout.Stack>
               )}
@@ -278,7 +275,7 @@ export function CreateBroadcastModal({
                     multiple
                     value={field.state.value}
                     onChange={field.handleChange}
-                    options={options(TRIALCHOICES)}
+                    options={TRIALCHOICES}
                   />
                 </field.Layout.Stack>
               )}

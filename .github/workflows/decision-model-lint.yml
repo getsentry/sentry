@@ -1,0 +1,71 @@
+name: decision model lint
+
+# Never pull_request_target, which would give the PR's code the key.
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, labeled, unlabeled]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.number }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: lint PR
+    # Branches in this repo only, so employees and internal bots but never forks. Every label
+    # change re-runs the lint, because a skipped run would replace the last result.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      # The PR's merge commit and its first parent: HEAD^1..HEAD is exactly what the PR changes.
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+
+      - uses: ./.github/actions/setup-node-pnpm
+
+      - name: lint
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.DECISION_MODEL_LINTER_OPENROUTER_API_KEY }}
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.number }}
+          LABEL: 'Trigger: Override Decision Model Lint'
+          OVERRIDDEN: "${{ contains(github.event.pull_request.labels.*.name, 'Trigger: Override Decision Model Lint') }}"
+        run: |
+          report="$RUNNER_TEMP/decision-model-lint.md"
+          status=0
+          pnpm exec decision-model-linter --config decisionModelLinter.config.ts \
+            --base HEAD^1 --format markdown > "$report" || status=$?
+
+          # Only 1 means findings; any other failure means the linter did not finish.
+          if [ "$status" -eq 1 ] && [ "$OVERRIDDEN" = true ]; then
+            printf '\nThe `%s` label keeps these errors from failing the check.\n' "$LABEL" >> "$report"
+          elif [ "$status" -eq 1 ]; then
+            printf '\nThese errors fail the check; fix the code to resolve them. If you and a reviewer are confident an error is wrong, a person can add the `%s` label to pass the check while the findings stay reported. Agents should never add this label.\n' "$LABEL" >> "$report"
+          elif [ "$status" -gt 1 ] && [ "$OVERRIDDEN" = true ]; then
+            printf 'The linter did not finish (exit %s), and the `%s` label passes the check anyway; see the job log.\n' "$status" "$LABEL" >> "$report"
+          fi
+
+          marker='<!-- decision-model-linter -->'
+          comment=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate \
+            --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | contains(\"$marker\"))) | .id" | head -n 1)
+          body=
+          if [ -s "$report" ] && { [ "$status" -le 1 ] || [ "$OVERRIDDEN" = true ]; }; then
+            body=$(printf '%s\n%s' "$marker" "$(cat "$report")")
+          elif [ "$status" -eq 0 ] && [ -n "$comment" ]; then
+            body=$(printf '%s\nNo findings on the latest commit.' "$marker")
+          fi
+          if [ -n "$body" ] && [ -n "$comment" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$comment" -f body="$body" > /dev/null
+          elif [ -n "$body" ]; then
+            gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" -f body="$body" > /dev/null
+          fi
+          cat "$report" >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$status" -ne 0 ] && [ "$OVERRIDDEN" = true ]; then exit 0; fi
+          exit "$status"

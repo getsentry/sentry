@@ -1,15 +1,16 @@
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {useModal} from '@sentry/scraps/modal';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {Hovercard} from 'sentry/components/hovercard';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -209,7 +210,7 @@ export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
 
 const PrimarySaveButton = Button;
 
-const DropdownTrigger = styled(Button)`
+const DropdownTrigger = styled(OverlayTrigger.IconButton)`
   box-shadow: none;
   border-radius: 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0;
   padding-left: ${p => p.theme.space.md};

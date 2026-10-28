@@ -36,6 +36,7 @@ jobs:
       backend_api_urls: ${{ steps.changes.outputs.backend_api_urls }}
       backend_any_type: ${{ steps.changes.outputs.backend_any_type }}
       migration_lockfile: ${{ steps.changes.outputs.migration_lockfile }}
+      migration_tests: ${{ steps.changes.outputs.migration_tests }}
       # When true, skip selective testing and run the full backend suite
       skip_selective_testing: "${{ github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'Trigger: Override Selective Testing') }}"
     steps:
@@ -155,7 +156,9 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: selected-tests-${{ github.run_id }}
-          path: .artifacts/selected-tests.txt
+          path: |
+            .artifacts/selected-tests.txt
+            .artifacts/selected-tests.counts.json
           retention-days: 1
 
   calculate-shards:
@@ -226,11 +229,19 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
+      # Overlaps the per-worker ClickHouse bootstrap with devservices up.
+      - name: Start per-worker Snuba bootstrap in the background
+        if: env.XDIST_PER_WORKER_SNUBA == '1'
+        env:
+          DEVSERVICES_STATUS_FILE: ${{ runner.temp }}/devservices-ci/up.exit
+        run: python3 .github/workflows/scripts/bootstrap-snuba.py --start
+
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
           mode: backend-ci
+          early-devservices: 'true'
 
       # Restart postgres with a Unix socket mount. Django's postgres driver uses TCP by
       # default, and each ORM call is multiple round-trips — switching to a Unix socket
@@ -271,7 +282,7 @@ jobs:
 
       - name: Bootstrap per-worker Snuba instances
         if: env.XDIST_PER_WORKER_SNUBA == '1'
-        run: python3 .github/workflows/scripts/bootstrap-snuba.py
+        run: python3 .github/workflows/scripts/bootstrap-snuba.py --wait
 
       - name: Download selected tests artifact
         if: needs.select-tests.outputs.has-selected-tests == 'true'
@@ -296,6 +307,25 @@ jobs:
           else
             make test-python-ci
           fi
+
+      # pytest-selected.py balances full-run shards with these. See
+      # .github/workflows/scripts/backend-test-durations.py to refresh them.
+      - name: Extract test durations
+        id: durations
+        if: ${{ !cancelled() && needs.select-tests.outputs.has-selected-tests != 'true' && hashFiles('.artifacts/pytest.json') != '' }}
+        continue-on-error: true
+        run: |
+          python3 .github/workflows/scripts/backend-test-durations.py extract \
+            .artifacts/pytest.json .artifacts/test-durations.json
+
+      - name: Upload test durations
+        if: ${{ !cancelled() && steps.durations.outcome == 'success' }}
+        continue-on-error: true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: backend-test-durations-${{ github.run_id }}-${{ matrix.instance }}
+          path: .artifacts/test-durations.json
+          retention-days: 30
 
       - name: Report failures
         if: ${{ !cancelled() && github.event_name == 'pull_request' }}
@@ -323,20 +353,14 @@ jobs:
             done
           fi
 
-      - name: Collect test data
-        uses: ./.github/actions/collect-test-data
-        if: ${{ !cancelled() }}
-        continue-on-error: true
-        with:
-          artifact_path: .artifacts/pytest.json
-          gcs_bucket: ${{ secrets.COLLECT_TEST_DATA_GCS_BUCKET }}
-          gcp_project_id: ${{ secrets.COLLECT_TEST_DATA_GCP_PROJECT_ID }}
-          workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
-          service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
-          matrix_instance_number: ${{ steps.setup.outputs.matrix-instance-number }}
-
   backend-migration-tests:
-    if: needs.files-changed.outputs.backend == 'true'
+    if: >-
+      needs.files-changed.outputs.backend == 'true' &&
+      (
+        github.event_name != 'pull_request' ||
+        needs.files-changed.outputs.migration_tests == 'true' ||
+        needs.files-changed.outputs.skip_selective_testing == 'true'
+      )
     needs: files-changed
     name: backend migration tests
     runs-on: ubuntu-24.04
@@ -345,6 +369,9 @@ jobs:
       contents: read
       actions: read
       pull-requests: write
+    env:
+      MIGRATION_DB_DIR: .artifacts/migration-test-db
+      SAVE_MIGRATION_DB: ${{ github.ref == 'refs/heads/master' }}
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -353,11 +380,35 @@ jobs:
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          mode: default
+          mode: migrations
+          early-devservices: 'true'
+
+      # Only master saves, so PRs restore the newest master dump.
+      - name: Restore migrated test databases
+        id: db-cache
+        uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          path: ${{ env.MIGRATION_DB_DIR }}
+          key: migration-test-db-v1-${{ hashFiles('src/**/migrations/*.py', 'src/sentry/new_migrations/**/*.py') }}
+          restore-keys: migration-test-db-v1-
+
+      - name: Load migrated test databases
+        run: .github/workflows/scripts/migration-test-db.py restore "$MIGRATION_DB_DIR"
 
       - name: run tests
         run: |
-          PYTEST_ADDOPTS="$PYTEST_ADDOPTS -m migrations --migrations --reruns 0 --fail-slow=150s" make test-python-ci
+          make test-migrations-ci
+
+      - name: Dump migrated test databases
+        if: env.SAVE_MIGRATION_DB == 'true' && steps.db-cache.outputs.cache-hit != 'true'
+        run: .github/workflows/scripts/migration-test-db.py save "$MIGRATION_DB_DIR"
+
+      - name: Save migrated test databases
+        if: env.SAVE_MIGRATION_DB == 'true' && steps.db-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          path: ${{ env.MIGRATION_DB_DIR }}
+          key: ${{ steps.db-cache.outputs.cache-primary-key }}
 
       - name: Report failures
         if: ${{ !cancelled() && github.event_name == 'pull_request' }}
@@ -426,7 +477,7 @@ jobs:
 
       - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
         with:
-          version: '0.12.10'
+          version: '0.13.5'
 
       - uses: getsentry/action-setup-venv@5a80476d175edf56cb205b08bc58986fa99d1725 # v3.2.0
         with:
@@ -552,17 +603,6 @@ jobs:
             devservices logs
           fi
 
-      - name: Collect test data
-        uses: ./.github/actions/collect-test-data
-        if: ${{ !cancelled() }}
-        continue-on-error: true
-        with:
-          artifact_path: .artifacts/pytest.monolith-dbs.json
-          gcs_bucket: ${{ secrets.COLLECT_TEST_DATA_GCS_BUCKET }}
-          gcp_project_id: ${{ secrets.COLLECT_TEST_DATA_GCP_PROJECT_ID }}
-          workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
-          service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
-
   typing:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
@@ -574,7 +614,7 @@ jobs:
 
       - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
         with:
-          version: '0.12.10'
+          version: '0.13.5'
           # we just cache the venv-dir directly in action-setup-venv
           enable-cache: false
 

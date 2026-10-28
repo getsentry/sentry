@@ -1,21 +1,23 @@
-import {Fragment, useContext, useId, useMemo, useRef} from 'react';
+import {useContext, useId, useMemo, useRef} from 'react';
 import type {AriaGridListOptions} from '@react-aria/gridlist';
 import {useGridList} from '@react-aria/gridlist';
 import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {CollectionChildren} from '@react-types/shared';
 
+import {ControlContext} from '@sentry/scraps/compactSelect/controlContext';
+import {SelectFilterContext} from '@sentry/scraps/compactSelect/selectFilterContext';
 import {
-  ControlContext,
   ListLabel,
   ListSeparator,
   ListWrap,
-  SelectFilterContext,
   SizeLimitMessage,
-  useVirtualizedItems,
-} from '@sentry/scraps/compactSelect';
+} from '@sentry/scraps/compactSelect/styles';
 import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
+import {useVirtualizedItems} from '@sentry/scraps/compactSelect/useVirtualizedItems';
+import {hasVisibleLeadingItems} from '@sentry/scraps/compactSelect/utils';
 import {Container} from '@sentry/scraps/layout';
+import {ReserveLeadingSlot} from '@sentry/scraps/menu';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {GridListOption, type GridListOptionProps} from './option';
@@ -109,6 +111,10 @@ function GridList<T extends ListItemBase>({
       }),
     [listState.collection, hiddenOptions]
   );
+  const reserveLeadingSlot = useMemo(
+    () => hasVisibleLeadingItems(listItems, hiddenOptions),
+    [listItems, hiddenOptions]
+  );
 
   const virtualizer = useVirtualizedItems({
     listItems,
@@ -119,17 +125,15 @@ function GridList<T extends ListItemBase>({
   const mergedProps = mergeProps(gridProps, props);
 
   return (
-    <Fragment>
+    <ReserveLeadingSlot reserve={reserveLeadingSlot}>
       {listItems.length !== 0 && <ListSeparator role="separator" />}
       {listItems.length !== 0 && label && <ListLabel id={labelId}>{label}</ListLabel>}
       {overlayIsOpen && (
-        // oxlint-disable-next-line react/refs
         <Container ref={virtualizer.scrollElementRef} height="100%" overflowY="auto">
           {/* oxlint-disable-next-line react/refs */}
           <Container {...virtualizer.wrapperProps}>
             <ListWrap
               {...mergedProps}
-              // oxlint-disable-next-line react/refs
               style={{...mergedProps.style, ...virtualizer.listWrapStyle}}
               onKeyDown={onKeyDown}
               ref={ref}
@@ -172,7 +176,7 @@ function GridList<T extends ListItemBase>({
           </Container>
         </Container>
       )}
-    </Fragment>
+    </ReserveLeadingSlot>
   );
 }
 

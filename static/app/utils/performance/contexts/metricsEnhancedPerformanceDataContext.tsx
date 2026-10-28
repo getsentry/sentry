@@ -1,10 +1,12 @@
 import type {ReactNode} from 'react';
 import {createContext, useCallback, useContext, useState} from 'react';
 
+import {
+  AutoSampleState,
+  useMEPSettingContext,
+} from 'sentry/utils/performance/contexts/useMEPSettingContext';
 import {WIDGET_MAP_DENY_LIST} from 'sentry/views/performance/landing/widgets/utils';
 import type {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
-
-import {AutoSampleState, useMEPSettingContext} from './metricsEnhancedSetting';
 
 interface MetricsEnhancedPerformanceDataContext {
   setIsMetricsData: (value?: boolean) => void;

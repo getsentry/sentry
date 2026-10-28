@@ -1,4 +1,4 @@
-import {InputGroup} from '@sentry/scraps/input/inputGroup';
+import {InputGroup} from '@sentry/scraps/input';
 import {type TextAreaProps} from '@sentry/scraps/textarea';
 
 import {BaseField, type BaseFieldProps} from './baseField';

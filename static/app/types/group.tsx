@@ -698,6 +698,10 @@ interface GroupActivityBase {
   assignee?: string;
   issue?: Group;
   sentry_app?: AvatarSentryApp;
+  /**
+   * Where the action came from, e.g. `web`, `api`, `sentry-cli`, `mcp:cursor`
+   */
+  source?: null | string;
   user?: null | User;
 }
 
@@ -1361,9 +1365,11 @@ export interface GroupOpenPeriod {
   activities: GroupOpenPeriodActivity[];
   duration: string;
   end: string | null;
+  groupId: string;
   id: string;
   isOpen: boolean;
   lastChecked: string;
+  shortId: string | null;
   start: string;
 }
 

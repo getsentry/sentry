@@ -10,6 +10,7 @@ import {t, tct} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 
 import {openOnDemandBudgetEditModal} from 'getsentry/actionCreators/modal';
 import {withSubscription} from 'getsentry/components/withSubscription';
@@ -74,6 +75,7 @@ function Overview({subscription}: Props) {
   if (!hasBillingPerms && !subscription.canSelfServe) {
     return (
       <SubscriptionPageContainer>
+        <BreadcrumbTitle title={t('Overview')} />
         <ContactBillingMembers />
       </SubscriptionPageContainer>
     );
@@ -81,6 +83,7 @@ function Overview({subscription}: Props) {
 
   return (
     <Fragment>
+      <BreadcrumbTitle title={t('Overview')} />
       <SubscriptionHeader organization={organization} subscription={subscription} />
       <SubscriptionPageContainer padding="0 2xl 3xl">
         {isPending ? (

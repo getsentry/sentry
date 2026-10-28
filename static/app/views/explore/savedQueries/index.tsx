@@ -14,7 +14,10 @@ export default function SavedQueriesView() {
   return (
     <SentryDocumentTitle title={t('All Queries')} orgSlug={organization?.slug}>
       <Stack flex={1}>
-        <TopBar.Slot name="title">{t('All Queries')}</TopBar.Slot>
+        <TopBar.Slot
+          name="breadcrumbs"
+          title={{type: 'page-title', label: t('All Queries')}}
+        />
         <TopBar.Slot name="feedback">
           <FeedbackButton
             aria-label={t('Give Feedback')}

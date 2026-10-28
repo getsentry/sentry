@@ -151,7 +151,7 @@ def _metric_alert(data: Mapping[str, Any]) -> list[tuple[str, str]]:
     ``evidenceDisplay`` only summarises the metric by name, so without this a metric issue
     renders none of the query it fired on. The detector stores ``evidence_data`` snake_cased,
     but ``EventSerializer`` camelCases the whole occurrence recursively on the way out, so what
-    arrives here is ``dataSources[].queryObj.snubaQuery`` and ``alertId``.
+    arrives here is ``dataSources[].queryObj.snubaQuery``.
     """
     occurrence = data.get("occurrence") or {}
     if occurrence.get("type") != _METRIC_ISSUE_TYPE:
@@ -178,7 +178,6 @@ def _metric_alert(data: Mapping[str, Any]) -> list[tuple[str, str]]:
         ("Environment", snuba_query.get("environment")),
         ("Evaluated Value", value),
         ("Threshold", _metric_alert_threshold(evidence.get("conditions"))),
-        ("Alert Rule ID", evidence.get("alertId")),
     ]
     return [(label, str(v)) for label, v in candidates if v is not None and str(v) != ""]
 

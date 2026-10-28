@@ -4,6 +4,8 @@ import pytest
 from sentry.utils import json
 from sentry.utils import jwt as jwt_utils
 
+FUTURE_EXPIRATION = 253402300799
+
 RS256_KEY = """
 -----BEGIN RSA PRIVATE KEY-----
 MIIJKAIBAAKCAgEAwcYWTDju/+S7dgFLMp6VQHbCMHTQD7RxoaTWKY8/NizzW7QX
@@ -103,6 +105,7 @@ def token() -> str:
     }
     claims = {
         "iss": "me",
+        "exp": FUTURE_EXPIRATION,
     }
     key = "secret"
     token = pyjwt.encode(claims, key, algorithm="HS256", headers=headers)
@@ -119,6 +122,7 @@ def rsa_token() -> str:
     }
     claims = {
         "iss": "me",
+        "exp": FUTURE_EXPIRATION,
     }
     token = pyjwt.encode(claims, RS256_KEY, algorithm="RS256", headers=headers)
     assert isinstance(token, str)
@@ -138,20 +142,18 @@ def test_peek_header(token: str) -> None:
 
 def test_peek_claims(token: str) -> None:
     claims = jwt_utils.peek_claims(token)
-    assert claims == {"iss": "me"}
+    assert claims == {"iss": "me", "exp": FUTURE_EXPIRATION}
 
-    for key, value in claims.items():
+    for key in claims:
         assert isinstance(key, str)
-        assert isinstance(value, str)
 
 
 def test_decode(token: str) -> None:
     claims = jwt_utils.decode(token, "secret")
-    assert claims == {"iss": "me"}
+    assert claims == {"iss": "me", "exp": FUTURE_EXPIRATION}
 
-    for key, value in claims.items():
+    for key in claims:
         assert isinstance(key, str)
-        assert isinstance(value, str)
 
     claims["aud"] = "you"
     token = jwt_utils.encode(claims, "secret")
@@ -160,15 +162,33 @@ def test_decode(token: str) -> None:
         jwt_utils.decode(token, "secret")
 
 
+def test_decode_requires_expiration() -> None:
+    payload = {"iss": "me"}
+    token = jwt_utils.encode(payload, "secret")
+
+    with pytest.raises(pyjwt.exceptions.MissingRequiredClaimError, match="exp"):
+        jwt_utils.decode(token, "secret")
+
+    assert jwt_utils.decode(token, "secret", require_exp=False) == payload
+
+
+def test_decode_verifies_expiration_when_not_required() -> None:
+    token = jwt_utils.encode({"exp": 0}, "secret")
+
+    with pytest.raises(pyjwt.exceptions.ExpiredSignatureError):
+        jwt_utils.decode(token, "secret", require_exp=False)
+
+
 def test_decode_pub(rsa_token: str) -> None:
     claims = jwt_utils.decode(rsa_token, RS256_PUB_KEY, algorithms=["RS256"])
-    assert claims == {"iss": "me"}
+    assert claims == {"iss": "me", "exp": FUTURE_EXPIRATION}
 
 
 def test_decode_audience() -> None:
     payload = {
         "iss": "me",
         "aud": "you",
+        "exp": FUTURE_EXPIRATION,
     }
     token = jwt_utils.encode(payload, "secret")
 
@@ -213,6 +233,7 @@ def test_encode(token: str) -> None:
     }
     claims = {
         "iss": "me",
+        "exp": FUTURE_EXPIRATION,
     }
     key = "secret"
 
@@ -272,4 +293,4 @@ def test_rsa_key_from_jwk_pubkey(rsa_token: str) -> None:
     assert isinstance(key, str)
 
     claims = jwt_utils.decode(rsa_token, key, algorithms=["RS256"])
-    assert claims == {"iss": "me"}
+    assert claims == {"iss": "me", "exp": FUTURE_EXPIRATION}

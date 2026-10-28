@@ -22,6 +22,7 @@ from sentry.identity import default_manager as identity_manager
 from sentry.identity.mcp import McpIdentityProvider
 from sentry.identity.oauth2 import OAuth2Provider
 from sentry.integrations.types import MONITORING_PROVIDERS
+from sentry.investigations.access import has_investigations_access
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -308,6 +309,7 @@ class SeerAgentClient:
             code_review_enabled: Expose the review_code_changes tool, which spawns a reviewer agent to check accumulated code edits before finalizing. Only useful alongside enable_coding. Default is False.
             max_iterations: Optional maximum number of agent iterations. Useful for lightweight/fast runs that don't need full exploration depth.
             enable_embeds: Allow the agent to emit rich inline embed widgets (e.g. formatted timestamps) as Markdoc tags. Only enable for surfaces that render these embeds (the Explorer chat in the Sentry UI). Disable for plaintext/markdown surfaces like Slack, where the tags would leak as raw text. Default is True.
+            enable_investigation_tools: Let Code Mode read and change investigations: notebooks, cells and their runs, the agent workflow, and comments. Only takes effect where the investigation endpoints themselves would answer, i.e. with the organizations:investigations feature and open membership. Default is False.
     """
 
     def __init__(
@@ -327,11 +329,13 @@ class SeerAgentClient:
         enable_bash_mode: bool = False,
         enable_coding: bool = False,
         enable_pr_context_tools: bool = False,
+        enable_write_pull_request: bool = False,
         enable_code_mode_tools: str = "off",
         code_review_enabled: bool = False,
         max_iterations: int | None = None,
         enable_embeds: bool = True,
         enable_streaming: bool | None = None,
+        enable_investigation_tools: bool = False,
     ):
         self.organization = organization
         self.user = user
@@ -365,6 +369,12 @@ class SeerAgentClient:
         self.enable_coding = enable_coding
 
         self.enable_pr_context_tools = enable_pr_context_tools
+        self.enable_write_pull_request = enable_write_pull_request
+        # The same gate the investigation endpoints apply, so Code Mode isn't handed
+        # operations that would only 404.
+        self.enable_investigation_tools = enable_investigation_tools and has_investigations_access(
+            organization, actor=user
+        )
 
         self.viewer_context = self._build_viewer_context()
 
@@ -435,7 +445,9 @@ class SeerAgentClient:
             "enable_code_mode_tools": self.enable_code_mode_tools,
             "code_review_enabled": self.code_review_enabled,
             "enable_pr_context_tools": self.enable_pr_context_tools,
+            "enable_write_pull_request": self.enable_write_pull_request,
             "enable_bash_mode": self.enable_bash_mode,
+            "enable_investigation_tools": self.enable_investigation_tools,
         }
 
         chat_body: AgentChatRequest = AgentChatRequest(
@@ -787,6 +799,9 @@ class SeerAgentClient:
             "enable_code_mode_tools": self.enable_code_mode_tools,
             "code_review_enabled": self.code_review_enabled,
             "enable_pr_context_tools": self.enable_pr_context_tools,
+            "enable_write_pull_request": self.enable_write_pull_request,
+            "enable_bash_mode": self.enable_bash_mode,
+            "enable_investigation_tools": self.enable_investigation_tools,
             "enable_assisted_query_code_mode": self.enable_assisted_query_code_mode,
         }
 
@@ -987,6 +1002,7 @@ class SeerAgentClient:
         poll_interval: float = 2.0,
         poll_timeout: float = 120.0,
         author: SeerCommitAuthor | None = None,
+        allow_force_push: bool = True,
     ) -> SeerRunState | None:
         """
         Push code changes to PR(s) and wait for completion.
@@ -1000,6 +1016,7 @@ class SeerAgentClient:
             poll_interval: Seconds between polls
             poll_timeout: Maximum seconds to wait
             author: Git commit author; None lets Seer pick one
+            allow_force_push: Overwrite the branch if it has commits Seer didn't push
 
         Returns:
             SeerRunState: Final state with PR info
@@ -1019,6 +1036,7 @@ class SeerAgentClient:
             "type": "create_pr",
             "ready_for_review": ready_for_review,
             "verify_content": verify_content,
+            "allow_force_push": allow_force_push,
             # Include an idempotency key in the request so that if
             # the request is retried by anything, it will not create duplicate PRs
             # This is regenerated per attempt to permit retries.

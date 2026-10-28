@@ -6,13 +6,11 @@ import {MessageRow, ThinkingBlock} from '@sentry/scraps/chat';
 import {Container} from '@sentry/scraps/layout';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
-import {AgentWriteApprovalProvider} from 'sentry/components/seer/markdown/embeds/components/agentWriteApproval';
 import {t} from 'sentry/locale';
 import {callRecordLabel, visibleCallRecords} from 'sentry/views/seerExplorer/callRecords';
 import type {
   Block,
   PendingUserInput,
-  RespondToUserInputOptions,
   SeerExplorerRunId,
 } from 'sentry/views/seerExplorer/types';
 import {getToolsStringFromBlock} from 'sentry/views/seerExplorer/utils';
@@ -145,11 +143,6 @@ interface ResponseGroupProps {
   latestTodos?: LatestTodos | null;
   pendingInput?: PendingUserInput | null;
   readOnly?: boolean;
-  respondToUserInput?: (
-    inputId: string,
-    responseData?: Record<string, unknown>,
-    options?: RespondToUserInputOptions
-  ) => void;
   runId?: SeerExplorerRunId;
   showThinking?: boolean;
 }
@@ -186,7 +179,6 @@ export const ResponseGroup = memo(function ResponseGroup({
   interactionPending,
   pendingInput,
   readOnly,
-  respondToUserInput,
   runId,
   showThinking,
 }: ResponseGroupProps) {
@@ -222,74 +214,67 @@ export const ResponseGroup = memo(function ResponseGroup({
   return (
     <Container width="100%" position="relative" flexShrink={0} data-block-wrapper="">
       <motion.div initial={{opacity: 0, x: 10}} animate={{opacity: 1, x: 0}}>
-        <AgentWriteApprovalProvider
-          pendingInput={pendingInput ?? null}
-          readOnly={readOnly ?? false}
-          respondToUserInput={respondToUserInput}
-        >
-          {active || hasTrace ? (
-            <MessageRow from="assistant" density="compact">
-              <ThinkingBlock
-                title={deriveThinkingTitle(group)}
-                startTime={startTime}
-                endTime={endTime}
-              >
-                {/* `hasTrace`, not `active`: an active response with nothing to show yet still
+        {active || hasTrace ? (
+          <MessageRow from="assistant" density="compact">
+            <ThinkingBlock
+              title={deriveThinkingTitle(group)}
+              startTime={startTime}
+              endTime={endTime}
+            >
+              {/* `hasTrace`, not `active`: an active response with nothing to show yet still
                     maps to a non-empty array of blocks that each render nothing, and an array is
                     truthy, so ThinkingBlock would open its bordered panel around no content. */}
-                {hasTrace
-                  ? group.map((block, i) => {
-                      const isAnswer = block === answer;
-                      // A block's own tool calls render after its thinking, so they count as
-                      // "after"; "before" is an earlier block's tool calls. Thinking that is
-                      // flanked on both sides gets extra breathing room to set it apart;
-                      // leading/trailing thinking does not, so it stays tight against the answer
-                      // or the block edge.
-                      const toolCallBefore = group
-                        .slice(0, i)
-                        .some(b => Boolean(b.message.tool_calls?.length));
-                      const toolCallAtOrAfter = group
-                        .slice(i)
-                        .some(b => Boolean(b.message.tool_calls?.length));
-                      const thinkingBetweenToolCalls =
-                        toolCallBefore && toolCallAtOrAfter;
-                      return (
-                        <Fragment key={block.id}>
-                          {showThinking &&
-                            hasValidContent(block.message.thinking_content) && (
-                              <ThinkingProse data-spaced={thinkingBetweenToolCalls}>
-                                <SeerMarkdown raw={block.message.thinking_content} />
-                              </ThinkingProse>
-                            )}
-                          {!isAnswer && hasValidContent(block.message.content) && (
-                            <SeerMarkdown raw={block.message.content} />
+              {hasTrace
+                ? group.map((block, i) => {
+                    const isAnswer = block === answer;
+                    // A block's own tool calls render after its thinking, so they count as
+                    // "after"; "before" is an earlier block's tool calls. Thinking that is
+                    // flanked on both sides gets extra breathing room to set it apart;
+                    // leading/trailing thinking does not, so it stays tight against the answer
+                    // or the block edge.
+                    const toolCallBefore = group
+                      .slice(0, i)
+                      .some(b => Boolean(b.message.tool_calls?.length));
+                    const toolCallAtOrAfter = group
+                      .slice(i)
+                      .some(b => Boolean(b.message.tool_calls?.length));
+                    const thinkingBetweenToolCalls = toolCallBefore && toolCallAtOrAfter;
+                    return (
+                      <Fragment key={block.id}>
+                        {showThinking &&
+                          hasValidContent(block.message.thinking_content) && (
+                            <ThinkingProse data-spaced={thinkingBetweenToolCalls}>
+                              <SeerMarkdown raw={block.message.thinking_content} />
+                            </ThinkingProse>
                           )}
-                          {block.message.tool_calls ? (
-                            <ToolCallList
-                              block={block}
-                              latestTodos={latestTodos}
-                              getPageReferrer={getPageReferrer}
-                            />
-                          ) : null}
-                        </Fragment>
-                      );
-                    })
-                  : null}
-              </ThinkingBlock>
-            </MessageRow>
-          ) : null}
+                        {!isAnswer && hasValidContent(block.message.content) && (
+                          <SeerMarkdown raw={block.message.content} />
+                        )}
+                        {block.message.tool_calls ? (
+                          <ToolCallList
+                            block={block}
+                            latestTodos={latestTodos}
+                            getPageReferrer={getPageReferrer}
+                          />
+                        ) : null}
+                      </Fragment>
+                    );
+                  })
+                : null}
+            </ThinkingBlock>
+          </MessageRow>
+        ) : null}
 
-          {settledAnswer ? (
-            <AssistantBlock
-              block={settledAnswer}
-              blockIndex={blockIndex + group.length - 1}
-              runId={runId}
-              interactionPending={interactionPending}
-              readOnly={readOnly}
-              compact={hasTrace}
-            />
-          ) : null}
-        </AgentWriteApprovalProvider>
+        {settledAnswer ? (
+          <AssistantBlock
+            block={settledAnswer}
+            blockIndex={blockIndex + group.length - 1}
+            runId={runId}
+            interactionPending={interactionPending}
+            readOnly={readOnly}
+            compact={hasTrace}
+          />
+        ) : null}
       </motion.div>
     </Container>
   );

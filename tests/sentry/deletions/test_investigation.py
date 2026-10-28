@@ -1,6 +1,7 @@
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.investigations.models import (
     Investigation,
+    InvestigationActionRequest,
     InvestigationBlock,
     InvestigationBlockDependency,
     InvestigationBlockExecution,
@@ -56,6 +57,9 @@ class DeleteInvestigationTest(TransactionTestCase, HybridCloudTestMixin):
         self.block_comment = self.create_investigation_comment(
             investigation=self.investigation, author=self.user, block=self.block
         )
+        self.action_request = self.create_investigation_action_request(
+            investigation=self.investigation
+        )
 
         self.execution = self.create_investigation_block_execution(
             block=self.block, executor="manual", block_version=1, input_fingerprint="f" * 64
@@ -80,6 +84,7 @@ class DeleteInvestigationTest(TransactionTestCase, HybridCloudTestMixin):
         assert not InvestigationComment.objects.filter(
             id__in=[self.comment.id, self.block_comment.id]
         ).exists()
+        assert not InvestigationActionRequest.objects.filter(id=self.action_request.id).exists()
         assert not InvestigationParameter.objects.filter(id=self.parameter.id).exists()
         assert not InvestigationBlock.objects.filter(
             id__in=[self.block.id, self.upstream_block.id]

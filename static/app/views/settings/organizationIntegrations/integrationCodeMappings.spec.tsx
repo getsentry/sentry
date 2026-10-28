@@ -10,6 +10,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
@@ -88,6 +89,67 @@ describe('IntegrationCodeMappings', () => {
     }
   });
 
+  it('renders each code mapping in column order when the mappings load', async () => {
+    render(<IntegrationCodeMappings integration={integration} />);
+
+    const table = screen.getByRole('table', {name: 'Code Mappings'});
+    const row = await within(table).findByRole('row', {name: /stack\/root/});
+
+    expect(
+      within(table)
+        .getAllByRole('columnheader')
+        .map(header => header.textContent)
+    ).toEqual([
+      'Code Mappings',
+      'Stack Trace Root',
+      'Source Code Root',
+      'Add Code Mapping',
+    ]);
+    expect(
+      within(row)
+        .getAllByRole('cell')
+        .map(cell => cell.textContent)
+    ).toEqual([
+      `${pathConfig1.repoName}${projects[0]!.slug}\u00A0|\u00A0${pathConfig1.defaultBranch}`,
+      'stack/root',
+      'source/root',
+      '',
+    ]);
+    expect(within(table).getByRole('row', {name: /one\/path/})).toBeInTheDocument();
+  });
+
+  it('renders an empty message when there are no code mappings', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/code-mappings/`,
+      body: [],
+    });
+
+    render(<IntegrationCodeMappings integration={integration} />);
+
+    expect(
+      await screen.findByText('Set up stack trace linking by adding a code mapping.')
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'View Documentation'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Add Code Mapping'})).toBeEnabled();
+  });
+
+  it('renders an error with a retry when the code mappings request fails', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/code-mappings/`,
+      statusCode: 500,
+    });
+
+    render(<IntegrationCodeMappings integration={integration} />);
+
+    const table = screen.getByRole('table', {name: 'Code Mappings'});
+
+    expect(
+      await within(table).findByText('Error loading code mappings')
+    ).toBeInTheDocument();
+    expect(within(table).getByRole('button', {name: 'Retry'})).toBeInTheDocument();
+    expect(within(table).getByRole('button', {name: 'Add Code Mapping'})).toBeDisabled();
+  });
+
   it('create new config', async () => {
     const stackRoot = 'my/root';
     const sourceRoot = 'hey/dude';
@@ -108,7 +170,8 @@ describe('IntegrationCodeMappings', () => {
     render(<IntegrationCodeMappings integration={integration} />);
     const {waitForModalToHide} = renderGlobalModal();
 
-    await userEvent.click(await screen.findByRole('button', {name: 'Add Code Mapping'}));
+    await screen.findByText(pathConfig1.repoName);
+    await userEvent.click(screen.getByRole('button', {name: 'Add Code Mapping'}));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
 
     await selectEvent.select(
@@ -206,7 +269,8 @@ describe('IntegrationCodeMappings', () => {
     render(<IntegrationCodeMappings integration={integration} />);
     renderGlobalModal();
 
-    await userEvent.click(await screen.findByRole('button', {name: 'Add Code Mapping'}));
+    await screen.findByText(pathConfig1.repoName);
+    await userEvent.click(screen.getByRole('button', {name: 'Add Code Mapping'}));
     expect(screen.getByRole('textbox', {name: 'Branch'})).toHaveValue('main');
 
     await selectEvent.select(screen.getByText('Choose repo'), repos[1]!.name);
@@ -243,5 +307,35 @@ describe('IntegrationCodeMappings', () => {
 
     expect(screen.queryByText(pathConfig1.repoName)).not.toBeInTheDocument();
     expect(screen.getByText(pathConfig2.repoName)).toBeInTheDocument();
+  });
+
+  it('shows the moving banner when code-mappings-refactor flag is on', async () => {
+    const orgWithFlag = OrganizationFixture({features: ['code-mappings-refactor']});
+    render(<IntegrationCodeMappings integration={integration} />, {
+      organization: orgWithFlag,
+    });
+
+    expect(
+      await screen.findByText(/Code mappings are moving to the/)
+    ).toBeInTheDocument();
+
+    const projectSettingsLink = screen.getByRole('link', {
+      name: "each project's settings",
+    });
+    expect(projectSettingsLink).toHaveAttribute(
+      'href',
+      `/settings/${orgWithFlag.slug}/projects/`
+    );
+
+    const reposLink = screen.getByRole('link', {name: 'Repositories'});
+    expect(reposLink).toHaveAttribute('href', `/settings/${orgWithFlag.slug}/repos/`);
+  });
+
+  it('does not show the moving banner when code-mappings-refactor flag is off', async () => {
+    render(<IntegrationCodeMappings integration={integration} />, {organization: org});
+
+    // Wait for the page to finish loading before asserting absence
+    expect(await screen.findByText(repos[0]!.name)).toBeInTheDocument();
+    expect(screen.queryByText(/Code mappings are moving to the/)).not.toBeInTheDocument();
   });
 });

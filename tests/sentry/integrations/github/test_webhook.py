@@ -3,8 +3,10 @@ from typing import cast
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
+import pytest
 import responses
-from django.test import override_settings
+from django.conf import settings
+from django.test import Client, override_settings
 
 from fixtures.github import (
     INSTALLATION_API_RESPONSE,
@@ -61,7 +63,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.analytics import assert_analytics_events
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, no_silo_test
 from sentry.types.activity import ActivityType
 from sentry.utils import json
 
@@ -119,19 +121,23 @@ class WebhookTest(APITestCase):
         )
 
     @patch("sentry.integrations.github.webhook.metrics")
-    @patch.object(GitHubIntegrationsWebhookEndpoint, "get_secret", return_value=None)
-    def test_missing_secret_emits_hmac_failure_metric(
-        self, mock_get_secret: MagicMock, mock_metrics: MagicMock
-    ) -> None:
-        self.client.post(
+    def test_missing_secret_rejects_empty_key_signature(self, mock_metrics: MagicMock) -> None:
+        options.delete("github-app.webhook-secret")
+        assert not options.get("github-app.webhook-secret")
+
+        signature = GitHubIntegrationsWebhookEndpoint.compute_signature(
+            "sha1", PUSH_EVENT_EXAMPLE_INSTALLATION.encode("utf-8"), ""
+        )
+        response = self.client.post(
             path=self.url,
             data=PUSH_EVENT_EXAMPLE_INSTALLATION,
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="push",
-            HTTP_X_HUB_SIGNATURE="sha1=2b116e7c1f7510b62727673b0f9acc0db951263a",
+            HTTP_X_HUB_SIGNATURE=f"sha1={signature}",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
+        assert response.status_code == 401
         mock_metrics.incr.assert_called_with(
             "github.webhook.hmac_failure",
             tags={"reason": "missing_secret"},
@@ -148,6 +154,124 @@ class WebhookTest(APITestCase):
         )
 
         assert response.status_code == 400
+
+
+@pytest.mark.django_db(databases=["default", "control"])
+class TestWebhookCredentialSources:
+    @no_silo_test
+    @pytest.mark.parametrize(
+        "database_options,deployment_options,setting_secret,effective_secret,rejected_secret",
+        [
+            (
+                {"github-app.webhook-secret": "database-secret"},
+                {},
+                "",
+                "database-secret",
+                "incorrect-secret",
+            ),
+            (
+                {},
+                {"github-app.webhook-secret": "deployment-secret"},
+                "",
+                "deployment-secret",
+                "incorrect-secret",
+            ),
+            (
+                {"github-app.webhook-secret": "shared-secret"},
+                {"github-app.webhook-secret": "shared-secret"},
+                "shared-secret",
+                "shared-secret",
+                "incorrect-secret",
+            ),
+            (
+                {"github-app.webhook-secret": "database-secret"},
+                {"github-app.webhook-secret": "deployment-secret"},
+                "deployment-secret",
+                "database-secret",
+                "deployment-secret",
+            ),
+        ],
+        ids=["database-only", "legacy-deployment-only", "matching-dual", "database-wins"],
+    )
+    @pytest.mark.parametrize(
+        "method,signature_header",
+        [("sha1", "X-Hub-Signature"), ("sha256", "X-Hub-Signature-256")],
+    )
+    def test_legacy_effective_secret_authenticates(
+        self,
+        client: Client,
+        database_options: dict[str, str],
+        deployment_options: dict[str, str],
+        setting_secret: str,
+        effective_secret: str,
+        rejected_secret: str,
+        method: str,
+        signature_header: str,
+    ) -> None:
+        options.delete("github-app.webhook-secret")
+        for key, value in database_options.items():
+            options.set(key, value)
+        deployment = {
+            key: value
+            for key, value in settings.SENTRY_OPTIONS.items()
+            if key != "github-app.webhook-secret"
+        }
+        deployment.update(deployment_options)
+        body = b"invalid-json"
+        valid_signature = GitHubIntegrationsWebhookEndpoint.compute_signature(
+            method, body, effective_secret
+        )
+        invalid_signature = GitHubIntegrationsWebhookEndpoint.compute_signature(
+            method, body, rejected_secret
+        )
+
+        with override_settings(
+            SENTRY_OPTIONS=deployment,  # noqa: S011
+            SENTRY_GITHUB_APP_WEBHOOK_SECRET=setting_secret,
+        ):
+            accepted = client.post(
+                "/extensions/github/webhook/",
+                data=body,
+                content_type="application/json",
+                HTTP_X_GITHUB_EVENT="push",
+                headers={signature_header: f"{method}={valid_signature}"},
+            )
+            rejected = client.post(
+                "/extensions/github/webhook/",
+                data=body,
+                content_type="application/json",
+                HTTP_X_GITHUB_EVENT="push",
+                headers={signature_header: f"{method}={invalid_signature}"},
+            )
+
+        assert accepted.status_code == 400
+        assert rejected.status_code == 401
+
+    @no_silo_test
+    @pytest.mark.parametrize(
+        "method,signature_header",
+        [("sha1", "X-Hub-Signature"), ("sha256", "X-Hub-Signature-256")],
+    )
+    def test_missing_legacy_secret_rejects_empty_key_signature(
+        self, client: Client, method: str, signature_header: str
+    ) -> None:
+        options.delete("github-app.webhook-secret")
+        body = b"invalid-json"
+        signature = GitHubIntegrationsWebhookEndpoint.compute_signature(method, body, "")
+
+        with override_settings(
+            SENTRY_OPTIONS={**settings.SENTRY_OPTIONS, "github-app.webhook-secret": ""},  # noqa: S011
+            SENTRY_GITHUB_APP_WEBHOOK_SECRET="",
+        ):
+            response = client.post(
+                "/extensions/github/webhook/",
+                data=body,
+                content_type="application/json",
+                HTTP_X_GITHUB_EVENT="push",
+                headers={signature_header: f"{method}={signature}"},
+            )
+
+        assert response.status_code == 401
 
 
 class SCMOnlyWebhookTest(APITestCase):
@@ -1115,8 +1239,8 @@ class PushEventWebhookTest(APITestCase):
         ctx = captured_contexts[0]
         assert ctx is not None
         assert ctx.organization_id == self.project.organization.id
-        assert ctx.actor_type == ActorType.INTEGRATION
-        assert ctx.user_id is None
+        assert ctx.actor.type == ActorType.INTEGRATION
+        assert ctx.actor.actor_id is None
 
     @responses.activate
     @patch("sentry.integrations.github.webhook.metrics")
@@ -1865,24 +1989,23 @@ class PullRequestEventWebhookTest(APITestCase):
         repo = self._create_integration_and_repo()
         fixes_body = f"Fixes {group.qualified_short_id}"
 
-        with self.feature("organizations:pr-lifecycle-activity"):
-            opened = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
-            opened["pull_request"]["body"] = fixes_body
-            opened["pull_request"]["updated_at"] = "2015-05-05T23:40:00Z"
-            self._post_pull_request_event(json.dumps(opened).encode())
+        opened = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+        opened["pull_request"]["body"] = fixes_body
+        opened["pull_request"]["updated_at"] = "2015-05-05T23:40:00Z"
+        self._post_pull_request_event(json.dumps(opened).encode())
 
-            merged = json.loads(PULL_REQUEST_CLOSED_EVENT_EXAMPLE)
-            merged["pull_request"]["body"] = fixes_body
-            merged["pull_request"]["updated_at"] = "2015-05-05T23:45:00Z"
-            merged["pull_request"]["closed_at"] = "2015-05-05T23:45:00Z"
-            merged["pull_request"]["merged_at"] = "2015-05-05T23:45:00Z"
-            self._post_pull_request_event(json.dumps(merged).encode())
+        merged = json.loads(PULL_REQUEST_CLOSED_EVENT_EXAMPLE)
+        merged["pull_request"]["body"] = fixes_body
+        merged["pull_request"]["updated_at"] = "2015-05-05T23:45:00Z"
+        merged["pull_request"]["closed_at"] = "2015-05-05T23:45:00Z"
+        merged["pull_request"]["merged_at"] = "2015-05-05T23:45:00Z"
+        self._post_pull_request_event(json.dumps(merged).encode())
 
-            stale = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
-            stale["action"] = "synchronize"
-            stale["pull_request"]["body"] = "no issue reference yet"
-            stale["pull_request"]["updated_at"] = "2015-05-05T23:41:00Z"
-            self._post_pull_request_event(json.dumps(stale).encode())
+        stale = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+        stale["action"] = "synchronize"
+        stale["pull_request"]["body"] = "no issue reference yet"
+        stale["pull_request"]["updated_at"] = "2015-05-05T23:41:00Z"
+        self._post_pull_request_event(json.dumps(stale).encode())
 
         pr = PullRequest.objects.get(
             repository_id=repo.id, organization_id=self.project.organization.id, key="1"
@@ -2144,42 +2267,41 @@ class PullRequestEventWebhookTest(APITestCase):
     ) -> None:
         group = self.create_group(project=self.project, short_id=7)
 
-        with self.feature("organizations:pr-lifecycle-activity"):
-            integration = self._create_integration_and_send_pull_request_opened_event()
-            self.create_external_user(
-                user=self.user,
-                organization=self.organization,
-                integration=integration,
-                provider=ExternalProviders.GITHUB.value,
-                external_name="@octocat",
-                external_id="583231",
-            )
-            other_user = self.create_user(email="other@example.com")
-            self.create_member(organization=self.organization, user=other_user)
-            self.create_external_user(
-                user=other_user,
-                organization=self.organization,
-                integration=integration,
-                provider=ExternalProviders.GITHUB.value,
-                external_name="@octocat",
-                external_id="999999",
-            )
+        integration = self._create_integration_and_send_pull_request_opened_event()
+        self.create_external_user(
+            user=self.user,
+            organization=self.organization,
+            integration=integration,
+            provider=ExternalProviders.GITHUB.value,
+            external_name="@octocat",
+            external_id="583231",
+        )
+        other_user = self.create_user(email="other@example.com")
+        self.create_member(organization=self.organization, user=other_user)
+        self.create_external_user(
+            user=other_user,
+            organization=self.organization,
+            integration=integration,
+            provider=ExternalProviders.GITHUB.value,
+            external_name="@octocat",
+            external_id="999999",
+        )
 
-            closed = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
-            closed["action"] = "closed"
-            closed["pull_request"]["state"] = "closed"
-            closed["sender"] = {"id": 583231, "login": "octocat"}
-            self._post_pull_request_event(json.dumps(closed).encode())
+        closed = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+        closed["action"] = "closed"
+        closed["pull_request"]["state"] = "closed"
+        closed["sender"] = {"id": 583231, "login": "octocat"}
+        self._post_pull_request_event(json.dumps(closed).encode())
 
-            reopened = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
-            reopened["action"] = "reopened"
-            reopened["sender"] = {"id": 583231, "login": "octocat"}
-            self._post_pull_request_event(json.dumps(reopened).encode())
+        reopened = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+        reopened["action"] = "reopened"
+        reopened["sender"] = {"id": 583231, "login": "octocat"}
+        self._post_pull_request_event(json.dumps(reopened).encode())
 
-            merged = json.loads(PULL_REQUEST_CLOSED_EVENT_EXAMPLE)
-            merged["pull_request"]["body"] = f"Fixes {group.qualified_short_id}"
-            merged["pull_request"]["merged_by"] = {"id": 583231, "login": "octocat"}
-            self._post_pull_request_event(json.dumps(merged).encode())
+        merged = json.loads(PULL_REQUEST_CLOSED_EVENT_EXAMPLE)
+        merged["pull_request"]["body"] = f"Fixes {group.qualified_short_id}"
+        merged["pull_request"]["merged_by"] = {"id": 583231, "login": "octocat"}
+        self._post_pull_request_event(json.dumps(merged).encode())
 
         closed_activity = Activity.objects.get(
             group=group,

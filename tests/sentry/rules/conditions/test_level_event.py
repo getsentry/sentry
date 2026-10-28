@@ -1,6 +1,6 @@
 from sentry.rules.conditions.level import LevelCondition
-from sentry.rules.match import MatchType
 from sentry.testutils.cases import RuleTestCase
+from sentry.workflow_engine.handlers.condition.utils.match import MatchType
 
 
 class LevelConditionTest(RuleTestCase):

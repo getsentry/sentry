@@ -120,7 +120,7 @@ export type HydratedReplayRecord = {
   };
   warning_ids: string[];
 };
-type ArchivedReplayRecord = {
+export type ArchivedReplayRecord = {
   activity: null;
   browser: {
     name: null;

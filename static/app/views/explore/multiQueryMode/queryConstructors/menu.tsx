@@ -1,7 +1,8 @@
-import {Button} from '@sentry/scraps/button';
-import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 
-import {IconEllipsis} from 'sentry/icons/iconEllipsis';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {t} from 'sentry/locale';
 import {
   useDeleteQueryAtIndex,
@@ -33,7 +34,7 @@ export function MenuSection({index, totalQueryRows}: Props) {
         },
       ]}
       trigger={triggerProps => (
-        <Button
+        <OverlayTrigger.IconButton
           {...triggerProps}
           aria-label={t('More options')}
           icon={<IconEllipsis size="xs" />}

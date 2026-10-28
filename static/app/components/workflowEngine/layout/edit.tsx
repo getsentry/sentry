@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import type {CSS} from '@sentry/scraps/cssTypes';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -13,6 +13,7 @@ import {
 } from 'sentry/components/workflowEngine/form/fullHeightForm';
 import {StickyFooter} from 'sentry/components/workflowEngine/ui/footer';
 import type {AvatarProject} from 'sentry/types/project';
+import {TopBar} from 'sentry/views/navigation/topBar';
 
 interface EditLayoutProps {
   /**
@@ -49,15 +50,8 @@ const StyledLayoutHeader = styled(Layout.Header)`
   background-color: ${p => p.theme.tokens.background.primary};
 `;
 
-const HeaderInner = styled('div')<{maxWidth?: string}>`
-  display: contents;
-
-  @container (min-width: ${p => p.theme.container['3xl']}) {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    max-width: ${p => p.maxWidth};
-    width: 100%;
-  }
+const HeaderInner = styled(Container)`
+  grid-template-columns: minmax(0, 1fr) auto;
 `;
 
 interface RequiredChildren {
@@ -68,10 +62,20 @@ interface HeaderProps extends RequiredChildren {
   noActionWrap?: boolean;
 }
 
-function Header({children, noActionWrap, maxWidth}: HeaderProps & {maxWidth?: string}) {
+function Header({
+  children,
+  noActionWrap,
+  maxWidth,
+}: HeaderProps & {maxWidth?: CSS['maxWidth']}) {
   return (
     <StyledLayoutHeader noActionWrap={noActionWrap}>
-      <HeaderInner maxWidth={maxWidth}>{children}</HeaderInner>
+      <HeaderInner
+        display={{zero: 'contents', '3xl': 'grid'}}
+        maxWidth={maxWidth}
+        width="100%"
+      >
+        {children}
+      </HeaderInner>
     </StyledLayoutHeader>
   );
 }
@@ -83,7 +87,7 @@ function HeaderContent({children}: RequiredChildren) {
 function Title({title, project}: {title: string; project?: AvatarProject}) {
   return (
     <Stack gap="md">
-      <Layout.Title>{title}</Layout.Title>
+      <TopBar.Slot name="breadcrumbs" title={{type: 'page-title', label: title}} />
       {project && <ProjectBadge project={project} disableLink avatarSize={16} />}
     </Stack>
   );

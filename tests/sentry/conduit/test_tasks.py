@@ -1,5 +1,6 @@
 import datetime
 import re
+import time
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -256,9 +257,12 @@ class StreamDemoDataTest(TestCase):
         CONDUIT_PUBLISH_JWT_AUDIENCE="conduit",
         CONDUIT_PUBLISH_URL="http://localhost:9093",
     )
-    @patch("sentry.conduit.tasks.time.sleep")
-    def test_stream_demo_data_sends_all_phases(self, mock_sleep):
+    # Patch the module's own `time` reference. Patching `time.sleep` would also count the sleeps of
+    # every other thread in the test process.
+    @patch("sentry.conduit.tasks.time")
+    def test_stream_demo_data_sends_all_phases(self, mock_time):
         """Test that stream_demo_data sends START, DELTA, and END phases."""
+        mock_time.time.side_effect = time.time
         org_id = 123
         channel_id = str(uuid4())
 
@@ -271,7 +275,7 @@ class StreamDemoDataTest(TestCase):
         stream_demo_data(org_id=org_id, channel_id=channel_id)
 
         assert len(responses.calls) == NUM_DELTAS + 2
-        assert mock_sleep.call_count == NUM_DELTAS
+        assert mock_time.sleep.call_count == NUM_DELTAS
 
     @responses.activate
     @override_settings(
@@ -280,9 +284,13 @@ class StreamDemoDataTest(TestCase):
         CONDUIT_PUBLISH_JWT_AUDIENCE="conduit",
         CONDUIT_PUBLISH_URL="http://localhost:9093",
     )
-    @patch("sentry.conduit.tasks.time.sleep")
-    def test_stream_demo_data_stops_on_exhausted_retries(self, mock_sleep):
+    # Patch the module-local `time` references (the task's and the retry policy's) rather than
+    # `time.sleep`, which would replace sleep for every thread in the test process.
+    @patch("sentry.utils.retries.time")
+    @patch("sentry.conduit.tasks.time")
+    def test_stream_demo_data_stops_on_exhausted_retries(self, mock_time, mock_retries_time):
         """Test that stream_demo_data stops streaming when a publish fails after max retries."""
+        mock_time.time.side_effect = time.time
         org_id = 123
         channel_id = str(uuid4())
 
@@ -305,3 +313,6 @@ class StreamDemoDataTest(TestCase):
             stream_demo_data(org_id=org_id, channel_id=channel_id)
 
         assert len(responses.calls) == 10 + PUBLISH_REQUEST_MAX_RETRIES
+        # START plus 9 deltas succeed, and the task sleeps after each delta.
+        assert mock_time.sleep.call_count == 9
+        assert mock_retries_time.sleep.call_count == PUBLISH_REQUEST_MAX_RETRIES - 1

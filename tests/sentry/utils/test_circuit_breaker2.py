@@ -4,7 +4,7 @@ from unittest import TestCase
 from unittest.mock import ANY, MagicMock, patch
 
 import time_machine
-from django.conf import settings
+from django.test import override_settings
 from redis.client import Pipeline
 
 from sentry.ratelimits.sliding_windows import (
@@ -129,7 +129,7 @@ class CircuitBreakerTest(TestCase):
         )
 
         # Clear all existing keys from redis
-        self.breaker.redis_pipeline.flushall()
+        self.breaker.redis_pipeline.flushdb()
         self.breaker.redis_pipeline.execute()
 
     def test_sets_default_values(self) -> None:
@@ -204,10 +204,10 @@ class CircuitBreakerTest(TestCase):
             (True, mock_logger.error),
             (False, mock_logger.warning),
         ]:
-            settings.DEBUG = settings_debug_value
-            breaker = MockCircuitBreaker(
-                "dogs_are_great", config, CountBasedTripStrategy.from_config(config)
-            )
+            with override_settings(DEBUG=settings_debug_value):
+                breaker = MockCircuitBreaker(
+                    "dogs_are_great", config, CountBasedTripStrategy.from_config(config)
+                )
 
             expected_log_function.assert_called_with(
                 "Circuit breaker '%s' has a recovery error limit (%d) greater than or equal"
@@ -232,10 +232,10 @@ class CircuitBreakerTest(TestCase):
             (True, mock_logger.error),
             (False, mock_logger.warning),
         ]:
-            settings.DEBUG = settings_debug_value
-            breaker = MockCircuitBreaker(
-                "dogs_are_great", config, CountBasedTripStrategy.from_config(config)
-            )
+            with override_settings(DEBUG=settings_debug_value):
+                breaker = MockCircuitBreaker(
+                    "dogs_are_great", config, CountBasedTripStrategy.from_config(config)
+                )
 
             expected_log_function.assert_called_with(
                 "Circuit breaker '%s' has BROKEN and RECOVERY state durations (%d and %d sec, respectively)"
@@ -261,7 +261,7 @@ class RecordErrorTest(TestCase):
         )
 
         # Clear all existing keys from redis
-        self.breaker.redis_pipeline.flushall()
+        self.breaker.redis_pipeline.flushdb()
         self.breaker.redis_pipeline.execute()
 
     def test_increments_error_count(self) -> None:
@@ -435,7 +435,7 @@ class ShouldAllowRequestTest(TestCase):
         )
 
         # Clear all existing keys from redis
-        self.breaker.redis_pipeline.flushall()
+        self.breaker.redis_pipeline.flushdb()
         self.breaker.redis_pipeline.execute()
 
     def test_allows_request_in_non_broken_state_with_quota_remaining(self) -> None:
@@ -516,7 +516,7 @@ class RateBasedCircuitBreakerTest(TestCase):
         )
 
         # Clear all existing keys from redis
-        self.breaker.redis_pipeline.flushall()
+        self.breaker.redis_pipeline.flushdb()
         self.breaker.redis_pipeline.execute()
 
     def test_sets_rate_based_defaults(self) -> None:
@@ -689,7 +689,7 @@ class RateBasedCircuitBreakerTest(TestCase):
         count_breaker = MockCircuitBreaker(
             "count_only", DEFAULT_CONFIG, CountBasedTripStrategy.from_config(DEFAULT_CONFIG)
         )
-        count_breaker.redis_pipeline.flushall()
+        count_breaker.redis_pipeline.flushdb()
         count_breaker.redis_pipeline.execute()
 
         assert isinstance(count_breaker.trip_strategy, CountBasedTripStrategy)

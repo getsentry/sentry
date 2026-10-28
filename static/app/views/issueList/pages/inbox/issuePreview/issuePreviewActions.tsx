@@ -1,215 +1,214 @@
-import {useQueryClient} from '@tanstack/react-query';
-import type {LocationDescriptor} from 'history';
+import type {ReactNode} from 'react';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconCopy} from '@sentry/icons/copy';
 
-import {LinkButton} from '@sentry/scraps/button';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {bulkUpdate} from 'sentry/actionCreators/group';
-import {addSuccessMessage, clearIndicators} from 'sentry/actionCreators/indicator';
+import type {ExplorerAutofixState} from 'sentry/components/events/autofix/useExplorerAutofix';
+import {findBestThread} from 'sentry/components/events/interfaces/threads/threadSelector/findBestThread';
 import {Placeholder} from 'sentry/components/placeholder';
+import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
-import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
-import {
-  GroupStatus,
-  ProgressState,
-  type Group,
-  type GroupStatusResolution,
-} from 'sentry/types/group';
+import {EntryType, type Event, type Thread} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {getUtcDateString} from 'sentry/utils/dates';
-import {getAnalyticsDataForGroup} from 'sentry/utils/events';
-import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {getAnalyicsDataForProject} from 'sentry/utils/projects';
-import {useApi} from 'sentry/utils/useApi';
-import {useLocation} from 'sentry/utils/useLocation';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {GroupActions} from 'sentry/views/issueDetails/actions/index';
 import {
-  GroupActions,
-  GroupResolutionActions,
-} from 'sentry/views/issueDetails/actions/index';
-import {useIssuePreviewSeer} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSeer';
-import {IssuePreviewSeerActions} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSeerActions';
+  issueAndEventToMarkdown,
+  useActiveThreadId,
+} from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
+import {
+  PullRequestButtons,
+  useIssuePreviewPullRequests,
+} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewPullRequests';
+import {useInvalidateInboxQueries} from 'sentry/views/issueList/pages/inbox/useInvalidateInboxQueries';
 
-function shouldShowFixAppliedActions(group: Group, project: Project) {
-  return (
-    group.derivedData?.progress === ProgressState.FIX_APPLIED &&
-    getConfigForIssueType(group, project).actions.resolve.enabled
-  );
-}
+import {getCodingAgentLinks, type LocalCodingAgent} from './codingAgentLinks';
+import {getIssueSummaryText, type IssueSummary} from './issuePreviewSummary';
 
-interface IssuePreviewActionsProps {
-  group: Group;
-  onContinueInSeer: () => void;
-  onRetryCodeChanges: () => void;
-  project: Project;
-  disabled?: boolean;
-}
-
-export function OpenIssueButton({
-  group,
-  to,
-  size = 'xs',
-}: {
-  group: Group;
-  to: LocationDescriptor;
-  size?: 'xs' | 'sm';
-}) {
-  return (
-    <LinkButton
-      to={to}
-      size={size}
-      analyticsEventKey="issue_inbox.open_issue_clicked"
-      analyticsEventName="Issue Inbox: Open Issue Clicked"
-      analyticsParams={{
-        group_id: group.id,
-        progress: group.derivedData?.progress,
-        source: 'button',
-      }}
-    >
-      {t('Open Issue')}
-    </LinkButton>
-  );
-}
-
-function IssueResolutionActions({
-  disabled,
-  group,
-  project,
-  variant = 'primary',
-}: {
+interface CopyAsMarkdownDropdownProps {
   disabled: boolean;
+  event: Event | undefined;
   group: Group;
+  isEventLoading: boolean;
+  autofixData?: ExplorerAutofixState | null;
+  autofixFormatted?: string | null;
+  summary?: IssueSummary;
+}
+
+interface IssuePreviewActionsProps extends CopyAsMarkdownDropdownProps {
   project: Project;
-  variant?: 'primary' | 'secondary';
-}) {
-  const api = useApi({persistInFlight: true});
+}
+
+function CopyAsMarkdownDropdown({
+  group,
+  disabled,
+  event,
+  isEventLoading,
+  autofixData,
+  autofixFormatted,
+  summary,
+}: CopyAsMarkdownDropdownProps) {
   const organization = useOrganization();
-  const location = useLocation();
-  const queryClient = useQueryClient();
-  async function handleUpdate(data: GroupStatusResolution) {
-    const {alert_date, alert_rule_id, alert_type} = location.query;
-    trackAnalytics('issue_inbox.resolve_clicked', {
+  const {copy} = useCopyToClipboard();
+  const activeThreadId = useActiveThreadId();
+
+  const {description, trace} = getIssueSummaryText(summary);
+  const agentLinks = getCodingAgentLinks(group, description);
+
+  function handleCopy() {
+    const threads: Thread[] =
+      event?.entries.find(entry => entry.type === EntryType.THREADS)?.data.values ?? [];
+    let markdown = issueAndEventToMarkdown({
+      group,
+      event,
       organization,
-      action_type: data.status,
-      action_substatus: data.substatus ?? undefined,
-      action_status_details: Object.keys(data.statusDetails || {})[0],
-      alert_date:
-        typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
-      alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
-      alert_type: typeof alert_type === 'string' ? alert_type : undefined,
-      ...getAnalyticsDataForGroup(group),
-      ...getAnalyicsDataForProject(project),
-      org_streamline_only: organization.streamlineOnly ?? undefined,
+      autofixData,
+      autofixFormatted,
+      activeThreadId: (
+        threads.find(thread => thread.id === activeThreadId) ?? findBestThread(threads)
+      )?.id,
     });
-
-    try {
-      await bulkUpdate(api, {
-        orgId: organization.slug,
-        projectId: project.slug,
-        itemIds: [group.id],
-        data,
-      });
-      clearIndicators();
-      addSuccessMessage(
-        data.status === GroupStatus.UNRESOLVED
-          ? t('Issue marked unresolved')
-          : t('Issue resolved')
-      );
-      IssueListCacheStore.reset();
-      const issueListUrl = getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
-        path: {organizationIdOrSlug: organization.slug},
-      });
-      const issueCountUrl = getApiUrl(
-        '/organizations/$organizationIdOrSlug/issues-count/',
-        {path: {organizationIdOrSlug: organization.slug}}
-      );
-      const issueUrl = getApiUrl(
-        '/organizations/$organizationIdOrSlug/issues/$issueId/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            issueId: group.id,
-          },
-        }
-      );
-      const issueActivitiesUrl = getApiUrl(
-        '/organizations/$organizationIdOrSlug/issues/$issueId/activities/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            issueId: group.id,
-          },
-        }
-      );
-      void queryClient.invalidateQueries({
-        predicate: query => {
-          const url = safeParseQueryKey(query.queryKey)?.url;
-
-          return (
-            url === issueListUrl ||
-            url === issueCountUrl ||
-            url === issueUrl ||
-            url === issueActivitiesUrl
-          );
-        },
-      });
-    } catch {
-      // GroupStore already shows the error
+    if (description) {
+      markdown += `\n\n## Summary\n\n${description}`;
     }
+    if (trace) {
+      markdown += `\n\n## In the trace\n\n${trace}`;
+    }
+    void copy(markdown, {
+      successMessage: t('Copied issue to clipboard as Markdown'),
+    });
   }
 
+  const analyticsParams = {
+    groupId: group.id,
+    eventId: event?.id,
+    hasAutofix: Boolean(autofixData),
+  };
+  const isDisabled = disabled || isEventLoading;
+  const agents: Array<{icon: ReactNode; key: LocalCodingAgent; label: string}> = [
+    {
+      key: 'cursor',
+      label: t('Open in Cursor'),
+      icon: <PluginIcon pluginId="cursor" size={16} />,
+    },
+    {
+      key: 'codex',
+      label: t('Open in ChatGPT'),
+      icon: <PluginIcon pluginId="codex" size={16} />,
+    },
+    {
+      key: 'claude-code',
+      label: t('Open in Claude Desktop'),
+      icon: <PluginIcon pluginId="claude_code" size={16} />,
+    },
+  ];
+  const agentItems: MenuItemProps[] = agents.map(({key, label, icon}) => ({
+    key,
+    label,
+    leadingItems: icon,
+    onAction: () => {
+      trackAnalytics('issue_inbox.open_in_desktop_app_clicked', {
+        organization,
+        group_id: group.id,
+        event_id: event?.id,
+        agent: key,
+      });
+      testableWindowLocation.assign(agentLinks[key]);
+    },
+  }));
+
   return (
-    <GroupResolutionActions
-      disabled={disabled}
-      event={null}
-      group={group}
-      onUpdate={handleUpdate}
-      project={project}
-      variant={variant}
-    />
+    <ButtonBar>
+      <Button
+        size="sm"
+        variant="primary"
+        icon={<IconCopy />}
+        disabled={isDisabled}
+        busy={!disabled && isEventLoading}
+        onClick={handleCopy}
+        analyticsEventKey="issue_details.copy_issue_details_as_markdown"
+        analyticsEventName="Issue Details: Copy Issue Details as Markdown"
+        analyticsParams={analyticsParams}
+      >
+        {t('Copy as Markdown')}
+      </Button>
+      <DropdownMenu
+        size="sm"
+        position="bottom-end"
+        isDisabled={isDisabled}
+        trigger={(triggerProps, isOpen) => (
+          <OverlayTrigger.IconButton
+            {...triggerProps}
+            size="sm"
+            variant="primary"
+            disabled={isDisabled}
+            icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
+            aria-label={t('More issue context options')}
+          />
+        )}
+        items={agentItems}
+      />
+    </ButtonBar>
   );
 }
 
 export function IssuePreviewActions({
-  disabled = false,
+  disabled,
+  event,
   group,
-  onContinueInSeer,
-  onRetryCodeChanges,
+  isEventLoading,
   project,
+  autofixData,
+  autofixFormatted,
+  summary,
 }: IssuePreviewActionsProps) {
-  const {state} = useIssuePreviewSeer();
-  const shouldShowSeerActions = state === 'start' || state === 'summary';
-
-  if (shouldShowFixAppliedActions(group, project)) {
-    return <IssueResolutionActions disabled={disabled} group={group} project={project} />;
-  }
-
-  if (state === 'loading') {
-    return <Placeholder width="120px" height="32px" />;
-  }
-
-  if (!shouldShowSeerActions) {
-    return (
-      <GroupActions group={group} project={project} disabled={disabled} event={null} />
+  const {pullRequests, isPending} = useIssuePreviewPullRequests(group);
+  const invalidateInboxQueries = useInvalidateInboxQueries(group.id);
+  let primaryAction: ReactNode;
+  if (isPending) {
+    primaryAction = <Placeholder width="120px" height="32px" />;
+  } else if (pullRequests.length > 0) {
+    primaryAction = (
+      <PullRequestButtons disabled={disabled} group={group} pullRequests={pullRequests} />
+    );
+  } else {
+    primaryAction = (
+      <CopyAsMarkdownDropdown
+        group={group}
+        disabled={disabled}
+        event={event}
+        isEventLoading={isEventLoading}
+        autofixData={autofixData}
+        autofixFormatted={autofixFormatted}
+        summary={summary}
+      />
     );
   }
 
   return (
-    <Flex align="center" gap="sm" wrap="wrap">
-      <IssuePreviewSeerActions
-        disabled={disabled}
-        group={group}
-        onContinueInSeer={onContinueInSeer}
-        onRetryCodeChanges={onRetryCodeChanges}
-      />
-      <IssueResolutionActions
-        disabled={disabled}
+    <Flex
+      role="group"
+      aria-label={t('Issue actions')}
+      align="center"
+      gap="sm"
+      wrap="wrap"
+    >
+      {primaryAction}
+      <GroupActions
         group={group}
         project={project}
-        variant="secondary"
+        disabled={disabled}
+        event={null}
+        onUpdateSuccess={invalidateInboxQueries}
+        resolveVariant="secondary"
       />
     </Flex>
   );

@@ -51,6 +51,14 @@ class BitbucketServerIntegrationTest(IntegrationTestCase):
                 False,
             ),
             (
+                "https://bitbucket.example.com.evil.com/projects/TEST/repos/sentry/browse/src/app.py",
+                False,
+            ),
+            (
+                "http://bitbucket.example.com/projects/TEST/repos/sentry/browse/src/app.py",
+                True,
+            ),
+            (
                 "https://jianyuan.io",
                 False,
             ),

@@ -7,6 +7,13 @@ import type {Frame} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 
 describe('Frame - Line', () => {
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sentry-app-components/',
+      body: [],
+    });
+  });
+
   const event = EventFixture();
 
   const data: Frame = {

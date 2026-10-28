@@ -1,4 +1,4 @@
-import {Outlet, useOutletContext} from 'react-router-dom';
+import {Outlet, useOutletContext} from 'react-router';
 import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';

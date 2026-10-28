@@ -99,6 +99,8 @@ def validate_cell_ip_address(ip: str) -> bool:
 class CellSiloClient(BaseApiClient):
     integration_type = "silo_client"
 
+    timeout = (2.0, 30.0)
+
     access_modes = [SiloMode.CONTROL]
 
     metrics_prefix = "silo_client.cell"
@@ -171,7 +173,7 @@ class CellSiloClient(BaseApiClient):
         json: bool = True,
         raw_response: bool = False,
         prefix_hash: str | None = None,
-        timeout: int | None = None,
+        timeout: int | tuple[float, float] | None = None,
     ) -> Any:
         """
         Sends a request to the cell silo.
