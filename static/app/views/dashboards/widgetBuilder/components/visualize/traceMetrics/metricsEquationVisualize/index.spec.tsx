@@ -85,6 +85,19 @@ function setupMockApis() {
   });
 }
 
+function mockMetricAttributes(metricName: string, keys: string[]) {
+  return MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/trace-items/attributes/',
+    body: keys.map(key => ({
+      key,
+      name: key,
+      attributeType: 'string',
+      attributeSource: {source_type: 'user'},
+    })),
+    match: [(_url, options) => String(options.query?.query ?? '').includes(metricName)],
+  });
+}
+
 /**
  * A query param holding a single value comes back as a string rather than a
  * one-element array, so normalise before comparing to a serialized list.
@@ -311,5 +324,99 @@ describe('MetricsEquationVisualize', () => {
     expect(
       within(toolbars[2]!).getByRole('row', {name: 'environment:[prod,dev]'})
     ).toBeInTheDocument();
+  });
+
+  describe('filter revalidation on metric change', () => {
+    const initialRouterConfig = {
+      location: {
+        pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+        query: {
+          dataset: WidgetType.TRACEMETRICS,
+          displayType: DisplayType.LINE,
+          yAxis: [
+            'equation|sum_if(`mode:fast environment:prod`,value,beta_metric,counter,none) + avg(value,alpha_metric,counter,none)',
+          ],
+        },
+      },
+    };
+
+    it('marks filters the new metric lacks as invalid and disables the equation', async () => {
+      mockMetricAttributes('beta_metric', ['mode', 'environment']);
+      mockMetricAttributes('alpha_metric', ['environment']);
+
+      render(<MetricsEquationVisualize />, {
+        organization: OrganizationFixture({features: EQUATION_FEATURES}),
+        additionalWrapper: WidgetBuilderProvider,
+        initialRouterConfig,
+      });
+
+      const toolbars = await screen.findAllByTestId('metric-toolbar');
+      const modeToken = await within(toolbars[0]!).findByRole('row', {
+        name: 'mode:fast',
+      });
+      await waitFor(() =>
+        expect(screen.getByTestId('arithmetic-builder')).toHaveAttribute(
+          'aria-disabled',
+          'false'
+        )
+      );
+      expect(modeToken).toHaveAttribute('aria-invalid', 'false');
+
+      await userEvent.click(
+        within(toolbars[0]!).getByRole('button', {name: 'beta_metric'})
+      );
+      await userEvent.click(await screen.findByRole('option', {name: 'alpha_metric'}));
+
+      const row = screen.getAllByTestId('metric-toolbar')[0]!;
+      await waitFor(() =>
+        expect(within(row).getByRole('row', {name: 'mode:fast'})).toHaveAttribute(
+          'aria-invalid',
+          'true'
+        )
+      );
+      expect(within(row).getByRole('row', {name: 'environment:prod'})).toHaveAttribute(
+        'aria-invalid',
+        'false'
+      );
+      expect(screen.getByTestId('arithmetic-builder')).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+    });
+
+    it('does not flag filters when the attribute request fails', async () => {
+      mockMetricAttributes('beta_metric', ['mode', 'environment']);
+      const failedRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/trace-items/attributes/',
+        statusCode: 429,
+        body: {detail: 'Rate limited'},
+        match: [
+          (_url, options) => String(options.query?.query ?? '').includes('alpha_metric'),
+        ],
+      });
+
+      render(<MetricsEquationVisualize />, {
+        organization: OrganizationFixture({features: EQUATION_FEATURES}),
+        additionalWrapper: WidgetBuilderProvider,
+        initialRouterConfig,
+      });
+
+      const toolbars = await screen.findAllByTestId('metric-toolbar');
+      await userEvent.click(
+        within(toolbars[0]!).getByRole('button', {name: 'beta_metric'})
+      );
+      await userEvent.click(await screen.findByRole('option', {name: 'alpha_metric'}));
+
+      await waitFor(() => expect(failedRequest).toHaveBeenCalled());
+      const row = screen.getAllByTestId('metric-toolbar')[0]!;
+      expect(within(row).getByRole('row', {name: 'mode:fast'})).toHaveAttribute(
+        'aria-invalid',
+        'false'
+      );
+      expect(screen.getByTestId('arithmetic-builder')).toHaveAttribute(
+        'aria-disabled',
+        'false'
+      );
+    });
   });
 });

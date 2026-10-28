@@ -133,6 +133,7 @@ export function MetricToolbar({
             portalTarget={document.body}
             disabled={disabled}
             disableValidation
+            validateMetricAttributes={isFunction}
           />
         </Flex>
       </Flex>

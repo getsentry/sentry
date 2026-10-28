@@ -25,6 +25,7 @@ import {
   getMetricReferences,
   useMetricReferences,
 } from 'sentry/views/explore/metrics/hooks/useMetricReferences';
+import {useHasUnavailableMetricFilters} from 'sentry/views/explore/metrics/hooks/useUnavailableMetricFilterKeys';
 import {type MetricQuery} from 'sentry/views/explore/metrics/metricQuery';
 import {
   MAX_METRICS_ALLOWED,
@@ -227,6 +228,7 @@ export function MetricQueryRows({
   // If any of the metric names are undefined, then we're still loading in a selection.
   // Equations should be disabled if there are any unresolved metric selections.
   const hasUnresolvedMetrics = functionQueries.some(q => !q.metric?.name);
+  const hasUnavailableFilters = useHasUnavailableMetricFilters(functionQueries);
 
   return (
     <Stack gap="lg" flex="1">
@@ -268,7 +270,7 @@ export function MetricQueryRows({
             onRowSelection={onRowSelection}
             onReferenceLabelsChange={setEquationReferencedLabels}
             deleteDisabledReason={t('An equation is required')}
-            disabled={hasUnresolvedMetrics}
+            disabled={hasUnresolvedMetrics || hasUnavailableFilters}
           />
         </BuilderStateMetricsQueryParamsProvider>
       )}

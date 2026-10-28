@@ -6,6 +6,8 @@ import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilderAI,
 } from 'sentry/components/searchQueryBuilder/context';
+import {InvalidReason} from 'sentry/components/searchSyntax/parser';
+import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -21,6 +23,7 @@ import {
   SENTRY_TRACEMETRIC_STRING_TAGS,
 } from 'sentry/views/explore/constants';
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
+import {useUnavailableMetricFilterKeys} from 'sentry/views/explore/metrics/hooks/useUnavailableMetricFilterKeys';
 import {useValidateMetricsTab} from 'sentry/views/explore/metrics/hooks/useValidateMetricsTab';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricsTabSeerComboBox} from 'sentry/views/explore/metrics/metricsTabSeerComboBox';
@@ -45,6 +48,10 @@ interface FilterProps {
   portalTarget?: HTMLElement;
   projectIds?: number[];
   skipTraceMetricFilter?: boolean;
+  /**
+   * Marks filter keys the selected metric doesn't have as invalid.
+   */
+  validateMetricAttributes?: boolean;
 }
 
 interface MetricsSearchBarProps {
@@ -73,6 +80,7 @@ export function Filter({
   portalTarget,
   disabled,
   disableValidation,
+  validateMetricAttributes,
 }: FilterProps) {
   const query = useQueryParamsQuery();
   const setQuery = useSetQueryParamsQuery();
@@ -108,6 +116,27 @@ export function Filter({
     projectIds,
     environments,
   });
+
+  const unavailableFilterKeys = useUnavailableMetricFilterKeys({
+    traceMetric,
+    query,
+    projectIds,
+    environments,
+    enabled: Boolean(validateMetricAttributes) && !skipTraceMetricFilter,
+  });
+
+  const invalidMessages = useMemo(
+    () =>
+      validateMetricAttributes
+        ? {
+            [InvalidReason.INVALID_KEY]: t(
+              "This attribute isn't available on %s",
+              traceMetric.name
+            ),
+          }
+        : undefined,
+    [validateMetricAttributes, traceMetric.name]
+  );
 
   const visibleNumberTags = useMemo(() => {
     const staticNumberTags = SENTRY_TRACEMETRIC_NUMBER_TAGS.reduce<TagCollection>(
@@ -194,7 +223,7 @@ export function Filter({
     const localBooleanTags: TagCollection = {...visibleBooleanTags};
     const localNumberTags: TagCollection = {...visibleNumberTags};
     const localStringTags: TagCollection = {...visibleStringTags};
-    const localInvalidFilterKeys: string[] = [];
+    const localInvalidFilterKeys: string[] = [...unavailableFilterKeys];
 
     for (const item of validatedSearchQueryData?.query.fields ?? []) {
       if (HiddenTraceMetricSearchFields.includes(item.name)) {
@@ -253,6 +282,7 @@ export function Filter({
     };
   }, [
     supportsArrays,
+    unavailableFilterKeys,
     validatedSearchQueryData?.query.fields,
     visibleArrayTags,
     visibleBooleanTags,
@@ -284,6 +314,7 @@ export function Filter({
         disabled: isSearchBarDisabled,
         portalTarget,
         invalidFilterKeys,
+        invalidMessages,
 
         // Disable the recent searches when not using a trace metric filter or when the metric name
         // is not set because the recent searches for metrics need to be namespaced on the trace metric filter.
@@ -293,6 +324,7 @@ export function Filter({
       attributeQuery,
       environments,
       invalidFilterKeys,
+      invalidMessages,
       isSearchBarDisabled,
       portalTarget,
       projectIds,
