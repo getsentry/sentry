@@ -35,7 +35,7 @@ replays: 0001_squashed_0007_organizationmember_replay_access
 
 seer: 0045_workflow_run_lifecycle
 
-sentry: 1244_drop_incident
+sentry: 1245_add_login_hint_to_apidevicecode
 
 service_accounts: 0002_add_cell_replicas
 
