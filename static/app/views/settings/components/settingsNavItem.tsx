@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, type ReactElement} from 'react';
 import styled from '@emotion/styled';
 
 import {Badge, FeatureBadge} from '@sentry/scraps/badge';
@@ -14,7 +14,7 @@ import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 type Props = {
   label: React.ReactNode;
   to: string;
-  badge?: React.ReactNode;
+  badge?: string | number | null | ReactElement;
   id?: string;
   index?: boolean;
   onClick?: (e: React.MouseEvent) => void;

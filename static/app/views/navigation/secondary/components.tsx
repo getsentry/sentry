@@ -305,20 +305,15 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
   );
 }
 
-function SecondaryNavigationHeaderTitle({
-  children,
-  padding,
-}: {
-  children: ReactNode;
-  padding?: React.ComponentProps<typeof Container>['padding'];
-}) {
+function SecondaryNavigationHeaderTitle({children}: {children: ReactNode}) {
   const {layout} = usePrimaryNavigation();
+  const settingsV3 = useSettingsV3();
 
   return (
     <Container
       minWidth="0"
-      padding={padding}
-      paddingLeft={padding === undefined && layout !== 'mobile' ? 'lg' : undefined}
+      padding={settingsV3 ? 'md xs' : undefined}
+      paddingLeft={!settingsV3 && layout !== 'mobile' ? 'lg' : undefined}
     >
       <Text size="md" bold>
         {children}
@@ -581,15 +576,17 @@ function SecondaryNavigationLeadingSlot(props: SecondaryNavigationLeadingSlotPro
   );
 }
 
-function SecondaryNavigationSeparator({indented = false}: {indented?: boolean}) {
+function SecondaryNavigationSeparator() {
+  const settingsV3 = useSettingsV3();
   return (
     <Grid
-      columns={indented ? '40px minmax(0, 1fr)' : 'minmax(0, 1fr)'}
+      // Align with labels: 4px section inset + 8px padding + 24px slot + 4px gap.
+      columns={settingsV3 ? '40px minmax(0, 1fr)' : 'minmax(0, 1fr)'}
       align="center"
-      height={indented ? '16px' : undefined}
-      padding={indented ? '0 lg 0 0' : '0 xl'}
+      height={settingsV3 ? '16px' : undefined}
+      padding={settingsV3 ? '0 lg 0 0' : '0 xl'}
     >
-      <Container column={indented ? '2' : undefined}>
+      <Container column={settingsV3 ? '2' : undefined}>
         <Separator orientation="horizontal" border="muted" />
       </Container>
     </Grid>
