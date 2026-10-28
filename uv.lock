@@ -2442,7 +2442,7 @@ requires-dist = [
     { name = "sentry-scm", specifier = ">=2.0.0" },
     { name = "sentry-sdk", extras = ["http2"], specifier = ">=2.72.0" },
     { name = "sentry-usage-accountant", specifier = ">=0.0.10" },
-    { name = "sentry-viewercontext", specifier = ">=0.3.0" },
+    { name = "sentry-viewercontext", specifier = ">=0.2.0" },
     { name = "simplejson", specifier = ">=3.17.6" },
     { name = "slack-sdk", specifier = ">=3.40.1" },
     { name = "snuba-sdk", specifier = ">=3.0.43" },
@@ -2696,13 +2696,13 @@ wheels = [
 
 [[package]]
 name = "sentry-viewercontext"
-version = "0.3.0"
+version = "0.2.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "pyjwt" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_viewercontext-0.3.0-py3-none-any.whl", hash = "sha256:a8b8a40bac3b384158825e95451b9baefa83ba25cd6213611d4f38ec0113a28d" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_viewercontext-0.2.0-py3-none-any.whl", hash = "sha256:c9621daade77f995b0c24f602ba11b9c2269f93d6372dc0194ad71a8b1f4c29c" },
 ]
 
 [[package]]
