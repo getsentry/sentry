@@ -412,17 +412,11 @@ class TestMetricIssueDetectorActivationId(BaseMetricIssueTest):
     def activation_id(self) -> int | None:
         return DetectorState.objects.get(detector=self.detector).activation_id
 
-    def stable_fingerprint(self) -> list[str]:
-        return [f"detector:{self.detector.id}"]
-
     def activation_fingerprint(self, activation_id: int | None) -> list[str]:
         return [f"detector:{self.detector.id}:activation:{activation_id}"]
 
     def test_detector_each_activation_gets_its_own_fingerprint(self) -> None:
-        with (
-            self.feature("organizations:workflow-engine-rotate-activation-id"),
-            freeze_time() as frozen_time,
-        ):
+        with freeze_time() as frozen_time:
             firing_update_fingerprint = self.fingerprint(self.firing_packet(1))
 
             initial_activation_id = self.activation_id()
@@ -441,10 +435,7 @@ class TestMetricIssueDetectorActivationId(BaseMetricIssueTest):
             assert next_firing_update_fingerprint != firing_update_fingerprint
 
     def test_detector_refiring_within_a_day_in_ok_keeps_fingerprint(self) -> None:
-        with (
-            self.feature("organizations:workflow-engine-rotate-activation-id"),
-            freeze_time() as frozen_time,
-        ):
+        with freeze_time() as frozen_time:
             firing_update_fingerprint = self.fingerprint(self.firing_packet(1))
 
             resolution_update_fingerprint = self.fingerprint(self.resolution_packet(2))
@@ -457,19 +448,3 @@ class TestMetricIssueDetectorActivationId(BaseMetricIssueTest):
 
             # A flappy monitor regresses the issue it just resolved instead of opening a new one.
             assert next_firing_update_fingerprint == firing_update_fingerprint
-
-    def test_detector_with_flag_off_keeps_stable_fingerprint(self) -> None:
-        with self.feature({"organizations:workflow-engine-rotate-activation-id": False}):
-            firing_update_fingerprint = self.fingerprint(self.firing_packet(1))
-
-            resolution_update_fingerprint = self.fingerprint(self.resolution_packet(2))
-
-            next_firing_update_fingerprint = self.fingerprint(self.firing_packet(3))
-
-            assert self.activation_id() is None
-
-            assert firing_update_fingerprint == self.stable_fingerprint()
-
-            assert resolution_update_fingerprint == self.stable_fingerprint()
-
-            assert next_firing_update_fingerprint == self.stable_fingerprint()
