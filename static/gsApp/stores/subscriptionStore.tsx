@@ -102,7 +102,7 @@ const subscriptionStoreConfig: SubscriptionStoreDefintion = {
     // settles so a failed load can be retried.
     this.loadingData[orgSlug] ??= this.api
       .requestPromise(`/customers/${orgSlug}/`)
-      .then(data => {
+      .then((data: Subscription) => {
         if (markStartedTrial) {
           data.isTrialStarted = true;
         }
