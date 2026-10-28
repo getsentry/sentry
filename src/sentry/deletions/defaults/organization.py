@@ -44,6 +44,7 @@ class OrganizationDeletionTask(ModelDeletionTask[Organization]):
         from sentry.models.repository import Repository
         from sentry.models.team import Team
         from sentry.models.transaction_threshold import ProjectTransactionThreshold
+        from sentry.notebooks.models import Notebook
         from sentry.workflow_engine.models import Detector, Workflow
 
         # Team must come first
@@ -56,6 +57,7 @@ class OrganizationDeletionTask(ModelDeletionTask[Organization]):
             AlertRule,
             Release,
             Investigation,
+            Notebook,
             Project,
             Workflow,
         )
