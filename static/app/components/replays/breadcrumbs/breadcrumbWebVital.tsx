@@ -42,14 +42,23 @@ export function BreadcrumbWebVital({
 
   const selectors = extraction?.selectors;
   const webVitalData: Record<string, number | ReactNode | LayoutShift[]> = {
-    value: frame.data.value,
+    value: frame.data?.value,
   };
 
-  if (isCLSFrame(frame) && frame.data.attributions && selectors) {
+  if (isCLSFrame(frame)) {
+    // Without attributions, fall back to a single shift so the CLS row still renders
+    const attributions = frame.data?.attributions?.length
+      ? frame.data.attributions
+      : [
+          {
+            value: frame.data?.value,
+            nodeIds: selectors ? Array.from(selectors.keys()) : undefined,
+          },
+        ];
     const layoutShifts: LayoutShift[] = [];
-    for (const attr of frame.data.attributions) {
+    for (const attr of attributions) {
       const elements: ReactNode[] = [];
-      if ('nodeIds' in attr && Array.isArray(attr.nodeIds)) {
+      if (selectors && 'nodeIds' in attr && Array.isArray(attr.nodeIds)) {
         attr.nodeIds.forEach(nodeId => {
           if (selectors.get(nodeId)) {
             elements.push(
@@ -78,11 +87,9 @@ export function BreadcrumbWebVital({
           </span>
         );
       }
-      layoutShifts.push({[`score ${attr.value}`]: elements});
+      layoutShifts.push({[`score ${attr.value ?? t('unknown')}`]: elements});
     }
-    if (layoutShifts.length) {
-      webVitalData['Layout shifts'] = layoutShifts;
-    }
+    webVitalData['Layout shifts'] = layoutShifts;
   } else if (selectors) {
     selectors.forEach((key, value) => {
       webVitalData[key] = (

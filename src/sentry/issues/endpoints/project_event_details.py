@@ -43,6 +43,7 @@ def wrap_event_response(
     start: datetime | None = None,
     end: datetime | None = None,
     use_snql: bool = False,
+    include_adjacent_events: bool = True,
 ) -> GroupEventDetailsResponse | None:
     event_data = serialize(
         event,
@@ -64,7 +65,7 @@ def wrap_event_response(
     if legacy_conditions is None:
         legacy_conditions = []
 
-    if event.group_id:
+    if include_adjacent_events and event.group_id:
         if use_snql or options.get("eventstore.adjacent_event_ids_use_snql"):
             prev_ids, next_ids = eventstore.backend.get_adjacent_event_ids_snql(
                 organization_id=event.organization.id,

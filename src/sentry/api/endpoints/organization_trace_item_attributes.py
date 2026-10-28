@@ -70,7 +70,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.explore.models import TraceItemAttributeContext as TraceItemAttributeContextModel
 from sentry.explore.models import TraceItemAttributeTypes, TraceItemTypes
 from sentry.models.organization import Organization
-from sentry.models.release import Release
+from sentry.models.release import Release, ReleaseStatus
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseStages
 from sentry.models.releases.release_project import ReleaseProject
@@ -1192,6 +1192,10 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
         )
 
 
+# status is nullable; a null status predates the field and means OPEN.
+NON_ARCHIVED_RELEASES = Q(status=ReleaseStatus.OPEN) | Q(status__isnull=True)
+
+
 class TraceItemAttributeValuesAutocompletionExecutor:
     PROJECT_SLUG_KEYS = {"project", "project.name"}
     PROJECT_ID_KEYS = {"project.id"}
@@ -1308,7 +1312,7 @@ class TraceItemAttributeValuesAutocompletionExecutor:
         ]
 
     def semver_autocomplete_function(self):
-        versions = Release.objects.filter(version__contains="@" + self.query)
+        versions = Release.objects.filter(NON_ARCHIVED_RELEASES, version__contains="@" + self.query)
 
         project_ids = self.snuba_params.project_ids
         if project_ids:
@@ -1369,7 +1373,7 @@ class TraceItemAttributeValuesAutocompletionExecutor:
             "exact",
             build,
             self.snuba_params.project_ids,
-        )
+        ).filter(NON_ARCHIVED_RELEASES)
 
         environment_ids = self.snuba_params.environment_ids
         if environment_ids:
@@ -1407,6 +1411,7 @@ class TraceItemAttributeValuesAutocompletionExecutor:
         )
 
         versions = Release.objects.filter(
+            NON_ARCHIVED_RELEASES,
             organization_id=self.snuba_params.organization_id,
             package__in=packages,
             id__in=ReleaseProject.objects.filter(

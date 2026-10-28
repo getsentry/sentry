@@ -189,6 +189,8 @@ class NotificationProviderKey(StrEnum):
     DISCORD = ExternalProviderEnum.DISCORD
 
 
+SLACK_PROVIDERS = frozenset({NotificationProviderKey.SLACK, NotificationProviderKey.SLACK_STAGING})
+
 SHADOW_PROVIDERS: dict[str, NotificationProviderKey] = {
     "slack": NotificationProviderKey.SLACK,
     "slack_staging": NotificationProviderKey.SLACK_STAGING,

@@ -351,7 +351,7 @@ describe('ActivitySection', () => {
           commentId: 'note-1',
           data: {text: 'User note'},
           dateCreated: '2020-01-01T00:00:00',
-          source: 'mcp:claude-code',
+          source: 'mcp:claude',
           user,
         },
         {

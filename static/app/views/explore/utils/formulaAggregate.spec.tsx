@@ -14,6 +14,8 @@ const APDEX: SavedFormula = {
   type: 'number',
   unit: null,
   references: [],
+  createdBy: null,
+  updatedBy: null,
   params: [
     {name: 'threshold', type: 'number', order: 1, value: ''},
     {name: 'duration', type: 'column', order: 0, value: ''},
@@ -30,6 +32,17 @@ describe('buildFormulaYAxis', () => {
 
   it('returns null when a column is needed but there is no default', () => {
     expect(buildFormulaYAxis(APDEX, null)).toBeNull();
+  });
+
+  it('prefers suggested values over the defaults', () => {
+    const params = APDEX.params.map(param =>
+      param.type === 'calculation'
+        ? param
+        : {...param, value: param.type === 'number' ? '300' : 'span.self_time'}
+    );
+    expect(buildFormulaYAxis({...APDEX, params}, null)).toBe(
+      'formula.apdex(span.self_time,300)'
+    );
   });
 
   it('does not need a default column when there are no column params', () => {

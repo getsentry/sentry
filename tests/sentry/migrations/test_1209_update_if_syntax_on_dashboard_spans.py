@@ -1,7 +1,7 @@
-from sentry.testutils.cases import SnubaTestCase, TestMigrations
+from sentry.testutils.cases import TestMigrations
 
 
-class UpdateIfSyntaxOnDashboardSpansTest(TestMigrations, SnubaTestCase):
+class UpdateIfSyntaxOnDashboardSpansTest(TestMigrations):
     app = "sentry"
     migrate_from = "1208_sentryappinstallation_uuid_index"
     migrate_to = "1209_update_if_syntax_on_dashboard_spans"

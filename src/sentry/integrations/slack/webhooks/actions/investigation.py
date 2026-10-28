@@ -6,6 +6,7 @@ from enum import StrEnum
 from typing import Any
 
 import orjson
+import sentry_sdk
 from rest_framework.response import Response
 
 from sentry.constants import ObjectStatus
@@ -26,6 +27,7 @@ from sentry.seer.entrypoints.slack.entrypoint import (
 )
 from sentry.seer.entrypoints.types import SeerEntrypointKey
 from sentry.users.services.user import RpcUser
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +41,7 @@ INVESTIGATION_EXISTS_MESSAGE = (
 
 
 class InvestigationUnavailableReason(StrEnum):
+    IDENTITY_NOT_LINKED = "identity_not_linked"
     MISSING_ORGANIZATION_ID = "missing_organization_id"
     MISSING_MESSAGE_CONTAINER = "missing_message_container"
     MISSING_SLACK_USER = "missing_slack_user"
@@ -47,10 +50,33 @@ class InvestigationUnavailableReason(StrEnum):
     ORGANIZATION_NOT_FOUND = "organization_not_found"
     NO_ACCESS = "no_access"
     CLOSED_MEMBERSHIP = "closed_membership"
+    NOT_MEMBER = "not_member"
     MISSING_SCOPE = "missing_scope"
     INVALID_ACTION = "invalid_action"
     SOURCE_NOT_FOUND = "source_not_found"
     INVALID_SOURCE = "invalid_source"
+
+
+def record_investigation_unavailable(
+    reason: InvestigationUnavailableReason,
+    *,
+    organization_id: int | None,
+    integration_id: int,
+    extra: Mapping[str, Any] | None = None,
+) -> None:
+    name = "seer.entrypoint.slack.start_investigation.unavailable"
+    attributes = {"reason": str(reason)}
+    sentry_sdk.metrics.count(name, 1, attributes=attributes)
+    metrics.incr(name, tags=attributes, sample_rate=1.0)
+    logger.warning(
+        "slack.investigation.start_unavailable",
+        extra={
+            "reason": reason,
+            "organization_id": organization_id,
+            "integration_id": integration_id,
+            **(extra or {}),
+        },
+    )
 
 
 def _respond_ephemeral(text: str) -> Response:
@@ -94,14 +120,11 @@ def handle_seer_investigation_start(
     def log_unavailable(
         reason: InvestigationUnavailableReason, extra: Mapping[str, Any] | None = None
     ) -> None:
-        logger.warning(
-            "slack.investigation.start_unavailable",
-            extra={
-                "reason": reason,
-                "organization_id": organization_id,
-                "integration_id": slack_request.integration.id,
-                **(extra or {}),
-            },
+        record_investigation_unavailable(
+            reason,
+            organization_id=organization_id,
+            integration_id=slack_request.integration.id,
+            extra=extra,
         )
 
     if organization_id is None:
@@ -152,6 +175,7 @@ def handle_seer_investigation_start(
         invite_status=InviteStatus.APPROVED.value,
     ).first()
     if member is None:
+        log_unavailable(InvestigationUnavailableReason.NOT_MEMBER)
         return _respond_ephemeral(
             INVESTIGATION_NOT_MEMBER_MESSAGE.format(org_name=organization.name)
         )

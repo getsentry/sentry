@@ -24,3 +24,18 @@ def test_precise_set(mock_set):
 
     backend.set("foo", 4242, tags={"some": "stuff"})
     mock_set.assert_called_once_with("sentrytest.foo", 4242, tags=["some:stuff"], sample_rate=1)
+
+
+@thread_leak_allowlist(reason="datadog precise metrics", issue=98805)
+def test_precise_constant_tags():
+    backend = PreciseDogStatsdMetricsBackend(
+        prefix="sentrytest.",
+        tags={"metrics_source": "dd-agent"},
+        statsd_constant_tags=["component:web", "service:getsentry"],
+    )
+    backend.statsd._send = mock.Mock()
+
+    backend.incr("foo", tags={"service": "billing"})
+    backend.statsd._send.assert_called_once_with(
+        "sentrytest.foo:1|c|#service:billing,metrics_source:dd-agent,component:web,service:getsentry"
+    )

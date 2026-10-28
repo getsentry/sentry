@@ -29,8 +29,16 @@ from sentry.models.options.option import Option
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.seer.models.workflow import (
+    SeerWorkflowConfig,
+    SeerWorkflowConfigProject,
+    SeerWorkflowStrategy,
+)
+from sentry.seer.workflows.workflow import SeerWorkflow
+from sentry.service_accounts.models import ServiceAccount, ServiceAccountReplica
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
+from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.backups import (
     NOOP_PRINTER,
     BackupTransactionTestCase,
@@ -39,6 +47,7 @@ from sentry.testutils.helpers.backups import (
     generate_rsa_key_pair,
 )
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.token import AuthTokenType
 from sentry.users.models.user import User
@@ -163,6 +172,27 @@ class ScopingTests(ExportTestCase):
     """
     Ensures that only models with the allowed relocation scopes are actually exported.
     """
+
+    def test_historical_trigger_mapping_export_without_native_trigger(self) -> None:
+        condition_group = self.create_data_condition_group(organization=self.organization)
+        condition = self.create_data_condition(condition_group=condition_group)
+        mapping = self.create_data_condition_alert_rule_trigger(
+            data_condition=condition, alert_rule_trigger_id=987654321
+        )
+
+        with TemporaryDirectory() as tmp_dir:
+            exported = self.export(
+                tmp_dir, scope=ExportScope.Organization, filter_by={self.organization.slug}
+            )
+
+        exported_mapping = next(
+            entry
+            for entry in exported
+            if entry["model"] == "workflow_engine.dataconditionalertruletrigger"
+            and entry["pk"] == mapping.id
+        )
+        assert exported_mapping["fields"]["alert_rule_trigger_id"] == 987654321
+        assert exported_mapping["fields"]["data_condition"] == condition.id
 
     @staticmethod
     def verify_model_inclusion(data: Any, scope: ExportScope) -> None:
@@ -745,6 +775,29 @@ class QueryTests(ExportTestCase):
     """
     Some models have custom export logic that requires bespoke testing.
     """
+
+    def test_export_workflow_with_service_account(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        with outbox_runner():
+            account = Factories.create_service_account(org, id=910001)
+        replica = ServiceAccountReplica.objects.get(service_account_id=account.id)
+        assert replica.id != account.id
+        config = Factories.create_seer_workflow_config(
+            org, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
+        )
+        Factories.create_seer_workflow_config_project(config, project)
+        SeerWorkflow(config).set_service_account(account.id)
+
+        for scope in (ExportScope.Organization, ExportScope.Global):
+            with TemporaryDirectory() as tmp_dir:
+                data = self.export(tmp_dir, scope=scope)
+            assert self.count(data, SeerWorkflowConfig) == 1
+            assert self.exists(data, SeerWorkflowConfig, "service_account_id", account.id)
+            assert self.exists(data, SeerWorkflowConfigProject, "config", config.id)
+            assert self.exists(data, SeerWorkflowConfigProject, "project", project.id)
+            assert self.count(data, ServiceAccount) == 1
+            assert self.count(data, ServiceAccountReplica) == 0
 
     def test_export_for_api_token(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):

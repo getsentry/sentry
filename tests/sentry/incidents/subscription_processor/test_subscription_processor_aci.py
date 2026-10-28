@@ -7,6 +7,7 @@ from uuid import uuid4
 
 import orjson
 import pytest
+from django.test import override_settings
 from django.utils import timezone
 from urllib3.response import HTTPResponse
 
@@ -673,6 +674,7 @@ class MetricsCrashRateDetectorProcessUpdateTest(ProcessUpdateBaseClass, BaseMetr
         assert self.get_detector_state(self.detector) == DetectorPriorityLevel.OK
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
     @patch(
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )

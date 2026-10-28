@@ -1,7 +1,8 @@
 import {useCallback, useMemo} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
 
-import {fetchFeatureFlagValues, fetchTagValues} from 'sentry/actionCreators/tags';
+import {fetchFeatureFlagValues} from 'sentry/actionCreators/tags';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {
   SearchQueryBuilder,
@@ -20,12 +21,11 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {FieldKey, FieldKind} from 'sentry/utils/fields';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import type {
   SearchBarData,
   SearchBarDataProviderProps,
 } from 'sentry/views/dashboards/datasetConfig/base';
-import {mergeAndSortTagValues} from 'sentry/views/issueDetails/utils';
+import {fetchIssueTagValues} from 'sentry/views/issueDetails/utils';
 import {makeGetIssueTagValues} from 'sentry/views/issueList/utils/getIssueTagValues';
 import {useIssueListFilterKeys} from 'sentry/views/issueList/utils/useIssueListFilterKeys';
 
@@ -82,6 +82,7 @@ export function useIssueListSearchBarDataProvider(
 ): SearchBarData {
   const {pageFilters} = props;
   const api = useApi();
+  const queryClient = useQueryClient();
   const organization = useOrganization();
   const filterKeys = useIssueListFilterKeys();
 
@@ -161,7 +162,6 @@ export function useIssueListSearchBarDataProvider(
       const tagKey = key === FieldKey.FIRST_RELEASE ? 'release' : key;
 
       const fetchTagValuesPayload = {
-        api,
         orgSlug: organization.slug,
         tagKey,
         search,
@@ -174,26 +174,12 @@ export function useIssueListSearchBarDataProvider(
       if (filterKeys[key]?.kind === FieldKind.FEATURE_FLAG) {
         return await fetchFeatureFlagValues({
           ...fetchTagValuesPayload,
+          api,
           organization,
         });
       }
 
-      const [eventsDatasetValues, issuePlatformDatasetValues] = await Promise.all([
-        fetchTagValues({
-          ...fetchTagValuesPayload,
-          dataset: Dataset.ERRORS,
-        }),
-        fetchTagValues({
-          ...fetchTagValuesPayload,
-          dataset: Dataset.ISSUE_PLATFORM,
-        }),
-      ]);
-
-      return mergeAndSortTagValues(
-        eventsDatasetValues,
-        issuePlatformDatasetValues,
-        'count'
-      );
+      return fetchIssueTagValues(queryClient, fetchTagValuesPayload, 'count');
     },
     [
       api,
@@ -203,6 +189,7 @@ export function useIssueListSearchBarDataProvider(
       pageFilters.datetime.period,
       pageFilters.datetime.start,
       pageFilters.projects,
+      queryClient,
     ]
   );
 

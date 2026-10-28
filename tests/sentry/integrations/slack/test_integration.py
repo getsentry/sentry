@@ -323,7 +323,21 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
 
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     def test_send_notification_success(self, mock_chat_post: MagicMock) -> None:
-        self.installation.send_notification(target=self.target, payload=self.slack_renderable)
+        mock_chat_post.return_value = SlackResponse(
+            client=MagicMock(),
+            http_verb="POST",
+            api_url="https://slack.com/api/chat.postMessage",
+            req_args={},
+            data={"ok": True, "ts": "1234567890.123456"},
+            headers={},
+            status_code=200,
+        )
+
+        response = self.installation.send_notification(
+            target=self.target, payload=self.slack_renderable
+        )
+
+        assert response["ts"] == "1234567890.123456"
 
         mock_chat_post.assert_called_once_with(
             channel="C1234567890",

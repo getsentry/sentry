@@ -311,6 +311,7 @@ const config: Config.InitialOptions = {
     '<rootDir>/tests/sentry/lang/javascript/',
     '<rootDir>/static/packages/scraps/',
     '<rootDir>/static/packages/icons/',
+    '<rootDir>/static/packages/search-syntax/',
   ],
   // Coding agents check out nested git worktrees under .claude/worktrees/, each a
   // full copy of this repo. jest-haste-map crawls all of rootDir, so every manual
@@ -333,7 +334,8 @@ const config: Config.InitialOptions = {
   ],
 
   moduleFileExtensions: ['js', 'ts', 'jsx', 'tsx', 'pegjs'],
-  globals: {},
+  // Matches setupStatics, so tests run Zod's jitless parsers like production does.
+  globals: {__zod_globalConfig: {jitless: true}},
 
   reporters: ['default'],
   /**
