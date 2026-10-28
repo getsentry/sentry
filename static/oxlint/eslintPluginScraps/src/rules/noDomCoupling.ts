@@ -107,6 +107,11 @@ export const noDomCoupling = defineRule({
       if (node.type === 'BlockStatement') {
         return node.body.flatMap(returnedValues);
       }
+      if (node.type === 'SwitchStatement') {
+        return node.cases.flatMap(switchCase =>
+          switchCase.consequent.flatMap(returnedValues)
+        );
+      }
       if (node.type === 'IfStatement') {
         return [
           ...returnedValues(node.consequent),

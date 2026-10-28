@@ -31,6 +31,53 @@ ruleTester.run('no-dom-coupling', noDomCoupling, {
       filename,
     },
     {
+      name: 'switch branches allow scoped styles and selectors',
+      code:
+        emotion +
+        `function getStyles(mode) {
+          switch (mode) {
+            case 'active': return {'& > .slot': {color: 'red'}};
+            default: return '[data-slot] {color: blue;}';
+          }
+        }
+        const C = <div css={getStyles(mode)} />;
+        const D = styled.div\`\${props => {
+          switch (props.mode) {
+            case 'active': return '.slot';
+            default: return '[data-slot]';
+          }
+        }} {color: red;}\`;`,
+      filename,
+    },
+    {
+      name: 'switch branches returning scalar property values are allowed',
+      code:
+        emotion +
+        `const C = css({color: () => {
+          switch (mode) {
+            case 'active': return 'red';
+            default: return 'blue';
+          }
+        }});`,
+      filename,
+    },
+    {
+      name: 'switch branches do not collect returns from unused nested functions',
+      code:
+        emotion +
+        `function getStyles(mode) {
+          switch (mode) {
+            case 'active': {
+              function unused() { return {button: {color: 'red'}}; }
+              return {color: 'red'};
+            }
+            default: return;
+          }
+        }
+        const C = <div css={getStyles(mode)} />;`,
+      filename,
+    },
+    {
       name: 'style helper parameters are not function bindings',
       code:
         emotion +
@@ -405,6 +452,62 @@ ruleTester.run('no-dom-coupling', noDomCoupling, {
       filename,
       errors,
     })),
+    {
+      name: 'typed style helpers check switch cases and the default branch',
+      code: `import type {StrictCSSObject} from '@sentry/scraps/theme';
+        export function getStyles(mode): StrictCSSObject {
+          switch (mode) {
+            case 'active':
+            case 'selected': {
+              if (enabled) return {button: {color: 'red'}};
+              break;
+            }
+            default: return {svg: {color: 'blue'}};
+          }
+          return {};
+        }`,
+      filename,
+      errors: [...errors, ...errors],
+    },
+    {
+      name: 'called style helpers check strings and templates in switch branches',
+      code: `const getStyles = () => {
+          switch (mode) {
+            case 'active': return 'button {color: red;}';
+            default: return \`svg {color: blue;}\`;
+          }
+        };
+        const C = <div css={getStyles()} />;`,
+      filename,
+      errors: [...errors, ...errors],
+    },
+    {
+      name: 'selector interpolations check switch branches',
+      code:
+        emotion +
+        `const C = styled.div\`\${props => {
+          switch (props.mode) {
+            case 'active': return '.slot';
+            case 'selected': return 'button';
+            default: return '[data-slot]';
+          }
+        }} {color: red;}\`;`,
+      filename,
+      errors,
+    },
+    {
+      name: 'switch branches returning objects identify nested style callbacks',
+      code:
+        emotion +
+        `const C = css({button: () => {
+          switch (mode) {
+            case 'active': return {color: 'red'};
+            default: return {color: 'blue'};
+          }
+        }});`,
+      filename,
+      errors,
+    },
     {
       name: 'Emotion call arguments after the first are still styles',
       code: emotion + 'const C=css({color:"red"},{button:{color:"blue"}});',
