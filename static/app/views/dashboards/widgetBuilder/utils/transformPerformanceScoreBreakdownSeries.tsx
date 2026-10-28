@@ -4,32 +4,25 @@ import {ORDER} from 'sentry/views/insights/browser/webVitals/types';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import {getWeights} from 'sentry/views/insights/browser/webVitals/utils/getWeights';
 
-function getSpansScoreYAxis(data: EventsTimeSeriesResponse) {
-  const isEquationFormat = data.timeSeries.some(timeSeries =>
-    timeSeries.yAxis.startsWith('equation|')
-  );
-  return (webVital: WebVitals) =>
-    isEquationFormat
-      ? `equation|performance_score(measurements.score.${webVital})`
-      : `performance_score(measurements.score.${webVital})`;
-}
-
-/**
- * Scales each web vital's 0-1 score by its share of the total performance
- * score, so the stacked chart adds up to the total. `getScoreYAxis` names the
- * series for each vital; it defaults to the spans `performance_score` fields.
- */
 export function transformPerformanceScoreBreakdownTimeSeries(
   data: EventsTimeSeriesResponse,
-  getScoreYAxis: (webVital: WebVitals) => string = getSpansScoreYAxis(data)
+  getScoreYAxis?: (webVital: WebVitals) => string
 ): EventsTimeSeriesResponse {
   // Grouped series can't be weighted per web vital, so leave them as they are
   if (data.timeSeries.some(timeSeries => (timeSeries.groupBy?.length ?? 0) > 0)) {
     return data;
   }
 
+  const isEquationFormat = data.timeSeries.some(timeSeries =>
+    timeSeries.yAxis.startsWith('equation|')
+  );
+
   const getTimeSeries = (webVital: WebVitals): TimeSeries | undefined => {
-    const yAxis = getScoreYAxis(webVital);
+    const yAxis = getScoreYAxis
+      ? getScoreYAxis(webVital)
+      : isEquationFormat
+        ? `equation|performance_score(measurements.score.${webVital})`
+        : `performance_score(measurements.score.${webVital})`;
     return data.timeSeries.find(timeSeries => timeSeries.yAxis === yAxis);
   };
 
