@@ -276,7 +276,7 @@ class SeerProjectRepoCreateSerializer(CamelSnakeSerializer):
         required=False,
         allow_null=True,
         allow_blank=True,
-        help_text="Override the default branch for this repository.",
+        help_text="The branch Seer works from in this repository. Leave empty to use the repository's default branch.",
     )
     instructions = serializers.CharField(
         required=False,
