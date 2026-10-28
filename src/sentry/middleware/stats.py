@@ -111,6 +111,7 @@ class RequestTimingMiddleware(MiddlewareMixin):
                 tags={
                     "method": request.method,
                     "owner": getattr(owner, "value", owner),
+                    "ui_request": tags["ui_request"],
                 },
                 sample_rate=1.0,
                 unit="millisecond",
