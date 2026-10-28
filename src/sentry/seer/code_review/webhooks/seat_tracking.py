@@ -59,7 +59,6 @@ from sentry.seer.code_review.contributor_seats import (
     record_contributor_action,
     track_contributor_seat,
 )
-from sentry.seer.code_review.webhooks.logging import debug_log
 from sentry.utils.redis import redis_clusters
 
 logger = logging.getLogger(__name__)
@@ -103,7 +102,7 @@ def track_gitlab_contributor_seat_processor(
     }
 
     if integration is None:
-        debug_log(logger, organization, "missing_integration", base_extra)
+        logger.info("missing_integration", extra=base_extra)
         return
 
     base_extra["integration_id"] = integration.id
@@ -118,13 +117,7 @@ def track_gitlab_contributor_seat_processor(
         user_username = event_user["username"]
         iid = object_attributes["iid"]
     except KeyError as e:
-        debug_log(
-            logger,
-            organization,
-            "missing_author_data",
-            {**base_extra, "error": str(e)},
-            level=logging.WARNING,
-        )
+        logger.warning("missing_author_data", extra={**base_extra, "error": str(e)})
         return
 
     base_extra["author_id"] = user_id
@@ -143,12 +136,12 @@ def track_gitlab_contributor_seat_processor(
     try:
         org = Organization.objects.get_from_cache(id=organization.id)
     except Organization.DoesNotExist:
-        debug_log(logger, organization, "organization_not_found", base_extra)
+        logger.info("organization_not_found", extra=base_extra)
         return
 
     seen_key = f"{SEAT_SEEN_KEY_PREFIX}{organization.id}:{repo.id}:{iid}"
     if _is_duplicate_delivery(seen_key):
-        debug_log(logger, organization, "duplicate_delivery_skipped", base_extra)
+        logger.info("duplicate_delivery_skipped", extra=base_extra)
         return
 
     track_contributor_seat(
