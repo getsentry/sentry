@@ -33,7 +33,6 @@ type NewDetectorLayoutProps<TFormData, TUpdatePayload> = {
   formDataToEndpointPayload: (formData: TFormData) => TUpdatePayload;
   initialFormData: Partial<TFormData>;
   disabledCreate?: string;
-  /** Must be a stable reference. */
   draftSchema?: DetectorDraftSchema<TFormData>;
   extraFooterButton?: React.ReactNode;
   mapFormErrors?: (error: any) => any;
@@ -145,7 +144,6 @@ export function NewDetectorLayout<
         {children}
       </EditLayoutDeprecated.Body>
 
-      {/* After the body, so fields setting their initial values don't count as edits. */}
       {draftSchema && <DetectorDraftUrlSync formModel={formModel} schema={draftSchema} />}
 
       <NewDetectorFooter

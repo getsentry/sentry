@@ -7,10 +7,6 @@ import {z} from 'zod';
 import type {FormModel} from 'sentry/components/forms/model';
 import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';
 
-/**
- * Each field should `.catch(undefined)` so one stale or hand-edited field
- * doesn't discard the rest of a shared draft.
- */
 export type DetectorDraftSchema<TFormData> = z.ZodType<Partial<TFormData>>;
 
 export const draftNumericString = z
@@ -48,10 +44,8 @@ export function DetectorDraftUrlSync<TFormData>({
     if (changeCount === 0) {
       return;
     }
-    // Each write is a navigation, so wait for a pause in typing.
     const timeout = setTimeout(() => {
       const values = schema.parse(formModel.getData());
-      // Leave out automatic names so they keep updating for the draft's recipient.
       setDraft(hasSetDetectorName ? values : omit(values, 'name'));
     }, 300);
     return () => clearTimeout(timeout);
