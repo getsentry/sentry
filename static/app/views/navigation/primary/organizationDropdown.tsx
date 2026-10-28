@@ -123,10 +123,8 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   const trigger: DropdownMenuProps['trigger'] = triggerProps => (
     <SettingsNavigationTourElement
       id="entry"
-      title={t('Find Your Settings')}
-      description={t(
-        'Open the organization menu to find organization settings and shortcuts to your project settings.'
-      )}
+      title={t('Access Settings here')}
+      description={t('Yep. We “moved the cheese,” but it’s for the better...')}
     >
       {tourProps => (
         <AvatarButton

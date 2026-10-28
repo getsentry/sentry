@@ -1961,7 +1961,7 @@
       "count": 1
     },
     "@sentry/scraps/prefer-primitives": {
-      "count": 2
+      "count": 1
     }
   },
   "components/tours/startTour.tsx": {

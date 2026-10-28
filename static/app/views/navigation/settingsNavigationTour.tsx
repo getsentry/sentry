@@ -87,6 +87,9 @@ export function SettingsNavigationTourElement({
   const context = useContext(SettingsNavigationTourContext);
   return (
     <TourGuide
+      density="comfortable"
+      width={395}
+      highlight={false}
       title={title}
       description={description}
       isOpen={context?.step === id}

@@ -360,7 +360,11 @@ interface TourGuideProps extends Omit<
    * instead of regular buttons, since it may cause readibility issues if we use the user's theme.
    */
   actions?: React.ReactNode;
+  /** Adds padding around the header, text, and action rows. */
+  density?: 'compact' | 'comfortable';
   handleDismiss?: (e: React.MouseEvent) => void;
+  /** Disable the outline when the target already has its own visual treatment. */
+  highlight?: boolean;
   id?: string;
   margin?: number;
   offset?: UseOverlayProps['offset'];
@@ -368,6 +372,7 @@ interface TourGuideProps extends Omit<
   stepCount?: number;
   stepTotal?: number;
   title?: React.ReactNode;
+  width?: number;
 }
 
 const zIndex = {
@@ -387,6 +392,9 @@ export function TourGuide({
   title,
   description,
   actions,
+  density = 'compact',
+  highlight = true,
+  width = 360,
   className,
   isOpen,
   position,
@@ -426,7 +434,7 @@ export function TourGuide({
     <Fragment>
       <ClassNames>
         {({css, cx}) => {
-          const tourStyles = getTourElementStyles(theme, !!isOpen, margin);
+          const tourStyles = getTourElementStyles(theme, !!isOpen && highlight, margin);
           const tourClassName = tourStyles ? css(tourStyles) : undefined;
 
           return children({
@@ -443,6 +451,8 @@ export function TourGuide({
                 <ClassNames>
                   {({css, theme: currentTheme}) => (
                     <TourOverlay
+                      width={width}
+                      density={density}
                       animated
                       arrowProps={{
                         ...arrowProps,
@@ -457,25 +467,35 @@ export function TourGuide({
                         `,
                       }}
                     >
-                      <TourBody>
+                      <TourBody density={density}>
                         {isTopRowVisible && (
-                          <TopRow>
+                          <TopRow density={density}>
                             <div>{countText}</div>
                             {isDismissVisible && (
                               <Button
                                 variant="transparent"
                                 onClick={handleDismiss}
-                                icon={<IconClose />}
+                                icon={
+                                  <IconClose
+                                    size={density === 'comfortable' ? 'xs' : undefined}
+                                  />
+                                }
                                 aria-label={t('Close')}
-                                size="zero"
+                                size={density === 'comfortable' ? 'xs' : 'zero'}
                               />
                             )}
                           </TopRow>
                         )}
-                        {title && <TitleRow>{title}</TitleRow>}
-                        {description && <DescriptionRow>{description}</DescriptionRow>}
+                        {title && <TitleRow density={density}>{title}</TitleRow>}
+                        {description && (
+                          <DescriptionRow density={density}>{description}</DescriptionRow>
+                        )}
                         {actions && (
-                          <Flex justify="end" marginTop="md">
+                          <Flex
+                            justify="end"
+                            marginTop={density === 'comfortable' ? undefined : 'md'}
+                            padding={density === 'comfortable' ? 'md 0' : undefined}
+                          >
                             {actions}
                           </Flex>
                         )}
@@ -493,26 +513,32 @@ export function TourGuide({
 }
 
 /* XXX: For compatibility with Guides, we need to style 'a' tags which are often docs links */
-const TourBody = styled('div')`
+type TourDensityProps = {density: 'compact' | 'comfortable'};
+
+const TourBody = styled('div')<TourDensityProps>`
   display: flex;
   flex-direction: column;
   background: ${p => p.theme.tokens.background.primary};
-  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
+  padding: ${p => p.theme.space[p.density === 'comfortable' ? 'md' : 'lg']}
+    ${p => p.theme.space.xl};
   color: ${p => p.theme.tokens.content.primary};
   border-radius: ${p => p.theme.radius.md};
-  width: 360px;
+  width: 100%;
   a {
     color: ${p => p.theme.tokens.content.primary};
     text-decoration: underline;
   }
 `;
 
-const TourOverlay = styled(Overlay)`
-  width: 360px;
-  box-shadow: none;
+const TourOverlay = styled(Overlay)<TourDensityProps & {width: number}>`
+  width: ${p => p.width}px;
+  max-width: calc(100vw - 32px);
+  box-shadow: ${p => (p.density === 'comfortable' ? p.theme.shadow.high : 'none')};
 `;
 
-const TopRow = styled('div')`
+const TopRow = styled('div')<TourDensityProps>`
+  min-height: ${p => (p.density === 'comfortable' ? p.theme.form.sm.height : undefined)};
+  padding-block: ${p => (p.density === 'comfortable' ? p.theme.space.xs : undefined)};
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -521,7 +547,8 @@ const TopRow = styled('div')`
   font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
-const TitleRow = styled('div')`
+const TitleRow = styled('div')<TourDensityProps>`
+  padding-block: ${p => (p.density === 'comfortable' ? p.theme.space.xs : undefined)};
   color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.font.size.xl};
   font-weight: ${p => p.theme.font.weight.sans.medium};
@@ -529,13 +556,14 @@ const TitleRow = styled('div')`
   white-space: wrap;
 `;
 
-const DescriptionRow = styled('div')`
+const DescriptionRow = styled('div')<TourDensityProps>`
+  padding-block: ${p => (p.density === 'comfortable' ? p.theme.space.xs : undefined)};
   color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.font.size.md};
   font-weight: ${p => p.theme.font.weight.sans.regular};
   line-height: 1.4;
   white-space: wrap;
-  opacity: 0.9;
+  opacity: ${p => (p.density === 'comfortable' ? 1 : 0.9)};
 `;
 
 export function TourAction(props: React.ComponentProps<typeof Button>) {

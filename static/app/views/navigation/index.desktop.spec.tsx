@@ -249,10 +249,13 @@ describe('desktop navigation', () => {
         </PrimaryNavigationContextProvider>,
         navigationContext({
           organization: settingsV3,
-          initialRouterConfig: {location: {pathname: '/settings/org-slug/'}},
+          initialRouterConfig: {location: {pathname: '/organizations/org-slug/issues/'}},
         })
       );
 
+      expect(await screen.findByText('Access Settings here')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Next'}));
+      expect(router.location.pathname).toBe('/settings/org-slug/');
       expect(await screen.findByText('Organization Settings')).toBeInTheDocument();
       await userEvent.click(screen.getByRole('button', {name: 'Close'}));
       expect(screen.queryByText('Organization Settings')).not.toBeInTheDocument();
