@@ -796,9 +796,6 @@ importers:
       sentry:
         specifier: workspace:@sentry-internal/app@*
         version: 'link:'
-      sonner:
-        specifier: 2.0.8
-        version: 2.0.8(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       sprintf-js:
         specifier: 1.0.3
         version: 1.0.3
@@ -1267,6 +1264,9 @@ importers:
       react-textarea-autosize:
         specifier: 8.5.7
         version: 8.5.7(@types/react@19.3.0)(react@19.3.0)
+      sonner:
+        specifier: 2.0.8
+        version: 2.0.8(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       type-fest:
         specifier: ^5.10.0
         version: 5.10.0
@@ -1526,9 +1526,6 @@ importers:
       sentry-test:
         specifier: workspace:@sentry-internal/sentry-test@*
         version: 'link:'
-      sonner:
-        specifier: 2.0.8
-        version: 2.0.8(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
 
   tests/js/getsentry-test:
     devDependencies:

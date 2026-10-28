@@ -264,11 +264,6 @@
       "count": 1
     }
   },
-  "components/core/toast/toast.spec.tsx": {
-    "@sentry/require-fake-timer-cleanup": {
-      "count": 1
-    }
-  },
   "components/customCommitsResolutionModal.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1

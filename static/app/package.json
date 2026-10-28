@@ -120,7 +120,6 @@
     "reflux": "0.4.1",
     "screenfull": "^6.0.2",
     "sentry": "workspace:@sentry-internal/app@*",
-    "sonner": "2.0.8",
     "sprintf-js": "1.0.3",
     "type-fest": "^5.10.0",
     "zod": "4.6.7",
