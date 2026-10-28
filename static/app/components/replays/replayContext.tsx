@@ -652,11 +652,14 @@ export function Provider({
   // next one. A leftover video player has no rrweb `wrapper`, which crashes the
   // rrweb setup above when the next replay is a web replay.
   useEffect(() => {
+    // No player is built without a replay, so there is nothing to tear down
+    if (!replayId) {
+      return;
+    }
     return () => {
       replayerRef.current?.destroy();
       replayerRef.current = null;
     };
-    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [replayId]);
 
   const restart = useCallback(() => {
