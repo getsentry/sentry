@@ -985,6 +985,9 @@ class DifAssembleEndpoint(ProjectEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
+    # Assemble state is cached per checksum, so a resend reports it instead of
+    # starting a second job.
+    idempotent_methods = frozenset({"POST"})
     permission_classes = (ProjectReleasePermission,)
 
     def post(self, request: Request, project: Project) -> Response:

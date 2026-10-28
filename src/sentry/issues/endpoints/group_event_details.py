@@ -76,6 +76,7 @@ from sentry.utils import metrics
 from sentry.utils.snuba import get_snuba_column_name
 
 BOOLEAN_SEARCH_CONFIG = SearchConfig.create_from(issue_search_config, allow_boolean=True)
+COLLAPSE_ADJACENT_EVENTS = "adjacentEvents"
 
 
 class IssueEventQueryBuilder(DiscoverQueryBuilder):
@@ -187,6 +188,7 @@ class GroupEventDetailsEndpoint(FormattableResponseMixin, GroupEndpoint):
             IssueParams.ISSUE_ID,
             GlobalParams.ENVIRONMENT,
             EventParams.EVENT_ID_EXTENDED,
+            EventParams.EVENT_DETAILS_COLLAPSE,
             OpenApiParameter(
                 name="llmFormat",
                 location=OpenApiParameter.QUERY,
@@ -372,6 +374,7 @@ class GroupEventDetailsEndpoint(FormattableResponseMixin, GroupEndpoint):
             use_snql=boolean_search,
             start=start,
             end=end,
+            include_adjacent_events=COLLAPSE_ADJACENT_EVENTS not in collapse,
         )
         if data is None:
             return Response({"detail": "Failed to load event"}, status=500)

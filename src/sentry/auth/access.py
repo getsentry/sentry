@@ -14,6 +14,7 @@ from sentry_sdk import traces
 
 from sentry import features, roles
 from sentry.api.exceptions import DataSecrecyError
+from sentry.auth.deprecated_scope_translation import translate_deprecated_scopes
 from sentry.auth.scope_declaration import check_scope_declaration, check_scope_declarations
 from sentry.auth.services.access.service import access_service
 from sentry.auth.services.auth import AuthenticatedToken, RpcAuthState, RpcMemberSsoState
@@ -1234,7 +1235,9 @@ def _from_sentry_app(user: User, organization: Organization | None = None) -> Ac
     if not sentry_app.is_installed_on(organization):
         return NoAccess()
 
-    return OrganizationGlobalMembership(organization, sentry_app.scope_list, sso_is_valid=True)
+    return OrganizationGlobalMembership(
+        organization, translate_deprecated_scopes(sentry_app.scope_list), sso_is_valid=True
+    )
 
 
 def _from_rpc_sentry_app(context: RpcUserOrganizationContext | None = None) -> Access:
@@ -1258,7 +1261,7 @@ def _from_rpc_sentry_app(context: RpcUserOrganizationContext | None = None) -> A
             ),
             permissions=[],
         ),
-        scopes=installation.sentry_app.scope_list,
+        scopes=translate_deprecated_scopes(installation.sentry_app.scope_list),
     )
 
 

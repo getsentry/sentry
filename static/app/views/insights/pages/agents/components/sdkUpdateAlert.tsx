@@ -41,7 +41,11 @@ export function SdkUpdateAlert({
   packageName,
 }: {
   minVersion: string;
-  packageName: string;
+  /**
+   * The SDK packages the project may send events with. The alert names an
+   * outdated one.
+   */
+  packageName: string | readonly string[];
   projectId: string;
 }) {
   const {isFetching, isError, data} = useProjectSdkNeedsUpdate({
@@ -53,13 +57,13 @@ export function SdkUpdateAlert({
     return null;
   }
 
-  const validSdkUpdate = data?.find(
-    update =>
-      getPackageNameFromSdkName(update.sdkName) === packageName &&
-      semverCompare(update.sdkVersion || '', minVersion) === -1
-  );
+  const packageNames = typeof packageName === 'string' ? [packageName] : packageName;
+  const outdatedPackageName = data
+    ?.filter(update => semverCompare(update.sdkVersion || '', minVersion) === -1)
+    .map(update => getPackageNameFromSdkName(update.sdkName))
+    .find(name => name !== null && packageNames.includes(name));
 
-  if (!validSdkUpdate) {
+  if (!outdatedPackageName) {
     return null;
   }
 
@@ -68,7 +72,7 @@ export function SdkUpdateAlert({
       {tct(
         'Your [packageName] version is below the minimum required for agent monitoring.',
         {
-          packageName: <code>{packageName}</code>,
+          packageName: <code>{outdatedPackageName}</code>,
         }
       )}{' '}
       {tct('Update to [minVersionCode] or later.', {
