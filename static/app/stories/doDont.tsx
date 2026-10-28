@@ -45,6 +45,7 @@ function Guideline({caption, children, kind}: GuidelineProps & {kind: 'do' | 'do
   return (
     <Stack as="figure" margin="0" gap="md" minWidth="0">
       <Flex
+        flex="1"
         align="center"
         justify="center"
         gap="md"
