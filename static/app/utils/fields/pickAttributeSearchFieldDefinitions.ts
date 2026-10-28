@@ -1,4 +1,4 @@
-import {ATTRIBUTE_SEARCH_FIELD_DEFINITIONS} from './getFieldDefinitionFromAttributeSearchMetadata';
+import {getAttributeSearchFieldDefinition} from './getFieldDefinitionFromAttributeSearchMetadata';
 import type {FieldDefinition} from './types';
 
 export function pickAttributeSearchFieldDefinitions(
@@ -6,7 +6,7 @@ export function pickAttributeSearchFieldDefinitions(
 ): Record<string, FieldDefinition> {
   const definitions: Record<string, FieldDefinition> = {};
   for (const key of keys) {
-    const definition = ATTRIBUTE_SEARCH_FIELD_DEFINITIONS[key];
+    const definition = getAttributeSearchFieldDefinition(key);
     if (definition) {
       definitions[key] = definition;
     }
