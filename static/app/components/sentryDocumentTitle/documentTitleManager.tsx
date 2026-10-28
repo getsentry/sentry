@@ -24,7 +24,19 @@ const DocumentTitleContext = createContext<DocumentTitleManager>({
 
 export const useDocumentTitleManager = () => useContext(DocumentTitleContext);
 
-export function DocumentTitleManager({children}: React.PropsWithChildren) {
+interface DocumentTitleManagerProps {
+  children?: React.ReactNode;
+  /**
+   * Used as the title when no page registers one, and appended as the suffix
+   * to page titles.
+   */
+  defaultTitle?: string;
+}
+
+export function DocumentTitleManager({
+  children,
+  defaultTitle = DEFAULT_PAGE_TITLE,
+}: DocumentTitleManagerProps) {
   const [entries, setEntries] = useState<TitleEntry[]>([]);
   // Maps prefix id -> prefix string (e.g. "(3) ") prepended to the document title
   const [prefixes, setPrefixes] = useState<Record<string, string>>({});
@@ -67,12 +79,12 @@ export function DocumentTitleManager({children}: React.PropsWithChildren) {
     const parts = entry ? [entry.text] : [];
 
     if (!entry?.noSuffix) {
-      parts.push(DEFAULT_PAGE_TITLE);
+      parts.push(defaultTitle);
     }
     const base = [...new Set([...parts])].join(SEPARATOR);
     const prefix = Object.values(prefixes).filter(Boolean).join('');
     return `${prefix}${base}`;
-  }, [entries, prefixes]);
+  }, [entries, prefixes, defaultTitle]);
 
   // write to the DOM title
   useEffect(() => {
