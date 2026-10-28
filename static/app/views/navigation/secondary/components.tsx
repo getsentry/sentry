@@ -426,9 +426,9 @@ function SectionTitle(props: SectionTitleProps) {
 
     return (
       <Flex width="100%" padding="0" height="32px" justify="start">
-        {buttonProps => (
+        {flexProps => (
           <Button
-            {...buttonProps}
+            {...flexProps}
             size="sm"
             variant="transparent"
             aria-expanded={!props.isCollapsed}
@@ -576,20 +576,20 @@ function SecondaryNavigationLink({
 
   if (!settingsV3) {
     return (
-      <SidebarNavigationLink {...sharedLinkProps} settingsV3={false}>
+      <LegacySidebarNavigationLink {...sharedLinkProps}>
         {leadingItems}
         <Text ellipsis variant="inherit">
           {children}
         </Text>
         {trailingItems}
-      </SidebarNavigationLink>
+      </LegacySidebarNavigationLink>
     );
   }
 
   return (
     <SecondaryNavigationRow>
       {gridProps => (
-        <SidebarNavigationLink {...mergeProps(sharedLinkProps, gridProps)} settingsV3>
+        <SidebarNavigationLink {...mergeProps(sharedLinkProps, gridProps)}>
           <SecondaryNavigationLeadingSlot>{leadingItems}</SecondaryNavigationLeadingSlot>
           <Flex align="center" gap="xs" minWidth="0">
             <Container flex="1" minWidth="0">
@@ -1173,11 +1173,12 @@ const sidebarNavigationItemStyles = (theme: Theme) => css`
   }
 `;
 
-const SidebarNavigationLink = styled(Link, {
-  shouldForwardProp: prop => prop !== 'settingsV3',
-})<{settingsV3: boolean}>`
-  ${p => !p.settingsV3 && legacySidebarNavigationLayout(p.theme)}
+const SidebarNavigationLink = styled(Link)`
   ${p => sidebarNavigationItemStyles(p.theme)}
+`;
+
+const LegacySidebarNavigationLink = styled(SidebarNavigationLink)`
+  ${p => legacySidebarNavigationLayout(p.theme)}
 `;
 
 export const SecondaryNavigation = {
