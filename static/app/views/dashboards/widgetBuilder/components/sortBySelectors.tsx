@@ -162,7 +162,7 @@ export function SortBySelectors({
               placeholder={`${t('Select a column')}\u{2026}`}
               value={values.sortBy}
               options={uniqBy(
-                datasetConfig.getTableSortOptions!(organization, widgetQuery),
+                datasetConfig.getTableSortOptions!(organization, widgetQuery, tags),
                 ({value}) => value
               )}
               onChange={(option: SelectValue<string>) => {

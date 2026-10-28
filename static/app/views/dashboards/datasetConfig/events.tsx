@@ -16,9 +16,10 @@ import type {
   RenderFunctionBaggage,
 } from 'sentry/utils/discover/fieldRenderers';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import type {QueryFieldValue} from 'sentry/utils/discover/fields';
+import type {AggregationKeyWithAlias, QueryFieldValue} from 'sentry/utils/discover/fields';
 import {
   eventsAggregateFunctionOutputType,
+  generateFieldAsString,
   isEquation,
   isLegalYAxisType,
   parseFunction,
@@ -51,30 +52,71 @@ import {
 } from 'sentry/views/performance/utils';
 
 export function getTableSortOptions(
-  _organization: Organization,
-  widgetQuery: WidgetQuery
-) {
+  organization: Organization,
+  widgetQuery: WidgetQuery,
+  tags?: TagCollection,
+  getFieldOptions?: typeof getEventsTableFieldOptions
+): Array<SelectValue<string>> {
   const {columns, aggregates} = widgetQuery;
   const options: Array<SelectValue<string>> = [];
   let equations = 0;
+
   [...aggregates, ...columns]
     .filter(field => !!field)
     .forEach(field => {
-      let alias: any;
+      let alias: string | undefined;
       let label = stripEquationPrefix(field);
-      // Equations are referenced via a standard alias following this pattern
+
       if (isEquation(field)) {
         alias = `equation[${equations}]`;
         equations += 1;
       }
 
       const parsedFunction = parseFunction(field);
+
       if (parsedFunction) {
         label = prettifyParsedFunction(parsedFunction);
       }
 
-      options.push({label, value: alias ?? field});
+      options.push({
+        label,
+        value: alias ?? field,
+      });
     });
+
+  // Allow tables to sort by aggregate functions that are not currently
+  // visualized. Datasets that should not expose hidden aggregates (e.g. trace
+  // metrics, which only allows sorting by selected aggregates) omit
+  // `getFieldOptions` and therefore receive no catalog options.
+  const fieldOptions = getFieldOptions?.(organization, tags) ?? {};
+  const existingValues = new Set(options.map(option => option.value));
+
+  for (const option of Object.values(fieldOptions)) {
+    if (option.value.kind !== FieldValueKind.FUNCTION) {
+      continue;
+    }
+
+    const {name, parameters} = option.value.meta;
+    const args = parameters.map(parameter => parameter.defaultValue ?? '');
+    const value = generateFieldAsString({
+      kind: 'function',
+      function: [
+        name as AggregationKeyWithAlias,
+        args[0] ?? '',
+        ...args.slice(1),
+      ],
+    });
+
+    if (existingValues.has(value)) {
+      continue;
+    }
+
+    existingValues.add(value);
+    options.push({
+      label: option.label,
+      value,
+    });
+  }
 
   return options;
 }
