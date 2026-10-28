@@ -5,6 +5,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
   act,
+  fireEvent,
   render,
   screen,
   userEvent,
@@ -2603,6 +2604,23 @@ describe('SearchQueryBuilder', () => {
       ).not.toBeInTheDocument();
       expect(getLastInput()).toHaveFocus();
       expect(getLastInput()).toHaveValue('foo');
+    });
+
+    it('does not crash when clipboardData is null on paste with selection', async () => {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('{Control>}a{/Control}');
+
+      // Simulate a paste event with null clipboardData (can happen in some browsers)
+      // Target the hidden selection key handler input directly
+      const selectionInput = screen.getByTestId('selection-key-handler');
+      expect(() => fireEvent.paste(selectionInput, {clipboardData: null})).not.toThrow();
+
+      // The original token should still be present since paste was a no-op
+      expect(screen.getByRole('row', {name: 'browser.name:firefox'})).toBeInTheDocument();
     });
 
     it('can copy selection with ctrl-c', async () => {

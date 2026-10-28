@@ -47,6 +47,10 @@ export function SelectionKeyHandler({
     e.preventDefault();
     e.stopPropagation();
 
+    if (!e.clipboardData) {
+      return;
+    }
+
     const text = e.clipboardData.getData('text/plain').replace('\n', '').trim();
 
     dispatch({
