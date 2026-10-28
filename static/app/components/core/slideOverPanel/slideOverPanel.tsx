@@ -41,6 +41,8 @@ type SlideOverPanelProps = {
   panelWidth?: string;
   position?: 'right' | 'bottom' | 'left';
   ref?: React.Ref<HTMLDivElement>;
+  /** Override placement and height to clear banners above the panel. */
+  topOffset?: string;
 };
 
 export function SlideOverPanel({
@@ -52,6 +54,7 @@ export function SlideOverPanel({
   position,
   panelWidth,
   ref,
+  topOffset,
 }: SlideOverPanelProps) {
   const theme = useTheme();
 
@@ -99,6 +102,11 @@ export function SlideOverPanel({
         id={id}
         mode={mode}
         top={contentTop}
+        style={
+          topOffset === undefined
+            ? undefined
+            : {top: topOffset, height: `calc(100% - ${topOffset})`}
+        }
         initial={collapsedStyle}
         animate={openStyle}
         exit={collapsedStyle}

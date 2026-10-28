@@ -34,8 +34,8 @@ function GlobalDrawerTestComponent({config}: {config: DrawerConfig}) {
   );
 }
 
-function DockedPane({width}: {width: number}) {
-  useDrawerDockedPane(width);
+function DockedPane({width, topOffset = 0}: {width: number; topOffset?: number}) {
+  useDrawerDockedPane(width, topOffset);
   return null;
 }
 
@@ -398,10 +398,10 @@ describe('GlobalDrawer', () => {
     expect(drawer.style.getPropertyValue('--drawer-max-width')).toBe('85%');
   });
 
-  it('covers a pane docked against the right edge', async () => {
+  it.each([0, 44, 88])('covers a docked pane below %ipx of banners', async topOffset => {
     render(
       <Fragment>
-        <DockedPane width={420} />
+        <DockedPane width={420} topOffset={topOffset} />
         <GlobalDrawerTestComponent
           config={{
             renderer: () => (
@@ -428,8 +428,10 @@ describe('GlobalDrawer', () => {
         rule.style.getPropertyValue('min-width') === '420px'
     ) as CSSStyleRule | undefined;
     expect(dockedRule).toBeDefined();
-    expect(dockedRule?.style.getPropertyValue('top')).toBe('0px');
-    expect(dockedRule?.style.getPropertyValue('height')).toBe('100%');
+    expect(drawer).toHaveStyle({
+      top: `${topOffset}px`,
+      height: `calc(100% - ${topOffset}px)`,
+    });
 
     await userEvent.click(screen.getByTestId('drawer-test-close'));
     await waitForDrawerToHide(ariaLabel);

@@ -27,11 +27,17 @@ const MIN_CONTENT_HEIGHT = 200;
 const MIN_SEER_HEIGHT = 240;
 const DEFAULT_SEER_HEIGHT = 360;
 
-export function SeerExplorerSidebarLayout({children}: {children: React.ReactNode}) {
+export function SeerExplorerSidebarLayout({
+  children,
+  pageBannerHeight = 0,
+}: {
+  children: React.ReactNode;
+  pageBannerHeight?: number;
+}) {
   const isSidebarMode = useIsSeerExplorerSidebarEnabled();
 
   return isSidebarMode ? (
-    <SeerExplorerSidebarLayoutInSidebarMode>
+    <SeerExplorerSidebarLayoutInSidebarMode pageBannerHeight={pageBannerHeight}>
       {children}
     </SeerExplorerSidebarLayoutInSidebarMode>
   ) : (
@@ -61,7 +67,13 @@ export function SeerExplorerSidebarLayout({children}: {children: React.ReactNode
  * and is written only on a real drag via `onResizeEnd` — programmatic/measure
  * resizes don't persist, so a saved size is never clobbered.
  */
-function SeerExplorerSidebarLayoutInSidebarMode({children}: {children: React.ReactNode}) {
+function SeerExplorerSidebarLayoutInSidebarMode({
+  children,
+  pageBannerHeight,
+}: {
+  children: React.ReactNode;
+  pageBannerHeight: number;
+}) {
   const organization = useOrganization({allowNull: true});
   const {isOpen, sidebarPosition, sidebarContainerRef} = useSeerExplorerContext();
   const {width, height} = useDimensions({elementRef: sidebarContainerRef});
@@ -102,7 +114,10 @@ function SeerExplorerSidebarLayoutInSidebarMode({children}: {children: React.Rea
   // Drawers open against the viewport's right edge, on top of Seer docked
   // right. Have them cover the whole pane (and the divider) rather than part of
   // it. Derived from Seer's persisted size, so it updates when a drag ends.
-  useDrawerDockedPane(isOpen && isRight && available > 0 ? available - contentSize : 0);
+  useDrawerDockedPane(
+    isOpen && isRight && available > 0 ? available - contentSize : 0,
+    pageBannerHeight
+  );
 
   // Persist Seer's size from a drag (the app pane shrinks → Seer grows). Fires
   // only on drag end, never on programmatic/measure resizes, so a saved size is

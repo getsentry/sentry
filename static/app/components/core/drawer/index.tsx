@@ -90,6 +90,11 @@ interface StoredDrawerConfig extends DrawerConfig {
   callerId: string;
 }
 
+interface DockedPane {
+  topOffset: number;
+  width: number;
+}
+
 interface DrawerContextType {
   activeDrawerId: string | null;
   closeDrawer: () => void;
@@ -99,7 +104,7 @@ interface DrawerContextType {
     callerId: string
   ) => void;
   panelRef: React.RefObject<HTMLDivElement | null>;
-  setDockedPaneWidth: (width: number) => void;
+  setDockedPane: (pane: DockedPane | null) => void;
 }
 
 const DrawerContext = createContext<DrawerContextType>({
@@ -107,7 +112,7 @@ const DrawerContext = createContext<DrawerContextType>({
   activeDrawerId: null,
   closeDrawer: () => {},
   panelRef: {current: null},
-  setDockedPaneWidth: () => {},
+  setDockedPane: () => {},
 });
 
 function shouldCloseOnInteractOutsideByDefault(element: Element) {
@@ -128,7 +133,7 @@ export function GlobalDrawer({children}: any) {
   // Used to avoid adding `currentDrawerConfig` as a dependency to the below
   // `useLayoutEffect`. It's only used as a callback when `location` changes.
   const currentDrawerConfigRef = useRef(currentDrawerConfig);
-  const [dockedPaneWidth, setDockedPaneWidth] = useState(0);
+  const [dockedPane, setDockedPane] = useState<DockedPane | null>(null);
 
   // If no config is set, the global drawer is closed.
   const isDrawerOpen = !!currentDrawerConfig;
@@ -222,7 +227,7 @@ export function GlobalDrawer({children}: any) {
 
   return (
     <DrawerContext
-      value={{closeDrawer, activeDrawerId, openDrawer, panelRef, setDockedPaneWidth}}
+      value={{closeDrawer, activeDrawerId, openDrawer, panelRef, setDockedPane}}
     >
       <ErrorBoundary
         mini
@@ -240,7 +245,8 @@ export function GlobalDrawer({children}: any) {
               onClose={handleClose}
               ref={panelRef}
               mode={currentDrawerConfig.options.mode ?? 'blocking'}
-              dockedPaneWidth={dockedPaneWidth}
+              dockedPaneWidth={dockedPane?.width}
+              dockedPaneTop={dockedPane?.topOffset}
               drawerWidth={currentDrawerConfig?.options?.drawerWidth}
               drawerMaxWidth={currentDrawerConfig?.options?.drawerMaxWidth}
               drawerKey={currentDrawerConfig?.options?.drawerKey}
@@ -302,21 +308,20 @@ export function useDrawer() {
 
 /**
  * For a layout that docks its own pane against the viewport's right edge (Seer).
- * While `width` is positive, drawers open over that whole pane: from the top of
- * the viewport and at least `width` pixels wide, so none of the pane shows
- * around them.
+ * While `width` is positive, drawers cover the pane below `topOffset` pixels
+ * of page banners and are at least `width` pixels wide.
  */
-export function useDrawerDockedPane(width: number): void {
-  const {setDockedPaneWidth} = useContext(DrawerContext);
+export function useDrawerDockedPane(width: number, topOffset = 0): void {
+  const {setDockedPane} = useContext(DrawerContext);
   useLayoutEffect(() => {
     if (width <= 0) {
       return;
     }
-    setDockedPaneWidth(width);
+    setDockedPane({width, topOffset});
     return () => {
-      setDockedPaneWidth(0);
+      setDockedPane(null);
     };
-  }, [setDockedPaneWidth, width]);
+  }, [setDockedPane, width, topOffset]);
 }
 
 export {DrawerBody, DrawerHeader, useDrawerContentContext} from './components';

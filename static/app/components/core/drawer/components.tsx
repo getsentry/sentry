@@ -46,6 +46,7 @@ interface DrawerPanelProps extends Pick<
   children: React.ReactNode;
   /** Required — GlobalDrawer applies the default before passing it down. */
   mode: NonNullable<DrawerOptions['mode']>;
+  dockedPaneTop?: number;
   /** Width in pixels of a pane docked against the viewport's right edge, if any. */
   dockedPaneWidth?: number;
   ref?: React.Ref<HTMLDivElement>;
@@ -61,6 +62,7 @@ function DrawerPanel({
   drawerMaxWidth,
   drawerKey,
   dockedPaneWidth,
+  dockedPaneTop,
   resizable = true,
 }: DrawerPanelProps) {
   const {panelRef, resizeHandleRef, handleResizeStart, persistedWidthPercent, enabled} =
@@ -82,6 +84,7 @@ function DrawerPanel({
         <DrawerSlidePanel
           mode={mode}
           dockedPaneWidth={dockedPaneWidth}
+          topOffset={dockedPaneWidth ? `${dockedPaneTop ?? 0}px` : undefined}
           ariaLabel={ariaLabel}
           position="right"
           ref={mergeRefs(panelRef, ref, (node: HTMLDivElement | null) =>
@@ -270,12 +273,7 @@ const DrawerSlidePanel = styled(SlideOverPanel)<{dockedPaneWidth?: number}>`
   ${p =>
     p.dockedPaneWidth
       ? css`
-          /* Beat SlideOverPanel's passive placement inside its media query. */
-          && {
-            min-width: ${p.dockedPaneWidth}px;
-            top: 0;
-            height: 100%;
-          }
+          min-width: ${p.dockedPaneWidth}px;
         `
       : null}
 
