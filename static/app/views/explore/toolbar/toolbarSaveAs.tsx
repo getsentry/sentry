@@ -3,9 +3,8 @@ import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 import * as Sentry from '@sentry/react';
 
-import {LinkButton} from '@sentry/scraps/button';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
-import {Container, Grid} from '@sentry/scraps/layout';
+import {Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {
@@ -16,7 +15,6 @@ import {
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
@@ -25,7 +23,6 @@ import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/field
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 import {encodeSort} from 'sentry/utils/queryString';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
@@ -33,7 +30,6 @@ import {ToolbarSection} from 'sentry/views/explore/components/toolbar/styles';
 import {useAddToDashboard} from 'sentry/views/explore/hooks/useAddToDashboard';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useSpansSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
-import {generateExploreCompareRoute} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {
   useQueryParamsAggregateSortBys,
   useQueryParamsCrossEvents,
@@ -62,7 +58,6 @@ import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 export function ToolbarSaveAs() {
   const {addToDashboard} = useAddToDashboard();
   const {updateQuery, saveQuery} = useSpansSaveQuery();
-  const location = useLocation();
   const organization = useOrganization();
 
   const {projects} = useProjects();
@@ -87,7 +82,6 @@ export function ToolbarSaveAs() {
     () => dedupeArray(visualizeFunctions.map(v => v.yAxis)),
     [visualizeFunctions]
   );
-  const [caseInsensitive] = useCaseInsensitivity();
 
   const sortBys = mode === Mode.SAMPLES ? sampleSortBys : aggregateSortBys;
 
@@ -99,7 +93,6 @@ export function ToolbarSaveAs() {
       : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
 
   const {data: savedQuery, isLoading: isLoadingSavedQuery} = useGetSavedQuery(id);
-  const hasCrossEvents = defined(crossEvents) && crossEvents.length > 0;
 
   const alertsUrls = visualizeYAxes.map((yAxis, index) => {
     const func = parseFunction(withReadableConditionalFilter(yAxis));
@@ -287,74 +280,32 @@ export function ToolbarSaveAs() {
     return null;
   }
 
-  const canCompareQueries = visualizeFunctions.length >= 2;
-
   return (
-    <SaveStyledToolbarSection data-test-id="section-save-as">
-      <Grid flow="column" align="center" gap="md">
-        <DropdownMenu
-          items={items}
-          trigger={triggerProps => (
-            <Container width="100%">
-              {containerProps => (
-                <OverlayTrigger.Button
-                  {...mergeProps(triggerProps, containerProps)}
-                  showChevron={false}
-                  variant="primary"
-                  disabled={hasTransformations}
-                  tooltipProps={
-                    hasTransformations
-                      ? {title: t('Queries with transformations cannot be saved yet.')}
-                      : undefined
-                  }
-                  aria-label={t('Save as')}
-                >
-                  {shouldHighlightSaveButton ? t('Save') : t('Save as')}
-                </OverlayTrigger.Button>
-              )}
-            </Container>
+    <DropdownMenu
+      items={items}
+      trigger={triggerProps => (
+        <Container width={{zero: '100%', sm: 'auto'}}>
+          {containerProps => (
+            <OverlayTrigger.Button
+              {...mergeProps(triggerProps, containerProps)}
+              showChevron={false}
+              variant="primary"
+              disabled={hasTransformations}
+              tooltipProps={
+                hasTransformations
+                  ? {title: t('Queries with transformations cannot be saved yet.')}
+                  : undefined
+              }
+              aria-label={t('Save as')}
+            >
+              {shouldHighlightSaveButton ? t('Save') : t('Save as')}
+            </OverlayTrigger.Button>
           )}
-        />
-
-        <WideLinkButton
-          aria-label={t('Compare')}
-          disabled={hasCrossEvents || !canCompareQueries}
-          onClick={() =>
-            trackAnalytics('trace_explorer.compare', {
-              organization,
-            })
-          }
-          to={generateExploreCompareRoute({
-            organization,
-            mode,
-            location,
-            queries: visualizeFunctions.map(visual => ({
-              query,
-              groupBys,
-              sortBys,
-              yAxes: [visual.yAxis],
-              chartType: visual.chartType,
-              caseInsensitive: caseInsensitive ? '1' : '0',
-            })),
-          })}
-          tooltipProps={
-            hasCrossEvents
-              ? {title: t('Cross-event queries cannot be compared.')}
-              : canCompareQueries
-                ? undefined
-                : {title: t('Add two or more charts to compare chart queries.')}
-          }
-        >
-          {t('Compare Queries')}
-        </WideLinkButton>
-      </Grid>
-    </SaveStyledToolbarSection>
+        </Container>
+      )}
+    />
   );
 }
-
-const WideLinkButton = styled(LinkButton)`
-  width: 100%;
-`;
 
 const DisabledText = styled('span')`
   color: ${p => p.theme.tokens.content.disabled};

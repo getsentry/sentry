@@ -7,6 +7,7 @@ import {defined} from 'sentry/utils/defined';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {mergeMetricUnit} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/mergeMetricUnit';
+import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {metricBoundsApiOptions} from 'sentry/views/explore/metrics/hooks/metricBoundsApiOptions';
 import {metricHeatMapApiOptions} from 'sentry/views/explore/metrics/hooks/metricHeatMapApiOptions';
 import {makePartitionedHeatMapWindowCombiner} from 'sentry/views/explore/metrics/hooks/metricHeatMapCombine';
@@ -23,6 +24,7 @@ interface UseMetricHeatMapDataOptions {
   selection: PageFilters;
   traceMetric: TraceMetric;
   interval?: string | null;
+  sampling?: SamplingMode;
   yBuckets?: number | null;
 }
 
@@ -45,6 +47,7 @@ export function useMetricHeatMapData({
   traceMetric,
   query,
   interval,
+  sampling,
   yBuckets,
   enabled,
 }: UseMetricHeatMapDataOptions): MetricHeatMapData {
@@ -67,6 +70,7 @@ export function useMetricHeatMapData({
       selection,
       traceMetric,
       query,
+      sampling,
     }),
     enabled: enabled && isBoundsQueryNeeded,
   });
@@ -99,6 +103,7 @@ export function useMetricHeatMapData({
       traceMetric,
       query,
       interval,
+      sampling,
       yBuckets,
       // Pin the shared y-domain only when chunking, so every chunk has aligned
       // y-buckets and can be merged. The fallback request stays unpinned.

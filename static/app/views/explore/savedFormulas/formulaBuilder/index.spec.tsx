@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {SavedFormula} from 'sentry/views/explore/hooks/useGetSavedFormulas';
 import FormulaBuilderPage from 'sentry/views/explore/savedFormulas/formulaBuilder';
@@ -58,5 +58,50 @@ describe('FormulaBuilderPage', () => {
     expect(screen.getByRole('textbox', {name: 'Parameter name'})).toBeEnabled();
     expect(screen.getByRole('textbox', {name: 'Reference name'})).toBeEnabled();
     expect(screen.getByRole('button', {name: 'Save'})).toBeEnabled();
+  });
+
+  it('saves suggested values for parameters', async () => {
+    const formula = SavedFormulaFixture({
+      params: [
+        {name: 'duration', order: 0, type: 'column', value: 'span.duration'},
+        {name: 'threshold', order: 1, type: 'number', value: '300'},
+      ],
+    });
+    renderEditPage(formula);
+    const saveRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/explore/formulas/${formula.id}/`,
+      method: 'PUT',
+      body: formula,
+    });
+
+    const suggestedNumber = await screen.findByRole('textbox', {
+      name: 'Suggested value',
+    });
+    expect(suggestedNumber).toHaveValue('300');
+    expect(screen.getByRole('button', {name: 'Suggested value'})).toHaveTextContent(
+      'span.duration'
+    );
+
+    await userEvent.clear(suggestedNumber);
+    await userEvent.type(suggestedNumber, 'abc');
+    expect(screen.getByRole('button', {name: 'Save'})).toBeDisabled();
+
+    await userEvent.clear(suggestedNumber);
+    await userEvent.type(suggestedNumber, '500');
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+    await waitFor(() =>
+      expect(saveRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            params: [
+              {name: 'duration', order: 0, type: 'column', value: 'span.duration'},
+              {name: 'threshold', order: 1, type: 'number', value: '500'},
+            ],
+          }),
+        })
+      )
+    );
   });
 });
