@@ -1,8 +1,9 @@
+import {lazy} from 'react';
 import type {Theme} from '@emotion/react';
 import {uuid4} from '@sentry/core';
 
+import {LazyLoad} from 'sentry/components/lazyLoad';
 import {t} from 'sentry/locale';
-import {AutogroupNodeDetails} from 'sentry/views/performance/traceDetails/traceDrawer/details/autogroup';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import {TraceAutogroupedRow} from 'sentry/views/performance/traceDetails/traceRow/traceAutogroupedRow';
@@ -10,6 +11,15 @@ import type {TraceRowProps} from 'sentry/views/performance/traceDetails/traceRow
 
 import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
 import {computeCollapsedBarSpace} from './utils';
+
+// Lazy so that building a trace tree does not pull in the drawer's details UI.
+const LazyAutogroupNodeDetails = lazy(() =>
+  import('sentry/views/performance/traceDetails/traceDrawer/details/autogroup').then(
+    module => ({
+      default: module.AutogroupNodeDetails,
+    })
+  )
+);
 
 export class SiblingAutogroupNode extends BaseNode<TraceTree.SiblingAutogroup> {
   id: string;
@@ -80,7 +90,7 @@ export class SiblingAutogroupNode extends BaseNode<TraceTree.SiblingAutogroup> {
   renderDetails<NodeType extends BaseNode>(
     props: TraceTreeNodeDetailsProps<NodeType>
   ): React.ReactNode {
-    return <AutogroupNodeDetails {...props} node={this} />;
+    return <LazyLoad LazyComponent={LazyAutogroupNodeDetails} {...props} node={this} />;
   }
 
   matchById(_id: string): boolean {

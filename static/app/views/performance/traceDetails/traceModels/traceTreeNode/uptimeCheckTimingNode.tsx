@@ -1,13 +1,23 @@
+import {lazy} from 'react';
 import type {Theme} from '@emotion/react';
 
+import {LazyLoad} from 'sentry/components/lazyLoad';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
-import {UptimeTimingDetails} from 'sentry/views/performance/traceDetails/traceDrawer/details/uptime/timing';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import type {TraceRowProps} from 'sentry/views/performance/traceDetails/traceRow/traceRow';
 import {TraceUptimeCheckTimingNodeRow} from 'sentry/views/performance/traceDetails/traceRow/traceUptimeCheckTimingNode';
 
 import {BaseNode} from './baseNode';
+
+// Lazy so that building a trace tree does not pull in the drawer's details UI.
+const LazyUptimeTimingDetails = lazy(() =>
+  import('sentry/views/performance/traceDetails/traceDrawer/details/uptime/timing').then(
+    module => ({
+      default: module.UptimeTimingDetails,
+    })
+  )
+);
 
 export class UptimeCheckTimingNode extends BaseNode<TraceTree.UptimeCheckTiming> {
   id: string = this.value.event_id;
@@ -44,7 +54,7 @@ export class UptimeCheckTimingNode extends BaseNode<TraceTree.UptimeCheckTiming>
   renderDetails<NodeType extends BaseNode>(
     props: TraceTreeNodeDetailsProps<NodeType>
   ): React.ReactNode {
-    return <UptimeTimingDetails {...props} node={this} />;
+    return <LazyLoad LazyComponent={LazyUptimeTimingDetails} {...props} node={this} />;
   }
 
   matchWithFreeText(query: string): boolean {

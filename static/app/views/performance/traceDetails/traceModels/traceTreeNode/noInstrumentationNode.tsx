@@ -1,14 +1,24 @@
+import {lazy} from 'react';
 import type {Theme} from '@emotion/react';
 import {uuid4} from '@sentry/core';
 
+import {LazyLoad} from 'sentry/components/lazyLoad';
 import {t} from 'sentry/locale';
-import {MissingInstrumentationNodeDetails} from 'sentry/views/performance/traceDetails/traceDrawer/details/missingInstrumentation';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import {TraceMissingInstrumentationRow} from 'sentry/views/performance/traceDetails/traceRow/traceMissingInstrumentationRow';
 import type {TraceRowProps} from 'sentry/views/performance/traceDetails/traceRow/traceRow';
 
 import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
+
+// Lazy so that building a trace tree does not pull in the drawer's details UI.
+const LazyMissingInstrumentationNodeDetails = lazy(() =>
+  import('sentry/views/performance/traceDetails/traceDrawer/details/missingInstrumentation').then(
+    module => ({
+      default: module.MissingInstrumentationNodeDetails,
+    })
+  )
+);
 
 export class NoInstrumentationNode extends BaseNode<TraceTree.MissingInstrumentationSpan> {
   id: string;
@@ -71,7 +81,13 @@ export class NoInstrumentationNode extends BaseNode<TraceTree.MissingInstrumenta
     props: TraceTreeNodeDetailsProps<NodeType>
   ): React.ReactNode {
     // Won't need this cast once we use BaseNode type for props.node
-    return <MissingInstrumentationNodeDetails {...props} node={this} />;
+    return (
+      <LazyLoad
+        LazyComponent={LazyMissingInstrumentationNodeDetails}
+        {...props}
+        node={this}
+      />
+    );
   }
 
   matchById(id: string): boolean {

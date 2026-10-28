@@ -1,13 +1,13 @@
+import {lazy} from 'react';
 import type {Theme} from '@emotion/react';
 
+import {LazyLoad} from 'sentry/components/lazyLoad';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
 import type {Measurement} from 'sentry/types/event';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getIsAiNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {isBrowserRequestNode} from 'sentry/views/performance/traceDetails/traceApi/utils';
-import {EAPSpanNodeDetails} from 'sentry/views/performance/traceDetails/traceDrawer/details/span';
-import {AiSpanDetails} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/aiSpanDetails';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {isEAPSpanNode} from 'sentry/views/performance/traceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
@@ -17,6 +17,23 @@ import type {TraceRowProps} from 'sentry/views/performance/traceDetails/traceRow
 import {BaseNode, type TraceTreeNodeExtra} from './baseNode';
 import {HTTP_ERROR_STATUSES} from './constants';
 import {traceChronologicalSort} from './utils';
+
+// Lazy so that building a trace tree does not pull in the drawer's details UI.
+const LazyEAPSpanNodeDetails = lazy(() =>
+  import('sentry/views/performance/traceDetails/traceDrawer/details/span').then(
+    module => ({
+      default: module.EAPSpanNodeDetails,
+    })
+  )
+);
+
+const LazyAiSpanDetails = lazy(() =>
+  import('sentry/views/performance/traceDetails/traceDrawer/details/span/aiSpanDetails').then(
+    module => ({
+      default: module.AiSpanDetails,
+    })
+  )
+);
 
 const BROWSER_WEB_VITAL_MEASUREMENTS: Record<string, string> = {
   'browser.web_vital.cls.value': 'cls',
@@ -347,9 +364,11 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     props: TraceTreeNodeDetailsProps<T>
   ): React.ReactNode {
     if (getIsAiNode(this)) {
-      return <AiSpanDetails node={this} traceId={props.traceId} />;
+      return (
+        <LazyLoad LazyComponent={LazyAiSpanDetails} node={this} traceId={props.traceId} />
+      );
     }
-    return <EAPSpanNodeDetails {...props} node={this} />;
+    return <LazyLoad LazyComponent={LazyEAPSpanNodeDetails} {...props} node={this} />;
   }
 
   matchWithFreeText(query: string): boolean {
