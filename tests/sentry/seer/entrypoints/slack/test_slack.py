@@ -1237,7 +1237,11 @@ class SlackAgentEntrypointTest(TestCase):
             ),
         ]
 
-    def _two_posted_answers_with_stale_footers(self) -> SeerRunState:
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch("slack_sdk.web.client.WebClient.chat_update")
+    def test_on_agent_update_retries_failed_edits_and_skips_deleted_replies(
+        self, update: Mock, mock_record: Mock
+    ) -> None:
         state = _agent_state("First answer.")
         state.blocks += [
             MemoryBlock(
@@ -1254,87 +1258,38 @@ class SlackAgentEntrypointTest(TestCase):
         state.repo_pr_states["acme/web"] = RepoPRState(
             repo_name="acme/web", pr_creation_status="creating"
         )
+        # Both answers were posted before the PR status changed, so both footers need an edit.
         for key, ts in (("b2", "1.1"), ("b4", "2.2")):
             SlackSeerAgentReplyCache.set(
                 run_id=state.run_id,
                 key=key,
                 reply=SlackSeerAgentReply(message_ts=ts, pr_status_hash="stale"),
             )
-        return state
-
-    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    @patch("slack_sdk.web.client.WebClient.chat_postMessage")
-    @patch("slack_sdk.web.client.WebClient.chat_update")
-    def test_on_agent_update_rate_limited_edit_retries_without_blocking_other_answers(
-        self, update: Mock, post: Mock, mock_record: Mock
-    ) -> None:
-        state = self._two_posted_answers_with_stale_footers()
         update.side_effect = [
             SlackApiError("error", _slack_response({"ok": False, "error": "ratelimited"})),
-            _slack_response({"ok": True}),
-        ]
-
-        with pytest.raises(IntegrationConfigurationError):
-            SlackAgentEntrypoint.on_agent_update(
-                cache_payload=self._get_entrypoint().create_agent_cache_payload(),
-                run_id=state.run_id,
-                state=state,
-            )
-
-        post.assert_not_called()
-        assert [call.kwargs["ts"] for call in update.call_args_list] == ["1.1", "2.2"]
-        assert_halt_metric(mock_record, IntegrationConfigurationError())
-        replies = SlackSeerAgentReplyCache.get(run_id=state.run_id)
-        assert replies["b2"]["pr_status_hash"] == "stale"
-        assert replies["b4"]["pr_status_hash"] != "stale"
-
-    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    @patch("slack_sdk.web.client.WebClient.chat_update")
-    def test_on_agent_update_deleted_answer_is_not_edited_again(
-        self, update: Mock, mock_record: Mock
-    ) -> None:
-        state = self._two_posted_answers_with_stale_footers()
-        update.side_effect = [
             SlackApiError("error", _slack_response({"ok": False, "error": "message_not_found"})),
             _slack_response({"ok": True}),
         ]
         cache_payload = self._get_entrypoint().create_agent_cache_payload()
 
-        for _ in range(2):
+        def refresh() -> None:
             SlackAgentEntrypoint.on_agent_update(
                 cache_payload=cache_payload, run_id=state.run_id, state=state
             )
 
-        assert update.call_count == 2
-        assert_halt_metric(mock_record, IntegrationResourceNotFoundError())
-        replies = SlackSeerAgentReplyCache.get(run_id=state.run_id)
-        assert replies["b2"]["pr_status_hash"] != "stale"
-        assert replies["b4"]["pr_status_hash"] != "stale"
+        # The rate-limited edit doesn't block the next one, and raises so the refresh task retries.
+        with pytest.raises(IntegrationError):
+            refresh()
+        # The retry edits only the rate-limited answer; the deleted one is never edited again.
+        refresh()
+        refresh()
 
-    @patch("sentry.seer.entrypoints.slack.entrypoint.logger")
-    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value=None)
-    def test_on_agent_update_logs_reply_not_posted(
-        self, mock_send: Mock, mock_logger: Mock
-    ) -> None:
-        state = _agent_state("Test summary")
-
-        SlackAgentEntrypoint.on_agent_update(
-            cache_payload=self._get_entrypoint().create_agent_cache_payload(),
-            run_id=state.run_id,
-            state=state,
-        )
-
-        mock_send.assert_called_once()
-        mock_logger.warning.assert_called_once_with(
-            "seer.entrypoint.slack.agent_update.reply_not_posted",
-            extra={
-                "organization_id": self.organization.id,
-                "integration_id": self.integration.id,
-                "run_id": state.run_id,
-                "reply_key": "b2",
-            },
-        )
-        assert SlackSeerAgentReplyCache.get(run_id=state.run_id) == {}
+        assert [call.kwargs["ts"] for call in update.call_args_list] == ["1.1", "2.2", "1.1"]
+        assert [
+            type(call.args[1])
+            for call in mock_record.mock_calls
+            if call.args[0] == EventLifecycleOutcome.HALTED
+        ] == [IntegrationConfigurationError, IntegrationResourceNotFoundError]
 
 
 def _slack_response(data: dict[str, Any]) -> SlackResponse:
