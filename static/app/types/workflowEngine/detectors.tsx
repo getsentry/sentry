@@ -81,7 +81,7 @@ export interface UptimeSubscriptionDataSource extends BaseDataSource {
 }
 
 export interface CronMonitorDataSource extends BaseDataSource {
-  queryObj: Omit<Monitor, 'alertRule'>;
+  queryObj: Omit<Monitor, 'alertRule'> | null;
   type: 'cron_monitor';
 }
 
