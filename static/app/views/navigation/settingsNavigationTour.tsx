@@ -97,9 +97,11 @@ export function SettingsNavigationTourElement({
       handleDismiss={context?.dismiss}
       actions={
         <Flex data-settings-navigation-tour gap="md" align="center">
-          <TextTourAction size="xs" onClick={context?.dismiss}>
-            {t('Skip tour')}
-          </TextTourAction>
+          {id === 'entry' && (
+            <TextTourAction size="xs" onClick={context?.dismiss}>
+              {t('Skip tour')}
+            </TextTourAction>
+          )}
           {id === 'projects' && (
             <TextTourAction size="xs" onClick={context?.previous}>
               {t('Previous')}

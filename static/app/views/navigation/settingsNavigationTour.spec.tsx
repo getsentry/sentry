@@ -56,9 +56,11 @@ describe('Settings navigation tour', () => {
     });
     expect(await screen.findByText('Tour entry')).toBeInTheDocument();
     expect(screen.getByText('1/2')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Skip tour'})).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
     expect(await screen.findByText('Tour projects')).toBeInTheDocument();
     expect(screen.getByText('2/2')).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Skip tour'})).not.toBeInTheDocument();
     expect(router.location.pathname).toBe('/organizations/org-slug/issues/');
     await userEvent.click(screen.getByRole('button', {name: 'Previous'}));
     expect(await screen.findByText('Tour entry')).toBeInTheDocument();
