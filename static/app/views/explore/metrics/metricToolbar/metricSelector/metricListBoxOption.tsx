@@ -1,4 +1,4 @@
-import {useCallback, useRef} from 'react';
+import {useLayoutEffect, useRef} from 'react';
 import {useOption} from '@react-aria/listbox';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
 import {type ComboBoxState} from '@react-stately/combobox';
@@ -50,21 +50,27 @@ export function MetricListBoxOption({
       updateSidePanelAnchorOffset?.(ref.current);
     },
   });
-  const activeOptionRef = useCallback(
-    (element: HTMLLIElement | null) => {
-      if (element && isFocused) {
-        updateSidePanelAnchorOffset?.(element);
-      }
-    },
-    [isFocused, updateSidePanelAnchorOffset]
-  );
+  // Keep the latest updater in a ref so that a new function identity (which
+  // happens whenever the selector re-renders with new placement/focus state)
+  // does not re-trigger anchoring. Calling it from a ref callback whose
+  // identity depended on the updater caused an infinite update loop.
+  const updateSidePanelAnchorOffsetRef = useRef(updateSidePanelAnchorOffset);
+  useLayoutEffect(() => {
+    updateSidePanelAnchorOffsetRef.current = updateSidePanelAnchorOffset;
+  }, [updateSidePanelAnchorOffset]);
+
+  useLayoutEffect(() => {
+    if (isFocused && ref.current) {
+      updateSidePanelAnchorOffsetRef.current?.(ref.current);
+    }
+  }, [isFocused]);
 
   return (
     <ListItem
       {...optionPropsMerged}
       as="li"
       data-index={dataIndex}
-      ref={mergeRefs(ref, measureRef, activeOptionRef)}
+      ref={mergeRefs(ref, measureRef)}
       size={size}
       label={option.label}
       isFocused={isFocused}

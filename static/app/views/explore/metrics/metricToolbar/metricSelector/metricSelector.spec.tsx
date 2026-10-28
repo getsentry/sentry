@@ -639,6 +639,26 @@ describe('MetricSelector', () => {
       expect(await screen.findByText('Times seen')).toBeInTheDocument();
     });
 
+    it('keeps the side panel rendered while moving focus across options', async () => {
+      render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={jest.fn()} />, {
+        organization,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+      await screen.findByRole('option', {name: SORTED_METRIC_NAMES[1]!});
+      await waitFor(() => {
+        expect(screen.getByRole('combobox')).toHaveFocus();
+      });
+
+      await userEvent.keyboard('{ArrowDown}');
+      await userEvent.keyboard('{ArrowDown}');
+      await userEvent.keyboard('{ArrowUp}');
+      await userEvent.hover(screen.getByRole('option', {name: SORTED_METRIC_NAMES[1]!}));
+
+      expect(await screen.findByText('Type')).toBeInTheDocument();
+      expect(screen.getByRole('listbox')).toBeInTheDocument();
+    });
+
     it('does not render the side panel when hovering the field option', async () => {
       render(
         <MetricSelector
@@ -703,6 +723,28 @@ describe('MetricSelector', () => {
     it('shows attributes section in side panel', async () => {
       render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={jest.fn()} />, {
         organization,
+      });
+
+      it('keeps the side panel anchored while moving focus across options', async () => {
+        render(
+          <MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={jest.fn()} />,
+          {
+            organization,
+          }
+        );
+
+        await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+        await screen.findByRole('listbox');
+
+        for (const name of ['foo', 'error_rate', 'memory_usage', 'bar']) {
+          await userEvent.hover(await screen.findByRole('option', {name}));
+        }
+        await userEvent.keyboard('{ArrowDown}');
+        await userEvent.keyboard('{ArrowDown}');
+        await userEvent.keyboard('{ArrowUp}');
+
+        expect(screen.getByRole('listbox')).toBeInTheDocument();
+        expect(await screen.findByText('Type')).toBeInTheDocument();
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'bar'}));
