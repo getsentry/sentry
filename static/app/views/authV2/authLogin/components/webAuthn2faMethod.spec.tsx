@@ -1,4 +1,4 @@
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as webAuthnHandlers from 'sentry/components/webAuthn/handlers';
 
@@ -15,6 +15,7 @@ describe('WebAuthn2FAMethod', () => {
       configurable: true,
       value: function PublicKeyCredential() {},
     });
+    jest.spyOn(document, 'hasFocus').mockReturnValue(true);
   });
 
   afterEach(() => {
@@ -145,5 +146,39 @@ describe('WebAuthn2FAMethod', () => {
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
     expect(handleSign).toHaveBeenCalledTimes(1);
+  });
+
+  it('waits for the document to be focused before requesting an assertion', async () => {
+    jest.spyOn(document, 'hasFocus').mockReturnValue(false);
+    const handleSign = jest
+      .spyOn(webAuthnHandlers, 'handleSign')
+      .mockReturnValue(new Promise(() => {}));
+    const challengeRequest = MockApiClient.addMockResponse({
+      url: '/auth/2fa/challenge/',
+      method: 'POST',
+      body: {
+        method: 'u2f',
+        challenge: {webAuthnAuthenticationData: 'challenge'},
+      },
+    });
+    render(
+      <WebAuthn2FAMethod
+        isActive
+        isAuthenticating={false}
+        isProcessing={false}
+        submissionFailed={false}
+        onRetrySubmission={jest.fn()}
+        onSubmit={jest.fn()}
+      />
+    );
+
+    await waitFor(() => expect(challengeRequest).toHaveBeenCalledTimes(1));
+    expect(handleSign).not.toHaveBeenCalled();
+
+    act(() => {
+      window.dispatchEvent(new Event('focus'));
+    });
+
+    await waitFor(() => expect(handleSign).toHaveBeenCalledTimes(1));
   });
 });

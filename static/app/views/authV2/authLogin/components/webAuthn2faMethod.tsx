@@ -100,10 +100,23 @@ export function WebAuthn2FAMethod({
       }
     }
 
-    void authenticate();
+    // Browsers like Safari reject navigator.credentials APIs when the document
+    // is not focused, so defer the WebAuthn prompt until the window has focus.
+    if (document.hasFocus()) {
+      void authenticate();
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const handleFocus = () => {
+      void authenticate();
+    };
+    window.addEventListener('focus', handleFocus, {once: true});
 
     return () => {
       cancelled = true;
+      window.removeEventListener('focus', handleFocus);
     };
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [attempt, challenge.result, isActive]);
