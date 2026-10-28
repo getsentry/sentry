@@ -9,7 +9,7 @@ from sentry.testutils.cases import TestMigrations
 
 migration = import_module("sentry.notebooks.migrations.0002_copy_from_investigations")
 
-OLD = datetime(2026, 9, 1, tzinfo=timezone.utc)
+OLD = datetime(2020, 9, 1, tzinfo=timezone.utc)
 
 
 class CopyFromInvestigationsTest(TestMigrations):
