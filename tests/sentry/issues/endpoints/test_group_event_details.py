@@ -1,10 +1,12 @@
 import uuid
 from typing import Any
+from unittest import mock
 from uuid import uuid4
 
 from sentry.models.group import GroupStatus
 from sentry.models.release import Release
 from sentry.search.events.constants import SEMVER_ALIAS
+from sentry.services.eventstore.snuba.backend import SnubaEventStorage
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
@@ -134,6 +136,58 @@ class GroupEventDetailsEndpointTest(GroupEventDetailsEndpointTestBase, APITestCa
         assert not {"firstEvent", "lastEvent", "newGroups"} <= set(
             response_with_collapse.data["release"]
         )
+
+    def test_collapse_adjacent_events(self) -> None:
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.event_b.group.id}/events/{self.event_b.event_id}/"
+        with (
+            mock.patch.object(SnubaEventStorage, "get_adjacent_event_ids") as legacy,
+            mock.patch.object(SnubaEventStorage, "get_adjacent_event_ids_snql") as snql,
+        ):
+            response = self.client.get(url, format="json", data={"collapse": ["adjacentEvents"]})
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == str(self.event_b.event_id)
+        assert response.data["previousEventID"] is None
+        assert response.data["nextEventID"] is None
+        assert legacy.call_count == 0
+        assert snql.call_count == 0
+
+    def test_collapse_adjacent_events_with_full_release(self) -> None:
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.event_a.group.id}/events/latest/"
+        with mock.patch.object(SnubaEventStorage, "get_adjacent_event_ids") as legacy:
+            response = self.client.get(
+                url, format="json", data={"collapse": ["fullRelease", "adjacentEvents"]}
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == str(self.event_c.event_id)
+        assert response.data["previousEventID"] is None
+        assert response.data["nextEventID"] is None
+        assert not {"firstEvent", "lastEvent", "newGroups"} <= set(response.data["release"])
+        assert legacy.call_count == 0
+
+    def test_adjacent_events_computed_by_default(self) -> None:
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.event_b.group.id}/events/{self.event_b.event_id}/"
+        with mock.patch.object(
+            SnubaEventStorage,
+            "get_adjacent_event_ids",
+            autospec=True,
+            side_effect=SnubaEventStorage.get_adjacent_event_ids,
+        ) as legacy:
+            response = self.client.get(url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data["previousEventID"] == str(self.event_a.event_id)
+        assert response.data["nextEventID"] == str(self.event_c.event_id)
+        assert legacy.call_count == 1
+
+    def test_unknown_collapse_value_ignored(self) -> None:
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.event_b.group.id}/events/{self.event_b.event_id}/"
+        response = self.client.get(url, format="json", data={"collapse": ["notARealValue"]})
+
+        assert response.status_code == 200, response.content
+        assert response.data["previousEventID"] == str(self.event_a.event_id)
+        assert response.data["nextEventID"] == str(self.event_c.event_id)
 
     def test_prev_filtered(self) -> None:
         url = f"/api/0/organizations/{self.organization.slug}/issues/{self.event_b.group.id}/events/{self.event_b.event_id}/"

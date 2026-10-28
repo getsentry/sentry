@@ -1,5 +1,8 @@
+from unittest import mock
+
 from django.urls import reverse
 
+from sentry.services.eventstore.snuba.backend import SnubaEventStorage
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
@@ -163,6 +166,56 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(self.next_event.event_id)
         assert response.data["nextEventID"] is None
+
+    def _cur_event_url(self) -> str:
+        return reverse(
+            "sentry-api-0-project-event-details",
+            kwargs={
+                "event_id": self.cur_event.event_id,
+                "project_id_or_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+            },
+        )
+
+    def test_collapse_adjacent_events(self) -> None:
+        with (
+            mock.patch.object(SnubaEventStorage, "get_adjacent_event_ids") as legacy,
+            mock.patch.object(SnubaEventStorage, "get_adjacent_event_ids_snql") as snql,
+        ):
+            response = self.client.get(
+                self._cur_event_url(), format="json", data={"collapse": ["adjacentEvents"]}
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == str(self.cur_event.event_id)
+        assert response.data["groupID"] == str(self.cur_group.id)
+        assert response.data["nextEventID"] is None
+        assert response.data["previousEventID"] is None
+        assert legacy.call_count == 0
+        assert snql.call_count == 0
+
+    def test_adjacent_events_computed_by_default(self) -> None:
+        with mock.patch.object(
+            SnubaEventStorage,
+            "get_adjacent_event_ids",
+            autospec=True,
+            side_effect=SnubaEventStorage.get_adjacent_event_ids,
+        ) as legacy:
+            response = self.client.get(self._cur_event_url(), format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data["nextEventID"] == str(self.next_event.event_id)
+        assert response.data["previousEventID"] == str(self.prev_event.event_id)
+        assert legacy.call_count == 1
+
+    def test_unknown_collapse_value_ignored(self) -> None:
+        response = self.client.get(
+            self._cur_event_url(), format="json", data={"collapse": ["notARealValue"]}
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["nextEventID"] == str(self.next_event.event_id)
+        assert response.data["previousEventID"] == str(self.prev_event.event_id)
 
     def test_non_numeric_group_id(self) -> None:
         url = reverse(

@@ -48,7 +48,10 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.issues.endpoints.bases.group import GroupEndpoint
-from sentry.issues.endpoints.project_event_details import wrap_event_response
+from sentry.issues.endpoints.project_event_details import (
+    COLLAPSE_ADJACENT_EVENTS,
+    wrap_event_response,
+)
 from sentry.issues.formatting.formatter import FormattedResponse
 from sentry.issues.formatting.mixin import (
     VALID_FORMATS,
@@ -187,6 +190,7 @@ class GroupEventDetailsEndpoint(FormattableResponseMixin, GroupEndpoint):
             IssueParams.ISSUE_ID,
             GlobalParams.ENVIRONMENT,
             EventParams.EVENT_ID_EXTENDED,
+            EventParams.EVENT_DETAILS_COLLAPSE,
             OpenApiParameter(
                 name="llmFormat",
                 location=OpenApiParameter.QUERY,
@@ -372,6 +376,7 @@ class GroupEventDetailsEndpoint(FormattableResponseMixin, GroupEndpoint):
             use_snql=boolean_search,
             start=start,
             end=end,
+            include_adjacent_events=COLLAPSE_ADJACENT_EVENTS not in collapse,
         )
         if data is None:
             return Response({"detail": "Failed to load event"}, status=500)

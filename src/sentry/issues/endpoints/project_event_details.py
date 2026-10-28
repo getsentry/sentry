@@ -32,6 +32,8 @@ from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
+COLLAPSE_ADJACENT_EVENTS = "adjacentEvents"
+
 
 def wrap_event_response(
     request_user: Any,
@@ -43,6 +45,7 @@ def wrap_event_response(
     start: datetime | None = None,
     end: datetime | None = None,
     use_snql: bool = False,
+    include_adjacent_events: bool = True,
 ) -> GroupEventDetailsResponse | None:
     event_data = serialize(
         event,
@@ -64,7 +67,7 @@ def wrap_event_response(
     if legacy_conditions is None:
         legacy_conditions = []
 
-    if event.group_id:
+    if include_adjacent_events and event.group_id:
         if use_snql or options.get("eventstore.adjacent_event_ids_use_snql"):
             prev_ids, next_ids = eventstore.backend.get_adjacent_event_ids_snql(
                 organization_id=event.organization.id,
@@ -128,6 +131,7 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
             GlobalParams.PROJECT_ID_OR_SLUG,
             EventParams.EVENT_ID,
             GlobalParams.ENVIRONMENT,
+            EventParams.EVENT_DETAILS_COLLAPSE,
         ],
         responses={
             200: inline_sentry_response_serializer(
@@ -161,6 +165,7 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         sentry_sdk.set_attribute("event.type", event.get_event_type())
 
         environments = set(request.GET.getlist("environment"))
+        collapse = request.GET.getlist("collapse", [])
 
         # TODO: Remove `for_group` check once performance issues are moved to the issue platform
         if hasattr(event, "for_group") and event.group:
@@ -172,6 +177,7 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
             environments=list(environments),
             start=start,
             end=end,
+            include_adjacent_events=COLLAPSE_ADJACENT_EVENTS not in collapse,
         )
         if data is None:
             return Response({"detail": "Failed to load event"}, status=500)
