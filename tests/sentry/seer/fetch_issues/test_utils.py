@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 import pytest
 
+from sentry.models.repository import Repository
 from sentry.seer.fetch_issues.utils import (
     NoProjectsForRepoError,
     RepoProjects,
@@ -106,29 +107,26 @@ class TestGetRepoAndProjects(TestCase):
         assert result.repo == repo
         assert len(result.projects) == 1
 
-    def test_get_repo_and_projects_with_wrong_owner_not_found(self) -> None:
-        from sentry.models.repository import Repository
-
+    def test_get_repo_and_projects_uses_external_id_before_name(self) -> None:
         repo = self.create_repo(
             project=self.project,
-            name="getsentry/sentry",
-            provider="integrations:github",
-            external_id="123",
+            name="Display Group / Display Project",
+            provider="integrations:gitlab",
+            external_id="gitlab.example:123",
         )
         self.create_code_mapping(project=self.project, repo=repo)
 
-        with pytest.raises(Repository.DoesNotExist):
-            get_repo_and_projects(
-                organization_id=self.organization.id,
-                provider="github",
-                external_id="123",
-                owner="wrong-owner",
-                name="sentry",
-            )
+        result = get_repo_and_projects(
+            organization_id=self.organization.id,
+            provider="gitlab",
+            external_id="gitlab.example:123",
+            owner="url-safe-group",
+            name="url-safe-project",
+        )
+
+        assert result.repo == repo
 
     def test_get_repo_and_projects_repo_not_found(self) -> None:
-        from sentry.models.repository import Repository
-
         with pytest.raises(Repository.DoesNotExist):
             get_repo_and_projects(
                 organization_id=self.organization.id,

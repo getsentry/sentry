@@ -24,12 +24,7 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
-from sentry.viewer_context import (
-    Actor,
-    ActorType,
-    ViewerContext,
-    get_viewer_context,
-)
+from sentry.viewer_context import Actor, ActorType, ViewerContext, get_viewer_context
 
 
 def _make_snuba_params(organization, projects):

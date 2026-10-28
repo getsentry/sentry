@@ -88,9 +88,9 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
         cases = [
             (
                 ["smooth(ema,3)"],
-                [2, None, 4, 4, None, None],
+                [2, 1, 3.5, 3.75, 1.875, 0.9375],
                 None,
-                [True, False, True, True, False, False],
+                [True, True, True, True, True, True],
             ),
             (
                 ["fill(locf)", "smooth(sma,2)"],
@@ -182,8 +182,8 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
         assert smoothed["values"] == build_expected_transformed_timeseries(
             self.start,
             15_000,
-            [2, None, 6, 5, None, None],
-            smoothed=[True, False, True, True, False, False],
+            [2, 1, 3, 5, 2, 0],
+            smoothed=[True, True, True, True, True, True],
             ignore_accuracy=True,
         )
 
@@ -195,12 +195,12 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
         cases: list[tuple[int, list[float | None], list[float | None], list[int], list[int]]] = [
             (
                 15,
-                [None, None, None, 8, 6, None, None, None],
-                [10, 5.5, None, None, None, None, None, None],
+                [0, 0, 0, 4, 6, 2, 0, 0],
+                [10, 5.5, 0.5, 0, 0, 0, 0, 0],
                 [0, 0, 0, 8, 4, 0, 0, 0],
                 [10, 1, 0, 0, 0, 0, 0, 0],
             ),
-            (60, [8, 6], [11, None], [8, 4], [11, 0]),
+            (60, [8, 6], [11, 5.5], [8, 4], [11, 0]),
         ]
         for interval, selected_values, other_values, selected_counts, other_counts in cases:
             response = self._do_request(
@@ -235,6 +235,32 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
                     sample_rate=[1 if count else None for count in sample_counts],
                     confidence=[any_confidence if count else None for count in sample_counts],
                 )
+
+    def test_smooth_only_uses_rpc_zero_fill_in_comparison_period(self) -> None:
+        self.end = self.start + timedelta(seconds=90)
+        self._store_spans_in_buckets([2, 0, 6, 4, 0, 0], self.start, interval_seconds=15)
+        self._store_spans_in_buckets([0, 8, 0, 2, 0, 0], self.two_days_ago, interval_seconds=15)
+
+        response = self._do_request(
+            data={
+                "interval": "15s",
+                "yAxis": "count()",
+                "comparisonDelta": 24 * 60 * 60,
+                "transformations[0]": ["smooth(sma,2)"],
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        (timeseries,) = response.data["timeSeries"]
+        assert timeseries["values"] == build_expected_transformed_timeseries(
+            self.start,
+            15_000,
+            [2, 1, 3, 5, 2, 0],
+            [0, 4, 4, 1, 1, 0],
+            smoothed=[True, True, True, True, True, True],
+            comparison_smoothed=[True, True, True, True, True, True],
+            ignore_accuracy=True,
+        )
 
     def test_transformations_apply_to_comparison_period_independently(self) -> None:
         self.end = self.start + timedelta(seconds=90)

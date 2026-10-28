@@ -42,6 +42,7 @@ export function ActivityLine({
 
   return (
     <Timeline.Item
+      variant={item.variant}
       marker={<ActivityLineMarker item={getActorActivity(item)} />}
       headline={
         <ActivityLineHeadline

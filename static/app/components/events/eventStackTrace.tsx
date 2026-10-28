@@ -22,7 +22,8 @@ interface EventStackTraceProps {
   event: Event;
   group: Group;
   projectSlug: Project['slug'];
-  collapseAll?: boolean;
+  /** Use a local initial section state instead of saved collapse preferences. */
+  initialCollapse?: boolean;
 }
 
 function getEventStackTraceData(event: Event, group: Group) {
@@ -64,14 +65,19 @@ export function EventStackTrace({
   event,
   group,
   projectSlug,
-  collapseAll,
+  initialCollapse,
 }: EventStackTraceProps) {
   const {exception, stacktrace, threads, hangProfileData, shouldUseNewStackTrace} =
     useMemo(() => getEventStackTraceData(event, group), [event, group]);
   const groupingCurrentLevel = group?.metadata?.current_level;
 
   if (hangProfileData) {
-    return <MetricKitHangProfileSection data={hangProfileData} />;
+    return (
+      <MetricKitHangProfileSection
+        data={hangProfileData}
+        initialCollapse={initialCollapse}
+      />
+    );
   }
 
   return (
@@ -80,7 +86,7 @@ export function EventStackTrace({
         <EntryErrorBoundary type={EntryType.EXCEPTION}>
           {shouldUseNewStackTrace ? (
             <IssueStackTrace
-              collapseAll={collapseAll}
+              initialCollapse={initialCollapse}
               event={event}
               values={exception.data.values ?? []}
               projectSlug={projectSlug}
@@ -88,7 +94,7 @@ export function EventStackTrace({
             />
           ) : (
             <Exception
-              collapseAll={collapseAll}
+              initialCollapse={initialCollapse}
               event={event}
               data={exception.data}
               projectSlug={projectSlug}
@@ -102,7 +108,7 @@ export function EventStackTrace({
         <EntryErrorBoundary type={EntryType.STACKTRACE}>
           {shouldUseNewStackTrace ? (
             <IssueStackTrace
-              collapseAll={collapseAll}
+              initialCollapse={initialCollapse}
               event={event}
               stacktrace={stacktrace.data}
               projectSlug={projectSlug}
@@ -110,7 +116,7 @@ export function EventStackTrace({
             />
           ) : (
             <StackTrace
-              collapseAll={collapseAll}
+              initialCollapse={initialCollapse}
               event={event}
               data={stacktrace.data}
               projectSlug={projectSlug}
@@ -122,7 +128,7 @@ export function EventStackTrace({
       {defined(threads) && (
         <EntryErrorBoundary type={EntryType.THREADS}>
           <Threads
-            collapseAll={collapseAll}
+            initialCollapse={initialCollapse}
             event={event}
             data={threads.data}
             projectSlug={projectSlug}

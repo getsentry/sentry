@@ -65,12 +65,7 @@ from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import before_now
 from sentry.types.activity import ActivityType
 from sentry.utils import json
-from sentry.viewer_context import (
-    Actor,
-    ActorType,
-    ViewerContext,
-    viewer_context_scope,
-)
+from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 
 def run_state(

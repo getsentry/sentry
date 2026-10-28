@@ -94,6 +94,10 @@ describe('IssuePreview', () => {
   }
 
   beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sentry-app-components/',
+      body: [],
+    });
     localStorage.clear();
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
@@ -339,7 +343,7 @@ describe('IssuePreview', () => {
     expect(within(stackTrace).getByTestId('core-stacktrace-frame-context')).toBeVisible();
   });
 
-  it('shows the recommended stack trace alongside Seer analysis', async () => {
+  it('starts the stack trace collapsed with Seer analysis and allows manual expansion', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/events/recommended/`,
       body: EventStacktraceExceptionFixture(),
@@ -357,6 +361,7 @@ describe('IssuePreview', () => {
       body: [],
     });
 
+    localStorage.setItem('issue-details-fold-section-collapse:exception', 'false');
     render(<IssuePreview groupId={group.id} />, {organization});
 
     const rootCause = await screen.findByRole('region', {name: 'Root Cause'});
@@ -367,12 +372,56 @@ describe('IssuePreview', () => {
       rootCause
     );
     const stackTrace = await screen.findByRole('region', {name: 'Stack Trace'});
+    await userEvent.click(
+      within(stackTrace).getByRole('button', {name: 'View Stack Trace Section'})
+    );
     expect(within(stackTrace).getByText('doThing')).toBeVisible();
     await userEvent.click(
       within(stackTrace).getByRole('button', {name: 'Display options'})
     );
     await userEvent.click(screen.getByRole('option', {name: 'Raw Stack Trace'}));
     expect(within(stackTrace).getByText(/Error: an error occurred/)).toBeVisible();
+    await userEvent.click(
+      within(stackTrace).getByRole('button', {name: 'Collapse Stack Trace Section'})
+    );
+    expect(localStorage.getItem('issue-details-fold-section-collapse:exception')).toBe(
+      'false'
+    );
+  });
+
+  it('collapses the stack trace when Seer analysis arrives after the preview', async () => {
+    const autofixResponse = Promise.withResolvers<void>();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
+      body: AutofixSetupFixture({billing: {hasAutofixQuota: false}}),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/events/recommended/`,
+      body: EventStacktraceExceptionFixture(),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+      body: ExplorerAutofixResponseFixture(),
+      asyncDelay: autofixResponse.promise,
+    });
+
+    render(<IssuePreview groupId={group.id} />, {organization});
+
+    const stackTrace = await screen.findByRole('region', {name: 'Stack Trace'});
+    expect(within(stackTrace).getByText('doThing')).toBeVisible();
+
+    autofixResponse.resolve();
+    expect(
+      await screen.findByText('The issue was caused by an unexpected value.')
+    ).toBeVisible();
+    const updatedStackTrace = screen.getByRole('region', {name: 'Stack Trace'});
+    expect(
+      within(updatedStackTrace).getByRole('button', {name: 'View Stack Trace Section'})
+    ).toBeVisible();
+    await userEvent.click(
+      within(updatedStackTrace).getByRole('button', {name: 'View Stack Trace Section'})
+    );
+    expect(within(updatedStackTrace).getByText('doThing')).toBeVisible();
   });
 
   it('shows Resolve and Archive without waiting for Seer setup when AI is hidden', async () => {

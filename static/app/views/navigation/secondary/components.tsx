@@ -287,46 +287,62 @@ interface SecondaryNavigationHeaderProps {
 
 function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
   const {layout} = usePrimaryNavigation();
-  const {view, setView} = useSecondaryNavigation();
-  const isCollapsed = view !== 'expanded';
   const isMobile = layout === 'mobile';
 
   return (
     <Grid
-      columns="1fr auto"
+      columns="minmax(0, 1fr) auto"
       align="center"
       borderBottom="primary"
       height={`${PRIMARY_HEADER_HEIGHT}px`}
-      padding={isMobile ? 'md lg' : '0 md 0 xl'}
+      padding={isMobile ? 'md lg' : '0 sm 0 sm'}
     >
-      <Text size="md" bold>
-        {props.children}
-      </Text>
-      <div>
-        {isMobile ? (
-          <Button
-            size="sm"
-            icon={<IconClose />}
-            aria-label={isCollapsed ? t('Expand') : t('Collapse')}
-            onClick={() => setView(view === 'expanded' ? 'collapsed' : 'expanded')}
-            variant="transparent"
-          />
-        ) : (
-          <Button
-            size="sm"
-            icon={<IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />}
-            aria-label={isCollapsed ? t('Expand') : t('Collapse')}
-            onClick={() => setView(view === 'expanded' ? 'collapsed' : 'expanded')}
-            variant={isCollapsed ? 'primary' : 'transparent'}
-            analyticsEventName="Sidebar: Secondary Toggle Button Clicked"
-            analyticsEventKey="sidebar_secondary_toggle_button_clicked"
-            analyticsParams={{
-              is_collapsed: isCollapsed,
-            }}
-          />
-        )}
-      </div>
+      {props.children}
+      <SecondaryNavigationToggle />
     </Grid>
+  );
+}
+
+function SecondaryNavigationHeaderTitle({children}: {children: ReactNode}) {
+  const {layout} = usePrimaryNavigation();
+
+  return (
+    <Container minWidth="0" paddingLeft={layout === 'mobile' ? undefined : 'lg'}>
+      <Text size="md" bold>
+        {children}
+      </Text>
+    </Container>
+  );
+}
+
+function SecondaryNavigationToggle() {
+  const {layout} = usePrimaryNavigation();
+  const {view, setView} = useSecondaryNavigation();
+  const isCollapsed = view !== 'expanded';
+
+  if (layout === 'mobile') {
+    return (
+      <Button
+        size="sm"
+        icon={<IconClose />}
+        aria-label={isCollapsed ? t('Expand') : t('Collapse')}
+        onClick={() => setView(isCollapsed ? 'expanded' : 'collapsed')}
+        variant="transparent"
+      />
+    );
+  }
+
+  return (
+    <Button
+      size="sm"
+      icon={<IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />}
+      aria-label={isCollapsed ? t('Expand') : t('Collapse')}
+      onClick={() => setView(isCollapsed ? 'expanded' : 'collapsed')}
+      variant={isCollapsed ? 'primary' : 'transparent'}
+      analyticsEventName="Sidebar: Secondary Toggle Button Clicked"
+      analyticsEventKey="sidebar_secondary_toggle_button_clicked"
+      analyticsParams={{is_collapsed: isCollapsed}}
+    />
   );
 }
 
@@ -394,6 +410,9 @@ function SectionTitle(props: SectionTitleProps) {
 interface SecondaryNavigationSectionProps {
   children: ReactNode;
   id: string;
+  /**
+   * The title is the collapse toggle, so only titled sections can collapse.
+   */
   title?: ReactNode;
 }
 
@@ -403,7 +422,7 @@ function SecondaryNavigationSection(props: SecondaryNavigationSectionProps) {
     `secondary-nav-section-${props.id}-collapsed`,
     false
   );
-  const canCollapse = layout === 'sidebar';
+  const canCollapse = layout === 'sidebar' && !!props.title;
   const isCollapsed = canCollapse ? isCollapsedState : false;
 
   return (
@@ -992,6 +1011,7 @@ const SidebarNavigationLink = styled(Link)`
 
 export const SecondaryNavigation = {
   Header: SecondaryNavigationHeader,
+  HeaderTitle: SecondaryNavigationHeaderTitle,
   Body: SecondaryNavigationBody,
   Section: SecondaryNavigationSection,
   Separator: SecondaryNavigationSeparator,

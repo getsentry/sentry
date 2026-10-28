@@ -17,7 +17,12 @@ from sentry.tasks.seer.explorer_index import (
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.viewer_context import ActorType, decode_viewer_context, get_viewer_context
+from sentry.viewer_context import (
+    ActorType,
+    ViewerContext,
+    decode_viewer_context,
+    get_viewer_context,
+)
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
@@ -402,6 +407,7 @@ class TestRunExplorerIndexForProjects(TestCase):
             mock_urlopen.call_args.kwargs["headers"]["X-Viewer-Context"],
             key="viewer-context-test-secret",
         )
+        assert isinstance(viewer_context, ViewerContext)
         assert viewer_context.organization_id == 100
         assert viewer_context.actor.type == ActorType.SYSTEM
         assert get_viewer_context() is None
@@ -417,6 +423,7 @@ class TestRunExplorerIndexForProjects(TestCase):
             mock_urlopen.call_args.kwargs["headers"]["X-Viewer-Context"],
             key="viewer-context-test-secret",
         )
+        assert isinstance(viewer_context, ViewerContext)
         assert viewer_context.organization_id is None
         assert viewer_context.actor.type == ActorType.SYSTEM
         assert get_viewer_context() is None

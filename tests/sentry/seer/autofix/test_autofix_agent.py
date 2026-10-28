@@ -529,6 +529,58 @@ class TestTriggerAutofixAgent(TestCase):
             "actor_user_id": self.user.id,
         }
 
+    @patch("sentry.seer.autofix.autofix_agent.record_seer_activity")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAutofixOperator.has_access", return_value=True)
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
+    def test_continued_solution_attributes_actor(
+        self, mock_feature, mock_broadcast, mock_has_access, mock_record_activity
+    ):
+        existing_run = self.create_seer_run(
+            organization=self.group.organization, seer_run_state_id=777
+        )
+        self.create_seer_agent_run(
+            run=existing_run, group=self.group, project=self.group.project, source="autofix"
+        )
+        mock_feature.return_value = existing_run
+
+        trigger_autofix_agent(
+            group=self.group,
+            step=AutofixStep.SOLUTION,
+            referrer=AutofixReferrer.UNKNOWN,
+            run_id=777,
+            actor_user_id=self.user.id,
+        )
+
+        assert (
+            mock_broadcast.call_args.kwargs["event_name"] == SeerActionType.SOLUTION_STARTED.value
+        )
+        assert mock_record_activity.call_args.kwargs["activity_attribution"] == {
+            "referrer": AutofixReferrer.UNKNOWN,
+            "actor_user_id": self.user.id,
+        }
+
+    @patch("sentry.seer.autofix.autofix_agent.record_seer_activity")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAutofixOperator.has_access", return_value=True)
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
+    def test_root_cause_without_actor_is_unattributed(
+        self, mock_feature, mock_broadcast, mock_has_access, mock_record_activity
+    ):
+        mock_feature.return_value = self.create_seer_run(
+            organization=self.group.organization,
+            seer_run_state_id=777,
+            type="feature_run",
+        )
+
+        trigger_autofix_agent(
+            group=self.group,
+            step=AutofixStep.ROOT_CAUSE,
+            referrer=AutofixReferrer.UNKNOWN,
+        )
+
+        assert mock_record_activity.call_args.kwargs["activity_attribution"] is None
+
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
     def test_code_changes_without_prior_run_routes_to_seer_feature(

@@ -5,12 +5,7 @@ from collections.abc import Generator
 
 from django.conf import settings
 
-from sentry.viewer_context import (
-    Actor,
-    ActorType,
-    ViewerContext,
-    viewer_context_scope,
-)
+from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 
 @contextlib.contextmanager

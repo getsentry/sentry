@@ -49,7 +49,7 @@ const api = {
             'Code outside a serializer looks up a key in request.data or request.POST and uses the value, whether or not a serializer also validates the body.',
           severity: 'warn',
           report:
-            "Read request body values from a serializer's validated_data, not from request.data. A raw read skips validation, and with a CamelSnake serializer the raw keys can differ from the validated ones (stackPath vs stack_path), so valid requests can fail.",
+            "Request body values should be read from a serializer's `validated_data`. This file reads a value directly from `request.data` or `request.POST`.",
         },
         {
           value: 'FALSE',
@@ -78,7 +78,7 @@ const api = {
             'The code looks up keys in the raw or parsed incoming payload and uses the values directly, without a serializer or schema validating that payload first.',
           severity: 'warn',
           report:
-            'Validate this third-party payload with a serializer and read from its validated data, so missing keys and unexpected types fail with a clear error instead of an exception, and the expected payload shape is written down.',
+            'Third-party webhook payloads should be validated with a serializer or typed schema before their fields are read. This file reads fields directly from the incoming payload.',
         },
         {
           value: 'FALSE',
@@ -115,7 +115,7 @@ const audit = {
             'The code calls create, delete, or update on one of those token models (for example ApiToken.objects.create, token.delete(), update(date_deactivated=...), or update(scope_list=...)), or calls a function whose name says it grants token scopes (for example create_write_grant). Nothing in the file records it.',
           severity: 'warn',
           report:
-            'Record this change: org-level changes with create_audit_entry and an event from sentry/audit_log/register.py, user-level changes with capture_security_activity. If a function this code calls already records it, say so in the PR.',
+            'Token changes should be logged with `create_audit_entry` for org tokens or `capture_security_activity` for personal tokens. This file creates, revokes, or rescopes a token, but neither call was found in it. Ignore this if a function the file calls already logs the change.',
         },
         {
           value: 'FALSE',
@@ -134,7 +134,7 @@ const audit = {
             'The code sets is_superuser or is_staff on a User, or creates or deletes a UserPermission, and no audit_logger.info(...) call on a sentry.audit logger follows it. Judge each separately: if is_superuser or is_staff changes and only the UserPermission change is recorded, answer TRUE. Nothing in the file records it.',
           severity: 'warn',
           report:
-            'Record this change: org-level changes with create_audit_entry and an event from sentry/audit_log/register.py, user-level changes with capture_security_activity. If a function this code calls already records it, say so in the PR.',
+            'Superuser, staff, and `UserPermission` changes should be logged to the `sentry.audit.user` logger. This file grants or removes one of them, but no such log call was found in it. Ignore this if a function the file calls already logs the change.',
         },
         {
           value: 'FALSE',
@@ -153,7 +153,7 @@ const audit = {
             'The code updates User.email or a UserEmail of an existing user, deletes an AuthIdentity, or merges or deletes User records. Setting the email of a new account being registered does not count. Nothing in the file records it.',
           severity: 'warn',
           report:
-            'Record this change: org-level changes with create_audit_entry and an event from sentry/audit_log/register.py, user-level changes with capture_security_activity. If a function this code calls already records it, say so in the PR.',
+            'Email changes, identity unlinks, and account merges should be logged with `capture_security_activity` so the user is notified. This file makes one of these changes, but no such call was found in it. Ignore this if a function the file calls already logs the change.',
         },
         {
           value: 'FALSE',
@@ -185,7 +185,7 @@ const security = {
             'A caller-supplied secret and the expected secret are compared with == or !=, directly or after hashing one side.',
           severity: 'warn',
           report:
-            'Comparing secrets with == takes longer the more leading characters match. Use django.utils.crypto.constant_time_compare or hmac.compare_digest.',
+            'Secrets supplied in a request should be compared with `constant_time_compare` or `hmac.compare_digest`. This file compares one with `==` or `!=`.',
         },
         {
           value: 'FALSE',
@@ -206,7 +206,7 @@ const security = {
             'A write method that changes shared organization, project, team, or member data is reachable with only read scopes or without authentication, and the file shows no compensating check.',
           severity: 'warn',
           report:
-            'This lets callers with only read access, or no authentication, change shared data. Require write or admin scopes for the method, or add an explicit permission check and a comment explaining why.',
+            "Write methods that change shared data should require write or admin scopes, or have an explicit permission check. This file lets read-only or unauthenticated callers use one. If that's intended, add a comment explaining why.",
         },
         {
           value: 'FALSE',
@@ -227,7 +227,7 @@ const security = {
             'A credential value, or the whole incoming request body, headers, or parsed payload, reaches one of those sinks. Formatting a dict that contains a token, such as an OAuth token response, counts.',
           severity: 'warn',
           report:
-            'Logs, spans, and error reports are kept and widely readable, so credentials and raw request data should not reach them. Log an id or a redacted value instead.',
+            "Credentials and whole request payloads shouldn't be sent to logs, metrics, spans, or error reports. This file sends one of them. Log an ID or a redacted value instead.",
         },
         {
           value: 'FALSE',
@@ -246,7 +246,7 @@ const security = {
             'A user- or customer-supplied URL or host reaches requests.get, requests.post, a requests session, urllib.request.urlopen, httpx, or urllib3 without safe_urlopen, build_session, or an is_safe_hostname check.',
           severity: 'warn',
           report:
-            'Fetching a customer-supplied URL with a plain HTTP client can reach internal services or cloud metadata. Use sentry.http.safe_urlopen or a session from build_session, which block private addresses.',
+            'Customer-supplied URLs should be fetched with `sentry.http.safe_urlopen` or a session from `build_session`. This file fetches one with a plain HTTP client.',
         },
         {
           value: 'FALSE',
@@ -265,7 +265,7 @@ const security = {
             'A redirect target comes from request parameters, headers, or cookies and is not validated against allowed hosts before the redirect.',
           severity: 'warn',
           report:
-            'Redirecting to a URL from the request lets an attacker send users to any site from a trusted Sentry link. Validate it with url_has_allowed_host_and_scheme or is_valid_redirect, and fall back to a safe default.',
+            'Redirects to URLs taken from the request should be checked with `url_has_allowed_host_and_scheme` or `is_valid_redirect`. This file redirects to one without that check.',
         },
         {
           value: 'FALSE',
@@ -286,7 +286,7 @@ const security = {
             'A value that is not a constant or allowlisted identifier is formatted into the SQL text itself before it runs.',
           severity: 'warn',
           report:
-            'Formatting values into SQL text allows SQL injection. Pass values as query parameters, and allowlist any identifiers such as table or column names.',
+            'Values in raw SQL should be passed as query parameters, and table or column names allowlisted. This file formats a value into the SQL text.',
         },
         {
           value: 'FALSE',
@@ -305,7 +305,7 @@ const security = {
             'User-supplied or database content reaches mark_safe, SafeString, Markup, a format_html format string, or an unescaped template output without escaping first.',
           severity: 'warn',
           report:
-            'Marking user content as safe HTML allows cross-site scripting. Escape it first, or build the HTML with format_html and pass user values as arguments.',
+            "User content should be escaped before it's marked safe, or passed as an argument to `format_html`. This file marks user content as safe HTML.",
         },
         {
           value: 'FALSE',
@@ -324,7 +324,7 @@ const security = {
             'A value that grants access or proves identity is generated with the random module instead of secrets or os.urandom.',
           severity: 'warn',
           report:
-            'The random module is predictable, so values made with it can be guessed. Use the secrets module (secrets.token_urlsafe, secrets.choice) for tokens, codes, and passwords.',
+            'Tokens, codes, and passwords should be generated with the `secrets` module. This file generates one with the `random` module.',
         },
         {
           value: 'FALSE',

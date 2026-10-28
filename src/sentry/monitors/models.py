@@ -35,15 +35,13 @@ from sentry.db.models import (
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH, SentrySlugField
 from sentry.db.models.manager.base import BaseManager
-from sentry.db.models.utils import slugify_instance
+from sentry.db.models.utils import save_with_unique_slug, slugify_instance
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.deletions.base import ModelRelation
-from sentry.locks import locks
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR, CrontabSchedule, IntervalSchedule
 from sentry.types.actor import Actor
-from sentry.utils.retries import TimedRetryPolicy
 from sentry.workflow_engine.models import DataSource, Detector
 from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DataSourceTypeHandler
@@ -293,16 +291,16 @@ class Monitor(Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            lock = locks.get(
-                f"slug:monitor:{self.organization_id}", duration=5, name="monitor_slug"
-            )
-            with TimedRetryPolicy(10)(lock.acquire):
-                slugify_instance(
+            return save_with_unique_slug(
+                self,
+                pick_slug=lambda: slugify_instance(
                     self,
                     self.name,
                     organization_id=self.organization_id,
                     max_length=DEFAULT_SLUG_MAX_LENGTH,
-                )
+                ),
+                save_callback=lambda: super(Monitor, self).save(*args, **kwargs),
+            )
         return super().save(*args, **kwargs)
 
     @property

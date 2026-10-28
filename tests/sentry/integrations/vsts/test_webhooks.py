@@ -378,4 +378,4 @@ class VstsWebhookWorkItemTest(APITestCase):
         assert ctx is not None
         assert ctx.organization_id == self.organization.id
         assert ctx.actor.type == ActorType.INTEGRATION
-        assert ctx.user_id is None
+        assert ctx.actor.actor_id is None

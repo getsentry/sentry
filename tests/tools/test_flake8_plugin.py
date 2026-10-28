@@ -2,14 +2,29 @@ from __future__ import annotations
 
 import ast
 from datetime import datetime, timezone
+from unittest.mock import patch
 
-from tools.flake8_plugin import SentryCheck, _s015_msg
+from tools.flake8_plugin import S030_allowlist, SentryCheck, _s015_msg
 
 
 def _run(src: str, filename: str = "getsentry/t.py") -> list[str]:
     tree = ast.parse(src)
     errors = sorted(SentryCheck(tree=tree, filename=filename).run())
     return ["t.py:{}:{}: {}".format(*error) for error in errors]
+
+
+def _run_s030_allowlisted(src: str) -> list[str]:
+    filename = "src/sentry/seer/test_legacy_caller.py"
+    allowlist = {
+        filename: {
+            ("<module>", "import LlmGenerateRequest"): 1,
+            ("<module>", "import make_llm_generate_request"): 1,
+            ("legacy_caller", "call LlmGenerateRequest"): 1,
+            ("legacy_caller", "call make_llm_generate_request"): 1,
+        }
+    }
+    with patch.dict(S030_allowlist, allowlist, clear=True):
+        return _run(src, filename=filename)
 
 
 def test_S001() -> None:
@@ -638,12 +653,12 @@ def test_S030_allows_exact_legacy_callsite_baseline() -> None:
 from sentry.seer.signed_seer_api import LlmGenerateRequest, make_llm_generate_request
 
 
-def generate_title_from_query():
+def legacy_caller():
     body = LlmGenerateRequest(prompt="hello")
     return make_llm_generate_request(body)
 """
 
-    assert _run(src, filename="src/sentry/seer/endpoints/issue_view_title_generate.py") == []
+    assert _run_s030_allowlisted(src) == []
 
 
 def test_S030_rejects_new_legacy_caller() -> None:
@@ -666,14 +681,14 @@ def test_S030_rejects_second_call_in_allowlisted_function() -> None:
 from sentry.seer.signed_seer_api import LlmGenerateRequest, make_llm_generate_request
 
 
-def generate_title_from_query():
+def legacy_caller():
     first = LlmGenerateRequest(prompt="first")
     second = LlmGenerateRequest(prompt="second")
     make_llm_generate_request(first)
     return make_llm_generate_request(second)
 """
 
-    errors = _run(src, filename="src/sentry/seer/endpoints/issue_view_title_generate.py")
+    errors = _run_s030_allowlisted(src)
     assert errors == [
         "t.py:6:13: S030 Do not add new callers of the legacy Seer LLM generate API; "
         "add a named Seer one-shot so prompts and model selection stay in Seer",
@@ -712,11 +727,11 @@ def test_S030_reports_stale_allowlist_entry() -> None:
 from sentry.seer.signed_seer_api import LlmGenerateRequest, make_llm_generate_request
 
 
-def generate_title_from_query():
+def legacy_caller():
     return None
 """
 
-    errors = _run(src, filename="src/sentry/seer/endpoints/issue_view_title_generate.py")
+    errors = _run_s030_allowlisted(src)
     assert len(errors) == 2
     assert all("S030 stale legacy Seer LLM generate allowlist entry" in error for error in errors)
 

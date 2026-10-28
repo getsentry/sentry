@@ -7382,6 +7382,36 @@ describe('SearchQueryBuilder', () => {
 
       expect(await screen.findByRole('button', {name: 'Match case'})).toBeInTheDocument();
     });
+
+    it('should explicitly match case when toggled off', async () => {
+      const onCaseInsensitiveClick = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          caseInsensitive
+          onCaseInsensitiveClick={onCaseInsensitiveClick}
+        />
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Match case'}));
+
+      expect(onCaseInsensitiveClick).toHaveBeenCalledWith(false);
+    });
+
+    it('should ignore case when toggled on', async () => {
+      const onCaseInsensitiveClick = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          caseInsensitive={false}
+          onCaseInsensitiveClick={onCaseInsensitiveClick}
+        />
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Ignore case'}));
+
+      expect(onCaseInsensitiveClick).toHaveBeenCalledWith(true);
+    });
   });
 
   describe('replaceRawSearchKeys', () => {

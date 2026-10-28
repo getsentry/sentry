@@ -87,45 +87,93 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
         )
 
 
-def serialize_workflow_configs(
+@cell_silo_endpoint
+@extend_schema(tags=["Seer"])
+class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.ML_AI
+    publish_status = {"GET": ApiPublishStatus.PRIVATE}
+    permission_classes = (OrganizationPermission,)
+
+    @extend_schema(
+        operation_id="Retrieve a Seer automation workflow",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        responses={200: SeerWorkflowConfigResponse},
+    )
+    def get(self, request: Request, organization: Organization, config_id: str) -> Response:
+        """Retrieve a saved Seer automation workflow by ID.
+
+        The response has the same shape as an item in the list endpoint's ``configs``.
+        """
+        if not features.has("organizations:seer-automations", organization, actor=request.user):
+            raise NotFound
+
+        try:
+            config = SeerWorkflowConfig.objects.get(
+                id=int(config_id),
+                organization=organization,
+                strategy__in=SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
+            )
+        except (ValueError, SeerWorkflowConfig.DoesNotExist) as e:
+            raise NotFound from e
+
+        projects = self.get_projects(request, organization, include_all_accessible=True)
+        selected_projects = get_selected_project_ids(
+            [config], accessible_project_ids=[p.id for p in projects]
+        )
+        return Response(
+            serialize_workflow_config(config, selected_project_ids=selected_projects[config.id])
+        )
+
+
+def get_selected_project_ids(
     configs: Sequence[SeerWorkflowConfig], *, accessible_project_ids: Sequence[int]
-) -> SeerWorkflowConfigsResponse:
-    selected_projects: dict[int, list[int]] = defaultdict(list)
+) -> defaultdict[int, list[int]]:
+    selected_projects: defaultdict[int, list[int]] = defaultdict(list)
     links = SeerWorkflowConfigProject.objects.filter(
         config__in=configs, project_id__in=accessible_project_ids
     ).order_by("project_id")
     for config_id, project_id in links.values_list("config_id", "project_id"):
         selected_projects[config_id].append(project_id)
+    return selected_projects
 
-    results: list[SeerWorkflowConfigResponse] = []
-    for config in configs:
-        workflow = SeerWorkflow(config)
-        filters = workflow.filters
-        results.append(
+
+def serialize_workflow_config(
+    config: SeerWorkflowConfig, *, selected_project_ids: list[int]
+) -> SeerWorkflowConfigResponse:
+    workflow = SeerWorkflow(config)
+    filters = workflow.filters
+    return {
+        "id": str(config.id),
+        "strategy": config.strategy,
+        "enabled": config.enabled,
+        "schedule": config.schedule,
+        "version": config.version,
+        "projects": [ALL_ACCESS_PROJECT_ID] if filters.all_projects else selected_project_ids,
+        "environments": filters.environments,
+        "filters": convert_dict_key_case(
             {
-                "id": str(config.id),
-                "strategy": config.strategy,
-                "enabled": config.enabled,
-                "schedule": config.schedule,
-                "version": config.version,
-                "projects": (
-                    [ALL_ACCESS_PROJECT_ID]
-                    if filters.all_projects
-                    else selected_projects[config.id]
-                ),
-                "environments": filters.environments,
-                "filters": convert_dict_key_case(
-                    {
-                        key: value
-                        for key, value in config.filters.items()
-                        if key not in {"all_projects", "environments"}
-                    },
-                    snake_to_camel_case,
-                ),
-                "outputPolicy": config.output_policy,
-                "seededDefault": workflow.extras.seeded_default,
-                "dateAdded": config.date_added,
-                "dateUpdated": config.date_updated,
-            }
-        )
-    return {"configs": results}
+                key: value
+                for key, value in config.filters.items()
+                if key not in {"all_projects", "environments"}
+            },
+            snake_to_camel_case,
+        ),
+        "outputPolicy": config.output_policy,
+        "seededDefault": workflow.extras.seeded_default,
+        "dateAdded": config.date_added,
+        "dateUpdated": config.date_updated,
+    }
+
+
+def serialize_workflow_configs(
+    configs: Sequence[SeerWorkflowConfig], *, accessible_project_ids: Sequence[int]
+) -> SeerWorkflowConfigsResponse:
+    selected_projects = get_selected_project_ids(
+        configs, accessible_project_ids=accessible_project_ids
+    )
+    return {
+        "configs": [
+            serialize_workflow_config(config, selected_project_ids=selected_projects[config.id])
+            for config in configs
+        ]
+    }

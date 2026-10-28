@@ -3055,7 +3055,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
 
 @with_feature("organizations:granular-permission-scopes")
-class OrganizationDashboardsCreateScopeTest(OrganizationDashboardWidgetTestCase):
+class OrganizationDashboardsScopeTest(OrganizationDashboardWidgetTestCase):
     def setUp(self) -> None:
         super().setUp()
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -3064,49 +3064,20 @@ class OrganizationDashboardsCreateScopeTest(OrganizationDashboardWidgetTestCase)
             "sentry-api-0-organization-dashboards",
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
+        self.details_url = reverse(
+            "sentry-api-0-organization-dashboard-details",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "dashboard_id": self.dashboard.id,
+            },
+        )
 
     def _use_token(self, scope_list: list[str]) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
 
-    def _details_url(self, dashboard_id: int) -> str:
-        return reverse(
-            "sentry-api-0-organization-dashboard-details",
-            kwargs={
-                "organization_id_or_slug": self.organization.slug,
-                "dashboard_id": dashboard_id,
-            },
-        )
-
-    def test_create_scope_can_create(self) -> None:
-        self._use_token(["dashboard:read", "dashboard:create"])
-        with outbox_runner():
-            response = self.client.post(self.url, data={"title": "Created"})
-        assert response.status_code == 201, response.content
-        assert Dashboard.objects.filter(organization=self.organization, title="Created").exists()
-
-    def test_create_scope_cannot_update_own_dashboard(self) -> None:
-        self._use_token(["dashboard:read", "dashboard:create"])
-        with outbox_runner():
-            response = self.client.post(self.url, data={"title": "Created"})
-        assert response.status_code == 201, response.content
-
-        response = self.client.put(
-            self._details_url(response.data["id"]),
-            data={"title": "Renamed"},
-            format="json",
-        )
-        assert response.status_code == 403
-        assert Dashboard.objects.filter(organization=self.organization, title="Created").exists()
-
-    def test_create_scope_cannot_delete(self) -> None:
-        self._use_token(["dashboard:read", "dashboard:create"])
-        response = self.client.delete(self._details_url(self.dashboard.id))
-        assert response.status_code == 403
-        assert Dashboard.objects.filter(id=self.dashboard.id).exists()
-
-    def test_create_scope_cannot_restore_revision(self) -> None:
+    def _restore_revision_url(self) -> str:
         revision = DashboardRevision.objects.create(
             dashboard=self.dashboard,
             created_by_id=self.user.id,
@@ -3115,7 +3086,7 @@ class OrganizationDashboardsCreateScopeTest(OrganizationDashboardWidgetTestCase)
             snapshot={"title": "Old Title", "widgets": []},
             snapshot_schema_version=DashboardRevision.SNAPSHOT_SCHEMA_VERSION,
         )
-        url = reverse(
+        return reverse(
             "sentry-api-0-organization-dashboard-revision-restore",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
@@ -3123,27 +3094,59 @@ class OrganizationDashboardsCreateScopeTest(OrganizationDashboardWidgetTestCase)
                 "revision_id": revision.id,
             },
         )
-        self._use_token(["dashboard:read", "dashboard:create"])
-        response = self.client.post(url)
-        assert response.status_code == 403
-        self.dashboard.refresh_from_db()
-        assert self.dashboard.title == "Dashboard 1"
+
+    def test_read_scope_can_read(self) -> None:
+        self._use_token(["dashboard:read"])
+        assert self.client.get(self.url).status_code == 200
+        assert self.client.get(self.details_url).status_code == 200
 
     def test_read_scope_cannot_create(self) -> None:
         self._use_token(["dashboard:read"])
         response = self.client.post(self.url, data={"title": "Created"})
         assert response.status_code == 403
+        assert not Dashboard.objects.filter(
+            organization=self.organization, title="Created"
+        ).exists()
 
-    def test_write_scope_can_create_and_update(self) -> None:
-        # Tokens issued before `dashboard:create` existed only store `dashboard:write`.
-        self._use_token(["dashboard:read", "dashboard:write"])
+    def test_read_scope_cannot_update(self) -> None:
+        self._use_token(["dashboard:read"])
+        response = self.client.put(self.details_url, data={"title": "Renamed"}, format="json")
+        assert response.status_code == 403
+        self.dashboard.refresh_from_db()
+        assert self.dashboard.title == "Dashboard 1"
+
+    def test_read_scope_cannot_delete(self) -> None:
+        self._use_token(["dashboard:read"])
+        response = self.client.delete(self.details_url)
+        assert response.status_code == 403
+        assert Dashboard.objects.filter(id=self.dashboard.id).exists()
+
+    def test_read_scope_cannot_restore_revision(self) -> None:
+        url = self._restore_revision_url()
+        self._use_token(["dashboard:read"])
+        response = self.client.post(url)
+        assert response.status_code == 403
+        self.dashboard.refresh_from_db()
+        assert self.dashboard.title == "Dashboard 1"
+
+    def test_write_scope_can_create_update_and_delete(self) -> None:
+        # `dashboard:write` implies `dashboard:read`, so the saved token holds both.
+        self._use_token(["dashboard:write"])
         with outbox_runner():
             response = self.client.post(self.url, data={"title": "Created"})
         assert response.status_code == 201, response.content
 
-        response = self.client.put(
-            self._details_url(response.data["id"]),
-            data={"title": "Renamed"},
-            format="json",
-        )
+        response = self.client.put(self.details_url, data={"title": "Renamed"}, format="json")
         assert response.status_code == 200, response.content
+
+        response = self.client.delete(self.details_url)
+        assert response.status_code == 204, response.content
+        assert not Dashboard.objects.filter(id=self.dashboard.id).exists()
+
+    def test_write_scope_can_restore_revision(self) -> None:
+        url = self._restore_revision_url()
+        self._use_token(["dashboard:write"])
+        response = self.client.post(url)
+        assert response.status_code == 200, response.content
+        self.dashboard.refresh_from_db()
+        assert self.dashboard.title == "Old Title"

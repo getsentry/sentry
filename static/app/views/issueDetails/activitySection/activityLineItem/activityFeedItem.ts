@@ -35,6 +35,7 @@ export type ActivityFeedItem = (
   | CollapsedSeerActivity
 ) & {
   body?: React.ReactNode;
+  variant?: 'card';
 };
 
 interface CollapsedStatusActivity {

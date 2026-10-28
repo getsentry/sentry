@@ -221,7 +221,24 @@ const swcReactLoaderConfig = (options: {reactCompiler: boolean}): SwcLoaderOptio
               'component-attr': 'data-sentry-component',
               'element-attr': 'data-sentry-element',
               'source-file-attr': 'data-sentry-source-file',
-              'transparent-components': ['Flex', 'Grid', 'Container', 'Stack'],
+              // Layout and interactive primitives report the component that renders
+              // them, like `IssueActions-Button`, instead of their own name
+              'transparent-components': [
+                'Flex',
+                'Grid',
+                'Container',
+                'Stack',
+                'Button',
+                'LinkButton',
+                'Link',
+                'LinkBase',
+                'ExternalLink',
+                'DropdownButton',
+                'Checkbox',
+                'Radio',
+                'Switch',
+                'Input',
+              ],
             },
             // We don't want to add source path attributes in production
             // as it will unnecessarily bloat the bundle size

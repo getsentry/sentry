@@ -124,19 +124,6 @@ class ProjectTest(APITestCase, TestCase):
         assert team.id in {t.id for t in teams}
 
     @patch("sentry.models.project.locks.get")
-    def test_lock_is_acquired_when_creating_project(self, mock_lock: MagicMock) -> None:
-        # self.organization is cached property, which means it will be created
-        # only if it is accessed, so we need to simulate access and all potential mock
-        # calls before resetting the mock
-        assert self.organization
-        # Ensure the mock starts clean before the save operation
-        mock_lock.reset_mock()
-        Project.objects.create(organization=self.organization)
-        mock_lock.assert_called_once_with(
-            f"slug:project:{self.organization.id}", duration=5, name="project_slug"
-        )
-
-    @patch("sentry.models.project.locks.get")
     def test_lock_is_not_acquired_when_updating_project(self, mock_lock: MagicMock) -> None:
         # self.project is cached property, which means it will be created
         # only if it is accessed, so we need to simulate access and all potential mock

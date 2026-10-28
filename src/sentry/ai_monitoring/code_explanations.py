@@ -6,7 +6,6 @@ from sentry.cache import default_cache as cache
 from sentry.models.project import Project
 from sentry.seer.oneshot import run_oneshot
 from sentry.utils import metrics
-from sentry.viewer_context import get_viewer_context
 
 MAX_CODE_LENGTH = 4_000
 MAX_SUMMARY_LENGTH = 256
@@ -25,13 +24,11 @@ def get_code_explanation(project: Project, code: str, language: str) -> str | No
         metrics.incr("ai_monitoring.code_explanation", tags={"result": "cache_hit"})
         return cached
 
-    viewer = get_viewer_context()
     try:
         result = run_oneshot(
             "code_explanation",
             payload,
             organization,
-            user_id=viewer.user_id if viewer is not None else None,
             timeout=SEER_TIMEOUT,
         )
         summary = result.get("summary")

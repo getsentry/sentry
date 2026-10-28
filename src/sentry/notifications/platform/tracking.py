@@ -64,7 +64,7 @@ class NotificationTrackingContext:
     """
     Identifies a single delivered notification for tracking.
 
-    `source`, `category`, `provider`, and `stage` become metric tags, so each must come from a
+    `source`, `category`, and `provider` become metric tags, so each must come from a
     small fixed set of values. IDs and URLs belong in `notification_uuid` and `organization_id`,
     which are only recorded on analytics events.
 
@@ -77,7 +77,6 @@ class NotificationTrackingContext:
     category: NotificationCategory | str
     notification_uuid: str | None
     organization_id: int
-    stage: str | None = None
 
 
 @dataclass(frozen=True)
@@ -267,7 +266,7 @@ def classify_link(url: str) -> NotificationLink:
         return NotificationLink.REPOSITORIES
     if path.startswith("/explore/agents/conversations/"):
         return NotificationLink.SEER_AGENT_RUN
-    if path.startswith("/explore/investigations/"):
+    if path.startswith("/seer/investigations/"):
         return NotificationLink.INVESTIGATION
     logger.error("notifications.tracking.unclassified_link", extra={"path": path})
     return NotificationLink.OTHER
@@ -313,7 +312,6 @@ def record_sent(context: NotificationTrackingContext, *, links: Collection[str] 
                 source=context.source,
                 category=context.category,
                 provider=context.provider,
-                stage=context.stage,
                 links=links,
             )
         )
@@ -352,7 +350,6 @@ def record_engagement(
                 source=context.source,
                 category=context.category,
                 provider=context.provider,
-                stage=context.stage,
                 link=link,
                 mechanism=mechanism,
                 user_id=user_id,
@@ -369,18 +366,14 @@ class _NotificationTrackingTags(TypedDict):
     source: str
     provider: str
     category: str
-    stage: NotRequired[str]
     link: NotRequired[str]
     mechanism: NotRequired[NotificationEngagementMechanism]
 
 
 def _get_tags(context: NotificationTrackingContext) -> _NotificationTrackingTags:
-    tags = _NotificationTrackingTags(
+    return _NotificationTrackingTags(
         source=context.source, provider=context.provider, category=context.category
     )
-    if context.stage:
-        tags["stage"] = context.stage
-    return tags
 
 
 def _incr(key: str, tags: _NotificationTrackingTags) -> None:

@@ -152,6 +152,9 @@ def _process_single_pattern(pattern: str) -> str:
     # Handle optional trailing slash
     route = re.sub(r"/\?$", "/", route)
 
+    # Unescape literal characters like \. so the route holds the character itself
+    route = re.sub(r"\\([^\w\s])", r"\1", route)
+
     # Clean up any double slashes that might have been created
     route = re.sub(r"/+", "/", route)
 

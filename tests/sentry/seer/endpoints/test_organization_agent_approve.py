@@ -5,12 +5,7 @@ from django.test import override_settings
 from sentry.seer import agent_token
 from sentry.seer.models.agent_write_grant import SeerAgentWriteGrant
 from sentry.testutils.cases import APITestCase
-from sentry.viewer_context import (
-    Actor,
-    ActorType,
-    ViewerContext,
-    encode_viewer_context,
-)
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 SECRET = "test-seer-api-shared-secret-thirty-two-bytes!"
 

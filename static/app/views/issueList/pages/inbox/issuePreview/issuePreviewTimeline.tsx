@@ -9,6 +9,7 @@ import type {Group} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
 import type {LinkedPullRequest} from 'sentry/types/integrations';
 import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
+import type {DisplayedActivityFeedItem} from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
 
 import {getAutofixTimelineItems} from './autofixTimeline';
 import {IssuePreviewAutofixSection} from './issuePreviewAutofixSection';
@@ -49,18 +50,19 @@ export function IssuePreviewTimeline({
     }
     return steps;
   }, new Set<string>());
-  const items = timelineItems.map(item => {
+  const items = timelineItems.map((item): DisplayedActivityFeedItem => {
     const {section} = item;
     const pullRequest = pullRequestMatches.find(
       match => match.activity?.id === item.activity.id
     )?.pullRequest;
-    if (!section && !pullRequest) {
+    if (item.type === 'collapsed_status_activities' || (!section && !pullRequest)) {
       return item;
     }
     return {
       ...item,
+      variant: section ? 'card' : undefined,
       body: (
-        <Stack paddingTop="md" gap="xl">
+        <Stack paddingTop={section ? '0' : 'md'} gap="xl">
           {section && (
             <ErrorBoundary mini>
               <IssuePreviewAutofixSection

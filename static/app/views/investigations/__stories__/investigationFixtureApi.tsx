@@ -14,6 +14,7 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {commentStoryAuthors} from 'sentry/views/investigations/__stories__/commentStoryFixtures';
+import type {ActionRequestError} from 'sentry/views/investigations/api';
 import {
   InvestigationBlockExecutionFixture,
   InvestigationCommentFixture,
@@ -23,7 +24,9 @@ import {
   InvestigationQueryOutputFixture,
   InvestigationTranscriptBlockFixture,
 } from 'sentry/views/investigations/fixtures';
+import {getSourceMonitor} from 'sentry/views/investigations/source';
 import type {
+  InvestigationActionRequest,
   InvestigationComment,
   InvestigationDetail,
   InvestigationExecutionDetail,
@@ -44,6 +47,8 @@ type InvestigationFixtureApiProps = {
   /** Page-level and block comments, keyed by investigation id. */
   comments?: Record<string, InvestigationComment[]>;
   details?: InvestigationDetail[];
+  /** Dry-run error responses, keyed by action request id. */
+  dryRunErrors?: Record<string, FixtureErrorResponse>;
   executions?: Record<string, InvestigationExecutionDetail>;
   featureEnabled?: boolean;
   list?: InvestigationListItem[];
@@ -63,6 +68,11 @@ type FixtureApiConfig = Omit<InvestigationFixtureApiProps, 'children'> & {
 type FixtureResponse = {
   body: unknown;
   headers?: Record<string, string>;
+};
+
+type FixtureErrorResponse = {
+  body: ActionRequestError & {detail: string};
+  status: number;
 };
 
 type FixtureHandlerResult = Promise<FixtureResponse> | typeof NO_MATCH;
@@ -87,6 +97,7 @@ export function InvestigationFixtureApi({
   commentPageLinks = {},
   comments = {},
   details = [],
+  dryRunErrors = {},
   executions = {},
   featureEnabled = true,
   list = [],
@@ -117,6 +128,7 @@ export function InvestigationFixtureApi({
       commentPageLinks,
       comments,
       details,
+      dryRunErrors,
       executions,
       featureEnabled,
       list,
@@ -239,16 +251,11 @@ function createFixtureHandler(config: FixtureApiConfig): FixtureHandler {
       return new Promise(() => {});
     }
     if (config.mode === 'error') {
-      const method = normalizeMethod(options.method);
-      const response: ResponseMeta = {
-        status: 500,
-        statusText: 'Internal Server Error',
-        responseJSON: {detail: 'Fixture API error'},
-        responseText: 'Fixture API error',
-        getResponseHeader: () => null,
-      };
       return Promise.reject(
-        new RequestError(method, path, new Error('Fixture API error'), response)
+        fixtureRequestError(normalizeMethod(options.method), path, {
+          status: 500,
+          body: {detail: 'Fixture API error'},
+        })
       );
     }
 
@@ -262,6 +269,7 @@ type FixtureState = {
   commentPageLinks: Record<string, string>;
   comments: Map<string, InvestigationComment[]>;
   details: Map<string, InvestigationDetail>;
+  dryRunErrors: Record<string, FixtureErrorResponse>;
   executions: Map<string, InvestigationExecutionDetail>;
   list: InvestigationListItem[];
   orchestration: Map<string, InvestigationOrchestration>;
@@ -300,6 +308,7 @@ function createFixtureState(config: FixtureApiConfig): FixtureState {
       ])
     ),
     details,
+    dryRunErrors: {...config.dryRunErrors},
     list,
     orchestration: new Map(
       Object.entries(config.orchestration ?? {}).map(([key, run]) => [
@@ -453,6 +462,54 @@ function handleFixtureRequest(
         projection: cloneFixture(updated),
       },
     };
+  }
+
+  if (
+    parts[1] === 'action-requests' &&
+    parts[3] === 'apply' &&
+    parts.length === 4 &&
+    method === 'POST'
+  ) {
+    const detail = getFixtureDetail(state, investigationId);
+    const actionRequest = detail.actionRequests?.find(
+      candidate => candidate.id === parts[2]
+    );
+    if (!actionRequest?.action) {
+      throw new Error(`Unknown fixture action request: ${parts[2]}`);
+    }
+    if (data.dryRun === true) {
+      const dryRunError = state.dryRunErrors[actionRequest.id];
+      if (dryRunError) {
+        throw fixtureRequestError(method, path, dryRunError);
+      }
+      return {body: {actionRequest: cloneFixture(actionRequest)}};
+    }
+    const {action} = actionRequest;
+    const applied: InvestigationActionRequest = {
+      ...actionRequest,
+      state: 'applied',
+      appliedBy: state.viewer,
+      appliedDetails:
+        action.kind === 'update_detector'
+          ? {
+              detectorId: action.detectorId,
+              detectorName:
+                getSourceMonitor(detail.source, action.detectorId)?.name ??
+                action.detectorId,
+              fields: Object.keys(action.changes),
+            }
+          : null,
+      canApply: false,
+      cannotApplyReason: 'not_suggested',
+      dateApplied: new Date().toISOString(),
+    };
+    setFixtureDetail(state, {
+      ...detail,
+      actionRequests: detail.actionRequests?.map(candidate =>
+        candidate.id === applied.id ? applied : candidate
+      ),
+    });
+    return {body: {actionRequest: cloneFixture(applied)}};
   }
 
   if (parts[1] === 'title-generation' && method === 'GET') {
@@ -800,6 +857,21 @@ function setFixtureDetail(state: FixtureState, detail: InvestigationDetail) {
     return;
   }
   state.list[listIndex] = {...state.list[listIndex], ...detail};
+}
+
+function fixtureRequestError(
+  method: ReturnType<typeof normalizeMethod>,
+  path: string,
+  {body, status}: {body: {detail: string}; status: number}
+) {
+  const response: ResponseMeta = {
+    status,
+    statusText: 'Fixture API error',
+    responseJSON: body,
+    responseText: JSON.stringify(body),
+    getResponseHeader: () => null,
+  };
+  return new RequestError(method, path, new Error('Fixture API error'), response);
 }
 
 function normalizeMethod(method: RequestOptions['method']) {

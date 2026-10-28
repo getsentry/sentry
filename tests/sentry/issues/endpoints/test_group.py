@@ -187,5 +187,5 @@ class GroupAiEndpointTest(TestCase):
             ctx = get_viewer_context()
 
         assert ctx is not None
-        assert ctx.user_id == user.id
+        assert ctx.actor.actor_id == user.id
         assert ctx.organization_id == self.project.organization.id

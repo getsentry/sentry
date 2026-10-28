@@ -8,5 +8,5 @@ class InvestigationTest(TestCase):
 
         assert (
             investigation.get_absolute_url()
-            == f"http://testserver/organizations/org1/explore/investigations/{investigation.id}/"
+            == f"http://testserver/organizations/org1/seer/investigations/{investigation.id}/"
         )

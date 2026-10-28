@@ -26,6 +26,7 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.projectkey import ProjectKey
 from sentry.silo.base import SiloMode
+from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import freeze_time
@@ -206,7 +207,14 @@ class ControlOutboxDrainTest(TransactionTestCase):
 
             mock_replication.side_effect = disconnect_once
             with transaction.atomic(using=self.connection.alias):
-                token = ApiToken.from_grant(grant)
+                token = ApiToken.objects.create(
+                    application=grant.application,
+                    user=grant.user,
+                    scope_list=grant.get_scopes(),
+                    scoping_organization_id=grant.organization_id,
+                )
+                with unguarded_write(using=router.db_for_write(ApiGrant)):
+                    grant.delete()
                 transaction.on_commit(following_callback, using=self.connection.alias)
 
         assert mock_replication.call_count == 2

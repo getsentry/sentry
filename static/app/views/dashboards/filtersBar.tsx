@@ -1,6 +1,7 @@
 import {useEffect, useState} from 'react';
 import {css} from '@emotion/react';
 import {IconClock} from '@sentry/icons/clock';
+import {IconLightning} from '@sentry/icons/lightning';
 import type {Location} from 'history';
 import {createParser, useQueryState} from 'nuqs';
 
@@ -36,6 +37,7 @@ import {
 } from 'sentry/views/dashboards/globalFilter/utils';
 import {useDashboardChartInterval} from 'sentry/views/dashboards/hooks/useDashboardChartInterval';
 import {useDashboardMaxPickableDays} from 'sentry/views/dashboards/hooks/useDashboardMaxPickableDays';
+import {useDashboardQueryPriority} from 'sentry/views/dashboards/hooks/useDashboardQueryPriority';
 import {useDatasetSearchBarData} from 'sentry/views/dashboards/hooks/useDatasetSearchBarData';
 import {useInvalidateStarredDashboards} from 'sentry/views/dashboards/hooks/useInvalidateStarredDashboards';
 import {getDashboardFiltersFromURL} from 'sentry/views/dashboards/utils';
@@ -218,6 +220,14 @@ export function FiltersBar({
   const tagKeysInMultipleDatasets = getTagKeysInMultipleDatasets(visibleGlobalFilters);
 
   const [interval, setInterval, intervalOptions] = useDashboardChartInterval();
+  const {
+    enabled: showQueryPriority,
+    options: queryPriorityOptions,
+    priority,
+    setPriority,
+  } = useDashboardQueryPriority();
+  const queryPriorityLabel =
+    queryPriorityOptions.find(option => option.value === priority)?.label ?? t('Normal');
   return (
     <Flex
       align={{zero: 'stretch', xl: 'start'}}
@@ -376,6 +386,23 @@ export function FiltersBar({
           )}
       </Flex>
       <Grid flow="column" align="center" gap="md">
+        {showQueryPriority && (
+          <CompactSelect
+            value={priority}
+            onChange={option => setPriority(option.value)}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button
+                {...triggerProps}
+                icon={<IconLightning />}
+                aria-label={t('Query priority: %s', queryPriorityLabel)}
+              >
+                {queryPriorityLabel}
+              </OverlayTrigger.Button>
+            )}
+            menuTitle={t('Query priority')}
+            options={queryPriorityOptions}
+          />
+        )}
         <CompactSelect
           value={interval}
           onChange={option => setInterval(option.value)}

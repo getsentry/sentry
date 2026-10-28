@@ -700,7 +700,15 @@ def test_context_budget_and_preparation_count_unique_rows() -> None:
     assert source.prepared_rows == 1
 
 
-@pytest.mark.parametrize("per_page", [1, 100])
+@pytest.mark.parametrize(
+    "per_page",
+    [
+        # Paging 600 messages one at a time takes ~60s in CI, which would trip the
+        # global --fail-slow=60s and get rerun.
+        pytest.param(1, marks=pytest.mark.fail_slow("90s")),
+        100,
+    ],
+)
 @pytest.mark.parametrize("separate_traces", [False, True])
 def test_many_agents_do_not_scan_conversation_history(per_page: int, separate_traces: bool) -> None:
     rows = []

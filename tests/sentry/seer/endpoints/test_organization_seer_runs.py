@@ -11,12 +11,7 @@ from sentry.seer.run_questions import QUESTIONS, question_hash
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
-from sentry.viewer_context import (
-    Actor,
-    ActorType,
-    ViewerContext,
-    decode_viewer_context,
-)
+from sentry.viewer_context import Actor, ActorType, ViewerContext, decode_viewer_context
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)

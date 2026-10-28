@@ -62,7 +62,7 @@ class TeamEndpointViewerContextTest(TeamPermissionBase):
             ctx = get_viewer_context()
 
         assert ctx is not None
-        assert ctx.user_id == self.user.id
+        assert ctx.actor.actor_id == self.user.id
         assert ctx.organization_id == self.org.id
 
 

@@ -585,7 +585,7 @@ class OrganizationEndpointViewerContextTest(BaseOrganizationEndpointTest):
             ctx = get_viewer_context()
 
         assert ctx is not None
-        assert ctx.user_id == self.owner.id
+        assert ctx.actor.actor_id == self.owner.id
         assert ctx.organization_id == self.org.id
 
 

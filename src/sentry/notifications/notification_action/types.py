@@ -343,7 +343,16 @@ class BaseIssueAlertHandler(ABC):
         2. activate_downstream_actions
         3. execute_futures (also in post_process process_rules)
         """
+        from sentry.notifications.notification_action.platform_dispatch import (
+            get_platform_provider,
+            send_issue_alert,
+        )
         from sentry.notifications.notification_action.utils import issue_notification_data_factory
+
+        provider = get_platform_provider(invocation, NotificationSource.ISSUE)
+        if provider is not None:
+            send_issue_alert(invocation, provider)
+            return
 
         with shadow_read(
             invocation,

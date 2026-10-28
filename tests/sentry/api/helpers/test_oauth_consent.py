@@ -203,9 +203,7 @@ def test_permission_groups_cover_all_scopes() -> None:
     assert next(group for group in groups if group["resource"] == "ci")["description"]
     assert next(group for group in groups if group["resource"] == "dashboards")["actions"] == [
         "read",
-        "create",
         "write",
-        "delete",
     ]
 
 
@@ -221,14 +219,14 @@ def test_unknown_permission_group() -> None:
 @pytest.mark.parametrize(
     "scope, expected",
     [
-        ("dashboard:write", ["read", "create", "write"]),
-        ("dashboard:delete", ["read", "create", "write", "delete"]),
+        ("dashboard:read", ["read"]),
+        ("dashboard:write", ["read", "write"]),
     ],
 )
 def test_dashboard_access_descriptions(scope: str, expected: list[str]) -> None:
     (group,) = get_permission_groups([scope])
     assert group["actions"] == expected
-    assert group["accessDescriptions"]["delete"] == "Delete dashboards."
+    assert group["accessDescriptions"]["write"] == "Create, update, and delete dashboards."
 
 
 def test_resource_access_descriptions() -> None:
@@ -242,3 +240,6 @@ def test_resource_access_descriptions() -> None:
     (ci,) = get_permission_groups(["org:ci"])
     assert ci["accessDescriptions"] == {}
     assert ci["description"]
+    (tokens,) = get_permission_groups(["org:tokens"])
+    assert tokens["accessDescriptions"] == {}
+    assert tokens["description"]

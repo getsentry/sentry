@@ -69,7 +69,7 @@ class ProjectEndpointViewerContextTest(TestCase):
             ctx = get_viewer_context()
 
         assert ctx is not None
-        assert ctx.user_id == self.user.id
+        assert ctx.actor.actor_id == self.user.id
         assert ctx.organization_id == self.organization.id
 
     def test_convert_args_with_out_of_range_project_id(self) -> None:
