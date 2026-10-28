@@ -27,7 +27,6 @@ export const PREPROD_DETECTOR_DRAFT_SCHEMA: DetectorDraftSchema<PreprodDetectorF
       thresholdType: draftField(z.enum(ALL_MEASUREMENTS)),
       workflowIds: draftField(z.array(z.string())),
     })
-    // Thresholds are in MB or percent depending on the threshold type.
     .transform(values =>
       values.thresholdType === undefined
         ? omit(values, ['highThreshold', 'lowThreshold'])
