@@ -25,6 +25,7 @@ class TestActorType:
         assert ActorType.USER == "user"
         assert ActorType.SYSTEM == "system"
         assert ActorType.INTEGRATION == "integration"
+        assert ActorType.UNKNOWN == "unknown"
 
 
 class TestViewerContext:
@@ -85,10 +86,10 @@ class TestViewerContext:
             assert changed.actor.superuser is None
 
     def test_defaults(self):
-        ctx = ViewerContext(actor=Actor(type=ActorType.SYSTEM))
+        ctx = ViewerContext(actor=Actor(type=ActorType.UNKNOWN))
         assert ctx.organization_id is None
         assert ctx.actor.actor_id is None
-        assert ctx.actor.type is ActorType.SYSTEM
+        assert ctx.actor.type is ActorType.UNKNOWN
 
     def test_frozen(self):
         ctx = ViewerContext(actor=Actor(type=ActorType.USER, actor_id=1))
@@ -258,7 +259,7 @@ class TestObserve:
 
     def test_explicit_ctx_none_treated_as_missing(self, patch_metrics):
         # Distinguishes "ctx wasn't passed" (sentinel) from "ctx is explicitly None"
-        with viewer_context_scope(ViewerContext(actor=Actor(type=ActorType.SYSTEM))):
+        with viewer_context_scope(ViewerContext(actor=Actor(type=ActorType.UNKNOWN))):
             observe_viewer_context_propagation("seer_rpc_out", ctx=None)
         tags = self._tags(patch_metrics)
         assert tags["actor_type"] == "none"

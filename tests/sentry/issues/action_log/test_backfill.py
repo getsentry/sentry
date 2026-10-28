@@ -56,6 +56,40 @@ class BackfillActionsTest(TestCase):
             idempotency_key=key,
         )
 
+    def test_comment_backfill_is_body_free_and_preserves_legacy_identity(self) -> None:
+        with self.feature({"projects:issue-action-log-write-to-db": False}):
+            legacy = self.create_group_activity(
+                group=self.group, type=ActivityType.NOTE.value, data={"text": "legacy"}
+            )
+            missing = self.create_group_activity(
+                group=self.group,
+                type=ActivityType.NOTE.value,
+                data={"text": "private text", "external_id": "remote-42", "mentions": []},
+            )
+        legacy_entry = self.create_group_action_log_entry(
+            group=self.group,
+            type=GroupActionType.COMMENT,
+            data={"comment_id": legacy.id, "text": "historical"},
+            idempotency_key=f"activity:{legacy.id}",
+            source="web",
+        )
+        assert (
+            backfill_group_activities(group_id=self.group.id, project_id=self.group.project_id) == 1
+        )
+        assert (
+            backfill_group_activities(group_id=self.group.id, project_id=self.group.project_id) == 0
+        )
+        row = GroupActionLogEntry.objects.get(
+            group_id=self.group.id, idempotency_key=f"activity:{missing.id}"
+        )
+        assert row.type == GroupActionType.COMMENT
+        assert row.data == {"comment_id": missing.id, "text": None, "mentions": None}
+        assert row.date_added == missing.datetime
+        legacy_entry.refresh_from_db()
+        assert legacy_entry.type == GroupActionType.COMMENT
+        assert legacy_entry.source == "web"
+        assert legacy_entry.data == {"comment_id": legacy.id, "text": "historical"}
+
     def test_empty_entries(self) -> None:
         result = backfill_actions(entries=[], group_id=self.group.id, project_id=self.project.id)
         assert result == 0

@@ -46,7 +46,11 @@ interface DrawerPanelProps extends Pick<
   children: React.ReactNode;
   /** Required — GlobalDrawer applies the default before passing it down. */
   mode: NonNullable<DrawerOptions['mode']>;
+  /** Minimum panel width in pixels, e.g. to cover a pane docked on the right. */
+  minPanelWidth?: number;
   ref?: React.Ref<HTMLDivElement>;
+  /** Distance in pixels from the viewport top, e.g. to clear page banners. */
+  topOffset?: number;
 }
 
 function DrawerPanel({
@@ -58,6 +62,8 @@ function DrawerPanel({
   drawerWidth,
   drawerMaxWidth,
   drawerKey,
+  minPanelWidth,
+  topOffset,
   resizable = true,
 }: DrawerPanelProps) {
   const {panelRef, resizeHandleRef, handleResizeStart, persistedWidthPercent, enabled} =
@@ -78,6 +84,9 @@ function DrawerPanel({
       <DrawerWidthContext.Provider value={actualDrawerWidth}>
         <DrawerSlidePanel
           mode={mode}
+          minPanelWidth={minPanelWidth}
+          topOffset={topOffset === undefined ? undefined : `${topOffset}px`}
+          height={topOffset === undefined ? undefined : `calc(100% - ${topOffset}px)`}
           ariaLabel={ariaLabel}
           position="right"
           ref={mergeRefs(panelRef, ref, (node: HTMLDivElement | null) =>
@@ -235,11 +244,11 @@ const DrawerContainer = styled('div')<{mode?: DrawerOptions['mode']}>`
   }
 `;
 
-const DrawerSlidePanel = styled(SlideOverPanel)`
+const DrawerSlidePanel = styled(SlideOverPanel)<{minPanelWidth?: number}>`
   border-left: 1px solid ${p => p.theme.tokens.border.primary};
   position: relative;
   pointer-events: auto;
-  height: 100%;
+  height: ${p => p.height ?? '100%'};
 
   /* Extend the panel's background 20px past its right edge so the bounce-in
      overshoot doesn't briefly expose the page beneath. A box-shadow is used
@@ -260,8 +269,17 @@ const DrawerSlidePanel = styled(SlideOverPanel)`
     var(--drawer-max-width)
   ) !important;
 
+  /* A drawer narrower than a pane docked against the viewport's right edge
+     (Seer) would leave a strip of that pane showing beside it. */
+  ${p =>
+    p.minPanelWidth
+      ? css`
+          min-width: ${p.minPanelWidth}px;
+        `
+      : null}
+
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    top: 0;
+    top: ${p => p.topOffset ?? 0};
     bottom: 0;
     left: 0;
     right: 0;
