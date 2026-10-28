@@ -143,7 +143,7 @@ class RequestTimingMiddlewareTest(TestCase):
                     "view.duration_over_budget",
                     1000.0,
                     instance=request._view_path,
-                    tags={"method": "GET", "owner": "issues-feed"},
+                    tags={"method": "GET", "owner": "issues-feed", "ui_request": False},
                     sample_rate=1.0,
                     unit="millisecond",
                 ),
