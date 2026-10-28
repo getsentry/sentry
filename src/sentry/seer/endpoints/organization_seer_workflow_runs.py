@@ -25,8 +25,10 @@ from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.models.workflow import (
     SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
+    SeerWorkflowExecutionStatus,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
+    SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
 )
 from sentry.seer.monitor_cleanup.runs import create_monitor_cleanup_run
@@ -68,11 +70,18 @@ class SeerWorkflowExecutionResponseBase(TypedDict):
 
 
 class SeerWorkflowExecutionStateResponse(SeerWorkflowExecutionResponseBase):
-    status: Literal["queued", "running", "complete"] | None
+    status: (
+        Literal[
+            SeerWorkflowExecutionStatus.QUEUED,
+            SeerWorkflowExecutionStatus.RUNNING,
+            SeerWorkflowExecutionStatus.COMPLETE,
+        ]
+        | None
+    )
 
 
 class SeerWorkflowExecutionErrorResponse(SeerWorkflowExecutionResponseBase):
-    status: Literal["failed"]
+    status: Literal[SeerWorkflowExecutionStatus.FAILED]
     error: SeerWorkflowErrorResponse
 
 
@@ -91,11 +100,18 @@ class SeerWorkflowRunResponseBase(TypedDict):
 
 
 class SeerWorkflowRunStateResponse(SeerWorkflowRunResponseBase):
-    status: Literal["queued", "running", "complete"] | None
+    status: (
+        Literal[
+            SeerWorkflowRunStatus.QUEUED,
+            SeerWorkflowRunStatus.RUNNING,
+            SeerWorkflowRunStatus.COMPLETE,
+        ]
+        | None
+    )
 
 
 class SeerWorkflowRunErrorResponse(SeerWorkflowRunResponseBase):
-    status: Literal["failed", "rejected"]
+    status: Literal[SeerWorkflowRunStatus.FAILED, SeerWorkflowRunStatus.REJECTED]
     error: SeerWorkflowErrorResponse
 
 
@@ -227,17 +243,14 @@ def serialize_workflow_run(run: SeerWorkflowRun) -> SeerWorkflowRunResponse:
             for execution in run.executions.all()
         ],
     }
-    match run.status:
-        case "failed" | "rejected" as status:
-            return {
-                **result,
-                "status": status,
-                "error": serialize_workflow_error(run.extras.get("error")),
-            }
-        case "queued" | "running" | "complete" | None as status:
-            return {**result, "status": status}
-        case _:
-            raise ValueError("Unknown workflow run status")
+    status = SeerWorkflowRunStatus(run.status) if run.status is not None else None
+    if status == SeerWorkflowRunStatus.FAILED or status == SeerWorkflowRunStatus.REJECTED:
+        return {
+            **result,
+            "status": status,
+            "error": serialize_workflow_error(run.extras.get("error")),
+        }
+    return {**result, "status": status}
 
 
 def serialize_workflow_execution(
@@ -255,17 +268,14 @@ def serialize_workflow_execution(
         "dateUpdated": execution.date_updated,
         "dateCompleted": execution.date_completed,
     }
-    match execution.status:
-        case "failed":
-            return {
-                **result,
-                "status": "failed",
-                "error": serialize_workflow_error(execution.extras.get("error")),
-            }
-        case "queued" | "running" | "complete" | None as status:
-            return {**result, "status": status}
-        case _:
-            raise ValueError("Unknown workflow execution status")
+    status = SeerWorkflowExecutionStatus(execution.status) if execution.status is not None else None
+    if status == SeerWorkflowExecutionStatus.FAILED:
+        return {
+            **result,
+            "status": status,
+            "error": serialize_workflow_error(execution.extras.get("error")),
+        }
+    return {**result, "status": status}
 
 
 def serialize_workflow_error(error: object) -> SeerWorkflowErrorResponse:
