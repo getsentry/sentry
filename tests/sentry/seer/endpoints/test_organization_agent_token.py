@@ -42,6 +42,7 @@ from sentry.replays.testutils import mock_replay, mock_replay_viewed
 from sentry.roles import organization_roles
 from sentry.seer import agent_token
 from sentry.seer.models.agent_write_grant import SeerAgentWriteGrant
+from sentry.seer.models.run import SeerRunType
 from sentry.seer.signed_seer_api import _resolve_viewer_context
 from sentry.service_accounts.models import GRANTABLE_SCOPES
 from sentry.silo.base import SiloMode
@@ -2446,6 +2447,14 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             self.addCleanup(cache.delete, SEER_MODELS_CACHE_KEY)
         if endpoint.endpoint_name == "GroupAutofixEndpoint":
             self.org.update_option("sentry:gen_ai_consent_v2024_11_14", True)
+        if endpoint.endpoint_name == "SearchAgentStateEndpoint":
+            # Search agent state only returns runs owned by the caller.
+            self.create_seer_run(
+                organization=self.org,
+                type=SeerRunType.ASSISTED_QUERY,
+                seer_run_state_id=1,
+                user_id=self.user.id,
+            )
 
         silo_scope = (
             assume_test_silo_mode(endpoint.silo_mode)
