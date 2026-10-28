@@ -8,6 +8,7 @@ import {
   eventViewFromWidget,
   flattenErrors,
   getCurrentPageFilters,
+  getDashboardFiltersFromURL,
   getFieldsFromEquations,
   getNumEquations,
   getSavedFiltersAsPageFilters,
@@ -418,5 +419,29 @@ describe('getCurrentPageFilters', () => {
     const result = getCurrentPageFilters(location);
 
     expect(result.environment).toEqual(['production', 'staging']);
+  });
+});
+
+describe('getDashboardFiltersFromURL', () => {
+  it('drops global filters that are invalid JSON or missing a tag', () => {
+    const validFilter = {
+      dataset: WidgetType.SPANS,
+      tag: {key: 'os.name', name: 'os.name', kind: 'tag'},
+      value: 'os.name:[Linux]',
+    };
+    const location = LocationFixture({
+      query: {
+        globalFilter: [
+          JSON.stringify(validFilter),
+          JSON.stringify({dataset: WidgetType.SPANS, value: ''}),
+          JSON.stringify({dataset: WidgetType.SPANS, tag: null, value: ''}),
+          'not json',
+        ],
+      },
+    });
+
+    expect(getDashboardFiltersFromURL(location)).toEqual({
+      globalFilter: [validFilter],
+    });
   });
 });

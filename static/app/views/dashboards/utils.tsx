@@ -35,6 +35,7 @@ import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {decodeList} from 'sentry/utils/queryString';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {DEFAULT_STATS_PERIOD} from 'sentry/views/dashboards/data';
+import {isValidGlobalFilter} from 'sentry/views/dashboards/globalFilter/utils';
 import type {
   DashboardDetails,
   DashboardFilters,
@@ -508,7 +509,7 @@ export function getDashboardFiltersFromURL(location: Location): DashboardFilters
               return null;
             }
           })
-          .filter(filter => filter !== null);
+          .filter(isValidGlobalFilter);
       } else {
         dashboardFilters[key] = queryFilters;
       }
