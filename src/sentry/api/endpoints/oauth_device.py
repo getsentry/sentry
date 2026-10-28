@@ -39,6 +39,7 @@ from sentry.api.serializers.rest_framework.oauth_device import (
     OAuthDeviceQuerySerializer,
     OAuthUserCodeField,
 )
+from sentry.auth.email import emails_match
 from sentry.hybridcloud.services.organization_mapping.model import RpcOrganizationMapping
 from sentry.models.apidevicecode import ApiDeviceCode
 from sentry.ratelimits.config import RateLimitConfig
@@ -110,7 +111,7 @@ class OAuthDeviceCompleteSerializer(Serializer[OAuthDeviceCompleteResponse]):
 def ensure_expected_account(device: ApiDeviceCode, user: User) -> None:
     # The device asked for a specific account, so approving as anyone else would
     # issue a token the device did not expect.
-    if not device.accepts_user_email(user.email):
+    if device.login_hint is not None and not emails_match(device.login_hint, user.email):
         raise PermissionDenied(
             f"This request is for {device.login_hint}. Sign in as that account to continue."
         )

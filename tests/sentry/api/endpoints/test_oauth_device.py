@@ -79,6 +79,13 @@ class OAuthDeviceGetTest(APITestCase):
         response = self.get_success_response(user_code=self.device.user_code)
         assert response.data["stage"] == "consent"
 
+    def test_login_hint_rejects_unicode_lookalike(self) -> None:
+        self.login_as(self.user)
+        self.user.update(email="kate@example.com")
+        # U+212A KELVIN SIGN case-folds to "k" under Unicode rules.
+        self.device.update(login_hint="\u212aate@example.com")
+        self.get_error_response(user_code=self.device.user_code, status_code=403)
+
     def test_login_hint_rejects_other_account(self) -> None:
         self.login_as(self.user)
         self.device.update(login_hint="someone-else@example.com")
