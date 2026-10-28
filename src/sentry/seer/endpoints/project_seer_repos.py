@@ -228,14 +228,11 @@ def _validate_branch_overrides(value):
 
 
 class BranchOverrideSerializer(CamelSnakeSerializer):
-    tag_name = serializers.CharField(
-        required=True, help_text="Event tag key to match."
-    )
-    tag_value = serializers.CharField(
-        required=True, help_text="Event tag value to match."
-    )
+    tag_name = serializers.CharField(required=True, help_text="Event tag key to match.")
+    tag_value = serializers.CharField(required=True, help_text="Event tag value to match.")
     branch_name = serializers.CharField(
-        required=True, help_text="The repository branch Seer uses for issues whose events have this tag value."
+        required=True,
+        help_text="The repository branch Seer uses for issues whose events have this tag value.",
     )
 
 
@@ -297,7 +294,10 @@ class SeerProjectRepoCreateSerializer(CamelSnakeSerializer):
 
 class SeerProjectReposBulkSerializer(CamelSnakeSerializer):
     repos = SeerProjectRepoCreateSerializer(
-        many=True, required=True, allow_empty=True, help_text="Repositories to link and configure for Seer in this project."
+        many=True,
+        required=True,
+        allow_empty=True,
+        help_text="Repositories to link and configure for Seer in this project.",
     )
 
     def validate_repos(self, value):
