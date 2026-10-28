@@ -39,6 +39,7 @@ import {Container, Flex, Grid, Stack, type FlexProps} from '@sentry/scraps/layou
 import {Link, type LinkProps} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
+import type {Theme} from '@sentry/scraps/theme';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
 import {ProjectsBadge} from 'sentry/components/core/badge/projectsBadge';
@@ -419,9 +420,9 @@ function SectionTitle(props: SectionTitleProps) {
         width="100%"
         cursor="pointer"
       >
-        {layoutProps => (
+        {flexProps => (
           <SidebarNavigationSectionButton
-            {...layoutProps}
+            {...flexProps}
             type="button"
             aria-expanded={!props.isCollapsed}
             onClick={() => props.setIsCollapsed(!props.isCollapsed)}
@@ -568,8 +569,8 @@ function SecondaryNavigationLink({
       padding="0 sm 0 md"
       radius="md"
     >
-      {layoutProps => (
-        <SidebarNavigationLink {...sharedLinkProps} {...layoutProps}>
+      {flexProps => (
+        <SidebarNavigationLink {...mergeProps(sharedLinkProps, flexProps)}>
           <SecondaryNavigationLeadingSlot>{leadingItems}</SecondaryNavigationLeadingSlot>
           <Container flex="1" minWidth="0">
             <Text ellipsis variant="inherit">
@@ -611,14 +612,7 @@ function SecondaryNavigationSeparator() {
   if (settingsV3) {
     return (
       <Container>
-        <Flex
-          align="center"
-          padding="md"
-          gap="xs"
-          css={css`
-            border: 1px solid transparent;
-          `}
-        >
+        <Flex align="center" padding="md" gap="xs">
           <SecondaryNavigationLeadingSlot height="auto" />
           <Container flex="1" minWidth="0">
             <Separator orientation="horizontal" border="muted" />
@@ -978,8 +972,8 @@ function SecondaryNavigationReorderableLink({
         radius="md"
         cursor="pointer"
       >
-        {layoutProps => (
-          <StyledReorderableLink {...sharedProps} {...layoutProps} layout="sidebar">
+        {flexProps => (
+          <StyledReorderableLink {...mergeProps(sharedProps, flexProps)} layout="sidebar">
             {content}
           </StyledReorderableLink>
         )}
@@ -1101,40 +1095,40 @@ const StyledReorderableLink = styled(Link, {
   }
 `;
 
-const SidebarNavigationLink = styled(Link)`
-  color: ${p => p.theme.tokens.interactive.link.neutral.rest};
+const sidebarNavigationItemStyles = (theme: Theme) => css`
+  color: ${theme.tokens.interactive.link.neutral.rest};
   border: 1px solid transparent;
 
   &:hover {
-    color: ${p => p.theme.tokens.interactive.link.neutral.hover};
-    background-color: ${p =>
-      p.theme.tokens.interactive.transparent.neutral.background.hover};
-    border-color: ${p => p.theme.tokens.border.transparent.neutral.muted};
+    color: ${theme.tokens.interactive.link.neutral.hover};
+    background-color: ${theme.tokens.interactive.transparent.neutral.background.hover};
+    border-color: ${theme.tokens.border.transparent.neutral.muted};
   }
 
   &:active {
-    color: ${p => p.theme.tokens.content.primary};
-    border: 1px solid ${p => p.theme.tokens.interactive.transparent.accent.border};
-    background-color: ${p =>
-      p.theme.tokens.interactive.transparent.accent.background.active};
+    color: ${theme.tokens.content.primary};
+    border: 1px solid ${theme.tokens.interactive.transparent.accent.border};
+    background-color: ${theme.tokens.interactive.transparent.accent.background.active};
   }
 
   &[aria-current='page'] {
-    background-color: ${p =>
-      p.theme.tokens.interactive.transparent.accent.selected.background.rest};
-    border-color: ${p => p.theme.tokens.border.transparent.accent.muted};
-    color: ${p => p.theme.tokens.content.primary};
+    background-color: ${theme.tokens.interactive.transparent.accent.selected.background.rest};
+    border-color: ${theme.tokens.border.transparent.accent.muted};
+    color: ${theme.tokens.content.primary};
 
     &:hover {
-      background-color: ${p =>
-        p.theme.tokens.interactive.transparent.accent.selected.background.hover};
+      background-color: ${theme.tokens.interactive.transparent.accent.selected.background.hover};
     }
   }
 `;
 
-const SidebarNavigationSectionButton = styled(
-  SidebarNavigationLink.withComponent('button')
-)`
+const SidebarNavigationLink = styled(Link)`
+  ${p => sidebarNavigationItemStyles(p.theme)}
+`;
+
+// eslint-disable-next-line @sentry/scraps/prefer-primitives -- Share the link's row structure; Button adds a content wrapper.
+const SidebarNavigationSectionButton = styled('button')`
+  ${p => sidebarNavigationItemStyles(p.theme)}
   background: transparent;
   font: inherit;
 

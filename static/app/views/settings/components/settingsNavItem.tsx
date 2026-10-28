@@ -36,9 +36,9 @@ export function SettingsNavItem({badge, label, id, to, index, ...props}: Props) 
         height={settingsV3 ? '32px' : undefined}
         justify={settingsV3 ? 'start' : undefined}
       >
-        {layoutProps => (
+        {flexProps => (
           <SecondaryNavigation.Link
-            {...layoutProps}
+            {...flexProps}
             to={to}
             end={index}
             leadingItems={settingsV3 ? badgeElement : undefined}
