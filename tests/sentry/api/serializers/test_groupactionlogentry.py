@@ -6,8 +6,11 @@ from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.groupactionlogentry import get_serialized_activity_items
-from sentry.issues.action_log.types import GroupActionType, GroupActorType
+from sentry.api.serializers.models.groupactionlogentry import (
+    _FEED_EXCLUDED_ACTION_TYPES,
+    get_serialized_activity_items,
+)
+from sentry.issues.action_log.types import GroupAction, GroupActionType, GroupActorType
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.commit import Commit
 from sentry.models.group import GroupStatus
@@ -19,7 +22,24 @@ from sentry.testutils.helpers.action_log import action_log_activity_enabled
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
-from sentry.utils.action_log.activity_translator import activity_to_action
+from sentry.utils.action_log.activity_translator import (
+    GROUP_ACTION_TYPE_TO_ACTIVITY_TYPE,
+    activity_to_action,
+)
+
+
+def test_user_visible_action_types_have_feed_policy() -> None:
+    accounted_for = {
+        *GROUP_ACTION_TYPE_TO_ACTIVITY_TYPE,
+        *_FEED_EXCLUDED_ACTION_TYPES,
+        GroupActionType.UNLINK_EXTERNAL_ISSUE,
+        GroupActionType.UNLINK_PLATFORM_EXTERNAL_ISSUE,
+    }
+    missing = GroupAction.get_user_visible_types() - accounted_for
+    assert not missing, (
+        f"Choose a feed policy for {[action_type.name for action_type in sorted(missing)]}: "
+        "exclude the type or add frontend rendering before serving it."
+    )
 
 
 class GroupActionLogEntrySerializerTestCase(TestCase):
@@ -474,8 +494,8 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
             str(first_seen.id),
         ]
         assert [item["type"] for item in items] == [
-            "UNLINK_PLATFORM_EXTERNAL_ISSUE",
-            "UNLINK_EXTERNAL_ISSUE",
+            "unlink_platform_external_issue",
+            "unlink_external_issue",
             "create_issue",
             "create_issue",
             "create_issue",

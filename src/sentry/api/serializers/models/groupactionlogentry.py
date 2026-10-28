@@ -330,7 +330,7 @@ class GroupActionLogEntrySerializer(Serializer):
         type_display = (
             ActivityType(activity_type).name.lower()
             if activity_type is not None
-            else obj.get_type_display()
+            else GroupActionType(obj.type).name.lower()
         )
 
         if (
