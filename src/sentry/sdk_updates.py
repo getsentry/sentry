@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import TypedDict
+from collections.abc import Mapping
+from typing import Any, TypedDict
 
 from django.conf import settings
 from django.core.cache import cache
@@ -47,17 +48,36 @@ class SdkSetupState:
 
 class SdkIndexState:
     def __init__(self, sdk_versions=None, deprecated_sdks=None, sdk_supported_modules=None):
-        self.sdk_versions = sdk_versions or get_sdk_versions()
+        self._sdk_index: Mapping[str, Any] | None = None
+        self._sdk_urls: dict[str, str] | None = None
+        self.sdk_versions = sdk_versions or get_sdk_versions(self._get_sdk_index())
         self.deprecated_sdks = deprecated_sdks or settings.DEPRECATED_SDKS
         self.sdk_supported_modules = sdk_supported_modules or SDK_SUPPORTED_MODULES
 
+    def _get_sdk_index(self) -> Mapping[str, Any]:
+        # Read once per instance: computing sdkUrl per suggestion used to hit the cache each time.
+        if self._sdk_index is None:
+            try:
+                self._sdk_index = get_sdk_index()
+            except Exception:
+                logger.exception("sentry-release-registry.sdk-index")
+                self._sdk_index = {}
+        return self._sdk_index
+
+    @property
+    def sdk_urls(self) -> dict[str, str]:
+        if self._sdk_urls is None:
+            self._sdk_urls = get_sdk_urls(self._get_sdk_index())
+        return self._sdk_urls
+
 
 class Suggestion:
-    def to_json(self):
+    def to_json(self, sdk_urls: Mapping[str, str]):
         raise NotImplementedError()
 
     def __eq__(self, other):
-        return self.to_json() == other.to_json()
+        # sdkUrl is derived from the SDK name, so it does not affect equality.
+        return self.to_json({}) == other.to_json({})
 
 
 class EnableIntegrationSuggestion(Suggestion):
@@ -65,7 +85,7 @@ class EnableIntegrationSuggestion(Suggestion):
         self.integration_name = integration_name
         self.integration_url = integration_url
 
-    def to_json(self):
+    def to_json(self, sdk_urls: Mapping[str, str]):
         return {
             "type": "enableIntegration",
             "integrationName": self.integration_name,
@@ -87,12 +107,12 @@ class UpdateSDKSuggestion(Suggestion):
         self.new_sdk_version = new_sdk_version
         self.ignore_patch_version = ignore_patch_version
 
-    def to_json(self):
+    def to_json(self, sdk_urls: Mapping[str, str]):
         return {
             "type": "updateSdk",
             "sdkName": self.sdk_name,
             "newSdkVersion": self.new_sdk_version,
-            "sdkUrl": get_sdk_urls().get(self.sdk_name),
+            "sdkUrl": sdk_urls.get(self.sdk_name),
         }
 
     def get_new_state(self, old_state):
@@ -127,11 +147,11 @@ class ChangeSDKSuggestion(Suggestion):
         self.new_sdk_name = new_sdk_name
         self.module_names = module_names
 
-    def to_json(self):
+    def to_json(self, sdk_urls: Mapping[str, str]):
         return {
             "type": "changeSdk",
             "newSdkName": self.new_sdk_name,
-            "sdkUrl": get_sdk_urls().get(self.new_sdk_name),
+            "sdkUrl": sdk_urls.get(self.new_sdk_name),
         }
 
     def get_new_state(self, old_state):
@@ -368,20 +388,20 @@ def get_sdk_index():
     return cache.get(SDK_INDEX_CACHE_KEY) or {}
 
 
-def get_sdk_versions():
+def get_sdk_versions(sdk_index: Mapping[str, Any]):
     try:
-        rv = settings.SDK_VERSIONS
-        rv.update((key, info["version"]) for (key, info) in get_sdk_index().items())
+        rv = dict(settings.SDK_VERSIONS)
+        rv.update((key, info["version"]) for (key, info) in sdk_index.items())
         return rv
     except Exception:
         logger.exception("sentry-release-registry.sdk-versions")
         return {}
 
 
-def get_sdk_urls():
+def get_sdk_urls(sdk_index: Mapping[str, Any]):
     try:
         rv = dict(settings.SDK_URLS)
-        rv.update((key, info.get("main_docs_url", "")) for (key, info) in get_sdk_index().items())
+        rv.update((key, info.get("main_docs_url", "")) for (key, info) in sdk_index.items())
         return rv
     except Exception:
         logger.exception("sentry-release-registry.sdk-urls")
@@ -460,7 +480,7 @@ def get_suggested_updates(
         new_setup_states.append(new_setup_state)
 
     for new_setup_state, suggestion in zip(new_setup_states, rv):
-        json = suggestion.to_json()
+        json = suggestion.to_json(index_state.sdk_urls)
         json["enables"] = list(
             get_suggested_updates(
                 new_setup_state, parent_suggestions=parent_suggestions + rv, index_state=index_state
