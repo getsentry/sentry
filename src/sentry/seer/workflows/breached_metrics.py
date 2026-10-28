@@ -196,7 +196,7 @@ class BreachedMetricWorkflow(SeerWorkflow):
             if self.has_quota_available()
             else RejectedMetricBreachAdmission(reason="quota_exceeded", decided_at=decided_at)
         )
-        result = self._get_or_create_run(
+        result = self._get_or_create_run_with_locked_config(
             config, trigger_key=trigger_key, inputs=trigger, extras={"admission": admission.dict()}
         )
         workflow_run = result.lifecycle

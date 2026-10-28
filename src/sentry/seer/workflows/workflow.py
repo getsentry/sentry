@@ -111,7 +111,7 @@ class SeerWorkflow:
             raise ValueError("Trigger keys must contain between 1 and 256 characters")
 
         with self._lock_config() as config:
-            return self._get_or_create_run(
+            return self._get_or_create_run_with_locked_config(
                 config, trigger_key=trigger_key, inputs=inputs, extras=extras
             )
 
@@ -212,7 +212,7 @@ class SeerWorkflow:
             config.version += 1
             config.save(update_fields=["filters", "version", "date_updated"])
 
-    def _get_or_create_run(
+    def _get_or_create_run_with_locked_config(
         self,
         config: SeerWorkflowConfig,
         *,
