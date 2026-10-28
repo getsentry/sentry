@@ -150,10 +150,6 @@ class ApiDeviceCode(Model):
         """Check if a specific scope was requested."""
         return scope in self.scope_list
 
-    def accepts_user_email(self, email: str) -> bool:
-        """Check whether a user with this primary email may approve the request."""
-        return self.login_hint is None or self.login_hint.casefold() == email.casefold()
-
     def is_expired(self) -> bool:
         """Check if the device code has expired."""
         return timezone.now() >= self.expires_at
