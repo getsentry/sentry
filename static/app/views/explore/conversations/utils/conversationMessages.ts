@@ -18,6 +18,12 @@ import {
   type Evaluation,
 } from 'sentry/views/insights/pages/agents/utils/evaluation';
 import {
+  getExtractedValueLabels,
+  getNodeExtraction,
+  isExtractionNode,
+  type Extraction,
+} from 'sentry/views/insights/pages/agents/utils/extraction';
+import {
   getMemoryPreview,
   getNodeMemory,
   isMemoryNode,
@@ -64,7 +70,7 @@ export interface ConversationMessage {
   content: string;
   id: string;
   nodeId: string;
-  role: 'user' | 'assistant' | 'embedding' | 'evaluation' | 'memory';
+  role: 'user' | 'assistant' | 'embedding' | 'evaluation' | 'extraction' | 'memory';
   timestamp: number;
   agentName?: string;
   duration?: number;
@@ -72,6 +78,7 @@ export interface ConversationMessage {
   embeddingInput?: string;
   embeddingTokens?: number;
   evaluation?: Evaluation;
+  extraction?: Extraction;
   memory?: Memory;
   modelName?: string;
   reasoning?: string;
@@ -109,8 +116,14 @@ export function extractMessagesFromNodes(
   nodes: AITraceSpanNode[]
 ): ConversationMessage[] {
   const enrichedNodes = enrichAgentMessages(nodes);
-  const {generationSpans, toolSpans, embeddingSpans, evaluationSpans, memorySpans} =
-    partitionSpansByType(enrichedNodes);
+  const {
+    generationSpans,
+    toolSpans,
+    embeddingSpans,
+    evaluationSpans,
+    extractionSpans,
+    memorySpans,
+  } = partitionSpansByType(enrichedNodes);
   const turns = buildConversationTurns(generationSpans, toolSpans);
   const displayTurns = turns.some(hasTurnContent)
     ? mergeEmptyTurns(turns)
@@ -119,6 +132,7 @@ export function extractMessagesFromNodes(
     ...turnsToMessages(displayTurns),
     ...embeddingSpansToMessages(embeddingSpans),
     ...evaluationSpansToMessages(evaluationSpans),
+    ...extractionSpansToMessages(extractionSpans),
     ...memorySpansToMessages(memorySpans),
   ];
   messages.sort((a, b) => a.timestamp - b.timestamp);
@@ -276,6 +290,7 @@ export function enrichAgentMessages(nodes: AITraceSpanNode[]): AITraceSpanNode[]
 export function partitionSpansByType(nodes: AITraceSpanNode[]): {
   embeddingSpans: AITraceSpanNode[];
   evaluationSpans: AITraceSpanNode[];
+  extractionSpans: AITraceSpanNode[];
   generationSpans: AITraceSpanNode[];
   memorySpans: AITraceSpanNode[];
   toolSpans: AITraceSpanNode[];
@@ -284,17 +299,22 @@ export function partitionSpansByType(nodes: AITraceSpanNode[]): {
   const toolSpans: AITraceSpanNode[] = [];
   const embeddingSpans: AITraceSpanNode[] = [];
   const evaluationSpans: AITraceSpanNode[] = [];
+  const extractionSpans: AITraceSpanNode[] = [];
   const memorySpans: AITraceSpanNode[] = [];
 
   for (const node of nodes) {
     const opType = getGenAiOpType(node);
-    // Evaluations, embeddings and memory operations are recognized by
+    // Evaluations, extractions, embeddings and memory operations are recognized by
     // gen_ai.operation.name first: until Relay sets a dedicated operation.type
     // they report "ai_client" like LLM calls (and memory spans may be nested
     // under tool calls), so matching by name keeps them out of the generation
     // and tool buckets.
     if (isEvaluationNode(node)) {
       evaluationSpans.push(node);
+      continue;
+    }
+    if (isExtractionNode(node)) {
+      extractionSpans.push(node);
       continue;
     }
     if (isMemoryNode(node)) {
@@ -312,9 +332,17 @@ export function partitionSpansByType(nodes: AITraceSpanNode[]): {
   toolSpans.sort((a, b) => getNodeTimestamp(a) - getNodeTimestamp(b));
   embeddingSpans.sort((a, b) => getNodeTimestamp(a) - getNodeTimestamp(b));
   evaluationSpans.sort((a, b) => getNodeTimestamp(a) - getNodeTimestamp(b));
+  extractionSpans.sort((a, b) => getNodeTimestamp(a) - getNodeTimestamp(b));
   memorySpans.sort((a, b) => getNodeTimestamp(a) - getNodeTimestamp(b));
 
-  return {generationSpans, toolSpans, embeddingSpans, evaluationSpans, memorySpans};
+  return {
+    generationSpans,
+    toolSpans,
+    embeddingSpans,
+    evaluationSpans,
+    extractionSpans,
+    memorySpans,
+  };
 }
 
 /**
@@ -376,6 +404,29 @@ export function evaluationSpansToMessages(
       nodeId: span.id,
       duration: end > start ? end - start : undefined,
       evaluation: getNodeEvaluation(span) ?? undefined,
+    };
+  });
+}
+
+/**
+ * Maps extraction spans to standalone messages positioned by their own
+ * timestamp, like evaluations. Parts that can't be read are left to the span
+ * detail, which shows them raw.
+ */
+export function extractionSpansToMessages(
+  extractionSpans: AITraceSpanNode[]
+): ConversationMessage[] {
+  return extractionSpans.map(span => {
+    const start = getNodeStartTimestamp(span);
+    const end = getNodeEndTimestamp(span);
+    return {
+      id: `extraction-${span.id}`,
+      role: 'extraction',
+      content: '',
+      timestamp: getNodeTimestamp(span),
+      nodeId: span.id,
+      duration: end > start ? end - start : undefined,
+      extraction: getNodeExtraction(span) ?? undefined,
     };
   });
 }
@@ -830,6 +881,21 @@ function evaluationToMarkdown(evaluation: Evaluation | undefined): string[] {
   return lines;
 }
 
+function extractionToMarkdown(extraction: Extraction | undefined): string[] {
+  const lines: string[] = [];
+  const source = extraction?.input?.source;
+  if (source) {
+    lines.push(toBlockquote(source));
+  }
+  const values = getExtractedValueLabels(extraction?.answers ?? []).map(
+    ([key, label]) => `- ${key}: ${label}`
+  );
+  if (values.length > 0) {
+    lines.push(values.join('\n'));
+  }
+  return lines;
+}
+
 export function messagesToMarkdown(messages: ConversationMessage[]): string {
   const blocks: string[] = [];
 
@@ -846,6 +912,9 @@ export function messagesToMarkdown(messages: ConversationMessage[]): string {
     } else if (message.role === 'evaluation') {
       lines.push('### Evaluation');
       lines.push(...evaluationToMarkdown(message.evaluation));
+    } else if (message.role === 'extraction') {
+      lines.push('### Extraction');
+      lines.push(...extractionToMarkdown(message.extraction));
     } else if (message.role === 'memory') {
       lines.push('### Memory');
       const summary = [message.memory?.operation, getMemoryPreview(message.memory)]

@@ -5,7 +5,6 @@ import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {CollectionChildren} from '@react-types/shared';
 
-import {ControlContext} from '@sentry/scraps/compactSelect/controlContext';
 import {SelectFilterContext} from '@sentry/scraps/compactSelect/selectFilterContext';
 import {
   ListLabel,
@@ -17,7 +16,7 @@ import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
 import {useVirtualizedItems} from '@sentry/scraps/compactSelect/useVirtualizedItems';
 import {hasVisibleLeadingItems} from '@sentry/scraps/compactSelect/utils';
 import {Container} from '@sentry/scraps/layout';
-import {ReserveLeadingSlot} from '@sentry/scraps/menu';
+import {ControlContext, ReserveLeadingSlot} from '@sentry/scraps/menu';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {GridListOption, type GridListOptionProps} from './option';

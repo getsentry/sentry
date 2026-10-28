@@ -9,7 +9,7 @@ import {
   isStaleActionRequest,
 } from 'sentry/views/investigations/actionRequests/actionRequestCard';
 import {PlaceholderBar} from 'sentry/views/investigations/hypotheses/hypothesisPlaceholder';
-import {isWritingMetadata} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
+import {isWritingMetadata} from 'sentry/views/investigations/runState';
 import type {
   InvestigationActionRequest,
   InvestigationDetail,
