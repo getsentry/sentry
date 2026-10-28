@@ -2,6 +2,7 @@ from unittest.mock import MagicMock, patch
 
 from scm.providers.cursor_origin.provider import CursorOriginProvider
 from scm.providers.github.provider import GitHubProvider
+from scm.providers.gitlab.provider import GitLabProvider
 from scm.types import Repository
 
 from sentry.constants import ObjectStatus
@@ -506,6 +507,43 @@ class TestMakeFetchers(TestCase):
             provider = fetchers.fetch_provider(self.organization.id, repository)
 
         assert isinstance(provider, GitHubProvider)
+        assert service.get_integration.call_count == 1
+
+    def test_fetchers_fetch_a_gitlab_integration_once(self) -> None:
+        identity = self.create_identity(
+            self.user,
+            self.create_identity_provider(type="gitlab", external_id="gitlab.com:acme"),
+            "gitlab-user",
+            data={"access_token": "gitlab_oauth_token"},
+        )
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="gitlab",
+            external_id="gitlab.com:acme",
+            metadata={
+                "instance": "gitlab.com",
+                "base_url": "https://gitlab.com",
+                "verify_ssl": True,
+            },
+            oi_params={"default_auth_id": identity.id},
+        )
+        repo = self.create_repo(
+            project=self.project,
+            name="acme / widget",
+            provider="integrations:gitlab",
+            external_id="gitlab.com:42",
+            integration_id=integration.id,
+        )
+        fetchers = make_fetchers()
+
+        with patch(
+            "sentry.scm.private.helpers.integration_service", wraps=integration_service
+        ) as service:
+            repository = fetchers.fetch_repository(self.organization.id, repo.id)
+            assert repository is not None
+            provider = fetchers.fetch_provider(self.organization.id, repository)
+
+        assert isinstance(provider, GitLabProvider)
         assert service.get_integration.call_count == 1
 
     def test_git_fetchers_fetch_the_integration_once(self) -> None:
