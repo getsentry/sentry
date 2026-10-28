@@ -347,6 +347,34 @@ export function findQuestion(
   );
 }
 
+export interface EvaluationResult {
+  key: string;
+  answer?: EvaluationAnswer;
+  question?: EvaluationQuestionEntry;
+}
+
+/**
+ * Pairs each question with its answer by key, in question order. Answers to
+ * questions that weren't sent follow at the end.
+ */
+export function getEvaluationResults(
+  questions: EvaluationQuestionEntry[],
+  answers: EvaluationAnswer[]
+): EvaluationResult[] {
+  const answersByKey = new Map(answers.map(answer => [answer.key, answer]));
+  const questionKeys = new Set(questions.map(question => question.key));
+  return [
+    ...questions.map(question => ({
+      key: question.key,
+      question,
+      answer: answersByKey.get(question.key),
+    })),
+    ...answers
+      .filter(answer => !questionKeys.has(answer.key))
+      .map(answer => ({key: answer.key, answer})),
+  ];
+}
+
 /**
  * The name for a score value, from the answer's legend or else the question's
  * criteria. Fractional scores use the closest value, e.g. 1.6 is "high" on

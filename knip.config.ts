@@ -125,20 +125,10 @@ const config: KnipConfig = {
       entry: ['**/*.spec.{js,ts,tsx}', 'test-balancer/*.ts'],
       project: ['**/*.{js,cjs,mjs,ts,tsx,mdx}'],
       includeEntryExports: true,
-      ignoreDependencies: [
-        '@sentry-internal/global-search', // jest.mock does not count as an import.
-        '@tanstack/react-pacer', // loaded with requireActual
-        'echarts-for-react', // jest.mock in setup.ts
-      ],
     },
     'tests/js/getsentry-test': {
       project: ['**/*.{js,ts,tsx,mdx}'],
       includeEntryExports: true,
-      ignoreDependencies: [
-        'react', // loaded with jest.requireActual, which Knip does not track.
-        '@stripe/react-stripe-js', // Billing setup mocks this package; Knip does not track jest.mock.
-        '@stripe/stripe-js', // Billing setup mocks this package; Knip does not track jest.mock.
-      ],
     },
     'static/packages/icons': {
       oxlint: scopedOxlint,
@@ -153,6 +143,10 @@ const config: KnipConfig = {
         // Test helpers and package verification scripts are not production code.
         '!{test,scripts}/**!',
       ],
+    },
+    'static/packages/search-syntax': {
+      jest: scopedJest,
+      oxlint: scopedOxlint,
     },
     'static/oxlint/eslintPluginScraps': {
       jest: scopedJest,

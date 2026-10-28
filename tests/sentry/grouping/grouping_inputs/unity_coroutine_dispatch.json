@@ -8,32 +8,37 @@
         "stacktrace": {
           "frames": [
             {
-              "function": "GameBootstrap.Start()",
+              "function": "Start",
               "module": "GameBootstrap",
               "package": "Assembly-CSharp",
-              "filename": "Assets/Scripts/GameBootstrap.cs"
+              "filename": "Assets/Scripts/GameBootstrap.cs",
+              "in_app": true
             },
             {
-              "function": "UnityEngine.MonoBehaviour.StartCoroutine(System.Collections.IEnumerator)",
+              "function": "StartCoroutine",
               "module": "UnityEngine.MonoBehaviour",
-              "package": "UnityEngine.CoreModule"
+              "package": "UnityEngine.CoreModule",
+              "in_app": false
             },
             {
-              "function": "UnityEngine.SetupCoroutine.InvokeMoveNext(System.Collections.IEnumerator, System.IntPtr)",
+              "function": "InvokeMoveNext",
               "module": "UnityEngine.SetupCoroutine",
-              "package": "UnityEngine.CoreModule"
+              "package": "UnityEngine.CoreModule",
+              "in_app": false
             },
             {
-              "function": "EnemySpawner+<SpawnWaves>d__4.MoveNext()",
+              "function": "MoveNext",
               "module": "EnemySpawner+<SpawnWaves>d__4",
               "package": "Assembly-CSharp",
-              "filename": "Assets/Scripts/EnemySpawner.cs"
+              "filename": "Assets/Scripts/EnemySpawner.cs",
+              "in_app": true
             },
             {
-              "function": "CombatSystem.ApplyDamage(UnityEngine.GameObject, System.Int32)",
+              "function": "ApplyDamage",
               "module": "CombatSystem",
               "package": "Assembly-CSharp",
-              "filename": "Packages/com.mystudio.combat/Runtime/CombatSystem.cs"
+              "filename": "Packages/com.mystudio.combat/Runtime/CombatSystem.cs",
+              "in_app": true
             }
           ]
         }

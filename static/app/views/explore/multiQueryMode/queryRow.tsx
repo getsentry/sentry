@@ -40,7 +40,7 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
     sortBys,
     enabled: mode === Mode.AGGREGATE,
     queryExtras: {
-      caseInsensitive: caseInsensitive ? true : undefined,
+      caseInsensitive: caseInsensitive === '1' ? true : undefined,
     },
   });
 
@@ -51,7 +51,7 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
     sortBys,
     enabled: mode === Mode.SAMPLES,
     queryExtras: {
-      caseInsensitive: caseInsensitive ? true : undefined,
+      caseInsensitive: caseInsensitive === '1' ? true : undefined,
     },
   });
 
@@ -59,7 +59,7 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
     index,
     enabled: true,
     queryExtras: {
-      caseInsensitive: caseInsensitive ? true : undefined,
+      caseInsensitive: caseInsensitive === '1' ? true : undefined,
     },
   });
 
