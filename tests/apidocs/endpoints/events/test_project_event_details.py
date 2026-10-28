@@ -30,11 +30,3 @@ class ProjectEventDetailsDocs(APIDocsTestCase):
         request = RequestFactory().get(self.url)
 
         self.validate_schema(request, response)
-
-    def test_get_collapse_adjacent_events(self) -> None:
-        response = self.client.get(self.url, {"collapse": "adjacentEvents"})
-        request = RequestFactory().get(self.url, {"collapse": "adjacentEvents"})
-
-        assert response.data["nextEventID"] is None
-        assert response.data["previousEventID"] is None
-        self.validate_schema(request, response)

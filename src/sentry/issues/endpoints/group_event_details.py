@@ -48,10 +48,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.issues.endpoints.bases.group import GroupEndpoint
-from sentry.issues.endpoints.project_event_details import (
-    COLLAPSE_ADJACENT_EVENTS,
-    wrap_event_response,
-)
+from sentry.issues.endpoints.project_event_details import wrap_event_response
 from sentry.issues.formatting.formatter import FormattedResponse
 from sentry.issues.formatting.mixin import (
     VALID_FORMATS,
@@ -79,6 +76,7 @@ from sentry.utils import metrics
 from sentry.utils.snuba import get_snuba_column_name
 
 BOOLEAN_SEARCH_CONFIG = SearchConfig.create_from(issue_search_config, allow_boolean=True)
+COLLAPSE_ADJACENT_EVENTS = "adjacentEvents"
 
 
 class IssueEventQueryBuilder(DiscoverQueryBuilder):
