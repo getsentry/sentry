@@ -33,6 +33,7 @@ Most Sentry Slack messages have the same parts, from top to bottom:
 ## Do's
 
 - **Do lead with the outcome.** Put what happened and how bad it is in the first line, for example `Critical: High error rate in checkout`. People often read only the push notification.
+- **Do use Slack's link and bold syntax.** Links are `<url|label>`, not Markdown's `[label](url)`. Bold is single asterisks (`*bold*`), not double.
 - **Do set the top-level `text` fallback.** Slack uses it for push notifications, screen readers, and clients that can't render blocks. Our builders set it to something like `[project] TypeError: Cannot read properties…`.
 - **Do link back to Sentry.** The title should open the issue, alert, or release. Keep the tracking query parameters (`referrer=slack`, `notification_uuid`, `alert_type`) the builders add so we can measure engagement.
 - **Do show severity with words and color together.** Issue alerts use a level emoji (`:red_circle:` error or fatal, `:large_yellow_circle:` warning, `:large_blue_circle:` info, `:bug:` debug). Metric alerts use the attachment color bar (`#FA4747` critical, `#FFC227` warning, `#4DC771` resolved) and a status word in the title.
@@ -41,6 +42,7 @@ Most Sentry Slack messages have the same parts, from top to bottom:
 - **Do use Slack date tokens for timestamps**, for example `<!date^1767225600^Started: {date_pretty} at {time} | Sentry Incident>`. Slack shows them in each reader's time zone. The text after `|` is the fallback.
 - **Do escape anything users control.** Issue titles, tag values, alert names, and commit messages can contain `<`, `>`, `&`, `*`, or `|`. Use `escape_slack_text` or `escape_slack_markdown_text` from `src/sentry/integrations/slack/utils/escape.py`. Slack has no escape for `|` inside `<url|label>`, so replace it in link labels (see `get_workflow_footer`).
 - **Do separate footer items with `·`** in new Notification Platform templates, for example `Project: <url|javascript> · Alert: <url|My alert> · <url|Manage Preferences>`.
+- **Do store structured `block_id` data as a JSON string.** `block_id` must be a string, so issue alerts store values like `{"issue":1,"workflow":1}` as escaped JSON. Slack sends it back when someone uses an action.
 - **Do route interactive elements through `encode_action_id`**, which produces `action::organization_id::project_id`. Slack webhooks use it to find the right cell.
 - **Do write in plain speech.** Follow [Content & voice](/stories/principles/content-and-voice/): short, direct, no jargon.
 
@@ -62,7 +64,7 @@ The payloads below were generated from Sentry's message builders and renderers, 
 > [!NOTE]
 > These payloads only include what Block Kit Builder can render. When Sentry sends a message, it also sets the top-level `text` fallback, which is noted for each example. Buttons and selects don't do anything in the builder.
 
-### Issue alert
+### Issue alert: sent to a channel
 
 Sent when an issue alert fires for a Slack action. The title starts with a level emoji and links to the issue. The culprit, error message, chosen tags, issue state, and triage actions come after it. When Seer Autofix is available, a Seer button is added to the actions.
 
@@ -157,6 +159,153 @@ Fallback `text`: `[javascript] TypeError: Cannot read properties of undefined (r
 }
 ````
 
+### Issue alert: sent to a person
+
+Sent when an issue alert notifies a user or team directly instead of a channel. An `Alert triggered` line naming the alert comes first, then the same issue content as the channel version. There are no triage actions, and the footer links to the recipient's notification settings. This example is a User Feedback issue, so the title also has the `:busts_in_silhouette:` category emoji.
+
+Fallback `text`: `Alert triggered <https://sentry.io/organizations/acme/monitors/alerts/1/|New Issues>`
+
+````json
+{
+  "blocks": [
+    {
+      "type": "section",
+      "block_id": "{\"issue\":1,\"workflow\":1}",
+      "text": {
+        "type": "mrkdwn",
+        "text": "Alert triggered <https://sentry.io/organizations/acme/monitors/alerts/1/|New Issues>"
+      }
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": ":large_blue_circle: :busts_in_silhouette: <https://sentry.io/organizations/acme/issues/1/?referrer=slack|*User Feedback: Urgent help needed to resolve major bug*>"
+      }
+    },
+    {
+      "type": "context",
+      "elements": [
+        {
+          "type": "mrkdwn",
+          "text": "<https://example.com/checkout|example.com/checkout>"
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "```The checkout button doesn't do anything when I click it```"
+      }
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "ai_categorization.label.0: `Bugs`  "
+      }
+    },
+    {
+      "type": "context",
+      "elements": [
+        {
+          "type": "mrkdwn",
+          "text": "javascript | production | <https://sentry.io/settings/account/notifications/alerts/?referrer=issue_alert-slack-user|Notification Settings>"
+        }
+      ]
+    }
+  ]
+}
+````
+
+### Issue link preview
+
+Shown when someone pastes a Sentry issue link into Slack. It uses the same builder as the channel issue alert, so it has the same triage actions, but the title links to the event in the pasted URL. Because no alert rule sent it, the footer's `Alert` slot repeats the short ID.
+
+Fallback `text`: `[javascript] TypeError: Cannot read properties of undefined (reading 'map')`
+
+````json
+{
+  "blocks": [
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": ":red_circle: <https://sentry.io/organizations/acme/issues/1/events/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/?referrer=slack|*TypeError*>"
+      },
+      "block_id": "{\"issue\":1}"
+    },
+    {
+      "type": "context",
+      "elements": [
+        {
+          "type": "mrkdwn",
+          "text": "app/components/list.tsx in renderList"
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "```Cannot read properties of undefined (reading 'map')```"
+      }
+    },
+    {
+      "type": "context",
+      "elements": [
+        {
+          "type": "mrkdwn",
+          "text": "State: *New*   First Seen: *1 minute ago*"
+        }
+      ]
+    },
+    {
+      "type": "actions",
+      "elements": [
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "Resolve"
+          },
+          "action_id": "status::1::123",
+          "value": "resolved"
+        },
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "Archive"
+          },
+          "action_id": "archive_dialog::1::123",
+          "value": "archive_dialog"
+        },
+        {
+          "type": "external_select",
+          "placeholder": {
+            "type": "plain_text",
+            "text": "Select Assignee...",
+            "emoji": true
+          },
+          "action_id": "assign::1::123"
+        }
+      ]
+    },
+    {
+      "type": "context",
+      "elements": [
+        {
+          "type": "mrkdwn",
+          "text": "Project: <https://sentry.io/organizations/acme/issues/?project=123|javascript>    Alert: JAVASCRIPT-1    Short ID: JAVASCRIPT-1"
+        }
+      ]
+    }
+  ]
+}
+````
+
 ### Metric alert: critical
 
 Sent when a metric alert crosses its critical threshold. The blocks sit inside an attachment so Slack shows a red color bar. The title only appears in the fallback `text`, which Slack shows above the attachment. When Seer can investigate the alert, an **Investigate with Seer** button is added.
@@ -244,6 +393,26 @@ Fallback `text`: `<https://sentry.io/organizations/acme/issues/1/|*Resolved: Hig
           ]
         }
       ]
+    }
+  ]
+}
+```
+
+### Thread reply on an alert
+
+Posted in the thread under an earlier issue alert when someone changes the issue, so the channel can follow what happened without a new message. Sentry sends one `section` block with a short sentence. Other changes use the same format, for example `Jane Doe assigned JAVASCRIPT-1 to John Smith` or `Sentry marked JAVASCRIPT-1 as a regression`. Block Kit Builder can't show threads, so the preview shows it as a regular message.
+
+Fallback `text`: same as the block text.
+
+```json
+{
+  "blocks": [
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "Jane Doe marked <https://sentry.io/organizations/acme/issues/1/?referrer=activity_notification&notification_uuid=example-uuid|JAVASCRIPT-1> as resolved"
+      }
     }
   ]
 }
