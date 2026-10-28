@@ -583,21 +583,16 @@ function SecondaryNavigationLeadingSlot(props: SecondaryNavigationLeadingSlotPro
 
 function SecondaryNavigationSeparator({indented = false}: {indented?: boolean}) {
   return (
-    <Stack
-      justify="center"
+    <Grid
+      columns={indented ? '40px minmax(0, 1fr)' : 'minmax(0, 1fr)'}
+      align="center"
       height={indented ? '16px' : undefined}
-      padding={indented ? '0' : '0 xl'}
-      css={
-        indented
-          ? theme => css`
-              padding-left: 40px;
-              padding-right: ${theme.space.lg};
-            `
-          : undefined
-      }
+      padding={indented ? '0 lg 0 0' : '0 xl'}
     >
-      <Separator orientation="horizontal" border="muted" />
-    </Stack>
+      <Container column={indented ? '2' : undefined}>
+        <Separator orientation="horizontal" border="muted" />
+      </Container>
+    </Grid>
   );
 }
 
@@ -653,6 +648,7 @@ function Collapsible(props: CollapsibleProps) {
             },
             expanded: {
               height: 'auto',
+              // Let focus rings and other content extend beyond the expanded section.
               transitionEnd: {overflow: 'visible'},
             },
           }}
