@@ -15,17 +15,11 @@ from sentry.api.event_search import (
     parse_search_query,
 )
 from sentry.exceptions import InvalidSearchQuery
-from sentry.investigations.models import (
-    Investigation,
-    InvestigationBlock,
-    InvestigationBlockKind,
-    InvestigationOrchestrationRun,
-)
+from sentry.investigations.models import Investigation, InvestigationOrchestrationRun
 from sentry.investigations.models.orchestration import (
     InvestigationOrchestrationPhase,
     InvestigationOrchestrationStatus,
 )
-from sentry.investigations.services.orchestration_events import _report_revision
 from sentry.issues.issue_search import issue_search_config
 from sentry.notifications.platform.templates.seer import (
     SeerInvestigationConclusion,
@@ -36,6 +30,8 @@ from sentry.notifications.platform.templates.seer import (
 
 MAX_STATUS_HYPOTHESES = 10
 MAX_STATUS_TEXT_LENGTH = 300
+# Slack caps a section's text at 3,000 characters.
+MAX_SUMMARY_DESCRIPTION_LENGTH = 2_500
 
 VERIFYING_LABEL = "● Verifying"
 SUPPORTED_LABEL = "● Supported"
@@ -289,35 +285,16 @@ def strip_embed_tags(markdown: str) -> str:
 def build_investigation_conclusion(
     run: InvestigationOrchestrationRun,
 ) -> SeerInvestigationConclusion | None:
-    """Builds the conclusion from the text of the current report, or None if there is no text."""
+    """Builds the conclusion from the investigation's summary, or None if there is no summary."""
     investigation = run.investigation
-    contents = (
-        InvestigationBlock.objects.filter(
-            investigation_id=investigation.id,
-            report_revision=_report_revision(run),
-            kind=InvestigationBlockKind.TEXT,
-            deleted_at__isnull=True,
-        )
-        .order_by("position", "id")
-        .values_list("content", flat=True)
-    )
-    sections: list[str] = []
-    remaining = MAX_CONCLUSION_MARKDOWN_LENGTH
-    for content in contents:
-        content = strip_embed_tags(content).strip()
-        if not content:
-            continue
-        if len(content) > remaining:
-            if cut := _cut_at_paragraph(content, remaining):
-                sections.append(cut)
-            sections.append(CONCLUSION_TRUNCATED_NOTE)
-            break
-        sections.append(content)
-        remaining -= len(content)
-    if not sections:
+    if not investigation.summary:
         return None
+    description = investigation.summary_description
     return SeerInvestigationConclusion(
         organization_id=investigation.organization_id,
-        sections=sections,
+        summary=investigation.summary,
+        summary_description=(
+            _truncate(description, MAX_SUMMARY_DESCRIPTION_LENGTH) if description else None
+        ),
         investigation_url=investigation.get_absolute_url(),
     )
