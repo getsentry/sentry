@@ -1495,177 +1495,41 @@ describe('ActivitySection', () => {
     expect(screen.getByRole('img', {name: 'Activity update'})).toBeInTheDocument();
   });
 
-  it('renders GAL-only actions, merge destinations, and root cause summaries', async () => {
+  it('renders GAL unlink events with provider details and available links', async () => {
     const captureMessage = jest.spyOn(Sentry, 'captureMessage');
-    const galGroup = GroupFixture({
-      project,
-      activity: [
-        ActivityFeedFixture({id: '1', type: GroupActivityType.BOOKMARK, data: {}}),
-        ActivityFeedFixture({id: '2', type: GroupActivityType.SUBSCRIBE, data: {}}),
-        ActivityFeedFixture({id: '3', type: GroupActivityType.UNSUBSCRIBE, data: {}}),
-        ActivityFeedFixture({id: '4', type: GroupActivityType.DELETE, data: {}}),
-        ActivityFeedFixture({
-          id: '5',
-          type: GroupActivityType.MERGE_INTO_OTHER,
-          data: {counterpart_group_id: 123},
-        }),
-        ActivityFeedFixture({
-          id: '6',
-          type: GroupActivityType.ROOT_CAUSE_IDENTIFIED,
-          data: {summary: 'A missing null check'},
-          user: null,
-        }),
-        ActivityFeedFixture({
-          id: '7',
-          type: GroupActivityType.AUTOFIX_CODING_COMPLETE,
-          data: {run_id: null},
-          user: null,
-        }),
-      ],
-    });
-
-    render(
-      <GroupDataContextProvider group={galGroup} project={project}>
-        <ActivitySection group={galGroup} variant="standalone" />
-      </GroupDataContextProvider>
-    );
-
-    const timeline = await screen.findByTestId('activity-timeline');
-    expect(timeline).toHaveTextContent('Bookmarked');
-    expect(timeline).toHaveTextContent('Subscribed');
-    expect(timeline).toHaveTextContent('Unsubscribed');
-    expect(timeline).toHaveTextContent('Deleted');
-    expect(timeline).toHaveTextContent('Merged into another issue');
-    expect(timeline).toHaveTextContent('Root cause found A missing null check');
-    expect(timeline).toHaveTextContent('Code changes suggested');
-    expect(screen.getAllByRole('img', {name: 'Seer activity'})).toHaveLength(2);
-    expect(screen.getByRole('link', {name: 'another issue'})).toHaveAttribute(
-      'href',
-      '/organizations/org-slug/issues/123/'
-    );
-    expect(captureMessage).not.toHaveBeenCalled();
-  });
-
-  it('renders GAL external issue actions with their provider, key, and available links', async () => {
-    const captureMessage = jest.spyOn(Sentry, 'captureMessage');
-    const galGroup = GroupFixture({
-      project,
-      activity: [
-        ...(
-          [
-            GroupActivityType.CREATE_EXTERNAL_ISSUE,
-            GroupActivityType.LINK_EXTERNAL_ISSUE,
-            GroupActivityType.UNLINK_EXTERNAL_ISSUE,
-          ] as const
-        ).map((type, index) =>
-          ActivityFeedFixture({
-            id: `external-${index}`,
-            type,
-            data: {provider: 'github', external_issue_key: `org/repo#${index + 1}`},
-          })
-        ),
-        ...(
-          [
-            GroupActivityType.CREATE_PLATFORM_EXTERNAL_ISSUE,
-            GroupActivityType.LINK_PLATFORM_EXTERNAL_ISSUE,
-            GroupActivityType.UNLINK_PLATFORM_EXTERNAL_ISSUE,
-          ] as const
-        ).map((type, index) =>
-          ActivityFeedFixture({
-            id: `platform-${index}`,
-            type,
-            data: {
-              service_type: 'linear',
-              display_name: `APP-${index + 1}`,
-              web_url: `https://linear.app/example/issue/APP-${index + 1}`,
-            },
-          })
-        ),
-      ],
-    });
-
-    render(
-      <GroupDataContextProvider group={galGroup} project={project}>
-        <ActivitySection group={galGroup} variant="standalone" />
-      </GroupDataContextProvider>
-    );
-
-    const timeline = await screen.findByTestId('activity-timeline');
-    expect(timeline).toHaveTextContent('Created external issue org/repo#1 on GitHub');
-    expect(timeline).toHaveTextContent('Linked external issue org/repo#2 on GitHub');
-    expect(timeline).toHaveTextContent('Unlinked external issue org/repo#3 on GitHub');
-    expect(timeline).toHaveTextContent('Created external issue APP-1');
-    expect(timeline).toHaveTextContent('Linked external issue APP-2');
-    expect(timeline).toHaveTextContent('Unlinked external issue APP-3');
-    expect(screen.getByRole('link', {name: 'APP-1'})).toHaveAttribute(
-      'href',
-      'https://linear.app/example/issue/APP-1'
-    );
-    expect(screen.getByRole('link', {name: 'APP-2'})).toHaveAttribute(
-      'href',
-      'https://linear.app/example/issue/APP-2'
-    );
-    expect(screen.getByRole('link', {name: 'APP-3'})).toHaveAttribute(
-      'href',
-      'https://linear.app/example/issue/APP-3'
-    );
-    expect(captureMessage).not.toHaveBeenCalled();
-  });
-
-  it('renders historical Autofix PRs and tolerates unavailable details', async () => {
-    const captureMessage = jest.spyOn(Sentry, 'captureMessage');
-    const galGroup = GroupFixture({
+    const unlinkGroup = GroupFixture({
       project,
       activity: [
         ActivityFeedFixture({
           id: '1',
-          type: GroupActivityType.AUTOFIX_PR_CREATED,
-          data: {
-            pull_requests: [
-              {
-                provider: 'github',
-                pull_request: {
-                  pr_number: 42,
-                  pr_url: 'https://github.com/org/repo/pull/42',
-                },
-              },
-            ],
-          },
-          user: null,
+          type: GroupActivityType.UNLINK_EXTERNAL_ISSUE,
+          data: {provider: 'github', external_issue_key: 'org/repo#42'},
         }),
         ActivityFeedFixture({
           id: '2',
-          type: GroupActivityType.AUTOFIX_PR_CREATED,
-          data: {pull_requests: []},
-        }),
-        ActivityFeedFixture({
-          id: '3',
-          type: GroupActivityType.AUTOFIX_PR_CREATED,
-          data: {pull_requests: [{pull_request: {}}]},
-        }),
-        ActivityFeedFixture({
-          id: '4',
-          type: GroupActivityType.ROOT_CAUSE_IDENTIFIED,
-          data: {summary: null},
+          type: GroupActivityType.UNLINK_PLATFORM_EXTERNAL_ISSUE,
+          data: {
+            service_type: 'linear',
+            display_name: 'APP-42',
+            web_url: 'https://linear.app/example/issue/APP-42',
+          },
         }),
       ],
     });
 
     render(
-      <GroupDataContextProvider group={galGroup} project={project}>
-        <ActivitySection group={galGroup} variant="standalone" />
+      <GroupDataContextProvider group={unlinkGroup} project={project}>
+        <ActivitySection group={unlinkGroup} />
       </GroupDataContextProvider>
     );
 
-    expect(await screen.findByTestId('activity-timeline')).toHaveTextContent(
-      'Pull request #42 created on GitHub'
-    );
-    expect(screen.getByRole('link', {name: '#42'})).toHaveAttribute(
+    const timeline = await screen.findByTestId('activity-timeline');
+    expect(timeline).toHaveTextContent('Unlinked external issue org/repo#42 on GitHub');
+    expect(timeline).toHaveTextContent('Unlinked external issue APP-42');
+    expect(screen.getByRole('link', {name: 'APP-42'})).toHaveAttribute(
       'href',
-      'https://github.com/org/repo/pull/42'
+      'https://linear.app/example/issue/APP-42'
     );
-    expect(screen.getAllByText('Pull request created')).toHaveLength(3);
-    expect(screen.getByText('Root cause found')).toBeInTheDocument();
     expect(captureMessage).not.toHaveBeenCalled();
   });
 

@@ -2,6 +2,7 @@ import {IconPullRequest} from '@sentry/icons/pullRequest';
 
 import {ExternalLink} from '@sentry/scraps/link';
 
+import {GroupActivityType, type GroupActivity} from 'sentry/types/group';
 import type {PullRequest} from 'sentry/types/integrations';
 
 import {InlineChip} from './inlineChip';
@@ -36,7 +37,12 @@ export function PullRequestChip({pullRequest}: {pullRequest: PullRequest}) {
 export function SeerPullRequestChip({
   pullRequest,
 }: {
-  pullRequest: {pull_request: {pr_number: number; pr_url: string}};
+  pullRequest: NonNullable<
+    Extract<
+      GroupActivity,
+      {type: GroupActivityType.SEER_PR_CREATED}
+    >['data']['pull_requests']
+  >[number];
 }) {
   return (
     <ExternalLink href={pullRequest.pull_request.pr_url}>

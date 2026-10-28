@@ -397,39 +397,17 @@ function getActivityItemContent({
         ) : undefined,
       };
     }
-    case GroupActivityType.DELETE:
-      return {title: t('Deleted')};
-    case GroupActivityType.BOOKMARK:
-      return {title: t('Bookmarked')};
-    case GroupActivityType.SUBSCRIBE:
-      return {title: t('Subscribed')};
-    case GroupActivityType.UNSUBSCRIBE:
-      return {title: t('Unsubscribed')};
-    case GroupActivityType.CREATE_EXTERNAL_ISSUE:
-    case GroupActivityType.LINK_EXTERNAL_ISSUE:
     case GroupActivityType.UNLINK_EXTERNAL_ISSUE:
       return {
-        title:
-          activity.type === GroupActivityType.CREATE_EXTERNAL_ISSUE
-            ? t('Created external issue')
-            : activity.type === GroupActivityType.LINK_EXTERNAL_ISSUE
-              ? t('Linked external issue')
-              : t('Unlinked external issue'),
+        title: t('Unlinked external issue'),
         details: tct('[key] on [provider]', {
           key: activity.data.external_issue_key,
           provider: getProviderName(activity.data.provider),
         }),
       };
-    case GroupActivityType.CREATE_PLATFORM_EXTERNAL_ISSUE:
-    case GroupActivityType.LINK_PLATFORM_EXTERNAL_ISSUE:
     case GroupActivityType.UNLINK_PLATFORM_EXTERNAL_ISSUE:
       return {
-        title:
-          activity.type === GroupActivityType.CREATE_PLATFORM_EXTERNAL_ISSUE
-            ? t('Created external issue')
-            : activity.type === GroupActivityType.LINK_PLATFORM_EXTERNAL_ISSUE
-              ? t('Linked external issue')
-              : t('Unlinked external issue'),
+        title: t('Unlinked external issue'),
         details: (
           <ExternalIssueChip
             label={activity.data.display_name}
@@ -451,17 +429,6 @@ function getActivityItemContent({
             provider={activity.data.provider}
           />
         ),
-      };
-    case GroupActivityType.MERGE_INTO_OTHER:
-      return {
-        title: t('Merged'),
-        details: tct('into [issue]', {
-          issue: (
-            <Link to={`${issuesLink}${activity.data.counterpart_group_id}/`}>
-              {t('another issue')}
-            </Link>
-          ),
-        }),
       };
     case GroupActivityType.MERGE:
       return {
@@ -557,44 +524,6 @@ function getActivityItemContent({
       return {
         title: t('Deleted an attachment'),
       };
-    case GroupActivityType.ROOT_CAUSE_IDENTIFIED:
-      return {
-        title: t('Root cause found'),
-        details: activity.data.summary,
-      };
-    case GroupActivityType.AUTOFIX_CODING_COMPLETE:
-      return {title: t('Code changes suggested')};
-    case GroupActivityType.AUTOFIX_PR_CREATED: {
-      // Historical Autofix events do not have a fixed pull request schema.
-      const entry = activity.data.pull_requests[0];
-      const pullRequest = entry?.pull_request;
-      if (
-        !pullRequest ||
-        typeof pullRequest !== 'object' ||
-        !('pr_number' in pullRequest) ||
-        typeof pullRequest.pr_number !== 'number' ||
-        !('pr_url' in pullRequest) ||
-        typeof pullRequest.pr_url !== 'string'
-      ) {
-        return {title: t('Pull request created')};
-      }
-      const provider = typeof entry.provider === 'string' ? entry.provider : '';
-      return {
-        title: tct('Pull request [pullRequest] created', {
-          pullRequest: (
-            <SeerPullRequestChip
-              pullRequest={{
-                pull_request: {
-                  pr_number: pullRequest.pr_number,
-                  pr_url: pullRequest.pr_url,
-                },
-              }}
-            />
-          ),
-        }),
-        details: tct('on [provider]', {provider: getProviderName(provider)}),
-      };
-    }
     case GroupActivityType.SEER_RCA_STARTED:
       return {
         title: t('Root cause analysis started'),
