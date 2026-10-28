@@ -3620,3 +3620,10 @@ export function prettifyTagKey(key: string): string {
   const result = key.match(TYPED_TAG_KEY_RE);
   return result?.[1] ?? key;
 }
+
+/**
+ * Whether the key uses the explicitly typed `tags[name,type]` syntax.
+ */
+export function isTypedTagKey(key: string): boolean {
+  return TYPED_TAG_KEY_RE.test(key);
+}

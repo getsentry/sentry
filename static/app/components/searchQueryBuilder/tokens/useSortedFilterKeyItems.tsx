@@ -22,7 +22,7 @@ import {stripArrayMembershipOperator} from 'sentry/components/searchSyntax/utils
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import type {Tag} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
-import {FieldKey, FieldKind} from 'sentry/utils/fields';
+import {FieldKey, FieldKind, isTypedTagKey, prettifyTagKey} from 'sentry/utils/fields';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
 
 type FilterKeySearchItem = {
@@ -153,6 +153,35 @@ function getValueSuggestionsFromSearchResult(
     shouldShowAtTop: topItemIsValueSuggestion,
     suggestedFiltersSection: hasValueSuggestions ? suggestedFiltersSection : null,
   };
+}
+
+/**
+ * Handles collision between known and user-sent attributes,
+ * (i.e.'message' and 'tags[message,string]') by placing the user
+ * attribute directly after the known attribute.
+ */
+function placeUserAttributesAfterKnownKeys(items: SearchKeyItem[]): SearchKeyItem[] {
+  const values = new Set(items.map(item => item.value));
+  const collisions = items.filter(
+    item =>
+      item.type === 'item' &&
+      isTypedTagKey(item.value) &&
+      values.has(prettifyTagKey(item.value))
+  );
+  if (collisions.length === 0) {
+    return items;
+  }
+
+  return items.flatMap(item =>
+    collisions.includes(item)
+      ? []
+      : [
+          item,
+          ...collisions.filter(
+            collision => prettifyTagKey(collision.value) === item.value
+          ),
+        ]
+  );
 }
 
 export function useSortedFilterKeyItems({
@@ -337,7 +366,11 @@ export function useSortedFilterKeyItems({
     const asyncKeyItems = allKeyItems.filter(
       item => !prioritizedKeys.has(item.value) && asyncOnlyKeys.has(item.value)
     );
-    const keyItems = [...prioritizedKeyItems, ...staticKeyItems, ...asyncKeyItems];
+    const keyItems = placeUserAttributesAfterKnownKeys([
+      ...prioritizedKeyItems,
+      ...staticKeyItems,
+      ...asyncKeyItems,
+    ]);
 
     if (includeSuggestions) {
       const rawSearchSection: KeySectionItem = {
