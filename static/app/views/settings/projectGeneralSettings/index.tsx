@@ -64,6 +64,7 @@ import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 import {ConnectedRepositoriesPanel} from 'sentry/views/settings/projectGeneralSettings/connectedRepositoriesPanel';
+import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 type Props = {
   onChangeSlug: (slug: string) => void;
@@ -553,6 +554,7 @@ function SecurityTokenHeaderForm({
 }
 
 export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
+  const settingsV3 = useSettingsV3();
   const transferForm: Record<string, FieldValue> = {};
   const navigate = useNavigate();
   const {isSelfHosted} = useLegacyStore(ConfigStore);
@@ -677,7 +679,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
   return (
     <div>
       <SentryDocumentTitle title={t('Project Settings')} projectSlug={project.slug} />
-      <SettingsPageHeader title={t('Project Settings')} />
+      <SettingsPageHeader title={settingsV3 ? t('General') : t('Project Settings')} />
       <ProjectPermissionAlert project={project} />
 
       <FormSearch route="/settings/:orgId/projects/:projectId/">
