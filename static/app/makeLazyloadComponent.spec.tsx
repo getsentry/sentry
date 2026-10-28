@@ -2,7 +2,9 @@ import {useState} from 'react';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {Button} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
+import {Heading} from '@sentry/scraps/text';
 
 import {PRELOAD_HANDLE} from 'sentry/router/preload';
 import {RouteConfigProvider} from 'sentry/router/routeConfigContext';
@@ -15,7 +17,7 @@ import {makeLazyloadComponent} from './makeLazyloadComponent';
 function MockComponent(props: {title: string; count?: number}) {
   return (
     <div data-test-id="mock-component">
-      <h1>{props.title}</h1>
+      <Heading as="h1">{props.title}</Heading>
       {props.count && <span>Count: {props.count}</span>}
     </div>
   );
@@ -89,8 +91,8 @@ describe('makeLazyloadComponent', () => {
         const [count, setCount] = useState(0);
         return (
           <div>
-            <h1>{title}</h1>
-            <button onClick={() => setCount(c => c + 1)}>Count: {count}</button>
+            <Heading as="h1">{title}</Heading>
+            <Button onClick={() => setCount(c => c + 1)}>Count: {count}</Button>
           </div>
         );
       }

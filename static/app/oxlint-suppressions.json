@@ -2082,9 +2082,6 @@
   "makeLazyloadComponent.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
       "count": 1
-    },
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
     }
   },
   "scrapsProviders/datetime.spec.tsx": {
