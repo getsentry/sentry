@@ -1658,15 +1658,20 @@ describe('Customer Details', () => {
       expect(screen.queryByText('Set Contract Package')).not.toBeInTheDocument();
     });
 
-    it('posts the package uid', async () => {
+    it('posts the package uid and refreshes the contracts table', async () => {
       ConfigStore.set('user', UserFixture({permissions: new Set(['billing.admin'])}));
       setUpMocks(packageOrg, {hasMigratedToBillingPlatform: true});
+      const contractsMock = MockApiClient.addMockResponse({
+        url: `/_admin/customers/${packageOrg.slug}/contracts/`,
+        body: [],
+      });
       const setPackageMock = MockApiClient.addMockResponse({
         url: `/_admin/customers/${packageOrg.slug}/contract/package/`,
         method: 'POST',
       });
       renderPackageOrg();
 
+      await waitFor(() => expect(contractsMock).toHaveBeenCalledTimes(1));
       await openCustomerActions();
       renderGlobalModal();
       await userEvent.click(screen.getByText('Set Contract Package'));
@@ -1684,6 +1689,7 @@ describe('Customer Details', () => {
           expect.objectContaining({method: 'POST', data: {packageUid}})
         )
       );
+      await waitFor(() => expect(contractsMock).toHaveBeenCalledTimes(2));
     });
   });
 

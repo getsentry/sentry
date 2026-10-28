@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import {useMutation, useQueryClient, useQuery} from '@tanstack/react-query';
 import cloneDeep from 'lodash/cloneDeep';
 import some from 'lodash/some';
@@ -238,6 +239,10 @@ export function CustomerDetails() {
     },
   });
 
+  // CustomerContracts fetches through ResultGrid, outside react-query, so remount
+  // it to show the new package.
+  const [contractsKey, setContractsKey] = useState(0);
+
   const onSetContractPackageMutation = useMutation({
     mutationFn: (params: Record<string, any>) =>
       fetchMutation({
@@ -251,6 +256,7 @@ export function CustomerDetails() {
     onSuccess: (_data, variables) => {
       addSuccessMessage(`Set the contract package to ${variables.packageUid}.`);
       reloadData();
+      setContractsKey(key => key + 1);
     },
     onError: (error: RequestError) => {
       const packageUidErrors = error.responseJSON?.packageUid;
@@ -1044,7 +1050,7 @@ export function CustomerDetails() {
           {
             noPanel: true,
             visible: subscription.hasMigratedToBillingPlatform,
-            content: <CustomerContracts orgId={orgId} />,
+            content: <CustomerContracts key={contractsKey} orgId={orgId} />,
           },
           {
             name: 'Admin Audit Log',
