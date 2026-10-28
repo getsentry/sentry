@@ -28,9 +28,6 @@ export default function DetectorNewSettings() {
   const [detectorType] = useDetectorTypeQueryState();
   const [duplicateFromParam] = useQueryState('duplicateFrom', parseAsString);
   const draft = useInitialDetectorDraft();
-  // A draft replaces the source monitor, which whoever opens a shared draft may
-  // not be able to read. The source's description is lost, since drafts leave
-  // it out.
   const duplicateFrom = draft ? null : duplicateFromParam;
   const canCreateDetector = useCanCreateDetector(detectorType);
   const canDuplicateMonitors = organization.features.includes('monitor-duplication');
