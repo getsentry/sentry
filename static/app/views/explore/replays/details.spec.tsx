@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import {useEffect, useState, type ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
@@ -8,6 +8,8 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import {ReplayReader} from 'sentry/utils/replays/replayReader';
+import type {ReplayDetailsProviders} from 'sentry/views/explore/replays/detail/body/replayDetailsProviders';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 import ReplayDetails from './details';
@@ -15,8 +17,18 @@ import ReplayDetails from './details';
 jest.mock('sentry/utils/replays/hooks/useLoadReplayReader');
 jest.mock('sentry/utils/replays/hooks/useReplayPageview');
 
+const mockProvidersMounted = jest.fn();
+jest.mock('sentry/views/explore/replays/detail/body/replayDetailsProviders', () => ({
+  ReplayDetailsProviders: ({replay}: Parameters<typeof ReplayDetailsProviders>[0]) => {
+    // Only a remount starts over with the new replay's id
+    const [mountedFor] = useState(replay.getReplay().id);
+    useEffect(() => mockProvidersMounted(mountedFor), [mountedFor]);
+    return null;
+  },
+}));
+
 const mockUseLoadReplayReader = jest.mocked(useLoadReplayReader);
-mockUseLoadReplayReader.mockReturnValue({
+const defaultReaderResult = {
   attachments: [],
   errors: [],
   fetchError: undefined,
@@ -31,7 +43,7 @@ mockUseLoadReplayReader.mockReturnValue({
     id: 'test-replay-id',
   }),
   status: 'success' as const,
-});
+};
 
 function TopBarWrapper({children}: {children: ReactNode}) {
   return (
@@ -85,6 +97,7 @@ describe('ReplayDetails', () => {
     userEvent.setup();
     writeText = jest.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
     mockUseLoadReplayReader.mockClear();
+    mockUseLoadReplayReader.mockReturnValue(defaultReaderResult);
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/replays/test-replay-id/',
@@ -227,6 +240,33 @@ describe('ReplayDetails', () => {
     expect(
       await screen.findByRole('menuitemradio', {name: /General/})
     ).toBeInTheDocument();
+  });
+
+  it('starts with fresh replay providers when switching to a cached replay', () => {
+    mockUseLoadReplayReader.mockImplementation(({replaySlug}) => {
+      const replayRecord = ReplayRecordFixture({id: replaySlug});
+      return {
+        ...defaultReaderResult,
+        replay: ReplayReader.factory({
+          attachments: [],
+          errors: [],
+          fetching: false,
+          replayRecord,
+        }),
+        replayId: replaySlug,
+        replayRecord,
+      };
+    });
+    const {router} = renderDetails();
+
+    // The next replay's reader is ready on the first render, as it is when the
+    // record is already cached, so the page never renders without a replay.
+    router.navigate('/organizations/org-slug/replays/other-replay-id/');
+
+    expect(mockProvidersMounted.mock.calls).toEqual([
+      ['test-replay-id'],
+      ['other-replay-id'],
+    ]);
   });
 
   it('should show access denied and not fetch data when user does not have granular replay permissions', () => {

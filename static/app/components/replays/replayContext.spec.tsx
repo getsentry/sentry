@@ -98,12 +98,10 @@ function makeReader({
   attachments,
   errors = [],
   finishedAt,
-  replayId,
 }: {
   attachments: unknown[];
   errors?: RawReplayError[];
   finishedAt?: Date;
-  replayId?: string;
 }) {
   return ReplayReader.factory({
     attachments,
@@ -112,7 +110,6 @@ function makeReader({
     replayRecord: ReplayRecordFixture({
       started_at: startedAt,
       ...(finishedAt && {finished_at: finishedAt}),
-      ...(replayId && {id: replayId}),
     }),
   });
 }
@@ -401,12 +398,13 @@ describe('replayContext', () => {
     expect(Replayer).toHaveBeenCalledTimes(2);
   });
 
-  it('replaces the video player when switching to a web replay', () => {
+  it('destroys the video player when a keyed provider switches to a web replay', () => {
     const {rerender} = render(
       <ReplayContextProvider
+        key="video-replay"
         analyticsContext=""
         isFetching={false}
-        replay={makeReader({attachments: [VideoFrameEventFixture()], replayId: 'a'})}
+        replay={makeReader({attachments: [VideoFrameEventFixture()]})}
       >
         <TestPlayer />
       </ReplayContextProvider>
@@ -416,11 +414,11 @@ describe('replayContext', () => {
 
     rerender(
       <ReplayContextProvider
+        key="web-replay"
         analyticsContext=""
         isFetching={false}
         replay={makeReader({
           attachments: RRWebInitFrameEventsFixture({timestamp: startedAt}),
-          replayId: 'b',
         })}
       >
         <TestPlayer />
@@ -429,35 +427,6 @@ describe('replayContext', () => {
 
     expect(videoReplayer.destroy).toHaveBeenCalled();
     expect(Replayer).toHaveBeenCalledTimes(1);
-  });
-
-  it('replaces the web player when switching to a video replay', () => {
-    const {rerender} = render(
-      <ReplayContextProvider
-        analyticsContext=""
-        isFetching={false}
-        replay={makeReader({
-          attachments: RRWebInitFrameEventsFixture({timestamp: startedAt}),
-          replayId: 'a',
-        })}
-      >
-        <TestPlayer />
-      </ReplayContextProvider>
-    );
-    const replayer = jest.mocked(Replayer).mock.results[0]!.value;
-
-    rerender(
-      <ReplayContextProvider
-        analyticsContext=""
-        isFetching={false}
-        replay={makeReader({attachments: [VideoFrameEventFixture()], replayId: 'b'})}
-      >
-        <TestPlayer />
-      </ReplayContextProvider>
-    );
-
-    expect(replayer.destroy).toHaveBeenCalled();
-    expect(VideoReplayerWithInteractions).toHaveBeenCalledTimes(1);
   });
 
   it('keeps the fast forward speed when the tab stays visible while skipping', async () => {

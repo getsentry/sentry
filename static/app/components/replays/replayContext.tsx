@@ -220,6 +220,11 @@ function useCurrentTime(callback: () => number) {
   return currentTime;
 }
 
+/**
+ * Holds the player for a single replay. Render it with `key` set to the replay
+ * id: the player and its playback state are built for one replay and are not
+ * torn down when the `replay` prop switches to another one.
+ */
 export function Provider({
   analyticsContext,
   children,
@@ -645,22 +650,6 @@ export function Provider({
       }
     };
   }, [rootEl]);
-
-  // Pages that switch between replays (replay details prev/next with a cached
-  // record, the issue Replays tab) keep this provider and the player root
-  // mounted, so without this the previous replay's player is reused for the
-  // next one. A leftover video player has no rrweb `wrapper`, which crashes the
-  // rrweb setup above when the next replay is a web replay.
-  useEffect(() => {
-    // No player is built without a replay, so there is nothing to tear down
-    if (!replayId) {
-      return;
-    }
-    return () => {
-      replayerRef.current?.destroy();
-      replayerRef.current = null;
-    };
-  }, [replayId]);
 
   const restart = useCallback(() => {
     if (replayerRef.current) {
