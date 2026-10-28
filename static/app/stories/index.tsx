@@ -1,6 +1,5 @@
 export {ColorReference} from './colorReference';
 export {Demo} from './demo';
-export {Do, DoDont, Dont} from './doDont';
 export {JSXNode, JSXProperty} from './jsx';
 export {ModuleExports} from './moduleExports';
 export {SelectProject, SelectProjects} from './projectPicker';

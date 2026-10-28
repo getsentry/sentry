@@ -21,6 +21,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
+import {Do, DoDont, Dont} from 'sentry/stories/doDont';
 
 export const documentation = import('!!type-loader!@sentry/scraps/input');
 
@@ -260,16 +261,16 @@ To ensure your input implementations are fully accessible, follow these guidelin
 
 **Placeholder Text**
 
-<Storybook.DoDont>
-  <Storybook.Do caption="Use placeholders for example values, and keep a visible label.">
+<DoDont>
+  <Do caption="Use placeholders for example values, and keep a visible label.">
     <Stack as="label" gap="xs" width="100%">
       <Text bold>Email</Text>
       <Input type="email" placeholder="you@example.com" />
     </Stack>
-  </Storybook.Do>
-  <Storybook.Dont caption="Don't rely on placeholder text for labels or instructions. It disappears when typing begins and may have low contrast.">
+  </Do>
+  <Dont caption="Don't rely on placeholder text for labels or instructions. It disappears when typing begins and may have low contrast.">
     <Input type="email" aria-label="Email" placeholder="Enter your work email" />
-  </Storybook.Dont>
-</Storybook.DoDont>
+  </Dont>
+</DoDont>
 
 For more information, see the [WAI-ARIA Text Input practices](https://www.w3.org/WAI/ARIA/apg/patterns/textbox/).

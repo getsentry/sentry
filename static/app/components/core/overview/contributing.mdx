@@ -8,7 +8,7 @@ import {Input} from '@sentry/scraps/input';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import * as Storybook from 'sentry/stories';
+import {Do, DoDont, Dont} from 'sentry/stories/doDont';
 
 This guide is for engineers and designers at Sentry who want to contribute to Scraps.
 
@@ -201,33 +201,35 @@ Emphasize important information with callouts:
 
 ### Show Dos and Don'ts
 
-Use `Storybook.DoDont` when guidance is easier to show than to describe. Each pair puts a recommended example next to the mistake it replaces. Place a pair next to the guidance it illustrates. For general usage guidance, group the pairs in a `## Dos and don'ts` section after the feature sections and before `## Accessibility`.
+Use `DoDont` from `sentry/stories/doDont` when guidance is easier to show than to describe. Each pair puts a recommended example next to the mistake it replaces. Place a pair next to the guidance it illustrates. For general usage guidance, group the pairs in a `## Dos and don'ts` section after the feature sections and before `## Accessibility`.
 
 ```mdx
-<Storybook.DoDont>
-  <Storybook.Do caption="Put the label above the input. Use the placeholder for an example value.">
+import {Do, DoDont, Dont} from 'sentry/stories/doDont';
+
+<DoDont>
+  <Do caption="Put the label above the input. Use the placeholder for an example value.">
     <Stack as="label" gap="xs" width="100%">
       <Text bold>Email</Text>
       <Input placeholder="you@example.com" />
     </Stack>
-  </Storybook.Do>
-  <Storybook.Dont caption="Don't use the placeholder as the label. It disappears as soon as someone types.">
+  </Do>
+  <Dont caption="Don't use the placeholder as the label. It disappears as soon as someone types.">
     <Input aria-label="Email" placeholder="Email" />
-  </Storybook.Dont>
-</Storybook.DoDont>
+  </Dont>
+</DoDont>
 ```
 
-<Storybook.DoDont>
-  <Storybook.Do caption="Put the label above the input. Use the placeholder for an example value.">
+<DoDont>
+  <Do caption="Put the label above the input. Use the placeholder for an example value.">
     <Stack as="label" gap="xs" width="100%">
       <Text bold>Email</Text>
       <Input placeholder="you@example.com" />
     </Stack>
-  </Storybook.Do>
-  <Storybook.Dont caption="Don't use the placeholder as the label. It disappears as soon as someone types.">
+  </Do>
+  <Dont caption="Don't use the placeholder as the label. It disappears as soon as someone types.">
     <Input aria-label="Email" placeholder="Email" />
-  </Storybook.Dont>
-</Storybook.DoDont>
+  </Dont>
+</DoDont>
 
 - Write one `Do` and one `Dont` per pair, with `Do` first.
 - Show the same component in both examples so that the guidance is the only difference.
