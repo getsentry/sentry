@@ -1,10 +1,11 @@
 import {useEffect, useState} from 'react';
+import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
-import {observe} from 'mobx';
 import {parseAsJson, useQueryState} from 'nuqs';
 import {z} from 'zod';
 
 import type {FormModel} from 'sentry/components/forms/model';
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';
 
 export type DetectorDraftSchema<TFormData> = z.ZodType<Partial<TFormData>>;
@@ -21,35 +22,28 @@ export function useInitialDetectorDraft() {
   return initialDraft;
 }
 
-export function DetectorDraftUrlSync<TFormData>({
-  formModel,
-  schema,
-}: {
-  formModel: FormModel;
-  schema: DetectorDraftSchema<TFormData>;
-}) {
-  const {hasSetDetectorName} = useDetectorFormContext();
-  const [, setDraft] = useQueryState(
-    'draft',
-    parseAsDetectorDraft.withOptions({history: 'replace'})
-  );
-  const [changeCount, setChangeCount] = useState(0);
+export function useDetectorDraftUrlSync<TFormData>(
+  formModel: FormModel,
+  schema: DetectorDraftSchema<TFormData> | undefined
+) {
+  const {getHasSetDetectorName} = useDetectorFormContext();
+  const [, setDraft] = useQueryState('draft', parseAsDetectorDraft);
 
-  useEffect(
-    () => observe(formModel.fields, () => setChangeCount(count => count + 1)),
-    [formModel]
-  );
-
-  useEffect(() => {
-    if (changeCount === 0) {
-      return;
-    }
-    const timeout = setTimeout(() => {
+  const [writeDraft] = useState(() =>
+    debounce(() => {
+      if (!schema) {
+        return;
+      }
       const values = schema.parse(formModel.getData());
-      setDraft(hasSetDetectorName ? values : omit(values, 'name'));
-    }, 300);
-    return () => clearTimeout(timeout);
-  }, [changeCount, formModel, hasSetDetectorName, schema, setDraft]);
+      setDraft(getHasSetDetectorName() ? values : omit(values, 'name'));
+    }, DEFAULT_DEBOUNCE_DURATION)
+  );
 
-  return null;
+  useEffect(() => () => writeDraft.cancel(), [writeDraft]);
+
+  return (id: string) => {
+    if (id !== 'name' || getHasSetDetectorName()) {
+      writeDraft();
+    }
+  };
 }

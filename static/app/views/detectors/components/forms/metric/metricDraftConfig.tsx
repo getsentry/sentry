@@ -14,7 +14,6 @@ import {
   draftNumericString,
   type DetectorDraftSchema,
 } from 'sentry/views/detectors/components/forms/common/detectorDraft';
-import {DEFAULT_THRESHOLD_METRIC_FORM_DATA} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormFields';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
@@ -33,10 +32,7 @@ export const METRIC_DETECTOR_DRAFT_SCHEMA: DetectorDraftSchema<MetricDetectorFor
     extrapolationMode: z.enum(ExtrapolationMode).optional().catch(undefined),
     highThreshold: draftNumericString.optional().catch(undefined),
     initialPriorityLevel: z
-      .union([
-        z.literal(DetectorPriorityLevel.MEDIUM),
-        z.literal(DetectorPriorityLevel.HIGH),
-      ])
+      .literal([DetectorPriorityLevel.MEDIUM, DetectorPriorityLevel.HIGH])
       .optional()
       .catch(undefined),
     interval: z.number().optional().catch(undefined),
@@ -52,15 +48,18 @@ export const METRIC_DETECTOR_DRAFT_SCHEMA: DetectorDraftSchema<MetricDetectorFor
     workflowIds: z.array(z.string()).optional().catch(undefined),
   })
   .transform(values => {
-    const normalized =
-      values.dataset === undefined
-        ? omit(values, ['aggregateFunction', 'extrapolationMode', 'query'])
-        : values;
-
-    const dataset = normalized.dataset ?? DEFAULT_THRESHOLD_METRIC_FORM_DATA.dataset;
-    const {supportedDetectionTypes} = getDatasetConfig(dataset);
-    return normalized.detectionType === undefined ||
-      supportedDetectionTypes.includes(normalized.detectionType)
-      ? normalized
-      : omit(normalized, ['detectionType']);
+    if (values.dataset === undefined) {
+      return omit(values, [
+        'aggregateFunction',
+        'detectionType',
+        'extrapolationMode',
+        'query',
+      ]);
+    }
+    return values.detectionType === undefined ||
+      getDatasetConfig(values.dataset).supportedDetectionTypes.includes(
+        values.detectionType
+      )
+      ? values
+      : omit(values, ['detectionType']);
   });

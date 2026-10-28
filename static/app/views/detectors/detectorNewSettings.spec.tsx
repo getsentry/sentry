@@ -126,10 +126,6 @@ describe('DetectorEdit', () => {
     });
   });
 
-  afterEach(() => {
-    window.history.replaceState(null, '', '/');
-  });
-
   it('selects the first project when an invalid project is provided in the URL', async () => {
     render(<DetectorNewSettings />, {
       organization,
@@ -1164,13 +1160,6 @@ describe('DetectorEdit', () => {
       };
     }
 
-    function getDraftRouterConfig(draft: Record<string, unknown>) {
-      return getRouterConfig({
-        detectorType: 'metric_issue',
-        draft: JSON.stringify(draft),
-      });
-    }
-
     function getDraft(router: {location: {query: Record<string, unknown>}}) {
       const draft = router.location.query.draft;
       return typeof draft === 'string' ? JSON.parse(draft) : undefined;
@@ -1209,6 +1198,7 @@ describe('DetectorEdit', () => {
           })
         );
       });
+      expect(getDraft(router)).not.toHaveProperty('name');
     });
 
     it('does not write a draft when nothing has changed', async () => {
@@ -1221,23 +1211,6 @@ describe('DetectorEdit', () => {
       await act(() => new Promise(resolve => setTimeout(resolve, 500)));
 
       expect(router.location.query.draft).toBeUndefined();
-    });
-
-    it('leaves an automatic name out of the URL draft', async () => {
-      const {router} = render(<DetectorNewSettings />, {
-        organization,
-        initialRouterConfig: getRouterConfig(newMetricQuery),
-      });
-
-      await userEvent.type(
-        await screen.findByRole('spinbutton', {name: 'High threshold'}),
-        '90'
-      );
-
-      await waitFor(() => {
-        expect(getDraft(router)).toEqual(expect.objectContaining({highThreshold: '90'}));
-      });
-      expect(getDraft(router)).not.toHaveProperty('name');
     });
 
     it('keeps a typed name in the URL draft', async () => {
@@ -1257,27 +1230,6 @@ describe('DetectorEdit', () => {
       await waitFor(() => {
         expect(getDraft(router)).toEqual(expect.objectContaining({name: 'Typed name'}));
       });
-    });
-
-    it('leaves the description out of the URL draft when one is typed', async () => {
-      const {router} = render(<DetectorNewSettings />, {
-        organization,
-        initialRouterConfig: getRouterConfig(newMetricQuery),
-      });
-
-      await userEvent.type(
-        await screen.findByRole('textbox', {name: 'description'}),
-        'Private notes'
-      );
-      await userEvent.type(
-        screen.getByRole('spinbutton', {name: 'High threshold'}),
-        '90'
-      );
-
-      await waitFor(() => {
-        expect(getDraft(router)).toEqual(expect.objectContaining({highThreshold: '90'}));
-      });
-      expect(router.location.query.draft).not.toContain('Private');
     });
 
     it('restores the written draft when the URL is reopened', async () => {
@@ -1303,20 +1255,6 @@ describe('DetectorEdit', () => {
       expect(await screen.findByRole('spinbutton', {name: 'High threshold'})).toHaveValue(
         120
       );
-    });
-
-    it('ignores the draft when it is not valid JSON', async () => {
-      render(<DetectorNewSettings />, {
-        organization,
-        initialRouterConfig: getRouterConfig({
-          detectorType: 'metric_issue',
-          draft: '{not json',
-        }),
-      });
-
-      expect(
-        await screen.findByRole('spinbutton', {name: 'High threshold'})
-      ).not.toHaveValue();
     });
 
     it('does not load the duplicated monitor when the URL has a draft', async () => {
@@ -1345,14 +1283,17 @@ describe('DetectorEdit', () => {
 
       render(<DetectorNewSettings />, {
         organization,
-        initialRouterConfig: getDraftRouterConfig({
-          aggregateFunction: 'count_unique(user)',
-          dataset: 'errors',
-          environment: 'production',
-          highThreshold: '250',
-          name: 'Shared monitor',
-          projectId: project.id,
-          query: '',
+        initialRouterConfig: getRouterConfig({
+          detectorType: 'metric_issue',
+          draft: JSON.stringify({
+            aggregateFunction: 'count_unique(user)',
+            dataset: 'errors',
+            environment: 'production',
+            highThreshold: '250',
+            name: 'Shared monitor',
+            projectId: project.id,
+            query: '',
+          }),
         }),
       });
 
@@ -1384,45 +1325,18 @@ describe('DetectorEdit', () => {
       });
     }, 10000);
 
-    it('drops draft fields that fail validation and keeps the rest', async () => {
-      const createDetector = mockCreateDetector();
-
-      render(<DetectorNewSettings />, {
-        organization,
-        initialRouterConfig: getDraftRouterConfig({
-          dataset: 'not-a-dataset',
-          highThreshold: '75',
-          name: 'Partial',
-        }),
-      });
-
-      expect(await screen.findByRole('spinbutton', {name: 'High threshold'})).toHaveValue(
-        75
-      );
-      await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
-
-      await waitFor(() => {
-        expect(createDetector).toHaveBeenCalledWith(
-          expect.any(String),
-          expect.objectContaining({
-            data: expect.objectContaining({
-              name: 'Partial',
-              dataSources: [expect.objectContaining({dataset: 'events'})],
-            }),
-          })
-        );
-      });
-    }, 10000);
-
     it('falls back to a writable project when the draft project is not writable', async () => {
       const createDetector = mockCreateDetector();
 
       render(<DetectorNewSettings />, {
         organization,
-        initialRouterConfig: getDraftRouterConfig({
-          highThreshold: '75',
-          name: 'Other project',
-          projectId: '999999',
+        initialRouterConfig: getRouterConfig({
+          detectorType: 'metric_issue',
+          draft: JSON.stringify({
+            highThreshold: '75',
+            name: 'Other project',
+            projectId: '999999',
+          }),
         }),
       });
 

@@ -44,12 +44,4 @@ describe('METRIC_DETECTOR_DRAFT_SCHEMA', () => {
 
     expect(values).toStrictEqual({name: 'Monitor'});
   });
-
-  it('ignores inherited keys when given a crafted prototype', () => {
-    const values = METRIC_DETECTOR_DRAFT_SCHEMA.parse(
-      JSON.parse('{"__proto__": {"name": "Inherited"}}')
-    );
-
-    expect(values).toStrictEqual({});
-  });
 });

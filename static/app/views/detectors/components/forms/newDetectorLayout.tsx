@@ -1,5 +1,6 @@
 import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import omit from 'lodash/omit';
 import omitBy from 'lodash/omitBy';
 import orderBy from 'lodash/orderBy';
 
@@ -18,7 +19,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {DetectorFormBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
 import {
-  DetectorDraftUrlSync,
+  useDetectorDraftUrlSync,
   useInitialDetectorDraft,
   type DetectorDraftSchema,
 } from 'sentry/views/detectors/components/forms/common/detectorDraft';
@@ -59,18 +60,21 @@ export function NewDetectorLayout<
   const organization = useOrganization();
   const {projects} = useProjects();
 
-  const writableProjects = useMemo(
-    () => projects.filter(project => hasDetectorWriteAccess({organization, project})),
-    [organization, projects]
+  const draft = useInitialDetectorDraft();
+  const [draftFormData] = useState(() =>
+    draft && draftSchema ? draftSchema.parse(draft) : undefined
   );
 
   const initialProjectId = useMemo(() => {
-    const queryProjectId = decodeScalar(location.query.project);
-    if (queryProjectId) {
-      const match = writableProjects.find(p => p.id === queryProjectId);
-      if (match) {
-        return match.id;
-      }
+    const writableProjects = projects.filter(project =>
+      hasDetectorWriteAccess({organization, project})
+    );
+    const requestedProjectId = [
+      draftFormData?.projectId,
+      decodeScalar(location.query.project),
+    ].find(id => writableProjects.some(p => p.id === id));
+    if (requestedProjectId) {
+      return requestedProjectId;
     }
     const sorted = orderBy(
       writableProjects,
@@ -78,22 +82,7 @@ export function NewDetectorLayout<
       ['desc', 'desc']
     );
     return sorted[0]?.id ?? '';
-  }, [location.query.project, writableProjects]);
-
-  const draft = useInitialDetectorDraft();
-  const [draftFormData] = useState(() => {
-    if (!draftSchema || !draft) {
-      return;
-    }
-    const values = draftSchema.parse(draft);
-    if (
-      values.projectId !== undefined &&
-      !writableProjects.some(p => p.id === values.projectId)
-    ) {
-      delete values.projectId;
-    }
-    return values;
-  });
+  }, [draftFormData, location.query.project, organization, projects]);
 
   const formSubmitHandler = useCreateDetectorFormSubmit({
     detectorType,
@@ -101,7 +90,8 @@ export function NewDetectorLayout<
   });
 
   const [formModel] = useState(() => new FormModel());
-  const {onFieldChange} = useFormEagerValidation(formModel);
+  const {onFieldChange: validateEagerly} = useFormEagerValidation(formModel);
+  const syncDraftToUrl = useDetectorDraftUrlSync(formModel, draftSchema);
 
   const initialEnvironment = decodeScalar(location.query.environment, '');
   const initialData = useMemo(() => {
@@ -112,7 +102,7 @@ export function NewDetectorLayout<
       owner: '',
       workflowIds: [],
       ...initialFormData,
-      ...omitBy(draftFormData, value => value === undefined),
+      ...omitBy(omit(draftFormData, 'projectId'), value => value === undefined),
     };
   }, [initialProjectId, initialEnvironment, initialFormData, draftFormData]);
 
@@ -120,7 +110,10 @@ export function NewDetectorLayout<
     model: formModel,
     initialData,
     onSubmit: formSubmitHandler,
-    onFieldChange,
+    onFieldChange: id => {
+      validateEagerly();
+      syncDraftToUrl(id);
+    },
     mapFormErrors,
   };
 
@@ -143,8 +136,6 @@ export function NewDetectorLayout<
       <EditLayoutDeprecated.Body maxWidth={maxWidth}>
         {children}
       </EditLayoutDeprecated.Body>
-
-      {draftSchema && <DetectorDraftUrlSync formModel={formModel} schema={draftSchema} />}
 
       <NewDetectorFooter
         maxWidth={maxWidth}
