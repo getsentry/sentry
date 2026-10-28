@@ -11,6 +11,11 @@ from sentry.models.project import Project
 from sentry.models.repository import Repository
 
 
+def normalize_scm_provider_key(provider_key: str) -> str:
+    """Return the canonical integration provider slug."""
+    return provider_key.removeprefix("integrations:")
+
+
 class SCMIntegrationInteractionType(StrEnum):
     """
     SCM integration features
@@ -85,7 +90,7 @@ class SCMIntegrationInteractionEvent(IntegrationEventLifecycleMetric):
         return IntegrationDomain.SOURCE_CODE_MANAGEMENT
 
     def get_integration_name(self) -> str:
-        return self.provider_key
+        return normalize_scm_provider_key(self.provider_key)
 
     def get_interaction_type(self) -> str:
         return str(self.interaction_type)
