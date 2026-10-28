@@ -28,6 +28,8 @@ const LabelHook = OverrideOrDefault({
 
 export function SettingsNavItem({badge, label, id, to, index, ...props}: Props) {
   const settingsV3 = useSettingsV3();
+  const isLeadingBadge =
+    settingsV3 && (badge === 'new' || badge === 'beta' || badge === 'alpha');
   const badgeElement = badge ? <SettingsNavBadge badge={badge} /> : null;
 
   return (
@@ -42,8 +44,8 @@ export function SettingsNavItem({badge, label, id, to, index, ...props}: Props) 
             {...mergeProps(flexProps, props)}
             to={to}
             end={index}
-            leadingItems={settingsV3 ? badgeElement : undefined}
-            trailingItems={settingsV3 ? null : badgeElement}
+            leadingItems={isLeadingBadge ? badgeElement : undefined}
+            trailingItems={isLeadingBadge ? null : badgeElement}
             analyticsItemName={id ? `settings_${id}` : undefined}
           >
             <Text density={settingsV3 ? 'fixed' : undefined} variant="inherit">
