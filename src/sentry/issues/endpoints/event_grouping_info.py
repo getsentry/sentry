@@ -18,6 +18,7 @@ from sentry.users.services.user_option.service import get_option_from_list
 @cell_silo_endpoint
 class EventGroupingInfoEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = 3.0
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

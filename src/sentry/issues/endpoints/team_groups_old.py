@@ -17,6 +17,7 @@ from sentry.models.team import Team
 @cell_silo_endpoint
 class TeamGroupsOldEndpoint(TeamEndpoint):
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = 3.0
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

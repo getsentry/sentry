@@ -44,6 +44,14 @@ class RequestTimingMiddleware(MiddlewareMixin):
         if path and path.startswith(self.allowed_paths):
             setattr(request, "_view_path", path)
             setattr(request, "_start_time", time.monotonic())
+
+            view_class = getattr(view_func, "view_class", None)
+            max_acceptable_duration = getattr(view_class, "max_acceptable_duration", None)
+            if isinstance(max_acceptable_duration, dict):
+                max_acceptable_duration = max_acceptable_duration.get(request.method)
+
+            setattr(request, "_max_acceptable_duration", max_acceptable_duration)
+            setattr(request, "_view_owner", getattr(view_class, "owner", None))
         return None
 
     def process_response(self, request: Request, response: Response) -> Response:
@@ -83,7 +91,8 @@ class RequestTimingMiddleware(MiddlewareMixin):
         if start_time is None:
             return
 
-        ms = int((time.monotonic() - start_time) * 1000)
+        duration = time.monotonic() - start_time
+        ms = int(duration * 1000)
         metrics.distribution(
             "view.duration",
             ms,
@@ -91,3 +100,18 @@ class RequestTimingMiddleware(MiddlewareMixin):
             tags={"method": request.method},
             unit="millisecond",
         )
+
+        max_acceptable_duration = getattr(request, "_max_acceptable_duration", None)
+        if max_acceptable_duration is not None and duration > max_acceptable_duration:
+            owner = getattr(request, "_view_owner", None)
+            metrics.distribution(
+                "view.duration_over_budget",
+                (duration - max_acceptable_duration) * 1000,
+                instance=view_path,
+                tags={
+                    "method": request.method,
+                    "owner": getattr(owner, "value", owner),
+                },
+                sample_rate=1.0,
+                unit="millisecond",
+            )

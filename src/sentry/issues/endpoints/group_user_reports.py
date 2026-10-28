@@ -15,6 +15,8 @@ from sentry.models.userreport import UserReport
 
 @cell_silo_endpoint
 class GroupUserReportsEndpoint(GroupEndpoint):
+    max_acceptable_duration = 3.0
+
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

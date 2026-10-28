@@ -168,6 +168,8 @@ class GroupEventDetailsFormattedResponse(GroupEventDetailsResponse, total=False)
 @extend_schema(tags=["Events"])
 @cell_silo_endpoint
 class GroupEventDetailsEndpoint(FormattableResponseMixin, GroupEndpoint):
+    max_acceptable_duration = 3.0
+
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }

@@ -1,10 +1,11 @@
 from functools import cached_property
-from unittest.mock import MagicMock, Mock, patch, sentinel
+from unittest.mock import MagicMock, Mock, call, patch, sentinel
 
 from django.test import RequestFactory, override_settings
 from django.urls.base import resolve
 from rest_framework.permissions import AllowAny
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.base import Endpoint
 from sentry.middleware.ratelimit import RatelimitMiddleware
 from sentry.middleware.stats import RequestTimingMiddleware
@@ -23,6 +24,15 @@ class RateLimitedEndpoint(Endpoint):
 
     def get(self):
         raise NotImplementedError
+
+
+class BudgetedEndpoint(Endpoint):
+    owner = ApiOwner.ISSUES
+    max_acceptable_duration = 3.0
+
+
+class MethodBudgetedEndpoint(Endpoint):
+    max_acceptable_duration = {"GET": 3.0, "POST": 5.0}
 
 
 class RequestTimingMiddlewareTest(TestCase):
@@ -104,3 +114,73 @@ class RequestTimingMiddlewareTest(TestCase):
             },
             skip_internal=False,
         )
+
+    @patch("sentry.utils.metrics.distribution")
+    @patch("sentry.middleware.stats.time.monotonic", side_effect=[10.0, 14.0])
+    def test_records_duration_over_budget(
+        self, mock_time: MagicMock, distribution: MagicMock
+    ) -> None:
+        view = BudgetedEndpoint.as_view()
+        request = self.factory.get("/")
+        request.resolver_match = resolve("/")
+        response = Mock(status_code=500)
+
+        with patch.object(RequestTimingMiddleware, "allowed_paths", (view.__module__,)):
+            self.middleware.process_view(request, view, [], {})
+        self.middleware.process_response(request, response)
+
+        assert mock_time.call_count == 2
+        distribution.assert_has_calls(
+            [
+                call(
+                    "view.duration",
+                    4000,
+                    instance=request._view_path,
+                    tags={"method": "GET"},
+                    unit="millisecond",
+                ),
+                call(
+                    "view.duration_over_budget",
+                    1000.0,
+                    instance=request._view_path,
+                    tags={"method": "GET", "owner": "issues-feed"},
+                    sample_rate=1.0,
+                    unit="millisecond",
+                ),
+            ]
+        )
+
+    @patch("sentry.utils.metrics.distribution")
+    @patch("sentry.middleware.stats.time.monotonic", side_effect=[10.0, 13.0])
+    def test_does_not_record_duration_at_budget(
+        self, mock_time: MagicMock, distribution: MagicMock
+    ) -> None:
+        view = BudgetedEndpoint.as_view()
+        request = self.factory.get("/")
+        request.resolver_match = resolve("/")
+        response = Mock(status_code=200)
+
+        with patch.object(RequestTimingMiddleware, "allowed_paths", (view.__module__,)):
+            self.middleware.process_view(request, view, [], {})
+        self.middleware.process_response(request, response)
+
+        assert mock_time.call_count == 2
+        distribution.assert_called_once_with(
+            "view.duration",
+            3000,
+            instance=request._view_path,
+            tags={"method": "GET"},
+            unit="millisecond",
+        )
+
+    def test_resolves_method_specific_duration_budget(self) -> None:
+        view = MethodBudgetedEndpoint.as_view()
+        get_request = self.factory.get("/")
+        delete_request = self.factory.delete("/")
+
+        with patch.object(RequestTimingMiddleware, "allowed_paths", (view.__module__,)):
+            self.middleware.process_view(get_request, view, [], {})
+            self.middleware.process_view(delete_request, view, [], {})
+
+        assert get_request._max_acceptable_duration == 3.0
+        assert delete_request._max_acceptable_duration is None

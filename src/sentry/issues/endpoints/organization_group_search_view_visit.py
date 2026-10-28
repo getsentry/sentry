@@ -25,6 +25,7 @@ class OrganizationGroupSearchViewVisitEndpoint(OrganizationEndpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = 3.0
     permission_classes = (MemberPermission,)
 
     def post(self, request: Request, organization: Organization, view_id: str) -> Response:

@@ -68,6 +68,8 @@ def get_event_ids_from_filters(
 
 @cell_silo_endpoint
 class GroupAttachmentsEndpoint(GroupEndpoint):
+    max_acceptable_duration = 3.0
+
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

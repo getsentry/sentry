@@ -23,6 +23,8 @@ def _fix_label(label: tuple[str, ...] | str) -> str:
 
 @cell_silo_endpoint
 class GroupSimilarIssuesEndpoint(GroupEndpoint):
+    max_acceptable_duration = 3.0
+
     """
     This endpoint uses the legacy MinHash similarity system which has been replaced
     by embeddings-based grouping for SaaS.

@@ -270,6 +270,9 @@ class Endpoint(APIView):
     cursor_name = "cursor"
 
     owner: ApiOwner = ApiOwner.UNOWNED
+    # Request duration budgets are expressed in seconds. A mapping applies budgets only to the
+    # listed HTTP methods; missing methods are not budgeted.
+    max_acceptable_duration: dict[HTTP_METHOD_NAME, float] | float | None = None
     publish_status: dict[HTTP_METHOD_NAME, ApiPublishStatus] = {}
     # Non-safe methods that a client may resend after a timeout or 5xx without
     # changing the outcome. Published as `x-sentry-idempotent`; see apidocs/README.md.

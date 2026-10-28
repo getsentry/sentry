@@ -49,6 +49,7 @@ logger = logging.getLogger(__name__)
 @cell_silo_endpoint
 class ProjectGroupIndexEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = 3.0
     publish_status = {
         "DELETE": ApiPublishStatus.EXPERIMENTAL,
         "GET": ApiPublishStatus.EXPERIMENTAL,

@@ -22,6 +22,7 @@ class OrganizationReleasePreviousCommitsEndpoint(OrganizationReleasesBaseEndpoin
         "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = 3.0
     rate_limits = RateLimitConfig(group="CLI")
 
     def get(self, request: Request, organization: Organization, version: str) -> Response:

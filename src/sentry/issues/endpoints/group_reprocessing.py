@@ -11,6 +11,8 @@ from sentry.tasks.reprocessing2 import reprocess_group
 
 @cell_silo_endpoint
 class GroupReprocessingEndpoint(GroupEndpoint):
+    max_acceptable_duration = 3.0
+
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }

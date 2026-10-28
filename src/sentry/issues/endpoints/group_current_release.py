@@ -18,6 +18,8 @@ from sentry.models.releases.release_project import ReleaseProject
 
 @cell_silo_endpoint
 class GroupCurrentReleaseEndpoint(GroupEndpoint):
+    max_acceptable_duration = 3.0
+
     owner = ApiOwner.COMMUNITY
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,

@@ -107,6 +107,8 @@ class IntegrationIssueSerializer(Serializer[IntegrationIssueSerializerResponse])
 @extend_schema(tags=["Integration"])
 @cell_silo_endpoint
 class GroupIntegrationsEndpoint(GroupEndpoint):
+    max_acceptable_duration = 3.0
+
     owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,

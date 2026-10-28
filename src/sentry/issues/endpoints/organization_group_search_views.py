@@ -98,6 +98,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         "POST": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = 3.0
     permission_classes = (MemberPermission,)
 
     @extend_schema(

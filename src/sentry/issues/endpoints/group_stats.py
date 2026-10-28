@@ -15,6 +15,8 @@ from sentry.tsdb.base import TSDBModel
 
 @cell_silo_endpoint
 class GroupStatsEndpoint(GroupEndpoint, StatsMixin):
+    max_acceptable_duration = 3.0
+
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

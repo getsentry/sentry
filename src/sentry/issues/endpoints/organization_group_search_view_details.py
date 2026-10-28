@@ -40,6 +40,7 @@ class OrganizationGroupSearchViewDetailsEndpoint(OrganizationEndpoint):
         "DELETE": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = 3.0
     permission_classes = (GroupSearchViewPermission,)
 
     def get(self, request: Request, organization: Organization, view_id: str) -> Response:

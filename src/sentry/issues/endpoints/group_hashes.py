@@ -50,6 +50,7 @@ class GroupHashesResult(TypedDict):
 @cell_silo_endpoint
 class GroupHashesEndpoint(GroupEndpoint):
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = 3.0
     publish_status = {
         "PUT": ApiPublishStatus.PRIVATE,
         "GET": ApiPublishStatus.PUBLIC,

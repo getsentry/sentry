@@ -30,6 +30,7 @@ class OrganizationIssuesCountEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = 3.0
     enforce_rate_limit = True
     rate_limits = RateLimitConfig(
         limit_overrides={

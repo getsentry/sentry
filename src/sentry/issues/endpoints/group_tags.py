@@ -25,6 +25,8 @@ if TYPE_CHECKING:
 
 @cell_silo_endpoint
 class GroupTagsEndpoint(GroupEndpoint):
+    max_acceptable_duration = 3.0
+
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

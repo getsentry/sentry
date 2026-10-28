@@ -30,6 +30,8 @@ from sentry.types.activity import ActivityType
 
 @cell_silo_endpoint
 class GroupNotesEndpoint(GroupEndpoint):
+    max_acceptable_duration = 3.0
+
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,

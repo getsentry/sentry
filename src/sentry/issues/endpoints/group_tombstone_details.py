@@ -15,6 +15,7 @@ from sentry.models.project import Project
 @cell_silo_endpoint
 class GroupTombstoneDetailsEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = 3.0
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
     }

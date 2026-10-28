@@ -232,6 +232,7 @@ class ProjectOwnershipRequestSerializer(serializers.Serializer):
 @extend_schema(tags=["Projects"])
 class ProjectOwnershipEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = {"GET": 3.0, "PUT": 10.0}
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,

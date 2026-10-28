@@ -40,6 +40,7 @@ class EventIdLookupResponse(TypedDict):
 @extend_schema(tags=["Organizations"])
 class EventIdLookupEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = 3.0
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }

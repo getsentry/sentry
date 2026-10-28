@@ -34,6 +34,7 @@ class OrganizationIssuesWithSupergroupsEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = 3.0
     permission_classes = (OrganizationEventPermission,)
     enforce_rate_limit = True
 

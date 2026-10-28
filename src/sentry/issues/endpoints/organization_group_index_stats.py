@@ -27,6 +27,7 @@ class OrganizationGroupIndexStatsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationEventPermission,)
     enforce_rate_limit = True
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = 3.0
 
     rate_limits = RateLimitConfig(
         limit_overrides={

@@ -26,6 +26,7 @@ class RequestSerializer(serializers.Serializer[None]):
 @cell_silo_endpoint
 class RelatedIssuesEndpoint(GroupEndpoint):
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = 3.0
     publish_status = {"GET": ApiPublishStatus.EXPERIMENTAL}
     enforce_rate_limit = True
     rate_limits = RateLimitConfig(

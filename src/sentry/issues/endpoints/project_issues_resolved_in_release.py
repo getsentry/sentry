@@ -15,6 +15,7 @@ from sentry.models.group import Group
 @cell_silo_endpoint
 class ProjectIssuesResolvedInReleaseEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = 3.0
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }

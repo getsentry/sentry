@@ -113,6 +113,7 @@ def wrap_event_response(
 @cell_silo_endpoint
 class ProjectEventDetailsEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = 3.0
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
@@ -206,6 +207,7 @@ from rest_framework.response import Response
 @cell_silo_endpoint
 class EventJsonEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = 3.0
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }

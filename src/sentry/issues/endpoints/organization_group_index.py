@@ -269,6 +269,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         "PUT": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = {"GET": 3.0, "PUT": 10.0, "DELETE": 10.0}
     permission_classes = (OrganizationEventPermission,)
     enforce_rate_limit = True
 
