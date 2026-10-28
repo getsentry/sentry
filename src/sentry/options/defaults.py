@@ -86,12 +86,6 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "organization.provision-analytics-with-outbox",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Redis
 register(
