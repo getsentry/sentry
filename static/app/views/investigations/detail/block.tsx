@@ -398,7 +398,10 @@ function BlockResult({
           {actionsBesideFirstLine}
           {restMarkdown ? (
             <Container area="2 / 1 / 3 / -1" minWidth={0}>
-              <SeerMarkdown raw={restMarkdown} components={TEXT_BLOCK_MARKDOWN_COMPONENTS} />
+              <SeerMarkdown
+                raw={restMarkdown}
+                components={TEXT_BLOCK_MARKDOWN_COMPONENTS}
+              />
             </Container>
           ) : null}
         </Grid>
