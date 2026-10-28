@@ -4,6 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {investigationOrchestrationQueryOptions} from 'sentry/views/investigations/api';
 import {InvestigationOrchestrationFixture} from 'sentry/views/investigations/fixtures';
 import {
   InvestigationHypotheses,
@@ -590,5 +591,272 @@ describe('InvestigationHypotheses', () => {
     renderHypotheses({phase});
 
     expect(await screen.findByTestId('seer-status-block')).toBeInTheDocument();
+  });
+
+  describe('a run waiting on its question', () => {
+    const question = 'Why did checkout latency increase after the deploy?';
+
+    function ParkedRunFixture(
+      params: Partial<InvestigationOrchestration> = {}
+    ): InvestigationOrchestration {
+      return InvestigationOrchestrationFixture({
+        phase: 'intake',
+        status: 'awaiting_input',
+        sourceType: 'manual',
+        hypotheses: [],
+        workflowVersion: 3,
+        pendingInput: {
+          missingFields: ['prompt'],
+          prompt: 'Provide the missing investigation context to begin the broad scan.',
+        },
+        ...params,
+      });
+    }
+
+    function mockProvideInput() {
+      return MockApiClient.addMockResponse({
+        url: commandsUrl,
+        method: 'POST',
+        body: {
+          accepted: true,
+          duplicate: false,
+          requestId: 'request-1',
+          workflowVersion: 4,
+          commandStatus: 'accepted',
+          commandError: null,
+          runId: '9001',
+          // Sentry only queues the command, so the run is still parked.
+          projection: ParkedRunFixture({workflowVersion: 4}),
+        },
+      });
+    }
+
+    it('sends the question as provide_input', async () => {
+      MockApiClient.addMockResponse({url: orchestrationUrl, body: ParkedRunFixture()});
+      const commandRequest = mockProvideInput();
+
+      renderHypotheses({phase: 'intake', status: 'awaiting_input'});
+
+      const input = await screen.findByRole('textbox', {
+        name: 'What should Seer investigate?',
+      });
+      const submit = screen.getByRole('button', {name: 'Start investigation'});
+      expect(submit).toHaveAttribute('aria-disabled', 'true');
+
+      await userEvent.type(input, `  ${question}  `);
+      await userEvent.click(submit);
+
+      await waitFor(() =>
+        expect(commandRequest).toHaveBeenCalledWith(
+          commandsUrl,
+          expect.objectContaining({
+            method: 'POST',
+            data: expect.objectContaining({
+              expectedWorkflowVersion: 3,
+              command: {type: 'provide_input', prompt: question},
+            }),
+          })
+        )
+      );
+      // Until Seer takes it, the question stays on screen and can't be sent twice.
+      await waitFor(() => expect(submit).toHaveAttribute('aria-busy', 'true'));
+      expect(input).toBeDisabled();
+      expect(input).toHaveValue(`  ${question}  `);
+    });
+
+    it('offers the question again when it could not be delivered', async () => {
+      MockApiClient.addMockResponse({url: orchestrationUrl, body: ParkedRunFixture()});
+      const commandRequest = mockProvideInput();
+      const {queryClient} = renderHypotheses({phase: 'intake', status: 'awaiting_input'});
+
+      const input = await screen.findByRole('textbox', {
+        name: 'What should Seer investigate?',
+      });
+      await userEvent.type(input, question);
+      await userEvent.click(screen.getByRole('button', {name: 'Start investigation'}));
+      await waitFor(() => expect(input).toBeDisabled());
+
+      const {requestId} = commandRequest.mock.calls[0][1].data;
+      MockApiClient.addMockResponse({
+        url: orchestrationUrl,
+        body: ParkedRunFixture({
+          workflowVersion: 4,
+          errors: [
+            {
+              code: 'seer_command_dispatch_failed',
+              message: 'Seer could not receive the workflow command.',
+              requestId,
+              retryable: true,
+            },
+          ],
+        }),
+      });
+      await act(() => queryClient.invalidateQueries());
+
+      await waitFor(() => expect(input).toBeEnabled());
+      expect(input).toHaveValue(question);
+    });
+
+    it('leaves the form out when the run is not waiting on a question', async () => {
+      MockApiClient.addMockResponse({
+        url: orchestrationUrl,
+        body: ParkedRunFixture({
+          pendingInput: {missingFields: ['time_range'], prompt: 'Pick a time range.'},
+        }),
+      });
+
+      renderHypotheses({phase: 'intake', status: 'awaiting_input'});
+
+      expect(await screen.findByText('Pick a time range.')).toBeInTheDocument();
+      expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    });
+
+    it('starts the question box empty on another investigation', async () => {
+      const otherOrchestrationUrl =
+        '/organizations/org-slug/investigations/investigation-2/orchestration/';
+      MockApiClient.addMockResponse({url: orchestrationUrl, body: ParkedRunFixture()});
+      MockApiClient.addMockResponse({
+        url: otherOrchestrationUrl,
+        body: ParkedRunFixture({investigationId: 'investigation-2'}),
+      });
+      const {queryClient, rerender} = renderHypotheses({
+        phase: 'intake',
+        status: 'awaiting_input',
+      });
+      // Already read, so the page swaps straight to it without unmounting the
+      // status block in between.
+      await queryClient.prefetchQuery(
+        investigationOrchestrationQueryOptions('org-slug', 'investigation-2')
+      );
+
+      await userEvent.type(
+        await screen.findByRole('textbox', {name: 'What should Seer investigate?'}),
+        question
+      );
+      rerender(
+        <InvestigationHypotheses
+          investigationId="investigation-2"
+          phase="intake"
+          status="awaiting_input"
+        />
+      );
+
+      expect(
+        await screen.findByRole('textbox', {name: 'What should Seer investigate?'})
+      ).toHaveValue('');
+    });
+
+    describe('with fake timers', () => {
+      beforeEach(() => {
+        jest.useFakeTimers();
+      });
+
+      afterEach(async () => {
+        try {
+          await act(() => jest.runOnlyPendingTimersAsync());
+        } finally {
+          jest.useRealTimers();
+        }
+      });
+
+      it('keeps re-reading the run until Seer takes the question', async () => {
+        const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
+        MockApiClient.addMockResponse({url: orchestrationUrl, body: ParkedRunFixture()});
+        const commandRequest = mockProvideInput();
+
+        const {unmount} = renderHypotheses({phase: 'intake', status: 'awaiting_input'});
+
+        await user.type(
+          await screen.findByRole('textbox', {name: 'What should Seer investigate?'}),
+          question
+        );
+        await user.click(screen.getByRole('button', {name: 'Start investigation'}));
+        await waitFor(() => expect(commandRequest).toHaveBeenCalled());
+
+        // Past the window an ordinary command settles in, the run is still
+        // parked, and nothing but the question keeps the query on its interval.
+        await act(() => jest.advanceTimersByTimeAsync(32_000));
+        const started = MockApiClient.addMockResponse({
+          url: orchestrationUrl,
+          body: InvestigationOrchestrationFixture({
+            phase: 'broad_scan',
+            status: 'processing',
+            sourceType: 'manual',
+            hypotheses: [],
+            workflowVersion: 4,
+          }),
+        });
+        await act(() => jest.advanceTimersByTimeAsync(2000));
+        expect(started).toHaveBeenCalled();
+
+        await waitFor(() =>
+          expect(screen.getByTestId('seer-status-block')).toHaveAttribute(
+            'data-variant',
+            'running'
+          )
+        );
+        expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+
+        // The running block's clock ticks forever; leave nothing for the
+        // timers to replay once the test is done.
+        unmount();
+      }, 15_000);
+
+      it('stops re-reading a run that waits again after taking the question', async () => {
+        const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
+        MockApiClient.addMockResponse({url: orchestrationUrl, body: ParkedRunFixture()});
+        const commandRequest = mockProvideInput();
+
+        renderHypotheses({phase: 'intake', status: 'awaiting_input'});
+
+        await user.type(
+          await screen.findByRole('textbox', {name: 'What should Seer investigate?'}),
+          question
+        );
+        await user.click(screen.getByRole('button', {name: 'Start investigation'}));
+        await waitFor(() => expect(commandRequest).toHaveBeenCalled());
+
+        MockApiClient.addMockResponse({
+          url: orchestrationUrl,
+          body: InvestigationOrchestrationFixture({
+            phase: 'broad_scan',
+            status: 'processing',
+            sourceType: 'manual',
+            hypotheses: [],
+            workflowVersion: 4,
+          }),
+        });
+        await act(() => jest.advanceTimersByTimeAsync(2000));
+
+        // Parked again, this time for a viewer session Seer needs renewed. That
+        // has nothing to do with the question, which landed long ago.
+        const parkedAgain = MockApiClient.addMockResponse({
+          url: orchestrationUrl,
+          body: InvestigationOrchestrationFixture({
+            phase: 'broad_scan',
+            status: 'awaiting_input',
+            sourceType: 'manual',
+            hypotheses: [],
+            workflowVersion: 4,
+            pendingInput: null,
+            errors: [
+              {
+                code: 'viewer_reauthentication_required',
+                message:
+                  'Investigation needs a fresh viewer session before it can continue.',
+                retryable: true,
+              },
+            ],
+          }),
+        });
+        // Past the window an accepted command keeps the query polling for.
+        await act(() => jest.advanceTimersByTimeAsync(32_000));
+        const callsWhileParked = parkedAgain.mock.calls.length;
+        expect(callsWhileParked).toBeGreaterThan(0);
+
+        await act(() => jest.advanceTimersByTimeAsync(10_000));
+        expect(parkedAgain.mock.calls).toHaveLength(callsWhileParked);
+      }, 15_000);
+    });
   });
 });

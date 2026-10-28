@@ -411,14 +411,14 @@ const reportingInvestigation = InvestigationDetailFixture({
   ],
 });
 
-// A run waiting on a person makes no hypotheses until they answer, so the
-// hypotheses row stays hidden instead of holding placeholders open.
+// A run started without a question waits for one. It makes no hypotheses until
+// someone answers, so the hypotheses row stays hidden instead of holding
+// placeholders open, and the status block asks for the question.
 const awaitingInputRunInvestigation = InvestigationDetailFixture({
   id: 'awaiting-input-run-investigation',
   title: 'Checkout latency after the payments-api deploy',
   status: 'active',
-  sourceType: 'metric_open_period',
-  template: {key: 'breached_metric', version: 1},
+  sourceType: 'manual',
   orchestration: {
     phase: 'intake',
     status: 'awaiting_input',
@@ -739,7 +739,12 @@ export default Storybook.story('Investigations — Detail', story => {
           investigationId: awaitingInputRunInvestigation.id,
           phase: 'intake',
           status: 'awaiting_input',
+          sourceType: 'manual',
           hypotheses: [],
+          pendingInput: {
+            missingFields: ['prompt'],
+            prompt: 'Provide the missing investigation context to begin the broad scan.',
+          },
         }),
       }}
     >

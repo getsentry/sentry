@@ -446,6 +446,9 @@ function handleFixtureRequest(
     // applies it inline so a story stays interactive.
     const updated: InvestigationOrchestration = {
       ...run,
+      ...(command.type === 'provide_input'
+        ? {phase: 'broad_scan', status: 'processing', pendingInput: null}
+        : {}),
       workflowVersion: run.workflowVersion + 1,
       hypotheses: run.hypotheses.map(hypothesis =>
         applyFixtureCommandToHypothesis(hypothesis, command)

@@ -387,6 +387,21 @@ function InvestigationPageContentInner({
   if (recheckRunWait.waiting && isRunLive(orchestration)) {
     recheckRunWait.stop();
   }
+  // A run waiting on a person stops this page polling, and answering it only
+  // moves the projection. Once the run is past the wait, re-read the
+  // investigation so the notebook polls again while Seer writes it.
+  const runLeftAwaitingInput =
+    investigation.orchestration?.status === 'awaiting_input' &&
+    orchestration !== undefined &&
+    orchestration.status !== 'awaiting_input';
+  useEffect(() => {
+    if (runLeftAwaitingInput) {
+      void queryClient.invalidateQueries({
+        queryKey: getInvestigationDetailQueryOptions(organization.slug, investigation.id)
+          .queryKey,
+      });
+    }
+  }, [investigation.id, organization.slug, queryClient, runLeftAwaitingInput]);
   const actionRequestsStale = useRefetchStaleActionRequests(
     investigation.id,
     orchestration,

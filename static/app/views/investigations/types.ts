@@ -491,8 +491,9 @@ export type InvestigationOrchestration = {
   activeTimeElapsedSeconds?: number | null;
   finishedAt?: string | null;
   pendingInput?: {
-    missingFields: Array<'prompt' | 'time_range'>;
     prompt: string;
+    /** What the run is waiting for. Optional on the wire. */
+    missingFields?: Array<'prompt' | 'time_range'>;
   } | null;
   /** Fresh API server time, independent of the projection's last update. */
   serverTime?: string;
