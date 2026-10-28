@@ -62,7 +62,6 @@ function LockedSelectField({
       aria-label={ariaLabel}
       options={[{value, label: value, leadingItems}]}
       value={value}
-      onChange={() => {}}
       dropdownIndicator={<IconLock locked size="xs" />}
     />
   );

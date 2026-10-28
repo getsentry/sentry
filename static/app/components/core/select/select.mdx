@@ -542,6 +542,7 @@ Pair selects with labels for accessible forms:
 in React state. Use `null` for an empty single selection and `[]` for an empty
 multiple selection. `value` uses the raw option value, or an array of raw values
 for multiple selections.
+When `disabled` is `true`, `onChange` is optional. `value` is always required.
 `onChange` receives the selected option, an array of selected options, or `null`
 when a clearable single selection is cleared:
 

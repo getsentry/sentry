@@ -172,7 +172,6 @@ function SelectMembers({
         disabled
         options={[]}
         value={null}
-        onChange={onChange}
         placeholder={t('Loading')}
         styles={selectStyles}
       />

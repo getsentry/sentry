@@ -543,10 +543,18 @@ export interface BaseSelectProps<
   virtualized?: boolean;
 }
 
+type DisabledSelectionProps<Props extends {onChange: unknown}> = Props extends unknown
+  ? Omit<Props, 'onChange'> & {disabled: true; onChange?: Props['onChange']}
+  : never;
+
 export type ControlProps<
   TValue,
   TOption extends SelectValue<TValue> = SelectValue<TValue>,
-> = SelectSelectionProps<TValue, TOption> & BaseSelectProps<TValue, TOption>;
+> = (
+  | SelectSelectionProps<TValue, TOption>
+  | DisabledSelectionProps<SelectSelectionProps<TValue, TOption>>
+) &
+  BaseSelectProps<TValue, TOption>;
 
 export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue<TValue>>(
   props: ControlProps<TValue, TOption>

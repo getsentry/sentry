@@ -76,6 +76,73 @@ describe('selection types', () => {
     void [number, object];
   });
 
+  it('allows disabled selects to omit onChange while retaining typed callbacks', () => {
+    const single = <Select disabled options={options} value="apple" />;
+    const clearable = <Select disabled clearable options={options} value={null} />;
+    const multiple = <Select disabled multiple options={options} value={['apple']} />;
+
+    const withCallbacks = (
+      <Fragment>
+        <Select
+          disabled
+          options={options}
+          value="apple"
+          onChange={option => {
+            expectTypeOf(option).toEqualTypeOf<(typeof options)[number]>();
+          }}
+        />
+        <Select
+          disabled
+          clearable
+          options={options}
+          value={null}
+          onChange={option => {
+            expectTypeOf(option).toEqualTypeOf<(typeof options)[number] | null>();
+          }}
+        />
+        <Select
+          disabled
+          multiple
+          options={options}
+          value={[]}
+          onChange={selected => {
+            expectTypeOf(selected).toEqualTypeOf<typeof options>();
+          }}
+        />
+      </Fragment>
+    );
+
+    void [single, clearable, multiple, withCallbacks];
+  });
+
+  it('requires onChange unless disabled is always true', () => {
+    type Option = (typeof options)[number];
+    expectTypeOf<{
+      options: typeof options;
+      value: string;
+    }>().not.toMatchTypeOf<ControlProps<string, Option>>();
+    expectTypeOf<{
+      disabled: false;
+      options: typeof options;
+      value: string;
+    }>().not.toMatchTypeOf<ControlProps<string, Option>>();
+    expectTypeOf<{
+      disabled: boolean;
+      options: typeof options;
+      value: string;
+    }>().not.toMatchTypeOf<ControlProps<string, Option>>();
+    expectTypeOf<{
+      disabled: true;
+      options: typeof options;
+    }>().not.toMatchTypeOf<ControlProps<string, Option>>();
+    expectTypeOf<{
+      disabled: true;
+      multiple: true;
+      options: typeof options;
+      value: string;
+    }>().not.toMatchTypeOf<ControlProps<string, Option>>();
+  });
+
   it('infers values and custom option data from options without a selected value', () => {
     const objectOptions = [{value: {id: 1}, label: 'One', searchKey: 'first'}];
     type TOption = (typeof objectOptions)[number];
@@ -271,6 +338,31 @@ it('provides a native input ref and forwards validation attributes', () => {
 
   unmount();
   expect(inputRef.current).toBeNull();
+});
+
+it('renders disabled selections without an onChange handler', async () => {
+  render(
+    <Fragment>
+      <Select disabled aria-label="Single fruit" options={options} value="apple" />
+      <Select
+        disabled
+        multiple
+        aria-label="Multiple fruit"
+        options={options}
+        value={['cherry']}
+      />
+    </Fragment>
+  );
+
+  expect(screen.getByRole('textbox', {name: 'Single fruit'})).toBeDisabled();
+  expect(screen.getByRole('textbox', {name: 'Multiple fruit'})).toBeDisabled();
+  expect(screen.getByText('Apple')).toBeInTheDocument();
+  expect(screen.getByText('Cherry')).toBeInTheDocument();
+
+  await userEvent.click(screen.getByText('Apple'));
+  await userEvent.click(screen.getByText('Cherry'));
+  expect(screen.queryByRole('menuitemradio')).not.toBeInTheDocument();
+  expect(screen.queryByRole('menuitemcheckbox')).not.toBeInTheDocument();
 });
 
 it('exposes focus and blur without access to the implementation instance', () => {
