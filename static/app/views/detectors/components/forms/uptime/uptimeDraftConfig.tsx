@@ -52,13 +52,11 @@ const op: z.ZodType<UptimeOp> = z.lazy(() =>
       id: z.string(),
       op: z.literal(UptimeOpType.STATUS_CODE_CHECK),
       operator: comparison,
-      // A cleared status code (NaN) is null in JSON; submitting maps it to 200.
       value: z.union([z.number(), z.null().transform(() => 200)]),
     }),
     z.object({
       id: z.string(),
       op: z.literal(UptimeOpType.JSON_PATH),
-      // Legacy ops may lack these, matching normalizeJsonPathOp.
       operand: jsonPathOperand.default({jsonpath_op: 'literal', value: ''}),
       operator: comparison.default({cmp: UptimeComparisonType.EQUALS}),
       value: z.string(),
@@ -110,7 +108,6 @@ export const UPTIME_DETECTOR_DRAFT_SCHEMA: DetectorDraftSchema<UptimeDetectorFor
     recoveryThreshold: draftField(draftNumber),
     timeoutMs: draftField(z.number()),
     traceSampling: draftField(z.boolean()),
-    // Headers and body are left out since they often hold credentials.
     url: draftField(z.string().refine(value => !mayHoldCredentials(value))),
     workflowIds: draftField(z.array(z.string())),
   });
