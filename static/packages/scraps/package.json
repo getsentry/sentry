@@ -230,6 +230,18 @@
     "./overlayTrigger": {
       "types": "./dist/overlayTrigger.d.ts",
       "import": "./dist/overlayTrigger.js"
+    },
+    "./splitPanel": {
+      "types": "./dist/splitPanel/index.d.ts",
+      "import": "./dist/splitPanel/index.js"
+    },
+    "./useDimensions": {
+      "types": "./dist/useDimensions.d.ts",
+      "import": "./dist/useDimensions.js"
+    },
+    "./useResizableDrawer": {
+      "types": "./dist/useResizableDrawer.d.ts",
+      "import": "./dist/useResizableDrawer.js"
     }
   },
   "publishConfig": {

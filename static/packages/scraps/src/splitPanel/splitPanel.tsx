@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {useCallback, useImperativeHandle, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
@@ -5,9 +6,8 @@ import {DRAG_HANDLE_SIZE, DragHandle} from '@sentry/scraps/dragHandle';
 import {Flex, type Responsive, Stack} from '@sentry/scraps/layout';
 import {useResponsivePropValue} from '@sentry/scraps/layout/styles';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
-
-import {useDimensions} from 'sentry/utils/useDimensions';
-import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
+import {useDimensions} from '@sentry/scraps/useDimensions';
+import {useResizableDrawer} from '@sentry/scraps/useResizableDrawer';
 
 export interface SplitPanelHandle {
   /**
