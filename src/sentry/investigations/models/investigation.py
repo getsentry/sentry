@@ -8,10 +8,9 @@ from django.db.models import Q
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, cell_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
-from sentry.db.models.fields.bounded import BoundedBigIntegerField, BoundedPositiveIntegerField
+from sentry.db.models.fields.bounded import BoundedPositiveIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.investigations.actors import CREATOR_ACTOR_CHOICES, parse_actor_reference
-from sentry.viewer_context import ActorId
+from sentry.viewer_context import ActorId, actor_id_from_references
 
 
 class InvestigationStatus(models.TextChoices):
@@ -79,11 +78,9 @@ class Investigation(DefaultFieldsModel):
 
     organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
     created_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
-    # Keep historical actor identity when the referenced principal is deleted.
-    created_by_actor_type = models.CharField(
-        max_length=32, choices=CREATOR_ACTOR_CHOICES, null=True
+    created_by_service_account_id = HybridCloudForeignKey(
+        "service_accounts.ServiceAccount", null=True, on_delete="SET_NULL"
     )
-    created_by_actor_id = BoundedBigIntegerField(null=True)
 
     title = models.CharField(max_length=255)
     status = models.CharField(
@@ -144,15 +141,9 @@ class Investigation(DefaultFieldsModel):
         constraints = [
             models.CheckConstraint(
                 condition=(
-                    Q(created_by_actor_type__isnull=True, created_by_actor_id__isnull=True)
-                    | Q(
-                        created_by_actor_type__isnull=False,
-                        created_by_actor_type__in=[kind for kind, _ in CREATOR_ACTOR_CHOICES],
-                        created_by_actor_id__isnull=False,
-                        created_by_actor_id__gt=0,
-                    )
+                    Q(created_by_id__isnull=True) | Q(created_by_service_account_id__isnull=True)
                 ),
-                name="investigation_creator_actor_shape",
+                name="investigation_creator_reference_shape",
             ),
             models.CheckConstraint(
                 condition=(
@@ -203,9 +194,10 @@ class Investigation(DefaultFieldsModel):
 
     __repr__ = sane_repr("organization_id", "title")
 
-    def get_creator_actor_reference(self) -> ActorId | None:
-        return parse_actor_reference(
-            self.created_by_actor_type, self.created_by_actor_id, allow_system=False
+    @property
+    def creator_actor(self) -> ActorId | None:
+        return actor_id_from_references(
+            user_id=self.created_by_id, service_account_id=self.created_by_service_account_id
         )
 
     def get_absolute_url(self) -> str:

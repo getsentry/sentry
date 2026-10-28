@@ -5,7 +5,6 @@ from typing import Any
 from unittest import mock
 from uuid import uuid4
 
-import pytest
 from django.test import override_settings
 
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
@@ -52,11 +51,9 @@ OUTCOME = {
 
 @cell_silo_test
 class CommandActorReferenceTest(TestCase):
-    def create_command(self, actor: ActorId | None = None) -> InvestigationOrchestrationCommand:
+    def create_command(self, service_account_id: int) -> InvestigationOrchestrationCommand:
         investigation = self.create_investigation(
-            organization=self.organization,
-            created_by_actor_type=ActorType.USER,
-            created_by_actor_id=self.user.id,
+            organization=self.organization, created_by=self.user
         )
         run = self.create_investigation_orchestration_run(investigation=investigation)
         return self.create_investigation_orchestration_command(
@@ -64,78 +61,49 @@ class CommandActorReferenceTest(TestCase):
             request_id=uuid4(),
             expected_workflow_version=1,
             type="cancel",
-            actor_id=self.user.id,
-            requested_by_actor_type=actor.type if actor else None,
-            requested_by_actor_id=actor.id if actor else None,
+            actor_id=None,
+            requested_by_service_account_id=service_account_id,
         )
 
-    def test_service_account_sender_is_independent_of_human_creator(self) -> None:
-        actor = ActorId(ActorType.SERVICE_ACCOUNT, 910001)
-        command = self.create_command(actor)
-        command.refresh_from_db()
-
-        assert command.get_requested_by_actor_reference() == actor
-        assert command.orchestration_run.investigation.get_creator_actor_reference() == ActorId(
-            ActorType.USER, self.user.id
-        )
-        assert command.actor_id == self.user.id
-
-    def test_human_sender_is_independent_of_service_account_creator(self) -> None:
-        actor = ActorId(ActorType.USER, self.user.id)
-        command = self.create_command(actor)
+    def test_creator_and_sender_are_independent(self) -> None:
+        command = self.create_command(self.user.id)
         investigation = command.orchestration_run.investigation
-        investigation.update(
-            created_by_actor_type=ActorType.SERVICE_ACCOUNT, created_by_actor_id=self.user.id
-        )
         command.refresh_from_db()
 
-        assert command.get_requested_by_actor_reference() == actor
-        assert investigation.get_creator_actor_reference() == ActorId(
-            ActorType.SERVICE_ACCOUNT, self.user.id
-        )
+        creator = investigation.creator_actor
+        assert creator == ActorId(ActorType.USER, self.user.id)
+        assert command.requested_by_actor == ActorId(ActorType.SERVICE_ACCOUNT, self.user.id)
 
-    def test_system_sender_is_distinct_from_legacy_absence(self) -> None:
-        command = self.create_command(ActorId(ActorType.SYSTEM, None))
+        investigation.update(created_by_id=None, created_by_service_account_id=self.user.id)
+        command.update(actor_id=self.user.id, requested_by_service_account_id=None)
+        command.refresh_from_db()
+
+        creator = investigation.creator_actor
+        assert creator == ActorId(ActorType.SERVICE_ACCOUNT, self.user.id)
+        assert command.requested_by_actor == ActorId(ActorType.USER, self.user.id)
+
+        investigation.update(created_by_service_account_id=None)
         command.update(actor_id=None)
         command.refresh_from_db()
 
-        assert command.get_requested_by_actor_reference() == ActorId(ActorType.SYSTEM, None)
+        creator = investigation.creator_actor
+        assert creator is None
+        assert command.requested_by_actor == ActorId(ActorType.SYSTEM, None)
 
-    def test_legacy_sender_has_no_explicit_identity(self) -> None:
-        command = self.create_command()
-        command.refresh_from_db()
-
-        assert command.get_requested_by_actor_reference() is None
-        assert command.actor_id == self.user.id
-
-        command.update(actor_id=None)
-        command.refresh_from_db()
-
-        assert command.get_requested_by_actor_reference() is None
-
-    def test_malformed_sender_does_not_fall_back_to_legacy_user(self) -> None:
-        command = self.create_command()
-        command.requested_by_actor_id = self.user.id
-
-        with pytest.raises(ValueError, match="kind is required"):
-            command.get_requested_by_actor_reference()
-
-    def test_account_deletion_preserves_creator_and_sender_identity(self) -> None:
+    def test_account_deletion_clears_creator_and_sender_references(self) -> None:
         with outbox_runner():
             account = self.create_service_account(organization=self.organization, id=910001)
         account_id = account.id
-        replica = ServiceAccountReplica.objects.get(service_account_id=account_id)
-        assert replica.id != account_id
-        actor = ActorId(ActorType.SERVICE_ACCOUNT, account_id)
-        command = self.create_command(actor)
+        assert ServiceAccountReplica.objects.get(service_account_id=account_id).id != account_id
+        command = self.create_command(account_id)
         investigation = command.orchestration_run.investigation
-        investigation.update(created_by_actor_type=actor.type, created_by_actor_id=actor.id)
+        investigation.update(created_by_id=None, created_by_service_account_id=account_id)
         investigation.refresh_from_db()
         command.refresh_from_db()
 
-        with self.assertNumQueries(0):
-            assert investigation.get_creator_actor_reference() == actor
-            assert command.get_requested_by_actor_reference() == actor
+        creator = investigation.creator_actor
+        assert creator == ActorId(ActorType.SERVICE_ACCOUNT, account_id)
+        assert command.requested_by_actor == ActorId(ActorType.SERVICE_ACCOUNT, account_id)
 
         with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
             account.delete()
@@ -144,31 +112,11 @@ class CommandActorReferenceTest(TestCase):
         investigation.refresh_from_db()
         command.refresh_from_db()
 
-        assert not ServiceAccountReplica.objects.filter(service_account_id=account_id).exists()
-        assert investigation.get_creator_actor_reference() == actor
-        assert command.get_requested_by_actor_reference() == actor
-
-    def test_user_deletion_preserves_creator_and_sender_when_legacy_fks_are_cleared(self) -> None:
-        user = self.create_user()
-        actor = ActorId(ActorType.USER, user.id)
-        command = self.create_command(actor)
-        command.update(actor_id=user.id)
-        investigation = command.orchestration_run.investigation
-        investigation.update(
-            created_by_id=user.id, created_by_actor_type=actor.type, created_by_actor_id=actor.id
-        )
-
-        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
-            user.delete()
-        with self.tasks():
-            schedule_hybrid_cloud_foreign_key_jobs()
-        investigation.refresh_from_db()
-        command.refresh_from_db()
-
-        assert investigation.created_by_id is None
-        assert command.actor_id is None
-        assert investigation.get_creator_actor_reference() == actor
-        assert command.get_requested_by_actor_reference() == actor
+        assert investigation.created_by_service_account_id is None
+        assert command.requested_by_service_account_id is None
+        creator = investigation.creator_actor
+        assert creator is None
+        assert command.requested_by_actor == ActorId(ActorType.SYSTEM, None)
 
 
 class QueuedCommandsTest(TestCase):

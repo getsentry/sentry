@@ -8,14 +8,9 @@ from django.db.models import Q
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, cell_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
-from sentry.db.models.fields.bounded import BoundedBigIntegerField, BoundedPositiveIntegerField
+from sentry.db.models.fields.bounded import BoundedPositiveIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.investigations.actors import (
-    COMMAND_ACTOR_CHOICES,
-    CREATOR_ACTOR_CHOICES,
-    parse_actor_reference,
-)
-from sentry.viewer_context import ActorId, ActorType
+from sentry.viewer_context import ActorId, ActorType, actor_id_from_references
 
 
 class InvestigationOrchestrationPhase(models.TextChoices):
@@ -174,10 +169,9 @@ class InvestigationOrchestrationCommand(DefaultFieldsModel):
     )
     request_id = models.UUIDField()
     actor_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
-    requested_by_actor_type = models.CharField(
-        max_length=32, choices=COMMAND_ACTOR_CHOICES, null=True
+    requested_by_service_account_id = HybridCloudForeignKey(
+        "service_accounts.ServiceAccount", null=True, on_delete="SET_NULL"
     )
-    requested_by_actor_id = BoundedBigIntegerField(null=True)
     expected_workflow_version = BoundedPositiveIntegerField()
     resulting_workflow_version = BoundedPositiveIntegerField(null=True)
     type = models.CharField(max_length=64)
@@ -205,27 +199,19 @@ class InvestigationOrchestrationCommand(DefaultFieldsModel):
             ),
             models.CheckConstraint(
                 condition=(
-                    Q(requested_by_actor_type__isnull=True, requested_by_actor_id__isnull=True)
-                    | Q(
-                        requested_by_actor_type__isnull=False,
-                        requested_by_actor_type__in=[kind for kind, _ in CREATOR_ACTOR_CHOICES],
-                        requested_by_actor_id__isnull=False,
-                        requested_by_actor_id__gt=0,
-                    )
-                    | Q(
-                        requested_by_actor_type__isnull=False,
-                        requested_by_actor_type=ActorType.SYSTEM.value,
-                        requested_by_actor_id__isnull=True,
-                    )
+                    Q(actor_id__isnull=True) | Q(requested_by_service_account_id__isnull=True)
                 ),
-                name="invest_orch_command_sender_shape",
+                name="invest_orch_command_actor_shape",
             ),
         ]
         indexes = [models.Index(fields=["orchestration_run", "status", "date_added"])]
 
     __repr__ = sane_repr("orchestration_run_id", "request_id", "type", "status")
 
-    def get_requested_by_actor_reference(self) -> ActorId | None:
-        return parse_actor_reference(
-            self.requested_by_actor_type, self.requested_by_actor_id, allow_system=True
+    @property
+    def requested_by_actor(self) -> ActorId:
+        actor = actor_id_from_references(
+            user_id=self.actor_id,
+            service_account_id=self.requested_by_service_account_id,
         )
+        return actor if actor is not None else ActorId(ActorType.SYSTEM, None)
