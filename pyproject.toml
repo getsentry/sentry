@@ -407,7 +407,6 @@ ignore_missing_imports = true
 # - python3 -m tools.mypy_helpers.find_easiest_modules
 [[tool.mypy.overrides]]
 module = [
-    "sentry.snuba.metrics.query_builder",
     "sentry.testutils.cases",
 ]
 disable_error_code = [
@@ -425,6 +424,7 @@ disable_error_code = [
 # - python3 -m tools.mypy_helpers.find_easiest_modules
 [[tool.mypy.overrides]]
 module = [
+    "sentry.snuba.metrics.query_builder",
     "bitfield.*",
     "fixtures.apidocs_test_case",
     "fixtures.gitlab",
