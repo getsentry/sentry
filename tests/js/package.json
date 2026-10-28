@@ -129,6 +129,7 @@
     "./runner": "./sentry-test/runner.ts",
     "./search": "./fixtures/search.ts",
     "./secret": "./fixtures/secret.ts",
+    "./seerWorkflowConfig": "./fixtures/seerWorkflowConfig.ts",
     "./selectEvent": "./sentry-test/selectEvent.tsx",
     "./sentryApp": "./fixtures/sentryApp.ts",
     "./sentryAppComponent": "./fixtures/sentryAppComponent.ts",

@@ -1,4 +1,4 @@
-import {useEffect, useId, useRef} from 'react';
+import {createContext, useContext, useEffect, useId, useRef} from 'react';
 import {createPortal} from 'react-dom';
 import isPropValid from '@emotion/is-prop-valid';
 import {css, useTheme} from '@emotion/react';
@@ -137,6 +137,30 @@ export function SearchInput({padding = 'xs', ...props}: SearchInputProps) {
       </InputGroup>
     </Container>
   );
+}
+
+const ReserveLeadingSlotContext = createContext(false);
+
+/**
+ * When `reserve` is true, items without leading items render an empty leading
+ * slot, so their labels line up with items that have an icon. Menus should set
+ * it whenever any of their items renders leading items.
+ */
+export function ReserveLeadingSlot({
+  reserve,
+  children,
+}: {
+  children: React.ReactNode;
+  reserve: boolean;
+}) {
+  return (
+    <ReserveLeadingSlotContext value={reserve}>{children}</ReserveLeadingSlotContext>
+  );
+}
+
+/** Whether the surrounding menu reserves a leading slot for every item. */
+export function useReserveLeadingSlot() {
+  return useContext(ReserveLeadingSlotContext);
 }
 
 /**
@@ -408,6 +432,8 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
   const labelId = useId();
   const detailId = useId();
   const hasInlineDetails = Boolean(details && !showDetailsInOverlay);
+  const reserveLeadingSlot = useReserveLeadingSlot();
+  const hasLeadingSlot = Boolean(leadingItems) || reserveLeadingSlot;
 
   return (
     <MenuItemWrap
@@ -436,7 +462,7 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
           // The leading slot is 2xl wide and centers its content, so a 16px icon
           // gets 4px of space on each side. A `md` inset keeps leading items where
           // they sat before the slot existed, at every size.
-          paddingLeft={leadingItems ? 'md' : undefined}
+          paddingLeft={hasLeadingSlot ? 'md' : undefined}
           paddingRight={trailingAction ? TRAILING_ACTION_SPACE : undefined}
           isFocused={isFocused}
           hasTrailingAction={Boolean(trailingAction)}
@@ -450,7 +476,7 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
             isPressed={isPressed}
             higherOpacity={priority !== 'default'}
           />
-          {leadingItems && (
+          {hasLeadingSlot && (
             <StyledLeadingItems
               disabled={disabled}
               hasDetails={hasInlineDetails}

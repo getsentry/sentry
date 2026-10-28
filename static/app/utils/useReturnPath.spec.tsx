@@ -36,4 +36,13 @@ describe('useReturnPath', () => {
 
     expect(getReturnPath(KEY, '/fallback/')).toBe('/fallback/');
   });
+
+  it.each(['//attacker.example/', '/\\attacker.example/', 'https://attacker.example/'])(
+    'falls back instead of returning to another site via %s',
+    path => {
+      sessionStorage.setItem(KEY, path);
+
+      expect(getReturnPath(KEY, '/fallback/')).toBe('/fallback/');
+    }
+  );
 });

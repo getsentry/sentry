@@ -2797,6 +2797,24 @@ function buildRoutes(): RouteObject[] {
         },
       ],
     },
+    {
+      path: 'automations/:automationId/',
+      component: make(() => import('sentry/views/seerWorkflows/automations/detail')),
+      children: [
+        {
+          index: true,
+          component: make(
+            () => import('sentry/views/seerWorkflows/automations/detail/configuration')
+          ),
+        },
+        {
+          path: 'runs/',
+          component: make(
+            () => import('sentry/views/seerWorkflows/automations/detail/runs')
+          ),
+        },
+      ],
+    },
   ];
   const seerRoutes: SentryRouteObject = {
     path: '/seer/',

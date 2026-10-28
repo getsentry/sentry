@@ -334,7 +334,7 @@ export function ToolbarSaveAs() {
               sortBys,
               yAxes: [visual.yAxis],
               chartType: visual.chartType,
-              caseInsensitive: caseInsensitive ? '1' : undefined,
+              caseInsensitive: caseInsensitive ? '1' : '0',
             })),
           })}
           tooltipProps={

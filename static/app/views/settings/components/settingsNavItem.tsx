@@ -58,7 +58,7 @@ export function SettingsNavItem({badge, label, id, to, index, ...props}: Props) 
   );
 }
 
-function SettingsNavBadge({badge}: {badge: React.ReactNode}) {
+function SettingsNavBadge({badge}: {badge: string | number | null | ReactElement}) {
   if (badge === 'new' || badge === 'beta' || badge === 'alpha') {
     return <FeatureBadge type={badge} />;
   }

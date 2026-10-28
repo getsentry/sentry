@@ -185,14 +185,7 @@ S031_msg = (
 
 # Existing callers are pinned to their exact function and occurrence count. This is a
 # shrink-only migration baseline: remove entries as callers move to named Seer one-shots.
-S030_allowlist: dict[str, dict[tuple[str, str], int]] = {
-    "src/sentry/uptime/seer_assertions.py": {
-        (_S030_MODULE_SCOPE, "import LlmGenerateRequest"): 1,
-        (_S030_MODULE_SCOPE, "import make_llm_generate_request"): 1,
-        ("generate_assertion_suggestions", "call LlmGenerateRequest"): 1,
-        ("generate_assertion_suggestions", "call make_llm_generate_request"): 1,
-    },
-}
+S030_allowlist: dict[str, dict[tuple[str, str], int]] = {}
 
 
 # Rules whose diagnostics are fatal. Empty ships every rule off; adding one

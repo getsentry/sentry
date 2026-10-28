@@ -46,6 +46,12 @@ class InvestigationToolActivityResponse(TypedDict):
     status: str
 
 
+class InvestigationThoughtResponse(TypedDict):
+    id: str
+    text: str
+    beforeActivityId: NotRequired[str | None]
+
+
 class InvestigationEvidenceResponse(TypedDict):
     id: str
     title: str
@@ -102,6 +108,7 @@ class InvestigationHypothesisResponse(TypedDict):
     planningStatus: NotRequired[str]
     heartbeatAt: NotRequired[str | None]
     toolActivity: NotRequired[list[InvestigationToolActivityResponse]]
+    thoughts: NotRequired[list[InvestigationThoughtResponse]]
     evidence: NotRequired[list[InvestigationEvidenceResponse]]
     verificationSteps: NotRequired[list[InvestigationVerificationStepResponse]]
     agentVerdict: NotRequired[InvestigationAgentVerdictResponse | None]
@@ -115,6 +122,7 @@ class InvestigationBroadScanResponse(TypedDict):
     heartbeatAt: NotRequired[str | None]
     error: NotRequired[InvestigationProjectionErrorResponse | None]
     toolActivity: NotRequired[list[InvestigationToolActivityResponse]]
+    thoughts: NotRequired[list[InvestigationThoughtResponse]]
     generation: NotRequired[int]
     attempt: NotRequired[int]
     automaticRetryCount: NotRequired[int]
@@ -154,6 +162,7 @@ class InvestigationReportResponse(TypedDict):
     currentBlockKey: NotRequired[str | None]
     currentBlockStatus: NotRequired[str]
     currentBlockToolActivity: NotRequired[list[InvestigationToolActivityResponse]]
+    currentBlockThoughts: NotRequired[list[InvestigationThoughtResponse]]
     heartbeatAt: NotRequired[str | None]
     automaticRetryCount: NotRequired[int]
     clearIntent: NotRequired[InvestigationReportClearIntentResponse | None]
@@ -264,4 +273,12 @@ class InvestigationTitlePreviewResponse(TypedDict):
 
 
 class InvestigationActionRequestApplyResponse(TypedDict):
+    actionRequest: InvestigationActionRequestSerializerResponse
+
+
+class InvestigationActionRequestRecheckResponse(TypedDict):
+    actionRequest: InvestigationActionRequestSerializerResponse
+
+
+class InvestigationActionRequestRetryFollowUpResponse(TypedDict):
     actionRequest: InvestigationActionRequestSerializerResponse

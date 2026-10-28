@@ -28,9 +28,12 @@ from sentry.investigations.models import (
     InvestigationBlockExecutionStatus,
     InvestigationBlockExecutor,
     InvestigationBlockKind,
+    InvestigationOrchestrationCommand,
+    InvestigationOrchestrationCommandStatus,
     InvestigationOrchestrationEvent,
     InvestigationOrchestrationEventStatus,
     InvestigationOrchestrationPhase,
+    InvestigationOrchestrationRerun,
     InvestigationOrchestrationRun,
     InvestigationOrchestrationStatus,
     InvestigationProject,
@@ -42,6 +45,12 @@ from sentry.investigations.services.action_requests import (
     sync_snapshot_action_requests,
     upsert_action_request,
     withdraw_action_request,
+)
+from sentry.investigations.services.orchestration import (
+    clear_command_dispatch_error,
+    command_can_be_requeued,
+    requeue_commands_behind,
+    schedule_orchestration_commands,
 )
 from sentry.models.project import Project
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
@@ -271,6 +280,40 @@ def _set_projection(
     projection_error = projection.get("error")
     if projection_error is None or isinstance(projection_error, dict):
         run.error = deepcopy(projection_error)
+
+
+def _update_rerun(run: InvestigationOrchestrationRun, payload: dict[str, Any]) -> None:
+    """Record whether Seer started or dropped a re-run it held. It can arrive before the
+    command's response, or after Sentry gave up on one that was lost. Either way Seer has the
+    command, so it doesn't hold up the commands behind it. A command Seer turned down is left
+    alone.
+    """
+
+    # It can settle a command the dispatch task gave up on, so send whatever's still queued.
+    schedule_orchestration_commands(run.id)
+    for command in InvestigationOrchestrationCommand.objects.select_for_update().filter(
+        orchestration_run=run, request_id=payload["requestId"]
+    ):
+        lost_response = command.status == InvestigationOrchestrationCommandStatus.FAILED and (
+            command_can_be_requeued(command)
+        )
+        if not lost_response and command.status not in (
+            InvestigationOrchestrationCommandStatus.ACCEPTED,
+            InvestigationOrchestrationCommandStatus.DISPATCHED,
+            InvestigationOrchestrationCommandStatus.ACKNOWLEDGED,
+        ):
+            continue
+        if lost_response:
+            requeue_commands_behind(run, command)
+            clear_command_dispatch_error(run, request_id=command.request_id)
+        command.rerun = payload["rerun"]
+        if payload["rerun"] == InvestigationOrchestrationRerun.SKIPPED:
+            command.status = InvestigationOrchestrationCommandStatus.FAILED
+            command.error = {"code": "rerun_skipped", "reason": payload["reason"]}
+        else:
+            command.status = InvestigationOrchestrationCommandStatus.ACKNOWLEDGED
+            command.error = None
+        command.save(update_fields=["rerun", "status", "error", "date_updated"])
 
 
 def _projection_is_stale(
@@ -837,6 +880,12 @@ def _apply_event(
     # schemas change. Normalizing here is what lets the apply path read coerced
     # values and defaults without re-checking any types.
     payload = _validate_event_payload(event.type, _event_data(event), log_drops=True)
+    if event.type == "rerun_updated":
+        # It's about a command, so any generation counts. A re-run that starts sends it ahead
+        # of the new generation's projection.
+        _update_rerun(run, payload)
+        run.heartbeat_at = timezone.now()
+        return True, None
     generation = _event_generation(event)
     if generation < run.generation:
         return False, "stale_generation"
