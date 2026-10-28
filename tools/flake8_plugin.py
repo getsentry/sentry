@@ -6,7 +6,7 @@ from collections import Counter
 from collections.abc import Generator
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Literal, NamedTuple
 
 S001_fmt = (
     "S001 Avoid using the {} mock call as it is "
@@ -682,17 +682,20 @@ def _repo_relative(filename: str) -> str:
     return normalized.lstrip("./")
 
 
-# (line, col, end_line, end_col) of a node, as ast reports them (col is 0-based)
-_Span = tuple[int, int, int, int]
+class _StartEnd(NamedTuple):
+    line: int
+    column: int
+    end_line: int
+    end_column: int
 
 
-def _span(node: ast.expr) -> _Span:
-    """Grabs the complete start and end positions of a node"""
-    return (
-        node.lineno,
-        node.col_offset,
-        node.end_lineno or node.lineno,
-        node.end_col_offset or node.col_offset,
+def _start_and_end(node: ast.expr) -> _StartEnd:
+    """Where a node starts and ends, as ast reports it (columns are 0-based)"""
+    return _StartEnd(
+        line=node.lineno,
+        column=node.col_offset,
+        end_line=node.end_lineno or node.lineno,
+        end_column=node.end_col_offset or node.col_offset,
     )
 
 
@@ -705,8 +708,8 @@ _SOURCE_PREFIX = {"query string": "query", "request body": "body"}
 class ApiInputViolation:
     """Structured record of a single S025-S028 API input lint violation.
 
-    Preserves the `Class.method` scope, prefixed input `key`, and full
-    AST span (`line` is 1-based, while `column` is 0-based to match Python's AST and LSP).
+    Preserves the `Class.method` scope, prefixed input `key`, and full start and end
+    position (`line` is 1-based, while `column` is 0-based to match Python's AST and LSP).
     """
 
     rule: str
@@ -715,10 +718,10 @@ class ApiInputViolation:
     column: int
     end_line: int
     end_column: int
-    severity: str  # "error" when the rule is enforced, otherwise "warning"
+    severity: Literal["error", "warning"]
     scope: str  # Class.method
     key: str  # source and name, for example "query:id"
-    source: str = "sentry-flake8"
+    tool: str = "sentry-flake8"
 
 
 class _InputCtx:
@@ -730,15 +733,15 @@ class _InputCtx:
         self.declared_body = declared_body
         self.query_locals: set[str] = set()
         self.body_locals: set[str] = set()
-        # (span, serializer) for each serializer built from that source
-        self.query_validators: list[tuple[_Span, str]] = []
-        self.body_validators: list[tuple[_Span, str]] = []
-        # (span, key, source) reads with a literal key
-        self.literal_reads: list[tuple[_Span, str, str]] = []
-        # (span, rendered key, source) reads whose key is computed
-        self.computed_reads: list[tuple[_Span, str, str]] = []
-        # (span, callee, source) the whole dict passed somewhere
-        self.hand_offs: list[tuple[_Span, str, str]] = []
+        # (start_end, serializer) for each serializer built from that source
+        self.query_validators: list[tuple[_StartEnd, str]] = []
+        self.body_validators: list[tuple[_StartEnd, str]] = []
+        # (start_end, key, source) reads with a literal key
+        self.literal_reads: list[tuple[_StartEnd, str, str]] = []
+        # (start_end, rendered key, source) reads whose key is computed
+        self.computed_reads: list[tuple[_StartEnd, str, str]] = []
+        # (start_end, callee, source) the whole dict passed somewhere
+        self.hand_offs: list[tuple[_StartEnd, str, str]] = []
 
     def _is(self, node: ast.expr, attrs: frozenset[str], locals_: set[str]) -> bool:
         node = _unwrap_copy(node)
@@ -764,9 +767,9 @@ class _InputCtx:
 
     def record_read(self, key: ast.expr, source: str, node: ast.expr) -> None:
         if isinstance(key, ast.Constant) and isinstance(key.value, str):
-            self.literal_reads.append((_span(node), key.value, source))
+            self.literal_reads.append((_start_and_end(node), key.value, source))
         else:
-            self.computed_reads.append((_span(node), ast.unparse(key), source))
+            self.computed_reads.append((_start_and_end(node), ast.unparse(key), source))
 
 
 class SentryVisitor(ast.NodeVisitor):
@@ -1211,7 +1214,7 @@ class SentryVisitor(ast.NodeVisitor):
             if source is not None:
                 name = _name_of(func).rsplit(".", 1)[-1]
                 if name not in _CONTAINER_OPS:
-                    ctx.hand_offs.append((_span(node), name, source))
+                    ctx.hand_offs.append((_start_and_end(node), name, source))
                 return
 
     def _record_validator(self, node: ast.Call) -> None:
@@ -1226,52 +1229,51 @@ class SentryVisitor(ast.NodeVisitor):
                 continue
             name = _name_of(node.func).rsplit(".", 1)[-1]
             if ctx.is_query(keyword.value):
-                ctx.query_validators.append((_span(node), name))
+                ctx.query_validators.append((_start_and_end(node), name))
             elif ctx.is_body(keyword.value):
-                ctx.body_validators.append((_span(node), name))
+                ctx.body_validators.append((_start_and_end(node), name))
 
     def _report_input(
-        self, ctx: _InputCtx, span: _Span, msg: str, group: str, key: str, source: str
+        self, ctx: _InputCtx, start_end: _StartEnd, msg: str, group: str, key: str, source: str
     ) -> None:
         """Always recorded as a structured violation; fatal only for an enforced group."""
         enforced = group in ENFORCED
-        line, col, end_line, end_col = span
         self.api_violations.append(
             ApiInputViolation(
                 # flake8 requires every message to start with its code
                 rule=msg.split(" ", 1)[0],
                 message=msg,
-                line=line,
-                column=col,
-                end_line=end_line,
-                end_column=end_col,
+                line=start_end.line,
+                column=start_end.column,
+                end_line=start_end.end_line,
+                end_column=start_end.end_column,
                 severity="error" if enforced else "warning",
                 scope=ctx.scope,
                 key=f"{_SOURCE_PREFIX[source]}:{key}",
             )
         )
         if enforced or os.environ.get(INPUT_LINT_ALL_ENV):
-            self.errors.append((line, col, msg))
+            self.errors.append((start_end.line, start_end.column, msg))
 
     def _exit_input(self) -> None:
         ctx = self._input_stack.pop()
-        for span, name in ctx.query_validators:
+        for start_end, name in ctx.query_validators:
             if name not in ctx.declared_params:
                 msg = S025_query_msg.format(name)
-                self._report_input(ctx, span, msg, "declared", name, "query string")
-        for span, name in ctx.body_validators:
+                self._report_input(ctx, start_end, msg, "declared", name, "query string")
+        for start_end, name in ctx.body_validators:
             if name not in ctx.declared_body:
                 msg = S025_body_msg.format(name)
-                self._report_input(ctx, span, msg, "declared", name, "request body")
-        for span, key, source in ctx.literal_reads:
+                self._report_input(ctx, start_end, msg, "declared", name, "request body")
+        for start_end, key, source in ctx.literal_reads:
             msg = S026_msg.format(repr(key), source)
-            self._report_input(ctx, span, msg, "shaped", key, source)
-        for span, key, source in ctx.computed_reads:
+            self._report_input(ctx, start_end, msg, "shaped", key, source)
+        for start_end, key, source in ctx.computed_reads:
             msg = S027_msg.format(source, key)
-            self._report_input(ctx, span, msg, "shaped", key, source)
-        for span, callee, source in ctx.hand_offs:
+            self._report_input(ctx, start_end, msg, "shaped", key, source)
+        for start_end, callee, source in ctx.hand_offs:
             msg = S028_msg.format(source, callee)
-            self._report_input(ctx, span, msg, "shaped", callee, source)
+            self._report_input(ctx, start_end, msg, "shaped", callee, source)
 
     def visit_Call(self, node: ast.Call) -> None:
         self._s024_visit_call(node)

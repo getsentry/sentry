@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from tools.flake8_plugin import (
     ApiInputViolation,
+    S026_msg,
     S030_allowlist,
     SentryCheck,
     _s015_msg,
@@ -1848,11 +1849,7 @@ class E(Endpoint):
     assert _api_violations(src) == [
         ApiInputViolation(
             rule="S026",
-            message=(
-                "S026 'truncate' is read straight off the query string, so the schema has "
-                "nothing to document and the value is an unchecked string. Read it through a "
-                "serializer declared in @extend_schema."
-            ),
+            message=S026_msg.format(repr("truncate"), "query string"),
             line=5,
             column=15,
             end_line=5,
@@ -1952,7 +1949,7 @@ class E(Endpoint):
         violations = _api_violations(src)
 
     assert len(errors) == 1
-    assert errors[0].startswith("t.py:5:15: S026 'truncate' is read straight off the query string")
+    assert errors[0] == "t.py:5:15: " + S026_msg.format(repr("truncate"), "query string")
     assert len(violations) == 1
     assert violations[0].severity == "warning"
 
