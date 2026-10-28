@@ -34,6 +34,7 @@ from sentry.tasks.seer.investigation import (
     dispatch_investigation_orchestration_create,
 )
 from sentry.testutils.cases import TestCase
+from sentry.viewer_context import ActorId, ActorType
 
 
 class InvestigationAutoRunTest(TestCase):
@@ -326,7 +327,7 @@ class InvestigationOrchestrationDispatchTest(TestCase):
         with transaction.atomic(using=router.db_for_write(InvestigationOrchestrationRun)):
             investigation, run = create_agentic_manual_investigation(
                 organization=self.organization,
-                user_id=self.user.id,
+                creator=ActorId(ActorType.USER, self.user.id),
                 title=None,
                 source={"type": "manual", "prompt": "Investigate latency"},
                 project_ids=[],

@@ -44,6 +44,7 @@ from sentry.investigations.services import (
 from sentry.investigations.services.auto_run import schedule_eligible_auto_run_blocks
 from sentry.investigations.telemetry import record_investigation_started
 from sentry.models.organization import Organization
+from sentry.viewer_context import ActorId, ActorType
 
 
 @extend_schema(tags=["Investigations"])
@@ -174,7 +175,7 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
                         )
                     investigation, created = create_agentic_breached_metric_investigation(
                         organization=organization,
-                        user_id=user_id(request),
+                        creator=ActorId(ActorType.USER, user_id(request)),
                         title=values.get("title"),
                         resolved_source=resolved_source,
                         project_ids=requested_project_ids,
@@ -189,7 +190,7 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
                     created = True
                     investigation, _ = create_agentic_manual_investigation(
                         organization=organization,
-                        user_id=user_id(request),
+                        creator=ActorId(ActorType.USER, user_id(request)),
                         title=values.get("title"),
                         source=source,
                         project_ids=requested_project_ids,

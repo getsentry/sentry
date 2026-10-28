@@ -12,6 +12,8 @@ from django.db.models import Max
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
 
+from sentry.constants import ObjectStatus
+from sentry.investigations.access import INVESTIGATION_SCOPES, has_investigations_access
 from sentry.investigations.models import (
     Investigation,
     InvestigationBlockExecution,
@@ -41,6 +43,9 @@ from sentry.investigations.services.investigations import (
     update_investigation,
 )
 from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.service_accounts.models import ServiceAccountReplica
+from sentry.viewer_context import ActorId, ActorType
 
 logger = logging.getLogger(__name__)
 
@@ -135,10 +140,44 @@ def _initial_projection(
     )
 
 
+def _validate_creation_actor(
+    *, organization: Organization, creator: ActorId, project_ids: list[int]
+) -> None:
+    if (
+        creator.type not in (ActorType.USER, ActorType.SERVICE_ACCOUNT)
+        or type(creator.id) is not int
+        or creator.id <= 0
+    ):
+        raise InvestigationValidationError(
+            {"creator": "A user or service account with a positive integer ID is required."}
+        )
+    if creator.type == ActorType.USER:
+        return
+
+    try:
+        account = ServiceAccountReplica.objects.get(
+            service_account_id=creator.id, organization_id=organization.id, is_active=True
+        )
+    except ServiceAccountReplica.DoesNotExist as error:
+        raise PermissionDenied from error
+    if not INVESTIGATION_SCOPES.intersection(account.scope_list) or not has_investigations_access(
+        organization
+    ):
+        raise PermissionDenied
+
+    accessible_project_ids = set(
+        Project.objects.filter(
+            organization=organization, status=ObjectStatus.ACTIVE, id__in=project_ids
+        ).values_list("id", flat=True)
+    )
+    if not set(project_ids).issubset(accessible_project_ids):
+        raise InvestigationValidationError({"projectIds": "One or more projects are inaccessible."})
+
+
 def _create_agentic_investigation(
     *,
     organization: Organization,
-    user_id: int,
+    creator: ActorId,
     title: str | None,
     source: dict[str, Any],
     orchestration_source: dict[str, Any],
@@ -155,7 +194,10 @@ def _create_agentic_investigation(
     with transaction.atomic(using=router.db_for_write(Investigation)):
         investigation = Investigation.objects.create(
             organization=organization,
-            created_by_id=user_id,
+            created_by_id=creator.id if creator.type == ActorType.USER else None,
+            created_by_service_account_id=(
+                creator.id if creator.type == ActorType.SERVICE_ACCOUNT else None
+            ),
             title=title or default_investigation_title(source_type),
             source_type=source_type,
             source_ref=deepcopy(source_ref or {}),
@@ -514,15 +556,16 @@ def _manual_orchestration_source(source: dict[str, Any]) -> dict[str, Any]:
 def create_agentic_manual_investigation(
     *,
     organization: Organization,
-    user_id: int,
+    creator: ActorId,
     title: str | None,
     source: dict[str, Any],
     project_ids: list[int],
     filters: dict[str, Any],
 ) -> tuple[Investigation, InvestigationOrchestrationRun]:
+    _validate_creation_actor(organization=organization, creator=creator, project_ids=project_ids)
     return _create_agentic_investigation(
         organization=organization,
-        user_id=user_id,
+        creator=creator,
         title=title,
         source=source,
         orchestration_source=_manual_orchestration_source(source),
@@ -607,12 +650,15 @@ def agentic_breached_metric_lineage_key(source: dict[str, Any]) -> str:
 def create_agentic_breached_metric_investigation(
     *,
     organization: Organization,
-    user_id: int,
+    creator: ActorId,
     title: str | None,
     resolved_source: BreachedMetricSource,
     project_ids: list[int],
     filters: dict[str, Any],
 ) -> tuple[Investigation, bool]:
+    _validate_creation_actor(organization=organization, creator=creator, project_ids=project_ids)
+    if resolved_source.project_id not in project_ids:
+        raise InvestigationValidationError({"projectIds": "The metric project must be selected."})
     normalized_source = resolved_source.source
     lineage_key = agentic_breached_metric_lineage_key(normalized_source)
     # Uniqueness on active lineage and revision arbitrates concurrent launches.
@@ -635,7 +681,7 @@ def create_agentic_breached_metric_investigation(
         try:
             investigation, _ = _create_agentic_investigation(
                 organization=organization,
-                user_id=user_id,
+                creator=creator,
                 title=title,
                 source=normalized_source,
                 orchestration_source=_breached_metric_orchestration_source(normalized_source),

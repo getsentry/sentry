@@ -18,7 +18,7 @@ from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerRunType
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.testutils.cases import TestCase
-from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
+from sentry.viewer_context import Actor, ActorId, ActorType, ViewerContext, viewer_context_scope
 
 
 class InvestigationOrchestrationSeerClientTest(TestCase):
@@ -53,7 +53,7 @@ class InvestigationOrchestrationSeerClientTest(TestCase):
         self.create_project(organization=self.organization)
         investigation, run = create_agentic_manual_investigation(
             organization=self.organization,
-            user_id=self.user.id,
+            creator=ActorId(ActorType.USER, self.user.id),
             title=None,
             source={"type": "manual", "prompt": "Investigate latency"},
             project_ids=[self.project.id],
@@ -204,7 +204,7 @@ class InvestigationOrchestrationSeerClientTest(TestCase):
     def test_create_rejects_a_mismatched_viewer_organization(self) -> None:
         _, run = create_agentic_manual_investigation(
             organization=self.organization,
-            user_id=self.user.id,
+            creator=ActorId(ActorType.USER, self.user.id),
             title=None,
             source={"type": "manual", "prompt": "Investigate latency"},
             project_ids=[],
@@ -235,7 +235,7 @@ class InvestigationOrchestrationSeerClientTest(TestCase):
         )
         _, run = create_agentic_manual_investigation(
             organization=self.organization,
-            user_id=self.user.id,
+            creator=ActorId(ActorType.USER, self.user.id),
             title=None,
             source={"type": "manual", "prompt": "Investigate latency"},
             project_ids=[],
@@ -271,7 +271,7 @@ class InvestigationOrchestrationSeerClientTest(TestCase):
     def test_get_rejects_a_mismatched_viewer_organization(self, make_request: mock.Mock) -> None:
         _, run = create_agentic_manual_investigation(
             organization=self.organization,
-            user_id=self.user.id,
+            creator=ActorId(ActorType.USER, self.user.id),
             title=None,
             source={"type": "manual", "prompt": "Investigate latency"},
             project_ids=[],

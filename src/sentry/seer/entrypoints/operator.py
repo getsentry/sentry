@@ -54,6 +54,7 @@ from sentry.types.activity import ActivityType
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils.locking import UnableToAcquireLock
+from sentry.viewer_context import ActorId, ActorType
 
 SEER_EVENT_TO_ACTIVITY_TYPE: dict[SentryAppEventType, ActivityType] = {
     SentryAppEventType.SEER_ROOT_CAUSE_STARTED: ActivityType.SEER_RCA_STARTED,
@@ -661,7 +662,7 @@ class SeerInvestigationOperator[CachePayloadT]:
             try:
                 investigation, created = create_agentic_breached_metric_investigation(
                     organization=organization,
-                    user_id=user_id,
+                    creator=ActorId(ActorType.USER, user_id),
                     title=None,
                     resolved_source=resolved_source,
                     project_ids=[resolved_source.project_id],

@@ -2,24 +2,39 @@ from __future__ import annotations
 
 from datetime import timedelta
 from typing import Any
+from unittest import mock
 
+import pytest
 from django.utils import timezone
+from rest_framework.exceptions import PermissionDenied
 
 from sentry.constants import ObjectStatus
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
-from sentry.investigations.models import Investigation, InvestigationOrchestrationRun
-from sentry.investigations.services.investigations import resolve_investigation_source
+from sentry.investigations.models import (
+    Investigation,
+    InvestigationOrchestrationRun,
+    InvestigationStatus,
+)
+from sentry.investigations.services.investigations import (
+    InvestigationValidationError,
+    resolve_investigation_source,
+)
 from sentry.investigations.services.orchestration import (
     create_agentic_breached_metric_investigation,
     create_agentic_manual_investigation,
     rebuild_orchestration_source,
 )
 from sentry.models.groupopenperiod import GroupOpenPeriod
+from sentry.models.organization import Organization
+from sentry.service_accounts.models import ServiceAccountReplica
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import cell_silo_test
+from sentry.viewer_context import ActorId, ActorType
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
@@ -70,7 +85,7 @@ class BreachedMetricInvestigationTestCase(TestCase):
         self.create_detector_group(detector=self.detector, group=group)
         self.investigation, _ = create_agentic_breached_metric_investigation(
             organization=self.organization,
-            user_id=self.user.id,
+            creator=ActorId(ActorType.USER, self.user.id),
             title=None,
             resolved_source=resolve_investigation_source(
                 organization=self.organization,
@@ -115,7 +130,7 @@ class RebuildOrchestrationSourceTest(BreachedMetricInvestigationTestCase):
     def test_a_manual_source_is_rebuilt_from_the_investigation(self) -> None:
         investigation, run = create_agentic_manual_investigation(
             organization=self.organization,
-            user_id=self.user.id,
+            creator=ActorId(ActorType.USER, self.user.id),
             title=None,
             source={"type": "manual", "prompt": "Investigate latency"},
             project_ids=[self.project.id],
@@ -123,3 +138,117 @@ class RebuildOrchestrationSourceTest(BreachedMetricInvestigationTestCase):
         )
 
         assert rebuild_orchestration_source(investigation) == run.source
+
+
+@cell_silo_test
+class ServiceAccountCreationTest(BreachedMetricInvestigationTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+        self.creator = self.account_creator(id=910001)
+
+    def account_creator(self, organization: Organization | None = None, **kwargs: Any) -> ActorId:
+        with outbox_runner():
+            account = self.create_service_account(
+                organization=organization or self.organization, **kwargs
+            )
+        return ActorId(ActorType.SERVICE_ACCOUNT, account.id)
+
+    @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_create.delay")
+    def test_manual_account_attribution_without_prompt(self, dispatch: mock.Mock) -> None:
+        assert self.creator.id is not None
+        replica = ServiceAccountReplica.objects.get(service_account_id=self.creator.id)
+        assert replica.id != self.creator.id
+        with self.feature("organizations:investigations"):
+            investigation, run = create_agentic_manual_investigation(
+                organization=self.organization,
+                creator=self.creator,
+                title=None,
+                source={"type": "manual"},
+                project_ids=[self.project.id],
+                filters={},
+            )
+        investigation.refresh_from_db()
+        assert investigation.created_by_id is None
+        assert investigation.creator_actor == self.creator
+        assert run.status == "awaiting_input"
+
+    @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_create.delay")
+    def test_metric_reuse_preserves_creator_and_checks_current_access(
+        self, dispatch: mock.Mock
+    ) -> None:
+        assert self.creator.id is not None
+        source = resolve_investigation_source(
+            organization=self.organization,
+            source={"type": "metric_open_period", "ref": self.investigation.source_ref},
+            accessible_project_ids={self.project.id},
+        )
+        arguments: dict[str, Any] = dict(
+            organization=self.organization,
+            title=None,
+            resolved_source=source,
+            project_ids=[self.project.id],
+            filters={},
+        )
+        with self.feature("organizations:investigations"):
+            for creator in (ActorId(ActorType.USER, self.user.id), self.creator):
+                with self.subTest(creator=creator), pytest.raises(InvestigationValidationError):
+                    create_agentic_breached_metric_investigation(
+                        creator=creator, **{**arguments, "project_ids": []}
+                    )
+            dispatch.assert_not_called()
+
+            self.investigation.update(status=InvestigationStatus.ARCHIVED)
+            investigation, created = create_agentic_breached_metric_investigation(
+                creator=self.creator, **arguments
+            )
+            assert created
+            assert investigation.creator_actor == self.creator
+            dispatch.assert_called_once()
+            dispatch.reset_mock()
+
+            reused, created = create_agentic_breached_metric_investigation(
+                creator=ActorId(ActorType.USER, self.user.id), **arguments
+            )
+            assert not created
+            assert reused.id == investigation.id
+            assert reused.creator_actor == self.creator
+            ServiceAccountReplica.objects.filter(service_account_id=self.creator.id).update(
+                is_active=False
+            )
+            with pytest.raises(PermissionDenied):
+                create_agentic_breached_metric_investigation(creator=self.creator, **arguments)
+            dispatch.assert_not_called()
+
+    @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_create.delay")
+    def test_invalid_creators_and_access_have_no_side_effects(self, dispatch: mock.Mock) -> None:
+        other_organization = self.create_organization()
+        foreign_creator = self.account_creator(organization=other_organization)
+        unprivileged_creator = self.account_creator(name="no-access", scope_list=["event:read"])
+        foreign_project = self.create_project(organization=other_organization)
+        arguments: dict[str, Any] = dict(
+            organization=self.organization,
+            creator=self.creator,
+            title=None,
+            source={"type": "manual", "prompt": "Investigate latency"},
+            project_ids=[self.project.id],
+            filters={},
+        )
+        cases: list[tuple[dict[str, Any], type[Exception]]] = [
+            ({"creator": ActorId(ActorType.SYSTEM, None)}, InvestigationValidationError),
+            ({"creator": ActorId(ActorType.USER, True)}, InvestigationValidationError),
+            ({"creator": foreign_creator}, PermissionDenied),
+            ({"creator": unprivileged_creator}, PermissionDenied),
+            ({"project_ids": [foreign_project.id]}, InvestigationValidationError),
+        ]
+        before = (Investigation.objects.count(), InvestigationOrchestrationRun.objects.count())
+        with self.feature("organizations:investigations"):
+            for overrides, error in cases:
+                with self.subTest(overrides=overrides), pytest.raises(error):
+                    create_agentic_manual_investigation(**{**arguments, **overrides})
+            assert (
+                Investigation.objects.count(),
+                InvestigationOrchestrationRun.objects.count(),
+            ) == before
+            dispatch.assert_not_called()

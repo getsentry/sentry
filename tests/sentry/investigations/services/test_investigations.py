@@ -41,6 +41,7 @@ from sentry.investigations.services.orchestration import (
 from sentry.seer.models.run import SeerRunType
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
+from sentry.viewer_context import ActorId, ActorType
 
 TEMPLATE_KWARGS = {
     "organization": mock.sentinel.organization,
@@ -247,7 +248,7 @@ class DefaultTitleTest(TestCase):
     def test_untitled_agentic_investigation_gets_a_default_title(self) -> None:
         investigation, _ = create_agentic_manual_investigation(
             organization=self.organization,
-            user_id=self.user.id,
+            creator=ActorId(ActorType.USER, self.user.id),
             title=None,
             source={"type": "manual", "prompt": "Investigate latency"},
             project_ids=[],
@@ -438,7 +439,7 @@ class OrchestrationControlServiceTest(TestCase):
         ):
             create_agentic_manual_investigation(
                 organization=self.organization,
-                user_id=self.user.id,
+                creator=ActorId(ActorType.USER, self.user.id),
                 title=None,
                 source={"type": "manual", "prompt": "Investigate latency"},
                 project_ids=[self.project.id],
@@ -452,7 +453,7 @@ class OrchestrationControlServiceTest(TestCase):
     def test_command_acceptance_rolls_back_command_and_version_together(self) -> None:
         investigation, run = create_agentic_manual_investigation(
             organization=self.organization,
-            user_id=self.user.id,
+            creator=ActorId(ActorType.USER, self.user.id),
             title=None,
             source={"type": "manual", "prompt": "Investigate latency"},
             project_ids=[],
@@ -479,7 +480,7 @@ class OrchestrationControlServiceTest(TestCase):
     def test_projection_serialization_overlays_authoritative_run_fields(self) -> None:
         investigation, run = create_agentic_manual_investigation(
             organization=self.organization,
-            user_id=self.user.id,
+            creator=ActorId(ActorType.USER, self.user.id),
             title=None,
             source={"type": "manual", "prompt": "Investigate latency"},
             project_ids=[],
@@ -528,7 +529,7 @@ class OrchestrationCommandConcurrencyTest(TransactionTestCase):
     def test_only_one_command_is_accepted_for_a_workflow_version(self) -> None:
         investigation, run = create_agentic_manual_investigation(
             organization=self.organization,
-            user_id=self.user.id,
+            creator=ActorId(ActorType.USER, self.user.id),
             title=None,
             source={"type": "manual", "prompt": "Investigate latency"},
             project_ids=[],
