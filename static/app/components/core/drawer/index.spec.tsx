@@ -425,7 +425,7 @@ describe('GlobalDrawer', () => {
       expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
       const drawer = screen.getByRole('complementary', {name: ariaLabel});
       // The global getComputedStyle stub only reads inline styles. Check the
-      // generated base rule so these assertions also catch a missing CSS override.
+      // generated rules to verify the panel's placement and minimum width.
       const rules = Array.from(document.styleSheets).flatMap(sheet =>
         Array.from(sheet.cssRules)
       );
@@ -440,10 +440,18 @@ describe('GlobalDrawer', () => {
       } else {
         expect(dockedRule).toBeUndefined();
       }
-      expect(drawer).toHaveStyle({
-        top: `${topOffset}px`,
-        height: `calc(100% - ${topOffset}px)`,
-      });
+      const panelRules = rules.filter(
+        (rule): rule is CSSStyleRule =>
+          rule instanceof CSSStyleRule && drawer.matches(rule.selectorText)
+      );
+      expect(
+        panelRules.some(rule => rule.style.getPropertyValue('top') === `${topOffset}px`)
+      ).toBe(true);
+      expect(
+        panelRules.some(
+          rule => rule.style.getPropertyValue('height') === `calc(100% - ${topOffset}px)`
+        )
+      ).toBe(true);
 
       await userEvent.click(screen.getByTestId('drawer-test-close'));
       await waitForDrawerToHide(ariaLabel);

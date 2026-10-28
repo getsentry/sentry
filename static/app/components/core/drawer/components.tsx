@@ -85,6 +85,9 @@ function DrawerPanel({
           mode={mode}
           dockedPaneWidth={dockedPaneWidth}
           topOffset={dockedPaneTop === undefined ? undefined : `${dockedPaneTop}px`}
+          height={
+            dockedPaneTop === undefined ? undefined : `calc(100% - ${dockedPaneTop}px)`
+          }
           ariaLabel={ariaLabel}
           position="right"
           ref={mergeRefs(panelRef, ref, (node: HTMLDivElement | null) =>
@@ -246,7 +249,7 @@ const DrawerSlidePanel = styled(SlideOverPanel)<{dockedPaneWidth?: number}>`
   border-left: 1px solid ${p => p.theme.tokens.border.primary};
   position: relative;
   pointer-events: auto;
-  height: 100%;
+  height: ${p => p.height ?? '100%'};
 
   /* Extend the panel's background 20px past its right edge so the bounce-in
      overshoot doesn't briefly expose the page beneath. A box-shadow is used
@@ -278,7 +281,7 @@ const DrawerSlidePanel = styled(SlideOverPanel)<{dockedPaneWidth?: number}>`
       : null}
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    top: 0;
+    top: ${p => p.topOffset ?? 0};
     bottom: 0;
     left: 0;
     right: 0;
