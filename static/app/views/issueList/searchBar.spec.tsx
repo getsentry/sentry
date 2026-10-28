@@ -112,6 +112,42 @@ describe('IssueListSearchBar', () => {
         await screen.findByRole('option', {name: 'tags[message]'})
       ).toBeInTheDocument();
     });
+
+    it('displays tags named like Object properties', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/tags/',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/tags/',
+        body: [
+          {key: '__proto__', name: '__proto__'},
+          {key: 'constructor', name: 'constructor'},
+        ],
+        match: [MockApiClient.matchQuery({dataset: 'events', useFlagsBackend: '0'})],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/tags/',
+        body: [
+          {key: 'constructor', name: 'constructor'},
+          {key: 'toString', name: 'toString'},
+        ],
+        match: [
+          MockApiClient.matchQuery({dataset: 'search_issues', useFlagsBackend: '0'}),
+        ],
+      });
+
+      render(<IssueListSearchBar {...defaultProps} />);
+
+      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Event Tags'}));
+
+      expect(await screen.findByRole('option', {name: '__proto__'})).toBeInTheDocument();
+      expect(
+        await screen.findByRole('option', {name: 'constructor'})
+      ).toBeInTheDocument();
+      expect(await screen.findByRole('option', {name: 'toString'})).toBeInTheDocument();
+    });
   });
 
   describe('Tag Values', () => {
@@ -198,6 +234,40 @@ describe('IssueListSearchBar', () => {
 
       expect(await screen.findByRole('option', {name: 'latest'})).toBeInTheDocument();
       expect(screen.getByRole('option', {name: 'v1.0.0'})).toBeInTheDocument();
+    });
+
+    it('displays tag values named like Object properties', async () => {
+      const makeTagValue = (value: string, count: number) => ({
+        name: value,
+        value,
+        count,
+        firstSeen: '2021-01-01T00:00:00Z',
+        lastSeen: '2021-01-01T00:00:00Z',
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/tags/',
+        body: [{key: 'random', name: 'random'}],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/tags/random/values/',
+        body: [makeTagValue('constructor', 1), makeTagValue('__proto__', 2)],
+        match: [MockApiClient.matchQuery({dataset: 'events'})],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/tags/random/values/',
+        body: [makeTagValue('toString', 3), makeTagValue('__proto__', 4)],
+        match: [MockApiClient.matchQuery({dataset: 'search_issues'})],
+      });
+
+      render(<IssueListSearchBar {...newDefaultProps} />);
+
+      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+      await userEvent.paste('random', {delay: null});
+      await userEvent.click(screen.getByRole('option', {name: 'random'}));
+
+      expect(await screen.findByRole('option', {name: '__proto__'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'toString'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'constructor'})).toBeInTheDocument();
     });
   });
 });

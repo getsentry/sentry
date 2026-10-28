@@ -24,6 +24,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Tag} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {defined} from 'sentry/utils/defined';
 import {
   DEVICE_CLASS_TAG_VALUES,
   FieldKey,
@@ -145,7 +146,7 @@ function FilterActions({
 
     if (filterKeys[key]?.kind === FieldKind.FEATURE_FLAG) {
       const values = await fetchFeatureFlagValues({...fetchParams, organization});
-      return values.map(v => v.value);
+      return values.map(v => v.value).filter(defined);
     }
 
     const [errorsValues, platformValues] = await Promise.all([
@@ -153,9 +154,9 @@ function FilterActions({
       fetchTagValues({...fetchParams, dataset: Dataset.ISSUE_PLATFORM}),
     ]);
 
-    const values = mergeAndSortTagValues(errorsValues, platformValues, 'count').map(
-      v => v.value
-    );
+    const values = mergeAndSortTagValues(errorsValues, platformValues, 'count')
+      .map(v => v.value)
+      .filter(defined);
 
     if (key === FieldKey.RELEASE || key === FieldKey.FIRST_RELEASE) {
       return ['latest', ...values];
