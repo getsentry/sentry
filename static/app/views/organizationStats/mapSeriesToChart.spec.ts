@@ -228,12 +228,18 @@ describe('mapSeriesToChart func', () => {
         intervals: ['2021-01-01T00:00:00Z'],
         groups: [
           {
-            by: {outcome: 'rate_limited', reason: 'project_category_pause'},
+            by: {
+              outcome: 'rate_limited',
+              reason: 'project_category_pause_growth_limits',
+            },
             totals: {'sum(quantity)': 1},
             series: {'sum(quantity)': [1]},
           },
           {
-            by: {outcome: 'rate_limited', reason: 'organization_pause'},
+            by: {
+              outcome: 'rate_limited',
+              reason: 'organization_pause_cost_centers',
+            },
             totals: {'sum(quantity)': 2},
             series: {'sum(quantity)': [2]},
           },
@@ -247,7 +253,7 @@ describe('mapSeriesToChart func', () => {
 
     expect(mappedSeries.chartSubLabels.map(subLabel => subLabel.label)).toEqual([
       'Pause (solutions.sentry.io)',
-      'Org Pause (solutions.sentry.io)',
+      'Organization Pause (solutions.sentry.io)',
     ]);
   });
 
