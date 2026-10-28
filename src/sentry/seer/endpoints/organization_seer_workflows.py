@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from collections.abc import Collection, Sequence
-from functools import partial
+from collections.abc import Sequence
+from datetime import datetime
 from typing import TypedDict
 
-from django.db.models import Q, prefetch_related_objects
+from django.db.models import Prefetch, prefetch_related_objects
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.exceptions import NotFound
@@ -17,20 +17,18 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
-from sentry.api.serializers import serialize
-from sentry.api.serializers.models.seer_agentic_triage_run import (  # noqa: F401 -- registers serializer
-    SeerAgenticTriageRunResponse,
-    SeerAgenticTriageRunSerializer,
-)
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.db.models.fields.bounded import I64_MAX
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.seer.models.workflow import SeerWorkflowRun, SeerWorkflowStrategy
+from sentry.seer.models.workflow import (
+    SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
+    SeerWorkflowRun,
+    SeerWorkflowRunExecution,
+    SeerWorkflowStrategy,
+)
 from sentry.seer.monitor_cleanup.runs import create_monitor_cleanup_run
-from sentry.seer.monitor_cleanup.schemas import MonitorCleanupRunExtras, MonitorCleanupRunResponse
-from sentry.seer.workflows.runs import get_workflow_run_status
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
@@ -43,11 +41,47 @@ class WorkflowRunCreateResponse(TypedDict):
 
 
 class WorkflowRunListSerializer(serializers.Serializer):
-    workflow_config_id = serializers.IntegerField(required=False, min_value=1, max_value=I64_MAX)
+    config = serializers.IntegerField(
+        required=False,
+        min_value=1,
+        max_value=I64_MAX,
+        help_text="The workflow config ID to filter runs by. Omit to list runs across configs.",
+    )
 
 
 class WorkflowRunListErrorResponse(TypedDict):
     detail: str | dict[str, list[str]]
+
+
+class SeerWorkflowErrorResponse(TypedDict):
+    code: str
+    message: str
+
+
+class SeerWorkflowExecutionResponse(TypedDict):
+    id: str
+    seerRunId: str | None
+    status: str | None
+    dateAdded: datetime
+    dateUpdated: datetime
+    dateCompleted: datetime | None
+    error: SeerWorkflowErrorResponse | None
+
+
+class SeerWorkflowRunResponse(TypedDict):
+    id: str
+    workflowConfigId: str
+    triggerKey: str | None
+    status: str | None
+    dateAdded: datetime
+    dateUpdated: datetime
+    dateCompleted: datetime | None
+    error: SeerWorkflowErrorResponse | None
+    executions: list[SeerWorkflowExecutionResponse]
+
+
+class SeerWorkflowRunsResponse(TypedDict):
+    runs: list[SeerWorkflowRunResponse]
 
 
 class OrganizationSeerWorkflowsPermission(OrganizationPermission):
@@ -79,101 +113,67 @@ class OrganizationSeerWorkflowsEndpoint(OrganizationEndpoint):
         operation_id="List Seer workflow runs",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, CursorQueryParam, WorkflowRunListSerializer],
         responses={
-            200: inline_sentry_response_serializer(
-                "SeerWorkflowRuns", list[SeerAgenticTriageRunResponse | MonitorCleanupRunResponse]
-            ),
+            200: inline_sentry_response_serializer("SeerWorkflowRuns", SeerWorkflowRunsResponse),
             400: inline_sentry_response_serializer(
                 "SeerWorkflowRunListError", WorkflowRunListErrorResponse
             ),
         },
     )
     def get(self, request: Request, organization: Organization) -> Response:
-        """List visible workflow runs, newest first.
+        """List runs for Seer automation configs, newest first, with their executions.
 
-        Optionally filter by one positive integer ``workflow_config_id``. Invalid or
-        repeated values return 400 with a ``detail`` error. Unknown configurations
-        and configurations with no visible matching runs return an empty list.
-        Pagination links are returned in headers.
+        Optionally filter by one positive integer ``config`` ID. Invalid or repeated
+        values return 400 with a ``detail`` error. Unknown configs and configs with
+        no visible runs return an empty ``runs`` list. Pagination links are in headers.
+
+        Status and completion time come from each run or execution's lifecycle.
+        Historical rows without lifecycle tracking retain null statuses. ``error``
+        contains only a display-safe code and message, or null when absent.
+        Internal snapshots, inputs, and strategy-specific metadata are not exposed.
+        ``seerRunId`` is the linked Seer run UUID, or null when there is no linked run.
+        Members with limited project access only see runs whose saved snapshot
+        names projects they can access. Runs without a saved scope are hidden
+        from those members.
         """
-        triage_enabled = features.has("organizations:seer-night-shift", organization)
-        cleanup_enabled = features.has(
-            "organizations:seer-workflows-monitor-cleanup", organization, actor=request.user
-        )
-        if not triage_enabled and not cleanup_enabled:
+        if not features.has("organizations:seer-automations", organization, actor=request.user):
             raise NotFound
 
-        if len(request.query_params.getlist("workflow_config_id")) > 1:
-            return Response({"detail": "Supply only one workflow_config_id."}, status=400)
+        if len(request.query_params.getlist("config")) > 1:
+            return Response({"detail": "Supply only one config."}, status=400)
         serializer = WorkflowRunListSerializer(data=request.query_params.dict())
         if not serializer.is_valid():
             return Response({"detail": serializer.errors}, status=400)
 
-        # Owners, managers, and open membership can already open every project.
-        # Everyone else only sees runs that name projects they can access.
-        project_scoped = cleanup_enabled or (
-            triage_enabled and not request.access.has_global_access
+        runs = SeerWorkflowRun.objects.filter(
+            organization=organization,
+            workflow_config__organization=organization,
+            workflow_config__strategy__in=SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
         )
-        projects = (
-            self.get_projects(request, organization, include_all_accessible=True)
-            if project_scoped
-            else []
-        )
-        accessible_project_ids = [project.id for project in projects]
-
-        visible_runs = Q(pk__in=[])
-        if triage_enabled:
-            # Historical Agentic triage runs may not have a workflow config.
-            triage_runs = Q(workflow_config__strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE) | Q(
-                workflow_config__isnull=True
+        config_id = serializer.validated_data.get("config")
+        if config_id is not None:
+            runs = runs.filter(workflow_config_id=config_id)
+        if not request.access.has_global_access:
+            projects = self.get_projects(request, organization, include_all_accessible=True)
+            runs = runs.filter(
+                extras__snapshot__project_ids__contained_by=[project.id for project in projects]
             )
-            if request.access.has_global_access:
-                visible_runs |= triage_runs
-            else:
-                visible_runs |= triage_runs & _triage_runs_visible_for_projects(
-                    accessible_project_ids
-                )
-        if cleanup_enabled:
-            # Until scanned projects are recorded, only the triggering user can see the run.
-            cleanup_visibility = ~Q(executions__seer_run__agent__extras__project_ids=[])
-            if request.user.is_authenticated:
-                cleanup_visibility |= Q(executions__seer_run__user_id=request.user.id)
-            visible_runs |= (
-                Q(
-                    workflow_config__strategy=SeerWorkflowStrategy.DUPLICATE_MONITORS,
-                    executions__seer_run__agent__extras__project_ids__contained_by=[
-                        str(project.id) for project in projects
-                    ],
-                )
-                & cleanup_visibility
-            )
-
-        runs = (
-            SeerWorkflowRun.objects.filter(visible_runs, organization=organization)
-            .select_related("workflow_config")
-            .distinct()
-        )
-        workflow_config_id = serializer.validated_data.get("workflow_config_id")
-        if workflow_config_id is not None:
-            runs = runs.filter(workflow_config_id=workflow_config_id)
 
         return self.paginate(
             request=request,
             queryset=runs,
             order_by=("-date_added", "-id"),
-            on_results=partial(
-                serialize_workflow_page,
-                request=request,
-                accessible_project_ids=(
-                    None if request.access.has_global_access else set(accessible_project_ids)
-                ),
-            ),
             paginator_cls=OffsetPaginator,
+            on_results=serialize_workflow_runs,
         )
 
     @extend_schema(
         operation_id="Start a Seer workflow run",
         request=WorkflowRunCreateSerializer,
-        responses={202: WorkflowRunCreateResponse},
+        responses={
+            202: inline_sentry_response_serializer(
+                "SeerWorkflowRunCreate", WorkflowRunCreateResponse
+            ),
+        },
     )
     def post(self, request: Request, organization: Organization) -> Response:
         serializer = WorkflowRunCreateSerializer(data=request.data)
@@ -183,70 +183,59 @@ class OrganizationSeerWorkflowsEndpoint(OrganizationEndpoint):
         return Response({"runId": str(run.id)}, status=202)
 
 
-def _triage_runs_visible_for_projects(accessible_project_ids: Sequence[int]) -> Q:
-    """Hide a run only when it names a project the caller cannot access.
-
-    Manual runs store ``extras.target_project_ids``. Cron runs omit that list.
-    Those stay in the history, and the serializer drops result groups outside
-    the caller's projects. An empty target list is contained by every project
-    list, so it does not count as naming a project.
-    """
-    targets_declared = Q(extras__has_key="target_project_ids") & ~Q(extras__target_project_ids=[])
-    targets_visible = Q(extras__target_project_ids__contained_by=list(accessible_project_ids))
-    visible: Q = (targets_declared & targets_visible) | ~targets_declared
-    return visible
-
-
-def serialize_workflow_page(
-    runs: Sequence[SeerWorkflowRun],
-    request: Request,
-    accessible_project_ids: Collection[int] | None = None,
-) -> list[SeerAgenticTriageRunResponse | MonitorCleanupRunResponse]:
-    cleanup = [
-        run
-        for run in runs
-        if run.workflow_config
-        and run.workflow_config.strategy == SeerWorkflowStrategy.DUPLICATE_MONITORS
-    ]
-    triage = [run for run in runs if run not in cleanup]
-    results: dict[str, SeerAgenticTriageRunResponse | MonitorCleanupRunResponse] = {
-        result["id"]: result
-        for result in serialize(
-            triage,
-            request.user,
-            SeerAgenticTriageRunSerializer(),
-            accessible_project_ids=accessible_project_ids,
-        )
-    }
-    prefetch_related_objects(cleanup, "executions__seer_run__agent")
-    for run in cleanup:
-        results[str(run.id)] = _serialize_monitor_cleanup_run(run)
-    return [results[str(run.id)] for run in runs]
-
-
-def _serialize_monitor_cleanup_run(run: SeerWorkflowRun) -> MonitorCleanupRunResponse:
-    execution = run.executions.all()[0]
-    assert execution.seer_run is not None
-    agent_run = execution.seer_run.agent
-    extras: MonitorCleanupRunExtras = agent_run.extras
-    status = get_workflow_run_status(agent_run)
-    run_uuid = str(agent_run.run.uuid)
+def serialize_workflow_runs(runs: Sequence[SeerWorkflowRun]) -> SeerWorkflowRunsResponse:
+    prefetch_related_objects(
+        runs,
+        Prefetch(
+            "executions",
+            queryset=SeerWorkflowRunExecution.objects.select_related("seer_run").order_by("id"),
+        ),
+    )
     return {
-        "id": str(run.id),
-        "source": extras.get("source"),
-        "seerRunId": run_uuid,
-        "dateAdded": run.date_added,
-        "dateCompleted": run.date_completed,
-        "strategy": "duplicate_monitors",
-        "extras": {"status": status["status"]},
-        "errorMessage": status["error"],
-        "results": [
+        "runs": [
             {
-                "id": f"{run_uuid}:{output['projectId']}",
-                "kind": "duplicate_monitors",
-                "seerRunId": run_uuid,
-                "extras": output,
+                "id": str(run.id),
+                "workflowConfigId": str(run.workflow_config_id),
+                "triggerKey": run.trigger_key,
+                "status": run.status,
+                "dateAdded": run.date_added,
+                "dateUpdated": run.date_updated,
+                "dateCompleted": run.date_completed,
+                "error": serialize_workflow_error(run.extras.get("error")),
+                "executions": [
+                    serialize_workflow_execution(execution, organization_id=run.organization_id)
+                    for execution in run.executions.all()
+                ],
             }
-            for output in extras["results"]
-        ],
+            for run in runs
+        ]
     }
+
+
+def serialize_workflow_execution(
+    execution: SeerWorkflowRunExecution, *, organization_id: int
+) -> SeerWorkflowExecutionResponse:
+    seer_run = execution.seer_run
+    return {
+        "id": str(execution.id),
+        "seerRunId": (
+            str(seer_run.uuid)
+            if seer_run is not None and seer_run.organization_id == organization_id
+            else None
+        ),
+        "status": execution.status,
+        "dateAdded": execution.date_added,
+        "dateUpdated": execution.date_updated,
+        "dateCompleted": execution.date_completed,
+        "error": serialize_workflow_error(execution.extras.get("error")),
+    }
+
+
+def serialize_workflow_error(error: object) -> SeerWorkflowErrorResponse | None:
+    if not isinstance(error, dict):
+        return None
+    code = error.get("code")
+    message = error.get("message")
+    if not isinstance(code, str) or not isinstance(message, str):
+        return None
+    return {"code": code, "message": message}
