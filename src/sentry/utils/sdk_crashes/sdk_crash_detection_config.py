@@ -257,7 +257,17 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
             report_fatal_errors=False,
             # used by the JS/RN SDKs
             # https://github.com/getsentry/sentry-javascript/blob/dafd51054d8b2ab2030fa0b16ad0fd70493b6e08/packages/core/src/integrations/captureconsole.ts#L60
-            ignore_mechanism_type={"console"},
+            # The Supabase integration intentionally reports failed Supabase responses via
+            # captureException with an Error constructed inside SDK code, so the stack trace only
+            # contains SDK frames. Hermes infers the frame's function name from the build (e.g.
+            # `Reflect.apply.then$argument_0` or `Proxy$argument_1.apply`), so we ignore these
+            # captures by their explicit mechanism type instead of by stack frame.
+            # https://github.com/getsentry/sentry-javascript/blob/10.47.0/packages/core/src/integrations/supabase.ts
+            ignore_mechanism_type={
+                "console",
+                "auto.db.supabase.auth",
+                "auto.db.supabase.postgres",
+            },
             allow_mechanism_type=set(),
             system_library_path_patterns={
                 r"**/react-native/Libraries/**",
