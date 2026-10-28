@@ -191,6 +191,16 @@ export type MetricOpenPeriodInvestigationSource = {
   type: 'metric_open_period';
 };
 
+export type ManualInvestigationSource = {
+  type: 'manual';
+  /** Without a non-blank prompt, the run waits for input. */
+  prompt?: string;
+  /** Context forwarded to the investigation agent as evidence. */
+  seed?: Record<string, unknown>;
+  /** Timezone-aware ISO-8601 range for the run to look at. */
+  timeRange?: {end: string; start: string};
+};
+
 export type InvestigationCandidate =
   | {status: 'investigate'}
   | {status: 'unavailable'}
