@@ -372,8 +372,13 @@ export function Provider({
         return;
       }
 
-      // rrweb's Replayer throws with fewer than 2 events, which happens when
-      // navigating to a replay whose segments failed to load or are empty.
+      // rrweb's Replayer throws with fewer than 2 events. On the replay details
+      // page this happens when navigating to a replay whose segments failed to
+      // load or are empty: ReplayLoadingState handles that case, but it renders
+      // below this context, so it can't stop a Replayer that's already mounted
+      // from being rebuilt. Restructuring the contexts a replay needs, so that
+      // ReplayLoadingState sits above ReplayContext and its error handling
+      // gates player initialization, would make this guard unnecessary.
       if (events.length < 2) {
         replayerRef.current?.destroy();
         replayerRef.current = null;
