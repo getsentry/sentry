@@ -28,6 +28,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.response_types import (
     DetailResponse,
@@ -239,6 +240,9 @@ class BranchOverrideSerializer(CamelSnakeSerializer):
     )
 
 
+@sentry_schema_serializer(
+    deprecate={"branch_overrides": "Tag-based branch overrides are deprecated."}
+)
 class SeerProjectRepoUpdateSerializer(CamelSnakeSerializer):
     branch_name = serializers.CharField(
         required=False,
@@ -256,7 +260,7 @@ class SeerProjectRepoUpdateSerializer(CamelSnakeSerializer):
         many=True,
         required=False,
         allow_null=False,
-        help_text="Branch overrides selected by matching tags.",
+        help_text="Deprecated. Branch overrides selected by matching tags.",
     )
 
     def validate_branch_overrides(self, value):
@@ -268,6 +272,9 @@ class SeerProjectRepoUpdateSerializer(CamelSnakeSerializer):
         return data
 
 
+@sentry_schema_serializer(
+    deprecate={"branch_overrides": "Tag-based branch overrides are deprecated."}
+)
 class SeerProjectRepoCreateSerializer(CamelSnakeSerializer):
     repository_id = serializers.IntegerField(
         required=True, help_text="The ID of an active, supported repository in the organization."
@@ -288,7 +295,7 @@ class SeerProjectRepoCreateSerializer(CamelSnakeSerializer):
         many=True,
         required=False,
         allow_null=False,
-        help_text="Branch overrides selected by matching tags.",
+        help_text="Deprecated. Branch overrides selected by matching tags.",
     )
 
     def validate_branch_overrides(self, value):
