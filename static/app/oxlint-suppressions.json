@@ -1,7 +1,52 @@
 {
+  "actionCreators/dashboards.tsx": {
+    "layering/dependencies": {
+      "count": 4
+    }
+  },
+  "actionCreators/modal.tsx": {
+    "layering/dependencies": {
+      "count": 3
+    }
+  },
+  "actionCreators/tags.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
   "bootstrap/processInitQueue.spec.tsx": {
     "@sentry/prefer-fake-timers": {
       "count": 1
+    }
+  },
+  "bootstrap/processInitQueue.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "chartcuterie/dashboardsWidget.tsx": {
+    "layering/dependencies": {
+      "count": 5
+    }
+  },
+  "chartcuterie/heatmaps.tsx": {
+    "layering/dependencies": {
+      "count": 4
+    }
+  },
+  "chartcuterie/metricChartOption.tsx": {
+    "layering/dependencies": {
+      "count": 7
+    }
+  },
+  "chartcuterie/metricDetector.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "chartcuterie/timeseries.tsx": {
+    "layering/dependencies": {
+      "count": 6
     }
   },
   "components/acl/featureDisabled.tsx": {
@@ -23,6 +68,9 @@
     },
     "@sentry/scraps/prefer-primitives": {
       "count": 2
+    },
+    "layering/dependencies": {
+      "count": 1
     }
   },
   "components/ai/chat/collapsibleContent.spec.tsx": {
@@ -91,6 +139,11 @@
       "count": 1
     }
   },
+  "components/attributes/attributeDetails.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
   "components/avatarChooser/avatarCropper.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
@@ -99,6 +152,11 @@
   "components/avatarChooser/index.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
+    }
+  },
+  "components/backendJsonFormAdapter/projectMapperAdapter.tsx": {
+    "layering/dependencies": {
+      "count": 1
     }
   },
   "components/badge/groupPriority.tsx": {
@@ -136,6 +194,11 @@
       "count": 3
     }
   },
+  "components/charts/chartWidgetLoader.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
   "components/charts/components/legendCheckbox.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 1
@@ -148,6 +211,11 @@
   },
   "components/charts/groupStatusChart.tsx": {
     "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "components/charts/releaseSeries.tsx": {
+    "layering/dependencies": {
       "count": 1
     }
   },
@@ -182,11 +250,24 @@
       "count": 3
     }
   },
+  "components/commandPalette/ui/commandPaletteGlobalActions.tsx": {
+    "layering/dependencies": {
+      "count": 18
+    }
+  },
+  "components/commandPalette/ui/commandPaletteStateContext.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
   "components/commitRow.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 5
     },
     "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    },
+    "layering/dependencies": {
       "count": 1
     }
   },
@@ -234,6 +315,16 @@
       "count": 2
     }
   },
+  "components/contextPickerModal.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "components/core/badge/alertBadge.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
   "components/core/chat/thinkingBlock.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
       "count": 1
@@ -242,6 +333,11 @@
   "components/core/chat/toolCall.tsx": {
     "@sentry/scraps/prefer-container-responsive-props": {
       "count": 3
+    }
+  },
+  "components/core/drawer/components.tsx": {
+    "layering/dependencies": {
+      "count": 1
     }
   },
   "components/core/drawer/useDrawerResizing.tsx": {
@@ -264,9 +360,19 @@
       "count": 1
     }
   },
+  "components/core/slideOverPanel/slideOverPanel.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
   "components/core/toast/toast.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
       "count": 1
+    }
+  },
+  "components/createAlertButton.tsx": {
+    "layering/dependencies": {
+      "count": 3
     }
   },
   "components/customCommitsResolutionModal.tsx": {
@@ -289,6 +395,44 @@
       "count": 1
     },
     "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    },
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "components/discover/transactionsList.tsx": {
+    "layering/dependencies": {
+      "count": 5
+    }
+  },
+  "components/discover/transactionsTable.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "components/droppedData/drawer/droppedDataChart.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "components/droppedData/drawer/droppedDataDrawer.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/droppedData/drawer/useDroppedDataDrawer.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/droppedData/droppedDataLLMContext.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "components/droppedData/useDroppedData.tsx": {
+    "layering/dependencies": {
       "count": 1
     }
   },
@@ -323,6 +467,46 @@
       "count": 1
     }
   },
+  "components/events/autofix/useAutofixCreatePrGate.ts": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/events/autofix/useExplorerAutofix.tsx": {
+    "layering/dependencies": {
+      "count": 4
+    }
+  },
+  "components/events/autofix/v3/autofixEvidence.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/events/autofix/v3/codeChangesCard.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/events/autofix/v3/useRethinkInChat.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "components/events/autofix/v3/useSeerPanel.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "components/events/autofix/v3/utils.ts": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/events/breadcrumbs/breadcrumbsDataSection.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
   "components/events/breadcrumbs/breadcrumbsDrawer.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -341,34 +525,132 @@
       "count": 1
     }
   },
+  "components/events/contexts/contextDataSection.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "components/events/contexts/knownContext/trace.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
   "components/events/eventAttachments.tsx": {
     "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    },
+    "layering/dependencies": {
+      "count": 5
+    }
+  },
+  "components/events/eventAttachmentsCrashReportsNotice.tsx": {
+    "layering/dependencies": {
       "count": 1
     }
   },
   "components/events/eventDrawer.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 3
+    },
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "components/events/eventEvidence.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "components/events/eventExtraData/index.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "components/events/eventFlamegraph.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "components/events/eventHydrationDiff/replayDiffContent.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "components/events/eventHydrationDiff/replayDiffSection.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "components/events/eventInsightDiff.tsx": {
+    "layering/dependencies": {
+      "count": 3
     }
   },
   "components/events/eventMessage.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
+    },
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/events/eventProcessingErrors.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "components/events/eventReplay/index.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/events/eventReplay/replayClipPreviewPlayer.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/events/eventReplay/replayClipSection.tsx": {
+    "layering/dependencies": {
+      "count": 4
     }
   },
   "components/events/eventReplay/replayInlineOnboardingPanel.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
+    },
+    "layering/dependencies": {
+      "count": 2
     }
   },
   "components/events/eventReplay/replayPreviewPlayer.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 1
+    },
+    "layering/dependencies": {
+      "count": 3
     }
   },
   "components/events/eventReplay/staticReplayPreview.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
+    },
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "components/events/eventSdk.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "components/events/eventStackTrace.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/events/eventStatisticalDetector/breakpointChartOptions.tsx": {
+    "layering/dependencies": {
+      "count": 4
     }
   },
   "components/events/eventStatisticalDetector/eventDifferentialFlamegraph.tsx": {
@@ -377,6 +659,24 @@
     },
     "@sentry/scraps/prefer-primitives": {
       "count": 5
+    },
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/events/eventStatisticalDetector/eventRegressionSummary.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "components/events/eventStatisticalDetector/functionBreakpointChart.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "components/events/eventTags/eventTagsTreeRow.tsx": {
+    "layering/dependencies": {
+      "count": 7
     }
   },
   "components/events/eventTagsAndScreenshot/screenshot/modal.tsx": {
@@ -385,6 +685,36 @@
     },
     "@sentry/scraps/prefer-primitives": {
       "count": 2
+    }
+  },
+  "components/events/eventTagsAndScreenshot/screenshot/screenshotDataSection.tsx": {
+    "layering/dependencies": {
+      "count": 4
+    }
+  },
+  "components/events/eventTagsAndScreenshot/tags.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "components/events/eventViewHierarchy.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "components/events/eventXrayDiff.tsx": {
+    "layering/dependencies": {
+      "count": 3
+    }
+  },
+  "components/events/featureFlags/eventFeatureFlagSection.tsx": {
+    "layering/dependencies": {
+      "count": 4
+    }
+  },
+  "components/events/featureFlags/flagActionDropdown.tsx": {
+    "layering/dependencies": {
+      "count": 3
     }
   },
   "components/events/featureFlags/onboarding/featureFlagOnboardingLayout.tsx": {
@@ -398,6 +728,9 @@
   "components/events/featureFlags/onboarding/featureFlagOnboardingSidebar.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 3
+    },
+    "layering/dependencies": {
+      "count": 1
     }
   },
   "components/events/featureFlags/onboarding/featureFlagOtherPlatformOnboarding.tsx": {
@@ -418,6 +751,11 @@
       "count": 1
     }
   },
+  "components/events/groupingInfo/groupingInfoSection.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
   "components/events/highlights/editHighlightsModal.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 1
@@ -429,10 +767,16 @@
   "components/events/highlights/highlightsDataSection.tsx": {
     "@sentry/scraps/prefer-container-responsive-props": {
       "count": 1
+    },
+    "layering/dependencies": {
+      "count": 2
     }
   },
   "components/events/highlights/highlightsIconSummary.tsx": {
     "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    },
+    "layering/dependencies": {
       "count": 2
     }
   },
@@ -442,6 +786,9 @@
     },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
+    },
+    "layering/dependencies": {
+      "count": 3
     }
   },
   "components/events/interfaces/crashContent/exception/mechanism.tsx": {
@@ -462,6 +809,11 @@
       "count": 1
     }
   },
+  "components/events/interfaces/csp/index.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
   "components/events/interfaces/debugMeta/debugImageDetails/candidate/information/index.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -472,8 +824,28 @@
       "count": 2
     }
   },
+  "components/events/interfaces/debugMeta/debugImageDetails/index.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
   "components/events/interfaces/debugMeta/index.spec.tsx": {
     "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "components/events/interfaces/debugMeta/index.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "components/events/interfaces/debugMeta/proguardSection.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "components/events/interfaces/exception.tsx": {
+    "layering/dependencies": {
       "count": 1
     }
   },
@@ -496,6 +868,9 @@
     },
     "@sentry/scraps/prefer-container-responsive-props": {
       "count": 1
+    },
+    "layering/dependencies": {
+      "count": 1
     }
   },
   "components/events/interfaces/frame/openInContextLine.tsx": {
@@ -516,18 +891,57 @@
       "count": 3
     }
   },
+  "components/events/interfaces/message.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
   "components/events/interfaces/nativeFrame.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 1
+    },
+    "layering/dependencies": {
+      "count": 2
     }
   },
   "components/events/interfaces/performance/anrRootCause.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
+    },
+    "layering/dependencies": {
+      "count": 5
+    }
+  },
+  "components/events/interfaces/performance/eventTraceView.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "components/events/interfaces/performance/spanEvidence.tsx": {
+    "layering/dependencies": {
+      "count": 2
     }
   },
   "components/events/interfaces/performance/spanEvidenceKeyValueList.tsx": {
     "@sentry/scraps/no-dom-coupling": {
+      "count": 2
+    },
+    "layering/dependencies": {
+      "count": 8
+    }
+  },
+  "components/events/interfaces/performance/spanEvidenceTraceView.tsx": {
+    "layering/dependencies": {
+      "count": 9
+    }
+  },
+  "components/events/interfaces/performance/tracePreview.tsx": {
+    "layering/dependencies": {
+      "count": 12
+    }
+  },
+  "components/events/interfaces/request/index.tsx": {
+    "layering/dependencies": {
       "count": 2
     }
   },
@@ -553,6 +967,9 @@
     },
     "@sentry/scraps/prefer-primitives": {
       "count": 2
+    },
+    "layering/dependencies": {
+      "count": 1
     }
   },
   "components/events/interfaces/stackTraceContext.spec.tsx": {
@@ -560,9 +977,17 @@
       "count": 1
     }
   },
+  "components/events/interfaces/template.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
   "components/events/interfaces/threads.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
+    },
+    "layering/dependencies": {
+      "count": 3
     }
   },
   "components/events/interfaces/threads/threadSelector/index.tsx": {
@@ -580,9 +1005,62 @@
       "count": 1
     }
   },
+  "components/events/interfaces/uptime/uptimeAssertionsSection.tsx": {
+    "layering/dependencies": {
+      "count": 3
+    }
+  },
+  "components/events/meta/annotatedText/utils.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "components/events/metrics/metricsDrawer.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "components/events/metrics/metricsSection.tsx": {
+    "layering/dependencies": {
+      "count": 6
+    }
+  },
+  "components/events/metrics/useMetricsIssueSection.tsx": {
+    "layering/dependencies": {
+      "count": 3
+    }
+  },
+  "components/events/ourlogs/ourlogsDrawer.tsx": {
+    "layering/dependencies": {
+      "count": 5
+    }
+  },
   "components/events/ourlogs/ourlogsSection.tsx": {
     "@sentry/scraps/no-manual-table": {
       "count": 1
+    },
+    "layering/dependencies": {
+      "count": 9
+    }
+  },
+  "components/events/ourlogs/useEventLogsUrl.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "components/events/packageData.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "components/events/profileEventEvidence.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "components/events/rrwebIntegration.tsx": {
+    "layering/dependencies": {
+      "count": 2
     }
   },
   "components/events/rrwebReplayer/baseRRWebReplayer.tsx": {
@@ -592,6 +1070,9 @@
   },
   "components/events/traceEventDataSection.tsx": {
     "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    },
+    "layering/dependencies": {
       "count": 1
     }
   },
@@ -630,9 +1111,44 @@
       "count": 1
     }
   },
+  "components/featureFlags/hooks/useFetchGroupAndEvent.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/featureFlags/hooks/useFlagsInEvent.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
   "components/featureShowcase.spec.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 8
+    }
+  },
+  "components/feedback/details/feedbackEmptyDetails.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/feedback/details/feedbackErrorDetails.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/feedback/feedbackItem/feedbackActivitySection.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/feedback/feedbackItem/feedbackAssignedTo.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/feedback/feedbackItem/feedbackItem.tsx": {
+    "layering/dependencies": {
+      "count": 1
     }
   },
   "components/feedback/feedbackItem/feedbackItemHeader.tsx": {
@@ -658,6 +1174,9 @@
   "components/feedback/feedbackItem/feedbackShortId.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 2
+    },
+    "layering/dependencies": {
+      "count": 1
     }
   },
   "components/feedback/feedbackItem/feedbackUrl.tsx": {
@@ -688,6 +1207,11 @@
       "count": 2
     }
   },
+  "components/feedback/feedbackSearch.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
   "components/feedback/list/feedbackListHeader.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -695,6 +1219,9 @@
   },
   "components/feedback/list/feedbackListItem.tsx": {
     "@sentry/scraps/no-dom-coupling": {
+      "count": 1
+    },
+    "layering/dependencies": {
       "count": 1
     }
   },
@@ -710,6 +1237,21 @@
   },
   "components/feedback/useDeleteFeedback.spec.tsx": {
     "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "components/feedback/useDeleteFeedback.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/feedback/useRedirectToFeedbackFromEvent.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/feedbackButton/useFeedbackSDKIntegration.tsx": {
+    "layering/dependencies": {
       "count": 1
     }
   },
@@ -779,6 +1321,9 @@
   "components/group/assigneeSelector.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 1
+    },
+    "layering/dependencies": {
+      "count": 1
     }
   },
   "components/group/externalIssuesList/issueTrackerActions.tsx": {
@@ -806,9 +1351,19 @@
       "count": 1
     }
   },
+  "components/group/issueSeerBadge.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
   "components/group/seenInfo.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 3
+    }
+  },
+  "components/group/sentryAppExternalIssueForm.tsx": {
+    "layering/dependencies": {
+      "count": 1
     }
   },
   "components/group/tagFacets/tagFacetsDistributionMeter.tsx": {
@@ -824,6 +1379,9 @@
   "components/groupHeaderRow.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 1
+    },
+    "layering/dependencies": {
+      "count": 2
     }
   },
   "components/groupMetaRow.tsx": {
@@ -853,6 +1411,11 @@
   "components/groupPreviewTooltip/stackTracePreview.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
+    }
+  },
+  "components/groupPreviewTooltip/utils.tsx": {
+    "layering/dependencies": {
+      "count": 3
     }
   },
   "components/guidedSteps/guidedSteps.tsx": {
@@ -888,6 +1451,9 @@
   },
   "components/idBadge/projectBadge.tsx": {
     "@sentry/scraps/no-dom-coupling": {
+      "count": 1
+    },
+    "layering/dependencies": {
       "count": 1
     }
   },
@@ -927,16 +1493,35 @@
   "components/messagingIntegrations/addIntegrationRow.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
+    },
+    "layering/dependencies": {
+      "count": 2
     }
   },
   "components/messagingIntegrations/messagingIntegrationModal.tsx": {
     "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    },
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/metrics/chart/chart.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/modals/addTempestCredentialsModal.tsx": {
+    "layering/dependencies": {
       "count": 1
     }
   },
   "components/modals/createNewIntegrationModal.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
+    },
+    "layering/dependencies": {
+      "count": 2
     }
   },
   "components/modals/createReleaseIntegrationModal.tsx": {
@@ -952,11 +1537,17 @@
   "components/modals/dashboardWidgetQuerySelectorModal.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 3
+    },
+    "layering/dependencies": {
+      "count": 1
     }
   },
   "components/modals/dataWidgetViewerModal.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
+    },
+    "layering/dependencies": {
+      "count": 20
     }
   },
   "components/modals/demoEndModal.tsx": {
@@ -986,6 +1577,14 @@
   "components/modals/editOwnershipRulesModal.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
+    },
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/modals/emailVerificationModal.tsx": {
+    "layering/dependencies": {
+      "count": 2
     }
   },
   "components/modals/explore/saveQueryModal.tsx": {
@@ -994,6 +1593,9 @@
     },
     "@sentry/scraps/prefer-primitives": {
       "count": 3
+    },
+    "layering/dependencies": {
+      "count": 2
     }
   },
   "components/modals/featureTourModal.tsx": {
@@ -1004,11 +1606,17 @@
   "components/modals/importDashboardFromFileModal.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
+    },
+    "layering/dependencies": {
+      "count": 3
     }
   },
   "components/modals/insightChartModal.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
+    },
+    "layering/dependencies": {
+      "count": 1
     }
   },
   "components/modals/inviteMembersModal/index.tsx": {
@@ -1019,10 +1627,16 @@
   "components/modals/inviteMissingMembersModal/index.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
+    },
+    "layering/dependencies": {
+      "count": 1
     }
   },
   "components/modals/issueOwnershipRuleModal.tsx": {
     "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    },
+    "layering/dependencies": {
       "count": 1
     }
   },
@@ -1033,6 +1647,11 @@
   },
   "components/modals/privateGamingSdkAccessModal.tsx": {
     "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "components/modals/recoveryOptionsModal.tsx": {
+    "layering/dependencies": {
       "count": 1
     }
   },
@@ -1056,8 +1675,26 @@
       "count": 1
     }
   },
+  "components/modals/textWidgetViewerModal.tsx": {
+    "layering/dependencies": {
+      "count": 3
+    }
+  },
   "components/modals/widgetBuilder/addToDashboardModal.tsx": {
     "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    },
+    "layering/dependencies": {
+      "count": 11
+    }
+  },
+  "components/noProjectMessage.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/onboarding/agenticProgress/firstIssueCard.tsx": {
+    "layering/dependencies": {
       "count": 1
     }
   },
@@ -1080,6 +1717,9 @@
     },
     "@sentry/scraps/prefer-primitives": {
       "count": 2
+    },
+    "layering/dependencies": {
+      "count": 1
     }
   },
   "components/onboarding/gettingStartedDoc/contentBlocks/defaultRenderers.tsx": {
@@ -1118,14 +1758,79 @@
       "count": 3
     }
   },
+  "components/onboarding/scm/scmAlertFrequency.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "components/onboarding/scm/scmAlertFrequencySection.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "components/onboarding/scm/scmFeatureSelectionCards.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/onboarding/scm/scmIssueAlertNotificationOptions.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "components/onboarding/scm/scmMessagingChannelPicker.tsx": {
+    "layering/dependencies": {
+      "count": 3
+    }
+  },
+  "components/onboarding/scm/scmMessagingIntegrationAlertRule.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "components/onboarding/scm/scmMessagingProviderRow/index.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
   "components/onboarding/scm/scmPlatformFeaturesCore.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
       "count": 1
     }
   },
+  "components/onboarding/scm/scmPlatformFeaturesCore.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/onboarding/scm/scmProviderPills.tsx": {
+    "layering/dependencies": {
+      "count": 3
+    }
+  },
+  "components/onboarding/scm/scmStepHeader.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/onboarding/scm/useScmMessagingSetupValidation.ts": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/onboarding/scm/useScmProjectDetails.ts": {
+    "layering/dependencies": {
+      "count": 3
+    }
+  },
   "components/onboarding/stepper.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
+    }
+  },
+  "components/onboarding/useCreateProjectWorkflow.ts": {
+    "layering/dependencies": {
+      "count": 2
     }
   },
   "components/onboardingWizard/content.tsx": {
@@ -1134,10 +1839,23 @@
     },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
+    },
+    "layering/dependencies": {
+      "count": 1
     }
   },
   "components/onboardingWizard/modalTask.tsx": {
     "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "components/onboardingWizard/taskConfig.tsx": {
+    "layering/dependencies": {
+      "count": 6
+    }
+  },
+  "components/pageFilters/container.tsx": {
+    "layering/dependencies": {
       "count": 1
     }
   },
@@ -1146,6 +1864,11 @@
       "count": 8
     },
     "@sentry/scraps/prefer-container-responsive-props": {
+      "count": 1
+    }
+  },
+  "components/pageFilters/project/projectPageFilter.tsx": {
+    "layering/dependencies": {
       "count": 1
     }
   },
@@ -1164,8 +1887,23 @@
       "count": 1
     }
   },
+  "components/performance/searchBar.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/performance/spanSearchQueryBuilder.tsx": {
+    "layering/dependencies": {
+      "count": 5
+    }
+  },
   "components/performance/teamKeyTransaction.tsx": {
     "@sentry/scraps/no-dom-coupling": {
+      "count": 1
+    }
+  },
+  "components/performance/transactionSearchQueryBuilder.tsx": {
+    "layering/dependencies": {
       "count": 1
     }
   },
@@ -1215,11 +1953,61 @@
       "count": 2
     }
   },
+  "components/preprod/preprodBuildsDistributionTable.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/preprod/preprodBuildsSizeTable.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "components/preprod/preprodBuildsSnapshotTable.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/preprod/preprodBuildsTable.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/preprod/preprodBuildsTableCommon.tsx": {
+    "layering/dependencies": {
+      "count": 3
+    }
+  },
+  "components/preprod/preprodSearchBar.tsx": {
+    "layering/dependencies": {
+      "count": 4
+    }
+  },
+  "components/preprod/snapshotStatusBadge.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
   "components/profiling/arrayLinks.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 1
     },
     "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "components/profiling/flamegraph/aggregateFlamegraph.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "components/profiling/flamegraph/aggregateFlamegraphSidePanel.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/profiling/flamegraph/aggregateFlamegraphTreeTable.tsx": {
+    "layering/dependencies": {
       "count": 2
     }
   },
@@ -1233,9 +2021,19 @@
       "count": 1
     }
   },
+  "components/profiling/flamegraph/continuousFlamegraph.tsx": {
+    "layering/dependencies": {
+      "count": 3
+    }
+  },
   "components/profiling/flamegraph/flamegraph.spec.tsx": {
     "@sentry/prefer-fake-timers": {
       "count": 1
+    }
+  },
+  "components/profiling/flamegraph/flamegraph.tsx": {
+    "layering/dependencies": {
+      "count": 3
     }
   },
   "components/profiling/flamegraph/flamegraphDrawer/flamegraphDrawer.tsx": {
@@ -1246,6 +2044,9 @@
   "components/profiling/flamegraph/flamegraphDrawer/profileDetails.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 4
+    },
+    "layering/dependencies": {
+      "count": 5
     }
   },
   "components/profiling/flamegraph/flamegraphDrawer/styles.tsx": {
@@ -1266,6 +2067,21 @@
       "count": 1
     }
   },
+  "components/profiling/flamegraph/flamegraphSpans.tsx": {
+    "layering/dependencies": {
+      "count": 3
+    }
+  },
+  "components/profiling/flamegraph/flamegraphSpansContextMenu.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/profiling/flamegraph/flamegraphSpanTooltip.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
   "components/profiling/flamegraph/flamegraphToolbar/differentialFlamegraphToolbar.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -1276,6 +2092,9 @@
       "count": 1
     },
     "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    },
+    "layering/dependencies": {
       "count": 1
     }
   },
@@ -1302,6 +2121,21 @@
       "count": 1
     }
   },
+  "components/profiling/flamegraph/interactions/useCanvasZoomOrScroll.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/profiling/profileEventsTable.tsx": {
+    "layering/dependencies": {
+      "count": 5
+    }
+  },
+  "components/profiling/profileHeader.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
   "components/profiling/profilingContextMenu.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 5
@@ -1316,6 +2150,11 @@
     },
     "@sentry/scraps/prefer-primitives": {
       "count": 2
+    }
+  },
+  "components/profiling/suspectFunctions/suspectFunctionsTable.tsx": {
+    "layering/dependencies": {
+      "count": 1
     }
   },
   "components/progressMarker.tsx": {
@@ -1352,10 +2191,16 @@
   "components/replays/breadcrumbs/breadcrumbIssueLink.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
+    },
+    "layering/dependencies": {
+      "count": 1
     }
   },
   "components/replays/breadcrumbs/breadcrumbItem.tsx": {
     "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    },
+    "layering/dependencies": {
       "count": 1
     }
   },
@@ -1392,6 +2237,11 @@
       "count": 1
     },
     "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "components/replays/breadcrumbs/selectorList.tsx": {
+    "layering/dependencies": {
       "count": 1
     }
   },
@@ -1473,6 +2323,11 @@
       "count": 2
     }
   },
+  "components/replays/releaseDropdownFilter.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
   "components/replays/replayContext.spec.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
@@ -1481,6 +2336,11 @@
   "components/replays/replayLiveIndicator.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
       "count": 2
+    }
+  },
+  "components/replays/replayLiveIndicator.tsx": {
+    "layering/dependencies": {
+      "count": 1
     }
   },
   "components/replays/replayPlatformIcon.spec.tsx": {
@@ -1507,6 +2367,9 @@
     },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
+    },
+    "layering/dependencies": {
+      "count": 2
     }
   },
   "components/replays/replayView.tsx": {
@@ -1515,6 +2378,9 @@
     },
     "@sentry/scraps/prefer-primitives": {
       "count": 2
+    },
+    "layering/dependencies": {
+      "count": 3
     }
   },
   "components/replays/table/deleteReplays.tsx": {
@@ -1523,6 +2389,11 @@
     },
     "@sentry/scraps/prefer-primitives": {
       "count": 2
+    }
+  },
+  "components/replays/table/replayTable.tsx": {
+    "layering/dependencies": {
+      "count": 1
     }
   },
   "components/replays/table/replayTableColumns.tsx": {
@@ -1555,6 +2426,14 @@
   },
   "components/replays/virtualizedGrid/detailsSplitDivider.tsx": {
     "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    },
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/replays/virtualizedGrid/gridTable.tsx": {
+    "layering/dependencies": {
       "count": 1
     }
   },
@@ -1625,6 +2504,11 @@
       "count": 1
     }
   },
+  "components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
   "components/searchQueryBuilder/askSeerCombobox/askSeerSearchListBox.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 1
@@ -1643,6 +2527,16 @@
   "components/searchQueryBuilder/askSeerCombobox/queryTokens.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
+    }
+  },
+  "components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup.ts": {
+    "layering/dependencies": {
+      "count": 3
+    }
+  },
+  "components/searchQueryBuilder/askSeerCombobox/utils.ts": {
+    "layering/dependencies": {
+      "count": 3
     }
   },
   "components/searchQueryBuilder/index.spec.tsx": {
@@ -1722,6 +2616,9 @@
   "components/searchQueryBuilder/tokens/filterKeyListBox/utils.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
+    },
+    "layering/dependencies": {
+      "count": 1
     }
   },
   "components/searchQueryBuilder/tokens/freeText.tsx": {
@@ -1770,13 +2667,88 @@
       "count": 4
     }
   },
+  "components/seer/markdown/embeds/components/alert/alertLink.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "components/seer/markdown/embeds/components/alert/alertTypes/detector.tsx": {
+    "layering/dependencies": {
+      "count": 5
+    }
+  },
+  "components/seer/markdown/embeds/components/alert/alertTypes/issue.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
   "components/seer/markdown/embeds/components/autofix.spec.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
   },
+  "components/seer/markdown/embeds/components/autofix.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/seer/markdown/embeds/components/chart.tsx": {
+    "layering/dependencies": {
+      "count": 5
+    }
+  },
+  "components/seer/markdown/embeds/components/conversation/conversationBlock.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "components/seer/markdown/embeds/components/conversation/conversationLink.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/seer/markdown/embeds/components/conversation/conversationMetrics.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/seer/markdown/embeds/components/conversationsQueryLink.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
   "components/seer/markdown/embeds/components/dashboard.spec.tsx": {
     "@sentry/prefer-fake-timers": {
+      "count": 1
+    }
+  },
+  "components/seer/markdown/embeds/components/dashboardBlock.tsx": {
+    "layering/dependencies": {
+      "count": 6
+    }
+  },
+  "components/seer/markdown/embeds/components/event/eventBlock.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/seer/markdown/embeds/components/event/eventPathnames.ts": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/seer/markdown/embeds/components/event/eventViews/eventTagRenderers.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/seer/markdown/embeds/components/event/eventViews/tag.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/seer/markdown/embeds/components/event/eventViews/tags.tsx": {
+    "layering/dependencies": {
       "count": 1
     }
   },
@@ -1785,8 +2757,101 @@
       "count": 2
     }
   },
+  "components/seer/markdown/embeds/components/log/logAttributesView.tsx": {
+    "layering/dependencies": {
+      "count": 4
+    }
+  },
+  "components/seer/markdown/embeds/components/log/logAttributeView.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "components/seer/markdown/embeds/components/log/logBlock.tsx": {
+    "layering/dependencies": {
+      "count": 7
+    }
+  },
+  "components/seer/markdown/embeds/components/log/logRowParts.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "components/seer/markdown/embeds/components/log/logUtils.ts": {
+    "layering/dependencies": {
+      "count": 5
+    }
+  },
+  "components/seer/markdown/embeds/components/logsQueryBlock.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/seer/markdown/embeds/components/logsQueryUtils.ts": {
+    "layering/dependencies": {
+      "count": 3
+    }
+  },
+  "components/seer/markdown/embeds/components/metricsQueryUtils.ts": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "components/seer/markdown/embeds/components/monitor/monitorBlock.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/seer/markdown/embeds/components/monitor/monitorLink.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/seer/markdown/embeds/components/monitor/monitorTypes/cron.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/seer/markdown/embeds/components/monitor/monitorTypes/metric.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/seer/markdown/embeds/components/monitor/monitorTypes/mobileBuild.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/seer/markdown/embeds/components/queryEmbed/queryEmbedChart.tsx": {
+    "layering/dependencies": {
+      "count": 3
+    }
+  },
   "components/seer/markdown/embeds/components/queryEmbed/queryEmbedTable.tsx": {
     "@sentry/scraps/no-dom-coupling": {
+      "count": 1
+    },
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/seer/markdown/embeds/components/queryEmbedParams.ts": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/seer/markdown/embeds/components/releaseLink.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/seer/markdown/embeds/components/replay.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/seer/markdown/embeds/components/replaysQueryUtils.ts": {
+    "layering/dependencies": {
       "count": 1
     }
   },
@@ -1795,9 +2860,64 @@
       "count": 2
     }
   },
+  "components/seer/markdown/embeds/components/savedIssueViewBlock.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "components/seer/markdown/embeds/components/savedQueryBlock.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "components/seer/markdown/embeds/components/savedQueryLink.tsx": {
+    "layering/dependencies": {
+      "count": 5
+    }
+  },
+  "components/seer/markdown/embeds/components/spansQueryUtils.ts": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/seer/markdown/embeds/components/traceLink.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
   "components/seer/markdown/embeds/components/traceWaterfall.spec.tsx": {
     "@sentry/prefer-fake-timers": {
       "count": 2
+    }
+  },
+  "components/seer/markdown/embeds/components/traceWaterfallBlock.tsx": {
+    "layering/dependencies": {
+      "count": 8
+    }
+  },
+  "components/seer/markdown/embeds/localWidgetLegendSelectionState.ts": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/seer/projectDefaults/projectDefaultsForm.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/seer/projectDetails/index.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/seer/repoDefaults/repoDefaultsForm.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/seer/repoDetails/repoDetailsForm.tsx": {
+    "layering/dependencies": {
+      "count": 1
     }
   },
   "components/seer/repoTable/seerRepoTableHeader.tsx": {
@@ -1805,9 +2925,17 @@
       "count": 2
     }
   },
+  "components/seer/seerAutomationDefault.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
   "components/seer/seerAutomationProjectList.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
+    },
+    "layering/dependencies": {
+      "count": 1
     }
   },
   "components/selectMembers/index.tsx": {
@@ -1869,6 +2997,21 @@
       "count": 2
     }
   },
+  "components/stackTrace/issueStackTrace/anrFrameAction.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/stackTrace/issueStackTrace/index.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "components/stackTrace/issueStackTrace/sharedIssueStackTrace.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
   "components/stackTrace/stackTrace.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
       "count": 3
@@ -1884,12 +3027,25 @@
       "count": 1
     }
   },
+  "components/sticky.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
   "components/stream/group.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 1
     },
     "@sentry/scraps/prefer-primitives": {
       "count": 3
+    },
+    "layering/dependencies": {
+      "count": 5
+    }
+  },
+  "components/stream/groupColumns.tsx": {
+    "layering/dependencies": {
+      "count": 2
     }
   },
   "components/tables/keyValueTable/keyValueTable.stories.tsx": {
@@ -1910,6 +3066,11 @@
   "components/tables/simpleTable/index.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 6
+    }
+  },
+  "components/teamRoleSelect.tsx": {
+    "layering/dependencies": {
+      "count": 1
     }
   },
   "components/teamSelector.tsx": {
@@ -1977,9 +3138,19 @@
       "count": 1
     }
   },
+  "components/version.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
   "components/versionHoverCard.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 7
+    }
+  },
+  "components/waitingForEvents.tsx": {
+    "layering/dependencies": {
+      "count": 1
     }
   },
   "components/workflowEngine/form/automationBuilderRowLine.tsx": {
@@ -1992,6 +3163,11 @@
       "count": 1
     }
   },
+  "components/workflowEngine/form/environmentSelector.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
   "components/workflowEngine/form/fullHeightForm.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 2
@@ -2000,12 +3176,37 @@
       "count": 1
     }
   },
+  "components/workflowEngine/gridCell/actionCell.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/workflowEngine/gridCell/automationTitleCell.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
   "components/workflowEngine/gridCell/titleCell.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 1
     },
     "@sentry/scraps/prefer-primitives": {
       "count": 2
+    }
+  },
+  "components/workflowEngine/layout/detail.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/workflowEngine/layout/edit.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "components/workflowEngine/layout/list.tsx": {
+    "layering/dependencies": {
+      "count": 1
     }
   },
   "components/workflowEngine/ui/card.tsx": {
@@ -2064,9 +3265,44 @@
       "count": 1
     }
   },
+  "gettingStartedDocs/deno/agentMonitoring.tsx": {
+    "layering/dependencies": {
+      "count": 3
+    }
+  },
   "gettingStartedDocs/node-awslambda/awslambdaArnSelector.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
+    }
+  },
+  "gettingStartedDocs/node-flue/onboarding.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "gettingStartedDocs/node-pi-durable/onboarding.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "gettingStartedDocs/node/agentMonitoring.tsx": {
+    "layering/dependencies": {
+      "count": 4
+    }
+  },
+  "gettingStartedDocs/php-laravel/agentMonitoring.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "gettingStartedDocs/playstation/onboarding.tsx": {
+    "layering/dependencies": {
+      "count": 3
+    }
+  },
+  "gettingStartedDocs/python/agentMonitoring.tsx": {
+    "layering/dependencies": {
+      "count": 4
     }
   },
   "icons/icons.stories.tsx": {
@@ -2217,6 +3453,16 @@
       "count": 1
     }
   },
+  "utils/categoricalTimeSeries/transformTableToCategoricalSeries.ts": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "utils/dashboards/issueFieldRenderers.tsx": {
+    "layering/dependencies": {
+      "count": 4
+    }
+  },
   "utils/demoMode/index.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
       "count": 1
@@ -2230,9 +3476,27 @@
       "count": 1
     }
   },
+  "utils/discover/charts.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "utils/discover/eventView.tsx": {
+    "layering/dependencies": {
+      "count": 4
+    }
+  },
   "utils/discover/fieldRenderers.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 1
+    },
+    "layering/dependencies": {
+      "count": 20
+    }
+  },
+  "utils/discover/fields.tsx": {
+    "layering/dependencies": {
+      "count": 4
     }
   },
   "utils/discover/styles.tsx": {
@@ -2243,8 +3507,118 @@
       "count": 1
     }
   },
+  "utils/discover/types.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "utils/discover/urls.tsx": {
+    "layering/dependencies": {
+      "count": 3
+    }
+  },
   "utils/discover/viewReplayLink.tsx": {
     "@sentry/scraps/no-dom-coupling": {
+      "count": 1
+    }
+  },
+  "utils/errorHandler.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "utils/fields/index.ts": {
+    "layering/dependencies": {
+      "count": 4
+    }
+  },
+  "utils/integrations/useAutoOpenPermissionsModal.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "utils/integrationUtil.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "utils/issueTypeConfig/aiDetectedConfig.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "utils/issueTypeConfig/configurationIssuesConfig.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "utils/issueTypeConfig/cronConfig.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "utils/issueTypeConfig/dbQueryConfig.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "utils/issueTypeConfig/errorConfig.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "utils/issueTypeConfig/frontendConfig.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "utils/issueTypeConfig/httpClientConfig.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "utils/issueTypeConfig/index.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "utils/issueTypeConfig/metricConfig.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "utils/issueTypeConfig/metricIssueConfig.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "utils/issueTypeConfig/mobileConfig.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "utils/issueTypeConfig/outageConfig.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "utils/issueTypeConfig/performanceConfig.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "utils/issueTypeConfig/preprodConfig.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "utils/issueTypeConfig/replayConfig.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "utils/issueTypeConfig/uptimeConfig.tsx": {
+    "layering/dependencies": {
       "count": 1
     }
   },
@@ -2253,8 +3627,28 @@
       "count": 3
     }
   },
+  "utils/monitor/cron.ts": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "utils/number/formatNumber.ts": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "utils/performance/contexts/metricsEnhancedPerformanceDataContext.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
   "utils/performance/contexts/pageAlert.spec.tsx": {
     "@sentry/scraps/prefer-primitives": {
+      "count": 2
+    }
+  },
+  "utils/performance/trends/trendsDiscoverQuery.tsx": {
+    "layering/dependencies": {
       "count": 2
     }
   },
@@ -2263,8 +3657,63 @@
       "count": 6
     }
   },
+  "utils/profiling/colors/utils.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "utils/profiling/hooks/useTransactionAsSpans.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "utils/profiling/renderers/spansRenderer.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "utils/profiling/renderers/spansTextRenderer.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "utils/profiling/spanChart.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "utils/profiling/spanTree.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "utils/replayCount/useReplayCountForTransaction.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "utils/replays/extractDomNodes.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "utils/replays/getFrameDetails.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "utils/replays/hooks/useDeleteReplay.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
   "utils/replays/hooks/usePollReplayRecord.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
+      "count": 2
+    }
+  },
+  "utils/replays/hooks/useReplayLayout.tsx": {
+    "layering/dependencies": {
       "count": 2
     }
   },
@@ -2276,9 +3725,74 @@
       "count": 2
     }
   },
+  "utils/replays/hydrateSelectorData.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "utils/replays/replayListApiOptions.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
   "utils/replays/timer.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
       "count": 2
+    }
+  },
+  "utils/routeAnalytics/useDisableRouteAnalytics.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "utils/routeAnalytics/useRouteAnalyticsEventNames.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "utils/routeAnalytics/useRouteAnalyticsHookSetup.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "utils/routeAnalytics/useRouteAnalyticsParams.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "utils/scrollIntoViewBelowTopBar.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "utils/sessions.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "utils/tabularData/scaleTabularDataColumn.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "utils/timeSeries/getIntervalForTimeSeriesQuery.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "utils/timeSeries/scaleTimeSeriesData.tsx": {
+    "layering/dependencies": {
+      "count": 2
+    }
+  },
+  "utils/timeSeries/transformLegacySeriesToTimeSeries.tsx": {
+    "layering/dependencies": {
+      "count": 1
+    }
+  },
+  "utils/timeSeries/useFetchEventsTimeSeries.tsx": {
+    "layering/dependencies": {
+      "count": 3
     }
   },
   "utils/useBreakpoints.spec.tsx": {
