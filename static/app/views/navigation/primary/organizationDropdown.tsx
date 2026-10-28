@@ -1,5 +1,6 @@
 import {useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import {mergeProps, mergeRefs} from '@react-aria/utils';
 import {IconAdd} from '@sentry/icons/add';
 import {IconBuilding} from '@sentry/icons/building';
 import {IconSettings} from '@sentry/icons/settings';
@@ -45,6 +46,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
+import {SettingsNavigationTourElement} from 'sentry/views/navigation/settingsNavigationTour';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
@@ -119,12 +121,17 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   const size = useSizeContext();
 
   const trigger: DropdownMenuProps['trigger'] = triggerProps => (
-    <AvatarButton
-      avatar={avatarProps}
-      size={size}
-      aria-label={t('Toggle organization menu')}
-      {...triggerProps}
-    />
+    <SettingsNavigationTourElement id="entry">
+      {tourProps => (
+        <AvatarButton
+          avatar={avatarProps}
+          size={size}
+          aria-label={t('Toggle organization menu')}
+          {...mergeProps(triggerProps, {className: tourProps.className})}
+          ref={mergeRefs(triggerProps.ref, tourProps.ref)}
+        />
+      )}
+    </SettingsNavigationTourElement>
   );
   const createOrganizationItem = makeCreateOrganizationMenuItem();
 

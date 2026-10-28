@@ -54,6 +54,7 @@ import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationCon
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/content';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
+import {SettingsNavigationTourElement} from 'sentry/views/navigation/settingsNavigationTour';
 import {useCollapsedNavigation} from 'sentry/views/navigation/useCollapsedNavigation';
 import {useSettingsNavigation} from 'sentry/views/navigation/useSettingsNavigation';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
@@ -183,17 +184,22 @@ export function SettingsNavigationBackButton({
 }) {
   const {setActiveGroup} = usePrimaryNavigation();
   return (
-    <LinkButton
-      size="sm"
-      icon={<IconArrow direction="left" />}
-      aria-label={t('Back to app')}
-      tooltipProps={{title: t('Back to app')}}
-      to={getReturnPath(
-        getSettingsReturnPathKey(organizationSlug),
-        `/organizations/${organizationSlug}/issues/`
+    <SettingsNavigationTourElement id="back">
+      {tourProps => (
+        <LinkButton
+          {...tourProps}
+          size="sm"
+          icon={<IconArrow direction="left" />}
+          aria-label={t('Back to app')}
+          tooltipProps={{title: t('Back to app')}}
+          to={getReturnPath(
+            getSettingsReturnPathKey(organizationSlug),
+            `/organizations/${organizationSlug}/issues/`
+          )}
+          onClick={() => setActiveGroup(null)}
+        />
       )}
-      onClick={() => setActiveGroup(null)}
-    />
+    </SettingsNavigationTourElement>
   );
 }
 
@@ -208,31 +214,40 @@ export function SettingsPrimaryNavigationItems({
   const projectSettingsPath = `/settings/${organizationSlug}/projects/`;
   const items = [
     {
-      key: 'org',
+      key: 'org' as const,
       label: t('Org'),
       to: `/settings/${organizationSlug}/`,
       icon: <IconBuilding />,
     },
     {
-      key: 'project',
+      key: 'project' as const,
       label: t('Project'),
       to: projectSlug ? `${projectSettingsPath}${projectSlug}/` : projectSettingsPath,
       icon: <IconProject />,
     },
-    {key: 'account', label: t('Account'), to: '/settings/account/', icon: <IconUser />},
+    {
+      key: 'account' as const,
+      label: t('Account'),
+      to: '/settings/account/',
+      icon: <IconUser />,
+    },
   ];
 
   return items.map(({key, label, to, icon}) => (
-    <PrimaryNavigation.ListItem key={to}>
-      <PrimaryNavigation.Link
-        to={to}
-        analyticsKey={`settings-${key}`}
-        label={label}
-        aria-current={key === activeScope ? 'location' : undefined}
-      >
-        {icon}
-      </PrimaryNavigation.Link>
-    </PrimaryNavigation.ListItem>
+    <SettingsNavigationTourElement key={to} id={key}>
+      {tourProps => (
+        <PrimaryNavigation.ListItem {...tourProps}>
+          <PrimaryNavigation.Link
+            to={to}
+            analyticsKey={`settings-${key}`}
+            label={label}
+            aria-current={key === activeScope ? 'location' : undefined}
+          >
+            {icon}
+          </PrimaryNavigation.Link>
+        </PrimaryNavigation.ListItem>
+      )}
+    </SettingsNavigationTourElement>
   ));
 }
 

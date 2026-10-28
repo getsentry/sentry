@@ -105,6 +105,8 @@ function setupMocks() {
   MockApiClient.clearMockResponses();
 
   ConfigStore.set('user', UserFixture());
+  // Navigation interactions are tested after the settings tour has been dismissed.
+  localStorage.setItem(`settings-navigation-tour:${UserFixture().id}`, 'true');
   ConfigStore.set('customerDomain', null);
 
   const project = ProjectFixture({hasAccess: false});
@@ -237,6 +239,25 @@ describe('desktop navigation', () => {
         url: '/projects/org-slug/second-project/',
         body: ProjectFixture({id: '999', slug: 'second-project'}),
       });
+    });
+
+    it('shows the settings tour and lets users close it before navigating', async () => {
+      localStorage.removeItem(`settings-navigation-tour:${UserFixture().id}`);
+      const {router} = render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({
+          organization: settingsV3,
+          initialRouterConfig: {location: {pathname: '/settings/org-slug/'}},
+        })
+      );
+
+      expect(await screen.findByText('Organization Settings')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Close'}));
+      expect(screen.queryByText('Organization Settings')).not.toBeInTheDocument();
+      await userEvent.click(screen.getByRole('link', {name: 'Account'}));
+      expect(router.location.pathname).toBe('/settings/account/');
     });
 
     it('shows the settings scope rail', async () => {
