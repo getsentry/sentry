@@ -19,7 +19,7 @@ export const draftNumericString = z
   .string()
   .refine(value => value === '' || Number.isFinite(Number(value)));
 
-// Number inputs hold strings once edited, so accept those too.
+// Number inputs hold strings once edited.
 export const draftNumber = z.union([
   z.number(),
   z
@@ -28,7 +28,6 @@ export const draftNumber = z.union([
     .transform(Number),
 ]);
 
-// A cleared optional number input holds ''.
 export const draftOptionalNumber = z.union([
   draftNumber,
   z.null(),
