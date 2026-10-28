@@ -11,9 +11,7 @@ from sentry.auth.deprecated_scope_translation import (
 )
 from sentry.testutils.helpers.options import override_options
 
-DASHBOARD_SCOPES = frozenset(
-    {"dashboard:read", "dashboard:create", "dashboard:update", "dashboard:delete"}
-)
+DASHBOARD_SCOPES = frozenset({"dashboard:read", "dashboard:write"})
 
 
 @pytest.fixture(autouse=True)

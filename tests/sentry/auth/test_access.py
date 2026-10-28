@@ -545,9 +545,7 @@ class FromUserTest(AccessFactoryTestCase):
         for result in results:
             assert result.has_scope("org:read")
             assert result.has_scope("dashboard:read")
-            assert result.has_scope("dashboard:create")
-            assert result.has_scope("dashboard:update")
-            assert result.has_scope("dashboard:delete")
+            assert result.has_scope("dashboard:write")
 
     def test_deprecated_token_scope_translation_capped_by_role(self) -> None:
         # Without granular roles the member holds no dashboard scopes, so the

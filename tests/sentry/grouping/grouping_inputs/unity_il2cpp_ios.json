@@ -17,6 +17,11 @@
               "abs_path": "/Users/builder/Projects/SpaceGame/Builds/iOS/MainApp/main.mm"
             },
             {
+              "function": "-[UnityFramework runUIApplicationMainWithArgc:argv:]",
+              "package": "/private/var/containers/Bundle/Application/1E8D8F0C-6E2E-4E0B-9E0F-7C9D4A0B2F31/SpaceGame.app/Frameworks/UnityFramework.framework/UnityFramework",
+              "abs_path": "/Users/builder/Projects/SpaceGame/Builds/iOS/Classes/main.mm"
+            },
+            {
               "function": "UIApplicationMain",
               "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore"
             },

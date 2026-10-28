@@ -29,8 +29,8 @@ function platformLogo(platform: string) {
 }
 
 const MCP_CLIENTS: Record<string, {icon: React.ReactNode; name: string}> = {
+  claude: {name: 'Claude', icon: platformLogo('anthropic-claude')},
   'claude-code': {name: 'Claude', icon: platformLogo('anthropic-claude')},
-  'claude-desktop': {name: 'Claude', icon: platformLogo('anthropic-claude')},
   codex: {name: 'Codex', icon: platformLogo('openai')},
   copilot: {name: 'GitHub Copilot', icon: glyph(IconGithub)},
   cursor: {name: 'Cursor', icon: glyph(IconCursor)},

@@ -33,6 +33,7 @@ from sentry.investigations.models import (
     InvestigationProject,
     InvestigationSourceType,
 )
+from sentry.investigations.services.action_requests import STALE
 from sentry.investigations.services.investigations import (
     investigation_filters,
     investigation_source,
@@ -118,8 +119,8 @@ class InvestigationDetailsSerializerResponse(InvestigationSerializerResponse):
     """
     Full notebook with ordered active blocks, parameter definitions and saved values, project
     IDs, and source context. source.snapshot is present only for source-backed investigations.
-    actionRequests has Seer's action requests that aren't superseded, newest report first, with
-    that report's primary at the top.
+    actionRequests has Seer's action requests that aren't superseded, plus stale ones while Seer
+    re-checks them, newest report first, with that report's primary at the top.
     """
 
     template: InvestigationTemplateSerializerResponse | None
@@ -248,7 +249,7 @@ class InvestigationDetailsSerializer(InvestigationSerializer):
     ) -> MutableMapping[int, list[InvestigationActionRequestSerializerResponse]]:
         action_requests = list(
             InvestigationActionRequest.objects.filter(investigation__in=item_list)
-            .exclude(state=InvestigationActionRequestState.SUPERSEDED)
+            .filter(~Q(state=InvestigationActionRequestState.SUPERSEDED) | STALE)
             .order_by("-report_revision", "-primary", "id")
         )
         serialized = serialize(
