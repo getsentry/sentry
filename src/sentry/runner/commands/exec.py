@@ -24,7 +24,7 @@ def exec_(c: str, file: str | None) -> None:
     """
     Execute a script.
 
-    Also compatible with hashbang `#!/usr/bin/env sentry exec`
+    Also compatible with hashbang `#!/usr/bin/env sentry-server exec`
 
     For convenience, the following example is attached to scripts:
 
@@ -36,9 +36,9 @@ def exec_(c: str, file: str | None) -> None:
     Examples:
 
     \b
-      $ sentry exec -c 'print(Project.objects.count())'
-      $ echo 'print(Project.objects.count())' | sentry exec
-      $ sentry exec something.py
+      $ sentry-server exec -c 'print(Project.objects.count())'
+      $ echo 'print(Project.objects.count())' | sentry-server exec
+      $ sentry-server exec something.py
 
     Note: All scripts are assumed utf-8.
     """

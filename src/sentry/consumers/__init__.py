@@ -360,7 +360,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "click_options": uptime_options(),
         "pass_consumer_group": True,
     },
-    # Known differences to 'sentry run occurrences-ingest-consumer':
+    # Known differences to 'sentry-server run occurrences-ingest-consumer':
     # - ingest_consumer_types metric tag is missing. Use the kafka_topic and
     #   group_id tags provided by run_basic_consumer instead
     "ingest-occurrences": {
@@ -499,7 +499,7 @@ def get_stream_processor(
     except KeyError:
         raise click.ClickException(
             f"No consumer named {consumer_name} in sentry.consumers.KAFKA_CONSUMERS. "
-            f"Most likely there is another subcommand in 'sentry run' "
+            f"Most likely there is another subcommand in 'sentry-server run' "
             f"responsible for this consumer"
         )
     try:

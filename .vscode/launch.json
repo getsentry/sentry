@@ -16,7 +16,7 @@
       "type": "python",
       "request": "launch",
       "stopOnEntry": true,
-      "program": "${workspaceRoot}/.venv/bin/sentry",
+      "program": "${workspaceRoot}/.venv/bin/sentry-server",
       "args": ["devserver"],
       "cwd": "${workspaceRoot}",
       "debugOptions": [
@@ -29,7 +29,7 @@
       "name": "sentry backend debug",
       "type": "python",
       "request": "launch",
-      "program": "${workspaceRoot}/.venv/bin/sentry",
+      "program": "${workspaceRoot}/.venv/bin/sentry-server",
       "args": ["devserver", "--debug-server", "--no-pretty"],
       "cwd": "${workspaceRoot}"
     },

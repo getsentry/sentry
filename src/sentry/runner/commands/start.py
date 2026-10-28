@@ -21,14 +21,15 @@ SERVICES = {
 @click.argument("service", default="http", type=click.Choice(sorted(SERVICES.keys())))
 @configuration
 def start(service: str, bind: str | None, workers: int, upgrade: bool, noinput: bool) -> None:
-    "DEPRECATED see `sentry run` instead."
+    "DEPRECATED see `sentry-server run` instead."
 
     from sentry.runner.initializer import show_big_error
 
     show_big_error(
         [
-            "`sentry start%s` is deprecated." % (" " + service if "http" in sys.argv else ""),
-            "Use `sentry run %s` instead." % {"http": "web"}.get(service, service),
+            "`sentry-server start%s` is deprecated."
+            % (" " + service if "http" in sys.argv else ""),
+            "Use `sentry-server run %s` instead." % {"http": "web"}.get(service, service),
         ]
     )
 

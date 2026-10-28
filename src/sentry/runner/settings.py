@@ -103,7 +103,7 @@ def _configure(
         if not os.path.exists(py):
             if ctx:
                 raise click.ClickException(
-                    "Configuration file does not exist. Use 'sentry init' to initialize the file."
+                    "Configuration file does not exist. Use 'sentry-server init' to initialize the file."
                 )
             raise ValueError(
                 "Configuration file does not exist at '%s'" % click.format_filename(py)
@@ -111,7 +111,7 @@ def _configure(
     elif not os.path.exists(yaml) and not os.path.exists(py):
         if ctx:
             raise click.ClickException(
-                "Configuration file does not exist. Use 'sentry init' to initialize the file."
+                "Configuration file does not exist. Use 'sentry-server init' to initialize the file."
             )
         raise ValueError("Configuration file does not exist at '%s'" % click.format_filename(yaml))
 

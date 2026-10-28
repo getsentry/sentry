@@ -1,6 +1,6 @@
 # OrbStack Docker Socket Fix
 
-When `devservices serve` or `sentry devserver` fails with "Make sure colima is running" for OrbStack users, the issue is in `src/sentry/runner/commands/devservices.py`.
+When `devservices serve` or `sentry-server devserver` fails with "Make sure colima is running" for OrbStack users, the issue is in `src/sentry/runner/commands/devservices.py`.
 
 ## The Problem
 
@@ -49,4 +49,4 @@ After patching:
 
 1. Remove any symlinks: `rm -f ~/.colima/default/docker.sock` (if it was a symlink to OrbStack)
 2. Ensure OrbStack is running: `orbctl status`
-3. Run: `.venv/bin/sentry devserver` — should detect OrbStack's socket automatically
+3. Run: `.venv/bin/sentry-server devserver` — should detect OrbStack's socket automatically

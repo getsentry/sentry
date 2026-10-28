@@ -10,27 +10,27 @@ description: Generate or review Django database migrations for Sentry. Use when 
 Generate migrations automatically based on model changes:
 
 ```bash
-sentry django makemigrations
+sentry-server django makemigrations
 ```
 
 For a specific app:
 
 ```bash
-sentry django makemigrations <app_name>
+sentry-server django makemigrations <app_name>
 ```
 
 Generate an empty migration (for data migrations or custom work):
 
 ```bash
-sentry django makemigrations <app_name> --empty
+sentry-server django makemigrations <app_name> --empty
 ```
 
 ## After Generating
 
 1. If you added a new model, ensure it's imported in the app's `__init__.py`
 2. Review the generated migration for correctness
-3. Run `sentry django sqlmigrate <app_name> <migration_name>` to verify the SQL
-4. Apply the migration locally with `sentry django migrate <app_name>` — Sentry's migration framework runs its safety checks on apply, so this catches unsafe ops (missing `is_post_deployment`, unsafe column changes, etc.) before CI does.
+3. Run `sentry-server django sqlmigrate <app_name> <migration_name>` to verify the SQL
+4. Apply the migration locally with `sentry-server django migrate <app_name>` — Sentry's migration framework runs its safety checks on apply, so this catches unsafe ops (missing `is_post_deployment`, unsafe column changes, etc.) before CI does.
 
 When editing a generated migration (e.g. swapping `DeleteModel` for `SafeDeleteModel`), **leave the auto-generated `is_post_deployment` comment block in place**. It documents a non-obvious flag with concrete guidance for future migration authors — useful context, not fluff. Only remove a comment if it's stale or contradicts the code.
 

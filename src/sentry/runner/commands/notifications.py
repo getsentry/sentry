@@ -22,7 +22,7 @@ def send_cmd() -> None:
 @click.option(
     "-s",
     "--source",
-    help="Registered template source (see `sentry notifications list registry`)",
+    help="Registered template source (see `sentry-server notifications list registry`)",
     default="error-alert-service",
 )
 @click.option("-e", "--email", help="Recipient email address", default="user@example.com")
@@ -95,7 +95,7 @@ def _send_slack_notification(
         click.echo(
             f"\nThis command requires a {provider_label} integration name."
             "\nProvide it with the `-i` flag or by setting `slack.debug-workspace` in .sentry/config.yml."
-            f"\nBrowse the local integrations with `sentry notifications list integrations -o {organization_slug}`."
+            f"\nBrowse the local integrations with `sentry-server notifications list integrations -o {organization_slug}`."
         )
         return
 
@@ -144,7 +144,7 @@ def _send_slack_notification(
 @click.option(
     "-s",
     "--source",
-    help="Registered template source (see `sentry notifications list registry`)",
+    help="Registered template source (see `sentry-server notifications list registry`)",
     default="error-alert-service",
 )
 @click.option("-o", "--organization_slug", help="Organization slug")
@@ -179,7 +179,7 @@ def send_slack(
 @click.option(
     "-s",
     "--source",
-    help="Registered template source (see `sentry notifications list registry`)",
+    help="Registered template source (see `sentry-server notifications list registry`)",
     default="error-alert-service",
 )
 @click.option("-o", "--organization_slug", help="Organization slug")
@@ -222,7 +222,7 @@ def send_msteams() -> None:
 @click.option(
     "-s",
     "--source",
-    help="Registered template source (see `sentry notifications list registry`)",
+    help="Registered template source (see `sentry-server notifications list registry`)",
     default="error-alert-service",
 )
 @click.option("-o", "--organization_slug", help="Organization slug", required=True)
@@ -265,7 +265,7 @@ def send_discord(
         click.echo(
             "\nThis command requires a discord integration name."
             "\nProvide it with the `-i` flag or by setting `discord.debug-server` in .sentry/config.yml."
-            f"\nBrowse the local integrations with `sentry notifications list integrations -o {organization_slug}`."
+            f"\nBrowse the local integrations with `sentry-server notifications list integrations -o {organization_slug}`."
         )
         return
 

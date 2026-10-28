@@ -115,7 +115,7 @@ def _get_prog() -> str:
             return "%s -m sentry" % sys.executable
     except (AttributeError, TypeError, IndexError):
         pass
-    return "sentry"
+    return "sentry-server"
 
 
 def main() -> None:
