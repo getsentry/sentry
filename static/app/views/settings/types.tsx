@@ -1,3 +1,5 @@
+import type {ReactElement} from 'react';
+
 import type {Scope} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -24,9 +26,9 @@ export type NavigationItem = {
    */
   title: string;
   /**
-   * Returns the badge content to render next to the navigation.
+   * Returns the text of the badge to render next to the navigation.
    */
-  badge?: (opts: NavigationGroupProps) => React.ReactNode;
+  badge?: (opts: NavigationGroupProps) => string | number | null | ReactElement;
   /**
    * The description of the settings section. This will be used in search.
    */
@@ -64,16 +66,4 @@ export type NavigationSection = {
    * Heading of the navigation section
    */
   name: string;
-};
-
-/**
- * Settings metadata a route can declare on its `handle`.
- */
-export type SettingsRouteHandle = {
-  /**
-   * Where to go when the user picks a different project while on this route.
-   * Drops entity-specific params (e.g. `:keyId`) so the destination exists for
-   * every project. Shared by the sidebar project selector and breadcrumbs.
-   */
-  settingsProjectSwitch?: {switchTo: string};
 };
