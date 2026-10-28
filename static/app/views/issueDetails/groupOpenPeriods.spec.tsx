@@ -103,6 +103,7 @@ describe('GroupOpenPeriods', () => {
     const featureOrganization = OrganizationFixture({
       slug: organization.slug,
       features: ['investigations'],
+      openMembership: true,
     });
     const openPeriod = GroupOpenPeriodFixture({
       id: 'open-period-1',
@@ -134,7 +135,7 @@ describe('GroupOpenPeriods', () => {
     expect(await screen.findByText('Investigation')).toBeInTheDocument();
     expect(await screen.findByRole('link', {name: '4567'})).toHaveAttribute(
       'href',
-      `/organizations/${organization.slug}/explore/investigations/4567/`
+      `/organizations/${organization.slug}/seer/investigations/4567/`
     );
     expect(candidatesMock).toHaveBeenCalledWith(
       expect.anything(),

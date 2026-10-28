@@ -8,13 +8,14 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {ResultGrid} from 'sentry/components/resultGrid';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 
 type Props = {
   orgId: string;
 };
 
 const getRow = (row: any) => [
-  <td key="name">
+  <SimpleTable.RowCell key="name">
     <Flex align="center" gap="md">
       <UserAvatar user={row} size={18} />
       <LinkButton
@@ -32,19 +33,19 @@ const getRow = (row: any) => [
       )}
       {row.pending && <Tag variant="warning">Invite Pending</Tag>}
     </Flex>
-  </td>,
-  <td key="role" style={{textAlign: 'center'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="role" justify="center">
     {row.roleName}
-  </td>,
-  <td key="lastLogin" style={{textAlign: 'right'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="lastLogin" justify="end">
     {row.user ? moment(row.user.lastLogin).fromNow() : null}
-  </td>,
-  <td key="lastActive" style={{textAlign: 'right'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="lastActive" justify="end">
     {row.user?.lastActive ? moment(row.user.lastActive).fromNow() : null}
-  </td>,
-  <td key="created" style={{textAlign: 'right'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="created" justify="end">
     {moment(row.dateCreated).fromNow()}
-  </td>,
+  </SimpleTable.RowCell>,
 ];
 
 export function CustomerMembers({orgId}: Props) {
@@ -57,19 +58,11 @@ export function CustomerMembers({orgId}: Props) {
       defaultParams={{per_page: 10}}
       hasSearch
       columns={[
-        <th key="name">Member</th>,
-        <th key="role" style={{width: 150, textAlign: 'center'}}>
-          Role
-        </th>,
-        <th key="lastLogin" style={{width: 150, textAlign: 'right'}}>
-          Last Login
-        </th>,
-        <th key="lastActive" style={{width: 150, textAlign: 'right'}}>
-          Last Active
-        </th>,
-        <th key="created" style={{width: 150, textAlign: 'right'}}>
-          Created
-        </th>,
+        {key: 'name', label: 'Member'},
+        {key: 'role', label: 'Role', width: 150, align: 'center'},
+        {key: 'lastLogin', label: 'Last Login', width: 150, align: 'right'},
+        {key: 'lastActive', label: 'Last Active', width: 150, align: 'right'},
+        {key: 'created', label: 'Created', width: 150, align: 'right'},
       ]}
       columnsForRow={getRow}
     />

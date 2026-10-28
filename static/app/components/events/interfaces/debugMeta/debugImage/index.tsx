@@ -1,5 +1,7 @@
+import type {Ref} from 'react';
+
 import {Button} from '@sentry/scraps/button';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -8,6 +10,7 @@ import {
   getImageAddress,
 } from 'sentry/components/events/interfaces/debugMeta/utils';
 import {NotAvailable} from 'sentry/components/notAvailable';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {ImageWithCombinedStatus} from 'sentry/types/debugImage';
 
@@ -15,31 +18,24 @@ import {Processings} from './processings';
 import {Status} from './status';
 
 type Props = {
+  'data-index': number;
   image: ImageWithCombinedStatus;
-  isLast: boolean;
   onOpenImageDetailsModal: (image: ImageWithCombinedStatus) => void;
+  ref: Ref<HTMLTableRowElement>;
 };
 
-export function DebugImage({image, isLast, onOpenImageDetailsModal}: Props) {
+export function DebugImage({image, onOpenImageDetailsModal, ...rowProps}: Props) {
   const {unwind_status, debug_status, debug_file, code_file, status} = image;
   const codeFilename = getFileName(code_file);
   const debugFilename = getFileName(debug_file);
   const imageAddress = getImageAddress(image);
 
   return (
-    <Grid
-      columns={{
-        zero: '0.6fr 1.5fr 0.6fr',
-        sm: '0.6fr 2fr 0.6fr',
-        lg: '0.6fr 2fr 1fr 0.4fr',
-      }}
-      borderBottom={isLast ? undefined : 'primary'}
-      padding="sm md"
-    >
-      <Flex align="center" minWidth="0" padding="sm md">
+    <SimpleTable.Row {...rowProps}>
+      <SimpleTable.RowCell>
         <Status status={status} />
-      </Flex>
-      <Flex align="center" minWidth="0" padding="sm 0">
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell>
         <Stack minWidth="0" overflow="hidden">
           <Text ellipsis>
             {codeFilename && <Tooltip title={code_file}>{codeFilename}</Tooltip>}
@@ -53,24 +49,19 @@ export function DebugImage({image, isLast, onOpenImageDetailsModal}: Props) {
             </Text>
           )}
         </Stack>
-      </Flex>
-      <Flex
-        align="center"
-        minWidth="0"
-        display={{zero: 'none', lg: 'flex'}}
-        padding="sm md"
-      >
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell>
         {unwind_status || debug_status ? (
           <Processings unwind_status={unwind_status} debug_status={debug_status} />
         ) : (
           <NotAvailable />
         )}
-      </Flex>
-      <Flex align="center" justify="end" minWidth="0" padding="sm md">
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell justify="end">
         <Button size="xs" onClick={() => onOpenImageDetailsModal(image)}>
           {t('View')}
         </Button>
-      </Flex>
-    </Grid>
+      </SimpleTable.RowCell>
+    </SimpleTable.Row>
   );
 }

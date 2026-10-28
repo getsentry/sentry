@@ -45,12 +45,11 @@ from sentry.roles.manager import OrganizationRole, TeamRole
 from sentry.seer.agent_token import is_agent_auth
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.types.request import _HttpRequestWithUser
-from sentry.types.superuser import SuperuserAccess
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
-from sentry.viewer_context import set_viewer_context_superuser
+from sentry.viewer_context import SuperuserAccess, set_viewer_context_superuser
 
 __all__ = (
     "from_user",

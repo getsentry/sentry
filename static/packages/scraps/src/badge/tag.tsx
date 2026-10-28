@@ -1,0 +1,139 @@
+import type * as React from 'react';
+import type {Theme} from '@emotion/react';
+import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/close';
+import {IconDefaultsProvider} from '@sentry/icons/useIconDefaults';
+
+import {Button} from '@sentry/scraps/button';
+import type {TagVariant} from '@sentry/scraps/theme';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
+import {unreachable} from '@sentry/scraps/unreachable';
+
+export interface TagProps extends React.HTMLAttributes<HTMLSpanElement> {
+  variant: TagVariant;
+  /**
+   * Icon on the left side.
+   */
+  icon?: React.ReactNode;
+  /**
+   * Shows clickable IconClose on the right side.
+   */
+  onDismiss?: () => void;
+  ref?: React.Ref<HTMLDivElement>;
+}
+
+export function Tag({ref, variant, icon, onDismiss, children, ...props}: TagProps) {
+  const {t} = useTranslation();
+
+  return (
+    <TagPill variant={variant} data-test-id="tag-background" ref={ref} {...props}>
+      {icon && (
+        <IconWrapper>
+          <IconDefaultsProvider size="xs">{icon}</IconDefaultsProvider>
+        </IconWrapper>
+      )}
+
+      {/* @TODO(jonasbadalic): Can, and should we make children required? */}
+      {children && <TagText>{children}</TagText>}
+
+      {onDismiss && (
+        <DismissButton
+          onClick={event => {
+            event.preventDefault();
+            onDismiss?.();
+          }}
+          size="zero"
+          variant="link"
+          aria-label={t('Dismiss')}
+          icon={<IconClose size="xs" />}
+        />
+      )}
+    </TagPill>
+  );
+}
+
+const TagPill = styled('div')<{
+  variant: TagVariant;
+}>`
+  ${p => ({...makeTagPillTheme(p.variant, p.theme)})};
+
+  height: 20px;
+  font-size: ${p => p.theme.font.size.sm};
+  display: inline-flex;
+  gap: ${p => p.theme.space.xs};
+  align-items: center;
+  border-radius: ${p => p.theme.radius.xs};
+  padding: 0 ${p => p.theme.space.md};
+  max-width: 100%;
+
+  /* @TODO(jonasbadalic): We need to override button colors because they wrongly default to a blue color... */
+  button,
+  button:hover {
+    color: currentColor;
+  }
+`;
+
+function makeTagPillTheme(type: TagVariant, theme: Theme): React.CSSProperties {
+  switch (type) {
+    case undefined:
+    case 'muted':
+      return {
+        color: theme.tokens.content.secondary,
+        background: theme.colors.gray100,
+      };
+
+    // Highlight maps to info badge for now, but the highlight variant should be removed
+    case 'info':
+      return {
+        color: theme.tokens.content.accent,
+        background: theme.tokens.background.transparent.accent.muted,
+      };
+    case 'promotion':
+      return {
+        color: theme.tokens.content.promotion,
+        background: theme.tokens.background.transparent.promotion.muted,
+      };
+    case 'danger':
+      return {
+        color: theme.tokens.content.danger,
+        background: theme.tokens.background.transparent.danger.muted,
+      };
+    case 'warning':
+      return {
+        color: theme.tokens.content.warning,
+        background: theme.colors.yellow100,
+      };
+    case 'success':
+      return {
+        color: theme.tokens.content.success,
+        background: theme.tokens.background.transparent.success.muted,
+      };
+    default:
+      unreachable(type);
+      throw new TypeError(`Unsupported badge type: ${type}`);
+  }
+}
+
+const TagText = styled('div')`
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  min-width: 0;
+
+  &:has(> *) {
+    display: flex;
+    align-items: center;
+    gap: ${p => p.theme.space.xs};
+  }
+`;
+
+const IconWrapper = styled('span')`
+  display: inline-flex;
+  align-items: center;
+  gap: inherit;
+`;
+
+const DismissButton = styled(Button)`
+  margin-right: -${p => p.theme.space.xs};
+  border: none;
+`;

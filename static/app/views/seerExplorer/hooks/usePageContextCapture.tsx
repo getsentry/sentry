@@ -49,6 +49,7 @@ const STRUCTURED_CONTEXT_ROUTES = new Set([
   '/monitors/mobile-builds/',
   '/monitors/my-monitors/',
   '/monitors/uptime/',
+  '/seer/investigations/:investigationId/',
 ]);
 
 /**
@@ -69,9 +70,12 @@ const PAGE_CONTEXT_READY_NODES = new Map<string, LLMContextNodeType[]>([
   ['/issues/:groupId/attachments/', ['issue-detail']],
   ['/issues/:groupId/distributions/', ['issue-detail']],
   ['/issues/:groupId/distributions/:tagKey/', ['issue-detail']],
+  ['/seer/investigations/:investigationId/', ['investigation']],
 ]);
 
 type CapturedPageContext = {
+  /** Whether `screenshot` is the structured snapshot rather than an ASCII rendering. */
+  isStructured: boolean;
   screenshot: string | undefined;
   snapshot: LLMContextSnapshot | undefined;
 };
@@ -105,12 +109,16 @@ export function usePageContextCapture() {
       // coarse ASCII screenshot everywhere else.
       if (snapshot && allowStructured && STRUCTURED_CONTEXT_ROUTES.has(route)) {
         try {
-          return {snapshot, screenshot: JSON.stringify(snapshot)};
+          return {snapshot, screenshot: JSON.stringify(snapshot), isStructured: true};
         } catch (e) {
           Sentry.captureException(e);
         }
       }
-      return {snapshot, screenshot: captureAsciiSnapshot?.(snapshot?.location)};
+      return {
+        snapshot,
+        screenshot: captureAsciiSnapshot?.(snapshot?.location),
+        isStructured: false,
+      };
     },
     [captureAsciiSnapshot, getLLMContext]
   );

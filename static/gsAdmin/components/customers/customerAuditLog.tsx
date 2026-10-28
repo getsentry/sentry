@@ -1,5 +1,6 @@
 import {DateTime} from 'sentry/components/dateTime';
 import {ResultGrid} from 'sentry/components/resultGrid';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 
 type Props = {
   orgSlug: string;
@@ -16,32 +17,28 @@ export function CustomerAuditLog({orgSlug, targetId}: Props) {
       hasPagination={false}
       rowsFromData={(data: any) => data.rows}
       columns={[
-        <th key="timestamp" style={{width: 180}}>
-          Time
-        </th>,
-        <th key="event">Action</th>,
-        <th key="actor" style={{width: 200}}>
-          Staff
-        </th>,
-        <th key="ticket" style={{width: 200}}>
-          Ticket
-        </th>,
-        <th key="notes">Notes</th>,
+        {key: 'timestamp', label: 'Time', width: 180},
+        {key: 'event', label: 'Action'},
+        {key: 'actor', label: 'Staff', width: 200},
+        {key: 'ticket', label: 'Ticket', width: 200},
+        {key: 'notes', label: 'Notes'},
       ]}
       columnsForRow={(row: any) => [
-        <td key="timestamp">
+        <SimpleTable.RowCell key="timestamp">
           <DateTime date={row.timestamp} />
-        </td>,
-        <td key="event">{row.eventType}</td>,
-        <td key="actor">
+        </SimpleTable.RowCell>,
+        <SimpleTable.RowCell key="event">{row.eventType}</SimpleTable.RowCell>,
+        <SimpleTable.RowCell key="actor">
           {row.actor?.email ? (
             <a href={`mailto:${row.actor.email}`}>{row.actor.name ?? row.actor.email}</a>
           ) : (
             '—'
           )}
-        </td>,
-        <td key="ticket">{row.ticketId ? <a href={row.ticketId}>Ticket</a> : '—'}</td>,
-        <td key="notes">{row.data?.notes ?? '—'}</td>,
+        </SimpleTable.RowCell>,
+        <SimpleTable.RowCell key="ticket">
+          {row.ticketId ? <a href={row.ticketId}>Ticket</a> : '—'}
+        </SimpleTable.RowCell>,
+        <SimpleTable.RowCell key="notes">{row.data?.notes ?? '—'}</SimpleTable.RowCell>,
       ]}
     />
   );

@@ -13,8 +13,11 @@ from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry
 from sentry.net.http import connection_from_url
 from sentry.utils import metrics
 from sentry.viewer_context import (
+    Actor,
+    ActorType,
     ViewerContext,
     encode_viewer_context,
+    get_acting_user_id,
     get_viewer_context,
     observe_viewer_context_propagation,
 )
@@ -31,6 +34,10 @@ class SeerViewerContext(TypedDict, total=False):
 
 
 logger = logging.getLogger(__name__)
+
+
+class MissingViewerContextError(RuntimeError):
+    """Raised when a Sentry-to-Seer request has no ambient ViewerContext."""
 
 
 seer_summarization_default_connection_pool = connection_from_url(
@@ -57,71 +64,76 @@ seer_grouping_default_connection_pool = connection_from_url(
 def _resolve_viewer_context(
     explicit: SeerViewerContext | None = None,
     endpoint: str | None = None,
-) -> ViewerContext | None:
-    """Merge explicit SeerViewerContext with the contextvar.
+) -> ViewerContext:
+    """Require an ambient ViewerContext and merge legacy explicit fields into it.
 
-    Converts the legacy SeerViewerContext into a ViewerContext, then merges
-    with the contextvar. Explicit non-None fields win. On disagreement,
-    logs a warning and strips the token for safety.
+    SeerViewerContext remains temporarily supported for caller migration, but
+    it is never sufficient on its own. Explicit non-None fields win. On
+    logs a warning and strips actor elevation for safety.
     """
     vc = get_viewer_context()
-
-    if explicit is None and vc is None:
-        return None
-    if explicit is None:
-        return vc
-
-    explicit_vc = ViewerContext(
-        organization_id=explicit.get("organization_id"),
-        user_id=explicit.get("user_id"),
-    )
 
     if vc is None:
         logger.warning(
             "seer.viewer_context_not_set",
             extra={
-                "explicit_org_id": explicit_vc.organization_id,
-                "explicit_user_id": explicit_vc.user_id,
+                "explicit_org_id": explicit.get("organization_id") if explicit else None,
+                "explicit_user_id": explicit.get("user_id") if explicit else None,
                 "endpoint": endpoint,
             },
+            stack_info=True,
         )
         metrics.incr(
             "seer.viewer_context_resolution",
             tags={"outcome": "contextvar_missing", "endpoint": endpoint or "unknown"},
         )
-        return explicit_vc
+        raise MissingViewerContextError("ViewerContext is required for Seer requests")
+
+    if explicit is None:
+        return vc
+
+    explicit_org_id = explicit.get("organization_id")
+    explicit_user_id = explicit.get("user_id")
 
     has_mismatch = False
     org_id = vc.organization_id
-    user_id = vc.user_id
+    user_id = get_acting_user_id(vc)
+    actor = vc.actor
 
-    if explicit_vc.organization_id is not None:
-        if org_id is not None and org_id != explicit_vc.organization_id:
+    if explicit_org_id is not None:
+        if org_id is not None and org_id != explicit_org_id:
             logger.warning(
                 "seer.viewer_context_mismatch",
                 extra={
                     "field": "organization_id",
                     "contextvar": org_id,
-                    "explicit": explicit_vc.organization_id,
+                    "explicit": explicit_org_id,
                     "endpoint": endpoint,
                 },
             )
             has_mismatch = True
-        org_id = explicit_vc.organization_id
+        org_id = explicit_org_id
 
-    if explicit_vc.user_id is not None:
-        if user_id is not None and user_id != explicit_vc.user_id:
+    if explicit_user_id is not None:
+        # A service account is its own principal; never re-attribute it to a human.
+        is_service_account = actor.type == ActorType.SERVICE_ACCOUNT
+        if (user_id is not None or is_service_account) and user_id != explicit_user_id:
             logger.warning(
                 "seer.viewer_context_mismatch",
                 extra={
                     "field": "user_id",
                     "contextvar": user_id,
-                    "explicit": explicit_vc.user_id,
+                    "explicit": explicit_user_id,
                     "endpoint": endpoint,
                 },
             )
             has_mismatch = True
-        user_id = explicit_vc.user_id
+        if actor.type == ActorType.USER:
+            actor = replace(actor, actor_id=explicit_user_id)
+        elif actor.type == ActorType.AGENT:
+            actor = replace(actor, delegated_user_id=explicit_user_id)
+        elif not is_service_account:
+            actor = Actor(type=ActorType.USER, actor_id=explicit_user_id)
 
     metrics.incr(
         "seer.viewer_context_resolution",
@@ -136,12 +148,10 @@ def _resolve_viewer_context(
         return replace(
             vc,
             organization_id=org_id,
-            user_id=user_id,
+            actor=replace(actor, superuser=None),
             project_id=None,
-            token=None,
-            superuser=None,
         )
-    return replace(vc, organization_id=org_id, user_id=user_id)
+    return replace(vc, organization_id=org_id, actor=actor)
 
 
 @traces.trace
@@ -169,25 +179,18 @@ def make_signed_seer_api_request(
     url = f"{connection_pool.scheme}://{host}{path}"
     parsed = urlparse(url)
 
+    resolved = _resolve_viewer_context(viewer_context, endpoint=metrics_endpoint or parsed.path)
+    observe_viewer_context_propagation("seer_rpc_out", ctx=resolved)
+    # Fail closed: a request without a signed ViewerContext must never reach Seer.
+    viewer_context_header = encode_viewer_context(resolved)
+
     auth_headers = sign_with_seer_secret(body)
 
     headers: dict[str, str] = {
         "content-type": "application/json;charset=utf-8",
         **auth_headers,
+        "X-Viewer-Context": viewer_context_header,
     }
-
-    resolved = _resolve_viewer_context(viewer_context, endpoint=metrics_endpoint or parsed.path)
-    observe_viewer_context_propagation("seer_rpc_out", ctx=resolved)
-    if resolved:
-        try:
-            headers["X-Viewer-Context"] = encode_viewer_context(resolved)
-        except ValueError:
-            logger.warning(
-                "viewer_context_jwt.no_signing_key",
-                extra={"reason": "No key available to sign viewer context JWT."},
-            )
-        except Exception:
-            logger.exception("Failed to encode viewer context JWT for call to Seer.")
 
     options: dict[str, Any] = {}
     if timeout:

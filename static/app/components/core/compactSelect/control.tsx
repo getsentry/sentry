@@ -488,6 +488,11 @@ export function Control<Value extends SelectKey>({
     highlightSearch,
   ]);
 
+  // A titled header keeps a hidden Clear button so the header doesn't resize when a
+  // selection is made. Without a title, that placeholder would be an empty header bar.
+  const showClearButton = clearable && (hasSelection || !!menuTitle);
+  const hasHeader = !!menuTitle || !!menuHeaderTrailingItems || showClearButton;
+
   const theme = useTheme();
 
   const mergedTriggerProps = mergeProps(
@@ -526,12 +531,12 @@ export function Control<Value extends SelectKey>({
               }
               maxHeight={overlayProps.style?.maxHeight}
               maxHeightProp={maxMenuHeight}
-              data-menu-has-header={!!menuTitle || clearable}
+              data-menu-has-header={hasHeader}
               data-menu-has-search={searchEnabled}
               data-menu-has-footer={!!menuFooter}
             >
               <FocusScope contain>
-                {(menuTitle || menuHeaderTrailingItems || clearable) && (
+                {hasHeader && (
                   <Header borderBottom={searchEnabled ? 'none' : 'muted'}>
                     <Flex
                       align="center"
@@ -546,7 +551,7 @@ export function Control<Value extends SelectKey>({
                         {typeof menuHeaderTrailingItems === 'function'
                           ? menuHeaderTrailingItems({closeOverlay: overlayState.close})
                           : menuHeaderTrailingItems}
-                        {clearable && (
+                        {showClearButton && (
                           <ClearButton
                             onClick={() => onClear?.({overlayState})}
                             size="zero"
@@ -579,12 +584,16 @@ export function Control<Value extends SelectKey>({
                 {!hideOptions && <Stack minHeight="0">{children}</Stack>}
                 {menuFooter && (
                   <Footer>
-                    {typeof menuFooter === 'function'
-                      ? menuFooter({
-                          closeOverlay: overlayState.close,
-                          resetSearch: () => updateSearch(''),
-                        })
-                      : menuFooter}
+                    {/* Block wrapper so footer content spans the full width, as
+                        Footer is a row flex container that shrinks its children */}
+                    <Container width="100%">
+                      {typeof menuFooter === 'function'
+                        ? menuFooter({
+                            closeOverlay: overlayState.close,
+                            resetSearch: () => updateSearch(''),
+                          })
+                        : menuFooter}
+                    </Container>
                   </Footer>
                 )}
               </FocusScope>

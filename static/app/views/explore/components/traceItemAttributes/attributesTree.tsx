@@ -278,7 +278,11 @@ function getAttribute(
   getAdjustedAttributeKey?: (attribute: TraceItemResponseAttribute) => string
 ): Attribute | undefined {
   const attributeValue =
-    attribute.type === 'bool' ? String(attribute.value) : attribute.value;
+    attribute.type === 'bool'
+      ? String(attribute.value)
+      : attribute.type === 'array'
+        ? JSON.stringify(attribute.value)
+        : attribute.value;
 
   if (!defined(attributeValue)) {
     return undefined;

@@ -1,10 +1,5 @@
 import type {EventsTableData} from 'sentry/utils/discover/discoverQuery';
-import {
-  parseFunction,
-  RateUnit,
-  type AggregationOutputType,
-  type DataUnit,
-} from 'sentry/utils/discover/fields';
+import {parseFunction, RateUnit} from 'sentry/utils/discover/fields';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {type DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {transformEventsResponseToTable} from 'sentry/views/dashboards/datasetConfig/events';
@@ -46,11 +41,7 @@ function formatMetricsTimeseriesLabel({
 
 export const traceMetricsResponseTransforms: Pick<
   DatasetConfig<EventsTimeSeriesResponse, EventsTableData>,
-  | 'transformTable'
-  | 'transformSeries'
-  | 'transformTimeSeries'
-  | 'getSeriesResultType'
-  | 'getSeriesResultUnit'
+  'transformTable' | 'transformTimeSeries'
 > = {
   transformTable: (data, widgetQuery) => {
     const transformedData = transformEventsResponseToTable(data, widgetQuery);
@@ -69,49 +60,9 @@ export const traceMetricsResponseTransforms: Pick<
     }
     return transformedData;
   },
-  transformSeries: (data, widgetQuery) => {
-    return data.timeSeries.map(timeSeries => {
-      // The function should always be defined when dealing with a successful
-      // time series response
-      return {
-        data: timeSeries.values.map(value => ({
-          name: value.timestamp,
-          value: value.value ?? 0,
-        })),
-
-        seriesName: formatMetricsTimeseriesLabel({
-          widgetQuery,
-          timeSeries,
-        }),
-        timeSeries,
-        ingestion: data.meta?.ingestion,
-      };
-    });
-  },
   transformTimeSeries: (data, widget, queryIndex) =>
     transformTimeSeriesResponse(data, widget, queryIndex, {
       getSeriesName: (timeSeries, widgetQuery) =>
         formatMetricsTimeseriesLabel({widgetQuery, timeSeries}),
     }),
-  getSeriesResultType(data, _widgetQuery) {
-    return data.timeSeries.reduce<Record<string, AggregationOutputType>>(
-      (acc, timeSeries) => {
-        acc[timeSeries.yAxis] = timeSeries.meta.valueType as AggregationOutputType;
-        return acc;
-      },
-      {}
-    );
-  },
-  getSeriesResultUnit: (data, _widgetQuery) => {
-    return data.timeSeries.reduce<Record<string, DataUnit>>((acc, timeSeries) => {
-      if (timeSeries.yAxis.includes('per_second(')) {
-        acc[timeSeries.yAxis] = RateUnit.PER_SECOND;
-      } else if (timeSeries.yAxis.includes('per_minute(')) {
-        acc[timeSeries.yAxis] = RateUnit.PER_MINUTE;
-      } else {
-        acc[timeSeries.yAxis] = timeSeries.meta.valueUnit;
-      }
-      return acc;
-    }, {});
-  },
 };

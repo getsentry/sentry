@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import assert_never
+from typing import Any, assert_never
 
 from django.db import router, transaction
+from django.db.models import QuerySet
+from pydantic import BaseModel
 
 from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
@@ -13,8 +16,15 @@ from sentry.seer.models.workflow import (
     SeerWorkflowConfigExtras,
     SeerWorkflowConfigProject,
     SeerWorkflowFilters,
+    SeerWorkflowRun,
+    SeerWorkflowRunExtras,
+    SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
+    WorkflowRunSnapshot,
 )
+from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
+from sentry.service_accounts.models import ServiceAccountReplica
+from sentry.utils import json
 
 SEER_DEFAULT_WORKFLOW_STRATEGIES = (SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,)
 
@@ -76,18 +86,117 @@ class SeerWorkflow:
     def filters(self) -> SeerWorkflowFilters:
         return SeerWorkflowFilters.parse_obj(self.config.filters)
 
+    def get_or_create_run(
+        self,
+        *,
+        trigger_key: str,
+        inputs: BaseModel,
+        extras: Mapping[str, Any] | None = None,
+    ) -> WorkflowRunCreationResult:
+        """Retries preserve the original configuration and inputs."""
+        if not trigger_key or len(trigger_key) > 256:
+            raise ValueError("Trigger keys must contain between 1 and 256 characters")
+
+        with transaction.atomic(router.db_for_write(SeerWorkflowRun)):
+            self.config = SeerWorkflowConfig.objects.select_for_update().get(
+                id=self.config.id, organization_id=self.config.organization_id
+            )
+            existing = self.get_runs().filter(trigger_key=trigger_key).first()
+            if existing is not None:
+                return WorkflowRunCreationResult(
+                    lifecycle=SeerWorkflowRunLifecycle(
+                        run_id=existing.id, organization_id=existing.organization_id
+                    ),
+                    created=False,
+                )
+
+            snapshot = WorkflowRunSnapshot(
+                config_version=self.config.version,
+                strategy=SeerWorkflowStrategy(self.config.strategy),
+                filters=self.config.filters,
+                project_ids=tuple(self.get_project_ids()),
+                output_policy=self.config.output_policy,
+                inputs=json.loads(inputs.json()),
+            )
+            run_extras = SeerWorkflowRunExtras.parse_obj({**(extras or {}), "snapshot": snapshot})
+            run = SeerWorkflowRun.objects.create(
+                organization_id=self.config.organization_id,
+                workflow_config=self.config,
+                trigger_key=trigger_key,
+                status=SeerWorkflowRunStatus.QUEUED,
+                extras=json.loads(run_extras.json()),
+            )
+            return WorkflowRunCreationResult(
+                lifecycle=SeerWorkflowRunLifecycle(
+                    run_id=run.id, organization_id=run.organization_id
+                ),
+                created=True,
+            )
+
+    def get_runs(self) -> QuerySet[SeerWorkflowRun]:
+        return SeerWorkflowRun.objects.filter(
+            organization_id=self.config.organization_id, workflow_config_id=self.config.id
+        ).order_by("-date_added", "-id")
+
+    def matches_scope(self, project_id: int, environment: str | None) -> bool:
+        """Check the automation's scope before recording an admission decision."""
+        return (
+            self.config.enabled
+            and (not self.filters.environments or environment in self.filters.environments)
+            and self._get_projects().filter(id=project_id).exists()
+        )
+
+    def has_quota_available(self) -> bool:
+        """Allow runs until automation quota enforcement is implemented."""
+        # TODO(telkins): Enforce automation quota before accepting a new run.
+        return True
+
     def get_project_ids(self) -> list[int]:
         """Return active project IDs matching this workflow's filters, in ascending order."""
-        projects = Project.objects.filter(
-            organization_id=self.config.organization_id, status=ObjectStatus.ACTIVE
-        )
-        if not self.filters.all_projects:
-            projects = projects.filter(
-                id__in=SeerWorkflowConfigProject.objects.filter(config=self.config).values(
-                    "project_id"
-                )
+        return list(self._get_projects().order_by("id").values_list("id", flat=True))
+
+    def set_service_account(self, service_account_id: int | None) -> None:
+        """Store the control account ID after validating its current cell replica."""
+        with transaction.atomic(router.db_for_write(SeerWorkflowConfig)):
+            config = SeerWorkflowConfig.objects.select_for_update().get(
+                id=self.config.id, organization_id=self.config.organization_id
             )
-        return list(projects.order_by("id").values_list("id", flat=True))
+            if service_account_id is not None:
+                try:
+                    replica = ServiceAccountReplica.objects.get(
+                        service_account_id=service_account_id,
+                        organization_id=config.organization_id,
+                    )
+                except ServiceAccountReplica.DoesNotExist as exc:
+                    raise ValueError(
+                        "Service account is unavailable in the workflow's organization"
+                    ) from exc
+                if not replica.is_active:
+                    raise ValueError("Service account is inactive")
+
+            if config.service_account_id != service_account_id:
+                config.service_account_id = service_account_id
+                config.version += 1
+                config.save(update_fields=["service_account_id", "version", "date_updated"])
+
+        self.config = config
+
+    def resolve_service_account(self) -> ServiceAccountReplica:
+        """Resolve authoritative identity against current cell state on every call."""
+        if self.config.service_account_id is None:
+            raise ValueError("Workflow has no service account")
+        try:
+            replica = ServiceAccountReplica.objects.get(
+                service_account_id=self.config.service_account_id,
+                organization_id=self.config.organization_id,
+            )
+        except ServiceAccountReplica.DoesNotExist as exc:
+            raise ValueError(
+                "Service account is unavailable in the workflow's organization"
+            ) from exc
+        if not replica.is_active:
+            raise ValueError("Service account is inactive")
+        return replica
 
     def set_project_selection(self, selection: ProjectSelection) -> None:
         match selection:
@@ -104,6 +213,11 @@ class SeerWorkflow:
             config = SeerWorkflowConfig.objects.select_for_update().get(
                 id=self.config.id, organization_id=self.config.organization_id
             )
+            if (
+                config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
+                and not all_projects
+            ):
+                raise ValueError("Breached metric projects are selected by connecting monitors")
             valid_project_ids = set(
                 Project.objects.filter(
                     organization_id=config.organization_id, id__in=project_ids
@@ -126,3 +240,21 @@ class SeerWorkflow:
             config.save(update_fields=["filters", "version", "date_updated"])
 
         self.config = config
+
+    def _get_projects(self) -> QuerySet[Project]:
+        projects = Project.objects.filter(
+            organization_id=self.config.organization_id, status=ObjectStatus.ACTIVE
+        )
+        if not self.filters.all_projects:
+            projects = projects.filter(
+                id__in=SeerWorkflowConfigProject.objects.filter(config=self.config).values(
+                    "project_id"
+                )
+            )
+        return projects
+
+
+@dataclass(frozen=True)
+class WorkflowRunCreationResult:
+    lifecycle: SeerWorkflowRunLifecycle
+    created: bool

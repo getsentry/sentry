@@ -1,4 +1,4 @@
-minVersion: '2.33.1'
+minVersion: '3.3.0'
 workspaces:
   sentry:
     preReleaseCommand: bash scripts/bump-version.sh
@@ -6,6 +6,17 @@ workspaces:
     changelog:
       filePath: CHANGES
       policy: auto
+      # Files outside every workspace (src/, tests/, root config) belong to
+      # this changelog only, not to the static/packages/* changelogs.
+      unownedPaths: own
+      # Craft treats pnpm workspace directories as separately owned and drops
+      # their commits from this changelog unless they are listed here.
+      includePaths:
+        - api-docs
+        - static/app
+        - static/gsAdmin
+        - static/gsApp
+        - tests/js
     statusProvider:
       name: github
       config:
@@ -28,26 +39,24 @@ workspaces:
         targetFormat: '{{{target}}}:latest'
     versioning:
       policy: calver
-  static/packages/scraps:
-    preReleaseCommand: >-
-      sh -c 'npm --prefix static/packages/scraps --no-git-tag-version --package-lock=false version "$CRAFT_NEW_VERSION"'
-    releaseBranchPrefix: scraps/release
+  static/packages/*:
+    releaseBranchPrefix: '{{workspaceName}}/release'
     changelog:
       policy: auto
     statusProvider:
       name: github
       config:
         contexts:
-          - scraps-package-verify
+          - '{{workspaceName}}-package-pack'
     artifactProvider:
       name: github
       config:
         artifacts:
-          Scraps package:
-            - scraps-tarball
+          Package pack:
+            - '{{workspaceName}}-tarball'
     targets:
       - name: github
-        tagPrefix: scraps@
+        tagPrefix: '{{workspaceName}}@'
       - name: npm
         access: public
     versioning:

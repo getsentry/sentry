@@ -29,6 +29,11 @@ describe('Text', () => {
     expect(screen.getByText('Hello World')).not.toHaveAttribute('align');
   });
 
+  it('does not forward trim to the DOM element', () => {
+    render(<Text trim={false}>Hello World</Text>, {wrapper: ThemeWrapper});
+    expect(screen.getByText('Hello World')).not.toHaveAttribute('trim');
+  });
+
   it('forwards data-test-id', () => {
     render(<Text data-test-id="test-id">Hello World</Text>, {wrapper: ThemeWrapper});
     expect(screen.getByText('Hello World')).toHaveAttribute('data-test-id', 'test-id');

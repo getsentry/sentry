@@ -605,7 +605,7 @@ export function SearchQueryBuilderCombobox<
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [inputRef, popoverRef, descriptionRef, isOpen, customMenu, keepVisibleRef]);
 
-  const autosizeInput = useAutosizeInput({value: inputValue});
+  const autosizeInput = useAutosizeInput({value: inputValue, placeholder});
 
   const InputComponent = renderInputValue ? HighlightedInput : UnstyledInput;
   const input = (

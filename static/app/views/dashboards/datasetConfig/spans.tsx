@@ -3,12 +3,7 @@ import pickBy from 'lodash/pickBy';
 import {Link} from '@sentry/scraps/link';
 
 import type {TagCollection} from 'sentry/types/group';
-import type {
-  EventsStats,
-  GroupedMultiSeriesEventsStats,
-  MultiSeriesEventsStats,
-  Organization,
-} from 'sentry/types/organization';
+import type {Organization} from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {emptyStringValue} from 'sentry/utils/discover/emptyFieldValues';
@@ -197,10 +192,7 @@ function useSpansSearchBarDataProvider(props: SearchBarDataProviderProps): Searc
 }
 
 export const SpansConfig: DatasetConfig<
-  | EventsStats
-  | MultiSeriesEventsStats
-  | GroupedMultiSeriesEventsStats
-  | EventsTimeSeriesResponse,
+  EventsTimeSeriesResponse,
   TableData | EventsTableData
 > = {
   defaultCategoryField: 'transaction',

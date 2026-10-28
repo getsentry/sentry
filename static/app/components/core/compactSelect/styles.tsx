@@ -59,7 +59,9 @@ export const ListWrap = styled('ul')`
   }
 `;
 
-export const ListLabel = styled('p')`
+// Not a `p`: menus render inline, so ancestor `p` rules such as PanelBody's legacy
+// textStyles would otherwise add a 20px bottom margin.
+export const ListLabel = styled('span')`
   display: inline-block;
   font-weight: ${p => p.theme.font.weight.sans.medium};
   font-size: ${p => p.theme.font.size.xs};
@@ -128,6 +130,26 @@ export function SectionSeparator(props: React.HTMLAttributes<HTMLLIElement>) {
       <MenuSectionSeparator />
     </Stack>
   );
+}
+
+/**
+ * Left inset for CompactSelect options. CompactSelect puts its check column 4px
+ * closer to the menu edge than dropdown menus, in line with the title. The shared
+ * menu item centers leading content in a 24px slot, which already adds 4px
+ * before a 16px checkbox, so a single check-sized item needs a smaller inset.
+ */
+export function getOptionPaddingLeft({
+  hasCheck,
+  hasLeadingItems,
+}: {
+  hasCheck: boolean;
+  hasLeadingItems: boolean;
+}) {
+  // A check plus custom leading items overflows the slot, so nothing is centered.
+  if (hasCheck && hasLeadingItems) {
+    return 'md';
+  }
+  return hasCheck || hasLeadingItems ? 'xs' : 'md';
 }
 
 export function LeadWrap(props: FlexProps) {

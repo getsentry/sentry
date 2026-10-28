@@ -6,6 +6,16 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {CodeModeInput} from './codeModeInput';
 
+// Matches the endpoint's limit, which counts code points rather than UTF-16 units.
+const MAX_CODE_LENGTH = 4_000;
+
+function trimCode(code: string): string {
+  if (code.length <= MAX_CODE_LENGTH) {
+    return code;
+  }
+  return Array.from(code).slice(0, MAX_CODE_LENGTH).join('');
+}
+
 interface Props {
   code: string;
   projectId: number;
@@ -15,11 +25,11 @@ interface Props {
 export function CodeModeDetails({code, language, projectId}: Props) {
   const organization = useOrganization();
   const requestLanguage = language?.trim() || 'javascript';
+  const requestCode = trimCode(code);
   const canExplain =
     areAiFeaturesAllowed(organization) &&
     Boolean(projectId) &&
-    code.length <= 4_000 &&
-    code.trim().length > 0 &&
+    requestCode.trim().length > 0 &&
     requestLanguage.length <= 64;
   const {data, isLoading} = useQuery({
     ...apiOptions.as<{summary: string}>()(
@@ -29,7 +39,7 @@ export function CodeModeDetails({code, language, projectId}: Props) {
           ? {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectId}
           : skipToken,
         method: 'POST',
-        data: canExplain ? {code, language: requestLanguage} : undefined,
+        data: canExplain ? {code: requestCode, language: requestLanguage} : undefined,
         staleTime: 24 * 60 * 60 * 1000,
       }
     ),

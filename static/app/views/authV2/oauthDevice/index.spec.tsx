@@ -6,8 +6,11 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 import {ConfigStore} from 'sentry/stores/configStore';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {mockElementFromPoint} from 'sentry/views/authV2/authLogin/components/testUtils';
+import {waitForAuthorization} from 'sentry/views/authV2/oauth/testUtils';
 
 import OAuthDevice from '.';
+
+jest.setTimeout(15000);
 
 const location = {pathname: '/oauth/device/', query: {user_code: 'ABCD-EFGH'}};
 const consent = {stage: 'consent', userCode: 'ABCD-EFGH', organizationOptions: []};
@@ -63,7 +66,7 @@ describe('OAuthDevice', () => {
       consentDelay.resolve();
       return consentDelay.promise;
     });
-    expect(await screen.findByRole('button', {name: 'Authorize'})).toBeEnabled();
+    await waitForAuthorization();
     expect(await screen.findByText('ABCD-EFGH')).toBeVisible();
   });
 
@@ -74,9 +77,9 @@ describe('OAuthDevice', () => {
       body: {stage: 'approved'},
     });
     render(<OAuthDevice />, {initialRouterConfig: {location}});
-    expect(await screen.findByRole('button', {name: 'Authorize'})).toBeEnabled();
+    await waitForAuthorization();
     expect(approve).not.toHaveBeenCalled();
-    await userEvent.click(screen.getByRole('button', {name: 'Authorize'}));
+    await userEvent.click(await waitForAuthorization());
     await waitFor(() =>
       expect(
         screen.getByText('Application authorized. Return to your device to continue.')
@@ -104,6 +107,40 @@ describe('OAuthDevice', () => {
     );
   });
 
+  it('preselects the sole eligible organization and sends it with approval', async () => {
+    const context = OAuthContextFixture();
+    MockApiClient.addMockResponse({
+      url: '/auth/oauth/device/context/',
+      body: {
+        ...context,
+        application: {...context.application, requiresOrgLevelAccess: true},
+        userCode: 'ABCD-EFGH',
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: '/auth/oauth/device/',
+      body: {
+        ...consent,
+        organizationOptions: [{id: '1', name: 'Example Org', slug: 'org-slug'}],
+      },
+    });
+    const approve = MockApiClient.addMockResponse({
+      url: '/auth/oauth/device/',
+      method: 'POST',
+      body: {stage: 'approved'},
+    });
+    render(<OAuthDevice />, {initialRouterConfig: {location}});
+    await userEvent.click(await waitForAuthorization());
+    await waitFor(() =>
+      expect(approve).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {op: 'approve', userCode: 'ABCD-EFGH', selectedOrganizationId: '1'},
+        })
+      )
+    );
+  });
+
   it('allows editing an expired code in place', async () => {
     MockApiClient.addMockResponse({
       url: '/auth/oauth/device/context/',
@@ -125,6 +162,66 @@ describe('OAuthDevice', () => {
     });
     await userEvent.clear(input);
     await userEvent.type(input, 'WXYZABCD');
-    expect(await screen.findByRole('button', {name: 'Authorize'})).toBeEnabled();
+    await waitForAuthorization();
+  });
+
+  it('offers account switching after an organization access error', async () => {
+    MockApiClient.addMockResponse({
+      url: '/auth/oauth/device/',
+      statusCode: 400,
+      body: {detail: 'You must be a member of an organization.'},
+    });
+    MockApiClient.addMockResponse({url: '/auth/', method: 'DELETE', body: {}});
+    MockApiClient.addMockResponse({url: '/auth-v2/csrf/', body: {}});
+    MockApiClient.addMockResponse({
+      url: '/auth/config/',
+      body: {
+        pendingMfa: null,
+        serverHostname: 'sentry.example.com',
+        canRegister: false,
+        hasNewsletter: false,
+      },
+    });
+    render(<OAuthDevice />, {initialRouterConfig: {location}});
+    await waitFor(() =>
+      expect(screen.getByText('You must be a member of an organization.')).toBeVisible()
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Switch account'}));
+    await waitFor(() =>
+      expect(screen.getByRole('textbox', {name: 'Email'})).toBeVisible()
+    );
+  });
+
+  it('keeps the device context visible through pending MFA and prepares again', async () => {
+    MockApiClient.addMockResponse({
+      url: '/auth/oauth/device/',
+      statusCode: 403,
+      body: {detail: 'Authentication credentials were not provided.'},
+    });
+    MockApiClient.addMockResponse({
+      url: '/auth/config/',
+      body: {
+        pendingMfa: {mfaRequired: true, mfaMethods: [{id: 'totp'}]},
+        serverHostname: 'sentry.example.com',
+        canRegister: false,
+        hasNewsletter: false,
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: '/auth/2fa/',
+      method: 'POST',
+      body: {user: UserFixture(), nextUri: '/elsewhere/'},
+    });
+    render(<OAuthDevice />, {initialRouterConfig: {location}});
+    const input = await screen.findByRole('textbox', {name: 'One-time password'});
+    await waitFor(() => expect(screen.getByText('Example Application')).toBeVisible());
+    const prepare = MockApiClient.addMockResponse({
+      url: '/auth/oauth/device/',
+      body: consent,
+    });
+    await userEvent.type(input, '123456');
+    await waitForAuthorization();
+    expect(prepare).toHaveBeenCalledTimes(1);
+    expect(testableWindowLocation.assign).not.toHaveBeenCalled();
   });
 });

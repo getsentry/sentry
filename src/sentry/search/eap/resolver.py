@@ -290,6 +290,7 @@ class SearchResolver:
                 event_search.default_config,
                 wildcard_free_text=True,
                 allow_regex=self._allows_regex(),
+                has_filter_value=None,
             ),
             params=self.params.filter_params,
             get_field_type=self.get_field_type,
@@ -698,8 +699,7 @@ class SearchResolver:
                                 value=self._resolve_search_value(
                                     resolved_column, term.operator, non_none_values
                                 ),
-                                ignore_case=self.params.case_insensitive
-                                and resolved_column.search_type == "string",
+                                ignore_case=self._ignores_case(resolved_column),
                             )
                         )
                     )
@@ -720,8 +720,7 @@ class SearchResolver:
                                 value=self._resolve_search_value(
                                     resolved_column, term.operator, non_none_values
                                 ),
-                                ignore_case=self.params.case_insensitive
-                                and resolved_column.search_type == "string",
+                                ignore_case=self._ignores_case(resolved_column),
                             )
                         )
                     )
@@ -787,8 +786,7 @@ class SearchResolver:
                     key=resolved_column.proto_definition,
                     op=operator,
                     value=self._resolve_search_value(resolved_column, term.operator, value),
-                    ignore_case=self.params.case_insensitive
-                    and resolved_column.search_type == "string",
+                    ignore_case=self._ignores_case(resolved_column),
                 )
             ),
             context_definition,
@@ -946,6 +944,13 @@ class SearchResolver:
             # There is no OP_NOT_REGEXP, so negation is expressed by wrapping the match
             return TraceItemFilter(not_filter=NotFilter(filters=[match]))
         return match
+
+    def _ignores_case(self, column: ResolvedAttribute) -> bool:
+        return (
+            self.params.case_insensitive
+            and column.search_type == "string"
+            and not column.canonical_case
+        )
 
     def _resolve_search_value(
         self,
@@ -1218,6 +1223,7 @@ class SearchResolver:
                 internal_type=internal_match.internal_type,
                 validator=internal_match.validator,
                 normalizer=internal_match.normalizer,
+                canonical_case=internal_match.canonical_case,
                 processor=internal_match.processor,
             )
         else:

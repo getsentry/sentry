@@ -1,12 +1,14 @@
+import re
 from unittest.mock import MagicMock, patch
 
 from jwt import ExpiredSignatureError
 
-from sentry.integrations.jira.views import UNABLE_TO_VERIFY_INSTALLATION
+from sentry.integrations.jira.views import SALT, UNABLE_TO_VERIFY_INSTALLATION
 from sentry.integrations.utils.atlassian_connect import AtlassianConnectValidationError
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.http import absolute_uri
+from sentry.utils.signing import unsign
 
 REFRESH_REQUIRED = b"This page has expired, please refresh to configure your Sentry integration"
 CLICK_TO_FINISH = b"Finish Installation in Sentry"
@@ -21,7 +23,17 @@ class JiraSentryInstallationViewTestCase(APITestCase):
         self.user.name = "Sentry Admin"
         self.user.save()
 
-        self.integration = self.create_provider_integration(provider="jira", name="Example Jira")
+        self.integration = self.create_provider_integration(
+            provider="jira",
+            name="Example Jira",
+            external_id="example-client-key",
+            metadata={
+                "oauth_client_id": "oauth-client-id",
+                "shared_secret": "a-super-secret-key-from-atlassian",
+                "base_url": "https://example.atlassian.net",
+                "domain_name": "example.atlassian.net",
+            },
+        )
 
 
 @control_silo_test
@@ -64,3 +76,16 @@ class JiraSentryInstallationViewTest(JiraSentryInstallationViewTestCase):
         assert response.status_code == 200
         self.assert_no_errors(response)
         assert CLICK_TO_FINISH in response.content
+
+    @patch("sentry.integrations.jira.views.sentry_installation.get_integration_from_request")
+    def test_finish_link_only_identifies_installation(
+        self, mock_get_integration_from_request: MagicMock
+    ) -> None:
+        mock_get_integration_from_request.return_value = self.integration
+        response = self.client.get(self.path)
+        assert response.status_code == 200
+
+        match = re.search(rb"signed_params=([A-Za-z0-9_-]+)", response.content)
+        assert match is not None
+        assert unsign(match.group(1).decode(), salt=SALT) == {"external_id": "example-client-key"}
+        assert b"a-super-secret-key-from-atlassian" not in response.content

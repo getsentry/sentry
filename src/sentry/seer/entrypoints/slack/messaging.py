@@ -64,8 +64,12 @@ def send_thread_update(
     thread: SlackThreadDetails,
     data: NotificationData,
     ephemeral_user_id: str | None = None,
-) -> bool:
-    """Actually sends the update, but requires a SlackIntegration, so we can't schedule it as a task."""
+) -> str | None:
+    """
+    Actually sends the update, but requires a SlackIntegration, so we can't schedule it as a task.
+    Returns the posted message's ts, or None if it wasn't posted.
+    """
+    message_ts: str | None = None
     with SlackEntrypointEventLifecycleMetric(
         interaction_type=SlackEntrypointInteractionType.SEND_THREAD_UPDATE,
         integration_id=install.model.id,
@@ -129,10 +133,8 @@ def send_thread_update(
                     message_ts=message_ts,
                     payload=cache_payload,
                 )
-            return response is not None
         except IntegrationConfigurationError as e:
             lifecycle.record_halt(halt_reason=e)
-            return False
         except TimeoutError as e:
             lifecycle.record_failure(failure_reason=e)
             raise IntegrationError("Slack request timed out") from e
@@ -140,6 +142,19 @@ def send_thread_update(
             lifecycle.record_failure(failure_reason=e)
             # Retry, hopefully it's transient
             raise
+    return message_ts
+
+
+def edit_thread_message(
+    *, install: SlackIntegration, channel_id: str, message_ts: str, data: NotificationData
+) -> None:
+    """Re-render a message we already posted from new data."""
+    renderable, _ = NotificationService.render_template(
+        data=data,
+        template=template_registry.get(data.source)(),
+        provider=provider_registry.get(NotificationProviderKey.SLACK),
+    )
+    install.update_message(channel_id=channel_id, message_ts=message_ts, renderable=renderable)
 
 
 @instrumented_task(

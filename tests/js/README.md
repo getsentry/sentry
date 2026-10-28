@@ -13,22 +13,20 @@ Add an export in `package.json` when adding a helper or fixture.
 The test packages depend on the apps they exercise. The apps do not depend on
 these test packages. The Jest resolver loads test-support imports in app specs
 from the root's dependencies, and other imports from their owning workspace.
-Icons and Scraps keep independent test configurations and dependencies.
+Icons, Scraps, and Search Syntax keep independent test configurations and dependencies.
 
 Application specs stay alongside their source. Each app has a scoped `test`
 script and config that use the root's `sentry-test` binary, which pnpm makes available to
 workspace scripts. Test support and lint packages also have scoped test scripts;
-Icons and Scraps use their own Jest configurations.
+Icons, Scraps, and Search Syntax use their own Jest configurations.
 
 The root `test-all` command invokes these scripts through pnpm with watch mode
 disabled. The root `test-ci` command runs each workspace's test script in a
 separate Jest process, with up to two workspaces in parallel. Both commands
 exclude the root package, which owns the combined `test` watcher.
 
-`test-ci` runs app, lint, and test-support workspaces against React Router V6
-and V8. Set `SENTRY_REACT_ROUTER_VERSION=6` or `8` to select one version.
-Standalone packages and router build checks run once on V6. CI runs these only
-on V6 shard 0.
+Standalone package tests run once after the app, lint, and test-support workspaces.
+CI runs standalone package tests only on shard 0.
 
 CI discovers one global test list for application, test-support, and lint suites.
 Each workspace's config selects its own files from the same shard assignment.
