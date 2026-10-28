@@ -1,4 +1,4 @@
-import {Component, createRef, type ReactNode} from 'react';
+import {Component, useRef, useState, type ReactNode} from 'react';
 import {withTheme, type CSSObject, type Theme, css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconWarning} from '@sentry/icons/warning';
@@ -704,8 +704,6 @@ interface BufferedInputProps extends InputProps {
   onUpdate: (value: string) => void;
   value: string;
 }
-type InputState = {value: string};
-
 /**
  * Because controlled inputs fire onChange on every key stroke,
  * we can't update the QueryField that often as it would re-render
@@ -714,56 +712,40 @@ type InputState = {value: string};
  * Using a buffered input lets us throttle rendering and enforce data
  * constraints better.
  */
-export class BufferedInput extends Component<BufferedInputProps, InputState> {
-  constructor(props: BufferedInputProps) {
-    super(props);
-    this.input = createRef();
-  }
+export function BufferedInput({onUpdate, ...props}: BufferedInputProps) {
+  const [value, setValue] = useState<string>(props.value);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
-  state: InputState = {
-    value: this.props.value,
-  };
+  const isValid = () => !inputRef.current || inputRef.current.validity.valid;
 
-  private input: React.RefObject<HTMLInputElement | null>;
-
-  get isValid() {
-    if (!this.input.current) {
-      return true;
-    }
-    return this.input.current.validity.valid;
-  }
-
-  handleBlur = () => {
-    if (this.props.required && this.state.value === '') {
+  const handleBlur = () => {
+    if (props.required && value === '') {
       // Handle empty strings separately because we don't pass required
       // to input elements, causing isValid to return true
-      this.setState({value: this.props.value});
-    } else if (this.isValid) {
-      this.props.onUpdate(this.state.value);
+      setValue(props.value);
+    } else if (isValid()) {
+      onUpdate(value);
     } else {
-      this.setState({value: this.props.value});
+      setValue(props.value);
     }
   };
 
-  handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (this.isValid) {
-      this.setState({value: event.target.value});
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (isValid()) {
+      setValue(event.target.value);
     }
   };
 
-  render() {
-    const {onUpdate: _, ...props} = this.props;
-    return (
-      <StyledInput
-        {...props}
-        ref={this.input}
-        className="form-control"
-        value={this.state.value}
-        onChange={this.handleChange}
-        onBlur={this.handleBlur}
-      />
-    );
-  }
+  return (
+    <StyledInput
+      {...props}
+      ref={inputRef}
+      className="form-control"
+      value={value}
+      onChange={handleChange}
+      onBlur={handleBlur}
+    />
+  );
 }
 
 // Set a min-width to allow shrinkage in grid.
