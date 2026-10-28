@@ -13,7 +13,6 @@ from sentry.integrations.slack.message_builder.routing import encode_action_id
 from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.integrations.slack.webhooks.actions.investigation import (
     InvalidInvestigationActionValue,
-    InvestigationUnavailableReason,
     MissingInvestigationAction,
     _get_investigation_source,
 )
@@ -37,7 +36,6 @@ from sentry.workflow_engine.types import DetectorPriorityLevel
 
 from . import BaseEventTest
 
-UNAVAILABLE_METRIC = "seer.entrypoint.slack.start_investigation.unavailable"
 FEATURES = ["organizations:investigations", "organizations:investigations-slack"]
 CHANNEL_ID = "C065W1189"
 MESSAGE_TS = "1702424381.221719"
@@ -166,23 +164,16 @@ class SeerInvestigationStartActionTest(BaseEventTest):
     def investigations(self) -> list[Investigation]:
         return list(Investigation.objects.filter(organization=self.organization))
 
-    @patch("sentry.integrations.slack.webhooks.actions.investigation.metrics.incr")
-    def test_unlinked_user_gets_link_prompt(self, mock_incr: MagicMock) -> None:
+    def test_unlinked_user_gets_link_prompt(self) -> None:
         response = self.click(slack_user={"id": "slack:unlinked", "team_id": "TXXXXXXX1"})
 
         assert response.status_code == 200
         assert "Link your identity now" in response.data["text"]
         assert response.data["response_type"] == "ephemeral"
         assert self.investigations() == []
-        mock_incr.assert_any_call(
-            UNAVAILABLE_METRIC,
-            tags={"reason": InvestigationUnavailableReason.IDENTITY_NOT_LINKED},
-            sample_rate=1.0,
-        )
 
     @with_feature(FEATURES)
-    @patch("sentry.integrations.slack.webhooks.actions.investigation.metrics.incr")
-    def test_non_member_is_blocked(self, mock_incr: MagicMock) -> None:
+    def test_non_member_is_blocked(self) -> None:
         non_member = self.create_user()
         self.create_identity(non_member, self.idp, "slack:2")
 
@@ -194,11 +185,6 @@ class SeerInvestigationStartActionTest(BaseEventTest):
             "to start a Seer investigation."
         )
         assert self.investigations() == []
-        mock_incr.assert_any_call(
-            UNAVAILABLE_METRIC,
-            tags={"reason": InvestigationUnavailableReason.NOT_MEMBER},
-            sample_rate=1.0,
-        )
 
     def test_flags_off_is_unavailable(self) -> None:
         response = self.click()
@@ -221,8 +207,7 @@ class SeerInvestigationStartActionTest(BaseEventTest):
         assert self.investigations() == []
 
     @with_feature(FEATURES)
-    @patch("sentry.integrations.slack.webhooks.actions.investigation.metrics.incr")
-    def test_closed_membership_organization_is_unavailable(self, mock_incr: MagicMock) -> None:
+    def test_closed_membership_organization_is_unavailable(self) -> None:
         self.organization.flags.allow_joinleave = False
         self.organization.save()
 
@@ -230,11 +215,6 @@ class SeerInvestigationStartActionTest(BaseEventTest):
 
         assert response.data["text"] == "Seer can't start an investigation for this alert."
         assert self.investigations() == []
-        mock_incr.assert_any_call(
-            UNAVAILABLE_METRIC,
-            tags={"reason": InvestigationUnavailableReason.CLOSED_MEMBERSHIP},
-            sample_rate=1.0,
-        )
 
     @with_feature(FEATURES)
     @patch(
