@@ -1,20 +1,16 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
-import {IconBot} from '@sentry/icons/bot';
 import {IconChevron} from '@sentry/icons/chevron';
 import {IconFilter} from '@sentry/icons/filter';
-import {IconUser} from '@sentry/icons/user';
-import {useMutation} from '@tanstack/react-query';
+import {skipToken, useMutation, useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Disclosure} from '@sentry/scraps/disclosure';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {DateTime} from 'sentry/components/dateTime';
@@ -23,32 +19,30 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {RequestError} from 'sentry/utils/requestError/requestError';
-import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getRelativeExplorerUrl} from 'sentry/views/seerExplorer/utils';
-import {AgenticTriageDebug} from 'sentry/views/seerWorkflows/agenticTriage';
-import {StatusIcon} from 'sentry/views/seerWorkflows/runs/statusIcon';
-import {useWorkflowRuns} from 'sentry/views/seerWorkflows/runs/useWorkflowRuns';
 import {
+  getRunDisplayStatus,
+  StatusIcon,
+} from 'sentry/views/seerWorkflows/runs/statusIcon';
+import {useAutomationRuns} from 'sentry/views/seerWorkflows/runs/useAutomationRuns';
+import {
+  getStrategyLabel,
   getWorkflowRunActions,
-  getWorkflowStatus,
-  getWorkflowSummary,
-  WorkflowResults,
-  STRATEGY_META,
 } from 'sentry/views/seerWorkflows/strategies';
 import type {
-  SeerWorkflowRun,
+  SeerAutomationRun,
+  SeerWorkflowConfigsResponse,
   WorkflowDisplayStatus,
   WorkflowRunCreateRequest,
-  WorkflowRunSource,
-  WorkflowStrategy,
 } from 'sentry/views/seerWorkflows/types';
 import {useAutomationsEnabled} from 'sentry/views/seerWorkflows/utils';
 
@@ -90,11 +84,26 @@ export function LegacyAutomationRunsList() {
     },
   });
 
-  const {data, runs, isPending, isError, refetch} = useWorkflowRuns();
+  const {runs: apiRuns, isPending, isError, refetch} = useAutomationRuns();
+  // Runs only reference their config, so look up each run's strategy from its config
+  const {data: configsData} = useQuery(
+    apiOptions.as<SeerWorkflowConfigsResponse>()(
+      '/organizations/$organizationIdOrSlug/seer/workflows/configs/',
+      {
+        path: automationsEnabled ? {organizationIdOrSlug: organization.slug} : skipToken,
+        staleTime: 30_000,
+      }
+    )
+  );
+  const runs: RunWithStrategy[] = useMemo(() => {
+    const strategies = new Map(
+      configsData?.configs.map(config => [config.id, config.strategy])
+    );
+    return apiRuns.map(run => ({...run, strategy: strategies.get(run.configId) ?? null}));
+  }, [apiRuns, configsData]);
 
-  const strategyFilter = decodeList(location.query.strategy) as WorkflowStrategy[];
+  const strategyFilter = decodeList(location.query.strategy);
   const statusFilter = decodeList(location.query.status) as WorkflowDisplayStatus[];
-  const sourceFilter = decodeList(location.query.source);
   const period = decodeScalar(location.query.period);
 
   const [now] = useState(() => Date.now());
@@ -103,43 +112,27 @@ export function LegacyAutomationRunsList() {
     return days === undefined ? null : now - days * 24 * 60 * 60 * 1000;
   }, [period, now]);
 
-  const sourceOptions = useMemo(() => {
-    const sources = new Set<WorkflowRunSource>();
-    for (const run of runs) {
-      if (run.source) {
-        sources.add(run.source);
-      }
-    }
-    return Array.from(sources)
-      .map(value => {
-        const Icon = SOURCE_ICONS[value];
-        return {
-          value,
-          label: getSourceLabel(value),
-          leadingItems: Icon ? <Icon size="xs" /> : undefined,
-        };
-      })
-      .sort((a, b) => a.label.localeCompare(b.label));
-  }, [runs]);
-
   const strategyOptions = useMemo(
     () =>
-      Array.from(new Set(runs.map(run => run.strategy))).map(strategy => ({
-        value: strategy,
-        label: STRATEGY_META[strategy].label,
-      })),
+      Array.from(new Set(runs.flatMap(run => (run.strategy ? [run.strategy] : [])))).map(
+        strategy => ({
+          value: strategy,
+          label: getStrategyLabel(strategy),
+        })
+      ),
     [runs]
   );
 
   const filteredRuns = useMemo(() => {
     return runs.filter(run => {
-      if (strategyFilter.length && !strategyFilter.includes(run.strategy)) {
+      if (
+        strategyFilter.length &&
+        (!run.strategy || !strategyFilter.includes(run.strategy))
+      ) {
         return false;
       }
-      if (statusFilter.length && !statusFilter.includes(getWorkflowStatus(run))) {
-        return false;
-      }
-      if (sourceFilter.length && (!run.source || !sourceFilter.includes(run.source))) {
+      const status = getRunDisplayStatus(run.status);
+      if (statusFilter.length && (!status || !statusFilter.includes(status))) {
         return false;
       }
       if (periodCutoffMs !== null && Date.parse(run.dateAdded) < periodCutoffMs) {
@@ -147,22 +140,19 @@ export function LegacyAutomationRunsList() {
       }
       return true;
     });
-  }, [runs, strategyFilter, statusFilter, sourceFilter, periodCutoffMs]);
+  }, [runs, strategyFilter, statusFilter, periodCutoffMs]);
 
   const sortDirection = decodeScalar(location.query.sort) === 'asc' ? 'asc' : 'desc';
 
   const sortedRuns = useMemo(() => {
-    const cmp = (a: SeerWorkflowRun, b: SeerWorkflowRun) =>
+    const cmp = (a: RunWithStrategy, b: RunWithStrategy) =>
       Date.parse(a.dateAdded) - Date.parse(b.dateAdded);
     const next = filteredRuns.toSorted(cmp);
     return sortDirection === 'desc' ? next.reverse() : next;
   }, [filteredRuns, sortDirection]);
 
   const hasActiveFilters =
-    strategyFilter.length > 0 ||
-    statusFilter.length > 0 ||
-    sourceFilter.length > 0 ||
-    period !== undefined;
+    strategyFilter.length > 0 || statusFilter.length > 0 || period !== undefined;
 
   const updateQuery = (patch: Record<string, string | string[] | undefined>) => {
     const nextQuery: Record<string, string | string[]> = {};
@@ -185,7 +175,6 @@ export function LegacyAutomationRunsList() {
     updateQuery({
       strategy: undefined,
       status: undefined,
-      source: undefined,
       period: undefined,
     });
   };
@@ -206,10 +195,8 @@ export function LegacyAutomationRunsList() {
     });
   };
 
-  const expandLatest = decodeScalar(location.query.expandLatest) as
-    | WorkflowStrategy
-    | undefined;
-  const autoExpandedForRef = useRef<WorkflowStrategy | null>(null);
+  const expandLatest = decodeScalar(location.query.expandLatest);
+  const autoExpandedForRef = useRef<string | null>(null);
   useEffect(() => {
     if (
       !expandLatest ||
@@ -266,7 +253,7 @@ export function LegacyAutomationRunsList() {
         </Flex>
       </Stack>
 
-      {isError && data === undefined ? (
+      {isError && apiRuns.length === 0 ? (
         <LoadingError onRetry={refetch} />
       ) : isPending ? (
         <LoadingIndicator />
@@ -320,24 +307,6 @@ export function LegacyAutomationRunsList() {
                   )}
                 />
                 <CompactSelect
-                  multiple
-                  value={sourceFilter}
-                  options={sourceOptions}
-                  disabled={sourceOptions.length === 0}
-                  onChange={selected =>
-                    updateQuery({
-                      source: selected.map(o => String(o.value)),
-                    })
-                  }
-                  trigger={triggerProps => (
-                    <OverlayTrigger.Button
-                      {...triggerProps}
-                      size="sm"
-                      prefix={t('Source')}
-                    />
-                  )}
-                />
-                <CompactSelect
                   value={period ?? ''}
                   options={PERIOD_FILTER_OPTIONS}
                   onChange={selected =>
@@ -386,7 +355,7 @@ export function LegacyAutomationRunsList() {
               </SimpleTable.Empty>
             ) : (
               sortedRuns.map(run => {
-                const status = getWorkflowStatus(run);
+                const status = getRunDisplayStatus(run.status);
                 const isExpanded = expanded.has(run.id);
                 return (
                   <Fragment key={run.id}>
@@ -396,7 +365,11 @@ export function LegacyAutomationRunsList() {
                       style={{cursor: 'pointer'}}
                     >
                       <SimpleTable.RowCell>
-                        <StatusIcon status={status} />
+                        {status ? (
+                          <StatusIcon status={status} />
+                        ) : (
+                          <Text variant="muted">{'\u2014'}</Text>
+                        )}
                       </SimpleTable.RowCell>
                       <SimpleTable.RowCell>
                         <Stack gap="2xs">
@@ -409,17 +382,16 @@ export function LegacyAutomationRunsList() {
                         </Stack>
                       </SimpleTable.RowCell>
                       <SimpleTable.RowCell>
-                        <Flex gap="sm" align="center" wrap="wrap">
-                          <SourceIcon source={run.source} />
-                          <Text size="sm">{STRATEGY_META[run.strategy].label}</Text>
-                        </Flex>
+                        <Text size="sm">
+                          {run.strategy ? getStrategyLabel(run.strategy) : '\u2014'}
+                        </Text>
                       </SimpleTable.RowCell>
                       <SimpleTable.RowCell>
                         <Text
                           size="sm"
                           variant={status === 'failed' ? 'danger' : 'primary'}
                         >
-                          {getWorkflowSummary(run)}
+                          {getRunSummary(run)}
                         </Text>
                       </SimpleTable.RowCell>
                       <SimpleTable.RowCell>
@@ -444,7 +416,7 @@ export function LegacyAutomationRunsList() {
                           column="1 / -1"
                           direction="column"
                         >
-                          <RunDetail run={run} organizationSlug={organization.slug} />
+                          <RunDetail run={run} />
                         </SimpleTable.RowCell>
                       </SimpleTable.Row>
                     )}
@@ -459,46 +431,26 @@ export function LegacyAutomationRunsList() {
   );
 }
 
-const SOURCE_LABELS: Record<WorkflowRunSource, string> = {
-  cron: t('Automated'),
-  manual: t('Manual'),
+type RunWithStrategy = SeerAutomationRun & {
+  /**
+   * From the run's config. Null until configs load, or if the config is gone
+   */
+  strategy: string | null;
 };
 
-const SOURCE_ICONS: Record<
-  WorkflowRunSource,
-  React.ComponentType<{size?: 'xs' | 'sm' | 'md'; variant?: 'muted'}>
-> = {
-  cron: IconBot,
-  manual: IconUser,
-};
-
-function getSourceLabel(source: WorkflowRunSource | null): string {
-  if (!source) {
-    return '--';
+function getRunSummary(run: SeerAutomationRun): string {
+  switch (run.status) {
+    case 'failed':
+    case 'rejected':
+      return run.error.message;
+    case 'queued':
+      return t('Queued');
+    case 'running':
+      return t('Running…');
+    case 'complete':
+    case null:
+      return tn('%s execution', '%s executions', run.executions.length);
   }
-  return SOURCE_LABELS[source] ?? source;
-}
-
-function SourceIcon({source}: {source: WorkflowRunSource | null}) {
-  if (!source) {
-    return (
-      <Text size="sm" variant="muted">
-        {getSourceLabel(source)}
-      </Text>
-    );
-  }
-  const Icon = SOURCE_ICONS[source];
-  if (!Icon) {
-    return null;
-  }
-  const label = getSourceLabel(source);
-  return (
-    <Tooltip title={label} skipWrapper>
-      <Flex as="span" align="center" aria-label={label}>
-        <Icon size="xs" variant="muted" />
-      </Flex>
-    </Tooltip>
-  );
 }
 
 const STATUS_FILTER_OPTIONS: Array<{
@@ -509,7 +461,6 @@ const STATUS_FILTER_OPTIONS: Array<{
   {value: 'failed', label: 'Failed'},
   {value: 'skipped', label: 'Skipped'},
   {value: 'running', label: 'Running'},
-  {value: 'partial', label: 'Incomplete'},
 ];
 
 const PERIOD_FILTER_OPTIONS: Array<{label: string; value: string}> = [
@@ -527,56 +478,38 @@ const PERIOD_TO_DAYS: Record<string, number> = {
   '30d': 30,
 };
 
-function RunDetail({
-  run,
-  organizationSlug,
-}: {
-  organizationSlug: string;
-  run: SeerWorkflowRun;
-}) {
-  const isSentryEmployee = useIsSentryEmployee();
-  const hasTriageDebug = isSentryEmployee && run.strategy === 'agentic_triage';
+function RunDetail({run}: {run: SeerAutomationRun}) {
+  if (run.executions.length === 0) {
+    return (
+      <Text size="sm" variant="muted">
+        {t('No executions recorded for this run.')}
+      </Text>
+    );
+  }
   return (
-    <Stack gap="lg">
-      <WorkflowResults run={run} organizationSlug={organizationSlug} />
-      {run.seerRunId || hasTriageDebug ? (
-        <Disclosure>
-          <Disclosure.Title>
-            <Flex gap="sm" align="center">
-              <Text bold>{t('Debug')}</Text>
-              {!run.seerRunId && isSentryEmployee && (
-                <Container
-                  display="inline-block"
-                  border="warning"
-                  radius="sm"
-                  padding="2xs xs"
-                >
-                  <Text size="xs" variant="warning" uppercase bold>
-                    {t('Employee only')}
-                  </Text>
-                </Container>
-              )}
-            </Flex>
-          </Disclosure.Title>
-          <Disclosure.Content>
-            <Stack gap="sm">
-              {run.seerRunId && (
-                <Fragment>
-                  <Text size="xs" variant="muted">
-                    {t('Run %s', run.id)}
-                  </Text>
-                  <Link to={getRelativeExplorerUrl(run.seerRunId)}>
-                    {t('View prompt and agent run %s', run.seerRunId)}
-                  </Link>
-                </Fragment>
-              )}
-              {isSentryEmployee && run.strategy === 'agentic_triage' && (
-                <AgenticTriageDebug run={run} />
-              )}
-            </Stack>
-          </Disclosure.Content>
-        </Disclosure>
-      ) : null}
+    <Stack gap="sm">
+      {run.executions.map(execution => {
+        const status = getRunDisplayStatus(execution.status);
+        return (
+          <Flex key={execution.id} gap="md" align="center" wrap="wrap">
+            {status && <StatusIcon status={status} />}
+            <Text size="sm">{t('Execution %s', execution.id)}</Text>
+            <Text size="sm" variant="muted">
+              <DateTime date={execution.dateAdded} />
+            </Text>
+            {execution.status === 'failed' && (
+              <Text size="sm" variant="danger">
+                {execution.error.message}
+              </Text>
+            )}
+            {execution.seerRunId && (
+              <Link to={getRelativeExplorerUrl(execution.seerRunId)}>
+                {t('View agent run')}
+              </Link>
+            )}
+          </Flex>
+        );
+      })}
     </Stack>
   );
 }
