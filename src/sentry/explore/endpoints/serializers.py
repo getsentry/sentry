@@ -259,13 +259,12 @@ class ExploreSavedQuerySerializer(serializers.Serializer):
 
     # Avoid including any side-effecting logic here, since this logic is also used when generating prebuilt queries on first read
     def validate(self, data):
-        transformation_pipelines = [
-            visualization["transformations"]
-            for query in data["query"]
-            for field in ("visualize", "aggregateField")
-            for visualization in query.get(field) or []
-            if "transformations" in visualization
-        ]
+        transformation_pipelines = []
+        for query in data["query"]:
+            for field in ("visualize", "aggregateField"):
+                for visualization in query.get(field) or []:
+                    if "transformations" in visualization:
+                        transformation_pipelines.append(visualization["transformations"])
         if transformation_pipelines and not features.has(
             "organizations:explore-interpolation-and-smoothing",
             self.context["organization"],
