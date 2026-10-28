@@ -11,13 +11,12 @@ error.type:DatabaseUnavailable -> system-down
 stack.function:malloc -> memory-allocation-error, {{ stack.function }} title="Out of memory in {{ function }}"
 
 # Negate a matcher, quote values with spaces, and match on tags
-!logger:"my app.*" tags.environment:production -> "prod errors", {{ default }}
-
-# A unicode arrow is saved as ->
-error.type:TimeoutError → timeouts`;
+!logger:"my app.*" tags.environment:production -> "prod errors", {{ default }}`;
 
 export const mistakes = `# An arrow from another language
 error.type:DatabaseUnavailable => system-down
+# A unicode arrow
+error.type:SocketError → sockets
 # No space before the arrow
 error.type:TimeoutError-> timeouts
 # A typo in the matcher name

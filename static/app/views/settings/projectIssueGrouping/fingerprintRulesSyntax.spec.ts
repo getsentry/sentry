@@ -54,9 +54,7 @@ describe('tokenizeFingerprintRules', () => {
     'message:a->b -> literal-arrow-in-pattern',
     '"error.type":A -> a,',
     'error.type:A -> title="only a title"',
-    // Saved as `->`
-    'error.type:A → a',
-    'message:"x → y" → a',
+    'message:"x → y" -> a',
     'message:"multi\\"quote" -> {{ tags.foo }}',
   ])('has no diagnostics for %j', text => {
     expect(getDiagnostics(text)).toEqual([]);
@@ -65,7 +63,8 @@ describe('tokenizeFingerprintRules', () => {
   it.each([
     ['error.type:A => a', 'lookalike-arrow', 'error', '=>'],
     ['error.type:A-> a', 'glued-arrow', 'error', '->'],
-    ['error.type:A→ a', 'glued-arrow', 'error', '→'],
+    ['error.type:A → a', 'lookalike-arrow', 'error', '→'],
+    ['error.type:A→ a', 'lookalike-arrow', 'error', '→'],
     ['error.type:A a', 'missing-arrow', 'error', 'error.type:A a'],
     ['error.type:A', 'missing-arrow', 'error', 'error.type:A'],
     ['error.type A -> a', 'invalid-syntax', 'error', 'error.type'],

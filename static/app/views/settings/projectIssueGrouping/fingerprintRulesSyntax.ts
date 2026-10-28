@@ -1,9 +1,7 @@
 /**
  * Tokenizer for fingerprint rules, used to highlight them and to point out mistakes before
  * they're saved. It follows the grammar in `src/sentry/grouping/fingerprinting/parser.py`,
- * so a config gets an error diagnostic when the backend would reject it. The exception is
- * a `→`, which is always treated as an arrow even where the backend won't convert it, such
- * as in a rule that also has a `->`.
+ * so a config gets an error diagnostic when the backend would reject it.
  */
 
 export type FingerprintTokenType =
@@ -243,7 +241,7 @@ export function tokenizeFingerprintRules(text: string) {
     if (glued && splitArrow) {
       const arrowStart = valueStart + glued.index;
       const arrowEnd = arrowStart + glued[0].length;
-      const isArrow = glued[0] === '->' || glued[0] === '→';
+      const isArrow = glued[0] === '->';
       if (glued.index > 0) {
         addToken('pattern', valueStart, arrowStart);
       }
@@ -362,10 +360,8 @@ export function tokenizeFingerprintRules(text: string) {
       const lookalike = matchAt(LOOKALIKE_ARROW, text, pos)?.[0];
       if (text.startsWith('->', pos) || lookalike) {
         const end = pos + (lookalike ?? '->').length;
-        // The backend saves a `→` as `->`
-        const isArrow = !lookalike || lookalike === '→';
-        addToken(isArrow ? 'arrow' : 'invalid', pos, end);
-        if (!isArrow) {
+        addToken(lookalike ? 'invalid' : 'arrow', pos, end);
+        if (lookalike) {
           addDiagnostic('lookalike-arrow', pos, end, lookalike);
         }
         if (pos === start) {
