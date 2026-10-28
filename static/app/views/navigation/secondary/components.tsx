@@ -1012,6 +1012,9 @@ function SecondaryNavigationReorderableLink({
 
 function GrabHandle() {
   const settingsV3 = useSettingsV3();
+  const HandleAnimation = settingsV3
+    ? SettingsV3GrabHandleAnimation
+    : GrabHandleAnimation;
   const {attributes, isDragging, listeners, setActivatorNodeRef} =
     useReorderableItemContext();
 
@@ -1026,8 +1029,7 @@ function GrabHandle() {
       top="50%"
     >
       {p => (
-        <GrabHandleAnimation
-          settingsV3={settingsV3}
+        <HandleAnimation
           {...mergeProps(p, listeners, attributes)}
           aria-label={t('Drag to reorder')}
           data-drag-icon
@@ -1035,18 +1037,32 @@ function GrabHandle() {
           style={{cursor: isDragging ? 'grabbing' : 'grab'}}
         >
           <IconGrabbable variant="muted" aria-hidden="true" />
-        </GrabHandleAnimation>
+        </HandleAnimation>
       )}
     </Flex>
   );
 }
 
-const GrabHandleAnimation = styled('div')<{settingsV3: boolean}>`
+const GrabHandleAnimation = styled('div')`
+  pointer-events: none;
+  opacity: 0;
+  z-index: 1;
+  /* Overlay the project icon, which sits at the link's left padding. */
+  left: ${p => p.theme.space.lg};
+  transition: opacity ${p => p.theme.motion.smooth.moderate};
+  transform: translateY(-50%);
+
+  &:focus-visible {
+    ${p => p.theme.focusRing()}
+  }
+`;
+
+const SettingsV3GrabHandleAnimation = styled('div')`
   pointer-events: none;
   opacity: 0;
   z-index: 1;
   /* Center the 18px handle in the 24px leading slot after the link's border and padding. */
-  left: ${p => (p.settingsV3 ? `calc(${p.theme.space.md} + 4px)` : p.theme.space.lg)};
+  left: ${p => `calc(${p.theme.space.md} + 4px)`};
   transition: opacity ${p => p.theme.motion.smooth.moderate};
   transform: translateY(-50%);
 
