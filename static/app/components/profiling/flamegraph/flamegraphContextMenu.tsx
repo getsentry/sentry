@@ -1,11 +1,16 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import {createPortal} from 'react-dom';
-import {usePopper} from 'react-popper';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {autoUpdate, offset, useFloating} from '@floating-ui/react-dom';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconGithub} from '@sentry/icons/github';
+import {IconProfiling} from '@sentry/icons/profiling';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {flipOverlay, shiftOverlay} from '@sentry/scraps/overlayPositioning';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {
@@ -16,7 +21,6 @@ import {
   ProfilingContextMenuItemCheckbox,
   ProfilingContextMenuLayer,
 } from 'sentry/components/profiling/profilingContextMenu';
-import {IconChevron, IconCopy, IconGithub, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -212,11 +216,11 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
               disabled={!sourceCodeLink.isSuccess || !sourceCodeLink.data?.sourceUrl}
               tooltip={
                 isSupportedPlatformForGitHubLink(props.profileGroup?.metadata?.platform)
-                  ? sourceCodeLink.isPending
+                  ? sourceCodeLink.isLoading
                     ? 'Resolving link'
-                    : sourceCodeLink.isSuccess &&
-                        (!sourceCodeLink.data.sourceUrl ||
-                          sourceCodeLink.data.config?.provider?.key !== 'github')
+                    : !sourceCodeLink.isSuccess ||
+                        !sourceCodeLink.data.sourceUrl ||
+                        sourceCodeLink.data.config?.provider?.key !== 'github'
                       ? t('Could not find source code location in GitHub')
                       : undefined
                   : t('Open in GitHub is not supported for this platform')
@@ -225,7 +229,7 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
                 onClick: onOpenInGithubClick,
               })}
               icon={
-                sourceCodeLink.isPending ? (
+                sourceCodeLink.isLoading ? (
                   <StyledLoadingIndicator size={10} />
                 ) : (
                   <IconGithub size="xs" />
@@ -470,11 +474,11 @@ export function ContinuousFlamegraphContextMenu(props: FlamegraphContextMenuProp
             <ProfilingContextMenuItemButton
               disabled={!sourceCodeLink.isSuccess || !sourceCodeLink.data?.sourceUrl}
               tooltip={
-                sourceCodeLink.isPending
+                sourceCodeLink.isLoading
                   ? 'Resolving link'
-                  : sourceCodeLink.isSuccess &&
-                      (!sourceCodeLink.data.sourceUrl ||
-                        sourceCodeLink.data.config?.provider?.key !== 'github')
+                  : !sourceCodeLink.isSuccess ||
+                      !sourceCodeLink.data.sourceUrl ||
+                      sourceCodeLink.data.config?.provider?.key !== 'github'
                     ? t('Could not find source code location in GitHub')
                     : undefined
               }
@@ -482,7 +486,7 @@ export function ContinuousFlamegraphContextMenu(props: FlamegraphContextMenuProp
                 onClick: onOpenInGithubClick,
               })}
               icon={
-                sourceCodeLink.isPending ? (
+                sourceCodeLink.isLoading ? (
                   <StyledLoadingIndicator size={10} />
                 ) : (
                   <IconGithub size="xs" />
@@ -558,7 +562,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
   margin: 0;
   transform: translateX(-2px);
 
-  > div {
+  .scraps-spinner-ring {
     border: 2px solid ${p => p.theme.colors.gray100} !important;
     border-left-color: ${p => p.theme.colors.gray200} !important;
   }
@@ -572,6 +576,12 @@ function makeProjectIdLookupTable(projects: Project[]): Record<number, Project> 
   }
   return table;
 }
+const SUB_MENU_MIDDLEWARE = [
+  offset({crossAxis: -16, mainAxis: 0}),
+  flipOverlay(),
+  shiftOverlay(),
+];
+
 function ProfileIdsSubMenu(props: {
   contextMenu: FlamegraphContextMenuProps['contextMenu'];
   frameName: string;
@@ -583,65 +593,56 @@ function ProfileIdsSubMenu(props: {
   subMenuPortalRef: HTMLElement | null;
 }) {
   const {projects} = useProjects();
-  const [isOpen, _setIsOpen] = useState(false);
-  const triggerRef = useRef<HTMLButtonElement | null>(null);
-  // oxlint-disable-next-line react/refs
-  const popper = usePopper(triggerRef.current, props.subMenuPortalRef, {
+  const [isOpen, setIsOpen] = useState(false);
+  const {
+    refs: {reference: triggerRef, setReference: setTriggerElement},
+    floatingStyles,
+  } = useFloating<HTMLButtonElement>({
+    elements: {floating: props.subMenuPortalRef},
     placement: 'right-start',
-    modifiers: [
-      {
-        name: 'offset',
-        options: {
-          offset: [-16, 0],
-        },
-      },
-    ],
+    middleware: SUB_MENU_MIDDLEWARE,
+    whileElementsMounted: isOpen ? autoUpdate : undefined,
   });
 
   const projectLookupTable = useMemo(
     () => makeProjectIdLookupTable(projects),
     [projects]
   );
-  const setIsOpen: typeof _setIsOpen = useCallback(
-    nextState => {
-      _setIsOpen(nextState);
-      popper.update?.();
-    },
-    [popper]
-  );
 
-  const currentTarget = useRef<Node | null>(null);
-  useEffect(() => {
-    const listener = (e: MouseEvent) => {
-      currentTarget.current = e.target as Node;
-      setTimeout(() => {
-        if (!currentTarget.current) {
-          return;
-        }
-        if (
-          !triggerRef.current?.contains(currentTarget.current) &&
-          !props.subMenuPortalRef?.contains(currentTarget.current)
-        ) {
-          setIsOpen(false);
-        }
-      }, 250);
-    };
-    document.addEventListener('mouseover', listener);
-    return () => {
-      document.removeEventListener('mouseover', listener);
-    };
-  }, [props.subMenuPortalRef, setIsOpen]);
+  // Close the submenu once the pointer has left both the item and the submenu
+  const subMenuRef = useCallback(
+    (subMenu: HTMLDivElement) => {
+      let currentTarget: EventTarget | null = null;
+      const listener = (e: MouseEvent) => {
+        currentTarget = e.target;
+        setTimeout(() => {
+          if (
+            currentTarget instanceof Node &&
+            !triggerRef.current?.contains(currentTarget) &&
+            !subMenu.contains(currentTarget)
+          ) {
+            setIsOpen(false);
+          }
+        }, 250);
+      };
+      document.addEventListener('mouseover', listener);
+
+      return () => {
+        document.removeEventListener('mouseover', listener);
+      };
+    },
+    [triggerRef]
+  );
 
   return (
     <Fragment>
       <ProfilingContextMenuItemButton
         icon={<IconProfiling size="xs" />}
-        // oxlint-disable-next-line react/refs
         {...props.contextMenu.getMenuItemProps({
           onClick: () => {
             setIsOpen(true);
           },
-          ref: el => (triggerRef.current = el),
+          ref: setTriggerElement,
         })}
         onMouseEnter={() => {
           setIsOpen(true);
@@ -656,7 +657,8 @@ function ProfileIdsSubMenu(props: {
         props.subMenuPortalRef &&
         createPortal(
           <ProfilingContextMenu
-            style={popper.styles.popper}
+            ref={subMenuRef}
+            style={floatingStyles}
             css={css`
               max-height: 250px;
             `}

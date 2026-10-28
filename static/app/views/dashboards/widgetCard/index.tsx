@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
 import omit from 'lodash/omit';
@@ -19,14 +19,14 @@ import {Token} from 'sentry/components/searchSyntax/parser';
 import {t, tct} from 'sentry/locale';
 import {getOverride} from 'sentry/overrideRegistry';
 import type {PageFilters} from 'sentry/types/core';
-import type {Series} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import {CAN_MARK} from 'sentry/utils/analytics';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -35,7 +35,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {withApi} from 'sentry/utils/withApi';
 import {withPageFilters} from 'sentry/utils/withPageFilters';
-import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
+import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/constants';
 import type {DashboardFilters, Widget as TWidget} from 'sentry/views/dashboards/types';
 import {
   DashboardFilterKeys,
@@ -43,6 +43,7 @@ import {
   WidgetType,
 } from 'sentry/views/dashboards/types';
 import {getWidgetConfigError} from 'sentry/views/dashboards/utils/getWidgetConfigError';
+import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {widgetCanUseTimeSeriesVisualization} from 'sentry/views/dashboards/utils/widgetCanUseTimeSeriesVisualization';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import type {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
@@ -54,7 +55,6 @@ import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
-import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 import {VisualizationWidget} from './visualizationWidget';
 import {
@@ -67,8 +67,7 @@ import {readableConditions} from './widgetLLMContext';
 
 export type OnDataFetchedParams = {
   tableResults?: TableDataWithTitle[];
-  timeseriesResultsTypes?: Record<string, AggregationOutputType>;
-  timeseriesResultsUnits?: Record<string, DataUnit>;
+  timeseriesResults?: WidgetTimeSeries[];
 };
 
 const DAYS_TO_MS = 24 * 60 * 60 * 1000;
@@ -127,10 +126,7 @@ type Data = {
   pageLinks?: string;
   sampleCount?: number;
   tableResults?: TableDataWithTitle[];
-  timeseriesResults?: Series[];
-  timeseriesResultsTypes?: Record<string, AggregationOutputType>;
-  timeseriesResultsUnits?: Record<string, DataUnit>;
-  totalIssuesCount?: string;
+  timeseriesResults?: WidgetTimeSeries[];
 };
 
 function WidgetCard(props: Props) {
@@ -149,7 +145,7 @@ function WidgetCard(props: Props) {
       ? DisplayType.AREA
       : props.widget.displayType;
 
-  const widgetQueryError = getWidgetConfigError(props.widget, organization);
+  const widgetQueryError = getWidgetConfigError(props.widget);
 
   // Push widget metadata into the LLM context tree for Seer Explorer. The same
   // object is the context when "Ask Seer" asks about this widget.
@@ -180,24 +176,6 @@ function WidgetCard(props: Props) {
     organization.features.includes('seer-explorer-chat-prompts') &&
     isSeerExplorerEnabled(organization);
 
-  const onDataFetched = (newData: Data) => {
-    if (props.onDataFetched) {
-      props.onDataFetched({
-        tableResults: newData.tableResults,
-        timeseriesResultsTypes: newData.timeseriesResultsTypes,
-        timeseriesResultsUnits: newData.timeseriesResultsUnits,
-      });
-    }
-
-    setData(prevData => ({...prevData, ...newData}));
-
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
-    setIsLoadingTextVisible(false);
-  };
-
   const {
     api,
     selection,
@@ -219,7 +197,28 @@ function WidgetCard(props: Props) {
     onWidgetTableResizeColumn,
     disableTableActions,
     widgetInterval,
+    onDataFetched,
   } = props;
+
+  const handleDataFetched = useCallback(
+    (newData: Data) => {
+      if (onDataFetched) {
+        onDataFetched({
+          tableResults: newData.tableResults,
+          timeseriesResults: newData.timeseriesResults,
+        });
+      }
+
+      setData(prevData => ({...prevData, ...newData}));
+
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      setIsLoadingTextVisible(false);
+    },
+    [onDataFetched]
+  );
 
   if (widget.displayType === DisplayType.TOP_N) {
     // oxlint-disable-next-line react/immutability
@@ -227,7 +226,7 @@ function WidgetCard(props: Props) {
   }
 
   const hasSessionDuration = widget.queries.some(query =>
-    query.aggregates.some(aggregate => aggregate.includes('session.duration'))
+    (query.aggregates ?? []).some(aggregate => aggregate.includes('session.duration'))
   );
 
   const transactionsDeprecationWarning = useTransactionsDeprecationWarning({
@@ -242,7 +241,7 @@ function WidgetCard(props: Props) {
     dashboardFilters,
   });
 
-  const onDataFetchStart = () => {
+  const onDataFetchStart = useCallback(() => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
@@ -252,7 +251,7 @@ function WidgetCard(props: Props) {
     timeoutRef.current = setTimeout(() => {
       setIsLoadingTextVisible(true);
     }, 3000);
-  };
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -409,7 +408,7 @@ function WidgetCard(props: Props) {
               widget={widget}
               selection={selection}
               dashboardFilters={dashboardFilters}
-              onDataFetched={onDataFetched}
+              onDataFetched={handleDataFetched}
               onDataFetchStart={onDataFetchStart}
               tableItemLimit={tableItemLimit}
               widgetInterval={widgetInterval}
@@ -455,7 +454,7 @@ function WidgetCard(props: Props) {
             isMobile={isMobile}
             tableItemLimit={tableItemLimit}
             windowWidth={windowWidth}
-            onDataFetched={onDataFetched}
+            onDataFetched={handleDataFetched}
             dashboardFilters={dashboardFilters}
             chartGroup={DASHBOARD_CHART_GROUP}
             shouldResize={shouldResize}

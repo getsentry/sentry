@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from typing import Any
 from unittest.mock import patch
 
+from django.db import connection
 from django.urls import reverse
 
 from sentry import audit_log
@@ -11,18 +12,26 @@ from sentry.dashboards.endpoints.organization_dashboards import (
     PREBUILT_DASHBOARDS,
     PrebuiltDashboardId,
 )
-from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardLastVisited
+from sentry.models.dashboard import (
+    Dashboard,
+    DashboardFavoriteUser,
+    DashboardLastVisited,
+    DashboardRevision,
+)
 from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetQuery,
     DashboardWidgetTypes,
 )
+from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
@@ -2487,6 +2496,43 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         )
         assert favorited_prebuilt_ids == pre_favorited_prebuilt_ids
 
+    def test_prebuilt_autostar_skips_unfavorited_position(self) -> None:
+        stale_favorite = DashboardFavoriteUser.objects.create(
+            organization=self.organization,
+            user_id=self.user.id,
+            dashboard=self.dashboard,
+            position=1,
+            favorited=False,
+        )
+
+        # The position unique constraint is DEFERRABLE INITIALLY DEFERRED, so inside
+        # the test transaction a conflict would not be checked until teardown.
+        # Making constraints immediate matches a committed request in production.
+        with connection.cursor() as cursor:
+            cursor.execute("SET CONSTRAINTS ALL IMMEDIATE")
+
+        with self.feature(
+            [
+                "organizations:dashboards-prebuilt-insights-dashboards",
+                "organizations:dashboards-sync-all-registered-prebuilt-dashboards",
+                "organizations:dashboards-starred",
+            ]
+        ):
+            response = self.do_request("get", self.url)
+
+        assert response.status_code == 200, response.content
+        stale_favorite.refresh_from_db()
+        assert stale_favorite.favorited is False
+        assert stale_favorite.position == 1
+
+        first_autostar = DashboardFavoriteUser.objects.get(
+            organization=self.organization,
+            user_id=self.user.id,
+            dashboard__prebuilt_id=PrebuiltDashboardId.AI_AGENTS_OVERVIEW,
+        )
+        assert first_autostar.favorited is True
+        assert first_autostar.position == 2
+
     def test_endpoint_does_not_create_favorites_without_starred_flag(self) -> None:
         with self.feature(
             [
@@ -3006,3 +3052,101 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             "Could not validate query: no project available."
         ]
         assert not Dashboard.objects.filter(organization=empty_org, title="No Projects").exists()
+
+
+@with_feature("organizations:granular-permission-scopes")
+class OrganizationDashboardsScopeTest(OrganizationDashboardWidgetTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+        self.url = reverse(
+            "sentry-api-0-organization-dashboards",
+            kwargs={"organization_id_or_slug": self.organization.slug},
+        )
+        self.details_url = reverse(
+            "sentry-api-0-organization-dashboard-details",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "dashboard_id": self.dashboard.id,
+            },
+        )
+
+    def _use_token(self, scope_list: list[str]) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+    def _restore_revision_url(self) -> str:
+        revision = DashboardRevision.objects.create(
+            dashboard=self.dashboard,
+            created_by_id=self.user.id,
+            title="Old Title",
+            source="edit",
+            snapshot={"title": "Old Title", "widgets": []},
+            snapshot_schema_version=DashboardRevision.SNAPSHOT_SCHEMA_VERSION,
+        )
+        return reverse(
+            "sentry-api-0-organization-dashboard-revision-restore",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "dashboard_id": self.dashboard.id,
+                "revision_id": revision.id,
+            },
+        )
+
+    def test_read_scope_can_read(self) -> None:
+        self._use_token(["dashboard:read"])
+        assert self.client.get(self.url).status_code == 200
+        assert self.client.get(self.details_url).status_code == 200
+
+    def test_read_scope_cannot_create(self) -> None:
+        self._use_token(["dashboard:read"])
+        response = self.client.post(self.url, data={"title": "Created"})
+        assert response.status_code == 403
+        assert not Dashboard.objects.filter(
+            organization=self.organization, title="Created"
+        ).exists()
+
+    def test_read_scope_cannot_update(self) -> None:
+        self._use_token(["dashboard:read"])
+        response = self.client.put(self.details_url, data={"title": "Renamed"}, format="json")
+        assert response.status_code == 403
+        self.dashboard.refresh_from_db()
+        assert self.dashboard.title == "Dashboard 1"
+
+    def test_read_scope_cannot_delete(self) -> None:
+        self._use_token(["dashboard:read"])
+        response = self.client.delete(self.details_url)
+        assert response.status_code == 403
+        assert Dashboard.objects.filter(id=self.dashboard.id).exists()
+
+    def test_read_scope_cannot_restore_revision(self) -> None:
+        url = self._restore_revision_url()
+        self._use_token(["dashboard:read"])
+        response = self.client.post(url)
+        assert response.status_code == 403
+        self.dashboard.refresh_from_db()
+        assert self.dashboard.title == "Dashboard 1"
+
+    def test_write_scope_can_create_update_and_delete(self) -> None:
+        # `dashboard:write` implies `dashboard:read`, so the saved token holds both.
+        self._use_token(["dashboard:write"])
+        with outbox_runner():
+            response = self.client.post(self.url, data={"title": "Created"})
+        assert response.status_code == 201, response.content
+
+        response = self.client.put(self.details_url, data={"title": "Renamed"}, format="json")
+        assert response.status_code == 200, response.content
+
+        response = self.client.delete(self.details_url)
+        assert response.status_code == 204, response.content
+        assert not Dashboard.objects.filter(id=self.dashboard.id).exists()
+
+    def test_write_scope_can_restore_revision(self) -> None:
+        url = self._restore_revision_url()
+        self._use_token(["dashboard:write"])
+        response = self.client.post(url)
+        assert response.status_code == 200, response.content
+        self.dashboard.refresh_from_db()
+        assert self.dashboard.title == "Old Title"

@@ -8,13 +8,17 @@ import pytest
 from django.utils import timezone
 
 from sentry import options
+from sentry.buffer.base import Buffer
 from sentry.buffer.redis import RedisBuffer, _coerce_val, make_key
 from sentry.models.group import Group
 from sentry.models.project import Project
+from sentry.tasks.process_buffer import process_incr
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
+from sentry.utils.concurrent import SynchronousExecutor
 from sentry.utils.redis import get_cluster_routing_client
+from sentry.utils.services import Delegator
 
 
 def _hgetall_decode_keys(client, key, is_redis_cluster):
@@ -135,6 +139,17 @@ class TestRedisBuffer:
             self.buf.process_pending()
         group = Group.objects.get_from_cache(id=default_group.id)
         assert group.times_seen == orig_times_seen + times_seen_incr
+
+    @django_db_all
+    def test_process_incr_through_delegator(self, default_group) -> None:
+        delegator = Delegator(
+            Buffer, {"redis": (self.buf, SynchronousExecutor())}, lambda *args: ["redis"]
+        )
+        orig_times_seen = Group.objects.get(id=default_group.id).times_seen
+        delegator.incr(Group, {"times_seen": 5}, {"pk": default_group.id})
+        with mock.patch("sentry.buffer.backend", delegator):
+            process_incr(batch_keys=[make_key(Group, {"pk": default_group.id})])
+        assert Group.objects.get(id=default_group.id).times_seen == orig_times_seen + 5
 
     def test_get(self) -> None:
         model = mock.Mock()

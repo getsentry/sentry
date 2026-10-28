@@ -4,21 +4,21 @@ import AsyncCreatable from 'react-select/async-creatable';
 import Creatable from 'react-select/creatable';
 import type {AsyncProps} from 'react-select/src/Async';
 import type {CreatableProps} from 'react-select/src/Creatable';
-import {css, useTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import type {CSSObject} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconClose} from '@sentry/icons/close';
 
 import {Button} from '@sentry/scraps/button';
-import type {SelectValue} from '@sentry/scraps/select';
+import {PanelProvider} from '@sentry/scraps/panelProvider';
+import {Spinner} from '@sentry/scraps/spinner';
+import type {FormSize, Theme} from '@sentry/scraps/theme';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconChevron, IconClose} from 'sentry/icons';
 import type {Choices} from 'sentry/types/core';
 import {convertFromSelect2Choices} from 'sentry/utils/convertFromSelect2Choices';
 import {defined} from 'sentry/utils/defined';
-import {PanelProvider} from 'sentry/utils/panelProvider';
-import type {FormSize, Theme} from 'sentry/utils/theme';
 
 import {SelectOption} from './option';
 import type {
@@ -35,6 +35,7 @@ import {
   ReactSelect,
   components as selectComponents,
 } from './reactSelectWrapper';
+import type {SelectValue} from './types';
 
 // We don't care about any options for the styles config
 export type StylesConfig = ReactSelectStylesConfig<any, boolean>;
@@ -307,44 +308,6 @@ function DropdownIndicator(
   );
 }
 
-export const CheckWrap = styled('div')<{
-  isMultiple: boolean;
-  isSelected: boolean;
-  size: FormSize;
-}>`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 1em;
-  height: 1.4em;
-
-  ${p =>
-    p.isMultiple
-      ? css`
-          padding: 1px;
-          border: solid 1px ${p.theme.tokens.border.primary};
-          background: ${p.theme.tokens.background.primary};
-          border-radius: 2px;
-          height: 1em;
-          margin-top: 2px;
-          ${
-            p.isSelected &&
-            css`
-              background: ${p.theme.tokens.background.accent.vibrant};
-              border-color: ${p.theme.tokens.border.accent};
-            `
-          }
-        `
-      : css`
-          ${
-            p.isSelected &&
-            css`
-              color: ${p.theme.tokens.content.accent};
-            `
-          }
-        `}
-`;
-
 function isGroupedOptions<OptionType extends OptionTypeBase>(
   maybe:
     | ReturnType<typeof convertFromSelect2Choices>
@@ -373,8 +336,8 @@ function MultiValueRemove(
   );
 }
 
-function SelectLoadingIndicator() {
-  return <LoadingIndicator mini size={14} style={{height: 14, width: 14}} />;
+function SelectSpinner() {
+  return <Spinner mini size={14} style={{height: 14, width: 14}} />;
 }
 
 function SingleValue(props: React.ComponentProps<typeof selectComponents.SingleValue>) {
@@ -634,7 +597,7 @@ export function Select<OptionType extends GeneralSelectValue = GeneralSelectValu
     ClearIndicator,
     DropdownIndicator,
     MultiValueRemove,
-    LoadingIndicator: SelectLoadingIndicator,
+    LoadingIndicator: SelectSpinner,
     IndicatorSeparator: null,
     Menu,
     Option: SelectOption,

@@ -1,11 +1,14 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconMail} from '@sentry/icons/mail';
 
 import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Grid} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
@@ -17,7 +20,6 @@ import {Card} from 'sentry/components/card';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {OnCallServiceForm} from 'sentry/components/notificationActions/forms/onCallServiceForm';
 import {SlackForm} from 'sentry/components/notificationActions/forms/slackForm';
-import {IconEllipsis, IconMail} from 'sentry/icons';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import type {
@@ -173,7 +175,7 @@ function NotificationActionEditButton({
       <DropdownMenu
         items={menuItems}
         trigger={triggerProps => (
-          <Button
+          <OverlayTrigger.IconButton
             {...triggerProps}
             aria-label={t('Actions')}
             size="xs"

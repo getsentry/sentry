@@ -25,6 +25,7 @@ from sentry.integrations.source_code_management.repository import (
     RepositoryInfo,
     RepositoryIntegration,
 )
+from sentry.integrations.source_code_management.url import url_is_under
 from sentry.integrations.tasks.migrate_repo import migrate_repo
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.atlassian_connect import (
@@ -177,9 +178,9 @@ class BitbucketIntegration(RepositoryIntegration[BitbucketApiClient], BitbucketI
         return True
 
     def source_url_matches(self, url: str) -> bool:
-        return url.startswith(f"https://{self.model.metadata['domain_name']}") or url.startswith(
-            "https://bitbucket.org",
-        )
+        # domain_name is "bitbucket.org/<workspace>" for teams but a bare username for
+        # personal accounts, so it can't narrow this down to one workspace.
+        return url_is_under(url, "https://bitbucket.org")
 
     def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         return f"https://bitbucket.org/{repo.name}/src/{branch}/{filepath}"

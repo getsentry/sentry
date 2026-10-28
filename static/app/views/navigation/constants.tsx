@@ -7,8 +7,7 @@ export const NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE =
   'data-secondary-navigation-sidebar';
 
 export const PRIMARY_SIDEBAR_WIDTH = 74;
-// 52 + 1px border
-export const PRIMARY_HEADER_HEIGHT = 53;
+export const PRIMARY_HEADER_HEIGHT = 49;
 export const PRIMARY_HEADER_TITLE_MIN_WIDTH = 120;
 export const SUPERUSER_MARQUEE_HEIGHT = 24;
 
@@ -21,10 +20,17 @@ export const NAVIGATION_SIDEBAR_OPEN_DELAY_MS = 250;
 export const NAVIGATION_SIDEBAR_RESET_DELAY_MS = 300;
 
 export const NAVIGATION_MOBILE_TOPBAR_HEIGHT = 40;
-export const NAVIGATION_MOBILE_CONTENT_HEIGHT = 48;
 
 export const TOP_BAR_HEIGHT_CSS_VAR = '--top-bar-height';
 
 // To be passed as the `source` parameter in router navigation state
 // e.g. {pathname: '/issues/', state: {source: `sidebar`}}
 export const SIDEBAR_NAVIGATION_SOURCE = 'sidebar';
+
+// Settings has its own navigation, so "Back to app" returns to the last page
+// visited outside of this path prefix.
+export const SETTINGS_PATH_PREFIX = '/settings';
+
+// Scoped by organization so "Back to app" never returns to another organization.
+export const getSettingsReturnPathKey = (organizationSlug: string) =>
+  `settings-return-path:${organizationSlug}`;

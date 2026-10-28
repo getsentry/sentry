@@ -16,6 +16,11 @@ from sentry.users.services.user.service import user_service
 
 
 class InvestigationCommentSerializerResponse(TypedDict):
+    """
+    Comment with author details, or a null author when unavailable. blockId is null for
+    investigation-level comments. Dates are ISO-8601 timestamps.
+    """
+
     id: str
     blockId: str | None
     author: UserSerializerResponse | None

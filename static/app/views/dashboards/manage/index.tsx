@@ -1,5 +1,6 @@
 import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 import type {Query} from 'history';
 import pick from 'lodash/pick';
@@ -15,14 +16,13 @@ import {Pagination} from '@sentry/scraps/pagination';
 
 import {openImportDashboardFromFileModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
+import {DocumentationHint} from 'sentry/components/documentationHint';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
@@ -312,14 +312,15 @@ function ManageDashboards() {
                 },
               ]}
               trigger={triggerProps => (
-                <Button
+                <OverlayTrigger.Button
+                  showChevron={false}
                   {...triggerProps}
                   data-test-id="dashboard-create"
                   variant="primary"
                   icon={<IconAdd />}
                 >
                   {t('Create Dashboard')}
-                </Button>
+                </OverlayTrigger.Button>
               )}
             />
           )}
@@ -414,23 +415,26 @@ function ManageDashboards() {
           ) : (
             <Stack flex={1}>
               <NoProjectMessage organization={organization}>
-                <Layout.Title>
-                  {pageTitle}
-                  <PageHeadingQuestionTooltip
-                    docsUrl="https://docs.sentry.io/product/dashboards/"
-                    title={
-                      isOnlyPrebuilt
-                        ? t(
-                            'Dashboards built by Sentry to help monitor your application out of the box.'
-                          )
-                        : isOnlyCustom
-                          ? t('Dashboards created by you and your team.')
-                          : t(
-                              "A broad overview of your application's health where you can navigate through error and performance data across multiple projects."
+                <TopBar.Slot
+                  name="breadcrumbs"
+                  title={{
+                    type: 'page-title',
+                    label: pageTitle,
+                    labelTooltip: (
+                      <DocumentationHint docsUrl="https://docs.sentry.io/product/dashboards/">
+                        {isOnlyPrebuilt
+                          ? t(
+                              'Dashboards built by Sentry to help monitor your application out of the box.'
                             )
-                    }
-                  />
-                </Layout.Title>
+                          : isOnlyCustom
+                            ? t('Dashboards created by you and your team.')
+                            : t(
+                                "A broad overview of your application's health where you can navigate through error and performance data across multiple projects."
+                              )}
+                      </DocumentationHint>
+                    ),
+                  }}
+                />
                 <TopBar.Slot name="actions">
                   <Feature features="dashboards-import">
                     <Button

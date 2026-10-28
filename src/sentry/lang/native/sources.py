@@ -36,6 +36,7 @@ VALID_LAYOUTS = (
     "unified",
     "debuginfod",
     "slashsymbols",
+    "nxsymstore",
 )
 
 VALID_FILE_TYPES = (

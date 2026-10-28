@@ -5,12 +5,15 @@
 tokens = token*
 
 token
-  = spaces token:(paren / literal / op / reference / func / free_text) spaces {
+  = spaces token:(paren / reference / literal / op / func / free_text) spaces {
     return token;
   }
 
+// Matched ahead of literals so a reference named `4t` reads as a reference rather
+// than the number 4. Only names in the reference set match, anything else falls
+// through to the rules below.
 reference
-  = val:[A-Z] &{ return tc.isReference(val); } {
+  = val:$([A-Za-z0-9_.]+) &{ return tc.isReference(val); } {
     return tc.tokenReference(val, location());
   }
 

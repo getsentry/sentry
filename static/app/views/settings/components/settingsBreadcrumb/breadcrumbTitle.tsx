@@ -1,19 +1,26 @@
-import {useMemo} from 'react';
-import {useMatches} from 'react-router-dom';
+import {useContext} from 'react';
 
-import {useBreadcrumbTitleEffect} from './context';
+import type {
+  BreadcrumbListProps,
+  BreadcrumbTitleItem,
+} from '@sentry/scraps/breadcrumbList';
+
+import {TopBar} from 'sentry/views/navigation/topBar';
+
+import {SettingsBreadcrumbsContext} from './context';
 
 type Props = {
-  title: string;
+  title: string | BreadcrumbTitleItem;
+  breadcrumbs?: BreadcrumbListProps['items'];
 };
 
-/**
- * Breadcrumb title sets the breadcrumb label for the provided route match
- */
-export function BreadcrumbTitle({title}: Props) {
-  const matches = useMatches();
-  const props = useMemo(() => ({matches, title}), [matches, title]);
-  useBreadcrumbTitleEffect(props);
-
-  return null;
+export function BreadcrumbTitle({title, breadcrumbs = []}: Props) {
+  const parents = useContext(SettingsBreadcrumbsContext);
+  return (
+    <TopBar.Slot
+      name="breadcrumbs"
+      title={typeof title === 'string' ? {type: 'page-title', label: title} : title}
+      items={[...parents, ...breadcrumbs]}
+    />
+  );
 }

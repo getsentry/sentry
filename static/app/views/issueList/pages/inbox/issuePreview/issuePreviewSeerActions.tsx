@@ -1,9 +1,21 @@
-import {Fragment, useState, type ReactNode} from 'react';
+import {Fragment, type ReactNode} from 'react';
+import {IconAdd} from '@sentry/icons/add';
+import {IconBug} from '@sentry/icons/bug';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconCode} from '@sentry/icons/code';
+import {IconList} from '@sentry/icons/list';
+import {IconOpen} from '@sentry/icons/open';
+import {IconPullRequest} from '@sentry/icons/pullRequest';
+import {IconRefresh} from '@sentry/icons/refresh';
+import {IconSeer} from '@sentry/icons/seer';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Button, ButtonBar, LinkButton, type ButtonProps} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
-import {DropdownMenu, DropdownMenuFooter} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
+import {Footer} from '@sentry/scraps/menu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {getAutofixNextStep} from 'sentry/components/events/autofix/getAutofixNextStep';
@@ -11,6 +23,7 @@ import {findCodingAgentResultLink} from 'sentry/components/events/autofix/pullRe
 import {getCodingAgentName} from 'sentry/components/events/autofix/types';
 import {
   collectPatches,
+  explorerAutofixApiOptions,
   getAutofixArtifactFromSection,
   getOrderedAutofixSections,
   isCodeChangesArtifact,
@@ -19,17 +32,6 @@ import {
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {useCodingAgents} from 'sentry/components/events/autofix/v3/useCodingAgents';
 import {Placeholder} from 'sentry/components/placeholder';
-import {
-  IconAdd,
-  IconBug,
-  IconChevron,
-  IconCode,
-  IconList,
-  IconOpen,
-  IconPullRequest,
-  IconRefresh,
-  IconSeer,
-} from 'sentry/icons';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
@@ -50,13 +52,13 @@ interface IssuePreviewSeerActionsProps {
   disabled?: boolean;
 }
 
-interface NextAutofixStepButtonProps extends IssuePreviewSeerActionsProps {
+interface SeerActionButtonProps extends IssuePreviewSeerActionsProps {
   autofix: ExplorerAutofix;
   suppressResultLink?: boolean;
   variant?: 'primary' | 'secondary';
 }
 
-interface AutofixActionButtonProps {
+interface SeerActionAnalyticsProps {
   analyticsEventKey: string;
   analyticsEventName: string;
   group: Group;
@@ -64,7 +66,7 @@ interface AutofixActionButtonProps {
   analyticsParams?: ButtonProps['analyticsParams'];
 }
 
-interface StartAutofixActionProps extends AutofixActionButtonProps {
+interface RunSeerActionButtonProps extends SeerActionAnalyticsProps {
   action: () => unknown;
   analyticsAction: string;
   autofix: ExplorerAutofix;
@@ -83,13 +85,13 @@ function hasCodeChanges(section: AutofixSection): boolean {
   return collectPatches(isCodeChangesArtifact(artifact) ? artifact : []).size > 0;
 }
 
-function getAutofixActionProps({
+function getSeerActionButtonProps({
   analyticsEventKey,
   analyticsEventName,
   analyticsAction,
   analyticsParams,
   group,
-}: AutofixActionButtonProps) {
+}: SeerActionAnalyticsProps) {
   return {
     size: 'sm',
     analyticsEventKey,
@@ -103,7 +105,7 @@ function getAutofixActionProps({
   } as const;
 }
 
-function StartAutofixAction({
+function RunSeerActionButton({
   variant = 'primary',
   action,
   analyticsAction,
@@ -119,9 +121,23 @@ function StartAutofixAction({
   onContinueInSeer,
   tooltip,
   waiting,
-}: StartAutofixActionProps) {
+}: RunSeerActionButtonProps) {
   const organization = useOrganization();
-  const [isStartingAction, setIsStartingAction] = useState(false);
+  const queryClient = useQueryClient();
+  const {mutate: startAction, isPending: isStartingAction} = useMutation({
+    mutationFn: async (variables: {
+      action: RunSeerActionButtonProps['action'];
+      groupId: string;
+      organizationSlug: string;
+    }) => {
+      await variables.action();
+    },
+    onSuccess: (_data, {groupId, organizationSlug}) =>
+      queryClient.invalidateQueries(
+        {queryKey: explorerAutofixApiOptions(organizationSlug, groupId).queryKey},
+        {cancelRefetch: false}
+      ),
+  });
   const runId = autofix.runState?.run_id;
   const isProcessing = autofix.isProcessing || isStartingAction;
   const {codingAgentIntegrations, codingAgentDisabledReason, handleCodingAgentHandoff} =
@@ -134,17 +150,6 @@ function StartAutofixAction({
       enabled: defined(codingAgentStep) && defined(runId),
       onHandoff: onContinueInSeer,
     });
-
-  const handleClick = async () => {
-    setIsStartingAction(true);
-    try {
-      await action();
-    } catch {
-      // Errors are handled in the caller and shown in the autofix panel
-    } finally {
-      setIsStartingAction(false);
-    }
-  };
 
   const codingAgentOptions = (codingAgentIntegrations ?? []).map(integration => {
     const actionLabel =
@@ -165,9 +170,9 @@ function StartAutofixAction({
     };
   });
 
-  const primaryButton = (
+  const actionButton = (
     <Button
-      {...getAutofixActionProps({
+      {...getSeerActionButtonProps({
         analyticsAction,
         analyticsEventKey,
         analyticsEventName,
@@ -177,7 +182,9 @@ function StartAutofixAction({
       icon={icon}
       busy={isStartingAction || waiting}
       disabled={disabled || isProcessing}
-      onClick={handleClick}
+      onClick={() =>
+        startAction({action, groupId: group.id, organizationSlug: organization.slug})
+      }
       tooltipProps={tooltip ? {title: tooltip} : undefined}
       variant={variant}
     >
@@ -186,17 +193,17 @@ function StartAutofixAction({
   );
 
   if (!codingAgentStep || codingAgentIntegrations === undefined) {
-    return primaryButton;
+    return actionButton;
   }
 
   return (
     <ButtonBar>
-      {primaryButton}
+      {actionButton}
       <DropdownMenu
         items={codingAgentOptions}
         isDisabled={defined(codingAgentDisabledReason)}
         trigger={(triggerProps, isOpen) => (
-          <Button
+          <OverlayTrigger.IconButton
             {...triggerProps}
             variant={variant}
             size="sm"
@@ -209,21 +216,21 @@ function StartAutofixAction({
         position="bottom-end"
         shouldCloseOnBlur={false}
         menuFooter={
-          <DropdownMenuFooter>
+          <Footer>
             <MenuComponents.CTALinkButton
               icon={<IconAdd />}
               to={`/settings/${organization.slug}/integrations/?category=coding%20agent`}
             >
               {t('Add Integration')}
             </MenuComponents.CTALinkButton>
-          </DropdownMenuFooter>
+          </Footer>
         }
       />
     </ButtonBar>
   );
 }
 
-function NextAutofixStepButton({
+function SeerActionButton({
   autofix,
   disabled,
   group,
@@ -231,13 +238,13 @@ function NextAutofixStepButton({
   onRetryCodeChanges,
   suppressResultLink = false,
   variant = 'primary',
-}: NextAutofixStepButtonProps) {
+}: SeerActionButtonProps) {
   const {runState, isWaitingForRun} = autofix;
   const sections = getOrderedAutofixSections(runState);
 
   if (!runState) {
     return (
-      <StartAutofixAction
+      <RunSeerActionButton
         action={() => autofix.startStep('root_cause')}
         analyticsAction="root_cause"
         analyticsEventKey="issue_inbox.start_fix_clicked"
@@ -257,7 +264,7 @@ function NextAutofixStepButton({
   if (runState.status === 'awaiting_user_input') {
     return (
       <Button
-        {...getAutofixActionProps({
+        {...getSeerActionButtonProps({
           analyticsAction: 'view_autofix',
           analyticsEventKey: 'issue_inbox.seer_cta_clicked',
           analyticsEventName: 'Issue Inbox: Continue in Seer Clicked',
@@ -286,7 +293,7 @@ function NextAutofixStepButton({
 
   if (failedPullRequest) {
     return (
-      <StartAutofixAction
+      <RunSeerActionButton
         action={() => autofix.createPR(runState.run_id, failedPullRequest.repo_name)}
         analyticsAction="create_pr"
         analyticsEventKey="issue_inbox.create_pr_clicked"
@@ -314,7 +321,7 @@ function NextAutofixStepButton({
   if (resultLink && !suppressResultLink) {
     return (
       <LinkButton
-        {...getAutofixActionProps({
+        {...getSeerActionButtonProps({
           analyticsEventKey: 'issue_inbox.coding_agent_result_clicked',
           analyticsEventName: 'Issue Inbox: Coding Agent Result Clicked',
           analyticsParams: {
@@ -338,7 +345,7 @@ function NextAutofixStepButton({
   if (codingAgent?.agent_url) {
     return (
       <LinkButton
-        {...getAutofixActionProps({
+        {...getSeerActionButtonProps({
           analyticsEventKey: 'issue_inbox.open_in_coding_agent_clicked',
           analyticsEventName: 'Issue Inbox: Open in Coding Agent Clicked',
           analyticsParams: {
@@ -370,7 +377,7 @@ function NextAutofixStepButton({
     }
 
     return (
-      <StartAutofixAction
+      <RunSeerActionButton
         action={() => {}}
         analyticsAction="polling"
         analyticsEventKey="issue_inbox.start_fix_clicked"
@@ -393,7 +400,7 @@ function NextAutofixStepButton({
   if (nextStep?.action === 'create_pr' && !hasCodeChanges(nextStep.section)) {
     return (
       <Button
-        {...getAutofixActionProps({
+        {...getSeerActionButtonProps({
           analyticsAction: 'retry_code_changes',
           analyticsEventKey: 'issue_inbox.retry_code_changes_clicked',
           analyticsEventName: 'Issue Inbox: Retry Code Changes Clicked',
@@ -412,7 +419,7 @@ function NextAutofixStepButton({
   switch (nextStep?.action) {
     case 'create_pr':
       return (
-        <StartAutofixAction
+        <RunSeerActionButton
           action={() => autofix.createPR(runState.run_id)}
           analyticsAction="create_pr"
           analyticsEventKey="issue_inbox.create_pr_clicked"
@@ -429,7 +436,7 @@ function NextAutofixStepButton({
       );
     case 'code_changes':
       return (
-        <StartAutofixAction
+        <RunSeerActionButton
           action={() => autofix.startStep('code_changes', {runId: runState.run_id})}
           analyticsAction="code_changes"
           analyticsEventKey="issue_inbox.code_fix_clicked"
@@ -446,7 +453,7 @@ function NextAutofixStepButton({
       );
     case 'solution':
       return (
-        <StartAutofixAction
+        <RunSeerActionButton
           action={() => autofix.startStep('solution', {runId: runState.run_id})}
           analyticsAction="solution"
           analyticsEventKey="issue_inbox.find_solution_clicked"
@@ -463,7 +470,7 @@ function NextAutofixStepButton({
       );
     default:
       return (
-        <StartAutofixAction
+        <RunSeerActionButton
           action={() => autofix.startStep('root_cause')}
           analyticsAction="root_cause"
           analyticsEventKey="issue_inbox.start_fix_clicked"
@@ -496,7 +503,7 @@ export function IssuePreviewSeerActions({
   return (
     <Fragment>
       <PullRequestButtons disabled={disabled} group={group} pullRequests={pullRequests} />
-      <NextAutofixStepButton
+      <SeerActionButton
         autofix={autofix}
         disabled={disabled}
         group={group}

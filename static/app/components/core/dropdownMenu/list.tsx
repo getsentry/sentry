@@ -1,40 +1,44 @@
-import {createContext, Fragment, useContext, useMemo, useRef} from 'react';
+import {Fragment, useCallback, useContext, useMemo, useRef, useState} from 'react';
 import {useTheme, css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {useKeyboard} from '@react-aria/interactions';
 import type {AriaMenuOptions} from '@react-aria/menu';
-import {useMenu} from '@react-aria/menu';
+import {useMenu, useMenuTrigger} from '@react-aria/menu';
 import {useSeparator} from '@react-aria/separator';
 import {mergeProps} from '@react-aria/utils';
+import {Item, Section} from '@react-stately/collections';
 import type {TreeProps, TreeState} from '@react-stately/tree';
 import {useTreeState} from '@react-stately/tree';
 import type {Node} from '@react-types/shared';
+import type {LocationDescriptor} from 'history';
 
-import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import type {useOverlay} from 'sentry/utils/useOverlay';
+import {Container, Stack} from '@sentry/scraps/layout';
+import {
+  calculateMenuMinHeight,
+  Header,
+  ReserveLeadingSlot,
+  Search,
+  SectionSeparator,
+  Title,
+} from '@sentry/scraps/menu';
+import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
+import {Text} from '@sentry/scraps/text';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
+import {useOverlay} from '@sentry/scraps/useOverlay';
 
-import type {MenuItemProps} from './item';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+
+import type {OverlayState} from './context';
+import {DropdownMenuContext} from './context';
+import type {
+  DropdownMenuContentSizeOptions,
+  DropdownMenuSearchOptions,
+  MenuItemProps,
+} from './item';
 import {DropdownMenuItem} from './item';
 import {DropdownMenuSection} from './section';
-import {DropdownSubmenu} from './submenu';
-
-type OverlayState = ReturnType<typeof useOverlay>['state'];
-
-interface DropdownMenuContextValue {
-  /**
-   * Menu state (from @react-aria's useTreeState) of the parent menu. To be used to
-   * close the current submenu.
-   */
-  parentMenuState?: TreeState<MenuItemProps>;
-  /**
-   * Overlay state manager (from useOverlay) for the root (top-most) menu. To be used to
-   * close the entire menu system.
-   */
-  rootOverlayState?: OverlayState;
-}
-
-export const DropdownMenuContext = createContext<DropdownMenuContextValue>({});
+import {useSafetyTriangle} from './useSafetyTriangle';
 
 export interface DropdownMenuListProps
   extends
@@ -46,7 +50,8 @@ export interface DropdownMenuListProps
       | 'onSelectionChange'
       | 'disallowEmptySelection'
     >,
-    TreeProps<MenuItemProps> {
+    TreeProps<MenuItemProps>,
+    DropdownMenuContentSizeOptions {
   overlayPositionProps: React.HTMLAttributes<HTMLDivElement>;
   /**
    * The open state of the current overlay that contains this menu
@@ -60,6 +65,7 @@ export interface DropdownMenuListProps
    * Prevent users from highlighting text inside the menu.
    */
   disableTextSelection?: boolean;
+  emptyMessage?: React.ReactNode;
   /**
    * To be displayed below the menu items
    */
@@ -68,6 +74,11 @@ export interface DropdownMenuListProps
    * Title to display on top of the menu
    */
   menuTitle?: React.ReactNode;
+  /** Controlled input state supplied by DropdownMenuContent. */
+  searchState?: DropdownMenuSearchOptions & {
+    onChange: (value: string) => void;
+    value: string;
+  };
   size?: MenuItemProps['size'];
   /**
    * Style overrides applied to the position wrapper. Useful for overriding
@@ -175,7 +186,18 @@ function DropdownMenuCollection({
               size={size}
               state={state}
             />
-            {showSeparator && <Separator {...separatorProps} />}
+            {showSeparator && (
+              <Stack
+                as="li"
+                justify="center"
+                height="8px"
+                padding="0 lg 0 xl"
+                {...separatorProps}
+                role="presentation"
+              >
+                <SectionSeparator />
+              </Stack>
+            )}
           </Fragment>
         );
       })}
@@ -183,31 +205,67 @@ function DropdownMenuCollection({
   );
 }
 
-export function DropdownMenuList({
+function DropdownMenuList({
   closeOnSelect = true,
   onClose,
   size,
   menuTitle,
+  emptyMessage,
+  maxHeight,
+  maxWidth,
   menuFooter,
+  searchState,
   disableTextSelection,
   overlayState,
   overlayPositionProps,
   zIndex,
   ...props
 }: DropdownMenuListProps) {
+  const {t} = useTranslation();
   const {rootOverlayState, parentMenuState} = useContext(DropdownMenuContext);
+  const safetyTriangle = useSafetyTriangle();
   const state = useTreeState<MenuItemProps>({...props, selectionMode: 'single'});
   const stateCollection = useMemo(() => [...state.collection], [state.collection]);
+  const hasLeadingItems = useMemo(
+    () =>
+      stateCollection
+        .flatMap(node => (node.type === 'section' ? [...node.childNodes] : [node]))
+        .some(node => node.value?.leadingItems || node.value?.isSelected !== undefined),
+    [stateCollection]
+  );
 
   // Implement focus states, keyboard navigation, aria-label,...
-  const menuRef = useRef(null);
+  const menuRef = useRef<HTMLUListElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
   const {menuProps} = useMenu({...props, selectionMode: 'single'}, state, menuRef);
   const {separatorProps} = useSeparator({elementType: 'li'});
 
-  // If this is a submenu, pressing arrow left should close it (but not the
-  // root menu).
   const {keyboardProps} = useKeyboard({
     onKeyDown: e => {
+      const enabledMenuItems = getEnabledMenuItems(menuRef.current);
+      // When keyboard navigation wraps past the last item, show the top of the
+      // list again so the search field and first item are visible.
+      if (
+        e.key === 'ArrowDown' &&
+        searchRef.current &&
+        menuRef.current &&
+        e.target === enabledMenuItems.at(-1)
+      ) {
+        menuRef.current.scrollTop = 0;
+      }
+      // Move from the first enabled item back to search before leaving the submenu.
+      if (
+        e.key === 'ArrowUp' &&
+        searchRef.current &&
+        menuRef.current &&
+        document.activeElement === enabledMenuItems[0]
+      ) {
+        e.preventDefault();
+        menuRef.current.scrollTop = 0;
+        searchRef.current.focus();
+        return;
+      }
+      // ArrowLeft closes a submenu, but leaves the root menu open.
       if (e.key === 'ArrowLeft' && parentMenuState) {
         parentMenuState.selectionManager.clearSelection();
         return;
@@ -257,8 +315,29 @@ export function DropdownMenuList({
     () => ({
       rootOverlayState: rootOverlayState ?? overlayState,
       parentMenuState: state,
+      safetyTriangle,
     }),
-    [rootOverlayState, overlayState, state]
+    [rootOverlayState, overlayState, state, safetyTriangle]
+  );
+  const searchInput = searchState && (
+    <Search
+      ref={searchRef}
+      padding={menuTitle ? '0' : undefined}
+      aria-label={searchState.placeholder ?? 'Search'}
+      placeholder={searchState.placeholder ?? 'Search…'}
+      value={searchState.value}
+      onChange={event => searchState.onChange(event.target.value)}
+      onKeyDown={event => {
+        // ArrowDown moves from the search field into the filtered menu items.
+        if (event.key === 'ArrowDown') {
+          event.preventDefault();
+          getEnabledMenuItems(menuRef.current)[0]?.focus();
+        }
+      }}
+    />
+  );
+  const showEmptyMessage = Boolean(
+    searchState?.value.trim() && stateCollection.length === 0
   );
   return (
     <FocusScope restoreFocus autoFocus>
@@ -267,49 +346,327 @@ export function DropdownMenuList({
         {...overlayPositionProps}
       >
         <DropdownMenuContext value={contextValue}>
-          <StyledOverlay>
-            {menuTitle && <MenuTitle>{menuTitle}</MenuTitle>}
-            <DropdownMenuListWrap
-              ref={menuRef}
-              hasTitle={!!menuTitle}
-              disableTextSelection={disableTextSelection}
-              {...mergeProps(modifiedMenuProps, keyboardProps)}
-              style={{
-                maxHeight: overlayPositionProps.style?.maxHeight,
-              }}
-            >
-              <DropdownMenuCollection
-                collection={stateCollection}
-                closeOnSelect={closeOnSelect}
-                disableTextSelection={disableTextSelection}
-                onClose={onClose}
-                separatorProps={separatorProps}
-                size={size}
-                state={state}
-              />
-            </DropdownMenuListWrap>
-            {menuFooter}
-          </StyledOverlay>
+          <Stack>
+            {stackProps => (
+              <Overlay
+                {...stackProps}
+                onKeyDownCapture={event => {
+                  // Handle Escape before React Aria closes the entire menu tree.
+                  if (event.key === 'Escape' && parentMenuState && hasFocus) {
+                    event.stopPropagation();
+                    // Let the IME cancel composition without dismissing the submenu.
+                    if (event.nativeEvent.isComposing) {
+                      return;
+                    }
+                    event.preventDefault();
+                    parentMenuState.selectionManager.clearSelection();
+                  }
+                }}
+                style={{
+                  // Cap the requested height by the space available to the overlay.
+                  maxHeight: calculateMenuMinHeight(
+                    maxHeight,
+                    overlayPositionProps.style?.maxHeight
+                  ),
+                  maxWidth:
+                    maxWidth === undefined
+                      ? '100%'
+                      : `min(${typeof maxWidth === 'number' ? `${maxWidth}px` : maxWidth}, 100%)`,
+                }}
+              >
+                {menuTitle && (
+                  <Header padding={searchState ? 'xs' : 'sm lg'}>
+                    <Title padding={searchState ? 'sm lg' : undefined}>{menuTitle}</Title>
+                    {searchInput}
+                  </Header>
+                )}
+                {!menuTitle && searchInput}
+                <DropdownMenuListWrap
+                  as="ul"
+                  ref={menuRef}
+                  disableTextSelection={disableTextSelection}
+                  flexGrow={showEmptyMessage ? 1 : undefined}
+                  {...mergeProps(modifiedMenuProps, keyboardProps)}
+                >
+                  <ReserveLeadingSlot reserve={hasLeadingItems}>
+                    <DropdownMenuCollection
+                      collection={stateCollection}
+                      closeOnSelect={closeOnSelect}
+                      disableTextSelection={disableTextSelection}
+                      onClose={onClose}
+                      separatorProps={separatorProps}
+                      size={size}
+                      state={state}
+                    />
+                  </ReserveLeadingSlot>
+                  {showEmptyMessage && (
+                    <Stack
+                      as="li"
+                      role="presentation"
+                      align="center"
+                      justify="center"
+                      flexGrow={1}
+                      padding="md lg"
+                    >
+                      <Text variant="muted">{emptyMessage ?? t('No results found')}</Text>
+                    </Stack>
+                  )}
+                </DropdownMenuListWrap>
+                {menuFooter}
+              </Overlay>
+            )}
+          </Stack>
         </DropdownMenuContext>
       </PositionWrapper>
     </FocusScope>
   );
 }
 
-const StyledOverlay = styled(Overlay)`
-  display: flex;
-  flex-direction: column;
-`;
+// react-aria uses the href prop on item state to determine if the item is a link
+// and will navigate there when selected
+function makeItemHref(item: MenuItemProps): LocationDescriptor | undefined {
+  if (item.to) {
+    // This matches the behavior of the Link component
+    return normalizeUrl(item.to);
+  }
 
-const DropdownMenuListWrap = styled('ul')<{
-  hasTitle: boolean;
+  return item.externalHref;
+}
+
+/**
+ * Recursively removes hidden items, including those nested in submenus
+ * Apply href to items that have a to or externalHref prop
+ */
+function removeHiddenItemsAndSetHref(source: MenuItemProps[]): MenuItemProps[] {
+  return source
+    .filter(item => !item.hidden)
+    .map(item => {
+      const href = makeItemHref(item);
+
+      return {
+        ...item,
+        ...(href === undefined ? {} : {href}),
+        ...(item.children ? {children: removeHiddenItemsAndSetHref(item.children)} : {}),
+      };
+    });
+}
+
+function isMenuItemHidden(search: string, label: React.ReactNode, textValue?: string) {
+  const text = textValue ?? (typeof label === 'string' ? label : '');
+  return Boolean(
+    search && !text.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())
+  );
+}
+
+function filterMenuItems(items: MenuItemProps[], search: string): MenuItemProps[] {
+  const query = search.trim().toLocaleLowerCase();
+  if (!query) {
+    return items;
+  }
+
+  return items.flatMap(item => {
+    if (item.children && !item.submenu) {
+      const children = filterMenuItems(item.children, query);
+      return children.length > 0 ? [{...item, children}] : [];
+    }
+
+    return isMenuItemHidden(query, item.label, item.textValue) ? [] : [item];
+  });
+}
+
+/**
+ * Returns the menu items keyboard focus can reach. Disabled items are skipped,
+ * so the first and last of these are the first and last focusable items.
+ * Matches the rule CompactSelect uses for its ArrowUp/Down region handoff.
+ */
+function getEnabledMenuItems(menu: HTMLElement | null): HTMLElement[] {
+  return Array.from(
+    menu?.querySelectorAll<HTMLElement>('[role^="menuitem"]') ?? []
+  ).filter(item => item.getAttribute('aria-disabled') !== 'true');
+}
+
+/**
+ * Recursively finds and returns disabled items
+ */
+function getDisabledKeys(source: MenuItemProps[]): Array<MenuItemProps['key']> {
+  return source.reduce<Array<MenuItemProps['key']>>((acc, cur) => {
+    if (cur.disabled) {
+      // If an item is disabled, then its children will be inaccessible, so we
+      // can skip them and just return the parent item
+      acc.push(cur.key);
+      return acc;
+    }
+
+    if (cur.children) {
+      return acc.concat(getDisabledKeys(cur.children));
+    }
+
+    return acc;
+  }, []);
+}
+
+export type DropdownMenuContentProps = Omit<DropdownMenuListProps, 'searchState'> & {
+  items: MenuItemProps[];
+  search?: DropdownMenuSearchOptions;
+};
+
+export function DropdownMenuContent({
+  items,
+  disabledKeys,
+  size,
+  search,
+  ...props
+}: DropdownMenuContentProps) {
+  const [searchValue, setSearchValue] = useState('');
+  const activeItems = useMemo(() => removeHiddenItemsAndSetHref(items), [items]);
+  const visibleItems = useMemo(
+    () =>
+      search && searchValue ? filterMenuItems(activeItems, searchValue) : activeItems,
+    [activeItems, search, searchValue]
+  );
+  const defaultDisabledKeys = useMemo(
+    () => getDisabledKeys(visibleItems),
+    [visibleItems]
+  );
+
+  return (
+    <DropdownMenuList
+      {...props}
+      size={size}
+      disabledKeys={disabledKeys ?? defaultDisabledKeys}
+      items={visibleItems}
+      searchState={
+        search ? {...search, value: searchValue, onChange: setSearchValue} : undefined
+      }
+    >
+      {(item: MenuItemProps) => {
+        const {onAction: _onAction, ...itemProps} = item;
+
+        if (item.children && item.children.length > 0 && !item.submenu) {
+          return (
+            <Section key={item.key} title={item.label} items={item.children}>
+              {sectionItem => {
+                const {onAction: _sectionOnAction, ...sectionItemProps} = sectionItem;
+
+                return (
+                  <Item size={size} {...sectionItemProps} key={sectionItem.key}>
+                    {sectionItem.label}
+                  </Item>
+                );
+              }}
+            </Section>
+          );
+        }
+        return (
+          <Item size={size} {...itemProps} key={item.key}>
+            {item.label}
+          </Item>
+        );
+      }}
+    </DropdownMenuList>
+  );
+}
+
+interface DropdownSubmenuProps extends Pick<
+  DropdownMenuListProps,
+  'closeOnSelect' | 'disableTextSelection' | 'onClose' | 'size'
+> {
+  items: MenuItemProps[];
+  node: Node<MenuItemProps>;
+  state: TreeState<MenuItemProps>;
+}
+
+function DropdownSubmenu({
+  items,
+  node,
+  state,
+  closeOnSelect,
+  disableTextSelection,
+  onClose,
+  size,
+}: DropdownSubmenuProps) {
+  const {rootOverlayState} = useContext(DropdownMenuContext);
+  const submenu = node.value?.submenu;
+  const options = typeof submenu === 'object' ? submenu : {};
+  const isDisabled = state.disabledKeys.has(node.key) || items.length === 0;
+  const {
+    isOpen,
+    state: overlayState,
+    triggerRef,
+    triggerProps: {ref: setTriggerElement},
+    overlayProps,
+    overlayRef,
+  } = useOverlay({
+    isOpen: state.selectionManager.isSelected(node.key),
+    onClose: rootOverlayState?.close,
+    disableTrigger: isDisabled,
+    position: options.position ?? 'right-start',
+    offset: -4,
+    preventOverflowOptions: {
+      boundary: document.body,
+      crossAxis: true,
+    },
+  });
+  const {menuTriggerProps, menuProps} = useMenuTrigger(
+    {type: 'menu', isDisabled},
+    {...overlayState, focusStrategy: 'first'},
+    triggerRef
+  );
+  const isFocused = state.selectionManager.focusedKey === node.key;
+  return (
+    <Container as="li" display="contents" role="presentation">
+      <DropdownMenuItem
+        menuItemRef={useCallback(
+          element => {
+            setTriggerElement(element);
+            if (element && !isOpen && isFocused && rootOverlayState?.isOpen) {
+              element.focus();
+            }
+          },
+          [isOpen, isFocused, rootOverlayState, setTriggerElement]
+        )}
+        id={menuTriggerProps.id}
+        aria-haspopup={menuTriggerProps['aria-haspopup']}
+        aria-expanded={isOpen}
+        aria-controls={menuTriggerProps['aria-controls']}
+        submenuRef={isOpen ? overlayRef : undefined}
+        renderAs="div"
+        node={node}
+        state={state}
+        closeOnSelect={false}
+      />
+      {isOpen && (
+        <DropdownMenuContent
+          onClose={onClose}
+          closeOnSelect={closeOnSelect}
+          disableTextSelection={disableTextSelection}
+          menuTitle={options.title}
+          emptyMessage={options.emptyMessage}
+          maxHeight={options.maxHeight}
+          maxWidth={options.maxWidth}
+          search={options.search}
+          size={size}
+          {...menuProps}
+          items={items}
+          autoFocus={false}
+          overlayState={overlayState}
+          overlayPositionProps={overlayProps}
+        />
+      )}
+    </Container>
+  );
+}
+
+const DropdownMenuListWrap = styled(Stack)<{
   disableTextSelection?: boolean;
 }>`
-  margin: 0;
-  padding: ${p => p.theme.space.xs} 0;
+  /* Keep both insets visible while the menu items scroll. */
+  margin: ${p => p.theme.space.xs} 0;
+  padding: 0;
   font-size: ${p => p.theme.font.size.md};
   overflow-x: hidden;
   overflow-y: auto;
+  min-height: 0;
 
   ${p =>
     p.disableTextSelection &&
@@ -321,31 +678,7 @@ const DropdownMenuListWrap = styled('ul')<{
       }
     `}
 
-  ${p =>
-    p.hasTitle &&
-    css`
-      padding-top: calc(${p.theme.space.xs} + 1px);
-    `}
-
   &:focus {
     outline: none;
   }
-`;
-
-const MenuTitle = styled('div')`
-  flex-shrink: 0;
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  font-size: ${p => p.theme.font.size.sm};
-  color: ${p => p.theme.tokens.content.primary};
-  white-space: nowrap;
-  padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
-  box-shadow: 0 1px 0 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
-  z-index: 2;
-`;
-
-const Separator = styled('li')`
-  list-style-type: none;
-  border-top: solid 1px ${p => p.theme.tokens.border.secondary};
-  margin: ${p => p.theme.space.xs} ${p => p.theme.space.lg};
 `;

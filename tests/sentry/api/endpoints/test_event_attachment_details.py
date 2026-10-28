@@ -277,7 +277,7 @@ class EventAttachmentDetailsPermissionTest(PermissionTestCase, CreateAttachmentM
         close_streaming_response(self.assert_can_access(superuser, self.path))
 
         with self.settings(SENTRY_SELF_HOSTED=False):
-            self.assert_can_access(superuser, self.path)
+            close_streaming_response(self.assert_can_access(superuser, self.path))
             self.assert_can_access(superuser, self.path, method="DELETE")
 
     @with_feature("organizations:event-attachments")

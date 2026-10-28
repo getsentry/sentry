@@ -1,4 +1,6 @@
 import {Fragment, useState, type ReactNode} from 'react';
+import {IconHide} from '@sentry/icons/hide';
+import {IconShow} from '@sentry/icons/show';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -8,8 +10,6 @@ import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {PasswordStrengthIndicator} from 'sentry/components/passwordStrengthIndicator';
-import {IconHide} from 'sentry/icons/iconHide';
-import {IconShow} from 'sentry/icons/iconShow';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -30,14 +30,14 @@ type RegistrationValues = z.infer<typeof schema>;
 
 type Props = {
   hasNewsletter: boolean;
-  initialEmail?: string;
+  lockedEmail?: string;
   onSuccess?: (result: AuthenticatedResult) => void;
   secondaryAction?: ReactNode;
 };
 
 export function RegistrationForm({
   hasNewsletter,
-  initialEmail = '',
+  lockedEmail,
   onSuccess,
   secondaryAction,
 }: Props) {
@@ -60,7 +60,7 @@ export function RegistrationForm({
 
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {email: initialEmail, name: '', password: '', subscribe: false},
+    defaultValues: {email: lockedEmail ?? '', name: '', password: '', subscribe: false},
     validators: {onDynamic: schema},
     onSubmit: ({value, formApi}) =>
       mutation.mutateAsync(schema.parse(value)).catch((error: unknown) => {
@@ -96,11 +96,20 @@ export function RegistrationForm({
           </form.AppField>
           <form.AppField name="email">
             {field => (
-              <field.Layout.Stack label={t('Email')} required>
+              <field.Layout.Stack
+                label={t('Email')}
+                required
+                hintText={
+                  lockedEmail === undefined
+                    ? undefined
+                    : t('This invitation was sent to this address.')
+                }
+              >
                 <field.Input
                   type="email"
                   value={field.state.value}
                   onChange={field.handleChange}
+                  readOnly={lockedEmail !== undefined}
                   autoComplete="email"
                   placeholder={t('john@buggy.software')}
                 />

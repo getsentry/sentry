@@ -5,69 +5,69 @@ import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 import {WidgetCardConfidenceFooter} from './confidenceFooter';
-import type {GenericWidgetQueriesResult} from './genericWidgetQueries';
 
 describe('WidgetCardConfidenceFooter', () => {
   const selection = PageFiltersFixture();
 
-  const series: Array<Series & {fieldName?: string}> = [
+  const meta = {interval: 60_000, valueType: 'number', valueUnit: null} as const;
+  const series: TimeSeries[] = [
     {
-      seriesName: 'series-a',
-      data: [
+      yAxis: 'series-a',
+      values: [
         {
-          name: 1710000000000,
+          timestamp: 1710000000000,
           value: 10,
           sampleCount: 10,
           sampleRate: 0.5,
           confidence: 'low',
-        } as SeriesDataUnit,
+        },
       ],
+      meta,
     },
     {
-      seriesName: 'series-b',
-      data: [
+      yAxis: 'series-b',
+      values: [
         {
-          name: 1710000060000,
+          timestamp: 1710000060000,
           value: 15,
           sampleCount: 8,
           sampleRate: 0.5,
           confidence: 'high',
-        } as SeriesDataUnit,
+        },
       ],
+      meta,
     },
   ];
+  const otherSeries: TimeSeries = {
+    yAxis: 'series-a',
+    values: [
+      {
+        timestamp: 1710000120000,
+        value: 5,
+        sampleCount: 4,
+        sampleRate: 0.5,
+        confidence: 'high',
+      },
+    ],
+    meta: {...meta, isOther: true},
+  };
+  const seriesWithOther: TimeSeries[] = [...series, otherSeries];
 
-  const timeseriesResults = [
-    {seriesName: 'series-a'},
-    {seriesName: 'series-b'},
-  ] as unknown as GenericWidgetQueriesResult['timeseriesResults'];
-  const seriesWithOther: Array<Series & {fieldName?: string}> = [
-    ...series,
-    {
-      seriesName: 'Other',
-      data: [
-        {
-          name: 1710000120000,
-          value: 5,
-          sampleCount: 4,
-          sampleRate: 0.5,
-          confidence: 'high',
-        } as SeriesDataUnit,
-      ],
-    },
-  ];
-  const timeseriesResultsWithOther = [
-    {seriesName: 'series-a'},
-    {seriesName: 'series-b'},
-    {seriesName: 'Other'},
-  ] as unknown as GenericWidgetQueriesResult['timeseriesResults'];
-  const singleTimeseriesResults = [
-    {seriesName: 'series-a'},
-  ] as unknown as GenericWidgetQueriesResult['timeseriesResults'];
+  const toResults = (items: TimeSeries[]) =>
+    items.map((timeSeries, queryIndex) => ({
+      queryIndex,
+      widgetQuery: WidgetQueryFixture(),
+      seriesName: timeSeries.yAxis,
+      timeSeries,
+    })) satisfies WidgetTimeSeries[];
+  const timeseriesResults = toResults(series);
+  const timeseriesResultsWithOther = toResults(seriesWithOther);
+  const singleTimeseriesResults = toResults(series.slice(0, 1));
 
   beforeEach(() => {
     PageFiltersStore.init();

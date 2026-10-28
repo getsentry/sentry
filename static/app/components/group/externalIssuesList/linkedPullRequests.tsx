@@ -1,5 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconBot} from '@sentry/icons/bot';
+import {IconSeer} from '@sentry/icons/seer';
 import {useQuery} from '@tanstack/react-query';
 
 import {Avatar, UserAvatar} from '@sentry/scraps/avatar';
@@ -12,7 +14,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {Placeholder} from 'sentry/components/placeholder';
 import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconBot, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
   GroupActivityType,
@@ -180,7 +181,14 @@ function LinkedPullRequestRow({
                   {title}
                 </Text>
               )}
-              <PullRequestTitle>
+              <Flex
+                as="span"
+                align="center"
+                gap="xs"
+                width="100%"
+                minWidth="0"
+                overflow="hidden"
+              >
                 {variant === 'default' ? (
                   <Fragment>
                     <Text as="span" ellipsis variant="muted">
@@ -198,7 +206,7 @@ function LinkedPullRequestRow({
                     </Text>
                   </Fragment>
                 )}
-              </PullRequestTitle>
+              </Flex>
             </Stack>
             <Flex align="center" gap="md" wrap="wrap">
               <PullRequestStatusBadge status={pullRequest.status} />
@@ -448,7 +456,7 @@ export function LinkedPullRequests({
   );
 }
 
-function PullRequestList({
+export function PullRequestList({
   ariaLabel,
   group,
   pullRequests,
@@ -525,13 +533,4 @@ const PullRequestRow = styled(ExternalLink)`
 
 const EmptyLinksText = styled(Text)`
   margin: 0;
-`;
-
-const PullRequestTitle = styled('span')`
-  align-items: center;
-  display: flex;
-  gap: ${p => p.theme.space.xs};
-  min-width: 0;
-  overflow: hidden;
-  width: 100%;
 `;

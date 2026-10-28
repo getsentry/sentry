@@ -39,9 +39,17 @@ const patterns = scanPaths.map(p => (p.includes('*') ? p : `${p}/**/*.{ts,tsx}`)
 // Pass explicit file paths rather than a directory: oxlint applies .gitignore to
 // directory arguments, which silently skips everything when the checkout itself
 // sits under an ignored path (e.g. a worktree in .claude/worktrees).
+// Workspace packages under the scan paths get their own node_modules, so
+// exclude those explicitly or the glob pulls in every dependency's sources.
 const files = fg.sync(patterns, {
   cwd: repoPath,
-  ignore: ['**/__fixtures__/**', '**/__mocks__/**', '**/*.spec.*', '**/*.test.*'],
+  ignore: [
+    '**/node_modules/**',
+    '**/__fixtures__/**',
+    '**/__mocks__/**',
+    '**/*.spec.*',
+    '**/*.test.*',
+  ],
   absolute: false,
 });
 
@@ -131,9 +139,21 @@ if (parsed.number_of_files !== files.length) {
   die(failure(`oxlint linted ${parsed.number_of_files} of ${files.length} files.`));
 }
 
-// A diagnostic without a code is a parse error, so oxlint never evaluated the
-// rule for that file. Report the run as failed rather than under-reporting.
-const fatals = parsed.diagnostics.filter(d => !d.code);
+// oxlint always applies the repo's oxlint-suppressions.json, and there is no
+// flag to turn that off. With only one rule enabled, it adds these file-less
+// summary diagnostics on every run. They are not parse errors, and the
+// violations they refer to are still reported normally.
+const suppressionSummaries = new Set([
+  'There are suppressions that do not occur anymore.',
+  'There are new violations not covered by the suppressions file.',
+]);
+
+// Any other diagnostic without a code is a parse error, so oxlint never
+// evaluated the rule for that file. Report the run as failed rather than
+// under-reporting.
+const fatals = parsed.diagnostics.filter(
+  d => !d.code && !(d.filename === '' && suppressionSummaries.has(d.message))
+);
 if (fatals.length > 0) {
   die(
     `oxlint reported ${fatals.length} parse error(s), so the run is incomplete. First 5:\n` +

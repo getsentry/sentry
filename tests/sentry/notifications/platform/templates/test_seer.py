@@ -8,6 +8,12 @@ from sentry.notifications.platform.templates.seer import (
     SeerAgentError,
     SeerAutofixTrigger,
     SeerAutofixUpdate,
+    SeerInvestigationConclusionTemplate,
+    SeerInvestigationError,
+    SeerInvestigationErrorTemplate,
+    SeerInvestigationStarted,
+    SeerInvestigationStartedTemplate,
+    SeerInvestigationStatusTemplate,
     _get_next_stopping_point,
 )
 from sentry.notifications.platform.types import ParagraphSection
@@ -110,7 +116,9 @@ class SeerAgentErrorTemplateTest(TestCase):
     def test_render(self) -> None:
         from sentry.notifications.platform.templates.seer import SeerAgentErrorTemplate
 
-        data = SeerAgentError(error_message="Seer could not explore your organization.")
+        data = SeerAgentError(
+            organization_id=1, error_message="Seer could not explore your organization."
+        )
         template = SeerAgentErrorTemplate()
         rendered = template.render(data)
 
@@ -123,6 +131,7 @@ class SeerAgentErrorTemplateTest(TestCase):
         from sentry.notifications.platform.templates.seer import SeerAgentErrorTemplate
 
         data = SeerAgentError(
+            organization_id=1,
             error_message="Timeout.",
             error_title="Agent failed",
         )
@@ -131,3 +140,55 @@ class SeerAgentErrorTemplateTest(TestCase):
 
         assert rendered.subject == "Agent failed"
         assert rendered.body[0].blocks[0].text == "Timeout."
+
+
+class SeerInvestigationStartedTemplateTest(TestCase):
+    def test_render(self) -> None:
+        rendered = SeerInvestigationStartedTemplate().render(
+            SeerInvestigationStarted(
+                organization_id=1,
+                slack_user_id="U0123456789",
+                investigation_url="https://example.sentry.io/seer/investigations/1/",
+            )
+        )
+
+        assert rendered.subject == "Seer investigation started"
+        assert isinstance(rendered.body[0], ParagraphSection)
+        assert rendered.body[0].blocks[0].text == "Seer started an investigation for this alert."
+
+
+class SeerInvestigationErrorTemplateTest(TestCase):
+    def test_render(self) -> None:
+        rendered = SeerInvestigationErrorTemplate().render(
+            SeerInvestigationError(organization_id=1, error_message="Something broke")
+        )
+
+        assert rendered.subject == "Seer couldn't start an investigation"
+        assert isinstance(rendered.body[0], ParagraphSection)
+        assert rendered.body[0].blocks[0].text == "Something broke"
+
+
+class SeerInvestigationStatusTemplateTest(TestCase):
+    def test_render_example(self) -> None:
+        template = SeerInvestigationStatusTemplate()
+
+        rendered = template.render_example()
+
+        assert rendered.subject == "Investigating FCP on organization login pages"
+        assert len(rendered.body) == len(template.example_data.hypotheses)
+        (action,) = rendered.actions
+        assert action.label == "View full investigation"
+        assert action.link == template.example_data.investigation_url
+
+
+class SeerInvestigationConclusionTemplateTest(TestCase):
+    def test_render_example(self) -> None:
+        template = SeerInvestigationConclusionTemplate()
+
+        rendered = template.render_example()
+
+        assert rendered.subject == "Seer investigation conclusion"
+        assert len(rendered.body) == len(template.example_data.sections)
+        (action,) = rendered.actions
+        assert action.label == "View full investigation"
+        assert action.link == template.example_data.investigation_url

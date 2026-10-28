@@ -35,6 +35,9 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
         cost=None,
         input_cost=None,
         output_cost=None,
+        cache_read_cost=None,
+        cache_write_cost=None,
+        reasoning_cost=None,
         request_model=None,
         response_model=None,
         trace_id=None,
@@ -43,8 +46,14 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
         response_text=None,
         tool_name=None,
         tool_result=None,
+        tool_result_size=None,
         tool_output=None,
         embeddings_input=None,
+        memory_store_id=None,
+        memory_query_text=None,
+        memory_record_id=None,
+        memory_record_count=None,
+        memory_records=None,
         user_id=None,
         user_email=None,
         user_username=None,
@@ -76,6 +85,9 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             cost: Cost (gen_ai.cost.total_tokens)
             input_cost: Input token cost (gen_ai.cost.input_tokens)
             output_cost: Output token cost (gen_ai.cost.output_tokens)
+            cache_read_cost: Cache-read input token cost
+            cache_write_cost: Cache-creation input token cost
+            reasoning_cost: Reasoning output token cost
             request_model: Requested model (gen_ai.request.model)
             response_model: Responding model (gen_ai.response.model)
             trace_id: The trace ID for the span
@@ -84,6 +96,7 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             response_text: The gen_ai.response.text attribute
             tool_name: The gen_ai.tool.name attribute
             tool_result: The gen_ai.tool.call.result attribute
+            tool_result_size: The gen_ai.tool.call.result.size attribute
             tool_output: The gen_ai.tool.output attribute
             embeddings_input: The gen_ai.embeddings.input attribute
             user_id: User ID (sentry.user.id)
@@ -125,6 +138,12 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             span_data["gen_ai.cost.input_tokens"] = input_cost
         if output_cost is not None:
             span_data["gen_ai.cost.output_tokens"] = output_cost
+        if cache_read_cost is not None:
+            span_data["gen_ai.cost.cache_read.input_tokens"] = cache_read_cost
+        if cache_write_cost is not None:
+            span_data["gen_ai.cost.cache_creation.input_tokens"] = cache_write_cost
+        if reasoning_cost is not None:
+            span_data["gen_ai.cost.reasoning.output_tokens"] = reasoning_cost
         if request_model is not None:
             span_data["gen_ai.request.model"] = request_model
         if response_model is not None:
@@ -140,10 +159,22 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             span_data["gen_ai.tool.name"] = tool_name
         if tool_result is not None:
             span_data["gen_ai.tool.call.result"] = tool_result
+        if tool_result_size is not None:
+            span_data["gen_ai.tool.call.result.size"] = tool_result_size
         if tool_output is not None:
             span_data["gen_ai.tool.output"] = tool_output
         if embeddings_input is not None:
             span_data["gen_ai.embeddings.input"] = embeddings_input
+        if memory_store_id is not None:
+            span_data["gen_ai.memory.store.id"] = memory_store_id
+        if memory_query_text is not None:
+            span_data["gen_ai.memory.query.text"] = memory_query_text
+        if memory_record_id is not None:
+            span_data["gen_ai.memory.record.id"] = memory_record_id
+        if memory_record_count is not None:
+            span_data["gen_ai.memory.record.count"] = memory_record_count
+        if memory_records is not None:
+            span_data["gen_ai.memory.records"] = json.dumps(memory_records)
         # New format attributes
         if input_messages is not None:
             span_data["gen_ai.input.messages"] = json.dumps(input_messages)

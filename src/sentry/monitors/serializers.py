@@ -15,6 +15,7 @@ from sentry.monitors.models import (
     MONITOR_ENVIRONMENT_ORDERING,
     Monitor,
     MonitorCheckIn,
+    MonitorCheckInConfig,
     MonitorEnvBrokenDetection,
     MonitorEnvironment,
     MonitorIncident,
@@ -161,21 +162,7 @@ class MonitorConfigSerializerResponse(TypedDict):
     alert_rule_id: int | None
 
 
-class MonitorAlertRuleTargetSerializerResponse(TypedDict):
-    targetIdentifier: int
-    targetType: str
-
-
-class MonitorAlertRuleSerializerResponse(TypedDict):
-    targets: list[MonitorAlertRuleTargetSerializerResponse]
-    environment: str
-
-
-class MonitorSerializerResponseOptional(TypedDict, total=False):
-    alertRule: MonitorAlertRuleSerializerResponse
-
-
-class MonitorSerializerResponse(MonitorSerializerResponseOptional):
+class MonitorSerializerResponse(TypedDict):
     id: str
     name: str
     slug: str
@@ -196,9 +183,8 @@ class MonitorBulkEditResponse:
 
 @register(Monitor)
 class MonitorSerializer(Serializer[MonitorSerializerResponse]):
-    def __init__(self, environments=None, expand=None):
+    def __init__(self, environments=None):
         self.environments = environments
-        self.expand = expand
 
     def get_attrs(self, item_list, user, **kwargs):
         # TODO(dcramer): assert on relations
@@ -277,7 +263,7 @@ class MonitorSerializer(Serializer[MonitorSerializerResponse]):
             item.id: serialized_monitor_environments.get(item.id, []) for item in item_list
         }
 
-        attrs = {
+        return {
             item: {
                 "project": projects_data[item.project_id] if item.project_id else None,
                 "environments": environment_data[item.id],
@@ -286,12 +272,6 @@ class MonitorSerializer(Serializer[MonitorSerializerResponse]):
             }
             for item in item_list
         }
-
-        if self._expand("alertRule"):
-            for item in item_list:
-                attrs[item]["alertRule"] = item.get_issue_alert_rule_data()
-
-        return attrs
 
     def serialize(self, obj, attrs, user, **kwargs) -> MonitorSerializerResponse:
         config = obj.config.copy()
@@ -312,16 +292,7 @@ class MonitorSerializer(Serializer[MonitorSerializerResponse]):
             "owner": attrs["owner"],
         }
 
-        if self._expand("alertRule"):
-            result["alertRule"] = attrs["alertRule"]
-
         return result
-
-    def _expand(self, key) -> bool:
-        if self.expand is None:
-            return False
-
-        return key in self.expand
 
 
 class MonitorCheckInSerializerResponseOptional(TypedDict, total=False):
@@ -364,6 +335,12 @@ class MonitorCheckInSerializer(Serializer[MonitorCheckInSerializerResponse]):
             env.id: env
             for env in Environment.objects.filter(id__in=[me.environment_id for me in monitor_envs])
         }
+        checkin_configs = dict(
+            MonitorCheckInConfig.objects.filter(
+                id__in={c.checkin_config_id for c in item_list if c.checkin_config_id}
+            ).values_list("id", "config")
+        )
+
         for checkin in item_list:
             env_name = None
             if checkin.monitor_environment:
@@ -371,6 +348,9 @@ class MonitorCheckInSerializer(Serializer[MonitorCheckInSerializerResponse]):
                 env_name = env.name if env else "[removed]"
 
             attrs[checkin]["environment_name"] = env_name
+            attrs[checkin]["monitor_config"] = checkin_configs.get(
+                checkin.checkin_config_id, checkin.monitor_config
+            )
 
         if self._expand("groups") and self.start and self.end:
             # aggregate all the trace_ids in the given set of check-ins
@@ -394,7 +374,8 @@ class MonitorCheckInSerializer(Serializer[MonitorCheckInSerializerResponse]):
         return attrs
 
     def serialize(self, obj, attrs, user, **kwargs) -> MonitorCheckInSerializerResponse:
-        config = obj.monitor_config.copy() if obj.monitor_config else {}
+        monitor_config = attrs["monitor_config"]
+        config = monitor_config.copy() if monitor_config else {}
         if "schedule_type" in config:
             # XXX: We don't use monitor.get_schedule_type_display() in case it differs from the
             # config saved on the check-in

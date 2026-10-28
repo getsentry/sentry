@@ -37,34 +37,22 @@ class BucketBoundaries:
         return None
 
 
-class Annotation(TypedDict):
-    """One time bucket's volume for a system data-fidelity annotation."""
-
-    type: Literal["system"]
-    category: str
-    outcome: str
-    reason: str
-    start: float
-    end: float
-    eventCount: float
-    # Only present for datasets with a paired byte category (logs today).
-    byteSize: NotRequired[float]
-
-
 class StatsMeta(TypedDict):
     dataset: str
     start: float
     end: float
-    droppedAnnotations: NotRequired[list[Annotation]]
-    acceptedAnnotations: NotRequired[list[Annotation]]
     ingestion: NotRequired[IngestionMeta]
 
 
 class Row(TypedDict):
     timestamp: float
-    value: float
+    value: float | None
     incomplete: bool
-    comparisonValue: NotRequired[float]
+    comparisonValue: NotRequired[float | None]
+    filled: NotRequired[bool]
+    smoothed: NotRequired[bool]
+    comparisonFilled: NotRequired[bool]
+    comparisonSmoothed: NotRequired[bool]
     sampleCount: NotRequired[float]
     sampleRate: NotRequired[float | None]
     confidence: NotRequired[Literal["low", "high"] | None]

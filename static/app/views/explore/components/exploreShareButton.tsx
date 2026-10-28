@@ -1,3 +1,4 @@
+import {IconUpload} from '@sentry/icons/upload';
 import type {Location} from 'history';
 
 import {Button} from '@sentry/scraps/button';
@@ -7,7 +8,6 @@ import {
   URL_PARAM,
 } from 'sentry/components/pageFilters/constants';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PageFilterDatetime} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';

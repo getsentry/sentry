@@ -12,13 +12,13 @@ import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
-  providerDetails,
-  type IntegrationChannel,
-} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
-import {
   ChannelField,
   ChannelSelect,
 } from 'sentry/views/projectInstall/messagingIntegrationAlertRule';
+import {
+  providerDetails,
+  type IntegrationChannel,
+} from 'sentry/views/projectInstall/messagingIntegrationTypes';
 import {useMessagingChannel} from 'sentry/views/projectInstall/useMessagingChannel';
 
 import type {ScmMessagingProviderKey} from './messagingProviders';

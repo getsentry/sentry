@@ -21,6 +21,8 @@ const INVESTIGATION_ID = '4567';
 
 const openPeriod: GroupOpenPeriod = {
   id: '1',
+  groupId: '1',
+  shortId: 'PROJ-1',
   start: '2026-09-30T10:00:00Z',
   end: null,
   duration: '1h',
@@ -129,6 +131,72 @@ export default Storybook.story('Metric issue — Seer investigation section', st
             phase: 'investigating',
             status: 'processing',
             hypotheses: InvestigationHypothesesFixture(),
+          })}
+        />
+      </Storybook.Demo>
+    </Fragment>
+  ));
+
+  story('With tool calls', () => (
+    <Fragment>
+      <p>
+        The status line carries the calls behind the current phase, drawn exactly as on
+        the investigation page: the latest call on its own line, and, once there is
+        history behind it, as the toggle for the earlier calls.
+      </p>
+      <Storybook.Demo direction="column" align="stretch" maxHeight="none">
+        <SectionWithFixtures
+          {...runningInvestigation({
+            phase: 'broad_scan',
+            status: 'processing',
+            broadScan: {
+              status: 'running',
+              summary: null,
+              toolActivity: [
+                {
+                  id: 'scan-1',
+                  kind: 'tool',
+                  status: 'running',
+                  title: 'Querying spans for the breached transaction',
+                },
+              ],
+              error: null,
+            },
+            hypotheses: [],
+          })}
+        />
+      </Storybook.Demo>
+      <Storybook.Demo direction="column" align="stretch" maxHeight="none">
+        <SectionWithFixtures
+          {...runningInvestigation({
+            phase: 'broad_scan',
+            status: 'processing',
+            broadScan: {
+              status: 'running',
+              summary: null,
+              toolActivity: [
+                {
+                  id: 'scan-1',
+                  kind: 'tool',
+                  status: 'completed',
+                  title: 'Listing project releases',
+                },
+                {
+                  id: 'scan-2',
+                  kind: 'api',
+                  status: 'failed',
+                  title: 'Fetched deploy history',
+                },
+                {
+                  id: 'scan-3',
+                  kind: 'tool',
+                  status: 'running',
+                  title: 'Querying spans for the breached transaction',
+                },
+              ],
+              error: null,
+            },
+            hypotheses: [],
           })}
         />
       </Storybook.Demo>

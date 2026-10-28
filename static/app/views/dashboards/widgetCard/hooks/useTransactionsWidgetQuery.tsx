@@ -1,8 +1,7 @@
-import {useMemo, useRef} from 'react';
+import {useMemo} from 'react';
 import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query';
 import cloneDeep from 'lodash/cloneDeep';
 
-import type {Series} from 'sentry/types/echarts';
 import type {
   EventsStats,
   GroupedMultiSeriesEventsStats,
@@ -19,16 +18,22 @@ import type {
 import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
-import {TransactionsConfig} from 'sentry/views/dashboards/datasetConfig/transactions';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
+import {transactionsResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/transactionsResponseTransforms';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {
+  combineWidgetJsonQueryResults,
+  combineWidgetQueryResults,
+} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
+import {transformMultipleWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 
 type TransactionsSeriesResponse =
@@ -55,11 +60,11 @@ export function useTransactionsSeriesQuery(
     enabled,
     dashboardFilters,
     skipDashboardFilterParens,
+    samplingMode,
     widgetInterval,
   } = params;
 
   const {queue} = useWidgetQueryQueue();
-  const prevRawDataRef = useRef<TransactionsSeriesResponse[] | undefined>(undefined);
 
   // Apply dashboard filters
   const filteredWidget = useMemo(
@@ -68,7 +73,7 @@ export function useTransactionsSeriesQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  const queryResults = useQueries({
+  const {results: queryResults, data: rawData} = useQueries({
     queries: filteredWidget.queries.map((_, queryIndex) => {
       const requestData = getSeriesRequestData(
         filteredWidget,
@@ -93,7 +98,9 @@ export function useTransactionsSeriesQuery(
       const queryParams = {
         ...restParams,
         ...(period ? {statsPeriod: period} : {}),
+        ...(samplingMode ? {sampling: samplingMode} : {}),
         excludeOther: restParams.excludeOther ? '1' : undefined,
+        partial: restParams.partial ? '1' : undefined,
       };
 
       if (queryParams.start) {
@@ -132,6 +139,7 @@ export function useTransactionsSeriesQuery(
         placeholderData: keepPreviousData,
       });
     }),
+    combine: combineWidgetQueryResults,
   });
 
   const transformedData = (() => {
@@ -148,8 +156,7 @@ export function useTransactionsSeriesQuery(
       };
     }
 
-    const timeseriesResults: Series[] = [];
-    const rawData: TransactionsSeriesResponse[] = [];
+    const timeseriesResults: WidgetTimeSeries[] = [];
 
     queryResults.forEach((q, requestIndex) => {
       if (!q?.data) {
@@ -157,44 +164,26 @@ export function useTransactionsSeriesQuery(
       }
 
       const responseData = q.data;
-      rawData[requestIndex] = responseData;
 
-      const transformedResult = TransactionsConfig.transformSeries!(
-        responseData,
-        filteredWidget.queries[requestIndex]!,
-        organization
+      const transformedResult = transformMultipleWidgetSeriesToTimeSeries(
+        transactionsResponseTransforms.transformSeries!(
+          responseData,
+          filteredWidget.queries[requestIndex]!,
+          organization
+        ),
+        filteredWidget,
+        requestIndex
       );
 
       // Maintain color consistency
-      transformedResult.forEach((result: Series, resultIndex: number) => {
-        timeseriesResults[requestIndex * transformedResult.length + resultIndex] = result;
-      });
+      timeseriesResults.push(...transformedResult);
     });
-
-    // Check if rawData is the same as before to prevent unnecessary rerenders
-    let finalRawData = rawData;
-    // oxlint-disable-next-line react/refs
-    if (prevRawDataRef.current?.length === rawData.length) {
-      // oxlint-disable-next-line react/refs
-      const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
-      if (allSame) {
-        // oxlint-disable-next-line react/refs
-        finalRawData = prevRawDataRef.current;
-      }
-    }
-
-    // Store current rawData for next comparison
-    // oxlint-disable-next-line react/refs
-    if (finalRawData !== prevRawDataRef.current) {
-      // oxlint-disable-next-line react/refs
-      prevRawDataRef.current = finalRawData;
-    }
 
     return {
       loading: false,
       errorMessage: undefined,
       timeseriesResults,
-      rawData: finalRawData,
+      rawData,
     };
   })();
 
@@ -218,10 +207,10 @@ export function useTransactionsTableQuery(
     limit,
     dashboardFilters,
     skipDashboardFilterParens,
+    samplingMode,
   } = params;
 
   const {queue} = useWidgetQueryQueue();
-  const prevRawDataRef = useRef<TransactionsTableResponse[] | undefined>(undefined);
 
   const filteredWidget = useMemo(
     () =>
@@ -229,7 +218,7 @@ export function useTransactionsTableQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  const queryResults = useQueries({
+  const {results: queryResults, data: rawData} = useQueries({
     queries: filteredWidget.queries.map(query => {
       // Clone the query to avoid mutating the original
       const modifiedQuery = cloneDeep(query);
@@ -270,6 +259,7 @@ export function useTransactionsTableQuery(
       const queryParams = {
         ...eventView.generateQueryStringObject(),
         ...requestParams,
+        ...(samplingMode ? {sampling: samplingMode} : {}),
       };
 
       return queryOptions({
@@ -300,6 +290,7 @@ export function useTransactionsTableQuery(
         select: selectJsonWithHeaders,
       });
     }),
+    combine: combineWidgetJsonQueryResults,
   });
 
   const transformedData = (() => {
@@ -317,7 +308,6 @@ export function useTransactionsTableQuery(
     }
 
     const tableResults: TableDataWithTitle[] = [];
-    const rawData: TransactionsTableResponse[] = [];
     let responsePageLinks: string | undefined;
 
     queryResults.forEach((q, i) => {
@@ -326,10 +316,9 @@ export function useTransactionsTableQuery(
       }
 
       const responseData = q.data.json;
-      rawData[i] = responseData;
 
       const transformedDataItem: TableDataWithTitle = {
-        ...TransactionsConfig.transformTable(
+        ...transactionsResponseTransforms.transformTable(
           responseData,
           filteredWidget.queries[i]!,
           organization,
@@ -344,31 +333,12 @@ export function useTransactionsTableQuery(
       responsePageLinks = q.data.headers.Link;
     });
 
-    // Check if rawData is the same as before to prevent unnecessary rerenders
-    let finalRawData = rawData;
-    // oxlint-disable-next-line react/refs
-    if (prevRawDataRef.current?.length === rawData.length) {
-      // oxlint-disable-next-line react/refs
-      const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
-      if (allSame) {
-        // oxlint-disable-next-line react/refs
-        finalRawData = prevRawDataRef.current;
-      }
-    }
-
-    // Store current rawData for next comparison
-    // oxlint-disable-next-line react/refs
-    if (finalRawData !== prevRawDataRef.current) {
-      // oxlint-disable-next-line react/refs
-      prevRawDataRef.current = finalRawData;
-    }
-
     return {
       loading: false,
       errorMessage: undefined,
       tableResults,
       pageLinks: responsePageLinks,
-      rawData: finalRawData,
+      rawData,
     };
   })();
 

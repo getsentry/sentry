@@ -52,6 +52,14 @@ class RpcIntegration(RpcModel):
         return has_feature(instance=self, feature=feature)
 
 
+class RpcAccessToken(RpcModel):
+    """A short-lived provider access token. Refresh tokens and app keys stay in control."""
+
+    token: str = Field(repr=False)
+    expires_at: datetime | None
+    """None when the token doesn't expire."""
+
+
 class RpcOrganizationIntegration(RpcModel):
     id: int
     default_auth_id: int | None

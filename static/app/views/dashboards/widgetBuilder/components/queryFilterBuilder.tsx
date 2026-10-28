@@ -1,12 +1,12 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconDelete} from '@sentry/icons/delete';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';

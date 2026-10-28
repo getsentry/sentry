@@ -1,5 +1,6 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconDownload} from '@sentry/icons/download';
 import {useQuery} from '@tanstack/react-query';
 
 import {Badge} from '@sentry/scraps/badge';
@@ -7,13 +8,12 @@ import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 
 import {Panel} from 'sentry/components/panels/panel';
-import {ResultTable} from 'sentry/components/resultTable';
-import {IconDownload} from 'sentry/icons';
+import {ResultTable, ResultTableRowHeader} from 'sentry/components/resultTable';
 import type {DataCategory} from 'sentry/types/core';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 
+import {displayUnitPrice} from 'getsentry/utils/billing';
 import {formatCurrency} from 'getsentry/utils/formatCurrency';
-import {displayUnitPrice} from 'getsentry/views/amCheckout/utils';
 
 export interface BillingPlansResponse {
   data: Plans;
@@ -348,7 +348,7 @@ function PricingTable({pricing}: {pricing: Record<string, Price>}) {
         <tbody>
           {Object.entries(pricing).map(([platform, price]) => (
             <tr key={platform}>
-              <td>{platform}</td>
+              <ResultTableRowHeader>{platform}</ResultTableRowHeader>
               <td data-label="Monthly">{formatCurrency(price.monthly)}</td>
               <td data-label="Annual">{formatCurrency(price.annual)}</td>
             </tr>
@@ -408,7 +408,7 @@ function PriceTiersTable({
           <tbody>
             {tiers.map((tier, index) => (
               <tr key={`${dataCategoryId}-${tier.tier}-${index}`}>
-                <td>{tier.tier}</td>
+                <ResultTableRowHeader>{tier.tier}</ResultTableRowHeader>
                 <td data-label="Volume">{Number(tier.volume).toLocaleString('en-US')}</td>
                 <td data-label="Monthly">{formatCurrency(tier.monthly)}</td>
                 <td data-label="Annual">{formatCurrency(tier.annual)}</td>

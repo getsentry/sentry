@@ -235,10 +235,14 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
         impersonator = self.create_user(email="impersonator@example.com")
         request.actual_user = impersonator
 
-        # Call this endpoint multiple times get hit by rate limit
-        self.middleware.process_view(request, self._test_endpoint_no_rate_limits, [], {})
-        self.middleware.process_view(request, self._test_endpoint_no_rate_limits, [], {})
-        response = self.middleware.process_view(request, self._test_endpoint_no_rate_limits, [], {})
+        # Call this endpoint multiple times get hit by rate limit. Freeze time so all calls land
+        # in the same 1s impersonation window.
+        with freeze_time("2000-01-01"):
+            self.middleware.process_view(request, self._test_endpoint_no_rate_limits, [], {})
+            self.middleware.process_view(request, self._test_endpoint_no_rate_limits, [], {})
+            response = self.middleware.process_view(
+                request, self._test_endpoint_no_rate_limits, [], {}
+            )
 
         assert response is not None
         assert isinstance(response, HttpResponse)
@@ -289,10 +293,12 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
         impersonator = self.create_user(email="impersonator@example.com")
         request.actual_user = impersonator
 
-        # Call with an endpoint that normally doesn't enforce rate limits multiple times to get hit by rate limit
-        self.middleware.process_view(request, high_limit_view, [], {})
-        self.middleware.process_view(request, high_limit_view, [], {})
-        response = self.middleware.process_view(request, high_limit_view, [], {})
+        # Call with an endpoint that normally doesn't enforce rate limits multiple times to get hit by rate limit.
+        # Freeze time so all calls land in the same 1s impersonation window.
+        with freeze_time("2000-01-01"):
+            self.middleware.process_view(request, high_limit_view, [], {})
+            self.middleware.process_view(request, high_limit_view, [], {})
+            response = self.middleware.process_view(request, high_limit_view, [], {})
 
         # During impersonation, should get a 429 response
         assert response is not None

@@ -1,6 +1,7 @@
 import React, {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconWarning} from '@sentry/icons/warning';
 import type {LegendComponentOption} from 'echarts';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
@@ -11,16 +12,16 @@ import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadin
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {PlaceholderProps} from 'sentry/components/placeholder';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {EChartDataZoomHandler, EChartEventHandler} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import {transformTableToCategoricalSeries} from 'sentry/utils/categoricalTimeSeries/transformTableToCategoricalSeries';
 import {defined} from 'sentry/utils/defined';
+import {decodeColumnOrder} from 'sentry/utils/discover/decodeColumnOrder';
 import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
-import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
+import type {DataUnit, Sort} from 'sentry/utils/discover/fields';
 import {
   isAggregateField,
   parseFunction,
@@ -43,7 +44,8 @@ import {
 } from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getWidgetTableRowExploreUrlFunction} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
-import {getSelectedAggregateIndex} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
+import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
+import {getSelectedAggregateIndex} from 'sentry/views/dashboards/widgetBuilder/utils/getSelectedAggregateIndex.ts';
 import type {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {AgentsTracesTableWidgetVisualization} from 'sentry/views/dashboards/widgets/agentsTracesTableWidget/agentsTracesTableWidgetVisualization';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
@@ -73,7 +75,6 @@ import {TextWidgetVisualization} from 'sentry/views/dashboards/widgets/textWidge
 import {WheelWidgetVisualization} from 'sentry/views/dashboards/widgets/wheelWidget/wheelWidgetVisualization';
 import {WidgetError} from 'sentry/views/dashboards/widgets/widget/widgetError';
 import {Actions} from 'sentry/views/discover/table/cellAction';
-import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {navigationTypeSuppressesThresholds} from 'sentry/views/insights/browser/webVitals/navigationType/utils';
 import {SpanFields} from 'sentry/views/insights/types';
 import type {SpanResponse} from 'sentry/views/insights/types';
@@ -93,8 +94,9 @@ type TableComponentProps = Pick<
   onWidgetTableSort?: (sort: Sort) => void;
 };
 
-type WidgetCardChartProps = Pick<GenericWidgetQueriesResult, 'timeseriesResults'> &
-  TableComponentProps & {
+type WidgetCardChartProps = {
+  timeseriesResults?: WidgetTimeSeries[];
+} & TableComponentProps & {
     widgetLegendState: WidgetLegendSelectionState;
     chartGroup?: string;
     confidence?: Confidence;
@@ -114,8 +116,6 @@ type WidgetCardChartProps = Pick<GenericWidgetQueriesResult, 'timeseriesResults'
     shouldResize?: boolean;
     showConfidenceWarning?: boolean;
     showLoadingText?: boolean;
-    timeseriesResultsTypes?: Record<string, AggregationOutputType>;
-    timeseriesResultsUnits?: Record<string, DataUnit>;
     windowWidth?: number;
   };
 
@@ -338,7 +338,10 @@ function TableComponent({
                 organization,
                 dashboardFilters
               );
-              navigate(getExploreUrl(dataRow));
+              const exploreUrl = getExploreUrl(dataRow);
+              if (exploreUrl) {
+                navigate(exploreUrl);
+              }
             }
           }}
         />
@@ -517,12 +520,7 @@ function ServerTreeComponent({
     filter => filter.tag.key === 'transaction' && filter.dataset === WidgetType.SPANS
   );
 
-  return (
-    <ServerTreeWidgetVisualization
-      noVisualizationPadding
-      query={transactionFilter?.value}
-    />
-  );
+  return <ServerTreeWidgetVisualization query={transactionFilter?.value} />;
 }
 
 function WheelComponent(props: TableComponentProps): React.ReactNode {

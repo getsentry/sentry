@@ -44,6 +44,15 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
         with pytest.raises(NoReverseMatch):
             reverse("sentry-api-0-explore-saved-query-detail", args=[self.org.slug, "not-an-id"])
 
+    def test_out_of_range_id(self) -> None:
+        with self.feature(self.feature_name):
+            url = reverse(
+                "sentry-api-0-explore-saved-query-detail",
+                args=[self.org.slug, "99999999999999999999"],
+            )
+            response = self.client.get(url)
+        assert response.status_code == 404
+
     def test_get(self) -> None:
         with self.feature(self.feature_name):
             url = reverse(

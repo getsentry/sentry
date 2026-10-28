@@ -17,8 +17,6 @@ from sentry.db.models.manager.base import BaseManager
 from sentry.deletions.base import ModelRelation
 from sentry.incidents.utils.subscription_limits import get_max_metric_alert_subscriptions
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
-from sentry.models.team import Team
-from sentry.users.models.user import User
 from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DataSourceTypeHandler
 
@@ -97,21 +95,13 @@ class SnubaQuery(Model):
 
     @classmethod
     def query_for_relocation_export(cls, q: models.Q, pk_map: PrimaryKeyMap) -> models.Q:
-        from sentry.incidents.models.alert_rule import AlertRule
-        from sentry.models.organization import Organization
         from sentry.models.project import Project
-
-        from_alert_rule = AlertRule.objects.filter(
-            models.Q(user_id__in=pk_map.get_pks(get_model_name(User)))
-            | models.Q(team_id__in=pk_map.get_pks(get_model_name(Team)))
-            | models.Q(organization_id__in=pk_map.get_pks(get_model_name(Organization)))
-        ).values_list("snuba_query_id", flat=True)
 
         from_query_subscription = QuerySubscription.objects.filter(
             project_id__in=pk_map.get_pks(get_model_name(Project))
         ).values_list("snuba_query_id", flat=True)
 
-        return q & models.Q(pk__in=set(from_alert_rule).union(set(from_query_subscription)))
+        return q & models.Q(pk__in=set(from_query_subscription))
 
 
 @cell_silo_model

@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
 
 import {Button} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
@@ -8,15 +9,13 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import type {Subscription} from 'getsentry/types';
-import {displayBudgetName} from 'getsentry/utils/billing';
+import {displayBudgetName, displayPrice} from 'getsentry/utils/billing';
 import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
-import {displayPrice} from 'getsentry/views/amCheckout/utils';
 
 import {Card, HalvedGrid} from './components/styles';
 import type {SpendAllocation} from './components/types';

@@ -1,4 +1,4 @@
-import {MemoryRouter} from 'react-router-dom';
+import {MemoryRouter} from 'react-router';
 
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 

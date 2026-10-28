@@ -1,22 +1,26 @@
 import type React from 'react';
 import {useEffect, useState} from 'react';
-import {Outlet, useLocation} from 'react-router-dom';
+import {Outlet, useLocation} from 'react-router';
 import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconMenu} from '@sentry/icons/menu';
+import {IconSentry} from '@sentry/icons/sentry';
+import {IconSliders} from '@sentry/icons/sliders';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {GlobalModal} from '@sentry/scraps/modal';
+import {darkTheme, lightTheme} from '@sentry/scraps/theme';
 
 import {ListLink} from 'sentry/components/links/listLink';
-import {IconChevron, IconMenu, IconSentry, IconSliders} from 'sentry/icons';
 import {ScrapsProviders} from 'sentry/scrapsProviders';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
-import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 import {GlobalAlertProvider} from 'sentry/views/app/globalAlerts';
 import {SystemAlerts} from 'sentry/views/app/systemAlerts';
 
+import {AdminAccessGate} from 'admin/components/adminAccessGate';
 import {GlobalStyles} from 'admin/globalStyles';
 
 const ADMIN_SIDEBAR_COLLAPSED_KEY = 'getsentryAdminSidebarCollapsed';
@@ -94,117 +98,123 @@ export function Layout() {
           <GlobalStyles theme={theme} />
           <GlobalModal />
           <SystemAlerts className="messages-container" />
-          <AppContainer isCollapsed={isCollapsed}>
-            {/* Mobile: tap-outside backdrop for the drawer */}
-            <Overlay isOpen={sidebarOpen} onClick={closeSidebar} />
-            {/* Desktop only: thin strip shown when sidebar is collapsed */}
-            <CollapsedSidebar
-              as="section"
-              isCollapsed={isCollapsed}
-              direction="column"
-              align="center"
-            >
-              <Button
-                aria-label="Expand sidebar"
-                variant="transparent"
-                size="sm"
-                onClick={toggleCollapsed}
-                icon={<IconChevron direction="right" isDouble />}
-              />
-            </CollapsedSidebar>
-            <Sidebar isOpen={sidebarOpen} isCollapsed={isCollapsed}>
-              <Flex align="center" justify="between" gap="md">
-                <Logo to="/_admin/" onClick={closeSidebar}>
-                  <IconSentry size="xl" />
-                  Admin
-                </Logo>
-                {/* Desktop only: collapse button inside the sidebar */}
-                <CollapseButton
-                  aria-label="Collapse sidebar"
-                  variant="transparent"
-                  size="xs"
-                  onClick={toggleCollapsed}
-                  icon={<IconChevron direction="left" isDouble />}
-                />
-              </Flex>
-              <Navigation
-                onClick={(e: React.MouseEvent<HTMLUListElement>) => {
-                  if ((e.target as HTMLElement).closest('a')) {
-                    closeSidebar();
-                  }
-                }}
+          <AdminAccessGate>
+            <AppContainer isCollapsed={isCollapsed}>
+              {/* Mobile: tap-outside backdrop for the drawer */}
+              <Overlay isOpen={sidebarOpen} onClick={closeSidebar} />
+              {/* Desktop only: thin strip shown when sidebar is collapsed */}
+              <CollapsedSidebar
+                as="section"
+                isCollapsed={isCollapsed}
+                direction="column"
+                align="center"
               >
-                <NavLink to="/_admin/" index>
-                  Home
-                </NavLink>
-                <NavLink to="/_admin/customers/">Customers</NavLink>
-                <NavLink to="/_admin/users/">Users</NavLink>
-                <NavLink to="/_admin/sentry-apps/">Sentry Apps</NavLink>
-                <NavLink to="/_admin/doc-integrations/">Doc Integrations</NavLink>
-                <NavLink to="/_admin/broadcasts/">Broadcasts</NavLink>
-                <NavLink to="/_admin/promocodes/">Promos</NavLink>
-                <NavLink to="/_admin/beacons/">Beacons</NavLink>
-                <NavLink to="/_admin/policies/">Policies</NavLink>
-                <NavLink to="/_admin/options/">Options</NavLink>
-                <NavLink to="/_admin/debugging-tools/">Debugging Tools</NavLink>
-                <NavLink to="/_admin/instance-level-oauth">
-                  Instance level OAuth Clients
-                </NavLink>
-                <NavLink to="/_admin/private-apis/">Private APIs</NavLink>
-                <NavLink to="/_admin/relocations/">Relocations</NavLink>
-                <NavLink to="/_admin/employees/">Sentry Employees</NavLink>
-                <NavLink to="/_admin/billing-plans/">Billing Plans</NavLink>
-                <NavLink to="/_admin/billing-platform/">Billing Platform</NavLink>
-                <NavLink to="/_admin/gift-recurring-credits/">
-                  Gift Recurring Credits
-                </NavLink>
-                <NavLink to="/_admin/spike-projection-generation/">
-                  Spike Projection Generation
-                </NavLink>
-                <NavLink to="/_admin/launchpad/">Launchpad (Emerge) Related</NavLink>
-                <NavLink to="/_admin/seer/">Seer</NavLink>
-              </Navigation>
-              <SidebarActions>
-                <ThemeToggle
-                  variant="transparent"
-                  size="zero"
-                  onClick={toggleTheme}
-                  icon={
-                    <IconSliders
-                      size="sm"
-                      style={{transform: isDark ? 'scaleX(-1)' : 'none'}}
-                    />
-                  }
-                >
-                  {isDark ? 'Light mode' : 'Dark mode'}
-                </ThemeToggle>
-              </SidebarActions>
-            </Sidebar>
-            <Stack minWidth={0} inert={sidebarOpen || undefined}>
-              {/* Mobile only: sticky top bar with hamburger and logo */}
-              <MobileTopBar>
                 <Button
+                  aria-label="Expand sidebar"
                   variant="transparent"
                   size="sm"
-                  icon={<IconMenu />}
-                  onClick={() => setSidebarOpen(true)}
-                  aria-label="Open navigation"
+                  onClick={toggleCollapsed}
+                  icon={<IconChevron direction="right" isDouble />}
                 />
-                <MobileLogo to="/_admin/">
-                  <IconSentry size="md" />
-                  Admin
-                </MobileLogo>
-              </MobileTopBar>
-              <Container
-                as="main"
-                padding="0 2xl"
-                width="100%"
-                maxWidth="var(--contentWidth)"
+              </CollapsedSidebar>
+              <Sidebar isOpen={sidebarOpen} isCollapsed={isCollapsed}>
+                <Flex align="center" justify="between" gap="md">
+                  <Logo to="/_admin/" onClick={closeSidebar}>
+                    <IconSentry size="xl" />
+                    Admin
+                  </Logo>
+                  {/* Desktop only: collapse button inside the sidebar */}
+                  <CollapseButton
+                    aria-label="Collapse sidebar"
+                    variant="transparent"
+                    size="xs"
+                    onClick={toggleCollapsed}
+                    icon={<IconChevron direction="left" isDouble />}
+                  />
+                </Flex>
+                <Navigation
+                  onClick={(e: React.MouseEvent<HTMLUListElement>) => {
+                    if ((e.target as HTMLElement).closest('a')) {
+                      closeSidebar();
+                    }
+                  }}
+                >
+                  <NavLink to="/_admin/" index>
+                    Home
+                  </NavLink>
+                  <NavLink to="/_admin/customers/">Customers</NavLink>
+                  <NavLink to="/_admin/users/">Users</NavLink>
+                  <NavLink to="/_admin/sentry-apps/">Sentry Apps</NavLink>
+                  <NavLink to="/_admin/doc-integrations/">Doc Integrations</NavLink>
+                  <NavLink to="/_admin/broadcasts/">Broadcasts</NavLink>
+                  <NavLink to="/_admin/promocodes/">Promos</NavLink>
+                  <NavLink to="/_admin/beacons/">Beacons</NavLink>
+                  <NavLink to="/_admin/policies/">Policies</NavLink>
+                  <NavLink to="/_admin/options/">Options</NavLink>
+                  <NavLink to="/_admin/debugging-tools/">Debugging Tools</NavLink>
+                  <NavLink to="/_admin/instance-level-oauth">
+                    Instance level OAuth Clients
+                  </NavLink>
+                  <NavLink to="/_admin/private-apis/">Private APIs</NavLink>
+                  <NavLink to="/_admin/relocations/">Relocations</NavLink>
+                  <NavLink to="/_admin/employees/">Sentry Employees</NavLink>
+                  <NavLink to="/_admin/billing-plans/">Billing Plans</NavLink>
+                  <NavLink to="/_admin/billing-platform/">Billing Platform</NavLink>
+                  <NavLink to="/_admin/gift-recurring-credits/">
+                    Gift Recurring Credits
+                  </NavLink>
+                  <NavLink to="/_admin/spike-projection-generation/">
+                    Spike Projection Generation
+                  </NavLink>
+                  <NavLink to="/_admin/launchpad/">Launchpad (Emerge) Related</NavLink>
+                  <NavLink to="/_admin/seer/">Seer</NavLink>
+                </Navigation>
+                <Stack align="start" gap="md">
+                  <ThemeToggle
+                    variant="transparent"
+                    size="zero"
+                    onClick={toggleTheme}
+                    icon={
+                      <IconSliders
+                        size="sm"
+                        style={{transform: isDark ? 'scaleX(-1)' : 'none'}}
+                      />
+                    }
+                  >
+                    {isDark ? 'Light mode' : 'Dark mode'}
+                  </ThemeToggle>
+                </Stack>
+              </Sidebar>
+              <Stack
+                minWidth={0}
+                containerType="inline-size"
+                inert={sidebarOpen || undefined}
               >
-                <Outlet />
-              </Container>
-            </Stack>
-          </AppContainer>
+                {/* Mobile only: sticky top bar with hamburger and logo */}
+                <MobileTopBar>
+                  <Button
+                    variant="transparent"
+                    size="sm"
+                    icon={<IconMenu />}
+                    onClick={() => setSidebarOpen(true)}
+                    aria-label="Open navigation"
+                  />
+                  <MobileLogo to="/_admin/">
+                    <IconSentry size="md" />
+                    Admin
+                  </MobileLogo>
+                </MobileTopBar>
+                <Container
+                  as="main"
+                  padding="0 2xl"
+                  width="100%"
+                  maxWidth="var(--contentWidth)"
+                >
+                  <Outlet />
+                </Container>
+              </Stack>
+            </AppContainer>
+          </AdminAccessGate>
         </GlobalAlertProvider>
       </ScrapsProviders>
     </ThemeProvider>
@@ -292,13 +302,6 @@ const Sidebar = styled('section')<{isCollapsed?: boolean; isOpen?: boolean}>`
       transform 0.2s ease,
       visibility 0s linear ${p => (p.isOpen ? '0s' : '0.2s')};
   }
-`;
-
-const SidebarActions = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: ${p => p.theme.space.md};
 `;
 
 const CollapseButton = styled(Button)`

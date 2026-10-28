@@ -1,4 +1,4 @@
-import type {UIMatch} from 'react-router-dom';
+import type {UIMatch} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptor, Query} from 'history';
 
@@ -11,12 +11,13 @@ import {
   generateProfileFlamechartRouteWithQuery,
 } from 'sentry/utils/profiling/routes';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
-import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
-import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
+import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/pathnames';
+
+export {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/pathnames';
 
 export enum DisplayModes {
   DURATION_PERCENTILE = 'durationpercentile',
@@ -76,7 +77,6 @@ export function transactionSummaryRouteWithQuery({
   projectID,
   query,
   display,
-  trendFunction,
   additionalQuery,
   subPath,
   view,
@@ -88,7 +88,6 @@ export function transactionSummaryRouteWithQuery({
   display?: DisplayModes;
   projectID?: string | string[];
   subPath?: string;
-  trendFunction?: string;
   view?: DomainView;
 }) {
   const pathname = generateTransactionSummaryRoute({
@@ -116,7 +115,6 @@ export function transactionSummaryRouteWithQuery({
       query: searchFilter,
       unselectedSeries: ['p100()', 'avg()'],
       display,
-      trendFunction,
       referrer: 'performance-transaction-summary',
       ...additionalQuery,
     },
@@ -246,19 +244,6 @@ export function generateReplayLink(matches: UIMatch[]) {
       },
     };
   };
-}
-
-export function getTransactionSummaryBaseUrl(
-  organization: Organization,
-  view?: DomainView,
-  bare = false
-) {
-  // Eventually the performance landing page will be removed, so there is no need to rely on `getPerformanceBaseUrl`
-  const url = view
-    ? `${DOMAIN_VIEW_BASE_URL}/${view}/summary`
-    : `${DOMAIN_VIEW_BASE_URL}/summary`;
-
-  return bare ? url : normalizeUrl(`/organizations/${organization.slug}/${url}`);
 }
 
 export const SidebarSpacer = styled('div')`

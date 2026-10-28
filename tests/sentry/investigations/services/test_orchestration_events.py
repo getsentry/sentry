@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from datetime import timedelta
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from uuid import UUID, uuid4
 
 import pytest
+from django.db import router, transaction
+from django.db.transaction import Atomic
 from django.utils import timezone
 from rest_framework import serializers
 
@@ -14,6 +16,8 @@ from sentry.db.models.fields.bounded import I64_MAX
 from sentry.investigations.endpoints.serializers import InvestigationBlockSerializer
 from sentry.investigations.endpoints.validators.block import BlockUpdateValidator
 from sentry.investigations.models import (
+    InvestigationActionRequest,
+    InvestigationActionRequestState,
     InvestigationBlock,
     InvestigationBlockExecution,
     InvestigationBlockExecutionStatus,
@@ -25,6 +29,8 @@ from sentry.investigations.models import (
     InvestigationOrchestrationStatus,
     InvestigationStatus,
 )
+from sentry.investigations.services.action_kinds import ACTION_KINDS
+from sentry.investigations.services.action_requests import STALE
 from sentry.investigations.services.investigations import (
     InvestigationConflictError,
     archive_investigation,
@@ -47,6 +53,7 @@ from sentry.investigations.services.orchestration_events import (
 )
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.testutils.cases import TestCase
+from tests.sentry.investigations.test_contracts import RecordingKind, fake_action, fake_action_kind
 
 
 class SeerRunMirrorMixin:
@@ -194,6 +201,9 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
 
     def setUp(self) -> None:
         super().setUp()
+        kind = fake_action_kind()
+        kind.start()
+        self.addCleanup(kind.stop)
         self.seer_run = self.seer_run_mirror(self.seer_run_id)
         self.investigation = self.create_investigation(
             organization=self.organization,
@@ -890,6 +900,186 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert self.orchestration_run.generation == 2
         assert self.orchestration_run.phase == "planning"
         assert self.orchestration_run.last_event_sequence == 0
+
+    def outer_transaction(self) -> Atomic:
+        return transaction.atomic(using=router.db_for_write(InvestigationOrchestrationRun))
+
+    @patch("sentry.seer.entrypoints.operator.process_investigation_updates.delay")
+    def test_workflow_update_schedules_investigation_updates_on_commit(
+        self, mock_delay: Mock
+    ) -> None:
+        with self.outer_transaction():
+            self.deliver(
+                self.event(
+                    1, "workflow_updated", {"projection": self.projection(workflow_version=2)}
+                )
+            )
+            mock_delay.assert_not_called()
+
+        mock_delay.assert_called_once_with(investigation_id=self.investigation.id)
+
+    @patch("sentry.seer.entrypoints.operator.process_investigation_updates.delay")
+    def test_rolled_back_workflow_update_does_not_schedule_investigation_updates(
+        self, mock_delay: Mock
+    ) -> None:
+        with pytest.raises(RuntimeError), self.outer_transaction():
+            self.deliver(
+                self.event(
+                    1, "workflow_updated", {"projection": self.projection(workflow_version=2)}
+                )
+            )
+            raise RuntimeError
+
+        mock_delay.assert_not_called()
+
+    @patch("sentry.seer.entrypoints.operator.process_investigation_updates.delay")
+    def test_contiguous_events_schedule_investigation_updates_once(self, mock_delay: Mock) -> None:
+        with self.outer_transaction():
+            self.deliver(
+                self.event(
+                    2, "workflow_updated", {"projection": self.projection(workflow_version=3)}
+                )
+            )
+            self.deliver(
+                self.event(
+                    1, "workflow_updated", {"projection": self.projection(workflow_version=2)}
+                )
+            )
+            mock_delay.assert_not_called()
+
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.last_event_sequence == 2
+        mock_delay.assert_called_once_with(investigation_id=self.investigation.id)
+
+    @patch("sentry.seer.entrypoints.operator.process_investigation_updates.delay")
+    def test_terminal_snapshot_fast_forward_schedules_investigation_updates(
+        self, mock_delay: Mock
+    ) -> None:
+        with self.outer_transaction():
+            receipt = self.deliver(
+                self.event(
+                    3,
+                    "state_snapshot",
+                    {
+                        "terminal": True,
+                        "full": True,
+                        "projection": self.projection(
+                            workflow_version=2, phase="completed", status="completed"
+                        ),
+                        "blocks": [],
+                    },
+                )
+            )
+            mock_delay.assert_not_called()
+
+        assert receipt.application_status == InvestigationOrchestrationEventStatus.APPLIED
+        mock_delay.assert_called_once_with(investigation_id=self.investigation.id)
+
+    @patch("sentry.seer.entrypoints.operator.process_investigation_updates.delay")
+    def test_workflow_failure_with_projection_schedules_investigation_updates(
+        self, mock_delay: Mock
+    ) -> None:
+        with self.outer_transaction():
+            self.deliver(
+                self.event(
+                    1,
+                    "workflow_failed",
+                    {
+                        "projection": self.projection(workflow_version=2, status="failed"),
+                        "error": {"code": "seer_failed", "message": "Seer gave up."},
+                    },
+                )
+            )
+            mock_delay.assert_not_called()
+
+        mock_delay.assert_called_once_with(investigation_id=self.investigation.id)
+
+    @patch("sentry.seer.entrypoints.operator.process_investigation_updates.delay")
+    def test_workflow_failure_without_projection_does_not_schedule_investigation_updates(
+        self, mock_delay: Mock
+    ) -> None:
+        receipt = self.deliver(
+            self.event(
+                1,
+                "workflow_failed",
+                {"error": {"code": "seer_failed", "message": "Seer gave up."}},
+            )
+        )
+
+        assert receipt.application_status == InvestigationOrchestrationEventStatus.APPLIED
+        mock_delay.assert_not_called()
+
+    @patch("sentry.seer.entrypoints.operator.process_investigation_updates.delay")
+    def test_stale_event_does_not_schedule_investigation_updates(self, mock_delay: Mock) -> None:
+        self.orchestration_run.update(
+            generation=2,
+            workflow_version=2,
+            projection=self.projection(workflow_version=2, generation=2),
+        )
+
+        receipt = self.deliver(
+            self.event(1, "workflow_updated", {"projection": self.projection()}, generation=1)
+        )
+
+        assert receipt.application_status == InvestigationOrchestrationEventStatus.IGNORED
+        mock_delay.assert_not_called()
+
+    @patch("sentry.seer.entrypoints.operator.process_investigation_updates.delay")
+    def test_notebook_event_does_not_schedule_investigation_updates(self, mock_delay: Mock) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(
+            self.event(
+                2,
+                "report_block_started",
+                {
+                    "reportRevision": 1,
+                    "stableAgentKey": "summary",
+                    "position": 0,
+                    "kind": "text",
+                    "title": "Summary",
+                    "collapsed": False,
+                    "projectIds": [self.project.id],
+                },
+            )
+        )
+        receipt = self.deliver(
+            self.event(
+                3,
+                "report_text_delta",
+                {"reportRevision": 1, "stableAgentKey": "summary", "delta": "text"},
+            )
+        )
+
+        assert receipt.application_status == InvestigationOrchestrationEventStatus.APPLIED
+        mock_delay.assert_not_called()
+
+    @patch("sentry.seer.entrypoints.operator.process_investigation_updates.delay")
+    def test_synchronize_projection_schedules_investigation_updates(self, mock_delay: Mock) -> None:
+        with self.outer_transaction():
+            synchronize_orchestration_projection(
+                orchestration_run_id=self.orchestration_run.id,
+                seer_run_id=self.seer_run_id,
+                projection=self.projection(workflow_version=2, phase="planning"),
+            )
+            mock_delay.assert_not_called()
+
+        mock_delay.assert_called_once_with(investigation_id=self.investigation.id)
+
+    @patch("sentry.seer.entrypoints.operator.process_investigation_updates.delay")
+    def test_synchronize_stale_projection_does_not_schedule_investigation_updates(
+        self, mock_delay: Mock
+    ) -> None:
+        self.orchestration_run.update(generation=2, workflow_version=3)
+
+        synchronize_orchestration_projection(
+            orchestration_run_id=self.orchestration_run.id,
+            seer_run_id=self.seer_run_id,
+            projection=self.projection(workflow_version=2, generation=2),
+        )
+
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.workflow_version == 3
+        mock_delay.assert_not_called()
 
     def test_synchronize_projection_rejects_invalid_seer_run_ids(self) -> None:
         for seer_run_id in (True, 0, I64_MAX + 1):
@@ -2260,6 +2450,761 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert delivered.application_status == InvestigationOrchestrationEventStatus.FAILED
         self.orchestration_run.refresh_from_db()
         assert self.orchestration_run.projection["hypotheses"] == []
+
+    def action_request(self, key: str, **values: Any) -> dict[str, Any]:
+        return {
+            "key": key,
+            "reportRevision": 1,
+            "title": f"Do {key}",
+            "rationale": "It helps.",
+            "impact": None,
+            "action": fake_action(),
+            **values,
+        }
+
+    def request_states(self) -> dict[str, str]:
+        return {
+            row.key: row.state
+            for row in InvestigationActionRequest.objects.filter(investigation=self.investigation)
+        }
+
+    def deliver_request(
+        self, sequence: int, item: Any, *, generation: int = 1
+    ) -> OrchestrationEventReceipt:
+        return self.deliver(
+            self.event(sequence, "action_requested", {"request": item}, generation=generation)
+        )
+
+    def deliver_withdrawn(self, sequence: int, key: str, reason: str) -> OrchestrationEventReceipt:
+        return self.deliver(
+            self.event(sequence, "action_withdrawn", {"key": key, "reason": reason})
+        )
+
+    def test_action_requested_stores_the_request(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.investigation.refresh_from_db()
+        self.orchestration_run.refresh_from_db()
+        version = self.investigation.version
+        notebook_revision = self.orchestration_run.notebook_revision
+
+        primary = self.deliver_request(
+            2, self.action_request("widen-window", primary=True, impact="Fewer alerts.")
+        )
+        anchored = self.deliver_request(
+            3,
+            self.action_request(
+                "connect-datadog",
+                anchor={"type": "hypothesis", "id": "h-2"},
+                action=fake_action("datadog"),
+            ),
+        )
+
+        assert primary.application_status == InvestigationOrchestrationEventStatus.APPLIED
+        assert anchored.application_status == InvestigationOrchestrationEventStatus.APPLIED
+        rows = {
+            row.key: row
+            for row in InvestigationActionRequest.objects.filter(investigation=self.investigation)
+        }
+        widen, connect = rows["widen-window"], rows["connect-datadog"]
+        assert (widen.primary, widen.anchor_type, widen.impact) == (True, None, "Fewer alerts.")
+        assert widen.action_kind == "test_kind"
+        assert widen.action_payload == self.action_request("widen-window")["action"]
+        assert (connect.primary, connect.anchor_type, connect.anchor_id) == (
+            False,
+            "hypothesis",
+            "h-2",
+        )
+        assert connect.action_payload == fake_action("datadog")
+        assert {row.state for row in rows.values()} == {InvestigationActionRequestState.SUGGESTED}
+        self.investigation.refresh_from_db()
+        self.orchestration_run.refresh_from_db()
+        assert self.investigation.version == version
+        assert self.orchestration_run.notebook_revision == notebook_revision
+
+    def test_the_action_kind_hears_about_new_and_changed_requests(self) -> None:
+        self.deliver_request(1, self.action_request("widen"))
+        self.deliver_request(2, self.action_request("widen"))
+        self.deliver_request(3, self.action_request("widen", action=fake_action("b")))
+
+        kind = ACTION_KINDS["test_kind"]
+        assert isinstance(kind, RecordingKind)
+        assert [request.action_payload for request in kind.upserted] == [
+            fake_action(),
+            fake_action("b"),
+        ]
+
+    def test_a_request_seer_cannot_describe_is_ignored(self) -> None:
+        receipt = self.deliver_request(
+            1, self.action_request("future", action={"kind": "seer_task", "prompt": "Add spans"})
+        )
+
+        assert receipt.application_status == InvestigationOrchestrationEventStatus.IGNORED
+        event = InvestigationOrchestrationEvent.objects.get(sequence=1)
+        assert event.error == {"reason": "invalid_action_request"}
+        assert not InvestigationActionRequest.objects.exists()
+
+    def test_a_request_for_an_older_report_is_ignored(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 2}))
+
+        receipt = self.deliver_request(2, self.action_request("late", reportRevision=1))
+
+        assert receipt.application_status == InvestigationOrchestrationEventStatus.IGNORED
+        event = InvestigationOrchestrationEvent.objects.get(sequence=2)
+        assert event.error == {"reason": "stale_report_revision"}
+        assert not InvestigationActionRequest.objects.exists()
+
+    def test_requests_upsert_by_key(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        action = self.action_request("x")["action"]
+        changed = {**action, "target": "b"}
+        rows = {}
+        for key, state, error in [
+            ("applied", InvestigationActionRequestState.APPLIED, None),
+            ("failed", InvestigationActionRequestState.FAILED, {"code": "validation_failed"}),
+            ("stale", InvestigationActionRequestState.SUPERSEDED, {"code": "stale"}),
+            ("refreshed", InvestigationActionRequestState.SUPERSEDED, {"code": "stale"}),
+            ("dropped", InvestigationActionRequestState.SUPERSEDED, None),
+            ("withdrawn", InvestigationActionRequestState.WITHDRAWN, None),
+            ("reconsidered", InvestigationActionRequestState.WITHDRAWN, None),
+        ]:
+            rows[key] = self.create_investigation_action_request(
+                investigation=self.investigation,
+                report_revision=1,
+                key=key,
+                state=state,
+                error=error,
+                reason="Wrong." if state == InvestigationActionRequestState.WITHDRAWN else None,
+                followup_request_id=uuid4() if error == {"code": "stale"} else None,
+                action_kind="test_kind",
+                action_payload=action,
+            )
+
+        for sequence, item in enumerate(
+            [
+                self.action_request("applied", title="New title", action=changed),
+                self.action_request("failed", title="Retitled"),
+                self.action_request("stale"),
+                self.action_request("refreshed", action=changed),
+                self.action_request("dropped"),
+                self.action_request("withdrawn"),
+                self.action_request("reconsidered", action=changed),
+            ],
+            start=2,
+        ):
+            self.deliver_request(sequence, item)
+
+        reloaded = {
+            row.key: row
+            for row in InvestigationActionRequest.objects.filter(investigation=self.investigation)
+        }
+        assert {key: row.state for key, row in reloaded.items()} == {
+            "applied": InvestigationActionRequestState.APPLIED,
+            "failed": InvestigationActionRequestState.FAILED,
+            "stale": InvestigationActionRequestState.SUPERSEDED,
+            "refreshed": InvestigationActionRequestState.SUGGESTED,
+            "dropped": InvestigationActionRequestState.SUGGESTED,
+            "withdrawn": InvestigationActionRequestState.WITHDRAWN,
+            "reconsidered": InvestigationActionRequestState.SUGGESTED,
+        }
+        assert reloaded["applied"].title == rows["applied"].title
+        assert reloaded["applied"].action_payload == action
+        assert reloaded["failed"].error == {"code": "validation_failed"}
+        assert reloaded["failed"].title == "Retitled"
+        assert reloaded["refreshed"].error is None
+        assert reloaded["refreshed"].followup_request_id is None
+        assert reloaded["refreshed"].action_payload == changed
+        assert reloaded["stale"].followup_request_id == rows["stale"].followup_request_id
+        assert reloaded["withdrawn"].reason == "Wrong."
+        assert reloaded["reconsidered"].reason is None
+
+    def test_a_new_primary_supersedes_the_last_one(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver_request(2, self.action_request("first", primary=True))
+        self.deliver_request(3, self.action_request("side"))
+        self.create_investigation_action_request(
+            investigation=self.investigation,
+            report_revision=1,
+            key="applied",
+            primary=True,
+            state=InvestigationActionRequestState.APPLIED,
+        )
+
+        self.deliver_request(4, self.action_request("second", primary=True))
+
+        assert self.request_states() == {
+            "first": InvestigationActionRequestState.SUPERSEDED,
+            "side": InvestigationActionRequestState.SUGGESTED,
+            "applied": InvestigationActionRequestState.APPLIED,
+            "second": InvestigationActionRequestState.SUGGESTED,
+        }
+
+    def test_a_new_primary_keeps_an_anchored_old_primary_as_a_request(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        anchor = {"type": "hypothesis", "id": "hyp-1"}
+        self.deliver_request(
+            2,
+            self.action_request(
+                "connect-telemetry-gcp-r1",
+                primary=True,
+                anchor=anchor,
+                action=fake_action("gcp"),
+            ),
+        )
+
+        self.deliver_request(3, self.action_request("widen-window", primary=True))
+
+        rows = {
+            row.key: (row.state, row.primary)
+            for row in InvestigationActionRequest.objects.filter(investigation=self.investigation)
+        }
+        assert rows == {
+            "connect-telemetry-gcp-r1": (InvestigationActionRequestState.SUGGESTED, False),
+            "widen-window": (InvestigationActionRequestState.SUGGESTED, True),
+        }
+
+    def test_an_anchored_primary_resent_for_the_next_report_stays_live(self) -> None:
+        anchor = {"type": "hypothesis", "id": "hyp-1"}
+        connect = fake_action("gcp")
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver_request(
+            2,
+            self.action_request(
+                "connect-telemetry-gcp-r1", primary=True, anchor=anchor, action=connect
+            ),
+        )
+        self.deliver(self.event(3, "report_clear", {"reportRevision": 2}))
+
+        self.deliver_request(
+            4,
+            self.action_request(
+                "connect-telemetry-gcp-r1",
+                reportRevision=2,
+                primary=False,
+                anchor=anchor,
+                action=connect,
+            ),
+        )
+        self.deliver_request(5, self.action_request("widen-window", reportRevision=2, primary=True))
+
+        rows = {
+            row.key: (row.state, row.primary, row.report_revision)
+            for row in InvestigationActionRequest.objects.filter(investigation=self.investigation)
+        }
+        assert rows == {
+            "connect-telemetry-gcp-r1": (InvestigationActionRequestState.SUGGESTED, False, 2),
+            "widen-window": (InvestigationActionRequestState.SUGGESTED, True, 2),
+        }
+
+    def test_a_primary_on_a_terminal_key_still_replaces_the_last_primary(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver_request(2, self.action_request("first", primary=True))
+        self.create_investigation_action_request(
+            investigation=self.investigation,
+            report_revision=1,
+            key="applied",
+            state=InvestigationActionRequestState.APPLIED,
+        )
+
+        with patch("sentry.investigations.services.action_requests.logger") as logger:
+            self.deliver_request(3, self.action_request("applied", primary=True))
+
+        logger.warning.assert_called_once()
+        assert self.request_states() == {
+            "first": InvestigationActionRequestState.SUPERSEDED,
+            "applied": InvestigationActionRequestState.APPLIED,
+        }
+
+    def test_seer_withdraws_only_suggested_requests(self) -> None:
+        for key, state in [
+            ("open", InvestigationActionRequestState.SUGGESTED),
+            ("applied", InvestigationActionRequestState.APPLIED),
+            ("failed", InvestigationActionRequestState.FAILED),
+        ]:
+            self.create_investigation_action_request(
+                investigation=self.investigation, key=key, state=state
+            )
+
+        receipts = [
+            self.deliver_withdrawn(1, "open", "The spikes are real breaches."),
+            self.deliver_withdrawn(2, "applied", "Too late."),
+            self.deliver_withdrawn(3, "failed", "Too late."),
+            self.deliver_withdrawn(4, "missing", "Never sent."),
+        ]
+
+        assert {receipt.application_status for receipt in receipts} == {
+            InvestigationOrchestrationEventStatus.APPLIED
+        }
+        assert self.request_states() == {
+            "open": InvestigationActionRequestState.WITHDRAWN,
+            "applied": InvestigationActionRequestState.APPLIED,
+            "failed": InvestigationActionRequestState.FAILED,
+        }
+        withdrawn = InvestigationActionRequest.objects.get(key="open")
+        assert withdrawn.reason == "The spikes are real breaches."
+
+    def test_action_requests_are_fenced_on_archived_investigations(self) -> None:
+        self.create_investigation_action_request(investigation=self.investigation, key="open")
+        archive_investigation_with_orchestration(
+            investigation=self.investigation,
+            expected_version=self.investigation.version,
+            actor_id=self.user.id,
+        )
+
+        requested = self.deliver_request(1, self.action_request("late", reportRevision=0))
+        withdrawn = self.deliver_withdrawn(2, "open", "Wrong.")
+
+        assert requested.application_status == InvestigationOrchestrationEventStatus.IGNORED
+        assert withdrawn.application_status == InvestigationOrchestrationEventStatus.IGNORED
+        assert [
+            event.error
+            for event in InvestigationOrchestrationEvent.objects.filter(
+                sequence__in=[1, 2]
+            ).order_by("sequence")
+        ] == [{"reason": "notebook_write_fenced"}] * 2
+        assert self.request_states() == {"open": InvestigationActionRequestState.SUGGESTED}
+
+    def test_action_requests_are_fenced_by_generation(self) -> None:
+        self.deliver(
+            self.event(
+                1,
+                "workflow_updated",
+                {"projection": self.projection(workflow_version=2, generation=2)},
+                generation=2,
+            )
+        )
+
+        stale = self.deliver_request(2, self.action_request("old", reportRevision=0), generation=1)
+        future = self.deliver_request(3, self.action_request("new", reportRevision=0), generation=3)
+
+        assert stale.application_status == InvestigationOrchestrationEventStatus.IGNORED
+        assert future.application_status == InvestigationOrchestrationEventStatus.IGNORED
+        assert [
+            event.error
+            for event in InvestigationOrchestrationEvent.objects.filter(
+                sequence__in=[2, 3]
+            ).order_by("sequence")
+        ] == [{"reason": "stale_generation"}, {"reason": "future_generation_without_projection"}]
+        assert not InvestigationActionRequest.objects.exists()
+
+    def completed_snapshot(self, sequence: int, **payload: Any) -> dict[str, Any]:
+        return self.event(
+            sequence,
+            "state_snapshot",
+            {
+                "terminal": True,
+                "full": True,
+                "projection": self.projection(
+                    workflow_version=2,
+                    phase="completed",
+                    status="completed",
+                    report_revision=1,
+                    report_status="completed",
+                ),
+                "reportRevision": 1,
+                **payload,
+            },
+        )
+
+    def test_a_terminal_snapshot_makes_its_list_authoritative(self) -> None:
+        for key, state in [
+            ("omitted", InvestigationActionRequestState.SUGGESTED),
+            ("omitted-hypothesis", InvestigationActionRequestState.SUGGESTED),
+            ("applied", InvestigationActionRequestState.APPLIED),
+            ("kept", InvestigationActionRequestState.SUGGESTED),
+        ]:
+            self.create_investigation_action_request(
+                investigation=self.investigation,
+                key=key,
+                state=state,
+                anchor_type="hypothesis" if key == "omitted-hypothesis" else None,
+                anchor_id="h-1" if key == "omitted-hypothesis" else None,
+            )
+
+        self.deliver(
+            self.completed_snapshot(
+                5,
+                blocks=[],
+                actionRequests=[
+                    self.action_request("kept"),
+                    self.action_request("widen-window", primary=True),
+                    self.action_request("Bad Key"),
+                ],
+            )
+        )
+
+        assert self.request_states() == {
+            "omitted": InvestigationActionRequestState.SUPERSEDED,
+            "omitted-hypothesis": InvestigationActionRequestState.SUPERSEDED,
+            "applied": InvestigationActionRequestState.APPLIED,
+            "kept": InvestigationActionRequestState.SUGGESTED,
+            "widen-window": InvestigationActionRequestState.SUGGESTED,
+        }
+
+    def assert_snapshot_keeps_one_primary(self, order: tuple[str, str]) -> None:
+        failed = self.create_investigation_action_request(
+            investigation=self.investigation,
+            key="failed",
+            report_revision=1,
+            primary=True,
+            state=InvestigationActionRequestState.FAILED,
+            error={"code": "validation_failed"},
+        )
+        items = {
+            "newer": self.action_request("newer", primary=True),
+            "failed": self.action_request("failed", primary=True, action=failed.action_payload),
+        }
+
+        self.deliver(
+            self.completed_snapshot(5, blocks=[], actionRequests=[items[key] for key in order])
+        )
+
+        assert self.request_states() == {
+            "newer": InvestigationActionRequestState.SUGGESTED,
+            "failed": InvestigationActionRequestState.SUPERSEDED,
+        }
+        failed.refresh_from_db()
+        assert failed.error == {"code": "validation_failed"}
+
+    def test_a_snapshot_prefers_a_suggested_primary_listed_first(self) -> None:
+        self.assert_snapshot_keeps_one_primary(("newer", "failed"))
+
+    def test_a_snapshot_prefers_a_suggested_primary_listed_last(self) -> None:
+        self.assert_snapshot_keeps_one_primary(("failed", "newer"))
+
+    def test_a_snapshot_only_tells_the_kind_about_the_primary_that_wins(self) -> None:
+        self.deliver(
+            self.completed_snapshot(
+                1,
+                blocks=[],
+                actionRequests=[
+                    self.action_request("loser", primary=True),
+                    self.action_request("winner", primary=True, reportRevision=2),
+                ],
+            )
+        )
+
+        kind = ACTION_KINDS["test_kind"]
+        assert isinstance(kind, RecordingKind)
+        assert self.request_states() == {
+            "loser": InvestigationActionRequestState.SUPERSEDED,
+            "winner": InvestigationActionRequestState.SUGGESTED,
+        }
+        assert [request.key for request in kind.upserted] == ["winner"]
+
+    def test_removing_a_block_supersedes_the_requests_under_it(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(
+            self.event(
+                2,
+                "report_block_upserted",
+                {
+                    "reportRevision": 1,
+                    "stableAgentKey": "chart",
+                    "position": 0,
+                    "kind": "text",
+                    "title": "Chart",
+                    "content": "body",
+                    "projectIds": [self.project.id],
+                },
+            )
+        )
+        self.deliver_request(
+            3, self.action_request("under", anchor={"type": "block", "id": "chart"})
+        )
+        self.deliver_request(
+            4, self.action_request("other", anchor={"type": "block", "id": "kept"})
+        )
+
+        self.deliver(
+            self.event(5, "report_block_removed", {"reportRevision": 1, "stableAgentKey": "chart"})
+        )
+
+        assert self.request_states() == {
+            "under": InvestigationActionRequestState.SUPERSEDED,
+            "other": InvestigationActionRequestState.SUGGESTED,
+        }
+
+    def test_an_older_snapshot_with_blocks_leaves_current_requests_alone(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 2}))
+        self.deliver_request(2, self.action_request("current", reportRevision=2, primary=True))
+
+        self.deliver(self.completed_snapshot(3, reportRevision=1, blocks=[], actionRequests=[]))
+
+        assert self.request_states() == {"current": InvestigationActionRequestState.SUGGESTED}
+
+    def test_snapshot_without_action_requests_leaves_them_alone(self) -> None:
+        self.create_investigation_action_request(investigation=self.investigation, key="current")
+
+        self.deliver(
+            self.event(
+                1,
+                "state_snapshot",
+                {
+                    "terminal": True,
+                    "full": True,
+                    "projection": self.projection(
+                        workflow_version=2, phase="completed", status="completed"
+                    ),
+                    "blocks": [],
+                },
+            )
+        )
+
+        assert self.request_states() == {"current": InvestigationActionRequestState.SUGGESTED}
+
+    def test_an_adopted_report_revision_keeps_earlier_requests(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver_request(2, self.action_request("widen-window", primary=True))
+
+        self.deliver(
+            self.event(
+                3,
+                "workflow_updated",
+                {
+                    "projection": self.projection(
+                        workflow_version=2, phase="reporting", report_revision=2
+                    )
+                },
+            )
+        )
+
+        assert self.request_states() == {"widen-window": InvestigationActionRequestState.SUGGESTED}
+
+    def test_a_recheck_leaves_the_notebook_untouched(self) -> None:
+        events = [
+            self.event(1, "report_clear", {"reportRevision": 1}),
+            *(
+                self.event(
+                    sequence,
+                    "report_block_upserted",
+                    self.report_block(key, reportRevision=1, position=sequence - 2),
+                )
+                for sequence, key in [(2, "cause"), (3, "remediation"), (4, "evidence")]
+            ),
+            self.event(5, "report_completed", {"reportRevision": 1}),
+            self.event(
+                6,
+                "metadata_completed",
+                {"reportRevision": 1, "summary": "Seer summary", "summaryDescription": "Body"},
+            ),
+            self.event(
+                7,
+                "action_requested",
+                {"request": self.action_request("widen-window", primary=True)},
+            ),
+            self.event(
+                8,
+                "workflow_updated",
+                {
+                    "projection": self.projection(
+                        workflow_version=2,
+                        phase="completed",
+                        status="completed",
+                        report_revision=1,
+                        report_status="completed",
+                    )
+                },
+            ),
+        ]
+        for event in events:
+            self.deliver(event)
+        blocks = {
+            block.stable_agent_key: block
+            for block in InvestigationBlock.objects.filter(investigation=self.investigation)
+        }
+        blocks["cause"].update(content="Edited by a person", position=2)
+        blocks["evidence"].update(position=0)
+        blocks["remediation"].update(deleted_at=timezone.now())
+        self.investigation.refresh_from_db()
+        self.investigation.update(summary="Edited summary")
+        before = {
+            block.id: (block.content, block.position, block.deleted_at)
+            for block in InvestigationBlock.objects.filter(investigation=self.investigation)
+        }
+        version = self.investigation.version
+
+        refreshed = self.action_request(
+            "widen-window",
+            primary=True,
+            action=fake_action("b"),
+        )
+        reopened = self.projection(
+            workflow_version=3,
+            phase="metadata",
+            status="processing",
+            report_revision=1,
+            report_status="completed",
+        )
+        completed = self.projection(
+            workflow_version=4,
+            phase="completed",
+            status="completed",
+            report_revision=1,
+            report_status="completed",
+        )
+        for event in [
+            self.event(9, "workflow_updated", {"projection": reopened}),
+            self.event(10, "action_requested", {"request": refreshed}),
+            self.event(11, "workflow_updated", {"projection": completed}),
+            self.event(
+                12,
+                "state_snapshot",
+                {
+                    "terminal": True,
+                    "full": True,
+                    "projection": completed,
+                    "reportRevision": 1,
+                    "actionRequests": [refreshed],
+                },
+            ),
+        ]:
+            assert self.deliver(event).application_status == (
+                InvestigationOrchestrationEventStatus.APPLIED
+            )
+
+        assert {
+            block.id: (block.content, block.position, block.deleted_at)
+            for block in InvestigationBlock.objects.filter(investigation=self.investigation)
+        } == before
+        self.investigation.refresh_from_db()
+        assert self.investigation.summary == "Edited summary"
+        assert self.investigation.version == version
+        [row] = InvestigationActionRequest.objects.filter(investigation=self.investigation)
+        assert row.action_payload == refreshed["action"]
+
+    def test_a_requests_only_snapshot_for_another_revision_is_ignored(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+
+        self.deliver(
+            self.completed_snapshot(
+                2, reportRevision=0, actionRequests=[self.action_request("late")]
+            )
+        )
+
+        assert not InvestigationActionRequest.objects.exists()
+
+    def test_report_clear_supersedes_requests_tied_to_the_old_report(self) -> None:
+        requests: list[tuple[str, dict[str, Any]]] = [
+            ("primary", {"primary": True}),
+            ("block", {"anchor_type": "block", "anchor_id": "b-1"}),
+            ("hypothesis", {"anchor_type": "hypothesis", "anchor_id": "h-1"}),
+            ("unanchored", {}),
+            ("applied", {"primary": True, "state": InvestigationActionRequestState.APPLIED}),
+        ]
+        for key, values in requests:
+            self.create_investigation_action_request(
+                investigation=self.investigation, key=key, **values
+            )
+
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+
+        assert self.request_states() == {
+            "primary": InvestigationActionRequestState.SUPERSEDED,
+            "block": InvestigationActionRequestState.SUPERSEDED,
+            "hypothesis": InvestigationActionRequestState.SUGGESTED,
+            "unanchored": InvestigationActionRequestState.SUGGESTED,
+            "applied": InvestigationActionRequestState.APPLIED,
+        }
+
+    def stale(self, key: str, **values: Any) -> InvestigationActionRequest:
+        return self.create_investigation_action_request(
+            investigation=self.investigation,
+            key=key,
+            report_revision=1,
+            state=InvestigationActionRequestState.SUPERSEDED,
+            error={"code": "stale", "current": {"window": 600}},
+            followup_request_id=uuid4(),
+            action_kind="test_kind",
+            action_payload=fake_action(),
+            **values,
+        )
+
+    def stale_keys(self) -> set[str]:
+        return set(
+            InvestigationActionRequest.objects.filter(
+                STALE, investigation=self.investigation
+            ).values_list("key", flat=True)
+        )
+
+    def test_seer_can_withdraw_a_stale_request(self) -> None:
+        self.stale("widen-window")
+
+        self.deliver_withdrawn(1, "widen-window", "The window is fine now.")
+
+        assert self.request_states() == {"widen-window": InvestigationActionRequestState.WITHDRAWN}
+
+    def test_a_newer_request_under_the_same_anchor_replaces_a_stale_one(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        anchor = {"type": "hypothesis", "id": "h-1"}
+        self.stale("old", anchor_type="hypothesis", anchor_id="h-1")
+        self.stale("elsewhere", anchor_type="hypothesis", anchor_id="h-2")
+
+        self.deliver_request(2, self.action_request("new", anchor=anchor))
+
+        assert self.stale_keys() == {"elsewhere"}
+
+    def test_a_newer_primary_replaces_a_stale_primary(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.stale("old", primary=True, anchor_type="hypothesis", anchor_id="h-1")
+
+        self.deliver_request(2, self.action_request("new", primary=True))
+
+        assert self.stale_keys() == set()
+
+    def test_a_newer_primary_replaces_a_stale_primary_seer_demoted_first(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        anchor = {"type": "hypothesis", "id": "h-1"}
+        self.stale("old", primary=True, anchor_type="hypothesis", anchor_id="h-1")
+
+        self.deliver_request(2, self.action_request("old", primary=False, anchor=anchor))
+        self.deliver_request(3, self.action_request("new", primary=True))
+
+        assert self.stale_keys() == set()
+        assert self.request_states()["old"] == InvestigationActionRequestState.SUPERSEDED
+
+    def test_seer_sending_a_dropped_stale_request_again_keeps_it_superseded(self) -> None:
+        self.stale("old", anchor_type="hypothesis", anchor_id="h-1")
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 2}))
+
+        self.deliver_request(
+            2,
+            self.action_request(
+                "old", reportRevision=2, anchor={"type": "hypothesis", "id": "h-1"}
+            ),
+        )
+
+        assert self.request_states() == {"old": InvestigationActionRequestState.SUPERSEDED}
+        assert self.stale_keys() == set()
+
+    def test_seer_sending_a_stale_request_again_keeps_it_stale(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.stale("old", primary=True, anchor_type="hypothesis", anchor_id="h-1")
+
+        self.deliver_request(
+            2,
+            self.action_request("old", primary=True, anchor={"type": "hypothesis", "id": "h-1"}),
+        )
+
+        assert self.stale_keys() == {"old"}
+
+    def test_a_snapshot_that_leaves_out_a_stale_request_stops_listing_it(self) -> None:
+        self.stale("omitted")
+        self.stale("kept")
+
+        self.deliver(
+            self.completed_snapshot(5, blocks=[], actionRequests=[self.action_request("kept")])
+        )
+
+        assert self.stale_keys() == {"kept"}
+
+    def test_a_new_report_stops_listing_every_stale_request(self) -> None:
+        self.stale("hypothesis", anchor_type="hypothesis", anchor_id="h-1")
+        self.stale("unanchored")
+
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 2}))
+
+        assert self.stale_keys() == set()
+        assert set(self.request_states().values()) == {InvestigationActionRequestState.SUPERSEDED}
 
 
 class InvestigationOrchestrationSeerRunAdoptionTest(SeerRunMirrorMixin, TestCase):

@@ -1,5 +1,5 @@
 import {useCallback} from 'react';
-import {Outlet, useOutletContext} from 'react-router-dom';
+import {Outlet, useOutletContext} from 'react-router';
 import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';

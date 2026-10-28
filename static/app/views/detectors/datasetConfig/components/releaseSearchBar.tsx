@@ -6,6 +6,7 @@ import {defaultConfig, InvalidReason} from 'sentry/components/searchSyntax/parse
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {SavedSearchType} from 'sentry/types/group';
+import {defined} from 'sentry/utils/defined';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -56,7 +57,7 @@ export function ReleaseSearchBar({
       projectIds: projectIdStrings,
       includeTransactions: true,
     }).then(
-      tagValues => tagValues.map(({value}) => value),
+      tagValues => tagValues.map(({value}) => value).filter(defined),
       () => {
         throw new Error('Unable to fetch tag values');
       }

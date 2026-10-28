@@ -9,7 +9,6 @@ from django.urls import reverse
 
 import sentry.utils.auth
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.user import User
 from sentry.utils.auth import (
@@ -52,6 +51,15 @@ class EmailAuthBackendTest(TestCase):
             HttpRequest(), username="BAZ@example.com", password="bar"
         )
         self.assertEqual(result, self.user)
+
+    def test_find_users_ignores_unicode_lookalike(self) -> None:
+        from sentry.utils.auth import find_users
+
+        user = User(username="adminuser", email="admin@example.com")
+        user.set_password("pw")
+        user.save()
+        assert find_users("admin@example.com") == [user]
+        assert find_users("adm\u0131n@example.com") == []
 
     def test_does_not_authenticate_with_invalid_password(self) -> None:
         result = self.backend.authenticate(HttpRequest(), username="foo", password="pizza")
@@ -132,20 +140,7 @@ class GetLoginRedirectTest(TestCase):
         result = get_login_redirect(request)
         assert result == "http://orgslug.testserver/foobar/"
 
-    def test_pending_2fa(self) -> None:
-        request = self._make_request()
-        request.session["_pending_2fa"] = [1234, 1234, 1234]
-        result = get_login_redirect(request)
-        assert result == reverse("sentry-2fa-dialog")
-
-        request = self._make_request()
-        request.subdomain = "orgslug"
-        request.session["_pending_2fa"] = [1234, 1234, 1234]
-        result = get_login_redirect(request)
-        assert result == f"http://orgslug.testserver{reverse('sentry-2fa-dialog')}"
-
-    @override_options({"auth.v2.enabled": True})
-    def test_pending_2fa_with_react_auth_setting(self) -> None:
+    def test_pending_2fa_with_react_auth_by_default(self) -> None:
         request = self._make_request()
         request.session["_pending_2fa"] = [1234, 1234, 1234]
 

@@ -11,6 +11,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.db import connection
 from django.db.models import prefetch_related_objects
 from django.utils import timezone
+from sentry_sdk import traces
 
 from sentry import features, options, projectoptions, quotas, release_health, roles
 from sentry.api.serializers import Serializer, register, serialize
@@ -27,6 +28,7 @@ from sentry.dynamic_sampling.utils import (
     is_project_mode_sampling,
 )
 from sentry.features.base import ProjectFeature
+from sentry.ingest import legacy_filter_lists
 from sentry.ingest.inbound_filters import FilterTypes
 from sentry.issues.highlights import HighlightPreset, get_highlight_preset_for_project
 from sentry.lang.native.sources import parse_sources, redact_source_secrets
@@ -51,7 +53,6 @@ from sentry.tempest.utils import has_tempest_access
 from sentry.users.api.serializers.user import SerializedAvatarFields
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
-from sentry.utils.tracing import set_span_data, start_span
 
 if TYPE_CHECKING:
     from sentry.api.serializers.models.organization import OrganizationSummarySerializerResponse
@@ -141,7 +142,9 @@ def get_access_by_project(
 
     result: dict[Project, dict[str, Any]] = {}
     has_team_roles_cache: dict[int, bool] = {}
-    with start_span(op="project.check-access", name="project.check-access"):
+    with traces.start_span(
+        name="project.check-access", attributes={"sentry.op": "project.check-access"}
+    ):
         for project in projects:
             member_teams = [
                 memberships_by_team[tid]
@@ -372,11 +375,13 @@ class ProjectSerializer(Serializer):
         self, item_list: Sequence[Project], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> dict[Project, dict[str, Any]]:
         def measure_span(op_tag):
-            span = start_span(
-                op=f"serialize.get_attrs.project.{op_tag}",
+            span = traces.start_span(
                 name=f"serialize.get_attrs.project.{op_tag}",
+                attributes={
+                    "sentry.op": f"serialize.get_attrs.project.{op_tag}",
+                    "Object Count": len(item_list),
+                },
             )
-            set_span_data(span, "Object Count", len(item_list))
             return span
 
         with measure_span("preamble"):
@@ -1027,6 +1032,7 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     defaultEnvironment: str | None
     relayPiiConfig: str | None
     builtinSymbolSources: list[str]
+    enableNativeSourceServerMapping: bool
     dynamicSamplingBiases: list[dict[str, str | bool]] | None
     symbolSources: str
     isDynamicallySampled: bool
@@ -1048,6 +1054,12 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
         options_by_project: dict[int, dict[str, Any]] = defaultdict(dict)
         for option in queryset.iterator():
             options_by_project[option.project_id][option.key] = option.value
+
+        # A legacy filter list at the v2 stage lives in a custom inbound filter row, which
+        # replaces whatever its option still holds.
+        for project_id, lists in legacy_filter_lists.read_rows(item_list).items():
+            for filter_type, lines in lists.items():
+                options_by_project[project_id][f"sentry:{filter_type}"] = lines
 
         if self._collapse(ORGANIZATION_KEY):
             orgs = {
@@ -1173,6 +1185,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "relayPiiConfig": attrs["options"].get("sentry:relay_pii_config"),
             "builtinSymbolSources": self.get_value_with_default(
                 attrs, "sentry:builtin_symbol_sources"
+            ),
+            "enableNativeSourceServerMapping": bool(
+                self.get_value_with_default(attrs, "sentry:enable_native_source_server_mapping")
             ),
             "dynamicSamplingBiases": self.get_value_with_default(
                 attrs, "sentry:dynamic_sampling_biases"

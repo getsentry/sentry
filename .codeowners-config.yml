@@ -49,8 +49,7 @@ team_allowlist:
   - getsentry/profiling
   - getsentry/python-typing
   - getsentry/release-approvers
-  - getsentry/replay-backend
-  - getsentry/replay-frontend
+  - getsentry/replay
   - getsentry/revenue
   - getsentry/scm
   - getsentry/security

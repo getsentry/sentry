@@ -6,7 +6,6 @@ import type {Organization} from 'sentry/types/organization';
 import {isAggregateField, type Sort} from 'sentry/utils/discover/fields';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {
   makeAutomationBasePathname,
   makeAutomationDetailsPathname,
@@ -14,6 +13,7 @@ import {
 import {
   makeMonitorBasePathname,
   makeMonitorDetailsPathname,
+  makeMonitorTypePathname,
 } from 'sentry/views/detectors/pathnames';
 import {DEFAULT_EVENT_VIEW_MAP} from 'sentry/views/discover/results/data';
 import {
@@ -39,7 +39,12 @@ import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathname
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {callRecordLabel} from 'sentry/views/seerExplorer/callRecords';
-import type {CallRecord, ToolLink} from 'sentry/views/seerExplorer/types';
+import type {
+  CallRecord,
+  ToolCall,
+  ToolLink,
+  ToolResult,
+} from 'sentry/views/seerExplorer/types';
 
 /**
  * Where a Code Mode call sends you.
@@ -432,55 +437,17 @@ export const LINK_RULES: LinkRule[] = [
   },
   {
     id: 'get_cron_monitor_details',
-    // Classic cron monitors. The workflow-engine `detectors` route is a different surface and is
-    // claimed above; these still need project + slug for the alerts UI.
     prefix: /\/monitors\/\{monitor_id_or_slug\}/,
     resolve: ({params, title}, {organization, projects}) => {
-      const monitor = asUrlSegment(params.monitor_id_or_slug);
-      if (!monitor) {
-        return null;
-      }
-
       const project = resolveProject(params.project_id_or_slug, projects);
-      if (!project) {
-        // Org-level monitor fetch has no project in path params. The cron detail page needs one,
-        // and guessing wrong lands on a 404 — leave the row unlinked.
-        return null;
-      }
-
       return {
-        label: title ?? t('View monitor'),
+        label: title ?? t('View cron monitors'),
         url: {
-          pathname: makeAlertsPathname({
-            organization,
-            path: `/rules/crons/${project.slug}/${encodeURIComponent(monitor)}/details/`,
-          }),
-        },
-      };
-    },
-  },
-  {
-    id: 'get_issue_alert_rule',
-    prefix: /\/rules\/\{rule_id\}/,
-    resolve: ({params, title}, {organization, projects}) => {
-      const ruleId = asUrlSegment(params.rule_id);
-      if (!ruleId) {
-        return null;
-      }
-
-      const project = resolveProject(params.project_id_or_slug, projects);
-      if (!project) {
-        return null;
-      }
-
-      // Legacy issue-alert detail; workflow-engine orgs redirect this onto the automation page.
-      return {
-        label: title ?? t('View alert rule'),
-        url: {
-          pathname: makeAlertsPathname({
-            organization,
-            path: `/rules/${project.slug}/${ruleId}/`,
-          }),
+          pathname: makeMonitorTypePathname(
+            organization.slug,
+            'monitor_check_in_failure'
+          ),
+          ...(project?.id ? {query: {project: project.id}} : {}),
         },
       };
     },
@@ -847,6 +814,55 @@ export function subjectFromCallRecord(record: CallRecord): LinkSubject {
 /** A link seer emitted directly, as something the rules can match on. */
 export function subjectFromToolLink(link: ToolLink): LinkSubject {
   return {kind: 'link', params: link.params ?? {}, name: link.kind};
+}
+
+export function getValidToolLinks(
+  tool_links: Array<ToolLink | null>,
+  tool_results: Array<ToolResult | null>,
+  tool_calls: ToolCall[],
+  organization: Organization,
+  projects?: Array<{id: string; slug: string}>
+) {
+  // Get valid tool links sorted by their corresponding tool call indices
+  // Also create a mapping from tool call index to sorted link index
+  const mappedLinks = tool_links
+    .map((link, idx) => {
+      if (!link) {
+        return null;
+      }
+
+      // Don't show links for tools that returned errors, but do show for empty results
+      if (link.params?.is_error === true) {
+        return null;
+      }
+
+      // get tool_call_id from tool_results, which we expect to be aligned with tool_links.
+      const toolCallId = tool_results[idx]?.tool_call_id;
+      const toolCallIndex = toolCallId
+        ? tool_calls.findIndex(call => call.id === toolCallId)
+        : -1;
+      const canBuildUrl =
+        resolveLink(subjectFromToolLink(link), {organization, projects})?.url !==
+        undefined;
+
+      if (toolCallIndex !== undefined && toolCallIndex >= 0 && canBuildUrl) {
+        return {link, toolCallIndex};
+      }
+      return null;
+    })
+    .filter(item => item !== null)
+    .sort((a, b) => a.toolCallIndex - b.toolCallIndex);
+
+  // Create mapping from tool call index to sorted link index
+  const toolCallToLinkMap = new Map<number, number>();
+  mappedLinks.forEach((item, sortedIndex) => {
+    toolCallToLinkMap.set(item.toolCallIndex, sortedIndex);
+  });
+
+  return {
+    sortedToolLinks: mappedLinks.map(item => item.link),
+    toolCallToLinkIndexMap: toolCallToLinkMap,
+  };
 }
 
 /**

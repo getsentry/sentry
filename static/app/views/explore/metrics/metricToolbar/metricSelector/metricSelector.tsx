@@ -8,27 +8,27 @@ import {useKeyboard} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconSearch} from '@sentry/icons/search';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 
 import {Tag} from '@sentry/scraps/badge';
 import {LeadWrap, ListWrap} from '@sentry/scraps/compactSelect';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {MenuListItem} from '@sentry/scraps/menuListItem';
+import {ListItem} from '@sentry/scraps/menu';
+import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
+import {useOverlay} from '@sentry/scraps/useOverlay';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import {IconCheckmark, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {useOverlay} from 'sentry/utils/useOverlay';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {NONE_UNIT} from 'sentry/views/explore/metrics/constants';
-import {useHasMetricUnitsUI} from 'sentry/views/explore/metrics/hooks/useHasMetricUnitsUI';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
 import {MetricDetailPanel} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/metricDetailPanel';
@@ -69,16 +69,14 @@ function nextFrameCallback(cb: () => void) {
 function MetricOptionTrailingItems({
   metricType,
   metricUnit,
-  hasMetricUnitsUI,
 }: {
-  hasMetricUnitsUI: boolean;
   metricType: TraceMetricTypeValue;
   metricUnit?: string;
 }) {
   return (
     <Fragment>
       <MetricTypeBadge metricType={metricType} />
-      {hasDisplayMetricUnit(hasMetricUnitsUI, metricUnit) ? (
+      {hasDisplayMetricUnit(metricUnit) ? (
         <Tag variant="promotion">{metricUnit}</Tag>
       ) : null}
     </Fragment>
@@ -113,8 +111,6 @@ export function MetricSelector({
 }) {
   const theme = useTheme();
   const triggerId = useId();
-
-  const hasMetricUnitsUI = useHasMetricUnitsUI();
 
   const searchRef = useRef<HTMLInputElement>(null);
   const listElementRef = useRef<HTMLUListElement>(null);
@@ -163,7 +159,6 @@ export function MetricSelector({
         <MetricOptionTrailingItems
           metricType={traceMetricType}
           metricUnit={traceMetricDisplayUnit}
-          hasMetricUnitsUI={hasMetricUnitsUI}
         />
       ),
     };
@@ -173,7 +168,6 @@ export function MetricSelector({
     traceMetricType,
     traceMetric.unit,
     traceMetricDisplayUnit,
-    hasMetricUnitsUI,
   ]);
 
   // Always show the selected metric at the top of the list so it's easy to
@@ -230,7 +224,6 @@ export function MetricSelector({
             lastSeen,
             trailingItems: () => (
               <MetricOptionTrailingItems
-                hasMetricUnitsUI={hasMetricUnitsUI}
                 metricType={metricType}
                 metricUnit={metricUnit}
               />
@@ -295,7 +288,6 @@ export function MetricSelector({
     traceMetric.type,
     traceMetric.unit,
     traceMetricSelectValue,
-    hasMetricUnitsUI,
   ]);
 
   // Auto-select the first selectable metric when no metric is currently
@@ -396,7 +388,6 @@ export function MetricSelector({
   function handleOverlayOpenChange(open: boolean) {
     if (open) {
       nextFrameCallback(() => {
-        updateOverlay?.();
         if (scrollElementRef.current) {
           scrollElementRef.current.scrollTop = 0;
         }
@@ -474,7 +465,6 @@ export function MetricSelector({
     overlayProps,
     arrowProps: overlayArrowProps,
     triggerRef,
-    update: updateOverlay,
   } = useOverlay({
     type: 'listbox',
     position: 'bottom-start',
@@ -710,7 +700,7 @@ export function MetricSelector({
                           height={0}
                           overflow="hidden"
                         >
-                          <MenuListItem
+                          <ListItem
                             as="div"
                             size="md"
                             label={longestOption.label}
@@ -799,7 +789,6 @@ export function MetricSelector({
                     >
                       <MetricDetailPanel
                         metric={highlightedOption ?? optionFromTraceMetric}
-                        hasMetricUnitsUI={hasMetricUnitsUI}
                       />
                     </SidePanel>
                   ) : null}

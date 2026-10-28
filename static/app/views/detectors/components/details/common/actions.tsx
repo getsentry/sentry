@@ -1,9 +1,11 @@
+import {IconCopy} from '@sentry/icons/copy';
+import {IconEdit} from '@sentry/icons/edit';
+
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {IconCopy, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {useNavigate} from 'sentry/utils/useNavigate';

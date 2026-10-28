@@ -27,7 +27,7 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
     def _get_url(self, group_id: int) -> str:
         return f"/api/0/organizations/{self.organization.slug}/issues/{group_id}/summarize/"
 
-    @patch("sentry.seer.endpoints.group_ai_summary.get_issue_summary")
+    @patch("sentry.seer.endpoints.group_ai_summary.get_or_generate_issue_summary")
     def test_endpoint_calls_get_issue_summary(self, mock_get_issue_summary: MagicMock) -> None:
         mock_summary_data = IssueSummary(
             group_id=str(self.group.id),
@@ -49,7 +49,7 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
             source=SeerAutomationSource.ISSUE_DETAILS,
         )
 
-    @patch("sentry.seer.endpoints.group_ai_summary.get_issue_summary")
+    @patch("sentry.seer.endpoints.group_ai_summary.get_or_generate_issue_summary")
     def test_endpoint_without_event_id(self, mock_get_issue_summary: MagicMock) -> None:
         mock_summary_data = IssueSummary(
             group_id=str(self.group.id),
@@ -69,7 +69,7 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
             source=SeerAutomationSource.ISSUE_DETAILS,
         )
 
-    @patch("sentry.seer.endpoints.group_ai_summary.get_issue_summary")
+    @patch("sentry.seer.endpoints.group_ai_summary.get_or_generate_issue_summary")
     def test_endpoint_returns_bad_request_for_unavailable_summary(
         self, mock_get_issue_summary: MagicMock
     ) -> None:
@@ -86,7 +86,7 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
             source=SeerAutomationSource.ISSUE_DETAILS,
         )
 
-    @patch("sentry.seer.endpoints.group_ai_summary.get_issue_summary")
+    @patch("sentry.seer.endpoints.group_ai_summary.get_or_generate_issue_summary")
     def test_endpoint_returns_bad_request_when_self_hosted(
         self, mock_get_issue_summary: MagicMock
     ) -> None:
@@ -97,7 +97,7 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400
         assert response.data == {"detail": "Seer is not available on this installation."}
 
-    @patch("sentry.seer.endpoints.group_ai_summary.get_issue_summary")
+    @patch("sentry.seer.endpoints.group_ai_summary.get_or_generate_issue_summary")
     def test_endpoint_returns_forbidden_when_ai_is_hidden(
         self, mock_get_issue_summary: MagicMock
     ) -> None:
@@ -108,7 +108,7 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 403
         assert response.data == {"detail": "AI features are disabled for this organization."}
 
-    @patch("sentry.seer.endpoints.group_ai_summary.get_issue_summary")
+    @patch("sentry.seer.endpoints.group_ai_summary.get_or_generate_issue_summary")
     def test_endpoint_returns_unavailable_for_lock_timeout(
         self, mock_get_issue_summary: MagicMock
     ) -> None:

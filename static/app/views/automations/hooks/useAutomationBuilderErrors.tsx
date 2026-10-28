@@ -9,6 +9,12 @@ export function useAutomationBuilderErrors() {
 
   const removeError = useCallback((errorId: string) => {
     setErrors(prev => {
+      // Keep the same object when there's nothing to remove so consumers
+      // don't re-render on every keystroke
+      if (!(errorId in prev)) {
+        return prev;
+      }
+      // oxlint-disable-next-line react/todo
       const {[errorId]: _removedError, ...remainingErrors} = prev;
       return remainingErrors;
     });
