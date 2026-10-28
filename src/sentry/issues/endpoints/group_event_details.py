@@ -48,7 +48,12 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.issues.endpoints.bases.group import GroupEndpoint
-from sentry.issues.endpoints.project_event_details import wrap_event_response
+from sentry.issues.endpoints.project_event_details import (
+    COLLAPSE_ADJACENT_EVENTS,
+    COLLAPSE_FULL_RELEASE,
+    COLLAPSE_STACKTRACE_ONLY,
+    wrap_event_response,
+)
 from sentry.issues.formatting.formatter import FormattedResponse
 from sentry.issues.formatting.mixin import (
     VALID_FORMATS,
@@ -76,7 +81,6 @@ from sentry.utils import metrics
 from sentry.utils.snuba import get_snuba_column_name
 
 BOOLEAN_SEARCH_CONFIG = SearchConfig.create_from(issue_search_config, allow_boolean=True)
-COLLAPSE_ADJACENT_EVENTS = "adjacentEvents"
 
 
 class IssueEventQueryBuilder(DiscoverQueryBuilder):
@@ -358,7 +362,7 @@ class GroupEventDetailsEndpoint(FormattableResponseMixin, GroupEndpoint):
         sentry_sdk.set_attribute("event.type", event.get_event_type())
 
         collapse = request.GET.getlist("collapse", [])
-        if "stacktraceOnly" in collapse:
+        if COLLAPSE_STACKTRACE_ONLY in collapse:
             stacktrace_body: EventSerializerResponse = serialize(
                 event, request.user, EventSerializer()
             )
@@ -368,7 +372,7 @@ class GroupEventDetailsEndpoint(FormattableResponseMixin, GroupEndpoint):
             request_user=request.user,
             event=event,
             environments=environment_names,
-            include_full_release_data="fullRelease" not in collapse,
+            include_full_release_data=COLLAPSE_FULL_RELEASE not in collapse,
             conditions=conditions,
             legacy_conditions=legacy_conditions,
             use_snql=boolean_search,
