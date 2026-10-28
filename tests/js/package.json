@@ -85,6 +85,7 @@
     "./mergeAccounts": "./fixtures/mergeAccounts.ts",
     "./metrics": "./fixtures/metrics.ts",
     "./missingMembers": "./fixtures/missingMembers.ts",
+    "./moduleBudget": "./sentry-test/moduleBudget.tsx",
     "./monitor": "./fixtures/monitor.ts",
     "./notificationDefaults": "./fixtures/notificationDefaults.ts",
     "./nuqsTestingAdapter": "./sentry-test/nuqsTestingAdapter.tsx",
