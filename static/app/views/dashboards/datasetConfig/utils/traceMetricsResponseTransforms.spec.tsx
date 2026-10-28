@@ -7,7 +7,6 @@ import {traceMetricsResponseTransforms} from 'sentry/views/dashboards/datasetCon
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {
   WEB_VITAL_SCORE_FIELDS,
-  webVitalCountField,
   webVitalScoreField,
 } from 'sentry/views/dashboards/utils/webVitalTraceMetricFields';
 
@@ -24,41 +23,6 @@ function response(yAxes: string[], value = 1): EventsTimeSeriesResponse {
 }
 
 describe('traceMetricsResponseTransforms.transformTimeSeries', () => {
-  it('shortens metric aggregates to the metric name', () => {
-    const aggregates = ['p75(value,browser.web_vital.lcp,distribution,millisecond)'];
-    const widget = WidgetFixture({
-      widgetType: WidgetType.TRACEMETRICS,
-      queries: [WidgetQueryFixture({aggregates, columns: []})],
-    });
-
-    const result = traceMetricsResponseTransforms.transformTimeSeries!(
-      response(aggregates),
-      widget,
-      0
-    );
-
-    expect(result.map(r => r.seriesName)).toEqual(['p75(browser.web_vital.lcp)']);
-  });
-
-  it('keeps the full name of score fields so each series stays distinct', () => {
-    const aggregates = [webVitalScoreField('lcp'), webVitalCountField('ttfb')];
-    const widget = WidgetFixture({
-      widgetType: WidgetType.TRACEMETRICS,
-      queries: [WidgetQueryFixture({aggregates, columns: []})],
-    });
-
-    const result = traceMetricsResponseTransforms.transformTimeSeries!(
-      response(aggregates),
-      widget,
-      0
-    );
-
-    expect(result.map(r => r.seriesName)).toEqual([
-      'avg(score.ratio.lcp,browser.web_vital.lcp,distribution,millisecond)',
-      'count(browser.web_vital.ttfb)',
-    ]);
-  });
-
   it('weights the score breakdown chart like the spans dataset', () => {
     const aggregates = WEB_VITAL_SCORE_FIELDS;
     const widget = WidgetFixture({

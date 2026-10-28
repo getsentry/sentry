@@ -21,14 +21,9 @@ function formatMetricsTimeseriesLabel({
   widgetQuery: WidgetQuery;
 }): string {
   const func = parseFunction(timeSeries.yAxis);
-  // Metric aggregates are `fn(value,metric,type,unit)` and read best as
-  // `fn(metric)`. Aggregates over another attribute, like the web vital score
-  // fields, keep their full name so each series stays distinct.
-  const isMetricAggregate = func?.arguments[0] === 'value';
-  const formattedYAxis =
-    func && isMetricAggregate
-      ? `${func.name}(${func.arguments[1] ?? '…'})`
-      : timeSeries.yAxis;
+  const formattedYAxis = func
+    ? `${func.name}(${func.arguments[1] ?? '…'})`
+    : timeSeries.yAxis;
 
   const multiYAxis = new Set(widgetQuery.aggregates).size > 1;
   const hasGroupings = new Set(widgetQuery.columns).size > 0;
@@ -37,7 +32,7 @@ function formatMetricsTimeseriesLabel({
 
   // When we have both multiple aggregates and groupings, append function name for uniqueness
   if (multiYAxis && hasGroupings && func) {
-    baseName = `${baseName} : ${formattedYAxis}`;
+    baseName = `${baseName} : ${func.name}(${func.arguments[1] ?? '…'})`;
   }
 
   // Add query name prefix with appropriate separator if an alias is present
