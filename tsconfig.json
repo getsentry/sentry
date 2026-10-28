@@ -20,6 +20,7 @@
     "strictBindCallApply": false,
 
     "paths": {
+      "@sentry/scraps/toast": ["./static/packages/scraps/src/toast"],
       // The app falls back to core components until they move into scraps.
       "@sentry/scraps/*": [
         "./static/packages/scraps/src/*",

@@ -522,6 +522,13 @@ const appConfig: Configuration = {
       'sentry-logos': path.join(sentryDjangoAppPath, 'images', 'logos'),
       'sentry-fonts': path.join(staticPrefix, 'fonts'),
 
+      '@sentry/scraps/toast$': path.join(
+        staticPrefix,
+        'packages',
+        'scraps',
+        'src',
+        'toast'
+      ),
       '@sentry/scraps': [
         path.join(staticPrefix, 'packages', 'scraps', 'src'),
         path.join(staticPrefix, 'app', 'components', 'core'),

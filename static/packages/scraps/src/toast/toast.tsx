@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import styled from '@emotion/styled';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconClose} from '@sentry/icons/close';
@@ -9,8 +10,7 @@ import {Spinner} from '@sentry/scraps/spinner';
 import {Text} from '@sentry/scraps/text';
 import type {Theme} from '@sentry/scraps/theme';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
-
-import {unreachable} from 'sentry/utils/unreachable';
+import {unreachable} from '@sentry/scraps/unreachable';
 
 import type {ToastAction, ToastVariant} from './types';
 
