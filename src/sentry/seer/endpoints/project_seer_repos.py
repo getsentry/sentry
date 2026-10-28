@@ -229,7 +229,7 @@ def _validate_branch_overrides(value):
 
 class BranchOverrideSerializer(CamelSnakeSerializer):
     tag_name = serializers.CharField(
-        required=True, help_text="The tag name that selects this branch override."
+        required=True, help_text="Event tag key to match."
     )
     tag_value = serializers.CharField(
         required=True, help_text="Event tag value to match."
