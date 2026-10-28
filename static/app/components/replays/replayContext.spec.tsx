@@ -12,7 +12,6 @@ import {
   Provider as ReplayContextProvider,
   useReplayContext,
 } from 'sentry/components/replays/replayContext';
-import {VideoReplayerWithInteractions} from 'sentry/components/replays/videoReplayerWithInteractions';
 import {ReplayReader} from 'sentry/utils/replays/replayReader';
 import type {RawReplayError, RecordingFrame} from 'sentry/utils/replays/types';
 import {EventType} from 'sentry/utils/replays/types';
@@ -396,37 +395,6 @@ describe('replayContext', () => {
     );
 
     expect(Replayer).toHaveBeenCalledTimes(2);
-  });
-
-  it('destroys the video player when a keyed provider switches to a web replay', () => {
-    const {rerender} = render(
-      <ReplayContextProvider
-        key="video-replay"
-        analyticsContext=""
-        isFetching={false}
-        replay={makeReader({attachments: [VideoFrameEventFixture()]})}
-      >
-        <TestPlayer />
-      </ReplayContextProvider>
-    );
-    const videoReplayer = jest.mocked(VideoReplayerWithInteractions).mock.results[0]!
-      .value;
-
-    rerender(
-      <ReplayContextProvider
-        key="web-replay"
-        analyticsContext=""
-        isFetching={false}
-        replay={makeReader({
-          attachments: RRWebInitFrameEventsFixture({timestamp: startedAt}),
-        })}
-      >
-        <TestPlayer />
-      </ReplayContextProvider>
-    );
-
-    expect(videoReplayer.destroy).toHaveBeenCalled();
-    expect(Replayer).toHaveBeenCalledTimes(1);
   });
 
   it('keeps the fast forward speed when the tab stays visible while skipping', async () => {

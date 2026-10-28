@@ -220,11 +220,6 @@ function useCurrentTime(callback: () => number) {
   return currentTime;
 }
 
-/**
- * Holds the player for a single replay. Render it with `key` set to the replay
- * id: the player and its playback state are built for one replay and are not
- * torn down when the `replay` prop switches to another one.
- */
 export function Provider({
   analyticsContext,
   children,
