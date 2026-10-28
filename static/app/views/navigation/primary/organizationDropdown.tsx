@@ -28,7 +28,6 @@ import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {update} from 'sentry/actionCreators/projects';
-import {OrganizationBadge} from 'sentry/components/idBadge/organizationBadge';
 import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
 import {t, tn} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -372,7 +371,8 @@ function makeProjectMenuItem(
 function makeOrganizationMenuItem(org: OrganizationSummary): MenuItemProps {
   return {
     key: org.id,
-    label: <OrganizationBadge organization={org} />,
+    leadingItems: <OrganizationAvatar organization={org} size={24} />,
+    label: org.name,
     textValue: org.name,
     to: resolveRoute(`/organizations/${org.slug}/issues/`, null, org),
   };
