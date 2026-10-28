@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {useDrawerDockedPane} from '@sentry/scraps/drawer';
+import {useDrawerPlacement} from '@sentry/scraps/drawer';
 import {Stack} from '@sentry/scraps/layout';
 import {SplitPanel, type SplitPanelHandle} from '@sentry/scraps/splitPanel';
 
@@ -114,10 +114,10 @@ function SeerExplorerSidebarLayoutInSidebarMode({
   // Drawers open against the viewport's right edge, on top of Seer docked
   // right. Have them cover the whole pane (and the divider) rather than part of
   // it. Derived from Seer's persisted size, so it updates when a drag ends.
-  useDrawerDockedPane(
-    isOpen && isRight && available > 0 ? available - contentSize : 0,
-    pageBannerHeight
-  );
+  useDrawerPlacement({
+    minWidth: isOpen && isRight && available > 0 ? available - contentSize : 0,
+    topOffset: pageBannerHeight,
+  });
 
   // Persist Seer's size from a drag (the app pane shrinks → Seer grows). Fires
   // only on drag end, never on programmatic/measure resizes, so a saved size is

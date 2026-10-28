@@ -538,14 +538,14 @@ describe('SeerExplorerSidebarLayout', () => {
 
   it('has drawers cover Seer while it is docked right', async () => {
     mockWideScreen(true);
-    const dockedPane = jest.spyOn(drawerModule, 'useDrawerDockedPane');
+    const drawerPlacement = jest.spyOn(drawerModule, 'useDrawerPlacement');
     renderSidebar(orgWithSidebar);
-    expect(dockedPane).toHaveBeenLastCalledWith(0, 0);
+    expect(drawerPlacement).toHaveBeenLastCalledWith({minWidth: 0, topOffset: 0});
 
     await userEvent.click(screen.getByText('open-seer'));
     expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
     // The default 420px Seer width, measured from the container's right edge.
-    expect(dockedPane).toHaveBeenLastCalledWith(420, 0);
+    expect(drawerPlacement).toHaveBeenLastCalledWith({minWidth: 420, topOffset: 0});
 
     await userEvent.click(screen.getByText('open-drawer'));
     expect(
@@ -553,17 +553,19 @@ describe('SeerExplorerSidebarLayout', () => {
     ).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Close Seer'}));
-    await waitFor(() => expect(dockedPane).toHaveBeenLastCalledWith(0, 0));
+    await waitFor(() =>
+      expect(drawerPlacement).toHaveBeenLastCalledWith({minWidth: 0, topOffset: 0})
+    );
   });
 
   it('does not have drawers cover Seer while it is docked to the bottom', async () => {
-    const dockedPane = jest.spyOn(drawerModule, 'useDrawerDockedPane');
+    const drawerPlacement = jest.spyOn(drawerModule, 'useDrawerPlacement');
     renderSidebar(orgWithSidebar);
 
     await userEvent.click(screen.getByText('open-seer'));
     expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
     expect(splitOrientation()).toBe('vertical');
-    expect(dockedPane).toHaveBeenLastCalledWith(0, 0);
+    expect(drawerPlacement).toHaveBeenLastCalledWith({minWidth: 0, topOffset: 0});
 
     await userEvent.click(screen.getByText('open-drawer'));
     expect(

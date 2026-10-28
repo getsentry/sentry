@@ -46,10 +46,11 @@ interface DrawerPanelProps extends Pick<
   children: React.ReactNode;
   /** Required — GlobalDrawer applies the default before passing it down. */
   mode: NonNullable<DrawerOptions['mode']>;
-  dockedPaneTop?: number;
-  /** Width in pixels of a pane docked against the viewport's right edge, if any. */
-  dockedPaneWidth?: number;
+  /** Minimum panel width in pixels, e.g. to cover a pane docked on the right. */
+  minPanelWidth?: number;
   ref?: React.Ref<HTMLDivElement>;
+  /** Distance in pixels from the viewport top, e.g. to clear page banners. */
+  topOffset?: number;
 }
 
 function DrawerPanel({
@@ -61,8 +62,8 @@ function DrawerPanel({
   drawerWidth,
   drawerMaxWidth,
   drawerKey,
-  dockedPaneWidth,
-  dockedPaneTop,
+  minPanelWidth,
+  topOffset,
   resizable = true,
 }: DrawerPanelProps) {
   const {panelRef, resizeHandleRef, handleResizeStart, persistedWidthPercent, enabled} =
@@ -83,11 +84,9 @@ function DrawerPanel({
       <DrawerWidthContext.Provider value={actualDrawerWidth}>
         <DrawerSlidePanel
           mode={mode}
-          dockedPaneWidth={dockedPaneWidth}
-          topOffset={dockedPaneTop === undefined ? undefined : `${dockedPaneTop}px`}
-          height={
-            dockedPaneTop === undefined ? undefined : `calc(100% - ${dockedPaneTop}px)`
-          }
+          minPanelWidth={minPanelWidth}
+          topOffset={topOffset === undefined ? undefined : `${topOffset}px`}
+          height={topOffset === undefined ? undefined : `calc(100% - ${topOffset}px)`}
           ariaLabel={ariaLabel}
           position="right"
           ref={mergeRefs(panelRef, ref, (node: HTMLDivElement | null) =>
@@ -245,7 +244,7 @@ const DrawerContainer = styled('div')<{mode?: DrawerOptions['mode']}>`
   }
 `;
 
-const DrawerSlidePanel = styled(SlideOverPanel)<{dockedPaneWidth?: number}>`
+const DrawerSlidePanel = styled(SlideOverPanel)<{minPanelWidth?: number}>`
   border-left: 1px solid ${p => p.theme.tokens.border.primary};
   position: relative;
   pointer-events: auto;
@@ -270,13 +269,12 @@ const DrawerSlidePanel = styled(SlideOverPanel)<{dockedPaneWidth?: number}>`
     var(--drawer-max-width)
   ) !important;
 
-  /* Cover a pane docked against the viewport's right edge (Seer) entirely, so
-     none of it shows beside or above the drawer: a narrow drawer would leave
-     the pane's edge, and passive drawers otherwise start below the header. */
+  /* A drawer narrower than a pane docked against the viewport's right edge
+     (Seer) would leave a strip of that pane showing beside it. */
   ${p =>
-    p.dockedPaneWidth
+    p.minPanelWidth
       ? css`
-          min-width: ${p.dockedPaneWidth}px;
+          min-width: ${p.minPanelWidth}px;
         `
       : null}
 

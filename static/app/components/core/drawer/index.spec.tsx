@@ -12,7 +12,7 @@ import {mockMatchMedia} from 'sentry-test/utils';
 import type {DrawerConfig} from '@sentry/scraps/drawer';
 import {
   useDrawer,
-  useDrawerDockedPane,
+  useDrawerPlacement,
   DrawerBody,
   DrawerHeader,
 } from '@sentry/scraps/drawer';
@@ -34,8 +34,8 @@ function GlobalDrawerTestComponent({config}: {config: DrawerConfig}) {
   );
 }
 
-function DockedPane({width, topOffset = 0}: {width: number; topOffset?: number}) {
-  useDrawerDockedPane(width, topOffset);
+function DrawerPlacement({width, topOffset = 0}: {width: number; topOffset?: number}) {
+  useDrawerPlacement({minWidth: width, topOffset});
   return null;
 }
 
@@ -409,7 +409,7 @@ describe('GlobalDrawer', () => {
     async ({width, topOffset}) => {
       render(
         <Fragment>
-          <DockedPane width={width} topOffset={topOffset} />
+          <DrawerPlacement width={width} topOffset={topOffset} />
           <GlobalDrawerTestComponent
             config={{
               renderer: () => (
