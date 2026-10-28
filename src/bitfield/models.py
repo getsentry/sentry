@@ -85,9 +85,9 @@ class BitField(BigIntegerField):
     def __init__(self, flags, default=None, *args, **kwargs):
         if isinstance(flags, dict):
             # Get only integer keys in correct range
-            valid_keys = (
+            valid_keys = [
                 k for k in flags.keys() if isinstance(k, int) and (0 <= k < MAX_FLAG_COUNT)
-            )
+            ]
             if not valid_keys:
                 raise ValueError("Wrong keys or empty dictionary")
             # Fill list with values from dict or with empty values
