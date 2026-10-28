@@ -1263,11 +1263,16 @@ const BlockHoverSurface = styled(Stack)`
  * The table runs edge to edge in the query card, whose own border already
  * frames it, so `SimpleTable`'s border and rounding would draw a second box
  * inside the first. Only the top rule stays, dividing the header from the
- * card's header band or the content inset above it.
+ * card's header band or the content inset above it, plus a bottom rule when
+ * prose follows the table, since the card's border no longer closes it off.
  */
 const FlushSimpleTable = styled(SimpleTable)`
   border-width: 1px 0 0;
   border-radius: 0;
+
+  &:not(:last-child) {
+    border-bottom-width: 1px;
+  }
 `;
 
 /**
