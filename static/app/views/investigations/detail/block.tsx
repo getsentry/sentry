@@ -11,7 +11,11 @@ import {Button} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {type MarkdownProps, type MarkdownTableColumn} from '@sentry/scraps/markdown';
+import {
+  MarkedLexer,
+  type MarkdownProps,
+  type MarkdownTableColumn,
+} from '@sentry/scraps/markdown';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -340,6 +344,10 @@ function BlockResult({
   streamedMarkdown?: string | null;
 }) {
   const markdown = streamedMarkdown ?? getTextBlockMarkdown(block);
+  const [firstMarkdownBlock, restMarkdown] = useMemo(
+    () => splitFirstMarkdownBlock(markdown ?? ''),
+    [markdown]
+  );
   // An embed the markdown opens with takes the actions into its card's header,
   // so the card can run the block's full width. Until one claims them -- or if
   // that embed renders no card -- they sit beside the first line.
@@ -372,18 +380,28 @@ function BlockResult({
     >
       <BlockExecutionAlert block={block} />
       {markdown ? (
-        <MarkdownRows
+        // The first block shares its row with the actions and wraps short of
+        // them; the rest runs the full width, so an embed further down lines up
+        // with a query block's card.
+        <Grid
           columns={actionsInEmbed ? 'minmax(0, 1fr)' : 'minmax(0, 1fr) auto'}
           gap="lg sm"
           align="start"
         >
-          <SeerMarkdown
-            raw={markdown}
-            components={TEXT_BLOCK_MARKDOWN_COMPONENTS}
-            leadingEmbedActions={{actions: headerActions, onClaim: claimActions}}
-          />
+          <Container area="1 / 1" minWidth={0}>
+            <SeerMarkdown
+              raw={firstMarkdownBlock}
+              components={TEXT_BLOCK_MARKDOWN_COMPONENTS}
+              leadingEmbedActions={{actions: headerActions, onClaim: claimActions}}
+            />
+          </Container>
           {actionsBesideFirstLine}
-        </MarkdownRows>
+          {restMarkdown ? (
+            <Container area="2 / 1 / 3 / -1" minWidth={0}>
+              <SeerMarkdown raw={restMarkdown} components={TEXT_BLOCK_MARKDOWN_COMPONENTS} />
+            </Container>
+          ) : null}
+        </Grid>
       ) : (
         <Grid columns="minmax(0, 1fr) auto" gap="sm" align="start">
           {isBlockWorking(block) ? (
@@ -398,6 +416,23 @@ function BlockResult({
       )}
     </BlockHoverSurface>
   );
+}
+
+/**
+ * Splits markdown after its first block. Token sources concatenate back to the
+ * input, so the halves render as the whole would, except that a reference-style
+ * link no longer resolves against a definition in the other half.
+ */
+function splitFirstMarkdownBlock(markdown: string): [string, string] {
+  const tokens = MarkedLexer.lex(markdown);
+  const first = tokens.findIndex(token => token.type !== 'space');
+  if (first === -1) {
+    return [markdown, ''];
+  }
+  const length = tokens
+    .slice(0, first + 1)
+    .reduce((total, token) => total + token.raw.length, 0);
+  return [markdown.slice(0, length), markdown.slice(length)];
 }
 
 /**
@@ -1307,29 +1342,6 @@ const BlockHoverSurface = styled(Stack)`
       opacity: 1;
       pointer-events: auto;
     }
-  }
-`;
-
-/**
- * Lays `SeerMarkdown`'s top-level blocks out as rows of this grid, beside the
- * actions in the second column. The first block shares its row with them and
- * wraps short of them; every block after it runs the full width, so an embed
- * lines up with a query block's card wherever it sits, in a list included.
- */
-const MarkdownRows = styled(Grid)`
-  /* SeerMarkdown's root, which steps aside so its blocks are this grid's. */
-  > :first-child {
-    display: contents;
-  }
-
-  > :first-child > * {
-    grid-column: 1 / -1;
-    /* Spanning the actions column, a wide table or code block would widen it. */
-    min-width: 0;
-  }
-
-  > :first-child > :first-child {
-    grid-column: 1;
   }
 `;
 
