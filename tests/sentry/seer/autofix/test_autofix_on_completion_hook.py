@@ -1955,14 +1955,8 @@ class TestMaybeReactToCompletedIteration(TestCase):
         )
         return state
 
-    def _run(
-        self,
-        state: SeerRunState,
-        *,
-        feature: str = "organizations:autofix-pr-iteration-manual",
-    ) -> None:
-        with self.feature(feature):
-            react_to_completed_iteration(self.organization, 123, state)
+    def _run(self, state: SeerRunState) -> None:
+        react_to_completed_iteration(self.organization, 123, state)
 
     def _reaction_outcomes(self, mock_incr: MagicMock) -> list[str]:
         return [
@@ -2008,8 +2002,7 @@ class TestMaybeReactToCompletedIteration(TestCase):
         mock_fetch_run_status.return_value = run_state(
             blocks=[solution_memory_block()], metadata={"group_id": group.id}
         )
-        with self.feature("organizations:autofix-pr-iteration-manual"):
-            AutofixOnCompletionHook.execute(self.organization, 123)
+        AutofixOnCompletionHook.execute(self.organization, 123)
         mock_react.assert_not_called()
 
     @patch(f"{REACT_PATH}.make_scm")
@@ -2024,15 +2017,6 @@ class TestMaybeReactToCompletedIteration(TestCase):
             },
         )
         self._run(state)
-        mock_react.assert_not_called()
-
-    @patch(f"{REACT_PATH}.make_scm")
-    @patch(f"{REACT_PATH}._add_comment_reaction")
-    def test_noop_when_manual_feature_disabled(self, mock_react, mock_make_scm):
-        state = self._state_with([self._top_level_source(), self._review_source()])
-        # Automated CI iteration on, manual off: only comment-triggered iterations have
-        # a comment to ack, so the automated flag must not enable the reaction.
-        self._run(state, feature="organizations:autofix-pr-iteration")
         mock_react.assert_not_called()
 
     @patch(f"{REACT_PATH}.make_scm")
