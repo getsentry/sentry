@@ -295,12 +295,42 @@ class TestProcessingServices:
             ("from sentry.testutils.relay import RelayStoreHelper as Helper\n", True),
             ("@requires_symbolicator\ndef test_live(): pass\n", True),
             ("def test_live(relay_server): pass\n", True),
+            ("def test_live(relay_server_setup): pass\n", True),
+            ("def test_live(relay_setup_fixtures): pass\n", True),
             ("def test_live(get_relay_minidump_url): pass\n", True),
             ('import pytest\npytestmark = pytest.mark.usefixtures("relay_server")\n', True),
             ("import pytest\npytestmark = pytest.mark.symbolicator\n", True),
+            (
+                "from sentry.testutils.relay import RelayStoreHelper\n"
+                "class TestLive(RelayStoreHelper):\n    def test_x(self): pass\n",
+                True,
+            ),
+            ('def test_live(request):\n    request.getfixturevalue("relay_server")\n', True),
+            ('def test_live(request):\n    request.getfixturevalue("tmp_path")\n', False),
             ("# backend-ci: processing\ndef test_live(): pass\n", True),
+            (
+                "import pytest\n"
+                "@pytest.fixture\n"
+                "def live_client(relay_server):\n    return relay_server\n"
+                "def test_live(live_client): pass\n",
+                True,
+            ),
+            (
+                "def test_live(live_client): pass\n",
+                False,
+            ),
+            (
+                "# backend-ci: processing\ndef test_live(live_client): pass\n",
+                True,
+            ),
             ("# relay_server in a comment\ndef test_mocked(): pass\n", False),
             ('EXAMPLE = "RelayStoreHelper"\ndef test_mocked(): pass\n', False),
+            (
+                "from unittest import mock\n"
+                '@mock.patch("sentry.relay.projectconfig_cache.backend")\n'
+                "def test_mocked(_): pass\n",
+                False,
+            ),
             ("def test_ordinary(): pass\n", False),
         ],
     )
@@ -366,6 +396,22 @@ class TestServiceColoredShards:
         assert code == 0 and len(calls) == 1
         assert (tmp_path / ".artifacts/full-tests.shard-1.txt").read_text() == (
             "tests/test_new.py\n"
+        )
+
+    def test_new_processing_file_stays_whole_on_shard_zero(self, tmp_path: Path) -> None:
+        files = ["tests/test_brand_new_relay.py", "tests/test_new.py"]
+        code, calls = run_full_main(
+            tmp_path,
+            files,
+            {"seconds_per_test": 1.0, "files": {}},
+            30,
+            0,
+            service_color="processing",
+            sources={files[0]: "def test_live(relay_server): pass\n"},
+        )
+        assert code == 0 and len(calls) == 1
+        assert (tmp_path / ".artifacts/full-tests.shard-0.txt").read_text() == (
+            "tests/test_brand_new_relay.py\n"
         )
 
     @pytest.mark.parametrize(
@@ -442,7 +488,13 @@ class TestServiceColoredShards:
 class TestServiceColorFixtureGuard:
     @pytest.mark.parametrize(
         "fixture",
-        ["relay_server", "relay_server_setup", "_requires_symbolicator", "get_relay_minidump_url"],
+        [
+            "relay_server",
+            "relay_server_setup",
+            "relay_setup_fixtures",
+            "_requires_symbolicator",
+            "get_relay_minidump_url",
+        ],
     )
     def test_general_rejects_processing_fixture(self, fixture: str) -> None:
         item = mock.Mock(nodeid="tests/test_indirect.py::test_case", fixturenames=[fixture])

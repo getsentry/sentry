@@ -1,3 +1,4 @@
+import os
 from unittest import mock
 
 import pytest
@@ -48,3 +49,20 @@ def test_gives_up_at_deadline_with_last_result() -> None:
     # The last probe is capped by the time left, so the deadline isn't overshot.
     assert fake.probe_timeouts == pytest.approx([1, 1, 0.4])
     assert fake.now == pytest.approx(2.5)
+
+
+def test_relay_refuses_general_shard() -> None:
+    with mock.patch.dict(os.environ, {"BACKEND_TEST_SERVICE_COLOR": "general"}):
+        with pytest.raises(RuntimeError, match="general backend shard"):
+            relay._require_processing_shard("tests/relay_integration/test_sdk.py::test_simple")
+
+
+def test_relay_allowed_on_processing_shard() -> None:
+    with mock.patch.dict(os.environ, {"BACKEND_TEST_SERVICE_COLOR": "processing"}):
+        relay._require_processing_shard("tests/relay_integration/test_sdk.py::test_simple")
+
+
+def test_relay_allowed_when_uncolored() -> None:
+    with mock.patch.dict(os.environ):
+        os.environ.pop("BACKEND_TEST_SERVICE_COLOR", None)
+        relay._require_processing_shard("tests/relay_integration/test_sdk.py::test_simple")

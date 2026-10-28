@@ -25,6 +25,7 @@ import math
 import os
 import shlex
 import sys
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -42,6 +43,7 @@ PROCESSING_IDENTIFIERS = frozenset(
         "RelayStoreHelper",
         "relay_server",
         "relay_server_setup",
+        "relay_setup_fixtures",
         "get_relay_store_url",
         "get_relay_security_url",
         "get_relay_minidump_url",
@@ -159,7 +161,7 @@ def needs_processing_services(path: str) -> bool:
         if (
             isinstance(node, ast.Call)
             and isinstance(node.func, ast.Attribute)
-            and node.func.attr == "usefixtures"
+            and node.func.attr in ("usefixtures", "getfixturevalue")
             and any(
                 isinstance(arg, ast.Constant)
                 and isinstance(arg.value, str)
@@ -253,6 +255,7 @@ def per_file_plan_applies(args: list[str], files: list[str]) -> bool:
 
 def run_full_shard(args: list[str], total: int, group: int, service_color: str = "") -> int:
     files = list_test_files(args)
+    processing: set[str] = set()
     if service_color:
         # Never fall back to all-files collection on a runner missing Symbolicator.
         try:
@@ -286,9 +289,10 @@ def run_full_shard(args: list[str], total: int, group: int, service_color: str =
     shard = plan[group]
 
     color_label = f" ({service_color})" if service_color else ""
+    relay_detail = f", {len(processing)} relay-dependent" if service_color else ""
     print(
         f"pytest-selected: shard {group + 1}/{total}{color_label} runs {len(shard.files)} of "
-        f"{len(files)} files, {len(shard.parts)} of them split",
+        f"{len(files)} files{relay_detail}, {len(shard.parts)} of them split",
         file=sys.stderr,
     )
     if service_color and not shard.files:
@@ -311,6 +315,15 @@ def run_full_shard(args: list[str], total: int, group: int, service_color: str =
     os.environ["PYTEST_PLUGINS"] = ",".join(
         filter(None, [os.environ.get("PYTEST_PLUGINS"), "pytest_shard_plugin"])
     )
+    if service_color:
+        start = time.monotonic()
+        code = int(pytest.main(args))
+        print(
+            f"pytest-selected: shard {group} ({service_color}) pytest elapsed "
+            f"{time.monotonic() - start:.1f}s over {len(shard.files)} files",
+            file=sys.stderr,
+        )
+        return code
     return int(pytest.main(args))
 
 

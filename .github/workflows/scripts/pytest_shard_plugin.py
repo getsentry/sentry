@@ -52,6 +52,7 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
         processing_fixtures = {
             "relay_server",
             "relay_server_setup",
+            "relay_setup_fixtures",
             "_requires_symbolicator",
             "get_relay_store_url",
             "get_relay_security_url",
