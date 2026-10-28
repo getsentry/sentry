@@ -1,12 +1,14 @@
 import type React from 'react';
 import {Fragment, useCallback, useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconClose} from '@sentry/icons/close';
+import {IconSearch} from '@sentry/icons/search';
 
 import {InputGroup} from '@sentry/scraps/input';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SearchBarTrailingButton} from 'sentry/components/searchBar';
-import {IconChevron, IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {DispatchingReducerMiddleware} from 'sentry/utils/useDispatchingReducer';
@@ -299,10 +301,10 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
     }
   }
 
-  .loading-indicator {
+  .scraps-spinner-ring {
     border-width: 2px;
   }
-  .loading-message {
+  .scraps-spinner-message {
     display: none;
   }
 `;

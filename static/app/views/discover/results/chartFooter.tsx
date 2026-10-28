@@ -8,9 +8,13 @@ import {
   SectionHeading,
   SectionValue,
 } from 'sentry/components/charts/styles';
+import {DroppedDataFilterNote} from 'sentry/components/droppedData/droppedDataFilterNote';
+import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
 import {t} from 'sentry/locale';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {TOP_EVENT_MODES} from 'sentry/utils/discover/types';
+
+type DroppedDataLayerControlProps = React.ComponentProps<typeof DroppedDataLayerControl>;
 
 type Props = {
   displayMode: string;
@@ -24,9 +28,11 @@ type Props = {
   total: number | null;
   yAxisOptions: Array<SelectValue<string>>;
   yAxisValue: string[];
+  droppedDataLayer?: DroppedDataLayerControlProps;
 };
 
 export function ChartFooter({
+  droppedDataLayer,
   total,
   yAxisValue,
   yAxisOptions,
@@ -51,6 +57,15 @@ export function ChartFooter({
       <SectionValue key="total-value">{total.toLocaleString()}</SectionValue>
     )
   );
+  if (droppedDataLayer?.showDroppedData) {
+    elements.push(
+      <DroppedDataFilterNote
+        key="dropped-data-filter-note"
+        dataset={droppedDataLayer.dataset}
+        hasUserQuery={!!eventView.query.trim()}
+      />
+    );
+  }
   const topEventOptions: Array<SelectValue<string>> = [];
   for (let i = 1; i <= 10; i++) {
     topEventOptions.push({value: i.toString(), label: i.toString()});
@@ -60,6 +75,7 @@ export function ChartFooter({
     <ChartControls>
       <InlineContainer>{elements}</InlineContainer>
       <InlineContainer>
+        {droppedDataLayer ? <DroppedDataLayerControl {...droppedDataLayer} /> : null}
         <IntervalSelector
           key={
             // this key forces the IntervalSelector to re-set it’s internal state

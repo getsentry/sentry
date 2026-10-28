@@ -62,11 +62,13 @@ class ProjectEventTest(SnubaTestCase, TestCase):
 
 
 class ProjectEventCustomerDomainTest(SnubaTestCase, TestCase):
+    org_name: str | None = None
+
     def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         self.login_as(self.user)
-        self.org = self.create_organization()
+        self.org = self.create_organization(name=self.org_name)
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
         self.project = self.create_project(organization=self.org, teams=[self.team])
@@ -88,3 +90,12 @@ class ProjectEventCustomerDomainTest(SnubaTestCase, TestCase):
             resp["Location"]
             == f"http://{self.org.slug}.testserver/issues/{self.event.group_id}/events/{self.event.event_id}/"
         )
+
+
+class ProjectEventCustomerDomainNewSlugTest(ProjectEventCustomerDomainTest):
+    # Generated slugs occasionally start with "new", which must not be mistaken for the
+    # /organizations/new/ route.
+    org_name = "New Moray"
+
+    def test_slug_starts_with_new(self) -> None:
+        assert self.org.slug == "new-moray"

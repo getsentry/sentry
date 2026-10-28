@@ -1,14 +1,15 @@
 import {Fragment} from 'react';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconCheckmark} from '@sentry/icons/checkmark';
 
-import {MenuListItem} from '@sentry/scraps/menuListItem';
-import {CheckWrap} from '@sentry/scraps/select';
+import {ListItem} from '@sentry/scraps/menu';
 
-import {IconAdd, IconCheckmark} from 'sentry/icons';
 import {defined} from 'sentry/utils/defined';
 
 import type {components as selectComponents} from './reactSelectWrapper';
+import {CheckWrap} from './styles';
 
 type Props = React.ComponentProps<typeof selectComponents.Option>;
 
@@ -35,7 +36,7 @@ export function SelectOption(props: Props) {
   return (
     <ClassNames>
       {({cx}) => (
-        <MenuListItem
+        <ListItem
           {...itemProps}
           {...innerProps}
           role={isMultiple ? 'menuitemcheckbox' : 'menuitemradio'}

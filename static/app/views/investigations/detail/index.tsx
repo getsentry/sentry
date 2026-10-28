@@ -1,16 +1,20 @@
-import {useEffect, useRef, useState} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChat} from '@sentry/icons/chat';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconIssues} from '@sentry/icons/issues';
+import {IconStack} from '@sentry/icons/stack';
 import {useDebouncer} from '@tanstack/react-pacer';
-import {useQuery, useQueryClient} from '@tanstack/react-query';
+import {useIsFetching, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
-import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
-import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {Text} from '@sentry/scraps/text';
+import {Separator} from '@sentry/scraps/separator';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
@@ -22,30 +26,51 @@ import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconStack} from 'sentry/icons';
-import {IconEllipsis} from 'sentry/icons/iconEllipsis';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {shouldRefreshOnFocus} from 'sentry/views/investigations/actionRequests/actionRequestDetails';
+import {
+  AnchoredActionRequests,
+  groupActionRequestsByPlacement,
+} from 'sentry/views/investigations/actionRequests/anchoredActionRequests';
+import {
+  getPrimaryActionRequest,
+  isRunWorking,
+  NextStepCard,
+} from 'sentry/views/investigations/actionRequests/nextStepCard';
+import {InvestigationActivity} from 'sentry/views/investigations/activity/investigationActivity';
 import {
   getInvestigationDetailQueryOptions,
+  investigationCommentCountsQueryOptions,
   investigationListQueryOptions,
   investigationOrchestrationQueryOptions,
   investigationTitleGenerationQueryOptions,
+  isFollowUpPending,
   useDeleteInvestigationMutation,
   useDuplicateInvestigationMutation,
   useRenameInvestigationMutation,
 } from 'sentry/views/investigations/api';
+import {useBlockCommentsDrawer} from 'sentry/views/investigations/comments/useBlockCommentsDrawer';
+import {useInvestigationComments} from 'sentry/views/investigations/comments/useInvestigationComments';
 import {
-  InvestigationCell,
+  InvestigationNotebookBlock,
   isBlockWorking,
   shouldDisplayInvestigationBlock,
   shouldPollInvestigationBlocks,
-} from 'sentry/views/investigations/detail/cell';
-import {InvestigationCellPlaceholder} from 'sentry/views/investigations/detail/cellPlaceholder';
+} from 'sentry/views/investigations/detail/block';
+import {InvestigationBlockPlaceholder} from 'sentry/views/investigations/detail/blockPlaceholder';
+import {
+  ACTIVITY_ELEMENT_ID,
+  getInvestigationOutline,
+  HYPOTHESES_ELEMENT_ID,
+  InvestigationOutline,
+  SUMMARY_ELEMENT_ID,
+} from 'sentry/views/investigations/detail/outline';
 import {InvestigationViewers} from 'sentry/views/investigations/detail/presence';
 import {InvestigationRunTimer} from 'sentry/views/investigations/detail/runTimer';
 import {
@@ -53,10 +78,32 @@ import {
   shouldPollInvestigationRun,
 } from 'sentry/views/investigations/hypotheses/investigationHypotheses';
 import {updateInvestigationCache} from 'sentry/views/investigations/investigationCache';
+import {
+  getHypothesisLLMContext,
+  getInvestigationLLMContext,
+  getInvestigationReference,
+  useInvestigationAskSeer,
+} from 'sentry/views/investigations/investigationLLMContext';
 import {InvestigationSummaryCard} from 'sentry/views/investigations/investigationSummaryCard';
+import {getInvestigationSource} from 'sentry/views/investigations/source';
 import {getSeerStatusBlock} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
-import type {InvestigationDetail} from 'sentry/views/investigations/types';
+import type {
+  InvestigationActionRequest,
+  InvestigationBlock,
+  InvestigationDetail,
+  InvestigationHypothesis,
+  InvestigationOrchestration,
+} from 'sentry/views/investigations/types';
+import {
+  getInvestigationPath,
+  getInvestigationsPath,
+  useInvestigationsEnabled,
+} from 'sentry/views/investigations/utils';
+import {TopBar} from 'sentry/views/navigation/topBar';
 import {RouteError} from 'sentry/views/routeError';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 const DEFAULT_INVESTIGATION_TITLE = 'Untitled investigation';
 
@@ -91,17 +138,141 @@ function ClosedMembershipPage() {
   );
 }
 
+/**
+ * Action requests come with the investigation, which stops polling once the run is done
+ * and which orchestration commands don't refresh. Refetch it whenever the next step moves
+ * on, and return true until that refetch settles.
+ */
+function useRefetchStaleActionRequests(
+  investigationId: string,
+  orchestration: InvestigationOrchestration | undefined,
+  actionRequests: InvestigationActionRequest[] | undefined
+) {
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
+  const detailQueryKey = getInvestigationDetailQueryOptions(
+    organization.slug,
+    investigationId
+  ).queryKey;
+  // Re-renders when the refetch starts and settles.
+  useIsFetching({queryKey: detailQueryKey});
+  const detailState = queryClient.getQueryState(detailQueryKey);
+  const detailUpdates =
+    (detailState?.dataUpdateCount ?? 0) + (detailState?.errorUpdateCount ?? 0);
+  const nextStepKey = orchestration
+    ? `${orchestration.report.revision}:${orchestration.report.nextStep?.status}`
+    : null;
+  const [refresh, setRefresh] = useState<{
+    detailUpdates: number;
+    initial: boolean;
+    investigationId: string;
+    key: string;
+  } | null>(null);
+
+  if (
+    nextStepKey !== null &&
+    (refresh?.investigationId !== investigationId || refresh.key !== nextStepKey)
+  ) {
+    // The first next step we see usually matches the investigation we already have,
+    // unless it finished before that investigation was fetched.
+    const missingRequest =
+      orchestration?.report.nextStep?.status === 'completed' &&
+      !getPrimaryActionRequest(actionRequests ?? [], orchestration.report.revision);
+    setRefresh({
+      detailUpdates,
+      initial: refresh?.investigationId !== investigationId && !missingRequest,
+      investigationId,
+      key: nextStepKey,
+    });
+  }
+
+  useEffect(() => {
+    if (refresh && !refresh.initial) {
+      void queryClient.invalidateQueries({
+        queryKey: getInvestigationDetailQueryOptions(
+          organization.slug,
+          refresh.investigationId
+        ).queryKey,
+      });
+    }
+  }, [organization.slug, queryClient, refresh]);
+
+  if (refresh === null || refresh.initial || nextStepKey === null) {
+    return false;
+  }
+  return detailUpdates === refresh.detailUpdates;
+}
+
+const RECHECK_RUN_WAIT_MS = 60_000;
+
+type RecheckRunWait = {pending: string[]; waiting: string[]};
+
+/**
+ * Seer can acknowledge a re-check before the investigation shows its run, and then
+ * nothing would read the run again. Wait for the run only on re-checks this page saw
+ * pending, since an old acknowledged follow-up stays on the request after it's over.
+ */
+function useRecheckRunWait(actionRequests: InvestigationActionRequest[] = []) {
+  const [wait, setWait] = useState<RecheckRunWait>({pending: [], waiting: []});
+  const acknowledged = new Set(
+    actionRequests
+      .filter(
+        request =>
+          request.state !== 'withdrawn' && request.followUp?.status === 'acknowledged'
+      )
+      .map(request => request.id)
+  );
+  const next: RecheckRunWait = {
+    pending: actionRequests.filter(isFollowUpPending).map(request => request.id),
+    waiting: [...new Set([...wait.waiting, ...wait.pending])].filter(id =>
+      acknowledged.has(id)
+    ),
+  };
+  if (
+    next.pending.join() !== wait.pending.join() ||
+    next.waiting.join() !== wait.waiting.join()
+  ) {
+    setWait(next);
+  }
+  const waitingKey = next.waiting.join();
+  useEffect(() => {
+    if (!waitingKey) {
+      return;
+    }
+    const timer = setTimeout(
+      () => setWait(current => ({...current, waiting: []})),
+      RECHECK_RUN_WAIT_MS
+    );
+    return () => clearTimeout(timer);
+  }, [waitingKey]);
+  return {
+    waiting: next.waiting.length > 0,
+    stop: () => setWait(current => ({...current, waiting: []})),
+  };
+}
+
+function isRunLive(orchestration: InvestigationOrchestration | undefined) {
+  return orchestration !== undefined && shouldPollInvestigationRun(orchestration.status);
+}
+
 export function InvestigationBootstrapPage({investigationId}: {investigationId: string}) {
   const organization = useOrganization();
+  const queryClient = useQueryClient();
   const detailOptions = getInvestigationDetailQueryOptions(
     organization.slug,
     investigationId
   );
+  // Seer Agent can write blocks, start their runs, and steer the investigation
+  // from a chat on this page. Its writes go to routes under the investigation,
+  // which the refresh after a Seer write doesn't tie to these queries, and a
+  // settled investigation has stopped polling.
+  const isSeerWorking = useSeerExplorerContext().sessionState === 'thinking';
   const {
     data: investigation,
     error,
     isError,
     isPending,
+    refetch,
   } = useQuery({
     ...detailOptions,
     refetchInterval: query => {
@@ -112,13 +283,34 @@ export function InvestigationBootstrapPage({investigationId}: {investigationId: 
       // has since finished.
       const orchestrationActive =
         data?.orchestration && shouldPollInvestigationRun(data.orchestration.status);
-      return orchestrationActive ||
+      return isSeerWorking ||
+        orchestrationActive ||
+        data?.actionRequests?.some(isFollowUpPending) ||
         shouldPollInvestigationBlocks(data?.blocks ?? []) ||
         isTitleGenerationActive(data?.titleGeneration?.status)
         ? 2000
         : false;
     },
+    refetchOnWindowFocus: query =>
+      query.state.data?.json.actionRequests?.some(shouldRefreshOnFocus)
+        ? 'always'
+        : false,
   });
+
+  const wasSeerWorking = useRef(isSeerWorking);
+  useEffect(() => {
+    if (wasSeerWorking.current && !isSeerWorking) {
+      // Picks up what it wrote after the last poll, and a run it restarted.
+      void refetch();
+      void queryClient.invalidateQueries({
+        queryKey: investigationOrchestrationQueryOptions(
+          organization.slug,
+          investigationId
+        ).queryKey,
+      });
+    }
+    wasSeerWorking.current = isSeerWorking;
+  }, [investigationId, isSeerWorking, organization.slug, queryClient, refetch]);
 
   if (isPending && !investigation) {
     return <LoadingIndicator />;
@@ -137,11 +329,29 @@ export function InvestigationBootstrapPage({investigationId}: {investigationId: 
   return <InvestigationPageContent investigation={investigation} />;
 }
 
-function InvestigationPageContent({investigation}: {investigation: InvestigationDetail}) {
+function InvestigationPageContentInner({
+  investigation,
+}: {
+  investigation: InvestigationDetail;
+}) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const {copy} = useCopyToClipboard();
+  const composerRef = useRef<HTMLDivElement>(null);
+  const activityRef = useRef<HTMLElement>(null);
+  const {data: comments} = useInvestigationComments(investigation.id, {
+    shouldPoll: investigation.status !== 'archived',
+  });
+  const commentCount = comments?.json.length ?? 0;
+  const hasMoreComments =
+    parseLinkHeader(comments?.headers.Link ?? null).next?.results === true;
+  const isArchived = investigation.status === 'archived';
+  const {data: commentCounts} = useQuery({
+    ...investigationCommentCountsQueryOptions(organization.slug, investigation.id),
+    refetchInterval: 10_000,
+  });
+  const {openBlockComments} = useBlockCommentsDrawer(investigation.id);
   const [draftTitle, setDraftTitle] = useState<string | null>(null);
   const persistedTitle = useRef(investigation.title);
   const titleGenerationSettledFor = useRef<string | null>(null);
@@ -162,10 +372,26 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
       ? titleGenerationQuery.data?.preview
       : null;
   const displayedTitle = draftTitle ?? generatedTitlePreview ?? investigation.title;
-  const {data: orchestration} = useQuery({
+  const recheckRunWait = useRecheckRunWait(investigation.actionRequests);
+  const {data: orchestration, isPending: orchestrationPending} = useQuery({
     ...investigationOrchestrationQueryOptions(organization.slug, investigation.id),
     enabled: Boolean(investigation.orchestration),
+    refetchInterval: query =>
+      (investigation.orchestration &&
+        shouldPollInvestigationRun(investigation.orchestration.status)) ||
+      isRunLive(query.state.data?.json) ||
+      recheckRunWait.waiting
+        ? 2000
+        : false,
   });
+  if (recheckRunWait.waiting && isRunLive(orchestration)) {
+    recheckRunWait.stop();
+  }
+  const actionRequestsStale = useRefetchStaleActionRequests(
+    investigation.id,
+    orchestration,
+    investigation.actionRequests
+  );
   const runStatus =
     investigation.orchestration && orchestration
       ? getSeerStatusBlock(orchestration)
@@ -239,7 +465,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
         exact: true,
       });
       addSuccessMessage(t('Investigation deleted.'));
-      navigate(`/organizations/${organization.slug}/explore/investigations/`);
+      navigate(getInvestigationsPath(organization.slug));
     },
     onError: () => addErrorMessage(t('Unable to delete investigation.')),
   });
@@ -284,39 +510,100 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
     );
   }
 
-  const blocks = investigation.blocks ?? [];
-  const summaryBlock = investigation.template ? blocks[0] : undefined;
-  const notebookCells = summaryBlock ? blocks.slice(1) : blocks;
-  const visibleSummaryBlock =
-    summaryBlock && shouldDisplayInvestigationBlock(summaryBlock)
-      ? summaryBlock
-      : undefined;
-  const visibleNotebookCells = notebookCells.filter(block =>
+  const visibleBlocks = (investigation.blocks ?? []).filter(block =>
     shouldDisplayInvestigationBlock(block)
   );
+  const awaitingReportBlock = isAwaitingReportBlock(investigation);
+  const runProcessing = isRunWorking(orchestration) || recheckRunWait.waiting;
+  const hypothesisStatements = new Map(
+    orchestration?.hypotheses.map(({id, statement}) => [id, statement])
+  );
+  const placedActionRequests = groupActionRequestsByPlacement(
+    investigation.actionRequests ?? [],
+    anchor => {
+      if (anchor?.type === 'hypothesis' && investigation.orchestration) {
+        if (orchestration) {
+          return hypothesisStatements.has(anchor.id) ? 'hypotheses' : 'unplaced';
+        }
+        return orchestrationPending ? null : 'unplaced';
+      }
+      if (
+        anchor?.type === 'block' &&
+        visibleBlocks.some(({id}) => id === anchor.blockId)
+      ) {
+        return `block:${anchor.blockId}`;
+      }
+      return 'unplaced';
+    }
+  );
   const source = getInvestigationSource(investigation);
+  const hasDetails =
+    Boolean(investigation.orchestration) ||
+    visibleBlocks.length > 0 ||
+    awaitingReportBlock;
+  const hasSummary = Boolean(investigation.summary && investigation.summaryDescription);
+  // The "Investigation details" heading only appears below a summary.
+  const showDetailsHeading = hasDetails && hasSummary;
+  const showActivity = isInvestigationRunDone(investigation);
+  // Push the investigation into the LLM context tree for Seer Explorer. Its
+  // hypotheses and blocks register their own nodes beneath it.
+  const {getLLMContext} = useLLMContext(
+    getInvestigationLLMContext(investigation, orchestration),
+    // Page context waits for the run, so its state and hypotheses come along.
+    {isLoading: Boolean(investigation.orchestration) && orchestrationPending}
+  );
+  const askSeer = useInvestigationAskSeer();
+  const askSeerAboutInvestigation = askSeer
+    ? () =>
+        askSeer({
+          prompt: t('What would you like to know about this investigation?'),
+          // This node with everything beneath it, so the hypotheses and blocks on
+          // screen come along.
+          context: getLLMContext(true).nodes[0],
+        })
+    : undefined;
+  const askSeerAboutHypothesis = askSeer
+    ? (hypothesis: InvestigationHypothesis) =>
+        askSeer({
+          prompt: t('What would you like to know about this hypothesis?'),
+          context: {
+            investigation: getInvestigationReference(investigation),
+            hypothesis: getHypothesisLLMContext(
+              hypothesis,
+              hypothesis.id === orchestration?.report.primaryHypothesisId
+            ),
+          },
+        })
+    : undefined;
+  const outline = getInvestigationOutline({
+    blocks: visibleBlocks,
+    hasActivity: showActivity,
+    hasHypotheses: Boolean(
+      investigation.orchestration && orchestration?.hypotheses.length
+    ),
+    hasSummary,
+  });
 
   return (
     <SentryDocumentTitle title={displayedTitle} orgSlug={organization.slug}>
       <Stack flex={1}>
-        <Layout.Title>
-          <HeaderBreadcrumbs
-            align="center"
-            gap="sm"
-            minWidth={0}
-            data-test-id="investigation-breadcrumbs"
-            data-text-size="md"
-          >
-            <IconStack size="md" />
-            <HeaderBreadcrumbLink
-              to={`/organizations/${organization.slug}/explore/investigations/`}
-            >
-              {t('Investigations')}
-            </HeaderBreadcrumbLink>
-            <HeaderDivider>/</HeaderDivider>
-            <HeaderInvestigationTitle>{displayedTitle}</HeaderInvestigationTitle>
-            <DropdownMenu
-              items={[
+        <TopBar.Slot
+          name="breadcrumbs"
+          title={{
+            type: 'page-title',
+            label: displayedTitle,
+            trailingActions: {
+              type: 'menu',
+              items: [
+                ...(askSeerAboutInvestigation
+                  ? [
+                      {
+                        key: 'ask-seer',
+                        label: t('Ask Seer'),
+                        onAction: askSeerAboutInvestigation,
+                      },
+                    ]
+                  : []),
                 {
                   key: 'copy-link',
                   label: t('Copy link'),
@@ -346,22 +633,21 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                       onConfirm: () => deleteMutation.mutate(investigation),
                     }),
                 },
-              ]}
-              trigger={triggerProps => (
-                <OverlayTrigger.IconButton
-                  {...triggerProps}
-                  size="sm"
-                  variant="transparent"
-                  icon={<IconEllipsis />}
-                  aria-label={t('Investigation actions')}
-                />
-              )}
-              position="bottom-end"
-              usePortal
-            />
-          </HeaderBreadcrumbs>
-        </Layout.Title>
-        <Container as="header" width="100%" padding="xl xl 3xl">
+              ],
+              triggerLabel: t('Investigation actions'),
+              triggerIcon: <IconEllipsis />,
+            },
+          }}
+          items={[
+            {
+              type: 'link',
+              label: t('Investigations'),
+              to: getInvestigationsPath(organization.slug),
+              leadingGraphic: <IconStack size="md" />,
+            },
+          ]}
+        />
+        <Container as="header" width="100%" padding="xl xl 2xl">
           <Stack gap="xs" width="100%" maxWidth="960px" margin="0 auto">
             <Grid
               columns={runStatus ? 'minmax(0, 1fr) auto' : 'minmax(0, 1fr)'}
@@ -387,15 +673,18 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                 </Flex>
               ) : null}
             </Grid>
-            <Flex align="center" justify="between" gap="md" wrap="wrap">
-              <Flex align="center" gap="sm" wrap="wrap">
+            <Flex align="center" justify="between" gap="md">
+              <Flex flex="1" minWidth={0} align="center" gap="sm" wrap="wrap">
                 {source.groupId ? (
                   <Link
                     to={normalizeUrl(
                       `/organizations/${organization.slug}/issues/${source.groupId}/`
                     )}
                   >
-                    {source.monitorName ?? t('View issue')}
+                    <Flex as="span" align="center" gap="xs">
+                      <IconIssues size="xs" />
+                      {source.monitorName ?? t('View issue')}
+                    </Flex>
                   </Link>
                 ) : (
                   <Text variant="muted">
@@ -408,74 +697,192 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                     date: <DateTime date={investigation.dateUpdated} year />,
                   })}
                 </Text>
+                {!showActivity ||
+                (investigation.status === 'archived' && commentCount === 0) ? null : (
+                  <Fragment>
+                    <MetaDivider />
+                    <Button
+                      size="sm"
+                      variant="link"
+                      icon={<IconChat size="xs" />}
+                      onClick={() => {
+                        if (investigation.status === 'archived') {
+                          activityRef.current?.scrollIntoView?.({behavior: 'smooth'});
+                          return;
+                        }
+                        composerRef.current?.scrollIntoView?.({
+                          block: 'center',
+                          behavior: 'smooth',
+                        });
+                        composerRef.current?.focus({preventScroll: true});
+                      }}
+                    >
+                      {hasMoreComments
+                        ? t('%s+ comments', commentCount)
+                        : commentCount > 0
+                          ? tn('%s comment', '%s comments', commentCount)
+                          : t('Comment')}
+                    </Button>
+                  </Fragment>
+                )}
                 <InvestigationViewers
                   investigationId={investigation.id}
                   separator={<MetaDivider />}
                 />
               </Flex>
-              <FeedbackButton
-                feedbackOptions={{
-                  formTitle: t('Give feedback on this investigation'),
-                  messagePlaceholder: t('What was useful, incorrect, or missing?'),
-                  tags: {
-                    'feedback.source': 'investigation',
-                    'feedback.owner': 'ml-ai',
-                    'investigation.id': investigation.id,
-                    'investigation.source_type': investigation.sourceType,
-                    ...(investigation.template
-                      ? {'investigation.template': investigation.template.key}
-                      : {}),
-                  },
-                }}
-              >
-                {t('Give feedback')}
-              </FeedbackButton>
+              <Container flexShrink={0}>
+                <FeedbackButton
+                  feedbackOptions={{
+                    formTitle: t('Give feedback on this investigation'),
+                    messagePlaceholder: t('What was useful, incorrect, or missing?'),
+                    tags: {
+                      'feedback.source': 'investigation',
+                      'feedback.owner': 'ml-ai',
+                      'investigation.id': investigation.id,
+                      'investigation.source_type': investigation.sourceType,
+                      ...(investigation.template
+                        ? {'investigation.template': investigation.template.key}
+                        : {}),
+                    },
+                  }}
+                >
+                  {t('Give feedback')}
+                </FeedbackButton>
+              </Container>
             </Flex>
           </Stack>
         </Container>
-        <Layout.Body padding={{'screen:sm': '0 lg lg', 'screen:md': '0 xl lg'}}>
+        <Layout.Body padding={{xl: '0 lg lg', '3xl': '0 xl lg'}}>
           <Layout.Main width="full">
-            <Stack width="100%" maxWidth="960px" minWidth={0} margin="0 auto" gap="3xl">
-              {/*
-               * Only an agentic investigation has hypotheses, and `orchestration`
-               * being present is the only thing that says one is: it is null for
-               * manual and template investigations, whose orchestration endpoint
-               * 404s.
-               */}
-              {investigation.orchestration ? (
-                <InvestigationHypotheses
+            {/*
+             * The report keeps to the middle column, as wide as the header above
+             * it, which leaves the left one free for the outline.
+             */}
+            <Grid columns="minmax(0, 1fr) min(960px, 100%) minmax(0, 1fr)">
+              {outline.length > 0 ? (
+                <Container
+                  column="1"
+                  display={{zero: 'none', '4xl': 'block'}}
+                  justifySelf="end"
+                  paddingRight="2xl"
+                >
+                  <InvestigationOutline entries={outline} />
+                </Container>
+              ) : null}
+              <Stack column="2" minWidth={0} gap="3xl">
+                <InvestigationSummaryCard
+                  id={SUMMARY_ELEMENT_ID}
+                  summary={investigation.summary}
+                  summaryDescription={investigation.summaryDescription}
+                />
+                <NextStepCard
+                  actionRequests={investigation.actionRequests}
+                  actionRequestsStale={actionRequestsStale}
                   investigationId={investigation.id}
-                  phase={investigation.orchestration.phase}
-                  status={investigation.orchestration.status}
+                  source={investigation.source}
+                  orchestration={orchestration}
+                  orchestrationLoading={
+                    Boolean(investigation.orchestration) && orchestrationPending
+                  }
+                  waitingOnRun={recheckRunWait.waiting}
                 />
-              ) : null}
-
-              <InvestigationSummaryCard
-                summary={investigation.summary}
-                summaryDescription={investigation.summaryDescription}
-              />
-
-              {visibleSummaryBlock ? (
-                <InvestigationCell
-                  block={visibleSummaryBlock}
-                  canRun={investigation.status === 'active'}
-                  investigation={investigation}
+                <AnchoredActionRequests
+                  actionRequests={placedActionRequests.get('unplaced')}
+                  investigationId={investigation.id}
+                  runProcessing={runProcessing}
+                  source={investigation.source}
                 />
-              ) : null}
 
-              {visibleNotebookCells.map(block => (
-                <InvestigationCell
-                  key={block.id}
-                  block={block}
-                  canRun={investigation.status === 'active'}
-                  investigation={investigation}
-                />
-              ))}
-              {isAwaitingReportCell(investigation) ? (
-                <InvestigationCellPlaceholder />
-              ) : null}
-              <Container height="128px" flexShrink={0} aria-hidden />
-            </Stack>
+                {showDetailsHeading ? <Separator orientation="horizontal" /> : null}
+
+                {hasDetails ? (
+                  <Stack gap="lg">
+                    {showDetailsHeading ? (
+                      <Heading as="h2" size="lg">
+                        {t('Investigation details')}
+                      </Heading>
+                    ) : null}
+                    <DetailsBody gap="3xl">
+                      {/*
+                       * Only an agentic investigation has hypotheses, and `orchestration`
+                       * being present is the only thing that says one is: it is null for
+                       * manual and template investigations, whose orchestration endpoint
+                       * 404s.
+                       */}
+                      {investigation.orchestration ? (
+                        <InvestigationHypotheses
+                          id={HYPOTHESES_ELEMENT_ID}
+                          investigationId={investigation.id}
+                          phase={investigation.orchestration.phase}
+                          status={investigation.orchestration.status}
+                          onAskSeer={askSeerAboutHypothesis}
+                        />
+                      ) : null}
+                      <AnchoredActionRequests
+                        actionRequests={placedActionRequests.get('hypotheses')}
+                        investigationId={investigation.id}
+                        runProcessing={runProcessing}
+                        source={investigation.source}
+                        getLabel={anchor => {
+                          const statement = anchor
+                            ? hypothesisStatements.get(anchor.id)
+                            : undefined;
+                          return statement
+                            ? tct('About the possible cause: [statement]', {statement})
+                            : null;
+                        }}
+                      />
+                      {visibleBlocks.length > 0 || awaitingReportBlock ? (
+                        <Stack>
+                          {visibleBlocks.map((block, index) => (
+                            <Container
+                              key={block.id}
+                              paddingTop={getBlockSpacing(block, index)}
+                            >
+                              <InvestigationNotebookBlock
+                                block={block}
+                                canRun={investigation.status === 'active'}
+                                investigation={investigation}
+                                commentCount={commentCounts?.[block.id]}
+                                onComment={
+                                  isArchived && commentCounts && !commentCounts[block.id]
+                                    ? undefined
+                                    : openBlockComments
+                                }
+                              />
+                              <AnchoredActionRequests
+                                actionRequests={placedActionRequests.get(
+                                  `block:${block.id}`
+                                )}
+                                investigationId={investigation.id}
+                                runProcessing={runProcessing}
+                                source={investigation.source}
+                              />
+                            </Container>
+                          ))}
+                          {awaitingReportBlock ? (
+                            <Container
+                              paddingTop={visibleBlocks.length > 0 ? '3xl' : '0'}
+                            >
+                              <InvestigationBlockPlaceholder />
+                            </Container>
+                          ) : null}
+                        </Stack>
+                      ) : null}
+                    </DetailsBody>
+                  </Stack>
+                ) : null}
+                {showActivity ? (
+                  <InvestigationActivity
+                    id={ACTIVITY_ELEMENT_ID}
+                    investigation={investigation}
+                    composerRef={composerRef}
+                    ref={activityRef}
+                  />
+                ) : null}
+                <Container height="128px" flexShrink={0} aria-hidden />
+              </Stack>
+            </Grid>
           </Layout.Main>
         </Layout.Body>
       </Stack>
@@ -483,52 +890,48 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   );
 }
 
+const InvestigationPageContent = registerLLMContext(
+  'investigation',
+  InvestigationPageContentInner
+);
+
+/**
+ * Text blocks start a new section with a large gap. Query blocks sit close to the
+ * text block above them.
+ */
+function getBlockSpacing(block: InvestigationBlock, index: number) {
+  if (index === 0) {
+    return '0';
+  }
+  return block.kind === 'query' ? 'lg' : '3xl';
+}
+
 // Seer reaches the reporting phase once it is done with the hypotheses, but the
-// report arrives as cells on a later poll. Until then the notebook stands in a
-// placeholder cell, unless a cell is already running — that one shows its own.
-function isAwaitingReportCell(investigation: InvestigationDetail) {
+// report arrives as blocks on a later poll. Until then the notebook stands in a
+// placeholder block, unless a block is already running — that one shows its own.
+function isAwaitingReportBlock(investigation: InvestigationDetail) {
   const {orchestration} = investigation;
   if (orchestration?.status !== 'processing' || orchestration.phase !== 'reporting') {
     return false;
   }
-  // Only a cell Seer is working on rules this out, because that cell is already
-  // showing a placeholder of its own. A cell that finished, failed or was
+  // Only a block Seer is working on rules this out, because that block is already
+  // showing a placeholder of its own. A block that finished, failed or was
   // cancelled is done, and more are still coming.
   return !(investigation.blocks ?? []).some(isBlockWorking);
 }
 
+// The activity feed waits for an agentic run to stop, so it doesn't compete with
+// the run for attention while Seer is still working. Manual and template
+// investigations have no run, so their feed always shows.
+function isInvestigationRunDone(investigation: InvestigationDetail) {
+  const {orchestration} = investigation;
+  return !orchestration || RUN_DONE_STATUSES.has(orchestration.status);
+}
+
+const RUN_DONE_STATUSES = new Set<string>(['completed', 'failed', 'cancelled']);
+
 function isTitleGenerationActive(status: string | null | undefined) {
   return status === 'pending' || status === 'running';
-}
-
-function getInvestigationPath(organizationSlug: string, investigationId: string) {
-  return normalizeUrl(
-    `/organizations/${organizationSlug}/explore/investigations/${investigationId}/`
-  );
-}
-
-function getRecord(value: unknown, key: string): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') {
-    return null;
-  }
-  const field: unknown = (value as Record<string, unknown>)[key];
-  return field && typeof field === 'object' ? (field as Record<string, unknown>) : null;
-}
-
-function getString(value: Record<string, unknown> | null, key: string): string | null {
-  const field = value?.[key];
-  return typeof field === 'string' && field ? field : null;
-}
-
-// A breached metric investigation references the metric issue it was started
-// from, and snapshots that issue's monitor. Older investigations may predate the
-// snapshot, but still carry the issue reference.
-function getInvestigationSource(investigation: InvestigationDetail) {
-  const {source} = investigation;
-  return {
-    groupId: getString(getRecord(source, 'ref'), 'groupId'),
-    monitorName: getString(getRecord(getRecord(source, 'snapshot'), 'monitor'), 'name'),
-  };
 }
 
 function formatSourceType(sourceType: string) {
@@ -540,40 +943,6 @@ function formatSourceType(sourceType: string) {
   }
   return sourceType.replaceAll('_', ' ');
 }
-
-const HeaderBreadcrumbs = styled(Flex)`
-  height: 32px;
-  overflow: hidden;
-  font-size: ${p => p.theme.font.size.md};
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  line-height: 32px;
-  white-space: nowrap;
-`;
-
-const HeaderBreadcrumbLink = styled(Link)`
-  overflow: hidden;
-  color: ${p => p.theme.tokens.content.secondary};
-  text-decoration-line: underline;
-  text-decoration-style: dotted;
-  text-decoration-color: ${p => p.theme.tokens.border.primary};
-  text-underline-offset: 5px;
-  text-overflow: ellipsis;
-`;
-
-const HeaderDivider = styled('span')`
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const HeaderInvestigationTitle = styled('span')`
-  overflow: hidden;
-  color: ${p => p.theme.tokens.content.primary};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  text-decoration-line: underline;
-  text-decoration-style: dotted;
-  text-decoration-color: ${p => p.theme.tokens.border.primary};
-  text-underline-offset: 5px;
-  text-overflow: ellipsis;
-`;
 
 const NotebookTitleInput = styled(Input)`
   width: 100%;
@@ -587,7 +956,9 @@ const NotebookTitleInput = styled(Input)`
   border-color: transparent;
   border-radius: ${p => p.theme.radius.sm};
   box-shadow: none;
-  font-size: ${p => p.theme.font.size['2xl']};
+  /* The base input's form min-height would pad the title out below its text. */
+  min-height: 0;
+  font-size: ${p => p.theme.font.size.xl};
   font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1.25;
 
@@ -598,6 +969,16 @@ const NotebookTitleInput = styled(Input)`
   }
 `;
 
+/**
+ * Hidden when empty (e.g. no hypotheses and no blocks), so it doesn't add a gap
+ * below the heading.
+ */
+const DetailsBody = styled(Stack)`
+  &:empty {
+    display: none;
+  }
+`;
+
 const MetaDivider = styled('span')`
   height: 16px;
   border-left: 1px solid ${p => p.theme.tokens.border.primary};
@@ -605,6 +986,7 @@ const MetaDivider = styled('span')`
 
 export default function InvestigationDetailView() {
   const organization = useOrganization();
+  const investigationsEnabled = useInvestigationsEnabled();
   const {investigationId} = useParams<{investigationId: string}>();
 
   return (
@@ -614,7 +996,7 @@ export default function InvestigationDetailView() {
         features="organizations:investigations"
         renderDisabled={() => <FeatureDisabledPage />}
       >
-        {organization.openMembership ? (
+        {investigationsEnabled ? (
           <InvestigationBootstrapPage investigationId={investigationId} />
         ) : (
           <ClosedMembershipPage />

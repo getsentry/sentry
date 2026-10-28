@@ -71,12 +71,13 @@ class CrossEventResponseType(CrossEventResponseTypeOptional):
 class ExploreSavedQueryResponseOptional(TypedDict, total=False):
     environment: list[str]
     query: list[QueryResponseType]
-    range: str
+    statsPeriod: str
     start: str
     end: str
     interval: str
     crossEvents: list[CrossEventResponseType]
     agent: list[str]
+    errorsOnly: bool
 
 
 class ExploreSavedQueryChangedReasonType(TypedDict):
@@ -155,12 +156,13 @@ class ExploreSavedQueryModelSerializer(Serializer[ExploreSavedQueryResponse]):
         query_keys = [
             "environment",
             "query",
-            "range",
+            "statsPeriod",
             "start",
             "end",
             "interval",
             "crossEvents",
             "agent",
+            "errorsOnly",
         ]
         data: ExploreSavedQueryResponse = {
             "id": str(obj.id),
@@ -181,6 +183,10 @@ class ExploreSavedQueryModelSerializer(Serializer[ExploreSavedQueryResponse]):
         for key in query_keys:
             if obj.query.get(key) is not None:
                 data[key] = obj.query[key]  # type: ignore[literal-required]
+
+        # Older rows stored the relative period as `range`.
+        if data.get("statsPeriod") is None and obj.query.get("range") is not None:
+            data["statsPeriod"] = obj.query["range"]
 
         # expire queries that are beyond the retention period
         if "start" in obj.query:

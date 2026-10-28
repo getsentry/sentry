@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
+import {AnsiText} from 'sentry/components/ansiText';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {Timeline} from 'sentry/components/timeline';
@@ -13,6 +14,7 @@ import {
   type BreadcrumbTypeNavigation,
   type RawCrumb,
 } from 'sentry/types/breadcrumbs';
+import {hasAnsi} from 'sentry/utils/ansiEscapeCodes';
 import {defined} from 'sentry/utils/defined';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
@@ -44,7 +46,15 @@ export function BreadcrumbItemContent({
 
   const defaultMessage = defined(bc.message) ? (
     <BreadcrumbText>
-      <StructuredData value={bc.message} meta={meta?.message} {...structuredDataProps} />
+      {!meta?.message && hasAnsi(bc.message) ? (
+        <AnsiText>{bc.message}</AnsiText>
+      ) : (
+        <StructuredData
+          value={bc.message}
+          meta={meta?.message}
+          {...structuredDataProps}
+        />
+      )}
     </BreadcrumbText>
   ) : null;
 
@@ -56,6 +66,7 @@ export function BreadcrumbItemContent({
         value={cleanedBreadcrumbData}
         meta={meta?.data}
         {...structuredDataProps}
+        forceDefaultExpand={!shouldCollapseData(bc, cleanedBreadcrumbData)}
       />
     </Timeline.Data>
   ) : null;
@@ -137,7 +148,12 @@ function HTTPCrumbContent({
       </BreadcrumbText>
       {Object.keys(otherData).length > 0 ? (
         <Timeline.Data>
-          <StructuredData value={otherData} meta={meta?.data} {...structuredDataProps} />
+          <StructuredData
+            value={otherData}
+            meta={meta?.data}
+            {...structuredDataProps}
+            forceDefaultExpand={!shouldCollapseData(breadcrumb, otherData)}
+          />
         </Timeline.Data>
       ) : null}
     </Fragment>
@@ -206,7 +222,8 @@ function ExceptionCrumbContent({
     <Fragment>
       <BreadcrumbText>
         {type ? type : null}
-        {type && hasValue ? `: ${formattedValue}` : hasValue ? formattedValue : null}
+        {type && hasValue ? ': ' : null}
+        {hasValue ? <AnsiText>{formattedValue}</AnsiText> : null}
       </BreadcrumbText>
       {children}
       {Object.keys(otherData).length > 0 ? (
@@ -236,6 +253,36 @@ function cleanBreadcrumbData<B extends Record<string, any> | undefined | null>(
   }
 
   return cleanedBreadcrumbData;
+}
+
+/**
+ * Collapse data that only has fields the JS SDKs add on their own.
+ */
+function shouldCollapseData(breadcrumb: RawCrumb, data: Record<string, any>): boolean {
+  const onlyHas = (...keys: string[]) =>
+    Object.keys(data).every(key => keys.includes(key));
+
+  // The message is the arguments joined, except objects become "[object Object]"
+  if (breadcrumb.category === 'console') {
+    const args = data.arguments ?? [];
+    return (
+      onlyHas('logger', 'arguments') &&
+      Array.isArray(args) &&
+      args.every(arg => typeof arg !== 'object' || arg === null)
+    );
+  }
+
+  // The component name is already in the message
+  if (breadcrumb.category?.startsWith('ui.')) {
+    return onlyHas('ui.component_name');
+  }
+
+  // Replay adds body sizes to fetch and xhr
+  if (breadcrumb.type === BreadcrumbType.HTTP) {
+    return onlyHas('request_body_size', 'response_body_size');
+  }
+
+  return false;
 }
 
 const Link = styled('a')`

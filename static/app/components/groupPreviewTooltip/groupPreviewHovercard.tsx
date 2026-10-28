@@ -1,9 +1,10 @@
 import type {ComponentProps} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {useResponsivePropValue} from '@sentry/scraps/layout';
+
 import {Hovercard} from 'sentry/components/hovercard';
-import {useMedia} from 'sentry/utils/useMedia';
 
 interface GroupPreviewHovercardProps extends ComponentProps<typeof Hovercard> {
   hide?: boolean;
@@ -16,12 +17,11 @@ export function GroupPreviewHovercard({
   body,
   ...props
 }: GroupPreviewHovercardProps) {
-  const theme = useTheme();
   const handleStackTracePreviewClick = (e: React.MouseEvent) => e.stopPropagation();
 
   // No need to preview on hover for small devices
-  const shouldNotPreview = useMedia(`(max-width: ${theme.breakpoints.lg})`);
-  const shouldShowPositionTop = useMedia(`(max-width: ${theme.breakpoints.xl})`);
+  const shouldNotPreview = useResponsivePropValue({zero: true, '4xl': false});
+  const shouldShowPositionTop = useResponsivePropValue({zero: true, '5xl': false});
 
   return (
     <StyledHovercardWithBodyClass
@@ -73,9 +73,9 @@ const StyledHovercard = styled(Hovercard)<{hide?: boolean}>`
       display: none;
     `}
 
-  .loading {
+  .scraps-spinner {
     margin: 0 auto;
-    .loading-indicator {
+    .scraps-spinner-ring {
       /**
       * Overriding the .less file - for default 64px loader we have the width of border set to 6px
       * For 32px we therefore need 3px to keep the same thickness ratio

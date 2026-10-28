@@ -10,10 +10,9 @@ import {
   type LinkButtonProps,
 } from '@sentry/scraps/button';
 import {Checkbox, type CheckboxProps} from '@sentry/scraps/checkbox';
+import {ControlContext} from '@sentry/scraps/menu';
 import {Text} from '@sentry/scraps/text';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
-
-import {ControlContext} from './control';
 
 export const MenuComponents = {
   /**

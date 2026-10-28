@@ -10,9 +10,43 @@ from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
 from datetime import datetime
 from enum import IntEnum, StrEnum
-from typing import Any, ClassVar, Final, Literal, Protocol, runtime_checkable
+from typing import Any, ClassVar, Final, Literal, Protocol, override, runtime_checkable
 
-_MISSING = object()
+
+class _Missing:
+    pass
+
+
+_MISSING = _Missing()
+
+
+class DerivedDataError(ValueError):
+    """A codec or aggregator failed; the original exception is chained as its cause."""
+
+    # Preserve compatibility with readers catching ValueError during rollout.
+
+    def __init__(
+        self,
+        stage: Literal["decode", "aggregate", "encode"],
+        *,
+        feature_name: str | None = None,
+        aggregator_name: str | None = None,
+        entry_id: int | None = None,
+    ) -> None:
+        self.stage = stage
+        self.feature_name = feature_name
+        self.aggregator_name = aggregator_name
+        self.entry_id = entry_id
+        context = ", ".join(
+            f"{key}={value}"
+            for key, value in (
+                ("feature", feature_name),
+                ("aggregator", aggregator_name),
+                ("entry_id", entry_id),
+            )
+            if value is not None
+        )
+        super().__init__(f"Derived data {stage} failed" + (f" ({context})" if context else ""))
 
 
 # ---------------------------------------------------------------------------
@@ -33,43 +67,88 @@ class Codec[T]:
     on ``from_column`` so that column-loaded values are real enum instances).
     """
 
-    def to_json(self, value: T) -> Any:
+    def _validate(self, value: Any) -> T:
         return value
+
+    def to_json(self, value: T) -> Any:
+        return self._validate(value)
 
     def from_json(self, raw: Any) -> T:
-        return raw
+        return self._validate(raw)
 
     def to_column(self, value: T) -> Any:
-        return value
+        return self._validate(value)
 
     def from_column(self, raw: Any) -> T:
-        return raw
+        return self._validate(raw)
 
 
 IDENTITY_CODEC: Codec[Any] = Codec()
+
+
+class BoolCodec(Codec[bool]):
+    @override
+    def _validate(self, value: Any) -> bool:
+        if not isinstance(value, bool):
+            raise TypeError("Expected a boolean")
+        return value
+
+
+class IntCodec(Codec[int]):
+    @override
+    def _validate(self, value: Any) -> int:
+        if type(value) is not int:
+            raise TypeError("Expected an integer")
+        return value
+
+
+class IntListCodec(Codec[list[int]]):
+    @override
+    def _validate(self, value: Any) -> list[int]:
+        if not isinstance(value, list) or any(type(item) is not int for item in value):
+            raise TypeError("Expected a list of integers")
+        return value
 
 
 class EnumCodec[E: StrEnum](Codec[E]):
     def __init__(self, enum_cls: type[E]) -> None:
         self._enum_cls = enum_cls
 
-    def to_json(self, value: E) -> str:
-        return value.value
+    @override
+    def _validate(self, value: Any) -> E:
+        if not isinstance(value, self._enum_cls):
+            raise TypeError(f"Expected {self._enum_cls.__name__}")
+        return value
 
+    @override
+    def to_json(self, value: E) -> str:
+        return self._validate(value).value
+
+    @override
     def from_json(self, raw: Any) -> E:
         return self._enum_cls(raw)
 
+    @override
     def to_column(self, value: E) -> str:
-        return value.value
+        return self._validate(value).value
 
+    @override
     def from_column(self, raw: Any) -> E:
         return self._enum_cls(raw)
 
 
 class DateTimeCodec(Codec[datetime]):
-    def to_json(self, value: datetime) -> str:
-        return value.isoformat()
+    @override
+    def _validate(self, value: Any) -> datetime:
+        if not isinstance(value, datetime):
+            raise TypeError("Expected a datetime")
+        return value
 
+    @override
+    def to_json(self, value: datetime) -> str:
+        return self._validate(value).isoformat()
+
+    @override
     def from_json(self, raw: Any) -> datetime:
         return datetime.fromisoformat(raw)
 
@@ -78,15 +157,19 @@ class OptionalCodec[T](Codec[T | None]):
     def __init__(self, inner: Codec[T]) -> None:
         self._inner = inner
 
+    @override
     def to_json(self, value: T | None) -> Any:
         return self._inner.to_json(value) if value is not None else None
 
+    @override
     def from_json(self, raw: Any) -> T | None:
         return self._inner.from_json(raw) if raw is not None else None
 
+    @override
     def to_column(self, value: T | None) -> Any:
         return self._inner.to_column(value) if value is not None else None
 
+    @override
     def from_column(self, raw: Any) -> T | None:
         return self._inner.from_column(raw) if raw is not None else None
 
@@ -105,6 +188,9 @@ class Feature[T]:
     JSON-blob features use ``to_json`` / ``from_json``; column-backed
     features use ``to_column`` / ``from_column``.
 
+    A typed codec lets the type checker infer ``T`` without an explicit
+    ``Feature[T]`` argument. Defaults and factories must produce that type.
+
     Increment ``version`` whenever the feature's aggregation logic changes
     meaningfully so that stale derived data can be detected.
     """
@@ -113,12 +199,12 @@ class Feature[T]:
         self,
         name: str,
         *,
-        default: Any = _MISSING,
-        default_factory: Callable[[], Any] | None = None,
+        default: T | _Missing = _MISSING,
+        default_factory: Callable[[], T] | None = None,
         codec: Codec[T] | None = None,
         version: int = 0,
     ) -> None:
-        if default is _MISSING and default_factory is None:
+        if isinstance(default, _Missing) and default_factory is None:
             raise ValueError("Must provide default or default_factory")
         self.name: Final[str] = name
         self._version: Final[int] = version
@@ -135,19 +221,28 @@ class Feature[T]:
     def initial_value(self) -> T:
         if self._default_factory is not None:
             return self._default_factory()
+        assert not isinstance(self._default, _Missing)
         return self._default
 
+    def _convert[U](
+        self, convert: Callable[[Any], U], value: Any, stage: Literal["decode", "encode"]
+    ) -> U:
+        try:
+            return convert(value)
+        except Exception as error:
+            raise DerivedDataError(stage, feature_name=self.name) from error
+
     def to_json(self, value: T) -> Any:
-        return self._codec.to_json(value)
+        return self._convert(self._codec.to_json, value, "encode")
 
     def from_json(self, raw: Any) -> T:
-        return self._codec.from_json(raw)
+        return self._convert(self._codec.from_json, raw, "decode")
 
     def to_column(self, value: T) -> Any:
-        return self._codec.to_column(value)
+        return self._convert(self._codec.to_column, value, "encode")
 
     def from_column(self, raw: Any) -> T:
-        return self._codec.from_column(raw)
+        return self._convert(self._codec.from_column, raw, "decode")
 
     def value(self, val: T) -> FeatureEntry:
         return (self, val)
@@ -406,21 +501,26 @@ class Pipeline[E: HasType]:
                     continue
             subset = state.view(view_fields)
             snapshot = copy.deepcopy(subset._data) if self._check_mutations else None
-            result = agg.fn(subset, entry)
-            if snapshot is not None:
-                for f, original in snapshot.items():
-                    if f in view_fields and subset._data[f] != original:
-                        raise RuntimeError(
-                            f"Aggregator {agg.name!r} mutated feature {f.name!r} in place"
+            try:
+                result = agg.fn(subset, entry)
+                if snapshot is not None:
+                    for f, original in snapshot.items():
+                        if f in view_fields and subset._data[f] != original:
+                            raise RuntimeError(
+                                f"Aggregator {agg.name!r} mutated feature {f.name!r} in place"
+                            )
+                if result is not None:
+                    undeclared = result._undeclared(output_fields)
+                    if undeclared:
+                        names = {f.name for f in undeclared}
+                        raise ValueError(
+                            f"Aggregator {agg.name!r} produced undeclared outputs: {names}"
                         )
-            if result is not None:
-                undeclared = result._undeclared(output_fields)
-                if undeclared:
-                    names = {f.name for f in undeclared}
-                    raise ValueError(
-                        f"Aggregator {agg.name!r} produced undeclared outputs: {names}"
-                    )
-                state.merge(result)
+                    state.merge(result)
+            except Exception as error:
+                raise DerivedDataError(
+                    "aggregate", aggregator_name=agg.name, entry_id=getattr(entry, "id", None)
+                ) from error
         return state
 
     def run(self, entries: Iterable[E], state: State | None = None) -> State:

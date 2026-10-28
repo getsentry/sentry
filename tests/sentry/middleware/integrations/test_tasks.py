@@ -121,6 +121,33 @@ class AsyncSlackResponseTest(TestCase):
 
     @responses.activate
     @override_cells(cell_config)
+    def test_forwards_ephemeral_error(self) -> None:
+        error_payload = {
+            "response_type": "ephemeral",
+            "replace_original": False,
+            "text": "You do not have permission to perform this action.",
+        }
+        responses.add(
+            responses.POST,
+            "https://us.testserver/extensions/slack/action/",
+            status=200,
+            json=error_payload,
+        )
+        slack_response = responses.add(
+            responses.POST,
+            self.response_url,
+            status=200,
+            match=[matchers.json_params_matcher(error_payload)],
+        )
+
+        convert_to_async_slack_response(
+            cell_names=["us"], payload=self.payload, response_url=self.response_url
+        )
+
+        assert slack_response.call_count == 1
+
+    @responses.activate
+    @override_cells(cell_config)
     @patch("sentry.middleware.integrations.tasks.logger.info")
     def test_empty_request_bdoy(self, mock_logger_info: MagicMock) -> None:
         responses.add(

@@ -5,6 +5,10 @@ import type {
   BuildDetailsVcsInfo,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
 import {BuildDetailsState} from 'sentry/views/preprod/types/buildDetailsTypes';
+import type {
+  SnapshotApprover,
+  SnapshotDetailsApiResponse,
+} from 'sentry/views/preprod/types/snapshotTypes';
 
 export function PreprodAppInfoFixture(
   params: Partial<BuildDetailsAppInfo> = {}
@@ -83,5 +87,50 @@ export function PreprodBuildDetailsWithSizeInfoFixture(
   return {
     ...PreprodBuildDetailsFixture(params),
     size_info: sizeInfo,
+  };
+}
+
+export function SnapshotApproverFixture(
+  params: Partial<SnapshotApprover> = {}
+): SnapshotApprover {
+  return {
+    source: 'sentry',
+    id: '1',
+    name: 'Alice Chen',
+    email: 'alice@example.com',
+    username: 'alice',
+    avatar_url: null,
+    approved_at: null,
+    ...params,
+  };
+}
+
+export function SnapshotDetailsFixture(
+  params: Partial<SnapshotDetailsApiResponse> = {}
+): SnapshotDetailsApiResponse {
+  return {
+    head_artifact_id: '123',
+    base_artifact_id: null,
+    project_id: '456',
+    app_id: 'sentry-frontend',
+    state: 'processed',
+    comparison_type: 'diff',
+    comparison_state: 'success',
+    approval_status: 'requires_approval',
+    approvers: [],
+    comparison_error_message: null,
+    diff_threshold: null,
+    image_count: 0,
+    images: [],
+    vcs_info: PreprodVcsInfoFullFixture(),
+    added: [],
+    added_count: 0,
+    changed: [],
+    changed_count: 0,
+    removed: [],
+    removed_count: 0,
+    unchanged: [],
+    unchanged_count: 0,
+    ...params,
   };
 }

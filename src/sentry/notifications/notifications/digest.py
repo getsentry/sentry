@@ -145,18 +145,13 @@ class DigestNotification(ProjectNotification):
             self.project.organization,
             self.project,
         )
-        context = DigestNotification.build_context(
+        return DigestNotification.build_context(
             self.digest,
             self.project,
             self.project.organization,
             rule_details,
             notification_uuid=self.notification_uuid,
         )
-
-        context["snooze_alert"] = False
-        context["snooze_alert_urls"] = {}
-
-        return context
 
     @staticmethod
     def build_context(
@@ -265,7 +260,7 @@ class DigestNotification(ProjectNotification):
 
     def get_log_params(self, recipient: Actor) -> Mapping[str, Any]:
         try:
-            alert_id = list(self.digest.digest)[0].id
+            alert_id = list(self.digest.digest)[0].link_id
         except Exception:
             alert_id = None
 

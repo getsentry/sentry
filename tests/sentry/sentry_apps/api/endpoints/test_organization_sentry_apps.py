@@ -92,6 +92,13 @@ class GetOrganizationSentryAppsTest(OrganizationSentryAppsTest):
 
         assert response.status_code == 403
 
+    def test_invalid_status(self) -> None:
+        self.login_as(self.user)
+        response = self.client.get(self.url, {"status": "invalid"})
+
+        assert response.status_code == 400
+        assert response.data == {"detail": "Invalid status"}
+
     def test_filter_for_internal(self) -> None:
         self.login_as(user=self.user)
         self.create_project(organization=self.org)

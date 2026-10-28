@@ -1,10 +1,9 @@
 import 'echarts/theme/v5.js';
 
-import {useEffect, useId, useMemo, useRef} from 'react';
+import {useEffect, useId, useImperativeHandle, useMemo, useRef} from 'react';
 import type {Theme} from '@emotion/react';
 import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {mergeRefs} from '@react-aria/utils';
 import type {
   AxisPointerComponentOption,
   ECharts,
@@ -736,10 +735,7 @@ export function BaseChart({
 
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const echartsInstanceRef = useRef<ReactEchartsCore | null>(null);
-  const mergedEchartsInstanceRef = useMemo(
-    () => mergeRefs(ref, echartsInstanceRef),
-    [ref]
-  );
+  useImperativeHandle(ref, () => echartsInstanceRef.current!, []);
 
   // Adds a resize observer to handle echarts instance resizing when container size changes.
   // We use our own resize handler because echarts native autoResize has edge cases caused
@@ -821,7 +817,7 @@ export function BaseChart({
     >
       {isTooltipPortalled && <Global styles={getPortalledTooltipStyles({theme})} />}
       <ReactEchartsCore
-        ref={mergedEchartsInstanceRef}
+        ref={echartsInstanceRef}
         autoResize={false}
         echarts={echarts}
         notMerge={notMerge}
@@ -928,7 +924,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     &.arrow-top {
       bottom: 100%;
       top: auto;
-      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+      /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
       border-bottom: 8px solid ${p.theme.tokens.background.primary};
       border-top: none;
       &:before {
@@ -945,7 +941,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     pointer-events: none;
     border-left: 8px solid transparent;
     border-right: 8px solid transparent;
-    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
     border-top: 8px solid ${p.theme.tokens.background.primary};
     margin-left: -8px;
     &:before {

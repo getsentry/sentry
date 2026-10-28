@@ -33,9 +33,11 @@ from sentry.integrations.utils.scope import clear_organization_info
 from sentry.integrations.utils.status_sync import PROVIDER_EVENT_TIME_KEY
 from sentry.integrations.utils.sync import sync_group_assignee_inbound_by_external_actor
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
-from sentry.issues.action_log import ActionSource, action_context_scope, resolve_action_actor
+from sentry.issues.action_log import ActionSource, action_context_scope
+from sentry.issues.action_log.request import resolve_action_actor
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import COMMIT_AUTHOR_EMAIL_LENGTH, CommitAuthor
+from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
@@ -44,7 +46,6 @@ from sentry.pr_metrics.lifecycle_mapping import (
     map_gitlab_state_to_pullrequest_lifecycle,
     update_pull_request_from_scm_snapshot,
 )
-from sentry.seer.code_review.webhooks.logging import debug_log
 from sentry.seer.code_review.webhooks.merge_request import (
     handle_merge_request_event,
     handle_merge_request_note_event,
@@ -473,11 +474,9 @@ class MergeEventWebhook(GitlabWebhook):
 
         repo = self.get_repo(integration, organization, event)
         if repo is None:
-            debug_log(
-                logger,
-                organization,
+            logger.info(
                 "gitlab.merge_request.repo_not_found",
-                {
+                extra={
                     "integration_id": integration.id,
                     "project_id": (event.get("project") or {}).get("id"),
                 },
@@ -485,11 +484,9 @@ class MergeEventWebhook(GitlabWebhook):
             return
 
         object_attributes = event.get("object_attributes") or {}
-        debug_log(
-            logger,
-            organization,
+        logger.info(
             "gitlab.merge_request.received",
-            {
+            extra={
                 "organization_slug": organization.slug,
                 "integration_id": integration.id,
                 "repo_id": repo.id,
@@ -536,11 +533,9 @@ class MergeEventWebhook(GitlabWebhook):
             return
 
         if not author_email:
-            debug_log(
-                logger,
-                organization,
+            logger.info(
                 "gitlab.merge_request.missing_author_email",
-                {
+                extra={
                     "integration_id": integration.id,
                     "repo_id": repo.id,
                     "pr_number": number,
@@ -627,11 +622,9 @@ class NoteEventWebhook(GitlabWebhook):
 
         repo = self.get_repo(integration, organization, event)
         if repo is None:
-            debug_log(
-                logger,
-                organization,
+            logger.info(
                 "gitlab.note.repo_not_found",
-                {
+                extra={
                     "integration_id": integration.id,
                     "project_id": (event.get("project") or {}).get("id"),
                 },
@@ -640,11 +633,9 @@ class NoteEventWebhook(GitlabWebhook):
 
         object_attributes = event.get("object_attributes") or {}
         merge_request = event.get("merge_request") or {}
-        debug_log(
-            logger,
-            organization,
+        logger.info(
             "gitlab.note.received",
-            {
+            extra={
                 "organization_slug": organization.slug,
                 "integration_id": integration.id,
                 "repo_id": repo.id,
@@ -710,13 +701,13 @@ class PushEventWebhook(GitlabWebhook):
                     email=author_email,
                     defaults={"name": commit["author"]["name"]},
                 )[0]
+                # Only look up users once per unique author, not once per commit.
+                author.preload_users()
             else:
                 author = authors[author_email]
             try:
-                if author is not None:
-                    author.preload_users()
                 with transaction.atomic(router.db_for_write(Commit)):
-                    Commit.objects.create(
+                    commit_row = Commit.objects.create(
                         repository_id=repo.id,
                         organization_id=organization.id,
                         key=commit["id"],
@@ -724,6 +715,26 @@ class PushEventWebhook(GitlabWebhook):
                         author=author,
                         date_added=parse_date(commit["timestamp"]).astimezone(timezone.utc),
                     )
+                    file_changes_by_filename: dict[str, CommitFileChange] = {}
+                    for filenames, change_type in (
+                        (commit.get("added", []), "A"),
+                        (commit.get("removed", []), "D"),
+                        (commit.get("modified", []), "M"),
+                    ):
+                        for filename in filenames:
+                            file_changes_by_filename.setdefault(
+                                filename,
+                                CommitFileChange(
+                                    organization_id=organization.id,
+                                    commit_id=commit_row.id,
+                                    filename=filename,
+                                    type=change_type,
+                                ),
+                            )
+                    file_changes = list(file_changes_by_filename.values())
+                    if file_changes:
+                        CommitFileChange.objects.bulk_create(file_changes)
+                        post_bulk_create(file_changes)
             except IntegrityError:
                 pass
 

@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {Grid} from '@sentry/scraps/layout';
 import {TabList, TabPanels, TabStateProvider} from '@sentry/scraps/tabs';
 
 import {ReplayMutationTree} from 'sentry/components/replays/diff/replayMutationTree';
@@ -24,7 +25,7 @@ export function ReplayDiffChooser() {
   };
 
   return (
-    <Grid>
+    <Grid gap="md" height="100%" rows="max-content 1fr">
       <TabStateProvider<DiffType> defaultValue={DiffType.SLIDER} onChange={onTabChange}>
         <TabList>
           <TabList.Item key={DiffType.SLIDER}>{t('Slider Diff')}</TabList.Item>
@@ -51,13 +52,6 @@ export function ReplayDiffChooser() {
     </Grid>
   );
 }
-
-const Grid = styled('div')`
-  display: grid;
-  grid-template-rows: max-content 1fr;
-  height: 100%;
-  gap: ${p => p.theme.space.md};
-`;
 
 const StyledTabPanels = styled(TabPanels)`
   display: flex;

@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import {Stack} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
+import {DocumentationHint} from 'sentry/components/documentationHint';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {AiQueryProvider} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -14,7 +14,6 @@ import {DataCategory} from 'sentry/types/core';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {defined} from 'sentry/utils/defined';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
-import {SHORT_VIEWPORT_HEIGHT} from 'sentry/utils/useIsShortViewport';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExploreSavedQueryBreadcrumbs} from 'sentry/views/explore/components/exploreSavedQueryBreadcrumbs';
@@ -58,8 +57,8 @@ export default function LogsContent() {
         }
       >
         <AnalyticsArea name="explore.logs">
-          <AiQueryProvider>
-            <LogsPageStack flex={1} data-footer-constrained data-hide-footer>
+          <AiQueryProvider strategy="Logs">
+            <LogsPageStack flex={1} data-hide-footer>
               <LogsQueryParamsProvider
                 analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
                 source="location"
@@ -86,12 +85,6 @@ export default function LogsContent() {
 }
 
 const LogsPageStack = styled(Stack)`
-  @media (max-height: ${SHORT_VIEWPORT_HEIGHT}px) {
-    &[data-footer-constrained] ~ footer {
-      display: none;
-    }
-  }
-
   &[data-hide-footer] ~ footer {
     display: none;
   }
@@ -133,16 +126,20 @@ function LogsHeader() {
           title={title}
         />
       ) : (
-        <TopBar.Slot name="title">
-          {title || t('Logs')}
-          <PageHeadingQuestionTooltip
-            docsUrl="https://docs.sentry.io/product/explore/logs/"
-            title={t(
-              'Detailed structured logs, linked to errors and traces, for debugging and investigation.'
-            )}
-            linkLabel={t('Read the Docs')}
-          />
-        </TopBar.Slot>
+        <TopBar.Slot
+          name="breadcrumbs"
+          title={{
+            type: 'page-title',
+            label: title || t('Logs'),
+            labelTooltip: (
+              <DocumentationHint docsUrl="https://docs.sentry.io/product/explore/logs/">
+                {t(
+                  'Detailed structured logs, linked to errors and traces, for debugging and investigation.'
+                )}
+              </DocumentationHint>
+            ),
+          }}
+        />
       )}
       <TopBar.Slot name="feedback">
         <FeedbackButton

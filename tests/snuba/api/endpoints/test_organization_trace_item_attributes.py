@@ -24,6 +24,7 @@ from sentry.explore.models import (
     TraceItemAttributeTypes,
     TraceItemTypes,
 )
+from sentry.models.release import ReleaseStatus
 from sentry.search.eap import constants
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SupportedTraceItemType
@@ -1503,6 +1504,10 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert "__sentry_internal_test" in attribute_names
 
     def test_internal_convention_attributes_are_hidden(self) -> None:
+        user = self.create_user()
+        self.create_member(user=user, organization=self.organization, teams=[self.team])
+        self.login_as(user=user)
+
         self.store_segment(
             self.project.id,
             uuid4().hex,
@@ -1517,6 +1522,9 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             tags={
                 "dsc.trace_id": "internal",
                 "normal_attr": "visible",
+                "__sentry_internal_test": "internal",
+                "sentry._internal.received_at": "internal",
+                "sentry._meta.fields.foo": "private",
             },
             measurements={
                 "dsc.sample_rate": 1,
@@ -1538,15 +1546,27 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert ("tags[normal_measurement,number]", "normal_measurement") in number_attributes
         assert ("tags[dsc.sample_rate,number]", "dsc.sample_rate") not in number_attributes
 
-        staff_user = self.create_user(is_staff=True)
-        self.create_member(user=staff_user, organization=self.organization)
-        self.login_as(user=staff_user, staff=True)
+        for flags in ({"is_staff": True}, {"is_superuser": True}):
+            privileged_user = self.create_user(**flags)
+            self.create_member(
+                user=privileged_user, organization=self.organization, teams=[self.team]
+            )
+            self.login_as(user=privileged_user)
 
-        response = self.do_request(query={"attributeType": "number"})
-        assert response.status_code == 200, response.content
+            response = self.do_request(query={"attributeType": "string"})
+            assert response.status_code == 200, response.content
 
-        number_attributes = {(attr["key"], attr["name"]) for attr in response.data}
-        assert ("tags[dsc.sample_rate,number]", "dsc.sample_rate") in number_attributes
+            string_attribute_names = {attr["name"] for attr in response.data}
+            assert "dsc.trace_id" in string_attribute_names
+            assert "__sentry_internal_test" not in string_attribute_names
+            assert "sentry._internal.received_at" not in string_attribute_names
+            assert "sentry._meta.fields.foo" not in string_attribute_names
+
+            response = self.do_request(query={"attributeType": "number"})
+            assert response.status_code == 200, response.content
+
+            number_attributes = {(attr["key"], attr["name"]) for attr in response.data}
+            assert ("tags[dsc.sample_rate,number]", "dsc.sample_rate") in number_attributes
 
     def test_boolean_attributes(self) -> None:
         span1 = self.create_span(start_ts=before_now(days=0, minutes=10))
@@ -2896,6 +2916,10 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
     def test_autocomplete_release_semver_attributes(self) -> None:
         release_1 = self.create_release(version="foo@1.2.3+121")
         release_2 = self.create_release(version="qux@2.2.4+122")
+        # Archived releases must not appear in any release autocomplete dropdown (REL-27).
+        # Distinct package/version/build so each of the three release paths would surface it if unfiltered.
+        archived_release = self.create_release(version="baz@9.9.9+999")
+        archived_release.update(status=ReleaseStatus.ARCHIVED)
         self.store_spans(
             [
                 self.create_span(

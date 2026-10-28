@@ -1,6 +1,8 @@
+import re
 from unittest.mock import MagicMock, patch
 
 import orjson
+import responses
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
 from django.db.models import F
@@ -14,6 +16,10 @@ from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 
 pytestmark = [requires_snuba]
+
+# Test addresses have no Gravatar, so the real lookup returns 404 and the email
+# falls back to a letter avatar.
+GRAVATAR_AVATAR_URL = re.compile(r"https://gravatar\.com/avatar/")
 
 
 @patch(
@@ -106,11 +112,13 @@ class AssignedNotificationAPITest(APITestCase):
         assert self.group.title in blocks[1]["text"]["text"]
         assert self.project.slug in blocks[-1]["elements"][0]["text"]
 
+    @responses.activate
     def test_sends_assignment_notification_with_suspect_commits(self, mock_post):
         """
         Test that suspect commits are included in assignment notification emails
         when GroupOwner records exist.
         """
+        responses.add(responses.GET, GRAVATAR_AVATAR_URL, status=404)
         user = self.create_user()
         self.setup_user(user, self.team)
         self.login_as(user)
@@ -236,11 +244,13 @@ class AssignedNotificationAPITest(APITestCase):
         # assignment notification should still work normally
         assert f"assigned {self.group.qualified_short_id} to themselves" in msg.body
 
+    @responses.activate
     def test_enhanced_privacy_default_shows_suspect_commits_in_emails(self, mock_post):
         """
         Test that suspect commits are shown by default in assignment notification emails
         when enhanced privacy is not set.
         """
+        responses.add(responses.GET, GRAVATAR_AVATAR_URL, status=404)
         user = self.create_user()
         self.setup_user(user, self.team)
         self.login_as(user)
@@ -288,10 +298,12 @@ class AssignedNotificationAPITest(APITestCase):
         # assignment notification should still work normally
         assert f"assigned {self.group.qualified_short_id} to themselves" in msg.body
 
+    @responses.activate
     def test_sends_assignment_notification_with_multiple_suspect_commits(self, mock_post):
         """
         Test that when multiple suspect commits exist, the most recent one is displayed in notifications.
         """
+        responses.add(responses.GET, GRAVATAR_AVATAR_URL, status=404)
         user1 = self.create_user(name="Alice", email="alice@example.com")
         user2 = self.create_user(name="Bob", email="bob@example.com")
         self.setup_user(user1, self.team)

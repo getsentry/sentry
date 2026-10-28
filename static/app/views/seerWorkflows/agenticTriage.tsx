@@ -1,18 +1,21 @@
 import {Fragment} from 'react';
+import {IconMerge} from '@sentry/icons/merge';
+import {IconOpen} from '@sentry/icons/open';
+import {IconPullRequest} from '@sentry/icons/pullRequest';
+import {IconPullRequestClosed} from '@sentry/icons/pullRequestClosed';
 
 import {Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Prose, Text} from '@sentry/scraps/text';
+import type {TagVariant} from '@sentry/scraps/theme';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {getPullRequestStatusLabel} from 'sentry/components/group/externalIssuesList/pullRequestStatusBadge';
-import {IconMerge, IconOpen, IconPullRequest, IconPullRequestClosed} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {PullRequestStatus} from 'sentry/types/integrations';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import type {TagVariant} from 'sentry/utils/theme';
 import {getRelativeExplorerUrl} from 'sentry/views/seerExplorer/utils';
 import type {
   SeerAgenticTriageRun,

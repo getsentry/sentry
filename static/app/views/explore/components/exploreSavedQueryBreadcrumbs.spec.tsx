@@ -85,7 +85,9 @@ describe('ExploreSavedQueryBreadcrumbs', () => {
       async ({surface, parent, to}) => {
         renderBreadcrumbs(surface);
 
-        const trail = await screen.findByRole('list');
+        await screen.findByRole('button', {name: 'More saved query options'});
+
+        const trail = screen.getByRole('list');
         expect(within(trail).getByRole('link', {name: parent})).toHaveAttribute(
           'href',
           expect.stringContaining(to)
@@ -93,7 +95,7 @@ describe('ExploreSavedQueryBreadcrumbs', () => {
 
         // The query name is the page heading, and must not be repeated in the trail.
         expect(
-          await screen.findByRole('heading', {name: /p95 checkout latency/, level: 1})
+          screen.getByRole('heading', {name: 'p95 checkout latency', level: 1})
         ).toBeInTheDocument();
         expect(within(trail).queryByText('p95 checkout latency')).not.toBeInTheDocument();
         // A parent crumb is a link, never a second heading.
@@ -101,7 +103,7 @@ describe('ExploreSavedQueryBreadcrumbs', () => {
       }
     );
 
-    it('keeps Compare Queries in the trail so compare mode is not lost', async () => {
+    it('links saved compare queries back to Traces', async () => {
       renderBreadcrumbs('compare');
 
       const trail = await screen.findByRole('list');
@@ -109,7 +111,7 @@ describe('ExploreSavedQueryBreadcrumbs', () => {
         within(trail)
           .getAllByRole('link')
           .map(link => link.textContent)
-      ).toEqual(['Traces', 'Compare Queries']);
+      ).toEqual(['Traces']);
     });
 
     it('shows the project badge for the saved query projects', async () => {
@@ -220,7 +222,7 @@ describe('ExploreSavedQueryBreadcrumbs', () => {
   describe('delete', () => {
     const destinations: Array<{surface: ExploreSurface; to: string}> = [
       {surface: 'traces', to: '/organizations/org-slug/explore/traces/'},
-      {surface: 'compare', to: '/organizations/org-slug/explore/traces/compare/'},
+      {surface: 'compare', to: '/organizations/org-slug/explore/traces/'},
       {surface: 'logs', to: '/organizations/org-slug/explore/logs/'},
       {surface: 'metrics', to: '/organizations/org-slug/explore/metrics/'},
       {surface: 'replays', to: '/organizations/org-slug/explore/replays/'},

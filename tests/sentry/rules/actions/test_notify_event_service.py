@@ -9,14 +9,15 @@ from django.utils import timezone
 from sentry.eventstream.types import EventStreamEventType
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.endpoints.serializers.incident import IncidentSerializerResponse
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
     MetricIssueContext,
     NotificationContext,
 )
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.options.project_option import ProjectOption
-from sentry.models.rule import Rule
 from sentry.rules.actions.notify_event_service import (
     NotifyEventServiceAction,
     send_incident_alert_notification,
@@ -28,10 +29,7 @@ from sentry.testutils.cases import RuleTestCase, TestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
-from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
-from sentry.workflow_engine.models import DataConditionGroupAction, WorkflowDataConditionGroup
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
-from sentry.workflow_engine.typings.notification_action import ActionTarget
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 pytestmark = [requires_snuba]
@@ -48,19 +46,6 @@ class NotifyEventServiceWebhookActionTest(RuleTestCase, BaseWorkflowTest):
         ProjectOption.objects.set_value(
             project=self.event.project, key="webhooks:enabled", value=True
         )
-
-        self.rule_webhook_data = {
-            "conditions": [
-                {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
-            ],
-            "actions": [
-                {
-                    "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
-                    "service": "webhooks",
-                    "uuid": uuid4().hex,
-                }
-            ],
-        }
 
     @responses.activate
     def test_applies_correctly_for_legacy_webhooks_aci(self) -> None:
@@ -117,43 +102,6 @@ class NotifyEventServiceWebhookActionTest(RuleTestCase, BaseWorkflowTest):
         assert payload["event"]["event_id"] == self.event.event_id
         assert payload["triggering_rules"] == ["error_workflow"]
 
-    @responses.activate
-    def test_legacy_webhooks_uneven_dual_write_aci(self) -> None:
-        """
-        Test that if a dual written Rule has it's Action updated to email instead that we do not fire a response to the webhook
-        """
-        responses.add(method=responses.POST, url="http://my-fake-webhook.io", json={}, status=408)
-        rule = Rule.objects.create(
-            label="bad stuff happening",
-            project=self.event.project,
-            data=self.rule_webhook_data,
-        )
-        # dual write the rule to replicate current reality
-        workflow = IssueAlertMigrator(rule, self.user.id).run()
-        wdcg = WorkflowDataConditionGroup.objects.get(workflow=workflow)
-        dcga = DataConditionGroupAction.objects.get(condition_group=wdcg.condition_group)
-        action = dcga.action
-
-        action_config = {
-            "target_type": ActionTarget.USER.value,
-            "target_display": None,
-            "target_identifier": str(self.user.id),
-        }
-        action.update(config=action_config, type="email", data={})
-
-        with self.tasks():
-            post_process_group(
-                is_new=True,
-                is_regression=False,
-                is_new_group_environment=False,
-                group_id=self.event.group_id,
-                event_id=self.event.event_id,
-                project_id=self.event.project.id,
-                eventstream_type=EventStreamEventType.Error.value,
-            )
-
-        assert len(responses.calls) == 0
-
 
 class NotifyEventServiceSentryAppActionTest(RuleTestCase, BaseWorkflowTest):
     rule_cls = NotifyEventServiceAction
@@ -201,10 +149,18 @@ class TestSendIncidentAlertNotification(TestCase):
         self.project = self.create_project(organization=self.organization)
         self.sentry_app = self.create_sentry_app(organization=self.organization)
         self.alert_rule = self.create_alert_rule()
-        self.incident = self.create_incident(alert_rule=self.alert_rule)
+        group = self.create_group(project=self.project, type=MetricIssue.type_id)
+        open_period = GroupOpenPeriod.objects.get(group=group)
         self.alert_context = AlertContext.from_alert_rule_incident(self.alert_rule)
-        self.metric_issue_context = MetricIssueContext.from_legacy_models(
-            self.incident, IncidentStatus.CRITICAL, metric_value=100.0
+        self.metric_issue_context = MetricIssueContext(
+            id=group.id,
+            open_period_identifier=open_period.id,
+            snuba_query=self.alert_rule.snuba_query,
+            subscription=None,
+            new_status=IncidentStatus.CRITICAL,
+            metric_value=100.0,
+            group=group,
+            title=group.title,
         )
         self.incident_serialized_response = cast(IncidentSerializerResponse, {})
         self.notification_context = NotificationContext(

@@ -337,6 +337,53 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         )
 
     @override_settings(SEER_API_SHARED_SECRET=AGENT_TOKEN_SECRET)
+    def test_project_scoped_workflow_agent_token_advertises_alerts_write(self) -> None:
+        detector = self.create_detector(project=self.project)
+        self.create_detector_workflow(workflow=self.workflow, detector=detector)
+        workflow_data = {**self.valid_workflow, "name": "Approved update"}
+        token, _ = agent_token.encode_agent_token(
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            scopes=["org:read"],
+            session_id="workflow-update",
+        )
+        client = APIClient()
+
+        with self.feature(agent_token.FEATURE_FLAG):
+            response = client.put(
+                f"/api/0/organizations/{self.organization.slug}/workflows/{self.workflow.id}/",
+                data=workflow_data,
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {token}",
+            )
+
+        assert response.status_code == 403, response.content
+        assert (
+            response["WWW-Authenticate"]
+            == 'Bearer error="insufficient_scope", scope="alerts:write"'
+        )
+        self.workflow.refresh_from_db()
+        assert self.workflow.name != "Approved update"
+
+        retry_token, _ = agent_token.encode_agent_token(
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            scopes=["alerts:write"],
+            session_id="workflow-update",
+        )
+        with self.feature(agent_token.FEATURE_FLAG):
+            retry_response = client.put(
+                f"/api/0/organizations/{self.organization.slug}/workflows/{self.workflow.id}/",
+                data=workflow_data,
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {retry_token}",
+            )
+
+        assert retry_response.status_code == 200, retry_response.content
+        self.workflow.refresh_from_db()
+        assert self.workflow.name == "Approved update"
+
+    @override_settings(SEER_API_SHARED_SECRET=AGENT_TOKEN_SECRET)
     def test_all_projects_workflow_agent_token_does_not_advertise_ungrantable_scope(self) -> None:
         detector = ensure_default_all_projects_detector(self.organization.id)
         self.create_detector_workflow(workflow=self.workflow, detector=detector)

@@ -1,6 +1,9 @@
+from django.db import connections, router
+
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.uptime.endpoints.serializers import UptimeDetectorSerializer
+from sentry.workflow_engine.models import Detector
 from tests.sentry.uptime.endpoints import UptimeAlertBaseEndpointTest
 
 
@@ -22,6 +25,30 @@ class OrganizationUptimeAlertIndexEndpointTest(OrganizationUptimeAlertIndexBaseE
         alert_2 = self.create_uptime_detector(name="test2")
         resp = self.get_success_response(self.organization.slug)
         self.check_valid_response(resp, [alert_1, alert_2])
+
+    def test_paginates_in_id_order(self) -> None:
+        detectors = [self.create_uptime_detector(name=f"test{i}") for i in range(5)]
+        # Rewrite the rows newest first, so their physical order, which an unordered query
+        # follows, no longer matches id order.
+        with connections[router.db_for_write(Detector)].cursor() as cursor:
+            for detector in reversed(detectors):
+                cursor.execute(
+                    "WITH moved AS (DELETE FROM workflow_engine_detector WHERE id = %s RETURNING *) "
+                    "INSERT INTO workflow_engine_detector SELECT * FROM moved",
+                    [detector.id],
+                )
+
+        response = self.get_success_response(self.organization.slug, per_page=2)
+        self.check_valid_response(response, detectors[0:2])
+        response = self.get_success_response(
+            self.organization.slug, per_page=2, cursor=self.get_cursor_headers(response)[1]
+        )
+        self.check_valid_response(response, detectors[2:4])
+        response = self.get_success_response(
+            self.organization.slug, per_page=2, cursor=self.get_cursor_headers(response)[1]
+        )
+        self.check_valid_response(response, detectors[4:5])
+        assert 'rel="next"; results="false"' in response["Link"]
 
     def test_search_by_url(self) -> None:
         self.create_uptime_detector()

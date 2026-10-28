@@ -12,7 +12,7 @@ import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
 import {
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
-} from 'sentry/views/detectors/components/forms/metric/metricFormData';
+} from 'sentry/views/detectors/components/forms/metric/metricFormFields';
 import {METRIC_TEMPLATE_OPTIONS} from 'sentry/views/detectors/components/forms/metric/metricTemplateOptions';
 import {sanitizeDetectorQuery} from 'sentry/views/detectors/components/forms/metric/sanitizeDetectorQuery';
 import {useDatasetChoices} from 'sentry/views/detectors/components/forms/metric/useDatasetChoices';

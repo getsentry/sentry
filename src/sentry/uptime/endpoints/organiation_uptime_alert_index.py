@@ -141,4 +141,5 @@ class OrganizationUptimeAlertIndexEndpoint(OrganizationEndpoint):
             queryset=queryset,
             on_results=lambda x: serialize(x, request.user, UptimeDetectorSerializer()),
             paginator_cls=OffsetPaginator,
+            order_by="id",
         )

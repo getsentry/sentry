@@ -1,14 +1,14 @@
 import {Fragment} from 'react';
 
 import type {PageFilters} from 'sentry/types/core';
-import type {Series} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
+import type {IngestionMeta} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {widgetFetchesOwnData} from 'sentry/views/dashboards/utils';
 import {shouldForceQueryToSpans} from 'sentry/views/dashboards/utils/shouldForceQueryToSpans';
+import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {SpansWidgetQueries} from 'sentry/views/dashboards/widgetCard/spansWidgetQueries';
 import {TraceMetricsWidgetQueries} from 'sentry/views/dashboards/widgetCard/traceMetricsWidgetQueries';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
@@ -25,16 +25,14 @@ type Results = {
   dataScanned?: 'full' | 'partial';
   errorMessage?: string;
   heatmapResults?: HeatMapSeries;
+  ingestion?: IngestionMeta;
   isProgressivelyLoading?: boolean;
   isSampled?: boolean | null;
   pageLinks?: string;
   sampleCount?: number;
   tableResults?: TableDataWithTitle[];
   timeseriesInterval?: string;
-  timeseriesResults?: Series[];
-  timeseriesResultsTypes?: Record<string, AggregationOutputType>;
-  timeseriesResultsUnits?: Record<string, DataUnit>;
-  totalIssuesCount?: string;
+  timeseriesResults?: WidgetTimeSeries[];
 };
 
 type Props = {
@@ -49,9 +47,6 @@ type Props = {
       | 'pageLinks'
       | 'tableResults'
       | 'timeseriesResults'
-      | 'timeseriesResultsTypes'
-      | 'timeseriesResultsUnits'
-      | 'totalIssuesCount'
       | 'confidence'
       | 'dataScanned'
       | 'isSampled'
@@ -91,18 +86,11 @@ export function WidgetCardDataLoader({
         onDataFetchStart={onDataFetchStart}
         widgetInterval={widgetInterval}
       >
-        {({
-          tableResults,
-          timeseriesResults,
-          timeseriesResultsTypes,
-          errorMessage,
-          loading,
-        }) => (
+        {({tableResults, timeseriesResults, errorMessage, loading}) => (
           <Fragment>
             {children({
               tableResults,
               timeseriesResults,
-              timeseriesResultsTypes,
               errorMessage,
               loading,
             })}
@@ -221,9 +209,8 @@ export function WidgetCardDataLoader({
         timeseriesResults,
         errorMessage,
         loading,
-        timeseriesResultsTypes,
-        timeseriesResultsUnits,
         confidence,
+        ingestion,
       }) => (
         <Fragment>
           {children({
@@ -231,9 +218,8 @@ export function WidgetCardDataLoader({
             timeseriesResults,
             errorMessage,
             loading,
-            timeseriesResultsTypes,
-            timeseriesResultsUnits,
             confidence,
+            ingestion,
           })}
         </Fragment>
       )}

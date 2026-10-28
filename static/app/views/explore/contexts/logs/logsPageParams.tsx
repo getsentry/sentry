@@ -1,15 +1,15 @@
-import {useLayoutEffect} from 'react';
+import {createContext, useContext, useLayoutEffect, type ReactNode} from 'react';
 import type {Location} from 'history';
 
 import type {Sort} from 'sentry/utils/discover/fields';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {LOGS_CURSOR_KEY} from 'sentry/views/explore/contexts/logs/constants';
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {logsTimestampDescendingSortBy} from 'sentry/views/explore/contexts/logs/sortBys';
 
 const LOGS_PARAMS_VERSION = 2;
 export const LOGS_QUERY_KEY = 'logsQuery'; // Logs may exist on other pages.
-export const LOGS_CURSOR_KEY = 'logsCursor';
 export const LOGS_AGGREGATE_CURSOR_KEY = 'logsAggregateCursor';
 export const LOGS_FIELDS_KEY = 'logsFields';
 export const LOGS_AGGREGATE_FN_KEY = 'logsAggregate'; // e.g., p99
@@ -22,7 +22,11 @@ export interface PersistedLogsPageParams {
   sortBys: Sort[];
 }
 
-export function usePersistedLogsPageParams() {
+const PersistedLogsPageParamsContext = createContext<
+  ReturnType<typeof useLocalStorageState<PersistedLogsPageParams>> | undefined
+>(undefined);
+
+export function PersistedLogsPageParamsProvider({children}: {children: ReactNode}) {
   useLayoutEffect(() => {
     const pastParams = localStorageWrapper.getItem(
       getPastLogsParamsStorageKey(LOGS_PARAMS_VERSION)
@@ -32,10 +36,26 @@ export function usePersistedLogsPageParams() {
     }
   });
 
-  return useLocalStorageState(getLogsParamsStorageKey(LOGS_PARAMS_VERSION), {
+  const state = useLocalStorageState(getLogsParamsStorageKey(LOGS_PARAMS_VERSION), {
     fields: defaultLogFields() as string[],
     sortBys: [logsTimestampDescendingSortBy],
   });
+
+  return (
+    <PersistedLogsPageParamsContext value={state}>
+      {children}
+    </PersistedLogsPageParamsContext>
+  );
+}
+
+export function usePersistedLogsPageParams() {
+  const context = useContext(PersistedLogsPageParamsContext);
+  if (context === undefined) {
+    throw new Error(
+      'usePersistedLogsPageParams requires PersistedLogsPageParamsProvider'
+    );
+  }
+  return context;
 }
 
 export function stripLogParamsFromLocation(location: Location): Location {

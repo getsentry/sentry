@@ -38,7 +38,7 @@ class OrganizationDeveloperSettingsNewAcceptanceTest(AcceptanceTestCase):
 
         self.browser.click('[aria-label="Save Changes"]')
 
-        self.browser.wait_until(xpath="//span[contains(text(), 'Client ID')]", timeout=3)
+        self.browser.wait_until('input[name="clientId"][readonly]', timeout=3)
 
     def test_create_new_internal_integration(self) -> None:
         self.load_page(self.org_developer_settings_path)

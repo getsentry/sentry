@@ -60,6 +60,7 @@ export function CheckInTimeline<Status extends string>({
   statusPrecedent,
   className,
   style,
+  // oxlint-disable-next-line react/todo
   makeUnit = count => tn('check-in', 'check-ins', count),
   tooltipProps,
 }: CheckInTimelineProps<Status>) {

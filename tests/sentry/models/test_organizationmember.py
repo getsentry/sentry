@@ -417,7 +417,8 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
             )
             assert member.get_scopes() == role.scopes | {
                 "dashboard:read",
-                "dashboard:write",
+                "dashboard:create",
+                "dashboard:update",
                 "dashboard:delete",
             }
 

@@ -27,9 +27,7 @@ describe('KeyDescription', () => {
     expect(screen.getByText('release')).toBeInTheDocument();
     expect(screen.getByText('string')).toBeInTheDocument();
     expect(screen.getByText('Description')).toBeInTheDocument();
-    expect(
-      screen.getByText('The version of your code deployed to an environment')
-    ).toBeInTheDocument();
+    expect(screen.getByText('The sentry release.')).toBeInTheDocument();
     expect(screen.getByText('Added by Sentry')).toBeInTheDocument();
   });
 
@@ -55,6 +53,33 @@ describe('KeyDescription', () => {
     expect(screen.getByText('string')).toBeInTheDocument();
     expect(screen.getByText('A tag sent with one or more events')).toBeInTheDocument();
     expect(screen.queryByText('Added by Sentry')).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['a number attribute', {kind: FieldKind.MEASUREMENT}],
+    ['a boolean attribute', {kind: FieldKind.BOOLEAN}],
+    ['an array attribute', {kind: FieldKind.ARRAY}],
+    ['a kindless tag', {}],
+    [
+      'a Sentry-sourced attribute',
+      {kind: FieldKind.MEASUREMENT, attributeSource: 'sentry'},
+    ],
+    ['a Sentry-sourced tag', {kind: FieldKind.TAG, attributeSource: 'sentry'}],
+    ['a Sentry field', {kind: FieldKind.FIELD}],
+  ] as const)('describes %s generically when it has no description', (_, tag) => {
+    renderKeyDescription({key: 'checkout.cart_size', name: 'checkout.cart_size', ...tag});
+
+    expect(
+      screen.getByText('An attribute sent with one or more events')
+    ).toBeInTheDocument();
+  });
+
+  it('describes a kindless key generically when Sentry defines it without a description', () => {
+    renderKeyDescription({key: 'project', name: 'project'});
+
+    expect(
+      screen.getByText('An attribute sent with one or more events')
+    ).toBeInTheDocument();
   });
 
   it('types a feature flag as a boolean', () => {

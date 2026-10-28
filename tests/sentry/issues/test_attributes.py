@@ -16,7 +16,6 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import override_options
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import GroupSubStatus
 from sentry.utils.snuba import raw_snql_query
@@ -210,8 +209,7 @@ class PostUpdateLogGroupAttributesChangedTest(TestCase):
         with patch(
             "sentry.issues.attributes._log_group_attributes_changed"
         ) as _log_group_attributes_changed:
-            with override_options({"groups.enable-post-update-signal": True}):
-                Group.objects.filter(id__in=[g.id for g in groups]).update(**update_fields)
+            Group.objects.filter(id__in=[g.id for g in groups]).update(**update_fields)
             _log_group_attributes_changed.assert_called_with(
                 Operation.UPDATED, "group", expected_str
             )

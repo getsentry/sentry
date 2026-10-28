@@ -1,3 +1,4 @@
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -8,11 +9,18 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ModulesOnboardingPanel} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {useHasAgentSpans} from 'sentry/views/insights/pages/agents/hooks/useHasAgentSpans';
 import {Onboarding as AgentOnboarding} from 'sentry/views/insights/pages/agents/onboarding';
 import {Onboarding as MCPOnboarding} from 'sentry/views/insights/pages/mcp/onboarding';
 import {NodeRuntimeMetricsOnboarding} from 'sentry/views/insights/pages/nodeRuntime/onboarding';
 import {ModuleName} from 'sentry/views/insights/types';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+import {
+  toLLMContextProjectFields,
+  useSelectedProjectsForLLMContext,
+} from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
 import {GenericOnboarding} from './genericOnboarding';
 
@@ -29,7 +37,8 @@ export function PrebuiltDashboardOnboardingGate({
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
 
-  const onboarding = prebuiltId ? PREBUILT_DASHBOARDS[prebuiltId]?.onboarding : undefined;
+  const prebuiltDashboard = prebuiltId ? PREBUILT_DASHBOARDS[prebuiltId] : undefined;
+  const onboarding = prebuiltDashboard?.onboarding;
 
   const moduleName =
     onboarding?.type === 'module' ? onboarding.moduleName : ModuleName.OTHER;
@@ -50,21 +59,33 @@ export function PrebuiltDashboardOnboardingGate({
   if (onboarding.type === 'module') {
     if (!hasAnySpanData) {
       return (
-        <ModuleLayout.Full>
-          <LegacyOnboarding organization={organization} project={onboardingProject} />
-        </ModuleLayout.Full>
+        <DashboardOnboarding title={prebuiltDashboard?.title}>
+          <ModuleLayout.Full>
+            <LegacyOnboarding organization={organization} project={onboardingProject} />
+          </ModuleLayout.Full>
+        </DashboardOnboarding>
       );
     }
 
     if (!hasFirstSpan) {
       return (
-        <ModuleLayout.Full>
-          <ModulesOnboardingPanel moduleName={onboarding.moduleName} />
-        </ModuleLayout.Full>
+        <DashboardOnboarding title={prebuiltDashboard?.title}>
+          <ModuleLayout.Full>
+            <ModulesOnboardingPanel moduleName={onboarding.moduleName} />
+          </ModuleLayout.Full>
+        </DashboardOnboarding>
       );
     }
 
     return children;
+  }
+
+  if (onboarding.type === 'custom' && onboarding.componentId === 'agent-monitoring') {
+    return (
+      <AgentDashboardOnboardingGate title={prebuiltDashboard?.title}>
+        {children}
+      </AgentDashboardOnboardingGate>
+    );
   }
 
   const selectedProjects = getSelectedProjectList(
@@ -81,16 +102,72 @@ export function PrebuiltDashboardOnboardingGate({
   }
 
   if (onboarding.type === 'custom') {
-    if (onboarding.componentId === 'agent-monitoring') {
-      return <AgentOnboarding />;
-    }
-
     if (onboarding.componentId === 'node-runtime-metrics') {
-      return <NodeRuntimeMetricsOnboarding />;
+      return (
+        <DashboardOnboarding title={prebuiltDashboard?.title}>
+          <NodeRuntimeMetricsOnboarding />
+        </DashboardOnboarding>
+      );
     }
 
-    return <MCPOnboarding />;
+    return (
+      <DashboardOnboarding title={prebuiltDashboard?.title}>
+        <MCPOnboarding />
+      </DashboardOnboarding>
+    );
   }
 
-  return <GenericOnboarding heading={onboarding.description} />;
+  return (
+    <DashboardOnboarding title={prebuiltDashboard?.title}>
+      <GenericOnboarding heading={onboarding.description} />
+    </DashboardOnboarding>
+  );
 }
+
+function AgentDashboardOnboardingGate({
+  children,
+  title,
+}: {
+  children: React.ReactNode;
+  title: string | undefined;
+}) {
+  const {hasAgenticSpans, isLoading, isError} = useHasAgentSpans();
+
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
+
+  // A failed availability check is not evidence that instrumentation is missing.
+  if (hasAgenticSpans || isError) {
+    return children;
+  }
+
+  return (
+    <DashboardOnboarding title={title}>
+      <AgentOnboarding />
+    </DashboardOnboarding>
+  );
+}
+
+function DashboardOnboardingInner({
+  children,
+  title,
+}: {
+  children: React.ReactNode;
+  title: string | undefined;
+}) {
+  const selectedProjects = useSelectedProjectsForLLMContext();
+
+  useLLMContext({
+    contextHint:
+      'Sentry prebuilt dashboard. Shows setup instructions instead of widgets because the selected projects have not sent the data this dashboard needs yet. ' +
+      'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
+      'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction.',
+    title,
+    ...toLLMContextProjectFields(selectedProjects),
+  });
+
+  return children;
+}
+
+const DashboardOnboarding = registerLLMContext('dashboard', DashboardOnboardingInner);

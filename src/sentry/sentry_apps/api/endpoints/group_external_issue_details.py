@@ -21,8 +21,8 @@ from sentry.issues.action_log import (
     SYSTEM_ACTOR,
     GroupActionActor,
     publish_action,
-    resolve_action_source,
 )
+from sentry.issues.action_log.request import resolve_action_source
 from sentry.issues.action_log.types import UnlinkPlatformExternalIssueAction
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.locks import locks

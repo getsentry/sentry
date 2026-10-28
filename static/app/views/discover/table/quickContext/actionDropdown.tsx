@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 import type {Location} from 'history';
 
-import {Button} from '@sentry/scraps/button';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -155,11 +155,6 @@ export function ActionDropDown(props: Props) {
           data-test-id="quick-context-action-trigger"
           variant="transparent"
           size="zero"
-          onClick={e => {
-            e.stopPropagation();
-            e.preventDefault();
-            triggerProps.onClick?.(e);
-          }}
           icon={<IconEllipsis size="sm" />}
         />
       )}
@@ -167,6 +162,6 @@ export function ActionDropDown(props: Props) {
   );
 }
 
-const StyledTrigger = styled(Button)`
+const StyledTrigger = styled(OverlayTrigger.IconButton)`
   margin-left: ${p => p.theme.space.xs};
 `;

@@ -1,29 +1,40 @@
 import {Fragment, type PropsWithChildren, type RefObject, useMemo, useRef} from 'react';
 import {mergeProps} from '@react-aria/utils';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconBuilding} from '@sentry/icons/building';
+import {IconCompass} from '@sentry/icons/compass';
+import {IconDashboard} from '@sentry/icons/dashboard';
+import {IconGraph} from '@sentry/icons/graph';
+import {IconIssues} from '@sentry/icons/issues';
+import {IconProject} from '@sentry/icons/project';
+import {IconSeer} from '@sentry/icons/seer';
+import {IconSettings} from '@sentry/icons/settings';
+import {IconSiren} from '@sentry/icons/siren';
+import {IconUser} from '@sentry/icons/user';
 import {motion, type MotionProps} from 'framer-motion';
 
+import {LinkButton} from '@sentry/scraps/button';
 import {Stack, Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
 
 import Feature from 'sentry/components/acl/feature';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {Override} from 'sentry/components/override';
-import {
-  IconCompass,
-  IconDashboard,
-  IconGraph,
-  IconIssues,
-  IconSettings,
-  IconSiren,
-} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import {getReturnPath} from 'sentry/utils/useReturnPath';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
+import {
+  getInvestigationsPath,
+  useInvestigationsEnabled,
+} from 'sentry/views/investigations/utils';
 import {
   NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
   PRIMARY_SIDEBAR_WIDTH,
   SECONDARY_SIDEBAR_WIDTH,
+  getSettingsReturnPathKey,
 } from 'sentry/views/navigation/constants';
 import {
   NavigationTour,
@@ -44,11 +55,19 @@ import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components'
 import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/content';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 import {useCollapsedNavigation} from 'sentry/views/navigation/useCollapsedNavigation';
+import {useSettingsNavigation} from 'sentry/views/navigation/useSettingsNavigation';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+import {
+  getAutomationsPath,
+  useAutomationsEnabled,
+} from 'sentry/views/seerWorkflows/utils';
+import {useSettingsScope} from 'sentry/views/settings/useSettingsScope';
+import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 function NavigationImpl() {
   const organization = useOrganization({allowNull: true});
+  const isSettingsNavigation = useSettingsNavigation();
   const collapsedNavigation = useCollapsedNavigation();
   const {view} = useSecondaryNavigation();
 
@@ -92,10 +111,20 @@ function NavigationImpl() {
     <Fragment>
       <PrimaryNavigation.Sidebar>
         <PrimaryNavigation.SidebarHeader>
-          {organization ? <OrganizationDropdown /> : <UserDropdown />}
+          {isSettingsNavigation && organization ? (
+            <SettingsNavigationBackButton organizationSlug={organization.slug} />
+          ) : organization ? (
+            <OrganizationDropdown />
+          ) : (
+            <UserDropdown />
+          )}
         </PrimaryNavigation.SidebarHeader>
         <PrimaryNavigation.List ref={ref}>
-          <PrimaryNavigationItems listRef={ref} />
+          {isSettingsNavigation && organization ? (
+            <SettingsPrimaryNavigationItems organizationSlug={organization.slug} />
+          ) : (
+            <PrimaryNavigationItems listRef={ref} />
+          )}
         </PrimaryNavigation.List>
 
         {organization && (
@@ -147,12 +176,75 @@ function NavigationImpl() {
 
 export const Navigation = registerLLMContext('navigation', NavigationImpl);
 
+export function SettingsNavigationBackButton({
+  organizationSlug,
+}: {
+  organizationSlug: string;
+}) {
+  const {setActiveGroup} = usePrimaryNavigation();
+  return (
+    <LinkButton
+      size="sm"
+      icon={<IconArrow direction="left" />}
+      aria-label={t('Back to app')}
+      tooltipProps={{title: t('Back to app')}}
+      to={getReturnPath(
+        getSettingsReturnPathKey(organizationSlug),
+        `/organizations/${organizationSlug}/issues/`
+      )}
+      onClick={() => setActiveGroup(null)}
+    />
+  );
+}
+
+export function SettingsPrimaryNavigationItems({
+  organizationSlug,
+}: {
+  organizationSlug: string;
+}) {
+  const {projects} = useProjects();
+  const {scope: activeScope, projectSlug: activeProjectSlug} = useSettingsScope();
+  const projectSlug = activeProjectSlug ?? projects[0]?.slug;
+  const projectSettingsPath = `/settings/${organizationSlug}/projects/`;
+  const items = [
+    {
+      key: 'org',
+      label: t('Org'),
+      to: `/settings/${organizationSlug}/`,
+      icon: <IconBuilding />,
+    },
+    {
+      key: 'project',
+      label: t('Project'),
+      to: projectSlug ? `${projectSettingsPath}${projectSlug}/` : projectSettingsPath,
+      icon: <IconProject />,
+    },
+    {key: 'account', label: t('Account'), to: '/settings/account/', icon: <IconUser />},
+  ];
+
+  return items.map(({key, label, to, icon}) => (
+    <PrimaryNavigation.ListItem key={to}>
+      <PrimaryNavigation.Link
+        to={to}
+        analyticsKey={`settings-${key}`}
+        label={label}
+        aria-current={key === activeScope ? 'location' : undefined}
+      >
+        {icon}
+      </PrimaryNavigation.Link>
+    </PrimaryNavigation.ListItem>
+  ));
+}
+
 interface PrimaryNavigationItemsProps {
   listRef?: RefObject<HTMLUListElement | null>;
 }
 
 export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
   const organization = useOrganization({allowNull: true});
+  const investigationsEnabled = useInvestigationsEnabled();
+  const automationsEnabled = useAutomationsEnabled();
+  const settingsV3 = useSettingsV3();
 
   const fallbackRef = useRef<HTMLUListElement>(null);
 
@@ -187,6 +279,10 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
     return settingsItem;
   }
 
+  const seerPath = automationsEnabled
+    ? getAutomationsPath(organization.slug)
+    : getInvestigationsPath(organization.slug);
+
   const prefix = `organizations/${organization.slug}`;
 
   return (
@@ -208,6 +304,20 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
           </PrimaryNavigation.ListItem>
         )}
       </NavigationTourElement>
+
+      {organization.features.includes('seer-primary-nav') &&
+        (investigationsEnabled || automationsEnabled) && (
+          <PrimaryNavigation.ListItem>
+            <PrimaryNavigation.Link
+              to={seerPath}
+              analyticsKey="seer"
+              label={t('Seer')}
+              {...makeNavigationItemProps('seer', seerPath, `/${prefix}/seer`)}
+            >
+              <IconSeer />
+            </PrimaryNavigation.Link>
+          </PrimaryNavigation.ListItem>
+        )}
 
       <NavigationTourElement id={NavigationTour.EXPLORE} title={null} description={null}>
         {tourProps => (
@@ -304,7 +414,7 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
         </PrimaryNavigation.Link>
       </PrimaryNavigation.ListItem>
 
-      {settingsItem}
+      {settingsV3 ? null : settingsItem}
     </Fragment>
   );
 }

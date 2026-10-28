@@ -17,7 +17,6 @@ from rest_framework.request import Request
 from rest_framework.test import APIRequestFactory
 from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import TraceItemDetailsResponse
 
-from sentry.api.client_kind import FEATURE_FLAG as CLIENT_KIND_FEATURE_FLAG
 from sentry.api.client_kind import ClientKind, get_client_kind
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
@@ -57,7 +56,7 @@ from sentry.testutils.silo import assume_test_silo_mode_of, cell_silo_test
 from sentry.types.activity import ActivityType
 from sentry.users.models.identity import Identity
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
-from sentry.viewer_context import ActorType, ViewerContext, encode_viewer_context
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 TEST_FERNET_KEY = Fernet.generate_key().decode("utf-8")
 
@@ -127,10 +126,7 @@ class TestSeerRpc(APITestCase):
 
         path = self._get_path("get_organization_features")
         data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
-        with (
-            self.feature(CLIENT_KIND_FEATURE_FLAG),
-            patch.dict(seer_method_registry, {"get_organization_features": fake_method}),
-        ):
+        with patch.dict(seer_method_registry, {"get_organization_features": fake_method}):
             response = self.client.post(
                 path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
             )
@@ -142,16 +138,15 @@ class TestSeerRpc(APITestCase):
         org = self.create_organization()
         path = self._get_path("get_organization_features")
         data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
-        with self.feature(CLIENT_KIND_FEATURE_FLAG):
-            response = self.client.post(
-                path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
-            )
-            assert response.status_code == 200
+        response = self.client.post(
+            path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
+        )
+        assert response.status_code == 200
 
-            nested = Request(APIRequestFactory().get("/"))
-            nested.user = AnonymousUser()
-            nested.auth = None
-            assert get_client_kind(nested) == ClientKind.UNKNOWN
+        nested = Request(APIRequestFactory().get("/"))
+        nested.user = AnonymousUser()
+        nested.auth = None
+        assert get_client_kind(nested) == ClientKind.UNKNOWN
 
     def test_snuba_rate_limit_returns_429(self) -> None:
         """Test that SnubaRPCRateLimitExceeded returns 429 to Seer for retry."""
@@ -664,6 +659,28 @@ class TestSeerRpcMethods(APITestCase):
             "project_slug_to_id": {project.slug: project.id},
         }
 
+    def test_has_repo_code_mappings_uses_external_id_before_name(self) -> None:
+        repo = self.create_repo(
+            project=self.project,
+            name="Display Group / Display Project",
+            provider="integrations:gitlab",
+            external_id="gitlab.example:456",
+        )
+        self.create_code_mapping(project=self.project, repo=repo)
+
+        result = has_repo_code_mappings(
+            organization_id=self.organization.id,
+            provider="gitlab",
+            external_id="gitlab.example:456",
+            owner="url-safe-group",
+            name="url-safe-project",
+        )
+
+        assert result.dict() == {
+            "has_code_mappings": True,
+            "project_slug_to_id": {self.project.slug: self.project.id},
+        }
+
     def test_get_repo_installation_id_github(self) -> None:
         """Test returns external_id as installation_id for GitHub repos"""
         integration = self.create_integration(
@@ -688,6 +705,30 @@ class TestSeerRpcMethods(APITestCase):
         )
 
         assert result.dict() == {"installation_id": "12345", "permissions": None}
+
+    def test_get_repo_installation_id_uses_external_id_before_name(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="github-installation",
+        )
+        self.create_repo(
+            project=self.project,
+            name="Display Group / Display Project",
+            provider="integrations:github",
+            external_id="github:123",
+            integration_id=integration.id,
+        )
+
+        result = get_repo_installation_id(
+            organization_id=self.organization.id,
+            provider="github",
+            external_id="github:123",
+            owner="url-safe-group",
+            name="url-safe-project",
+        )
+
+        assert result.dict() == {"installation_id": "github-installation", "permissions": None}
 
     def test_get_repo_installation_id_github_with_permissions(self) -> None:
         """Test returns permissions from integration metadata"""
@@ -1149,9 +1190,10 @@ class TestSeerRpcViewerContextAuth(APITestCase):
 
     def _vc_header(self, *, organization_id: int | None, user_id: int | None = None) -> str:
         vc = ViewerContext(
+            actor=Actor(type=ActorType.USER, actor_id=user_id)
+            if user_id is not None
+            else Actor(type=ActorType.SYSTEM),
             organization_id=organization_id,
-            user_id=user_id,
-            actor_type=ActorType.USER,
         )
         return encode_viewer_context(vc)
 

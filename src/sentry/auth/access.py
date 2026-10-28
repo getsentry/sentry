@@ -10,14 +10,22 @@ from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.http.request import HttpRequest
 from rest_framework.request import Request
+from sentry_sdk import traces
 
 from sentry import features, roles
 from sentry.api.exceptions import DataSecrecyError
+from sentry.auth.deprecated_scope_translation import translate_deprecated_scopes
 from sentry.auth.scope_declaration import check_scope_declaration, check_scope_declarations
 from sentry.auth.services.access.service import access_service
 from sentry.auth.services.auth import AuthenticatedToken, RpcAuthState, RpcMemberSsoState
 from sentry.auth.staff import is_active_staff
-from sentry.auth.superuser import get_superuser_scopes, is_active_superuser
+from sentry.auth.superuser import (
+    Superuser,
+    get_superuser_access_expiry,
+    get_superuser_scopes,
+    is_active_superuser,
+    resolve_superuser_access,
+)
 from sentry.auth.system import is_system_auth
 from sentry.constants import ObjectStatus
 from sentry.data_secrecy.logic import should_allow_superuser_access
@@ -27,16 +35,22 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.team import Team, TeamStatus
-from sentry.organizations.services.organization import RpcTeamMember, RpcUserOrganizationContext
+from sentry.organizations.services.organization import (
+    RpcTeamMember,
+    RpcUserOrganizationContext,
+    organization_service,
+)
 from sentry.organizations.services.organization.serial import summarize_member
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole, TeamRole
 from sentry.seer.agent_token import is_agent_auth
 from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.types.request import _HttpRequestWithUser
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
-from sentry.utils.tracing import set_span_data, set_span_tag, start_span
+from sentry.viewer_context import SuperuserAccess, set_viewer_context_superuser
 
 __all__ = (
     "from_user",
@@ -135,6 +149,11 @@ class Access(abc.ABC):
 
     def would_have_scope_with_added_auth_scope(self, scope: str) -> bool:
         """Whether adding ``scope`` to the current auth scope cap would grant it."""
+        check_scope_declaration(scope)
+        return False
+
+    def would_have_project_scope_with_added_auth_scope(self, project: Project, scope: str) -> bool:
+        """Whether adding ``scope`` to the current auth scope cap would grant it for a project."""
         check_scope_declaration(scope)
         return False
 
@@ -300,16 +319,17 @@ class DbAccess(Access):
         if not teams:
             return frozenset()
 
-        with start_span(
-            op="get_project_access_in_teams", name="get_project_access_in_teams"
+        with traces.start_span(
+            name="get_project_access_in_teams",
+            attributes={"sentry.op": "get_project_access_in_teams"},
         ) as span:
             projects = frozenset(
                 Project.objects.filter(status=ObjectStatus.ACTIVE, teams__in=teams)
                 .distinct()
                 .values_list("id", flat=True)
             )
-            set_span_data(span, "Project Count", len(projects))
-            set_span_data(span, "Team Count", len(teams))
+            span.set_attribute("Project Count", len(projects))
+            span.set_attribute("Team Count", len(teams))
 
         return projects
 
@@ -382,17 +402,18 @@ class DbAccess(Access):
             return True
 
         if self._member and features.has("organizations:team-roles", self._member.organization):
-            with start_span(
-                op="check_access_for_all_project_teams", name="check_access_for_all_project_teams"
+            with traces.start_span(
+                name="check_access_for_all_project_teams",
+                attributes={"sentry.op": "check_access_for_all_project_teams"},
             ) as span:
                 memberships = [
                     self._team_memberships[team]
                     for team in project.teams.all()
                     if team in self._team_memberships
                 ]
-                set_span_tag(span, "organization", self._member.organization.id)
-                set_span_tag(span, "organization.slug", self._member.organization.slug)
-                set_span_data(span, "membership_count", len(memberships))
+                span.set_attribute("organization", self._member.organization.id)
+                span.set_attribute("organization.slug", self._member.organization.slug)
+                span.set_attribute("membership_count", len(memberships))
 
             for membership in memberships:
                 team_scopes = membership.get_scopes()
@@ -491,6 +512,38 @@ class RpcBackedAccess(Access):
             member.scopes, self.scopes_upper_bound | {scope}
         )
         return scope in add_scope_hierarchy(list(candidate_scopes))
+
+    def would_have_project_scope_with_added_auth_scope(self, project: Project, scope: str) -> bool:
+        """
+        Return whether adding a scope to the token would grant access for this project.
+
+        Check both organization-level scopes and scopes from the member's role on
+        a project team. This does not modify the token or access instance.
+        """
+        if not self.has_project_access(project):
+            return False
+        if self.would_have_scope_with_added_auth_scope(scope):
+            return True
+
+        # Team roles can only grant project scopes for member-backed token access.
+        member = self.rpc_user_organization_context.member
+        if (
+            member is None
+            or self.scopes_upper_bound is None
+            or not features.has(
+                "organizations:team-roles", self.rpc_user_organization_context.organization
+            )
+        ):
+            return False
+
+        # A role on any team linked to the project may grant the requested scope...
+        project_team_ids = set(project.teams.values_list("id", flat=True))
+        return any(
+            member_team.role
+            and member_team.team_id in project_team_ids
+            and scope in member_team.role.scopes
+            for member_team in member.member_teams
+        )
 
     # TODO(cathy): remove this
     @property
@@ -609,18 +662,19 @@ class RpcBackedAccess(Access):
         if self.rpc_user_organization_context.member and features.has(
             "organizations:team-roles", self.rpc_user_organization_context.organization
         ):
-            with start_span(
-                op="check_access_for_all_project_teams", name="check_access_for_all_project_teams"
+            with traces.start_span(
+                name="check_access_for_all_project_teams",
+                attributes={"sentry.op": "check_access_for_all_project_teams"},
             ) as span:
                 project_teams_id = set(project.teams.values_list("id", flat=True))
                 orgmember_teams = self.rpc_user_organization_context.member.member_teams
-                set_span_tag(
-                    span, "organization", self.rpc_user_organization_context.organization.id
+                span.set_attribute(
+                    "organization", self.rpc_user_organization_context.organization.id
                 )
-                set_span_tag(
-                    span, "organization.slug", self.rpc_user_organization_context.organization.slug
+                span.set_attribute(
+                    "organization.slug", self.rpc_user_organization_context.organization.slug
                 )
-                set_span_data(span, "membership_count", len(orgmember_teams))
+                span.set_attribute("membership_count", len(orgmember_teams))
 
             for member_team in orgmember_teams:
                 if not member_team.role:
@@ -952,6 +1006,28 @@ class NoAccess(OrganizationlessAccess):
         )
 
 
+def _propagate_superuser_access(
+    request: _HttpRequestWithUser,
+    org_context: RpcUserOrganizationContext,
+    su: Superuser | None,
+) -> None:
+    # Members use their normal callback permissions and user flags; adding this
+    # claim would instead force read-only access and a five-minute VC lifetime.
+    if org_context.member is not None:
+        return
+    if request.auth is not None or su is None or not su.is_active:
+        return
+    if su.requires_org_auth(org_context.organization):
+        return
+    expires_at = get_superuser_access_expiry(su, org_context.organization.id)
+    if expires_at is not None:
+        set_viewer_context_superuser(
+            user_id=request.user.id,
+            organization_id=org_context.organization.id,
+            superuser=SuperuserAccess(expires_at=expires_at),
+        )
+
+
 def from_request_org_and_scopes(
     *,
     request: HttpRequest,
@@ -962,6 +1038,10 @@ def from_request_org_and_scopes(
     Note that `scopes` is usually None because request.auth is not set at `get_authorization_header`
     when the request is made from the frontend using cookies
     """
+    if isinstance(request.auth, AuthenticatedToken) and request.auth.superuser is not None:
+        if rpc_user_org_context is None:
+            return DEFAULT
+        return from_superuser_access(request.auth, rpc_user_org_context)
     if is_agent_auth(request.auth):
         if rpc_user_org_context is None:
             return DEFAULT
@@ -987,11 +1067,12 @@ def from_request_org_and_scopes(
 
     if is_active_superuser(request):
         su = getattr(request, "superuser", None)
-        if (
-            su
-            and su.requires_org_auth(rpc_user_org_context.organization)
-            and rpc_user_org_context.member is None
-        ):
+        if su is None and request.auth is None:
+            su = Superuser(request)
+        requires_org_auth = su is not None and su.requires_org_auth(
+            rpc_user_org_context.organization
+        )
+        if requires_org_auth and rpc_user_org_context.member is None:
             setattr(request, "_superuser_needs_org_auth", rpc_user_org_context.organization.slug)
 
         member = rpc_user_org_context.member
@@ -1003,11 +1084,13 @@ def from_request_org_and_scopes(
             org_member=member,
         )
 
-        superuser_scopes = get_superuser_scopes(auth_state, request.user, rpc_user_org_context)
+        superuser_scopes = get_superuser_scopes(auth_state, rpc_user_org_context)
         if scopes:
             superuser_scopes = superuser_scopes.union(set(scopes))
         if member and member.scopes:
             superuser_scopes = superuser_scopes.union(set(member.scopes))
+
+        _propagate_superuser_access(request, rpc_user_org_context, su)
 
         return ApiBackedOrganizationGlobalAccess(
             rpc_user_organization_context=rpc_user_org_context,
@@ -1074,7 +1157,9 @@ def from_user_and_rpc_user_org_context(
 def from_request(
     request: Request, organization: Organization | None = None, scopes: Iterable[str] | None = None
 ) -> Access:
-    if is_agent_auth(request.auth):
+    if isinstance(request.auth, AuthenticatedToken) and (
+        is_agent_auth(request.auth) or request.auth.superuser is not None
+    ):
         if organization is None:
             return DEFAULT
         return from_auth(request.auth, organization)
@@ -1114,7 +1199,7 @@ def from_request(
         )
         sso_state = auth_state.sso_state
 
-        superuser_scopes = get_superuser_scopes(auth_state, request.user, organization)
+        superuser_scopes = get_superuser_scopes(auth_state, organization)
         if scopes:
             superuser_scopes = superuser_scopes.union(set(scopes))
         if member and (member_scopes := member.get_scopes()):
@@ -1150,7 +1235,9 @@ def _from_sentry_app(user: User, organization: Organization | None = None) -> Ac
     if not sentry_app.is_installed_on(organization):
         return NoAccess()
 
-    return OrganizationGlobalMembership(organization, sentry_app.scope_list, sso_is_valid=True)
+    return OrganizationGlobalMembership(
+        organization, translate_deprecated_scopes(sentry_app.scope_list), sso_is_valid=True
+    )
 
 
 def _from_rpc_sentry_app(context: RpcUserOrganizationContext | None = None) -> Access:
@@ -1174,7 +1261,7 @@ def _from_rpc_sentry_app(context: RpcUserOrganizationContext | None = None) -> A
             ),
             permissions=[],
         ),
-        scopes=installation.sentry_app.scope_list,
+        scopes=translate_deprecated_scopes(installation.sentry_app.scope_list),
     )
 
 
@@ -1245,6 +1332,11 @@ def from_rpc_member(
 
 
 def from_auth(auth: AuthenticatedToken, organization: Organization) -> Access:
+    if isinstance(auth, AuthenticatedToken) and auth.superuser is not None:
+        context = organization_service.get_organization_by_id(
+            id=organization.id, user_id=auth.user_id
+        )
+        return from_superuser_access(auth, context) if context is not None else DEFAULT
     if is_system_auth(auth):
         return SystemAccess()
     if is_agent_auth(auth):
@@ -1272,6 +1364,8 @@ def from_auth(auth: AuthenticatedToken, organization: Organization) -> Access:
 def from_rpc_auth(
     auth: AuthenticatedToken, rpc_user_org_context: RpcUserOrganizationContext
 ) -> Access:
+    if isinstance(auth, AuthenticatedToken) and auth.superuser is not None:
+        return from_superuser_access(auth, rpc_user_org_context)
     if is_system_auth(auth):
         return SystemAccess()
     if is_agent_auth(auth):
@@ -1314,6 +1408,32 @@ def from_agent_auth(
     if rpc_user_org_context.member is None:
         return DEFAULT
     return from_rpc_member(rpc_user_org_context, scopes=auth.get_scopes())
+
+
+def from_superuser_access(
+    auth: AuthenticatedToken, rpc_user_org_context: RpcUserOrganizationContext
+) -> Access:
+    if (
+        auth.superuser is None
+        or auth.organization_id != rpc_user_org_context.organization.id
+        or auth.user_id != rpc_user_org_context.user_id
+    ):
+        return DEFAULT
+    users = user_service.get_many(filter={"user_ids": [auth.user_id]})
+    user = users[0] if users else None
+    if user is None:
+        return DEFAULT
+    delegated = resolve_superuser_access(auth.superuser, user, rpc_user_org_context)
+    if delegated is None:
+        return DEFAULT
+    scopes, _ = delegated
+    return ApiBackedOrganizationGlobalAccess(
+        rpc_user_organization_context=rpc_user_org_context,
+        auth_state=RpcAuthState(
+            sso_state=RpcMemberSsoState(is_valid=True, is_required=False), permissions=[]
+        ),
+        scopes=scopes & set(auth.get_scopes()),
+    )
 
 
 DEFAULT = NoAccess()

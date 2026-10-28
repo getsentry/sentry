@@ -208,6 +208,12 @@ class BaseUserEndpointTest(DRFPermissionTestCase):
         _, kwargs = self.endpoint.convert_args(self.make_request(user), user_id=user.id)
         assert kwargs["user"].id == user.id
 
+    def test_invalid_user_id(self) -> None:
+        user = self.create_user()
+        for user_id in ("abc", "99999999999999999999"):
+            with pytest.raises(ResourceDoesNotExist):
+                self.endpoint.convert_args(self.make_request(user), user_id=user_id)
+
 
 @no_silo_test
 class MonolithUserEndpoint(BaseUserEndpointTest):

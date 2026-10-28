@@ -284,6 +284,7 @@ function ConfirmModal({
       } catch (error) {
         setIsError(true);
         return;
+        // oxlint-disable-next-line react/todo
       } finally {
         setIsConfirming(false);
       }

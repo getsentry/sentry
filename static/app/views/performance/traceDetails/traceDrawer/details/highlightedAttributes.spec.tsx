@@ -209,6 +209,19 @@ describe('getHighlightedSpanAttributes', () => {
     expect(result.find(attr => attr.name === 'Reasoning Level')).toBeUndefined();
   });
 
+  it('should include tool result size for tool spans', () => {
+    const result = getHighlightedSpanAttributes({
+      spanId: '123',
+      attributes: {
+        'gen_ai.operation.type': 'tool',
+        'gen_ai.tool.name': 'search',
+        'gen_ai.tool.call.result': 'x'.repeat(4100),
+      },
+    });
+
+    expect(result.find(attr => attr.name === 'Result Size')?.value).toBe('4.1 kB');
+  });
+
   it('should include tokens attribute when values are present', () => {
     const attributes = {
       'gen_ai.operation.type': 'ai_client',

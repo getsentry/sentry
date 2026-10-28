@@ -10,6 +10,8 @@ const DEFAULT_ACTIVITY: GroupOpenPeriodActivity = {
 
 const DEFAULT_OPEN_PERIOD: GroupOpenPeriod = {
   id: 'open-period-1',
+  groupId: '1',
+  shortId: 'PROJ-1',
   start: '2024-01-01T00:00:00Z',
   end: '2024-01-01T00:05:00Z',
   duration: '5m',

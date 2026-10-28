@@ -18,7 +18,6 @@
 /src/sentry/tasks/                                      @getsentry/app-backend
 /.agents/skills/sentry-backend-bugs/                    @getsentry/app-backend
 /src/bitfield/                                          @getsentry/app-backend
-/src/django_picklefield/                                @getsentry/app-backend
 /src/sentry/analytics/events/                           @getsentry/app-backend @getsentry/data
 /src/sentry/core/                                       @getsentry/app-backend
 /bin/mock*                                              @getsentry/app-backend
@@ -46,6 +45,34 @@
 /src/sentry/web/frontend/                               @getsentry/app-frontend
 /.agents/skills/sentry-javascript-bugs/                 @getsentry/app-frontend
 /.agents/skills/generate-snapshot-tests/                @getsentry/app-frontend
+
+## Frontend Platform shared code
+# These paths are in the stack trace of most frontend events: layout primitives, page
+# filters, icons, the settings shell. Sentry assigns an issue to the LAST matching line,
+# so they must come before the feature views declared below. A frame in a feature view
+# then beats a frame in a shared component. GitHub review routing only depends on order
+# when patterns overlap, and the one overlap here is intended: more specific settings
+# sub-paths declared by other teams further down now take precedence.
+/static/packages/scraps/                              @getsentry/design-engineering
+/static/app/utils/theme/                              @getsentry/design-engineering
+/static/app/components/commandPalette/                @getsentry/design-engineering
+/static/app/components/core/                          @getsentry/design-engineering
+/static/app/components/pageFilters/                   @getsentry/design-engineering
+/static/app/components/backendJsonFormAdapter/        @getsentry/design-engineering
+/static/app/icons/                                    @getsentry/design-engineering
+/static/app/views/settings/                           @getsentry/design-engineering
+/static/app/bootstrap/                                @getsentry/design-engineering
+/static/app/bootstrap/initializeSdk.tsx               @getsentry/team-javascript-sdks-browser @getsentry/team-javascript-sdks-framework
+## End of Frontend Platform shared code
+
+## Taskbroker workers
+# The taskworker runtime is in the stack trace of every task error. Sentry assigns an
+# issue to the LAST matching line, so this must come before the teams that own the
+# tasks: their line then beats the runtime frame. No other pattern matches these paths,
+# so GitHub review routing does not change.
+/src/sentry/taskworker/                                       @getsentry/streaming-platform
+/tests/sentry/taskworker/                                     @getsentry/streaming-platform
+## End of Taskbroker workers
 
 ## Legal
 /LICENSE.md                                              @getsentry/owners-legal
@@ -111,7 +138,6 @@
 /src/sentry/web/frontend/auth_organization_login.py      @getsentry/security @getsentry/foundations @getsentry/owners-auth
 /src/sentry/web/frontend/auth_provider_login.py          @getsentry/security @getsentry/foundations @getsentry/owners-auth
 /src/sentry/web/frontend/oauth_token.py                  @getsentry/security @getsentry/foundations @getsentry/owners-auth
-/src/sentry/web/frontend/oauth_authorize.py              @getsentry/security @getsentry/foundations @getsentry/owners-auth
 /src/sentry/web/frontend/openidtoken.py                  @getsentry/security
 /.agents/skills/sentry-security/                         @getsentry/security
 
@@ -169,19 +195,26 @@ vercel.json                                              @getsentry/owners-js-bu
 /.github/workflows/frontend.yml                          @getsentry/owners-js-build
 /.github/file-filters.yml                                @getsentry/owners-js-build
 build-utils/                                             @getsentry/owners-js-build
-oxlint.config.ts                                         @getsentry/owners-js-build
+oxlint.config.ts                                         @getsentry/owners-js-build @getsentry/design-engineering
+/.github/workflows/prune-oxlint-suppressions.yml           @getsentry/design-engineering
+/scripts/custom-oxlint.ts                                @getsentry/owners-js-build
 jest-balance.json                                        @getsentry/owners-js-build
-jest.config.ts                                           @getsentry/owners-js-build
+/jest.config.mjs                                         @getsentry/owners-js-build
+/rsbuild.config.ts                                       @getsentry/owners-js-build
 /tests/js/test-balancer/                                 @getsentry/owners-js-build
 tsconfig.*                                               @getsentry/owners-js-build
 .node-version                                            @getsentry/owners-js-deps
 package.json                                             @getsentry/owners-js-deps
 pnpm-lock.yaml                                           @getsentry/owners-js-deps
+/tests/js/createJestConfig.ts                             @getsentry/owners-js-build
+/tests/js/jest.config.*                                   @getsentry/owners-js-build
+/tests/js/bin/                                           @getsentry/owners-js-build
+/tests/js/package.json                                   @getsentry/owners-js-build @getsentry/owners-js-deps
 
-## Design
-/static/fonts/                                           @getsentry/design
-/static/images/                                          @getsentry/design
-/src/sentry/static/                                      @getsentry/design
+## Product Design
+/static/fonts/                                           @getsentry/product-design
+/static/images/                                          @getsentry/product-design
+/src/sentry/static/                                      @getsentry/product-design
 
 # Owners by product feature
 #
@@ -233,9 +266,9 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /static/app/views/settings/projectAlerts/                 @getsentry/alerts-monitors
 /static/app/views/alerts/                                 @getsentry/alerts-monitors
 /static/app/views/alerts/rules/uptime                     @getsentry/crons
-/static/app/views/explore/releases/                               @getsentry/replay-frontend
-/static/app/views/explore/releases/drawer/                        @getsentry/replay-frontend
-/static/app/views/explore/releases/releaseBubbles/                @getsentry/replay-frontend
+/static/app/views/explore/releases/                               @getsentry/replay
+/static/app/views/explore/releases/drawer/                        @getsentry/replay
+/static/app/views/explore/releases/releaseBubbles/                @getsentry/replay
 
 /static/app/views/settings/account/notifications/         @getsentry/notifications
 
@@ -260,7 +293,6 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 
 ## Visibility
 /src/sentry/api/endpoints/organization_tags.py                              @getsentry/data-browsing
-/src/sentry/api/endpoints/organization_events_histogram.py                  @getsentry/data-browsing
 /src/sentry/api/endpoints/organization_events_facets_performance.py         @getsentry/data-browsing
 /src/sentry/api/endpoints/organization_events_spans_performance.py          @getsentry/data-browsing
 /src/sentry/api/endpoints/organization_events_trace.py                      @getsentry/data-browsing
@@ -281,7 +313,6 @@ src/sentry/api/endpoints/organization_attribute_mappings.py                 @get
 
 /tests/snuba/api/endpoints/*                                                @getsentry/data-browsing
 /tests/snuba/api/endpoints/test_organization_tags.py                        @getsentry/data-browsing
-/tests/snuba/api/endpoints/test_organization_events_histogram.py            @getsentry/data-browsing
 /tests/snuba/api/endpoints/test_organization_events_facets_performance.py   @getsentry/data-browsing
 /tests/snuba/api/endpoints/test_organization_events_spans_performance.py    @getsentry/data-browsing
 /tests/snuba/api/endpoints/test_organization_events_trace.py                @getsentry/data-browsing
@@ -336,9 +367,12 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/ingestion_delay/                                       @getsentry/data-browsing
 /src/sentry/api/helpers/ingestion_delay.py                           @getsentry/data-browsing
 
+/src/sentry/api/helpers/timeseries_transformations.py                @getsentry/app-backend @getsentry/data-browsing
+/tests/sentry/api/helpers/test_timeseries_transformations.py         @getsentry/app-backend @getsentry/data-browsing
 
-/src/sentry/api/endpoints/organization_spans_fields.py                              @getsentry/data-browsing
-/tests/sentry/api/endpoints/test_organization_spans_fields.py                       @getsentry/data-browsing
+
+/src/sentry/api/endpoints/organization_explore_formulas.py                          @getsentry/data-browsing
+/tests/sentry/api/endpoints/test_organization_explore_formulas.py                   @getsentry/data-browsing
 
 /src/sentry/api/endpoints/organization_traces.py                                    @getsentry/explore
 /tests/sentry/api/endpoints/test_organization_traces.py                             @getsentry/explore
@@ -356,6 +390,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/components/events/interfaces/spans/                           @getsentry/data-browsing
 /static/app/components/events/viewHierarchy/*                             @getsentry/data-browsing
 /static/app/components/searchQueryBuilder/                                @getsentry/data-browsing
+/static/packages/search-syntax/                                           @getsentry/data-browsing
 /static/app/components/searchQueryBuilder/askSeerCombobox/                @getsentry/data-browsing @getsentry/machine-learning-ai
 /static/app/components/arithmeticBuilder/                                 @getsentry/data-browsing
 
@@ -398,29 +433,29 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 
 
 ## Flags
-/src/sentry/flags/                                              @getsentry/replay-backend
-/tests/sentry/flags/                                            @getsentry/replay-backend
-/static/app/components/featureFlags/                            @getsentry/replay-frontend
-/static/app/components/events/featureFlags/                     @getsentry/replay-frontend
-/static/app/views/issueDetails/groupDistributionsDrawer.tsx     @getsentry/replay-frontend
-/static/app/views/issueDetails/groupFeatureFlags/               @getsentry/replay-frontend
-/static/app/views/issueDetails/groupTags/                       @getsentry/replay-frontend
-/static/app/views/settings/featureFlags/                        @getsentry/replay-frontend
+/src/sentry/flags/                                              @getsentry/replay
+/tests/sentry/flags/                                            @getsentry/replay
+/static/app/components/featureFlags/                            @getsentry/replay
+/static/app/components/events/featureFlags/                     @getsentry/replay
+/static/app/views/issueDetails/groupDistributionsDrawer.tsx     @getsentry/replay
+/static/app/views/issueDetails/groupFeatureFlags/               @getsentry/replay
+/static/app/views/issueDetails/groupTags/                       @getsentry/replay
+/static/app/views/settings/featureFlags/                        @getsentry/replay
 ## End of Flags
 
 
 ## Replays
-/static/app/components/replays/                                          @getsentry/replay-frontend
-/static/app/utils/replays/                                               @getsentry/replay-frontend
-/static/app/views/explore/replays/                                               @getsentry/replay-frontend
-/tests/acceptance/test_replay_details.py                                 @getsentry/replay-frontend
-/tests/acceptance/test_replay_list.py                                    @getsentry/replay-frontend
-/src/sentry/replays/                                                     @getsentry/replay-backend
-/tests/sentry/replays/                                                   @getsentry/replay-backend
-/src/sentry/issues/endpoints/organization_issue_metrics.py               @getsentry/replay-backend
-/tests/sentry/issues/endpoints/test_organization_issue_metrics.py        @getsentry/replay-backend
-/src/sentry/issues/endpoints/organization_group_suspect_flags.py         @getsentry/replay-backend
-/tests/sentry/issues/endpoints/test_organization_group_suspect_flags.py  @getsentry/replay-backend
+/static/app/components/replays/                                          @getsentry/replay
+/static/app/utils/replays/                                               @getsentry/replay
+/static/app/views/explore/replays/                                               @getsentry/replay
+/tests/acceptance/test_replay_details.py                                 @getsentry/replay
+/tests/acceptance/test_replay_list.py                                    @getsentry/replay
+/src/sentry/replays/                                                     @getsentry/replay
+/tests/sentry/replays/                                                   @getsentry/replay
+/src/sentry/issues/endpoints/organization_issue_metrics.py               @getsentry/replay
+/tests/sentry/issues/endpoints/test_organization_issue_metrics.py        @getsentry/replay
+/src/sentry/issues/endpoints/organization_group_suspect_flags.py         @getsentry/replay
+/tests/sentry/issues/endpoints/test_organization_group_suspect_flags.py  @getsentry/replay
 ## End of Replays
 
 
@@ -434,9 +469,9 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 
 
 ## DevToolbar
-/src/sentry/templates/sentry/toolbar/        @getsentry/replay-frontend @getsentry/replay-backend
-/src/sentry/toolbar/                         @getsentry/replay-frontend @getsentry/replay-backend
-/tests/sentry/toolbar/                       @getsentry/replay-frontend @getsentry/replay-backend
+/src/sentry/templates/sentry/toolbar/        @getsentry/replay
+/src/sentry/toolbar/                         @getsentry/replay
+/tests/sentry/toolbar/                       @getsentry/replay
 ## End of DevToolbar
 
 ## Frontend
@@ -537,13 +572,13 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/api/endpoints/organization_auditlogs.py                     @getsentry/foundations
 /src/sentry/core/endpoints/organization_projects.py                     @getsentry/foundations
 /src/sentry/api/endpoints/organization_stats*.py                        @getsentry/foundations
-/src/sentry/api/endpoints/release_threshold*.py                         @getsentry/replay-backend
+/src/sentry/api/endpoints/release_threshold*.py                         @getsentry/replay
 /src/sentry/api/endpoints/user_social_identity*                         @getsentry/foundations
 /src/sentry/auth/staff.py                                               @getsentry/foundations @getsentry/owners-auth
 /src/sentry/auth/superuser.py                                           @getsentry/foundations @getsentry/owners-auth
 /src/sentry/middleware/staff.py                                         @getsentry/foundations
 /src/sentry/middleware/superuser.py                                     @getsentry/foundations
-/src/sentry/models/release_threshold/                                   @getsentry/replay-backend
+/src/sentry/models/release_threshold/                                   @getsentry/replay
 /src/sentry/scim/                                                       @getsentry/foundations
 /src/sentry/integrations/github/                                        @getsentry/foundations @getsentry/scm
 /src/sentry/web/frontend/auth_login.py                                  @getsentry/foundations @getsentry/owners-auth
@@ -560,7 +595,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/auth/test_superuser.py                                    @getsentry/foundations
 /tests/sentry/middleware/test_staff.py                                  @getsentry/foundations
 /tests/sentry/integrations/github/                                      @getsentry/foundations @getsentry/scm
-/tests/sentry/models/releases/                                          @getsentry/replay-backend
+/tests/sentry/models/releases/                                          @getsentry/replay
 ## End of foundations
 
 
@@ -600,19 +635,8 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/utils/platform_categories.py                                         @getsentry/telemetry-experience
 /src/sentry/sentry_metrics/querying/                                             @getsentry/telemetry-experience
 /tests/sentry/sentry_metrics/querying/                                           @getsentry/telemetry-experience
-/src/sentry/relay/config/ai_model_costs.py                                       @getsentry/telemetry-experience
-/src/sentry/tasks/ai_agent_monitoring.py                                         @getsentry/telemetry-experience
-/tests/sentry/tasks/test_ai_agent_monitoring.py                                  @getsentry/telemetry-experience
-/src/sentry/ai_monitoring/                                                       @getsentry/telemetry-experience
-/tests/sentry/ai_monitoring/                                                     @getsentry/telemetry-experience
 /static/app/actionCreators/metrics.tsx                                           @getsentry/telemetry-experience
-/static/app/views/insights/pages/agents/                                         @getsentry/telemetry-experience
-/static/app/views/insights/pages/mcp/                                            @getsentry/telemetry-experience
 /static/app/views/insights/pages/platform/                                       @getsentry/telemetry-experience
-/static/app/views/explore/conversations/                                  @getsentry/telemetry-experience
-/static/app/views/performance/traceDetails/traceDrawer/details/span/eapSections/ai*    @getsentry/data-browsing @getsentry/telemetry-experience
-/static/app/views/performance/traceDetails/traceDrawer/details/span/eapSections/mcp*   @getsentry/data-browsing @getsentry/telemetry-experience
-/static/app/views/performance/traceDetails/traceDrawer/tabs/traceAi*                   @getsentry/data-browsing @getsentry/telemetry-experience
 /src/sentry/ingest/inbound_filters.py                                            @getsentry/ingest @getsentry/telemetry-experience
 /tests/sentry/ingest/test_inbound_filters.py                                     @getsentry/ingest @getsentry/telemetry-experience
 /src/sentry/api/endpoints/project_filters.py                                     @getsentry/ingest @getsentry/telemetry-experience
@@ -624,6 +648,34 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/api/endpoints/test_project_filter_details.py                       @getsentry/ingest @getsentry/telemetry-experience
 /tests/sentry/api/endpoints/test_project_custom_inbound_filters.py               @getsentry/ingest @getsentry/telemetry-experience
 ## End of Telemetry Experience
+
+## Agent Tracing
+/src/sentry/relay/config/ai_model_costs.py                                             @getsentry/agent-tracing
+/src/sentry/tasks/ai_agent_monitoring.py                                               @getsentry/agent-tracing
+/tests/sentry/tasks/test_ai_agent_monitoring.py                                        @getsentry/agent-tracing
+/src/sentry/ai_monitoring/                                                             @getsentry/agent-tracing
+/tests/sentry/ai_monitoring/                                                           @getsentry/agent-tracing
+/src/sentry/telemetry_classifiers/                                                     @getsentry/agent-tracing
+/tests/sentry/telemetry_classifiers/                                                   @getsentry/agent-tracing
+/tests/sentry/api/endpoints/test_organization_ai_conversation*.py                      @getsentry/agent-tracing
+/src/sentry/apidocs/examples/ai_conversation_examples.py                               @getsentry/agent-tracing
+/src/sentry/analytics/events/agent_monitoring_events.py                                @getsentry/agent-tracing
+/static/app/views/insights/pages/agents/                                               @getsentry/agent-tracing
+/static/app/views/insights/pages/mcp/                                                  @getsentry/agent-tracing
+/static/app/views/insights/agentModels/                                                @getsentry/agent-tracing
+/static/app/views/insights/agentTools/                                                 @getsentry/agent-tracing
+/static/app/utils/analytics/agentMonitoringAnalyticsEvents.tsx                         @getsentry/agent-tracing
+/static/app/utils/analytics/conversationsAnalyticsEvents.tsx                           @getsentry/agent-tracing
+/static/app/utils/analytics/mcpMonitoringAnalyticsEvents.tsx                           @getsentry/agent-tracing
+/static/app/views/explore/conversations/                                               @getsentry/agent-tracing
+/static/app/views/performance/traceDetails/traceDrawer/details/span/eapSections/ai*    @getsentry/data-browsing @getsentry/agent-tracing
+/static/app/views/performance/traceDetails/traceDrawer/details/span/eapSections/mcp*   @getsentry/data-browsing @getsentry/agent-tracing
+/static/app/views/performance/traceDetails/traceDrawer/tabs/traceAi*                   @getsentry/data-browsing @getsentry/agent-tracing
+/static/app/views/insights/mcp-prompts/                                                @getsentry/agent-tracing
+/static/app/views/insights/mcp-resources/                                              @getsentry/agent-tracing
+/static/app/views/insights/mcp-tools/                                                  @getsentry/agent-tracing
+/static/app/views/dashboards/utils/prebuiltConfigs/ai/                                 @getsentry/agent-tracing
+## End of Agent Tracing
 
 ## Value Discovery
 /static/app/data/platformCategories.tsx                                          @getsentry/value-discovery
@@ -654,6 +706,8 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/middleware/test_viewer_context.py              @getsentry/machine-learning-ai
 /src/sentry/investigations/                                 @getsentry/machine-learning-ai @getsentry/agent-interfaces-sentry-backend
 /tests/sentry/investigations/                               @getsentry/machine-learning-ai @getsentry/agent-interfaces-sentry-backend
+/src/sentry/seer/workflows/                                 @getsentry/machine-learning-ai @getsentry/agent-interfaces-sentry-backend
+/tests/sentry/seer/workflows/                               @getsentry/machine-learning-ai @getsentry/agent-interfaces-sentry-backend
 
 ## End of ML & AI
 
@@ -699,7 +753,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/tasks/auto_source_code_config.py                @getsentry/agent-interfaces-sentry-backend
 /src/sentry/tasks/check_new_issue_threshold_met.py          @getsentry/issue-detection-backend
 /src/sentry/tasks/clear_expired_resolutions.py              @getsentry/issue-detection-backend
-/src/sentry/tasks/clear_expired_rulesnoozes.py              @getsentry/issue-detection-backend
 /src/sentry/tasks/clear_expired_snoozes.py                  @getsentry/issue-detection-backend
 /src/sentry/tasks/codeowners/                               @getsentry/agent-interfaces-sentry-backend
 /src/sentry/tasks/commits.py                                @getsentry/agent-interfaces-sentry-backend
@@ -744,7 +797,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/tasks/test_console_platform_cleanup.py        @getsentry/gdx
 /tests/sentry/tasks/test_check_new_issue_threshold_met.py   @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_clear_expired_resolutions.py       @getsentry/issue-detection-backend
-/tests/sentry/tasks/test_clear_expired_rulesnoozes.py       @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_clear_expired_snoozes.py           @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_code_owners.py                     @getsentry/agent-interfaces-sentry-backend
 /tests/sentry/tasks/test_commit_context.py                  @getsentry/agent-interfaces-sentry-backend
@@ -762,10 +814,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/api/endpoints/organization_onboarding_continuation_email.py          @getsentry/value-discovery
 /src/sentry/api/endpoints/project_create_sample.py                               @getsentry/value-discovery
 ## End of Onboarding
-
-## AI Conversations (Telemetry Experience)
-/tests/sentry/api/endpoints/test_organization_ai_conversation*.py                @getsentry/telemetry-experience
-## End of AI Conversations
 
 ## Billing
 /tests/js/getsentry-test/                               @getsentry/revenue
@@ -786,7 +834,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/gsApp/hooks/superuser*                @getsentry/foundations
 /static/gsApp/hooks/integration*              @getsentry/integration-platform
 /static/gsApp/components/crons/               @getsentry/crons
-/static/gsApp/components/replay*              @getsentry/replay-frontend
+/static/gsApp/components/replay*              @getsentry/replay
 
 ## gsAdmin
 # /static/gsAdmin/*                          unowned
@@ -806,10 +854,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/views/settings/organizationDeveloperSettings/               @getsentry/sentry-apps @getsentry/integration-platform
 ## End of Ecosystem
 
-
-# Taskbroker workers
-/src/sentry/taskworker/                                       @getsentry/streaming-platform
-/tests/sentry/taskworker/                                     @getsentry/streaming-platform
 
 # Tempest
 /src/sentry/tempest/                                       @getsentry/gdx
@@ -840,24 +884,12 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /bin/preprod/                                          @getsentry/emerge-tools
 # End of preprod
 
-## Frontend Platform (keep last as we want highest specificity)
-/static/app/utils/theme/                              @getsentry/design-engineering
-/static/app/components/commandPalette/                @getsentry/design-engineering
-/static/app/components/core/                          @getsentry/design-engineering
-/static/packages/scraps/                              @getsentry/design-engineering
+## Frontend Platform (keep last as we want highest specificity; shared code that appears in stack traces lives in the block near the top)
 /static/app/components/dnd/                           @getsentry/design-engineering
-/static/app/components/pageFilters/                   @getsentry/design-engineering
-/static/app/components/backendJsonFormAdapter/        @getsentry/design-engineering
-/static/app/icons/                                    @getsentry/design-engineering
 /static/app/stories/                                  @getsentry/design-engineering
-/static/app/components/commandPalette/                @getsentry/design-engineering
 /static/app/views/navigation/                         @getsentry/design-engineering
 /static/less/                                         @getsentry/design-engineering
-/static/app/views/settings/                           @getsentry/design-engineering
 /static/app/views/nav/                                @getsentry/design-engineering
-/static/app/bootstrap/                                @getsentry/design-engineering
-/static/app/bootstrap/initializeSdk.tsx               @getsentry/team-javascript-sdks-browser @getsentry/team-javascript-sdks-framework
-/static/app/components/commandPalette/                @getsentry/design-engineering
 # Config files
 /figma.config.json                                     @getsentry/design-engineering
 /knip.config.ts                                        @getsentry/design-engineering
@@ -879,12 +911,13 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 
 # Telemetry Experience frontend (after Frontend Platform and gsApp, which would otherwise shadow these)
 /static/app/views/settings/dynamicSampling/                         @getsentry/telemetry-experience
-/static/app/views/settings/project/projectFilters/                  @getsentry/ingest @getsentry/telemetry-experience
-/static/gsApp/components/features/disabledCustomInboundFilters.tsx  @getsentry/ingest @getsentry/telemetry-experience
+/static/app/views/settings/project/projectFilters/                  @getsentry/telemetry-experience
+/static/gsApp/components/features/disabledCustomInboundFilters.tsx  @getsentry/telemetry-experience
 # End of Telemetry Experience frontend
 
 # Agent Interfaces
 /static/app/views/investigations/                         @getsentry/agent-interfaces-sentry-frontend
+/static/app/views/seerWorkflows/                          @getsentry/agent-interfaces-sentry-frontend
 /static/app/components/seer/                              @getsentry/agent-interfaces-sentry-frontend
 /static/app/components/prevent/                           @getsentry/agent-interfaces-sentry-frontend
 /static/app/views/prevent/                                @getsentry/agent-interfaces-sentry-frontend

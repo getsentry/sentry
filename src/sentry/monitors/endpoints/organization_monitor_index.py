@@ -41,6 +41,7 @@ from sentry.db.models.query import in_iexact
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.monitors.logic.monitor_status import sync_cron_detector_enabled
 from sentry.monitors.models import (
     DEFAULT_STATUS_ORDER,
     MONITOR_ENVIRONMENT_ORDERING,
@@ -386,6 +387,8 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
                 if result:
                     monitor.update(**result)
                 updated.append(monitor)
+            if "status" in result:
+                sync_cron_detector_enabled(monitor)
             self.create_audit_entry(
                 request=request,
                 organization=organization,

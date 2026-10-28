@@ -1,20 +1,21 @@
 import {useCallback, useMemo, useState} from 'react';
+import {IconAdd} from '@sentry/icons/add';
+import {IconSubtract} from '@sentry/icons/subtract';
 import debounce from 'lodash/debounce';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 
-import {isDeveloperPlan} from 'getsentry/utils/billing';
+import {formatPrice, isDeveloperPlan} from 'getsentry/utils/billing';
 import {isReservedBudgetCategory} from 'getsentry/utils/dataCategory';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 import {VolumeSliders} from 'getsentry/views/amCheckout/components/volumeSliders';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
-import {formatPrice, getBucket, getShortInterval} from 'getsentry/views/amCheckout/utils';
+import {getBucket, getShortInterval} from 'getsentry/views/amCheckout/utils';
 
 export function ReserveAdditionalVolume({
   organization,

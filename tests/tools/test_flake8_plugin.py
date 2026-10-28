@@ -2,14 +2,29 @@ from __future__ import annotations
 
 import ast
 from datetime import datetime, timezone
+from unittest.mock import patch
 
-from tools.flake8_plugin import SentryCheck, _s015_msg
+from tools.flake8_plugin import S030_allowlist, SentryCheck, _s015_msg
 
 
 def _run(src: str, filename: str = "getsentry/t.py") -> list[str]:
     tree = ast.parse(src)
     errors = sorted(SentryCheck(tree=tree, filename=filename).run())
     return ["t.py:{}:{}: {}".format(*error) for error in errors]
+
+
+def _run_s030_allowlisted(src: str) -> list[str]:
+    filename = "src/sentry/seer/test_legacy_caller.py"
+    allowlist = {
+        filename: {
+            ("<module>", "import LlmGenerateRequest"): 1,
+            ("<module>", "import make_llm_generate_request"): 1,
+            ("legacy_caller", "call LlmGenerateRequest"): 1,
+            ("legacy_caller", "call make_llm_generate_request"): 1,
+        }
+    }
+    with patch.dict(S030_allowlist, allowlist, clear=True):
+        return _run(src, filename=filename)
 
 
 def test_S001() -> None:
@@ -214,6 +229,35 @@ class Test(ApiTestCase):
         "t.py:19:27: S011 Use override_options(...) instead to ensure proper cleanup",
     ]
     assert _run(src, filename="tests/test_example.py") == expected
+
+
+def test_S031() -> None:
+    src = """\
+from django.conf import settings
+
+def test(settings) -> None:
+    settings.FOO = 1  # bad
+    settings.FOO["a"] = 1  # bad
+    settings.FOO["a"]["b"] += 1  # bad
+    del settings.FOO  # bad
+    del settings.FOO["a"]  # bad
+    settings.lower = 1  # ok
+    self.settings.FOO = 1  # ok
+    foo = settings.FOO  # ok
+"""
+    msg = (
+        "S031 Do not assign to settings in tests; use override_settings(...) or "
+        "override_options(...) so the change is undone in order"
+    )
+    expected = [
+        f"t.py:4:4: {msg}",
+        f"t.py:5:4: {msg}",
+        f"t.py:6:4: {msg}",
+        f"t.py:7:8: {msg}",
+        f"t.py:8:8: {msg}",
+    ]
+    assert _run(src, filename="tests/test_example.py") == expected
+    assert _run(src, filename="src/sentry/conf/server.py") == []
 
 
 def test_S012() -> None:
@@ -563,6 +607,144 @@ def squash(root):
         "t.py:1:0: S024 stale safelist entry: this module no longer discovers and "
         "parses .py files. Remove it from S024_safelist."
     ]
+
+
+def test_S029_rejects_raw_seer_pool_request() -> None:
+    src = """\
+from django.conf import settings
+from sentry.net.http import connection_from_url
+
+seer_pool = connection_from_url(settings.SEER_AUTOFIX_URL)
+seer_pool.urlopen("POST", "/v1/example")
+"""
+
+    assert _run(src, filename="src/sentry/example.py") == [
+        "t.py:5:0: S029 Seer connection pools must use make_signed_seer_api_request; "
+        "raw urlopen bypasses ViewerContext propagation"
+    ]
+
+
+def test_S029_allows_central_seer_transport() -> None:
+    src = """\
+from django.conf import settings
+from sentry.net.http import connection_from_url
+from sentry.seer.signed_seer_api import make_signed_seer_api_request
+
+seer_pool = connection_from_url(settings.SEER_AUTOFIX_URL)
+make_signed_seer_api_request(seer_pool, "/v1/example", b"{}")
+"""
+
+    assert _run(src, filename="src/sentry/example.py") == []
+
+
+def test_S029_ignores_non_seer_pool() -> None:
+    src = """\
+from sentry.net.http import connection_from_url
+
+pool = connection_from_url("https://example.com")
+pool.urlopen("GET", "/")
+"""
+
+    assert _run(src, filename="src/sentry/example.py") == []
+
+
+def test_S030_allows_exact_legacy_callsite_baseline() -> None:
+    src = """\
+from sentry.seer.signed_seer_api import LlmGenerateRequest, make_llm_generate_request
+
+
+def legacy_caller():
+    body = LlmGenerateRequest(prompt="hello")
+    return make_llm_generate_request(body)
+"""
+
+    assert _run_s030_allowlisted(src) == []
+
+
+def test_S030_rejects_new_legacy_caller() -> None:
+    src = """\
+from sentry.seer.signed_seer_api import LlmGenerateRequest, make_llm_generate_request
+
+
+def new_caller():
+    body = LlmGenerateRequest(prompt="hello")
+    return make_llm_generate_request(body)
+"""
+
+    errors = _run(src, filename="src/sentry/seer/new_caller.py")
+    assert len(errors) == 4
+    assert all("S030 Do not add new callers" in error for error in errors)
+
+
+def test_S030_rejects_second_call_in_allowlisted_function() -> None:
+    src = """\
+from sentry.seer.signed_seer_api import LlmGenerateRequest, make_llm_generate_request
+
+
+def legacy_caller():
+    first = LlmGenerateRequest(prompt="first")
+    second = LlmGenerateRequest(prompt="second")
+    make_llm_generate_request(first)
+    return make_llm_generate_request(second)
+"""
+
+    errors = _run_s030_allowlisted(src)
+    assert errors == [
+        "t.py:6:13: S030 Do not add new callers of the legacy Seer LLM generate API; "
+        "add a named Seer one-shot so prompts and model selection stay in Seer",
+        "t.py:8:11: S030 Do not add new callers of the legacy Seer LLM generate API; "
+        "add a named Seer one-shot so prompts and model selection stay in Seer",
+    ]
+
+
+def test_S030_rejects_aliased_and_module_qualified_calls() -> None:
+    aliased = """\
+from sentry.seer.signed_seer_api import LlmGenerateRequest as LegacyRequest
+
+LegacyRequest(prompt="hello")
+"""
+    module_qualified = """\
+import sentry.seer.signed_seer_api as seer_api
+
+seer_api.make_llm_generate_request({})
+"""
+
+    assert len(_run(aliased, filename="src/sentry/example.py")) == 2
+    assert len(_run(module_qualified, filename="src/sentry/example.py")) == 2
+
+
+def test_S030_rejects_direct_route_bypass() -> None:
+    src = 'make_signed_seer_api_request(pool, "/v1/llm/generate", b"{}")\n'
+
+    assert _run(src, filename="src/sentry/example.py") == [
+        "t.py:1:35: S030 Do not add new callers of the legacy Seer LLM generate API; "
+        "add a named Seer one-shot so prompts and model selection stay in Seer"
+    ]
+
+
+def test_S030_reports_stale_allowlist_entry() -> None:
+    src = """\
+from sentry.seer.signed_seer_api import LlmGenerateRequest, make_llm_generate_request
+
+
+def legacy_caller():
+    return None
+"""
+
+    errors = _run_s030_allowlisted(src)
+    assert len(errors) == 2
+    assert all("S030 stale legacy Seer LLM generate allowlist entry" in error for error in errors)
+
+
+def test_S030_allows_legacy_api_definition() -> None:
+    src = """\
+class LlmGenerateRequest: ...
+
+def make_llm_generate_request(body):
+    return make_signed_seer_api_request(pool, "/v1/llm/generate", body)
+"""
+
+    assert _run(src, filename="src/sentry/seer/signed_seer_api.py") == []
 
 
 def _codes(src: str) -> list[str]:

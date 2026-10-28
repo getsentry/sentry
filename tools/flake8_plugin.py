@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 import os
+from collections import Counter
 from collections.abc import Generator
 from datetime import datetime, timezone
 from typing import Any
@@ -159,6 +160,33 @@ S024_safelist = frozenset(("tools/migrations/squash.py",))
 
 _S024_discovery_methods = frozenset(("rglob", "glob", "iglob"))
 
+S029_msg = (
+    "S029 Seer connection pools must use make_signed_seer_api_request; "
+    "raw urlopen bypasses ViewerContext propagation"
+)
+
+S030_msg = (
+    "S030 Do not add new callers of the legacy Seer LLM generate API; "
+    "add a named Seer one-shot so prompts and model selection stay in Seer"
+)
+S030_stale_msg = (
+    "S030 stale legacy Seer LLM generate allowlist entry for {} in {}; "
+    "remove it from S030_allowlist"
+)
+_S030_LEGACY_MODULE = "sentry.seer.signed_seer_api"
+_S030_LEGACY_NAMES = frozenset(("LlmGenerateRequest", "make_llm_generate_request"))
+_S030_LEGACY_ROUTE = "/v1/llm/generate"
+_S030_MODULE_SCOPE = "<module>"
+
+S031_msg = (
+    "S031 Do not assign to settings in tests; use override_settings(...) or "
+    "override_options(...) so the change is undone in order"
+)
+
+# Existing callers are pinned to their exact function and occurrence count. This is a
+# shrink-only migration baseline: remove entries as callers move to named Seer one-shots.
+S030_allowlist: dict[str, dict[tuple[str, str], int]] = {}
+
 
 # Rules whose diagnostics are fatal. Empty ships every rule off; adding one
 # gates every endpoint of that shape at once, with no baseline to maintain.
@@ -201,6 +229,18 @@ def _s015_msg() -> str:
 
 def _is_tests_path(filename: str) -> bool:
     return "tests/" in filename or "testutils/" in filename
+
+
+def _is_settings_target(node: ast.expr) -> bool:
+    """`settings.FOO`, `settings.FOO["x"]`, `settings.FOO["x"]["y"]`, ..."""
+    while isinstance(node, ast.Subscript):
+        node = node.value
+    return (
+        isinstance(node, ast.Attribute)
+        and node.attr.isupper()
+        and isinstance(node.value, ast.Name)
+        and node.value.id == "settings"
+    )
 
 
 def _is_platform_path(filename: str) -> bool:
@@ -404,6 +444,23 @@ def _name_of(node: ast.expr) -> str:
     if isinstance(node, ast.Subscript):
         return f"{_name_of(node.value)}[{_name_of(node.slice)}]"
     return ast.unparse(node)
+
+
+def _is_seer_connection_pool_call(node: ast.expr) -> bool:
+    if not isinstance(node, ast.Call):
+        return False
+    if _name_of(node.func).rsplit(".", 1)[-1] != "connection_from_url":
+        return False
+
+    for argument in [*node.args, *(keyword.value for keyword in node.keywords)]:
+        for child in ast.walk(argument):
+            if (
+                isinstance(child, ast.Attribute)
+                and child.attr.startswith("SEER_")
+                and child.attr.endswith("_URL")
+            ):
+                return True
+    return False
 
 
 def _is_response_subscript(node: ast.expr) -> ast.expr | None:
@@ -690,6 +747,13 @@ class SentryVisitor(ast.NodeVisitor):
         # S024: a hand-rolled linter both finds .py files and parses them.
         self._s024_discovers_py = False
         self._s024_parses: tuple[int, int] | None = None
+        # S029: pools created from SEER_*_URL must not make raw requests.
+        self._s029_seer_pool_names: set[str] = set()
+        self._s029_urlopen_calls: list[tuple[int, int, str]] = []
+        # S030: legacy generic Seer LLM API imports, calls, and route bypasses.
+        self._s030_legacy_names: dict[str, str] = {}
+        self._s030_module_aliases: set[str] = set()
+        self._s030_uses: list[tuple[int, int, str, str]] = []
         # Module-level classes, indexed as encountered. A base is always defined
         # before its subclass at module level, so in-order indexing suffices.
         self._module_classes: dict[str, ast.ClassDef] = {}
@@ -702,6 +766,13 @@ class SentryVisitor(ast.NodeVisitor):
         self._function_stack: list[str] = []
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
+        if node.module == _S030_LEGACY_MODULE and not node.level:
+            for alias in node.names:
+                if alias.name in _S030_LEGACY_NAMES:
+                    local_name = alias.asname or alias.name
+                    self._s030_legacy_names[local_name] = alias.name
+                    self._s030_record(node, f"import {alias.name}")
+
         if node.module and not node.level:
             if node.module.split(".")[0] in S003_modules:
                 self.errors.append((node.lineno, node.col_offset, S003_msg))
@@ -751,6 +822,10 @@ class SentryVisitor(ast.NodeVisitor):
 
     def visit_Import(self, node: ast.Import) -> None:
         for alias in node.names:
+            if alias.name == _S030_LEGACY_MODULE:
+                if alias.asname:
+                    self._s030_module_aliases.add(alias.asname)
+                self._s030_record(node, f"import {alias.name}")
             if alias.name.split(".")[0] in S003_modules:
                 self.errors.append((node.lineno, node.col_offset, S003_msg))
             elif (
@@ -793,6 +868,8 @@ class SentryVisitor(ast.NodeVisitor):
     def visit_Constant(self, node: ast.Constant) -> None:
         if isinstance(node.value, str) and node.value == S018_fqn:
             self.errors.append((node.lineno, node.col_offset, S018_msg))
+        elif isinstance(node.value, str) and node.value == _S030_LEGACY_ROUTE:
+            self._s030_record(node, f"use {_S030_LEGACY_ROUTE}")
 
         self.generic_visit(node)
 
@@ -884,6 +961,10 @@ class SentryVisitor(ast.NodeVisitor):
             self._function_depth -= 1
 
     def visit_Assign(self, node: ast.Assign) -> None:
+        if _is_seer_connection_pool_call(node.value):
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    self._s029_seer_pool_names.add(target.id)
         if self._input_stack:
             ctx = self._input_stack[-1]
             for target in node.targets:
@@ -903,7 +984,27 @@ class SentryVisitor(ast.NodeVisitor):
             y = _wall_clock_year_from_datetime_call(node.value)
             if y is not None and y >= self._s015_year:
                 self.errors.append((node.lineno, node.col_offset, self._s015_msg))
+        self._check_S031(node.targets)
         self.generic_visit(node)
+
+    def visit_AugAssign(self, node: ast.AugAssign) -> None:
+        self._check_S031([node.target])
+        self.generic_visit(node)
+
+    def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
+        self._check_S031([node.target])
+        self.generic_visit(node)
+
+    def visit_Delete(self, node: ast.Delete) -> None:
+        self._check_S031(node.targets)
+        self.generic_visit(node)
+
+    def _check_S031(self, targets: list[ast.expr]) -> None:
+        if not _is_tests_path(self.filename):
+            return
+        for target in targets:
+            if _is_settings_target(target):
+                self.errors.append((target.lineno, target.col_offset, S031_msg))
 
     def _check_S021(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
         annot = _extract_response_annotation_Ts(node.returns)
@@ -1003,6 +1104,22 @@ class SentryVisitor(ast.NodeVisitor):
             if self._s024_parses is None:
                 self._s024_parses = (node.lineno, node.col_offset)
 
+    def _s030_record(self, node: ast.stmt | ast.expr, kind: str) -> None:
+        function = self._function_stack[-1] if self._function_stack else _S030_MODULE_SCOPE
+        self._s030_uses.append((node.lineno, node.col_offset, function, kind))
+
+    def _s030_call_name(self, node: ast.expr) -> str | None:
+        if isinstance(node, ast.Name):
+            return self._s030_legacy_names.get(node.id)
+
+        qualified = _name_of(node)
+        for legacy_name in _S030_LEGACY_NAMES:
+            if qualified == f"{_S030_LEGACY_MODULE}.{legacy_name}":
+                return legacy_name
+            if any(qualified == f"{alias}.{legacy_name}" for alias in self._s030_module_aliases):
+                return legacy_name
+        return None
+
     def visit_Subscript(self, node: ast.Subscript) -> None:
         # Load only: `request.data["title"] = ...` writes a value, it does not
         # read a parameter the client sent.
@@ -1091,6 +1208,12 @@ class SentryVisitor(ast.NodeVisitor):
 
     def visit_Call(self, node: ast.Call) -> None:
         self._s024_visit_call(node)
+        if legacy_name := self._s030_call_name(node.func):
+            self._s030_record(node, f"call {legacy_name}")
+        if isinstance(node.func, ast.Attribute) and node.func.attr == "urlopen":
+            self._s029_urlopen_calls.append(
+                (node.lineno, node.col_offset, _name_of(node.func.value))
+            )
         if self._input_stack:
             self._record_validator(node)
             self._record_input_call(node)
@@ -1167,6 +1290,8 @@ class SentryCheck:
         visitor.visit(self.tree)
 
         yield from self._s024(visitor)
+        yield from self._s029(visitor)
+        yield from self._s030(visitor)
 
         for e in visitor.errors:
             yield (*e, type(self))
@@ -1182,3 +1307,26 @@ class SentryCheck:
             assert visitor._s024_parses is not None
             line, col = visitor._s024_parses
             yield (line, col, S024_msg, type(self))
+
+    def _s029(self, visitor: SentryVisitor) -> Generator[tuple[int, int, str, type[Any]]]:
+        for line, col, receiver in visitor._s029_urlopen_calls:
+            if receiver in visitor._s029_seer_pool_names:
+                yield (line, col, S029_msg, type(self))
+
+    def _s030(self, visitor: SentryVisitor) -> Generator[tuple[int, int, str, type[Any]]]:
+        rel = _repo_relative(self.filename)
+        if not rel.startswith("src/sentry/") or rel == "src/sentry/seer/signed_seer_api.py":
+            return
+
+        allowed = S030_allowlist.get(rel, {})
+        seen: Counter[tuple[str, str]] = Counter()
+        for line, col, function, kind in visitor._s030_uses:
+            key = (function, kind)
+            seen[key] += 1
+            if seen[key] > allowed.get(key, 0):
+                yield (line, col, S030_msg, type(self))
+
+        for key, expected_count in allowed.items():
+            if seen[key] < expected_count:
+                function, kind = key
+                yield (1, 0, S030_stale_msg.format(kind, function), type(self))

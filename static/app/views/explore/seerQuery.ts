@@ -14,6 +14,7 @@ import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {
   type BaseVisualize,
   isVisualize,
+  serializeVisualizes,
 } from 'sentry/views/explore/queryParams/visualize';
 
 type SeerVisualization = AskSeerSearchQuery['visualizations'][number];
@@ -123,9 +124,9 @@ export function getSeerWritableAggregateFields({
   visualizes: readonly BaseVisualize[];
   fallbackVisualizes?: readonly BaseVisualize[];
 }): WritableAggregateField[] {
-  const existingVisualizes = currentAggregateFields
-    .filter(isVisualize)
-    .map(visualize => visualize.serialize());
+  const existingVisualizes = serializeVisualizes(
+    currentAggregateFields.filter(isVisualize)
+  );
   const visualizesToUse = visualizes.length
     ? visualizes
     : existingVisualizes.length

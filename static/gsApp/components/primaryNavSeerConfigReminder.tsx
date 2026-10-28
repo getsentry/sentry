@@ -1,11 +1,11 @@
 import {Fragment, useEffect, useMemo} from 'react';
+import {IconSeer} from '@sentry/icons/seer';
 import {useQuery} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
@@ -23,8 +23,6 @@ function useReminderData() {
   const hasSeatBasedSeer = organization.features.includes('seat-based-seer-enabled');
   const hasLegacySeer = organization.features.includes('seer-added');
   const hasCodeReviewBeta = organization.features.includes('code-review-beta');
-
-  const hasGitLabSupport = organization.features.includes('seer-gitlab-support');
 
   const analyticsParams = useMemo(() => {
     return {
@@ -44,20 +42,16 @@ function useReminderData() {
   if (!canWrite || !hasSeatBasedSeer || isPending || isError) {
     return {canSeeReminder: false, analyticsParams, title: null, description: null};
   }
-  const {hasSupportedScmIntegration, isAutofixEnabled, isCodeReviewEnabled} = data;
+  const {hasSupportedScmIntegration, isAutofixEnabled} = data;
 
   if (!hasSupportedScmIntegration) {
     return {
       canSeeReminder: true,
       analyticsParams,
-      title: hasGitLabSupport ? t('Connect GitHub or GitLab') : t('Connect GitHub'),
-      description: hasGitLabSupport
-        ? t(
-            'Seer is enabled, but repositories are not connected. Connect your GitHub or GitLab account to enable Autofix and Code Review.'
-          )
-        : t(
-            'Seer is enabled, but repositories are not connected. Connect your GitHub account to enable Autofix and Code Review.'
-          ),
+      title: t('Connect GitHub or GitLab'),
+      description: t(
+        'Seer is enabled, but repositories are not connected. Connect your GitHub or GitLab account to enable Autofix and Code Review.'
+      ),
     };
   }
 
@@ -73,22 +67,6 @@ function useReminderData() {
       ),
       description: t(
         'Seer is enabled but projects are not connected to repos. Connect your source code and run Root Cause Analysis, Solution generation, and PR creation.'
-      ),
-    };
-  }
-
-  if (!isCodeReviewEnabled) {
-    return {
-      canSeeReminder: true,
-      analyticsParams,
-      title: (
-        <Flex align="center" gap="sm">
-          <IconSeer />
-          {t('Start using Code Review')}
-        </Flex>
-      ),
-      description: t(
-        'Seer is enabled but Code Review is not configured. Configure Seer to automatically review PRs and flag potential issues.'
       ),
     };
   }

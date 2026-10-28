@@ -124,6 +124,52 @@ describe('AggregateDropdown', () => {
     );
   });
 
+  it('only shows the Clear button when the selection differs from the default', async () => {
+    const organization = OrganizationFixture({
+      features: ['tracemetrics-enabled'],
+    });
+
+    const {unmount} = render(
+      <AggregateDropdown traceMetric={{name: 'test_metric', type: 'distribution'}} />,
+      {
+        organization,
+        additionalWrapper: createWrapper(),
+      }
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: /Agg/}));
+    expect(await screen.findByText('Percentiles')).toBeInTheDocument();
+    expect(screen.queryByText('Clear')).not.toBeInTheDocument();
+    unmount();
+
+    const queryParams = new ReadableQueryParams({
+      extrapolate: true,
+      mode: Mode.SAMPLES,
+      query: '',
+      cursor: '',
+      fields: ['id', 'timestamp'],
+      sortBys: [{field: 'timestamp', kind: 'desc'}],
+      aggregateCursor: '',
+      aggregateFields: [
+        new VisualizeFunction('p50(value,test_metric,distribution,none)'),
+      ],
+      aggregateSortBys: [
+        {field: 'p50(value,test_metric,distribution,none)', kind: 'desc'},
+      ],
+    });
+
+    render(
+      <AggregateDropdown traceMetric={{name: 'test_metric', type: 'distribution'}} />,
+      {
+        organization,
+        additionalWrapper: createWrapper({queryParams}),
+      }
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: /Agg/}));
+    expect(await screen.findByRole('button', {name: 'Clear'})).toBeInTheDocument();
+  });
+
   it('updates multiple visualizes on selection change', async () => {
     const organization = OrganizationFixture({
       features: ['tracemetrics-enabled'],

@@ -350,7 +350,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
     def test_token_auth(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
-            token = ApiToken.objects.create(user=self.user, scopes=256)
+            token = ApiToken.objects.create(user=self.user, scope_list=["event:write"])
         response = self.client.get(
             self.path, format="json", HTTP_AUTHORIZATION=f"Bearer {token.token}"
         )

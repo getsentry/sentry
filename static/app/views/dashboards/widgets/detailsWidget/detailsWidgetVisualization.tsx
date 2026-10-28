@@ -38,7 +38,7 @@ export function DetailsWidgetVisualization(props: DetailsWidgetVisualizationProp
       <DatabaseSpanDescription
         showBorder={false}
         shouldClipHeight={false}
-        groupId={spanGroup}
+        spanId={span[SpanFields.ID]}
         preliminaryDescription={spanDescription}
       />
     );

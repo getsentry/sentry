@@ -12,10 +12,10 @@ from rest_framework.response import Response
 
 from sentry import analytics, features, options, tagstore, tsdb
 from sentry.analytics.events.issue_viewed import IssueViewedEvent
-from sentry.api import client
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
+from sentry.api.client import client
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.helpers.environments import get_environment_func, get_environments
 from sentry.api.helpers.group_index import (
@@ -44,10 +44,9 @@ from sentry.integrations.api.serializers.models.external_issue import ExternalIs
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.action_log import (
     publish_action,
-    resolve_action_actor,
-    resolve_action_source,
 )
 from sentry.issues.action_log.read_metrics import activity_read_endpoint
+from sentry.issues.action_log.request import resolve_action_actor, resolve_action_source
 from sentry.issues.action_log.types import ViewAction
 from sentry.issues.constants import (
     ISSUE_VIEW_CACHE_KEY_TTL,
@@ -128,9 +127,29 @@ class GroupDetailsEndpoint(GroupEndpoint):
         }
     )
 
-    def _get_seen_by(self, request: Request, group: Group) -> list[dict[str, Any]]:
+    def _get_seen_by_and_participants(
+        self, request: Request, group: Group
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         seen_by = list(GroupSeen.objects.filter(group=group).order_by("-last_seen"))
-        return [seen for seen in serialize(seen_by, request.user) if seen is not None]
+        participant_ids = set(GroupSubscriptionManager.get_participating_user_ids(group))
+        user_ids = {seen.user_id for seen in seen_by} | participant_ids
+        users = (
+            user_service.serialize_many(
+                filter={"user_ids": sorted(user_ids)},
+                as_user=serialize_generic_user(request.user),
+            )
+            if user_ids
+            else []
+        )
+        users_by_id = {int(user["id"]): user for user in users}
+        return (
+            [
+                {**users_by_id[seen.user_id], "lastSeen": seen.last_seen}
+                for seen in seen_by
+                if seen.user_id in users_by_id
+            ],
+            [{**user, "type": "user"} for user in users if int(user["id"]) in participant_ids],
+        )
 
     def _report_status_inconsistency(self, group: Group) -> None:
         if options.get("issues.derived_data.read_path_checks.killswitch"):
@@ -244,7 +263,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
             )
 
             # TODO: these probably should be another endpoint
-            seen_by = self._get_seen_by(request, group)
+            seen_by, participants = self._get_seen_by_and_participants(request, group)
 
             if "release" not in collapse:
                 first_release, last_release = get_first_last_release(request, group)
@@ -287,7 +306,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 data.update({"owners": owners})
 
             if "forecast" in expand:
-                fetched_forecast = EscalatingGroupForecast.fetch(group.project_id, group.id)
+                fetched_forecast = EscalatingGroupForecast.fetch(group)
                 if fetched_forecast:
                     fetched_forecast_dict = fetched_forecast.to_dict()
                     data.update(
@@ -355,6 +374,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 {
                     "activity": activity_items,
                     "seenBy": seen_by,
+                    "participants": participants,
                     "userReportCount": user_reports.count(),
                     "count": get_group_global_count(group),
                 }
@@ -363,16 +383,6 @@ class GroupDetailsEndpoint(GroupEndpoint):
             if "stats" not in collapse:
                 hourly_stats, daily_stats = self.__group_hourly_daily_stats(group, environment_ids)
                 data["stats"] = {"24h": hourly_stats, "30d": daily_stats}
-
-            participants = user_service.serialize_many(
-                filter={"user_ids": GroupSubscriptionManager.get_participating_user_ids(group)},
-                as_user=serialize_generic_user(request.user),
-            )
-
-            for participant in participants:
-                participant["type"] = "user"
-
-            data.update({"participants": participants})
 
             publish_action(
                 ViewAction(),
@@ -440,7 +450,6 @@ class GroupDetailsEndpoint(GroupEndpoint):
         are modified.
         """
         try:
-            discard = request.data.get("discard")
             project = group.project
             search_fn = functools.partial(prep_search, request, project)
             response = update_groups_with_search_fn(
@@ -449,7 +458,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
             # if action was discard, there isn't a group to serialize anymore
             # if response isn't 200, return the response update_groups gave us (i.e. helpful error)
             # instead of serializing the updated group
-            if discard or response.status_code != 200:
+            if response.status_code != 200 or request.data.get("discard"):
                 return response
 
             # we need to fetch the object against as the bulk mutation endpoint
