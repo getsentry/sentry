@@ -75,6 +75,29 @@ describe('SubscriptionStore', () => {
     });
   });
 
+  it('does not run callbacks from a failed load after a retry', async () => {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/`,
+      statusCode: 500,
+      body: {},
+    });
+    const failedCallback = jest.fn();
+
+    await expect(
+      SubscriptionStore.loadData(organization.slug, failedCallback)
+    ).rejects.toBeDefined();
+
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/`,
+      body: subscription,
+    });
+    const retryCallback = jest.fn();
+
+    await SubscriptionStore.loadData(organization.slug, retryCallback);
+    expect(failedCallback).not.toHaveBeenCalled();
+    expect(retryCallback).toHaveBeenCalledTimes(1);
+  });
+
   it('shares a failed load with concurrent callers', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/`,

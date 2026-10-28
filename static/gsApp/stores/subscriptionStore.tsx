@@ -99,15 +99,22 @@ const subscriptionStoreConfig: SubscriptionStoreDefintion = {
     }
 
     // Share the in-flight request so every caller sees its failure, and clear it when it
-    // settles so a failed load can be retried.
+    // settles so a failed load can be retried. Drop the failed load's callbacks so a
+    // later retry does not run them.
     this.loadingData[orgSlug] ??= this.api
       .requestPromise(`/customers/${orgSlug}/`)
-      .then((data: Subscription) => {
-        if (markStartedTrial) {
-          data.isTrialStarted = true;
+      .then(
+        (data: Subscription) => {
+          if (markStartedTrial) {
+            data.isTrialStarted = true;
+          }
+          this.set(orgSlug, data);
+        },
+        (error: unknown) => {
+          delete this.callbacks[orgSlug];
+          throw error;
         }
-        this.set(orgSlug, data);
-      })
+      )
       .finally(() => {
         delete this.loadingData[orgSlug];
       });
