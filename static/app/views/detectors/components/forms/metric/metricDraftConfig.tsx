@@ -11,6 +11,7 @@ import {
   ExtrapolationMode,
 } from 'sentry/views/alerts/rules/metric/types';
 import {
+  draftDescription,
   draftField,
   draftNumericString,
   type DetectorDraftSchema,
@@ -27,6 +28,7 @@ export const METRIC_DETECTOR_DRAFT_SCHEMA: DetectorDraftSchema<MetricDetectorFor
       z.enum([DataConditionType.GREATER, DataConditionType.LESS])
     ),
     dataset: draftField(z.enum(DetectorDataset)),
+    description: draftField(draftDescription),
     detectionType: draftField(z.enum(['static', 'percent', 'dynamic'])),
     environment: draftField(z.string()),
     extrapolationMode: draftField(z.enum(ExtrapolationMode)),

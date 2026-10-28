@@ -19,6 +19,12 @@ export const draftNumericString = z
   .string()
   .refine(value => value === '' || Number.isFinite(Number(value)));
 
+const MAX_DRAFT_DESCRIPTION_LENGTH = 1024;
+
+export const draftDescription = z
+  .string()
+  .transform(value => Array.from(value).slice(0, MAX_DRAFT_DESCRIPTION_LENGTH).join(''));
+
 // Number inputs hold strings once edited.
 export const draftNumber = z.union([
   z.number(),

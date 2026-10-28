@@ -2,6 +2,7 @@ import moment from 'moment-timezone';
 import {z} from 'zod';
 
 import {
+  draftDescription,
   draftField,
   draftNumber,
   draftOptionalNumber,
@@ -16,6 +17,7 @@ const intervalUnits = new Set(getScheduleIntervals(1).map(({value}) => value));
 export const CRON_DETECTOR_DRAFT_SCHEMA: DetectorDraftSchema<CronDetectorFormData> =
   z.object({
     checkinMargin: draftField(draftOptionalNumber),
+    description: draftField(draftDescription),
     failureIssueThreshold: draftField(draftNumber),
     maxRuntime: draftField(draftOptionalNumber),
     name: draftField(z.string()),

@@ -2,6 +2,7 @@ import omit from 'lodash/omit';
 import {z} from 'zod';
 
 import {
+  draftDescription,
   draftField,
   draftNumericString,
   type DetectorDraftSchema,
@@ -15,6 +16,7 @@ import {
 export const PREPROD_DETECTOR_DRAFT_SCHEMA: DetectorDraftSchema<PreprodDetectorFormData> =
   z
     .object({
+      description: draftField(draftDescription),
       highThreshold: draftField(draftNumericString),
       lowThreshold: draftField(draftNumericString),
       measurement: draftField(z.enum(ALL_METRIC_TYPES)),
