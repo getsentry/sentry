@@ -21,7 +21,7 @@ from sentry.models.organization import Organization
 class MemberPermission(OrganizationPermission):
     scope_map = {
         "GET": ["member:read", "member:write", "dashboard:read"],
-        "PUT": ["member:read", "member:write", "dashboard:update"],
+        "PUT": ["member:read", "member:write", "dashboard:write"],
     }
 
 

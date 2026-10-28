@@ -226,9 +226,7 @@ class DeprecatedScopeTranslationTest(DRFPermissionTestCase):
             [
                 "org:read",
                 "dashboard:read",
-                "dashboard:create",
-                "dashboard:update",
-                "dashboard:delete",
+                "dashboard:write",
             ]
         )
         assert self.permission.has_permission(request, APIView())

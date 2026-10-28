@@ -1924,9 +1924,7 @@ SENTRY_SCOPES = {
     "alerts:read",
     "alerts:write",
     "dashboard:read",
-    "dashboard:create",
-    "dashboard:update",
-    "dashboard:delete",
+    "dashboard:write",
     "seer:read",
     "seer:write",
     # openid, profile, and email aren't prefixed to maintain compliance with the OIDC spec.
@@ -1972,14 +1970,7 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
     "alerts:read": {"alerts:read"},
     "alerts:write": {"alerts:read", "alerts:write"},
     "dashboard:read": {"dashboard:read"},
-    "dashboard:create": {"dashboard:read", "dashboard:create"},
-    "dashboard:update": {"dashboard:read", "dashboard:create", "dashboard:update"},
-    "dashboard:delete": {
-        "dashboard:read",
-        "dashboard:create",
-        "dashboard:update",
-        "dashboard:delete",
-    },
+    "dashboard:write": {"dashboard:read", "dashboard:write"},
     "seer:read": {"seer:read"},
     "seer:write": {"seer:read", "seer:write"},
     "openid": {"openid"},
@@ -2005,9 +1996,7 @@ SENTRY_TOKEN_ONLY_SCOPES = frozenset(
 GRANULAR_SCOPES = frozenset(
     [
         "dashboard:read",
-        "dashboard:create",
-        "dashboard:update",
-        "dashboard:delete",
+        "dashboard:write",
     ]
 )
 
@@ -2030,9 +2019,7 @@ DEPRECATED_SCOPE_TRANSLATIONS: dict[str, frozenset[str]] = {
             # Removed once org:read has a full 1:1 translation to granular scopes.
             "org:read",
             "dashboard:read",
-            "dashboard:create",
-            "dashboard:update",
-            "dashboard:delete",
+            "dashboard:write",
         ]
     ),
 }
@@ -2093,9 +2080,7 @@ SENTRY_SCOPE_SETS = (
         ("alerts:read", "Read alerts"),
     ),
     (
-        ("dashboard:delete", "Read, update, and delete access to dashboards."),
-        ("dashboard:update", "Read and update access to dashboards."),
-        ("dashboard:create", "Read and create access to dashboards."),
+        ("dashboard:write", "Read and write access to dashboards."),
         ("dashboard:read", "Read access to dashboards."),
     ),
     (
@@ -2317,9 +2302,7 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "alerts:read",
             "alerts:write",
             "dashboard:read",
-            "dashboard:create",
-            "dashboard:update",
-            "dashboard:delete",
+            "dashboard:write",
             "seer:read",
             "seer:write",
         },
@@ -2355,9 +2338,7 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "alerts:read",
             "alerts:write",
             "dashboard:read",
-            "dashboard:create",
-            "dashboard:update",
-            "dashboard:delete",
+            "dashboard:write",
             "seer:read",
             "seer:write",
         },
@@ -2388,9 +2369,7 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "alerts:read",
             "alerts:write",
             "dashboard:read",
-            "dashboard:create",
-            "dashboard:update",
-            "dashboard:delete",
+            "dashboard:write",
             "seer:read",
             "seer:write",
         },
@@ -2428,9 +2407,7 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "alerts:read",
             "alerts:write",
             "dashboard:read",
-            "dashboard:create",
-            "dashboard:update",
-            "dashboard:delete",
+            "dashboard:write",
             "seer:read",
             "seer:write",
         },
