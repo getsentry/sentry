@@ -48,9 +48,6 @@ class InvestigationCreateValidator(StrictCamelSnakeValidator):
 
 
 class InvestigationCandidatesValidator(StrictCamelSnakeValidator):
-    # The frontend still sends these. Accept and ignore them until it stops.
-    template_key = serializers.CharField(max_length=128, required=False, help_text="Ignored.")
-    template_version = serializers.IntegerField(min_value=1, required=False, help_text="Ignored.")
     sources = serializers.ListField(
         child=serializers.JSONField(),
         min_length=1,
