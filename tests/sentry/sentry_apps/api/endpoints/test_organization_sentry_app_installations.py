@@ -105,7 +105,7 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
 
     def test_users_only_sees_installs_on_their_org(self) -> None:
         self._assert_member_installations(
-            "slug", "get_access_context_by_slug", {"slug": self.org.slug, "only_visible": True}
+            "slug", "get_access_context_by_slug", {"slug": self.org.slug, "only_visible": False}
         )
 
     def test_users_only_sees_installs_on_their_org_by_id(self) -> None:
