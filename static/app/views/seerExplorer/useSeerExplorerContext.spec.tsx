@@ -14,10 +14,7 @@ import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplor
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 async function getSeerExplorerInput() {
-  const editor = await screen.findByRole('combobox', {name: 'Ask Seer a question'});
-  // user-event does not yet recognize contenteditable="plaintext-only".
-  editor.setAttribute('contenteditable', 'true');
-  return editor;
+  return await screen.findByRole('combobox', {name: 'Ask Seer a question'});
 }
 
 /** An "Ask Seer" entry point somewhere in the app. */

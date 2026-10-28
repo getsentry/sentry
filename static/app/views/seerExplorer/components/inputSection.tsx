@@ -313,7 +313,7 @@ const StyledComposer = styled(Composer, {
   flex: 1;
   max-height: 120px;
 
-  &:empty::before {
+  &[data-empty]::before {
     color: ${p =>
       p.isWarningPlaceholder
         ? p.theme.tokens.content.warning

@@ -352,8 +352,6 @@ describe('InvestigationFixtureApi', () => {
       );
 
       const composer = await screen.findByRole('combobox', {name: 'Add a comment'});
-      // user-event does not yet recognize contenteditable="plaintext-only".
-      composer.setAttribute('contenteditable', 'true');
       await userEvent.type(composer, 'Rolling back the autoscaling change.{Enter}');
 
       expect(await screen.findByText('Ada Lovelace commented')).toBeInTheDocument();

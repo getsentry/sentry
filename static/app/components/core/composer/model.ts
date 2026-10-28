@@ -17,53 +17,46 @@ export interface ComposerValue {
 }
 
 /**
- * Repositions mentions around a single plain-text edit and removes any mention
- * whose text was edited.
+ * Returns the mentions that can be rendered for `text`: sorted, non-overlapping,
+ * and covering exactly their own `text`. Stale ranges render as plain text.
  */
-export function reconcileMentions(
-  previousValue: string,
-  nextValue: string,
-  mentions: readonly Mention[]
-): readonly Mention[] {
-  if (previousValue === nextValue) {
-    return mentions;
-  }
+export function getRenderableMentions({mentions, text}: ComposerValue): Mention[] {
+  const renderable: Mention[] = [];
+  let previousEnd = 0;
 
-  let changeStart = 0;
-  const sharedPrefixLength = Math.min(previousValue.length, nextValue.length);
-  while (
-    changeStart < sharedPrefixLength &&
-    previousValue[changeStart] === nextValue[changeStart]
-  ) {
-    changeStart += 1;
-  }
-
-  let previousChangeEnd = previousValue.length;
-  let nextChangeEnd = nextValue.length;
-  while (
-    previousChangeEnd > changeStart &&
-    nextChangeEnd > changeStart &&
-    previousValue[previousChangeEnd - 1] === nextValue[nextChangeEnd - 1]
-  ) {
-    previousChangeEnd -= 1;
-    nextChangeEnd -= 1;
-  }
-
-  const offset = nextChangeEnd - previousChangeEnd;
-
-  return mentions.flatMap(mention => {
-    if (mention.end <= changeStart) {
-      return mention;
+  for (const mention of mentions.toSorted((a, b) => a.start - b.start)) {
+    if (
+      mention.start >= previousEnd &&
+      mention.end > mention.start &&
+      mention.end <= text.length &&
+      text.slice(mention.start, mention.end) === mention.text
+    ) {
+      renderable.push(mention);
+      previousEnd = mention.end;
     }
+  }
 
-    if (mention.start >= previousChangeEnd) {
-      return {
-        ...mention,
-        start: mention.start + offset,
-        end: mention.end + offset,
-      };
-    }
+  return renderable;
+}
 
-    return [];
-  });
+export function isSameComposerValue(a: ComposerValue, b: ComposerValue): boolean {
+  if (a === b) {
+    return true;
+  }
+
+  return (
+    a.text === b.text &&
+    a.mentions.length === b.mentions.length &&
+    a.mentions.every((mention, index) => {
+      const other = b.mentions[index];
+      return (
+        other !== undefined &&
+        mention.start === other.start &&
+        mention.end === other.end &&
+        mention.id === other.id &&
+        mention.sourceId === other.sourceId &&
+        mention.text === other.text
+      );
+    })
+  );
 }

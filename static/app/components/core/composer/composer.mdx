@@ -11,16 +11,23 @@ import {
   AsyncComposerDemo,
   CommandComposerDemo,
   ComposerDemo,
+  InlineComponentComposerDemo,
+  InteractiveMentionComposerDemo,
   RestoredComposerDemo,
+  SharedTriggerComposerDemo,
+  SizesComposerDemo,
+  SubmitComposerDemo,
 } from './__stories__/demos';
 
 export const documentation = import('!!type-loader!@sentry/scraps/composer/composer');
 
 `<Composer>` keeps editable text and structured references in one controlled value. Behavior is attached with plugins: each plugin contributes suggestion sources that provide their own data, identity, inserted text, and suggestion presentation.
 
+The editor is built on [Lexical](https://lexical.dev). Inserted references are atomic inline nodes: the caret moves around them, one Backspace removes a whole reference, and undo brings it back. The value stays plain text plus mention ranges, so forms, drafts, and serializers never see editor internals.
+
 ## Compose with multiple sources
 
-A plugin groups related sources under a stable `id`. This example combines local member and team sources. Selected references remain editable and are emphasized while their range is valid.
+A plugin groups related sources under a stable `id`. This example combines local member (`@`) and team (`#`) sources. The value below the editor updates as you type, select a suggestion, or delete a reference.
 
 Suggestion objects stay within their source. The controlled value stores only stable IDs and text ranges.
 
@@ -60,6 +67,75 @@ const mentionPlugin = {
 />;
 ```
 
+## Render references as inline components
+
+Provide `renderMention` on a source to render its references as React components, such as an avatar next to a name. The component renders inside your React tree, so theme, router, and query context are available. Its `text` is still what the value and copied text contain.
+
+Try moving the caret across a reference with the arrow keys, deleting it with Backspace, and restoring it with undo.
+
+<Storybook.Demo overflow="visible">
+  <InlineComponentComposerDemo />
+</Storybook.Demo>
+
+```jsx
+const mentionPlugin = {
+  id: 'mentions',
+  getSources: () => [
+    {
+      id: 'members',
+      label: 'Members',
+      trigger: '@',
+      getSuggestions: query => filterPeople(query),
+      getId: person => person.id,
+      getText: person => `@${person.label}`,
+      renderMention: mention => (
+        <Flex as="span" display="inline-flex" align="center" gap="xs">
+          <UserAvatar size={14} user={getPerson(mention.id)} />
+          {mention.text}
+        </Flex>
+      ),
+    },
+  ],
+};
+```
+
+Keep inline components close to the height of a line of text, so the caret and line wrapping stay predictable.
+
+## Edit a reference from inside it
+
+`renderMention` also receives `actions` for the mention it draws. Controls inside a mention, such as a menu's button and search field, keep their own keyboard and pointer input, and can swap the reference with `actions.replace()` or delete it with `actions.remove()`. Each action is one undoable edit, and the value reports the new text and range.
+
+Click the mention to choose someone else, or clear the selection to remove it. The menu renders inside the editor, which scrolls, so position it with `strategy="fixed"` to keep it from being clipped.
+
+<Storybook.Demo overflow="visible">
+  <InteractiveMentionComposerDemo />
+</Storybook.Demo>
+
+```jsx
+renderMention: (mention, actions) => (
+  <CompactSelect
+    clearable
+    search
+    strategy="fixed"
+    value={mention.id}
+    options={people.map(person => ({value: person.id, label: person.label}))}
+    trigger={props => (
+      <OverlayTrigger.Button {...props} size="zero" variant="transparent">
+        {mention.text}
+      </OverlayTrigger.Button>
+    )}
+    onChange={option => {
+      const person = getPerson(option?.value);
+      if (person) {
+        actions.replace({id: person.id, sourceId: 'members', text: `@${person.label}`});
+      } else {
+        actions.remove();
+      }
+    }}
+  />
+);
+```
+
 ## Share a trigger between sources
 
 Sources sharing a trigger character contribute suggestions to the same popup, and selecting an option resolves the source that owns it — so each source keeps its own inserted text and suggestion identity. Use this to offer several kinds of references under one affordance, such as members and teams on `@`.
@@ -95,11 +171,15 @@ const mentionPlugin = {
 />;
 ```
 
+<Storybook.Demo overflow="visible">
+  <SharedTriggerComposerDemo />
+</Storybook.Demo>
+
 A trigger group supports any number of local sources and at most one async source.
 
 ## Restore a value
 
-Persisted text and reference ranges can be supplied together, preserving identity across sessions.
+Persisted text and reference ranges can be supplied together, preserving identity across sessions. A range whose text no longer matches renders as plain text, and the value can include line breaks.
 
 <Storybook.Demo overflow="visible">
   <RestoredComposerDemo />
@@ -129,7 +209,7 @@ const [value, setValue] = useState({
 
 ## Load queried suggestions
 
-Async sources provide TanStack Query options, sharing the application's loading, caching, cancellation, and error behavior.
+Async sources provide TanStack Query options, sharing the application's loading, caching, cancellation, and error behavior. This example waits before responding: type `@al` to see loading and then results, `@zz` for the empty state, and `@err` for the error state.
 
 <Storybook.Demo overflow="visible">
   <AsyncComposerDemo />
@@ -205,3 +285,35 @@ const commandPlugin = {
   onChange={setValue}
 />;
 ```
+
+## Submit with Enter
+
+Composer inserts a line break on Enter. Handle `onKeyDown` to submit instead, and call `preventDefault()` to keep the line break out of the value. Composer handles keys first while suggestions are open, so Enter selects a suggestion rather than submitting, and it skips the Enter that confirms an input method candidate.
+
+<Storybook.Demo overflow="visible">
+  <SubmitComposerDemo />
+</Storybook.Demo>
+
+```jsx
+<Composer
+  aria-label="Message"
+  plugins={[mentionPlugin]}
+  value={value}
+  onChange={setValue}
+  onKeyDown={event => {
+    if (event.key === 'Enter' && !event.shiftKey && value.text.trim() !== '') {
+      event.preventDefault();
+      send(value);
+      setValue({text: '', mentions: []});
+    }
+  }}
+/>
+```
+
+## Sizes and long content
+
+Composer accepts the shared form `size` values and grows with its content. Constrain its height with `maxHeight` to scroll long drafts.
+
+<Storybook.Demo overflow="visible">
+  <SizesComposerDemo />
+</Storybook.Demo>

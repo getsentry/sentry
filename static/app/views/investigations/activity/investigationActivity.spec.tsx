@@ -38,10 +38,7 @@ function findActivity() {
 }
 
 async function findEditor(name: string) {
-  const editor = await screen.findByRole('combobox', {name});
-  // user-event does not yet recognize contenteditable="plaintext-only".
-  editor.setAttribute('contenteditable', 'true');
-  return editor;
+  return await screen.findByRole('combobox', {name});
 }
 
 describe('InvestigationActivity', () => {

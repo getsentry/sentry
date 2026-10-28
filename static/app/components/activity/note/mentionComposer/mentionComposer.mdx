@@ -8,6 +8,7 @@ import * as Storybook from 'sentry/stories';
 
 import {Stack} from '@sentry/scraps/layout';
 
+import {AssigneeSelectorMentionComposerDemo} from 'sentry/components/activity/note/mentionComposer/__stories__/demos';
 import {MentionComposer} from 'sentry/components/activity/note/mentionComposer/mentionComposer';
 
 export const documentation =
@@ -20,3 +21,19 @@ export const documentation =
     <MentionComposer mode="create" onSubmit={() => Promise.resolve()} />
   </Stack>
 </Storybook.Demo>
+
+## Mentions as assignee selectors
+
+Pass `assigneeSelector` with a project to render each member or team mention as the issue stream's `<AssigneeSelector>`. Clicking a mention opens the selector with that project's members and teams. Choosing someone swaps the mention, and clearing the selection removes it. The issue's assignee never changes.
+
+<Storybook.Demo overflow="visible">
+  <AssigneeSelectorMentionComposerDemo />
+</Storybook.Demo>
+
+```jsx
+<MentionComposer
+  mode="create"
+  assigneeSelector={{project: group.project}}
+  onSubmit={submitNote}
+/>
+```

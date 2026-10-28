@@ -1,9 +1,31 @@
-import {useCallback, useLayoutEffect, useMemo, useReducer, useRef, useState} from 'react';
+import {
+  useCallback,
+  useEffectEvent,
+  useLayoutEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
+import {createPortal} from 'react-dom';
 import {useTheme} from '@emotion/react';
+import {createEmptyHistoryState, registerHistory} from '@lexical/history';
+import {registerPlainText} from '@lexical/plain-text';
 import {ariaHideOutside} from '@react-aria/overlays';
 import {mergeProps} from '@react-aria/utils';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 import type {QueryStatus} from '@tanstack/react-query';
+import {
+  $setSelection,
+  CLEAR_HISTORY_COMMAND,
+  COMMAND_PRIORITY_CRITICAL,
+  createEditor,
+  HISTORY_MERGE_TAG,
+  KEY_DOWN_COMMAND,
+  type EditorState,
+  type LexicalEditor,
+} from 'lexical';
 
 import {Container} from '@sentry/scraps/layout';
 import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
@@ -12,18 +34,27 @@ import {useOverlay} from '@sentry/scraps/useOverlay';
 import {useStableMergeRef} from '@sentry/scraps/useStableMergeRef';
 
 import {
-  type EditorSelection,
-  getDOMPoint,
-  getEditorSelection,
-  readEditorValue,
-  setEditorSelection,
-  writeEditorValue,
-} from './dom';
+  $getSelectionOffsets,
+  $readComposerValue,
+  $readMatchableText,
+  $replaceRange,
+  $setSelectionOffsets,
+  $writeComposerValue,
+  getDOMRange,
+} from './editorState';
 import {findActiveTrigger, getRequestKey, type ActiveTrigger} from './matching';
-import {type Mention, type ComposerValue, reconcileMentions} from './model';
+import {
+  ComposerMentionNode,
+  MentionRendererContext,
+  registerMentionClick,
+} from './mentionNode';
+import {isSameComposerValue, type ComposerValue} from './model';
 import {CaretAnchor, ComposerEditor, SuggestionListBox, SuggestionStatus} from './styles';
 import type {ComposerProps} from './types';
 import {useComposerSuggestions} from './useComposerSuggestions';
+
+/** Marks updates that apply the controlled value, so they are not reported back. */
+const VALUE_SYNC_TAG = 'composer-value-sync';
 
 function getSuggestionStatusMessage(
   status: QueryStatus,
@@ -39,35 +70,101 @@ function getSuggestionStatusMessage(
   }
 }
 
-/**
- * Keeps the browser-managed contenteditable in sync with the controlled value.
- */
-function useEditorValueSync({mentions, text}: ComposerValue) {
-  const inputRef = useRef<HTMLDivElement>(null);
-  const isComposingRef = useRef(false);
-  const selectionToRestoreRef = useRef<EditorSelection | null>(null);
-  const [nativeEditVersion, requestValueSync] = useReducer(version => version + 1, 0);
+function isSameTrigger(a: ActiveTrigger | null, b: ActiveTrigger | null) {
+  return (
+    a === b ||
+    (a !== null &&
+      b !== null &&
+      a.start === b.start &&
+      a.end === b.end &&
+      a.query === b.query &&
+      a.trigger === b.trigger)
+  );
+}
+
+function hasFocus(editor: LexicalEditor) {
+  const root = editor.getRootElement();
+  return root !== null && root.ownerDocument.activeElement === root;
+}
+
+function useComposerEditor(
+  initialValue: ComposerValue,
+  rootRef: React.RefObject<HTMLDivElement | null>
+) {
+  const [editor] = useState(() => {
+    const nextEditor = createEditor({
+      namespace: 'Composer',
+      nodes: [ComposerMentionNode],
+      onError: error => {
+        throw error;
+      },
+    });
+    nextEditor.update(() => $writeComposerValue(initialValue), {
+      discrete: true,
+      tag: [VALUE_SYNC_TAG, HISTORY_MERGE_TAG],
+    });
+    return nextEditor;
+  });
+  // Lexical replaces its decorator map whenever a decorator changes.
+  const subscribeToDecorators = useCallback(
+    (onChange: () => void) => editor.registerDecoratorListener(onChange),
+    [editor]
+  );
+  const decorators = useSyncExternalStore(subscribeToDecorators, () =>
+    editor.getDecorators<React.ReactNode>()
+  );
+
+  // Attach the root from an effect rather than a callback ref. Owners such as
+  // form fields pass a new ref on every render, and reattaching the root
+  // resets Lexical's selection, so each keystroke would land at the start.
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    // Lexical requires a window, which detached documents do not have.
+    editor.setRootElement(root?.ownerDocument.defaultView ? root : null);
+    return () => editor.setRootElement(null);
+  }, [editor, rootRef]);
+
+  const resetHistoryRef = useRef(() => {});
+  const resetHistory = useCallback(() => resetHistoryRef.current(), []);
 
   useLayoutEffect(() => {
-    const input = inputRef.current;
-    if (!input) {
-      return;
-    }
+    const historyState = createEmptyHistoryState();
+    // History records a change only once it holds a starting state. The value
+    // is written outside of history, so without one, an edit that arrives
+    // before any selection change, such as a mention action, cannot be undone.
+    const startHistory = () => {
+      historyState.current = {editor, editorState: editor.getEditorState()};
+    };
+    startHistory();
+    resetHistoryRef.current = () => {
+      editor.dispatchCommand(CLEAR_HISTORY_COMMAND, undefined);
+      startHistory();
+    };
+    const cleanups = [
+      registerPlainText(editor),
+      registerHistory(editor, historyState, 300),
+      registerMentionClick(editor),
+      // Composer handles keys in the capture phase, ahead of Lexical's root
+      // listener. A handled key, or the Enter that confirms an IME candidate in
+      // Safari, must not also insert a line break.
+      editor.registerCommand(
+        KEY_DOWN_COMMAND,
+        event =>
+          event.defaultPrevented ||
+          event.isComposing ||
+          (event.key === 'Enter' && event.keyCode === 229),
+        COMMAND_PRIORITY_CRITICAL
+      ),
+    ];
+    return () => cleanups.forEach(cleanup => cleanup());
+  }, [editor]);
 
-    if (!isComposingRef.current) {
-      writeEditorValue(input, text, mentions);
-    }
+  const portals = Object.entries(decorators).map(([key, decorator]) => {
+    const element = editor.getElementByKey(key);
+    return element ? createPortal(decorator, element, key) : null;
+  });
 
-    const selectionToRestore = selectionToRestoreRef.current;
-    if (selectionToRestore !== null) {
-      input.focus({preventScroll: true});
-      setEditorSelection(input, selectionToRestore);
-      selectionToRestoreRef.current = null;
-    }
-    // oxlint-disable-next-line react/exhaustive-effect-dependencies
-  }, [mentions, nativeEditVersion, text]);
-
-  return {inputRef, isComposingRef, requestValueSync, selectionToRestoreRef};
+  return {editor, portals, resetHistory};
 }
 
 /**
@@ -75,32 +172,29 @@ function useEditorValueSync({mentions, text}: ComposerValue) {
  */
 function useCaretAnchorPosition({
   activeTrigger,
+  editor,
   inputRef,
-  trigger,
   updateOverlayPosition,
-  value,
 }: {
   activeTrigger: ActiveTrigger | null;
+  editor: LexicalEditor;
   inputRef: React.RefObject<HTMLDivElement | null>;
-  trigger: string | undefined;
   updateOverlayPosition: () => void;
-  value: string;
 }) {
   const anchorRef = useRef<HTMLSpanElement>(null);
   const updatePosition = useCallback(() => {
     const input = inputRef.current;
     const anchor = anchorRef.current;
     const container = input?.parentElement;
-    if (!input || !anchor || !container || !activeTrigger || !trigger) {
+    if (!input || !anchor || !container || !activeTrigger) {
       return;
     }
 
-    const start = getDOMPoint(input, activeTrigger.start);
-    const end = getDOMPoint(input, activeTrigger.start + trigger.length);
-    const range = input.ownerDocument.createRange();
-    range.setStart(start.node, start.offset);
-    range.setEnd(end.node, end.offset);
-    if (typeof range.getBoundingClientRect !== 'function') {
+    const range = getDOMRange(editor, {
+      start: activeTrigger.start,
+      end: activeTrigger.start + activeTrigger.trigger.length,
+    });
+    if (!range || typeof range.getBoundingClientRect !== 'function') {
       return;
     }
 
@@ -111,10 +205,10 @@ function useCaretAnchorPosition({
     anchor.style.width = `${Math.max(1, rangeRect.width)}px`;
     anchor.style.height = `${Math.max(1, rangeRect.height)}px`;
     updateOverlayPosition();
-  }, [activeTrigger, inputRef, trigger, updateOverlayPosition]);
+  }, [activeTrigger, editor, inputRef, updateOverlayPosition]);
 
   useLayoutEffect(() => {
-    if (!trigger) {
+    if (!activeTrigger) {
       return;
     }
 
@@ -127,15 +221,15 @@ function useCaretAnchorPosition({
     const resizeObserver = new ResizeObserver(updatePosition);
     resizeObserver.observe(input);
     return () => resizeObserver.disconnect();
-    // oxlint-disable-next-line react/exhaustive-effect-dependencies
-  }, [inputRef, trigger, updatePosition, value]);
+  }, [activeTrigger, inputRef, updatePosition]);
 
   return {anchorRef, updatePosition};
 }
 
 /**
- * A controlled multiline contenteditable with React Aria suggestion lists.
- * Mention ranges stay separate from the plain text used by forms and drafts.
+ * A controlled multiline editor built on Lexical, with React Aria suggestion
+ * lists. Mentions render as atomic inline components, while the value stays
+ * plain text plus structured mention ranges for forms and drafts.
  */
 export function Composer({
   ref,
@@ -148,17 +242,24 @@ export function Composer({
   style,
   ...editorProps
 }: ComposerProps) {
-  const {mentions, text: value} = inputValue;
   const theme = useTheme();
   const {t} = useTranslation();
-  const {inputRef, isComposingRef, requestValueSync, selectionToRestoreRef} =
-    useEditorValueSync(inputValue);
+  const inputRef = useRef<HTMLDivElement>(null);
+  const {editor, portals, resetHistory} = useComposerEditor(inputValue, inputRef);
+  const reportedValueRef = useRef<ComposerValue>(inputValue);
+  const [reportVersion, markValueReported] = useReducer(version => version + 1, 0);
+  const [isComposing, setIsComposing] = useState(false);
   const dismissedRequestKeyRef = useRef<string | null>(null);
   const [activeTrigger, setActiveTrigger] = useState<ActiveTrigger | null>(null);
 
   const sources = useMemo(
     () => plugins.flatMap(plugin => plugin.getSources()),
     [plugins]
+  );
+
+  const getMentionRenderer = useCallback(
+    (sourceId: string) => sources.find(source => source.id === sourceId)?.renderMention,
+    [sources]
   );
 
   const activeSources = useMemo(
@@ -193,22 +294,95 @@ export function Composer({
   const hasSuggestions = suggestionCount > 0;
   const popupLabel = [...new Set(activeSources.map(source => source.label))].join(', ');
 
-  const updateActiveTrigger = () => {
-    const input = inputRef.current;
-    if (!input) {
-      setActiveTrigger(null);
+  const updateActiveTrigger = (editorState?: EditorState) => {
+    const state = editorState ?? editor.getEditorState();
+    const {selection, text} = state.read(() => ({
+      selection: $getSelectionOffsets(),
+      text: $readMatchableText(),
+    }));
+    const nextActiveTrigger = selection
+      ? findActiveTrigger(text, selection.start, selection.end, sources)
+      : null;
+    const visibleTrigger =
+      getRequestKey(nextActiveTrigger) === dismissedRequestKeyRef.current
+        ? null
+        : nextActiveTrigger;
+    setActiveTrigger(current =>
+      isSameTrigger(current, visibleTrigger) ? current : visibleTrigger
+    );
+  };
+
+  const reportEditorValue = (editorState?: EditorState) => {
+    if (editor.isComposing()) {
       return;
     }
 
-    const selection = getEditorSelection(input);
-    const nextActiveTrigger = selection
-      ? findActiveTrigger(value, selection.start, selection.end, sources)
-      : null;
-    const nextRequestKey = getRequestKey(nextActiveTrigger);
-    setActiveTrigger(
-      nextRequestKey === dismissedRequestKeyRef.current ? null : nextActiveTrigger
-    );
+    const nextValue = (editorState ?? editor.getEditorState()).read($readComposerValue);
+    if (!isSameComposerValue(nextValue, reportedValueRef.current)) {
+      reportedValueRef.current = nextValue;
+      markValueReported();
+      onChange(nextValue);
+    }
   };
+
+  const handleEditorUpdate = useEffectEvent(
+    (editorState: EditorState, tags: Set<string>) => {
+      if (tags.has(VALUE_SYNC_TAG)) {
+        return;
+      }
+
+      reportEditorValue(editorState);
+      if (hasFocus(editor) && !editor.isComposing()) {
+        updateActiveTrigger(editorState);
+      }
+    }
+  );
+
+  useLayoutEffect(
+    () =>
+      editor.registerUpdateListener(({editorState, tags}) =>
+        handleEditorUpdate(editorState, tags)
+      ),
+    [editor]
+  );
+
+  // Applies controlled values the editor does not already show: external
+  // updates, restored drafts, and edits the owner rejected.
+  useLayoutEffect(() => {
+    if (editor.isComposing()) {
+      return;
+    }
+
+    const currentValue = editor.getEditorState().read($readComposerValue);
+    if (isSameComposerValue(currentValue, inputValue)) {
+      reportedValueRef.current = inputValue;
+      return;
+    }
+
+    const shouldKeepSelection = hasFocus(editor);
+    editor.update(
+      () => {
+        const selection = $getSelectionOffsets();
+        $writeComposerValue(inputValue);
+        if (shouldKeepSelection && selection) {
+          const clamp = (offset: number) => Math.min(offset, inputValue.text.length);
+          $setSelectionOffsets({
+            start: clamp(selection.start),
+            end: clamp(selection.end),
+          });
+        } else {
+          $setSelection(null);
+        }
+      },
+      {discrete: true, tag: [VALUE_SYNC_TAG, HISTORY_MERGE_TAG]}
+    );
+    reportedValueRef.current = editor.getEditorState().read($readComposerValue);
+    // Undo should not step back into a value the owner replaced.
+    resetHistory();
+    // reportVersion reruns this after every reported edit, so an owner that
+    // keeps its previous value also restores the editor.
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
+  }, [editor, inputValue, reportVersion, resetHistory]);
 
   const {
     overlayProps,
@@ -230,10 +404,9 @@ export function Composer({
   const {anchorRef: caretAnchorRef, updatePosition: updateSuggestionPosition} =
     useCaretAnchorPosition({
       activeTrigger,
+      editor,
       inputRef,
-      trigger: activeTrigger?.trigger,
       updateOverlayPosition,
-      value,
     });
   const setOverlayElement = overlayProps.ref;
   const setOverlayRef = useCallback(
@@ -250,10 +423,20 @@ export function Composer({
         setOverlayElement(null);
       };
     },
-    [inputRef, setOverlayElement]
+    [setOverlayElement]
   );
   const mergeInputRef = useStableMergeRef(inputRef);
   const mergeCaretAnchorRef = useStableMergeRef(caretAnchorRef);
+
+  const runEdit = (edit: () => void) => {
+    const input = inputRef.current;
+    if (input && input.ownerDocument.activeElement !== input) {
+      input.focus({preventScroll: true});
+    }
+    dismissedRequestKeyRef.current = null;
+    setActiveTrigger(null);
+    editor.update(edit);
+  };
 
   const selectSuggestion = (key: React.Key | null) => {
     if (!activeTrigger || key === null) {
@@ -265,74 +448,33 @@ export function Composer({
       return;
     }
     const {source, suggestion} = item;
+    const range = {start: activeTrigger.start, end: activeTrigger.end};
 
     if (source.onSelect) {
-      const {start, end} = activeTrigger;
       dismissedRequestKeyRef.current = getRequestKey(activeTrigger);
       setActiveTrigger(null);
       source.onSelect(suggestion, {
-        clear: () => {
-          dismissedRequestKeyRef.current = null;
-          selectionToRestoreRef.current = {start: 0, end: 0};
-          onChange({text: '', mentions: []});
-        },
-        insertText: text => {
-          const nextValue = value.slice(0, start) + text + value.slice(end);
-          const retainedMentions = reconcileMentions(value, nextValue, mentions);
-          const nextCaret = start + text.length;
-          dismissedRequestKeyRef.current = null;
-          selectionToRestoreRef.current = {start: nextCaret, end: nextCaret};
-          onChange({text: nextValue, mentions: retainedMentions});
-        },
+        clear: () =>
+          runEdit(() => {
+            $writeComposerValue({text: '', mentions: []});
+            $setSelectionOffsets({start: 0, end: 0});
+          }),
+        insertText: text => runEdit(() => $replaceRange(range, {text})),
       });
       return;
     }
 
-    const replacement = source.getText(suggestion);
-    const trailingText = /\s/.test(value[activeTrigger.end] ?? '') ? '' : ' ';
-    const insertedText = replacement + trailingText;
-    const nextValue =
-      value.slice(0, activeTrigger.start) + insertedText + value.slice(activeTrigger.end);
-    const retainedMentions = reconcileMentions(value, nextValue, mentions);
-    const nextMention: Mention = {
-      id: source.getId(suggestion),
-      sourceId: source.id,
-      start: activeTrigger.start,
-      end: activeTrigger.start + replacement.length,
-      text: replacement,
-    };
-
-    const nextCaret = activeTrigger.start + insertedText.length;
-    const afterSelection = {start: nextCaret, end: nextCaret};
-    selectionToRestoreRef.current = afterSelection;
-    dismissedRequestKeyRef.current = null;
-    setActiveTrigger(null);
-    onChange({
-      text: nextValue,
-      mentions: [...retainedMentions, nextMention].sort((a, b) => a.start - b.start),
-    });
-  };
-
-  const syncValueFromEditor = () => {
-    const input = inputRef.current;
-    if (!input || isComposingRef.current) {
-      return;
-    }
-
-    const nextValue = readEditorValue(input);
-    const nextMentions = reconcileMentions(value, nextValue, mentions);
-    const selection = getEditorSelection(input);
-    if (selection) {
-      selectionToRestoreRef.current = selection;
-    }
-    requestValueSync();
-    onChange({text: nextValue, mentions: nextMentions});
-    setActiveTrigger(
-      selection
-        ? findActiveTrigger(nextValue, selection.start, selection.end, sources)
-        : null
+    const mentionText = source.getText(suggestion);
+    const followingText = reportedValueRef.current.text[range.end] ?? '';
+    runEdit(() =>
+      $replaceRange(range, {
+        mention: {id: source.getId(suggestion), sourceId: source.id, text: mentionText},
+        text: /\s/.test(followingText) ? '' : ' ',
+      })
     );
   };
+
+  const isEmpty = inputValue.text === '' && !isComposing;
 
   // oxlint-disable-next-line react/refs
   const inputProps = mergeProps(editorProps, {
@@ -344,7 +486,9 @@ export function Composer({
     'aria-expanded': isOpen,
     'aria-haspopup': 'listbox',
     'aria-multiline': true,
-    contentEditable: 'plaintext-only' as const,
+    'aria-placeholder': placeholder,
+    contentEditable: true,
+    'data-empty': isEmpty ? '' : undefined,
     'data-placeholder': placeholder,
     suppressContentEditableWarning: true,
     tabIndex: editorProps.tabIndex ?? 0,
@@ -358,29 +502,26 @@ export function Composer({
       }
     },
     onCompositionEnd: () => {
-      isComposingRef.current = false;
-      syncValueFromEditor();
+      setIsComposing(false);
+      reportEditorValue();
     },
     onCompositionStart: () => {
-      isComposingRef.current = true;
+      setIsComposing(true);
       setActiveTrigger(null);
     },
     onFocus: () => {
       dismissedRequestKeyRef.current = null;
       updateActiveTrigger();
     },
-    onInput: (event: React.FormEvent<HTMLDivElement>) => {
-      if (!event.defaultPrevented) {
-        syncValueFromEditor();
-      }
-    },
-    onKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => {
+    // Lexical listens on the editor element itself, so Composer and its owner
+    // handle keys during capture to claim them before Lexical edits the text.
+    onKeyDownCapture: (event: React.KeyboardEvent<HTMLDivElement>) => {
       if (
         event.defaultPrevented ||
         event.nativeEvent.isComposing ||
         // Safari can end composition before dispatching the confirming keydown.
         event.nativeEvent.keyCode === 229 ||
-        isComposingRef.current
+        editor.isComposing()
       ) {
         return;
       }
@@ -415,11 +556,6 @@ export function Composer({
       }
       onKeyDown?.(event);
     },
-    onKeyUp: (event: React.KeyboardEvent<HTMLDivElement>) => {
-      if (!event.defaultPrevented) {
-        updateActiveTrigger();
-      }
-    },
     onPointerUp: (event: React.PointerEvent<HTMLDivElement>) => {
       if (!event.defaultPrevented) {
         dismissedRequestKeyRef.current = null;
@@ -427,16 +563,14 @@ export function Composer({
       }
     },
     onScroll: updateSuggestionPosition,
-    onSelect: (event: React.SyntheticEvent<HTMLDivElement>) => {
-      if (!event.defaultPrevented) {
-        updateActiveTrigger();
-      }
-    },
   });
 
   return (
     <Container position="relative" width="100%" minWidth="0">
       <ComposerEditor {...inputProps} ref={mergeInputRef(ref)} />
+      <MentionRendererContext.Provider value={getMentionRenderer}>
+        {portals}
+      </MentionRendererContext.Provider>
       <CaretAnchor aria-hidden ref={mergeCaretAnchorRef(triggerProps.ref)} />
       {isOpen ? (
         <PositionWrapper

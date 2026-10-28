@@ -27,16 +27,33 @@ export const ComposerEditor = styled(InputDiv)`
     font-size: ${p => p.theme.font.size.lg};
   }
 
-  & [data-mention] {
-    font-weight: ${p => p.theme.font.weight.sans.medium};
+  & p {
+    margin: 0;
   }
 
-  &:empty::before {
+  /* Lexical always renders a paragraph, so the placeholder keys off the
+     controlled value instead of :empty. */
+  &[data-empty]::before {
+    position: absolute;
     color: ${p => p.theme.tokens.content.secondary};
     content: attr(data-placeholder);
     pointer-events: none;
     white-space: pre-wrap;
   }
+`;
+
+/**
+ * Wraps rendered mentions. It is inline so line wrapping, selection
+ * highlighting, and caret movement treat a mention like a run of text.
+ */
+export const MentionChip = styled('span')`
+  border-radius: ${p => p.theme.radius.xs};
+  padding: 0 ${p => p.theme.space['2xs']};
+  background: ${p => p.theme.tokens.background.transparent.accent.muted};
+  color: ${p => p.theme.tokens.content.accent};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
 `;
 
 export const CaretAnchor = styled('span')`
