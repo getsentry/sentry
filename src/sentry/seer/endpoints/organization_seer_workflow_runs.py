@@ -71,7 +71,6 @@ class SeerWorkflowExecutionResponse(TypedDict):
 class SeerWorkflowRunResponse(TypedDict):
     id: str
     workflowConfigId: str
-    triggerKey: str | None
     status: str | None
     dateAdded: datetime
     dateUpdated: datetime
@@ -84,7 +83,7 @@ class SeerWorkflowRunsResponse(TypedDict):
     runs: list[SeerWorkflowRunResponse]
 
 
-class OrganizationSeerWorkflowsPermission(OrganizationPermission):
+class OrganizationSeerWorkflowRunsPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read"],
         "POST": ["org:read"],
@@ -93,13 +92,13 @@ class OrganizationSeerWorkflowsPermission(OrganizationPermission):
 
 @cell_silo_endpoint
 @extend_schema(tags=["Seer"])
-class OrganizationSeerWorkflowsEndpoint(OrganizationEndpoint):
+class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ML_AI
-    permission_classes = (OrganizationSeerWorkflowsPermission,)
+    permission_classes = (OrganizationSeerWorkflowRunsPermission,)
     enforce_rate_limit = True
     rate_limits = RateLimitConfig(
         limit_overrides={
@@ -120,20 +119,16 @@ class OrganizationSeerWorkflowsEndpoint(OrganizationEndpoint):
         },
     )
     def get(self, request: Request, organization: Organization) -> Response:
-        """List runs for Seer automation configs, newest first, with their executions.
+        """List automation runs with their executions, newest first.
 
-        Optionally filter by one positive integer ``config`` ID. Invalid or repeated
-        values return 400 with a ``detail`` error. Unknown configs and configs with
-        no visible runs return an empty ``runs`` list. Pagination links are in headers.
+        ``config`` filters by one config ID; omit it for organization-wide history.
+        Invalid or repeated IDs return 400; no visible matches return ``{"runs": []}``.
+        Pagination links are in headers.
 
-        Status and completion time come from each run or execution's lifecycle.
-        Historical rows without lifecycle tracking retain null statuses. ``error``
-        contains only a display-safe code and message, or null when absent.
-        Internal snapshots, inputs, and strategy-specific metadata are not exposed.
-        ``seerRunId`` is the linked Seer run UUID, or null when there is no linked run.
-        Members with limited project access only see runs whose saved snapshot
-        names projects they can access. Runs without a saved scope are hidden
-        from those members.
+        Historical rows without lifecycle tracking have null statuses. ``seerRunId``
+        is the linked Seer UUID or null. ``error`` contains a display-safe code and
+        message or null. Limited-access members must be able to access every project
+        in the saved run snapshot; runs without a saved scope are hidden from them.
         """
         if not features.has("organizations:seer-automations", organization, actor=request.user):
             raise NotFound
@@ -196,7 +191,6 @@ def serialize_workflow_runs(runs: Sequence[SeerWorkflowRun]) -> SeerWorkflowRuns
             {
                 "id": str(run.id),
                 "workflowConfigId": str(run.workflow_config_id),
-                "triggerKey": run.trigger_key,
                 "status": run.status,
                 "dateAdded": run.date_added,
                 "dateUpdated": run.date_updated,

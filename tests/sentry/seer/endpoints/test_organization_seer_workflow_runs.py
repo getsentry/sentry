@@ -13,7 +13,7 @@ from sentry.db.models.fields.bounded import I64_MAX
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.seer.endpoints.organization_seer_workflow_configs import serialize_workflow_configs
-from sentry.seer.endpoints.organization_seer_workflows import serialize_workflow_runs
+from sentry.seer.endpoints.organization_seer_workflow_runs import serialize_workflow_runs
 from sentry.seer.models.run import SeerAgentRun
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
@@ -34,7 +34,7 @@ from sentry.testutils.helpers.features import with_feature
 
 @override_settings(SENTRY_SELF_HOSTED=False)
 @with_feature("organizations:seer-automations")
-class OrganizationSeerWorkflowsTest(APITestCase):
+class OrganizationSeerWorkflowRunsTest(APITestCase):
     endpoint = "sentry-api-0-organization-seer-workflow-runs"
 
     def setUp(self) -> None:
@@ -74,7 +74,6 @@ class OrganizationSeerWorkflowsTest(APITestCase):
                 {
                     "id": str(run.id),
                     "workflowConfigId": str(self.config.id),
-                    "triggerKey": "issue_created:123",
                     "status": "running",
                     "dateAdded": run.date_added,
                     "dateUpdated": run.date_updated,

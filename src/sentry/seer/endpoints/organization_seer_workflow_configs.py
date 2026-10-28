@@ -76,9 +76,8 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
         ``filters`` contains strategy-specific filters. ``seededDefault`` records
         the seeded strategy even after edits.
         ``outputPolicy`` is the saved, opaque policy document.
-        ``lastRun`` is the creation time of the latest visible run in Unix seconds,
-        omitted when there are no visible runs. Run visibility uses the saved
-        project scope, as in the runs endpoint.
+        ``lastRun`` is the latest visible run's creation time in Unix seconds,
+        omitted if none are visible under the runs endpoint's project-scope rules.
         """
         if not features.has("organizations:seer-automations", organization, actor=request.user):
             raise NotFound
