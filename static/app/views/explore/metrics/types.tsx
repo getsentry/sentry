@@ -124,7 +124,6 @@ export interface TraceMetricEventsResult {
 export enum VirtualTableSampleColumnKey {
   EXPAND_ROW = 'expand_row', // Chevron acts as an additional column
   PROJECT_BADGE = 'project_badge',
-  BUCKET_RANGE = 'bucket_range',
 }
 
 export type SampleTableColumnKey = TraceMetricFieldKey | VirtualTableSampleColumnKey;

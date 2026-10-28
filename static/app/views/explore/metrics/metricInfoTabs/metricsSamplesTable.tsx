@@ -8,7 +8,6 @@ import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {
   getTraceSamplesTableFields,
-  HistogramTraceSamplesTableColumns,
   TraceSamplesTableColumns,
   TraceSamplesTableEmbeddedColumns,
 } from 'sentry/views/explore/metrics/constants';
@@ -36,8 +35,8 @@ const RESULT_LIMIT = 50;
 const EMBEDDED_RESULT_LIMIT = 100;
 
 interface MetricsSamplesTableProps {
+  emptyMessage?: React.ReactNode;
   isMetricOptionsEmpty?: boolean;
-  onPointIdClick?: (pointId: string) => void;
   overrideTableData?: TraceMetricEventsResponseItem[];
   overrideTableRoutingHint?: string;
   requiredQuery?: string;
@@ -48,8 +47,8 @@ interface MetricsSamplesTableProps {
 export function MetricsSamplesTable({
   traceMetric,
   source = DEFAULT_METRICS_SAMPLES_TABLE_SOURCE,
+  emptyMessage = '',
   isMetricOptionsEmpty,
-  onPointIdClick,
   overrideTableData,
   overrideTableRoutingHint,
   requiredQuery,
@@ -57,9 +56,7 @@ export function MetricsSamplesTable({
   const isEmbedded = isEmbeddedMetricsSamplesTableSource(source);
   const columns = isEmbedded
     ? TraceSamplesTableEmbeddedColumns
-    : traceMetric?.type === 'histogram'
-      ? HistogramTraceSamplesTableColumns
-      : TraceSamplesTableColumns;
+    : TraceSamplesTableColumns;
   const fields = getTraceSamplesTableFields(columns);
 
   const {
@@ -98,7 +95,6 @@ export function MetricsSamplesTable({
     <SimpleTableGrid
       header={<MetricsSamplesTableHeader columns={columns} source={source} />}
       source={source}
-      columnCount={columns.length}
     >
       {isFetching && (
         <LoadingMaskRow>
@@ -116,7 +112,6 @@ export function MetricsSamplesTable({
             meta={metaWithValueUnit}
             routingHint={overrideTableData ? overrideTableRoutingHint : meta.routingHint}
             source={source}
-            onPointIdClick={onPointIdClick}
           />
         ))
       ) : isFetching ? (
@@ -125,7 +120,10 @@ export function MetricsSamplesTable({
         </SimpleTable.Empty>
       ) : (
         <SimpleTable.Empty style={{minHeight: '140px'}}>
-          <GenericWidgetEmptyStateWarning title={t('No samples found')} message="" />
+          <GenericWidgetEmptyStateWarning
+            title={t('No samples found')}
+            message={emptyMessage}
+          />
         </SimpleTable.Empty>
       )}
     </SimpleTableGrid>
@@ -133,12 +131,11 @@ export function MetricsSamplesTable({
 }
 
 const SimpleTableGrid = styled(StyledSimpleTable)<{
-  columnCount: number;
   source: MetricsSamplesTableSource;
 }>`
   grid-template-columns: ${p =>
     isEmbeddedMetricsSamplesTableSource(p.source)
       ? `${p.theme.space['3xl']} min-content min-content minmax(0, 1fr) min-content min-content`
-      : `${p.theme.space['3xl']} min-content minmax(0, 1fr) repeat(${p.columnCount - 3}, min-content)`};
+      : `${p.theme.space['3xl']} min-content minmax(0, 1fr) min-content min-content`};
   grid-column: 1 / -1;
 `;

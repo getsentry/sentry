@@ -13,7 +13,6 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils/defined';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {ColumnValueType} from 'sentry/utils/discover/fields';
@@ -167,7 +166,6 @@ interface SampleTableRowProps {
   columns: SampleTableColumnKey[];
   meta: EventsMetaType;
   row: TraceMetricEventsResponseItem;
-  onPointIdClick?: (pointId: string) => void;
   ref?: RefObject<HTMLTableRowElement | null>;
   routingHint?: string;
   source?: MetricsSamplesTableSource;
@@ -282,7 +280,6 @@ export function SampleTableRow({
   meta,
   source = DEFAULT_METRICS_SAMPLES_TABLE_SOURCE,
   ref,
-  onPointIdClick,
 }: SampleTableRowProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -311,10 +308,6 @@ export function SampleTableRow({
   };
 
   const renderTraceCell = () => {
-    // OTLP data points carry no trace context; only exemplar rows link to a real trace.
-    if (row[TraceMetricKnownFieldKey.ROW_KIND] === 'bucket') {
-      return null;
-    }
     const timestamp = row[TraceMetricKnownFieldKey.TIMESTAMP];
     const spanId = row[TraceMetricKnownFieldKey.SPAN_ID];
     const oldSpanId = row[TraceMetricKnownFieldKey.OLD_SPAN_ID] as string;
@@ -358,36 +351,7 @@ export function SampleTableRow({
     );
   };
 
-  const renderBucketRangeCell = () => {
-    const lower = row[TraceMetricKnownFieldKey.BUCKET_LOWER];
-    const upper = row[TraceMetricKnownFieldKey.BUCKET_UPPER];
-    if (!defined(lower) || !defined(upper)) {
-      return null;
-    }
-    return <WrappingText>{`(${lower}, ${upper}]`}</WrappingText>;
-  };
-
-  const renderPointIdCell = () => {
-    const pointId = row[TraceMetricKnownFieldKey.POINT_ID];
-    if (!pointId) {
-      return null;
-    }
-    return (
-      <Button
-        size="zero"
-        variant="link"
-        tooltipProps={{title: t('Show all rows of this point')}}
-        onClick={() => onPointIdClick?.(String(pointId))}
-        disabled={!onPointIdClick}
-      >
-        {String(pointId).slice(0, 8)}
-      </Button>
-    );
-  };
-
   const renderMap: Record<SampleTableColumnKey, () => ReactNode> = {
-    [VirtualTableSampleColumnKey.BUCKET_RANGE]: renderBucketRangeCell,
-    [TraceMetricKnownFieldKey.POINT_ID]: renderPointIdCell,
     [VirtualTableSampleColumnKey.EXPAND_ROW]: renderExpandRowCell,
     [TraceMetricKnownFieldKey.TRACE]: renderTraceCell,
     [TraceMetricKnownFieldKey.TIMESTAMP]: () => (

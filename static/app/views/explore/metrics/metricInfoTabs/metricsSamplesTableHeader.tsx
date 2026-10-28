@@ -126,10 +126,6 @@ function getFieldLabel(field: SampleTableColumnKey): ReactNode {
     [TraceMetricKnownFieldKey.METRIC_NAME]: () => t('Application Metric'),
     [TraceMetricKnownFieldKey.METRIC_TYPE]: () => t('Type'),
     [VirtualTableSampleColumnKey.PROJECT_BADGE]: () => t('Project'),
-    [TraceMetricKnownFieldKey.ROW_KIND]: () => t('Row Kind'),
-    [VirtualTableSampleColumnKey.BUCKET_RANGE]: () => t('Bucket'),
-    [TraceMetricKnownFieldKey.BUCKET_COUNT]: () => t('Bucket Count'),
-    [TraceMetricKnownFieldKey.POINT_ID]: () => t('Point ID'),
   };
   return fieldLabels[field]?.() ?? null;
 }
