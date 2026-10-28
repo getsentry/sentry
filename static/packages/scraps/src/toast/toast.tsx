@@ -10,7 +10,6 @@ import {Spinner} from '@sentry/scraps/spinner';
 import {Text} from '@sentry/scraps/text';
 import type {Theme} from '@sentry/scraps/theme';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
-import {unreachable} from '@sentry/scraps/unreachable';
 
 import type {ToastAction, ToastVariant} from './types';
 
@@ -84,7 +83,7 @@ function ToastIcon({variant}: {variant: ToastVariant}) {
     case 'default':
       return null;
     default:
-      return unreachable(variant);
+      return variant satisfies never;
   }
 }
 
