@@ -188,11 +188,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
           },
           {
             key: 'project-settings',
-            label: (
-              <Text size="md" density="fixed" bold>
-                {t('Project Settings')}
-              </Text>
-            ),
+            label: t('Project Settings'),
             hidden: props.hideCurrentOrganizationLinks,
             children: [
               ...sortProjects(projects.filter(project => project.isBookmarked))
@@ -220,11 +216,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                 children: [
                   {
                     key: 'my-projects',
-                    label: (
-                      <Text size="md" density="fixed" bold>
-                        {t('My Projects')}
-                      </Text>
-                    ),
+                    label: t('My Projects'),
                     hidden: memberProjects.length === 0,
                     children: memberProjects.map(project =>
                       makeProjectMenuItem(
@@ -236,11 +228,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                   },
                   {
                     key: 'other-projects',
-                    label: (
-                      <Text size="md" density="fixed" bold>
-                        {t('Other Projects')}
-                      </Text>
-                    ),
+                    label: t('Other Projects'),
                     hidden: otherProjects.length === 0,
                     children: otherProjects.map(project =>
                       makeProjectMenuItem(

@@ -61,15 +61,17 @@ export function MenuHeading({
 export function MenuSectionLabel({
   children,
   padding,
+  size = 'sm',
   ...props
 }: Omit<React.HTMLAttributes<HTMLSpanElement>, 'color' | 'style'> & {
   children: React.ReactNode;
   padding?: ContainerProps['padding'];
+  size?: React.ComponentProps<typeof Text>['size'];
 }) {
   // TODO: Use the transparent menu heading color when Text exposes a variant for it.
   return (
     <Container padding={padding}>
-      <Text as="span" size="sm" density="fixed" bold tabular {...props}>
+      <Text as="span" size={size} density="fixed" bold tabular {...props}>
         {children}
       </Text>
     </Container>
