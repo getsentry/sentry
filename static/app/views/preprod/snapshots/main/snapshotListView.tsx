@@ -1123,7 +1123,7 @@ const StickyGroupHeader = styled('div')`
   height: 0;
   pointer-events: none;
 
-  label {
+  [data-viewed-checkbox] {
     pointer-events: auto;
   }
 

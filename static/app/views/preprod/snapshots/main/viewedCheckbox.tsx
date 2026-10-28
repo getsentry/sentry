@@ -33,6 +33,7 @@ export function ViewedCheckbox({
     >
       <Flex
         as="label"
+        data-viewed-checkbox=""
         align="center"
         gap="xs"
         marginBottom="0"
