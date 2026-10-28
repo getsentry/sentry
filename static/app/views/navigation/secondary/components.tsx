@@ -40,7 +40,6 @@ import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
-import type {Theme} from '@sentry/scraps/theme';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
 import {ProjectsBadge} from 'sentry/components/core/badge/projectsBadge';
@@ -964,13 +963,13 @@ function SecondaryNavigationReorderableLink({
   if (!settingsV3) {
     return (
       <Fragment>
-        <StyledReorderableLink {...sharedProps} layout="sidebar" settingsV3={false}>
+        <LegacyStyledReorderableLink {...sharedProps} layout="sidebar">
           <Flex justify="center" align="center" data-reorderable-handle-slot>
             {icon}
           </Flex>
           {children}
           {trailingItems}
-        </StyledReorderableLink>
+        </LegacyStyledReorderableLink>
         <GrabHandle />
       </Fragment>
     );
@@ -1001,11 +1000,7 @@ function SecondaryNavigationReorderableLink({
     <Fragment>
       <SecondaryNavigationRow cursor="pointer">
         {gridProps => (
-          <StyledReorderableLink
-            {...mergeProps(sharedProps, gridProps)}
-            layout="sidebar"
-            settingsV3
-          >
+          <StyledReorderableLink {...mergeProps(sharedProps, gridProps)} layout="sidebar">
             {content}
           </StyledReorderableLink>
         )}
@@ -1087,30 +1082,11 @@ const DotIndicator = styled('div')<{variant: 'accent' | 'danger' | 'warning'}>`
   border: 2px solid ${p => p.theme.tokens.border[p.variant].muted};
 `;
 
-// Preserve the existing navigation layout while settings-v3 is disabled.
-const legacySidebarNavigationLayout = (theme: Theme) => css`
-  display: flex;
-  gap: ${theme.space.sm};
-  justify-content: center;
-  align-items: center;
-  position: relative;
-  height: ${theme.form.sm.height};
-  padding: ${`${theme.space.md} ${theme.space.lg}`};
-  border-radius: ${theme.radius.md};
-`;
-
 const StyledReorderableLink = styled(Link, {
-  shouldForwardProp: prop => prop !== 'layout' && prop !== 'settingsV3',
+  shouldForwardProp: prop => prop !== 'layout',
 })<{
   layout: 'mobile' | 'sidebar';
-  settingsV3: boolean;
 }>`
-  ${p =>
-    !p.settingsV3 &&
-    css`
-      ${legacySidebarNavigationLayout(p.theme)}
-      cursor: pointer;
-    `}
   color: ${p => p.theme.tokens.interactive.link.neutral.rest};
   border: 1px solid transparent;
   user-select: none;
@@ -1146,39 +1122,123 @@ const StyledReorderableLink = styled(Link, {
   }
 `;
 
-const sidebarNavigationItemStyles = (theme: Theme) => css`
-  color: ${theme.tokens.interactive.link.neutral.rest};
+const LegacyStyledReorderableLink = styled(Link, {
+  shouldForwardProp: prop => prop !== 'layout',
+})<{
+  layout: 'mobile' | 'sidebar';
+}>`
+  display: flex;
+  gap: ${p => p.theme.space.sm};
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  color: ${p => p.theme.tokens.interactive.link.neutral.rest};
+  /* We need to cap the height at sm size as some items like the reorderable link with icons
+   * will otherwise cause the links to be taller, visually standing out when they are laid out in a list */
+  height: ${p => p.theme.form.sm.height};
+  padding: ${p => `${p.theme.space.md} ${p.theme.space.lg}`};
+  border-radius: ${p => p.theme.radius.md};
   border: 1px solid transparent;
+  cursor: pointer;
+  user-select: none;
+
+  &:focus-visible {
+    ${p => p.theme.focusRing()}
+  }
 
   &:hover {
-    color: ${theme.tokens.interactive.link.neutral.hover};
-    background-color: ${theme.tokens.interactive.transparent.neutral.background.hover};
-    border-color: ${theme.tokens.border.transparent.neutral.muted};
+    color: ${p => p.theme.tokens.interactive.link.neutral.hover};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
+    border-color: ${p => p.theme.tokens.border.transparent.neutral.muted};
   }
 
   &:active {
-    color: ${theme.tokens.content.primary};
-    border: 1px solid ${theme.tokens.interactive.transparent.accent.border};
-    background-color: ${theme.tokens.interactive.transparent.accent.background.active};
+    color: ${p => p.theme.tokens.content.primary};
+    border: 1px solid ${p => p.theme.tokens.interactive.transparent.accent.border};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.accent.background.active};
   }
 
   &[aria-current='page'] {
-    background-color: ${theme.tokens.interactive.transparent.accent.selected.background.rest};
-    border-color: ${theme.tokens.border.transparent.accent.muted};
-    color: ${theme.tokens.content.primary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.accent.selected.background.rest};
+    border-color: ${p => p.theme.tokens.border.transparent.accent.muted};
+    color: ${p => p.theme.tokens.content.primary};
 
     &:hover {
-      background-color: ${theme.tokens.interactive.transparent.accent.selected.background.hover};
+      background-color: ${p =>
+        p.theme.tokens.interactive.transparent.accent.selected.background.hover};
     }
   }
 `;
 
 const SidebarNavigationLink = styled(Link)`
-  ${p => sidebarNavigationItemStyles(p.theme)}
+  color: ${p => p.theme.tokens.interactive.link.neutral.rest};
+  border: 1px solid transparent;
+
+  &:hover {
+    color: ${p => p.theme.tokens.interactive.link.neutral.hover};
+    background-color: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
+    border-color: ${p => p.theme.tokens.border.transparent.neutral.muted};
+  }
+
+  &:active {
+    color: ${p => p.theme.tokens.content.primary};
+    border: 1px solid ${p => p.theme.tokens.interactive.transparent.accent.border};
+    background-color: ${p => p.theme.tokens.interactive.transparent.accent.background.active};
+  }
+
+  &[aria-current='page'] {
+    background-color: ${p => p.theme.tokens.interactive.transparent.accent.selected.background.rest};
+    border-color: ${p => p.theme.tokens.border.transparent.accent.muted};
+    color: ${p => p.theme.tokens.content.primary};
+
+    &:hover {
+      background-color: ${p => p.theme.tokens.interactive.transparent.accent.selected.background.hover};
+    }
+  }
 `;
 
-const LegacySidebarNavigationLink = styled(SidebarNavigationLink)`
-  ${p => legacySidebarNavigationLayout(p.theme)}
+const LegacySidebarNavigationLink = styled(Link)`
+  display: flex;
+  gap: ${p => p.theme.space.sm};
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  color: ${p => p.theme.tokens.interactive.link.neutral.rest};
+  /* We need to cap the height at sm size as some items like the reorderable link with icons
+   * will otherwise cause the links to be taller, visually standing out when they are laid out in a list */
+  height: ${p => p.theme.form.sm.height};
+  padding: ${p => `${p.theme.space.md} ${p.theme.space.lg}`};
+  border-radius: ${p => p.theme.radius.md};
+  border: 1px solid transparent;
+
+  &:hover {
+    color: ${p => p.theme.tokens.interactive.link.neutral.hover};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
+    border-color: ${p => p.theme.tokens.border.transparent.neutral.muted};
+  }
+
+  &:active {
+    color: ${p => p.theme.tokens.content.primary};
+    border: 1px solid ${p => p.theme.tokens.interactive.transparent.accent.border};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.accent.background.active};
+  }
+
+  &[aria-current='page'] {
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.accent.selected.background.rest};
+    border-color: ${p => p.theme.tokens.border.transparent.accent.muted};
+    color: ${p => p.theme.tokens.content.primary};
+
+    &:hover {
+      background-color: ${p =>
+        p.theme.tokens.interactive.transparent.accent.selected.background.hover};
+    }
+  }
 `;
 
 export const SecondaryNavigation = {
