@@ -597,8 +597,6 @@ describe('MetricDetectorTriggeredSection', () => {
       expect(launchMock).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
-          // No templateKey: the server builds an agentic run from the metric
-          // snapshot rather than a fixed notebook.
           data: {
             source: {
               type: 'metric_open_period',
