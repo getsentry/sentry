@@ -851,7 +851,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/data_secrecy/                                             @getsentry/foundations
 /static/app/views/settings/organizationDataForwarding/                  @getsentry/integration-platform
 /static/app/views/settings/organizationIntegrations/                    @getsentry/integration-platform
-/static/app/views/settings/organizationDeveloperSettings/               @getsentry/sentry-apps @getsentry/integration-platform
+/static/app/views/settings/organizationDeveloperSettings/               @getsentry/sentry-apps @getsentry/integration-platform @getsentry/issue-experience
 ## End of Ecosystem
 
 
