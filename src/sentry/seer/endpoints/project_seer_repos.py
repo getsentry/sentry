@@ -406,9 +406,9 @@ class ProjectSeerReposEndpoint(ProjectEndpoint):
                 "query",
                 type=str,
                 description=(
-                    "Filter repositories using Seer search syntax. `name` supports substring "
+                    "Filter repositories using Sentry search syntax. `name` supports substring "
                     "matching and is also the free-text key. `provider` supports `=`, `!=`, `IN`, "
-                    "and `NOT IN` operators."
+                    "and `NOT IN` operators, and matches with or without the `integrations:` prefix."
                 ),
             ),
             OpenApiParameter(
