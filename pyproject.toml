@@ -2149,7 +2149,6 @@ module = [
     "tests.sentry.web",
     "tests.sentry.web.frontend",
     "tests.sentry.web.frontend.test_auth_channel_login",
-    "tests.sentry.web.frontend.test_auth_close",
     "tests.sentry.web.frontend.test_auth_login",
     "tests.sentry.web.frontend.test_auth_logout",
     "tests.sentry.web.frontend.test_auth_oauth2",
