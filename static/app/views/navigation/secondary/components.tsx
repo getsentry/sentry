@@ -416,7 +416,9 @@ function SectionTitle(props: SectionTitleProps) {
         aria-expanded={!props.isCollapsed}
         onClick={() => props.setIsCollapsed(!props.isCollapsed)}
       >
-        {content}
+        <Flex as="span" align="center" gap="xs" minWidth="0">
+          {content}
+        </Flex>
       </Button>
     );
   }
