@@ -3,6 +3,7 @@ from unittest import mock
 
 import pytest
 
+from sentry.models.rule import Rule
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.issue_alert_registry import (
     AzureDevopsIssueAlertHandler,
@@ -38,7 +39,7 @@ from sentry.testutils.helpers.data_blobs import (
     JIRA_SERVER_ACTION_DATA_BLOBS,
     WEBHOOK_ACTION_DATA_BLOBS,
 )
-from sentry.workflow_engine.models import Action
+from sentry.workflow_engine.models import Action, AlertRuleWorkflow
 from sentry.workflow_engine.types import ActionInvocation, WorkflowEventData
 from sentry.workflow_engine.typings.notification_action import (
     ACTION_FIELD_MAPPINGS,
@@ -160,7 +161,23 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         assert self.workflow.environment is not None
         assert origin.environment_id == self.workflow.environment.id
         assert origin.workflow_id == self.workflow.id
-        assert origin.legacy_rule_id == self.rule.id
+        assert origin.legacy_rule_id is None
+
+    def test_create_notification_origin_does_not_query_legacy_rule(self) -> None:
+        with (
+            mock.patch.object(AlertRuleWorkflow.objects, "filter") as mock_mapping_lookup,
+            mock.patch.object(Rule.objects, "filter") as mock_rule_filter,
+            mock.patch.object(Rule.objects, "get") as mock_rule_get,
+        ):
+            origin = self.handler.create_notification_origin(
+                self.detector, self.event_data, workflow_id=self.workflow.id
+            )
+
+        mock_mapping_lookup.assert_not_called()
+        mock_rule_filter.assert_not_called()
+        mock_rule_get.assert_not_called()
+        assert origin.workflow_id == self.workflow.id
+        assert origin.legacy_rule_id is None
 
     def test_create_action_context_with_workflow_only(self) -> None:
         self.rule.delete()
@@ -216,6 +233,8 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         context, data = self.create_context_and_data(workflow_id=TEST_NOTIFICATION_ID)
 
         assert context.origin.label == self.detector.name
+        assert context.origin.workflow_id is None
+        assert context.origin.legacy_rule_id == TEST_NOTIFICATION_ID
         assert data == {
             "actions": [
                 {
@@ -284,7 +303,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         assert isinstance(context, NotificationActionContext)
         assert context.action_id == self.action.id
         assert context.origin.workflow_id == self.workflow.id
-        assert context.origin.legacy_rule_id == self.rule.id
+        assert context.origin.legacy_rule_id is None
         assert actions[0]["id"] == (
             "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction"
         )
