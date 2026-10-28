@@ -40,7 +40,8 @@ export function useMaxPickableDays({
       return getMaxPickableDays(dataCategory, organization);
     }
 
-    return getBestMaxPickableDays(dataCategories, getMaxPickableDaysFor);
+    const maxPickableDays = getBestMaxPickableDays(dataCategories, getMaxPickableDaysFor);
+    return subscription ? maxPickableDays : {...maxPickableDays, isLoading: true};
   }, [dataCategories, organization, subscription]);
 }
 
