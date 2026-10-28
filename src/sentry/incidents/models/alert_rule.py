@@ -10,11 +10,8 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy
 
 from sentry.backup.scopes import RelocationScope
-from sentry.constants import ObjectStatus
 from sentry.db.models import (
-    BoundedPositiveIntegerField,
     FlexibleForeignKey,
-    JSONField,
     Model,
     cell_silo_model,
     sane_repr,
@@ -23,7 +20,6 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.project import Project
-from sentry.notifications.models.notificationaction import AbstractNotificationAction
 from sentry.types.actor import Actor
 
 logger = logging.getLogger(__name__)
@@ -206,46 +202,3 @@ class AlertRuleTrigger(Model):
         app_label = "sentry"
         db_table = "sentry_alertruletrigger"
         unique_together = (("alert_rule", "label"),)
-
-
-class AlertRuleTriggerActionManager(BaseManager["AlertRuleTriggerAction"]):
-    """
-    A manager that excludes trigger actions that are pending to be deleted
-    """
-
-    def get_queryset(self) -> BaseQuerySet[AlertRuleTriggerAction]:
-        return super().get_queryset().exclude(status=ObjectStatus.PENDING_DELETION)
-
-
-@cell_silo_model
-class AlertRuleTriggerAction(AbstractNotificationAction):
-    """
-    This model represents an action that occurs when a trigger (over/under) is fired. This is
-    typically some sort of notification.
-
-    NOTE: AlertRuleTrigger is the 'threshold' for the AlertRule
-    """
-
-    # Retained only until state retirement; native rows are no longer backup inputs.
-    __relocation_scope__ = RelocationScope.Excluded
-
-    objects: ClassVar[AlertRuleTriggerActionManager] = AlertRuleTriggerActionManager()
-    objects_for_deletion: ClassVar[BaseManager[Self]] = BaseManager()
-
-    alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger", db_constraint=False)
-
-    date_added = models.DateTimeField(default=timezone.now)
-    sentry_app_config: models.Field[
-        # list of dicts if this is a sentry app, otherwise can be singular dict
-        dict[str, Any] | list[dict[str, Any]] | None,
-        dict[str, Any] | list[dict[str, Any]] | None,
-    ] = JSONField(null=True)
-    status = BoundedPositiveIntegerField(
-        default=ObjectStatus.ACTIVE,
-        db_default=ObjectStatus.ACTIVE,
-        choices=ObjectStatus.as_choices(),
-    )
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_alertruletriggeraction"
