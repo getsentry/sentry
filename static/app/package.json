@@ -48,7 +48,7 @@
     "@rspack/core": "2.2.8",
     "@sentry-internal/global-search": "^1.0.0",
     "@sentry/browser": "11.7.0",
-    "@sentry/conventions": "^0.27.0",
+    "@sentry/conventions": "^0.29.0",
     "@sentry/core": "11.7.0",
     "@sentry/icons": "workspace:*",
     "@sentry/react": "11.7.0",
@@ -57,6 +57,7 @@
     "@sentry/rrweb-player": "2.44.0",
     "@sentry/rrweb-snapshot": "2.44.0",
     "@sentry/scraps": "workspace:*",
+    "@sentry/search-syntax": "workspace:*",
     "@sentry/sqlish": "1.0.1",
     "@sentry/status-page-list": "^0.6.1",
     "@tanstack/query-async-storage-persister": "5.101.4",
@@ -122,7 +123,7 @@
     "sonner": "2.0.8",
     "sprintf-js": "1.0.3",
     "type-fest": "^5.10.0",
-    "zod": "4.3.5",
+    "zod": "4.6.7",
     "zxcvbn": "^4.4.2"
   },
   "devDependencies": {

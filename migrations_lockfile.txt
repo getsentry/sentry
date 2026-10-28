@@ -19,7 +19,7 @@ hybridcloud: 0045_drop_scopes_bitfield_columns
 
 insights: 0001_squashed_0002_backfill_team_starred
 
-investigations: 0011_add_investigation_action_request
+investigations: 0013_delete_precheck_from_action_request
 
 monitors: 0023_drop_checkin_monitor
 
@@ -33,9 +33,9 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0001_squashed_0007_organizationmember_replay_access
 
-seer: 0044_add_workflow_config_service_account
+seer: 0045_workflow_run_lifecycle
 
-sentry: 1237_detach_incident_foreign_keys
+sentry: 1238_grouprelease_new_release_id_not_null
 
 service_accounts: 0002_add_cell_replicas
 

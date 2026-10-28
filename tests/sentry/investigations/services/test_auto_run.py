@@ -437,11 +437,13 @@ class InvestigationOrchestrationDispatchTest(TestCase):
             {
                 "runId": self.seer_run_id,
                 "requestId": str(first.request_id),
+                "rerun": None,
                 "projection": self.projection(workflow_version=2),
             },
             {
                 "runId": self.seer_run_id,
                 "requestId": str(second.request_id),
+                "rerun": None,
                 "projection": self.projection(workflow_version=3),
             },
         ]
@@ -543,6 +545,7 @@ class InvestigationOrchestrationDispatchTest(TestCase):
         dispatch.return_value = {
             "runId": self.seer_run_id,
             "requestId": str(request_id),
+            "rerun": None,
             "projection": self.projection(workflow_version=2),
         }
         dispatch_investigation_orchestration_commands(self.orchestration_run.id)
@@ -591,6 +594,7 @@ class InvestigationOrchestrationDispatchTest(TestCase):
             return {
                 "runId": self.seer_run_id,
                 "requestId": str(command.request_id),
+                "rerun": None,
                 "projection": self.projection(workflow_version=command.resulting_workflow_version),
             }
 
@@ -790,6 +794,7 @@ class InvestigationOrchestrationDispatchTest(TestCase):
                 self.orchestration_run,
                 command,
                 {"organization_id": self.organization.id, "user_id": self.user.id},
+                "workflow_version_conflict",
             )
 
         self.orchestration_run.refresh_from_db()

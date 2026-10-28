@@ -20,10 +20,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {SpanDetailCard} from 'sentry/views/explore/conversations/components/conversationLayout';
-import {
-  EvaluationInputTab,
-  EvaluationOutputTab,
-} from 'sentry/views/explore/conversations/components/evaluationSpanTabs';
+import {EvaluationTab} from 'sentry/views/explore/conversations/components/evaluationSpanTab';
 import {
   MemoryInputTab,
   MemoryOutputTab,
@@ -73,13 +70,29 @@ import {traceGridCssVariables} from 'sentry/views/performance/traceDetails/trace
 
 const AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH = 100;
 
-export type DetailTab = 'input' | 'output' | 'attributes';
+export type DetailTab = 'input' | 'output' | 'decision' | 'attributes';
 
 export const CONVERSATION_SPAN_DETAIL_TABS: readonly DetailTab[] = [
   'input',
   'output',
+  'decision',
   'attributes',
 ];
+
+/**
+ * Decision spans show a single Decision tab in place of Input and Output. The
+ * selected tab is mapped rather than changed, so it carries over when moving
+ * between decision and other spans.
+ */
+function getVisibleTab(tab: DetailTab, isDecision: boolean): DetailTab {
+  if (tab === 'attributes') {
+    return tab;
+  }
+  if (isDecision) {
+    return 'decision';
+  }
+  return tab === 'decision' ? 'input' : tab;
+}
 
 /** The fetched attribute list, or undefined while it's still loading. */
 type SpanAttributes = Parameters<typeof getAIInputMessages>[1];
@@ -232,10 +245,20 @@ export function ConversationSpanDetail({
       ) : isError ? (
         <EmptySpanTab message={t('Failed to load span details')} />
       ) : (
-        <TabStateProvider<DetailTab> value={activeTab} onChange={onTabChange}>
+        <TabStateProvider<DetailTab>
+          value={getVisibleTab(activeTab, evaluation !== null)}
+          onChange={onTabChange}
+        >
           <TabList>
-            <TabList.Item key="input">{t('Input')}</TabList.Item>
-            <TabList.Item key="output">{t('Output')}</TabList.Item>
+            <TabList.Item key="input" hidden={evaluation !== null}>
+              {t('Input')}
+            </TabList.Item>
+            <TabList.Item key="output" hidden={evaluation !== null}>
+              {t('Output')}
+            </TabList.Item>
+            <TabList.Item key="decision" hidden={evaluation === null}>
+              {t('Decision')}
+            </TabList.Item>
             <TabList.Item key="attributes">{t('Attributes')}</TabList.Item>
           </TabList>
 
@@ -256,11 +279,6 @@ export function ConversationSpanDetail({
               <TabPanels.Item key="input">
                 {memory ? (
                   <MemoryInputTab memory={memory} />
-                ) : evaluation?.rawInput ? (
-                  <EvaluationInputTab
-                    input={evaluation.input}
-                    raw={evaluation.rawInput}
-                  />
                 ) : (
                   <InputTab node={node} attributes={attributes} />
                 )}
@@ -268,15 +286,12 @@ export function ConversationSpanDetail({
               <TabPanels.Item key="output">
                 {memory ? (
                   <MemoryOutputTab memory={memory} />
-                ) : evaluation?.rawOutput ? (
-                  <EvaluationOutputTab
-                    answers={evaluation.answers}
-                    questions={evaluation.input?.questions}
-                    raw={evaluation.rawOutput}
-                  />
                 ) : (
                   <OutputTab node={node} attributes={attributes} />
                 )}
+              </TabPanels.Item>
+              <TabPanels.Item key="decision">
+                {evaluation ? <EvaluationTab evaluation={evaluation} /> : null}
               </TabPanels.Item>
               <TabPanels.Item key="attributes">
                 <AttributesTab node={node} attributes={attributes} />

@@ -773,7 +773,11 @@ def validate_snuba() -> None:
         and
         # TODO(mattrobenolt): Remove ServiceDelegator check
         settings.SENTRY_TSDB
-        in ("sentry.tsdb.redissnuba.RedisSnubaTSDB", "sentry.utils.services.ServiceDelegator")
+        in (
+            "sentry.tsdb.snuba.SnubaTSDB",
+            "sentry.tsdb.redissnuba.RedisSnubaTSDB",
+            "sentry.utils.services.ServiceDelegator",
+        )
     )
 
     eventstream_is_snuba = (

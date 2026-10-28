@@ -65,12 +65,6 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleProjects,
     AlertRuleSeasonality,
     AlertRuleThresholdType,
-    AlertRuleTrigger,
-    AlertRuleTriggerAction,
-)
-from sentry.incidents.models.incident import (
-    Incident,
-    IncidentType,
 )
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.integrations.models.data_forwarder import DataForwarder
@@ -2086,43 +2080,6 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
-    def create_incident(
-        organization,
-        projects,
-        detection_uuid=None,
-        status=1,
-        title=None,
-        query="test query",
-        date_started=None,
-        date_detected=None,
-        date_closed=None,
-        alert_rule=None,
-        subscription=None,
-    ):
-        if not title:
-            title = petname.generate(2, " ", letters=10).title()
-        # Projects configure the default alert rule, not an incident-project relation.
-        if alert_rule is None:
-            alert_rule = Factories.create_alert_rule(
-                organization, projects, query=query, time_window=1
-            )
-
-        incident = Incident.objects.create(
-            organization=organization,
-            detection_uuid=detection_uuid,
-            status=status,
-            title=title,
-            alert_rule=alert_rule,
-            date_started=date_started or timezone.now(),
-            date_detected=date_detected or timezone.now(),
-            date_closed=timezone.now() if date_closed is not None else date_closed,
-            type=IncidentType.ALERT_TRIGGERED.value,
-            subscription=subscription,
-        )
-        return incident
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
     def create_alert_rule(
         organization,
         projects,
@@ -2203,47 +2160,6 @@ class Factories:
             alert_rule.update(date_added=date_added)
 
         return alert_rule
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
-    def create_alert_rule_trigger(alert_rule, label=None, alert_threshold=100):
-        if not label:
-            label = petname.generate(2, " ", letters=10).title()
-
-        return AlertRuleTrigger.objects.create(
-            alert_rule=alert_rule,
-            label=label,
-            alert_threshold=alert_threshold,
-        )
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
-    def create_alert_rule_trigger_action(
-        trigger,
-        type=AlertRuleTriggerAction.Type.EMAIL,
-        target_type=AlertRuleTriggerAction.TargetType.USER,
-        target_identifier=None,
-        target_display=None,
-        integration=None,
-        sentry_app=None,
-        sentry_app_config=None,
-    ):
-        return AlertRuleTriggerAction.objects.create(
-            alert_rule_trigger=trigger,
-            type=type.value,
-            target_type=target_type.value,
-            target_identifier=str(target_identifier) if target_identifier is not None else None,
-            target_display=(
-                target_display
-                if target_display is not None
-                else sentry_app.name
-                if sentry_app
-                else None
-            ),
-            integration_id=integration.id if integration else None,
-            sentry_app_id=sentry_app.id if sentry_app else None,
-            sentry_app_config=sentry_app_config,
-        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)

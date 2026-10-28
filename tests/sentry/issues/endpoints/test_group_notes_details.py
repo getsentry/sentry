@@ -52,6 +52,44 @@ class GroupNotesDetailsTest(APITestCase):
     def url(self) -> str:
         return f"/api/0/issues/{self.group.id}/comments/{self.activity.id}/"
 
+    def test_mutation_outbox_failure_rolls_back(self) -> None:
+        self.login_as(user=self.user)
+        note = self.activity
+        group = self.group
+        original_data = dict(note.data)
+        group.refresh_from_db()
+        initial_count = group.num_comments
+        self.create_group_action_log_entry(
+            type=GroupActionType.COMMENT,
+            data={"comment_id": note.id, "text": note.data.get("text")},
+            idempotency_key=f"activity:{note.id}",
+        )
+        GroupSubscription.objects.subscribe(
+            group=group, subscriber=self.user, reason=GroupSubscriptionReason.comment
+        )
+        for method in (self.client.put, self.client.delete):
+            with (
+                self.feature("projects:issue-action-log-write-to-db"),
+                patch(
+                    "sentry.issues.models.groupactionlogoutbox.GroupActionLogOutbox.save",
+                    side_effect=RuntimeError("enqueue failed"),
+                ),
+                patch("sentry.issues.comments._sync_comment") as sync,
+                patch("sentry.issues.comments.comment_updated.send_robust") as updated,
+                patch("sentry.issues.comments.comment_deleted.send_robust") as deleted,
+                self.captureOnCommitCallbacks(execute=True),
+            ):
+                response = method(self.url, data={"text": "rollback"}, format="json")
+                assert response.status_code == 500
+            note.refresh_from_db()
+            group.refresh_from_db()
+            assert note.data == original_data
+            assert group.num_comments == initial_count
+            assert GroupSubscription.objects.filter(group=group, user_id=self.user.id).exists()
+            sync.assert_not_called()
+            updated.assert_not_called()
+            deleted.assert_not_called()
+
     def test_delete_invalid_note_id(self) -> None:
         self.login_as(user=self.user)
         url = f"/api/0/issues/{self.group.id}/comments/abc/"

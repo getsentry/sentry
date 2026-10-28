@@ -555,11 +555,6 @@ class ExhaustiveFixtures(Fixtures):
         )
         alert.user_id = owner_id
         alert.save()
-        trigger = self.create_alert_rule_trigger(alert_rule=alert)
-        self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
-
-        # Incident*
-        self.create_incident(org, [project])
 
         # Dashboard
         dashboard = Dashboard.objects.create(
@@ -770,8 +765,9 @@ class ExhaustiveFixtures(Fixtures):
         WorkflowActionGroupStatus.objects.create(
             action=send_notification_action, group=group, workflow=workflow
         )
+        # A synthetic historical ID exercises mapping backup without native trigger rows.
         DataConditionAlertRuleTrigger.objects.create(
-            data_condition=data_condition, alert_rule_trigger_id=trigger.id
+            data_condition=data_condition, alert_rule_trigger_id=alert.id
         )
 
         TempestCredentials.objects.create(

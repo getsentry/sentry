@@ -5,6 +5,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 
+import {NotFound} from 'sentry/components/errors/notFound';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -13,16 +14,22 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 import {
   getAutomationRunsPath,
   getAutomationsPath,
+  useAutomationsEnabled,
 } from 'sentry/views/seerWorkflows/utils';
 
 export default function AutomationsLayout() {
   const organization = useOrganization();
   const location = useLocation();
+  const automationsEnabled = useAutomationsEnabled();
   const activeTab: 'automations' | 'runs' = location.pathname.includes(
     '/seer/automations/runs/'
   )
     ? 'runs'
     : 'automations';
+
+  if (!automationsEnabled) {
+    return <NotFound />;
+  }
 
   return (
     <SentryDocumentTitle title={t('Automations')} orgSlug={organization.slug}>

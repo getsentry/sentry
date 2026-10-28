@@ -55,6 +55,7 @@ from sentry.seer.autofix.pr_iteration.queue import QueuedAutofixFeedback
 from sentry.seer.models import SeerUnavailableError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
+from sentry.viewer_context import Actor, ActorType, ViewerContext, get_viewer_context
 
 CHECK_PATH = "sentry.seer.autofix.pr_iteration.listeners.check_suite"
 CHECK_SUITE_SOURCE_PATH = "sentry.seer.autofix.pr_iteration.feedback_sources.check_suite"
@@ -590,6 +591,77 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         _, kwargs = mock_enqueue.call_args
         assert kwargs["organization_id"] == self.organization.id
         mock_trigger_consume.assert_called_once()
+
+    @patch(TRIGGER_CONSUME_PATH)
+    @patch(f"{CHECK_PATH}.enqueue_autofix_feedback")
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
+    def test_seer_calls_run_as_each_orgs_integration(
+        self,
+        mock_resolve: MagicMock,
+        mock_get_state: MagicMock,
+        mock_enqueue: MagicMock,
+        mock_trigger_consume: MagicMock,
+    ) -> None:
+        mock_resolve.return_value = [
+            MagicMock(organization_id=111, id=1),
+            MagicMock(organization_id=self.organization.id, id=2),
+        ]
+        lookup_contexts: list[ViewerContext | None] = []
+
+        def get_state(*_args: object) -> SeerRunState | None:
+            lookup_contexts.append(get_viewer_context())
+            return None if len(lookup_contexts) == 1 else self._agent_state()
+
+        mock_get_state.side_effect = get_state
+        trigger_contexts: list[ViewerContext | None] = []
+
+        def trigger_consume(**_kwargs: object) -> TriggerDecision:
+            trigger_contexts.append(get_viewer_context())
+            return TriggerDecision(task=ConsumeTask.Now, reason="sweep_complete")
+
+        mock_trigger_consume.side_effect = trigger_consume
+
+        process_check_suite_event(self._event(self._raw(pull_requests=[own_repo_pr(555)])))
+
+        integration = Actor(type=ActorType.INTEGRATION)
+        assert lookup_contexts == [
+            ViewerContext(actor=integration, organization_id=111),
+            ViewerContext(actor=integration, organization_id=self.organization.id),
+        ]
+        assert trigger_contexts == [
+            ViewerContext(actor=integration, organization_id=self.organization.id)
+        ]
+        assert get_viewer_context() is None
+
+    @patch(f"{CHECK_PATH}.peek_queued_autofix_feedback", return_value=[])
+    @patch(f"{CHECK_PATH}.green_review_side_effects_enabled", return_value=True)
+    @patch(f"{CHECK_PATH}.get_run_marker", return_value=None)
+    @patch(f"{CHECK_PATH}.request_review_from_context")
+    @patch(f"{CHECK_PATH}.mark_ready_for_review")
+    @patch(f"{CHECK_PATH}.confirm_green_check_suite")
+    @patch(f"{CHECK_PATH}.resolve_green_check_suite")
+    def test_green_side_effects_run_as_the_orgs_integration(
+        self,
+        mock_resolve: MagicMock,
+        _mock_confirm: MagicMock,
+        _mock_mark_ready: MagicMock,
+        mock_request_review: MagicMock,
+        _mock_marker: MagicMock,
+        _mock_flag: MagicMock,
+        _mock_peek: MagicMock,
+    ) -> None:
+        mock_resolve.return_value = self._resolved_green()
+        contexts: list[ViewerContext | None] = []
+        mock_request_review.side_effect = lambda *_a, **_k: contexts.append(get_viewer_context())
+
+        process_check_suite_event(self._event(self._raw(), conclusion="success"))
+
+        assert contexts == [
+            ViewerContext(
+                actor=Actor(type=ActorType.INTEGRATION), organization_id=self.organization.id
+            )
+        ]
 
     @patch(f"{CHECK_PATH}.logger")
     @patch(f"{CHECK_PATH}.sentry_sdk.capture_exception")
