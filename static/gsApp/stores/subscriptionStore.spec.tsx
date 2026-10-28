@@ -54,6 +54,41 @@ describe('SubscriptionStore', () => {
     ).toBeUndefined();
   });
 
+  it('retries after a failed load', async () => {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/`,
+      statusCode: 500,
+      body: {},
+    });
+
+    await expect(SubscriptionStore.loadData(organization.slug)).rejects.toBeDefined();
+
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/`,
+      body: subscription,
+    });
+
+    await SubscriptionStore.loadData(organization.slug);
+    expect(SubscriptionStore.getState()[organization.slug]).toEqual({
+      ...subscription,
+      setAt: expect.any(Number),
+    });
+  });
+
+  it('shares a failed load with concurrent callers', async () => {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/`,
+      statusCode: 500,
+      body: {},
+    });
+
+    const first = SubscriptionStore.loadData(organization.slug);
+    const second = SubscriptionStore.loadData(organization.slug);
+
+    await expect(first).rejects.toBeDefined();
+    await expect(second).rejects.toBeDefined();
+  });
+
   it('should return stable reference from getState', () => {
     SubscriptionStore.set(organization.slug, subscription);
     const state = SubscriptionStore.getState();

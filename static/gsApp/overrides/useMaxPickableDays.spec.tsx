@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
-import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DataCategory} from 'sentry/types/core';
 
@@ -11,6 +11,16 @@ import {useMaxPickableDays} from './useMaxPickableDays';
 
 describe('useMaxPickableDays', () => {
   describe('before the subscription loads', () => {
+    beforeEach(() => {
+      SubscriptionStore.init();
+      MockApiClient.addMockResponse({
+        url: `/customers/${OrganizationFixture().slug}/`,
+        body: {},
+        // Keep the request pending so the subscription stays unloaded.
+        asyncDelay: new Promise(() => {}),
+      });
+    });
+
     afterEach(() => {
       jest.useRealTimers();
     });
@@ -148,6 +158,25 @@ describe('useMaxPickableDays', () => {
         maxPickableDays: 30,
         maxUpgradableDays: 90,
       });
+    });
+
+    it('stops loading when the subscription request fails', async () => {
+      const organization = OrganizationFixture();
+      MockApiClient.addMockResponse({
+        url: `/customers/${organization.slug}/`,
+        statusCode: 500,
+        body: {},
+      });
+
+      const {result} = renderHookWithProviders(
+        () => useMaxPickableDays({dataCategories: [DataCategory.TRANSACTIONS]}),
+        {organization}
+      );
+
+      expect(result.current.isLoading).toBe(true);
+      await waitFor(() =>
+        expect(result.current).toEqual({maxPickableDays: 90, maxUpgradableDays: 90})
+      );
     });
   });
 

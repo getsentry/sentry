@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import moment from 'moment-timezone';
 
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
@@ -15,6 +15,7 @@ import {
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {useSubscription} from 'getsentry/hooks/useSubscription';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import type {Subscription} from 'getsentry/types';
 
 export function useDefaultMaxPickableDays() {
@@ -27,6 +28,19 @@ export function useMaxPickableDays({
 }: UseMaxPickableDaysProps): MaxPickableDaysOptions {
   const organization = useOrganization();
   const subscription = useSubscription();
+  const [failedOrgSlug, setFailedOrgSlug] = useState<string | null>(null);
+  const isLoading = !subscription && failedOrgSlug !== organization.slug;
+
+  // Callers wait on isLoading, so a failed subscription request must stop the wait
+  // instead of leaving them loading forever. Retries a load that failed earlier.
+  useEffect(() => {
+    if (!isLoading) {
+      return;
+    }
+    SubscriptionStore.loadData(organization.slug).catch(() =>
+      setFailedOrgSlug(organization.slug)
+    );
+  }, [isLoading, organization.slug]);
 
   return useMemo(() => {
     function getMaxPickableDaysFor(dataCategory: DataCategory) {
@@ -41,8 +55,8 @@ export function useMaxPickableDays({
     }
 
     const maxPickableDays = getBestMaxPickableDays(dataCategories, getMaxPickableDaysFor);
-    return subscription ? maxPickableDays : {...maxPickableDays, isLoading: true};
-  }, [dataCategories, organization, subscription]);
+    return isLoading ? {...maxPickableDays, isLoading} : maxPickableDays;
+  }, [dataCategories, isLoading, organization, subscription]);
 }
 
 function getMaxPickableDaysBySubscription(
