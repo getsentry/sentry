@@ -1,8 +1,6 @@
 import {useCallback, useMemo} from 'react';
-import type {Location, LocationDescriptorObject} from 'history';
+import type {Location} from 'history';
 
-import {URL_PARAM} from 'sentry/components/pageFilters/constants';
-import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import {parseFunction, type Sort} from 'sentry/utils/discover/fields';
 import {decodeList, decodeSorts, encodeSort} from 'sentry/utils/queryString';
@@ -19,7 +17,6 @@ import {
 import {buildConditionalAggregate} from 'sentry/views/explore/utils/conditionalAggregate';
 import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 // Read utils begin
 
@@ -410,56 +407,4 @@ export function getFieldsForConstructedQuery(yAxes: string[]): string[] {
 
 export function getQueryMode(groupBys?: string[]): Mode {
   return groupBys?.length === 0 ? Mode.SAMPLES : Mode.AGGREGATE;
-}
-
-function getCompareBaseUrl(organization: Organization) {
-  return makeTracesPathname({
-    organization,
-    path: '/compare/',
-  });
-}
-
-type CompareRouteProps = {
-  location: Location;
-  mode: Mode;
-  organization: Organization;
-  queries: WritableExploreQueryParts[];
-};
-
-export function generateExploreCompareRoute({
-  organization,
-  location,
-  mode,
-  queries,
-}: CompareRouteProps): LocationDescriptorObject {
-  const url = getCompareBaseUrl(organization);
-  const compareQueries = queries.map(query => {
-    const normalized = normalizeCompareQueryParts({
-      ...query,
-      yAxes: query.yAxes ?? [],
-    });
-    return {
-      ...normalized,
-      fields: getFieldsForConstructedQuery(normalized.yAxes ?? []),
-      groupBys: mode === Mode.AGGREGATE ? normalized.groupBys?.filter(Boolean) : [],
-    };
-  });
-
-  if (compareQueries.length < 2) {
-    compareQueries.push(DEFAULT_QUERY);
-  }
-  const query = {
-    [URL_PARAM.END]: location.query.end,
-    [URL_PARAM.START]: location.query.start,
-    [URL_PARAM.UTC]: location.query.utc,
-    [URL_PARAM.PERIOD]: location.query.statsPeriod,
-    [URL_PARAM.PROJECT]: location.query.project,
-    [URL_PARAM.ENVIRONMENT]: location.query.environment,
-    queries: getQueriesAsUrlParam(compareQueries),
-  };
-
-  return {
-    pathname: url,
-    query,
-  };
 }
