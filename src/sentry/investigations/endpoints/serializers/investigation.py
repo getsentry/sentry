@@ -21,19 +21,16 @@ from sentry.investigations.endpoints.serializers.block import (
 from sentry.investigations.endpoints.serializers.parameter import (
     InvestigationParameterSerializerResponse,
 )
-from sentry.investigations.models import (
-    Investigation,
-    InvestigationActionRequest,
-    InvestigationActionRequestState,
-    InvestigationBlock,
-    InvestigationFavoriteUser,
-    InvestigationOrchestrationRun,
-    InvestigationProject,
-    InvestigationSourceType,
-)
+from sentry.investigations.models import InvestigationOrchestrationRun
 from sentry.investigations.services.action_requests import STALE
-from sentry.investigations.services.investigations import (
-    investigation_filters,
+from sentry.notebooks.models import (
+    Notebook,
+    NotebookActionRequest,
+    NotebookActionRequestState,
+    NotebookBlock,
+    NotebookFavoriteUser,
+    NotebookProject,
+    NotebookSourceType,
 )
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -72,7 +69,7 @@ class InvestigationOrchestrationSerializerResponse(TypedDict):
 
 
 def orchestration_summaries_by_investigation(
-    investigations: Sequence[Investigation],
+    investigations: Sequence[Notebook],
 ) -> dict[int, InvestigationOrchestrationSerializerResponse]:
     return {
         investigation_id: {
@@ -136,17 +133,17 @@ class InvestigationDetailsSerializerResponse(InvestigationSerializerResponse):
     actionRequests: list[InvestigationActionRequestSerializerResponse]
 
 
-@register(Investigation)
+@register(Notebook)
 class InvestigationSerializer(Serializer):
     @override
     def get_attrs(
         self,
-        item_list: Sequence[Investigation],
+        item_list: Sequence[Notebook],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
-    ) -> MutableMapping[Investigation, dict[str, Any]]:
+    ) -> MutableMapping[Notebook, dict[str, Any]]:
         block_counts = dict(
-            Investigation.objects.filter(id__in=[i.id for i in item_list])
+            Notebook.objects.filter(id__in=[i.id for i in item_list])
             .annotate(active_block_count=Count("blocks", filter=Q(blocks__deleted_at__isnull=True)))
             .values_list("id", "active_block_count")
         )
@@ -155,9 +152,9 @@ class InvestigationSerializer(Serializer):
         user_id = getattr(user, "id", None)
         if user_id is not None:
             favorited_ids = set(
-                InvestigationFavoriteUser.objects.filter(
-                    user_id=user_id, investigation__in=item_list
-                ).values_list("investigation_id", flat=True)
+                NotebookFavoriteUser.objects.filter(
+                    user_id=user_id, notebook__in=item_list
+                ).values_list("notebook_id", flat=True)
             )
 
         orchestration_by_investigation = orchestration_summaries_by_investigation(item_list)
@@ -174,7 +171,7 @@ class InvestigationSerializer(Serializer):
     @override
     def serialize(
         self,
-        obj: Investigation,
+        obj: Notebook,
         attrs: Mapping[Any, Any],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
@@ -187,7 +184,7 @@ class InvestigationSerializer(Serializer):
             "summary": obj.summary,
             "summaryDescription": obj.summary_description,
             "status": obj.status,
-            "sourceType": source.get("type", InvestigationSourceType.MANUAL),
+            "sourceType": source.get("type", NotebookSourceType.MANUAL),
             "createdBy": (str(obj.created_by_id) if obj.created_by_id is not None else None),
             "creator": (
                 {
@@ -220,12 +217,12 @@ class InvestigationDetailsSerializer(InvestigationSerializer):
         super().__init__(**kwargs)
 
     def _blocks_by_investigation(
-        self, item_list: Sequence[Investigation], user: User | RpcUser | AnonymousUser
+        self, item_list: Sequence[Notebook], user: User | RpcUser | AnonymousUser
     ) -> MutableMapping[int, list[InvestigationBlockSerializerResponse]]:
         blocks = list(
-            InvestigationBlock.objects.filter(
-                investigation__in=item_list, deleted_at__isnull=True
-            ).order_by("position", "id")
+            NotebookBlock.objects.filter(notebook__in=item_list, deleted_at__isnull=True).order_by(
+                "position", "id"
+            )
         )
         serialized = serialize(
             blocks,
@@ -237,16 +234,16 @@ class InvestigationDetailsSerializer(InvestigationSerializer):
             defaultdict(list)
         )
         for block, block_response in zip(blocks, serialized):
-            by_investigation[block.investigation_id].append(block_response)
+            by_investigation[block.notebook_id].append(block_response)
         return by_investigation
 
     def _action_requests_by_investigation(
-        self, item_list: Sequence[Investigation], user: User | RpcUser | AnonymousUser
+        self, item_list: Sequence[Notebook], user: User | RpcUser | AnonymousUser
     ) -> MutableMapping[int, list[InvestigationActionRequestSerializerResponse]]:
         action_requests = list(
-            InvestigationActionRequest.objects.filter(investigation__in=item_list)
-            .filter(~Q(state=InvestigationActionRequestState.SUPERSEDED) | STALE)
-            .order_by("-report_revision", "-primary", "id")
+            NotebookActionRequest.objects.filter(notebook__in=item_list)
+            .filter(~Q(state=NotebookActionRequestState.SUPERSEDED) | STALE)
+            .order_by("-producer_revision", "-primary", "id")
         )
         serialized = serialize(
             action_requests,
@@ -258,16 +255,16 @@ class InvestigationDetailsSerializer(InvestigationSerializer):
             int, list[InvestigationActionRequestSerializerResponse]
         ] = defaultdict(list)
         for action_request, response in zip(action_requests, serialized):
-            by_investigation[action_request.investigation_id].append(response)
+            by_investigation[action_request.notebook_id].append(response)
         return by_investigation
 
     @override
     def get_attrs(
         self,
-        item_list: Sequence[Investigation],
+        item_list: Sequence[Notebook],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
-    ) -> MutableMapping[Investigation, dict[str, Any]]:
+    ) -> MutableMapping[Notebook, dict[str, Any]]:
         attrs = super().get_attrs(item_list, user, **kwargs)
 
         blocks_by_investigation = self._blocks_by_investigation(item_list, user)
@@ -275,9 +272,9 @@ class InvestigationDetailsSerializer(InvestigationSerializer):
 
         project_ids_by_investigation: MutableMapping[int, list[int]] = defaultdict(list)
         for investigation_id, project_id in (
-            InvestigationProject.objects.filter(investigation__in=item_list)
+            NotebookProject.objects.filter(notebook__in=item_list)
             .order_by("project_id")
-            .values_list("investigation_id", "project_id")
+            .values_list("notebook_id", "project_id")
         ):
             project_ids_by_investigation[investigation_id].append(project_id)
 
@@ -293,14 +290,14 @@ class InvestigationDetailsSerializer(InvestigationSerializer):
     @override
     def serialize(
         self,
-        obj: Investigation,
+        obj: Notebook,
         attrs: Mapping[Any, Any],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> InvestigationDetailsSerializerResponse:
         resolved_source = obj.source
         source: InvestigationSourceSerializerResponse = {
-            "type": resolved_source.get("type", InvestigationSourceType.MANUAL),
+            "type": resolved_source.get("type", NotebookSourceType.MANUAL),
             "ref": resolved_source.get("ref", {}),
             "revision": obj.source_revision,
         }
@@ -309,13 +306,9 @@ class InvestigationDetailsSerializer(InvestigationSerializer):
             source["snapshot"] = snapshot
         return {
             **super().serialize(obj, attrs, user, **kwargs),
-            "template": (
-                {"key": obj.template_key, "version": obj.template_version}
-                if obj.template_key is not None
-                else None
-            ),
+            "template": None,
             "source": source,
-            "filters": investigation_filters(obj),
+            "filters": obj.filters,
             "projectIds": attrs["project_ids"],
             "parameters": [],
             "blocks": attrs["blocks"],
