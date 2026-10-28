@@ -145,12 +145,11 @@ function SecondarySidebarPanel({
     <Container
       height="100%"
       right="0"
-      {...props}
+      {...mergeProps(props, {
+        [NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE]: true,
+      })}
       width={isMobile ? '100%' : `${size}px`}
       ref={isMobile ? undefined : containerRef}
-      {...{
-        [NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE]: true,
-      }}
     >
       <AnimatePresence mode="popLayout" initial={false}>
         <MotionContainer
@@ -281,7 +280,7 @@ interface SecondaryNavigationItemProps extends Omit<LinkProps, 'ref' | 'to'> {
    */
   end?: boolean;
   isActive?: boolean;
-  /** Content centered in a reserved 24px by 24px slot, including when empty. */
+  /** Content centered in a reserved 24px by 24px slot, including when empty, when settings-v3 is enabled. */
   leadingItems?: ReactNode;
   trailingItems?: ReactNode;
 }
@@ -409,8 +408,8 @@ function SectionTitle(props: SectionTitleProps) {
             <IconChevron direction={props.isCollapsed ? 'right' : 'down'} size="md" />
           ) : null}
         </SecondaryNavigationLeadingSlot>
-        <Container minWidth="0">
-          <Text bold ellipsis align="left" density="fixed">
+        <Container minWidth="0" width="100%">
+          <Text as="div" bold ellipsis align="left" density="fixed">
             {props.children}
           </Text>
         </Container>
@@ -426,18 +425,26 @@ function SectionTitle(props: SectionTitleProps) {
     }
 
     return (
-      <SecondaryNavigationRow width="100%" cursor="pointer">
-        {gridProps => (
-          <SidebarNavigationSectionButton
-            {...gridProps}
-            type="button"
+      <Flex width="100%" padding="0" height="32px" justify="start">
+        {buttonProps => (
+          <Button
+            {...buttonProps}
+            size="sm"
+            variant="transparent"
             aria-expanded={!props.isCollapsed}
             onClick={() => props.setIsCollapsed(!props.isCollapsed)}
           >
-            {content}
-          </SidebarNavigationSectionButton>
+            <SecondaryNavigationRow
+              width="100%"
+              flex="1"
+              minWidth="0"
+              justifyItems="start"
+            >
+              {content}
+            </SecondaryNavigationRow>
+          </Button>
         )}
-      </SecondaryNavigationRow>
+      </Flex>
     );
   }
 
@@ -525,6 +532,7 @@ function SecondaryNavigationLink({
   onClick,
   ...linkProps
 }: SecondaryNavigationItemProps) {
+  const settingsV3 = useSettingsV3();
   const organization = useOrganization({allowNull: true});
   const location = useLocation();
   const activeToList = Array.isArray(activeTo) ? activeTo : [activeTo];
@@ -566,10 +574,22 @@ function SecondaryNavigationLink({
     },
   };
 
+  if (!settingsV3) {
+    return (
+      <SidebarNavigationLink {...sharedLinkProps} settingsV3={false}>
+        {leadingItems}
+        <Text ellipsis variant="inherit">
+          {children}
+        </Text>
+        {trailingItems}
+      </SidebarNavigationLink>
+    );
+  }
+
   return (
     <SecondaryNavigationRow>
       {gridProps => (
-        <SidebarNavigationLink {...mergeProps(sharedLinkProps, gridProps)}>
+        <SidebarNavigationLink {...mergeProps(sharedLinkProps, gridProps)} settingsV3>
           <SecondaryNavigationLeadingSlot>{leadingItems}</SecondaryNavigationLeadingSlot>
           <Flex align="center" gap="xs" minWidth="0">
             <Container flex="1" minWidth="0">
@@ -660,6 +680,7 @@ interface CollapsibleProps {
 }
 
 function Collapsible(props: CollapsibleProps) {
+  const settingsV3 = useSettingsV3();
   if (props.disabled) {
     return props.children;
   }
@@ -680,7 +701,7 @@ function Collapsible(props: CollapsibleProps) {
             expanded: {
               height: 'auto',
               // Let focus rings and other content extend beyond the expanded section.
-              transitionEnd: {overflow: 'visible'},
+              ...(settingsV3 ? {transitionEnd: {overflow: 'visible'}} : {}),
             },
           }}
           initial="collapsed"
@@ -896,6 +917,7 @@ function SecondaryNavigationReorderableLink({
   trailingItems,
   onNavigate,
 }: SecondaryNavigationReorderableLinkProps) {
+  const settingsV3 = useSettingsV3();
   const organization = useOrganization();
   const location = useLocation();
   const activeToList = Array.isArray(activeTo) ? activeTo : [activeTo];
@@ -939,6 +961,21 @@ function SecondaryNavigationReorderableLink({
     onClick: handleClick,
   };
 
+  if (!settingsV3) {
+    return (
+      <Fragment>
+        <StyledReorderableLink {...sharedProps} layout="sidebar" settingsV3={false}>
+          <Flex justify="center" align="center" data-reorderable-handle-slot>
+            {icon}
+          </Flex>
+          {children}
+          {trailingItems}
+        </StyledReorderableLink>
+        <GrabHandle />
+      </Fragment>
+    );
+  }
+
   const content = (
     <Fragment>
       <Flex
@@ -964,7 +1001,11 @@ function SecondaryNavigationReorderableLink({
     <Fragment>
       <SecondaryNavigationRow cursor="pointer">
         {gridProps => (
-          <StyledReorderableLink {...mergeProps(sharedProps, gridProps)} layout="sidebar">
+          <StyledReorderableLink
+            {...mergeProps(sharedProps, gridProps)}
+            layout="sidebar"
+            settingsV3
+          >
             {content}
           </StyledReorderableLink>
         )}
@@ -975,6 +1016,7 @@ function SecondaryNavigationReorderableLink({
 }
 
 function GrabHandle() {
+  const settingsV3 = useSettingsV3();
   const {attributes, isDragging, listeners, setActivatorNodeRef} =
     useReorderableItemContext();
 
@@ -990,9 +1032,8 @@ function GrabHandle() {
     >
       {p => (
         <GrabHandleAnimation
-          {...p}
-          {...listeners}
-          {...attributes}
+          settingsV3={settingsV3}
+          {...mergeProps(p, listeners, attributes)}
           aria-label={t('Drag to reorder')}
           data-drag-icon
           ref={setActivatorNodeRef}
@@ -1005,12 +1046,12 @@ function GrabHandle() {
   );
 }
 
-const GrabHandleAnimation = styled('div')`
+const GrabHandleAnimation = styled('div')<{settingsV3: boolean}>`
   pointer-events: none;
   opacity: 0;
   z-index: 1;
   /* Center the 18px handle in the 24px leading slot after the link's border and padding. */
-  left: ${p => `calc(${p.theme.space.md} + 4px)`};
+  left: ${p => (p.settingsV3 ? `calc(${p.theme.space.md} + 4px)` : p.theme.space.lg)};
   transition: opacity ${p => p.theme.motion.smooth.moderate};
   transform: translateY(-50%);
 
@@ -1046,11 +1087,30 @@ const DotIndicator = styled('div')<{variant: 'accent' | 'danger' | 'warning'}>`
   border: 2px solid ${p => p.theme.tokens.border[p.variant].muted};
 `;
 
+// Preserve the existing navigation layout while settings-v3 is disabled.
+const legacySidebarNavigationLayout = (theme: Theme) => css`
+  display: flex;
+  gap: ${theme.space.sm};
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  height: ${theme.form.sm.height};
+  padding: ${`${theme.space.md} ${theme.space.lg}`};
+  border-radius: ${theme.radius.md};
+`;
+
 const StyledReorderableLink = styled(Link, {
-  shouldForwardProp: prop => prop !== 'layout',
+  shouldForwardProp: prop => prop !== 'layout' && prop !== 'settingsV3',
 })<{
   layout: 'mobile' | 'sidebar';
+  settingsV3: boolean;
 }>`
+  ${p =>
+    !p.settingsV3 &&
+    css`
+      ${legacySidebarNavigationLayout(p.theme)}
+      cursor: pointer;
+    `}
   color: ${p => p.theme.tokens.interactive.link.neutral.rest};
   border: 1px solid transparent;
   user-select: none;
@@ -1113,19 +1173,11 @@ const sidebarNavigationItemStyles = (theme: Theme) => css`
   }
 `;
 
-const SidebarNavigationLink = styled(Link)`
+const SidebarNavigationLink = styled(Link, {
+  shouldForwardProp: prop => prop !== 'settingsV3',
+})<{settingsV3: boolean}>`
+  ${p => !p.settingsV3 && legacySidebarNavigationLayout(p.theme)}
   ${p => sidebarNavigationItemStyles(p.theme)}
-`;
-
-// eslint-disable-next-line @sentry/scraps/prefer-primitives -- Share the link's row structure; Button adds a content wrapper.
-const SidebarNavigationSectionButton = styled('button')`
-  ${p => sidebarNavigationItemStyles(p.theme)}
-  background: transparent;
-  font: inherit;
-
-  &:focus-visible {
-    ${p => p.theme.focusRing()}
-  }
 `;
 
 export const SecondaryNavigation = {

@@ -1,5 +1,6 @@
 import {Fragment, type ReactElement} from 'react';
 import styled from '@emotion/styled';
+import {mergeProps} from '@react-aria/utils';
 
 import {Badge, FeatureBadge} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
@@ -38,13 +39,12 @@ export function SettingsNavItem({badge, label, id, to, index, ...props}: Props) 
       >
         {flexProps => (
           <SecondaryNavigation.Link
-            {...flexProps}
+            {...mergeProps(flexProps, props)}
             to={to}
             end={index}
             leadingItems={settingsV3 ? badgeElement : undefined}
             trailingItems={settingsV3 ? null : badgeElement}
             analyticsItemName={id ? `settings_${id}` : undefined}
-            {...props}
           >
             <Text density={settingsV3 ? 'fixed' : undefined} variant="inherit">
               <LabelHook id={id}>{label}</LabelHook>
