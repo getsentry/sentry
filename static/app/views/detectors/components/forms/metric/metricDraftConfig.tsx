@@ -11,6 +11,7 @@ import {
   ExtrapolationMode,
 } from 'sentry/views/alerts/rules/metric/types';
 import {
+  draftField,
   draftNumericString,
   type DetectorDraftSchema,
 } from 'sentry/views/detectors/components/forms/common/detectorDraft';
@@ -20,32 +21,30 @@ import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 
 export const METRIC_DETECTOR_DRAFT_SCHEMA: DetectorDraftSchema<MetricDetectorFormData> = z
   .object({
-    aggregateFunction: z.string().optional().catch(undefined),
-    conditionComparisonAgo: z.number().optional().catch(undefined),
-    conditionType: z
-      .enum([DataConditionType.GREATER, DataConditionType.LESS])
-      .optional()
-      .catch(undefined),
-    dataset: z.enum(DetectorDataset).optional().catch(undefined),
-    detectionType: z.enum(['static', 'percent', 'dynamic']).optional().catch(undefined),
-    environment: z.string().optional().catch(undefined),
-    extrapolationMode: z.enum(ExtrapolationMode).optional().catch(undefined),
-    highThreshold: draftNumericString.optional().catch(undefined),
-    initialPriorityLevel: z
-      .literal([DetectorPriorityLevel.MEDIUM, DetectorPriorityLevel.HIGH])
-      .optional()
-      .catch(undefined),
-    interval: z.number().optional().catch(undefined),
-    mediumThreshold: draftNumericString.optional().catch(undefined),
-    name: z.string().optional().catch(undefined),
-    owner: z.string().optional().catch(undefined),
-    projectId: z.string().optional().catch(undefined),
-    query: z.string().optional().catch(undefined),
-    resolutionStrategy: z.enum(['default', 'custom']).optional().catch(undefined),
-    resolutionValue: draftNumericString.optional().catch(undefined),
-    sensitivity: z.enum(AlertRuleSensitivity).optional().catch(undefined),
-    thresholdType: z.enum(AlertRuleThresholdType).optional().catch(undefined),
-    workflowIds: z.array(z.string()).optional().catch(undefined),
+    aggregateFunction: draftField(z.string()),
+    conditionComparisonAgo: draftField(z.number()),
+    conditionType: draftField(
+      z.enum([DataConditionType.GREATER, DataConditionType.LESS])
+    ),
+    dataset: draftField(z.enum(DetectorDataset)),
+    detectionType: draftField(z.enum(['static', 'percent', 'dynamic'])),
+    environment: draftField(z.string()),
+    extrapolationMode: draftField(z.enum(ExtrapolationMode)),
+    highThreshold: draftField(draftNumericString),
+    initialPriorityLevel: draftField(
+      z.literal([DetectorPriorityLevel.MEDIUM, DetectorPriorityLevel.HIGH])
+    ),
+    interval: draftField(z.number()),
+    mediumThreshold: draftField(draftNumericString),
+    name: draftField(z.string()),
+    owner: draftField(z.string()),
+    projectId: draftField(z.string()),
+    query: draftField(z.string()),
+    resolutionStrategy: draftField(z.enum(['default', 'custom'])),
+    resolutionValue: draftField(draftNumericString),
+    sensitivity: draftField(z.enum(AlertRuleSensitivity)),
+    thresholdType: draftField(z.enum(AlertRuleThresholdType)),
+    workflowIds: draftField(z.array(z.string())),
   })
   .transform(values => {
     if (values.dataset === undefined) {

@@ -19,8 +19,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {DetectorFormBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
 import {
-  useDetectorDraftUrlSync,
-  useInitialDetectorDraft,
+  useDetectorDraft,
   type DetectorDraftSchema,
 } from 'sentry/views/detectors/components/forms/common/detectorDraft';
 import {NewDetectorFooter} from 'sentry/views/detectors/components/forms/common/footer';
@@ -60,9 +59,10 @@ export function NewDetectorLayout<
   const organization = useOrganization();
   const {projects} = useProjects();
 
-  const draft = useInitialDetectorDraft();
-  const [draftFormData] = useState(() =>
-    draft && draftSchema ? draftSchema.parse(draft) : undefined
+  const [formModel] = useState(() => new FormModel());
+  const {initialValues: draftFormData, onFieldChange: syncDraftToUrl} = useDetectorDraft(
+    formModel,
+    draftSchema
   );
 
   const initialProjectId = useMemo(() => {
@@ -89,9 +89,7 @@ export function NewDetectorLayout<
     formDataToEndpointPayload,
   });
 
-  const [formModel] = useState(() => new FormModel());
   const {onFieldChange: validateEagerly} = useFormEagerValidation(formModel);
-  const syncDraftToUrl = useDetectorDraftUrlSync(formModel, draftSchema);
 
   const initialEnvironment = decodeScalar(location.query.environment, '');
   const initialData = useMemo(() => {

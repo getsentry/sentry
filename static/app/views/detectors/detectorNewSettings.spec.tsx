@@ -1165,14 +1165,6 @@ describe('DetectorEdit', () => {
       return typeof draft === 'string' ? JSON.parse(draft) : undefined;
     }
 
-    function mockCreateDetector() {
-      return MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
-        method: 'POST',
-        body: MetricDetectorFixture({id: '123'}),
-      });
-    }
-
     it('writes edits to the URL draft when a field changes', async () => {
       const {router} = render(<DetectorNewSettings />, {
         organization,
@@ -1232,31 +1224,6 @@ describe('DetectorEdit', () => {
       });
     });
 
-    it('restores the written draft when the URL is reopened', async () => {
-      const {router, unmount} = render(<DetectorNewSettings />, {
-        organization,
-        initialRouterConfig: getRouterConfig(newMetricQuery),
-      });
-      await userEvent.type(
-        await screen.findByRole('spinbutton', {name: 'High threshold'}),
-        '120'
-      );
-      await waitFor(() => {
-        expect(getDraft(router)).toEqual(expect.objectContaining({highThreshold: '120'}));
-      });
-      const sharedQuery = {...router.location.query} as Record<string, string>;
-      unmount();
-
-      render(<DetectorNewSettings />, {
-        organization,
-        initialRouterConfig: getRouterConfig(sharedQuery),
-      });
-
-      expect(await screen.findByRole('spinbutton', {name: 'High threshold'})).toHaveValue(
-        120
-      );
-    });
-
     it('does not load the duplicated monitor when the URL has a draft', async () => {
       const sourceRequest = MockApiClient.addMockResponse({
         url: `/organizations/${organizationWithMonitorDuplication.slug}/detectors/1/`,
@@ -1279,7 +1246,11 @@ describe('DetectorEdit', () => {
     });
 
     it('prefills from the URL draft and submits', async () => {
-      const createDetector = mockCreateDetector();
+      const createDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
+        method: 'POST',
+        body: MetricDetectorFixture({id: '123'}),
+      });
 
       render(<DetectorNewSettings />, {
         organization,
@@ -1326,7 +1297,11 @@ describe('DetectorEdit', () => {
     }, 10000);
 
     it('falls back to a writable project when the draft project is not writable', async () => {
-      const createDetector = mockCreateDetector();
+      const createDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
+        method: 'POST',
+        body: MetricDetectorFixture({id: '123'}),
+      });
 
       render(<DetectorNewSettings />, {
         organization,
