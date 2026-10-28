@@ -51,6 +51,8 @@ class SCMIntegrationInteractionType(StrEnum):
     # Releases
     COMPARE_COMMITS = "compare_commits"
     LINK_ISSUE_TO_PR = "link_issue_to_pr"
+    RESOLVE_ISSUE_VIA_COMMIT = "resolve_issue_via_commit"
+    RESOLVE_ISSUE_VIA_PR = "resolve_issue_via_pr"
 
     # Status Checks
     CREATE_STATUS_CHECK = "create_status_check"
@@ -65,6 +67,7 @@ class SCMIntegrationInteractionType(StrEnum):
 
 class SCMResolutionHaltReason(StrEnum):
     GROUP_LINK_ALREADY_EXISTS = "group_link_already_exists"
+    ISSUE_ALREADY_RESOLVED = "issue_already_resolved"
 
 
 @dataclass
