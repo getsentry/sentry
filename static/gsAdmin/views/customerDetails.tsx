@@ -508,6 +508,15 @@ export function CustomerDetails() {
               onUpdateMutation.mutate({...params, clearPendingChanges: true}),
           },
           {
+            key: 'clearPendingPayg',
+            name: 'Clear Pending Pay-as-you-go',
+            help: 'Remove pending pay-as-you-go budget changes, keeping other pending changes.',
+            visible: !!subscription.pendingChanges,
+            onAction: params =>
+              onUpdateMutation.mutate({...params, clearPendingPayg: true}),
+            ...actionRequiresBillingAdmin,
+          },
+          {
             key: 'changeBalance',
             name: 'Add or Remove Credit',
             help: 'Add or remove credit from this account.',

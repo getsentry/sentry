@@ -89,7 +89,6 @@ from ..metrics import (
 )
 from ..preflight import CodeReviewPreflightService
 from ..utils import SeerEndpoint, _common_codegen_request_payload
-from .logging import debug_log
 from .task import process_github_webhook_event
 
 logger = logging.getLogger(__name__)
@@ -274,11 +273,9 @@ def _delete_existing_reactions_and_add_reaction(
             # both fail to delete stale reactions and wrongly skip/duplicate the add.
             # Log the resolved actor and our own reactions so a missing :eyes: can be
             # traced to the actual reaction state we observed.
-            debug_log(
-                logger,
-                organization_id,
+            logger.info(
                 "gitlab.webhook.merge_request.reaction.existing_fetched",
-                {
+                extra={
                     "organization_id": organization_id,
                     "repo_id": repo.id,
                     "mr_iid": mr_iid,
@@ -301,11 +298,9 @@ def _delete_existing_reactions_and_add_reaction(
         if reaction.get("content") in reactions_to_delete and reaction.get("id"):
             try:
                 scm_actions.delete_pull_request_reaction(scm, mr_iid, str(reaction["id"]))
-                debug_log(
-                    logger,
-                    organization_id,
+                logger.info(
                     "gitlab.webhook.merge_request.reaction.deleted",
-                    {
+                    extra={
                         "organization_id": organization_id,
                         "repo_id": repo.id,
                         "mr_iid": mr_iid,
@@ -326,11 +321,9 @@ def _delete_existing_reactions_and_add_reaction(
     # our user already placed this reaction. This is the most common reason a re-review
     # of an MR shows no *new* :eyes: — log it so the skip is not mistaken for a failure.
     if any(reaction.get("content") == reaction_to_add for reaction in own_reactions):
-        debug_log(
-            logger,
-            organization_id,
+        logger.info(
             "gitlab.webhook.merge_request.reaction.add_skipped_already_present",
-            {
+            extra={
                 "organization_id": organization_id,
                 "repo_id": repo.id,
                 "mr_iid": mr_iid,
@@ -342,11 +335,9 @@ def _delete_existing_reactions_and_add_reaction(
 
     try:
         scm_actions.create_pull_request_reaction(scm, mr_iid, reaction_to_add)
-        debug_log(
-            logger,
-            organization_id,
+        logger.info(
             "gitlab.webhook.merge_request.reaction.added",
-            {
+            extra={
                 "organization_id": organization_id,
                 "repo_id": repo.id,
                 "action": action_value,
@@ -378,7 +369,7 @@ def handle_merge_request_event(
     }
 
     if integration is None:
-        debug_log(logger, organization, "missing_integration", base_log)
+        logger.info("missing_integration", extra=base_log)
         return
 
     base_log["integration_id"] = integration.id
@@ -386,7 +377,7 @@ def handle_merge_request_event(
     object_attributes = event.get("object_attributes", {})
     action_value = object_attributes.get("action")
     if not action_value or not isinstance(action_value, str):
-        debug_log(logger, organization, "missing_action", base_log)
+        logger.info("missing_action", extra=base_log)
         return
 
     base_log["action"] = action_value
@@ -421,7 +412,7 @@ def handle_merge_request_event(
     try:
         org = Organization.objects.get_from_cache(id=organization.id)
     except Organization.DoesNotExist:
-        debug_log(logger, organization, "organization_not_found", base_log)
+        logger.info("organization_not_found", extra=base_log)
         return
 
     author_id = object_attributes.get("author_id")
@@ -460,13 +451,13 @@ def handle_merge_request_event(
             object_attributes.get("draft") is True
             or object_attributes.get("work_in_progress") is True
         ):
-            debug_log(logger, organization, "draft_skipped", base_log)
+            logger.info("draft_skipped", extra=base_log)
             return
 
     last_commit = object_attributes.get("last_commit") or {}
     target_commit_sha = last_commit.get("id")
     if not target_commit_sha:
-        debug_log(logger, organization, "missing_target_commit_sha", base_log)
+        logger.info("missing_target_commit_sha", extra=base_log)
         return
 
     base_log["target_commit_sha"] = target_commit_sha
@@ -478,13 +469,7 @@ def handle_merge_request_event(
         f"{object_attributes.get('iid')}:{action_value}:{target_commit_sha}"
     )
     if _is_duplicate_delivery(seen_key):
-        debug_log(
-            logger,
-            organization,
-            "duplicate_delivery_skipped",
-            base_log,
-            level=logging.WARNING,
-        )
+        logger.warning("duplicate_delivery_skipped", extra=base_log)
         return
 
     # Mirror the GitHub pull_request handler: add :eyes: to the MR description to
@@ -652,12 +637,7 @@ def _schedule_task(
         )
         return
 
-    debug_log(
-        logger,
-        organization,
-        "seer_task_enqueued",
-        {**(log_context or {}), "seer_path": seer_path},
-    )
+    logger.info("seer_task_enqueued", extra={**(log_context or {}), "seer_path": seer_path})
     process_github_webhook_event.delay(
         seer_path=seer_path,
         event_payload=serialized_payload,
@@ -776,11 +756,8 @@ def _schedule_note_task(
         )
         return
 
-    debug_log(
-        logger,
-        organization,
-        "note.seer_task_enqueued",
-        {"mr_iid": mr_iid, "target_commit_sha": target_commit_sha},
+    logger.info(
+        "note.seer_task_enqueued", extra={"mr_iid": mr_iid, "target_commit_sha": target_commit_sha}
     )
     process_github_webhook_event.delay(
         seer_path=SeerEndpoint.CODE_REVIEW_REVIEW_REQUEST.value,
@@ -826,7 +803,7 @@ def handle_merge_request_note_event(
     }
 
     if integration is None:
-        debug_log(logger, organization, "note.missing_integration", base_log)
+        logger.info("note.missing_integration", extra=base_log)
         return
 
     base_log["integration_id"] = integration.id
@@ -863,11 +840,9 @@ def handle_merge_request_note_event(
         )
         return
 
-    debug_log(
-        logger,
-        organization,
+    logger.info(
         "note.review_command_matched",
-        {
+        extra={
             **base_log,
             "review_command": SENTRY_REVIEW_COMMAND,
             "note_length": len(note_body or ""),
@@ -877,7 +852,7 @@ def handle_merge_request_note_event(
     try:
         org = Organization.objects.get_from_cache(id=organization.id)
     except Organization.DoesNotExist:
-        debug_log(logger, organization, "note.organization_not_found", base_log)
+        logger.info("note.organization_not_found", extra=base_log)
         return
 
     # Billing seat is keyed to the MR author, not the commenter.
@@ -900,12 +875,12 @@ def handle_merge_request_note_event(
     last_commit = merge_request.get("last_commit") or {}
     target_commit_sha = last_commit.get("id")
     if not target_commit_sha:
-        debug_log(logger, organization, "note.missing_target_commit_sha", base_log)
+        logger.info("note.missing_target_commit_sha", extra=base_log)
         return
 
     mr_iid = merge_request.get("iid")
     if mr_iid is None:
-        debug_log(logger, organization, "note.missing_mr_iid", base_log)
+        logger.info("note.missing_mr_iid", extra=base_log)
         return
 
     note_id = object_attributes.get("id")
@@ -914,13 +889,7 @@ def handle_merge_request_note_event(
     # Dedup redeliveries: GitLab may resend the same note event on timeout.
     seen_key = f"{WEBHOOK_NOTE_SEEN_KEY_PREFIX}{org.id}:{repo.id}:{note_id}"
     if _is_duplicate_delivery(seen_key):
-        debug_log(
-            logger,
-            organization,
-            "note.duplicate_delivery_skipped",
-            base_log,
-            level=logging.WARNING,
-        )
+        logger.warning("note.duplicate_delivery_skipped", extra=base_log)
         return
 
     # Add :eyes: to the note to signal we received the command.

@@ -46,7 +46,9 @@ from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.utils.errors import MODAL_NOT_FOUND, unpack_slack_api_error
 from sentry.integrations.slack.webhooks.actions.investigation import (
+    InvestigationUnavailableReason,
     handle_seer_investigation_start,
+    record_investigation_unavailable,
 )
 from sentry.integrations.slack.webhooks.actions.seer_agent import (
     SEER_AGENT_WRITE_APPROVAL_ACTIONS,
@@ -811,10 +813,15 @@ class SlackActionEndpoint(Endpoint):
             )
 
         if action_id == SlackAction.SEER_INVESTIGATION_START.value:
+            routing_data = decode_action_id(slack_request.data["actions"][0]["action_id"])
             identity_user = slack_request.get_identity_user()
             if not identity_user:
+                record_investigation_unavailable(
+                    InvestigationUnavailableReason.IDENTITY_NOT_LINKED,
+                    organization_id=routing_data.organization_id,
+                    integration_id=slack_request.integration.id,
+                )
                 return self._respond_link_identity(slack_request)
-            routing_data = decode_action_id(slack_request.data["actions"][0]["action_id"])
             return handle_seer_investigation_start(
                 slack_request=slack_request,
                 organization_id=routing_data.organization_id,
