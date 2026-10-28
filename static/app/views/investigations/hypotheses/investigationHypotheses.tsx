@@ -6,6 +6,7 @@ import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import {t, tn} from 'sentry/locale';
 import {humanize} from 'sentry/utils/string/humanize';
@@ -19,10 +20,12 @@ import {
   HypothesisListPlaceholder,
 } from 'sentry/views/investigations/hypotheses/hypothesisList';
 import {getSeerStatusBlock} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
+import {InvestigationPromptForm} from 'sentry/views/investigations/statusBlock/investigationPromptForm';
 import {SeerStatusBlock} from 'sentry/views/investigations/statusBlock/seerStatusBlock';
 import type {
   InvestigationHypothesis,
   InvestigationHypothesisStatus,
+  InvestigationOrchestration,
   InvestigationOrchestrationPhase,
   InvestigationOrchestrationStatus,
 } from 'sentry/views/investigations/types';
@@ -68,7 +71,7 @@ const TERMINAL_STATUSES = new Set<string>(['completed', 'failed', 'cancelled']);
  * until someone supplies a prompt, and an investigation created without one
  * starts there and stays there, so polling it would be a permanent two-second
  * request loop on a run nobody is driving. Supplying input from this client
- * writes the new projection straight into the cache, which starts it again.
+ * polls again until Seer takes it (see `isInputStarting`).
  *
  * But Sentry parks a brand-new run at `awaiting_input` *before* it has finished
  * creating it in Seer: the create is dispatched after the transaction commits,
@@ -92,6 +95,23 @@ export function shouldPollInvestigationRun(
     return false;
   }
   return status === 'awaiting_input' ? !hasSeerRun : true;
+}
+
+/**
+ * Whether a question this viewer sent is still on its way to the run. Sentry
+ * only queues it: the run stays parked at `awaiting_input` until Seer applies
+ * it, or until Sentry records against the same request that it couldn't be
+ * delivered.
+ */
+function isInputStarting(
+  run: InvestigationOrchestration | undefined,
+  requestId: string | null
+): boolean {
+  return (
+    requestId !== null &&
+    run?.status === 'awaiting_input' &&
+    !run.errors.some(error => error.requestId === requestId)
+  );
 }
 
 type InvestigationHypothesesProps = {
@@ -149,6 +169,14 @@ export function InvestigationHypotheses({
   // command makes a settled run interesting again, because Seer is about to
   // rewrite the projection behind it.
   const [commandSentAt, setCommandSentAt] = useState<number | null>(null);
+  // The question this viewer last supplied, kept per investigation because the
+  // page swaps investigations without remounting this.
+  const [sentInput, setSentInput] = useState<{
+    investigationId: string;
+    requestId: string;
+  } | null>(null);
+  const inputRequestId =
+    sentInput?.investigationId === investigationId ? sentInput.requestId : null;
 
   const {
     data: projection,
@@ -159,7 +187,12 @@ export function InvestigationHypotheses({
     enabled,
     refetchInterval: query => {
       const run = query.state.data?.json;
-      if (shouldPollInvestigationRun(run?.status, run?.runId !== null)) {
+      if (
+        shouldPollInvestigationRun(run?.status, run?.runId !== null) ||
+        // A supplied question can sit in Seer's queue for longer than a
+        // command usually settles in, and nothing else polls a parked run.
+        isInputStarting(run, inputRequestId)
+      ) {
         return POLL_INTERVAL_MS;
       }
       const waitingOnCommand =
@@ -238,6 +271,27 @@ export function InvestigationHypotheses({
   const statusBlock = seerStatus?.variant === 'complete' ? null : seerStatus;
   const {workflowVersion} = projection;
   const commandPending = commandMutation.isPending;
+  // Seer only asks for a question today. A run waiting on anything else keeps
+  // its status block without a form, rather than one that would overwrite the
+  // question it already has.
+  const needsPrompt =
+    projection.status === 'awaiting_input' &&
+    Boolean(projection.pendingInput?.missingFields?.includes('prompt'));
+
+  function providePrompt(prompt: string) {
+    const requestId = uuid4();
+    commandMutation.mutate(
+      {
+        requestId,
+        expectedWorkflowVersion: workflowVersion,
+        command: {type: 'provide_input', prompt},
+      },
+      {
+        onSuccess: () => setSentInput({investigationId, requestId}),
+        onError: () => addErrorMessage(t('Unable to start the investigation.')),
+      }
+    );
+  }
 
   function setDisposition(
     hypothesis: InvestigationHypothesis,
@@ -315,7 +369,19 @@ export function InvestigationHypotheses({
 
   return (
     <Stack id={id} gap="3xl">
-      {statusBlock ? <SeerStatusBlock {...statusBlock} /> : null}
+      {statusBlock ? (
+        <SeerStatusBlock
+          {...statusBlock}
+          action={
+            needsPrompt ? (
+              <InvestigationPromptForm
+                busy={commandPending || isInputStarting(projection, inputRequestId)}
+                onSubmit={providePrompt}
+              />
+            ) : undefined
+          }
+        />
+      ) : null}
       {hasHypotheses || awaitingFirstHypothesis ? (
         <HypothesesPanel
           expanded={panelState.expanded}

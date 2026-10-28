@@ -402,6 +402,37 @@ describe('Investigation detail', () => {
     ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 
+  it('re-reads the investigation once its run is past waiting on a question', async () => {
+    // The summary says the run is parked, which stops the page polling. Only
+    // the projection sees Seer take the question.
+    const parkedDetail = MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationAgenticDetailFixture({
+        sourceType: 'manual',
+        blocks: [],
+        orchestration: {
+          phase: 'intake',
+          status: 'awaiting_input',
+          heartbeatAt: null,
+          notebookRevision: 0,
+        },
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture({
+        phase: 'broad_scan',
+        status: 'processing',
+        sourceType: 'manual',
+        hypotheses: [],
+      }),
+    });
+
+    renderView();
+
+    await waitFor(() => expect(parkedDetail).toHaveBeenCalledTimes(2));
+  });
+
   describe('while Seer re-checks a stale suggestion', () => {
     beforeEach(() => {
       jest.useFakeTimers();
