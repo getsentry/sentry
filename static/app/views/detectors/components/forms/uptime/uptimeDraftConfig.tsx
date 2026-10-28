@@ -51,8 +51,7 @@ const op: z.ZodType<UptimeOp> = z.lazy(() =>
       id: z.string(),
       op: z.literal(UptimeOpType.STATUS_CODE_CHECK),
       operator: comparison,
-      // A cleared status code is NaN, which JSON writes as null. Submitting
-      // normalizes it to 200 too.
+      // A cleared status code (NaN) is null in JSON; submitting maps it to 200.
       value: z.union([z.number(), z.null().transform(() => 200)]),
     }),
     z.object({
@@ -83,11 +82,7 @@ function parseHttpUrl(url: string) {
   }
 }
 
-/**
- * Half-typed URLs don't parse, so those are checked as text: an `@` or a
- * non-numeric port in the authority may be part of a username and password.
- * (A password of only digits can't be told apart from a port until the `@`.)
- */
+// Half-typed URLs don't parse, so look for an `@` or non-numeric port as text.
 function mayHoldCredentials(url: string) {
   const parsed = parseHttpUrl(url);
   if (parsed) {
@@ -113,8 +108,7 @@ export const UPTIME_DETECTOR_DRAFT_SCHEMA: DetectorDraftSchema<UptimeDetectorFor
     recoveryThreshold: draftField(draftNumber),
     timeoutMs: draftField(z.number()),
     traceSampling: draftField(z.boolean()),
-    // Headers and body are left out since they often hold credentials, and so
-    // is a URL that may hold them.
+    // Headers and body are left out since they often hold credentials.
     url: draftField(z.string().refine(value => !mayHoldCredentials(value))),
     workflowIds: draftField(z.array(z.string())),
   });
@@ -127,10 +121,7 @@ function isSameUrl(a: string, b: string) {
   }
 }
 
-/**
- * A shared draft can change a duplicated monitor's request, which mustn't then
- * be sent with the source monitor's headers and body (often credentials).
- */
+// A draft that changes the request mustn't reuse the source's headers and body.
 export function getUptimeDuplicateFormData(
   duplicateDetector: UptimeDetector,
   draftValues: Record<string, unknown> | undefined
