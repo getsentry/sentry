@@ -22,7 +22,8 @@ class ConfigOptionsTest(CliTestCase):
     command = configoptions
 
     @pytest.fixture(autouse=True, scope="class")
-    def register_options(self) -> Generator[None]:
+    @classmethod
+    def register_options(cls) -> Generator[None]:
         options.register("readonly_option", default=10, flags=FLAG_IMMUTABLE)
         options.register("int_option", default=20, flags=FLAG_AUTOMATOR_MODIFIABLE)
         options.register("str_option", default="blabla", flags=FLAG_AUTOMATOR_MODIFIABLE)

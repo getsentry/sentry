@@ -7,6 +7,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openAttributeBreakdownViewerModal} from 'sentry/actionCreators/modal';
+import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {t, tct} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {AttributeBreakdownsComparison} from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
@@ -44,6 +45,7 @@ export function Chart({
 }) {
   const chartRef = useRef<ReactEchartsRef>(null);
   const [chartWidth, setChartWidth] = useState(0);
+  const [caseInsensitive] = useCaseInsensitivity();
 
   const cohort1Color = theme.chart.getColorPalette(0)?.[0];
   const cohort2Color = COHORT_2_COLOR;
@@ -154,6 +156,7 @@ export function Chart({
               openAttributeBreakdownViewerModal({
                 mode: 'comparison',
                 attribute,
+                caseInsensitive,
                 cohort1Total,
                 cohort2Total,
                 query,

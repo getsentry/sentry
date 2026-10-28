@@ -19,13 +19,13 @@ hybridcloud: 0045_drop_scopes_bitfield_columns
 
 insights: 0001_squashed_0002_backfill_team_starred
 
-investigations: 0012_add_followup_fields_drop_precheck
+investigations: 0013_delete_precheck_from_action_request
 
 monitors: 0023_drop_checkin_monitor
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
-notifications: 0015_backfill_notificationthread_object
+notifications: 0016_add_inboxitem_and_inboxitemevent
 
 preprod: 0001_squashed_0030_add_images_errored_to_snapshot_comparison
 
@@ -33,9 +33,9 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0001_squashed_0007_organizationmember_replay_access
 
-seer: 0044_add_workflow_config_service_account
+seer: 0045_workflow_run_lifecycle
 
-sentry: 1238_grouprelease_new_release_id_not_null
+sentry: 1239_add_indexes_to_new_repository_id
 
 service_accounts: 0002_add_cell_replicas
 
