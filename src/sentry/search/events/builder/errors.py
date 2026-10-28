@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+from typing import override
 
 from snuba_sdk import (
     AliasedExpression,
@@ -45,6 +46,7 @@ class ErrorsQueryBuilderMixin(BaseQueryBuilder):
         self.entities = set()
         super().__init__(*args, **kwargs)
 
+    @override
     def parse_query(self, query: str | None) -> ParsedTerms:
         parsed_terms = super().parse_query(query)
         parsed_terms = convert_query_values(
@@ -67,6 +69,7 @@ class ErrorsQueryBuilderMixin(BaseQueryBuilder):
         else:
             raise Exception("Unexpected number of entities")
 
+    @override
     def resolve_params(self):
         conditions = super().resolve_params()
         if len(self.entities) == 2:
@@ -79,6 +82,7 @@ class ErrorsQueryBuilderMixin(BaseQueryBuilder):
             )
         return conditions
 
+    @override
     def resolve_query(
         self,
         query: str | None = None,
@@ -90,6 +94,7 @@ class ErrorsQueryBuilderMixin(BaseQueryBuilder):
         super().resolve_query(query, selected_columns, groupby_columns, equations, orderby)
         self.resolve_match()
 
+    @override
     def aliased_column(self, name: str) -> SelectType:
         aliased_col: SelectType = super().aliased_column(name)
         if isinstance(aliased_col, AliasedExpression):
@@ -107,6 +112,7 @@ class ErrorsQueryBuilderMixin(BaseQueryBuilder):
 
         raise NotImplementedError(f"{type(aliased_col)} not implemented in aliased_column")
 
+    @override
     def column(self, name: str) -> Column:
         """Given an unresolved sentry column name and return a snql column.
 
@@ -115,6 +121,7 @@ class ErrorsQueryBuilderMixin(BaseQueryBuilder):
         resolved_column = self.resolve_column_name(name)
         return self._apply_column_entity(resolved_column)
 
+    @override
     def resolve_column_name(self, col: str) -> str:
         if col in GROUP_ATTRIBUTE_FIELDS:
             return col
@@ -131,6 +138,7 @@ class ErrorsQueryBuilderMixin(BaseQueryBuilder):
 
 
 class ErrorsQueryBuilder(ErrorsQueryBuilderMixin, DiscoverQueryBuilder):
+    @override
     def get_snql_query(self) -> Request:
         self.validate_having_clause()
         return Request(
@@ -152,6 +160,7 @@ class ErrorsQueryBuilder(ErrorsQueryBuilderMixin, DiscoverQueryBuilder):
             tenant_ids=self.tenant_ids,
         )
 
+    @override
     def add_conditions(self, conditions: list[Condition]) -> None:
         """
         Override the base implementation to add entity data
@@ -170,10 +179,12 @@ class ErrorsTimeseriesQueryBuilder(ErrorsQueryBuilderMixin, TimeseriesQueryBuild
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+    @override
     @property
     def time_column(self) -> SelectType:
         return Column("time", entity=Entity(self.dataset.value, alias=self.dataset.value))
 
+    @override
     def get_snql_query(self) -> Request:
         return Request(
             dataset=self.dataset.value,
@@ -196,10 +207,12 @@ class ErrorsTopEventsQueryBuilder(ErrorsQueryBuilderMixin, TopEventsQueryBuilder
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+    @override
     @property
     def time_column(self) -> SelectType:
         return Column("time", entity=Entity(self.dataset.value, alias=self.dataset.value))
 
+    @override
     def get_snql_query(self) -> Request:
         return Request(
             dataset=self.dataset.value,
