@@ -280,7 +280,7 @@ describe('SelectField', () => {
                   }}
                   options={[{value: 1, label: 'Apple'}]}
                   renderOptionLabel={opt => {
-                    expectTypeOf(opt).toEqualTypeOf<SelectValue<number>>();
+                    expectTypeOf(opt).toEqualTypeOf<{label: string; value: number}>();
                     return opt.label;
                   }}
                 />
@@ -311,7 +311,10 @@ describe('SelectField', () => {
                   }}
                   options={[{value: {id: 1}, label: 'Apple'}]}
                   renderOptionLabel={opt => {
-                    expectTypeOf(opt).toEqualTypeOf<SelectValue<{id: number}>>();
+                    expectTypeOf(opt).toEqualTypeOf<{
+                      label: string;
+                      value: {id: number};
+                    }>();
                     return opt.label;
                   }}
                 />

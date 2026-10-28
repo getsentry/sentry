@@ -603,7 +603,7 @@ class _QueryField extends Component<Props> {
       );
     });
 
-    const selectProps: ControlProps = {
+    const selectProps: ControlProps<FieldValue> = {
       name: 'field',
       options: Object.values(allFieldOptions),
       placeholder: placeholder ?? t('(Required)'),

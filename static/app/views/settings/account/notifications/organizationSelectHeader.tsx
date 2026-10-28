@@ -53,4 +53,4 @@ export function OrganizationSelectHeader({
 const StyledSelectControl = styled(Select)`
   text-transform: initial;
   font-weight: ${p => p.theme.font.weight.sans.regular};
-`;
+` as typeof Select;

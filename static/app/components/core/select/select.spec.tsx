@@ -6,9 +6,10 @@ import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLi
 import {Button} from '@sentry/scraps/button';
 import {Text} from '@sentry/scraps/text';
 
+import {createFilter} from './filter';
 import {Select} from './select';
 import type {ControlProps} from './select';
-import type {SelectHandle, SelectValue} from './types';
+import type {SelectHandle, SelectValue, StylesConfig} from './types';
 
 const options = [
   {value: 'apple', label: 'Apple', details: 'Fruit'},
@@ -75,41 +76,130 @@ describe('selection types', () => {
     void [number, object];
   });
 
+  it('infers values and custom option data from options without a selected value', () => {
+    const objectOptions = [{value: {id: 1}, label: 'One', searchKey: 'first'}];
+    type TOption = (typeof objectOptions)[number];
+    const styles: StylesConfig = {option: base => base};
+    const select = (
+      <Select
+        options={objectOptions}
+        styles={styles}
+        isValueEqual={(a, b) => {
+          expectTypeOf(a).toEqualTypeOf<{id: number}>();
+          expectTypeOf(b).toEqualTypeOf<{id: number}>();
+          return a.id === b.id;
+        }}
+        filterOption={option => {
+          expectTypeOf(option).toEqualTypeOf<TOption>();
+          return option.searchKey === 'first';
+        }}
+        renderValue={option => {
+          expectTypeOf(option).toEqualTypeOf<TOption>();
+          return option.searchKey;
+        }}
+        renderOptionLabel={option => {
+          expectTypeOf(option).toEqualTypeOf<TOption>();
+          return option.searchKey;
+        }}
+        onChange={option => {
+          expectTypeOf(option).toEqualTypeOf<TOption>();
+        }}
+      />
+    );
+    const clearable = (
+      <Select
+        clearable
+        options={objectOptions}
+        value={null}
+        isValueEqual={(a, b) => {
+          expectTypeOf(a).toEqualTypeOf<{id: number}>();
+          expectTypeOf(b).toEqualTypeOf<{id: number}>();
+          return a.id === b.id;
+        }}
+        onChange={option => {
+          expectTypeOf(option).toEqualTypeOf<TOption | null>();
+        }}
+      />
+    );
+
+    void [select, clearable];
+  });
+
+  it('infers custom option data from readonly groups with an empty selection', () => {
+    const groupedOptions = [{label: 'Fruit', options}] as const;
+    const select = (
+      <Select
+        multiple
+        options={groupedOptions}
+        value={[]}
+        renderMultiValueLabel={option => {
+          expectTypeOf(option).toEqualTypeOf<(typeof options)[number]>();
+          return option.details;
+        }}
+        styles={{
+          option: (base, {data}) => {
+            expectTypeOf(data).toEqualTypeOf<(typeof options)[number]>();
+            return base;
+          },
+        }}
+        onChange={selected => {
+          expectTypeOf(selected).toEqualTypeOf<typeof options>();
+        }}
+      />
+    );
+
+    void select;
+  });
+
+  it('preserves custom option data in filters and style overrides', () => {
+    type TOption = SelectValue<number> & {searchKey: string};
+    const filter = createFilter({stringify: (option: TOption) => option.searchKey});
+    expectTypeOf(filter).toEqualTypeOf<(option: TOption, input: string) => boolean>();
+    const styles: StylesConfig<number, TOption> = {
+      option: (base, {data}) => {
+        expectTypeOf(data).toEqualTypeOf<TOption>();
+        return base;
+      },
+    };
+
+    void styles;
+  });
+
   it('rejects scalar multiple values and array single values, including defaults', () => {
     type Option = (typeof options)[number];
     expectTypeOf<{
       multiple: true;
       options: typeof options;
       value: string;
-    }>().not.toMatchTypeOf<ControlProps<Option>>();
+    }>().not.toMatchTypeOf<ControlProps<string, Option>>();
     expectTypeOf<{
       multiple: false;
       options: typeof options;
       value: string[];
-    }>().not.toMatchTypeOf<ControlProps<Option>>();
+    }>().not.toMatchTypeOf<ControlProps<string, Option>>();
     expectTypeOf<{
       defaultValue: string;
       multiple: true;
       options: typeof options;
-    }>().not.toMatchTypeOf<ControlProps<Option>>();
+    }>().not.toMatchTypeOf<ControlProps<string, Option>>();
     expectTypeOf<{
       defaultValue: string[];
       multiple: false;
       options: typeof options;
-    }>().not.toMatchTypeOf<ControlProps<Option>>();
+    }>().not.toMatchTypeOf<ControlProps<string, Option>>();
     expectTypeOf<{
       multiple: false;
       options: Array<{value: readonly string[]}>;
       value: readonly string[];
-    }>().not.toMatchTypeOf<ControlProps<{value: readonly string[]}>>();
+    }>().not.toMatchTypeOf<ControlProps<readonly string[]>>();
   });
 
   it('requires options and does not expose legacy choices', () => {
     type Option = (typeof options)[number];
-    expectTypeOf<Omit<ControlProps<Option>, 'options'>>().not.toMatchTypeOf<
-      ControlProps<Option>
+    expectTypeOf<Omit<ControlProps<string, Option>, 'options'>>().not.toMatchTypeOf<
+      ControlProps<string, Option>
     >();
-    expectTypeOf<'choices'>().not.toMatchTypeOf<keyof ControlProps<Option>>();
+    expectTypeOf<'choices'>().not.toMatchTypeOf<keyof ControlProps<string, Option>>();
   });
 });
 
@@ -298,13 +388,8 @@ it('filters numeric labels as text', async () => {
 it('preserves creatable defaults with an empty options list', () => {
   render(
     <Fragment>
-      <Select<SelectValue<string>> creatable options={[]} defaultValue="New fruit" />
-      <Select<SelectValue<string>>
-        creatable
-        multiple
-        options={[]}
-        defaultValue={['New tag']}
-      />
+      <Select<string> creatable options={[]} defaultValue="New fruit" />
+      <Select<string> creatable multiple options={[]} defaultValue={['New tag']} />
     </Fragment>
   );
 

@@ -429,7 +429,7 @@ const Name = styled('strong')`
 
 const EventSelector = styled(Select)`
   width: 250px;
-`;
+` as typeof Select;
 
 const UserInfo = styled(SimpleTable.RowCell)`
   display: flex;

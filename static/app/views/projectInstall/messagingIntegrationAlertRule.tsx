@@ -260,7 +260,7 @@ const Rule = styled('div')`
 
 const InlineSelectControl = styled(Select)`
   width: 180px;
-`;
+` as typeof Select;
 
 // Preserves the classic inline channel-select width.
 const InlineChannelSelect = styled(ChannelSelect)`

@@ -566,7 +566,7 @@ export function ScmPlatformFeaturesCore({
               picker (and the feature panel) showing it while the committed selection
               is empty. "Back to what we found" covers reverting. */}
           {detectedPlatformKey ? (
-            <Select<(typeof platformOptions)[number]>
+            <Select<string, (typeof platformOptions)[number]>
               {...manualPickerLabel}
               autoFocus={focusTarget === 'manualPicker'}
               placeholder={t('Search')}
@@ -580,7 +580,7 @@ export function ScmPlatformFeaturesCore({
               styles={manualPickerStyles}
             />
           ) : (
-            <Select<(typeof platformOptions)[number]>
+            <Select<string, (typeof platformOptions)[number]>
               {...manualPickerLabel}
               autoFocus={focusTarget === 'manualPicker'}
               placeholder={t('Search')}

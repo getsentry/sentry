@@ -16,11 +16,14 @@ import type {InputFieldProps} from './inputField';
 
 const NONE_SELECTED_LABEL = t('None selected');
 
-export interface SelectFieldProps<OptionType extends SelectValue<any>>
+export interface SelectFieldProps<
+  TValue,
+  TOption extends SelectValue<TValue> = SelectValue<TValue>,
+>
   extends
     Omit<InputFieldProps, 'value'>,
     Omit<
-      ControlProps<OptionType>,
+      ControlProps<TValue, TOption>,
       | 'ref'
       | 'aria-invalid'
       | 'onChange'
@@ -42,7 +45,7 @@ export interface SelectFieldProps<OptionType extends SelectValue<any>>
    * Should the select allow empty values?
    */
   allowEmpty?: boolean;
-  choices?: Choices | ((props: SelectFieldProps<OptionType>) => Choices);
+  choices?: Choices | ((props: SelectFieldProps<TValue, TOption>) => Choices);
   /**
    * Allow specific options to be 'confirmed' with a confirmation message.
    *
@@ -58,10 +61,12 @@ export interface SelectFieldProps<OptionType extends SelectValue<any>>
    * A label that is shown inside the select control.
    */
   inFieldLabel?: string;
-  options?: ControlProps<OptionType>['options'];
+  options?: ControlProps<TValue, TOption>['options'];
 }
 
-function getChoices<T extends SelectValue<any>>(props: SelectFieldProps<T>): Choices {
+function getChoices<TValue, TOption extends SelectValue<TValue>>(
+  props: SelectFieldProps<TValue, TOption>
+): Choices {
   const choices = props.choices;
   if (typeof choices === 'function') {
     return choices(props as any);
@@ -76,15 +81,16 @@ function getChoices<T extends SelectValue<any>>(props: SelectFieldProps<T>): Cho
 /**
  * Required to type guard for readonly T[] which is a readonly Array
  */
-function isArray<T extends SelectValue<any>>(
-  maybe: T | readonly T[]
-): maybe is readonly T[] {
+function isArray<TOption>(
+  maybe: TOption | readonly TOption[]
+): maybe is readonly TOption[] {
   return Array.isArray(maybe);
 }
 
-export class SelectField<OptionType extends SelectValue<any>> extends Component<
-  SelectFieldProps<OptionType>
-> {
+export class SelectField<
+  TValue,
+  TOption extends SelectValue<TValue> = SelectValue<TValue>,
+> extends Component<SelectFieldProps<TValue, TOption>> {
   static defaultProps = {
     allowClear: false,
     allowEmpty: false,
@@ -99,7 +105,7 @@ export class SelectField<OptionType extends SelectValue<any>> extends Component<
   handleChange = (
     onBlur: InputFieldProps['onBlur'],
     onChange: InputFieldProps['onChange'],
-    optionObj: OptionType | readonly OptionType[] | null | undefined
+    optionObj: TOption | readonly TOption[] | null | undefined
   ) => {
     let value: any;
 

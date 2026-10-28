@@ -5,25 +5,29 @@ import {IconAdd} from '@sentry/icons/add';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 
 import {ListItem} from '@sentry/scraps/menu';
+import type {SelectValue} from '@sentry/scraps/select/types';
+import type {FormSize} from '@sentry/scraps/theme';
 
 import {defined} from 'sentry/utils/defined';
 
 import type {components as selectComponents} from './reactSelectWrapper';
-import type {BaseSelectProps, GeneralSelectValue} from './select';
+import type {BaseSelectProps} from './select';
 import {CheckWrap} from './styles';
 
-type Props = Omit<
+type Props<TValue, TOption extends SelectValue<TValue>> = Omit<
   React.ComponentProps<typeof selectComponents.Option>,
   'selectProps' | 'data'
 > & {
-  data: GeneralSelectValue & {__isNew__?: boolean; selectionMode?: 'single' | 'multiple'};
+  data: TOption & {__isNew__?: boolean; selectionMode?: 'single' | 'multiple'};
   selectProps: Pick<
-    BaseSelectProps,
+    BaseSelectProps<TValue, TOption>,
     'optionHeight' | 'renderOptionLabel' | 'showCreateOptionIcon' | 'showDividers'
-  > & {size?: BaseSelectProps['size']};
+  > & {size?: FormSize};
 };
 
-export function SelectOption(props: Props) {
+export function SelectOption<TValue, TOption extends SelectValue<TValue>>(
+  props: Props<TValue, TOption>
+) {
   const {
     label,
     data,
@@ -75,7 +79,7 @@ export function SelectOption(props: Props) {
           isFocused={isFocused}
           priority={itemPriority}
           size={size}
-          innerWrapProps={{'data-test-id': value}}
+          innerWrapProps={{'data-test-id': defined(value) ? String(value) : undefined}}
           labelProps={{as: typeof renderedLabel === 'string' ? 'p' : 'div'}}
           leadingItems={
             itemProps.__isNew__ && selectProps.showCreateOptionIcon !== false ? (

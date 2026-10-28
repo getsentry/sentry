@@ -5,8 +5,8 @@ import type {ListItemProps} from '@sentry/scraps/menu';
 /**
  * An option shared by select controls
  */
-export interface SelectValue<T> extends ListItemProps {
-  value: T;
+export interface SelectValue<TValue> extends ListItemProps {
+  value: TValue;
   /**
    * Plain text used for filtering when the label contains React elements.
    */
@@ -72,7 +72,10 @@ type SelectStyleSlot =
   | 'singleValue';
 
 /** Style overrides receive CSS and selection state, without implementation components. */
-export type StylesConfig<Option extends SelectValue<any> = SelectValue<any>> = {
+export type StylesConfig<
+  TValue = unknown,
+  TOption extends SelectValue<TValue> = SelectValue<TValue>,
+> = {
   [Slot in SelectStyleSlot]?: (
     base: CSSObject,
     state: Slot extends
@@ -81,7 +84,7 @@ export type StylesConfig<Option extends SelectValue<any> = SelectValue<any>> = {
       | 'multiValue'
       | 'multiValueLabel'
       | 'multiValueRemove'
-      ? SelectStyleState & {data: Option}
+      ? SelectStyleState & {data: TOption}
       : Slot extends 'control' | 'container'
         ? Pick<SelectStyleState, 'isDisabled'>
         : unknown

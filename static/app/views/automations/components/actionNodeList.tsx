@@ -273,4 +273,4 @@ function Node() {
 
 const StyledSelectControl = styled(Select)`
   width: 100%;
-`;
+` as typeof Select;

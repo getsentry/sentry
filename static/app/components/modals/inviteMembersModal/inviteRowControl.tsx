@@ -171,7 +171,7 @@ export function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
  * The email select control has custom selected item states as items
  * show their delivery status after the form is submitted.
  */
-function getStyles(theme: Theme, inviteStatus: InviteStatus): StylesConfig {
+function getStyles(theme: Theme, inviteStatus: InviteStatus): StylesConfig<string> {
   return {
     multiValue: (provided, {data}) => {
       const status = inviteStatus[data.value];

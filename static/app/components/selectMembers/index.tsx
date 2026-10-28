@@ -178,7 +178,7 @@ function SelectMembers({
   }
 
   return (
-    <Select<MentionableUser>
+    <Select<string, MentionableUser>
       aria-label={ariaLabel}
       options={currentOptions}
       renderValue={option => <UserBadge avatarSize={20} user={option.user} hideEmail />}

@@ -279,8 +279,8 @@ const getStylesConfig = ({
   } satisfies InternalStylesConfig;
 };
 
-type SelectContentProps = Pick<
-  BaseSelectProps,
+type SelectContentProps<TValue, TOption extends SelectValue<TValue>> = Pick<
+  BaseSelectProps<TValue, TOption>,
   | 'aria-describedby'
   | 'aria-invalid'
   | 'controlLeadingItems'
@@ -293,11 +293,11 @@ type SelectContentProps = Pick<
   | 'renderValue'
 >;
 
-function SelectInput({
+function SelectInput<TValue, TOption extends SelectValue<TValue>>({
   selectProps,
   ...props
-}: React.ComponentProps<typeof selectComponents.Input> & {
-  selectProps: SelectContentProps;
+}: Omit<React.ComponentProps<typeof selectComponents.Input>, 'selectProps'> & {
+  selectProps: SelectContentProps<TValue, TOption>;
 }) {
   const {inputRef} = selectProps;
   const nativeInputRef = useObjectRef(inputRef);
@@ -317,11 +317,11 @@ function SelectInput({
   );
 }
 
-function SelectControl({
+function SelectControl<TValue, TOption extends SelectValue<TValue>>({
   children,
   ...props
 }: Omit<React.ComponentProps<typeof selectComponents.Control>, 'selectProps'> & {
-  selectProps: SelectContentProps;
+  selectProps: SelectContentProps<TValue, TOption>;
 }) {
   return (
     <selectComponents.Control {...props}>
@@ -331,13 +331,13 @@ function SelectControl({
   );
 }
 
-function IndicatorsContainer({
+function IndicatorsContainer<TValue, TOption extends SelectValue<TValue>>({
   children,
   ...props
 }: Omit<
   React.ComponentProps<typeof selectComponents.IndicatorsContainer>,
   'selectProps'
-> & {selectProps: SelectContentProps}) {
+> & {selectProps: SelectContentProps<TValue, TOption>}) {
   return props.selectProps.renderIndicators ? (
     props.selectProps.renderIndicators(children)
   ) : (
@@ -348,13 +348,13 @@ function IndicatorsContainer({
   );
 }
 
-function MultiValueLabel({
+function MultiValueLabel<TValue, TOption extends SelectValue<TValue>>({
   children,
   ...props
 }: Omit<
   React.ComponentProps<typeof selectComponents.MultiValueLabel>,
   'selectProps' | 'data'
-> & {data: GeneralSelectValue; selectProps: SelectContentProps}) {
+> & {data: TOption; selectProps: SelectContentProps<TValue, TOption>}) {
   return (
     <selectComponents.MultiValueLabel {...props}>
       {props.selectProps.renderMultiValueLabel
@@ -414,11 +414,11 @@ function SelectLoadingIndicator() {
   return <LoadingIndicator mini size={14} style={{height: 14, width: 14}} />;
 }
 
-function SingleValue(
+function SingleValue<TValue, TOption extends SelectValue<TValue>>(
   props: Omit<
     React.ComponentProps<typeof selectComponents.SingleValue>,
     'selectProps' | 'data'
-  > & {data: GeneralSelectValue; selectProps: SelectContentProps}
+  > & {data: TOption; selectProps: SelectContentProps<TValue, TOption>}
 ) {
   const {leadingItems, label} = props.data;
   const renderedLeadingItems =
@@ -479,10 +479,13 @@ type OptionalSelectionProps<Props extends {onChange: unknown; value: unknown}> =
 
 /** Props shared by form fields and standalone selects. Implementation components stay private. */
 export interface BaseSelectProps<
-  OptionType extends GeneralSelectValue = GeneralSelectValue,
+  TValue,
+  TOption extends SelectValue<TValue> = SelectValue<TValue>,
 > {
+  // Include TValue here so options infer the value type without a selected value.
   options: ReadonlyArray<
-    OptionType | {options: readonly OptionType[]; label?: React.ReactNode}
+    | (TOption & SelectValue<TValue>)
+    | {options: ReadonlyArray<TOption & SelectValue<TValue>>; label?: React.ReactNode}
   >;
   'aria-describedby'?: string;
   'aria-invalid'?: boolean;
@@ -501,7 +504,7 @@ export interface BaseSelectProps<
   dropdownIndicator?: React.ReactNode;
   /** Disabled row that describes an empty selection, for legacy form fields. */
   emptyOptionLabel?: React.ReactNode;
-  filterOption?: ((option: OptionType, input: string) => boolean) | null;
+  filterOption?: ((option: TOption, input: string) => boolean) | null;
   formatCreateLabel?: (input: string) => React.ReactNode;
   /** ID of the native input, for association with a label. */
   id?: string;
@@ -515,7 +518,7 @@ export interface BaseSelectProps<
   /** Controlled menu state. */
   isOpen?: boolean;
   /** Compare object values. Values are compared with === by default. */
-  isValueEqual?: (a: OptionType['value'], b: OptionType['value']) => boolean;
+  isValueEqual?: (a: TValue, b: TValue) => boolean;
   loadingMessage?: () => React.ReactNode;
   maxMenuHeight?: number;
   maxMenuWidth?: number | string;
@@ -538,27 +541,27 @@ export interface BaseSelectProps<
   placeholder?: React.ReactNode;
   ref?: React.Ref<SelectHandle>;
   renderIndicators?: (indicators: React.ReactNode) => React.ReactNode;
-  renderMultiValueLabel?: (option: OptionType, label: React.ReactNode) => React.ReactNode;
-  renderOptionLabel?: (option: OptionType) => React.ReactNode;
-  renderValue?: (option: OptionType) => React.ReactNode;
+  renderMultiValueLabel?: (option: TOption, label: React.ReactNode) => React.ReactNode;
+  renderOptionLabel?: (option: TOption) => React.ReactNode;
+  renderValue?: (option: TOption) => React.ReactNode;
   searchable?: boolean;
   showCreateOptionIcon?: boolean;
   showDividers?: boolean;
   size?: FormSize;
-  styles?: StylesConfig<OptionType>;
+  styles?: StylesConfig<NoInfer<TValue>, NoInfer<TOption>>;
   tabIndex?: number;
   /** Virtualize large lists, including lists with sections. */
   virtualized?: boolean;
 }
 
-export type ControlProps<OptionType extends GeneralSelectValue = GeneralSelectValue> =
-  OptionalSelectionProps<SelectSelectionProps<OptionType['value'], OptionType>> &
-    BaseSelectProps<OptionType>;
+export type ControlProps<
+  TValue,
+  TOption extends SelectValue<TValue> = SelectValue<TValue>,
+> = OptionalSelectionProps<SelectSelectionProps<TValue, TOption>> &
+  BaseSelectProps<TValue, TOption>;
 
-export type GeneralSelectValue = SelectValue<any>;
-
-export function Select<OptionType extends GeneralSelectValue = GeneralSelectValue>(
-  props: ControlProps<OptionType>
+export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue<TValue>>(
+  props: ControlProps<TValue, TOption>
 ) {
   const theme = useTheme();
   const {size, maxMenuWidth, isInsideModal} = props;
@@ -621,7 +624,7 @@ export function Select<OptionType extends GeneralSelectValue = GeneralSelectValu
   );
 
   const mapValue = (rawValue: typeof value) => {
-    let mappedValue: ValueType<OptionType, boolean> | undefined;
+    let mappedValue: ValueType<TOption, boolean> | undefined;
     if (rawValue === undefined) {
       mappedValue = undefined;
     } else if (props.multiple) {
@@ -630,32 +633,26 @@ export function Select<OptionType extends GeneralSelectValue = GeneralSelectValu
       mappedValue = null;
     }
 
-    const compare = (
-      a: OptionType['value'] | null | undefined,
-      b: OptionType['value'] | null | undefined
-    ) => {
+    const compare = (a: TValue | null | undefined, b: TValue | null | undefined) => {
       if (props.isValueEqual && defined(a) && defined(b)) {
         return props.isValueEqual(a, b);
       }
       return a === b;
     };
 
-    const toOption = (val: OptionType['value']) =>
+    const toOption = (val: TValue | null | undefined) =>
       creatable && defined(val)
-        ? ({value: val, label: String(val)} as OptionType)
+        ? ({value: val, label: String(val)} as TOption)
         : undefined;
 
-    if (props.multiple && Array.isArray(rawValue)) {
+    if (Array.isArray(rawValue)) {
       mappedValue = rawValue
         .map(
-          val =>
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-            flatOptions.find(option => compare(option.value, val)) ?? toOption(val)
+          val => flatOptions.find(option => compare(option.value, val)) ?? toOption(val)
         )
         .filter(defined);
     } else {
       mappedValue =
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         flatOptions.find(option => compare(option.value, rawValue)) ??
         toOption(rawValue) ??
         mappedValue;
@@ -703,31 +700,31 @@ export function Select<OptionType extends GeneralSelectValue = GeneralSelectValu
   );
 
   const replacedComponents = {
-    SingleValue,
+    SingleValue: SingleValue<TValue, TOption>,
     ClearIndicator,
     DropdownIndicator,
     MultiValueRemove,
     LoadingIndicator: SelectLoadingIndicator,
     IndicatorSeparator: null,
     Menu,
-    Input: SelectInput,
-    Control: SelectControl,
-    IndicatorsContainer,
-    MultiValueLabel,
-    Option: SelectOption,
+    Input: SelectInput<TValue, TOption>,
+    Control: SelectControl<TValue, TOption>,
+    IndicatorsContainer: IndicatorsContainer<TValue, TOption>,
+    MultiValueLabel: MultiValueLabel<TValue, TOption>,
+    Option: SelectOption<TValue, TOption>,
     ...(dropdownIndicator === null && {DropdownIndicator: null}),
     ...(virtualized && {MenuList: VirtualizedMenuList}),
     ...(loadingMessage && {LoadingMessage: () => loadingMessage()}),
   };
 
-  const filterOptions = createFilter<OptionType>();
+  const filterOptions = createFilter<TValue, TOption>();
 
   return (
-    <SelectPicker<OptionType>
+    <SelectPicker<TValue, TOption>
       filterOption={
         filterOption === null
           ? null
-          : (candidate: {data: OptionType}, input) =>
+          : (candidate: {data: TOption}, input) =>
               (filterOption ?? filterOptions)(candidate.data, input)
       }
       styles={mappedStyles}
@@ -740,11 +737,11 @@ export function Select<OptionType extends GeneralSelectValue = GeneralSelectValu
       isMulti={props.multiple}
       isDisabled={isDisabled}
       isSearchable={isSearchable ?? true}
-      isOptionDisabled={(option: OptionType) => !!option.disabled}
+      isOptionDisabled={(option: TOption) => !!option.disabled}
       isOptionSelected={showEmptyOption ? option => option === emptyOption : undefined}
       controlShouldRenderValue={!showEmptyOption}
       showDividers={props.showDividers}
-      options={displayOptions as OptionsType<OptionType>}
+      options={displayOptions as OptionsType<TOption>}
       blurInputOnSelect={!props.multiple}
       closeMenuOnSelect={!props.multiple}
       hideSelectedOptions={false}
@@ -772,12 +769,12 @@ export function Select<OptionType extends GeneralSelectValue = GeneralSelectValu
   );
 }
 
-type SelectPickerProps<OptionType extends GeneralSelectValue> = Omit<
-  ControlProps<OptionType>,
+type SelectPickerProps<TValue, TOption extends SelectValue<TValue>> = Omit<
+  ControlProps<TValue, TOption>,
   'value' | 'styles' | 'defaultValue' | 'filterOption' | 'onInputChange'
 > &
   Pick<
-    ReactSelectProps<OptionType, boolean>,
+    ReactSelectProps<TOption, boolean>,
     | 'styles'
     | 'defaultValue'
     | 'filterOption'
@@ -799,13 +796,13 @@ type SelectPickerProps<OptionType extends GeneralSelectValue> = Omit<
     | 'menuIsOpen'
     | 'onMenuOpen'
     | 'onMenuClose'
-  > & {value?: ValueType<OptionType, boolean>};
+  > & {value?: ValueType<TOption, boolean>};
 
-function SelectPicker<OptionType extends GeneralSelectValue>({
+function SelectPicker<TValue, TOption extends SelectValue<TValue>>({
   creatable,
   ref,
   ...props
-}: SelectPickerProps<OptionType>) {
+}: SelectPickerProps<TValue, TOption>) {
   const Component: React.ComponentType<any> = creatable ? Creatable : ReactSelect;
   return <Component ref={ref as any} {...props} menuPlacement="auto" />;
 }
