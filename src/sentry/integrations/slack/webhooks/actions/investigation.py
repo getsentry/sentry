@@ -6,6 +6,7 @@ from enum import StrEnum
 from typing import Any
 
 import orjson
+import sentry_sdk
 from rest_framework.response import Response
 
 from sentry.constants import ObjectStatus
@@ -63,11 +64,10 @@ def record_investigation_unavailable(
     integration_id: int,
     extra: Mapping[str, Any] | None = None,
 ) -> None:
-    metrics.incr(
-        "seer.entrypoint.slack.start_investigation.unavailable",
-        tags={"reason": str(reason)},
-        sample_rate=1.0,
-    )
+    name = "seer.entrypoint.slack.start_investigation.unavailable"
+    attributes = {"reason": str(reason)}
+    sentry_sdk.metrics.count(name, 1, attributes=attributes)
+    metrics.incr(name, tags=attributes, sample_rate=1.0)
     logger.warning(
         "slack.investigation.start_unavailable",
         extra={
