@@ -52,8 +52,9 @@ describe('FingerprintRulesEditor', () => {
       'error.type:A'
     );
 
-    expect(screen.queryByRole('button', {name: /1 error/})).not.toBeInTheDocument();
-    expect(await screen.findByRole('button', {name: /1 error/})).toBeInTheDocument();
+    const message = 'Missing "->" before the fingerprint';
+    expect(screen.queryByText(message)).not.toBeInTheDocument();
+    expect(await screen.findByText(message)).toBeVisible();
   });
 
   it('shows no summary for valid rules', () => {

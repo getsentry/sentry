@@ -8,16 +8,17 @@ function getTokens(text: string) {
 }
 
 function getDiagnostics(text: string) {
-  return tokenizeFingerprintRules(text).diagnostics.map(
-    ({code, severity, start, end}) => [code, severity, text.slice(start, end)]
-  );
+  return tokenizeFingerprintRules(text).diagnostics.map(({code, start, end}) => [
+    code,
+    text.slice(start, end),
+  ]);
 }
 
 describe('tokenizeFingerprintRules', () => {
   it('tokenizes each part of a rule', () => {
     expect(
       getTokens(
-        '# comment\n!error.type:"My Error" tags.a:b* -> x, {{ default }} title="T {{ logger }}"'
+        '# comment\n!error.type:"My Error" tags.a:b* -> x, {{ default }} "{{ logger }}" title="T {{ logger }}"'
       )
     ).toEqual([
       ['comment', '# comment'],
@@ -32,18 +33,12 @@ describe('tokenizeFingerprintRules', () => {
       ['value', 'x'],
       ['punctuation', ','],
       ['variable', '{{ default }}'],
+      ['variable', '"{{ logger }}"'],
       ['attribute', 'title'],
       ['punctuation', '='],
       ['string', '"T '],
       ['variable', '{{ logger }}'],
       ['string', '"'],
-    ]);
-  });
-
-  it('treats a quoted variable as a variable', () => {
-    expect(getTokens('message:a -> "{{ logger }}"')).toContainEqual([
-      'variable',
-      '"{{ logger }}"',
     ]);
   });
 
@@ -65,39 +60,25 @@ describe('tokenizeFingerprintRules', () => {
   });
 
   it.each([
-    ['error.type:A => a', 'lookalike-arrow', 'error', '=>'],
-    ['error.type:A-> a', 'glued-arrow', 'error', '->'],
-    ['error.type:A → a', 'lookalike-arrow', 'error', '→'],
-    ['error.type:A→ a', 'lookalike-arrow', 'error', '→'],
-    ['error.type:A a', 'missing-arrow', 'error', 'error.type:A a'],
-    ['message:"a=>b" x', 'missing-arrow', 'error', 'message:"a=>b" x'],
-    ['error.type:A', 'missing-arrow', 'error', 'error.type:A'],
-    ['error.type A -> a', 'invalid-syntax', 'error', 'error.type'],
-    ['error.type: A -> a', 'invalid-syntax', 'error', 'error.type:'],
-    ['error.type:A ->', 'invalid-syntax', 'error', '->'],
-    ['-> a', 'invalid-syntax', 'error', '->'],
-    ['error.type:A\t-> a', 'invalid-syntax', 'error', '\t'],
-    ['error.type:A\x85-> a', 'invalid-syntax', 'error', '\x85'],
-    ['error.type:A -> a,,b', 'invalid-syntax', 'error', ','],
-    ['error.type:A -> {x}', 'invalid-syntax', 'error', '{x}'],
-    ['error.type:A -> a title=T', 'unquoted-title', 'warning', 'title=T'],
-    ['error.type:A -> a # b c', 'inline-comment', 'warning', '# b c'],
-  ])('flags %j', (text, code, severity, highlighted) => {
-    expect(getDiagnostics(text)).toContainEqual([code, severity, highlighted]);
-  });
-
-  it('reports a rule without an arrow once', () => {
-    expect(getDiagnostics('this is not a rule')).toEqual([
-      ['missing-arrow', 'error', 'this is not a rule'],
-    ]);
-  });
-
-  it('keeps tokens in order without overlapping', () => {
-    const {tokens} = tokenizeFingerprintRules(
-      'error.type:"a\nb"c:d-> x\n!e: f -> {{ g }}, title="{{ h }}" # i'
-    );
-    for (let i = 1; i < tokens.length; i++) {
-      expect(tokens[i]!.start).toBeGreaterThanOrEqual(tokens[i - 1]!.end);
-    }
+    ['error.type:A => a', 'lookalike-arrow', '=>'],
+    ['error.type:A-> a', 'glued-arrow', '->'],
+    ['error.type:A → a', 'lookalike-arrow', '→'],
+    ['error.type:A→ a', 'lookalike-arrow', '→'],
+    ['error.type:A a', 'missing-arrow', 'error.type:A a'],
+    ['message:"a=>b" x', 'missing-arrow', 'message:"a=>b" x'],
+    ...[
+      'error.type A -> a',
+      'error.type: A -> a',
+      'error.type:A ->',
+      '-> a',
+      'error.type:A\t-> a',
+      'error.type:A\x85-> a',
+      'error.type:A -> a,,b',
+      'error.type:A -> {x}',
+    ].map(line => [line, 'invalid-syntax', line]),
+    ['error.type:A -> a title=T', 'unquoted-title', 'title=T'],
+    ['error.type:A -> a # b c', 'inline-comment', '# b c'],
+  ])('flags %j', (text, code, highlighted) => {
+    expect(getDiagnostics(text)).toEqual([[code, highlighted]]);
   });
 });

@@ -95,6 +95,32 @@ function DiagnosticIcon({severity}: {severity: FingerprintDiagnostic['severity']
   );
 }
 
+function DiagnosticRow({
+  as,
+  diagnostic,
+  text,
+  onSelect,
+}: {
+  diagnostic: FingerprintDiagnostic;
+  onSelect: (diagnostic: FingerprintDiagnostic) => void;
+  text: string;
+  as?: 'li';
+}) {
+  return (
+    <Flex as={as} gap="sm" align="center">
+      <DiagnosticIcon severity={diagnostic.severity} />
+      <Text size="sm">
+        <Button variant="link" size="zero" onClick={() => onSelect(diagnostic)}>
+          {t('Line %s', getLineNumber(text, diagnostic.start))}
+        </Button>{' '}
+        {DIAGNOSTIC_MESSAGES[diagnostic.code](
+          text.slice(diagnostic.start, diagnostic.end)
+        )}
+      </Text>
+    </Flex>
+  );
+}
+
 interface FingerprintRulesEditorProps extends Omit<
   TextAreaProps,
   'autosize' | 'monospace' | 'onChange' | 'value'
@@ -181,49 +207,48 @@ export function FingerprintRulesEditor({
           {text.endsWith('\n') && ' '}
         </HighlightLayer>
       </Container>
-      {settledDiagnostics.length > 0 && (
-        <Disclosure size="xs">
-          <Disclosure.Title id={summaryId}>
-            <Flex gap="xs" align="center">
-              <DiagnosticIcon severity={errorCount > 0 ? 'error' : 'warning'} />
-              <Text size="sm" bold={false}>
-                {[
-                  errorCount > 0 && tn('%s error', '%s errors', errorCount),
-                  warningCount > 0 && tn('%s warning', '%s warnings', warningCount),
-                ]
-                  .filter(Boolean)
-                  .join(', ')}
-              </Text>
-            </Flex>
-          </Disclosure.Title>
-          <Disclosure.Content>
-            <Stack as="ul" gap="xs" padding="0" margin="0">
-              {settledDiagnostics.map(diagnostic => (
-                <Flex
-                  as="li"
-                  key={`${diagnostic.code}-${diagnostic.start}`}
-                  gap="sm"
-                  align="center"
-                >
-                  <DiagnosticIcon severity={diagnostic.severity} />
-                  <Text size="sm">
-                    <Button
-                      variant="link"
-                      size="zero"
-                      onClick={() => selectDiagnostic(diagnostic)}
-                    >
-                      {t('Line %s', getLineNumber(settledText, diagnostic.start))}
-                    </Button>{' '}
-                    {DIAGNOSTIC_MESSAGES[diagnostic.code](
-                      settledText.slice(diagnostic.start, diagnostic.end)
-                    )}
-                  </Text>
-                </Flex>
-              ))}
-            </Stack>
-          </Disclosure.Content>
-        </Disclosure>
-      )}
+      {/* Hidden rather than removed when there's nothing to show, so the page doesn't jump */}
+      <Container
+        id={summaryId}
+        visibility={settledDiagnostics.length > 0 ? 'visible' : 'hidden'}
+      >
+        {settledDiagnostics.length === 1 ? (
+          <DiagnosticRow
+            diagnostic={settledDiagnostics[0]!}
+            text={settledText}
+            onSelect={selectDiagnostic}
+          />
+        ) : (
+          <Disclosure size="xs">
+            <Disclosure.Title>
+              <Flex gap="xs" align="center">
+                <DiagnosticIcon severity={errorCount > 0 ? 'error' : 'warning'} />
+                <Text size="sm" bold={false}>
+                  {[
+                    errorCount > 0 && tn('%s error', '%s errors', errorCount),
+                    warningCount > 0 && tn('%s warning', '%s warnings', warningCount),
+                  ]
+                    .filter(Boolean)
+                    .join(', ')}
+                </Text>
+              </Flex>
+            </Disclosure.Title>
+            <Disclosure.Content>
+              <Stack as="ul" gap="xs" padding="0" margin="0">
+                {settledDiagnostics.map(diagnostic => (
+                  <DiagnosticRow
+                    key={`${diagnostic.code}-${diagnostic.start}`}
+                    as="li"
+                    diagnostic={diagnostic}
+                    text={settledText}
+                    onSelect={selectDiagnostic}
+                  />
+                ))}
+              </Stack>
+            </Disclosure.Content>
+          </Disclosure>
+        )}
+      </Container>
     </Stack>
   );
 }
@@ -275,9 +300,6 @@ const HighlightLayer = styled('div')<{disabled: boolean; size: FormSize}>`
   }
   [data-token='variable'] {
     color: ${p => p.theme.tokens.content.warning};
-  }
-  [data-token='invalid'] {
-    color: ${p => p.theme.tokens.content.danger};
   }
   [data-severity] {
     text-decoration-line: underline;

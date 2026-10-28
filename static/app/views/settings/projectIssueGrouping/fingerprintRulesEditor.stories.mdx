@@ -15,7 +15,7 @@ import {
 
 `<FingerprintRulesEditor>` is a textarea for [fingerprint rules](https://docs.sentry.io/product/data-management-settings/event-grouping/fingerprint-rules/). It highlights each part of a rule, and underlines mistakes that would stop the rules from saving or make them behave differently than they read.
 
-The highlighting is a layer over the textarea, whose own text is transparent, so typing, selection, undo, and autosize all stay native. The tokenizer in `fingerprintRulesSyntax.ts` follows the backend grammar, so a config gets an error when the backend can't parse it. It doesn't check matcher or variable names, so it never goes stale when the backend adds one. The backend still validates on save, so if the tokenizer throws, the editor quietly shows plain text and reports the error.
+The highlighting is a layer over the textarea, whose own text is transparent, so typing, selection, undo, and autosize all stay native. The grammar in `fingerprintRules.pegjs` mirrors the backend one, so a config gets an error when the backend can't parse it. It doesn't check matcher or variable names, so it never goes stale when the backend adds one. The backend still validates on save, so if the tokenizer throws, the editor quietly shows plain text and reports the error.
 
 ## Highlighting
 
