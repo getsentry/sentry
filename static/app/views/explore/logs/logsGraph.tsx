@@ -9,11 +9,13 @@ import {IconGraph} from '@sentry/icons/graph';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import Feature from 'sentry/components/acl/feature';
 import {hasDroppedData} from 'sentry/components/droppedData/buckets';
 import {useDroppedDataDrawer} from 'sentry/components/droppedData/drawer/useDroppedDataDrawer';
+import {DroppedDataFilterNote} from 'sentry/components/droppedData/droppedDataFilterNote';
 import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
 import {DroppedDataLLMContext} from 'sentry/components/droppedData/droppedDataLLMContext';
 import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
@@ -47,6 +49,10 @@ import {
 } from 'sentry/views/explore/components/chart/chartVisualization';
 import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
+import {
+  AddTransformationButton,
+  VisualizeTransformationRows,
+} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeTransformations';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {CHART_TYPE_TO_DISPLAY_TYPE} from 'sentry/views/explore/hooks/useAddToDashboard';
@@ -71,6 +77,7 @@ import {
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {RawCounts} from 'sentry/views/explore/useRawCounts';
 import {
   combineConfidenceForSeries,
@@ -115,6 +122,20 @@ export function LogsGraph({rawLogCounts, timeseriesResult}: LogsGraphProps) {
     setVisualizes(newVisualizes);
   }
 
+  function handleTransformationsChange(
+    index: number,
+    transformations: readonly string[]
+  ) {
+    setVisualizes(
+      visualizes.map((visualize, i) =>
+        (i === index && isVisualizeFunction(visualize)
+          ? visualize.replace({transformations})
+          : visualize
+        ).serialize()
+      )
+    );
+  }
+
   return (
     <Fragment>
       <DroppedDataLLMContext dataset={DiscoverDatasets.OURLOGS} />
@@ -129,6 +150,9 @@ export function LogsGraph({rawLogCounts, timeseriesResult}: LogsGraphProps) {
             onChartVisibilityChange={visible =>
               handleChartVisibilityChange(index, visible)
             }
+            onTransformationsChange={transformations =>
+              handleTransformationsChange(index, transformations)
+            }
           />
         );
       })}
@@ -139,16 +163,24 @@ export function LogsGraph({rawLogCounts, timeseriesResult}: LogsGraphProps) {
 interface GraphProps extends LogsGraphProps {
   onChartTypeChange: (chartType: ChartType) => void;
   onChartVisibilityChange: (visible: boolean) => void;
+  onTransformationsChange: (transformations: readonly string[]) => void;
   visualize: Visualize;
 }
 
 function Graph({
   onChartTypeChange,
   onChartVisibilityChange,
+  onTransformationsChange,
   rawLogCounts,
   timeseriesResult,
   visualize,
 }: GraphProps) {
+  const organization = useOrganization();
+  const showTransformationControls =
+    visualize.visible &&
+    isVisualizeFunction(visualize) &&
+    visualize.chartType !== ChartType.HEATMAP &&
+    organization.features.includes('explore-interpolation-and-smoothing');
   const isShortViewport = useIsShortViewport();
   const {isEmpty: tableIsEmpty, isPending: tableIsPending} = useLogsPageDataQueryResult();
 
@@ -329,45 +361,74 @@ function Graph({
   const chartRemountKey = `${period}|${start}|${end}|${userQuery}|${aggregate}|${visualize.chartType}|${interval}|${topEventsLimit}|${groupBys.join(',')}`;
 
   return (
-    <Widget
-      Title={Title}
-      TitleBadges={TitleBadges}
-      Actions={Actions}
-      Visualization={
-        visualize.visible && (
-          <ChartVisualization
-            key={chartRemountKey}
-            chartInfo={chartInfo}
-            droppedData={
-              showDroppedDataBand
-                ? {
-                    dataset: DiscoverDatasets.OURLOGS,
-                    droppedEvents,
-                    acceptedEvents,
-                    onClick: openDroppedDataDrawer,
-                  }
-                : undefined
-            }
+    <Container minWidth="0" border="primary" radius="md" background="primary">
+      <Widget
+        Title={Title}
+        TitleBadges={TitleBadges}
+        Actions={Actions}
+        Visualization={
+          visualize.visible && (
+            <ChartVisualization
+              key={chartRemountKey}
+              chartInfo={chartInfo}
+              droppedData={
+                showDroppedDataBand
+                  ? {
+                      dataset: DiscoverDatasets.OURLOGS,
+                      droppedEvents,
+                      acceptedEvents,
+                      onClick: openDroppedDataDrawer,
+                    }
+                  : undefined
+              }
+            />
+          )
+        }
+        Footer={
+          visualize.visible && (
+            <Flex align="center" justify="between" gap="sm" wrap="wrap">
+              <ConfidenceFooter
+                chartInfo={chartInfo}
+                isLoading={chartInfo.timeseriesResult.isPending}
+                rawLogCounts={rawLogCounts}
+                hasUserQuery={!!userQuery}
+                disabled={
+                  !hasValidConditionalFilter || (tableIsPending ? false : tableIsEmpty)
+                }
+              />
+              <Flex align="center" gap="md">
+                {showDroppedDataBand ? (
+                  <DroppedDataFilterNote
+                    dataset={DiscoverDatasets.OURLOGS}
+                    hasUserQuery={!!userQuery}
+                  />
+                ) : null}
+                {showTransformationControls ? (
+                  <AddTransformationButton
+                    traceItemDataset={TraceItemDataset.LOGS}
+                    transformations={visualize.transformations}
+                    onChange={onTransformationsChange}
+                  />
+                ) : null}
+              </Flex>
+            </Flex>
+          )
+        }
+        height={visualize.visible ? (isShortViewport ? 175 : 200) : 50}
+        revealActions="always"
+        borderless
+      />
+      {showTransformationControls && visualize.transformations.length > 0 ? (
+        <Container padding="xl" paddingTop="0" paddingBottom="md">
+          <VisualizeTransformationRows
+            traceItemDataset={TraceItemDataset.LOGS}
+            transformations={visualize.transformations}
+            layout="inline"
+            onChange={onTransformationsChange}
           />
-        )
-      }
-      Footer={
-        visualize.visible && (
-          <ConfidenceFooter
-            chartInfo={chartInfo}
-            // Match chart pending state (includes table withhold + invalid `_if` errors).
-            isLoading={chartInfo.timeseriesResult.isPending}
-            rawLogCounts={rawLogCounts}
-            hasUserQuery={!!userQuery}
-            disabled={
-              !hasValidConditionalFilter || (tableIsPending ? false : tableIsEmpty)
-            }
-          />
-        )
-      }
-      height={visualize.visible ? (isShortViewport ? 175 : 200) : 50}
-      revealActions="always"
-    />
+        </Container>
+      ) : null}
+    </Container>
   );
 }
 

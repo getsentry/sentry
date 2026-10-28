@@ -120,21 +120,17 @@ from sentry.seer.models.project_repository import (
     SeerProjectRepository,
     SeerProjectRepositoryBranchOverride,
 )
-from sentry.seer.models.workflow import (
-    SeerWorkflowConfig,
-    SeerWorkflowConfigProject,
-    SeerWorkflowStrategy,
-)
+from sentry.seer.models.workflow import SeerWorkflowStrategy
 from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app import SentryApp
-from sentry.service_accounts.models import ServiceAccount, ServiceAccountProject
+from sentry.service_accounts.models import ServiceAccount
 from sentry.services.nodestore.django.models import Node
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.snuba.models import QuerySubscriptionDataSourceHandler
 from sentry.tempest.models import TempestCredentials
 from sentry.testutils.cases import TestCase, TransactionTestCase
-from sentry.testutils.factories import get_fixture_path
+from sentry.testutils.factories import Factories, get_fixture_path
 from sentry.testutils.fixtures import Fixtures
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.token import AuthTokenType
@@ -532,7 +528,7 @@ class ExhaustiveFixtures(Fixtures):
         )
 
         # Auth*
-        self.create_exhaustive_organization_auth(owner, org, project)
+        service_account = self.create_exhaustive_organization_auth(owner, org, project)
 
         # Integration*
         org_integration = self.create_exhaustive_organization_integration(org)
@@ -559,11 +555,6 @@ class ExhaustiveFixtures(Fixtures):
         )
         alert.user_id = owner_id
         alert.save()
-        trigger = self.create_alert_rule_trigger(alert_rule=alert)
-        self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
-
-        # Incident*
-        self.create_incident(org, [project])
 
         # Dashboard
         dashboard = Dashboard.objects.create(
@@ -656,12 +647,13 @@ class ExhaustiveFixtures(Fixtures):
             tag_value="production",
             branch_name="release",
         )
-        seer_workflow_config = SeerWorkflowConfig.objects.create(
-            organization=org,
+        seer_workflow_config = Factories.create_seer_workflow_config(
+            org,
+            service_account_id=service_account.id,
             strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
             filters={"environments": ["production"]},
         )
-        SeerWorkflowConfigProject.objects.create(config=seer_workflow_config, project=project)
+        Factories.create_seer_workflow_config_project(seer_workflow_config, project)
 
         CodeReviewEvent.objects.create(
             organization=org,
@@ -773,8 +765,9 @@ class ExhaustiveFixtures(Fixtures):
         WorkflowActionGroupStatus.objects.create(
             action=send_notification_action, group=group, workflow=workflow
         )
+        # A synthetic historical ID exercises mapping backup without native trigger rows.
         DataConditionAlertRuleTrigger.objects.create(
-            data_condition=data_condition, alert_rule_trigger_id=trigger.id
+            data_condition=data_condition, alert_rule_trigger_id=alert.id
         )
 
         TempestCredentials.objects.create(
@@ -876,7 +869,9 @@ class ExhaustiveFixtures(Fixtures):
         return org
 
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_exhaustive_organization_auth(self, owner: User, org: Organization, project: Project):
+    def create_exhaustive_organization_auth(
+        self, owner: User, org: Organization, project: Project
+    ) -> ServiceAccount:
         ApiKey.objects.create(key=uuid4().hex, organization_id=org.id)
         auth_provider = AuthProvider.objects.create(organization_id=org.id, provider="sentry")
         AuthIdentity.objects.create(
@@ -900,13 +895,13 @@ class ExhaustiveFixtures(Fixtures):
             date_last_used=None,
             project_last_used_id=project.id,
         )
-        service_account = ServiceAccount.objects.create(
-            organization_id=org.id,
+        return Factories.create_service_account(
+            org,
             name=f"service account for {org.slug}",
             scope_list=["org:read", "project:read"],
             created_by=owner,
+            project_ids=[project.id],
         )
-        ServiceAccountProject.objects.create(service_account=service_account, project_id=project.id)
 
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_exhaustive_organization_integration(self, org: Organization):

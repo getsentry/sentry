@@ -31,7 +31,6 @@ import {
   ToolbarVisualizeHeader,
 } from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {VisualizeEquation as VisualizeEquationInput} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeEquation';
-import {VisualizeTransformations} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeTransformations';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
@@ -389,22 +388,6 @@ function ToolbarVisualizeItem({
       loading={numberTagsLoading || stringTagsLoading || booleanTagsLoading}
       onSearch={setSearch}
       onClose={() => setSearch(undefined)}
-      transformationControls={
-        organization.features.includes('explore-interpolation-and-smoothing') &&
-        isVisualizeFunction(visualize) ? (
-          <VisualizeTransformations
-            traceItemDataset={TraceItemDataset.SPANS}
-            transformations={visualize.transformations}
-            onChange={transformations =>
-              onReplace(
-                visualizes.map(v =>
-                  isVisualizeFunction(v) ? v.replace({transformations}) : v
-                )
-              )
-            }
-          />
-        ) : undefined
-      }
       filterSearchBar={
         showFilterSearchBar ? (
           <ConditionalAggregateFilterBar

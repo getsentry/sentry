@@ -127,7 +127,6 @@ type Data = {
   sampleCount?: number;
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: WidgetTimeSeries[];
-  totalIssuesCount?: string;
 };
 
 function WidgetCard(props: Props) {

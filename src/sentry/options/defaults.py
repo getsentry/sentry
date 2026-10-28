@@ -86,6 +86,12 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "organization.provision-analytics-with-outbox",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Redis
 register(
@@ -947,6 +953,11 @@ register("vercel.integration-slug", default="sentry", flags=FLAG_AUTOMATOR_MODIF
 # MsTeams Integration
 register("msteams.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("msteams.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+register(
+    "msteams.client-secret-expires-at",
+    default="",
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 register("msteams.app-id")
 register(
     "msteams.personal-installation-link.enabled",
@@ -1538,8 +1549,8 @@ register(
 )
 
 # Deterministic % of gen_ai conversations that get Seer title generation, keyed
-# on conversation id. Requires organizations:gen-ai-conversation-title-generation.
-# 0.0 disables generation; 1.0 enables it for every conversation in flagged orgs.
+# on conversation id. 0.0 disables generation; 1.0 enables it for every
+# conversation in orgs that have not hidden AI features.
 register(
     "ai-monitoring.conversation-title-generation.rollout-rate",
     type=Float,
@@ -2751,6 +2762,47 @@ register(
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Per-destination circuit breaker for outbound RPCs. `enabled` tracks outcomes and
+# records would-be rejections; `enforce` actually rejects calls while the breaker is open.
+register(
+    "hybridcloud.rpc.circuit-breaker.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "hybridcloud.rpc.circuit-breaker.enforce",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "hybridcloud.rpc.circuit-breaker.config",
+    type=Dict,
+    default={
+        "error_limit_window": 60,  # seconds
+        "broken_state_duration": 30,  # seconds
+        "threshold": 0.5,  # fraction of calls that must fail to trip
+        "floor": 50,  # minimum failures before the threshold applies
+    },
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Calls slower than this count as failures: a slow destination ties up workers the
+# same way a failing one does.
+register(
+    "hybridcloud.rpc.circuit-breaker.slow-call-seconds",
+    type=Float,
+    default=5.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Destinations (cell names, or "control") whose calls are rejected outright, whatever the
+# options above say. A manual switch for cutting off a cell during an outage.
+register(
+    "hybridcloud.rpc.circuit-breaker.force-open-destinations",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "hybridcloud.apigateway.use_pooling.rate",
     default=0.0,
@@ -3456,13 +3508,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Enable sending a post update signal after we update groups using a queryset update
-register(
-    "groups.enable-post-update-signal",
-    default=False,
-    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 
 # TODO: For now, only a small number of projects are going through a grouping config transition at
 # any given time, so we're sampling at 100% in order to be able to get good signal. Once we've fully
@@ -3705,6 +3750,14 @@ register(
 # Notifications for Sentry organizations
 register(
     "notifications.platform-rollout.is-sentry",
+    type=Dict,
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Notifications for a curated set of customer organizations in limited access
+register(
+    "notifications.platform-rollout.limited-access",
     type=Dict,
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -4696,5 +4749,14 @@ register(
     "integrations.client.disable_retries",
     default=False,
     type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Whether to query legacy debug/code IDS during debug file lookup.
+# This is a per-request rollout rate.
+register(
+    "debug-files.query-legacy-ids.rollout-rate",
+    type=Float,
+    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

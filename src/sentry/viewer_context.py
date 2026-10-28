@@ -55,20 +55,8 @@ https://www.notion.so/sentry/RFC-Unified-ViewerContext-via-ContextVar-32f8b10e4b
 
 
 def get_acting_user_id(ctx: ViewerContext | None) -> int | None:
-    """Return the human user *ctx* acts as, or ``None``.
-
-    A user actor acts as itself and an agent acts for its delegating user. Other
-    actor types never resolve to a user, so a stray ``delegated_user_id`` on them
-    cannot grant user identity.
-    """
-    if ctx is None:
-        return None
-    actor = ctx.actor
-    if actor.type == ActorType.USER:
-        return actor.actor_id
-    if actor.type == ActorType.AGENT:
-        return actor.delegated_user_id
-    return None
+    """Return the human user *ctx* acts as, or ``None``."""
+    return ctx.actor.user_id if ctx is not None else None
 
 
 def observe_viewer_context_propagation(

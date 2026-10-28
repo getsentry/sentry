@@ -5,7 +5,6 @@ from django.urls import reverse
 from sentry.models.repository import Repository
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
 
 
 class ProjectSeerPreferencesEndpointTest(APITestCase):
@@ -499,8 +498,7 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
             == 0
         )
 
-    @with_feature("organizations:seer-gitlab-support")
-    def test_post_accepts_gitlab_repo_with_feature_flag(self) -> None:
+    def test_post_accepts_gitlab_repo(self) -> None:
         gitlab_repo = self.create_repo(
             project=self.project,
             name="getsentry/sentry-gitlab",
@@ -533,8 +531,7 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         assert len(seer_repos) == 1
         assert seer_repos[0].project_repository.repository_id == gitlab_repo.id
 
-    @with_feature("organizations:seer-gitlab-support")
-    def test_post_accepts_gitlab_bare_provider_with_feature_flag(self) -> None:
+    def test_post_accepts_gitlab_bare_provider(self) -> None:
         gitlab_repo = self.create_repo(
             project=self.project,
             name="getsentry/sentry-gitlab",

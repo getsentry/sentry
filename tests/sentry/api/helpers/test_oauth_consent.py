@@ -221,7 +221,7 @@ def test_unknown_permission_group() -> None:
 @pytest.mark.parametrize(
     "scope, expected",
     [
-        ("dashboard:write", ["read", "create", "write"]),
+        ("dashboard:update", ["read", "create", "write"]),
         ("dashboard:delete", ["read", "create", "write", "delete"]),
     ],
 )

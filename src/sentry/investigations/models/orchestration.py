@@ -47,6 +47,14 @@ class InvestigationOrchestrationCommandStatus(models.TextChoices):
     FAILED = "failed", "Failed"
 
 
+class InvestigationOrchestrationRerun(models.TextChoices):
+    """What Seer did with a re-run it accepted."""
+
+    STARTED = "started", "Started"
+    HELD = "held", "Held until the busy run finishes"
+    SKIPPED = "skipped", "Dropped before it started"
+
+
 @cell_silo_model
 class InvestigationOrchestrationRun(DefaultFieldsModel):
     """Sentry's durable control-plane projection of one Seer investigation run."""
@@ -172,6 +180,9 @@ class InvestigationOrchestrationCommand(DefaultFieldsModel):
         db_default=InvestigationOrchestrationCommandStatus.ACCEPTED,
     )
     error: models.Field[dict[str, Any] | None, dict[str, Any] | None] = models.JSONField(null=True)
+    rerun = models.CharField(
+        max_length=16, null=True, choices=InvestigationOrchestrationRerun.choices
+    )
 
     class Meta:
         app_label = "investigations"
