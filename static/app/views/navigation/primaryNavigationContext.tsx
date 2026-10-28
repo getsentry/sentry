@@ -9,6 +9,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 
 const PRIMARY_NAVIGATION_GROUP_CONFIG = {
+  inbox: ['inbox'],
   issues: ['issues'],
   explore: ['explore', 'preprod'],
   seer: ['seer'],
