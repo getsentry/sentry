@@ -13,6 +13,7 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
     GithubCheckSuiteEvent,
     LivePullRequestHead,
     check_suite_head_match,
+    check_suite_matches_run_head,
     compare_live_pull_request_head,
     get_check_suite_url,
     resolve_check_suite_autofix_run,
@@ -24,6 +25,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.base import (
     FeedbackSourceBase,
     TriggerDecision,
 )
+from sentry.seer.autofix.pr_iteration.identity import is_ad_hoc_run
 from sentry.seer.autofix.pr_iteration.iterations import get_iterations
 from sentry.utils import metrics
 
@@ -168,7 +170,13 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
         head_sha, repo_name, matched = check_suite_head_match(self.event, run_state)
         attempt_key = self.check_suite_attempt_key()
         already_processed = attempt_key in _processed_check_suite_attempts(run_state)
-        live_head = self._live_head(run_state) if matched and not already_processed else None
+        ad_hoc = is_ad_hoc_run(run_state)
+        live_head = (
+            self._live_head(run_state) if ad_hoc or (matched and not already_processed) else None
+        )
+        if ad_hoc and live_head is not None and live_head.result in ("match", "mismatch"):
+            # This run's recorded head lags the ad-hoc iterations' own pushes.
+            matched = live_head.result == "match"
         if live_head is not None:
             metrics.incr(
                 "autofix.pr_iteration.check_suite.live_head",
@@ -210,7 +218,7 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
         # It stays queued (the next drain drops it via ``should_consume``) but
         # schedules nothing, and the reason lands on the waiting iteration's
         # row so the sweep can say why it never ran.
-        if not check_suite_head_match(self.event, run_state).matched:
+        if not check_suite_matches_run_head(self.event, run_state, autofix_run.repository).matched:
             return TriggerDecision(task=None, reason="stale_head")
 
         # Otherwise queue a consume task for this run: immediately once every check

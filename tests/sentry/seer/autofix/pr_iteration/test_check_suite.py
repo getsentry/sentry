@@ -14,6 +14,7 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
     GithubCheckSuiteEvent,
     InspectedCheckSuiteHead,
     ResolvedGreenCheckSuite,
+    check_suite_matches_run_head,
     resolve_check_suite_autofix_run,
     should_defer_pr_iteration,
     sweep_check_runs,
@@ -1690,6 +1691,25 @@ class CheckSuiteLiveHeadTest(TestCase):
         _check_suite_source().should_consume(self._run_state_on_head())
 
         assert not mock_metrics.incr.called
+
+    def _ad_hoc_state_behind_its_iteration(self) -> SeerRunState:
+        state = self._run_state_on_head()
+        state.metadata = {}
+        # An ad-hoc iteration pushed "abc" from its own run, so this run still records its own push.
+        state.repo_pr_states["owner/repo"].commit_sha = "chat-push"
+        return state
+
+    def test_run_head_match_uses_the_live_head_only_for_ad_hoc_runs(self) -> None:
+        event = _check_suite_source().event
+        repository = MagicMock(organization_id=1, id=2)
+        assert check_suite_matches_run_head(
+            event, self._ad_hoc_state_behind_its_iteration(), repository
+        ).matched
+
+        autofix_state = self._run_state_on_head()
+        autofix_state.repo_pr_states["owner/repo"].commit_sha = "chat-push"
+        assert not check_suite_matches_run_head(event, autofix_state, repository).matched
+        assert self.get_pr.call_count == 1
 
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.metrics")
     def test_records_nothing_when_the_cheap_checks_already_declined(

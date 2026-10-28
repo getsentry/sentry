@@ -23,7 +23,7 @@ from sentry.models.organization import Organization
 from sentry.seer.autofix.pr_iteration.check_suites import (
     CheckSuiteAutofixRun,
     GithubCheckSuiteEvent,
-    check_suite_head_match,
+    check_suite_matches_run_head,
 )
 from sentry.seer.autofix.pr_iteration.constants import CAP_ASSIGN_FLAG
 from sentry.seer.autofix.pr_iteration.feedback import (
@@ -135,7 +135,7 @@ def assign_user_for_exhausted_cap(
         "pr_id": resolved.pr_id,
     }
 
-    head_match = check_suite_head_match(event, resolved.run_state)
+    head_match = check_suite_matches_run_head(event, resolved.run_state, resolved.repository)
     if not head_match.matched or not head_match.head_sha or not head_match.repo_name:
         # A failure on an older commit says nothing about the current head.
         _skip("stale_head", {**log_extra, "head_sha": head_match.head_sha})
