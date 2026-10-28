@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+from enum import IntEnum
 from typing import TYPE_CHECKING, Any
 
 from django.utils.cache import patch_vary_headers
@@ -27,6 +28,17 @@ OPTION_NAME = "api.conditional_get.enabled"
 MAX_AGE_OPTION_NAME = "api.conditional_get.max_age_endpoints"
 
 
+class CacheTier(IntEnum):
+    """Seconds a browser may reuse a response without asking again.
+
+    Matches the fallback TTL tiers of the getsentry/toolkit response cache, so the
+    CLI and the browser keep an endpoint's responses for the same time.
+    """
+
+    VOLATILE = 60
+    STABLE = 5 * 60
+
+
 def _if_none_match_matches(header: str | None, etag: str) -> bool:
     """Compare an If-None-Match header against our ETag, per RFC 9110.
 
@@ -47,25 +59,25 @@ class ConditionalGetResponseMixin(_Base):
     class list, so it hashes the final payload. The ``api.conditional_get.enabled``
     option turns the behaviour off for every endpoint that uses it.
 
-    An endpoint that sets ``cache_max_age`` serves data that rarely changes once
-    written. The browser may reuse it for that many seconds without asking again.
+    An endpoint that sets ``cache_tier`` serves data that rarely changes once
+    written. The browser may reuse it for that tier's seconds without asking again.
     Such an endpoint gets no cache headers at all until its class name is listed in
     the ``api.conditional_get.max_age_endpoints`` option.
     """
 
-    cache_max_age: int | None = None
+    cache_tier: CacheTier | None = None
     # Query parameters that make the response depend on live data.
     uncacheable_query_params: frozenset[str] = frozenset()
 
     def _max_age(self, request: Request) -> int | None:
-        if self.cache_max_age is None:
+        if self.cache_tier is None:
             return None
         # Privileged sessions see extra fields, and can end without the cookie changing.
         if is_active_superuser(request) or is_active_staff(request):
             return None
         if not self.uncacheable_query_params.isdisjoint(request.GET.keys()):
             return None
-        return self.cache_max_age
+        return int(self.cache_tier)
 
     def finalize_response(
         self, request: Request, response: Response, *args: Any, **kwargs: Any
@@ -76,7 +88,7 @@ class ConditionalGetResponseMixin(_Base):
             return response
         if not options.get(OPTION_NAME):
             return response
-        if self.cache_max_age is not None and type(self).__name__ not in options.get(
+        if self.cache_tier is not None and type(self).__name__ not in options.get(
             MAX_AGE_OPTION_NAME
         ):
             return response

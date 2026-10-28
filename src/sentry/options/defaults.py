@@ -1551,9 +1551,9 @@ register(
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Endpoint class names whose ConditionalGetResponseMixin cache_max_age is applied.
+# Endpoint class names whose ConditionalGetResponseMixin cache_tier is applied.
 # Requires api.conditional_get.enabled. A browser keeps a cached response for up to
-# cache_max_age seconds after its endpoint is removed from this list.
+# the tier's seconds after its endpoint is removed from this list.
 register(
     "api.conditional_get.max_age_endpoints",
     type=Sequence,

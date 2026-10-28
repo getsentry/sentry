@@ -9,6 +9,7 @@ from sentry.api.base import Endpoint
 from sentry.api.conditional_get import (
     MAX_AGE_OPTION_NAME,
     OPTION_NAME,
+    CacheTier,
     ConditionalGetResponseMixin,
 )
 from sentry.testutils.cases import APITestCase
@@ -43,7 +44,7 @@ class DummyHeaderEndpoint(DummyConditionalEndpoint):
 
 
 class DummyMaxAgeEndpoint(DummyConditionalEndpoint):
-    cache_max_age = 300
+    cache_tier = CacheTier.STABLE
     uncacheable_query_params = frozenset({"live"})
 
 

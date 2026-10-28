@@ -12,7 +12,7 @@ from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEventsEndpointBase
-from sentry.api.conditional_get import ConditionalGetResponseMixin
+from sentry.api.conditional_get import CacheTier, ConditionalGetResponseMixin
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.event import (
@@ -98,7 +98,7 @@ class OrganizationEventDetailsEndpoint(ConditionalGetResponseMixin, Organization
         "GET": ApiPublishStatus.PRIVATE,
     }
     # Group, release, and project slug can still change after ingestion.
-    cache_max_age = 300
+    cache_tier = CacheTier.STABLE
     uncacheable_query_params = frozenset({"averageColumn"})
 
     def convert_args(
