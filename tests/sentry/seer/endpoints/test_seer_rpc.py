@@ -1608,7 +1608,7 @@ class TestSeerRpcViewerContextAuth(APITestCase):
 
 @override_settings(SEER_RPC_SHARED_SECRET=["a-long-value-that-is-hard-to-guess"])
 @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
-class TestGetCommitAuthor(APITestCase):
+class TestGetUserScmIdentity(APITestCase):
     def setUp(self) -> None:
         super().setUp()
         self.actor = self.create_user(name="Mona Lisa")
@@ -1626,9 +1626,14 @@ class TestGetCommitAuthor(APITestCase):
             ),
         )
 
-    def _call(self, *, actor: Actor, viewer_org_id: int) -> Any:
-        path = reverse("sentry-api-0-seer-rpc-service", kwargs={"method_name": "get_commit_author"})
-        data: dict[str, Any] = {"args": {"org_id": self.organization.id}, "meta": {}}
+    def _call(self, *, actor: Actor, viewer_org_id: int, provider: str = "github") -> Any:
+        path = reverse(
+            "sentry-api-0-seer-rpc-service", kwargs={"method_name": "get_user_scm_identity"}
+        )
+        data: dict[str, Any] = {
+            "args": {"org_id": self.organization.id, "provider": provider},
+            "meta": {},
+        }
         body = orjson.dumps(data).decode()
         response = self.client.post(
             path,
@@ -1648,7 +1653,7 @@ class TestGetCommitAuthor(APITestCase):
             viewer_org_id=self.organization.id,
         )
         assert data == {
-            "author": {
+            "identity": {
                 "name": "Mona Lisa",
                 "email": "583231+octocat@users.noreply.github.com",
                 "scm_login": "octocat",
@@ -1661,33 +1666,61 @@ class TestGetCommitAuthor(APITestCase):
             actor=Actor(type=ActorType.AGENT, delegated_user_id=self.actor.id),
             viewer_org_id=self.organization.id,
         )
-        assert data["author"]["scm_login"] == "octocat"
+        assert data["identity"]["scm_login"] == "octocat"
 
-    def test_preserves_an_author_without_scm_login(self) -> None:
-        author = {"name": "Mona Lisa", "email": "octocat@users.noreply.github.com"}
-        with patch("sentry.seer.endpoints.seer_rpc.commit_author_for_user", return_value=author):
+    def test_accepts_the_integrations_prefixed_provider(self) -> None:
+        self._link_github()
+        data = self._call(
+            actor=Actor(type=ActorType.USER, actor_id=self.actor.id),
+            viewer_org_id=self.organization.id,
+            provider="integrations:github",
+        )
+        assert data["identity"]["scm_login"] == "octocat"
+
+    def test_preserves_an_identity_without_scm_login(self) -> None:
+        identity = {"name": "Mona Lisa", "email": "octocat@users.noreply.github.com"}
+        with patch("sentry.seer.endpoints.seer_rpc.commit_author_for_user", return_value=identity):
             data = self._call(
                 actor=Actor(type=ActorType.USER, actor_id=self.actor.id),
                 viewer_org_id=self.organization.id,
             )
-        assert data == {"author": author}
+        assert data == {"identity": identity}
 
-    def test_no_author_without_a_github_identity(self) -> None:
+    def test_no_identity_on_github_enterprise(self) -> None:
+        # The github.com link must not be credited on an Enterprise repo.
+        self._link_github()
+        data = self._call(
+            actor=Actor(type=ActorType.USER, actor_id=self.actor.id),
+            viewer_org_id=self.organization.id,
+            provider="github_enterprise",
+        )
+        assert data == {"identity": None}
+
+    def test_no_identity_on_gitlab(self) -> None:
+        self._link_github()
+        data = self._call(
+            actor=Actor(type=ActorType.USER, actor_id=self.actor.id),
+            viewer_org_id=self.organization.id,
+            provider="gitlab",
+        )
+        assert data == {"identity": None}
+
+    def test_no_identity_without_a_github_identity(self) -> None:
         data = self._call(
             actor=Actor(type=ActorType.USER, actor_id=self.actor.id),
             viewer_org_id=self.organization.id,
         )
-        assert data == {"author": None}
+        assert data == {"identity": None}
 
-    def test_no_author_without_an_acting_user(self) -> None:
+    def test_no_identity_without_an_acting_user(self) -> None:
         self._link_github()
         data = self._call(actor=Actor(type=ActorType.SYSTEM), viewer_org_id=self.organization.id)
-        assert data == {"author": None}
+        assert data == {"identity": None}
 
-    def test_no_author_when_viewer_is_in_another_org(self) -> None:
+    def test_no_identity_when_viewer_is_in_another_org(self) -> None:
         self._link_github()
         data = self._call(
             actor=Actor(type=ActorType.USER, actor_id=self.actor.id),
             viewer_org_id=self.create_organization().id,
         )
-        assert data == {"author": None}
+        assert data == {"identity": None}

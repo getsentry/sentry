@@ -118,9 +118,9 @@ class OrganizationSlugResponse(BaseModel):
     slug: str
 
 
-class CommitAuthorResponse(BaseModel):
-    # None when the viewer has no github.com identity Sentry can credit.
-    author: SeerCommitAuthor | None = None
+class UserScmIdentityResponse(BaseModel):
+    # None when the viewer has no identity on the provider that Sentry can credit.
+    identity: SeerCommitAuthor | None = None
 
 
 class ReferencedFixStatementsResponse(BaseModel):
