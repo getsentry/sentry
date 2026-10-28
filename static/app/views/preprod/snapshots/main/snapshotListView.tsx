@@ -11,12 +11,14 @@ import {
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {matchesHotkey} from '@sentry/scraps/hotkey';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {t} from 'sentry/locale';
 import {ModalStore} from 'sentry/stores/modalStore';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {DiffStatus, isPairSidebarItem} from 'sentry/views/preprod/types/snapshotTypes';
@@ -31,6 +33,12 @@ import {ImageCard, PairCard} from './snapshotCards';
 import {MAX_IMAGE_HEIGHT} from './snapshotDiffBodies';
 import {SnapshotGroupHeader} from './snapshotFrames';
 import {RowFrame} from './snapshotRowFrame';
+import {
+  useViewedSnapshots,
+  viewedKeyForImage,
+  viewedKeyForPair,
+} from './useViewedSnapshots';
+import {TOGGLE_VIEWED_HOTKEY} from './viewedCheckbox';
 
 interface SnapshotListViewProps {
   imageBaseUrl: string;
@@ -67,6 +75,7 @@ type GroupCard =
       pair: SnapshotDiffPair;
       status: DiffStatus;
       type: 'pair-card';
+      viewedKey: string | null;
     }
   | {
       cardType: 'added' | 'removed' | 'renamed' | 'solo' | 'unchanged' | 'skipped';
@@ -74,12 +83,14 @@ type GroupCard =
       id: string;
       image: SnapshotImage;
       type: 'image-card';
+      viewedKey: string | null;
       copyData?: unknown;
     };
 
 // Keep in sync with SnapshotGroupHeader: lg vertical padding + md heading height.
 const SNAPSHOT_GROUP_HEADER_HEIGHT = 44;
 const CARD_CHROME_HEIGHT = 120;
+const COLLAPSED_CARD_HEIGHT = 48;
 const ERRORED_BANNER_HEIGHT = 56;
 const ROW_PADDING_BOTTOM = 16;
 const DEFAULT_CONTENT_WIDTH = 900;
@@ -113,9 +124,12 @@ export type ListRow =
   | {
       estimatedHeight: number;
       groupName: string;
+      hiddenCards: GroupCard[];
       id: string;
+      isViewed: boolean | 'indeterminate';
       itemKey: string;
       kind: 'header';
+      viewedKeys: string[];
     }
   | {
       card: GroupCard;
@@ -125,6 +139,7 @@ export type ListRow =
       isFirstInGroup: boolean;
       isLastInGroup: boolean;
       isUngrouped: boolean;
+      isViewed: boolean;
       itemKey: string;
       kind: 'card';
     };
@@ -140,6 +155,7 @@ function buildItemCards(item: SidebarItem, contentWidth: number): GroupCard[] {
         id: `c:${item.key}:${pair.head_image.image_file_name}`,
         pair,
         status,
+        viewedKey: viewedKeyForPair(pair),
         estimatedHeight:
           Math.max(
             estimateCardHeight(pair.head_image, true, contentWidth),
@@ -155,6 +171,7 @@ function buildItemCards(item: SidebarItem, contentWidth: number): GroupCard[] {
         image: pair.head_image,
         copyData: pair,
         cardType: item.type,
+        viewedKey: viewedKeyForPair(pair),
         estimatedHeight: estimateCardHeight(pair.head_image, false, contentWidth),
       });
     }
@@ -165,6 +182,10 @@ function buildItemCards(item: SidebarItem, contentWidth: number): GroupCard[] {
         id: `c:${item.key}:${image.image_file_name}`,
         image,
         cardType: item.type,
+        viewedKey:
+          item.type === 'unchanged'
+            ? null
+            : viewedKeyForImage(image, item.type === 'removed'),
         estimatedHeight: estimateCardHeight(image, false, contentWidth),
       });
     }
@@ -172,22 +193,45 @@ function buildItemCards(item: SidebarItem, contentWidth: number): GroupCard[] {
   return cards;
 }
 
-export function buildRows(items: SidebarItem[], contentWidth: number): ListRow[] {
+export function buildRows(
+  items: SidebarItem[],
+  contentWidth: number,
+  viewed: Record<string, number> = {}
+): ListRow[] {
   const rows: ListRow[] = [];
   for (const item of items) {
     const cards = buildItemCards(item, contentWidth);
     const ungrouped = isItemUngrouped(item);
     if (!ungrouped) {
+      const viewedKeys = cards.flatMap(card =>
+        card.viewedKey === null ? [] : [card.viewedKey]
+      );
+      const viewedCount = viewedKeys.filter(key => key in viewed).length;
+      const isViewed =
+        viewedCount === 0
+          ? false
+          : viewedCount === viewedKeys.length
+            ? true
+            : 'indeterminate';
       rows.push({
         kind: 'header',
         id: `h:${item.key}`,
         itemKey: item.key,
         groupName: item.name,
-        estimatedHeight: SNAPSHOT_GROUP_HEADER_HEIGHT,
+        viewedKeys,
+        isViewed,
+        hiddenCards: isViewed === true ? cards : [],
+        estimatedHeight:
+          SNAPSHOT_GROUP_HEADER_HEIGHT + (isViewed === true ? ROW_PADDING_BOTTOM : 0),
       });
+      if (isViewed === true) {
+        continue;
+      }
     }
     cards.forEach((card, i) => {
       const isLast = i === cards.length - 1;
+      const isViewed = card.viewedKey !== null && card.viewedKey in viewed;
+      const cardHeight = isViewed ? COLLAPSED_CARD_HEIGHT : card.estimatedHeight;
       rows.push({
         kind: 'card',
         id: card.id,
@@ -197,7 +241,8 @@ export function buildRows(items: SidebarItem[], contentWidth: number): ListRow[]
         isUngrouped: ungrouped,
         isFirstInGroup: i === 0,
         isLastInGroup: isLast,
-        estimatedHeight: card.estimatedHeight + (isLast ? ROW_PADDING_BOTTOM : 0),
+        isViewed,
+        estimatedHeight: cardHeight + (isLast ? ROW_PADDING_BOTTOM : 0),
       });
     });
   }
@@ -207,7 +252,9 @@ export function buildRows(items: SidebarItem[], contentWidth: number): ListRow[]
 export interface RowIndex {
   firstRowByItemKey: Map<string, number>;
   lastRowByItemKey: Map<string, number>;
+  nextPositionByHiddenKey: Map<string, number>;
   order: string[];
+  ordinalByKey: Map<string, number>;
   positionByKey: Map<string, number>;
   rowIndexByKey: Map<string, number>;
 }
@@ -215,9 +262,12 @@ export interface RowIndex {
 export function buildRowIndex(rows: ListRow[]): RowIndex {
   const order: string[] = [];
   const positionByKey = new Map<string, number>();
+  const ordinalByKey = new Map<string, number>();
   const rowIndexByKey = new Map<string, number>();
+  const nextPositionByHiddenKey = new Map<string, number>();
   const firstRowByItemKey = new Map<string, number>();
   const lastRowByItemKey = new Map<string, number>();
+  let ordinal = 0;
   rows.forEach((row, rowIdx) => {
     if (!firstRowByItemKey.has(row.itemKey)) {
       firstRowByItemKey.set(row.itemKey, rowIdx);
@@ -226,15 +276,35 @@ export function buildRowIndex(rows: ListRow[]): RowIndex {
     if (row.kind === 'card') {
       const key = snapshotKeyFor(row.card);
       positionByKey.set(key, order.length);
+      ordinalByKey.set(key, ordinal++);
       order.push(key);
+      rowIndexByKey.set(key, rowIdx);
+      return;
+    }
+    for (const card of row.hiddenCards) {
+      const key = snapshotKeyFor(card);
+      nextPositionByHiddenKey.set(key, order.length);
+      ordinalByKey.set(key, ordinal++);
       rowIndexByKey.set(key, rowIdx);
     }
   });
-  return {order, positionByKey, rowIndexByKey, firstRowByItemKey, lastRowByItemKey};
+  return {
+    order,
+    positionByKey,
+    ordinalByKey,
+    rowIndexByKey,
+    nextPositionByHiddenKey,
+    firstRowByItemKey,
+    lastRowByItemKey,
+  };
 }
 
 function isGroupedRow(row: ListRow): boolean {
   return row.kind === 'header' || !row.isUngrouped;
+}
+
+function firstCardOf(row: ListRow | undefined): GroupCard | undefined {
+  return row?.kind === 'card' ? row.card : row?.hiddenCards[0];
 }
 
 export function rowFrameEdges(row: ListRow): {
@@ -243,7 +313,7 @@ export function rowFrameEdges(row: ListRow): {
   separator: boolean;
 } {
   if (row.kind === 'header') {
-    return {frameTop: true, frameBottom: false, separator: false};
+    return {frameTop: true, frameBottom: row.isViewed === true, separator: false};
   }
   return {
     frameTop: row.isFirstInGroup && row.isUngrouped,
@@ -272,6 +342,7 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
   onVisibleGroupChange,
 }: SnapshotListViewProps) {
   const theme = useTheme();
+  const organization = useOrganization();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
 
@@ -304,7 +375,11 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
     return () => observer.disconnect();
   }, []);
 
-  const rows = useMemo(() => buildRows(items, contentWidth), [items, contentWidth]);
+  const {viewed, setViewed} = useViewedSnapshots();
+  const rows = useMemo(
+    () => buildRows(items, contentWidth, viewed),
+    [items, contentWidth, viewed]
+  );
   const getItemKey = useCallback((index: number) => rows[index]!.id, [rows]);
 
   const {totalSize, virtualItems, virtualizer} = useVirtualRows({
@@ -318,10 +393,171 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
 
   const rowIndex = useMemo(() => buildRowIndex(rows), [rows]);
 
+  const previousRows = useRef(rows);
+  const [viewedAnchorGroup, setViewedAnchorGroup] = useState<string | null>(null);
+  const viewedScrollAnchor = useRef<{
+    id: string;
+    imageBaseUrl: string;
+    itemKey: string;
+    items: SidebarItem[];
+    offset: number;
+  } | null>(null);
+  const anchorFrame = useRef<number | null>(null);
+  const cancelViewedScroll = useCallback(() => {
+    if (anchorFrame.current !== null) {
+      cancelAnimationFrame(anchorFrame.current);
+      anchorFrame.current = null;
+    }
+    viewedScrollAnchor.current = null;
+    setViewedAnchorGroup(null);
+    // oxlint-disable-next-line react/immutability
+    virtualizer.shouldAdjustScrollPositionOnItemSizeChange = undefined;
+  }, [virtualizer]);
+
+  const handleSetViewed = useCallback(
+    (keys: string[], isViewed: boolean) => {
+      cancelViewedScroll();
+      const el = scrollRef.current;
+      if (el) {
+        const paddingTop = parseFloat(getComputedStyle(el).paddingTop) || 0;
+        const top = el.scrollTop - paddingTop;
+        const visible = virtualizer.getVirtualItems();
+        const first = visible.find(item => item.end > top);
+        const firstRow = first && rows[first.index];
+        const headerIsVisible = firstRow?.kind === 'header' && first!.start >= top;
+        const stickyHeight =
+          firstRow && isGroupedRow(firstRow) ? SNAPSHOT_GROUP_HEADER_HEIGHT : 0;
+        const anchor = headerIsVisible
+          ? first
+          : visible.find(item => {
+              const row = rows[item.index];
+              return (
+                item.end > top + stickyHeight &&
+                (row?.kind === 'card' || row?.isViewed === true)
+              );
+            });
+        if (anchor) {
+          const anchorRow = rows[anchor.index]!;
+          viewedScrollAnchor.current = {
+            id: anchorRow.id,
+            itemKey: anchorRow.itemKey,
+            offset: anchor.start - top,
+            items,
+            imageBaseUrl,
+          };
+          if (el.scrollTop > 0 && isGroupedRow(anchorRow)) {
+            setViewedAnchorGroup(anchorRow.itemKey);
+          }
+          // oxlint-disable-next-line react/immutability
+          virtualizer.shouldAdjustScrollPositionOnItemSizeChange = () => false;
+        }
+      }
+      setViewed(keys, isViewed);
+    },
+    [cancelViewedScroll, virtualizer, rows, items, imageBaseUrl, setViewed]
+  );
+
+  const restoreViewedScroll = useCallback(() => {
+    const anchor = viewedScrollAnchor.current;
+    const el = scrollRef.current;
+    if (!anchor || !el) {
+      return;
+    }
+    const anchorIndex = rows.findIndex(row => row.id === anchor.id);
+    const index =
+      anchorIndex === -1
+        ? (rowIndex.firstRowByItemKey.get(anchor.itemKey) ?? -1)
+        : anchorIndex;
+    if (anchor.items !== items || anchor.imageBaseUrl !== imageBaseUrl || index === -1) {
+      cancelViewedScroll();
+      return;
+    }
+    const row = rows[index]!;
+    virtualizer.getTotalSize();
+    const measurement = virtualizer.measurementsCache[index]!;
+    const paddingTop = parseFloat(getComputedStyle(el).paddingTop) || 0;
+    const offset =
+      anchorIndex === -1
+        ? 0
+        : row.kind === 'card' && row.isViewed
+          ? Math.max(anchor.offset, row.isUngrouped ? 0 : SNAPSHOT_GROUP_HEADER_HEIGHT)
+          : anchor.offset;
+    const target = Math.max(
+      0,
+      Math.min(measurement.start + paddingTop - offset, el.scrollHeight - el.clientHeight)
+    );
+    if (Math.abs(el.scrollTop - target) > 1) {
+      virtualizer.scrollToOffset(target, {behavior: 'auto'});
+    }
+    setScrollTop(el.scrollTop);
+  }, [rows, rowIndex, items, imageBaseUrl, cancelViewedScroll, virtualizer]);
+
+  useLayoutEffect(() => {
+    if (previousRows.current !== rows) {
+      const previous = new Map(previousRows.current.map(row => [row.id, row]));
+      const previouslyHidden = new Set(
+        previousRows.current.flatMap(row =>
+          row.kind === 'header' ? row.hiddenCards.map(card => card.id) : []
+        )
+      );
+      rows.forEach((row, index) => {
+        const before = previous.get(row.id);
+        if (
+          previouslyHidden.has(row.id) ||
+          (row.kind === 'card' && before && before.isViewed !== row.isViewed)
+        ) {
+          virtualizer.resizeItem(index, row.estimatedHeight);
+        }
+      });
+      previousRows.current = rows;
+    }
+    for (const item of virtualItems) {
+      const node = virtualizer.elementsCache.get(item.key);
+      if (node instanceof HTMLElement && node.isConnected) {
+        virtualizer.resizeItem(item.index, node.offsetHeight);
+      }
+    }
+    if (totalSize !== virtualizer.getTotalSize()) {
+      return;
+    }
+    restoreViewedScroll();
+    if (viewedScrollAnchor.current && anchorFrame.current === null) {
+      anchorFrame.current = requestAnimationFrame(() => {
+        restoreViewedScroll();
+        cancelViewedScroll();
+      });
+    }
+  }, [
+    rows,
+    virtualItems,
+    totalSize,
+    virtualizer,
+    restoreViewedScroll,
+    cancelViewedScroll,
+  ]);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || items.length === 0) {
+      return;
+    }
+    const events = ['wheel', 'touchstart', 'pointerdown', 'keydown'] as const;
+    for (const event of events) {
+      el.addEventListener(event, cancelViewedScroll, {passive: true});
+    }
+    return () => {
+      for (const event of events) {
+        el.removeEventListener(event, cancelViewedScroll);
+      }
+      cancelViewedScroll();
+    };
+  }, [cancelViewedScroll, items.length]);
+
   useImperativeHandle(
     ref,
     () => ({
       scrollToGroup(itemKey: string) {
+        cancelViewedScroll();
         const rowIdx = rowIndex.firstRowByItemKey.get(itemKey);
         if (rowIdx === undefined) {
           return;
@@ -329,7 +565,7 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
         virtualizer.scrollToIndex(rowIdx, {align: 'start'});
       },
     }),
-    [rowIndex, virtualizer]
+    [rowIndex, virtualizer, cancelViewedScroll]
   );
 
   const rafId = useRef(0);
@@ -368,12 +604,14 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
         const maxScroll = el.scrollHeight - el.clientHeight;
         const progress = maxScroll > 0 ? (top / maxScroll) * 100 : 0;
         const topCardItem = virtualRows.find(
-          vi => vi.end > anchor && rowsRef.current[vi.index]?.kind === 'card'
+          vi => vi.end > anchor && firstCardOf(rowsRef.current[vi.index])
         );
-        const topCardRow = topCardItem ? rowsRef.current[topCardItem.index] : undefined;
-        const key =
-          topCardRow?.kind === 'card' ? snapshotKeyFor(topCardRow.card) : undefined;
-        const ordinal = key ? (rowIndexRef.current.positionByKey.get(key) ?? 0) : 0;
+        const topCard = firstCardOf(
+          topCardItem ? rowsRef.current[topCardItem.index] : undefined
+        );
+        const ordinal = topCard
+          ? (rowIndexRef.current.ordinalByKey.get(snapshotKeyFor(topCard)) ?? 0)
+          : 0;
         onScrollProgressRef.current(progress, ordinal);
       }
     });
@@ -491,6 +729,13 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
       requestAnimationFrame(() => scrollCardIntoView(key, block));
     }
 
+    function focusList() {
+      const el = scrollRef.current;
+      if (el && !el.contains(document.activeElement)) {
+        el.focus({preventScroll: true});
+      }
+    }
+
     function handleKeyDown(e: KeyboardEvent) {
       if (
         e.key !== 'ArrowUp' &&
@@ -547,25 +792,32 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
         const targetKey = isUp ? idx.order[0]! : idx.order[idx.order.length - 1]!;
         onSelect(targetKey);
         revealCard(targetKey, isUp ? 'start' : 'end');
+        focusList();
         return;
       }
 
       const lastPos = idx.order.length - 1;
       const currentPos = currentKey ? (idx.positionByKey.get(currentKey) ?? -1) : -1;
+      const hiddenNextPos = currentKey
+        ? idx.nextPositionByHiddenKey.get(currentKey)
+        : undefined;
       const isDown = e.key === 'ArrowDown';
       let nextPos: number;
-      if (currentPos === -1) {
+      if (hiddenNextPos !== undefined) {
+        nextPos = isDown ? hiddenNextPos : hiddenNextPos - 1;
+      } else if (currentPos === -1) {
         nextPos = isDown ? 0 : lastPos;
       } else {
         nextPos = Math.max(0, Math.min(lastPos, currentPos + (isDown ? 1 : -1)));
       }
-      if (nextPos === currentPos) {
+      e.preventDefault();
+      if (nextPos === currentPos || nextPos < 0 || nextPos > lastPos) {
         return;
       }
-      e.preventDefault();
       const nextKey = idx.order[nextPos]!;
       onSelect(nextKey);
       revealCard(nextKey, 'nearest');
+      focusList();
     }
 
     document.addEventListener('keydown', handleKeyDown);
@@ -578,8 +830,13 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
     return scrollTop > 0 && activeGroupThreshold < virtualItem.end;
   });
   const activeRow = activeRowItem ? rows[activeRowItem.index] : undefined;
-  const activeItemKey = activeRow && isGroupedRow(activeRow) ? activeRow.itemKey : null;
-  const activeGroupName = activeItemKey === null ? null : (activeRow?.groupName ?? null);
+  const activeItemKey =
+    viewedAnchorGroup ??
+    (activeRow && isGroupedRow(activeRow) ? activeRow.itemKey : null);
+  const activeHeaderRowIdx =
+    activeItemKey === null ? undefined : rowIndex.firstRowByItemKey.get(activeItemKey);
+  const activeHeaderRow =
+    activeHeaderRowIdx === undefined ? undefined : rows[activeHeaderRowIdx];
   const measurements = virtualizer.measurementsCache;
   const activeGroupBounds = (() => {
     if (activeItemKey === null) {
@@ -616,6 +873,27 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
     '--sticky-header-translate-y': `${stickyHeaderTranslateY}px`,
   } as React.CSSProperties;
 
+  const handleListKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.repeat || !matchesHotkey(TOGGLE_VIEWED_HOTKEY, e.nativeEvent)) {
+      return;
+    }
+    const rowIdx = selectedSnapshotKey
+      ? rowIndex.rowIndexByKey.get(selectedSnapshotKey)
+      : undefined;
+    const row = rowIdx === undefined ? undefined : rows[rowIdx];
+    const card =
+      row?.kind === 'card'
+        ? row.card
+        : row?.hiddenCards.find(hidden => snapshotKeyFor(hidden) === selectedSnapshotKey);
+    if (!row || !card || card.viewedKey === null) {
+      return;
+    }
+    const isViewed = row.kind === 'header' || row.isViewed;
+    e.preventDefault();
+    handleSetViewed([card.viewedKey], !isViewed);
+    trackImageViewedToggled(organization, card, !isViewed);
+  };
+
   if (items.length === 0) {
     return (
       <Flex align="center" justify="center" padding="3xl" width="100%">
@@ -627,6 +905,8 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
   return (
     <ScrollContainer
       ref={scrollRef}
+      tabIndex={-1}
+      onKeyDown={handleListKeyDown}
       position="relative"
       flex="1 1 0"
       minHeight="0"
@@ -638,13 +918,13 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
       contain="layout"
       overscrollBehavior="contain"
     >
-      {activeGroupName ? (
+      {activeHeaderRow?.kind === 'header' ? (
         <StickyGroupHeader
           data-bottom-frame={stickyHeaderHasBottomFrame ? '' : undefined}
           data-detached-frame={stickyHeaderHasDetachedFrame ? '' : undefined}
           style={stickyHeaderStyle}
         >
-          <SnapshotGroupHeader name={activeGroupName} />
+          <GroupHeaderRow row={activeHeaderRow} onSetViewed={handleSetViewed} />
         </StickyGroupHeader>
       ) : null}
       <Container position="relative" width="100%" style={{height: totalSize}}>
@@ -666,7 +946,7 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
                 data-separator={separator ? '' : undefined}
               >
                 {row.kind === 'header' ? (
-                  <SnapshotGroupHeader name={row.groupName} />
+                  <GroupHeaderRow row={row} onSetViewed={handleSetViewed} />
                 ) : (
                   <CardRow
                     row={row}
@@ -679,6 +959,7 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
                     overlayColor={overlayColor}
                     overlayOpacity={overlayOpacity}
                     diffImageBaseUrl={diffImageBaseUrl}
+                    onSetViewed={handleSetViewed}
                   />
                 )}
               </RowFrame>
@@ -689,6 +970,19 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
     </ScrollContainer>
   );
 });
+
+function trackImageViewedToggled(
+  organization: Organization,
+  card: GroupCard,
+  viewed: boolean
+) {
+  const diffStatus = card.type === 'pair-card' ? card.status : card.cardType;
+  trackAnalytics('preprod.snapshots.details.image_viewed_toggled', {
+    organization,
+    diff_status: diffStatus === 'solo' ? null : diffStatus,
+    viewed,
+  });
+}
 
 const CardRow = memo(function CardRowImpl({
   row,
@@ -701,9 +995,11 @@ const CardRow = memo(function CardRowImpl({
   overlayColor,
   overlayOpacity,
   diffImageBaseUrl,
+  onSetViewed,
 }: {
   diffMode: DiffMode;
   imageBaseUrl: string;
+  onSetViewed: (keys: string[], isViewed: boolean) => void;
   row: Extract<ListRow, {kind: 'card'}>;
   selectedSnapshotKey: string | null;
   diffImageBaseUrl?: string;
@@ -735,6 +1031,16 @@ const CardRow = memo(function CardRowImpl({
       }),
     [organization, diffStatus]
   );
+  const {viewedKey} = card;
+  const {isViewed} = row;
+  const handleToggleViewed = useCallback(() => {
+    if (viewedKey === null) {
+      return;
+    }
+    onSetViewed([viewedKey], !isViewed);
+    trackImageViewedToggled(organization, card, !isViewed);
+  }, [viewedKey, isViewed, onSetViewed, organization, card]);
+  const onToggleViewed = viewedKey === null ? undefined : handleToggleViewed;
   return card.type === 'pair-card' ? (
     <PairCard
       pair={card.pair}
@@ -752,6 +1058,8 @@ const CardRow = memo(function CardRowImpl({
       onOpenSnapshot={onOpenSnapshot}
       onCopyLink={onCopyLink}
       onCopyMetadata={onCopyMetadata}
+      isViewed={isViewed}
+      onToggleViewed={onToggleViewed}
     />
   ) : (
     <ImageCard
@@ -766,13 +1074,46 @@ const CardRow = memo(function CardRowImpl({
       onOpenSnapshot={onOpenSnapshot}
       onCopyLink={onCopyLink}
       onCopyMetadata={onCopyMetadata}
+      isViewed={isViewed}
+      onToggleViewed={onToggleViewed}
     />
   );
 });
 
+function GroupHeaderRow({
+  row,
+  onSetViewed,
+}: {
+  onSetViewed: (keys: string[], isViewed: boolean) => void;
+  row: Extract<ListRow, {kind: 'header'}>;
+}) {
+  const organization = useOrganization();
+  const handleToggleViewed = () => {
+    const viewed = row.isViewed !== true;
+    onSetViewed(row.viewedKeys, viewed);
+    trackAnalytics('preprod.snapshots.details.group_viewed_toggled', {
+      organization,
+      viewed,
+      image_count: row.viewedKeys.length,
+    });
+  };
+  return (
+    <SnapshotGroupHeader
+      name={row.groupName}
+      isViewed={row.isViewed}
+      onToggleViewed={row.viewedKeys.length > 0 ? handleToggleViewed : undefined}
+    />
+  );
+}
+
 const ScrollContainer = styled(Container)`
+  overflow-anchor: none;
   scroll-padding-top: ${p => p.theme.space.md};
   scroll-padding-bottom: ${p => p.theme.space.md};
+
+  &:focus-visible {
+    outline: none;
+  }
 `;
 
 const StickyGroupHeader = styled('div')`
@@ -781,6 +1122,10 @@ const StickyGroupHeader = styled('div')`
   z-index: 1;
   height: 0;
   pointer-events: none;
+
+  [data-viewed-checkbox] {
+    pointer-events: auto;
+  }
 
   > * {
     border-left: 1px solid ${p => p.theme.tokens.border.primary};
