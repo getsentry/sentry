@@ -1066,6 +1066,9 @@ importers:
       '@oxlint/plugins':
         specifier: 1.88.0
         version: 1.88.0
+      postcss-selector-parser:
+        specifier: 7.1.6
+        version: 7.1.6
     devDependencies:
       oxlint:
         specifier: 1.88.0
