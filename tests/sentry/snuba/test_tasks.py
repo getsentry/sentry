@@ -285,6 +285,20 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
             assert sub.status == QuerySubscription.Status.ACTIVE.value
             assert sub.subscription_id is not None
 
+    def test_invalid_eap_query_disables_subscription(self) -> None:
+        """A subscription with an EAP-invalid query (wildcard on numeric field) should
+        be set to DISABLED rather than left in CREATING and retried forever."""
+        sub = self.create_subscription(
+            QuerySubscription.Status.CREATING,
+            query="http.status_code:5**",
+            aggregate="count(span.duration)",
+            dataset=Dataset.EventsAnalyticsPlatform,
+        )
+        create_subscription_in_snuba(sub.id)
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.DISABLED.value
+        assert sub.subscription_id is None
+
 
 class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest):
     expected_status = QuerySubscription.Status.UPDATING
@@ -344,6 +358,21 @@ class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest):
             )
             delete_subscription_from_snuba(sub.id)
             assert not QuerySubscription.objects.filter(id=sub.id).exists()
+
+    def test_invalid_eap_query_disables_subscription(self) -> None:
+        """A subscription updated to have an EAP-invalid query (wildcard on numeric field)
+        should be set to DISABLED rather than left in UPDATING and retried forever."""
+        subscription_id = f"1/{uuid4().hex}"
+        sub = self.create_subscription(
+            QuerySubscription.Status.UPDATING,
+            subscription_id=subscription_id,
+            query="http.status_code:5**",
+            aggregate="count(span.duration)",
+            dataset=Dataset.EventsAnalyticsPlatform,
+        )
+        update_subscription_in_snuba(sub.id)
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.DISABLED.value
 
 
 class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
