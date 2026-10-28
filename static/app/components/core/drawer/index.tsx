@@ -304,10 +304,10 @@ export function useDrawer() {
  * For a layout that docks its own pane against the viewport's right edge (Seer).
  * While `width` is positive, drawers open over that whole pane: from the top of
  * the viewport and at least `width` pixels wide, so none of the pane shows
- * around them. Returns whether a drawer is covering the pane right now.
+ * around them.
  */
-export function useDrawerDockedPane(width: number): boolean {
-  const {activeDrawerId, setDockedPaneWidth} = useContext(DrawerContext);
+export function useDrawerDockedPane(width: number): void {
+  const {setDockedPaneWidth} = useContext(DrawerContext);
   useLayoutEffect(() => {
     if (width <= 0) {
       return;
@@ -317,7 +317,6 @@ export function useDrawerDockedPane(width: number): boolean {
       setDockedPaneWidth(0);
     };
   }, [setDockedPaneWidth, width]);
-  return width > 0 && activeDrawerId !== null;
 }
 
 export {DrawerBody, DrawerHeader, useDrawerContentContext} from './components';

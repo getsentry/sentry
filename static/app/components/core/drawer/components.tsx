@@ -270,9 +270,9 @@ const DrawerSlidePanel = styled(SlideOverPanel)<{dockedPaneWidth?: number}>`
   ${p =>
     p.dockedPaneWidth
       ? css`
-          min-width: ${p.dockedPaneWidth}px;
-
-          @media (min-width: ${p.theme.breakpoints.sm}) {
+          /* Beat SlideOverPanel's passive placement inside its media query. */
+          && {
+            min-width: ${p.dockedPaneWidth}px;
             top: 0;
             height: 100%;
           }

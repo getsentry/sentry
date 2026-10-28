@@ -136,11 +136,6 @@ function splitOrientation() {
   return screen.queryByRole('separator')?.getAttribute('data-orientation') ?? undefined;
 }
 
-// While a drawer covers Seer, its layout hides the divider under the drawer.
-function isDividerCovered() {
-  return !!screen.getByRole('separator').closest('[data-covered-by-drawer]');
-}
-
 describe('SeerExplorerSidebarLayout', () => {
   const orgWithSidebar = OrganizationFixture({
     openMembership: true,
@@ -551,13 +546,11 @@ describe('SeerExplorerSidebarLayout', () => {
     expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
     // The default 420px Seer width, measured from the container's right edge.
     expect(dockedPane).toHaveBeenLastCalledWith(420);
-    expect(isDividerCovered()).toBe(false);
 
     await userEvent.click(screen.getByText('open-drawer'));
     expect(
       await screen.findByRole('complementary', {name: 'Test drawer'})
     ).toBeInTheDocument();
-    expect(isDividerCovered()).toBe(true);
 
     await userEvent.click(screen.getByRole('button', {name: 'Close Seer'}));
     await waitFor(() => expect(dockedPane).toHaveBeenLastCalledWith(0));
@@ -576,7 +569,6 @@ describe('SeerExplorerSidebarLayout', () => {
     expect(
       await screen.findByRole('complementary', {name: 'Test drawer'})
     ).toBeInTheDocument();
-    expect(isDividerCovered()).toBe(false);
   });
 
   describe('explorerRunId param', () => {

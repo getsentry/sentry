@@ -102,9 +102,7 @@ function SeerExplorerSidebarLayoutInSidebarMode({children}: {children: React.Rea
   // Drawers open against the viewport's right edge, on top of Seer docked
   // right. Have them cover the whole pane (and the divider) rather than part of
   // it. Derived from Seer's persisted size, so it updates when a drag ends.
-  const isCoveredByDrawer = useDrawerDockedPane(
-    isOpen && isRight && available > 0 ? available - contentSize : 0
-  );
+  useDrawerDockedPane(isOpen && isRight && available > 0 ? available - contentSize : 0);
 
   // Persist Seer's size from a drag (the app pane shrinks → Seer grows). Fires
   // only on drag end, never on programmatic/measure resizes, so a saved size is
@@ -146,7 +144,6 @@ function SeerExplorerSidebarLayoutInSidebarMode({children}: {children: React.Rea
       position="relative"
       contain="size"
       overflow="hidden"
-      data-covered-by-drawer={isCoveredByDrawer || undefined}
     >
       <SplitPanel
         ref={seedSplitPanelSize}
@@ -163,12 +160,10 @@ function SeerExplorerSidebarLayoutInSidebarMode({children}: {children: React.Rea
   );
 }
 
-// The divider's drag target paints at the drawer's z-index, so while a drawer
-// covers Seer it would still show (and drag Seer) through the drawer's edge.
+// Keep the divider's drag target in this layout's stacking context so global
+// drawers paint above it, including throughout their enter/exit animations.
 const SplitContainer = styled(Stack)`
-  &[data-covered-by-drawer] > * > [role='separator'] {
-    visibility: hidden;
-  }
+  isolation: isolate;
 `;
 
 // Match `html`'s scrollbar (the `*` default uses a transparent track) so the

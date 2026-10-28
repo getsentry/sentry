@@ -34,6 +34,11 @@ function GlobalDrawerTestComponent({config}: {config: DrawerConfig}) {
   );
 }
 
+function DockedPane({width}: {width: number}) {
+  useDrawerDockedPane(width);
+  return null;
+}
+
 describe('GlobalDrawer', () => {
   const ariaLabel = 'drawer-test-aria-label';
   beforeEach(() => {
@@ -394,11 +399,6 @@ describe('GlobalDrawer', () => {
   });
 
   it('covers a pane docked against the right edge', async () => {
-    function DockedPane({width}: {width: number}) {
-      const isCovered = useDrawerDockedPane(width);
-      return <div>{isCovered ? 'pane covered' : 'pane visible'}</div>;
-    }
-
     render(
       <Fragment>
         <DockedPane width={420} />
@@ -413,39 +413,28 @@ describe('GlobalDrawer', () => {
       </Fragment>
     );
 
-    expect(screen.getByText('pane visible')).toBeInTheDocument();
-
     await userEvent.click(screen.getByTestId('drawer-test-open'));
     expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
-    expect(screen.getByText('pane covered')).toBeInTheDocument();
+    const drawer = screen.getByRole('complementary', {name: ariaLabel});
+    // The global getComputedStyle stub only reads inline styles. Check the
+    // generated base rule so these assertions also catch a missing CSS override.
+    const rules = Array.from(document.styleSheets).flatMap(sheet =>
+      Array.from(sheet.cssRules)
+    );
+    const dockedRule = rules.find(
+      rule =>
+        rule instanceof CSSStyleRule &&
+        drawer.matches(rule.selectorText) &&
+        rule.style.getPropertyValue('min-width') === '420px'
+    ) as CSSStyleRule | undefined;
+    expect(dockedRule).toBeDefined();
+    expect(dockedRule?.style.getPropertyValue('top')).toBe('0px');
+    expect(dockedRule?.style.getPropertyValue('height')).toBe('100%');
 
     await userEvent.click(screen.getByTestId('drawer-test-close'));
     await waitForDrawerToHide(ariaLabel);
-    expect(screen.getByText('pane visible')).toBeInTheDocument();
-  });
-
-  it('leaves drawers alone without a docked pane', async () => {
-    function DockedPane() {
-      const isCovered = useDrawerDockedPane(0);
-      return <div>{isCovered ? 'pane covered' : 'pane visible'}</div>;
-    }
-
-    render(
-      <Fragment>
-        <DockedPane />
-        <GlobalDrawerTestComponent
-          config={{
-            renderer: () => (
-              <DrawerBody data-test-id="drawer-test-content">undocked</DrawerBody>
-            ),
-            options: {ariaLabel},
-          }}
-        />
-      </Fragment>
-    );
-
-    await userEvent.click(screen.getByTestId('drawer-test-open'));
-    expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
-    expect(screen.getByText('pane visible')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('complementary', {name: ariaLabel})
+    ).not.toBeInTheDocument();
   });
 });
