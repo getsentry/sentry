@@ -25,7 +25,7 @@ monitors: 0023_drop_checkin_monitor
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
-notifications: 0015_backfill_notificationthread_object
+notifications: 0016_add_inboxitem_and_inboxitemevent
 
 preprod: 0001_squashed_0030_add_images_errored_to_snapshot_comparison
 
@@ -35,7 +35,7 @@ replays: 0001_squashed_0007_organizationmember_replay_access
 
 seer: 0045_workflow_run_lifecycle
 
-sentry: 1238_grouprelease_new_release_id_not_null
+sentry: 1242_retire_metric_trigger
 
 service_accounts: 0002_add_cell_replicas
 

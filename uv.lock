@@ -828,18 +828,18 @@ grpc = [
 
 [[package]]
 name = "granian"
-version = "2.8.5"
+version = "2.8.6"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "click" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/granian-2.8.5-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:4ea263ab8c64434080269a49dc706a1841f7939ceaf1ddec0f204edbab2d83fc" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/granian-2.8.5-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:bf44d5c35995f6009307d43c6b7c8310299f07f415d6cbecbacc5fdf8508c73f" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/granian-2.8.5-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:30c85664d3a51397c97413f5c341e7031ea08614c016d9bfb2ee82bbd6029c12" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/granian-2.8.5-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:0ba7323572d6f0b6cc1a86fac8f6bc42d467fe0034c85429252e93b111c79a1f" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/granian-2.8.5-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:d8162358380d4b9398a2176779cefe553921fd5e433ccad7fe6d371e0845fe82" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/granian-2.8.5-cp314-cp314-manylinux_2_28_aarch64.whl", hash = "sha256:091fa616adfbd83460433a99df0858ff3e831e937e478d1e8170a0fb71c61431" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/granian-2.8.6-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:102af0fe73670bec7d004524a261e9669cb7a4b2ea630150a8bc5c2f21181fe0" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/granian-2.8.6-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:28b4d4134d8b7e7d36f05a05ffc772e7b3b35cc9c92129af2da5862f77d27a56" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/granian-2.8.6-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:303814095d12e4937d78aaa8c3fe49d625e0fd26ae3e40a6b663de88699f19a0" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/granian-2.8.6-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:fb991da45faffb451024e09883ee6b1433b36bb3636e54cbce476b4e6b0a0d82" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/granian-2.8.6-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:8e0f92cfbcfd6529cfa2e17ca38ea91f2afc4dcc7eceeda568e2bf1a4be3789a" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/granian-2.8.6-cp314-cp314-manylinux_2_28_aarch64.whl", hash = "sha256:44dc048c145ef011a63547cc26ebe00d7324c02b366e2358145290875086fc5f" },
 ]
 
 [package.optional-dependencies]
@@ -2431,7 +2431,7 @@ requires-dist = [
     { name = "rfc3339-validator", specifier = ">=0.1.2" },
     { name = "rfc3986-validator", specifier = ">=0.1.1" },
     { name = "sentry-arroyo", specifier = ">=2.47.0" },
-    { name = "sentry-conventions", specifier = ">=0.29.0" },
+    { name = "sentry-conventions", specifier = ">=0.30.0" },
     { name = "sentry-forked-email-reply-parser", specifier = ">=0.5.12.post1" },
     { name = "sentry-kafka-schemas", specifier = ">=3.0.2" },
     { name = "sentry-ophio", specifier = ">=1.3.1" },
@@ -2542,10 +2542,10 @@ wheels = [
 
 [[package]]
 name = "sentry-conventions"
-version = "0.29.0"
+version = "0.30.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_conventions-0.29.0-py3-none-any.whl", hash = "sha256:79372898935616667a8bf1a1840a97426fe980922ed8938b44a2457d1106a7c4" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_conventions-0.30.0-py3-none-any.whl", hash = "sha256:1046c502f1c45c170249dafe0beed0f6b29d46561c42ac484039ab8377e80d73" },
 ]
 
 [[package]]

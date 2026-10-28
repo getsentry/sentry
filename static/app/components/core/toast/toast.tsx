@@ -5,11 +5,11 @@ import {IconWarning} from '@sentry/icons/warning';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
+import {Spinner} from '@sentry/scraps/spinner';
 import {Text} from '@sentry/scraps/text';
 import type {Theme} from '@sentry/scraps/theme';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {unreachable} from 'sentry/utils/unreachable';
 
 import type {ToastAction, ToastVariant} from './types';
@@ -66,7 +66,7 @@ function ToastIcon({variant}: {variant: ToastVariant}) {
     case 'loading':
       return (
         <ToastIconContainer variant={variant} aria-hidden>
-          <ToastLoadingIndicator size={16} />
+          <ToastSpinner size={16} />
         </ToastIconContainer>
       );
     case 'success':
@@ -188,6 +188,6 @@ const ToastIconContainer = styled('div')<{variant: ToastVariant}>`
   }
 `;
 
-const ToastLoadingIndicator = styled(LoadingIndicator)`
+const ToastSpinner = styled(Spinner)`
   margin: 0;
 `;

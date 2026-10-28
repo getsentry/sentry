@@ -13,7 +13,7 @@ import {
 import type {Evaluation} from 'sentry/views/insights/pages/agents/utils/evaluation';
 import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
 
-interface SectionProps {
+export interface SectionProps {
   children: React.ReactNode;
   title: string;
 }
@@ -66,7 +66,7 @@ export function EvaluationTab({evaluation}: {evaluation: Evaluation}) {
   return <Sections sections={sections} toggle={toggle} />;
 }
 
-function getRawSections(
+export function getRawSections(
   rawInput: string | undefined,
   rawOutput: string | undefined,
   isRawText: boolean
@@ -90,7 +90,7 @@ function getRawSections(
 /**
  * Stacks the sections, with the toggle on the first one.
  */
-function Sections({
+export function Sections({
   sections,
   toggle,
 }: {
@@ -112,7 +112,7 @@ function Sections({
   );
 }
 
-function PrettyRawToggle({
+export function PrettyRawToggle({
   showRaw,
   onChange,
 }: {
