@@ -140,11 +140,28 @@ class ErrorsQueryBuilderTest(TestCase):
             ),
         ).get_snql_query()
         query.validate()
+        e_entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
+        g_entity = Entity("group_attributes", alias="ga")
 
-        assert any(
-            condition.op == Op.IN and condition.rhs == [GroupSubStatus.REGRESSED]
-            for condition in query.query.where
-        )
+        assert query.query.match == Join([Relationship(e_entity, "attributes", g_entity)])
+        assert query.query.where == [
+            Condition(Column("group_status", entity=g_entity), Op.IN, [0]),
+            Condition(
+                Column("group_substatus", entity=g_entity),
+                Op.IN,
+                [GroupSubStatus.REGRESSED],
+            ),
+            Condition(
+                Column("project_id", entity=e_entity),
+                Op.IN,
+                self.projects,
+            ),
+            Condition(
+                Column("project_id", entity=g_entity),
+                Op.IN,
+                self.projects,
+            ),
+        ]
 
     def test_error_received_filter_uses_datetime(self) -> None:
         """Test that error.received filter uses datetime comparison, not epoch integer."""

@@ -36,6 +36,7 @@ value_converters = {
     "status": convert_status_value,
     "substatus": convert_substatus_value,
 }
+GROUP_ATTRIBUTE_FIELDS = {"status", "substatus"}
 
 
 class ErrorsQueryBuilderMixin(BaseQueryBuilder):
@@ -114,8 +115,13 @@ class ErrorsQueryBuilderMixin(BaseQueryBuilder):
         resolved_column = self.resolve_column_name(name)
         return self._apply_column_entity(resolved_column)
 
+    def resolve_column_name(self, col: str) -> str:
+        if col in GROUP_ATTRIBUTE_FIELDS:
+            return col
+        return super().resolve_column_name(col)
+
     def _apply_column_entity(self, resolved_column: str) -> Column:
-        if resolved_column == "status":
+        if resolved_column in GROUP_ATTRIBUTE_FIELDS:
             resolved_column = f"group_{resolved_column}"
             entity = Entity("group_attributes", alias="ga")
         else:
