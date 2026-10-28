@@ -1062,7 +1062,7 @@ const SettingsV3GrabHandleAnimation = styled('div')`
   opacity: 0;
   z-index: 1;
   /* Center the 18px handle in the 24px leading slot after the link's border and padding. */
-  left: ${p => `calc(${p.theme.space.md} + 4px)`};
+  left: ${p => `calc(${p.theme.space.md} + ${p.theme.space.xs})`};
   transition: opacity ${p => p.theme.motion.smooth.moderate};
   transform: translateY(-50%);
 
