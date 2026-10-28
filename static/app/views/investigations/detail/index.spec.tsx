@@ -5,6 +5,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {
   act,
+  cleanup,
   fireEvent,
   render,
   renderGlobalModal,
@@ -408,6 +409,9 @@ describe('Investigation detail', () => {
 
     afterEach(async () => {
       try {
+        // Unmount first: a running run's status block keeps a live clock, and
+        // flushing the query cache's timers with it mounted ticks it for minutes.
+        cleanup();
         await act(() => jest.runOnlyPendingTimersAsync());
       } finally {
         jest.useRealTimers();

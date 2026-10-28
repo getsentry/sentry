@@ -1,17 +1,8 @@
 import type {CSSObject} from '@emotion/react';
 
-import type {ListItemProps} from '@sentry/scraps/menu';
+import type {SelectValue} from '@sentry/scraps/menu';
 
-/**
- * An option shared by select controls
- */
-export interface SelectValue<T> extends ListItemProps {
-  value: T;
-  /**
-   * Plain text used for filtering when the label contains React elements.
-   */
-  textValue?: string;
-}
+export type {SelectValue} from '@sentry/scraps/menu';
 
 type NonArray<T> = T extends readonly unknown[] ? never : T;
 

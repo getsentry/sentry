@@ -83,7 +83,6 @@ import {checkUserHasEditAccess} from 'sentry/views/dashboards/utils/checkUserHas
 import {
   getWidgetExploreUrl,
   getWidgetTableRowExploreUrlFunction,
-  widgetTypeSupportsExploreMultiQuery,
 } from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {getWidgetMetricsUrl} from 'sentry/views/dashboards/utils/getWidgetMetricsUrl';
 import {widgetCanUseTimeSeriesVisualization} from 'sentry/views/dashboards/utils/widgetCanUseTimeSeriesVisualization';
@@ -824,9 +823,7 @@ function OpenButton({
     case WidgetType.SPANS:
     case WidgetType.LOGS: {
       openLabel = t('Open in Explore');
-      const multiQueryUnsupported =
-        widget.queries.length > 1 &&
-        !widgetTypeSupportsExploreMultiQuery(widget.widgetType);
+      const multiQueryUnsupported = widget.queries.length > 1;
       if (multiQueryUnsupported) {
         return (
           <Tooltip
