@@ -254,6 +254,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:profiling-sentry-regression-occurrences", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Prefer finalized release dates for issue regression and next-release resolution.
     manager.add("organizations:release-resolution-finalized-order", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Filter release list and stats queries by project and environment with EXISTS subqueries
+    manager.add("organizations:releases-exists-filters", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable replay AI summaries for mobile replays
     manager.add("organizations:replay-ai-summaries-mobile", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable replay AI summaries for web replays
