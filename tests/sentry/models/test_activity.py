@@ -597,7 +597,7 @@ class CommentConcurrencyTest(TransactionTestCase):
                 stale_note = Activity.objects.get(id=note.id)
                 ready.wait()
                 try:
-                    delete_comment(stale_note, user=user, source="api", original_action_id=None)
+                    delete_comment(stale_note, user=user, source="api")
                 except Activity.DoesNotExist:
                     return False
                 return True

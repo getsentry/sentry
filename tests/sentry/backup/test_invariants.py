@@ -60,12 +60,35 @@ def validate_dependency_scopes(allowed: set[RelocationScope]) -> None:
     for model in models_being_validated:
         model_name = get_model_name(model)
         own_scopes = relocation_scopes_as_set(deps[model_name])
-        for ff in deps[model_name].foreign_keys.values():
+        for field_name, ff in deps[model_name].foreign_keys.items():
+            # Nullable references across scopes are intentional (e.g. `UserOption.project_id` in a
+            # `User`-scoped import); import drops only the rows that set them.
+            if ff.nullable:
+                continue
             dependency_name = get_model_name(ff.model)
             dependency_scopes = relocation_scopes_as_set(deps[dependency_name])
-            if own_scopes.issuperset(dependency_scopes):
-                AssertionError(
-                    f"Model `{model_name}`, which has a relocation scope set of `{own_scopes}`, has a dependency on model `{dependency_name}`, which has a relocation scope set of `{dependency_scopes}; the former must be a super set of the latter`"
+            if not dependency_scopes & allowed:
+                raise AssertionError(
+                    f"Model `{model_name}` (relocation scopes `{own_scopes}`) has a non-nullable "
+                    f"dependency `{field_name}` on model `{dependency_name}` (relocation scopes "
+                    f"`{dependency_scopes}`), which is not imported alongside it in `{allowed}`"
+                )
+
+
+def test_exported_models_do_not_depend_on_excluded_models() -> None:
+    # Excluded models, such as cross-silo replicas, are never in a backup, so import can't remap
+    # a reference to one. Point at the exported source model (for example, with a
+    # `HybridCloudForeignKey` to the control-silo original) instead.
+    deps = dependencies()
+    for model_name, model_relations in deps.items():
+        if relocation_scopes_as_set(model_relations) == {RelocationScope.Excluded}:
+            continue
+        for field_name, ff in model_relations.foreign_keys.items():
+            dependency_name = get_model_name(ff.model)
+            if relocation_scopes_as_set(deps[dependency_name]) == {RelocationScope.Excluded}:
+                raise AssertionError(
+                    f"Model `{model_name}` is exported, but its `{field_name}` field depends on "
+                    f"`{dependency_name}`, which has `RelocationScope.Excluded`"
                 )
 
 
