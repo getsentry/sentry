@@ -551,6 +551,46 @@ describe('DropdownMenu', () => {
     expect(screen.getByRole('menuitemradio', {name: 'javascript'})).toBeInTheDocument();
   });
 
+  it('lets Escape cancel IME composition before dismissing a submenu', async () => {
+    render(
+      <DropdownMenu
+        triggerLabel="Projects"
+        items={[
+          {
+            key: 'all-projects',
+            label: 'All Projects',
+            submenu: {search: {placeholder: 'Search projects'}},
+            children: [{key: 'javascript', label: 'javascript'}],
+          },
+        ]}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'All Projects'}));
+    const search = screen.getByRole('textbox', {name: 'Search projects'});
+    await userEvent.type(search, 'java');
+
+    const escape = new KeyboardEvent('keydown', {
+      key: 'Escape',
+      isComposing: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    search.dispatchEvent(escape);
+
+    expect(escape.defaultPrevented).toBe(false);
+    expect(search).toHaveFocus();
+    expect(search).toHaveValue('java');
+    expect(screen.getByRole('menuitemradio', {name: 'javascript'})).toBeInTheDocument();
+
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByRole('menuitemradio', {name: 'All Projects'})).toHaveFocus()
+    );
+  });
+
   it.each(['right', 'left'] as const)(
     'keeps a %s submenu open while crossing a sibling diagonally',
     async side => {

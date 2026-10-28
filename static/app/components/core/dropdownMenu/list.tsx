@@ -353,8 +353,12 @@ function DropdownMenuList({
                 onKeyDownCapture={event => {
                   // Handle Escape before React Aria closes the entire menu tree.
                   if (event.key === 'Escape' && parentMenuState && hasFocus) {
-                    event.preventDefault();
                     event.stopPropagation();
+                    // Let the IME cancel composition without dismissing the submenu.
+                    if (event.nativeEvent.isComposing) {
+                      return;
+                    }
+                    event.preventDefault();
                     parentMenuState.selectionManager.clearSelection();
                   }
                 }}
