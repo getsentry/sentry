@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Annotated, Any, Literal
 
-from django.db import router, transaction
 from django.utils import timezone
 from pydantic import BaseModel, Field, PositiveInt, ValidationError
 
@@ -115,7 +114,7 @@ class BreachedMetricWorkflow(SeerWorkflow):
             enabled=enabled,
             filters=SeerWorkflowFilters(all_projects=True, environments=list(environments)).dict(),
         )
-        return cls(config)
+        return cls(config_id=config.id, organization_id=organization_id)
 
     def accept(
         self,
@@ -128,8 +127,10 @@ class BreachedMetricWorkflow(SeerWorkflow):
         """Check eligibility, then record one admission decision per issue and config."""
         if not features.has("organizations:seer-automations", group.organization):
             return IgnoredMetricBreach("feature_disabled")
-        if binding.workflow_config_id != self.config.id:
+        if binding.workflow_config_id != self.config_id:
             return IgnoredMetricBreach("workflow_unavailable")
+        if group.organization.id != self.organization_id:
+            return IgnoredMetricBreach("configuration_unavailable")
         if group.type != MetricIssue.type_id or not isinstance(event, GroupEvent):
             return IgnoredMetricBreach("unsupported_trigger")
         occurrence = event.occurrence
@@ -159,23 +160,18 @@ class BreachedMetricWorkflow(SeerWorkflow):
         except ValidationError:
             return IgnoredMetricBreach("invalid_source")
 
-        with transaction.atomic(using=router.db_for_write(SeerWorkflowRun)):
-            config = (
-                SeerWorkflowConfig.objects.select_for_update()
-                .filter(
-                    id=self.config.id,
-                    organization_id=group.organization.id,
-                    strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
-                    enabled=True,
-                )
-                .first()
-            )
-            if config is None:
-                return IgnoredMetricBreach("configuration_unavailable")
-            self.config = config
-            if not self.matches_scope(group.project_id, trigger.environment):
-                return IgnoredMetricBreach("out_of_scope")
-            return self._record_run(group, trigger)
+        try:
+            with self._lock_config() as config:
+                if (
+                    config.strategy != SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
+                    or not config.enabled
+                ):
+                    return IgnoredMetricBreach("configuration_unavailable")
+                if not self._matches_scope(config, group.project_id, trigger.environment):
+                    return IgnoredMetricBreach("out_of_scope")
+                return self._record_run(group, trigger)
+        except SeerWorkflowConfig.DoesNotExist:
+            return IgnoredMetricBreach("configuration_unavailable")
 
     def _record_run(
         self,
