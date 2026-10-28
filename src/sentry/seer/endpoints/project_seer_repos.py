@@ -282,7 +282,7 @@ class SeerProjectRepoCreateSerializer(CamelSnakeSerializer):
         required=False,
         allow_null=True,
         allow_blank=True,
-        help_text="Instructions Seer should follow when working with this repository.",
+        help_text="Extra context Seer should use when working with this repository.",
     )
     branch_overrides = BranchOverrideSerializer(
         many=True,
