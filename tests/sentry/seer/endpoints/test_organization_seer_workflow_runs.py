@@ -83,7 +83,7 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
             "runs": [
                 {
                     "id": str(run.id),
-                    "workflowConfigId": str(self.config.id),
+                    "configId": str(self.config.id),
                     "status": "running",
                     "dateAdded": run.date_added,
                     "dateUpdated": run.date_updated,
@@ -317,14 +317,14 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
         Factories.create_seer_workflow_run(self.organization)
 
         first = self.get_success_response(self.organization.slug, per_page=1)
-        assert [(run["id"], run["workflowConfigId"]) for run in first.data["runs"]] == [
+        assert [(run["id"], run["configId"]) for run in first.data["runs"]] == [
             (str(newer.id), str(other_config.id))
         ]
         links = parse_link_header(first.headers["Link"])
         next_url = next(url for url, link in links.items() if link["rel"] == "next")
         second = self.client.get(next_url)
         assert second.status_code == 200
-        assert [(run["id"], run["workflowConfigId"]) for run in second.data["runs"]] == [
+        assert [(run["id"], run["configId"]) for run in second.data["runs"]] == [
             (str(older.id), str(self.config.id))
         ]
         assert (

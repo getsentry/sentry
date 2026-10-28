@@ -83,7 +83,7 @@ SeerWorkflowExecutionResponse = (
 
 class SeerWorkflowRunResponseBase(TypedDict):
     id: str
-    workflowConfigId: str
+    configId: str
     dateAdded: datetime
     dateUpdated: datetime
     dateCompleted: datetime | None
@@ -218,7 +218,7 @@ def serialize_workflow_runs(runs: Sequence[SeerWorkflowRun]) -> SeerWorkflowRuns
 def serialize_workflow_run(run: SeerWorkflowRun) -> SeerWorkflowRunResponse:
     result: SeerWorkflowRunResponseBase = {
         "id": str(run.id),
-        "workflowConfigId": str(run.workflow_config_id),
+        "configId": str(run.workflow_config_id),
         "dateAdded": run.date_added,
         "dateUpdated": run.date_updated,
         "dateCompleted": run.date_completed,
