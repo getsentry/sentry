@@ -32,20 +32,39 @@ def pytest_configure(config: pytest.Config) -> None:
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     parts_file = os.environ.get("PYTEST_SHARD_PARTS")
-    if not parts_file:
-        return
-    with open(parts_file) as f:
-        parts: dict[str, list[int]] = json.load(f)
-    if not parts:
-        return
+    if parts_file:
+        with open(parts_file) as f:
+            parts: dict[str, list[int]] = json.load(f)
 
-    keep, discard = [], []
-    for item in items:
-        path = item.nodeid.split("::", 1)[0]
-        if path in parts and item_part(item.nodeid, parts[path][1]) != parts[path][0]:
-            discard.append(item)
-        else:
-            keep.append(item)
-    items[:] = keep
-    if discard:
-        config.hook.pytest_deselected(items=discard)
+        keep, discard = [], []
+        for item in items:
+            path = item.nodeid.split("::", 1)[0]
+            if path in parts and item_part(item.nodeid, parts[path][1]) != parts[path][0]:
+                discard.append(item)
+            else:
+                keep.append(item)
+        items[:] = keep
+        if discard:
+            config.hook.pytest_deselected(items=discard)
+
+    if os.environ.get("BACKEND_TEST_SERVICE_COLOR") == "general":
+        # Catch transitive/inherited/autouse processing fixtures after collection.
+        processing_fixtures = {
+            "relay_server",
+            "relay_server_setup",
+            "relay_setup_fixtures",
+            "_requires_symbolicator",
+            "get_relay_store_url",
+            "get_relay_security_url",
+            "get_relay_minidump_url",
+            "get_relay_unreal_url",
+            "get_relay_attachments_url",
+        }
+        for item in items:
+            required = processing_fixtures.intersection(getattr(item, "fixturenames", ()))
+            if required:
+                raise pytest.UsageError(
+                    f"pytest_shard_plugin: {item.nodeid} needs processing fixtures "
+                    f"{sorted(required)} on a general shard; add "
+                    "'# backend-ci: processing' to that test file"
+                )

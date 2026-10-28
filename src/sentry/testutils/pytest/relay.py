@@ -21,6 +21,21 @@ from sentry.testutils.pytest import xdist
 _log = logging.getLogger(__name__)
 
 
+def _require_processing_shard(node_id: str) -> None:
+    """Refuse to start a test Relay outside the processing shard of a colored run.
+
+    Static classification cannot see dynamic fixture requests, so this is the
+    last line of defense: colored general shards cannot launch Relay. Ordinary
+    local runs and uncolored CI runs (no BACKEND_TEST_SERVICE_COLOR) are unaffected.
+    """
+    if environ.get("BACKEND_TEST_SERVICE_COLOR") == "general":
+        raise RuntimeError(
+            f"test {node_id} started a real Relay on a general backend shard; "
+            "real-Relay tests must run on shard 0. Add '# backend-ci: processing' "
+            "to the test module so the planner routes it to shard 0."
+        )
+
+
 # This helps the Relay CI to specify the generated Docker build before it is published
 RELAY_TEST_IMAGE = environ.get("RELAY_TEST_IMAGE", "ghcr.io/getsentry/relay:nightly")
 
@@ -160,10 +175,12 @@ def relay_server_setup(live_server, tmpdir_factory):
 
 
 @pytest.fixture(scope="function")
-def relay_server(relay_server_setup):
+def relay_server(relay_server_setup, request):
     # Imported lazily: this module is loaded as a pytest plugin before Django is set up,
     # and override_options pulls in app code that requires configured settings.
     from sentry.testutils.helpers.options import override_options
+
+    _require_processing_shard(request.node.nodeid)
 
     options = relay_server_setup["options"]
 
@@ -197,7 +214,11 @@ def relay_server(relay_server_setup):
                         continue
                     raise
 
-            _log.info("Waiting for Relay container to start")
+            _log.info(
+                "Waiting for Relay container to start for %s (color=%s)",
+                request.node.nodeid,
+                environ.get("BACKEND_TEST_SERVICE_COLOR") or "uncolored",
+            )
 
             url = relay_server_setup["url"]
 
