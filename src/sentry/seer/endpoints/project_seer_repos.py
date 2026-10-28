@@ -235,7 +235,7 @@ class BranchOverrideSerializer(CamelSnakeSerializer):
         required=True, help_text="The tag value that selects this branch override."
     )
     branch_name = serializers.CharField(
-        required=True, help_text="The repository branch to use when the tag matches."
+        required=True, help_text="The repository branch Seer uses for issues whose events have this tag value."
     )
 
 
