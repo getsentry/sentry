@@ -1,18 +1,21 @@
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 
 from django.test import override_settings
 
 from sentry.constants import SentryAppStatus
 from sentry.integrations.models.integration_feature import Feature
-from sentry.models.organization import Organization
+from sentry.models.organization import Organization, OrganizationStatus
+from sentry.organizations.services.organization import organization_service
+from sentry.organizations.services.organization.impl import DatabaseBackedOrganizationService
 from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.testutils.asserts import assert_no_organization_resource_hydration
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
 from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
 
 
@@ -101,21 +104,38 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
         self.get_success_response(self.super_org.slug, status_code=200)
 
     def test_users_only_sees_installs_on_their_org(self) -> None:
+        self._assert_member_installations(
+            "slug", "get_access_context_by_slug", {"slug": self.org.slug, "only_visible": True}
+        )
+
+    def test_users_only_sees_installs_on_their_org_by_id(self) -> None:
+        self._assert_member_installations(
+            "id", "get_access_context", {"organization_id": self.org.id}
+        )
+
+    def _assert_member_installations(
+        self, identifier: str, method: str, lookup: dict[str, Any]
+    ) -> None:
         self.login_as(user=self.user)
         self.create_project(organization=self.org)
         self.create_team(organization=self.org)
         with (
-            patch(
-                "sentry.organizations.services.organization.serial.serialize_project"
-            ) as serialize_project,
-            patch(
-                "sentry.organizations.services.organization.serial.serialize_rpc_team"
-            ) as serialize_team,
+            assert_no_organization_resource_hydration(),
+            patch.object(
+                DatabaseBackedOrganizationService,
+                method,
+                autospec=True,
+                side_effect=getattr(DatabaseBackedOrganizationService, method),
+            ) as get_context,
+            patch.object(organization_service, "get_org_by_slug") as get_summary_by_slug,
+            patch.object(organization_service, "get_org_by_id") as get_summary_by_id,
         ):
-            response = self.get_success_response(self.org.slug, status_code=200)
-
-        serialize_project.assert_not_called()
-        serialize_team.assert_not_called()
+            response = self.get_success_response(getattr(self.org, identifier), status_code=200)
+        get_context.assert_called_once_with(
+            ANY, **lookup, user_id=self.user.id, include_resource_ids=False
+        )
+        get_summary_by_slug.assert_not_called()
+        get_summary_by_id.assert_not_called()
 
         assert response.data == [
             {
@@ -132,8 +152,12 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
         ]
 
         # Org the User is not a part of
-        response = self.get_error_response(self.super_org.slug, status_code=404)
+        response = self.get_error_response(getattr(self.super_org, identifier), status_code=404)
         assert response.status_code == 404
+
+        with assume_test_silo_mode_of(Organization):
+            self.org.update(status=OrganizationStatus.PENDING_DELETION)
+        self.get_error_response(getattr(self.org, identifier), status_code=404)
 
 
 @control_silo_test

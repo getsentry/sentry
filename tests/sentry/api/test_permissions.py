@@ -18,6 +18,7 @@ from sentry.api.permissions import (
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.demo_mode.utils import READONLY_SCOPES
 from sentry.organizations.services.organization import organization_service
+from sentry.testutils.asserts import assert_no_organization_resource_hydration
 from sentry.testutils.cases import APITestCase, DRFPermissionTestCase
 from sentry.testutils.helpers.options import override_options
 
@@ -371,17 +372,10 @@ class DemoSafePermissionsTest(DRFPermissionTestCase):
             override_options(
                 {"demo-mode.enabled": True, "demo-mode.users": [self.readonly_user.id]}
             ),
-            patch(
-                "sentry.organizations.services.organization.serial.serialize_project"
-            ) as serialize_project,
-            patch(
-                "sentry.organizations.services.organization.serial.serialize_rpc_team"
-            ) as serialize_team,
+            assert_no_organization_resource_hydration(),
         ):
             self.user_permission.determine_access(request=request, organization=self.organization)
 
-        serialize_project.assert_not_called()
-        serialize_team.assert_not_called()
         assert request.access.scopes == frozenset(READONLY_SCOPES)
 
 
