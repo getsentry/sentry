@@ -12,12 +12,17 @@ import {Text} from '@sentry/scraps/text';
 
 import {LineChart} from 'sentry/components/charts/lineChart';
 import {TransitionChart} from 'sentry/components/charts/transitionChart';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {Placeholder} from 'sentry/components/placeholder';
+import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
+import type {PageFilterDatetime} from 'sentry/types/core';
 import type {EChartClickHandler} from 'sentry/types/echarts';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
+import {getFormattedDate} from 'sentry/utils/dates';
+import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
@@ -56,6 +61,22 @@ function getSeriesLabel(build: BuildDetailsApiResponse): string {
   ].join(' | ');
 }
 
+/**
+ * The time range selected in the page filters, in milliseconds. A relative period
+ * takes precedence over absolute dates, as it does for the builds request.
+ */
+export function getSelectedTimeRange(
+  {period, start, end}: PageFilterDatetime,
+  now = Date.now()
+): {end: number; start: number} {
+  if (!period && start && end) {
+    return {start: moment(start).valueOf(), end: moment(end).valueOf()};
+  }
+
+  const hours = parsePeriodToHours(period ?? DEFAULT_STATS_PERIOD);
+  return {start: now - hours * 60 * 60 * 1000, end: now};
+}
+
 export function MobileBuildsChart({
   builds,
   isLoading,
@@ -64,6 +85,9 @@ export function MobileBuildsChart({
   const navigate = useNavigate();
   const renderToString = useRenderToString();
   const [metric, setMetric] = useState(SizeMetric.INSTALL_SIZE);
+  const {datetime} = usePageFilters().selection;
+  const utc = datetime.utc ?? false;
+  const timeRange = useMemo(() => getSelectedTimeRange(datetime), [datetime]);
 
   const {series, seriesBuildLookup, minTime, maxTime, hasTimestamps} = useMemo(() => {
     const grouped = new Map<string, BuildDetailsApiResponse[]>();
@@ -208,6 +232,11 @@ export function MobileBuildsChart({
         </Container>
         <TransitionChart loading={isLoading} reloading={false}>
           <LineChart
+            isGroupedByDate
+            start={new Date(timeRange.start)}
+            end={new Date(timeRange.end)}
+            period={datetime.period}
+            utc={utc}
             height={200}
             grid={{left: '10px', right: '10px', top: '30px', bottom: '0px'}}
             series={series}
@@ -222,14 +251,13 @@ export function MobileBuildsChart({
                 formatter: (value: number) => formatBytesBase10(value),
               },
             }}
+            // Span the selected range rather than only the builds returned, so the
+            // axis follows the date filter. Labels come from the default date formatting.
             xAxis={{
               show: true,
-              min: minTime,
-              max: maxTime,
+              min: Math.min(timeRange.start, minTime),
+              max: Math.max(timeRange.end, maxTime),
               type: 'time',
-              axisLabel: {
-                formatter: (value: number) => moment(value).format('MMM D'),
-              },
             }}
             tooltip={{
               trigger: 'axis',
@@ -244,7 +272,9 @@ export function MobileBuildsChart({
                   return '';
                 }
                 const timestamp = (firstParam as {axisValue?: number}).axisValue ?? 0;
-                const formattedDate = moment(timestamp).format('MMM D, YYYY h:mm A');
+                const formattedDate = getFormattedDate(timestamp, 'MMM D, YYYY h:mm A', {
+                  local: !utc,
+                });
 
                 return renderToString(
                   <Stack gap="lg" padding="lg 0">
