@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="121" height="40" viewBox="0 0 121 40">
+<style>
+  .pill { fill: #FFFFFF; stroke: #E0DCE5; }
+  .label { fill: #2B2233; font: 600 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+  @media (prefers-color-scheme: dark) {
+    .pill { fill: #181225; stroke: #3E3446; }
+    .label { fill: #EBE6EF; }
+  }
+</style>
+<rect class="pill" x="0.5" y="0.5" width="120" height="39" rx="13.5" />
+<defs><clipPath id="r"><rect x="8" y="8" width="24" height="24" rx="6" /></clipPath></defs>
+<g clip-path="url(#r)"><svg x="8" y="8" width="24" height="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+  <rect width="100%" height="100%" fill="#F6DE1E"/>
+  <path d="m9.82 13.28 1.82-1.07.3.42a2.38 2.38 0 0 0 3 .7 1 1 0 0 0 .15-1.66c-.14-.13-.3-.23-.46-.31-.44-.22-.9-.42-1.35-.62a6.9 6.9 0 0 1-1.78-1 3.08 3.08 0 0 1-1-2.68 2.92 2.92 0 0 1 2.56-2.69 4.58 4.58 0 0 1 1.88.06 3.28 3.28 0 0 1 2.13 1.7l-1.78 1.1-.26-.38a1.43 1.43 0 0 0-1.55-.55 1 1 0 0 0-.5 1.64c.17.18.37.32.6.42.48.25.99.45 1.49.68.55.24 1.06.54 1.53.91a3 3 0 0 1 1.13 2.75 2.89 2.89 0 0 1-2.24 2.7 5.33 5.33 0 0 1-3.76-.27 3.83 3.83 0 0 1-1.91-1.85Zm-8.07.25 1.84-1.12.36.53a1.35 1.35 0 0 0 1.58.57.8.8 0 0 0 .61-.52c.06-.19.1-.37.13-.56V4.4h2.26v7.73c.01.43-.04.87-.15 1.3a2.72 2.72 0 0 1-2 2c-1.03.3-2.13.2-3.1-.29a3.37 3.37 0 0 1-1.53-1.62Z"/>
+</svg></g>
+<text class="label" x="40" y="24.5">JavaScript</text>
+</svg>

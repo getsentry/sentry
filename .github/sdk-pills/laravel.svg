@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="103" height="40" viewBox="0 0 103 40">
+<style>
+  .pill { fill: #FFFFFF; stroke: #E0DCE5; }
+  .label { fill: #2B2233; font: 600 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+  @media (prefers-color-scheme: dark) {
+    .pill { fill: #181225; stroke: #3E3446; }
+    .label { fill: #EBE6EF; }
+  }
+</style>
+<rect class="pill" x="0.5" y="0.5" width="102" height="39" rx="13.5" />
+<defs><clipPath id="r"><rect x="8" y="8" width="24" height="24" rx="6" /></clipPath></defs>
+<g clip-path="url(#r)"><svg x="8" y="8" width="24" height="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+  <rect width="100%" height="100%" fill="#FF2D20"/>
+  <path fill="#fff" fill-rule="evenodd" d="M18 5.75v3.38a.24.24 0 0 1-.12.2l-2.78 1.62v3.17a.24.24 0 0 1-.12.2l-5.8 3.35a.17.17 0 0 1-.05.02H9.1a.27.27 0 0 1-.12 0h-.02a.37.37 0 0 1-.04-.02l-5.8-3.34a.24.24 0 0 1-.13-.21V4.17l.01-.06v-.02c0-.02 0-.03.02-.04l.01-.02.03-.04.02-.02.03-.01 2.9-1.68a.24.24 0 0 1 .24 0l2.9 1.68.02.01.03.02a.33.33 0 0 1 .05.1v6.29l2.42-1.4V5.74l.02-.04.01-.02.03-.03.02-.01.03-.03 2.9-1.67a.25.25 0 0 1 .23 0l2.9 1.67.03.03.02.01.02.03.02.02.01.04.08.02ZM17.52 9V6.23l-1.01.58-1.4.81v2.76l2.41-1.4Zm-2.9 4.99v-2.76l-1.38.79-3.95 2.25v2.78l5.34-3.06ZM3.49 4.58v9.4l5.33 3.06v-2.78l-2.78-1.58-.03-.02-.02-.02-.02-.02-.02-.02v-.03l-.02-.03V5.98l-1.42-.8-1.02-.59Zm2.67-1.8L3.73 4.17l2.42 1.4 2.42-1.4-2.42-1.4Zm1.26 8.69 1.4-.81V4.59l-1.02.58-1.4.81v6.08l1.02-.6Zm7.45-7.05-2.43 1.4 2.42 1.39 2.42-1.4-2.41-1.4Zm-.24 3.2-1.41-.8-1.02-.58v2.75l1.4.8 1.02.59V7.62Zm-5.57 6.22 3.55-2.03 1.77-1-2.41-1.4L9.17 11l-2.53 1.46 2.41 1.37Z" clip-rule="evenodd"/>
+</svg></g>
+<text class="label" x="40" y="24.5">Laravel</text>
+</svg>

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="149" height="40" viewBox="0 0 149 40">
+<style>
+  .pill { fill: #FFFFFF; stroke: #E0DCE5; }
+  .label { fill: #2B2233; font: 600 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+  @media (prefers-color-scheme: dark) {
+    .pill { fill: #181225; stroke: #3E3446; }
+    .label { fill: #EBE6EF; }
+  }
+</style>
+<rect class="pill" x="0.5" y="0.5" width="148" height="39" rx="13.5" />
+<defs><clipPath id="r"><rect x="8" y="8" width="24" height="24" rx="6" /></clipPath></defs>
+<g clip-path="url(#r)"><svg x="8" y="8" width="24" height="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+  <rect width="100%" height="100%"/>
+  <path fill="#fff" fill-rule="evenodd" d="M2 10a8 8 0 1 1 16 0 8 8 0 0 1-16 0Zm9.26 3.56.79.89a4.87 4.87 0 0 0 2.7-3.3c-.71.73-1.5 1.48-2.03.96l-.03-3.86c0-1.52 1.43-2.64 1.43-2.64a4.87 4.87 0 0 0-3 1.69c-.43-.33-.99-.23-.99-.23.3.16.6.64.6 1.04v3.93s-.65.58-1.16.58a.71.71 0 0 1-.59-.3.78.78 0 0 1-.1-.17V7.3c-.15.12-.65.23-.65-.62 0-.52.38-1.14 1.05-1.52a4.94 4.94 0 0 0-4.18 4.88s.5-1.53 1.1-1.68a.6.6 0 0 1 .75.6v3.6c0 .36-.23.44-.45.43-.15 0-.3-.03-.43-.08a4.9 4.9 0 0 0 3.87 1.99l1.32-1.34Z" clip-rule="evenodd"/>
+</svg></g>
+<text class="label" x="40" y="24.5">Unreal Engine</text>
+</svg>
