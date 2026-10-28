@@ -45,7 +45,9 @@ import {TagDetailsTable, type TagSort} from './tagDetailsTable';
 
 const DEFAULT_SORT: TagSort = 'count';
 
-type NullableTagValue = Omit<TagValue, 'value'> & {value: string | null};
+// Rows treat a null value (e.g. events without a user) the same as '' and render
+// it as "(empty)".
+type TagValueRow = TagValue & {value: string};
 
 export function TagDetailsDrawerContent({group}: {group: Group}) {
   const location = useLocation();
@@ -69,11 +71,10 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
     }),
     select: selectJsonWithHeaders,
   });
-  // The API can return `value: null` (e.g. the `user` tag for events without a
-  // user). Normalize to an empty string so rows render the "(empty)" state.
-  const tagValues = (tagValuesResponse?.json as NullableTagValue[] | undefined)?.map(
-    (tv): TagValue => ({...tv, value: tv.value ?? ''})
-  );
+  const tagValues = tagValuesResponse?.json.map((tv): TagValueRow => ({
+    ...tv,
+    value: tv.value ?? '',
+  }));
 
   const {
     data: tag,
@@ -147,7 +148,7 @@ function TagDetailsRow({
 }: {
   group: Group;
   tag: Tag;
-  tagValue: TagValue;
+  tagValue: TagValueRow;
 }) {
   const organization = useOrganization();
   const location = useLocation();
@@ -227,7 +228,7 @@ function TagDetailsValue({
   tagValue,
 }: {
   tagKey: string;
-  tagValue: TagValue;
+  tagValue: TagValueRow;
   valueLocation: LocationDescriptor;
 }) {
   const theme = useTheme();
@@ -301,7 +302,7 @@ function TagValueActionsMenu({
 }: {
   group: Group;
   tag: Tag;
-  tagValue: TagValue;
+  tagValue: TagValueRow;
 }) {
   const organization = useOrganization();
   const location = useLocation();

@@ -5,6 +5,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {
   act,
+  cleanup,
   fireEvent,
   render,
   renderGlobalModal,
@@ -34,6 +35,7 @@ import InvestigationDetailView from 'sentry/views/investigations/detail';
 import {
   InvestigationActionRequestFixture,
   InvestigationAgenticDetailFixture,
+  InvestigationBlockFixture,
   InvestigationCommentFixture,
   InvestigationDetailFixture,
   InvestigationMetricSourceFixture,
@@ -157,6 +159,31 @@ function investigationWithQueryResult() {
     output: InvestigationQueryOutputFixture(),
   };
   return investigation;
+}
+
+function investigationWithReportHeadings() {
+  return InvestigationDetailFixture({
+    summary: 'Errors rose across releases',
+    summaryDescription: 'All active releases increased together.',
+    blocks: [
+      InvestigationBlockFixture({
+        id: 'what-happened',
+        title: 'What happened',
+        outputStatus: 'completed',
+        output: {schemaVersion: 1, markdown: '## What happened\n\nErrors rose.'},
+      }),
+      InvestigationBlockFixture({
+        id: 'deploy-timing',
+        position: 1,
+        title: 'Deploy timing',
+        outputStatus: 'completed',
+        output: {
+          schemaVersion: 1,
+          markdown: '## When it happened\n\nRight after the deploy.',
+        },
+      }),
+    ],
+  });
 }
 
 async function chooseBlockAction(
@@ -382,6 +409,9 @@ describe('Investigation detail', () => {
 
     afterEach(async () => {
       try {
+        // Unmount first: a running run's status block keeps a live clock, and
+        // flushing the query cache's timers with it mounted ticks it for minutes.
+        cleanup();
         await act(() => jest.runOnlyPendingTimersAsync());
       } finally {
         jest.useRealTimers();
@@ -1458,6 +1488,127 @@ describe('Investigation detail', () => {
     expect(await screen.findByTestId('investigation-block-block-1')).toBeInTheDocument();
     expect(
       screen.queryByRole('heading', {name: 'Investigation details'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('outlines the report by its headings and scrolls to the one picked', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: investigationWithReportHeadings(),
+    });
+
+    renderView();
+
+    const outline = await screen.findByRole('navigation', {
+      name: 'Investigation outline',
+    });
+    expect(
+      within(outline)
+        .getAllByRole('link')
+        .map(link => link.textContent)
+    ).toEqual(['Summary', 'What happened', 'When it happened', 'Activity']);
+
+    const heading = screen.getByRole('heading', {level: 2, name: 'When it happened'});
+    heading.scrollIntoView = jest.fn();
+    await userEvent.click(within(outline).getByRole('link', {name: 'When it happened'}));
+
+    expect(heading.scrollIntoView).toHaveBeenCalledWith({
+      behavior: 'smooth',
+      block: 'start',
+    });
+    expect(within(outline).getByRole('link', {name: 'When it happened'})).toHaveAttribute(
+      'aria-current',
+      'location'
+    );
+  });
+
+  it('follows the reader down the report, holding a picked section until they scroll', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: investigationWithReportHeadings(),
+    });
+
+    renderView();
+
+    const outline = await screen.findByRole('navigation', {
+      name: 'Investigation outline',
+    });
+    // Nothing is laid out, so everything sits at the top of the viewport unless
+    // placed: the reader is at the start of the page.
+    await waitFor(() =>
+      expect(within(outline).getByRole('link', {name: 'Summary'})).toHaveAttribute(
+        'aria-current',
+        'location'
+      )
+    );
+
+    // Scroll the summary away, and put the second section and the activity
+    // feed below the fold.
+    jest
+      .spyOn(screen.getByTestId('investigation-summary'), 'getBoundingClientRect')
+      .mockReturnValue({top: -300} as DOMRect);
+    const nextHeading = screen.getByRole('heading', {level: 2, name: 'When it happened'});
+    const nextHeadingRect = jest
+      .spyOn(nextHeading, 'getBoundingClientRect')
+      .mockReturnValue({top: 600} as DOMRect);
+    const activity = screen
+      .getByRole('heading', {level: 2, name: 'Activity'})
+      .closest('section')!;
+    jest.spyOn(activity, 'getBoundingClientRect').mockReturnValue({top: 900} as DOMRect);
+
+    fireEvent.scroll(document);
+    await waitFor(() =>
+      expect(within(outline).getByRole('link', {name: 'What happened'})).toHaveAttribute(
+        'aria-current',
+        'location'
+      )
+    );
+
+    nextHeadingRect.mockReturnValue({top: 100} as DOMRect);
+    fireEvent.scroll(document);
+    await waitFor(() =>
+      expect(
+        within(outline).getByRole('link', {name: 'When it happened'})
+      ).toHaveAttribute('aria-current', 'location')
+    );
+
+    // The activity feed is too close to the end to scroll up past the fold.
+    activity.scrollIntoView = jest.fn();
+    await userEvent.click(within(outline).getByRole('link', {name: 'Activity'}));
+    expect(activity.scrollIntoView).toHaveBeenCalled();
+    fireEvent.scroll(document);
+    // Let the frame the scroll scheduled run before checking it changed nothing.
+    await act(() => new Promise(resolve => window.requestAnimationFrame(resolve)));
+    expect(within(outline).getByRole('link', {name: 'Activity'})).toHaveAttribute(
+      'aria-current',
+      'location'
+    );
+
+    // Once the jump has finished, the next scroll is the reader's own.
+    await act(() => new Promise(resolve => window.setTimeout(resolve, 300)));
+    fireEvent.scroll(document);
+    await waitFor(() =>
+      expect(
+        within(outline).getByRole('link', {name: 'When it happened'})
+      ).toHaveAttribute('aria-current', 'location')
+    );
+  });
+
+  it('leaves the outline out of a report with a single heading', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({
+        blocks: [investigationWithReportHeadings().blocks[0]!],
+      }),
+    });
+
+    renderView();
+
+    expect(
+      await screen.findByRole('heading', {level: 2, name: 'What happened'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('navigation', {name: 'Investigation outline'})
     ).not.toBeInTheDocument();
   });
 

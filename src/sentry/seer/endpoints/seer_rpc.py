@@ -105,6 +105,7 @@ from sentry.seer.assisted_query.traces_tools import (
 )
 from sentry.seer.auth import SeerRpcViewerContextAuthentication
 from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profile_details
+from sentry.seer.autofix.commit_author import commit_author_for_user
 from sentry.seer.autofix.utils import read_preference_from_sentry_db
 from sentry.seer.constants import SeerSCMProvider
 from sentry.seer.endpoints.registry import SeerRpcMethod, seer_rpc
@@ -121,6 +122,7 @@ from sentry.seer.public_caller import restrict_projects
 from sentry.seer.pull_requests import notify_seer_pr_created
 from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.sentry_data_models import (
+    CommitAuthorResponse,
     GetRepoInstallationIdErrorResponse,
     GetRepoInstallationIdSuccessResponse,
     GitHubEnterpriseConfigErrorResponse,
@@ -141,7 +143,7 @@ from sentry.seer.sentry_data_models import (
     SpanAttribute,
     SpanAttributesResponse,
 )
-from sentry.seer.utils import encrypt_access_token_for_seer, filter_repo_by_provider
+from sentry.seer.utils import encrypt_access_token_for_seer
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.shared_integrations.exceptions import ApiError
@@ -153,6 +155,7 @@ from sentry.utils.env import in_test_environment
 from sentry.utils.groupreference import find_fix_statements
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 from sentry.viewer_context import (
+    get_acting_user_id,
     get_viewer_context,
     observe_viewer_context_propagation,
     viewer_context_from_header,
@@ -408,6 +411,23 @@ class SeerRpcServiceEndpoint(Endpoint):
 def get_organization_slug(*, org_id: int) -> OrganizationSlugResponse:
     org: Organization = Organization.objects.get(id=org_id)
     return OrganizationSlugResponse(slug=org.slug)
+
+
+def get_commit_author(*, org_id: int) -> CommitAuthorResponse:
+    """The viewer's GitHub identity, which Seer credits on the PRs its agent opens.
+
+    The user comes from the signed viewer context, never an argument, so Seer can only
+    credit whoever is driving the run.
+    """
+    viewer = get_viewer_context()
+    user_id = get_acting_user_id(viewer)
+    # HMAC callers aren't bound to ``org_id``, so check it against the viewer here.
+    if viewer is None or viewer.organization_id != org_id or user_id is None:
+        return CommitAuthorResponse()
+    user = user_service.get_user(user_id=user_id)
+    return CommitAuthorResponse(
+        author=commit_author_for_user(user, org_id, referrer="seer_agent_write_pull_request")
+    )
 
 
 def find_referenced_fix_statements(*, org_id: int, text: str) -> ReferencedFixStatementsResponse:
@@ -736,7 +756,12 @@ def get_repo_installation_id(
         owner: The repository owner (e.g., "getsentry")
         name: The repository name (e.g., "sentry")
     """
-    repo = filter_repo_by_provider(organization_id, provider, external_id, owner, name).first()
+    repo, _resolution = Repository.objects.resolve_active_by_reference(
+        organization_id=organization_id,
+        provider=provider,
+        external_id=external_id,
+        name=f"{owner}/{name}",
+    )
 
     if not repo:
         return GetRepoInstallationIdErrorResponse(error="repository_not_found")
@@ -982,6 +1007,7 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     "get_metric_attributes_for_trace": seer_rpc(get_metric_attributes_for_trace),
     "get_baseline_tag_distribution": seer_rpc(get_baseline_tag_distribution),
     "get_dsn": seer_rpc(get_dsn),
+    "get_commit_author": seer_rpc(get_commit_author),
     #
     # Replays
     "get_replay_summary_logs": seer_rpc(rpc_get_replay_summary_logs),

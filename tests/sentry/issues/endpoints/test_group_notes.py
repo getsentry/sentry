@@ -6,7 +6,7 @@ from django.test.utils import CaptureQueriesContext
 
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.action_log.read_metrics import ActivityReadResult
-from sentry.issues.action_log.types import CommentAction, GroupActionType, GroupActorType
+from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.group import Group
@@ -40,15 +40,9 @@ class GroupNoteTest(APITestCase):
         )
         self.login_as(user=self.user)
 
-        with (
-            patch(
-                "sentry.issues.endpoints.group_notes.should_serve_action_log_activity"
-            ) as read_gate,
-            patch("sentry.issues.endpoints.group_notes.record_activity_read") as record_read,
-        ):
+        with patch("sentry.issues.endpoints.group_notes.record_activity_read") as record_read:
             response = self.client.get(f"/api/0/issues/{group.id}/comments/", format="json")
 
-        read_gate.assert_not_called()
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(activity.id)
@@ -72,15 +66,9 @@ class GroupNoteTest(APITestCase):
         )
         self.login_as(user=self.user)
 
-        with (
-            patch(
-                "sentry.issues.endpoints.group_notes.should_serve_action_log_activity"
-            ) as read_gate,
-            patch("sentry.issues.endpoints.group_notes.record_activity_read") as record_read,
-        ):
+        with patch("sentry.issues.endpoints.group_notes.record_activity_read") as record_read:
             response = self.client.get(f"/api/0/issues/{group.id}/comments/", format="json")
 
-        read_gate.assert_not_called()
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(activity.id)
@@ -104,18 +92,12 @@ class GroupNoteTest(APITestCase):
         )
         self.login_as(user=self.user)
 
-        with (
-            patch(
-                "sentry.issues.endpoints.group_notes.should_serve_action_log_activity"
-            ) as read_gate,
-            patch("sentry.issues.endpoints.group_notes.record_activity_read") as record_read,
-        ):
+        with patch("sentry.issues.endpoints.group_notes.record_activity_read") as record_read:
             response = self.client.get(
                 f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/comments/",
                 format="json",
             )
 
-        read_gate.assert_not_called()
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(activity.id)
@@ -139,18 +121,12 @@ class GroupNoteTest(APITestCase):
         )
         self.login_as(user=self.user)
 
-        with (
-            patch(
-                "sentry.issues.endpoints.group_notes.should_serve_action_log_activity"
-            ) as read_gate,
-            patch("sentry.issues.endpoints.group_notes.record_activity_read") as record_read,
-        ):
+        with patch("sentry.issues.endpoints.group_notes.record_activity_read") as record_read:
             response = self.client.get(
                 f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/comments/",
                 format="json",
             )
 
-        read_gate.assert_not_called()
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(activity.id)
@@ -532,13 +508,14 @@ class GroupNoteCreateTest(APITestCase):
         )
 
         assert response.data["id"] == str(activity.id)
-        assert entry.data["comment_id"] == activity.id
         assert response.data["commentId"] == str(activity.id)
         assert response.data["type"] == "note"
         assert response.data["source"] == "mcp:claude-code"
         assert response.data["user"]["id"] == str(self.user.id)
         assert response.data["data"]["text"] == "hello world"
         assert response.data["data"]["comment_id"] == activity.id
+
+        assert entry.data == {"comment_id": activity.id, "text": None, "mentions": None}
 
     @with_feature({"projects:issue-action-log-write-to-db": False})
     def test_returns_null_source_without_action_log_entry(self) -> None:
@@ -555,29 +532,6 @@ class GroupNoteCreateTest(APITestCase):
         assert response.data["source"] is None
         assert response.data["id"] == response.data["commentId"]
         assert response.data["data"]["comment_id"] == int(response.data["commentId"])
-
-    @action_log_activity_enabled()
-    def test_returns_activity_for_body_free_creation(self) -> None:
-        self.login_as(user=self.user)
-        group = self.group
-        # Simulate the creation format produced by a newer server/backfill worker.
-        with patch(
-            "sentry.models.activity.activity_to_action",
-            side_effect=lambda activity: CommentAction(comment_id=activity.id),
-        ):
-            response = self.client.post(
-                f"/api/0/issues/{group.id}/comments/",
-                data={"text": "new format"},
-                format="json",
-                HTTP_USER_AGENT="sentry-mcp/1.0",
-                HTTP_X_SENTRY_MCP_CLIENT_FAMILY="claude-code",
-            )
-        assert response.status_code == 201, response.content
-        note = Activity.objects.get(group=group, type=ActivityType.NOTE.value)
-        assert response.data["id"] == response.data["commentId"] == str(note.id)
-        assert response.data["type"] == "note"
-        assert response.data["data"] == {"text": "new format", "comment_id": note.id}
-        assert response.data["source"] == "mcp:claude-code"
 
     def test_with_mentions(self) -> None:
         user_not_on_team = self.create_user(email="hello@meow.com")

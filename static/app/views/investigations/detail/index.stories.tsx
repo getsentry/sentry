@@ -201,6 +201,60 @@ const agenticReportOrchestration = InvestigationOrchestrationFixture({
   report: {...InvestigationOrchestrationFixture().report, status: 'completed'},
 });
 
+function reportTextBlock(id: string, position: number, title: string, markdown: string) {
+  return InvestigationBlockFixture({
+    id,
+    position,
+    title,
+    outputStatus: 'completed',
+    output: {schemaVersion: 1, markdown},
+    currentExecution: InvestigationBlockExecutionFixture({id: `${id}-execution`}),
+  });
+}
+
+// The agentic report as Seer writes one: each text block opens with a level-two
+// heading, some with level-three ones under it, which is what the outline beside
+// it lists.
+const outlinedReportInvestigation = {
+  ...agenticReportInvestigation,
+  id: 'completed-outlined-report',
+  blocks: [
+    reportTextBlock(
+      'outline-what-happened',
+      0,
+      'What happened',
+      '## What happened\n\nCheckout p95 rose from **420 ms to 1.84 s** after the `payments-api` deploy, in every production region.'
+    ),
+    {...completedInvestigation.blocks[1]!, position: 1},
+    reportTextBlock(
+      'outline-how-we-know',
+      2,
+      'Evidence analysis',
+      '## How we know\n\n### Connection waits\n\nThe slowest checkout transactions spend their extra time waiting for a database connection.\n\n### Query time\n\nQuery execution time is unchanged.'
+    ),
+    {...completedInvestigation.blocks[2]!, position: 3},
+    reportTextBlock(
+      'outline-when',
+      4,
+      'Deploy timing',
+      '## When it happened\n\nThe first slow requests arrived four minutes after the deploy finished, once the new connection-pool settings reached every host.'
+    ),
+    {...completedInvestigation.blocks[3]!, position: 5},
+    reportTextBlock(
+      'outline-unknowns',
+      6,
+      "What we don't know",
+      "## What we don't know\n\nWhether the smaller pool or the shorter acquire timeout matters more. Both changed in the same deploy."
+    ),
+    reportTextBlock(
+      'outline-next',
+      7,
+      'What to do next',
+      '## What to do next\n\n- Roll back the connection-pool change in `payments-api`.\n- Watch connection acquisition time for 30 minutes.'
+    ),
+  ],
+};
+
 const manualInvestigation = InvestigationDetailFixture({
   id: 'manual-invoice-timeouts',
   title: 'Invoice PDF timeouts in eu-west-1',
@@ -509,6 +563,28 @@ const gatheringContextOrchestration = InvestigationOrchestrationFixture({
 });
 
 export default Storybook.story('Investigations — Detail', story => {
+  story('Completed report with an outline', () => (
+    <InvestigationFixtureApi
+      organizationSlug="storybook-investigation-outlined-report"
+      details={[outlinedReportInvestigation]}
+      orchestration={{
+        [outlinedReportInvestigation.id]: {
+          ...agenticReportOrchestration,
+          investigationId: outlinedReportInvestigation.id,
+        },
+      }}
+    >
+      {/*
+       * Measured the way the app's main column is, so the outline only shows
+       * once this is at least 1152px wide. Nothing clips it, so it sticks as the
+       * story scrolls.
+       */}
+      <Container containerType="inline-size" border="primary" radius="md">
+        <InvestigationBootstrapPage investigationId={outlinedReportInvestigation.id} />
+      </Container>
+    </InvestigationFixtureApi>
+  ));
+
   story('Completed agentic report', () => (
     <InvestigationFixtureApi
       organizationSlug="storybook-investigation-agentic-report"

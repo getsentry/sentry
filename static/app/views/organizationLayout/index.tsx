@@ -112,7 +112,7 @@ function AppLayout({organization}: LayoutProps) {
           position="relative"
         >
           <Navigation pageBannerHeight={pageBannerHeight} />
-          <SeerExplorerSidebarLayout>
+          <SeerExplorerSidebarLayout pageBannerHeight={pageBannerHeight}>
             {/* The `#main` selector is used to make the app content `inert` when an overlay is active */}
             <ContentStack
               id="main"
