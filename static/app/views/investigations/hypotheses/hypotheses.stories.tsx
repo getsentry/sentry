@@ -197,18 +197,10 @@ export default Storybook.story('Investigations — Hypotheses', story => {
     <Fragment>
       <p>
         <code>InvestigationHypotheses</code> reads the projection from{' '}
-        <code>/investigations/$id/orchestration/</code> and posts decisions back to{' '}
-        <code>/orchestration/commands/</code>. Here both are served by{' '}
+        <code>/investigations/$id/orchestration/</code>. Here it is served by{' '}
         <code>InvestigationFixtureApi</code>, the in-memory fake the other investigations
         stories use, so this is the real component and the real data flow with only the
         network swapped out.
-      </p>
-      <p>
-        Accept or reject a hypothesis from its overflow menu: the fixture applies the
-        command, bumps <code>workflowVersion</code>, and returns the new projection, which
-        the mutation writes straight into the query cache. Accepting turns the border
-        accent; choosing the same decision twice clears it and hands the hypothesis back
-        to the agent's verdict.
       </p>
       <Storybook.Demo direction="column" align="stretch" maxHeight="none">
         <InvestigationFixtureApi
@@ -225,26 +217,16 @@ export default Storybook.story('Investigations — Hypotheses', story => {
   story('With actions', () => (
     <Fragment>
       <p>
-        Cards do not own commands. The surface rendering them decides which of accept,
-        reject, steer, and retry apply, and posts the chosen one to{' '}
-        <code>/orchestration/commands/</code>. Leave <code>getActions</code> off — as the
-        rows above do — and the overflow menu disappears, which is what a read-only
+        Cards do not own actions. The surface rendering them supplies the overflow menu's
+        items — on the investigation page, "Ask Seer". Leave <code>getActions</code> off —
+        as the rows above do — and the overflow menu disappears, which is what a read-only
         surface wants.
       </p>
       <Storybook.Demo direction="column" align="stretch" maxHeight="none">
         <HypothesisList
           hypotheses={InvestigationHypothesesFixture()}
           primaryHypothesisId="hypothesis-1"
-          getActions={hypothesis => [
-            {key: 'accept', label: 'Accept', onAction: () => {}},
-            {key: 'reject', label: 'Reject', onAction: () => {}},
-            {
-              key: 'retry',
-              label: 'Investigate again',
-              disabled: hypothesis.effectiveStatus === 'investigating',
-              onAction: () => {},
-            },
-          ]}
+          getActions={() => [{key: 'ask-seer', label: 'Ask Seer', onAction: () => {}}]}
         />
       </Storybook.Demo>
     </Fragment>

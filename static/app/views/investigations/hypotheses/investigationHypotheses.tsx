@@ -1,19 +1,17 @@
 import {useState} from 'react';
-import {uuid4} from '@sentry/core';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {useQuery} from '@tanstack/react-query';
 
-import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import {t, tn} from 'sentry/locale';
 import {humanize} from 'sentry/utils/string/humanize';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  investigationOrchestrationQueryOptions,
-  useInvestigationOrchestrationCommandMutation,
-} from 'sentry/views/investigations/api';
+import {investigationOrchestrationQueryOptions} from 'sentry/views/investigations/api';
 import {
   HypothesisList,
   HypothesisListPlaceholder,
@@ -29,21 +27,6 @@ import type {
 
 /** How often to re-read the projection while a workflow is still moving. */
 const POLL_INTERVAL_MS = 2000;
-
-/**
- * How long to keep re-reading a settled run after a command was accepted.
- *
- * Sentry only queues a command: the response carries the *existing* projection
- * with nothing but `workflowVersion` bumped, and Seer rewrites the projection
- * when it actually applies the decision. On a run that has already finished
- * polling is off, so without this the card would keep the old disposition until
- * someone reloaded the page — and accepting or rejecting a hypothesis on a
- * finished run is the main reason to touch that menu at all.
- *
- * Bounded rather than open-ended: if Seer never applies the command, this stops
- * asking instead of polling a stopped run forever.
- */
-const COMMAND_SETTLE_MS = 30_000;
 
 /**
  * Phases past producing hypotheses, where an empty list means the run made
@@ -105,9 +88,14 @@ type InvestigationHypothesesProps = {
   id?: string;
   /**
    * Adds "Ask Seer" to each hypothesis's menu. Left out where Seer Agent can't
-   * take the question.
+   * take the question, and the cards show no menu.
    */
   onAskSeer?: (hypothesis: InvestigationHypothesis) => void;
+  /**
+   * Adds "Ask Seer" to the panel's menu, about every hypothesis at once. Left
+   * out where Seer Agent can't take the question, and the panel shows no menu.
+   */
+  onAskSeerAboutHypotheses?: (hypotheses: InvestigationHypothesis[]) => void;
   /**
    * The run's phase from the investigation summary. Only used before the
    * projection arrives, so a finished run opens collapsed instead of showing a
@@ -132,23 +120,19 @@ type InvestigationHypothesesProps = {
  * `projection.hypotheses` — there is no separate signal telling the frontend to
  * render a hypothesis, and no block kind to add.
  *
- * Actions travel back the other way as versioned commands, fenced on
- * `workflowVersion` so a decision made against a stale view is rejected rather
- * than applied to a run that has moved on.
+ * Steering travels back through Seer Agent: "Ask Seer" on a card or on the
+ * panel opens a chat about it, and the agent acts on the run from there.
  */
 export function InvestigationHypotheses({
   enabled = true,
   id,
   investigationId,
   onAskSeer,
+  onAskSeerAboutHypotheses,
   phase: summaryPhase,
   status: summaryStatus,
 }: InvestigationHypothesesProps) {
   const organization = useOrganization();
-  // When the last accepted command was sent, or null if none has been. A
-  // command makes a settled run interesting again, because Seer is about to
-  // rewrite the projection behind it.
-  const [commandSentAt, setCommandSentAt] = useState<number | null>(null);
 
   const {
     data: projection,
@@ -159,20 +143,11 @@ export function InvestigationHypotheses({
     enabled,
     refetchInterval: query => {
       const run = query.state.data?.json;
-      if (shouldPollInvestigationRun(run?.status, run?.runId !== null)) {
-        return POLL_INTERVAL_MS;
-      }
-      const waitingOnCommand =
-        commandSentAt !== null && Date.now() - commandSentAt < COMMAND_SETTLE_MS;
-      return waitingOnCommand ? POLL_INTERVAL_MS : false;
+      return shouldPollInvestigationRun(run?.status, run?.runId !== null)
+        ? POLL_INTERVAL_MS
+        : false;
     },
   });
-
-  const commandMutation = useInvestigationOrchestrationCommandMutation(
-    organization.slug,
-    investigationId,
-    {onSuccess: () => setCommandSentAt(Date.now())}
-  );
 
   const phase = projection?.phase ?? summaryPhase;
   const verificationComplete =
@@ -236,73 +211,11 @@ export function InvestigationHypotheses({
   // state — running, waiting on input, failed, stopped — keeps the block.
   const seerStatus = getSeerStatusBlock(projection, dataUpdatedAt);
   const statusBlock = seerStatus?.variant === 'complete' ? null : seerStatus;
-  const {workflowVersion} = projection;
-  const commandPending = commandMutation.isPending;
-
-  function setDisposition(
-    hypothesis: InvestigationHypothesis,
-    disposition: 'accepted' | 'rejected'
-  ) {
-    commandMutation.mutate({
-      requestId: uuid4(),
-      expectedWorkflowVersion: workflowVersion,
-      command: {
-        type: 'set_hypothesis_disposition',
-        hypothesisId: hypothesis.id,
-        // Choosing the decision the viewer already made clears it, so the same
-        // menu entry toggles rather than needing a separate "undo".
-        disposition:
-          hypothesis.decisionSource === 'user' &&
-          hypothesis.effectiveStatus === disposition
-            ? null
-            : disposition,
-      },
-    });
-  }
 
   function getActions(hypothesis: InvestigationHypothesis): MenuItemProps[] {
-    const decidedByUser = hypothesis.decisionSource === 'user';
-
-    return [
-      ...(onAskSeer
-        ? [
-            {
-              key: 'ask-seer',
-              label: t('Ask Seer'),
-              onAction: () => onAskSeer(hypothesis),
-            },
-          ]
-        : []),
-      {
-        key: 'accept',
-        label:
-          decidedByUser && hypothesis.effectiveStatus === 'accepted'
-            ? t('Clear decision')
-            : t('Accept'),
-        disabled: commandPending,
-        onAction: () => setDisposition(hypothesis, 'accepted'),
-      },
-      {
-        key: 'reject',
-        label:
-          decidedByUser && hypothesis.effectiveStatus === 'rejected'
-            ? t('Clear decision')
-            : t('Reject'),
-        disabled: commandPending,
-        onAction: () => setDisposition(hypothesis, 'rejected'),
-      },
-      {
-        key: 'retry',
-        label: t('Investigate again'),
-        disabled: commandPending || hypothesis.effectiveStatus === 'investigating',
-        onAction: () =>
-          commandMutation.mutate({
-            requestId: uuid4(),
-            expectedWorkflowVersion: workflowVersion,
-            command: {type: 'retry', target: 'hypothesis', targetId: hypothesis.id},
-          }),
-      },
-    ];
+    return onAskSeer
+      ? [{key: 'ask-seer', label: t('Ask Seer'), onAction: () => onAskSeer(hypothesis)}]
+      : [];
   }
 
   const hasHypotheses = projection.hypotheses.length > 0;
@@ -320,6 +233,11 @@ export function InvestigationHypotheses({
         <HypothesesPanel
           expanded={panelState.expanded}
           hypotheses={projection.hypotheses}
+          onAskSeer={
+            hasHypotheses && onAskSeerAboutHypotheses
+              ? () => onAskSeerAboutHypotheses(projection.hypotheses)
+              : undefined
+          }
           onExpandedChange={setExpanded}
         >
           {hasHypotheses ? (
@@ -346,17 +264,37 @@ function HypothesesPanel({
   children,
   expanded,
   hypotheses = [],
+  onAskSeer,
   onExpandedChange,
 }: {
   children: React.ReactNode;
   expanded: boolean;
   onExpandedChange: (expanded: boolean) => void;
   hypotheses?: InvestigationHypothesis[];
+  onAskSeer?: () => void;
 }) {
   const tally = getHypothesisTally(hypotheses);
 
   return (
     <SeerEmbedBlock
+      actions={
+        onAskSeer ? (
+          <DropdownMenu
+            position="bottom-end"
+            usePortal
+            trigger={triggerProps => (
+              <OverlayTrigger.IconButton
+                {...triggerProps}
+                size="zero"
+                variant="transparent"
+                icon={<IconEllipsis size="xs" />}
+                aria-label={t('Actions for hypotheses')}
+              />
+            )}
+            items={[{key: 'ask-seer', label: t('Ask Seer'), onAction: onAskSeer}]}
+          />
+        ) : null
+      }
       expanded={expanded}
       onExpandedChange={onExpandedChange}
       status={
