@@ -558,14 +558,16 @@ describe('SnapshotListView', () => {
   });
 
   it('keeps a viewed mark from the added image in solo view', async () => {
-    const group = {key: 'Login', name: 'Login', displayName: 'Login', images: [image()]};
+    const group = {key: 'Login', name: 'Login', displayName: 'Login'};
     const {unmount} = render(
-      <ExampleSnapshotListView items={[{...group, type: 'added'}]} />
+      <ExampleSnapshotListView items={[{...group, type: 'added', images: [image()]}]} />
     );
     await userEvent.click(screen.getByRole('checkbox', {name: 'Login screen viewed'}));
     unmount();
 
-    render(<ExampleSnapshotListView items={[{...group, type: 'solo'}]} />);
+    render(
+      <ExampleSnapshotListView items={[{...group, type: 'solo', images: [image()]}]} />
+    );
 
     expect(screen.getByRole('checkbox', {name: 'Login screen viewed'})).toBeChecked();
   });
