@@ -117,7 +117,33 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
                 resolution="1m",
             )
             assert response.status_code == 400
-            assert response.json() == "error making request"
+            assert response.json() == "Too many buckets requested. Maximum is 10100"
+
+    def test_invalid_resolution(self) -> None:
+        with self.feature(self.features):
+            response = self.get_response(
+                self.organization.slug,
+                project=[self.project.id],
+                uptimeDetectorId=[str(self.detector.id)],
+                since=(datetime.now(timezone.utc) - timedelta(days=30)).timestamp(),
+                until=datetime.now(timezone.utc).timestamp(),
+                resolution="3d",
+            )
+            assert response.status_code == 400
+            assert response.json().startswith("Invalid resolution. Must be one of: 15s, 30s,")
+
+    def test_time_range_shorter_than_resolution(self) -> None:
+        with self.feature(self.features):
+            response = self.get_response(
+                self.organization.slug,
+                project=[self.project.id],
+                uptimeDetectorId=[str(self.detector.id)],
+                since=(datetime.now(timezone.utc) - timedelta(hours=1)).timestamp(),
+                until=datetime.now(timezone.utc).timestamp(),
+                resolution="1d",
+            )
+            assert response.status_code == 400
+            assert response.json() == "Time range must be at least as long as the resolution"
 
     def test_too_many_detector_ids_limit(self) -> None:
         """Test that sending a large number of detector IDs produces a 400."""

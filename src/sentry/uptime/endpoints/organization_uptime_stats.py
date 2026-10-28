@@ -27,6 +27,7 @@ from sentry.api.base import StatsArgsDict, StatsMixin, cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.search.eap.constants import MAX_ROLLUP_POINTS, VALID_GRANULARITIES
 from sentry.uptime.endpoints.utils import (
     MAX_UPTIME_SUBSCRIPTION_IDS,
     authorize_and_map_uptime_detector_subscription_ids,
@@ -48,6 +49,10 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
 
     def get(self, request: Request, organization: Organization) -> Response:
         timerange_args = self._parse_args(request, restrict_rollups=False)
+        rollup_error = self._validate_rollup(timerange_args)
+        if rollup_error:
+            return self.respond(rollup_error, status=400)
+
         projects = self.get_projects(request, organization, include_all_accessible=True)
 
         uptime_detector_ids = request.GET.getlist("uptimeDetectorId")
@@ -89,6 +94,19 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         )
 
         return self.respond(mapped_response)
+
+    def _validate_rollup(self, timerange_args: StatsArgsDict) -> str | None:
+        rollup = timerange_args["rollup"]
+        if rollup not in VALID_GRANULARITIES:
+            valid = ", ".join(f"{g}s" for g in sorted(VALID_GRANULARITIES))
+            return f"Invalid resolution. Must be one of: {valid}"
+
+        duration = (timerange_args["end"] - timerange_args["start"]).total_seconds()
+        if duration < rollup:
+            return "Time range must be at least as long as the resolution"
+        if duration / rollup > MAX_ROLLUP_POINTS:
+            return f"Too many buckets requested. Maximum is {MAX_ROLLUP_POINTS}"
+        return None
 
     def _make_eap_request(
         self,
