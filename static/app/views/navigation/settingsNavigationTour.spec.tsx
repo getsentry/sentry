@@ -20,7 +20,12 @@ function Tour() {
       <NavigationTourProvider>
         <SettingsNavigationTourProvider>
           {(['entry', 'org', 'project', 'account', 'back'] as const).map(id => (
-            <SettingsNavigationTourElement key={id} id={id}>
+            <SettingsNavigationTourElement
+              key={id}
+              id={id}
+              title={`Tour ${id}`}
+              description={`Description ${id}`}
+            >
               {props => <Button {...props}>{id}</Button>}
             </SettingsNavigationTourElement>
           ))}
@@ -41,7 +46,7 @@ describe('Settings navigation tour', () => {
 
   it('does not show for the old navigation', () => {
     render(<Tour />, {organization: OrganizationFixture()});
-    expect(screen.queryByText('Find Your Settings')).not.toBeInTheDocument();
+    expect(screen.queryByText('Tour entry')).not.toBeInTheDocument();
   });
 
   it('guides users from the app through settings and finishes', async () => {
@@ -49,20 +54,19 @@ describe('Settings navigation tour', () => {
       organization,
       initialRouterConfig: {location: {pathname: '/organizations/org-slug/issues/'}},
     });
-    expect(await screen.findByText('Find Your Settings')).toBeInTheDocument();
+    expect(await screen.findByText('Tour entry')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
     expect(router.location.pathname).toBe('/settings/org-slug/');
-    expect(await screen.findByText('Organization Settings')).toBeInTheDocument();
+    expect(await screen.findByText('Tour org')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
-    expect(await screen.findByText('Project Settings')).toBeInTheDocument();
-    expect(screen.getByText(/Use the project selector/)).toBeInTheDocument();
+    expect(await screen.findByText('Tour project')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Previous'}));
-    expect(await screen.findByText('Organization Settings')).toBeInTheDocument();
+    expect(await screen.findByText('Tour org')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
-    expect(await screen.findByText('Account Settings')).toBeInTheDocument();
+    expect(await screen.findByText('Tour account')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
-    expect(await screen.findByText('Back to Your Work')).toBeInTheDocument();
+    expect(await screen.findByText('Tour back')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Done'}));
     expect(screen.queryByRole('button', {name: 'Done'})).not.toBeInTheDocument();
   });
@@ -70,17 +74,17 @@ describe('Settings navigation tour', () => {
   it.each(['Skip tour', 'Close'])('remembers dismissal with %s', async name => {
     const {unmount} = render(<Tour />, {organization});
     await userEvent.click(await screen.findByRole('button', {name}));
-    expect(screen.queryByText('Find Your Settings')).not.toBeInTheDocument();
+    expect(screen.queryByText('Tour entry')).not.toBeInTheDocument();
     unmount();
     render(<Tour />, {organization});
-    expect(screen.queryByText('Find Your Settings')).not.toBeInTheDocument();
+    expect(screen.queryByText('Tour entry')).not.toBeInTheDocument();
   });
 
   it('can be dismissed with Escape', async () => {
     render(<Tour />, {organization});
-    expect(await screen.findByText('Find Your Settings')).toBeInTheDocument();
+    expect(await screen.findByText('Tour entry')).toBeInTheDocument();
     await userEvent.keyboard('{Escape}');
-    expect(screen.queryByText('Find Your Settings')).not.toBeInTheDocument();
+    expect(screen.queryByText('Tour entry')).not.toBeInTheDocument();
   });
 
   it('starts at organization settings when entering settings directly', async () => {
@@ -88,7 +92,7 @@ describe('Settings navigation tour', () => {
       organization,
       initialRouterConfig: {location: {pathname: '/settings/org-slug/'}},
     });
-    expect(await screen.findByText('Organization Settings')).toBeInTheDocument();
-    expect(screen.queryByText('Find Your Settings')).not.toBeInTheDocument();
+    expect(await screen.findByText('Tour org')).toBeInTheDocument();
+    expect(screen.queryByText('Tour entry')).not.toBeInTheDocument();
   });
 });

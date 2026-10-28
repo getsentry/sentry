@@ -184,7 +184,11 @@ export function SettingsNavigationBackButton({
 }) {
   const {setActiveGroup} = usePrimaryNavigation();
   return (
-    <SettingsNavigationTourElement id="back">
+    <SettingsNavigationTourElement
+      id="back"
+      title={t('Back to Your Work')}
+      description={t('Use Back to app to return to where you left off.')}
+    >
       {tourProps => (
         <LinkButton
           {...tourProps}
@@ -212,43 +216,72 @@ export function SettingsPrimaryNavigationItems({
   const {scope: activeScope, projectSlug: activeProjectSlug} = useSettingsScope();
   const projectSlug = activeProjectSlug ?? projects[0]?.slug;
   const projectSettingsPath = `/settings/${organizationSlug}/projects/`;
-  const items = [
-    {
-      key: 'org' as const,
-      label: t('Org'),
-      to: `/settings/${organizationSlug}/`,
-      icon: <IconBuilding />,
-    },
-    {
-      key: 'project' as const,
-      label: t('Project'),
-      to: projectSlug ? `${projectSettingsPath}${projectSlug}/` : projectSettingsPath,
-      icon: <IconProject />,
-    },
-    {
-      key: 'account' as const,
-      label: t('Account'),
-      to: '/settings/account/',
-      icon: <IconUser />,
-    },
-  ];
-
-  return items.map(({key, label, to, icon}) => (
-    <SettingsNavigationTourElement key={to} id={key}>
-      {tourProps => (
-        <PrimaryNavigation.ListItem {...tourProps}>
-          <PrimaryNavigation.Link
-            to={to}
-            analyticsKey={`settings-${key}`}
-            label={label}
-            aria-current={key === activeScope ? 'location' : undefined}
-          >
-            {icon}
-          </PrimaryNavigation.Link>
-        </PrimaryNavigation.ListItem>
-      )}
-    </SettingsNavigationTourElement>
-  ));
+  return (
+    <Fragment>
+      <SettingsNavigationTourElement
+        id="org"
+        title={t('Organization Settings')}
+        description={t('Manage your organization, members, teams, and billing here.')}
+      >
+        {tourProps => (
+          <PrimaryNavigation.ListItem {...tourProps}>
+            <PrimaryNavigation.Link
+              to={`/settings/${organizationSlug}/`}
+              analyticsKey="settings-org"
+              label={t('Org')}
+              aria-current={activeScope === 'org' ? 'location' : undefined}
+            >
+              <IconBuilding />
+            </PrimaryNavigation.Link>
+          </PrimaryNavigation.ListItem>
+        )}
+      </SettingsNavigationTourElement>
+      <SettingsNavigationTourElement
+        id="project"
+        title={t('Project Settings')}
+        description={t(
+          'Open Project settings to configure a project. Use the project selector at the top of the sidebar to switch projects.'
+        )}
+      >
+        {tourProps => (
+          <PrimaryNavigation.ListItem {...tourProps}>
+            <PrimaryNavigation.Link
+              to={
+                projectSlug
+                  ? `${projectSettingsPath}${projectSlug}/`
+                  : projectSettingsPath
+              }
+              analyticsKey="settings-project"
+              label={t('Project')}
+              aria-current={activeScope === 'project' ? 'location' : undefined}
+            >
+              <IconProject />
+            </PrimaryNavigation.Link>
+          </PrimaryNavigation.ListItem>
+        )}
+      </SettingsNavigationTourElement>
+      <SettingsNavigationTourElement
+        id="account"
+        title={t('Account Settings')}
+        description={t(
+          'Manage your profile, notifications, and personal preferences here.'
+        )}
+      >
+        {tourProps => (
+          <PrimaryNavigation.ListItem {...tourProps}>
+            <PrimaryNavigation.Link
+              to="/settings/account/"
+              analyticsKey="settings-account"
+              label={t('Account')}
+              aria-current={activeScope === 'account' ? 'location' : undefined}
+            >
+              <IconUser />
+            </PrimaryNavigation.Link>
+          </PrimaryNavigation.ListItem>
+        )}
+      </SettingsNavigationTourElement>
+    </Fragment>
+  );
 }
 
 interface PrimaryNavigationItemsProps {

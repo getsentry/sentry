@@ -18,33 +18,6 @@ import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 const STEPS = ['entry', 'org', 'project', 'account', 'back'] as const;
 type Step = (typeof STEPS)[number];
 
-const CONTENT: Record<Step, {description: string; title: string}> = {
-  entry: {
-    title: t('Find Your Settings'),
-    description: t(
-      'Open the organization menu to find organization settings and shortcuts to your project settings.'
-    ),
-  },
-  org: {
-    title: t('Organization Settings'),
-    description: t('Manage your organization, members, teams, and billing here.'),
-  },
-  project: {
-    title: t('Project Settings'),
-    description: t(
-      'Open Project settings to configure a project. Use the project selector at the top of the sidebar to switch projects.'
-    ),
-  },
-  account: {
-    title: t('Account Settings'),
-    description: t('Manage your profile, notifications, and personal preferences here.'),
-  },
-  back: {
-    title: t('Back to Your Work'),
-    description: t('Use Back to app to return to where you left off.'),
-  },
-};
-
 const SettingsNavigationTourContext = createContext<{
   dismiss: () => void;
   next: () => void;
@@ -103,15 +76,19 @@ export function SettingsNavigationTourProvider({children}: {children: ReactNode}
 export function SettingsNavigationTourElement({
   id,
   children,
+  title,
+  description,
 }: {
   children: React.ComponentProps<typeof TourGuide>['children'];
+  description: ReactNode;
   id: Step;
+  title: ReactNode;
 }) {
   const context = useContext(SettingsNavigationTourContext);
-  const content = CONTENT[id];
   return (
     <TourGuide
-      {...content}
+      title={title}
+      description={description}
       isOpen={context?.step === id}
       position={id === 'entry' ? 'bottom-start' : 'right-start'}
       stepCount={STEPS.indexOf(id) + 1}
