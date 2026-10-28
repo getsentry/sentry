@@ -403,34 +403,21 @@ function SectionTitle(props: SectionTitleProps) {
 
     if (!props.canCollapse) {
       return (
-        <Flex align="center" gap="xs" width="100%" height="32px" padding="0 xs 0 md">
+        <Flex align="center" gap="xs" width="100%" minHeight="32px" padding="0 xs 0 md">
           {content}
         </Flex>
       );
     }
 
     return (
-      <Flex
-        align="center"
-        justify="start"
-        width="100%"
-        minHeight="32px"
-        padding="0 xs 0 md"
+      <Button
+        size="sm"
+        variant="transparent"
+        aria-expanded={!props.isCollapsed}
+        onClick={() => props.setIsCollapsed(!props.isCollapsed)}
       >
-        {layoutProps => (
-          <Button
-            {...layoutProps}
-            size="zero"
-            variant="transparent"
-            aria-expanded={!props.isCollapsed}
-            onClick={() => props.setIsCollapsed(!props.isCollapsed)}
-          >
-            <Flex as="span" align="center" gap="xs" flex="1" minWidth="0">
-              {content}
-            </Flex>
-          </Button>
-        )}
-      </Flex>
+        {content}
+      </Button>
     );
   }
 
