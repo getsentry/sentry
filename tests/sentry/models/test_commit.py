@@ -52,6 +52,24 @@ class FindReferencedGroupsTest(TestCase):
         )
         assert commit.find_referenced_groups() == {group, group2}
 
+    def test_match_stops_at_end_of_line(self) -> None:
+        group = self.create_group()
+        group2 = self.create_group()
+
+        # Only the IDs on the keyword's own line were referenced as fixed; a
+        # short-ID-shaped token in the next line's prose must not be linked.
+        commit = self._create_commit(
+            f"Fixes {group.qualified_short_id}\n"
+            f"Backported from {group2.qualified_short_id} for the release branch"
+        )
+        assert commit.find_referenced_groups() == {group}
+
+    def test_keyword_on_its_own_line_does_not_match(self) -> None:
+        group = self.create_group()
+
+        commit = self._create_commit(f"Fixes\n{group.qualified_short_id}")
+        assert commit.find_referenced_groups() == set()
+
     def test_markdown_links(self) -> None:
         group = self.create_group()
         group2 = self.create_group()
