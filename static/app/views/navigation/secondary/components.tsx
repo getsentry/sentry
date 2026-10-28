@@ -1012,9 +1012,7 @@ function SecondaryNavigationReorderableLink({
 
 function GrabHandle() {
   const settingsV3 = useSettingsV3();
-  const HandleAnimation = settingsV3
-    ? SettingsV3GrabHandleAnimation
-    : GrabHandleAnimation;
+  const HandleAnimation = settingsV3 ? GrabHandleAnimation : LegacyGrabHandleAnimation;
   const {attributes, isDragging, listeners, setActivatorNodeRef} =
     useReorderableItemContext();
 
@@ -1043,7 +1041,7 @@ function GrabHandle() {
   );
 }
 
-const GrabHandleAnimation = styled('div')`
+const LegacyGrabHandleAnimation = styled('div')`
   pointer-events: none;
   opacity: 0;
   z-index: 1;
@@ -1057,7 +1055,7 @@ const GrabHandleAnimation = styled('div')`
   }
 `;
 
-const SettingsV3GrabHandleAnimation = styled('div')`
+const GrabHandleAnimation = styled('div')`
   pointer-events: none;
   opacity: 0;
   z-index: 1;
