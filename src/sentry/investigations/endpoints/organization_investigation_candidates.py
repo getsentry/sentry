@@ -1,15 +1,17 @@
 from __future__ import annotations
 
-from typing import Any
-
 from django.db.models import Q
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiExample, extend_schema
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
+from sentry.apidocs import constants
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.investigations.endpoints.base import (
     OrganizationInvestigationsBaseEndpoint,
     can_request_actor_create_investigation,
@@ -18,6 +20,10 @@ from sentry.investigations.endpoints.base import (
 )
 from sentry.investigations.endpoints.serializers import (
     orchestration_summaries_by_investigation,
+)
+from sentry.investigations.endpoints.serializers.responses import (
+    InvestigationCandidateResponse,
+    InvestigationCandidatesResponse,
 )
 from sentry.investigations.endpoints.validators import InvestigationCandidatesValidator
 from sentry.investigations.models import (
@@ -38,9 +44,44 @@ from sentry.models.organization import Organization
 @extend_schema(tags=["Investigations"])
 @cell_silo_endpoint
 class OrganizationInvestigationCandidatesEndpoint(OrganizationInvestigationsBaseEndpoint):
+    owner = ApiOwner.ML_AI
     publish_status = {"POST": ApiPublishStatus.PRIVATE}
 
+    @extend_schema(
+        operation_id="Resolve Investigation Candidates",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        request=InvestigationCandidatesValidator,
+        responses={
+            200: inline_sentry_response_serializer(
+                "InvestigationCandidatesResponse", InvestigationCandidatesResponse
+            ),
+            400: constants.RESPONSE_BAD_REQUEST,
+            401: constants.RESPONSE_UNAUTHORIZED,
+            403: constants.RESPONSE_FORBIDDEN,
+            404: constants.RESPONSE_NOT_FOUND,
+        },
+        examples=[
+            OpenApiExample(
+                "Example request",
+                value={
+                    "templateKey": "breached_metric",
+                    "templateVersion": 1,
+                    "sources": [
+                        {"type": "metric_open_period", "ref": {"groupId": 1, "openPeriodId": 2}}
+                    ],
+                },
+                request_only=True,
+            )
+        ],
+    )
     def post(self, request: Request, organization: Organization) -> Response:
+        """
+        Internal UI lookup. Resolve metric_open_period sources for the supplied templateKey
+        and templateVersion in input order. Each item has
+        status view (with investigationId and optionally orchestration), investigate, or
+        unavailable. Missing or inaccessible sources are unavailable. Requires the
+        organizations:investigations feature and open organization membership.
+        """
         validator = InvestigationCandidatesValidator(data=request.data)
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -109,7 +150,7 @@ class OrganizationInvestigationCandidatesEndpoint(OrganizationInvestigationsBase
         }
         orchestration_by_investigation = orchestration_summaries_by_investigation(existing)
         can_create = can_request_actor_create_investigation(request)
-        items: list[dict[str, Any]] = []
+        items: list[InvestigationCandidateResponse] = []
         for source in resolved_sources:
             if source is None:
                 items.append({"status": "unavailable"})
@@ -122,7 +163,7 @@ class OrganizationInvestigationCandidatesEndpoint(OrganizationInvestigationsBase
                 or existing_by_legacy_source_key.get(investigation_legacy_source_key(source.source))
             )
             if investigation is not None:
-                item: dict[str, Any] = {
+                item: InvestigationCandidateResponse = {
                     "status": "view",
                     "investigationId": str(investigation.id),
                 }
@@ -134,4 +175,5 @@ class OrganizationInvestigationCandidatesEndpoint(OrganizationInvestigationsBase
                 items.append({"status": "investigate"})
             else:
                 items.append({"status": "unavailable"})
-        return Response({"items": items})
+        response_data: InvestigationCandidatesResponse = {"items": items}
+        return Response(response_data)

@@ -1,4 +1,9 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+
 import {
+  BaseServerTree,
   getFileAndFunctionName,
   mapResponseToTree,
 } from 'sentry/views/insights/pages/platform/nextjs/serverTree';
@@ -209,5 +214,72 @@ describe('mapResponseToTree', () => {
       type: 'folder',
       query: undefined,
     });
+  });
+});
+
+describe('BaseServerTree', () => {
+  const organization = OrganizationFixture();
+
+  const appPageComponent: Parameters<typeof mapResponseToTree>[0][number] = {
+    'avg(span.duration)': 100,
+    'count()': 1,
+    'failure_rate()': 0,
+    'p95(span.duration)': 100,
+    'function.nextjs.component_type': 'Page Server Component',
+    'function.nextjs.path': ['app'],
+    'span.description': 'desc',
+  };
+
+  function mockTreeResponse(data: Parameters<typeof mapResponseToTree>[0]) {
+    return MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/insights/tree/`,
+      body: {data},
+    });
+  }
+
+  it('renders a row for each folder, file, and component', async () => {
+    mockTreeResponse([appPageComponent]);
+
+    render(<BaseServerTree />, {organization});
+
+    const componentRow = await screen.findByRole('row', {name: /Component/});
+
+    expect(screen.getAllByRole('columnheader').map(header => header.textContent)).toEqual(
+      ['Path', 'Error Rate', 'Avg', 'P95']
+    );
+    expect(screen.getByRole('button', {name: 'Collapse app'})).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    );
+    expect(screen.getByRole('button', {name: 'Collapse app/page'})).toBeInTheDocument();
+    expect(
+      within(componentRow).getByRole('link', {name: 'Component'})
+    ).toBeInTheDocument();
+    expect(within(componentRow).getAllByText('100.00ms')).toHaveLength(2);
+  });
+
+  it("hides a folder's descendants when it is collapsed", async () => {
+    mockTreeResponse([appPageComponent]);
+
+    render(<BaseServerTree />, {organization});
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Collapse app'}));
+
+    expect(screen.getByRole('button', {name: 'Expand app'})).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
+    expect(
+      screen.queryByRole('button', {name: 'Collapse app/page'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('row', {name: /Component/})).not.toBeInTheDocument();
+  });
+
+  it('renders an empty message when the response has no data', async () => {
+    mockTreeResponse([]);
+
+    render(<BaseServerTree />, {organization});
+
+    expect(await screen.findByText('No results found')).toBeInTheDocument();
   });
 });

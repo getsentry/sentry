@@ -36,6 +36,9 @@ const swcConfig: SwcOptions = {
         runtime: 'automatic',
         importSource: '@emotion/react',
       },
+      optimizer: {
+        globals: {vars: {'import.meta.hot': 'undefined'}},
+      },
     },
     experimental: {
       plugins: [
@@ -55,7 +58,15 @@ const swcConfig: SwcOptions = {
 /**
  * ESM packages that need to be transformed.
  */
-const ESM_NODE_MODULES = ['screenfull', 'cbor2', 'nuqs', 'color'];
+const ESM_NODE_MODULES = [
+  'react-router@8\\.',
+  '@remix-run\\+route-pattern',
+  'cookie-es',
+  'screenfull',
+  'cbor2',
+  'nuqs',
+  'color',
+];
 
 const config: Config.InitialOptions = {
   rootDir,
@@ -93,14 +104,12 @@ const config: Config.InitialOptions = {
   setupFiles: ['<rootDir>/tests/js/sentry-test/snapshots/snapshot-setup.ts'],
   setupFilesAfterEnv: ['<rootDir>/tests/js/sentry-test/snapshots/snapshot-framework.ts'],
 
-  resolver: '<rootDir>/tests/js/jestReactRouterResolver.cjs',
+  resolver: '<rootDir>/tests/js/jestWorkspaceResolver.cjs',
   moduleNameMapper: {
     '^\\./storyManifest\\.generated$':
       '<rootDir>/tests/js/sentry-test/mocks/storyManifestMock.ts',
     '\\.(css|less|png|gif|jpg|woff|mp4)$':
       '<rootDir>/tests/js/sentry-test/mocks/importStyleMock.js',
-    '^@sentry/scraps/text$': '<rootDir>/static/app/components/core/text',
-    '^@sentry/scraps$': '<rootDir>/static/packages/scraps/src/index.ts',
     // The app falls back to core components until they move into scraps.
     '^@sentry/scraps/(.*)$': [
       '<rootDir>/static/packages/scraps/src/$1',

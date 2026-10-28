@@ -8,8 +8,6 @@ const productionEntryPoints = [
   // Build entry points that are not package entry points.
   'utils/setupStatics.tsx',
   'serviceWorker/worker/worker.ts',
-  // Source-scoped Rspack/Jest aliases use this runtime entry; TS uses types.d.ts.
-  'utils/reactRouterV6/index.ts',
   // very dynamically imported
   'gettingStartedDocs/**/*.{js,ts,tsx}',
   // --- we should be able to get rid of those: ---
@@ -30,6 +28,13 @@ const productionEntryPoints = [
 const scopedJest = {
   config: [],
   entry: ['jest.config.mjs', '**/*.{spec,test}.{js,ts,tsx}'],
+};
+
+// Shared Oxlint plugins belong to the root workspace. Analyze package wrappers
+// as development entries without assigning the shared plugin list to each package.
+const scopedOxlint = {
+  config: [],
+  entry: ['oxlint.config.ts'],
 };
 
 const frontendWorkspace = {
@@ -136,11 +141,13 @@ const config: KnipConfig = {
       ],
     },
     'static/packages/icons': {
+      oxlint: scopedOxlint,
       // test helpers are only used outside production.
       project: ['**/*.{js,cjs,mjs,jsx,ts,cts,mts,tsx,mdx}!', '!test/**!'],
       includeEntryExports: true,
     },
     'static/packages/scraps': {
+      oxlint: scopedOxlint,
       project: [
         '**/*.{js,cjs,mjs,jsx,ts,cts,mts,tsx,mdx}!',
         // Test helpers and package verification scripts are not production code.
@@ -157,9 +164,13 @@ const config: KnipConfig = {
     },
   },
   ignoreExportsUsedInFile: isProductionMode,
+  cycles: {
+    dynamicImports: false,
+  },
   rules: {
     binaries: 'off',
     enumMembers: 'off',
+    cycles: 'error',
   },
   include: ['nsExports', 'nsTypes'],
   mdx: {

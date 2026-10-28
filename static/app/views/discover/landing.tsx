@@ -251,7 +251,7 @@ function DiscoverLanding() {
               ) : status === 'error' ? (
                 <LoadingError message={error.message} />
               ) : (
-                <QueriesContainer>
+                <Stack gap="xl">
                   {organization.features.includes('expose-migrated-discover-queries') && (
                     <Alert variant="info">
                       {tct(
@@ -275,7 +275,7 @@ function DiscoverLanding() {
                     organization={organization}
                     refetchSavedQueries={refreshSavedQueries}
                   />
-                </QueriesContainer>
+                </Stack>
               )}
             </Layout.Main>
           </Layout.Body>
@@ -295,12 +295,6 @@ const PrebuiltSwitch = styled('label')`
 
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
-`;
-
-const QueriesContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.xl};
 `;
 
 export default DiscoverLanding;

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from enum import Enum, IntEnum
+from enum import IntEnum
 from typing import Any, ClassVar, Self
 
 from django.conf import settings
@@ -153,25 +153,3 @@ class Rule(Model):
                 return action
 
         return None
-
-
-class RuleActivityType(Enum):
-    CREATED = 1
-    DELETED = 2
-    UPDATED = 3
-    ENABLED = 4
-    DISABLED = 5
-
-
-@cell_silo_model
-class RuleActivity(Model):
-    __relocation_scope__ = RelocationScope.Organization
-
-    rule = FlexibleForeignKey("sentry.Rule")
-    user_id = HybridCloudForeignKey("sentry.User", on_delete="SET_NULL", null=True)
-    type = models.IntegerField()
-    date_added = models.DateTimeField(default=timezone.now)
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_ruleactivity"

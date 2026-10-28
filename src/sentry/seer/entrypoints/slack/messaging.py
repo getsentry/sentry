@@ -25,6 +25,7 @@ from sentry.notifications.platform.slack.renderers.seer import SeerSlackRenderer
 from sentry.notifications.platform.templates.seer import (
     SeerAgentWriteApproval,
     SeerAutofixUpdate,
+    SeerInvestigationStarted,
 )
 from sentry.notifications.platform.tracking import (
     NotificationLinkDecorator,
@@ -63,8 +64,12 @@ def send_thread_update(
     thread: SlackThreadDetails,
     data: NotificationData,
     ephemeral_user_id: str | None = None,
-) -> None:
-    """Actually sends the update, but requires a SlackIntegration, so we can't schedule it as a task."""
+) -> str | None:
+    """
+    Actually sends the update, but requires a SlackIntegration, so we can't schedule it as a task.
+    Returns the posted message's ts, or None if it wasn't posted.
+    """
+    message_ts: str | None = None
     with SlackEntrypointEventLifecycleMetric(
         interaction_type=SlackEntrypointInteractionType.SEND_THREAD_UPDATE,
         integration_id=install.model.id,
@@ -137,6 +142,19 @@ def send_thread_update(
             lifecycle.record_failure(failure_reason=e)
             # Retry, hopefully it's transient
             raise
+    return message_ts
+
+
+def edit_thread_message(
+    *, install: SlackIntegration, channel_id: str, message_ts: str, data: NotificationData
+) -> None:
+    """Re-render a message we already posted from new data."""
+    renderable, _ = NotificationService.render_template(
+        data=data,
+        template=template_registry.get(data.source)(),
+        provider=provider_registry.get(NotificationProviderKey.SLACK),
+    )
+    install.update_message(channel_id=channel_id, message_ts=message_ts, renderable=renderable)
 
 
 @instrumented_task(
@@ -319,6 +337,72 @@ def update_existing_message(
         try:
             install.update_message(
                 channel_id=channel_id, message_ts=message_ts, renderable=renderable
+            )
+        except (IntegrationError, IntegrationConfigurationError) as e:
+            lifecycle.record_halt(halt_reason=e)
+            return
+
+        record_sent(
+            NotificationTrackingContext(
+                source=data.source,
+                provider=NotificationProviderKey.SLACK,
+                category=template_registry.get(data.source).category,
+                notification_uuid=data.notification_uuid,
+                organization_id=data.organization_id,
+            ),
+            links=link_decorator.links,
+        )
+
+
+def update_investigation_alert_message(
+    *,
+    request: SlackActionRequest,
+    install: SlackIntegration,
+    channel_id: str,
+    message_ts: str,
+    data: SeerInvestigationStarted,
+) -> None:
+    # Unlike update_existing_message, metric alerts keep blocks in legacy attachments and we swap the button rather than remove it.
+    from sentry.integrations.slack.message_builder.types import SlackAction
+
+    link_decorator = NotificationLinkDecorator(data=data, provider=NotificationProviderKey.SLACK)
+    link_button = SeerSlackRenderer.render_investigation_link_button(
+        data=data, link_decorator=link_decorator
+    ).to_dict()
+
+    def replace_investigation_button(elem: dict[str, Any]) -> dict[str, Any] | None:
+        if elem.get("action_id", "").startswith(SlackAction.SEER_INVESTIGATION_START.value):
+            return link_button
+        return elem
+
+    with SlackEntrypointEventLifecycleMetric(
+        interaction_type=SlackEntrypointInteractionType.UPDATE_EXISTING_MESSAGE,
+        integration_id=install.model.id,
+        organization_id=data.organization_id,
+    ).capture() as lifecycle:
+        lifecycle.add_extras({"channel_id": channel_id, "message_ts": message_ts})
+        try:
+            message_data = request.data["message"]
+            original_attachments = message_data["attachments"]
+            original_text = message_data["text"]
+        except (KeyError, TypeError) as e:
+            lifecycle.record_failure(failure_reason=e)
+            return
+
+        attachments = [
+            {
+                **attachment,
+                "blocks": _transform_block_actions(
+                    attachment.get("blocks", []), replace_investigation_button
+                ),
+            }
+            for attachment in original_attachments
+        ]
+        try:
+            install.update_message(
+                channel_id=channel_id,
+                message_ts=message_ts,
+                renderable=SlackRenderable(blocks=[], attachments=attachments, text=original_text),
             )
         except (IntegrationError, IntegrationConfigurationError) as e:
             lifecycle.record_halt(halt_reason=e)

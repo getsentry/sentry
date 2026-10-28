@@ -140,6 +140,7 @@ class AgentRunOptions(TypedDict):
     enable_coding: NotRequired[bool]
     enable_pr_context_tools: NotRequired[bool]
     enable_write_pull_request: NotRequired[bool]
+    enable_investigation_tools: NotRequired[bool]
     enable_tool_summary: NotRequired[bool]
     embed_widgets: NotRequired[list[dict[str, Any]] | None]
     enable_streaming: NotRequired[bool]
@@ -515,7 +516,7 @@ def get_proxy_headers() -> dict[str, str] | None:
     from sentry.viewer_context import encode_viewer_context, get_viewer_context
 
     ctx = get_viewer_context()
-    if ctx is None or ctx.user_id is None:
+    if ctx is None:
         return None
 
     if not settings.SEER_API_SHARED_SECRET:

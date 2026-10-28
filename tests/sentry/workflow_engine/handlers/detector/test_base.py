@@ -15,6 +15,7 @@ from sentry.utils.registry import AlreadyRegisteredError
 from sentry.workflow_engine.handlers.detector import (
     BaseDetectorHandler,
     DataPacketEvaluationType,
+    DetectorGroupValues,
     DetectorHandler,
     DetectorOccurrence,
     GroupedDetectorEvaluationResult,
@@ -133,11 +134,18 @@ class MockDetectorStateHandler(StatefulDetectorHandler[dict[str, Any], int | Non
     def extract_dedupe_value(self, data_packet: DataPacket[dict[str, Any]]) -> int:
         return data_packet.packet.get("dedupe", 0)
 
-    def extract_value(self, data_packet: DataPacket[dict[str, Any]]) -> int:
+    def extract_value(
+        self, data_packet: DataPacket[dict[str, Any]]
+    ) -> int | None | DetectorGroupValues[int | None]:
         if data_packet.packet.get("value"):
             return data_packet.packet["value"]
 
-        return data_packet.packet.get("group_vals", 0)
+        group_vals = data_packet.packet.get("group_vals", 0)
+
+        if isinstance(group_vals, dict):
+            return DetectorGroupValues(group_vals)
+
+        return group_vals
 
     def create_occurrence(
         self,
@@ -202,8 +210,8 @@ class MockOccurrenceIdDetectorHandler(MockDefaultDetectorHandler):
 class MockGroupedDetectorHandler(DetectorHandler[dict[str, Any], int]):
     """Returns a value per group key, which the default `evaluate` evaluates group by group."""
 
-    def extract_value(self, data_packet: DataPacket[dict[str, Any]]) -> dict[DetectorGroupKey, int]:
-        return data_packet.packet["values"]
+    def extract_value(self, data_packet: DataPacket[dict[str, Any]]) -> DetectorGroupValues[int]:
+        return DetectorGroupValues(data_packet.packet["values"])
 
     def create_occurrence(
         self,
@@ -690,7 +698,7 @@ class TestDetectorHandlerEvaluate(BaseGroupTypeTest):
         )
 
         with mock.patch(
-            "sentry.workflow_engine.handlers.detector.base.process_data_condition_group",
+            "sentry.workflow_engine.handlers.detector.condition.process_data_condition_group",
             return_value=(tainted_evaluation, []),
         ):
             result = self.handler.evaluate(self.packet(10))
@@ -732,7 +740,7 @@ class TestDetectorHandlerEvaluate(BaseGroupTypeTest):
             condition_group=self.detector.workflow_condition_group,
         )
 
-        with mock.patch("sentry.workflow_engine.handlers.detector.base.logger") as mock_logger:
+        with mock.patch("sentry.workflow_engine.handlers.detector.condition.logger") as mock_logger:
             result = self.handler.evaluate(self.packet(1))
 
         assert result.result == {}
@@ -849,11 +857,11 @@ class TestDetectorHandlerGroupedEvaluate(BaseGroupTypeTest):
         assert result.result == {}
         assert result.tainted is False
 
-    def test_detector_evaluates_empty_values_as_a_single_ungrouped_value(self) -> None:
+    def test_detector_evaluates_nothing_for_empty_grouped_values(self) -> None:
         result = self.handler.evaluate(self.packet({}))
 
         assert result.result == {}
-        assert result.tainted is True
+        assert result.tainted is False
 
     def test_detector_fingerprints_each_group_separately(self) -> None:
         result = self.handler.evaluate(self.packet({"group-one": 10, "group-two": 20}))
@@ -912,7 +920,7 @@ class TestDetectorHandlerGroupedEvaluate(BaseGroupTypeTest):
         )
 
         with mock.patch(
-            "sentry.workflow_engine.handlers.detector.base.process_data_condition_group",
+            "sentry.workflow_engine.handlers.detector.condition.process_data_condition_group",
             side_effect=[(clean_evaluation, []), (tainted_evaluation, [])],
         ):
             result = self.handler.evaluate(self.packet({"quiet": 1, "loud": 10}))

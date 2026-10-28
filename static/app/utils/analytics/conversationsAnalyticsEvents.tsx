@@ -6,6 +6,7 @@ export type ConversationsEventParameters = {
   'conversations.detail.expand-embedding': {expanded: boolean};
   'conversations.detail.expand-thinking': {expanded: boolean};
   'conversations.detail.expand-tool-calls': {expanded: boolean};
+  'conversations.detail.export-conversation': Record<string, unknown>;
   'conversations.detail.page-view': Record<string, unknown>;
   'conversations.detail.select-span': Record<string, unknown>;
   'conversations.detail.tab-switch': {
@@ -64,6 +65,7 @@ export const conversationsEventMap: Record<keyof ConversationsEventParameters, s
   'conversations.detail.copy-conversation': 'Conversations: Detail Copy Conversation',
   'conversations.detail.copy-conversation-id':
     'Conversations: Detail Copy Conversation ID',
+  'conversations.detail.export-conversation': 'Conversations: Detail Export Conversation',
   'conversations.detail.click-trace-link': 'Conversations: Detail Click Trace Link',
   'conversations.detail.click-errors-link': 'Conversations: Detail Click Errors Link',
   'conversations.message.click': 'Conversations: Message Click',

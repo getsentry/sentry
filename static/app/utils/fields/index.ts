@@ -3466,11 +3466,43 @@ export type GetFieldDefinitionType =
   | 'uptime'
   | 'tracemetric';
 
-export const getFieldDefinition = (
+const TYPED_TAG_KEY_RE = /tags\[(\S*),(\S*)\]/;
+
+export function isTypedTagKey(key: string): boolean {
+  return TYPED_TAG_KEY_RE.test(key);
+}
+
+/**
+ * Returns the `@sentry/conventions` definition matching both the name and type of a
+ * `tags[<name>,<type>]` key, or null if there is none.
+ */
+function getTypedTagKeyConventionDefinition(key: string): FieldDefinition | null {
+  const [, name, keyType] = key.match(TYPED_TAG_KEY_RE) ?? [];
+  if (!name || !Object.hasOwn(ATTRIBUTE_SEARCH_FIELD_DEFINITIONS, name)) {
+    return null;
+  }
+
+  const convention = ATTRIBUTE_SEARCH_FIELD_DEFINITIONS[name]!;
+  const {valueType} = convention;
+  // The backend stores every numeric convention (duration, size, ...) as `number`.
+  const storedType =
+    valueType === FieldValueType.STRING ||
+    valueType === FieldValueType.BOOLEAN ||
+    valueType === FieldValueType.ARRAY
+      ? valueType
+      : FieldValueType.NUMBER;
+  if (storedType !== keyType) {
+    return null;
+  }
+
+  return {...convention, valueType: storedType};
+}
+
+function getMappedFieldDefinition(
   key: string,
-  type: GetFieldDefinitionType = 'event',
+  type: GetFieldDefinitionType,
   kind?: FieldKind
-): FieldDefinition | null => {
+): FieldDefinition | null {
   const definition = _getFieldFromMappings(type, key, kind);
   if (definition) {
     return mergeAttributeSearchMetadata(key, definition, {
@@ -3489,6 +3521,20 @@ export const getFieldDefinition = (
   }
 
   return null;
+}
+
+export const getFieldDefinition = (
+  key: string,
+  type: GetFieldDefinitionType = 'event',
+  kind?: FieldKind
+): FieldDefinition | null => {
+  const definition = getMappedFieldDefinition(key, type, kind);
+  const isTraceItem = type === 'span' || type === 'log' || type === 'tracemetric';
+  if (definition?.desc || !isTraceItem) {
+    return definition;
+  }
+
+  return getTypedTagKeyConventionDefinition(key) ?? definition;
 };
 
 /**
@@ -3537,8 +3583,6 @@ export function isDeviceClass(key: any): boolean {
 }
 
 export const DEVICE_CLASS_TAG_VALUES = ['high', 'medium', 'low'];
-
-const TYPED_TAG_KEY_RE = /tags\[(\S*),(\S*)\]/;
 
 export function classifyTagKey(key: string): FieldKind {
   const result = key.match(TYPED_TAG_KEY_RE);

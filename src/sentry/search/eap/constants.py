@@ -284,3 +284,7 @@ PROTO_TYPE_TO_ATTRIBUTE_TYPE_MAP: dict[AttributeKey.Type.ValueType, ColumnType] 
     AttributeKey.Type.TYPE_ARRAY_DOUBLE: "array",
     AttributeKey.Type.TYPE_ARRAY_BOOL: "array",
 }
+
+# Protobuf has a max recursion depth, set a maximum on our side because snuba will 400 on parsing a request that has too
+# many functions chained together
+MAX_BOOLEAN_DEPTH = 50

@@ -269,6 +269,23 @@ describe('ConversationOnboarding', () => {
     expect(screen.getByText('Identify Users (optional)')).toBeInTheDocument();
   });
 
+  it('hides only the conversation ID step for Pi Durable (auto-set), keeping the user step', async () => {
+    const {organization} = setupProject('node');
+
+    render(<ConversationOnboarding onDismiss={jest.fn()} />, {organization});
+    await userEvent.click(await screen.findByRole('tab', {name: 'For you'}));
+
+    expect(await screen.findByText('Set Conversation ID')).toBeInTheDocument();
+
+    // Pi Durable sets the conversation ID automatically, so that step drops out - but it
+    // runs the Sentry SDK, so the user step stays.
+    await userEvent.click(await screen.findByRole('button', {name: 'Vercel AI SDK'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Pi Durable'}));
+
+    expect(screen.queryByText('Set Conversation ID')).not.toBeInTheDocument();
+    expect(screen.getByText('Identify Users (optional)')).toBeInTheDocument();
+  });
+
   it('does not track setup instructions as an AI prompt copy', async () => {
     const {organization} = setupProject('node');
 

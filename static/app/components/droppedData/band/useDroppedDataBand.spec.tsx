@@ -3,7 +3,7 @@ import type {
   CustomSeriesRenderItemAPI,
   CustomSeriesRenderItemParams,
 } from 'echarts';
-import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
+import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
@@ -14,15 +14,19 @@ import {
   DROPPED_DATA_SERIES_ID,
   useDroppedDataBand,
 } from 'sentry/components/droppedData/band/useDroppedDataBand';
-import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
+import type {OutcomeRow} from 'sentry/components/droppedData/types';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 
 const chartRef: React.RefObject<ReactEchartsRef | null> = {current: null};
 
 describe('useDroppedDataBand', () => {
   it('returns an empty band when there are no dropped events', () => {
     const {result} = renderHookWithProviders(() =>
-      useDroppedDataBand({chartRef, droppedData: {droppedEvents: []}})
+      useDroppedDataBand({
+        chartRef,
+        droppedData: {dataset: DiscoverDatasets.SPANS, droppedEvents: []},
+      })
     );
 
     expect(result.current.droppedDataSeries).toBeNull();
@@ -42,7 +46,10 @@ describe('useDroppedDataBand', () => {
     const {result} = renderHookWithProviders(() =>
       useDroppedDataBand({
         chartRef,
-        droppedData: {droppedEvents: [DroppedEventFixture({count: 10})]},
+        droppedData: {
+          dataset: DiscoverDatasets.SPANS,
+          droppedEvents: [OutcomeRowFixture({count: 10})],
+        },
       })
     );
 
@@ -52,18 +59,13 @@ describe('useDroppedDataBand', () => {
     expect(result.current.droppedDataBandHeight).toBe(BAND_HEIGHT);
   });
 
-  it('ignores configured drops', () => {
+  it('ignores intentional drops', () => {
     const {result} = renderHookWithProviders(() =>
       useDroppedDataBand({
         chartRef,
         droppedData: {
-          droppedEvents: [
-            DroppedEventFixture({
-              outcome: 'client_discard',
-              reason: 'before_send',
-              count: 10,
-            }),
-          ],
+          dataset: DiscoverDatasets.SPANS,
+          droppedEvents: [OutcomeRowFixture({count: 10, tags: ['intentional']})],
         },
       })
     );
@@ -71,25 +73,29 @@ describe('useDroppedDataBand', () => {
     expect(result.current.droppedDataSeries).toBeNull();
   });
 
-  it('keeps buckets with any drops and skips those without', () => {
+  it('keeps buckets without drops so they can be hovered', () => {
     const {result} = renderHookWithProviders(() =>
       useDroppedDataBand({
         chartRef,
         droppedData: {
+          dataset: DiscoverDatasets.SPANS,
           droppedEvents: [
-            DroppedEventFixture({start: 0, count: 0}),
-            DroppedEventFixture({start: 60_000, count: 1}),
+            OutcomeRowFixture({start: 0, count: 0}),
+            OutcomeRowFixture({start: 60_000, count: 1}),
           ],
           acceptedEvents: [
-            DroppedEventFixture({start: 0, count: 100}),
-            DroppedEventFixture({start: 60_000, count: 99}),
+            OutcomeRowFixture({start: 0, count: 100}),
+            OutcomeRowFixture({start: 60_000, count: 99}),
+            OutcomeRowFixture({start: 120_000, count: 50}),
           ],
         },
       })
     );
 
     expect(result.current.droppedDataSeries?.data).toEqual([
+      expect.objectContaining({start: 0, ratio: 0}),
       expect.objectContaining({start: 60_000, ratio: 0.01}),
+      expect.objectContaining({start: 120_000, ratio: 0, accepted: 50}),
     ]);
   });
 
@@ -98,8 +104,25 @@ describe('useDroppedDataBand', () => {
       useDroppedDataBand({
         chartRef,
         droppedData: {
-          droppedEvents: [DroppedEventFixture({start: 0, count: 0})],
-          acceptedEvents: [DroppedEventFixture({start: 0, count: 100})],
+          dataset: DiscoverDatasets.SPANS,
+          droppedEvents: [OutcomeRowFixture({start: 0, count: 0})],
+          acceptedEvents: [OutcomeRowFixture({start: 0, count: 100})],
+        },
+      })
+    );
+
+    expect(result.current.droppedDataSeries).toBeNull();
+    expect(result.current.droppedDataBandHeight).toBe(0);
+  });
+
+  it('hides the band when every bucket is below the highlight threshold', () => {
+    const {result} = renderHookWithProviders(() =>
+      useDroppedDataBand({
+        chartRef,
+        droppedData: {
+          dataset: DiscoverDatasets.SPANS,
+          droppedEvents: [OutcomeRowFixture({start: 0, count: 1})],
+          acceptedEvents: [OutcomeRowFixture({start: 0, count: 1999})],
         },
       })
     );
@@ -113,8 +136,9 @@ describe('useDroppedDataBand', () => {
       useDroppedDataBand({
         chartRef,
         droppedData: {
+          dataset: DiscoverDatasets.SPANS,
           droppedEvents: [],
-          acceptedEvents: [DroppedEventFixture({count: 8000})],
+          acceptedEvents: [OutcomeRowFixture({count: 8000})],
         },
       })
     );
@@ -122,17 +146,20 @@ describe('useDroppedDataBand', () => {
     expect(result.current.droppedDataSeries).toBeNull();
   });
 
-  it('inherits positioning from the chart tooltip', () => {
+  it('positions the tooltip below the band', () => {
     const {result} = renderHookWithProviders(() =>
       useDroppedDataBand({
         chartRef,
-        droppedData: {droppedEvents: [DroppedEventFixture({count: 10})]},
+        droppedData: {
+          dataset: DiscoverDatasets.SPANS,
+          droppedEvents: [OutcomeRowFixture({count: 10})],
+        },
       })
     );
 
     const tooltip = result.current.droppedDataSeries?.tooltip;
     expect(tooltip?.trigger).toBe('item');
-    expect(tooltip).not.toHaveProperty('position');
+    expect(tooltip).toHaveProperty('position', 'bottom');
   });
 
   it('collapses buckets sharing a time range into a single series datum', () => {
@@ -140,10 +167,11 @@ describe('useDroppedDataBand', () => {
       useDroppedDataBand({
         chartRef,
         droppedData: {
+          dataset: DiscoverDatasets.SPANS,
           droppedEvents: [
-            DroppedEventFixture({start: 0, end: 60_000, count: 10}),
-            DroppedEventFixture({start: 0, end: 60_000, count: 5, reason: 'quota'}),
-            DroppedEventFixture({start: 60_000, end: 120_000, count: 20}),
+            OutcomeRowFixture({start: 0, end: 60_000, count: 10}),
+            OutcomeRowFixture({start: 0, end: 60_000, count: 5, reason: 'quota'}),
+            OutcomeRowFixture({start: 60_000, end: 120_000, count: 20}),
           ],
         },
       })
@@ -195,14 +223,15 @@ describe('useDroppedDataBand', () => {
       };
     }
 
-    function renderShapes(
-      dropped: DroppedEventsBucket[],
-      accepted: DroppedEventsBucket[] = []
-    ) {
+    function renderShapes(dropped: OutcomeRow[], accepted: OutcomeRow[] = []) {
       const {result} = renderHookWithProviders(() =>
         useDroppedDataBand({
           chartRef,
-          droppedData: {droppedEvents: dropped, acceptedEvents: accepted},
+          droppedData: {
+            dataset: DiscoverDatasets.SPANS,
+            droppedEvents: dropped,
+            acceptedEvents: accepted,
+          },
         })
       );
 
@@ -227,7 +256,7 @@ describe('useDroppedDataBand', () => {
     }
 
     function bucket(minute: number, count = 10) {
-      return DroppedEventFixture({
+      return OutcomeRowFixture({
         start: minute * 60_000,
         end: (minute + 1) * 60_000,
         count,
@@ -262,6 +291,18 @@ describe('useDroppedDataBand', () => {
       expect(hover).toMatchObject({style: {fill: 'transparent'}});
       expect(span(hover)).toEqual([150, 210]);
       expect(gradientRect(shapes).rect.silent).toBe(true);
+    });
+
+    it('keeps buckets below the highlight threshold hoverable but out of the gradient', () => {
+      const [first, second] = renderShapes(
+        [bucket(3), bucket(4, 1)],
+        [bucket(3, 90), bucket(4, 1999)]
+      );
+      const color = severityColor(0.1, ThemeFixture());
+      const {colors} = gradientRect(first);
+
+      expect(span(second!.at(-1)!)).toEqual([210, 270]);
+      expect(colors).toEqual([withAlpha(color, 0), color, color, withAlpha(color, 0)]);
     });
 
     it('blends adjacent buckets evenly around their shared edge', () => {

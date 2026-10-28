@@ -29,7 +29,7 @@ from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.testutils.helpers.notifications import create_notification_origin
+from sentry.testutils.helpers.notifications import create_workflow_notification_origin_for_rule
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -923,7 +923,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
     def test_response_differs_on_bot_message(self, _mock_view_updates_open: MagicMock) -> None:
         status_action = self.get_archive_status_action()
         original_message = self.get_original_message(self.group.id)
-        workflow_id = create_notification_origin(self.rule).workflow_id
+        workflow_id = create_workflow_notification_origin_for_rule(self.rule).workflow_id
         assert workflow_id is not None
         callback_id = orjson.dumps({"issue": self.group.id, "workflow": workflow_id}).decode()
 
@@ -1237,6 +1237,8 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
 
     @patch("sentry.integrations.slack.message_builder.issues.get_tags", return_value=[])
     def test_rule_from_same_organization_resolves_workflow(self, mock_tags: MagicMock) -> None:
+        workflow_id = create_workflow_notification_origin_for_rule(self.rule).workflow_id
+        assert workflow_id is not None
         status_action = self.get_mark_ongoing_action()
         original_message = self.get_original_message(self.group.id)
         callback_id = orjson.dumps({"issue": self.group.id, "rule": self.rule.id}).decode()
@@ -1249,8 +1251,6 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resp.status_code == 200, resp.content
 
         blocks = self.mock_post.call_args.kwargs["blocks"]
-        workflow_id = create_notification_origin(self.rule).workflow_id
-        assert workflow_id is not None
         assert f"workflow_id={workflow_id}" in blocks[0]["text"]["text"]
 
     @patch("sentry.utils.metrics.backend.inner.incr")
@@ -1277,6 +1277,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
 
     @patch("sentry.utils.metrics.backend.inner.incr")
     def test_rule_lookup_metric_with_rule(self, metrics_incr: MagicMock) -> None:
+        create_workflow_notification_origin_for_rule(self.rule)
         callback_id = orjson.dumps({"issue": self.group.id, "rule": self.rule.id}).decode()
 
         response = self.post_webhook_block_kit(

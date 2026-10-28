@@ -5,7 +5,6 @@ import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {IconInput} from '@sentry/icons/input';
 import {IconStar} from '@sentry/icons/star';
 
-import {ProjectsBadge} from '@sentry/scraps/badge';
 import type {BreadcrumbListProps} from '@sentry/scraps/breadcrumbList';
 import {Button} from '@sentry/scraps/button';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
@@ -17,6 +16,7 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
+import {ProjectsBadge} from 'sentry/components/core/badge/projectsBadge';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';

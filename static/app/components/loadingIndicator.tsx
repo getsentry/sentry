@@ -23,19 +23,25 @@ export function LoadingIndicator(props: LoadingIndicatorProps) {
       data-test-id={props['data-test-id'] ?? 'loading-indicator'}
     >
       <div
-        className={classNames('loading-indicator', {
+        className={classNames('loading-indicator-container', {
           relative: props.relative,
         })}
-        style={
-          props.size
-            ? {
-                width: props.size,
-                height: props.size,
-                borderWidth: getLoadingIndicatorBorderWidth(props.size),
-              }
-            : undefined
-        }
-      />
+        style={{width: props.size, height: props.size}}
+      >
+        <div
+          className="loading-indicator"
+          style={
+            props.size
+              ? {
+                  // Reserve 0.5px on each side for the container's antialiasing inset.
+                  width: props.size - 1,
+                  height: props.size - 1,
+                  borderWidth: getLoadingIndicatorBorderWidth(props.size),
+                }
+              : undefined
+          }
+        />
+      </div>
       {props.children && <div className="loading-message">{props.children}</div>}
     </div>
   );

@@ -46,6 +46,10 @@ describe('SpanNodeDetails', () => {
       url: `/organizations/${organization.slug}/dashboards/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/project_slug/stacktrace-link/`,
+      body: {config: null, sourceUrl: null, integrations: []},
+    });
   });
 
   it.each([

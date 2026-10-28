@@ -1,5 +1,5 @@
 import type {ComponentProps} from 'react';
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -28,6 +28,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useZoomToOpenPeriodRange} from 'sentry/views/detectors/components/details/common/useZoomToOpenPeriodRange';
 import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
+import {getOpenPeriodDurationSeconds} from 'sentry/views/detectors/utils/getOpenPeriodDurationSeconds';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 
 const OPEN_PERIOD_COLUMNS: TableColumnConfig[] = [
@@ -43,6 +44,7 @@ interface OpenPeriodsSubTableProps {
 }
 
 function OpenPeriodsSubTable({groupId, onZoom}: OpenPeriodsSubTableProps) {
+  const [now] = useState(() => new Date());
   const location = useLocation();
   const start = location.query?.start as string | undefined;
   const end = location.query?.end as string | undefined;
@@ -81,9 +83,7 @@ function OpenPeriodsSubTable({groupId, onZoom}: OpenPeriodsSubTableProps) {
       {openPeriods.map((period, idx) => {
         const openPeriodStart = new Date(period.start);
         const openPeriodEnd = period.end ? new Date(period.end) : undefined;
-        const diffMs =
-          (openPeriodEnd ?? new Date()).getTime() - openPeriodStart.getTime();
-        const seconds = diffMs / 1000;
+        const openPeriodDurationSeconds = getOpenPeriodDurationSeconds(period, now);
         return (
           <SimpleTable.Row key={`${period.start}-${idx}`}>
             <SimpleTable.RowCell>
@@ -107,7 +107,7 @@ function OpenPeriodsSubTable({groupId, onZoom}: OpenPeriodsSubTableProps) {
               </Text>
             </SimpleTable.RowCell>
             <SimpleTable.RowCell>
-              <Duration seconds={seconds} abbreviation />
+              <Duration seconds={openPeriodDurationSeconds} abbreviation />
             </SimpleTable.RowCell>
             <SimpleTable.RowCell justify="end">
               <Button size="xs" onClick={() => onZoom(openPeriodStart, openPeriodEnd)}>

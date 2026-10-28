@@ -1,22 +1,28 @@
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
 import {IconDelete} from '@sentry/icons/delete';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
 import type {FormulaParamType} from 'sentry/views/explore/hooks/useGetSavedFormulas';
-import {BuilderSection} from 'sentry/views/explore/savedFormulas/formulaBuilder/builderSection';
 import {
+  BuilderSection,
+  FIELD_MAX_WIDTH,
+} from 'sentry/views/explore/savedFormulas/formulaBuilder/builderSection';
+import {
+  MAX_INPUT_PARAMS,
   MAX_PARAMS,
   newParam,
   type DraftParam,
 } from 'sentry/views/explore/savedFormulas/formulaBuilder/draft';
+import {OptionSizedLabel} from 'sentry/views/explore/savedFormulas/formulaBuilder/optionSizedLabel';
 import {FormulaEquationInput} from 'sentry/views/explore/savedFormulas/formulaEquationInput';
 
 const SIGMA = '\u03A3';
@@ -36,6 +42,7 @@ export function ParametersSection({
   // A calculation is derived from the other params, so there has to be one first.
   const valueParams = params.filter(param => param.type !== 'calculation');
   const isFull = params.length >= MAX_PARAMS;
+  const isInputFull = valueParams.length >= MAX_INPUT_PARAMS;
 
   function update(key: string, changes: Partial<DraftParam>) {
     onChange(params.map(param => (param.key === key ? {...param, ...changes} : param)));
@@ -48,16 +55,9 @@ export function ParametersSection({
         'Values the formula accepts when it is used, the same way a function takes arguments.'
       )}
     >
-      <Stack gap="md">
+      <Stack gap="lg">
         {params.map(param => (
-          <Flex key={param.key} align="center" gap="md">
-            {param.type === 'calculation' ? (
-              <CalculationBadge align="center" justify="center" radius="md">
-                <Text as="span" bold variant="accent">
-                  {SIGMA}
-                </Text>
-              </CalculationBadge>
-            ) : null}
+          <Flex key={param.key} align="center" gap="md" maxWidth={FIELD_MAX_WIDTH}>
             <NameInput
               value={param.name}
               placeholder={t('Name')}
@@ -65,26 +65,32 @@ export function ParametersSection({
               onChange={event => update(param.key, {name: event.target.value})}
             />
             {param.type === 'calculation' ? (
-              <Flex flex="1" minWidth="0">
-                <FormulaEquationInput
+              <Container position="relative" flex="1" minWidth="0">
+                <CalculationEquationInput
                   value={param.value}
                   names={valueParams.map(valueParam => valueParam.name)}
                   onChange={value => update(param.key, {value})}
                 />
-              </Flex>
+                <CalculationTab align="center" justify="center">
+                  <Text as="span" bold variant="accent">
+                    {SIGMA}
+                  </Text>
+                </CalculationTab>
+              </Container>
             ) : (
-              <Flex flex="1" align="center" gap="md">
+              <Flex flex="1" align="center">
                 <CompactSelect
                   value={param.type}
                   options={VALUE_TYPE_OPTIONS}
-                  trigger={triggerProps => (
-                    <OverlayTrigger.Button {...triggerProps} prefix={t('Type')} />
+                  trigger={({children, ...triggerProps}) => (
+                    <OverlayTrigger.Button {...triggerProps} prefix={t('Type')}>
+                      <OptionSizedLabel options={VALUE_TYPE_OPTIONS}>
+                        {children}
+                      </OptionSizedLabel>
+                    </OverlayTrigger.Button>
                   )}
                   onChange={option => update(param.key, {type: option.value})}
                 />
-                <Text variant="muted" size="sm">
-                  {t('Set when the formula is used')}
-                </Text>
               </Flex>
             )}
             <Button
@@ -96,17 +102,25 @@ export function ParametersSection({
             />
           </Flex>
         ))}
-        <Flex gap="lg">
+        <Flex gap="md">
           <Tooltip
-            title={t('Formulas take at most %s parameters', MAX_PARAMS)}
-            disabled={!isFull}
+            title={
+              isFull
+                ? t('Formulas take at most %s parameters', MAX_PARAMS)
+                : t(
+                    'Formulas take at most %s non-calculated parameters',
+                    MAX_INPUT_PARAMS
+                  )
+            }
+            disabled={!isFull && !isInputFull}
           >
             <Button
-              variant="link"
-              disabled={isFull}
+              size="sm"
+              icon={<IconAdd />}
+              disabled={isFull || isInputFull}
               onClick={() => onChange([...params, newParam('number')])}
             >
-              {t('+ Add parameter')}
+              {t('Add Parameter')}
             </Button>
           </Tooltip>
           <Tooltip
@@ -118,11 +132,12 @@ export function ParametersSection({
             disabled={!isFull && valueParams.length > 0}
           >
             <Button
-              variant="link"
+              size="sm"
+              icon={<IconAdd />}
               disabled={isFull || valueParams.length === 0}
               onClick={() => onChange([...params, newParam('calculation')])}
             >
-              {t('+ Add calculated parameter')}
+              {t('Add Calculated Parameter')}
             </Button>
           </Tooltip>
         </Flex>
@@ -132,13 +147,24 @@ export function ParametersSection({
 }
 
 const NameInput = styled(Input)`
-  width: 140px;
+  width: 200px;
   flex: none;
 `;
 
-const CalculationBadge = styled(Flex)`
-  flex: none;
-  width: 24px;
-  height: 36px;
+const TAB_WIDTH = 28;
+
+const CalculationEquationInput = styled(FormulaEquationInput)`
+  padding-left: ${TAB_WIDTH}px;
+`;
+
+const CalculationTab = styled(Flex)`
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  left: 1px;
+  width: ${TAB_WIDTH}px;
+  pointer-events: none;
+  border-right: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => `${p.theme.form.md.borderRadius} 0 0 ${p.theme.form.md.borderRadius}`};
   background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
 `;

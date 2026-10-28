@@ -19,7 +19,15 @@ const HALF_ADVANCE_PERIOD = DELAY_TIME_MS * 0.6;
 jest.mock('getsentry/utils/rawTrackAnalyticsEvent');
 
 function makeMatch(path: string): UIMatch {
-  return {id: path, pathname: path, params: {}, data: undefined, handle: {path}};
+  const match = {
+    id: path,
+    pathname: path,
+    params: {},
+    data: undefined,
+    loaderData: undefined,
+    handle: {path},
+  };
+  return match;
 }
 
 const SETTINGS_MATCHES = [makeMatch('/settings/:orgId/projects/:projectId/')];

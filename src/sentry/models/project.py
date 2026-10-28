@@ -29,7 +29,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.slug import SentrySlugField
 from sentry.db.models.manager.base import BaseManager
-from sentry.db.models.utils import slugify_instance
+from sentry.db.models.utils import save_with_unique_slug, slugify_instance
 from sentry.db.pending_deletion import (
     delete_pending_deletion_option,
     rename_on_pending_deletion,
@@ -136,6 +136,7 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "node-koa",
     "node-mastra",
     "node-nestjs",
+    "node-pi-durable",
     "php",
     "php-laravel",
     "php-symfony",
@@ -394,35 +395,36 @@ class Project(Model):
         ):
             return Counter.increment(self, delta)
 
-    def _save_project(self, *args, **kwargs):
+    def _save_project(self, save_callback: Callable[[], object]) -> None:
         if settings.SENTRY_USE_SNOWFLAKE:
             snowflake_redis_key = "project_snowflake_key"
             save_with_snowflake_id(
                 instance=self,
                 snowflake_redis_key=snowflake_redis_key,
-                save_callback=lambda: super(Project, self).save(*args, **kwargs),
+                save_callback=save_callback,
             )
         else:
-            super().save(*args, **kwargs)
+            save_callback()
 
     def save(self, *args, **kwargs):
-        if getattr(self, "id", None) is not None:
-            # no need to acquire lock if we're updating an existing project
-            self._save_project(*args, **kwargs)
+        save_callback = lambda: super(Project, self).save(*args, **kwargs)
+        if getattr(self, "id", None) is not None or self.slug:
+            self._save_project(save_callback)
             return
 
-        # when project is created, we need to acquire a lock to ensure that the generated slug is unique
-        lock = locks.get(f"slug:project:{self.organization_id}", duration=5, name="project_slug")
-        with TimedRetryPolicy(10)(lock.acquire):
-            if not self.slug:
-                slugify_instance(
+        self._save_project(
+            lambda: save_with_unique_slug(
+                self,
+                pick_slug=lambda: slugify_instance(
                     self,
                     self.name,
                     organization=self.organization,
                     reserved=RESERVED_PROJECT_SLUGS,
                     max_length=50,
-                )
-            self._save_project(*args, **kwargs)
+                ),
+                save_callback=save_callback,
+            )
+        )
 
     def get_absolute_url(self, params=None):
         path = f"/organizations/{self.organization.slug}/issues/"
@@ -513,6 +515,7 @@ class Project(Model):
         from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
         from sentry.models.releases.release_project import ReleaseProject
         from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus
+        from sentry.service_accounts.models import ServiceAccountProjectReplica
         from sentry.snuba.models import QuerySubscriptionDataSourceHandler, SnubaQuery
         from sentry.workflow_engine.models import (
             DataConditionGroup,
@@ -534,7 +537,9 @@ class Project(Model):
         # Wrap the org update and ProjectTeam cleanup in a single transaction so
         # that a crash between the two doesn't leave the project with team
         # associations from the old organization.
-        with transaction.atomic(router.db_for_write(Project)):
+        # Don't flush the transfer outbox on commit: a synchronous drain that fails would
+        # abort the rest of the transfer after the org change has already committed.
+        with outbox_context(transaction.atomic(router.db_for_write(Project)), flush=False):
             try:
                 with transaction.atomic(router.db_for_write(Project)):
                     self.update(organization=organization)
@@ -544,6 +549,13 @@ class Project(Model):
 
             if org_changed:
                 ProjectTeam.objects.filter(project=self, team__organization_id=old_org_id).delete()
+                # Control holds the service account links, so its outbox receiver deletes
+                # the old org's links there. Drop the replicas now so access ends with
+                # the transfer, not when the outbox is processed.
+                ServiceAccountProjectReplica.objects.filter(project_id=self.id).exclude(
+                    service_account__organization_id=organization.id
+                ).delete()
+                Project.outbox_for_transfer(self.id, old_org_id).save()
 
         # Both environments and releases are bound at an organization level.
         # Due to this, when you transfer a project into another org, we have to
@@ -859,10 +871,9 @@ class Project(Model):
 
                 options = ProjectOption.objects.get_all_values(project=project)
                 for key, value in options.items():
-                    if key in legacy_filter_lists.OPTION_KEYS:
-                        legacy_filter_lists.set_list(self, key.removeprefix("sentry:"), value)
-                    else:
+                    if key not in legacy_filter_lists.OPTION_KEYS:
                         self.update_option(key, value)
+                legacy_filter_lists.copy_lists(project, self)
 
         except IntegrityError as e:
             logging.exception(
@@ -879,6 +890,18 @@ class Project(Model):
     @staticmethod
     def is_valid_platform(value):
         return not value or value == "other" or value in GETTING_STARTED_DOCS_PLATFORMS
+
+    @staticmethod
+    def outbox_for_transfer(project_identifier: int, previous_organization_id: int) -> CellOutbox:
+        # Sharded on the org the project left. Repeat departures from that org coalesce,
+        # and the latest `transferred_at` covers every link the earlier ones would delete.
+        return CellOutbox(
+            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+            shard_identifier=previous_organization_id,
+            category=OutboxCategory.PROJECT_UPDATE,
+            object_identifier=project_identifier,
+            payload={"transferred_at": timezone.now().isoformat()},
+        )
 
     @staticmethod
     def outbox_for_update(project_identifier: int, organization_identifier: int) -> CellOutbox:

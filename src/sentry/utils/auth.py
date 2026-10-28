@@ -455,7 +455,7 @@ def is_user_signed_request(request: Request) -> bool:
         return False
 
 
-def is_user_from_viewer_context(request: Request) -> bool:
+def is_user_from_viewer_context(request: HttpRequest | Request) -> bool:
     """
     This function returns True if the request was authenticated via viewer context.
     """

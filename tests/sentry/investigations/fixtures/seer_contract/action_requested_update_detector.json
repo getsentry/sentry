@@ -1,0 +1,23 @@
+{
+  "request": {
+    "action": {
+      "before": {
+        "query": "transaction:/checkout",
+        "timeWindowSeconds": 300
+      },
+      "changes": {
+        "query": "transaction:/checkout !error.handled:true",
+        "timeWindowSeconds": 900
+      },
+      "detectorId": "4821",
+      "kind": "update_detector"
+    },
+    "anchor": null,
+    "impact": "Alerts on 3 of the last 14 spikes instead of all 14.",
+    "key": "widen-time-window",
+    "primary": true,
+    "rationale": "Short spikes recover within a minute.",
+    "reportRevision": 2,
+    "title": "Widen the time window"
+  }
+}

@@ -7,7 +7,6 @@ from sentry.models.rule import Rule
 
 class RuleDeletionTask(ModelDeletionTask[Rule]):
     def get_child_relations(self, instance: Rule) -> list[BaseRelation]:
-        from sentry.models.rule import RuleActivity
         from sentry.workflow_engine.models import AlertRuleDetector, AlertRuleWorkflow
 
         # Workflows are org-scoped and must not be deleted when a project-scoped
@@ -15,7 +14,6 @@ class RuleDeletionTask(ModelDeletionTask[Rule]):
         # Workflow deletion explicitly) or OrganizationDeletionTask. We only
         # clean up the link rows (AlertRuleWorkflow, AlertRuleDetector) here.
         return [
-            ModelRelation(RuleActivity, {"rule_id": instance.id}),
             ModelRelation(
                 AlertRuleDetector,
                 {"rule_id": instance.id},

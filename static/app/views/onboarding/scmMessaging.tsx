@@ -191,6 +191,7 @@ export function ScmMessaging({
     }
 
     setSubmissionMode('continue');
+    // oxlint-disable-next-line react/todo
     try {
       await submitProject({includeMessagingRule: true});
     } finally {
@@ -201,6 +202,7 @@ export function ScmMessaging({
   const handleSetupLater = async () => {
     setContinueRequested(false);
     setSubmissionMode('setup-later');
+    // oxlint-disable-next-line react/todo
     try {
       await submitProject({includeMessagingRule: false});
     } finally {

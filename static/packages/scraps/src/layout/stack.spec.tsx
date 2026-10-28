@@ -204,6 +204,7 @@ describe('Stack', () => {
 
     let renderCount = 0;
     function Probe() {
+      // oxlint-disable-next-line react/todo
       renderCount++;
       return <span>probe</span>;
     }

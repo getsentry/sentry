@@ -400,6 +400,15 @@ class TriggerPrIterationFromReviewTest(TestCase):
         self.mock_actions.get_pull_request.assert_not_called()
         assert not PullRequest.objects.filter(repository_id=self.repo.id, key="7").exists()
 
+    def test_drops_a_review_on_a_pr_someone_else_pushed_to(self) -> None:
+        with patch(f"{TASK_PATH}.iteration_prs_any_external_head", return_value=True) as mock:
+            self._run()
+
+        mock.assert_called_once_with(self.organization.id, self.mock_get_state.return_value)
+        self.mock_actions.get_review_comments.assert_not_called()
+        self.mock_enqueue.assert_not_called()
+        self.mock_consume.assert_not_called()
+
     def test_returns_when_get_pull_request_fails(self) -> None:
         self.mock_actions.get_pull_request.side_effect = ResourceNotFound()
 

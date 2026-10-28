@@ -26,6 +26,9 @@ const swcConfig: SwcOptions = {
         runtime: 'automatic',
         importSource: '@emotion/react',
       },
+      optimizer: {
+        globals: {vars: {'import.meta.hot': 'undefined'}},
+      },
     },
     experimental: {
       plugins: [[fileURLToPath(import.meta.resolve('@swc-contrib/mut-cjs-exports')), {}]],
@@ -241,6 +244,9 @@ if (JEST_TESTS && CI_NODE_TOTAL !== undefined && CI_NODE_INDEX !== undefined) {
  * transformed.
  */
 const ESM_NODE_MODULES = [
+  'react-router@8\\.',
+  '@remix-run\\+route-pattern',
+  'cookie-es',
   'oxlint',
   'screenfull',
   'cbor2',
@@ -260,7 +266,7 @@ const config: Config.InitialOptions = {
   ],
   coverageReporters: ['html', 'cobertura'],
   coverageDirectory: '.artifacts/coverage',
-  resolver: '<rootDir>/tests/js/jestReactRouterResolver.cjs',
+  resolver: '<rootDir>/tests/js/jestWorkspaceResolver.cjs',
   moduleNameMapper: {
     '\\.(css|less|png|gif|jpg|avif|webp|woff|mp4)$':
       '<rootDir>/tests/js/sentry-test/mocks/importStyleMock.js',
@@ -268,8 +274,6 @@ const config: Config.InitialOptions = {
       '<rootDir>/tests/js/sentry-test/mocks/storyManifestMock.ts',
     '^\\./storyManifest\\.generated$':
       '<rootDir>/tests/js/sentry-test/mocks/storyManifestMock.ts',
-    '^@sentry/scraps/text$': '<rootDir>/static/app/components/core/text',
-    '^@sentry/scraps$': '<rootDir>/static/packages/scraps/src/index.ts',
     // The app falls back to core components until they move into scraps.
     '^@sentry/scraps/(.*)$': [
       '<rootDir>/static/packages/scraps/src/$1',
@@ -291,6 +295,7 @@ const config: Config.InitialOptions = {
   passWithNoTests: JEST_TESTS !== undefined,
   setupFiles: [
     '<rootDir>/tests/js/sentry-test/setupReact.ts',
+    '<rootDir>/tests/js/sentry-test/setupNuqs.ts',
     '<rootDir>/static/app/utils/silenceReactUnsafeWarnings.ts',
     fileURLToPath(import.meta.resolve('jest-canvas-mock')),
   ],
@@ -328,7 +333,8 @@ const config: Config.InitialOptions = {
   ],
 
   moduleFileExtensions: ['js', 'ts', 'jsx', 'tsx', 'pegjs'],
-  globals: {},
+  // Matches setupStatics, so tests run Zod's jitless parsers like production does.
+  globals: {__zod_globalConfig: {jitless: true}},
 
   reporters: ['default'],
   /**

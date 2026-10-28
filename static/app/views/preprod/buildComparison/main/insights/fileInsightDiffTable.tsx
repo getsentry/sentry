@@ -123,6 +123,7 @@ export function FileInsightItemDiffTable({fileDiffItems}: FileInsightItemDiffTab
           </SimpleTable.Empty>
         )}
         {currentDiffItems.map(fileDiffItem => {
+          // oxlint-disable-next-line react/todo
           rowIndex++;
           const fileDiffItemChange = getDiffChangeElements(fileDiffItem);
 

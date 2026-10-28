@@ -1,6 +1,6 @@
-import {useContext, useMemo} from 'react';
+import {useMemo} from 'react';
 
-import {FormContext} from 'sentry/components/forms/formContext';
+import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {t} from 'sentry/locale';
 import {useOwnerOptions} from 'sentry/utils/useOwnerOptions';
 import {useOwners} from 'sentry/utils/useOwners';
@@ -29,9 +29,7 @@ export function SentryMemberTeamSelectorField({
   memberOfProjectSlugs,
   ...props
 }: RenderFieldProps) {
-  const {form} = useContext(FormContext);
-  const {multiple} = props;
-  const fieldValue = form?.getValue<string[] | null>(props.name, multiple ? [] : null);
+  const fieldValue = useFormField<string[] | null>(props.name);
 
   // Coerce value to always be a list of items
   const currentValue = useMemo(

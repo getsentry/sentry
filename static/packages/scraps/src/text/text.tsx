@@ -72,6 +72,14 @@ export interface BaseTextProps {
   textWrap?: 'wrap' | 'nowrap' | 'balance' | 'pretty' | 'stable';
 
   /**
+   * Trims the text box to the glyph bounds with `text-box-trim`. Set to false when
+   * the content is taller than a line of text, such as a tag or pill, so it isn't
+   * clipped when combined with `ellipsis`.
+   * @default true
+   */
+  trim?: boolean;
+
+  /**
    * Determines how text should be underlined.
    * @default undefined
    */
@@ -261,7 +269,7 @@ export const getTextStyles = (p: TextStyleProps) => css`
   text-transform: ${p.uppercase ? 'uppercase' : undefined};
 
   text-box-edge: text text;
-  text-box-trim: trim-both;
+  text-box-trim: ${p.trim === false ? 'none' : 'trim-both'};
 `;
 
 export type TextProps<T extends TextPrimitive> = TextAttributes<T> &

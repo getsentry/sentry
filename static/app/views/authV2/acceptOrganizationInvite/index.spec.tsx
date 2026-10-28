@@ -18,7 +18,7 @@ import AcceptOrganizationInvite from 'sentry/views/authV2/acceptOrganizationInvi
 import type {InviteDetails} from 'sentry/views/authV2/acceptOrganizationInvite/types';
 import {mockElementFromPoint} from 'sentry/views/authV2/authLogin/components/testUtils';
 import type {AuthOrganization} from 'sentry/views/authV2/authLogin/hooks/useAuthOrganization';
-import {BrandedAuthLoadingProvider} from 'sentry/views/authV2/useBrandedAuthLoading';
+import {AuthPageLoadingProvider} from 'sentry/views/authV2/useAuthPageLoading';
 
 const organization = OrganizationFixture({name: 'Acme', slug: 'org-slug'});
 const defaultInvite: InviteDetails = {
@@ -673,7 +673,7 @@ describe('AcceptOrganizationInvite', () => {
     const loadAuthConfig = mockAuthConfig({}, authConfigDelay);
 
     render(
-      <BrandedAuthLoadingProvider>
+      <AuthPageLoadingProvider>
         {isLoading => (
           <Fragment>
             <Container visibility={isLoading ? 'hidden' : 'visible'}>
@@ -682,7 +682,7 @@ describe('AcceptOrganizationInvite', () => {
             {isLoading && <Text>Loading authentication…</Text>}
           </Fragment>
         )}
-      </BrandedAuthLoadingProvider>,
+      </AuthPageLoadingProvider>,
       {initialRouterConfig: defaultRouterConfig}
     );
 

@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {AnimatePresence} from 'framer-motion';
 
 import {Backdrop} from '@sentry/scraps/backdrop';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useMedia} from 'sentry/utils/useMedia';
@@ -104,11 +104,10 @@ export function WidgetBuilderV2({
       const field = keys[0]!;
       dataType = tableMeta[field];
       dataUnit = tableMeta.units?.[field];
-    } else if (results.timeseriesResultsTypes) {
-      const keys = Object.keys(results.timeseriesResultsTypes);
-      dataType = results.timeseriesResultsTypes[keys[0]!];
-      const rawUnit = results.timeseriesResultsUnits?.[keys[0]!];
-      dataUnit = rawUnit ?? undefined;
+    } else if (results.timeseriesResults?.length) {
+      const meta = results.timeseriesResults[0]?.timeSeries.meta;
+      dataType = meta?.valueType;
+      dataUnit = meta?.valueUnit ?? undefined;
     }
 
     setThresholdMetaState({dataType, dataUnit});
@@ -137,6 +136,7 @@ export function WidgetBuilderV2({
           <WidgetBuilderProvider>
             <ContainerWithoutSidebar
               data-test-id="widget-builder-container"
+              left={{zero: '0', 'screen:md': 'auto'}}
               style={
                 // oxlint-disable-next-line react/refs
                 navigationElementRef.current
@@ -155,7 +155,7 @@ export function WidgetBuilderV2({
               }
             >
               <WidgetBuilderContainer>
-                <SlideoutContainer>
+                <Container height="100%">
                   <WidgetBuilderSlideout
                     onClose={() => {
                       onClose();
@@ -173,7 +173,7 @@ export function WidgetBuilderV2({
                     onDataFetched={handleWidgetDataFetched}
                     thresholdMetaState={thresholdMetaState}
                   />
-                </SlideoutContainer>
+                </Container>
                 {(!isSmallScreen || isPreviewDraggable) && (
                   <DndContext
                     onDragEnd={handleDragEnd}
@@ -203,16 +203,12 @@ export function WidgetBuilderV2({
   );
 }
 
-const ContainerWithoutSidebar = styled('div')`
+const ContainerWithoutSidebar = styled(Container)`
   z-index: ${p => p.theme.zIndex.widgetBuilderDrawer};
   position: fixed;
   top: 0;
   right: 0;
   bottom: 0;
-
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    left: 0;
-  }
 `;
 
 const WidgetBuilderContainer = styled('div')`
@@ -221,8 +217,4 @@ const WidgetBuilderContainer = styled('div')`
   align-items: center;
   position: absolute;
   inset: 0;
-`;
-
-const SlideoutContainer = styled('div')`
-  height: 100%;
 `;

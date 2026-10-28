@@ -4,9 +4,9 @@ import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import type {EventsStats, Organization} from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
-import type {AggregateParameter} from 'sentry/utils/discover/fields';
+import type {AggregateParameter, ColumnType} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {AggregationKey, getFieldDefinition} from 'sentry/utils/fields';
+import {AggregationKey, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
@@ -57,11 +57,13 @@ function getAggregateOptions(
             placeholder: param.placeholder,
           };
         }
+        const {columnTypes} = param;
         return {
           kind: 'column' as const,
-          columnTypes: Array.isArray(param.columnTypes)
-            ? param.columnTypes
-            : [param.columnTypes],
+          columnTypes: Array.isArray(columnTypes)
+            ? (columnTypes as ColumnType[])
+            : ({name, dataType}) =>
+                columnTypes({key: name, valueType: dataType as FieldValueType}),
           required: param.required,
           defaultValue: param.defaultValue,
         };

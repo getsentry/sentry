@@ -5,6 +5,7 @@ import {IconImage} from '@sentry/icons/image';
 import * as Sentry from '@sentry/react';
 
 import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
@@ -213,7 +214,13 @@ export function DisabledImages(props: {
           'You know, you can see the actual images that are on your site if you opt into this feature.'
         )}
       </ChartPanelTextContainer>
-      <ButtonContainer>
+      <Grid
+        justify="center"
+        align="center"
+        paddingTop="xl"
+        gap="md"
+        columns="repeat(2, auto)"
+      >
         <Button onClick={onClickShowLinks}>Only show links</Button>
         <Link
           to={`/settings/${organization.slug}/projects/${firstProjectSelected?.slug}/performance/`}
@@ -222,7 +229,7 @@ export function DisabledImages(props: {
             {t(' Enable in Settings')}
           </Button>
         </Link>
-      </ButtonContainer>
+      </Grid>
     </div>
   );
 }
@@ -312,15 +319,6 @@ const ImageWrapper = styled('div')<{noVisualizationPadding?: boolean}>`
   grid-template-columns: repeat(auto-fill, ${imageWidth});
   padding-top: ${p => (p.noVisualizationPadding ? 0 : p.theme.space.xl)};
   gap: 30px;
-`;
-
-const ButtonContainer = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(2, auto);
-  gap: ${p => p.theme.space.md};
-  justify-content: center;
-  align-items: center;
-  padding-top: ${p => p.theme.space.xl};
 `;
 
 const ChartPanelTextContainer = styled('div')`

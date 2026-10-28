@@ -21,7 +21,6 @@ from sentry.event_manager import (
     get_event_type,
     save_grouphash_and_group,
 )
-from sentry.incidents.grouptype import MetricIssue
 from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
 from sentry.issues.grouptype import FeedbackGroup, should_create_group
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
@@ -36,7 +35,7 @@ from sentry.types.group import PriorityLevel
 from sentry.utils import json, metrics, redis
 from sentry.utils.strings import truncatechars
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
-from sentry.workflow_engine.models import IncidentGroupOpenPeriod
+from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 from sentry.workflow_engine.processors.detector import (
     associate_new_group_with_detector,
     ensure_association_with_detector,
@@ -73,22 +72,6 @@ def save_issue_occurrence(
         _get_or_create_group_environment(environment, release, [group_info], event.datetime)
         _increment_release_associated_counts(event.project, environment, release, [group_info])
         _get_or_create_group_release(environment, release, event, [group_info])
-
-        # Create IncidentGroupOpenPeriod relationship for metric issues
-        if occurrence.type == MetricIssue:
-            open_period = get_latest_open_period(group_info.group)
-            if open_period:
-                IncidentGroupOpenPeriod.create_from_occurrence(
-                    occurrence, group_info.group, open_period
-                )
-            else:
-                logger.error(
-                    "save_issue_occurrence.no_open_period",
-                    extra={
-                        "group_id": group_info.group.id,
-                        "occurrence_id": occurrence.id,
-                    },
-                )
 
         send_issue_occurrence_to_eventstream(event, occurrence, group_info)
     return occurrence, group_info
@@ -302,7 +285,16 @@ def save_issue_from_occurrence(
             try:
                 # Since this calls hybrid cloud it has to be run outside the transaction
                 assignee = occurrence.assignee.resolve()
-                with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
+                with (
+                    viewer_context_scope(
+                        ViewerContext(
+                            actor=Actor(type=ActorType.SYSTEM),
+                            organization_id=project.organization_id,
+                            project_id=project.id,
+                        )
+                    ),
+                    action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR),
+                ):
                     GroupAssignee.objects.assign(group, assignee, create_only=True)
             except Exception:
                 logger.exception("Failed to process assignment for occurrence")

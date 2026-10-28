@@ -4,15 +4,15 @@ import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
 import {SelectFilterContext} from '@sentry/scraps/compactSelect/selectFilterContext';
+import {SectionSeparator} from '@sentry/scraps/compactSelect/styles';
+import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
+import {SectionToggle} from '@sentry/scraps/compactSelect/utils';
 import {
   SectionGroup,
   SectionHeader,
-  SectionSeparator,
-  SectionTitle,
-  SectionWrap,
-} from '@sentry/scraps/compactSelect/styles';
-import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
-import {SectionToggle} from '@sentry/scraps/compactSelect/utils';
+  SectionLabel,
+  SectionList,
+} from '@sentry/scraps/menu';
 
 import {GridListOption, type GridListOptionProps} from './option';
 
@@ -47,23 +47,28 @@ export function GridListSection<T extends ListItemBase>({
   return (
     <Fragment>
       <SectionSeparator {...separatorProps} />
-      <SectionWrap
+      <SectionGroup
         role="rowgroup"
         {...(node['aria-label']
           ? {'aria-label': node['aria-label']}
           : {'aria-labelledby': titleId})}
       >
         {(node.rendered || showToggleAllButton) && (
-          <SectionHeader>
+          <SectionHeader
+            trailingAction={
+              showToggleAllButton ? (
+                <SectionToggle item={node} listState={listState} />
+              ) : null
+            }
+          >
             {node.rendered && (
-              <SectionTitle id={titleId} aria-hidden>
+              <SectionLabel id={titleId} aria-hidden>
                 {node.rendered}
-              </SectionTitle>
+              </SectionLabel>
             )}
-            {showToggleAllButton && <SectionToggle item={node} listState={listState} />}
           </SectionHeader>
         )}
-        <SectionGroup role="presentation">
+        <SectionList>
           {childNodes.map(child => (
             <GridListOption
               key={child.key}
@@ -72,8 +77,8 @@ export function GridListSection<T extends ListItemBase>({
               size={size}
             />
           ))}
-        </SectionGroup>
-      </SectionWrap>
+        </SectionList>
+      </SectionGroup>
     </Fragment>
   );
 }

@@ -8,9 +8,10 @@ import {IconClose} from '@sentry/icons/close';
 import {Button} from '@sentry/scraps/button';
 import {useHotkeys} from '@sentry/scraps/hotkey';
 import {Flex, Grid} from '@sentry/scraps/layout';
+import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
 import {useInvertedTheme} from '@sentry/scraps/theme';
+import {useOverlay, type UseOverlayProps} from '@sentry/scraps/useOverlay';
 
-import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {
   useTourReducer,
   type TourContextType,
@@ -22,9 +23,7 @@ import {useMutateAssistant} from 'sentry/components/tours/useAssistant';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
-import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useOverlay, type UseOverlayProps} from 'sentry/utils/useOverlay';
 
 export interface TourContextProviderProps<T extends TourEnumType> {
   /**
@@ -381,7 +380,7 @@ const zIndex = {
  * Keep the guide inside the viewport even when that means overlapping its
  * highlighted element, such as one that is taller than the viewport.
  */
-const keepGuideInViewport = {altAxis: true, tether: false};
+const keepGuideInViewport = {crossAxis: true, tether: false};
 
 export function TourGuide({
   children,
@@ -404,7 +403,7 @@ export function TourGuide({
   const isDismissVisible = defined(handleDismiss);
   const isTopRowVisible = isStepCountVisible || isDismissVisible;
   const countText = isStepCountVisible ? `${stepCount}/${stepTotal}` : '';
-  const {triggerProps, triggerRef, overlayProps, arrowProps, update} = useOverlay({
+  const {triggerProps, triggerRef, overlayProps, arrowProps} = useOverlay({
     shouldApplyMinWidth: false,
     isOpen,
     position,
@@ -422,13 +421,6 @@ export function TourGuide({
       triggerRef.current?.scrollIntoView?.({block: 'nearest', behavior: 'smooth'});
     }
   }, [isOpen, triggerRef]);
-
-  // Update the overlay positioning when the content changes
-  useEffectAfterFirstRender(() => {
-    if (isOpen && update && defined(title) && defined(description)) {
-      update();
-    }
-  }, [isOpen, update, title, description]);
 
   return (
     <Fragment>

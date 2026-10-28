@@ -14,8 +14,10 @@ import {
 /** Names are stored with this prefix so they can't collide with a built in function. */
 const NAME_PREFIX = 'formula.';
 
-/** The API resolves params positionally, and only has four positions. */
-export const MAX_PARAMS = 4;
+/** Mirrors the API limits, which keep formulas small enough for the UI to render. */
+export const MAX_PARAMS = 7;
+export const MAX_INPUT_PARAMS = 2;
+export const MAX_REFERENCES = 5;
 
 /** Rows are keyed separately because they have no name until one is typed in. */
 export type DraftParam = Omit<FormulaParam, 'order'> & {key: string};
@@ -46,10 +48,15 @@ export function variableNames(draft: FormulaDraft) {
   return [...draft.params, ...draft.references].map(({name}) => name);
 }
 
+export function stripNamePrefix(name: string) {
+  return name.startsWith(NAME_PREFIX) ? name.slice(NAME_PREFIX.length) : name;
+}
+
 export function toDraft(formula: SavedFormula | undefined): FormulaDraft {
   if (!formula) {
     return {
       name: '',
+      description: null,
       dataset: 'spans',
       unit: null,
       formula: '',
@@ -60,9 +67,8 @@ export function toDraft(formula: SavedFormula | undefined): FormulaDraft {
 
   return {
     id: formula.id,
-    name: formula.name.startsWith(NAME_PREFIX)
-      ? formula.name.slice(NAME_PREFIX.length)
-      : formula.name,
+    name: stripNamePrefix(formula.name),
+    description: formula.description,
     dataset: formula.dataset,
     unit: formula.unit,
     formula: stripVariableBraces(formula.formula),

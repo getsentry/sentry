@@ -399,7 +399,6 @@ def test_metric_alert_maps_the_whole_alert_definition() -> None:
         ("Environment", "prod"),
         ("Evaluated Value", "812.4"),
         ("Threshold", "above 500"),
-        ("Alert Rule ID", "77"),
     ]
 
 
@@ -421,7 +420,6 @@ def test_metric_alert_reads_the_keys_the_serializer_emits() -> None:
     )
     assert ("Dataset", "x") in model.metric_alert
     assert ("Interval", "60 second(s)") in model.metric_alert
-    assert ("Alert Rule ID", "77") in model.metric_alert
 
     # the snake_case shape the detector stores matches nothing by the time it reaches here
     assert event_response_to_model({"title": "t", "occurrence": stored}).metric_alert == []
@@ -454,7 +452,7 @@ def test_metric_alert_unwraps_anomaly_detection_value() -> None:
 
 def test_metric_alert_skips_missing_pieces() -> None:
     model = event_response_to_model(_metric_issue(dataSources=[], conditions=[]))
-    assert model.metric_alert == [("Evaluated Value", "812.4"), ("Alert Rule ID", "77")]
+    assert model.metric_alert == [("Evaluated Value", "812.4")]
 
 
 def test_metric_alert_only_applies_to_metric_issues() -> None:

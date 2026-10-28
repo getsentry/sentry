@@ -760,3 +760,27 @@ default_manager.add(
         template="restored dashboard {title}",
     )
 )
+default_manager.add(
+    AuditLogEvent(
+        event_id=223,
+        name="SERVICE_ACCOUNT_ADD",
+        api_name="service-account.create",
+        template="added service account {name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=224,
+        name="SERVICE_ACCOUNT_EDIT",
+        api_name="service-account.edit",
+        template="edited service account {name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=225,
+        name="SERVICE_ACCOUNT_REMOVE",
+        api_name="service-account.remove",
+        template="removed service account {name}",
+    )
+)

@@ -713,6 +713,13 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
       'If you have already linked this provider, pasting a new secret will override the existing secret.'
     ),
   },
+  'new-provider-form.webhookUrl': {
+    name: 'webhookUrl',
+    formId: 'new-provider-form',
+    route: '/settings/:orgId/feature-flags/change-tracking/new-provider/',
+    label: t('Webhook URL'),
+    hintText: '',
+  },
   'new-provider-form.secret': {
     name: 'secret',
     formId: 'new-provider-form',

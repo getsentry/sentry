@@ -17,17 +17,54 @@ from sentry.seer.autofix.utils import (
     read_preference_from_sentry_db,
     write_preference_to_sentry_db,
 )
-from sentry.seer.endpoints.organization_autofix_automation_settings import (
-    RepositorySerializer as BaseRepositorySerializer,
-)
 from sentry.seer.models import PreferenceResponse, SeerProjectPreference
+from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.utils import filter_repo_by_provider
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
-class RepositorySerializer(BaseRepositorySerializer):
+class BranchOverrideSerializer(CamelSnakeSerializer):
+    tag_name = serializers.CharField(required=True)
+    tag_value = serializers.CharField(required=True)
+    branch_name = serializers.CharField(required=True)
+
+
+class RepositorySerializer(CamelSnakeSerializer):
+    provider = serializers.CharField(required=True)
+    owner = serializers.CharField(required=True)
+    name = serializers.CharField(required=True)
+    external_id = serializers.CharField(required=True)
     organization_id = serializers.IntegerField(required=True)
     integration_id = serializers.CharField(required=True)
+    branch_name = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    branch_overrides = BranchOverrideSerializer(
+        many=True, required=False, default=list, allow_null=False
+    )
+    instructions = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    base_commit_sha = serializers.CharField(required=False, allow_null=True)
+    provider_raw = serializers.CharField(required=False, allow_null=True)
+
+    def validate_provider(self, value):
+        supported = get_supported_scm_providers(self.context.get("organization"))
+        if value not in supported:
+            supported_str = ", ".join(sorted(supported))
+            raise serializers.ValidationError(
+                f'"{value}" is not a supported Seer provider. Supported providers: {supported_str}'
+            )
+        return value
+
+    def validate_branch_overrides(self, value):
+        if not value:
+            return value
+        seen = set()
+        for override in value:
+            key = (override["tag_name"], override["tag_value"])
+            if key in seen:
+                raise serializers.ValidationError(
+                    f"Duplicate branch override for tag {key[0]}={key[1]}"
+                )
+            seen.add(key)
+        return value
 
 
 class SeerAutomationHandoffConfigurationSerializer(CamelSnakeSerializer):

@@ -19,6 +19,7 @@ type Props = {
   event: Event;
   projectSlug: Project['slug'];
   groupingCurrentLevel?: Group['metadata']['current_level'];
+  initialCollapse?: boolean;
 };
 
 function StackTraceContentWrapper({
@@ -49,7 +50,13 @@ function StackTraceContentWrapper({
   );
 }
 
-export function StackTrace({projectSlug, event, data, groupingCurrentLevel}: Props) {
+export function StackTrace({
+  projectSlug,
+  event,
+  data,
+  groupingCurrentLevel,
+  initialCollapse,
+}: Props) {
   function getPlatform(): PlatformKey {
     const framePlatform = data.frames?.find(frame => !!frame.platform);
     return framePlatform?.platform ?? event.platform ?? 'other';
@@ -68,6 +75,7 @@ export function StackTrace({projectSlug, event, data, groupingCurrentLevel}: Pro
       hasSystemFrames={data.hasSystemFrames}
     >
       <TraceEventDataSection
+        initialCollapse={initialCollapse}
         type={EntryType.STACKTRACE}
         projectSlug={projectSlug}
         event={event}

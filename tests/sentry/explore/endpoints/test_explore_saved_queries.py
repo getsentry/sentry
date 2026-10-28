@@ -96,7 +96,8 @@ class ExploreSavedQueriesTest(APITestCase):
         # User saved query
         assert response.data[4]["name"] == "Test query"
         assert sorted(response.data[4]["projects"]) == sorted(self.project_ids)
-        assert response.data[4]["range"] == "24h"
+        assert "range" not in response.data[4]
+        assert response.data[4]["statsPeriod"] == "24h"
         assert response.data[4]["query"] == [{"fields": ["span.op"], "mode": "samples"}]
         assert "createdBy" in response.data[4]
         assert response.data[4]["createdBy"]["username"] == self.user.username
@@ -870,7 +871,8 @@ class ExploreSavedQueriesTest(APITestCase):
             )
         assert response.status_code == 201, response.content
         data = response.data
-        assert data["range"] == "24h"
+        assert "range" not in data
+        assert data["statsPeriod"] == "24h"
         assert data["environment"] == ["dev"]
         assert data["query"] == [
             {
@@ -882,6 +884,75 @@ class ExploreSavedQueriesTest(APITestCase):
         ]
         assert data["projects"] == self.project_ids
         assert data["dataset"] == "spans"
+
+    def test_post_with_range(self) -> None:
+        """Older clients send `range`. It is stored and returned as `statsPeriod`."""
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "query with range",
+                    "projects": self.project_ids,
+                    "query": [
+                        {
+                            "fields": ["span.op", "count(span.duration)"],
+                            "mode": "samples",
+                        }
+                    ],
+                    "range": "24h",
+                    "interval": "1h",
+                },
+            )
+        assert response.status_code == 201, response.content
+        assert "range" not in response.data
+        assert response.data["statsPeriod"] == "24h"
+        assert response.data["interval"] == "1h"
+
+    def test_post_with_stats_period(self) -> None:
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "query with stats period",
+                    "projects": self.project_ids,
+                    "query": [
+                        {
+                            "fields": ["span.op", "count(span.duration)"],
+                            "mode": "samples",
+                        }
+                    ],
+                    "statsPeriod": "7d",
+                    "interval": "1h",
+                },
+            )
+        assert response.status_code == 201, response.content
+        assert "range" not in response.data
+        assert response.data["statsPeriod"] == "7d"
+        assert response.data["interval"] == "1h"
+        saved_query = ExploreSavedQuery.objects.get(name="query with stats period")
+        assert saved_query.query["statsPeriod"] == "7d"
+        assert "range" not in saved_query.query
+
+    def test_post_stats_period_overrides_range(self) -> None:
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "query with both periods",
+                    "projects": self.project_ids,
+                    "query": [
+                        {
+                            "fields": ["span.op", "count(span.duration)"],
+                            "mode": "samples",
+                        }
+                    ],
+                    "range": "24h",
+                    "statsPeriod": "7d",
+                },
+            )
+        assert response.status_code == 201, response.content
+        assert "range" not in response.data
+        assert response.data["statsPeriod"] == "7d"
 
     def test_post_all_projects(self) -> None:
         with self.feature(self.features):

@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from random import random
 from typing import Any
 
 import sentry_sdk
@@ -154,21 +155,22 @@ def _detect_for_config(
         config.handler_cls.error_types.intersection(filter(None, (e.get("type") for e in errors)))
     )
     # testing internal sampling on high volume metrics, not yet public api
-    sentry_sdk.metrics.count(
-        f"processing_errors.{config.slug}.event_with_errors",
-        1,
-        attributes={
-            "org_slug": event.project.organization.slug,
-            "event_project_id": str(event.project.id),
-            "event_project_slug": event.project.slug,
-            "project_platform": event.project.platform or "unknown",
-            "event_platform": event.data.get("platform") or "unknown",
-            "event_sdk": normalized_sdk_tag_from_event(event.data),
-            "error_type": ",".join(matching_error_types),
-            "project_age_bucket": _project_age_bucket(event.project),
-            "sentry.client_sample_rate": 0.01,
-        },
-    )
+    if random() < 0.01:
+        sentry_sdk.metrics.count(
+            f"processing_errors.{config.slug}.event_with_errors",
+            1,
+            attributes={
+                "org_slug": event.project.organization.slug,
+                "event_project_id": str(event.project.id),
+                "event_project_slug": event.project.slug,
+                "project_platform": event.project.platform or "unknown",
+                "event_platform": event.data.get("platform") or "unknown",
+                "event_sdk": normalized_sdk_tag_from_event(event.data),
+                "error_type": ",".join(matching_error_types),
+                "project_age_bucket": _project_age_bucket(event.project),
+                "sentry.client_sample_rate": 0.01,
+            },
+        )
 
     if config.feature_flag and not features.has(config.feature_flag, event.project.organization):
         return

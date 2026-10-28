@@ -47,6 +47,7 @@ class TestFormulaDetails(BaseFormulaTest):
         assert data["id"] == str(formula.id)
         assert data["name"] == "formula.custom_apdex"
         assert data["dataset"] == "spans"
+        assert data["description"] == "A custom version of apdex for testing"
         assert data["formula"] == "({count_satisfied} + {count_tolerating} / 2) / count()"
         assert data["unit"] is None
         assert data["type"] == "number"
@@ -55,7 +56,7 @@ class TestFormulaDetails(BaseFormulaTest):
             {"name": "count_satisfied", "value": "count_if(`{duration}:<{threshold}`)"},
             {
                 "name": "count_tolerating",
-                "value": "count_if(`{duration}:>={threshold} and {duration}:<={4threshold}`)",
+                "value": "count_if(`{duration}:>={threshold} and {duration}:<={frustrated}`)",
             },
         ]
         assert data["params"] == [
@@ -71,8 +72,18 @@ class TestFormulaDetails(BaseFormulaTest):
                 "order": 1,
                 "value": "",
             },
-            {"name": "4threshold", "type": "calculation", "order": 2, "value": "{threshold} * 4"},
+            {"name": "frustrated", "type": "calculation", "order": 2, "value": "{threshold} * 4"},
         ]
+
+    def test_get_out_of_range_id(self) -> None:
+        with self.feature(self.feature_flags):
+            response = self.client.get(
+                reverse(
+                    "sentry-api-0-explore-formulas-detail",
+                    args=[self.org.slug, "99999999999999999999"],
+                )
+            )
+        assert response.status_code == 404
 
     def test_delete_explore_formula(self) -> None:
         formula = self.create_formula()
@@ -105,6 +116,7 @@ class TestFormulaDetails(BaseFormulaTest):
         formula = self.create_formula()
         self.formula_object["name"] = "formula.hello"
         self.formula_object["formula"] = "count() + count()"
+        self.formula_object["description"] = "test description"
         self.formula_object["dataset"] = "logs"
         with self.feature(self.feature_flags):
             response = self.client.put(
@@ -113,8 +125,80 @@ class TestFormulaDetails(BaseFormulaTest):
             )
             assert response.status_code == 200, response.content
         assert response.data["name"] == "formula.hello"
+        assert response.data["updatedBy"]["email"] == self.user.email
         assert response.data["formula"] == "count() + count()"
+        assert response.data["description"] == "test description"
         assert response.data["dataset"] == "logs"
+
+    def test_too_many_input_parameters(self) -> None:
+        formula = self.create_formula()
+        self.formula_object["name"] = "formula.hello"
+        self.formula_object["formula"] = "count() + count()"
+        self.formula_object["description"] = "test description"
+        self.formula_object["dataset"] = "logs"
+        self.formula_object["params"].append(
+            {
+                "name": "extra",
+                "value": "test",
+                "type": "column",
+                "order": 3,
+            }
+        )
+        with self.feature(self.feature_flags):
+            response = self.client.put(
+                reverse("sentry-api-0-explore-formulas-detail", args=[self.org.slug, formula.id]),
+                data=self.formula_object,
+            )
+            assert response.status_code == 400, response.content
+        assert "params" in response.data
+        assert "number or column parameters per formula" in str(response.data["params"][0])
+
+    def test_too_many_params(self) -> None:
+        formula = self.create_formula()
+        self.formula_object["name"] = "formula.hello"
+        self.formula_object["formula"] = "count() + count()"
+        self.formula_object["description"] = "test description"
+        self.formula_object["dataset"] = "logs"
+        for i in range(3, 8):
+            self.formula_object["params"].append(
+                {
+                    "name": f"extra{i}",
+                    "value": "test",
+                    "type": "calculation",
+                    "order": i,
+                }
+            )
+        with self.feature(self.feature_flags):
+            response = self.client.put(
+                reverse("sentry-api-0-explore-formulas-detail", args=[self.org.slug, formula.id]),
+                data=self.formula_object,
+            )
+            assert response.status_code == 400, response.content
+        assert "params" in response.data
+        assert "number or column parameters per formula" not in str(response.data["params"][0])
+        assert "parameters per formula" in str(response.data["params"][0])
+
+    def test_too_many_references(self) -> None:
+        formula = self.create_formula()
+        self.formula_object["name"] = "formula.hello"
+        self.formula_object["formula"] = "count() + count()"
+        self.formula_object["description"] = "test description"
+        self.formula_object["dataset"] = "logs"
+        for i in range(3, 8):
+            self.formula_object["references"].append(
+                {
+                    "name": f"extra{i}",
+                    "value": "test",
+                }
+            )
+        with self.feature(self.feature_flags):
+            response = self.client.put(
+                reverse("sentry-api-0-explore-formulas-detail", args=[self.org.slug, formula.id]),
+                data=self.formula_object,
+            )
+            assert response.status_code == 400, response.content
+        assert "references" in response.data
+        assert "references per formula" in str(response.data["references"][0])
 
     def test_update_explore_formula_with_name_already_in_db(self) -> None:
         formula = self.create_formula()
@@ -130,6 +214,20 @@ class TestFormulaDetails(BaseFormulaTest):
             )
             assert response.status_code == 400, response.content
         assert str(response.data["detail"]) == "Formula name must be unique"
+
+    def test_update_explore_formula_with_invalid_param_default(self) -> None:
+        formula = self.create_formula()
+        self.formula_object["params"][1]["value"] = "foobar"
+        with self.feature(self.feature_flags):
+            response = self.client.put(
+                reverse("sentry-api-0-explore-formulas-detail", args=[self.org.slug, formula.id]),
+                data=self.formula_object,
+            )
+            assert response.status_code == 400, response.content
+        assert (
+            str(response.data["params"]["value"][0])
+            == "'foobar' is an invalid value for a numeric default"
+        )
 
 
 class TestFormulas(BaseFormulaTest):
@@ -301,7 +399,7 @@ class TestFormulas(BaseFormulaTest):
             assert response.status_code == 400, response.content
         assert "non_field_errors" in response.data
         error_msg = str(response.data["non_field_errors"][0])
-        assert "Missing parameters for 4threshold; prossh" == error_msg
+        assert "Missing parameters for frustrated; prossh" == error_msg
 
     def test_parameter_existence_validation(self) -> None:
         self.formula_object["formula"] = "count_if(`{duration}:<{prossh} or {2.threshold}`)"
@@ -402,6 +500,49 @@ class TestFormulas(BaseFormulaTest):
         assert params[2].order == data["params"][2]["order"]
         assert params[2].value == data["params"][2]["value"]
 
+    def test_create_explore_formula_with_upper_case(self) -> None:
+        upper_data = self.formula_object.copy()
+        data = self.formula_object.copy()
+        for key, value in upper_data.items():
+            if isinstance(value, str) and key != "dataset":
+                upper_data[key] = value.upper()
+            elif isinstance(value, dict):
+                for sub_key, sub_value in value.items():
+                    if isinstance(sub_value, str):
+                        upper_data[key][sub_key] = sub_value.upper()
+
+        with self.feature(self.feature_flags):
+            response = self.client.post(
+                self.url,
+                data=upper_data,
+            )
+            assert response.status_code == 201, response.content
+        formula_id = response.data["id"]
+        formula = ExploreSavedFormula.objects.get(id=formula_id)
+        assert formula.name == data["name"]
+        assert formula.formula == data["formula"]
+        assert formula.unit is None
+        references = formula.variables.filter(kind=KindItemTypes.REFERENCE).order_by("name")
+        assert len(references) == 2
+        assert references[0].name == data["references"][0]["name"]
+        assert references[0].value == data["references"][0]["value"]
+        assert references[1].name == data["references"][1]["name"]
+        assert references[1].value == data["references"][1]["value"]
+        params = formula.variables.filter(kind=KindItemTypes.PARAM).order_by("order")
+        assert len(params) == 3
+        assert params[0].name == data["params"][0]["name"]
+        assert ParamItemTypes.get_type_name(params[0].param_type) == data["params"][0]["type"]
+        assert params[0].order == data["params"][0]["order"]
+        assert params[0].value == data["params"][0]["value"]
+        assert params[1].name == data["params"][1]["name"]
+        assert ParamItemTypes.get_type_name(params[1].param_type) == data["params"][1]["type"]
+        assert params[1].order == data["params"][1]["order"]
+        assert params[1].value == data["params"][1]["value"]
+        assert params[2].name == data["params"][2]["name"]
+        assert ParamItemTypes.get_type_name(params[2].param_type) == data["params"][2]["type"]
+        assert params[2].order == data["params"][2]["order"]
+        assert params[2].value == data["params"][2]["value"]
+
     def test_list_explore_formulas(self) -> None:
         for i in range(5):
             self.formula_object["name"] = f"formula.apdex{i}"
@@ -416,6 +557,133 @@ class TestFormulas(BaseFormulaTest):
         for i in range(5):
             assert f"formula.apdex{i}" in formula_names
 
+    def test_list_with_prebuilt(self) -> None:
+        for i in range(5):
+            self.formula_object["name"] = f"formula.apdex{i}"
+            self.create_formula(self.formula_object)
+        with self.feature(self.feature_flags):
+            response = self.client.get(self.url, data={"prebuilt": "true"})
+            assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+        assert response.data[0]["name"] == "formula.apdex"
+        assert response.data[1]["name"] == "formula.user_misery"
+        assert response.data[0]["params"][0]["value"] == "span.duration"
+
+    def test_list_with_orderby(self) -> None:
+        for i in range(5):
+            self.formula_object["name"] = f"formula.apdex{i}"
+            self.create_formula(self.formula_object)
+        with self.feature(self.feature_flags):
+            response = self.client.get(self.url, data={"sortBy": "-name", "prebuilt": "false"})
+            assert response.status_code == 200, response.content
+        assert len(response.data) == 5
+        for i in range(5):
+            assert response.data[i]["name"] == f"formula.apdex{4 - i}"
+
+    def test_invalid_sort_by(self) -> None:
+        with self.feature(self.feature_flags):
+            response = self.client.get(self.url, data={"sortBy": "not-a-field"})
+        assert response.status_code == 400, response.content
+        assert response.data["sortBy"] == ["Invalid sort field"]
+
+    def test_list_with_name_filter(self) -> None:
+        for i in range(5):
+            if i < 3:
+                self.formula_object["name"] = f"formula.apdex{i}"
+            else:
+                self.formula_object["name"] = f"formula.flub{i}"
+            self.create_formula(self.formula_object)
+        with self.feature(self.feature_flags):
+            response = self.client.get(self.url, data={"name": "apdex", "prebuilt": "false"})
+            assert response.status_code == 200, response.content
+        assert len(response.data) == 3
+        formula_names = [row["name"] for row in response.data]
+        for i in range(3):
+            assert f"formula.apdex{i}" in formula_names
+
+    def test_list_with_parameter_filter(self) -> None:
+        self.formula_object["name"] = "formula.with_duration"
+        self.create_formula(self.formula_object)
+        self.formula_object["name"] = "formula.no_duration"
+        self.formula_object["params"] = [
+            {"name": "threshold", "type": "number", "order": 0, "value": ""}
+        ]
+        self.create_formula(self.formula_object)
+        with self.feature(self.feature_flags):
+            response = self.client.get(self.url, data={"parameter": "dura", "prebuilt": "false"})
+            assert response.status_code == 200, response.content
+        assert [row["name"] for row in response.data] == ["formula.with_duration"]
+
+    def test_parameter_filter_is_case_insensitive(self) -> None:
+        self.formula_object["name"] = "formula.with_duration"
+        self.create_formula(self.formula_object)
+        with self.feature(self.feature_flags):
+            response = self.client.get(
+                self.url, data={"parameter": "Duration", "prebuilt": "false"}
+            )
+            assert response.status_code == 200, response.content
+        assert [row["name"] for row in response.data] == ["formula.with_duration"]
+
+    def test_parameter_filter_ignores_references(self) -> None:
+        self.formula_object["name"] = "formula.with_duration"
+        self.create_formula(self.formula_object)
+        with self.feature(self.feature_flags):
+            response = self.client.get(
+                self.url, data={"parameter": "count_satisfied", "prebuilt": "false"}
+            )
+            assert response.status_code == 200, response.content
+        assert response.data == []
+
+    def test_list_with_reference_filter(self) -> None:
+        self.formula_object["name"] = "formula.with_count"
+        self.create_formula(self.formula_object)
+        self.formula_object["name"] = "formula.other"
+        self.formula_object["references"] = [{"name": "other_ref", "value": "count()"}]
+        self.create_formula(self.formula_object)
+        with self.feature(self.feature_flags):
+            response = self.client.get(
+                self.url, data={"reference": "satisfied", "prebuilt": "false"}
+            )
+            assert response.status_code == 200, response.content
+        assert [row["name"] for row in response.data] == ["formula.with_count"]
+
+    def test_reference_filter_returns_each_formula_once(self) -> None:
+        self.formula_object["name"] = "formula.with_count"
+        self.create_formula(self.formula_object)
+        with self.feature(self.feature_flags):
+            response = self.client.get(self.url, data={"reference": "count", "prebuilt": "false"})
+            assert response.status_code == 200, response.content
+        assert [row["name"] for row in response.data] == ["formula.with_count"]
+
+    def test_reference_filter_is_case_insensitive(self) -> None:
+        self.formula_object["name"] = "formula.with_count"
+        self.create_formula(self.formula_object)
+        with self.feature(self.feature_flags):
+            response = self.client.get(
+                self.url, data={"reference": "Count_Satisfied", "prebuilt": "false"}
+            )
+            assert response.status_code == 200, response.content
+        assert [row["name"] for row in response.data] == ["formula.with_count"]
+
+    def test_reference_filter_ignores_parameters(self) -> None:
+        self.formula_object["name"] = "formula.with_count"
+        self.create_formula(self.formula_object)
+        with self.feature(self.feature_flags):
+            response = self.client.get(
+                self.url, data={"reference": "duration", "prebuilt": "false"}
+            )
+            assert response.status_code == 200, response.content
+        assert response.data == []
+
+    def test_name_filter_matching_prefix(self) -> None:
+        self.formula_object["name"] = "formula.mula"
+        self.create_formula(self.formula_object)
+        with self.feature(self.feature_flags):
+            response = self.client.get(self.url, data={"name": "mula"})
+            assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["name"] == "formula.mula"
+
     def test_get_prebuilts(self) -> None:
         with self.feature(self.feature_flags):
             response = self.client.get(
@@ -425,6 +693,11 @@ class TestFormulas(BaseFormulaTest):
         formula_names = [row["name"] for row in response.data]
         assert "formula.apdex" in formula_names
         assert "formula.user_misery" in formula_names
+        assert (
+            response.data[0]["description"]
+            == "(Application Performance Index) Calculates apdex a weighted average of user experiences"
+        )
+        assert response.data[0]["createdBy"] is None
         assert response.data[0]["prebuilt"]
         assert response.data[0]["references"][0] == {
             "name": "count_satisfied",
@@ -434,5 +707,5 @@ class TestFormulas(BaseFormulaTest):
             "name": "duration",
             "type": "column",
             "order": 0,
-            "value": "",
+            "value": "span.duration",
         }

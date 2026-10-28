@@ -16,8 +16,9 @@ resources:
 import {useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
-import {DropdownMenu, DropdownMenuFooter} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
+import {Footer} from '@sentry/scraps/menu';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import {IconCopy} from '@sentry/icons/copy';
@@ -89,6 +90,44 @@ Set `label` and `onAction` on each item. Keys must be unique across the complete
     {key: 'copy', label: 'Copy', onAction: () => {}},
     {key: 'download', label: 'Download', onAction: () => {}},
     {key: 'delete', label: 'Delete', disabled: true, onAction: () => {}},
+  ]}
+/>
+```
+
+### Icons on some items
+
+Only add icons where they help. When any item in a menu has `leadingItems`, items without them are indented to match, so every label lines up.
+
+<Storybook.Demo>
+  <DropdownMenu
+    triggerLabel="Actions"
+    items={[
+      {key: 'rename', label: 'Rename', onAction: () => {}},
+      {key: 'duplicate', label: 'Duplicate', onAction: () => {}},
+      {
+        key: 'download',
+        label: 'Download',
+        leadingItems: <IconDownload size="sm" />,
+        onAction: () => {},
+      },
+      {
+        key: 'delete',
+        label: 'Delete',
+        leadingItems: <IconDelete size="sm" />,
+        onAction: () => {},
+      },
+    ]}
+  />
+</Storybook.Demo>
+
+```jsx
+<DropdownMenu
+  triggerLabel="Actions"
+  items={[
+    {key: 'rename', label: 'Rename', onAction: () => {}},
+    {key: 'duplicate', label: 'Duplicate', onAction: () => {}},
+    {key: 'download', label: 'Download', leadingItems: <IconDownload size="sm" />},
+    {key: 'delete', label: 'Delete', leadingItems: <IconDelete size="sm" />},
   ]}
 />
 ```
@@ -283,7 +322,7 @@ Use `trigger` when the default trigger does not fit the layout. The custom trigg
         </Button>
       )}
       items={[{key: 'item', label: 'Menu item', onAction: () => {}}]}
-      menuFooter={<DropdownMenuFooter>Footer content</DropdownMenuFooter>}
+      menuFooter={<Footer>Footer content</Footer>}
     />
   </Flex>
 </Storybook.Demo>
@@ -298,7 +337,7 @@ Use `trigger` when the default trigger does not fit the layout. The custom trigg
     </Button>
   )}
   items={items}
-  menuFooter={<DropdownMenuFooter>Footer content</DropdownMenuFooter>}
+  menuFooter={<Footer>Footer content</Footer>}
 />
 ```
 
@@ -310,6 +349,9 @@ Use `trigger` when the default trigger does not fit the layout. The custom trigg
 - Menu items support keyboard focus and selection.
 - Links retain their destination and close the menu after selection.
 - Submenus support hover and left/right arrow navigation.
+- Escape closes one submenu level and returns focus to its parent item. At the root menu, Escape closes the menu.
+- In a searchable menu, Down Arrow moves from search to the items; Up Arrow on the first item returns to search.
+- When an item has a trailing action, Right Arrow moves focus to it and Left Arrow returns to the item.
 
 ### Developer responsibilities
 
@@ -321,4 +363,3 @@ Use `trigger` when the default trigger does not fit the layout. The custom trigg
 ## See Also
 
 - [CompactSelect](/stories/core/compactselect/) — use for choosing and keeping a value.
-- [MenuListItem](/stories/core/menulistitem/) — use for building a custom menu or list item.

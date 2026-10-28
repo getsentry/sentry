@@ -12,7 +12,6 @@ import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 import {RevealOnHover} from '@sentry/scraps/revealOnHover';
-import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
 import {
@@ -27,7 +26,7 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import type {Group, Tag, TagValue} from 'sentry/types/group';
-import {percent} from 'sentry/utils';
+import {escapeDoubleQuotes, percent} from 'sentry/utils';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {escapeIssueTagKey, generateQueryWithTag} from 'sentry/utils/queryString';
@@ -42,16 +41,11 @@ import {TagBar} from 'sentry/views/issueDetails/groupTags/tagDistribution';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/useIssueDetailsDiscoverQuery';
 import {getUserTagValue} from 'sentry/views/issueDetails/utils';
 
-type TagSort = 'date' | 'count';
+import {TagDetailsTable, type TagSort} from './tagDetailsTable';
+
 const DEFAULT_SORT: TagSort = 'count';
 
-const COLUMNS: TableColumnConfig[] = [
-  {key: 'value', width: '1fr'},
-  {key: 'lastSeen', width: 'min-content', visible: {xs: true}},
-  {key: 'count', width: 'min-content'},
-  {key: 'share', width: 'min-content', visible: {sm: true}},
-  {key: 'actions', width: 'min-content'},
-];
+type NullableTagValue = Omit<TagValue, 'value'> & {value: string | null};
 
 export function TagDetailsDrawerContent({group}: {group: Group}) {
   const location = useLocation();
@@ -75,7 +69,11 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
     }),
     select: selectJsonWithHeaders,
   });
-  const tagValues = tagValuesResponse?.json;
+  // The API can return `value: null` (e.g. the `user` tag for events without a
+  // user). Normalize to an empty string so rows render the "(empty)" state.
+  const tagValues = (tagValuesResponse?.json as NullableTagValue[] | undefined)?.map(
+    (tv): TagValue => ({...tv, value: tv.value ?? ''})
+  );
 
   const {
     data: tag,
@@ -103,31 +101,7 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
   return (
     <Fragment>
       <Container flexShrink={0}>
-        <SimpleTable
-          aria-label={t('Tag values')}
-          columns={COLUMNS}
-          density="compressed"
-          header={
-            <SimpleTable.HeaderRow>
-              <SimpleTable.HeaderCell>{t('Value')}</SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell
-                sort={sort === 'date' ? 'desc' : undefined}
-                to={getSortLocation('date')}
-              >
-                {t('Last Seen')}
-              </SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell
-                align="right"
-                sort={sort === 'count' ? 'desc' : undefined}
-                to={getSortLocation('count')}
-              >
-                {t('Count')}
-              </SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell align="right">{t('Share')}</SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell aria-label={t('Actions')} />
-            </SimpleTable.HeaderRow>
-          }
-        >
+        <TagDetailsTable sort={sort} getSortLocation={getSortLocation}>
           {isPending ? (
             <SimpleTable.Loading />
           ) : isError ? (
@@ -144,7 +118,7 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
           ) : (
             <SimpleTable.Empty>{t('No tag values found')}</SimpleTable.Empty>
           )}
-        </SimpleTable>
+        </TagDetailsTable>
       </Container>
       {isPending || isError ? null : (
         <Pagination
@@ -186,7 +160,9 @@ function TagDetailsRow({
           query: undefined,
         }
       : {
-          query: tagValue.query || `${key}:"${tagValue.value}"`,
+          query:
+            tagValue.query ||
+            `${escapeIssueTagKey(key)}:"${escapeDoubleQuotes(tagValue.value)}"`,
         };
 
   const allEventsLocation = {

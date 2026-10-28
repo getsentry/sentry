@@ -14,7 +14,6 @@ import {
 import {openConfirmModal} from 'sentry/components/confirm';
 import {t, tct} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import type {Series} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
@@ -38,9 +37,10 @@ import {
   widgetTypeSupportsExploreMultiQuery,
 } from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {getWidgetMetricsUrl} from 'sentry/views/dashboards/utils/getWidgetMetricsUrl';
+import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {withGlobalFilterFallback} from 'sentry/views/dashboards/utils/withGlobalFilterFallback';
 import {getReferrer} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
-import {transformWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
+import {formatTimeSeriesLabelForWidgetQuery} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabelForWidgetQuery';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
@@ -178,7 +178,7 @@ export function getMenuOptions(
   onDelete?: () => void,
   onDuplicate?: () => void,
   onEdit?: () => void,
-  timeseriesResults?: Series[],
+  timeseriesResults?: WidgetTimeSeries[],
   onAskSeer?: () => void
 ) {
   const menuOptions: MenuItemProps[] = [];
@@ -274,25 +274,25 @@ export function getMenuOptions(
     const newAlertLabel = t('Create a Monitor for');
 
     const alertMenuOptions = timeseriesResults
-      .map((series, index) => {
-        const transformed = transformWidgetSeriesToTimeSeries(series, widget);
+      .map(({timeSeries, seriesName, queryIndex}, index) => {
+        const widgetQuery = widget.queries[queryIndex];
 
-        if (
-          !transformed ||
-          transformed.timeSeries.meta.isOther ||
-          isEquation(transformed.timeSeries.yAxis)
-        ) {
+        if (!widgetQuery || timeSeries.meta.isOther || isEquation(timeSeries.yAxis)) {
           return null;
         }
 
-        const {timeSeries, label, seriesName, widgetQuery} = transformed;
+        const label = formatTimeSeriesLabelForWidgetQuery(
+          timeSeries,
+          widget,
+          widgetQuery
+        );
 
         const baseQuery =
           applyDashboardFilters({
-            baseQuery: widgetQuery?.conditions,
+            baseQuery: widgetQuery.conditions,
             dashboardFilters: withGlobalFilterFallback(
               dashboardFilters,
-              widgetQuery?.globalFilterFallback
+              widgetQuery.globalFilterFallback
             ),
             widgetType: widget.widgetType,
           }) ?? '';

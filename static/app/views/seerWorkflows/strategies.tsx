@@ -16,9 +16,12 @@ import type {
 
 type StrategyMeta = {
   label: string;
+  description?: string;
   runAction?: {feature: string; label: string};
 };
 
+// TODO(aliu): Add the other backend strategies (e.g. agentic_triage_v2) once SeerWorkflowRun
+// covers them. Automation cards fall back to the raw strategy name until then.
 export const STRATEGY_META: Record<WorkflowStrategy, StrategyMeta> = {
   duplicate_monitors: {
     runAction: {
@@ -29,6 +32,7 @@ export const STRATEGY_META: Record<WorkflowStrategy, StrategyMeta> = {
   },
   agentic_triage: {
     label: 'Agentic triage',
+    description: t('Automatically triage and fix the most fixable Issues'),
   },
 };
 

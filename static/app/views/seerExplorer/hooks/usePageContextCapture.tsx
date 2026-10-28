@@ -1,7 +1,6 @@
-import {useCallback, useEffect, useState, useSyncExternalStore} from 'react';
+import {useCallback, useDeferredValue, useSyncExternalStore} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {useLocation} from 'sentry/utils/useLocation';
 import {
   useLLMContext,
   useLLMContextRegistry,
@@ -119,24 +118,19 @@ export function usePageContextCapture() {
 
 /**
  * Whether the route's page context is registered and not loading anymore.
- * Routes not in PAGE_CONTEXT_READY_NODES are always considered ready.
+ * Routes not in PAGE_CONTEXT_READY_NODES only wait for the guard below.
  */
-export function usePageContextReady(route: string): boolean {
+export function usePageContextReady(route: string, contextKey: string): boolean {
   const {subscribe, isNodeReady} = useLLMContextRegistry();
-  const {pathname} = useLocation();
   const expectedNodeTypes = PAGE_CONTEXT_READY_NODES.get(route);
   const isReady = useSyncExternalStore(
     subscribe,
     () => expectedNodeTypes === undefined || expectedNodeTypes.some(isNodeReady)
   );
 
-  // On navigation, the first render still sees the previous page's nodes, which
-  // unregister when it commits. Only trust readiness once it holds after that.
-  const [readyPathname, setReadyPathname] = useState<string | null>(null);
-  useEffect(() => {
-    // oxlint-disable-next-line react/set-state-in-effect -- the re-render after commit is the point.
-    setReadyPathname(isReady ? pathname : null);
-  }, [isReady, pathname]);
+  // After contextKey changes, this render still sees the previous page context, which
+  // updates when it commits. The deferred key catches up in a later render, after that.
+  const settledContextKey = useDeferredValue(contextKey, null);
 
-  return expectedNodeTypes === undefined || (isReady && readyPathname === pathname);
+  return isReady && settledContextKey === contextKey;
 }

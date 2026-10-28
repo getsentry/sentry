@@ -52,8 +52,14 @@ interface SeerEmbedBlockOwnProps {
    * load can ship collapsed.
    */
   defaultExpanded?: boolean;
+  /**
+   * Controls whether the panel is open. Use with `onExpandedChange`. When
+   * omitted, the card manages its own state, starting from `defaultExpanded`.
+   */
+  expanded?: boolean;
   /** Spacing between the panel's own children. */
   gap?: StackProps['gap'];
+  onExpandedChange?: (expanded: boolean) => void;
   /**
    * Inset around the panel's children. A preview that draws its own row
    * dividers, like an issue row, passes `"0"` so it sits flush in the card.
@@ -92,17 +98,23 @@ export function SeerEmbedBlock({
   badge,
   children,
   defaultExpanded = true,
+  expanded,
   gap = 'md',
   href,
   icon,
   linkLabel,
+  onExpandedChange,
   padding = 'lg',
   status,
   testId,
   title,
 }: SeerEmbedBlockProps) {
   const panelRef = useRef<HTMLDivElement>(null);
-  const state = useDisclosureState({defaultExpanded});
+  const state = useDisclosureState({
+    defaultExpanded,
+    isExpanded: expanded,
+    onExpandedChange,
+  });
   const {buttonProps, panelProps} = useDisclosure({}, state, panelRef);
   // `buttonProps` speaks react-aria's `onPress`; `usePress` turns that into the
   // DOM handlers a plain <button> understands. The two aria attributes are

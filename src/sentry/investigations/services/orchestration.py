@@ -24,7 +24,10 @@ from sentry.investigations.models import (
     InvestigationSourceType,
     InvestigationStatus,
 )
-from sentry.investigations.services.breached_metrics import BreachedMetricSource
+from sentry.investigations.services.breached_metrics import (
+    BreachedMetricSource,
+    resolve_breached_metric_sources,
+)
 from sentry.investigations.services.investigations import (
     InvestigationConflictError,
     InvestigationSourceNotFound,
@@ -523,6 +526,29 @@ def _breached_metric_orchestration_source(source: dict[str, Any]) -> dict[str, A
             "sentrySource": deepcopy(source),
         },
     }
+
+
+def rebuild_orchestration_source(investigation: Investigation) -> dict[str, Any] | None:
+    """The source Seer gets when the run starts, built again from the monitor as it is now.
+    None if Sentry can no longer read the monitor.
+    """
+
+    if investigation.source_type == InvestigationSourceType.MANUAL:
+        return _manual_orchestration_source(investigation.source)
+    source_ref = (
+        int(investigation.source_ref["groupId"]),
+        int(investigation.source_ref["openPeriodId"]),
+    )
+    # The access check ran when the investigation started, so allow the monitor's own project.
+    project_id = int(investigation.source["snapshot"]["project"]["id"])
+    resolved = resolve_breached_metric_sources(
+        organization=investigation.organization,
+        source_refs=[source_ref],
+        accessible_project_ids={project_id},
+    ).get(source_ref)
+    if resolved is None:
+        return None
+    return _breached_metric_orchestration_source(resolved.source)
 
 
 def agentic_breached_metric_lineage_key(source: dict[str, Any]) -> str:

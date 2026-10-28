@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from functools import partial
 from typing import TypedDict
 
@@ -71,14 +71,31 @@ class OrganizationSeerWorkflowsEndpoint(OrganizationEndpoint):
         if not triage_enabled and not cleanup_enabled:
             raise NotFound
 
+        # Owners, managers, and open membership can already open every project.
+        # Everyone else only sees runs that name projects they can access.
+        project_scoped = cleanup_enabled or (
+            triage_enabled and not request.access.has_global_access
+        )
+        projects = (
+            self.get_projects(request, organization, include_all_accessible=True)
+            if project_scoped
+            else []
+        )
+        accessible_project_ids = [project.id for project in projects]
+
         visible_runs = Q(pk__in=[])
         if triage_enabled:
             # Historical Agentic triage runs may not have a workflow config.
-            visible_runs |= Q(workflow_config__strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE) | Q(
+            triage_runs = Q(workflow_config__strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE) | Q(
                 workflow_config__isnull=True
             )
+            if request.access.has_global_access:
+                visible_runs |= triage_runs
+            else:
+                visible_runs |= triage_runs & _triage_runs_visible_for_projects(
+                    accessible_project_ids
+                )
         if cleanup_enabled:
-            projects = self.get_projects(request, organization, include_all_accessible=True)
             # Until scanned projects are recorded, only the triggering user can see the run.
             cleanup_visibility = ~Q(executions__seer_run__agent__extras__project_ids=[])
             if request.user.is_authenticated:
@@ -103,7 +120,13 @@ class OrganizationSeerWorkflowsEndpoint(OrganizationEndpoint):
             request=request,
             queryset=runs,
             order_by=("-date_added", "-id"),
-            on_results=partial(serialize_workflow_page, request=request),
+            on_results=partial(
+                serialize_workflow_page,
+                request=request,
+                accessible_project_ids=(
+                    None if request.access.has_global_access else set(accessible_project_ids)
+                ),
+            ),
             paginator_cls=OffsetPaginator,
         )
 
@@ -120,9 +143,24 @@ class OrganizationSeerWorkflowsEndpoint(OrganizationEndpoint):
         return Response({"runId": str(run.id)}, status=202)
 
 
+def _triage_runs_visible_for_projects(accessible_project_ids: Sequence[int]) -> Q:
+    """Hide a run only when it names a project the caller cannot access.
+
+    Manual runs store ``extras.target_project_ids``. Cron runs omit that list.
+    Those stay in the history, and the serializer drops result groups outside
+    the caller's projects. An empty target list is contained by every project
+    list, so it does not count as naming a project.
+    """
+    targets_declared = Q(extras__has_key="target_project_ids") & ~Q(extras__target_project_ids=[])
+    targets_visible = Q(extras__target_project_ids__contained_by=list(accessible_project_ids))
+    visible: Q = (targets_declared & targets_visible) | ~targets_declared
+    return visible
+
+
 def serialize_workflow_page(
     runs: Sequence[SeerWorkflowRun],
     request: Request,
+    accessible_project_ids: Collection[int] | None = None,
 ) -> list[SeerAgenticTriageRunResponse | MonitorCleanupRunResponse]:
     cleanup = [
         run
@@ -133,7 +171,12 @@ def serialize_workflow_page(
     triage = [run for run in runs if run not in cleanup]
     results: dict[str, SeerAgenticTriageRunResponse | MonitorCleanupRunResponse] = {
         result["id"]: result
-        for result in serialize(triage, request.user, SeerAgenticTriageRunSerializer())
+        for result in serialize(
+            triage,
+            request.user,
+            SeerAgenticTriageRunSerializer(),
+            accessible_project_ids=accessible_project_ids,
+        )
     }
     prefetch_related_objects(cleanup, "executions__seer_run__agent")
     for run in cleanup:

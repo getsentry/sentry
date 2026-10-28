@@ -101,20 +101,22 @@ For principle/pattern docs (no interactive component), use `layout: document` in
 
 Follow this import order exactly:
 
+<!-- prettier-ignore -->
 ```jsx
 // 1. External packages (react, etc.) — only if needed for examples
 import {useState} from 'react';
-// 5. Type-loader for auto-generated API docs (@sentry/scraps components only)
-import documentation from '!!type-loader!@sentry/scraps/<component>';
 
-// 3. @sentry/scraps component(s)
+// 2. @sentry/scraps component(s)
 import {ComponentName} from '@sentry/scraps/<component>';
 
-// 2. Sentry internals used in examples (icons, utils)
+// 3. Sentry internals used in examples (icons, utils)
 import {IconAdd} from '@sentry/icons/add';
 import {IconEdit} from '@sentry/icons/edit';
 // 4. Stories namespace (always last before type-loader)
 import * as Storybook from 'sentry/stories';
+
+// 5. Type-loader for auto-generated API docs (@sentry/scraps components only)
+import documentation from '!!type-loader!@sentry/scraps/<component>';
 
 export {documentation};
 ```

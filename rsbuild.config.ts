@@ -6,7 +6,7 @@ import path from 'node:path';
 import {defineConfig} from '@rsbuild/core';
 import type {ProxyOptions, RsbuildConfig, ServerConfig} from '@rsbuild/core';
 import {pluginBasicSsl} from '@rsbuild/plugin-basic-ssl';
-import {RsdoctorRspackPlugin} from '@rsdoctor/rspack-plugin';
+import {RsdoctorRspackPlugin} from '@rsdoctor/core';
 import type {
   Configuration,
   OptimizationSplitChunksCacheGroup,
@@ -221,7 +221,24 @@ const swcReactLoaderConfig = (options: {reactCompiler: boolean}): SwcLoaderOptio
               'component-attr': 'data-sentry-component',
               'element-attr': 'data-sentry-element',
               'source-file-attr': 'data-sentry-source-file',
-              'transparent-components': ['Flex', 'Grid', 'Container', 'Stack'],
+              // Layout and interactive primitives report the component that renders
+              // them, like `IssueActions-Button`, instead of their own name
+              'transparent-components': [
+                'Flex',
+                'Grid',
+                'Container',
+                'Stack',
+                'Button',
+                'LinkButton',
+                'Link',
+                'LinkBase',
+                'ExternalLink',
+                'DropdownButton',
+                'Checkbox',
+                'Radio',
+                'Switch',
+                'Input',
+              ],
             },
             // We don't want to add source path attributes in production
             // as it will unnecessarily bloat the bundle size
@@ -301,7 +318,10 @@ const appConfig: Configuration = {
     futureDefaults: true,
     // https://rspack.rs/config/experiments#experimentsnativewatcher
     // Switching branches seems to get stuck in build loop https://github.com/web-infra-dev/rspack/issues/11590
-    nativeWatcher: true,
+    // On Linux the native (inotify) watcher confuses the
+    // static/app/node_modules/sentry -> .. self-link with the real directory,
+    // so edits under static/app never trigger a rebuild.
+    nativeWatcher: process.platform === 'darwin',
   },
   // https://rspack.rs/config/lazy-compilation
   lazyCompilation: {
@@ -324,21 +344,6 @@ const appConfig: Configuration = {
      */
     rules: [
       ...workspaceResolutionRules,
-      {
-        // Only first-party imports use V8 paths. Leave dependencies and the
-        // compatibility implementation on the original V6 package resolution.
-        include: [staticPrefix, path.join(import.meta.dirname, 'tests/js')],
-        exclude: [path.join(staticPrefix, 'app/utils/reactRouterV6'), /node_modules/],
-        resolve: {
-          alias: {
-            'react-router$': path.join(staticPrefix, 'app/utils/reactRouterV6/index.ts'),
-            'react-router/dom$': path.join(
-              staticPrefix,
-              'app/utils/reactRouterV6/dom.ts'
-            ),
-          },
-        },
-      },
       {
         test: /\.(?:tsx?|jsx?)$/,
         oneOf: [
@@ -517,14 +522,6 @@ const appConfig: Configuration = {
       'sentry-logos': path.join(sentryDjangoAppPath, 'images', 'logos'),
       'sentry-fonts': path.join(staticPrefix, 'fonts'),
 
-      // Keep Prose available until the text barrel is fully isolated.
-      '@sentry/scraps/text$': path.join(
-        staticPrefix,
-        'app',
-        'components',
-        'core',
-        'text'
-      ),
       '@sentry/scraps': [
         path.join(staticPrefix, 'packages', 'scraps', 'src'),
         path.join(staticPrefix, 'app', 'components', 'core'),

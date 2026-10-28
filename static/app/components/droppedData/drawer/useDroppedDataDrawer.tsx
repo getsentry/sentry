@@ -1,16 +1,17 @@
 import {useCallback, useEffect, useRef} from 'react';
-import {parseAsBoolean, useQueryState} from 'nuqs';
 
 import {useDrawer} from '@sentry/scraps/drawer';
 
+import {buildAskSeerPrompt} from 'sentry/components/droppedData/drawer/askSeer';
 import {DroppedDataDrawer} from 'sentry/components/droppedData/drawer/droppedDataDrawer';
-import type {ReasonRow} from 'sentry/components/droppedData/drawer/outcomeSections';
-import {buildInvestigatePrompt} from 'sentry/components/droppedData/outcomes';
-import {t} from 'sentry/locale';
+import {droppedAndFilteredLabel} from 'sentry/components/droppedData/outcomes';
+import type {ReasonRow} from 'sentry/components/droppedData/outcomeSections';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
@@ -31,10 +32,33 @@ export function useDroppedDataDrawer(
 ) {
   const organization = useOrganization();
   const {openDrawer, isDrawerOpen, isAnyDrawerOpen} = useDrawer();
-  const {pathname} = useLocation();
-  const [isDrawerInUrl, setIsDrawerInUrl] = useQueryState(
-    DROPPED_DATA_DRAWER_QUERY_KEY,
-    parseAsBoolean.withDefault(false)
+  const location = useLocation();
+  const navigate = useNavigate();
+  const locationRef = useRef(location);
+  useEffect(() => {
+    locationRef.current = location;
+  });
+  const {pathname} = location;
+  // Use the router location rather than nuqs: GlobalDrawer closes from the
+  // location, and nuqs applies browser back/forward a render later, so its stale
+  // value would reopen the drawer.
+  const isDrawerInUrl =
+    decodeScalar(location.query[DROPPED_DATA_DRAWER_QUERY_KEY]) === 'true';
+  const setIsDrawerInUrl = useCallback(
+    (isOpen: boolean) => {
+      navigate(
+        {
+          pathname: locationRef.current.pathname,
+          query: {
+            ...locationRef.current.query,
+            [DROPPED_DATA_DRAWER_QUERY_KEY]: isOpen ? 'true' : undefined,
+          },
+        },
+        // Closing replaces; a pushed entry would reopen the drawer on back.
+        {replace: !isOpen, preventScrollReset: true}
+      );
+    },
+    [navigate]
   );
   const renderedIntervalRef = useRef(interval);
 
@@ -43,22 +67,25 @@ export function useDroppedDataDrawer(
   useEffect(() => {
     openSeerExplorerRef.current = openSeerExplorer;
   });
-  const handleInvestigate = useCallback(
+  const handleAskSeer = useCallback(
     (row: ReasonRow) => {
+      trackAnalytics('explore.dropped_data.ask_seer_clicked', {
+        organization,
+        dataset,
+        outcome: row.outcome,
+        reason: row.reason,
+      });
       openSeerExplorerRef.current({
-        initialQuery: buildInvestigatePrompt({
+        initialQuery: buildAskSeerPrompt({
           dataset,
           outcome: row.outcome,
           reason: row.reason,
-          category: row.category,
         }),
       });
     },
-    [dataset]
+    [dataset, organization]
   );
-  const onInvestigate = isSeerExplorerEnabled(organization)
-    ? handleInvestigate
-    : undefined;
+  const onAskSeer = isSeerExplorerEnabled(organization) ? handleAskSeer : undefined;
 
   useEffect(() => {
     if (!enabled || !isDrawerInUrl) {
@@ -71,19 +98,16 @@ export function useDroppedDataDrawer(
     renderedIntervalRef.current = interval;
     openDrawer(
       () => (
-        <DroppedDataDrawer
-          dataset={dataset}
-          interval={interval}
-          onInvestigate={onInvestigate}
-        />
+        <DroppedDataDrawer dataset={dataset} interval={interval} onAskSeer={onAskSeer} />
       ),
       {
-        ariaLabel: t('Dropped Data'),
+        ariaLabel: droppedAndFilteredLabel(dataset),
+        drawerKey: 'dropped-data-drawer',
         shouldCloseOnLocationChange: nextLocation =>
           nextLocation.pathname !== pathname ||
           decodeScalar(nextLocation.query[DROPPED_DATA_DRAWER_QUERY_KEY]) !== 'true',
         onClose: () => {
-          void setIsDrawerInUrl(null, {history: 'replace'});
+          setIsDrawerInUrl(false);
         },
       }
     );
@@ -95,12 +119,13 @@ export function useDroppedDataDrawer(
     openDrawer,
     dataset,
     interval,
-    onInvestigate,
+    onAskSeer,
     pathname,
     setIsDrawerInUrl,
   ]);
 
   return useCallback(() => {
-    void setIsDrawerInUrl(true, {history: 'push'});
-  }, [setIsDrawerInUrl]);
+    trackAnalytics('explore.dropped_data.drawer_opened', {organization, dataset});
+    setIsDrawerInUrl(true);
+  }, [organization, dataset, setIsDrawerInUrl]);
 }

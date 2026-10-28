@@ -142,7 +142,14 @@ export function TraceAiSpans({
           selectedNodeKey={selectedNode?.id ?? null}
         />
       </LeftPanel>
-      <RightPanel>
+      <Container
+        flex="1"
+        paddingTop="md"
+        minWidth="400px"
+        minHeight="0"
+        overflowX="hidden"
+        overflowY="auto"
+      >
         {selectedNode?.renderDetails({
           node: selectedNode,
           onTabScrollToNode: () => {},
@@ -151,7 +158,7 @@ export function TraceAiSpans({
           hideNodeActions: true,
           initiallyCollapseAiIO: false,
         })}
-      </RightPanel>
+      </Container>
     </Wrapper>
   );
 }
@@ -245,13 +252,4 @@ const LeftPanel = styled('div')`
   overflow-y: auto;
   overflow-x: hidden;
   max-width: 400px;
-`;
-
-const RightPanel = styled('div')`
-  min-width: 400px;
-  padding-top: ${p => p.theme.space.md};
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
 `;

@@ -758,6 +758,21 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
                     self.transaction_data["user"]["ip_address"]
                 )
 
+    def test_range_as_statsperiod(self) -> None:
+        self.store_event(self.transaction_data, project_id=self.project.id)
+
+        features = {"organizations:discover-basic": True}
+        query = {
+            "field": ["project", "user"],
+            "query": "",
+            "range": "14d",
+            "dataset": "discover",
+        }
+        response = self.do_request(query, features=features)
+
+        assert response.status_code == 400, response.content
+        assert response.data["detail"] == "range is not a supported parameter"
+
     def test_team_param_no_access(self) -> None:
         org = self.create_organization(
             owner=self.user,  # use other user as owner

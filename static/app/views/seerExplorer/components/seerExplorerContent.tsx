@@ -42,10 +42,7 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {useTimeout} from 'sentry/utils/useTimeout';
 import {useUser} from 'sentry/utils/useUser';
 import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
-import {
-  NAVIGATION_MOBILE_CONTENT_HEIGHT,
-  PRIMARY_HEADER_HEIGHT,
-} from 'sentry/views/navigation/constants';
+import {PRIMARY_HEADER_HEIGHT} from 'sentry/views/navigation/constants';
 import {getBlockChatPrompt} from 'sentry/views/seerExplorer/chatPrompt';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
 import {ChatPromptMessage} from 'sentry/views/seerExplorer/components/chat/chatPrompt';
@@ -62,7 +59,6 @@ import {
   PendingUserInputDock,
   PendingUserInputPicker,
 } from 'sentry/views/seerExplorer/components/pendingUserInputDock';
-import {usePRWidgetData} from 'sentry/views/seerExplorer/components/prWidget';
 import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/seerExplorerHeader';
 import {UpdateSlackAlert} from 'sentry/views/seerExplorer/components/updateSlackAlert';
 import {useChatSuggestions} from 'sentry/views/seerExplorer/hooks/useChatSuggestions';
@@ -115,10 +111,7 @@ function SidebarHeaderShell({
       as="header"
       align="center"
       gap="md"
-      height={{
-        'screen:sm': `${NAVIGATION_MOBILE_CONTENT_HEIGHT}px`,
-        'screen:md': `${PRIMARY_HEADER_HEIGHT}px`,
-      }}
+      height={`${PRIMARY_HEADER_HEIGHT}px`}
       padding="0 lg"
       background="primary"
       borderBottom="primary"
@@ -216,7 +209,6 @@ export function SeerExplorerContent({
   const composerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const userScrolledUpRef = useRef(false);
-  const prWidgetButtonRef = useRef<HTMLButtonElement>(null);
   /** A new chat was started and the composer should take focus once it is back. */
   const pendingComposerFocusRef = useRef(false);
 
@@ -238,11 +230,8 @@ export function SeerExplorerContent({
     startNewSession,
     switchToRun,
     respondToUserInput,
-    createPR,
     interruptRun,
     hasSentInterrupt,
-    overrideCtxEngEnable,
-    setOverrideCtxEngEnable,
     overrideBashModeEnabled,
     setOverrideBashModeEnabled,
     setOverrideCodeModeEnable,
@@ -327,7 +316,7 @@ export function SeerExplorerContent({
 
   const suggestions = useChatSuggestions({
     enabled: isEmptyState && !chatPrompt && !showLoadError && !isPolling && !readOnly,
-    allowStructuredContext: overrideCtxEngEnable,
+    allowStructuredContext: true,
   });
   const handleSuggestionClick = useCallback(
     (suggestion: ChatSuggestion, position: number) => {
@@ -538,15 +527,8 @@ export function SeerExplorerContent({
     [sessionData?.repo_pr_states]
   );
 
-  // Get PR widget data for menu
-  const {menuItems: prWidgetItems, menuFooter: prWidgetFooter} = usePRWidgetData({
-    blocks,
-    repoPRStates,
-    onCreatePR: createPR,
-  });
-
   // Menu component
-  const {menu, closeMenu, openPRWidget} = useExplorerMenu({
+  const {menu, closeMenu} = useExplorerMenu({
     clearInput,
     inputValue: inputValue.text,
     focusInput,
@@ -564,9 +546,6 @@ export function SeerExplorerContent({
         : undefined,
     },
     inputAnchorRef: composerRef,
-    prWidgetAnchorRef: prWidgetButtonRef,
-    prWidgetItems,
-    prWidgetFooter,
   });
 
   const handleBlocksClick = useCallback(() => {
@@ -750,12 +729,11 @@ export function SeerExplorerContent({
       onChangeSession={switchToRun}
       onCopySessionClick={copySessionEnabled ? copySessionToClipboard : undefined}
       onCopyLinkClick={runId === null ? undefined : handleCopyLink}
-      overrideCtxEngEnable={overrideCtxEngEnable}
-      onOverrideCtxEngEnableToggle={() => setOverrideCtxEngEnable(v => !v)}
       overrideBashModeEnabled={overrideBashModeEnabled}
       onOverrideBashModeToggle={() => setOverrideBashModeEnabled(v => !v)}
       showThinking={showThinking}
       onShowThinkingToggle={() => setShowThinking(v => !v)}
+      conversationsUrl={conversationsUrl}
       isPipSupported={isPipSupported}
       isPoppedOut={isPoppedOut}
       onTogglePictureInPicture={handleTogglePictureInPicture}
@@ -855,7 +833,6 @@ export function SeerExplorerContent({
           </PendingUserInputDock>
         )}
         <InputSection
-          blocks={blocks}
           enabled={!readOnly && !showLoadError}
           disabledPlaceholder={
             showLoadError ? t('Start a new chat to keep talking to Seer') : undefined
@@ -863,14 +840,11 @@ export function SeerExplorerContent({
           inputValue={inputValue}
           canSendMessage={canSendMessage}
           interruptState={interruptState}
-          onCreatePR={createPR}
           onInputChange={handleInputChange}
           onInputClick={handleInputClick}
           onInterrupt={interruptRun}
           onKeyDown={handleInputKeyDown}
           onSend={handleSend}
-          onPRWidgetClick={openPRWidget}
-          prWidgetButtonRef={prWidgetButtonRef}
           repoPRStates={repoPRStates}
           runId={runId}
           composerRef={composerRef}

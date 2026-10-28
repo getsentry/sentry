@@ -109,6 +109,7 @@ export function CodeBlock({
   // https://prismjs.com/plugins/line-highlight/
   useEffect(() => {
     async function loadLineHighlight() {
+      // oxlint-disable-next-line react/todo
       await import('prismjs/plugins/line-highlight/prism-line-highlight');
       setLineHighlightLoaded(true);
     }

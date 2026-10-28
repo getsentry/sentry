@@ -39,6 +39,7 @@ import {
   useQueryParamsCrossEvents,
   useQueryParamsFields,
   useQueryParamsGroupBys,
+  useQueryParamsHasTransformations,
   useQueryParamsId,
   useQueryParamsMode,
   useQueryParamsQuery,
@@ -46,7 +47,10 @@ import {
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
-import {isVisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {
+  isVisualizeFunction,
+  serializeVisualizes,
+} from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   hasConditionalAggregateFilter,
@@ -67,6 +71,7 @@ export function ToolbarSaveAs() {
   const query = useQueryParamsQuery();
   const groupBys = useQueryParamsGroupBys();
   const visualizes = useQueryParamsVisualizes();
+  const hasTransformations = useQueryParamsHasTransformations();
   const fields = useQueryParamsFields();
   const sampleSortBys = useQueryParamsSortBys();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
@@ -247,11 +252,7 @@ export function ToolbarSaveAs() {
       ),
       !valueIsEqual(locationSortByString, singleQuery?.orderby),
       !valueIsEqual(fields, singleQuery?.fields),
-      !valueIsEqual(
-        visualizes.map(visualize => visualize.serialize()),
-        singleQuery?.visualize,
-        true
-      ),
+      !valueIsEqual(serializeVisualizes(visualizes), singleQuery?.visualize, true),
       !valueIsEqual(savedQuery.crossEvents ?? [], crossEvents ?? [], true),
       !valueIsEqual(savedQuery.projects, pageFilters.selection.projects),
       !valueIsEqual(savedQuery.environment, pageFilters.selection.environments),
@@ -263,7 +264,7 @@ export function ToolbarSaveAs() {
         (pageFilters.selection.datetime.end
           ? new Date(pageFilters.selection.datetime.end).getTime()
           : null),
-      (savedQuery.range ?? null) !== pageFilters.selection.datetime.period,
+      (savedQuery.statsPeriod ?? null) !== pageFilters.selection.datetime.period,
     ];
     return hasChangesArray.some(Boolean);
   }, [
@@ -300,6 +301,12 @@ export function ToolbarSaveAs() {
                   {...mergeProps(triggerProps, containerProps)}
                   showChevron={false}
                   variant="primary"
+                  disabled={hasTransformations}
+                  tooltipProps={
+                    hasTransformations
+                      ? {title: t('Queries with transformations cannot be saved yet.')}
+                      : undefined
+                  }
                   aria-label={t('Save as')}
                 >
                   {shouldHighlightSaveButton ? t('Save') : t('Save as')}
@@ -327,7 +334,7 @@ export function ToolbarSaveAs() {
               sortBys,
               yAxes: [visual.yAxis],
               chartType: visual.chartType,
-              caseInsensitive: caseInsensitive ? '1' : undefined,
+              caseInsensitive: caseInsensitive ? '1' : '0',
             })),
           })}
           tooltipProps={

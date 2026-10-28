@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import re
 import uuid
+from collections.abc import Generator
 from datetime import datetime, timedelta
 from unittest import mock
 from unittest.mock import call
 from urllib.robotparser import RobotFileParser
 
+import pytest
+import responses
 from django.utils import timezone
 
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
@@ -227,6 +231,16 @@ class ProcessProjectUrlRankingTest(UptimeTestCase):
 
 @freeze_time()
 class ProcessCandidateUrlTest(UptimeTestCase):
+    @pytest.fixture(autouse=True)
+    def mock_robots_txt_not_found(self) -> Generator[None]:
+        # The generated test domains don't exist, so give them no robots.txt
+        # rather than letting the fetch go out to the network.
+        with responses.RequestsMock(assert_all_requests_are_fired=False) as rsps:
+            rsps.add(
+                responses.GET, re.compile(r"https://sentry-[0-9a-f]{8}\.io/robots\.txt"), status=404
+            )
+            yield
+
     @with_feature("organizations:uptime")
     def test_succeeds_new(self) -> None:
         url = make_unique_test_url()

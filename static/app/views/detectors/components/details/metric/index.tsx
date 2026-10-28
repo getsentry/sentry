@@ -34,7 +34,7 @@ type MetricDetectorDetailsProps = {
 
 export function MetricDetectorDetails({detector}: MetricDetectorDetailsProps) {
   const organization = useOrganization();
-  const detectorsOpenIssuePerOpenPeriod = organization.features.includes(
+  const detectorsOpenIssuePerActivation = organization.features.includes(
     'workflow-engine-rotate-activation-id'
   );
   const dataSource = detector.dataSources[0];
@@ -78,7 +78,7 @@ export function MetricDetectorDetails({detector}: MetricDetectorDetailsProps) {
           </Flex>
           {snubaQuery && <MetricDetectorDetailsChart detector={detector} />}
           <ErrorBoundary mini>
-            {detectorsOpenIssuePerOpenPeriod ? (
+            {detectorsOpenIssuePerActivation ? (
               <MetricDetectorRecentIssues
                 detector={detector}
                 intervalSeconds={intervalSeconds}

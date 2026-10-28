@@ -143,6 +143,8 @@ const iOSDeviceMapping: Record<string, string> = {
   'iPad14,2': 'iPad mini (6th generation)',
   'iPad16,1': 'iPad mini (A17 Pro)',
   'iPad16,2': 'iPad mini (A17 Pro)',
+  'iPad19,1': 'iPad mini (A20 Pro)',
+  'iPad19,2': 'iPad mini (A20 Pro)',
   // iPad Air
   'iPad4,1': 'iPad Air (1st generation)',
   'iPad4,2': 'iPad Air (1st generation)',

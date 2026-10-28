@@ -57,18 +57,18 @@ export function DevKitSettings({organization, project}: Props) {
           <Container>
             <HeaderWrapper>
               <Title>{t('Get Started with DevKit Crash Monitoring')}</Title>
-              <Description>
+              <Container>
                 {t(
                   'Set up your PlayStation development kit to send crash reports to Sentry.'
                 )}
-              </Description>
+              </Container>
               <Container display={{zero: 'none', '2xl': 'contents'}}>
                 <Image src={waitingForEventImg} />
               </Container>
             </HeaderWrapper>
             <Divider />
-            <Body>
-              <Setup>
+            <Container>
+              <Container padding="3xl">
                 <BodyTitle>{t('Setup Instructions')}</BodyTitle>
                 <GuidedSteps
                   initialStep={decodeInteger(location.query.guidedStep)}
@@ -85,7 +85,7 @@ export function DevKitSettings({organization, project}: Props) {
                     stepKey="step-1"
                     title={t('Copy PlayStation Ingestion URL')}
                   >
-                    <DescriptionWrapper>
+                    <Container marginBottom="md">
                       <p>
                         {t(
                           'This is the URL that the DevKit will use to communicate with Sentry.'
@@ -96,12 +96,12 @@ export function DevKitSettings({organization, project}: Props) {
                           {projectKeys?.[0]?.dsn?.playstation || ''}
                         </OnboardingCodeSnippet>
                       </CodeSnippetWrapper>
-                    </DescriptionWrapper>
+                    </Container>
                     <GuidedSteps.StepButtons />
                   </GuidedSteps.Step>
 
                   <GuidedSteps.Step stepKey="step-2" title={t('Configure URL')}>
-                    <DescriptionWrapper>
+                    <Container marginBottom="md">
                       <IntroText>
                         {t(
                           'There are two ways to configure the URL on your DevKit. Choose one of the following methods:'
@@ -119,7 +119,7 @@ export function DevKitSettings({organization, project}: Props) {
                               </AccordionHeader>
                             ),
                             content: (
-                              <AccordionContentWrapper>
+                              <Container padding="xl">
                                 <Stack gap="2xl" width="100%">
                                   <Stack gap="md">
                                     <p>
@@ -135,7 +135,7 @@ export function DevKitSettings({organization, project}: Props) {
                                     />
                                   </Flex>
                                 </Stack>
-                              </AccordionContentWrapper>
+                              </Container>
                             ),
                           },
                           {
@@ -145,7 +145,7 @@ export function DevKitSettings({organization, project}: Props) {
                               </AccordionHeader>
                             ),
                             content: (
-                              <AccordionContentWrapper>
+                              <Container padding="xl">
                                 <Stack gap="2xl" width="100%">
                                   <Stack gap="md">
                                     <p>
@@ -185,17 +185,17 @@ export function DevKitSettings({organization, project}: Props) {
                                     />
                                   </Flex>
                                 </Stack>
-                              </AccordionContentWrapper>
+                              </Container>
                             ),
                           },
                         ]}
                       />
-                    </DescriptionWrapper>
+                    </Container>
                     <GuidedSteps.StepButtons />
                   </GuidedSteps.Step>
 
                   <GuidedSteps.Step stepKey="step-3" title={t('Important Notes')}>
-                    <DescriptionWrapper>
+                    <Container marginBottom="md">
                       <p>
                         {t(
                           'If you are trying to re-attempt the upload of a failed crash that occurred before entering the URL it might be that the DevKit still tries to send the crash to the previously specified URL.'
@@ -207,7 +207,7 @@ export function DevKitSettings({organization, project}: Props) {
                           'There is currently a limit on the size of files we support, as such, uploading large dumps or long videos may fail. During the first setup it is recommended to not send any videos, and once you made sure everything works, you can start sending larger attachments.'
                         )}
                       </p>
-                    </DescriptionWrapper>
+                    </Container>
                     <GuidedSteps.StepButtons>
                       <Button
                         size="sm"
@@ -226,8 +226,8 @@ export function DevKitSettings({organization, project}: Props) {
                     </GuidedSteps.StepButtons>
                   </GuidedSteps.Step>
                 </GuidedSteps>
-              </Setup>
-            </Body>
+              </Container>
+            </Container>
           </Container>
         </PanelBody>
       </Panel>
@@ -240,8 +240,6 @@ const Title = styled('div')`
   font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
-const Description = styled('div')``;
-
 const HeaderWrapper = styled('div')`
   border-radius: ${p => p.theme.radius.md};
   padding: ${p => p.theme.space['3xl']};
@@ -252,12 +250,6 @@ const BodyTitle = styled('div')`
   font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-bottom: ${p => p.theme.space.md};
 `;
-
-const Setup = styled('div')`
-  padding: ${p => p.theme.space['3xl']};
-`;
-
-const Body = styled('div')``;
 
 const Image = styled('img')`
   position: absolute;
@@ -284,10 +276,6 @@ const CodeSnippetWrapper = styled('div')`
   margin-top: ${p => p.theme.space.xl};
 `;
 
-const DescriptionWrapper = styled('div')`
-  margin-bottom: ${p => p.theme.space.md};
-`;
-
 const CardIllustration = styled('img')`
   width: 100%;
   max-width: 600px;
@@ -304,8 +292,4 @@ const IntroText = styled('p')`
 
 const AccordionHeader = styled('span')`
   font-weight: ${p => p.theme.font.weight.sans.medium};
-`;
-
-const AccordionContentWrapper = styled('div')`
-  padding: ${p => p.theme.space.xl};
 `;

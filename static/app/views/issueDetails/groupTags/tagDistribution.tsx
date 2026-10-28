@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
 
+import {Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -105,10 +106,10 @@ export function TagDistributionPanel({
                 <TagValue>{valueComponent}</TagValue>
               </Tooltip>
               <Tooltip title={formatCount(tagValue.count, totalValues)} skipWrapper>
-                <TooltipContainer>
+                <Grid align="center" column="2 / -1" columns="subgrid">
                   <TagBarValue>{displayPercentage}</TagBarValue>
                   <TagBar percentage={percentage} />
-                </TooltipContainer>
+                </Grid>
               </Tooltip>
             </TagValueRow>
           );
@@ -120,10 +121,10 @@ export function TagDistributionPanel({
               title={formatCount(totalValues - totalVisible, totalValues)}
               skipWrapper
             >
-              <TooltipContainer>
+              <Grid align="center" column="2 / -1" columns="subgrid">
                 <TagBarValue>{otherDisplayPercentage}</TagBarValue>
                 <TagBar percentage={otherPercentage} />
-              </TooltipContainer>
+              </Grid>
             </Tooltip>
           </TagValueRow>
         )}
@@ -264,11 +265,4 @@ const TagBarContainer = styled('div')`
 
 const TagBarValue = styled('div')`
   text-align: right;
-`;
-
-const TooltipContainer = styled('div')`
-  display: grid;
-  grid-template-columns: subgrid;
-  grid-column: 2 / -1;
-  align-items: center;
 `;

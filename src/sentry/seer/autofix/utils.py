@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any, NotRequired, TypedDict
@@ -9,8 +9,8 @@ import orjson
 import sentry_sdk
 from django.conf import settings
 from django.db import router, transaction
+from django.db.models import QuerySet
 from pydantic import BaseModel
-from rest_framework import serializers
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool
 
 from sentry import features, options, projectoptions, ratelimits
@@ -275,43 +275,6 @@ def make_store_coding_agent_states_request(
     )
 
 
-class SeerAutofixSettingsSerializer(serializers.Serializer):
-    """Base serializer for autofixAutomationTuning and automatedRunStoppingPoint"""
-
-    autofixAutomationTuning = serializers.ChoiceField(
-        choices=[opt.value for opt in AutofixAutomationTuningSettings],
-        required=False,
-        help_text="The tuning setting for the projects.",
-    )
-    automatedRunStoppingPoint = serializers.CharField(
-        required=False,
-        help_text="The stopping point for the projects.",
-    )
-
-    def validate_automatedRunStoppingPoint(self, value: str) -> str:
-        organization = self.context["organization"]
-        if value not in get_valid_automated_run_stopping_points(organization):
-            raise serializers.ValidationError(f'"{value}" is not a valid choice.')
-        return value
-
-    def validate(self, data):
-        if "autofixAutomationTuning" not in data and "automatedRunStoppingPoint" not in data:
-            raise serializers.ValidationError(
-                "At least one of 'autofixAutomationTuning' or 'automatedRunStoppingPoint' must be provided."
-            )
-        return data
-
-
-def default_seer_project_preference(project: Project) -> SeerProjectPreference:
-    return SeerProjectPreference(
-        organization_id=project.organization.id,
-        project_id=project.id,
-        repositories=[],
-        automated_run_stopping_point=AutofixStoppingPoint.CODE_CHANGES.value,
-        automation_handoff=None,
-    )
-
-
 def get_org_default_seer_automation_handoff(
     organization: Organization,
 ) -> tuple[str, SeerAutomationHandoffConfiguration | None]:
@@ -553,13 +516,31 @@ def get_repo_url_path(repo: Repository) -> str:
     return repo.name
 
 
-def build_repo_definition_from_project_repo(
-    seer_project_repo: SeerProjectRepository,
+def get_token_based_billing_project_repos(
+    organization: Organization, project_ids: Sequence[int]
+) -> QuerySet[ProjectRepository]:
+    """Linked repos Seer can use under token-based billing."""
+    return (
+        ProjectRepository.objects.filter(
+            project_id__in=project_ids,
+            repository__organization_id=organization.id,
+            repository__status=ObjectStatus.ACTIVE,
+            repository__provider__in=get_supported_scm_providers(organization),
+            repository__integration_id__isnull=False,
+            repository__external_id__isnull=False,
+        )
+        .exclude(repository__external_id="")
+        .select_related("repository", "seerprojectrepository")
+        .prefetch_related("seerprojectrepository__branch_overrides")
+    )
+
+
+def build_seer_repo_definition(
+    repo: Repository, seer_project_repo: SeerProjectRepository | None
 ) -> SeerRepoDefinition | None:
-    """Build a SeerRepoDefinition from a SeerProjectRepository with its joined Repository.
+    """Build a SeerRepoDefinition from a Repository and its optional per-repo Seer config.
 
     Returns None if Repository name is invalid."""
-    repo = seer_project_repo.project_repository.repository
     repo_name_sections = get_repo_url_path(repo).split("/")
     if len(repo_name_sections) < 2:
         sentry_sdk.capture_exception(ValueError(f"Invalid repository name format: {repo.name}"))
@@ -573,17 +554,48 @@ def build_repo_definition_from_project_repo(
         owner=repo_name_sections[0],
         name="/".join(repo_name_sections[1:]),
         external_id=repo.external_id or "",
-        branch_name=seer_project_repo.branch_name,
-        instructions=seer_project_repo.instructions,
+        branch_name=seer_project_repo.branch_name if seer_project_repo else None,
+        instructions=seer_project_repo.instructions if seer_project_repo else None,
         branch_overrides=[
             BranchOverride(
                 tag_name=bo.tag_name,
                 tag_value=bo.tag_value,
                 branch_name=bo.branch_name,
             )
-            for bo in seer_project_repo.branch_overrides.all()
+            for bo in (seer_project_repo.branch_overrides.all() if seer_project_repo else [])
         ],
     )
+
+
+def _get_repo_definitions_by_project(
+    organization: Organization, project_ids: Sequence[int]
+) -> dict[int, list[SeerRepoDefinition]]:
+    repo_definitions_by_project: defaultdict[int, list[SeerRepoDefinition]] = defaultdict(list)
+    if is_seer_token_based_billing_onboarding_enabled(organization):
+        for project_repo in get_token_based_billing_project_repos(organization, project_ids):
+            # getattr since accessing a missing one-to-one raises RelatedObjectDoesNotExist.
+            repo_def = build_seer_repo_definition(
+                project_repo.repository, getattr(project_repo, "seerprojectrepository", None)
+            )
+            if repo_def is not None:
+                repo_definitions_by_project[project_repo.project_id].append(repo_def)
+    else:
+        for seer_project_repo in (
+            SeerProjectRepository.objects.filter(
+                project_repository__project_id__in=project_ids,
+                project_repository__repository__status=ObjectStatus.ACTIVE,
+            )
+            .select_related("project_repository", "project_repository__repository")
+            .prefetch_related("branch_overrides")
+        ):
+            repo_def = build_seer_repo_definition(
+                seer_project_repo.project_repository.repository, seer_project_repo
+            )
+            if repo_def is not None:
+                repo_definitions_by_project[seer_project_repo.project_repository.project_id].append(
+                    repo_def
+                )
+    return repo_definitions_by_project
 
 
 def get_automation_handoff(
@@ -607,20 +619,9 @@ def get_automation_handoff(
 
 def read_preference_from_sentry_db(project: Project) -> SeerProjectPreference:
     """Read a single project's Seer preferences from Sentry DB."""
-    seer_project_repo_qs = (
-        SeerProjectRepository.objects.filter(
-            project_repository__project=project,
-            project_repository__repository__status=ObjectStatus.ACTIVE,
-        )
-        .select_related("project_repository", "project_repository__repository")
-        .prefetch_related("branch_overrides")
+    repo_definitions = _get_repo_definitions_by_project(project.organization, [project.id]).get(
+        project.id, []
     )
-    repo_definitions = [
-        repo_def
-        for project_repo in seer_project_repo_qs
-        if (repo_def := build_repo_definition_from_project_repo(project_repo)) is not None
-    ]
-
     return SeerProjectPreference(
         organization_id=project.organization_id,
         project_id=project.id,
@@ -639,20 +640,14 @@ def bulk_read_preferences_from_sentry_db(
         return {}
 
     projects = list(Project.objects.filter(id__in=project_ids, organization_id=organization_id))
+    if not projects:
+        return {}
 
-    repo_definitions_by_project: defaultdict[int, list[SeerRepoDefinition]] = defaultdict(list)
-    seer_repo_qs = (
-        SeerProjectRepository.objects.filter(
-            project_repository__project_id__in=project_ids,
-            project_repository__repository__status=ObjectStatus.ACTIVE,
-        )
-        .select_related("project_repository", "project_repository__repository")
-        .prefetch_related("branch_overrides")
+    organization = Organization.objects.get_from_cache(id=organization_id)
+
+    repo_definitions_by_project = _get_repo_definitions_by_project(
+        organization, [project.id for project in projects]
     )
-    for seer_repo in seer_repo_qs:
-        repo_def = build_repo_definition_from_project_repo(seer_repo)
-        if repo_def is not None:
-            repo_definitions_by_project[seer_repo.project_repository.project_id].append(repo_def)
 
     # get_value_bulk_id returns None for missing options, unlike project.get_option
     # which automatically falls back to the registered well-known key default.
@@ -876,6 +871,13 @@ def replace_all_seer_project_repos(
 
 def has_project_connected_repos(organization: Organization, project: Project) -> bool:
     """Check if a project has connected repositories for Seer automation."""
+    if is_seer_token_based_billing_onboarding_enabled(organization):
+        return (
+            get_token_based_billing_project_repos(organization, [project.id])
+            .filter(project__status=ObjectStatus.ACTIVE)
+            .exists()
+        )
+
     return SeerProjectRepository.objects.filter(
         project_repository__project=project,
         project_repository__project__organization_id=organization.id,
@@ -991,6 +993,13 @@ def is_seer_seat_based_tier_enabled(organization: Organization) -> bool:
     cache.set(cache_key, has_seat_based_seer, timeout=60 * 60 * 4)  # 4 hours TTL
 
     return has_seat_based_seer
+
+
+def is_seer_token_based_billing_onboarding_enabled(organization: Organization) -> bool:
+    """Check if Seer onboarding changes for token-based billing apply to this organization."""
+    return features.has(
+        "organizations:seer-token-based-billing-onboarding", organization
+    ) and features.has("organizations:token-billed-seer-enabled", organization)
 
 
 def is_free_cohort_org(organization: Organization) -> bool:

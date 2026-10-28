@@ -1,7 +1,9 @@
 import {Fragment} from 'react';
 
+import {ToolOutput} from 'sentry/components/ai/toolDetails/toolOutput';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
+import {isRecord} from 'sentry/utils/object/isRecord';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {extractAssistantOutput} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import {
@@ -52,8 +54,15 @@ export function AIOutputSection({
     event
   );
   const toolOutput = getAIToolOutput(node, attributes, event);
+  const hasToolOutput = toolOutput !== undefined;
 
-  if (!reasoningText && !responseText && !responseObject && !toolCalls && !toolOutput) {
+  if (
+    !reasoningText &&
+    !responseText &&
+    !responseObject &&
+    !toolCalls &&
+    !hasToolOutput
+  ) {
     return null;
   }
 
@@ -97,9 +106,7 @@ export function AIOutputSection({
           <TraceDrawerComponents.MultilineJSON value={toolCalls} maxDefaultDepth={2} />
         </Fragment>
       )}
-      {toolOutput ? (
-        <TraceDrawerComponents.MultilineJSON value={toolOutput} maxDefaultDepth={1} />
-      ) : null}
+      {hasToolOutput ? <ToolOutput value={toolOutput} /> : null}
     </FoldSection>
   );
 }
@@ -109,8 +116,8 @@ export function hasAIOutputAttribute(
   attributes?: TraceItemResponseAttribute[],
   event?: EventTransaction
 ) {
-  return OUTPUT_PRESENCE_ATTRIBUTES.some(key =>
-    getTraceNodeAttribute(key, node, event, attributes)
+  return OUTPUT_PRESENCE_ATTRIBUTES.some(
+    key => getTraceNodeAttribute(key, node, event, attributes) !== undefined
   );
 }
 
@@ -178,8 +185,28 @@ export function getAIToolOutput(
   attributes?: TraceItemResponseAttribute[],
   event?: EventTransaction
 ) {
-  return (
-    getTraceNodeAttribute('gen_ai.tool.call.result', node, event, attributes) ??
-    getTraceNodeAttribute('gen_ai.tool.output', node, event, attributes)
+  const result = getTraceNodeAttribute(
+    'gen_ai.tool.call.result',
+    node,
+    event,
+    attributes
   );
+  if (result === undefined || result === null) {
+    return getTraceNodeAttribute('gen_ai.tool.output', node, event, attributes);
+  }
+
+  let parsed: unknown = result;
+  if (typeof result === 'string') {
+    try {
+      parsed = JSON.parse(result);
+    } catch {
+      return result;
+    }
+  }
+
+  if (isRecord(parsed) && 'input' in parsed && 'output' in parsed) {
+    // Serialize even scalar outputs so false, 0, null, and empty strings remain visible.
+    return JSON.stringify(parsed.output);
+  }
+  return result;
 }

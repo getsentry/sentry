@@ -6,6 +6,7 @@ import {
   FieldValueType,
   getFieldDefinition,
   type GetFieldDefinitionType,
+  isTypedTagKey,
 } from 'sentry/utils/fields';
 import {getAttributeVisibility} from 'sentry/utils/fields/getAttributeVisibility';
 import {useUser} from 'sentry/utils/useUser';
@@ -51,9 +52,15 @@ export function AttributeDetailsTooltip({
   name,
 }: AttributeDetailsTooltipProps) {
   const user = useUser();
+  // A typed tag key (e.g. `tags[message,string]`) is never looked up by its
+  // unwrapped name: a user attribute colliding with a Sentry alias comes back
+  // wrapped and must not borrow that alias's definition. Other names fall back to
+  // `name` for keys that only differ by a prefix, e.g. `sentry.logger.name`.
   const fieldDefinition =
     getFieldDefinition(attributeKey, fieldDefinitionType) ??
-    (name === undefined ? null : getFieldDefinition(name, fieldDefinitionType));
+    (name === undefined || isTypedTagKey(attributeKey)
+      ? null
+      : getFieldDefinition(name, fieldDefinitionType));
   const attributeName = name ?? attributeKey;
 
   return (

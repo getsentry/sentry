@@ -26,7 +26,7 @@ from sentry.tasks.llm_issue_detection.trace_data import (
 )
 from sentry.testutils.cases import APITransactionTestCase, SnubaTestCase, SpanTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.viewer_context import ActorType, decode_viewer_context
+from sentry.viewer_context import ActorType, ViewerContext, decode_viewer_context
 
 
 class LLMIssueDetectionTest(TestCase):
@@ -75,10 +75,11 @@ class LLMIssueDetectionTest(TestCase):
                 request.kwargs["headers"]["X-Viewer-Context"],
                 key="viewer-context-test-secret",
             )
+            assert isinstance(viewer_context, ViewerContext)
             assert viewer_context.organization_id == self.organization.id
             assert viewer_context.project_id == self.project.id
-            assert viewer_context.user_id is None
-            assert viewer_context.actor_type == ActorType.SYSTEM
+            assert viewer_context.actor.actor_id is None
+            assert viewer_context.actor.type == ActorType.SYSTEM
 
     @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")

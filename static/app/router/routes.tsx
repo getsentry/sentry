@@ -4,11 +4,11 @@ import memoize from 'lodash/memoize';
 import {t} from 'sentry/locale';
 import {makeLazyloadComponent as make} from 'sentry/makeLazyloadComponent';
 import {getOverride} from 'sentry/overrideRegistry';
+import {translateSentryRoute} from 'sentry/router/translateSentryRoute';
 import {ScrapsProviders} from 'sentry/scrapsProviders';
 import type {OverrideName} from 'sentry/types/overrides';
 import {errorHandler} from 'sentry/utils/errorHandler';
 import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
-import {translateSentryRoute} from 'sentry/utils/reactRouter6Compat/router';
 import {withDomainRedirect} from 'sentry/utils/withDomainRedirect';
 import {withDomainRequired} from 'sentry/utils/withDomainRequired';
 import {App} from 'sentry/views/app';
@@ -131,6 +131,10 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/sharedGroupDetails')),
     },
     {
+      path: '/organizations/:orgId/share/issue/:shareId/',
+      component: make(() => import('sentry/views/sharedGroupDetails')),
+    },
+    {
       path: '/unsubscribe/project/:id/',
       component: make(() => import('sentry/views/unsubscribe/project')),
       customerDomainOnlyRoute: true,
@@ -197,10 +201,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: '/user-feedback/',
       redirectTo: '/feedback/',
-    },
-    {
-      path: '/organizations/:orgId/share/issue/:shareId/',
-      component: make(() => import('sentry/views/sharedGroupDetails')),
     },
     {
       path: '/organizations/new/',
@@ -2698,12 +2698,12 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/explore/savedFormulas')),
     },
     {
-      path: 'investigations/',
-      component: make(() => import('sentry/views/investigations')),
+      path: 'saved-formulas/new/',
+      component: make(() => import('sentry/views/explore/savedFormulas/formulaBuilder')),
     },
     {
-      path: 'investigations/:investigationId/',
-      component: make(() => import('sentry/views/investigations/detail')),
+      path: 'saved-formulas/:formulaId/',
+      component: make(() => import('sentry/views/explore/savedFormulas/formulaBuilder')),
     },
     // Unknown /explore/ subpaths redirect to the default explore view, rather
     // than falling through to the `/:orgId/:projectId/` legacy redirect and
@@ -2728,6 +2728,40 @@ function buildRoutes(): RouteObject[] {
     path: '/explore/',
     withOrgPath: true,
     children: exploreChildren,
+  };
+
+  const seerChildren: SentryRouteObject[] = [
+    {
+      index: true,
+      redirectTo: 'automations/',
+    },
+    {
+      path: 'investigations/',
+      component: make(() => import('sentry/views/investigations')),
+    },
+    {
+      path: 'investigations/:investigationId/',
+      component: make(() => import('sentry/views/investigations/detail')),
+    },
+    {
+      path: 'automations/',
+      component: make(() => import('sentry/views/seerWorkflows')),
+      children: [
+        {
+          index: true,
+          component: make(() => import('sentry/views/seerWorkflows/automations')),
+        },
+        {
+          path: 'runs/',
+          component: make(() => import('sentry/views/seerWorkflows/runs')),
+        },
+      ],
+    },
+  ];
+  const seerRoutes: SentryRouteObject = {
+    path: '/seer/',
+    withOrgPath: true,
+    children: seerChildren,
   };
 
   const preprodChildren: SentryRouteObject[] = [
@@ -2920,10 +2954,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'autofix/',
       component: make(() => import('sentry/views/seerWorkflows/overview')),
-    },
-    {
-      path: 'autofix/workflows/',
-      component: make(() => import('sentry/views/seerWorkflows')),
     },
     {
       path: 'autofix/recent/',
@@ -3224,6 +3254,7 @@ function buildRoutes(): RouteObject[] {
       domainViewRoutes,
       tracesRoutes,
       exploreRoutes,
+      seerRoutes,
       llmMonitoringRedirects,
       profilingRoutes,
       gettingStartedRoutes,

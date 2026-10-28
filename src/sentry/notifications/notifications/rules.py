@@ -67,6 +67,8 @@ def get_group_substatus_text(group: Group) -> str:
         return "Regressed issue"
     elif group.substatus == GroupSubStatus.ONGOING:
         return "Ongoing issue"
+    elif group.substatus == GroupSubStatus.ESCALATING:
+        return "Escalating issue"
     return "New Alert"
 
 
@@ -263,10 +265,6 @@ class AlertRuleNotification(ProjectNotification):
                     "subtitle": get_performance_issue_alert_subtitle(self.event),
                 },
             )
-
-        # We don't show the snooze alert because in the new UI/system a user can't individually disable a workflow
-        context["snooze_alert"] = False
-        context["snooze_alert_url"] = None
 
         if isinstance(self.event, GroupEvent) and self.event.occurrence:
             context["issue_title"] = self.event.occurrence.issue_title

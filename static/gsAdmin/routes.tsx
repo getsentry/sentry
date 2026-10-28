@@ -1,5 +1,5 @@
+import {translateSentryRoute} from 'sentry/router/translateSentryRoute';
 import type {SentryRouteObject} from 'sentry/router/types';
-import {translateSentryRoute} from 'sentry/utils/reactRouter6Compat/router';
 
 import {BeaconDetails} from 'admin/views/beaconDetails';
 import {Beacons} from 'admin/views/beacons';

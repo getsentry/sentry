@@ -367,11 +367,8 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
             has_create_pr = features.has(
                 "organizations:ask-seer-create-pr", organization, actor=request.user
             )
-            enable_coding = organization.get_option("sentry:enable_seer_coding", False) and (
-                has_create_pr
-                or features.has(
-                    "organizations:seer-explorer-chat-coding", organization, actor=request.user
-                )
+            enable_coding = has_create_pr and organization.get_option(
+                "sentry:enable_seer_coding", False
             )
 
             has_code_mode_feature = features.has(
@@ -397,6 +394,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 enable_coding=enable_coding,
                 enable_write_pull_request=has_create_pr,
                 enable_code_mode_tools=enable_code_mode_tools,
+                enable_investigation_tools=True,
                 reasoning_effort="medium",
             )
             if resolved is not None:

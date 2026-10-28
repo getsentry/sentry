@@ -128,6 +128,7 @@ describe('GroupReplays', () => {
         pathname: `/organizations/org-slug/issues/${mockGroup.id}/replays/`,
         params: {orgId: 'org-slug', groupId: mockGroup.id},
         data: null,
+        loaderData: null,
         handle: {path: '/organizations/:orgId/issues/:groupId/replays/'},
       },
     ]);

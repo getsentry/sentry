@@ -10,7 +10,7 @@ from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
 from datetime import datetime
 from enum import IntEnum, StrEnum
-from typing import Any, ClassVar, Final, Literal, Protocol, runtime_checkable
+from typing import Any, ClassVar, Final, Literal, Protocol, override, runtime_checkable
 
 
 class _Missing:
@@ -87,38 +87,68 @@ IDENTITY_CODEC: Codec[Any] = Codec()
 
 
 class BoolCodec(Codec[bool]):
-    pass
+    @override
+    def _validate(self, value: Any) -> bool:
+        if not isinstance(value, bool):
+            raise TypeError("Expected a boolean")
+        return value
 
 
 class IntCodec(Codec[int]):
-    pass
+    @override
+    def _validate(self, value: Any) -> int:
+        if type(value) is not int:
+            raise TypeError("Expected an integer")
+        return value
 
 
 class IntListCodec(Codec[list[int]]):
-    pass
+    @override
+    def _validate(self, value: Any) -> list[int]:
+        if not isinstance(value, list) or any(type(item) is not int for item in value):
+            raise TypeError("Expected a list of integers")
+        return value
 
 
 class EnumCodec[E: StrEnum](Codec[E]):
     def __init__(self, enum_cls: type[E]) -> None:
         self._enum_cls = enum_cls
 
-    def to_json(self, value: E) -> str:
-        return value.value
+    @override
+    def _validate(self, value: Any) -> E:
+        if not isinstance(value, self._enum_cls):
+            raise TypeError(f"Expected {self._enum_cls.__name__}")
+        return value
 
+    @override
+    def to_json(self, value: E) -> str:
+        return self._validate(value).value
+
+    @override
     def from_json(self, raw: Any) -> E:
         return self._enum_cls(raw)
 
+    @override
     def to_column(self, value: E) -> str:
-        return value.value
+        return self._validate(value).value
 
+    @override
     def from_column(self, raw: Any) -> E:
         return self._enum_cls(raw)
 
 
 class DateTimeCodec(Codec[datetime]):
-    def to_json(self, value: datetime) -> str:
-        return value.isoformat()
+    @override
+    def _validate(self, value: Any) -> datetime:
+        if not isinstance(value, datetime):
+            raise TypeError("Expected a datetime")
+        return value
 
+    @override
+    def to_json(self, value: datetime) -> str:
+        return self._validate(value).isoformat()
+
+    @override
     def from_json(self, raw: Any) -> datetime:
         return datetime.fromisoformat(raw)
 
@@ -127,15 +157,19 @@ class OptionalCodec[T](Codec[T | None]):
     def __init__(self, inner: Codec[T]) -> None:
         self._inner = inner
 
+    @override
     def to_json(self, value: T | None) -> Any:
         return self._inner.to_json(value) if value is not None else None
 
+    @override
     def from_json(self, raw: Any) -> T | None:
         return self._inner.from_json(raw) if raw is not None else None
 
+    @override
     def to_column(self, value: T | None) -> Any:
         return self._inner.to_column(value) if value is not None else None
 
+    @override
     def from_column(self, raw: Any) -> T | None:
         return self._inner.from_column(raw) if raw is not None else None
 

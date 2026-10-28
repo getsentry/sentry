@@ -3,9 +3,14 @@ import {defineRule, type ESTree, type Variable} from '@oxlint/plugins';
 import {createImportTracker} from '../ast/tracker/imports.ts';
 import {getChildrenRenderFunction} from '../ast/utils/renderFunction.ts';
 
+function isFieldControl(name: string): boolean {
+  return /^[A-Z]/.test(name) && name !== 'Layout' && name !== 'Meta';
+}
+
 /**
  * Field state and handlers alone do not provide the accessibility, validation,
  * and layout behavior of bound field components. Custom controls need field.Base.
+ * Layout and Meta alone do not satisfy this requirement.
  * Checks inline AppField and scraps AutoSaveForm render functions. AppField is
  * identified by its member name because forms and field groups are created locally.
  * Array-mode AppFields manage collections and are exempt; their item fields are checked.
@@ -68,7 +73,7 @@ export const requireFieldComponent = defineRule({
                 : null;
           return (
             key !== null &&
-            (destructuredComponent || /^[A-Z]/.test(key)) &&
+            (destructuredComponent || isFieldControl(key)) &&
             usesComponent(property.value, true)
           );
         });
@@ -94,7 +99,7 @@ export const requireFieldComponent = defineRule({
         }
 
         renderedComponents.add(variable);
-        if (componentName && /^[A-Z]/.test(componentName)) {
+        if (componentName && isFieldControl(componentName)) {
           renderedObjects.add(variable);
         }
       },

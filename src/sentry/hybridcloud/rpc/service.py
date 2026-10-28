@@ -402,6 +402,7 @@ def list_all_service_method_signatures() -> Iterable[RpcMethodSignature]:
         "sentry.projects.services",
         "sentry.relocation.services",
         "sentry.sentry_apps.services",
+        "sentry.service_accounts.services",
         "sentry.users.services",
     )
     for package_name in service_packages:

@@ -33,10 +33,6 @@ describe('openSentryAppIssueModal', () => {
 
   beforeEach(() => {
     MockApiClient.addMockResponse({
-      url: `/sentry-apps/${sentryApp.slug}/interaction/`,
-      method: 'POST',
-    });
-    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/external-issues/',
       body: [],
     });

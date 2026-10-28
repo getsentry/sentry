@@ -1,12 +1,12 @@
 from unittest.mock import patch
 
+from sentry.models.rule import Rule
 from sentry.notifications.types import NotificationOrigin
 from sentry.notifications.utils.rules import (
     get_notification_origins,
     get_workflow_url,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.notifications import create_notification_origin
 from sentry.workflow_engine.models import Workflow
 
 
@@ -60,38 +60,38 @@ def test_get_workflow_url_warns_when_origin_has_no_ids() -> None:
 
 
 class GetNotificationOriginsTest(TestCase):
+    def create_linked_rule(self) -> tuple[Rule, Workflow]:
+        rule = self.create_project_rule(project=self.project)
+        workflow = self.create_workflow(organization=self.organization)
+        self.create_alert_rule_workflow(rule_id=rule.id, workflow=workflow)
+        return rule, workflow
+
     def test_resolves_workflow_with_legacy_identity(self) -> None:
         environment = self.create_environment(project=self.project)
-        rule = self.create_project_rule(project=self.project)
-        workflow_id = create_notification_origin(rule).workflow_id
-        assert workflow_id is not None
-        Workflow.objects.filter(id=workflow_id).update(environment_id=environment.id)
+        rule, workflow = self.create_linked_rule()
+        workflow.update(environment_id=environment.id)
 
-        origins = get_notification_origins(self.project, workflow_ids=[workflow_id])
+        origins = get_notification_origins(self.project, workflow_ids=[workflow.id])
 
         assert len(origins) == 1
-        assert origins[0].workflow_id == workflow_id
+        assert origins[0].workflow_id == workflow.id
         assert origins[0].legacy_rule_id == rule.id
         assert origins[0].environment_id == environment.id
 
     def test_maps_legacy_identity_to_workflow(self) -> None:
-        rule = self.create_project_rule(project=self.project)
-        workflow_id = create_notification_origin(rule).workflow_id
-        assert workflow_id is not None
+        rule, workflow = self.create_linked_rule()
 
         origins = get_notification_origins(self.project, legacy_rule_ids=[rule.id])
 
         assert len(origins) == 1
-        assert origins[0].workflow_id == workflow_id
+        assert origins[0].workflow_id == workflow.id
         assert origins[0].legacy_rule_id == rule.id
 
     def test_deduplicates_dual_identity(self) -> None:
-        rule = self.create_project_rule(project=self.project)
-        workflow_id = create_notification_origin(rule).workflow_id
-        assert workflow_id is not None
+        rule, workflow = self.create_linked_rule()
 
         origins = get_notification_origins(
-            self.project, workflow_ids=[workflow_id], legacy_rule_ids=[rule.id]
+            self.project, workflow_ids=[workflow.id], legacy_rule_ids=[rule.id]
         )
 
         assert len(origins) == 1

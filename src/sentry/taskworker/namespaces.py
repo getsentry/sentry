@@ -348,6 +348,11 @@ gpu_crash_dump_tasks = app.taskregistry.create_namespace(
     app_feature="errors",
 )
 
+telemetry_classifiers_tasks = app.taskregistry.create_namespace(
+    "telemetry.classifiers",
+    app_feature="telemetry_classifiers",
+)
+
 telemetry_experience_tasks = app.taskregistry.create_namespace(
     "telemetry-experience",
     app_feature="transactions",

@@ -62,17 +62,36 @@ describe('useConfigureReplayMenuItem', () => {
       ).toBe(true);
     });
 
-    it('enables iOS documentation links for sentry.cocoa.unreal', () => {
-      const item = renderMenuItem({sdkName: 'sentry.cocoa.unreal', isMobile: true});
+    it.each([
+      ['sentry.native.unreal', '/unreal/'],
+      ['sentry.native.xbox.unreal', '/unreal/'],
+      ['sentry.cocoa.unreal', '/unreal/'],
+      ['sentry.java.android.unreal', '/unreal/'],
+      ['sentry.cocoa.kmp', '/kotlin/guides/kotlin-multiplatform/'],
+      ['sentry.java.android.kmp', '/kotlin/guides/kotlin-multiplatform/'],
+      ['sentry.cocoa.capacitor', '/javascript/guides/capacitor/'],
+      ['sentry.java.android.capacitor', '/javascript/guides/capacitor/'],
+    ])('enables documentation links for %s', (sdkName, docsPath) => {
+      const item = renderMenuItem({sdkName, isMobile: true});
 
-      // Should NOT fall through to the default case — no captureMessage call
       expect(captureSpy).not.toHaveBeenCalled();
       expect(item.children).toHaveLength(3);
       expect(item.children?.every(child => child.disabled === false)).toBe(true);
-      expect(
-        item.children?.every(child => child.externalHref?.includes('/apple/guides/ios/'))
-      ).toBe(true);
+      expect(item.children?.every(child => child.externalHref?.includes(docsPath))).toBe(
+        true
+      );
     });
+
+    it.each(['sentry.cocoa.dotnet', 'sentry.java.android.dotnet'])(
+      'disables documentation links without logging for %s',
+      sdkName => {
+        const item = renderMenuItem({sdkName, isMobile: true});
+
+        expect(captureSpy).not.toHaveBeenCalled();
+        expect(item.children).toHaveLength(3);
+        expect(item.children?.every(child => child.disabled === true)).toBe(true);
+      }
+    );
 
     it('logs and disables documentation links for an unknown mobile platform', () => {
       const item = renderMenuItem({sdkName: 'sentry.unknown.platform', isMobile: true});

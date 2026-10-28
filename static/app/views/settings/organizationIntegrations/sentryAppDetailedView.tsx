@@ -31,7 +31,6 @@ import {
 } from 'sentry/utils/integrationUtil';
 import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
-import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -142,7 +141,6 @@ export default function SentryAppDetailedView() {
   }, [sentryApp?.status, navigate, organization.slug, integrationSlug]);
 
   useEffect(() => {
-    recordInteraction(integrationSlug, 'sentry_app_viewed');
     trackIntegrationAnalytics('integrations.integration_viewed', {
       view: 'integrations_directory_integration_detail',
       integration: integrationSlug,

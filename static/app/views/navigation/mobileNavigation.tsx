@@ -14,7 +14,7 @@ import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   NAVIGATION_MOBILE_TOPBAR_HEIGHT,
-  NAVIGATION_MOBILE_CONTENT_HEIGHT,
+  PRIMARY_HEADER_HEIGHT,
 } from 'sentry/views/navigation/constants';
 import {
   PrimaryNavigationFooterItems,
@@ -137,10 +137,7 @@ export function MobileNavigation() {
 
   return (
     <SizeProvider size="sm">
-      <MobileNavigationHeader
-        padding="sm"
-        height={`${NAVIGATION_MOBILE_CONTENT_HEIGHT}px`}
-      >
+      <MobileNavigationHeader padding="sm" height={`${PRIMARY_HEADER_HEIGHT}px`}>
         <Flex align="center" gap="md" justify="between" width="100%">
           <Button
             ref={toggleButtonRef}

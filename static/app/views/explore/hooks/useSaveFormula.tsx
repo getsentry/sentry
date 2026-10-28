@@ -13,6 +13,7 @@ import {
 
 export type SavedFormulaRequest = {
   dataset: FormulaDataset;
+  description: string | null;
   formula: string;
   name: string;
   params: FormulaParam[];
@@ -37,7 +38,7 @@ export function useSaveFormula() {
         method: id ? 'PUT' : 'POST',
         data: formula,
       }),
-    onSuccess: invalidateSavedFormulas,
+    onSuccess: formula => invalidateSavedFormulas(formula.id),
   });
 
   return {saveFormula, isSaving};

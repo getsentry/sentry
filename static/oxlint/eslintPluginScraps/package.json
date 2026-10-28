@@ -10,10 +10,10 @@
     "test": "sentry-test --watch --config jest.config.mjs"
   },
   "dependencies": {
-    "@oxlint/plugins": "1.85.0"
+    "@oxlint/plugins": "1.88.0"
   },
   "devDependencies": {
-    "oxlint": "1.85.0",
+    "oxlint": "1.88.0",
     "typescript": "npm:@typescript/typescript6@6.0.2"
   }
 }

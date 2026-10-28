@@ -11,6 +11,7 @@ import {IconChevron} from '@sentry/icons/chevron';
 import {IconClose} from '@sentry/icons/close';
 
 import {Button} from '@sentry/scraps/button';
+import {PanelProvider} from '@sentry/scraps/panelProvider';
 import type {FormSize, Theme} from '@sentry/scraps/theme';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
@@ -18,7 +19,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {Choices} from 'sentry/types/core';
 import {convertFromSelect2Choices} from 'sentry/utils/convertFromSelect2Choices';
 import {defined} from 'sentry/utils/defined';
-import {PanelProvider} from 'sentry/utils/panelProvider';
 
 import {SelectOption} from './option';
 import type {

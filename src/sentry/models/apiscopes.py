@@ -1,10 +1,9 @@
 from collections.abc import Sequence
-from typing import TypedDict, overload
+from typing import overload
 
 from django.contrib.postgres.fields.array import ArrayField
 from django.db import models
 
-from bitfield import typed_dict_bitfield
 from sentry.conf.server import SENTRY_SCOPE_HIERARCHY_MAPPING, SENTRY_SCOPES
 
 
@@ -42,9 +41,11 @@ class ApiScopes(Sequence[str]):
     dashboard = (
         ("dashboard:read"),
         ("dashboard:create"),
-        ("dashboard:write"),
+        ("dashboard:update"),
         ("dashboard:delete"),
     )
+
+    seer = (("seer:read"), ("seer:write"))
 
     def __init__(self) -> None:
         self.scopes = (
@@ -55,6 +56,7 @@ class ApiScopes(Sequence[str]):
             + self.__class__.member
             + self.__class__.alerts
             + self.__class__.dashboard
+            + self.__class__.seer
         )
 
     @overload
@@ -80,41 +82,6 @@ class HasApiScopes(models.Model):
 
     class Meta:
         abstract = True
-
-    # List of scopes in bit form
-    ScopesDict = TypedDict(
-        "ScopesDict",
-        {
-            "project:read": bool,
-            "project:write": bool,
-            "project:admin": bool,
-            "project:releases": bool,
-            "team:read": bool,
-            "team:write": bool,
-            "team:admin": bool,
-            "event:read": bool,
-            "event:write": bool,
-            "event:admin": bool,
-            "org:read": bool,
-            "org:write": bool,
-            "org:admin": bool,
-            "member:read": bool,
-            "member:write": bool,
-            "member:admin": bool,
-            "org:integrations": bool,
-            "alerts:read": bool,
-            "alerts:write": bool,
-            "member:invite": bool,
-            "project:distribution": bool,
-            "org:ci": bool,
-            "dashboard:read": bool,
-            "dashboard:write": bool,
-            "dashboard:delete": bool,
-            "dashboard:create": bool,
-        },
-    )
-    assert set(ScopesDict.__annotations__) == set(ApiScopes())
-    scopes = typed_dict_bitfield(ScopesDict)
 
     # Human readable list of scopes
     scope_list = ArrayField(models.TextField(), default=list)

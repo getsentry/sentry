@@ -142,6 +142,7 @@ export function ConversationContentLayout({
               content={
                 <Container
                   ref={contentRef}
+                  data-scrollable
                   flex="1"
                   minWidth="0"
                   minHeight="0"

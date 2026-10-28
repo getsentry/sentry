@@ -476,6 +476,7 @@ function AddProjectButton({disabled}: {disabled: boolean}) {
       size="md"
       onClick={async () => {
         setIsLoadingModal(true);
+        // oxlint-disable-next-line react/todo
         try {
           const {ProjectAddRepoModal} =
             await import('sentry/components/seer/projectAddRepoModal/projectAddRepoModal');

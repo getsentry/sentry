@@ -1097,6 +1097,7 @@ export function useExplorerAutofix(
         }
         reportCodingAgentErrors([getApiErrorMessage(e, 'Failed to launch coding agent')]);
         throw e;
+        // oxlint-disable-next-line react/todo
       } finally {
         clearIndicators();
         setWaitingForCodingAgent(false);

@@ -1,14 +1,14 @@
 import {useState} from 'react';
-import styled from '@emotion/styled';
 import {uuid4} from '@sentry/core';
 import {useQuery} from '@tanstack/react-query';
 
-import {Disclosure} from '@sentry/scraps/disclosure';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {t} from 'sentry/locale';
+import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
+import {t, tn} from 'sentry/locale';
+import {humanize} from 'sentry/utils/string/humanize';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   investigationOrchestrationQueryOptions,
@@ -22,6 +22,7 @@ import {getSeerStatusBlock} from 'sentry/views/investigations/statusBlock/getSee
 import {SeerStatusBlock} from 'sentry/views/investigations/statusBlock/seerStatusBlock';
 import type {
   InvestigationHypothesis,
+  InvestigationHypothesisStatus,
   InvestigationOrchestrationPhase,
   InvestigationOrchestrationStatus,
 } from 'sentry/views/investigations/types';
@@ -294,7 +295,11 @@ export function InvestigationHypotheses({
     <Stack gap="3xl">
       {statusBlock ? <SeerStatusBlock {...statusBlock} /> : null}
       {hasHypotheses || awaitingFirstHypothesis ? (
-        <HypothesesPanel expanded={panelState.expanded} onExpandedChange={setExpanded}>
+        <HypothesesPanel
+          expanded={panelState.expanded}
+          hypotheses={projection.hypotheses}
+          onExpandedChange={setExpanded}
+        >
           {hasHypotheses ? (
             <HypothesisList
               hypotheses={projection.hypotheses}
@@ -312,87 +317,89 @@ export function InvestigationHypotheses({
 
 /**
  * Shared by the row and its placeholder so the panel keeps its shape when the
- * first hypothesis lands — only its contents change.
+ * first hypothesis lands — only its contents change. Uses the same card as the
+ * report's query blocks.
  */
 function HypothesesPanel({
   children,
   expanded,
+  hypotheses = [],
   onExpandedChange,
 }: {
   children: React.ReactNode;
   expanded: boolean;
   onExpandedChange: (expanded: boolean) => void;
+  hypotheses?: InvestigationHypothesis[];
 }) {
+  const tally = getHypothesisTally(hypotheses);
+
   return (
-    <Disclosure
+    <SeerEmbedBlock
       expanded={expanded}
       onExpandedChange={onExpandedChange}
-      border="primary"
-      radius="xl"
-      background="secondary"
-      data-test-id="investigation-run-panel"
+      status={
+        tally ? (
+          <Text size="sm" variant="muted" bold={false} wrap="nowrap">
+            {tally}
+          </Text>
+        ) : null
+      }
+      testId="investigation-run-panel"
+      title={t('Hypotheses')}
     >
-      <HypothesesTitle>
-        <Text variant="muted" bold>
-          {t('Hypotheses')}
-        </Text>
-      </HypothesesTitle>
-      <HypothesesContent>{children}</HypothesesContent>
-    </Disclosure>
+      {children}
+    </SeerEmbedBlock>
   );
 }
 
-// The card carries no padding of its own: the header row runs edge to edge
-// and the button inside it holds the padding, so the whole header is the hit
-// area and the focus ring traces the card's corners rather than sitting inset
-// in its padding.
-//
-// The `[data-disclosure] > *:has(> &)` rules style Disclosure's title row, the
-// button's parent. Starting from the Disclosure root matters twice over: a
-// nested selector that starts with `:` is glued onto the button's own class,
-// so a bare `:has(> &)` never matches, and the extra attribute outranks the
-// row's own single-class rules whichever stylesheet lands last.
-const HypothesesTitle = styled(Disclosure.Title)`
-  [data-disclosure] > *:has(> &) {
-    padding: 0;
-    border-radius: ${p => p.theme.radius.xl};
-  }
+/**
+ * Order and labels for the tally. Pending and investigating count together.
+ */
+const TALLY_ORDER: Array<{
+  label: (count: number) => string;
+  statuses: InvestigationHypothesisStatus[];
+}> = [
+  {statuses: ['supported'], label: count => tn('%s supported', '%s supported', count)},
+  {statuses: ['accepted'], label: count => tn('%s accepted', '%s accepted', count)},
+  {
+    statuses: ['inconclusive'],
+    label: count => tn('%s inconclusive', '%s inconclusive', count),
+  },
+  {statuses: ['refuted'], label: count => tn('%s refuted', '%s refuted', count)},
+  {statuses: ['rejected'], label: count => tn('%s rejected', '%s rejected', count)},
+  {statuses: ['failed'], label: count => tn('%s failed', '%s failed', count)},
+  {statuses: ['cancelled'], label: count => tn('%s cancelled', '%s cancelled', count)},
+  {
+    statuses: ['pending', 'investigating'],
+    label: count => tn('%s investigating', '%s investigating', count),
+  },
+];
 
-  /* No hover or press background: the header is part of the card, and a tint
-   * on it alone sets it apart from the body below when expanded. */
-  /* The state goes before ":has()", one rule each: written as a list with the
-   * state after ":has(> &)", stylis left the "&" unreplaced. */
-  [data-disclosure] > *:hover:has(> &) {
-    background: transparent;
+/**
+ * Counts verdicts for the panel header, e.g. "1 supported • 2 refuted".
+ * Statuses missing from `TALLY_ORDER` are counted under their own name.
+ */
+function getHypothesisTally(hypotheses: InvestigationHypothesis[]): string | null {
+  if (hypotheses.length === 0) {
+    return null;
   }
-
-  [data-disclosure] > *:active:has(> &) {
-    background: transparent;
+  const counts = new Map<InvestigationHypothesisStatus, number>();
+  for (const {effectiveStatus} of hypotheses) {
+    counts.set(effectiveStatus, (counts.get(effectiveStatus) ?? 0) + 1);
   }
-
-  /* Expanded, the header is only the top of the card. */
-  [data-disclosure] > *:has(> &[aria-expanded='true']) {
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
+  const known = new Set(TALLY_ORDER.flatMap(entry => entry.statuses));
+  const parts = TALLY_ORDER.flatMap(({label, statuses}) => {
+    const count = statuses.reduce(
+      (total, status) => total + (counts.get(status) ?? 0),
+      0
+    );
+    return count > 0 ? [label(count)] : [];
+  });
+  for (const [status, count] of counts) {
+    if (!known.has(status)) {
+      parts.push(`${count} ${humanize(status).toLowerCase()}`);
+    }
   }
-
-  && {
-    height: auto;
-    padding: ${p => p.theme.space.lg};
-    border-radius: inherit;
-    white-space: normal;
-    text-align: left;
-  }
-
-  && > span {
-    height: auto;
-    white-space: normal;
-    align-items: flex-start;
-  }
-`;
-
-// The header's bottom padding plus this top padding keeps the old `xl` gap
-// between the header and the first card.
-const HypothesesContent = styled(Disclosure.Content)`
-  padding: ${p => p.theme.space.xs} ${p => p.theme.space.lg} ${p => p.theme.space.lg};
-`;
+  // Only the parts are translated; the bullet is punctuation.
+  return parts.join(' • ');
+}

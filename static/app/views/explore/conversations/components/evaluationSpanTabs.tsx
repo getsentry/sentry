@@ -7,7 +7,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import {
-  EvaluatedText,
+  EvaluatedContent,
   EvaluationAnswers,
   EvaluationQuestions,
 } from 'sentry/views/insights/pages/agents/components/evaluationContent';
@@ -39,8 +39,8 @@ export function EvaluationInputTab({input, raw}: EvaluationInputTabProps) {
 
   return (
     <Stack gap="lg">
-      <Section title={t('Evaluated Text')} action={toggle}>
-        <EvaluatedText state={input.state} />
+      <Section title={t('Evaluated Content')} action={toggle}>
+        <EvaluatedContent state={input.state} />
       </Section>
       <QuestionsSection input={input} />
     </Stack>

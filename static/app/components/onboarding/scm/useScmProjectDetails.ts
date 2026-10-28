@@ -5,6 +5,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {captureProjectCreationFailure} from 'sentry/components/onboarding/captureProjectCreationFailure';
 import {linkProjectToRepository} from 'sentry/components/onboarding/scm/linkProjectToRepository';
 import type {ProjectDetailsFormState} from 'sentry/components/onboarding/scm/scmProjectDetailsTypes';
+import {getScmDefaultProjectName} from 'sentry/components/onboarding/scm/scmProjectName';
 import {useCreateProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
 import {t} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
@@ -175,7 +176,10 @@ export function useScmProjectDetails({
   // project; the backend assigns a team, matching classic project creation.
   const isOrgMemberWithNoAccess =
     accessTeams.length === 0 && !organization.access.includes('project:admin');
-  const defaultName = slugify(selectedPlatform?.key ?? '');
+  const defaultName = getScmDefaultProjectName({
+    repository: selectedRepository,
+    platformKey: selectedPlatform?.key,
+  });
 
   // Fields absent from the host-owned form fall back to derived defaults, so
   // a host resetting a field (e.g. the name on a platform change) re-derives it.
@@ -395,6 +399,7 @@ export function useScmProjectDetails({
         issueAlert = 'Default';
     }
 
+    // oxlint-disable-next-line react/todo
     try {
       // User navigated back and clicked Create without changing anything; skip
       // to completion without creating a duplicate. Any actual change abandons
@@ -488,7 +493,6 @@ export function useScmProjectDetails({
     teamSlugResolved,
   ]);
 
-  // oxlint-disable-next-line react/refs
   return {
     projectName: projectNameResolved,
     onProjectNameChange,

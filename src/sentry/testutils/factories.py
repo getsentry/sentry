@@ -65,13 +65,6 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleProjects,
     AlertRuleSeasonality,
     AlertRuleThresholdType,
-    AlertRuleTrigger,
-    AlertRuleTriggerAction,
-)
-from sentry.incidents.models.incident import (
-    Incident,
-    IncidentProject,
-    IncidentType,
 )
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.integrations.models.data_forwarder import DataForwarder
@@ -94,6 +87,7 @@ from sentry.integrations.types import ExternalProviders
 from sentry.integrations.utils.hostname import instance_hostname
 from sentry.investigations.models import (
     Investigation,
+    InvestigationActionRequest,
     InvestigationBlock,
     InvestigationBlockDependency,
     InvestigationBlockExecution,
@@ -166,7 +160,6 @@ from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.repository import Repository
 from sentry.models.repositorysettings import RepositorySettings
 from sentry.models.rule import Rule
-from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.team import Team
 from sentry.models.userreport import UserReport
 from sentry.models.weeklyreportprojectexclusion import WeeklyReportProjectExclusion
@@ -202,7 +195,13 @@ from sentry.seer.models.run import (
     SeerRunPullRequest,
     SeerRunType,
 )
-from sentry.seer.models.workflow import SeerWorkflowRun, SeerWorkflowRunExecution
+from sentry.seer.models.workflow import (
+    SeerWorkflowConfig,
+    SeerWorkflowConfigProject,
+    SeerWorkflowRun,
+    SeerWorkflowRunExecution,
+    SeerWorkflowTriggerBinding,
+)
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
@@ -218,6 +217,7 @@ from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
 from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
 from sentry.sentry_apps.services.hook import hook_service
 from sentry.sentry_apps.token_exchange.grant_exchanger import GrantExchanger
+from sentry.service_accounts.models import ServiceAccount, ServiceAccountProject
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.signals import project_created
 from sentry.silo.base import SiloMode
@@ -226,7 +226,6 @@ from sentry.snuba.models import QuerySubscriptionDataSourceHandler
 from sentry.snuba.subscriptions import bulk_create_snuba_subscriptions, create_snuba_query
 from sentry.tempest.models import MessageType as TempestMessageType
 from sentry.tempest.models import TempestCredentials
-from sentry.testutils.helpers.issue_alert_migration import IssueAlertMigrator
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
@@ -257,6 +256,7 @@ from sentry.workflow_engine.models import (
     AlertRuleDetector,
     AlertRuleWorkflow,
     DataCondition,
+    DataConditionAlertRuleTrigger,
     DataConditionGroup,
     DataConditionGroupAction,
     DataSource,
@@ -484,6 +484,17 @@ class Factories:
             block=block,
             author_id=author.id if author else None,
             body=body,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_action_request(
+        investigation, report_revision=0, key="action-request", **kwargs
+    ):
+        kwargs.setdefault("title", "An action request")
+        kwargs.setdefault("rationale", "Because it helps.")
+        return InvestigationActionRequest.objects.create(
+            investigation=investigation, report_revision=report_revision, key=key, **kwargs
         )
 
     @staticmethod
@@ -823,26 +834,20 @@ class Factories:
     def create_project_rule(
         project,
         action_data=None,
-        allow_no_action_data=False,
         condition_data=None,
         name="Test Alert",
         action_match="all",
         filter_match="all",
         frequency=30,
-        include_legacy_rule_id=True,
-        include_workflow_id=True,
         **kwargs,
     ):
-        actions = None
-        if not allow_no_action_data:
-            action_data = action_data or [
-                {
-                    "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
-                    "service": "webhooks",
-                    "name": "Send a notification via webhooks",
-                },
-            ]
-            actions = action_data
+        action_data = action_data or [
+            {
+                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+                "service": "webhooks",
+                "name": "Send a notification via webhooks",
+            },
+        ]
         condition_data = condition_data or [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
@@ -858,26 +863,14 @@ class Factories:
             "action_match": action_match,
             "filter_match": filter_match,
             "frequency": frequency,
+            "actions": action_data,
         }
-        if actions:
-            data["actions"] = actions
-
-        rule = Rule.objects.create(
+        return Rule.objects.create(
             label=name,
             project=project,
             data=data,
             **kwargs,
         )
-        # dual write the rule to the workflow engine
-        workflow = IssueAlertMigrator(rule).run()
-
-        # annotate the rule with legacy_rule_id and workflow_id
-        if include_legacy_rule_id:
-            rule.data["actions"][0]["legacy_rule_id"] = rule.id
-        if include_workflow_id:
-            rule.data["actions"][0]["workflow_id"] = workflow.id
-
-        return rule
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
@@ -1140,6 +1133,15 @@ class Factories:
             integration_id=organization_integration.integration_id,
             organization_id=organization_integration.organization_id,
             **kwargs,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_project_repository(
+        project, repository, source=ProjectRepositorySource.MANUAL
+    ) -> ProjectRepository:
+        return ProjectRepository.objects.create(
+            project=project, repository=repository, source=source
         )
 
     @staticmethod
@@ -2078,45 +2080,6 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
-    def create_incident(
-        organization,
-        projects,
-        detection_uuid=None,
-        status=1,
-        title=None,
-        query="test query",
-        date_started=None,
-        date_detected=None,
-        date_closed=None,
-        alert_rule=None,
-        subscription=None,
-    ):
-        if not title:
-            title = petname.generate(2, " ", letters=10).title()
-        if alert_rule is None:
-            alert_rule = Factories.create_alert_rule(
-                organization, projects, query=query, time_window=1
-            )
-
-        incident = Incident.objects.create(
-            organization=organization,
-            detection_uuid=detection_uuid,
-            status=status,
-            title=title,
-            alert_rule=alert_rule,
-            date_started=date_started or timezone.now(),
-            date_detected=date_detected or timezone.now(),
-            date_closed=timezone.now() if date_closed is not None else date_closed,
-            type=IncidentType.ALERT_TRIGGERED.value,
-            subscription=subscription,
-        )
-        for project in projects:
-            IncidentProject.objects.create(incident=incident, project=project)
-
-        return incident
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
     def create_alert_rule(
         organization,
         projects,
@@ -2200,47 +2163,6 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
-    def create_alert_rule_trigger(alert_rule, label=None, alert_threshold=100):
-        if not label:
-            label = petname.generate(2, " ", letters=10).title()
-
-        return AlertRuleTrigger.objects.create(
-            alert_rule=alert_rule,
-            label=label,
-            alert_threshold=alert_threshold,
-        )
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
-    def create_alert_rule_trigger_action(
-        trigger,
-        type=AlertRuleTriggerAction.Type.EMAIL,
-        target_type=AlertRuleTriggerAction.TargetType.USER,
-        target_identifier=None,
-        target_display=None,
-        integration=None,
-        sentry_app=None,
-        sentry_app_config=None,
-    ):
-        return AlertRuleTriggerAction.objects.create(
-            alert_rule_trigger=trigger,
-            type=type.value,
-            target_type=target_type.value,
-            target_identifier=str(target_identifier) if target_identifier is not None else None,
-            target_display=(
-                target_display
-                if target_display is not None
-                else sentry_app.name
-                if sentry_app
-                else None
-            ),
-            integration_id=integration.id if integration else None,
-            sentry_app_id=sentry_app.id if sentry_app else None,
-            sentry_app_config=sentry_app_config,
-        )
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
     def create_external_user(user: User, **kwargs: Any) -> ExternalActor:
         kwargs.setdefault("provider", ExternalProviders.GITHUB.value)
         kwargs.setdefault("external_name", "")
@@ -2309,6 +2231,28 @@ class Factories:
             service_account_email=service_account_email,
             **kwargs,
         )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_service_account(
+        organization: Organization,
+        name: str = "seer-autofix",
+        scope_list: Sequence[str] = ("org:read",),
+        project_ids: Sequence[int] = (),
+        **kwargs: Any,
+    ) -> ServiceAccount:
+        with outbox_context(transaction.atomic(using=router.db_for_write(ServiceAccount))):
+            service_account = ServiceAccount.objects.create(
+                organization_id=organization.id,
+                name=name,
+                scope_list=list(scope_list),
+                **kwargs,
+            )
+            ServiceAccountProject.objects.bulk_create(
+                ServiceAccountProject(service_account=service_account, project_id=project_id)
+                for project_id in project_ids
+            )
+        return service_account
 
     @staticmethod
     def create_organization_contributor(
@@ -2510,11 +2454,6 @@ class Factories:
         return b"Basic " + b64encode(f"{username}:{password}".encode())
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
-    def snooze_rule(**kwargs):
-        return RuleSnooze.objects.create(**kwargs)
-
-    @staticmethod
     def create_request_access(
         sso_state: RpcMemberSsoState | None = None,
         permissions: list | None = None,
@@ -2631,6 +2570,7 @@ class Factories:
             {
                 "name": "formula.custom_apdex",
                 "formula": "({count_satisfied} + {count_tolerating} / 2) / count()",
+                "description": "A custom version of apdex for testing",
                 "unit": None,
                 "dataset": "spans",
                 "references": [
@@ -2640,7 +2580,7 @@ class Factories:
                     },
                     {
                         "name": "count_tolerating",
-                        "value": "count_if(`{duration}:>={threshold} and {duration}:<={4threshold}`)",
+                        "value": "count_if(`{duration}:>={threshold} and {duration}:<={frustrated}`)",
                     },
                 ],
                 "params": [
@@ -2657,7 +2597,7 @@ class Factories:
                         "value": "",
                     },
                     {
-                        "name": "4threshold",
+                        "name": "frustrated",
                         "type": "calculation",
                         "order": 2,
                         "value": "{threshold} * 4",
@@ -2979,13 +2919,15 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
     def create_incident_group_open_period(
-        incident: Incident,
         group_open_period: GroupOpenPeriod,
+        *,
+        incident_id: int,
+        incident_identifier: int,
         **kwargs,
     ) -> IncidentGroupOpenPeriod:
         return IncidentGroupOpenPeriod.objects.create(
-            incident_id=incident.id,
-            incident_identifier=incident.identifier,
+            incident_id=incident_id,
+            incident_identifier=incident_identifier,
             group_open_period=group_open_period,
             **kwargs,
         )
@@ -3023,6 +2965,16 @@ class Factories:
 
         return ActionAlertRuleTriggerAction.objects.create(
             action=action, alert_rule_trigger_action_id=alert_rule_trigger_action_id
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_data_condition_alert_rule_trigger(
+        data_condition: DataCondition,
+        alert_rule_trigger_id: int,
+    ) -> DataConditionAlertRuleTrigger:
+        return DataConditionAlertRuleTrigger.objects.create(
+            data_condition=data_condition, alert_rule_trigger_id=alert_rule_trigger_id
         )
 
     @staticmethod
@@ -3416,6 +3368,28 @@ class Factories:
             agent_session_id=session_id,
             **kwargs,
         )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_seer_workflow_config(
+        organization, *, trigger_actions: Sequence[Action] = (), **kwargs
+    ) -> SeerWorkflowConfig:
+        config = SeerWorkflowConfig.objects.create(organization=organization, **kwargs)
+        for action in trigger_actions:
+            Factories.create_seer_workflow_trigger_binding(config, action)
+        return config
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_seer_workflow_trigger_binding(config, action) -> SeerWorkflowTriggerBinding:
+        return SeerWorkflowTriggerBinding.objects.create(
+            workflow_config=config, trigger_action=action
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_seer_workflow_config_project(config, project) -> SeerWorkflowConfigProject:
+        return SeerWorkflowConfigProject.objects.create(config=config, project=project)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)

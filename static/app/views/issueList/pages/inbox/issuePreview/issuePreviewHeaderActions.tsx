@@ -9,6 +9,7 @@ import {addSuccessMessage, clearIndicators} from 'sentry/actionCreators/indicato
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
+import type {Event} from 'sentry/types/event';
 import {
   GroupStatus,
   ProgressState,
@@ -33,7 +34,9 @@ import type {IssueSummary} from 'sentry/views/issueList/pages/inbox/issuePreview
 import {useInvalidateInboxQueries} from 'sentry/views/issueList/pages/inbox/useInvalidateInboxQueries';
 
 interface IssuePreviewHeaderActionsProps {
+  event: Event | undefined;
   group: Group;
+  isEventLoading: boolean;
   onContinueInSeer: () => void;
   onRetryCodeChanges: () => void;
   project: Project;
@@ -139,7 +142,9 @@ function IssuePreviewResolutionActions({
 
 export function IssuePreviewHeaderActions({
   disabled = false,
+  event,
   group,
+  isEventLoading,
   onContinueInSeer,
   onRetryCodeChanges,
   project,
@@ -169,6 +174,8 @@ export function IssuePreviewHeaderActions({
     return (
       <IssuePreviewActions
         group={group}
+        event={event}
+        isEventLoading={isEventLoading}
         summary={summary}
         project={project}
         disabled={disabled}

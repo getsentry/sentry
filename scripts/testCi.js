@@ -14,6 +14,7 @@ function runTests(command, args) {
   return result.status ?? 1;
 }
 
+// A child process lets the package tests run even when Jest uses --forceExit.
 const appStatus = await run([
   '--ci',
   '--maxWorkers=75%',

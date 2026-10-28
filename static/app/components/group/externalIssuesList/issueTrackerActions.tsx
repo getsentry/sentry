@@ -3,6 +3,7 @@ import {IconAdd} from '@sentry/icons/add';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 import type {Theme} from '@sentry/scraps/theme';
@@ -104,7 +105,17 @@ export function InlineIssueTrackerActions({
         const sharedButtonProps: ButtonProps = {
           size: 'zero',
           icon: integration.displayIcon ? (
-            <IssueTrackerIcon>{integration.displayIcon}</IssueTrackerIcon>
+            <Flex
+              as="span"
+              display="inline-flex"
+              justify="center"
+              align="center"
+              flexShrink={0}
+              width="14px"
+              height="14px"
+            >
+              {integration.displayIcon}
+            </Flex>
           ) : undefined,
           variant: 'transparent',
           children: <IssueActionName>{integration.displayName}</IssueActionName>,
@@ -139,7 +150,7 @@ export function InlineIssueTrackerActions({
         return (
           <ErrorBoundary key={integration.key} mini>
             <DropdownMenu
-              maxMenuHeight={ISSUE_TRACKER_MENU_MAX_HEIGHT}
+              maxHeight={ISSUE_TRACKER_MENU_MAX_HEIGHT}
               trigger={triggerProps => (
                 <IssueActionDropdownMenu
                   {...sharedButtonProps}
@@ -263,7 +274,7 @@ export function IssueTrackerActionDropdown({
 
   return (
     <DropdownMenu
-      maxMenuHeight={ISSUE_TRACKER_MENU_MAX_HEIGHT}
+      maxHeight={ISSUE_TRACKER_MENU_MAX_HEIGHT}
       trigger={(triggerProps, isOpen) => {
         const DropdownButtonComponent = fullWidth
           ? FullWidthDropdownButton
@@ -291,9 +302,18 @@ export function IssueTrackerActionDropdown({
             textValue,
             details: isDisabled ? tooltipTitle : details,
             leadingItems: (
-              <IssueTrackerIcon style={{transform: 'translateY(3px)'}}>
+              <Flex
+                as="span"
+                display="inline-flex"
+                justify="center"
+                align="center"
+                flexShrink={0}
+                width="14px"
+                height="14px"
+                style={{transform: 'translateY(3px)'}}
+              >
                 {integration.displayIcon}
-              </IssueTrackerIcon>
+              </Flex>
             ),
             disabled: isDisabled,
             onAction,
@@ -351,15 +371,6 @@ const FullWidthButton = styled(Button)`
 
 const FullWidthDropdownButton = styled(OverlayTrigger.Button)`
   ${fullWidthButtonStyles}
-`;
-
-const IssueTrackerIcon = styled('span')`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 14px;
-  height: 14px;
 `;
 
 const IssueActionName = styled('div')`

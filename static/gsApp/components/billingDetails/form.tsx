@@ -58,14 +58,12 @@ type State = {
 const GOOGLE_MAPS_API_KEY = ConfigStore.get('getsentry.googleMapsApiKey');
 
 function BillingDetailsFormFields({
-  form,
   initialData,
   handleStripeFormChange,
   state,
   taxFieldInfo,
   onSubmitDisabled,
 }: {
-  form: FormModel;
   handleStripeFormChange: (data: StripeAddressElementChangeEvent) => void;
   onSubmitDisabled: (disabled: boolean) => void;
   state: State;
@@ -119,7 +117,6 @@ function BillingDetailsFormFields({
                 'If provided, all billing-related notifications will be sent to this address'
               )}
               placeholder={t('name@example.com (optional)')}
-              value={form.getValue('billingEmail') ?? ''}
             />
           )}
           {stripeIsLoading && <LoadingIndicator />}
@@ -168,7 +165,6 @@ function BillingDetailsFormFields({
                 "Your company's [taxNumberName] will appear on all receipts. You may be subject to taxes depending on country specific tax policies.",
                 {taxNumberName: <strong>{taxFieldInfo.taxNumberName}</strong>}
               )}
-              value={form.getValue('taxNumber') ?? ''}
               placeholder={taxFieldInfo.placeholder}
             />
           )}
@@ -183,11 +179,9 @@ function CustomBillingDetailsFormField({
   label,
   help,
   placeholder,
-  value,
 }: {
   inputName: string;
   label: string;
-  value: string;
   help?: React.ReactNode;
   placeholder?: string;
 }) {
@@ -199,12 +193,7 @@ function CustomBillingDetailsFormField({
         </Text>
         <InfoTip title={help} size="sm" />
       </Flex>
-      <StyledTextField
-        name={inputName}
-        placeholder={placeholder}
-        value={value}
-        aria-label={label}
-      />
+      <StyledTextField name={inputName} placeholder={placeholder} aria-label={label} />
     </Stack>
   );
 }
@@ -318,7 +307,6 @@ export function BillingDetailsForm({
         onCancel={onCancel}
       >
         <BillingDetailsFormFields
-          form={form}
           initialData={initialData}
           handleStripeFormChange={handleStripeFormChange}
           state={state}

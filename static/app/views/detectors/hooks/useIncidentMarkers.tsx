@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef} from 'react';
+import {useCallback, useEffect, useMemo, useRef} from 'react';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import type {
@@ -330,6 +330,18 @@ export function useIncidentMarkers({
 
   const incidentPeriods = useMemo(() => incidents || [], [incidents]);
 
+  // since onChartReady only runs one time when its created, its handler functions
+  // need to read these refs to avoid calling a stale onClick and reading stale incidentPeriods
+  const latestIncidentPeriodsRef = useRef(incidentPeriods);
+
+  const latestOnClickRef = useRef(onClick);
+
+  useEffect(() => {
+    latestIncidentPeriodsRef.current = incidentPeriods;
+
+    latestOnClickRef.current = onClick;
+  }, [incidentPeriods, onClick]);
+
   const markerPadding = 2;
   const totalMarkerPaddingY = markerPadding * 2; // 2px padding on top and bottom
 
@@ -378,12 +390,6 @@ export function useIncidentMarkers({
   const onChartReady = useCallback<EChartChartReadyHandler>(
     echartsInstance => {
       chartRef.current = echartsInstance;
-
-      // Map incident start timestamps to periods for quick lookup on markLine clicks
-      const periodByStart = new Map<number, IncidentPeriod>();
-      for (const period of incidentPeriods) {
-        periodByStart.set(period.start, period);
-      }
 
       const handleMouseOver = (params: Parameters<EChartMouseOverHandler>[0]) => {
         if (
@@ -447,7 +453,9 @@ export function useIncidentMarkers({
       };
 
       const handleClick = (params: Parameters<EChartClickHandler>[0]) => {
-        if (!echartsInstance || !onClick) {
+        const latestOnClick = latestOnClickRef.current;
+
+        if (!echartsInstance || !latestOnClick) {
           return;
         }
 
@@ -455,7 +463,7 @@ export function useIncidentMarkers({
         if (params.componentType === 'series' && params.seriesId === seriesId) {
           const datum = params.data as IncidentPeriod;
           if (datum) {
-            onClick({item: 'bubble', period: datum});
+            latestOnClick({item: 'bubble', period: datum});
           }
           return;
         }
@@ -465,9 +473,15 @@ export function useIncidentMarkers({
           type MarkLineDatum = {xAxis?: number};
           const datum = params.data as MarkLineDatum;
           const start = typeof datum?.xAxis === 'number' ? datum.xAxis : undefined;
-          const period = start === undefined ? undefined : periodByStart.get(start);
+          // Use findLast to handle overlapping incidents properly
+          const period =
+            start === undefined
+              ? undefined
+              : latestIncidentPeriodsRef.current.findLast(
+                  incidentPeriod => incidentPeriod.start === start
+                );
           if (period) {
-            onClick({item: 'line', period});
+            latestOnClick({item: 'line', period});
           }
         }
       };
@@ -490,7 +504,7 @@ export function useIncidentMarkers({
         echartsInstance.off('click', handleClick);
       };
     },
-    [incidentPeriods, seriesId, theme, onClick]
+    [seriesId, theme]
   );
 
   const incidentMarkerSeries = useMemo(() => {

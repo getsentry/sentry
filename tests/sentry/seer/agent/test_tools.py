@@ -11,7 +11,7 @@ from rest_framework.exceptions import ParseError
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry import nodestore
-from sentry.api import client
+from sentry.api.client import client
 from sentry.constants import ObjectStatus
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.issues.ownership.grammar import Matcher, Owner, Rule, dump_schema
@@ -3128,11 +3128,10 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
 
     def test_get_repository_definition_unsupported_provider(self) -> None:
         """Test that repositories with unsupported providers are filtered out"""
-        # Create a GitLab repo (unsupported provider)
         Repository.objects.create(
             organization_id=self.organization.id,
             name="getsentry/seer",
-            provider="integrations:gitlab",
+            provider="integrations:unsupported-provider",
             external_id="12345678",
             integration_id=123,
             status=ObjectStatus.ACTIVE,
@@ -3143,7 +3142,6 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
             repo_full_name="getsentry/seer",
         )
 
-        # Should return None since GitLab is not a supported provider
         assert result is None
 
     def test_get_repository_definition_github_enterprise(self) -> None:
@@ -3206,7 +3204,7 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
         Repository.objects.create(
             organization_id=self.organization.id,
             name="getsentry/seer",
-            provider="integrations:gitlab",
+            provider="integrations:unsupported-provider",
             external_id="99999999",
             integration_id=999,
             status=ObjectStatus.ACTIVE,
@@ -3226,7 +3224,6 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
             repo_full_name="getsentry/seer",
         )
 
-        # Should return the GitHub repo, not GitLab
         assert result is not None
         assert result.provider == "integrations:github"
         assert result.external_id == "12345678"
@@ -3595,15 +3592,22 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
             mock_replay(datetime.now(UTC) - timedelta(seconds=5), self.project.id, replay1_id)
         )
 
-        # Store a replay at the very start of the retention period.
+        # Store a replay at the very start of the retention period. mock_replay defaults to
+        # 30-day retention, which ClickHouse's TTL would already have expired.
         self.store_replays(
             mock_replay(
-                datetime.now(UTC) - timedelta(days=89, seconds=10), self.project.id, replay2_id
+                datetime.now(UTC) - timedelta(days=89, seconds=10),
+                self.project.id,
+                replay2_id,
+                retention_days=90,
             )
         )
         self.store_replays(
             mock_replay(
-                datetime.now(UTC) - timedelta(days=89, seconds=5), self.project.id, replay2_id
+                datetime.now(UTC) - timedelta(days=89, seconds=5),
+                self.project.id,
+                replay2_id,
+                retention_days=90,
             )
         )
 
