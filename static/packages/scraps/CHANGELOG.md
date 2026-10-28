@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.4.0
+
+### New Features ✨
+
+#### Components
+
+- Add split panel by @natemoo-re in [#128834](https://github.com/getsentry/sentry/pull/128834)
+- Add menu by @natemoo-re in [#128833](https://github.com/getsentry/sentry/pull/128833)
+- Add spinner by @natemoo-re in [#128817](https://github.com/getsentry/sentry/pull/128817)
+
+#### Other
+
+- (scraps) Add `ToggleCard` component by @natemoo-re in [#128676](https://github.com/getsentry/sentry/pull/128676)
+
+### Internal Changes 🔧
+
+- (scraps) Extract toast provider and API by @TkDodo in [#129033](https://github.com/getsentry/sentry/pull/129033)
+
 ## 0.3.0
 
 ### Bug Fixes 🐛
