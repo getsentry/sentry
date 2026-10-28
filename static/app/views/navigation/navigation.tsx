@@ -54,7 +54,6 @@ import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationCon
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/content';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
-import {SettingsNavigationTourElement} from 'sentry/views/navigation/settingsNavigationTour';
 import {useCollapsedNavigation} from 'sentry/views/navigation/useCollapsedNavigation';
 import {useSettingsNavigation} from 'sentry/views/navigation/useSettingsNavigation';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
@@ -184,26 +183,17 @@ export function SettingsNavigationBackButton({
 }) {
   const {setActiveGroup} = usePrimaryNavigation();
   return (
-    <SettingsNavigationTourElement
-      id="back"
-      title={t('Back to Your Work')}
-      description={t('Use Back to app to return to where you left off.')}
-    >
-      {tourProps => (
-        <LinkButton
-          {...tourProps}
-          size="sm"
-          icon={<IconArrow direction="left" />}
-          aria-label={t('Back to app')}
-          tooltipProps={{title: t('Back to app')}}
-          to={getReturnPath(
-            getSettingsReturnPathKey(organizationSlug),
-            `/organizations/${organizationSlug}/issues/`
-          )}
-          onClick={() => setActiveGroup(null)}
-        />
+    <LinkButton
+      size="sm"
+      icon={<IconArrow direction="left" />}
+      aria-label={t('Back to app')}
+      tooltipProps={{title: t('Back to app')}}
+      to={getReturnPath(
+        getSettingsReturnPathKey(organizationSlug),
+        `/organizations/${organizationSlug}/issues/`
       )}
-    </SettingsNavigationTourElement>
+      onClick={() => setActiveGroup(null)}
+    />
   );
 }
 
@@ -216,72 +206,34 @@ export function SettingsPrimaryNavigationItems({
   const {scope: activeScope, projectSlug: activeProjectSlug} = useSettingsScope();
   const projectSlug = activeProjectSlug ?? projects[0]?.slug;
   const projectSettingsPath = `/settings/${organizationSlug}/projects/`;
-  return (
-    <Fragment>
-      <SettingsNavigationTourElement
-        id="org"
-        title={t('Organization Settings')}
-        description={t('Manage your organization, members, teams, and billing here.')}
+  const items = [
+    {
+      key: 'org',
+      label: t('Org'),
+      to: `/settings/${organizationSlug}/`,
+      icon: <IconBuilding />,
+    },
+    {
+      key: 'project',
+      label: t('Project'),
+      to: projectSlug ? `${projectSettingsPath}${projectSlug}/` : projectSettingsPath,
+      icon: <IconProject />,
+    },
+    {key: 'account', label: t('Account'), to: '/settings/account/', icon: <IconUser />},
+  ];
+
+  return items.map(({key, label, to, icon}) => (
+    <PrimaryNavigation.ListItem key={to}>
+      <PrimaryNavigation.Link
+        to={to}
+        analyticsKey={`settings-${key}`}
+        label={label}
+        aria-current={key === activeScope ? 'location' : undefined}
       >
-        {tourProps => (
-          <PrimaryNavigation.ListItem {...tourProps}>
-            <PrimaryNavigation.Link
-              to={`/settings/${organizationSlug}/`}
-              analyticsKey="settings-org"
-              label={t('Org')}
-              aria-current={activeScope === 'org' ? 'location' : undefined}
-            >
-              <IconBuilding />
-            </PrimaryNavigation.Link>
-          </PrimaryNavigation.ListItem>
-        )}
-      </SettingsNavigationTourElement>
-      <SettingsNavigationTourElement
-        id="project"
-        title={t('Project Settings')}
-        description={t(
-          'Open Project settings to configure a project. Use the project selector at the top of the sidebar to switch projects.'
-        )}
-      >
-        {tourProps => (
-          <PrimaryNavigation.ListItem {...tourProps}>
-            <PrimaryNavigation.Link
-              to={
-                projectSlug
-                  ? `${projectSettingsPath}${projectSlug}/`
-                  : projectSettingsPath
-              }
-              analyticsKey="settings-project"
-              label={t('Project')}
-              aria-current={activeScope === 'project' ? 'location' : undefined}
-            >
-              <IconProject />
-            </PrimaryNavigation.Link>
-          </PrimaryNavigation.ListItem>
-        )}
-      </SettingsNavigationTourElement>
-      <SettingsNavigationTourElement
-        id="account"
-        title={t('Account Settings')}
-        description={t(
-          'Manage your profile, notifications, and personal preferences here.'
-        )}
-      >
-        {tourProps => (
-          <PrimaryNavigation.ListItem {...tourProps}>
-            <PrimaryNavigation.Link
-              to="/settings/account/"
-              analyticsKey="settings-account"
-              label={t('Account')}
-              aria-current={activeScope === 'account' ? 'location' : undefined}
-            >
-              <IconUser />
-            </PrimaryNavigation.Link>
-          </PrimaryNavigation.ListItem>
-        )}
-      </SettingsNavigationTourElement>
-    </Fragment>
-  );
+        {icon}
+      </PrimaryNavigation.Link>
+    </PrimaryNavigation.ListItem>
+  ));
 }
 
 interface PrimaryNavigationItemsProps {

@@ -46,7 +46,10 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
-import {SettingsNavigationTourElement} from 'sentry/views/navigation/settingsNavigationTour';
+import {
+  SettingsNavigationTourElement,
+  useSettingsNavigationTour,
+} from 'sentry/views/navigation/settingsNavigationTour';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
@@ -71,6 +74,9 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
 
   const organization = useOrganization();
   const settingsV3 = useSettingsV3();
+  const settingsTour = useSettingsNavigationTour();
+  const [isMenuOpen, setMenuOpen] = useState(false);
+  const isProjectTourActive = settingsTour?.step === 'projects';
   const {organizations} = useLegacyStore(OrganizationsStore);
 
   const [activeOrgs, inactiveOrgs] = partition(
@@ -145,6 +151,17 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
 
     return (
       <DropdownMenu
+        isOpen={isProjectTourActive || isMenuOpen}
+        onOpenChange={open => {
+          setMenuOpen(open);
+          if (!open && isProjectTourActive) {
+            settingsTour?.dismiss();
+          }
+        }}
+        shouldCloseOnBlur={isProjectTourActive ? false : undefined}
+        shouldCloseOnInteractOutside={element =>
+          !element.closest('[data-settings-navigation-tour]')
+        }
         usePortal
         portalContainerRef={portalContainerRef}
         zIndex={theme.zIndex.modal}
@@ -199,7 +216,32 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
           },
           {
             key: 'project-settings',
-            label: t('Project Settings'),
+            label: (
+              <SettingsNavigationTourElement
+                id="projects"
+                title={t('Quick settings-access for your important Projects')}
+                description={t(
+                  'Pin your important Projects to this list, by starring them in the Project page filter.'
+                )}
+              >
+                {tourProps => (
+                  <Text
+                    ref={node => {
+                      const anchor = node?.closest('li') ?? node;
+                      if (typeof tourProps.ref === 'function') {
+                        return tourProps.ref(anchor);
+                      }
+                      if (tourProps.ref) {
+                        tourProps.ref.current = anchor;
+                      }
+                    }}
+                  >
+                    {t('Project Settings')}
+                  </Text>
+                )}
+              </SettingsNavigationTourElement>
+            ),
+            textValue: t('Project Settings'),
             hidden: props.hideCurrentOrganizationLinks,
             children: [
               ...sortProjects(projects.filter(project => project.isBookmarked))

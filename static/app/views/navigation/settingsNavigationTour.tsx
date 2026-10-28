@@ -7,7 +7,6 @@ import {useModal} from '@sentry/scraps/modal';
 import {TourAction, TourGuide, TextTourAction} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useNavigationTour} from 'sentry/views/navigation/navigationTour';
@@ -15,7 +14,7 @@ import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationCon
 import {useSettingsNavigation} from 'sentry/views/navigation/useSettingsNavigation';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
-const STEPS = ['entry', 'org', 'project', 'account', 'back'] as const;
+const STEPS = ['entry', 'projects'] as const;
 type Step = (typeof STEPS)[number];
 
 const SettingsNavigationTourContext = createContext<{
@@ -33,17 +32,16 @@ export function SettingsNavigationTourProvider({children}: {children: ReactNode}
   const {layout} = usePrimaryNavigation();
   const {currentStepId} = useNavigationTour();
   const {visible} = useModal();
-  const navigate = useNavigate();
   const [completed, setCompleted] = useLocalStorageState(
     'settings-navigation-tour:' + user.id,
     false
   );
-  const [requestedStep, setStep] = useState<Step>(inSettings ? 'org' : 'entry');
-  const step = inSettings ? (requestedStep === 'entry' ? 'org' : requestedStep) : 'entry';
+  const [step, setStep] = useState<Step>('entry');
   const active =
     enabled &&
     !!organization &&
     layout === 'sidebar' &&
+    !inSettings &&
     !completed &&
     !currentStepId &&
     !visible;
@@ -54,13 +52,9 @@ export function SettingsNavigationTourProvider({children}: {children: ReactNode}
       dismiss();
       return;
     }
-    if (step === 'entry' && organization) {
-      navigate('/settings/' + organization.slug + '/');
-    }
     setStep(nextStep);
   };
-  const previous = () =>
-    setStep(STEPS[Math.max(inSettings ? 1 : 0, STEPS.indexOf(step) - 1)] ?? step);
+  const previous = () => setStep('entry');
 
   useHotkeys(active ? [{match: 'Escape', callback: dismiss}] : []);
 
@@ -71,6 +65,10 @@ export function SettingsNavigationTourProvider({children}: {children: ReactNode}
       {children}
     </SettingsNavigationTourContext>
   );
+}
+
+export function useSettingsNavigationTour() {
+  return useContext(SettingsNavigationTourContext);
 }
 
 export function SettingsNavigationTourElement({
@@ -93,22 +91,22 @@ export function SettingsNavigationTourElement({
       title={title}
       description={description}
       isOpen={context?.step === id}
-      position={id === 'entry' ? 'bottom-start' : 'right-start'}
+      position={id === 'entry' ? 'bottom-start' : 'right'}
       stepCount={STEPS.indexOf(id) + 1}
       stepTotal={STEPS.length}
       handleDismiss={context?.dismiss}
       actions={
-        <Flex gap="md" align="center">
+        <Flex data-settings-navigation-tour gap="md" align="center">
           <TextTourAction size="xs" onClick={context?.dismiss}>
             {t('Skip tour')}
           </TextTourAction>
-          {id !== 'entry' && id !== 'org' && (
+          {id === 'projects' && (
             <TextTourAction size="xs" onClick={context?.previous}>
               {t('Previous')}
             </TextTourAction>
           )}
           <TourAction size="xs" onClick={context?.next}>
-            {id === 'back' ? t('Done') : t('Next')}
+            {id === 'projects' ? t('Done') : t('Next')}
           </TourAction>
         </Flex>
       }

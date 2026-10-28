@@ -241,26 +241,32 @@ describe('desktop navigation', () => {
       });
     });
 
-    it('shows the settings tour and lets users close it before navigating', async () => {
+    it('opens the organization menu for the second tour step and closes it on Done', async () => {
       localStorage.removeItem(`settings-navigation-tour:${UserFixture().id}`);
       const {router} = render(
         <PrimaryNavigationContextProvider>
           <Navigation />
         </PrimaryNavigationContextProvider>,
-        navigationContext({
-          organization: settingsV3,
-          initialRouterConfig: {location: {pathname: '/organizations/org-slug/issues/'}},
-        })
+        navigationContext({organization: settingsV3})
       );
-
       expect(await screen.findByText('Access Settings here')).toBeInTheDocument();
       await userEvent.click(screen.getByRole('button', {name: 'Next'}));
-      expect(router.location.pathname).toBe('/settings/org-slug/');
-      expect(await screen.findByText('Organization Settings')).toBeInTheDocument();
-      await userEvent.click(screen.getByRole('button', {name: 'Close'}));
-      expect(screen.queryByText('Organization Settings')).not.toBeInTheDocument();
-      await userEvent.click(screen.getByRole('link', {name: 'Account'}));
-      expect(router.location.pathname).toBe('/settings/account/');
+      expect(
+        await screen.findByText('Quick settings-access for your important Projects')
+      ).toBeInTheDocument();
+      expect(screen.getByRole('menuitemradio', {name: 'Settings'})).toBeInTheDocument();
+      expect(router.location.pathname).toBe('/organizations/org-slug/issues/');
+      await userEvent.click(screen.getByRole('button', {name: 'Previous'}));
+      expect(await screen.findByText('Access Settings here')).toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Settings'})
+      ).not.toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Next'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Done'}));
+      expect(screen.queryByRole('button', {name: 'Done'})).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Settings'})
+      ).not.toBeInTheDocument();
     });
 
     it('shows the settings scope rail', async () => {
