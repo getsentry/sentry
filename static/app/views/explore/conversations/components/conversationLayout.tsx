@@ -6,8 +6,8 @@ import {SplitPanel} from '@sentry/scraps/splitPanel';
 
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
+import {AiSpanDetails} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/aiSpanDetails';
 
 const LEFT_PANEL_MIN = 400;
 const RIGHT_PANEL_MIN = 400;
@@ -217,13 +217,10 @@ function MeasuredContentSplit({
 export function ConversationDetailPanel({
   selectedNode,
   nodeTraceMap,
-  initiallyCollapseAiIO = true,
 }: {
   nodeTraceMap: Map<string, string>;
-  initiallyCollapseAiIO?: boolean;
   selectedNode?: AITraceSpanNode;
 }) {
-  const organization = useOrganization();
   return (
     <Stack
       flex={1}
@@ -232,14 +229,12 @@ export function ConversationDetailPanel({
       overflowY="auto"
       overflowX="hidden"
     >
-      {selectedNode?.renderDetails({
-        node: selectedNode,
-        onTabScrollToNode: () => {},
-        organization,
-        traceId: nodeTraceMap.get(selectedNode.id) ?? '',
-        hideNodeActions: true,
-        initiallyCollapseAiIO,
-      })}
+      {selectedNode ? (
+        <AiSpanDetails
+          node={selectedNode}
+          traceId={nodeTraceMap.get(selectedNode.id) ?? ''}
+        />
+      ) : null}
     </Stack>
   );
 }
