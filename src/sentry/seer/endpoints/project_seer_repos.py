@@ -390,9 +390,9 @@ class ProjectSeerRepoEndpoint(ProjectEndpoint):
 class ProjectSeerReposEndpoint(ProjectEndpoint):
     owner = ApiOwner.ML_AI
     publish_status = {
-        "GET": ApiPublishStatus.PUBLIC,
-        "POST": ApiPublishStatus.PUBLIC,
-        "PUT": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
+        "POST": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
+        "PUT": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
 
     @extend_schema(
