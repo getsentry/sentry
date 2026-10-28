@@ -1,7 +1,9 @@
 from typing import TypedDict
 
+from django.contrib.auth import authenticate
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import router, transaction
+from django.urls import reverse
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -11,6 +13,7 @@ from sentry import ratelimits as ratelimiter
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
+from sentry.api.helpers.auth import get_auth_success_payload
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.auth import (
     AuthRecoveryAccepted,
@@ -23,6 +26,7 @@ from sentry.security.utils import capture_security_activity
 from sentry.users.models.lostpasswordhash import LostPasswordHash
 from sentry.users.models.user import User
 from sentry.users.services.user.service import user_service
+from sentry.utils import auth
 from sentry.utils.auth import find_users
 
 
@@ -56,6 +60,14 @@ class AuthRecoveryTokenRequestSerializer(CamelSnakeSerializer[AuthRecoveryTokenR
 
 class AuthRecoveryTokenResponse(TypedDict):
     valid: bool
+
+
+class AuthPasswordAssignmentResponse(TypedDict):
+    nextUri: str
+
+
+class AuthPasswordAssignmentResponseSerializer(serializers.Serializer):
+    nextUri = serializers.CharField()
 
 
 class AuthRecoveryTokenResponseSerializer(serializers.Serializer):
@@ -220,4 +232,39 @@ class AuthRecoveryConfirmEndpoint(Endpoint):
         )
         reset_2fa_rate_limits(user.id)
 
+        return self.get_success_response(request, user)
+
+    def get_success_response(self, request: Request, user: User) -> Response:
         return Response(status=204)
+
+
+@extend_schema(tags=["Users"])
+@control_silo_endpoint
+class AuthPasswordAssignmentEndpoint(AuthRecoveryConfirmEndpoint):
+    @extend_schema(
+        operation_id="Validate account password assignment token",
+        parameters=[AuthRecoveryTokenRequestSerializer],
+        responses={200: AuthRecoveryTokenResponseSerializer},
+    )
+    def get(self, request: Request) -> Response:
+        return super().get(request)
+
+    @extend_schema(
+        operation_id="Assign account password",
+        request=AuthRecoveryConfirmRequestSerializer,
+        responses={200: AuthPasswordAssignmentResponseSerializer},
+    )
+    def post(self, request: Request) -> Response:
+        return super().post(request)
+
+    def get_success_response(self, request: Request, user: User) -> Response:
+        if user.has_2fa():
+            return Response({"nextUri": reverse("sentry-login")})
+
+        authenticated_user = authenticate(username=user.username, password=request.data["password"])
+        assert isinstance(authenticated_user, User), authenticated_user
+        auth.login(request, authenticated_user)
+        payload: AuthPasswordAssignmentResponse = {
+            "nextUri": get_auth_success_payload(request, authenticated_user)["nextUri"]
+        }
+        return Response(payload)
