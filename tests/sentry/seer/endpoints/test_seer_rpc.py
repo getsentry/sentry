@@ -1627,13 +1627,18 @@ class TestGetUserScmIdentity(APITestCase):
         )
 
     def _call(self, *, actor: Actor, viewer_org_id: int, provider: str = "github") -> Any:
-        path = reverse(
-            "sentry-api-0-seer-rpc-service", kwargs={"method_name": "get_user_scm_identity"}
+        return self._post(
+            "get_user_scm_identity",
+            {"org_id": self.organization.id, "provider": provider},
+            actor=actor,
+            viewer_org_id=viewer_org_id,
         )
-        data: dict[str, Any] = {
-            "args": {"org_id": self.organization.id, "provider": provider},
-            "meta": {},
-        }
+
+    def _post(
+        self, method_name: str, args: dict[str, Any], *, actor: Actor, viewer_org_id: int
+    ) -> Any:
+        path = reverse("sentry-api-0-seer-rpc-service", kwargs={"method_name": method_name})
+        data: dict[str, Any] = {"args": args, "meta": {}}
         body = orjson.dumps(data).decode()
         response = self.client.post(
             path,
@@ -1724,3 +1729,29 @@ class TestGetUserScmIdentity(APITestCase):
             viewer_org_id=self.create_organization().id,
         )
         assert data == {"identity": None}
+
+    def test_deprecated_get_commit_author_still_resolves_the_viewing_user(self) -> None:
+        self._link_github()
+        data = self._post(
+            "get_commit_author",
+            {"org_id": self.organization.id},
+            actor=Actor(type=ActorType.USER, actor_id=self.actor.id),
+            viewer_org_id=self.organization.id,
+        )
+        assert data == {
+            "author": {
+                "name": "Mona Lisa",
+                "email": "583231+octocat@users.noreply.github.com",
+                "scm_login": "octocat",
+            }
+        }
+
+    def test_deprecated_get_commit_author_still_checks_the_viewer_org(self) -> None:
+        self._link_github()
+        data = self._post(
+            "get_commit_author",
+            {"org_id": self.organization.id},
+            actor=Actor(type=ActorType.USER, actor_id=self.actor.id),
+            viewer_org_id=self.create_organization().id,
+        )
+        assert data == {"author": None}

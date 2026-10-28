@@ -118,6 +118,11 @@ class OrganizationSlugResponse(BaseModel):
     slug: str
 
 
+class CommitAuthorResponse(BaseModel):
+    # Deprecated with ``get_commit_author``; see ``UserScmIdentityResponse``.
+    author: SeerCommitAuthor | None = None
+
+
 class UserScmIdentityResponse(BaseModel):
     # None when the viewer has no identity on the provider that Sentry can credit.
     identity: SeerCommitAuthor | None = None

@@ -122,6 +122,7 @@ from sentry.seer.public_caller import restrict_projects
 from sentry.seer.pull_requests import notify_seer_pr_created
 from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.sentry_data_models import (
+    CommitAuthorResponse,
     GetRepoInstallationIdErrorResponse,
     GetRepoInstallationIdSuccessResponse,
     GitHubEnterpriseConfigErrorResponse,
@@ -435,6 +436,13 @@ def get_user_scm_identity(*, org_id: int, provider: SeerSCMProvider) -> UserScmI
             # Only github.com identities resolve so far.
             identity = None
     return UserScmIdentityResponse(identity=identity)
+
+
+def get_commit_author(*, org_id: int) -> CommitAuthorResponse:
+    """Deprecated: ``get_user_scm_identity`` for github. Remove once Seer no longer calls it."""
+    return CommitAuthorResponse(
+        author=get_user_scm_identity(org_id=org_id, provider="github").identity
+    )
 
 
 def find_referenced_fix_statements(*, org_id: int, text: str) -> ReferencedFixStatementsResponse:
@@ -1014,6 +1022,7 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     "get_metric_attributes_for_trace": seer_rpc(get_metric_attributes_for_trace),
     "get_baseline_tag_distribution": seer_rpc(get_baseline_tag_distribution),
     "get_dsn": seer_rpc(get_dsn),
+    "get_commit_author": seer_rpc(get_commit_author),
     "get_user_scm_identity": seer_rpc(get_user_scm_identity),
     #
     # Replays
