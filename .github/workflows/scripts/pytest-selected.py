@@ -10,11 +10,10 @@ its own files. pytest args pass through unchanged.
 - Selective runs (SELECTED_TESTS_FILE set): each shard gets whole selected
   files, balanced by the per-file test counts in `selected-tests.counts.json`.
   A file too big for one shard gets several shards, which split it by test.
-- Full runs: each shard gets whole files and hash slices of the slowest files,
-  balanced by the per-file durations in `backend-test-durations.json`. The plan
-  depends only on the checkout (file tree and that file), so a commit always
-  gets the same shards. Tests keep collection order within a shard. Without that
-  file, every shard collects everything and keeps its hash share, as before.
+- Full runs: each shard gets whole files and hash slices of the biggest files,
+  balanced by live per-file test counts. The plan depends only on the
+  checkout's file tree, so a commit always gets the same shards. Tests keep
+  collection order within a shard.
 """
 
 from __future__ import annotations
@@ -29,8 +28,7 @@ from pathlib import Path
 
 import pytest
 
-DURATIONS_FILE = Path(__file__).parent / "backend-test-durations.json"
-# Full runs split files slower than 1/PIECES_PER_SHARD of a shard by test.
+# Full runs split files bigger than 1/PIECES_PER_SHARD of a shard by test.
 # Files run in collection order, so a big file that starts late on an xdist
 # worker holds up the whole shard; this bounds how big that can be.
 PIECES_PER_SHARD = 48
@@ -146,20 +144,17 @@ def list_test_files(args: list[str]) -> list[str]:
 
 
 def file_weights(files: list[str]) -> dict[str, float]:
-    """Seconds per file from the last full run, estimated from test counts for new files."""
-    durations = json.loads(DURATIONS_FILE.read_text())
-    known: dict[str, float] = durations["files"]
-    weights = {}
-    for path in files:
-        if path in known:
-            weights[path] = known[path]
-        elif os.path.basename(path).startswith("test_"):
-            from count_test_items import count_tests_in_file
+    """Test counts per file, counted live from source so nothing is maintained."""
+    from count_test_items import count_tests_in_file
 
-            weights[path] = count_tests_in_file(Path(path)) * durations["seconds_per_test"]
-        else:
-            weights[path] = 0.0
-    return weights
+    return {
+        path: (
+            float(count_tests_in_file(Path(path)))
+            if os.path.basename(path).startswith("test_")
+            else 0.0
+        )
+        for path in files
+    }
 
 
 def per_file_plan_applies(args: list[str], files: list[str]) -> bool:
@@ -223,7 +218,7 @@ def main(args: list[str]) -> int:
     selected_file = os.environ.get("SELECTED_TESTS_FILE")
     total = int(os.environ.get("TOTAL_TEST_GROUPS", 1))
     group = int(os.environ.get("TEST_GROUP", 0))
-    if not selected_file and total > 1 and DURATIONS_FILE.is_file():
+    if not selected_file and total > 1:
         return run_full_shard(args, total, group)
     if not selected_file or not os.path.isfile(selected_file) or total <= 1:
         return int(pytest.main(args))

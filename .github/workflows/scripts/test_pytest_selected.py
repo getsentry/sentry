@@ -114,10 +114,12 @@ def pieces_per_shard(n: int) -> AbstractContextManager[object]:
     return mock.patch.object(_mod, "PIECES_PER_SHARD", n)
 
 
-def write_files(root: Path, files: list[str]) -> None:
+def write_files(root: Path, files: list[str], counts: dict[str, int] | None = None) -> None:
     for path in files:
         (root / path).parent.mkdir(parents=True, exist_ok=True)
-        (root / path).write_text("def test_one(): pass\ndef test_two(): pass\n")
+        (root / path).write_text(
+            "".join(f"def test_{i}(): pass\n" for i in range((counts or {}).get(path, 2)))
+        )
 
 
 def assert_runs_every_test_once(plan: list[Any], tests: dict[str, list[str]]) -> None:
@@ -200,15 +202,12 @@ def test_list_test_files_lists_python_files_under_roots_minus_ignores(tmp_path: 
 def run_full_main(
     tmp_path: Path,
     files: list[str],
-    durations: dict[str, object] | None,
+    counts: dict[str, int] | None,
     total: int,
     group: int,
     addopts: str = "",
 ) -> tuple[int, list[tuple[object, ...]]]:
-    write_files(tmp_path, files)
-    durations_file = tmp_path / "durations.json"
-    if durations is not None:
-        durations_file.write_text(json.dumps(durations))
+    write_files(tmp_path, files, counts)
     calls: list[tuple[object, ...]] = []
 
     def fake_main(args: list[str]) -> pytest.ExitCode:
@@ -225,7 +224,6 @@ def run_full_main(
     with (
         contextlib.chdir(tmp_path),
         mock.patch.dict(os.environ, env),
-        mock.patch.object(_mod, "DURATIONS_FILE", durations_file),
         mock.patch.object(pytest, "main", fake_main),
     ):
         return main(["tests", "-q"]), calls
@@ -234,48 +232,38 @@ def run_full_main(
 class TestFullRunMain:
     def test_runs_only_this_shards_files(self, tmp_path: Path) -> None:
         files = ["tests/test_a.py", "tests/test_b.py", "tests/test_new.py"]
-        durations = {"seconds_per_test": 1.0, "files": {"tests/test_a.py": 3.0}}
         with pieces_per_shard(1):
-            exit_code, calls = run_full_main(tmp_path, files, durations, 2, 1)
+            exit_code, calls = run_full_main(tmp_path, files, {"tests/test_a.py": 3}, 2, 1)
         shard_file = ".artifacts/full-tests.shard-1.txt"
         parts_file = ".artifacts/full-tests.shard-1.json"
         assert exit_code == 0
         assert calls == [(["tests", "-q"], shard_file, "1", "0", parts_file)]
-        # test_a.py (3s) on its own; test_new.py is estimated from its 2 tests.
+        # test_a.py (3 tests) on its own; the others hold 2 tests each.
         assert (tmp_path / shard_file).read_text() == "tests/test_b.py\ntests/test_new.py\n"
         assert json.loads((tmp_path / parts_file).read_text()) == {}
 
-    def test_new_and_renamed_files_run_once_with_estimated_weight(self, tmp_path: Path) -> None:
-        # test_renamed.py was test_old.py when the durations were recorded: the stale
-        # entry is ignored and the new name is weighted by its 2 tests, like any new file.
+    def test_every_file_runs_once_with_live_counted_weight(self, tmp_path: Path) -> None:
         files = [f"tests/test_{i}.py" for i in range(8)] + ["tests/test_renamed.py"]
-        durations = {
-            "seconds_per_test": 1.5,
-            "files": {f"tests/test_{i}.py": 3.0 for i in range(8)} | {"tests/test_old.py": 9.0},
-        }
-        durations_file = tmp_path / "durations.json"
-        durations_file.write_text(json.dumps(durations))
-        write_files(tmp_path, files)
+        counts = {f"tests/test_{i}.py": 3 for i in range(8)} | {"tests/test_renamed.py": 2}
+        write_files(tmp_path, files, counts)
         with (
             contextlib.chdir(tmp_path),
-            mock.patch.object(_mod, "DURATIONS_FILE", durations_file),
             pieces_per_shard(1),
         ):
             weights = _mod.file_weights(_mod.list_test_files(["tests"]))
             plan = plan_full_shards(weights, 3)
-        assert weights["tests/test_renamed.py"] == 3.0
-        assert "tests/test_old.py" not in weights
+        assert weights == {path: float(n) for path, n in counts.items()}
         assert plan is not None
         assert sorted(f for s in plan for f in s.files) == sorted(files)
 
-    def test_without_durations_every_shard_collects_everything(self, tmp_path: Path) -> None:
-        _, calls = run_full_main(tmp_path, ["tests/test_a.py"], None, 3, 1)
-        assert calls == [(["tests", "-q"], "", "3", "1", None)]
+    def test_unplannable_files_fall_back_to_hash_sharding(self, tmp_path: Path) -> None:
+        # A zero-weight helper file cannot fill two shards, so every shard collects everything.
+        _, calls = run_full_main(tmp_path, ["tests/helpers.py"], None, 2, 1)
+        assert calls == [(["tests", "-q"], "", "2", "1", None)]
 
     def test_filtered_run_falls_back_to_hash_sharding(self, tmp_path: Path) -> None:
-        durations = {"seconds_per_test": 1.0, "files": {}}
         _, calls = run_full_main(
-            tmp_path, ["tests/test_a.py", "tests/test_b.py"], durations, 16, 12, "-m snuba_ci"
+            tmp_path, ["tests/test_a.py", "tests/test_b.py"], None, 16, 12, "-m snuba_ci"
         )
         assert calls == [(["tests", "-q"], "", "16", "12", None)]
 

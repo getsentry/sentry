@@ -10,13 +10,12 @@ from pathlib import Path
 import pytest
 
 import sentry
-from sentry.utils import json, redis
+from sentry.utils import redis
 
 SCRIPTS = Path(sentry.__file__).parents[2] / ".github" / "workflows" / "scripts"
 SHARDS = 4
 
-# Runs pytest-selected.py the way CI does, with this project's durations
-# and no file split.
+# Runs pytest-selected.py the way CI does, with no file split.
 DRIVER = textwrap.dedent(
     """
     import importlib, os, sys
@@ -24,7 +23,6 @@ DRIVER = textwrap.dedent(
     sys.path[0] = os.getcwd()
     sys.path.append(os.environ["SCRIPTS"])
     selected = importlib.import_module("pytest-selected")
-    selected.DURATIONS_FILE = Path("durations.json")
     selected.PIECES_PER_SHARD = 1
     raise SystemExit(selected.main(sys.argv[1:]))
     """
@@ -76,7 +74,6 @@ def test_filtered_run_spreads_selected_tests_over_every_shard(tmp_path: Path) ->
     files = {
         "conftest.py": "from sentry.testutils.pytest.sentry import pytest_collection_modifyitems, pytest_ignore_collect  # noqa: F401\n",
         "pytest.ini": "[pytest]\nmarkers =\n    snuba_ci\n",
-        "durations.json": json.dumps({"seconds_per_test": 0.1, "files": {}}),
         **{f"tests/test_marked{i}.py": MARKED for i in range(2)},
         **{f"tests/test_plain{i}.py": "def test_p():\n    pass\n" for i in range(12)},
     }

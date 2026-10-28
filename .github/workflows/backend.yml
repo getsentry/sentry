@@ -308,25 +308,6 @@ jobs:
             make test-python-ci
           fi
 
-      # pytest-selected.py balances full-run shards with these. See
-      # .github/workflows/scripts/backend-test-durations.py to refresh them.
-      - name: Extract test durations
-        id: durations
-        if: ${{ !cancelled() && needs.select-tests.outputs.has-selected-tests != 'true' && hashFiles('.artifacts/pytest.json') != '' }}
-        continue-on-error: true
-        run: |
-          python3 .github/workflows/scripts/backend-test-durations.py extract \
-            .artifacts/pytest.json .artifacts/test-durations.json
-
-      - name: Upload test durations
-        if: ${{ !cancelled() && steps.durations.outcome == 'success' }}
-        continue-on-error: true
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: backend-test-durations-${{ github.run_id }}-${{ matrix.instance }}
-          path: .artifacts/test-durations.json
-          retention-days: 30
-
       - name: Report failures
         if: ${{ !cancelled() && github.event_name == 'pull_request' }}
         continue-on-error: true
