@@ -66,17 +66,18 @@ function getSegments(
     boundaries.add(start);
     boundaries.add(end);
   }
-  const points = [...boundaries].sort((a, b) => a - b);
+  // Sorted, starting at 0
+  const [, ...ends] = [...boundaries].sort((a, b) => a - b);
 
+  let start = 0;
   let tokenIndex = 0;
-  return points.slice(0, -1).map((start, i) => {
-    const end = points[i + 1]!;
-    while (tokenIndex < tokens.length && tokens[tokenIndex]!.end <= start) {
-      tokenIndex++;
+  let token = tokens[0];
+  return ends.map(end => {
+    while (token && token.end <= start) {
+      token = tokens[++tokenIndex];
     }
-    const token = tokens[tokenIndex];
     const covering = diagnostics.filter(d => d.start <= start && d.end >= end);
-    return {
+    const segment = {
       start,
       end,
       type: token && token.start <= start ? token.type : undefined,
@@ -84,6 +85,8 @@ function getSegments(
         ? 'error'
         : covering[0]?.severity,
     };
+    start = end;
+    return segment;
   });
 }
 
@@ -157,6 +160,7 @@ export function FingerprintRulesEditor({
   const [settledText] = useDebouncedValue(text, {wait: 500});
   const isSettled = settledText === text;
   const settledDiagnostics = isSettled ? diagnostics : tokenize(settledText).diagnostics;
+  const [firstDiagnostic, ...otherDiagnostics] = settledDiagnostics;
   const errorCount = settledDiagnostics.filter(d => d.severity === 'error').length;
   const warningCount = settledDiagnostics.length - errorCount;
 
@@ -212,9 +216,9 @@ export function FingerprintRulesEditor({
         id={summaryId}
         visibility={settledDiagnostics.length > 0 ? 'visible' : 'hidden'}
       >
-        {settledDiagnostics.length === 1 ? (
+        {firstDiagnostic && otherDiagnostics.length === 0 ? (
           <DiagnosticRow
-            diagnostic={settledDiagnostics[0]!}
+            diagnostic={firstDiagnostic}
             text={settledText}
             onSelect={selectDiagnostic}
           />
