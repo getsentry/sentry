@@ -678,6 +678,21 @@ export enum GroupActivityType {
   PULL_REQUEST_MERGED = 'pull_request_merged',
   PULL_REQUEST_UNLINKED = 'pull_request_unlinked',
   TRIGGER_AUTOFIX = 'trigger_autofix',
+  // GAL-only types use the action enum's name in API responses.
+  MERGE_INTO_OTHER = 'MERGE_INTO_OTHER',
+  DELETE = 'DELETE',
+  BOOKMARK = 'BOOKMARK',
+  SUBSCRIBE = 'SUBSCRIBE',
+  UNSUBSCRIBE = 'UNSUBSCRIBE',
+  CREATE_EXTERNAL_ISSUE = 'CREATE_EXTERNAL_ISSUE',
+  LINK_EXTERNAL_ISSUE = 'LINK_EXTERNAL_ISSUE',
+  UNLINK_EXTERNAL_ISSUE = 'UNLINK_EXTERNAL_ISSUE',
+  CREATE_PLATFORM_EXTERNAL_ISSUE = 'CREATE_PLATFORM_EXTERNAL_ISSUE',
+  LINK_PLATFORM_EXTERNAL_ISSUE = 'LINK_PLATFORM_EXTERNAL_ISSUE',
+  UNLINK_PLATFORM_EXTERNAL_ISSUE = 'UNLINK_PLATFORM_EXTERNAL_ISSUE',
+  AUTOFIX_PR_CREATED = 'AUTOFIX_PR_CREATED',
+  ROOT_CAUSE_IDENTIFIED = 'ROOT_CAUSE_IDENTIFIED',
+  AUTOFIX_CODING_COMPLETE = 'AUTOFIX_CODING_COMPLETE',
 }
 
 export const SEER_ACTIVITY_TYPES = new Set<GroupActivityType>([
@@ -692,6 +707,9 @@ export const SEER_ACTIVITY_TYPES = new Set<GroupActivityType>([
   GroupActivityType.SEER_ITERATION_COMPLETED,
   GroupActivityType.SEER_PR_READY_FOR_REVIEW,
   GroupActivityType.TRIGGER_AUTOFIX,
+  GroupActivityType.AUTOFIX_PR_CREATED,
+  GroupActivityType.ROOT_CAUSE_IDENTIFIED,
+  GroupActivityType.AUTOFIX_CODING_COMPLETE,
 ]);
 
 interface GroupActivityBase {
@@ -1139,7 +1157,59 @@ interface GroupActivitySeerIterationCompleted extends GroupActivityBase {
   type: GroupActivityType.SEER_ITERATION_COMPLETED;
 }
 
+interface GroupActivityMergeIntoOther extends GroupActivityBase {
+  data: {counterpart_group_id: number};
+  type: GroupActivityType.MERGE_INTO_OTHER;
+}
+
+interface GroupActivitySimpleAction extends GroupActivityBase {
+  data: Record<string, never>;
+  type:
+    | GroupActivityType.DELETE
+    | GroupActivityType.BOOKMARK
+    | GroupActivityType.SUBSCRIBE
+    | GroupActivityType.UNSUBSCRIBE;
+}
+
+interface GroupActivityExternalIssue extends GroupActivityBase {
+  data: {external_issue_key: string; provider: string};
+  type:
+    | GroupActivityType.CREATE_EXTERNAL_ISSUE
+    | GroupActivityType.LINK_EXTERNAL_ISSUE
+    | GroupActivityType.UNLINK_EXTERNAL_ISSUE;
+}
+
+interface GroupActivityPlatformExternalIssue extends GroupActivityBase {
+  data: {display_name: string; service_type: string; web_url: string};
+  type:
+    | GroupActivityType.CREATE_PLATFORM_EXTERNAL_ISSUE
+    | GroupActivityType.LINK_PLATFORM_EXTERNAL_ISSUE
+    | GroupActivityType.UNLINK_PLATFORM_EXTERNAL_ISSUE;
+}
+
+interface GroupActivityAutofixPrCreated extends GroupActivityBase {
+  data: {pull_requests: Array<Record<string, unknown>>; run_id?: string | null};
+  type: GroupActivityType.AUTOFIX_PR_CREATED;
+}
+
+interface GroupActivityRootCauseIdentified extends GroupActivityBase {
+  data: {run_id?: string | null; summary?: string | null};
+  type: GroupActivityType.ROOT_CAUSE_IDENTIFIED;
+}
+
+interface GroupActivityAutofixCodingComplete extends GroupActivityBase {
+  data: {run_id?: string | null};
+  type: GroupActivityType.AUTOFIX_CODING_COMPLETE;
+}
+
 export type GroupActivity =
+  | GroupActivityMergeIntoOther
+  | GroupActivitySimpleAction
+  | GroupActivityExternalIssue
+  | GroupActivityPlatformExternalIssue
+  | GroupActivityAutofixPrCreated
+  | GroupActivityRootCauseIdentified
+  | GroupActivityAutofixCodingComplete
   | GroupActivityNote
   | GroupActivitySetResolved
   | GroupActivitySetResolvedIntegration
