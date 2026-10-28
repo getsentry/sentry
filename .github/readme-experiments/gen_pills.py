@@ -18,7 +18,7 @@ for n, i, r in SDKS:
     w = round(8 + 24 + 8 + tw + 14)
     svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{H}" viewBox="0 0 {w} {H}">
 <style>{CSS}</style>
-<rect class="pill" x="0.5" y="0.5" width="{w-1}" height="{H-1}" rx="{(H-1)/2}" />
+<rect class="pill" x="0.5" y="0.5" width="{w-1}" height="{H-1}" rx="13.5" />
 <defs><clipPath id="r"><rect x="8" y="8" width="24" height="24" rx="6" /></clipPath></defs>
 <g clip-path="url(#r)">{inline_icon(i, 8, 8, 24, i)}</g>
 <text class="label" x="40" y="24.5">{n}</text>
