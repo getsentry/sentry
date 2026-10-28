@@ -22,19 +22,17 @@ from sentry.testutils.helpers import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
 
-MAX_SIZE = 100 * 1024 * 1024
-
 
 def test_decompress_segment_success() -> None:
     """Test successful decompression of segment"""
     data = b"[hello, world!]"
     compressed_data = zlib.compress(data)
 
-    compressed, decompressed = decompress_segment(compressed_data, MAX_SIZE)
+    compressed, decompressed = decompress_segment(compressed_data)
     assert compressed == compressed_data
     assert decompressed == data
 
-    compressed, decompressed = decompress_segment(data, MAX_SIZE)
+    compressed, decompressed = decompress_segment(data)
     assert compressed == compressed_data
     assert decompressed == data
 
@@ -44,7 +42,7 @@ def test_decompress_segment_already_decompressed() -> None:
     data = b"[hello, world!]"
     compressed_data = zlib.compress(data)
 
-    compressed, decompressed = decompress_segment(data, MAX_SIZE)
+    compressed, decompressed = decompress_segment(data)
     assert compressed == compressed_data
     assert decompressed == data
 
@@ -52,13 +50,13 @@ def test_decompress_segment_already_decompressed() -> None:
 def test_decompress_segment_unexpected_start_character() -> None:
     """Test handling of invalid data that can't be decompressed"""
     with pytest.raises(DropSilently):
-        decompress_segment(b"hello, world!", MAX_SIZE)
+        decompress_segment(b"hello, world!")
 
 
 def test_decompress_segment_empty_data() -> None:
     """Test handling of empty data"""
     with pytest.raises(DropSilently):
-        decompress_segment(b"", MAX_SIZE)
+        decompress_segment(b"")
 
 
 def test_decompress_segment_exceeds_max_size() -> None:
@@ -68,8 +66,9 @@ def test_decompress_segment_exceeds_max_size() -> None:
     # A kilobyte of stored input, a megabyte of output on every read.
     assert len(payload) // len(bomb) > 500
 
-    with pytest.raises(DropSilently):
-        decompress_segment(bomb, 1024)
+    with override_options({"replay.consumer.max-segment-decompressed-size": 1024}):
+        with pytest.raises(DropSilently):
+            decompress_segment(bomb)
 
 
 def test_decompress_segment_at_max_size() -> None:
@@ -77,20 +76,23 @@ def test_decompress_segment_at_max_size() -> None:
     data = b"[hello, world!]"
     compressed_data = zlib.compress(data)
 
-    compressed, decompressed = decompress_segment(compressed_data, len(data))
+    with override_options({"replay.consumer.max-segment-decompressed-size": len(data)}):
+        compressed, decompressed = decompress_segment(compressed_data)
     assert compressed == compressed_data
     assert decompressed == data
 
-    with pytest.raises(DropSilently):
-        decompress_segment(compressed_data, len(data) - 1)
+    with override_options({"replay.consumer.max-segment-decompressed-size": len(data) - 1}):
+        with pytest.raises(DropSilently):
+            decompress_segment(compressed_data)
 
 
 def test_decompress_segment_uncompressed_exceeds_max_size() -> None:
     """Test an uncompressed segment larger than the limit is dropped"""
     data = b"[" + b" " * 1024 + b"]"
 
-    with pytest.raises(DropSilently):
-        decompress_segment(data, 512)
+    with override_options({"replay.consumer.max-segment-decompressed-size": 512}):
+        with pytest.raises(DropSilently):
+            decompress_segment(data)
 
 
 @django_db_all
@@ -207,7 +209,7 @@ def test_parse_recording_event_success() -> None:
         "version": 0,
     }
 
-    result = parse_recording_event(msgpack.packb(message), MAX_SIZE)
+    result = parse_recording_event(msgpack.packb(message))
 
     expected = {
         "context": {
@@ -255,7 +257,7 @@ def test_parse_recording_event_with_replay_event() -> None:
         "version": 0,
     }
 
-    result = parse_recording_event(msgpack.packb(message), MAX_SIZE)
+    result = parse_recording_event(msgpack.packb(message))
 
     expected = {
         "context": {
@@ -290,7 +292,7 @@ def test_parse_recording_event_missing_payload() -> None:
         "version": 0,
     }
     with pytest.raises(DropSilently):
-        parse_recording_event(msgpack.packb(message), MAX_SIZE)
+        parse_recording_event(msgpack.packb(message))
 
 
 def test_parse_recording_event_invalid_compression() -> None:
@@ -306,7 +308,7 @@ def test_parse_recording_event_invalid_compression() -> None:
         "version": 0,
     }
     with pytest.raises(DropSilently):
-        parse_recording_event(msgpack.packb(message), MAX_SIZE)
+        parse_recording_event(msgpack.packb(message))
 
 
 def test_parse_recording_event_invalid_headers() -> None:
@@ -322,7 +324,7 @@ def test_parse_recording_event_invalid_headers() -> None:
         "version": 0,
     }
     with pytest.raises(DropSilently):
-        parse_recording_event(msgpack.packb(message), MAX_SIZE)
+        parse_recording_event(msgpack.packb(message))
 
 
 @django_db_all
