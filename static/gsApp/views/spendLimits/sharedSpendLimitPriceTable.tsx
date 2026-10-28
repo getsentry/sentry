@@ -1,9 +1,12 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import {InfoTip} from '@sentry/scraps/info';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -35,10 +38,12 @@ interface SharedSpendLimitPriceTableProps {
   organization: Organization;
 }
 
-const PRICE_COLUMNS = {
-  zero: 'minmax(0, 1fr)',
-  md: 'minmax(0, 3fr) minmax(0, 2fr)',
-} as const;
+const COLUMNS: TableColumnConfig[] = [
+  {key: 'product', width: 'minmax(0, 3fr)'},
+  {key: 'price', width: 'minmax(0, 2fr)'},
+];
+
+const STACKED_CELL_COLUMN = {zero: '1 / -1', md: 'auto'} as const;
 
 export function SharedSpendLimitPriceTable({
   activePlan,
@@ -54,19 +59,18 @@ export function SharedSpendLimitPriceTable({
   );
 
   return (
-    <Stack borderTop="primary">
-      <Grid
-        columns={PRICE_COLUMNS}
-        gap={{zero: 'xs', md: 'lg'}}
-        align="center"
-        padding="md xl"
-        background="secondary"
-      >
-        <Text bold>{t('Product')}</Text>
-        <Container display={{zero: 'none', md: 'block'}} justifySelf="end">
-          <Text bold>{t('Price')}</Text>
-        </Container>
-      </Grid>
+    <FlushTable
+      aria-label={t('Product prices')}
+      columns={COLUMNS}
+      header={
+        <SimpleTable.HeaderRow>
+          <SimpleTable.HeaderCell>{t('Product')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell align="right" divider={false}>
+            <Container display={{zero: 'none', md: 'block'}}>{t('Price')}</Container>
+          </SimpleTable.HeaderCell>
+        </SimpleTable.HeaderRow>
+      }
+    >
       {baseCategories.map(category => {
         const showPerformanceUnits =
           activePlan.categories.includes(DataCategory.TRANSACTIONS) &&
@@ -87,19 +91,11 @@ export function SharedSpendLimitPriceTable({
           getSingularCategoryName({plan: activePlan, category, capitalize: false});
 
         return (
-          <Grid
-            key={category}
-            columns={PRICE_COLUMNS}
-            gap={{zero: 'xs', md: 'lg'}}
-            align="center"
-            borderTop="primary"
-            padding="md xl"
-          >
-            <Flex
+          <SimpleTable.Row key={category}>
+            <SimpleTable.RowCell
+              column={STACKED_CELL_COLUMN}
               gap="xs"
-              align="center"
-              minWidth="0"
-              paddingRight="xs"
+              paddingBottom={{zero: '0', md: 'lg'}}
               wrap={{zero: 'wrap', sm: 'nowrap'}}
             >
               <Text>{pluralName}</Text>
@@ -123,15 +119,21 @@ export function SharedSpendLimitPriceTable({
                   />
                 )
               )}
-            </Flex>
-            <Container justifySelf={{zero: 'start', md: 'end'}}>
-              <Text>
-                {hasConstantPricePerUnit ? '' : '*'}
-                {formatPaygPricePerUnit({payAsYouGoPricePerUnit})}
-              </Text>
-              <Text variant="muted">/{singularName}</Text>
-            </Container>
-          </Grid>
+            </SimpleTable.RowCell>
+            <SimpleTable.RowCell
+              column={STACKED_CELL_COLUMN}
+              justify={{zero: 'start', md: 'end'}}
+              paddingTop={{zero: 'xs', md: 'lg'}}
+            >
+              <Container>
+                <Text>
+                  {hasConstantPricePerUnit ? '' : '*'}
+                  {formatPaygPricePerUnit({payAsYouGoPricePerUnit})}
+                </Text>
+                <Text variant="muted">/{singularName}</Text>
+              </Container>
+            </SimpleTable.RowCell>
+          </SimpleTable.Row>
         );
       })}
       {includedAddOns.map(apiName => {
@@ -156,15 +158,13 @@ export function SharedSpendLimitPriceTable({
         });
 
         return (
-          <Grid
-            key={apiName}
-            columns={PRICE_COLUMNS}
-            gap={{zero: 'xs', md: 'lg'}}
-            align="center"
-            borderTop="primary"
-            padding="md xl"
-          >
-            <Flex gap="xs" align="center" minWidth="0" paddingRight="xs" wrap="wrap">
+          <SimpleTable.Row key={apiName}>
+            <SimpleTable.RowCell
+              column={STACKED_CELL_COLUMN}
+              gap="xs"
+              paddingBottom={{zero: '0', md: 'lg'}}
+              wrap="wrap"
+            >
               <Text>{capitalize(addOnInfo.productName)}</Text>
               {includedBudget > 0 && (
                 <Text variant="accent">
@@ -174,39 +174,56 @@ export function SharedSpendLimitPriceTable({
                 </Text>
               )}
               {tooltipText && <InfoTip title={tooltipText} position="top" size="xs" />}
-            </Flex>
-            <Container justifySelf={{zero: 'start', md: 'end'}}>
-              {addOnInfo.dataCategories.map((category, index) => {
-                const payAsYouGoPricePerUnit = getPaygPricePerUnit({
-                  activePlan,
-                  category,
-                  reserved: reservedBudgetCategory ? RESERVED_BUDGET_QUOTA : 0,
-                });
-                const categoryInfo = getCategoryInfoFromPlural(category);
-                const singularName =
-                  categoryInfo?.shortenedUnitName ??
-                  getSingularCategoryName({
-                    plan: activePlan,
+            </SimpleTable.RowCell>
+            <SimpleTable.RowCell
+              column={STACKED_CELL_COLUMN}
+              justify={{zero: 'start', md: 'end'}}
+              paddingTop={{zero: 'xs', md: 'lg'}}
+            >
+              <Container>
+                {addOnInfo.dataCategories.map((category, index) => {
+                  const payAsYouGoPricePerUnit = getPaygPricePerUnit({
+                    activePlan,
                     category,
-                    capitalize: false,
+                    reserved: reservedBudgetCategory ? RESERVED_BUDGET_QUOTA : 0,
                   });
-                return (
-                  <Fragment key={category}>
-                    <Text>{formatPaygPricePerUnit({payAsYouGoPricePerUnit})}</Text>
-                    <Text variant="muted">/{singularName}</Text>
-                    {index < addOnInfo.dataCategories.length - 1 && <Text>, </Text>}
-                  </Fragment>
-                );
-              })}
-            </Container>
-          </Grid>
+                  const categoryInfo = getCategoryInfoFromPlural(category);
+                  const singularName =
+                    categoryInfo?.shortenedUnitName ??
+                    getSingularCategoryName({
+                      plan: activePlan,
+                      category,
+                      capitalize: false,
+                    });
+                  return (
+                    <Fragment key={category}>
+                      <Text>{formatPaygPricePerUnit({payAsYouGoPricePerUnit})}</Text>
+                      <Text variant="muted">/{singularName}</Text>
+                      {index < addOnInfo.dataCategories.length - 1 && <Text>, </Text>}
+                    </Fragment>
+                  );
+                })}
+              </Container>
+            </SimpleTable.RowCell>
+          </SimpleTable.Row>
         );
       })}
-      <Flex width="100%" justify="end" borderTop="primary" padding="md xl">
-        <Text variant="muted" size="sm">
-          {t('* starting rate')}
-        </Text>
-      </Flex>
-    </Stack>
+      <SimpleTable.FullWidthRow>
+        <Flex justify="end" padding="md xl">
+          <Text variant="muted" size="sm">
+            {t('* starting rate')}
+          </Text>
+        </Flex>
+      </SimpleTable.FullWidthRow>
+    </FlushTable>
   );
 }
+
+const FlushTable = styled(SimpleTable)`
+  border-width: 1px 0 0;
+  border-radius: 0;
+
+  > thead > tr {
+    border-radius: 0;
+  }
+`;
