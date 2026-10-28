@@ -408,24 +408,21 @@ function SectionTitle(props: SectionTitleProps) {
       );
     }
 
-    // Keep the button's inner wrapper in a flex layout so its contents stay
-    // centered vertically, including when the leading slot is taller than text.
     return (
-      <Flex align="center" width="100%">
-        {gridProps => (
+      <Flex
+        align="center"
+        justify="start"
+        width="100%"
+        minHeight="32px"
+        padding="0 xs 0 md"
+      >
+        {layoutProps => (
           <Button
-            {...gridProps}
-            size="sm"
+            {...layoutProps}
+            size="zero"
             variant="transparent"
             aria-expanded={!props.isCollapsed}
             onClick={() => props.setIsCollapsed(!props.isCollapsed)}
-            css={theme => css`
-              height: 32px;
-              width: 100%;
-              padding: 0 ${theme.space.xs} 0 ${theme.space.md};
-              border: 1px solid transparent;
-              justify-content: flex-start;
-            `}
           >
             <Flex as="span" align="center" gap="xs" flex="1" minWidth="0">
               {content}
