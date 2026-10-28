@@ -60,7 +60,7 @@ export function SettingsNavigationTourProvider({children}: {children: ReactNode}
     setStep(nextStep);
   };
   const previous = () =>
-    setStep(STEPS[Math.max(inSettings ? 1 : 0, STEPS.indexOf(step) - 1)]!);
+    setStep(STEPS[Math.max(inSettings ? 1 : 0, STEPS.indexOf(step) - 1)] ?? step);
 
   useHotkeys(active ? [{match: 'Escape', callback: dismiss}] : []);
 
