@@ -1,0 +1,75 @@
+---
+title: Slack Notifications
+layout: document
+description: Example Block Kit payloads for Sentry's Slack notifications that you can open and edit in Slack's Block Kit Builder.
+status: in-progress
+---
+
+import {LinkButton} from '@sentry/scraps/button';
+import {CodeBlock} from '@sentry/scraps/code';
+import {Flex} from '@sentry/scraps/layout';
+
+export const alertTriggeredPayload = {
+  blocks: [
+    {
+      type: 'section',
+      block_id: JSON.stringify({issue: 123, workflow: 456}),
+      text: {
+        type: 'mrkdwn',
+        text: 'Alert triggered <https://sentry.io/organizations/org-slug/monitors/alerts/456/|New Issues>',
+      },
+    },
+    {
+      type: 'section',
+      text: {
+        type: 'mrkdwn',
+        text: ':large_blue_circle: :busts_in_silhouette: <https://sentry.io/organizations/org-slug/issues/123/?referrer=slack|*User Feedback: Urgent help needed to resolve major bug*>',
+      },
+    },
+    {
+      type: 'context',
+      elements: [{type: 'mrkdwn', text: 'empower-plant.com/error'}],
+    },
+    {
+      type: 'section',
+      text: {type: 'mrkdwn', text: '`big bug here need help`'},
+    },
+    {
+      type: 'section',
+      text: {type: 'mrkdwn', text: 'ai_categorization.label.0: `Bugs`  '},
+    },
+    {
+      type: 'context',
+      elements: [
+        {
+          type: 'mrkdwn',
+          text: 'frontend-react | production | <https://sentry.io/settings/account/notifications/alerts/?referrer=issue_alert-slack-user|Notification Settings>',
+        },
+      ],
+    },
+  ],
+};
+
+Sentry sends Slack notifications as [Block Kit](https://docs.slack.dev/reference/block-kit/) JSON. The examples on this page show what those payloads look like. Copy the JSON, or open it in Slack's [Block Kit Builder](https://app.slack.com/block-kit-builder/) to see how it renders and try your own changes.
+
+## Alert triggered
+
+Sent when an alert fires for a new issue. This example is for a User Feedback issue.
+
+<Flex>
+  <LinkButton
+    href={`https://app.slack.com/block-kit-builder/#${encodeURIComponent(JSON.stringify(alertTriggeredPayload))}`}
+    size="sm"
+    external
+  >
+    Open in Block Kit Builder
+  </LinkButton>
+</Flex>
+
+<CodeBlock language="json">{JSON.stringify(alertTriggeredPayload, null, 2)}</CodeBlock>
+
+## Formatting tips
+
+- **Links** use Slack's `<url|label>` syntax, not Markdown's `[label](url)`.
+- **Bold** text uses single asterisks (`*bold*`), not double.
+- **`block_id`** must be a string, so Sentry stores structured data like `{"issue":123,"workflow":456}` as escaped JSON.
