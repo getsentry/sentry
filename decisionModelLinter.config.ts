@@ -87,6 +87,87 @@ const api = {
         },
       ],
     },
+    // The four rules below are a temporary, "warn only" safety net for API design rules while
+    // deterministic checks for them are built. We will remove each one once its check is enforced
+    returnsUnpaginatedList: {
+      threshold: 0.8,
+      prompt:
+        'Does an endpoint\'s GET method return a list of objects that can keep growing, such as an organization\'s projects, members, issues, releases, or monitors, without paginating it with self.paginate(...) or a paginator class? A list inside a response object (for example {"data": [...]}) counts too. Lists with a small fixed limit, lists of fixed choices or enum values, single objects, and lists that are only built for internal use and never returned do not count.',
+      values: [
+        {
+          value: 'TRUE',
+          description:
+            'A GET handler returns a growing collection, at the top level of the response or nested in it, and nothing paginates or limits it.',
+          severity: 'warn',
+          report:
+            'List endpoints should paginate with `self.paginate(...)` and a `cursor` parameter. This endpoint returns a list that can keep growing without paginating it.',
+        },
+        {
+          value: 'FALSE',
+          description:
+            'Every growing list the endpoint returns is paginated, or it returns a single object, a fixed set of values, or a list with a small fixed limit.',
+        },
+      ],
+    },
+    replacesMembershipWithList: {
+      threshold: 0.8,
+      prompt:
+        'Does a PUT, PATCH, or POST that updates an existing object accept a list of IDs, users, emails, teams, or members (for example a serializers.ListField of user IDs) and use it to replace the whole stored set, by comparing it to the current members and adding or removing the difference, clearing and re-adding, or calling set()? replayAccessMembers in organization_details.py is an example: two people editing the list at the same time overwrite each other. Lists sent once when an object is first created, lists that only add members, and lists of settings or values that are not memberships do not count.',
+      values: [
+        {
+          value: 'TRUE',
+          description:
+            'A request field holds a list of members, users, teams, or IDs, and its value replaces the whole stored set on an existing object.',
+          severity: 'warn',
+          report:
+            'A list field that replaces a whole set of members lets two concurrent edits overwrite each other. Prefer separate endpoints to add and remove one member.',
+        },
+        {
+          value: 'FALSE',
+          description:
+            'No request list replaces a stored set of members, or the list is only used when creating a new object, only adds members, or is not a membership list.',
+        },
+      ],
+    },
+    returnsNumericIdAsInteger: {
+      prompt:
+        "Does API response code, such as a serializer's serialize() method, a response TypedDict, or the body passed to Response(...), return a numeric ID (id, or a field ending in Id or _id, such as projectId or organization_id) as an integer instead of a string? IDs converted with str(), IDs that are already strings (UUIDs, slugs, hex event IDs), counts and other numbers that are not IDs, and code that does not build an API response do not count.",
+      values: [
+        {
+          value: 'TRUE',
+          description:
+            'A numeric ID is placed in an API response as an integer, for example "id": obj.id, or a response TypedDict declares an ID field as int.',
+          severity: 'warn',
+          report:
+            'API responses should return numeric IDs as strings, for example `str(obj.id)`. This file returns one as an integer.',
+        },
+        {
+          value: 'FALSE',
+          description:
+            'Every ID in the response is a string, or the code builds no API response.',
+        },
+      ],
+    },
+    makesExistingInputStricter: {
+      threshold: 0.8,
+      prompt:
+        'Does the change make an endpoint or serializer that already existed reject input it used to accept? Code already existed when the lines around the change are unchanged or omitted; removed lines are not shown. That includes a (new) field line in an existing serializer that is required (required=True, or no required=False), which covers both a field becoming required and a new required field, new validation on an existing field (a validate_<field> method, validators=, min_value, max_value, max_length, a narrower choices list, or a new ValidationError raised from validate), or an allowed value or format being removed. A new endpoint or serializer where every line is new, and new optional fields, do not count.',
+      values: [
+        {
+          value: 'TRUE',
+          description:
+            'Input that an existing endpoint or serializer accepted before is now rejected: a field became required, a required field was added, or new validation was added to existing input.',
+          severity: 'warn',
+          report:
+            "Rejecting input an endpoint accepted before breaks existing callers, and the API spec often doesn't show it. Make the change backward compatible (keep the field optional, or accept the old values), or treat it as a breaking change and coordinate it.",
+        },
+        {
+          value: 'FALSE',
+          description:
+            'The change adds a new endpoint or serializer, adds only optional fields, or relaxes or keeps existing validation.',
+        },
+      ],
+    },
   },
 } satisfies Suite;
 
@@ -330,6 +411,27 @@ const security = {
           value: 'FALSE',
           description:
             'The random module is used only for non-security purposes, or security values come from secrets, os.urandom, or random.SystemRandom.',
+        },
+      ],
+    },
+    // A temporary, warn only safety net while a deterministic check for unscoped lookups is built.
+    looksUpObjectWithoutOrgScope: {
+      threshold: 0.8,
+      prompt:
+        "Does endpoint code fetch an object using an ID from the request (request.data, request.GET, request.query_params, or a serializer's validated_data), with Model.objects.get(...), filter(...), or get_object_or_404, without also filtering by the caller's organization or project, as in Project.objects.get(id=request.data[\"project_id\"])? Lookups that filter by organization or project (organization_id=organization.id, project__organization=organization, project_id__in=...), IDs checked through self.get_projects() or a similar access-checked helper, objects checked afterwards with has_project_access or check_object_permissions, objects the endpoint's base class already resolved from the URL (organization, project, team, group), and lookups of the caller's own user do not count.",
+      values: [
+        {
+          value: 'TRUE',
+          description:
+            "An object is fetched by a request-supplied ID with no filter on the caller's organization or project and no access check on the result.",
+          severity: 'warn',
+          report:
+            "Objects fetched by an ID from the request should also be filtered by the caller's organization or project, for example `Model.objects.get(id=..., organization_id=organization.id)`, or checked with `self.get_projects()`. Without that, one organization can read or change another's data.",
+        },
+        {
+          value: 'FALSE',
+          description:
+            "Every request-supplied ID is looked up within the caller's organization or project, goes through an access-checked helper, or the object is access-checked after it is fetched, or no object is fetched by a request-supplied ID.",
         },
       ],
     },
