@@ -2,6 +2,7 @@ import {z} from 'zod';
 
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import {
+  draftDescription,
   draftField,
   draftNumber,
   type DetectorDraftSchema,
@@ -96,6 +97,7 @@ function mayHoldCredentials(url: string) {
 export const UPTIME_DETECTOR_DRAFT_SCHEMA: DetectorDraftSchema<UptimeDetectorFormData> =
   z.object({
     assertion: draftField(z.object({root: andOp})),
+    description: draftField(draftDescription),
     downtimeThreshold: draftField(draftNumber),
     environment: draftField(z.string()),
     intervalSeconds: draftField(
