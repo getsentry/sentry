@@ -21,10 +21,7 @@ redelivers merge_request hooks on response timeout and the endpoint also
 dispatches each payload once per organization that added the repository; both
 can otherwise cause actions to be logged multiple times for a single MR-open.
 
-Both processors are gated by ``organizations:seer-gitlab-support`` — the same
-cohort flag ``handle_merge_request_event`` uses — so seeding only happens for orgs
-that are already opted in to GitLab code review. The downstream
-``should_increment_contributor_seat`` check additionally requires
+The downstream ``should_increment_contributor_seat`` check requires
 ``organizations:seat-based-seer-enabled``.
 
 Both processors skip seeding when the webhook actor (``event.user``) is not the
@@ -54,7 +51,6 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
-from sentry import features
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
@@ -111,9 +107,6 @@ def track_gitlab_contributor_seat_processor(
         return
 
     base_extra["integration_id"] = integration.id
-
-    if not features.has("organizations:seer-gitlab-support", organization):
-        return
 
     if object_attributes.get("action") != "open":
         return
@@ -180,9 +173,6 @@ def track_gitlab_contributor_action_processor(
     **kwargs: Any,
 ) -> None:
     if integration is None:
-        return
-
-    if not features.has("organizations:seer-gitlab-support", organization):
         return
 
     object_attributes = event.get("object_attributes") or {}
