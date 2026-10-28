@@ -49,6 +49,11 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
 
     def get(self, request: Request, organization: Organization) -> Response:
         timerange_args = self._parse_args(request, restrict_rollups=False)
+        if "resolution" not in request.GET:
+            timerange_args["rollup"] = min(
+                (g for g in VALID_GRANULARITIES if g >= timerange_args["rollup"]),
+                default=max(VALID_GRANULARITIES),
+            )
         rollup_error = self._validate_rollup(timerange_args)
         if rollup_error:
             return self.respond(rollup_error, status=400)
