@@ -38,10 +38,7 @@ from sentry.utils.strings import truncatechars
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 from sentry.workflow_engine.models import IncidentGroupOpenPeriod
-from sentry.workflow_engine.processors.detector import (
-    associate_new_group_with_detector,
-    ensure_association_with_detector,
-)
+from sentry.workflow_engine.processors.detector import ensure_association_with_detector
 
 issue_rate_limiter = RedisSlidingWindowRateLimiter(
     **settings.SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS
@@ -256,16 +253,12 @@ def save_issue_from_occurrence(
             ) as metric_tags,
             transaction.atomic(router.db_for_write(GroupHash)),
         ):
-            group, is_new, primary_grouphash = save_grouphash_and_group(
-                project, event, primary_hash, **issue_kwargs
+            detector_id = (
+                occurrence.evidence_data.get("detector_id") if occurrence.evidence_data else None
             )
-            if is_new:
-                detector_id = (
-                    occurrence.evidence_data.get("detector_id")
-                    if occurrence.evidence_data
-                    else None
-                )
-                associate_new_group_with_detector(group, detector_id)
+            group, is_new, primary_grouphash = save_grouphash_and_group(
+                project, event, primary_hash, detector_id=detector_id, **issue_kwargs
+            )
 
             open_period = get_latest_open_period(group)
             if open_period is not None:
@@ -335,13 +328,13 @@ def save_issue_from_occurrence(
 
         group_event = GroupEvent.from_event(event, group)
         group_event.occurrence = occurrence
-        is_regression = _process_existing_aggregate(group, group_event, issue_kwargs, release)
-        group_info = GroupInfo(group=group, is_new=False, is_regression=is_regression)
-
         detector_id = (
             occurrence.evidence_data.get("detector_id") if occurrence.evidence_data else None
         )
         ensure_association_with_detector(group, detector_id)
+
+        is_regression = _process_existing_aggregate(group, group_event, issue_kwargs, release)
+        group_info = GroupInfo(group=group, is_new=False, is_regression=is_regression)
 
         # if it's a regression and the priority changed, we should update the existing GroupOpenPeriodActivity
         # row if applicable. Otherwise, we should record a new row if applicable.

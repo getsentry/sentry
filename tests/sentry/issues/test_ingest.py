@@ -724,6 +724,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
             initial_issue_priority=PriorityLevel.MEDIUM,
             fingerprint=fingerprint,
             type=MetricIssue.type_id,
+            evidence_data={"detector_id": self.create_detector(project=self.project).id},
         )
         event = self.store_event(data={}, project_id=self.project.id)
         group_info = save_issue_from_occurrence(occurrence, event, None)
@@ -745,6 +746,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
             initial_issue_priority=PriorityLevel.MEDIUM,
             fingerprint=fingerprint,
             type=MetricIssue.type_id,
+            evidence_data={"detector_id": self.create_detector(project=self.project).id},
         )
         event = self.store_event(data={}, project_id=self.project.id)
         group_info = save_issue_from_occurrence(occurrence, event, None)
@@ -785,6 +787,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
             initial_issue_priority=PriorityLevel.MEDIUM,
             fingerprint=fingerprint,
             type=MetricIssue.type_id,
+            evidence_data={"detector_id": self.create_detector(project=self.project).id},
         )
         event = self.store_event(data={}, project_id=self.project.id)
         group_info = save_issue_from_occurrence(occurrence, event, None)

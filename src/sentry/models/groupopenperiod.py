@@ -15,24 +15,10 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, cell_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
 
 logger = logging.getLogger(__name__)
-
-# Preserve the existing OPENED/CLOSED activity policy independently of detector registration.
-_OPEN_PERIOD_ACTIVITY_GROUP_TYPES = frozenset(
-    {
-        "error",
-        "issue_stream",
-        "metric_issue",
-        "monitor_check_in_failure",
-        "preprod_size_analysis",
-        "sourcemap_configuration",
-        "uptime_domain_failure",
-    }
-)
 
 
 class TsTzRange(models.Func):
@@ -48,9 +34,10 @@ def should_create_open_periods(type_id: int) -> bool:
     return type_id not in get_group_types_without_open_periods()
 
 
-def should_record_open_period_activity(type_id: int) -> bool:
+def should_record_open_period_activity(group: Group) -> bool:
     """Whether to record OPENED/CLOSED activities; priority activities have a separate policy."""
-    return get_group_type_by_type_id(type_id).slug in _OPEN_PERIOD_ACTIVITY_GROUP_TYPES
+    # A relationship remains after detector deletion, with a null detector_id.
+    return group.detectorgroup_set.exists()
 
 
 @cell_silo_model
@@ -117,7 +104,7 @@ class GroupOpenPeriod(DefaultFieldsModel):
 
         self.update(date_ended=resolution_time)
 
-        if should_record_open_period_activity(self.group.type):
+        if should_record_open_period_activity(self.group):
             GroupOpenPeriodActivity.objects.create(
                 group_open_period=self,
                 type=OpenPeriodActivityType.CLOSED,
@@ -229,7 +216,7 @@ def create_open_period(group: Group, start_time: datetime, event_id: str | None 
             date_ended=None,
         )
 
-        if should_record_open_period_activity(group.type):
+        if should_record_open_period_activity(group):
             GroupOpenPeriodActivity.objects.create(
                 date_added=start_time,
                 group_open_period=open_period,
