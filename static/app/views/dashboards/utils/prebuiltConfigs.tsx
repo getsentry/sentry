@@ -5,6 +5,36 @@ import {
   type Widget,
   type WidgetLayout,
 } from 'sentry/views/dashboards/types';
+import {AI_AGENTS_MODELS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/aiAgentsModels';
+import {AI_AGENTS_OVERVIEW_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/aiAgentsOverview';
+import {AI_AGENTS_TOOLS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/aiAgentsTools';
+import {MCP_OVERVIEW_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/mcpOverview';
+import {MCP_PROMPTS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/mcpPrompts';
+import {MCP_RESOURCES_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/mcpResources';
+import {MCP_TOOLS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/mcpTools';
+import {BACKEND_OVERVIEW_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/backendOverview/backendOverview';
+import {CACHES_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/caches/caches';
+import {ELIXIR_RUNTIME_METRICS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/elixirRuntimeMetrics/elixirRuntimeMetrics';
+import {FRONTEND_ASSETS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendAssets/frontendAssets';
+import {FRONTEND_ASSETS_DETAILS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendAssets/frontendAssetsDetails';
+import {FRONTEND_OVERVIEW_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendOverview/frontendOverview';
+import {HTTP_DOMAIN_SUMMARY_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/http/domainSummary';
+import {HTTP_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/http/http';
+import {LARAVEL_OVERVIEW_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/laravelOverview/laravelOverview';
+import {MOBILE_SESSION_HEALTH_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileSessionHealth';
+import {MOBILE_VITALS_APP_STARTS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/appStarts';
+import {MOBILE_VITALS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/mobileVitals';
+import {MOBILE_VITALS_SCREEN_LOADS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/screenLoads';
+import {MOBILE_VITALS_SCREEN_RENDERING_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/screenRendering';
+import {NEXTJS_FRONTEND_OVERVIEW_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/nextJsOverview/nextJsOverview';
+import {NODE_RUNTIME_METRICS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/nodeRuntimeMetrics/nodeRuntimeMetrics';
+import {QUERIES_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/queries';
+import {QUERIES_DETAILS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/queryDetails';
+import {QUEUE_DETAILS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/queues/queueDetails';
+import {QUEUES_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/queues/queues';
+import {SESSION_HEALTH_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/sessionHealth';
+import {WEB_VITALS_DETAILS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/pageDetails';
+import {WEB_VITALS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
 import type {ModulesWithOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 
 import {AI_AGENTS_MODELS_PREBUILT_CONFIG} from './prebuiltConfigs/ai/aiAgentsModels';
@@ -69,6 +99,7 @@ export enum PrebuiltDashboardId {
   BACKEND_QUEUE_SUMMARY = 27,
   BACKEND_CACHES = 28,
   NODE_RUNTIME_METRICS = 29,
+  ELIXIR_RUNTIME_METRICS = 30,
 }
 
 /** Boolean flags on Project that indicate whether telemetry data has been received. */
@@ -85,9 +116,13 @@ type OnboardingConfig =
       requiredProjectFlags?: ProjectTelemetryFlag[];
     }
   | {
-      componentId: 'agent-monitoring' | 'mcp' | 'node-runtime-metrics';
+      componentId:
+        | 'agent-monitoring'
+        | 'mcp'
+        | 'node-runtime-metrics'
+        | 'elixir-runtime-metrics';
       requiredProjectFlags: ProjectTelemetryFlag[];
-      // Custom onboarding component (AI Agents, MCP, Node.js Runtime Metrics)
+      // Custom onboarding component (AI Agents, MCP, Node.js and Elixir Runtime Metrics)
       type: 'custom';
     }
   | {
@@ -154,6 +189,7 @@ export const PREBUILT_DASHBOARDS: Record<PrebuiltDashboardId, PrebuiltDashboard>
   [PrebuiltDashboardId.BACKEND_QUEUE_SUMMARY]: QUEUE_DETAILS_PREBUILT_CONFIG,
   [PrebuiltDashboardId.BACKEND_CACHES]: CACHES_PREBUILT_CONFIG,
   [PrebuiltDashboardId.NODE_RUNTIME_METRICS]: NODE_RUNTIME_METRICS_PREBUILT_CONFIG,
+  [PrebuiltDashboardId.ELIXIR_RUNTIME_METRICS]: ELIXIR_RUNTIME_METRICS_PREBUILT_CONFIG,
 };
 
 type PrebuiltDashboardVariant = {
