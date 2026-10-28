@@ -165,12 +165,12 @@ class TagValueSerializerResponseOptional(TypedDict, total=False):
 
 class TagValueSerializerResponse(TagValueSerializerResponseOptional):
     key: str
-    name: str
+    name: str | None
     value: str | None
     # Empty values do not have counts, last seen or first seen timestamps.
     count: int | None
-    lastSeen: str | None
-    firstSeen: str | None
+    lastSeen: datetime | None
+    firstSeen: datetime | None
 
 
 @register(GroupTagValue)

@@ -105,7 +105,7 @@ class DashboardWidgetResponse(TypedDict):
     displayType: str
     thresholds: ThresholdType | None
     interval: str
-    dateCreated: str
+    dateCreated: datetime
     dashboardId: str
     queries: list[DashboardWidgetQueryResponse]
     limit: int | None
@@ -452,11 +452,11 @@ class DashboardPermissionsSerializer(Serializer[DashboardPermissionsResponse]):
 class DashboardListResponse(TypedDict):
     id: str
     title: str
-    dateCreated: str
-    createdBy: UserSerializerResponse
+    dateCreated: datetime
+    createdBy: UserSerializerResponse | None
     environment: list[str]
     filters: DashboardFilters
-    lastVisited: str | None
+    lastVisited: datetime | None
     widgetDisplay: list[str]
     widgetPreview: list[dict[str, str]]
     permissions: DashboardPermissionsResponse | None
@@ -661,7 +661,7 @@ class DashboardDetailsResponseOptional(TypedDict, total=False):
 class DashboardDetailsResponse(DashboardDetailsResponseOptional):
     id: str
     title: str
-    dateCreated: str
+    dateCreated: datetime
     createdBy: UserSerializerResponse | None
     widgets: list[DashboardWidgetResponse]
     projects: list[int]

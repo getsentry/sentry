@@ -14,6 +14,7 @@ from sentry_sdk import traces
 
 from sentry import options
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.models.eventattachment import EventAttachmentSerializerResponse
 from sentry.api.serializers.models.release import GroupEventReleaseSerializer
 from sentry.api.serializers.models.userreport import UserReportSerializerResponse
 from sentry.api.serializers.types import GroupEventReleaseSerializerResponse
@@ -164,7 +165,7 @@ class BaseEventSerializerResponse(TypedDict):
     location: str | None
     user: EventUserApiContext | None
     tags: list[EventTag]
-    platform: str
+    platform: str | None
     dateReceived: datetime | None
     contexts: dict[str, Any] | None
     size: int | None
@@ -181,7 +182,7 @@ class BaseEventSerializerResponse(TypedDict):
 
 
 class ErrorEventFields(TypedDict, total=False):
-    crashFile: str | None
+    crashFile: EventAttachmentSerializerResponse | None
     culprit: str | None
     dateCreated: datetime
     fingerprints: list[str]
@@ -189,8 +190,8 @@ class ErrorEventFields(TypedDict, total=False):
 
 
 class TransactionEventFields(TypedDict, total=False):
-    startTimestamp: float
-    endTimestamp: float
+    startTimestamp: float | None
+    endTimestamp: float | None
     measurements: dict[str, MeasurementValue] | None
     breakdowns: dict[str, dict[str, MeasurementValue]] | None
 
@@ -611,7 +612,7 @@ SimpleEventSerializerResponse = TypedDict(
         "tags": list[EventTag],
         "platform": str | None,
         "dateCreated": datetime,
-        "crashFile": str | None,
+        "crashFile": EventAttachmentSerializerResponse | None,
         "metadata": dict[str, Any],
     },
 )

@@ -24,20 +24,16 @@ OwnershipSchemaResponse = TypedDict(
 )
 
 
-# JSON object representing optional part of API response
-class ProjectOwnershipResponseOptional(TypedDict, total=False):
-    schema: OwnershipSchemaResponse | None
-
-
 # JSON object representing this serializer in API response
-class ProjectOwnershipResponse(ProjectOwnershipResponseOptional):
-    raw: str
+class ProjectOwnershipResponse(TypedDict):
+    raw: str | None
     fallthrough: bool
     dateCreated: datetime
     lastUpdated: datetime
     isActive: bool
     autoAssignment: str
-    codeownersAutoSync: bool
+    codeownersAutoSync: bool | None
+    schema: OwnershipSchemaResponse | None
 
 
 @register(ProjectOwnership)
@@ -61,12 +57,12 @@ class ProjectOwnershipSerializer(Serializer[ProjectOwnershipResponse]):
             "isActive": obj.is_active,
             "autoAssignment": assignment,
             "codeownersAutoSync": obj.codeowners_auto_sync,
+            "schema": obj.schema,
         }
         if obj.schema and obj.schema.get("rules"):
             for rule in obj.schema["rules"]:
                 for owner in rule["owners"]:
                     if "id" in owner:
                         owner["id"] = str(owner["id"])
-        project_ownership_data["schema"] = obj.schema
 
         return project_ownership_data

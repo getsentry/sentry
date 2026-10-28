@@ -24,7 +24,7 @@ class ProjectTagKeyResponse(TypedDict):
     name: str
     canDelete: bool
     # Only included when `includeValuesSeen` is not disabled.
-    uniqueValues: NotRequired[int]
+    uniqueValues: NotRequired[int | None]
 
 
 @extend_schema(tags=["Projects"])

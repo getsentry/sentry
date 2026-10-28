@@ -32,8 +32,8 @@ from sentry.types.actor import Actor
 
 
 class MonitorEnvBrokenDetectionSerializerResponse(TypedDict):
-    userNotifiedTimestamp: datetime
-    environmentMutedTimestamp: datetime
+    userNotifiedTimestamp: datetime | None
+    environmentMutedTimestamp: datetime | None
 
 
 @register(MonitorEnvBrokenDetection)
@@ -46,8 +46,8 @@ class MonitorEnvBrokenDetectionSerializer(Serializer[MonitorEnvBrokenDetectionSe
 
 
 class MonitorIncidentSerializerResponse(TypedDict):
-    startingTimestamp: datetime
-    resolvingTimestamp: datetime
+    startingTimestamp: datetime | None
+    resolvingTimestamp: datetime | None
     brokenNotice: MonitorEnvBrokenDetectionSerializerResponse | None
 
 
@@ -81,9 +81,9 @@ class MonitorEnvironmentSerializerResponse(TypedDict):
     status: str
     isMuted: bool
     dateCreated: datetime
-    lastCheckIn: datetime
-    nextCheckIn: datetime
-    nextCheckInLatest: datetime
+    lastCheckIn: datetime | None
+    nextCheckIn: datetime | None
+    nextCheckInLatest: datetime | None
     activeIncident: MonitorIncidentSerializerResponse | None
 
 
@@ -172,8 +172,8 @@ class MonitorSerializerResponse(TypedDict):
     config: MonitorConfigSerializerResponse
     dateCreated: datetime
     project: ProjectSerializerResponse
-    environments: MonitorEnvironmentSerializerResponse
-    owner: ActorSerializerResponse
+    environments: list[MonitorEnvironmentSerializerResponse]
+    owner: ActorSerializerResponse | None
 
 
 class MonitorBulkEditResponse:
@@ -304,12 +304,12 @@ class MonitorCheckInSerializerResponse(MonitorCheckInSerializerResponseOptional)
     environment: str
     status: str
     duration: int | None
-    dateCreated: datetime
+    dateCreated: datetime | None
     dateAdded: datetime
     dateUpdated: datetime
     dateInProgress: datetime | None
-    dateClock: datetime
-    expectedTime: datetime
+    dateClock: datetime | None
+    expectedTime: datetime | None
     monitorConfig: MonitorConfigSerializerResponse
 
 

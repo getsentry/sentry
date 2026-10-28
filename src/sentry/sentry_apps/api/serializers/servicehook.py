@@ -6,7 +6,7 @@ from sentry.sentry_apps.models.servicehook import ServiceHook
 
 
 class ServiceHookSerializerResponse(TypedDict):
-    id: str
+    id: str | None
     url: str
     secret: str
     status: str
