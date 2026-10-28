@@ -32,6 +32,7 @@ import type {Release} from 'sentry/types/release';
 import {ReleaseStatus} from 'sentry/types/release';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {defined} from 'sentry/utils/defined';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {FieldKey} from 'sentry/utils/fields';
@@ -417,7 +418,7 @@ function ReleasesListInnerPage() {
   const getTagValues = useCallback<GetTagValues>(
     async ({tag, searchQuery}) => {
       const values = await tagValueLoader(tag.key, searchQuery);
-      return values.map(({value}) => value);
+      return values.map(({value}) => value).filter(defined);
     },
     [tagValueLoader]
   );

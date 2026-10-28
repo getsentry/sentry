@@ -578,14 +578,6 @@ class Fixtures:
     def create_integration_external_project(self, *args, **kwargs):
         return Factories.create_integration_external_project(*args, **kwargs)
 
-    def create_incident(self, organization=None, projects=None, *args, **kwargs):
-        if not organization:
-            organization = self.organization
-        if projects is None:
-            projects = [self.project]
-
-        return Factories.create_incident(organization, projects, *args, **kwargs)
-
     def create_alert_rule(self, organization=None, projects=None, *args, **kwargs) -> AlertRule:
         if not organization:
             organization = self.organization
@@ -603,6 +595,14 @@ class Fixtures:
 
     def create_notification_settings_provider(self, *args, **kwargs):
         return Factories.create_notification_settings_provider(*args, **kwargs)
+
+    def create_inbox_item(self, organization=None, user=None, **kwargs):
+        return Factories.create_inbox_item(
+            organization=organization or self.organization, user=user or self.user, **kwargs
+        )
+
+    def create_inbox_item_event(self, *args, **kwargs):
+        return Factories.create_inbox_item_event(*args, **kwargs)
 
     def create_weekly_report_project_exclusion(self, **kwargs):
         return Factories.create_weekly_report_project_exclusion(**kwargs)

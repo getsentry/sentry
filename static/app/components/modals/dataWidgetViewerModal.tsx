@@ -1,4 +1,4 @@
-import {Fragment, memo, useEffect, useMemo, useState} from 'react';
+import {Fragment, memo, useCallback, useEffect, useMemo, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {truncate} from '@sentry/core';
@@ -83,7 +83,6 @@ import {checkUserHasEditAccess} from 'sentry/views/dashboards/utils/checkUserHas
 import {
   getWidgetExploreUrl,
   getWidgetTableRowExploreUrlFunction,
-  widgetTypeSupportsExploreMultiQuery,
 } from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {getWidgetMetricsUrl} from 'sentry/views/dashboards/utils/getWidgetMetricsUrl';
 import {widgetCanUseTimeSeriesVisualization} from 'sentry/views/dashboards/utils/widgetCanUseTimeSeriesVisualization';
@@ -91,7 +90,10 @@ import {
   SESSION_DURATION_ALERT,
   WidgetDescription,
 } from 'sentry/views/dashboards/widgetCard';
-import type {GenericWidgetQueriesResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import type {
+  GenericWidgetQueriesResult,
+  OnDataFetchedProps,
+} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {IssueWidgetQueries} from 'sentry/views/dashboards/widgetCard/issueWidgetQueries';
 import {ReleaseWidgetQueries} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 import {VisualizationWidget} from 'sentry/views/dashboards/widgetCard/visualizationWidget';
@@ -154,6 +156,7 @@ type WidgetViewerTableProps = {
   cursor: string | undefined;
   dashboardFilters: DashboardFilters | undefined;
   modalSelection: PageFilters;
+  onIssuesDataFetched: (results: OnDataFetchedProps) => void;
   renderIssuesTable: (result: GenericWidgetQueriesResult) => React.JSX.Element;
   renderTable: (result: GenericWidgetQueriesResult) => React.JSX.Element;
   tableWidget: Widget;
@@ -165,6 +168,7 @@ function WidgetViewerTable({
   cursor,
   dashboardFilters,
   modalSelection,
+  onIssuesDataFetched,
   renderIssuesTable,
   renderTable,
   tableWidget,
@@ -196,6 +200,7 @@ function WidgetViewerTable({
           cursor={cursor}
           dashboardFilters={dashboardFilters}
           widgetInterval={widgetInterval}
+          onDataFetched={onIssuesDataFetched}
         >
           {renderIssuesTable}
         </IssueWidgetQueries>
@@ -498,15 +503,19 @@ function DataWidgetViewerModal(props: Props) {
     );
   }
 
+  const onIssuesDataFetched = useCallback(({totalCount}: OnDataFetchedProps) => {
+    // onDataFetched also fires without a count while the next page loads, so keep
+    // showing the last known total until a new one arrives
+    if (totalCount !== undefined) {
+      setTotalResults(totalCount);
+    }
+  }, []);
+
   const renderIssuesTable = ({
     tableResults,
     loading,
     pageLinks,
-    totalCount,
   }: GenericWidgetQueriesResult) => {
-    if (totalResults === undefined && totalCount) {
-      setTotalResults(totalCount);
-    }
     return (
       <ViewerTableV2
         tableResults={tableResults}
@@ -733,6 +742,7 @@ function DataWidgetViewerModal(props: Props) {
           cursor={cursor}
           dashboardFilters={dashboardFilters}
           modalSelection={modalSelection}
+          onIssuesDataFetched={onIssuesDataFetched}
           renderIssuesTable={renderIssuesTable}
           renderTable={renderTable}
           tableWidget={tableWidget}
@@ -845,9 +855,7 @@ function OpenButton({
     case WidgetType.SPANS:
     case WidgetType.LOGS: {
       openLabel = t('Open in Explore');
-      const multiQueryUnsupported =
-        widget.queries.length > 1 &&
-        !widgetTypeSupportsExploreMultiQuery(widget.widgetType);
+      const multiQueryUnsupported = widget.queries.length > 1;
       if (multiQueryUnsupported) {
         return (
           <Tooltip

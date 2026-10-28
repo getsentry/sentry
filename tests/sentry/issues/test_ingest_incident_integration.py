@@ -5,7 +5,6 @@ from django.utils import timezone
 
 from sentry.event_manager import GroupInfo
 from sentry.incidents.grouptype import MetricIssue
-from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.ingest import save_issue_occurrence
@@ -116,7 +115,6 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
         _, group_info = self.save_issue_occurrence()
         open_period = GroupOpenPeriod.objects.get(group=group_info.group)
         assert open_period.date_ended is None
-        assert not Incident.objects.exists()
         assert not IncidentGroupOpenPeriod.objects.exists()
 
     def test_modern_detector_without_legacy_rule(self) -> None:
@@ -124,7 +122,6 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
         self.alert_rule.delete()
         _, group_info = self.save_issue_occurrence()
         assert GroupOpenPeriod.objects.filter(group=group_info.group).exists()
-        assert not Incident.objects.exists()
         assert not IncidentGroupOpenPeriod.objects.exists()
 
     def test_non_metric_issue(self) -> None:
@@ -132,18 +129,13 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
         assert GroupOpenPeriod.objects.filter(group=group_info.group).exists()
         assert not IncidentGroupOpenPeriod.objects.exists()
 
-    def test_priority_and_resolution_preserve_historical_incident(self) -> None:
+    def test_priority_and_resolution_preserve_historical_mapping(self) -> None:
         _, group_info = self.save_issue_occurrence()
         group = group_info.group
         open_period = GroupOpenPeriod.objects.get(group=group)
-        incident = self.create_incident(
-            organization=self.organization,
-            alert_rule=self.alert_rule,
-            status=IncidentStatus.CRITICAL.value,
-        )
         mapping = self.create_incident_group_open_period(
-            incident_id=incident.id,
-            incident_identifier=incident.identifier,
+            incident_id=123,
+            incident_identifier=42,
             group_open_period=open_period,
         )
 
@@ -159,30 +151,19 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
             update_status(group, self.mock_status_change_message)
         open_period.refresh_from_db()
         group.refresh_from_db()
-        incident.refresh_from_db()
         mapping.refresh_from_db()
         assert group.status == GroupStatus.RESOLVED
         assert open_period.date_ended is not None
-        assert incident.status == IncidentStatus.CRITICAL.value
-        assert incident.date_closed is None
-        assert mapping.incident_id == incident.id
-        assert Incident.objects.count() == 1
+        assert mapping.incident_id == 123
+        assert mapping.incident_identifier == 42
 
-    def test_resolving_unmapped_period_does_not_attach_outstanding_incident(self) -> None:
-        incident = self.create_incident(
-            organization=self.organization,
-            alert_rule=self.alert_rule,
-            status=IncidentStatus.CRITICAL.value,
-        )
+    def test_resolving_unmapped_period_preserves_open_period(self) -> None:
         _, group_info = self.save_issue_occurrence()
         with self.tasks():
             update_status(group_info.group, self.mock_status_change_message)
         open_period = GroupOpenPeriod.objects.get(group=group_info.group)
         assert open_period.date_ended is not None
         assert not IncidentGroupOpenPeriod.objects.exists()
-        incident.refresh_from_db()
-        assert incident.date_closed is None
-        assert Incident.objects.count() == 1
 
     def test_ongoing_transition_preserves_open_period(self) -> None:
         _, group_info = self.save_issue_occurrence()
@@ -198,7 +179,6 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
         ).exists()
         open_period.refresh_from_db()
         assert open_period.date_ended is None
-        assert not Incident.objects.exists()
         assert not IncidentGroupOpenPeriod.objects.exists()
 
     def test_resolve_previous_activation_after_next_activation_opened(self) -> None:

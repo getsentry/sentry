@@ -66,10 +66,6 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleSeasonality,
     AlertRuleThresholdType,
 )
-from sentry.incidents.models.incident import (
-    Incident,
-    IncidentType,
-)
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.doc_integration import DocIntegration
@@ -167,6 +163,8 @@ from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.models.userreport import UserReport
 from sentry.models.weeklyreportprojectexclusion import WeeklyReportProjectExclusion
+from sentry.notifications.models.inboxitem import InboxItem
+from sentry.notifications.models.inboxitemevent import InboxActorType, InboxItemEvent
 from sentry.notifications.models.notificationaction import (
     ActionService,
     ActionTarget,
@@ -2084,43 +2082,6 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
-    def create_incident(
-        organization,
-        projects,
-        detection_uuid=None,
-        status=1,
-        title=None,
-        query="test query",
-        date_started=None,
-        date_detected=None,
-        date_closed=None,
-        alert_rule=None,
-        subscription=None,
-    ):
-        if not title:
-            title = petname.generate(2, " ", letters=10).title()
-        # Projects configure the default alert rule, not an incident-project relation.
-        if alert_rule is None:
-            alert_rule = Factories.create_alert_rule(
-                organization, projects, query=query, time_window=1
-            )
-
-        incident = Incident.objects.create(
-            organization=organization,
-            detection_uuid=detection_uuid,
-            status=status,
-            title=title,
-            alert_rule=alert_rule,
-            date_started=date_started or timezone.now(),
-            date_detected=date_detected or timezone.now(),
-            date_closed=timezone.now() if date_closed is not None else date_closed,
-            type=IncidentType.ALERT_TRIGGERED.value,
-            subscription=subscription,
-        )
-        return incident
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
     def create_alert_rule(
         organization,
         projects,
@@ -2479,6 +2440,40 @@ class Factories:
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_notification_settings_provider(*args, **kwargs) -> NotificationSettingProvider:
         return NotificationSettingProvider.objects.create(*args, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_inbox_item(
+        organization: Organization,
+        user: User | RpcUser,
+        subject_type: str = "issue",
+        subject_id: str = "1",
+        **kwargs,
+    ) -> InboxItem:
+        kwargs.setdefault("last_activity_at", timezone.now())
+        return InboxItem.objects.create(
+            organization=organization,
+            user_id=user.id,
+            subject_type=subject_type,
+            subject_id=subject_id,
+            **kwargs,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_inbox_item_event(
+        inbox_item: InboxItem,
+        type: str = "issue.assigned",
+        actor: User | RpcUser | None = None,
+        **kwargs,
+    ) -> InboxItemEvent:
+        return InboxItemEvent.objects.create(
+            inbox_item=inbox_item,
+            type=type,
+            actor_type=InboxActorType.USER if actor else InboxActorType.SYSTEM,
+            actor_id=actor.id if actor else None,
+            **kwargs,
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
