@@ -319,6 +319,16 @@ register(
     type=Bool,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Turns on the deprecated scope translation in sentry.auth.deprecated_scope_translation, which
+# grants tokens holding a deprecated scope (e.g. org:read) the granular scopes replacing it.
+# Turning this off is safe while endpoints still accept the deprecated scopes. Before any
+# endpoint stops accepting them regardless of this option, enable it everywhere and remove it.
+register(
+    "auth.deprecated-scope-translation.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # User Settings
 register(

@@ -1,9 +1,10 @@
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, waitFor} from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 import {
   useResizableDrawer,
   type UseResizableDrawerOptions,
-} from 'sentry/utils/useResizableDrawer';
+} from '@sentry/scraps/useResizableDrawer';
 
 function DragHarness(props: UseResizableDrawerOptions) {
   const {size, onPointerDown} = useResizableDrawer(props);
@@ -76,5 +77,32 @@ describe('useResizableDrawer', () => {
     await waitFor(() =>
       expect(onResizeEnd).toHaveBeenCalledWith({startSize: 200, endSize: 150})
     );
+  });
+
+  it('clears document drag state when a pointer drag is canceled', async () => {
+    const onResizeEnd = jest.fn();
+    render(
+      <DragHarness
+        direction="left"
+        initialSize={200}
+        min={100}
+        onResizeEnd={onResizeEnd}
+      />
+    );
+    const handle = screen.getByRole('button', {name: 'handle'});
+    await userEvent.pointer([
+      {keys: '[MouseLeft>]', target: handle, coords: {x: 200, y: 0}},
+      {target: handle, coords: {x: 150, y: 0}},
+    ]);
+    await waitFor(() => expect(handle).toHaveAttribute('data-size', '150'));
+    expect(document.body).toHaveStyle({pointerEvents: 'none'});
+    expect(document.documentElement).toHaveStyle({cursor: 'ew-resize'});
+
+    act(() => document.dispatchEvent(new PointerEvent('pointercancel', {bubbles: true})));
+
+    expect(document.body).toHaveStyle({pointerEvents: ''});
+    expect(document.body).toHaveStyle({userSelect: ''});
+    expect(document.documentElement).not.toHaveStyle({cursor: 'ew-resize'});
+    expect(onResizeEnd).toHaveBeenCalledWith({startSize: 200, endSize: 150});
   });
 });

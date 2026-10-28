@@ -9,10 +9,10 @@ import {IconClose} from '@sentry/icons/close';
 
 import {Button} from '@sentry/scraps/button';
 import {PanelProvider} from '@sentry/scraps/panelProvider';
+import {Spinner} from '@sentry/scraps/spinner';
 import type {FormSize, Theme} from '@sentry/scraps/theme';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {defined} from 'sentry/utils/defined';
 
 import {createFilter} from './filter';
@@ -410,8 +410,8 @@ function MultiValueRemove(
   );
 }
 
-function SelectLoadingIndicator() {
-  return <LoadingIndicator mini size={14} style={{height: 14, width: 14}} />;
+function SelectSpinner() {
+  return <Spinner mini size={14} style={{height: 14, width: 14}} />;
 }
 
 function SingleValue<TValue, TOption extends SelectValue<TValue>>(
@@ -676,7 +676,7 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
     ClearIndicator,
     DropdownIndicator,
     MultiValueRemove,
-    LoadingIndicator: SelectLoadingIndicator,
+    LoadingIndicator: SelectSpinner,
     IndicatorSeparator: null,
     Menu,
     Input: SelectInput<TValue, TOption>,

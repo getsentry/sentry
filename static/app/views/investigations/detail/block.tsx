@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconChat} from '@sentry/icons/chat';
 import {IconClose} from '@sentry/icons/close';
@@ -11,7 +11,11 @@ import {Button} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {type MarkdownProps, type MarkdownTableColumn} from '@sentry/scraps/markdown';
+import {
+  MarkedLexer,
+  type MarkdownProps,
+  type MarkdownTableColumn,
+} from '@sentry/scraps/markdown';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -206,48 +210,12 @@ function InvestigationNotebookBlockInner({
     },
   ];
 
-  const hasComments = commentCount > 0;
-  const actionSize = block.kind === 'query' ? 'zero' : 'xs';
-
-  const blockActions = (
-    <Flex align="center" gap="2xs" flexShrink={0}>
-      <BlockActions>
-        <DropdownMenu
-          position="bottom-end"
-          usePortal
-          trigger={triggerProps => (
-            <OverlayTrigger.IconButton
-              {...triggerProps}
-              size={actionSize}
-              variant="transparent"
-              icon={<IconEllipsis size="xs" />}
-              aria-label={t('Block actions for %s', displayTitle)}
-            />
-          )}
-          items={actionItems}
-        />
-      </BlockActions>
-      {onComment ? (
-        <BlockActions data-pinned={hasComments || undefined}>
-          <Button
-            size={actionSize}
-            variant="transparent"
-            icon={<IconChat size="xs" variant={hasComments ? 'accent' : undefined} />}
-            aria-label={
-              hasComments
-                ? tn('%s comment on %s', '%s comments on %s', commentCount, displayTitle)
-                : t('Comment on %s', displayTitle)
-            }
-            data-block-comments-trigger
-            tooltipProps={{
-              title: hasComments ? t('View comments') : t('Add a comment'),
-            }}
-            onClick={() => onComment(block.id)}
-          />
-        </BlockActions>
-      ) : null}
-    </Flex>
-  );
+  const actionButtonProps = {
+    actionItems,
+    commentCount,
+    displayTitle,
+    onComment: onComment ? () => onComment(block.id) : undefined,
+  };
 
   const panel =
     panelOpen && traceExecutionId ? (
@@ -271,7 +239,7 @@ function InvestigationNotebookBlockInner({
       {block.kind === 'query' ? (
         <Fragment>
           <QueryResult
-            actions={blockActions}
+            actions={<BlockActionButtons {...actionButtonProps} size="zero" />}
             block={block}
             progressState={progressState}
           />
@@ -281,7 +249,8 @@ function InvestigationNotebookBlockInner({
         <Fragment>
           <BlockResult
             block={block}
-            actions={blockActions}
+            actions={<BlockActionButtons {...actionButtonProps} size="xs" />}
+            headerActions={<BlockActionButtons {...actionButtonProps} size="zero" />}
             progressState={progressState}
             streamedMarkdown={
               isExecutionActive(block.currentExecution?.status)
@@ -301,52 +270,172 @@ export const InvestigationNotebookBlock = registerLLMContext(
   InvestigationNotebookBlockInner
 );
 
+function BlockActionButtons({
+  actionItems,
+  commentCount,
+  displayTitle,
+  onComment,
+  size,
+}: {
+  actionItems: MenuItemProps[];
+  commentCount: number;
+  displayTitle: string;
+  /**
+   * `zero` keeps a card's header band its usual height; `xs` sits beside a
+   * text block's first line.
+   */
+  size: 'zero' | 'xs';
+  onComment?: () => void;
+}) {
+  const hasComments = commentCount > 0;
+  return (
+    <Flex align="center" gap="2xs" flexShrink={0}>
+      <BlockActions>
+        <DropdownMenu
+          position="bottom-end"
+          usePortal
+          trigger={triggerProps => (
+            <OverlayTrigger.IconButton
+              {...triggerProps}
+              size={size}
+              variant="transparent"
+              icon={<IconEllipsis size="xs" />}
+              aria-label={t('Block actions for %s', displayTitle)}
+            />
+          )}
+          items={actionItems}
+        />
+      </BlockActions>
+      {onComment ? (
+        <BlockActions data-pinned={hasComments || undefined}>
+          <Button
+            size={size}
+            variant="transparent"
+            icon={<IconChat size="xs" variant={hasComments ? 'accent' : undefined} />}
+            aria-label={
+              hasComments
+                ? tn('%s comment on %s', '%s comments on %s', commentCount, displayTitle)
+                : t('Comment on %s', displayTitle)
+            }
+            data-block-comments-trigger
+            tooltipProps={{
+              title: hasComments ? t('View comments') : t('Add a comment'),
+            }}
+            onClick={onComment}
+          />
+        </BlockActions>
+      ) : null}
+    </Flex>
+  );
+}
+
 function BlockResult({
   actions,
   block,
+  headerActions,
   progressState,
   streamedMarkdown,
 }: {
   actions: React.ReactNode;
   block: InvestigationBlock;
+  /** The same actions, sized for the header of an embed the markdown opens with. */
+  headerActions: React.ReactNode;
   progressState: BlockProgressState;
   streamedMarkdown?: string | null;
 }) {
   const markdown = streamedMarkdown ?? getTextBlockMarkdown(block);
+  const [firstMarkdownBlock, restMarkdown] = useMemo(
+    () => splitFirstMarkdownBlock(markdown ?? ''),
+    [markdown]
+  );
+  // An embed the markdown opens with takes the actions into its card's header,
+  // so the card can run the block's full width. Until one claims them -- or if
+  // that embed renders no card -- they sit beside the first line.
+  const [actionsInEmbed, setActionsInEmbed] = useState(false);
+  // Stable, so a re-render (each streamed chunk) doesn't release and reclaim them.
+  const claimActions = useCallback(() => {
+    setActionsInEmbed(true);
+    return () => setActionsInEmbed(false);
+  }, []);
+  const actionsBesideFirstLine = actionsInEmbed ? null : (
+    <Grid area="1 / 2">
+      {/* A hidden line of text, so the actions sit on the content's first line. */}
+      <Container area="1 / 1">
+        <Text as="div" aria-hidden size="md" density="comfortable">
+          {'​'}
+        </Text>
+      </Container>
+      <Flex area="1 / 1" height="0" alignSelf="center" align="center">
+        {actions}
+      </Flex>
+    </Grid>
+  );
   return (
     <BlockHoverSurface
       flex={1}
       minWidth={0}
+      gap="sm"
       data-test-id="text-block-result"
       data-block-variant="unbordered"
     >
-      <Grid columns="minmax(0, 1fr) auto" gap="sm" align="start">
-        <Stack minWidth={0} gap="sm">
-          <BlockExecutionAlert block={block} />
-          {markdown ? (
-            <SeerMarkdown raw={markdown} components={TEXT_BLOCK_MARKDOWN_COMPONENTS} />
-          ) : isBlockWorking(block) ? (
+      <BlockExecutionAlert block={block} />
+      {markdown ? (
+        // The first block shares its row with the actions and wraps short of
+        // them; the rest runs the full width, so an embed further down lines up
+        // with a query block's card.
+        <Grid
+          columns={actionsInEmbed ? 'minmax(0, 1fr)' : 'minmax(0, 1fr) auto'}
+          gap="lg sm"
+          align="start"
+        >
+          <Container area="1 / 1" minWidth={0}>
+            <SeerMarkdown
+              raw={firstMarkdownBlock}
+              components={TEXT_BLOCK_MARKDOWN_COMPONENTS}
+              leadingEmbedActions={{actions: headerActions, onClaim: claimActions}}
+            />
+          </Container>
+          {actionsBesideFirstLine}
+          {restMarkdown ? (
+            <Container area="2 / 1 / 3 / -1" minWidth={0}>
+              <SeerMarkdown
+                raw={restMarkdown}
+                components={TEXT_BLOCK_MARKDOWN_COMPONENTS}
+              />
+            </Container>
+          ) : null}
+        </Grid>
+      ) : (
+        <Grid columns="minmax(0, 1fr) auto" gap="sm" align="start">
+          {isBlockWorking(block) ? (
             <Container paddingBottom="xl">
               <InvestigationBlockPlaceholder title={block.title} />
             </Container>
           ) : (
             <BlockProgress state={progressState} />
           )}
-        </Stack>
-        {/* A hidden line of text, so the actions sit on the block's first line. */}
-        <Grid>
-          <Container area="1 / 1">
-            <Text as="div" aria-hidden size="md" density="comfortable">
-              {'​'}
-            </Text>
-          </Container>
-          <Flex area="1 / 1" height="0" alignSelf="center" align="center">
-            {actions}
-          </Flex>
+          {actionsBesideFirstLine}
         </Grid>
-      </Grid>
+      )}
     </BlockHoverSurface>
   );
+}
+
+/**
+ * Splits markdown after its first block. Token sources concatenate back to the
+ * input, so the halves render as the whole would, except that a reference-style
+ * link no longer resolves against a definition in the other half.
+ */
+function splitFirstMarkdownBlock(markdown: string): [string, string] {
+  const tokens = MarkedLexer.lex(markdown);
+  const first = tokens.findIndex(token => token.type !== 'space');
+  if (first === -1) {
+    return [markdown, ''];
+  }
+  const length = tokens
+    .slice(0, first + 1)
+    .reduce((total, token) => total + token.raw.length, 0);
+  return [markdown.slice(0, length), markdown.slice(length)];
 }
 
 /**
