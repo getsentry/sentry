@@ -89,7 +89,7 @@ const getPlaceholderSelectStyles = (theme: Theme): StylesConfig => ({
   }),
 });
 
-type Props = DistributedOmit<ControlProps, 'onChange'> & {
+type Props = DistributedOmit<ControlProps, 'onChange' | 'options'> & {
   onChange: (value: any) => void;
   /**
    * Controls whether the dropdown allows to create a new team

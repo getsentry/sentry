@@ -13,16 +13,12 @@ import type {FormSize, Theme} from '@sentry/scraps/theme';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import type {Choices} from 'sentry/types/core';
-import {convertFromSelect2Choices} from 'sentry/utils/convertFromSelect2Choices';
 import {defined} from 'sentry/utils/defined';
 
 import {createFilter} from './filter';
 import {SelectOption} from './option';
 import type {
-  GroupedOptionsType,
   OptionsType,
-  OptionTypeBase,
   Props as ReactSelectProps,
   StylesConfig as ReactSelectStylesConfig,
   ValueType,
@@ -399,19 +395,6 @@ function DropdownIndicator(
   );
 }
 
-function isGroupedOptions<OptionType extends OptionTypeBase>(
-  maybe:
-    | ReturnType<typeof convertFromSelect2Choices>
-    | GroupedOptionsType<OptionType>
-    | OptionType[]
-    | OptionsType<OptionType>
-): maybe is GroupedOptionsType<OptionType> {
-  if (!maybe || maybe.length === 0) {
-    return false;
-  }
-  return (maybe as GroupedOptionsType<OptionType>)[0]?.options !== undefined;
-}
-
 function MultiValueRemove(
   props: React.ComponentProps<typeof selectComponents.MultiValueRemove>
 ) {
@@ -498,6 +481,9 @@ type OptionalSelectionProps<Props extends {onChange: unknown; value: unknown}> =
 export interface BaseSelectProps<
   OptionType extends GeneralSelectValue = GeneralSelectValue,
 > {
+  options: ReadonlyArray<
+    OptionType | {options: readonly OptionType[]; label?: React.ReactNode}
+  >;
   'aria-describedby'?: string;
   'aria-invalid'?: boolean;
   'aria-label'?: string;
@@ -505,7 +491,6 @@ export interface BaseSelectProps<
   autoFocus?: boolean;
   /** Blur after selection. Defaults to true for single selects, false for multiple. */
   blurInputOnSelect?: boolean;
-  choices?: Choices | ((props: ControlProps<OptionType>) => Choices);
   className?: string;
   /** Content inside the control, before the selected value and input. */
   controlLeadingItems?: React.ReactNode;
@@ -550,9 +535,6 @@ export interface BaseSelectProps<
   openMenuOnClick?: boolean;
   openMenuOnFocus?: boolean;
   optionHeight?: number;
-  options?: ReadonlyArray<
-    OptionType | {options: readonly OptionType[]; label?: React.ReactNode}
-  >;
   placeholder?: React.ReactNode;
   ref?: React.Ref<SelectHandle>;
   renderIndicators?: (indicators: React.ReactNode) => React.ReactNode;
@@ -607,7 +589,6 @@ export function Select<OptionType extends GeneralSelectValue = GeneralSelectValu
   const {
     creatable,
     options,
-    choices,
     clearable,
     styles,
     value,
@@ -635,14 +616,9 @@ export function Select<OptionType extends GeneralSelectValue = GeneralSelectValu
     ...rest
   } = props;
 
-  // Compatibility with old select2 API
-  //
-  // TODO(epurkhiser): We need better types on this coomponent to have higher
-  // confidence to remove this. There's likely few places we still use the
-  // select2 style choices.
-  const choicesOrOptions =
-    convertFromSelect2Choices(typeof choices === 'function' ? choices(props) : choices) ||
-    options;
+  const flatOptions = options.flatMap(option =>
+    'options' in option ? option.options : [option]
+  );
 
   const mapValue = (rawValue: typeof value) => {
     let mappedValue: ValueType<OptionType, boolean> | undefined;
@@ -654,44 +630,35 @@ export function Select<OptionType extends GeneralSelectValue = GeneralSelectValu
       mappedValue = null;
     }
 
-    if (choicesOrOptions) {
-      // Map raw values to their options, including options inside groups.
-      const flatOptions = (
-        isGroupedOptions(choicesOrOptions)
-          ? choicesOrOptions.flatMap(option => option.options)
-          : choicesOrOptions.flatMap(option => option)
-      ) as OptionType[];
-
-      const compare = (
-        a: OptionType['value'] | null | undefined,
-        b: OptionType['value'] | null | undefined
-      ) => {
-        if (props.isValueEqual && defined(a) && defined(b)) {
-          return props.isValueEqual(a, b);
-        }
-        return a === b;
-      };
-
-      const toOption = (val: OptionType['value']) =>
-        creatable && defined(val)
-          ? ({value: val, label: String(val)} as OptionType)
-          : undefined;
-
-      if (props.multiple && Array.isArray(rawValue)) {
-        mappedValue = rawValue
-          .map(
-            val =>
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-              flatOptions.find(option => compare(option.value, val)) ?? toOption(val)
-          )
-          .filter(defined);
-      } else {
-        mappedValue =
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          flatOptions.find(option => compare(option.value, rawValue)) ??
-          toOption(rawValue) ??
-          mappedValue;
+    const compare = (
+      a: OptionType['value'] | null | undefined,
+      b: OptionType['value'] | null | undefined
+    ) => {
+      if (props.isValueEqual && defined(a) && defined(b)) {
+        return props.isValueEqual(a, b);
       }
+      return a === b;
+    };
+
+    const toOption = (val: OptionType['value']) =>
+      creatable && defined(val)
+        ? ({value: val, label: String(val)} as OptionType)
+        : undefined;
+
+    if (props.multiple && Array.isArray(rawValue)) {
+      mappedValue = rawValue
+        .map(
+          val =>
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+            flatOptions.find(option => compare(option.value, val)) ?? toOption(val)
+        )
+        .filter(defined);
+    } else {
+      mappedValue =
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        flatOptions.find(option => compare(option.value, rawValue)) ??
+        toOption(rawValue) ??
+        mappedValue;
     }
 
     return mappedValue;
@@ -701,10 +668,7 @@ export function Select<OptionType extends GeneralSelectValue = GeneralSelectValu
   const showEmptyOption =
     !props.multiple && !defined(value) && emptyOptionLabel !== undefined;
   const emptyOption = {value: null, label: emptyOptionLabel, disabled: true};
-  const menuOptions = options ?? choicesOrOptions;
-  const displayOptions = showEmptyOption
-    ? [emptyOption, ...(menuOptions ?? [])]
-    : menuOptions;
+  const displayOptions = showEmptyOption ? [emptyOption, ...options] : options;
 
   // Override the default style with in-field labels if they are provided
   const inFieldLabelStyles: InternalStylesConfig = {

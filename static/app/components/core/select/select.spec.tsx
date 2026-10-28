@@ -8,7 +8,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {Select} from './select';
 import type {ControlProps} from './select';
-import type {SelectHandle} from './types';
+import type {SelectHandle, SelectValue} from './types';
 
 const options = [
   {value: 'apple', label: 'Apple', details: 'Fruit'},
@@ -79,24 +79,37 @@ describe('selection types', () => {
     type Option = (typeof options)[number];
     expectTypeOf<{
       multiple: true;
+      options: typeof options;
       value: string;
     }>().not.toMatchTypeOf<ControlProps<Option>>();
     expectTypeOf<{
       multiple: false;
+      options: typeof options;
       value: string[];
     }>().not.toMatchTypeOf<ControlProps<Option>>();
     expectTypeOf<{
       defaultValue: string;
       multiple: true;
+      options: typeof options;
     }>().not.toMatchTypeOf<ControlProps<Option>>();
     expectTypeOf<{
       defaultValue: string[];
       multiple: false;
+      options: typeof options;
     }>().not.toMatchTypeOf<ControlProps<Option>>();
     expectTypeOf<{
       multiple: false;
+      options: Array<{value: readonly string[]}>;
       value: readonly string[];
     }>().not.toMatchTypeOf<ControlProps<{value: readonly string[]}>>();
+  });
+
+  it('requires options and does not expose legacy choices', () => {
+    type Option = (typeof options)[number];
+    expectTypeOf<Omit<ControlProps<Option>, 'options'>>().not.toMatchTypeOf<
+      ControlProps<Option>
+    >();
+    expectTypeOf<'choices'>().not.toMatchTypeOf<keyof ControlProps<Option>>();
   });
 });
 
@@ -282,17 +295,21 @@ it('filters numeric labels as text', async () => {
   expect(screen.getByRole('menuitemradio', {name: '123'})).toBeInTheDocument();
 });
 
-it('displays explicit options when legacy choices are also supplied', async () => {
+it('preserves creatable defaults with an empty options list', () => {
   render(
-    <Select aria-label="Fruit" options={options} choices={[[1, 'Legacy choice']]} />
+    <Fragment>
+      <Select<SelectValue<string>> creatable options={[]} defaultValue="New fruit" />
+      <Select<SelectValue<string>>
+        creatable
+        multiple
+        options={[]}
+        defaultValue={['New tag']}
+      />
+    </Fragment>
   );
 
-  await userEvent.click(screen.getByRole('textbox', {name: 'Fruit'}));
-
-  expect(screen.getByRole('menuitemradio', {name: 'Apple'})).toBeInTheDocument();
-  expect(
-    screen.queryByRole('menuitemradio', {name: 'Legacy choice'})
-  ).not.toBeInTheDocument();
+  expect(screen.getByText('New fruit')).toBeInTheDocument();
+  expect(screen.getByText('New tag')).toBeInTheDocument();
 });
 
 it('passes option data directly to custom filters', async () => {

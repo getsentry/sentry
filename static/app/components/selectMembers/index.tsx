@@ -170,6 +170,7 @@ function SelectMembers({
       <Select
         aria-label={ariaLabel}
         disabled
+        options={[]}
         placeholder={t('Loading')}
         styles={selectStyles}
       />

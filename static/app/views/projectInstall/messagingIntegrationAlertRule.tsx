@@ -171,7 +171,7 @@ export function ChannelSelect({
       aria-label={t('channel')}
       placeholder={providerDetails[provider as keyof typeof providerDetails]?.placeholder}
       searchable
-      options={optionsWithSelectedValue}
+      options={optionsWithSelectedValue ?? []}
       isLoading={isLoading}
       disabled={disabled}
       value={value?.value ?? null}

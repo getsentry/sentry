@@ -29,7 +29,6 @@ type BaseSelectFieldProps<TValue> = Omit<
   | 'ref'
   | 'inputRef'
   | 'renderIndicators'
-  | 'choices'
   | 'emptyOptionLabel'
   | 'id'
   | 'options'

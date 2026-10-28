@@ -9,6 +9,7 @@ import {FormField} from 'sentry/components/forms/formField';
 import {FormFieldControlState} from 'sentry/components/forms/formField/controlState';
 import {t} from 'sentry/locale';
 import type {Choices} from 'sentry/types/core';
+import {convertFromSelect2Choices} from 'sentry/utils/convertFromSelect2Choices';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
 import type {InputFieldProps} from './inputField';
@@ -23,6 +24,7 @@ export interface SelectFieldProps<OptionType extends SelectValue<any>>
       | 'ref'
       | 'aria-invalid'
       | 'onChange'
+      | 'options'
       | 'defaultValue'
       | 'disabled'
       | 'name'
@@ -40,6 +42,7 @@ export interface SelectFieldProps<OptionType extends SelectValue<any>>
    * Should the select allow empty values?
    */
   allowEmpty?: boolean;
+  choices?: Choices | ((props: SelectFieldProps<OptionType>) => Choices);
   /**
    * Allow specific options to be 'confirmed' with a confirmation message.
    *
@@ -55,6 +58,7 @@ export interface SelectFieldProps<OptionType extends SelectValue<any>>
    * A label that is shown inside the select control.
    */
   inFieldLabel?: string;
+  options?: ControlProps<OptionType>['options'];
 }
 
 function getChoices<T extends SelectValue<any>>(props: SelectFieldProps<T>): Choices {
@@ -123,23 +127,33 @@ export class SelectField<OptionType extends SelectValue<any>> extends Component<
 
     return (
       <FormField {...otherProps} hideControlState flexibleControlStateSize>
-        {({
-          id,
-          onChange,
-          onBlur,
-          required: _required,
-          children: _children,
-          disabled,
-          disabledReason,
-          model,
-          name,
-          placeholder,
-          ...props
-        }: any) => {
+        {(fieldProps: any) => {
+          const {
+            id,
+            onChange,
+            onBlur,
+            required: _required,
+            children: _children,
+            disabled,
+            disabledReason,
+            model,
+            name,
+            placeholder,
+            choices,
+            options,
+            ...props
+          } = fieldProps;
           return (
             <Tooltip title={disabledReason} disabled={!disabled}>
               <Select
                 {...props}
+                options={
+                  options ??
+                  convertFromSelect2Choices(
+                    typeof choices === 'function' ? choices(fieldProps) : choices
+                  ) ??
+                  []
+                }
                 value={props.value}
                 placeholder={placeholder}
                 disabled={disabled}

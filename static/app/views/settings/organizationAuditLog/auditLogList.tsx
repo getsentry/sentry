@@ -347,7 +347,7 @@ export function AuditLogList({
         name="eventFilter"
         value={eventType}
         placeholder={t('Select Action: ')}
-        options={getEventOptions(eventTypes)}
+        options={getEventOptions(eventTypes) ?? []}
         onChange={(options: any) => {
           onEventSelect(options?.value);
         }}

@@ -534,6 +534,8 @@ those interactions open the menu; keyboard opening remains available.
 
 Fetch remote options outside the select, then pass `options`, `isLoading`, and
 `onInputChange`. Set `filterOption={null}` when the server performs all filtering.
+`options` is required. Pass `options={[]}` when no options are available, including
+for creatable selects without predefined choices.
 `onInputChange(input, reason)` reports user edits with `reason="input"` and text
 cleared by selection, blur, or menu close with `reason="reset"`. Ignore resets
 when a remote query must keep its search term. Custom `filterOption` callbacks
