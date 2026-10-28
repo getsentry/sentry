@@ -12,6 +12,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource
 from sentry.issues.action_log.types import SetResolvedInReleaseAction
+from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import COMMIT_AUTHOR_EMAIL_LENGTH, CommitAuthor
 from sentry.models.deploy import Deploy
@@ -47,6 +48,7 @@ from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.types.activity import ActivityType
 from sentry.utils.strings import truncatechars
 
 
@@ -351,6 +353,8 @@ class MergeReleasesTest(TestCase):
         assert GroupRelease.objects.get(id=group_release.id).release_id == release.id
         assert GroupRelease.objects.get(id=group_release2.id).release_id == release.id
         assert GroupRelease.objects.get(id=group_release3.id).release_id == release.id
+        assert GroupRelease.objects.get(id=group_release2.id).new_release_id == release.id
+        assert GroupRelease.objects.get(id=group_release3.id).new_release_id == release.id
 
         # GroupResolution.release
         assert GroupResolution.objects.get(id=group_resolution.id).release == release
@@ -366,6 +370,20 @@ class MergeReleasesTest(TestCase):
         assert Release.objects.filter(id=release.id).exists()
         assert not Release.objects.filter(id=release2.id).exists()
         assert not Release.objects.filter(id=release3.id).exists()
+
+    @patch("sentry.issues.attributes.produce_snapshot_to_kafka")
+    def test_merging_first_release_emits_snapshot(self, produce_snapshot: MagicMock) -> None:
+        release = self.create_release()
+
+        merged_release = self.create_release()
+
+        self.create_group(first_release=merged_release)
+
+        produce_snapshot.reset_mock()
+
+        Release.merge(release, [merged_release])
+
+        assert produce_snapshot.called
 
 
 class SetCommitsTestCase(TestCase):
@@ -632,6 +650,39 @@ class SetCommitsTestCase(TestCase):
 
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
         assert not GroupInbox.objects.filter(group=group).exists()
+
+    @receivers_raise_on_send()
+    def test_resolution_creates_activity_when_group_already_resolved(self) -> None:
+        # A group already RESOLVED (e.g. "resolve now", no GroupResolution)
+        # whose commit later ships in a release gets a new GroupResolution. That
+        # resolution must still get a matching SET_RESOLVED_IN_RELEASE activity,
+        # even though the group's status didn't transition.
+        org = self.create_organization(owner=self.user)
+        project = self.create_project(organization=org, name="foo")
+        group = self.create_group(project=project, status=GroupStatus.RESOLVED)
+        repo = Repository.objects.create(organization_id=org.id, name="test/repo")
+        author = CommitAuthor.objects.create(
+            organization_id=org.id, name="Foo Bar", email=self.user.email
+        )
+        author.preload_users()
+        commit = Commit.objects.create(
+            organization_id=org.id,
+            repository_id=repo.id,
+            message="fixes %s" % (group.qualified_short_id),
+            key="a" * 40,
+            author=author,
+        )
+
+        release = self.create_release(project=project, version="abcdabc")
+        release.set_commits([{"id": commit.key, "repository": repo.name}])
+
+        resolution = GroupResolution.objects.get(group=group)
+        assert resolution.release == release
+        assert Activity.objects.filter(
+            group=group,
+            type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
+            ident=resolution.id,
+        ).exists()
 
     @receivers_raise_on_send()
     def test_resolution_support_without_author(self) -> None:

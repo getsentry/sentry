@@ -6,22 +6,21 @@ import {useMenuTrigger} from '@react-aria/menu';
 
 import {ControlContext} from '@sentry/scraps/compactSelect/controlContext';
 import type {TriggerProps} from '@sentry/scraps/overlayTrigger';
-
-import type {UseOverlayProps} from 'sentry/utils/useOverlay';
-import {useOverlay} from 'sentry/utils/useOverlay';
+import type {UseOverlayProps} from '@sentry/scraps/useOverlay';
+import {useOverlay} from '@sentry/scraps/useOverlay';
 
 import {DropdownMenuContent} from './content';
 import {DropdownMenuContext} from './context';
 import {DropdownButton} from './dropdownButton';
 import type {MenuItemProps} from './item';
-import type {DropdownMenuListProps} from './list';
+import type {DropdownMenuContentProps, DropdownMenuListProps} from './list';
 
 export type {MenuItemProps};
 
 interface BaseDropdownMenuProps
   extends
     Omit<
-      DropdownMenuListProps,
+      DropdownMenuContentProps,
       'overlayState' | 'overlayPositionProps' | 'items' | 'children' | 'menuTitle'
     >,
     Pick<
@@ -53,10 +52,6 @@ interface BaseDropdownMenuProps
    * Whether the trigger is disabled.
    */
   isDisabled?: boolean;
-  /**
-   * Maximum menu width
-   */
-  maxMenuHeight?: number;
   /**
    * Title for the current menu.
    */
@@ -133,7 +128,6 @@ function DropdownMenu({
   flipOptions,
   portalContainerRef,
   shouldApplyMinWidth,
-  maxMenuHeight,
   minMenuWidth,
   // This prop is from Floating UI and is an alternative to portals. Use this with components like modals where portalling to document body doesn't work well.
   strategy,
@@ -199,7 +193,6 @@ function DropdownMenu({
           style: {
             ...overlayProps.style,
             minWidth: minMenuWidth ?? overlayProps.style?.minWidth,
-            maxHeight: maxMenuHeight ?? overlayProps.style?.maxHeight,
           },
         }}
         overlayState={overlayState}

@@ -342,11 +342,13 @@ class ProjectOwnership(Model):
 
             logging_extra = {**logging_extra, **activity_details}
 
-            activity = Activity.objects.filter(
-                group=group, type=ActivityType.ASSIGNED.value
-            ).order_by("-datetime")
-            if activity:
-                auto_assigned = activity[0].data.get("integration")
+            latest_assignment = (
+                Activity.objects.filter(group=group, type=ActivityType.ASSIGNED.value)
+                .order_by("-datetime", "-id")
+                .first()
+            )
+            if latest_assignment:
+                auto_assigned = latest_assignment.data.get("integration")
                 if not auto_assigned and not force_autoassign:
                     return
 

@@ -39,6 +39,13 @@ def _get_daemon(name: str) -> tuple[str, list[str]]:
     return name, _DEFAULT_DAEMONS[name]
 
 
+def _get_taskworker_daemon(reload: bool) -> tuple[str, list[str]]:
+    name, command = _get_daemon("taskworker")
+    if reload:
+        command = [*command, "--autoreload"]
+    return name, command
+
+
 @click.command()
 @click.option(
     "--reload/--no-reload",
@@ -303,7 +310,7 @@ def devserver(
                     "Disable TASKWORKER_ALWAYS_EAGER in your settings file to spawn workers."
                 )
 
-            daemons.append(_get_daemon("taskworker"))
+            daemons.append(_get_taskworker_daemon(reload))
 
             from sentry import eventstream
 
@@ -504,7 +511,10 @@ def devserver(
                 control_services.append("taskworker-scheduler")
 
             for service in control_services:
-                name, cmd = _get_daemon(service)
+                if service == "taskworker":
+                    name, cmd = _get_taskworker_daemon(reload)
+                else:
+                    name, cmd = _get_daemon(service)
                 name = f"control.{name}"
                 quiet = bool(
                     name not in (settings.DEVSERVER_LOGS_ALLOWLIST or ())

@@ -1514,6 +1514,7 @@ class GithubProxyClientTest(TestCase):
 
         assert self.gh_client.get_access_token() == {
             "access_token": "access_token_1",
+            "expires_at": "3000-01-01T00:00:00Z",
             "permissions": {
                 "administration": "read",
                 "contents": "read",

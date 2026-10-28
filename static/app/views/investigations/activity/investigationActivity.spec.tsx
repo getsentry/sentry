@@ -13,6 +13,7 @@ import InvestigationDetailView from 'sentry/views/investigations/detail';
 import {
   InvestigationCommentFixture,
   InvestigationDetailFixture,
+  InvestigationActionRequestFixture,
 } from 'sentry/views/investigations/fixtures';
 
 const organization = OrganizationFixture({
@@ -23,9 +24,9 @@ const detailUrl = '/organizations/org-slug/investigations/investigation-1/';
 const commentsUrl = `${detailUrl}comments/`;
 const initialRouterConfig = {
   location: {
-    pathname: '/organizations/org-slug/explore/investigations/investigation-1/',
+    pathname: '/organizations/org-slug/seer/investigations/investigation-1/',
   },
-  route: '/organizations/:orgId/explore/investigations/:investigationId/',
+  route: '/organizations/:orgId/seer/investigations/:investigationId/',
 };
 
 function renderPage() {
@@ -80,6 +81,290 @@ describe('InvestigationActivity', () => {
     expect(items[1]).toHaveTextContent('First');
     expect(within(items[1]!).getByText('Ada Lovelace commented')).toBeInTheDocument();
     expect(items[2]).toHaveTextContent('Investigation first created');
+  });
+
+  it('merges applied action requests into the comments by date', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({
+        actionRequests: [
+          InvestigationActionRequestFixture({
+            state: 'applied',
+            canApply: false,
+            cannotApplyReason: 'not_suggested',
+            appliedBy: {
+              id: '2',
+              name: 'Grace Hopper',
+              email: 'grace@example.com',
+              username: 'grace@example.com',
+              ip_address: '',
+            },
+            dateApplied: '2026-01-02T00:00:00Z',
+            appliedDetails: {
+              detectorId: '789',
+              detectorName: 'Checkout errors',
+              fields: ['timeWindowSeconds'],
+            },
+          }),
+          InvestigationActionRequestFixture({
+            id: '313',
+            key: 'raise-threshold',
+            title: 'Raise the threshold',
+          }),
+        ],
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: `${detailUrl}action-requests/313/apply/`,
+      method: 'POST',
+      body: {
+        actionRequest: InvestigationActionRequestFixture({
+          id: '313',
+          key: 'raise-threshold',
+          title: 'Raise the threshold',
+        }),
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: commentsUrl,
+      body: [
+        InvestigationCommentFixture({
+          id: '2',
+          body: 'After the change',
+          dateCreated: '2026-01-03T00:00:00Z',
+        }),
+        InvestigationCommentFixture({
+          id: '1',
+          body: 'Before the change',
+          dateCreated: '2026-01-01T00:00:00Z',
+        }),
+      ],
+    });
+    renderPage();
+
+    const activity = await findActivity();
+    const items = within(activity).getAllByRole('listitem');
+    expect(items).toHaveLength(4);
+    expect(items[0]).toHaveTextContent('After the change');
+    expect(items[1]).toHaveTextContent(
+      'Grace Hopper updated the interval for Checkout errors'
+    );
+    expect(
+      within(items[1]!).getByRole('link', {name: 'Checkout errors'})
+    ).toHaveAttribute('href', '/organizations/org-slug/monitors/789/');
+    expect(items[2]).toHaveTextContent('Before the change');
+    expect(items[3]).toHaveTextContent('Investigation first created');
+    expect(within(activity).queryByText(/Raise the threshold/)).not.toBeInTheDocument();
+  });
+
+  it('records a connected provider', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({
+        actionRequests: [
+          InvestigationActionRequestFixture({
+            state: 'applied',
+            canApply: false,
+            cannotApplyReason: 'not_suggested',
+            dateApplied: '2026-01-02T00:00:00Z',
+            appliedDetails: {provider: 'datadog'},
+            action: {kind: 'connect_telemetry', provider: 'datadog'},
+            followUp: {
+              status: 'acknowledged',
+              reason: null,
+              rerun: 'started',
+              retryable: false,
+            },
+          }),
+        ],
+      }),
+    });
+    MockApiClient.addMockResponse({url: commentsUrl, body: []});
+    renderPage();
+
+    const items = within(await findActivity()).getAllByRole('listitem');
+    expect(items[0]).toHaveTextContent('Datadog connected');
+    expect(items[0]).not.toHaveTextContent('re-run');
+  });
+
+  it('names who connected a provider and why Seer did not re-run', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({
+        actionRequests: [
+          InvestigationActionRequestFixture({
+            state: 'applied',
+            canApply: false,
+            cannotApplyReason: 'not_suggested',
+            dateApplied: '2026-01-02T00:00:00Z',
+            appliedBy: {
+              id: '2',
+              name: 'Ada Lovelace',
+              email: 'ada@example.com',
+              username: 'ada@example.com',
+              ip_address: '',
+            },
+            appliedDetails: {provider: 'datadog'},
+            action: {kind: 'connect_telemetry', provider: 'datadog'},
+            followUp: {
+              status: 'failed',
+              reason: 'provider_already_used',
+              rerun: null,
+              retryable: false,
+            },
+          }),
+        ],
+      }),
+    });
+    MockApiClient.addMockResponse({url: commentsUrl, body: []});
+    renderPage();
+
+    const items = within(await findActivity()).getAllByRole('listitem');
+    expect(items[0]).toHaveTextContent('Ada Lovelace connected Datadog');
+    expect(items[0]).toHaveTextContent(
+      "Seer already used Datadog in this investigation, so it didn't re-run it."
+    );
+  });
+
+  it('names every changed setting once', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({
+        actionRequests: [
+          InvestigationActionRequestFixture({
+            state: 'applied',
+            canApply: false,
+            cannotApplyReason: 'not_suggested',
+            dateApplied: '2026-01-02T00:00:00Z',
+            appliedBy: {
+              id: '2',
+              name: 'Ada Lovelace',
+              email: 'ada@example.com',
+              username: 'ada@example.com',
+              ip_address: '',
+            },
+            appliedDetails: {
+              detectorId: '789',
+              detectorName: 'Checkout errors',
+              fields: ['timeWindowSeconds', 'highThreshold', 'resolutionThreshold'],
+            },
+          }),
+        ],
+      }),
+    });
+    MockApiClient.addMockResponse({url: commentsUrl, body: []});
+    renderPage();
+
+    const items = within(await findActivity()).getAllByRole('listitem');
+    expect(items[0]).toHaveTextContent(
+      'Ada Lovelace updated the interval and threshold for Checkout errors'
+    );
+  });
+
+  it('describes an automatic monitor update', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({
+        actionRequests: [
+          InvestigationActionRequestFixture({
+            state: 'applied',
+            canApply: false,
+            cannotApplyReason: 'not_suggested',
+            dateApplied: '2026-01-02T00:00:00Z',
+            appliedDetails: {
+              detectorId: '789',
+              detectorName: 'Checkout errors',
+              fields: ['query'],
+            },
+          }),
+          InvestigationActionRequestFixture({
+            id: '313',
+            key: 'second',
+            state: 'applied',
+            canApply: false,
+            cannotApplyReason: 'not_suggested',
+            dateApplied: '2026-01-01T00:00:00Z',
+            appliedDetails: {
+              detectorId: '790',
+              detectorName: 'Cart latency',
+              fields: ['query', 'environment'],
+            },
+          }),
+        ],
+      }),
+    });
+    MockApiClient.addMockResponse({url: commentsUrl, body: []});
+    renderPage();
+
+    const items = within(await findActivity()).getAllByRole('listitem');
+    expect(items[0]).toHaveTextContent('The query for Checkout errors changed');
+    expect(items[1]).toHaveTextContent(
+      'The query and environment for Cart latency changed'
+    );
+  });
+
+  it('names the monitor when a changed setting is new to the UI', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({
+        actionRequests: [
+          InvestigationActionRequestFixture({
+            state: 'applied',
+            canApply: false,
+            cannotApplyReason: 'not_suggested',
+            dateApplied: '2026-01-02T00:00:00Z',
+            appliedDetails: {
+              detectorId: '789',
+              detectorName: 'Checkout errors',
+              fields: ['query', 'newSetting'],
+            },
+          }),
+        ],
+      }),
+    });
+    MockApiClient.addMockResponse({url: commentsUrl, body: []});
+    renderPage();
+
+    const items = within(await findActivity()).getAllByRole('listitem');
+    expect(items[0]).toHaveTextContent('The query for Checkout errors changed');
+  });
+
+  it('leaves out applied action requests older than the loaded comments', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({
+        actionRequests: [
+          InvestigationActionRequestFixture({
+            state: 'applied',
+            canApply: false,
+            cannotApplyReason: 'not_suggested',
+            title: 'Older change',
+            dateApplied: '2026-01-01T00:00:00Z',
+          }),
+          InvestigationActionRequestFixture({
+            id: '313',
+            key: 'newer-change',
+            state: 'applied',
+            canApply: false,
+            cannotApplyReason: 'not_suggested',
+            title: 'Newer change',
+            dateApplied: '2026-01-03T00:00:00Z',
+          }),
+        ],
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: commentsUrl,
+      body: [InvestigationCommentFixture({dateCreated: '2026-01-02T00:00:00Z'})],
+      headers: {
+        Link: `<${commentsUrl}?cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"`,
+      },
+    });
+    renderPage();
+
+    const activity = await findActivity();
+    expect(within(activity).getByText('“Newer change” was applied')).toBeInTheDocument();
+    expect(within(activity).queryByText(/Older change/)).not.toBeInTheDocument();
   });
 
   it('notes when older comments are not shown', async () => {

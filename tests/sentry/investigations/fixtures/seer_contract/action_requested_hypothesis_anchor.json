@@ -1,0 +1,18 @@
+{
+  "request": {
+    "action": {
+      "kind": "connect_telemetry",
+      "provider": "datadog"
+    },
+    "anchor": {
+      "id": "hypothesis-0",
+      "type": "hypothesis"
+    },
+    "impact": null,
+    "key": "connect-telemetry-datadog-r2",
+    "primary": false,
+    "rationale": "Host metrics would show whether the pods were throttled.",
+    "reportRevision": 2,
+    "title": "Connect Datadog"
+  }
+}

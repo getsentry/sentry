@@ -84,6 +84,8 @@ describe('normalizeUrl', () => {
       ['/checkout/acme/?query=value', '/checkout/?query=value'],
 
       ['/organizations/new/', '/organizations/new/'],
+      ['/organizations/new-moray/issues/', '/issues/'],
+      ['/organizations/newco/', '/'],
       ['/organizations/albertos-organizations/issues/', '/issues/'],
       [
         '/organizations/albertos-organizations/issues/?_q=all#hash',

@@ -1,5 +1,9 @@
 import selectorParser from 'postcss-selector-parser';
 
+export const COMPONENT_SELECTOR = 'sentry-interpolation';
+
+type DomCouplingTarget = 'component' | 'element' | 'universal' | 'unscoped';
+
 const SELECTOR_PSEUDOS = new Set([
   ':has',
   ':host',
@@ -71,23 +75,26 @@ function isPseudoArgument(node: selectorParser.Node): boolean {
 }
 
 /** Check selector syntax, including selectors nested inside :has/:is/:not. */
-export function hasDomCoupling(selector: string): boolean {
+export function getDomCouplingTarget(selector: string): DomCouplingTarget | undefined {
   let root: selectorParser.Root;
   try {
     root = selectorParser().astSync(selector);
   } catch {
     // Incomplete or dynamic CSS must not prevent other rules from running.
-    return false;
+    return undefined;
   }
-  let forbidden = false;
+  let target: DomCouplingTarget | undefined;
+  let unscoped = false;
   root.walk(node => {
     if (isPseudoArgument(node)) {
       return;
     }
-    if (node.type === 'tag' || node.type === 'universal') {
-      forbidden = true;
+    if (node.type === 'tag') {
+      target ??= node.value === COMPONENT_SELECTOR ? 'component' : 'element';
+    } else if (node.type === 'universal') {
+      target ??= 'universal';
     }
-    if (node.type === 'combinator' && node.value.trim() === '>') {
+    if (node.type === 'combinator') {
       const subject: selectorParser.Node[] = [];
       for (
         let next = node.next();
@@ -97,9 +104,9 @@ export function hasDomCoupling(selector: string): boolean {
         subject.push(next);
       }
       if (!isScoped(subject)) {
-        forbidden = true;
+        unscoped = true;
       }
     }
   });
-  return forbidden;
+  return target ?? (unscoped ? 'unscoped' : undefined);
 }

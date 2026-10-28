@@ -17,6 +17,7 @@ from sentry.investigations.contracts import (
     EVENT_PAYLOAD_SERIALIZERS,
     MAX_MARKDOWN_CHARS,
     OrchestrationProjectionSerializer,
+    valid_action_requests,
     validate_text_result,
 )
 from sentry.investigations.models import (
@@ -27,13 +28,29 @@ from sentry.investigations.models import (
     InvestigationBlockExecutionStatus,
     InvestigationBlockExecutor,
     InvestigationBlockKind,
+    InvestigationOrchestrationCommand,
+    InvestigationOrchestrationCommandStatus,
     InvestigationOrchestrationEvent,
     InvestigationOrchestrationEventStatus,
     InvestigationOrchestrationPhase,
+    InvestigationOrchestrationRerun,
     InvestigationOrchestrationRun,
     InvestigationOrchestrationStatus,
     InvestigationProject,
     InvestigationStatus,
+)
+from sentry.investigations.services.action_requests import (
+    supersede_action_requests_before,
+    supersede_block_action_requests,
+    sync_snapshot_action_requests,
+    upsert_action_request,
+    withdraw_action_request,
+)
+from sentry.investigations.services.orchestration import (
+    clear_command_dispatch_error,
+    command_can_be_requeued,
+    requeue_commands_behind,
+    schedule_orchestration_commands,
 )
 from sentry.models.project import Project
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
@@ -54,6 +71,8 @@ _NOTEBOOK_EVENT_TYPES = {
     "report_failed",
     "title_delta",
     "metadata_completed",
+    "action_requested",
+    "action_withdrawn",
 }
 
 
@@ -138,7 +157,9 @@ def _validate_projection_project_scope(
         )
 
 
-def _validate_event_payload(event_type: str, payload: dict[str, Any]) -> dict[str, Any]:
+def _validate_event_payload(
+    event_type: str, payload: dict[str, Any], *, log_drops: bool = False
+) -> dict[str, Any]:
     """Check the payload against the schema for its event type and normalize it.
 
     Unknown fields survive validation; Seer owns the shape of these payloads and
@@ -149,7 +170,7 @@ def _validate_event_payload(event_type: str, payload: dict[str, Any]) -> dict[st
     schema = EVENT_PAYLOAD_SERIALIZERS.get(event_type)
     if schema is None:
         return payload
-    validator = schema(data=payload)
+    validator = schema(data=payload, context={"log_drops": log_drops})
     if not validator.is_valid():
         raise serializers.ValidationError({"payload": validator.errors})
     return validator.validated_data
@@ -259,6 +280,40 @@ def _set_projection(
     projection_error = projection.get("error")
     if projection_error is None or isinstance(projection_error, dict):
         run.error = deepcopy(projection_error)
+
+
+def _update_rerun(run: InvestigationOrchestrationRun, payload: dict[str, Any]) -> None:
+    """Record whether Seer started or dropped a re-run it held. It can arrive before the
+    command's response, or after Sentry gave up on one that was lost. Either way Seer has the
+    command, so it doesn't hold up the commands behind it. A command Seer turned down is left
+    alone.
+    """
+
+    # It can settle a command the dispatch task gave up on, so send whatever's still queued.
+    schedule_orchestration_commands(run.id)
+    for command in InvestigationOrchestrationCommand.objects.select_for_update().filter(
+        orchestration_run=run, request_id=payload["requestId"]
+    ):
+        lost_response = command.status == InvestigationOrchestrationCommandStatus.FAILED and (
+            command_can_be_requeued(command)
+        )
+        if not lost_response and command.status not in (
+            InvestigationOrchestrationCommandStatus.ACCEPTED,
+            InvestigationOrchestrationCommandStatus.DISPATCHED,
+            InvestigationOrchestrationCommandStatus.ACKNOWLEDGED,
+        ):
+            continue
+        if lost_response:
+            requeue_commands_behind(run, command)
+            clear_command_dispatch_error(run, request_id=command.request_id)
+        command.rerun = payload["rerun"]
+        if payload["rerun"] == InvestigationOrchestrationRerun.SKIPPED:
+            command.status = InvestigationOrchestrationCommandStatus.FAILED
+            command.error = {"code": "rerun_skipped", "reason": payload["reason"]}
+        else:
+            command.status = InvestigationOrchestrationCommandStatus.ACKNOWLEDGED
+            command.error = None
+        command.save(update_fields=["rerun", "status", "error", "date_updated"])
 
 
 def _projection_is_stale(
@@ -401,10 +456,12 @@ def _adopt_preserved_report_revision(
         )
     if discarded_ids:
         _cancel_report_executions(run, block_ids=discarded_ids)
-        InvestigationBlock.objects.filter(id__in=discarded_ids).update(
-            deleted_at=now,
-            date_updated=now,
+        discarded = InvestigationBlock.objects.filter(id__in=discarded_ids)
+        supersede_block_action_requests(
+            run.investigation,
+            [key for key in discarded.values_list("stable_agent_key", flat=True) if key],
         )
+        discarded.update(deleted_at=now, date_updated=now)
     _control(run).update({"reportRevision": revision, "reportCleared": False})
     return bool(discarded_ids)
 
@@ -705,6 +762,7 @@ def _clear_report(
         block_ids=list(live_blocks.values_list("id", flat=True)),
     )
     live_blocks.update(deleted_at=now, date_updated=now)
+    supersede_action_requests_before(run.investigation, revision)
     control.update(
         {
             "reportRevision": revision,
@@ -770,10 +828,13 @@ def _apply_snapshot(
     generation = _event_generation(event)
     projection = payload["projection"]
     _set_projection(run, projection, event_generation=generation)
+    revision = payload.get("reportRevision", projection.get("report", {}).get("revision", 0))
     if "blocks" not in payload:
+        # Re-checking the action requests shouldn't change the notebook.
+        if "actionRequests" in payload and revision == _report_revision(run):
+            _sync_snapshot_action_requests(run, payload["actionRequests"])
         return
     blocks = payload["blocks"]
-    revision = payload.get("reportRevision", projection.get("report", {}).get("revision", 0))
     _clear_report(run, revision, force=True, bump=False, mutate_projection=False)
     seen_keys: set[str] = set()
     for position, raw_block in enumerate(blocks):
@@ -796,7 +857,14 @@ def _apply_snapshot(
         metadata = {**metadata, "reportRevision": revision}
         metadata = _validate_event_payload("metadata_completed", metadata)
         _complete_metadata(run, metadata, bump=False)
+    # An older snapshot doesn't clear the report, so its list isn't the full current one.
+    if "actionRequests" in payload and revision == _report_revision(run):
+        _sync_snapshot_action_requests(run, payload["actionRequests"])
     _bump_notebook(run, run.investigation)
+
+
+def _sync_snapshot_action_requests(run: InvestigationOrchestrationRun, items: list[object]) -> None:
+    sync_snapshot_action_requests(run, valid_action_requests(items, log=True))
 
 
 def _event_carries_projection(event: InvestigationOrchestrationEvent) -> bool:
@@ -811,7 +879,13 @@ def _apply_event(
     # Events are staged verbatim so that their identity does not move when Sentry's
     # schemas change. Normalizing here is what lets the apply path read coerced
     # values and defaults without re-checking any types.
-    payload = _validate_event_payload(event.type, _event_data(event))
+    payload = _validate_event_payload(event.type, _event_data(event), log_drops=True)
+    if event.type == "rerun_updated":
+        # It's about a command, so any generation counts. A re-run that starts sends it ahead
+        # of the new generation's projection.
+        _update_rerun(run, payload)
+        run.heartbeat_at = timezone.now()
+        return True, None
     generation = _event_generation(event)
     if generation < run.generation:
         return False, "stale_generation"
@@ -917,6 +991,7 @@ def _apply_event(
                 deleted_at__isnull=True,
             ).update(deleted_at=now, date_updated=now)
             if updated:
+                supersede_block_action_requests(run.investigation, [payload["stableAgentKey"]])
                 _bump_notebook(run, run.investigation)
         elif event.type == "report_block_moved":
             block = InvestigationBlock.objects.filter(
@@ -965,6 +1040,15 @@ def _apply_event(
                 _bump_notebook(run, investigation)
         elif event.type == "metadata_completed":
             _complete_metadata(run, payload)
+    elif event.type == "action_requested":
+        request = payload["request"]
+        if request is None:
+            return False, "invalid_action_request"
+        if request["reportRevision"] < _report_revision(run):
+            return False, "stale_report_revision"
+        upsert_action_request(run, request)
+    elif event.type == "action_withdrawn":
+        withdraw_action_request(run, payload["key"], payload["reason"])
     elif event.type == "workflow_failed":
         # A delayed failure still fails the run, but it must not replace state
         # that a newer projection has already established.

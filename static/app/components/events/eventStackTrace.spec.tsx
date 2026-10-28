@@ -4,7 +4,7 @@ import {FrameFixture} from 'sentry-fixture/frame';
 import {GroupFixture} from 'sentry-fixture/group';
 import {DetailedProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {EventStackTrace} from 'sentry/components/events/eventStackTrace';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -58,6 +58,10 @@ describe('EventStackTrace', () => {
   });
 
   beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sentry-app-components/',
+      body: [],
+    });
     localStorage.clear();
     ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({
@@ -96,5 +100,26 @@ describe('EventStackTrace', () => {
     expect(await screen.findByText('workerFunction')).toBeInTheDocument();
     expect(screen.getAllByText('WorkerError')).toHaveLength(1);
     expect(screen.queryByText('standaloneFunction')).not.toBeInTheDocument();
+  });
+
+  it('starts native and thread sections collapsed and allows expanding both', async () => {
+    const event = EventFixture({...eventWithThreads, platform: 'native'});
+
+    render(
+      <EventStackTrace
+        event={event}
+        group={group}
+        projectSlug={project.slug}
+        initialCollapse
+      />
+    );
+
+    await userEvent.click(
+      screen.getAllByRole('button', {name: 'View Stack Trace Section'})[0]!
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'View Stack Trace Section'}));
+
+    expect(await screen.findByText('workerFunction')).toBeVisible();
+    expect(screen.getByText('standaloneFunction')).toBeVisible();
   });
 });

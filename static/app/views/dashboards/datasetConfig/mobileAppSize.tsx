@@ -1,11 +1,7 @@
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PreprodSearchBar} from 'sentry/components/preprod/preprodSearchBar';
 import type {TagCollection} from 'sentry/types/group';
-import type {
-  EventsStats,
-  MultiSeriesEventsStats,
-  Organization,
-} from 'sentry/types/organization';
+import type {Organization} from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {Aggregation, QueryFieldValue} from 'sentry/utils/discover/fields';
@@ -213,10 +209,7 @@ function useMobileAppSizeSearchBarDataProvider(
   };
 }
 
-export const MobileAppSizeConfig: DatasetConfig<
-  EventsStats | MultiSeriesEventsStats | EventsTimeSeriesResponse,
-  TableData
-> = {
+export const MobileAppSizeConfig: DatasetConfig<EventsTimeSeriesResponse, TableData> = {
   axisRange: 'dataMin',
   defaultField: DEFAULT_FIELD,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,

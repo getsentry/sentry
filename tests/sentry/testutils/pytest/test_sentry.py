@@ -7,8 +7,10 @@ import textwrap
 from collections import Counter
 from pathlib import Path
 
+import pytest
+
 import sentry
-from sentry.utils import json
+from sentry.utils import json, redis
 
 SCRIPTS = Path(sentry.__file__).parents[2] / ".github" / "workflows" / "scripts"
 SHARDS = 4
@@ -96,3 +98,11 @@ def test_filtered_run_spreads_selected_tests_over_every_shard(tmp_path: Path) ->
         )
     assert len(unsharded) == 20
     assert sharded == unsharded
+
+
+def test_flushall_on_single_host_redis_is_rejected() -> None:
+    client = redis.redis_clusters.get("default")
+    with pytest.raises(AssertionError, match="flushdb"):
+        client.flushall()
+    with pytest.raises(AssertionError, match="flushdb"):
+        client.pipeline().flushall()

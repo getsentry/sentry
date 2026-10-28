@@ -6,6 +6,7 @@ import sys
 import traceback
 from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
+from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any, Literal, overload
 
@@ -39,6 +40,7 @@ from sentry.organizations.services.organization import (
     organization_service,
 )
 from sentry.search.events.constants import (
+    INVALID_REGEX_ERROR_MESSAGE,
     RATE_LIMIT_ERROR_MESSAGE,
     TIMEOUT_ERROR_MESSAGE,
     TIMEOUT_RPC_ERROR_MESSAGE,
@@ -68,6 +70,7 @@ from sentry.utils.snuba import (
 )
 from sentry.utils.snuba_rpc import (
     SnubaRPCError,
+    SnubaRPCInvalidRegex,
     SnubaRPCRateLimitExceeded,
     SnubaRPCTooManySimultaneous,
     SnubaRPCUnavailable,
@@ -418,6 +421,10 @@ def handle_query_errors() -> Iterator[None]:
         sentry_sdk.set_tag("query.error_reason", f"Metric Error: {message}")
         sentry_sdk.set_attribute("query.error_reason", f"Metric Error: {message}")
         raise ParseError(detail=message)
+    except SnubaRPCInvalidRegex:
+        sentry_sdk.set_tag("query.error_reason", "InvalidRegex")
+        sentry_sdk.set_attribute("query.error_reason", "InvalidRegex")
+        raise ParseError(detail=INVALID_REGEX_ERROR_MESSAGE)
     except SnubaRPCRateLimitExceeded:
         sentry_sdk.set_tag("query.error_reason", "RateLimitExceeded")
         sentry_sdk.set_attribute("query.error_reason", "RateLimitExceeded")
@@ -590,3 +597,23 @@ def to_valid_int_id_list(name: str, val: Sequence[str | int]) -> list[int]:
     Raises a ValidationError if any of the values are not a valid integer id.
     """
     return [to_valid_int_id(name, v) for v in val]
+
+
+@dataclass(frozen=True)
+class SortBy:
+    """A single sortBy value with direction and field parsed out"""
+
+    field: str
+    descending: bool
+
+    @property
+    def order_by(self) -> str:
+        return f"{'-' if self.descending else ''}{self.field}"
+
+
+def parse_sort_by(value: str, allowed_fields: list[str] | None = None) -> SortBy:
+    descending = value.startswith("-")
+    field = value[1:] if descending else value
+    if not field or (allowed_fields is not None and field not in allowed_fields):
+        raise ValidationError("Invalid sort field")
+    return SortBy(field=field, descending=descending)

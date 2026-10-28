@@ -113,7 +113,7 @@ export function RequestHeadersSection({item}: SectionProps) {
     contentTypeHeaders.resp !== undefined &&
     contentTypeHeaders.req !== contentTypeHeaders.resp;
 
-  const data = isRequestFrame(item) ? item.data : {};
+  const data = isRequestFrame(item) ? (item.data ?? {}) : {};
   const headers: KeyValueTuple[] = Object.entries(data.request?.headers || {}).map(
     ([key, value]) => {
       const warn = key === 'content-type' && isContentTypeMismatched;
@@ -149,7 +149,7 @@ export function ResponseHeadersSection({item}: SectionProps) {
     contentTypeHeaders.resp !== undefined &&
     contentTypeHeaders.req !== contentTypeHeaders.resp;
 
-  const data = isRequestFrame(item) ? item.data : {};
+  const data = isRequestFrame(item) ? (item.data ?? {}) : {};
   const headers: KeyValueTuple[] = Object.entries(data.response?.headers || {}).map(
     ([key, value]) => {
       const warn = key === 'content-type' && isContentTypeMismatched;
@@ -199,7 +199,7 @@ export function QueryParamsSection({item}: SectionProps) {
 export function RequestPayloadSection({item}: SectionProps) {
   const {dismiss, isDismissed} = useDismissReqRespBodiesAlert();
 
-  const data = useMemo(() => (isRequestFrame(item) ? item.data : {}), [item]);
+  const data = useMemo(() => (isRequestFrame(item) ? (item.data ?? {}) : {}), [item]);
   const {warnings, body} = getBodyAndWarnings(data.request);
 
   useEffect(() => {
@@ -237,7 +237,7 @@ export function RequestPayloadSection({item}: SectionProps) {
 export function ResponsePayloadSection({item}: SectionProps) {
   const {dismiss, isDismissed} = useDismissReqRespBodiesAlert();
 
-  const data = useMemo(() => (isRequestFrame(item) ? item.data : {}), [item]);
+  const data = useMemo(() => (isRequestFrame(item) ? (item.data ?? {}) : {}), [item]);
   const {warnings, body} = getBodyAndWarnings(data.response);
 
   useEffect(() => {

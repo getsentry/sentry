@@ -89,6 +89,7 @@ import {calculateAverageLogsPerSecond} from 'sentry/views/explore/logs/utils';
 import {
   useQueryParamsAggregateSortBys,
   useQueryParamsFields,
+  useQueryParamsHasTransformations,
   useQueryParamsGroupBys,
   useQueryParamsMode,
   useQueryParamsSearch,
@@ -140,6 +141,7 @@ const LogsSearchSection = memo(function LogsSearchSectionImpl({
   const visualizes = useQueryParamsVisualizes();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
 
+  const hasTransformations = useQueryParamsHasTransformations();
   const saveAsItems = useSaveAsItems({
     visualizes,
     groupBys,
@@ -232,6 +234,16 @@ const LogsSearchSection = memo(function LogsSearchSectionImpl({
                           {...triggerProps}
                           variant="primary"
                           aria-label={t('Save as')}
+                          disabled={hasTransformations}
+                          tooltipProps={
+                            hasTransformations
+                              ? {
+                                  title: t(
+                                    'Queries with transformations cannot be saved yet.'
+                                  ),
+                                }
+                              : undefined
+                          }
                         >
                           {t('Save as')}
                         </OverlayTrigger.Button>

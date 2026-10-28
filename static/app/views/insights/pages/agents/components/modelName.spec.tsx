@@ -30,6 +30,9 @@ describe('getModelPlatform Function', () => {
     expect(getModelPlatform('typesafe/jev-1.13-20260917')).toBe('typesafe-ai');
     expect(getModelPlatform('typesafe-ai/jev')).toBe('typesafe-ai');
     expect(getModelPlatform('jev-latest')).toBe('typesafe-ai');
+    expect(getModelPlatform('@cf/cloudflare/clef')).toBe('cloudflare');
+    expect(getModelPlatform('clef-flash')).toBe('cloudflare');
+    expect(getModelPlatform('clef-omni')).toBe('cloudflare');
   });
 
   it('returns null for unknown modelId', () => {

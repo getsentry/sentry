@@ -4,6 +4,7 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
 
 import {ResultGrid} from 'sentry/components/resultGrid';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 
 import {PageHeader} from 'admin/components/pageHeader';
 import {RelocationBadge} from 'admin/components/relocationBadge';
@@ -12,7 +13,7 @@ import {titleCase} from 'getsentry/utils/titleCase';
 
 const getRow = (row: Relocation) => {
   return [
-    <td key="uuid">
+    <SimpleTable.RowCell key="uuid">
       <strong>
         <Link
           to={`/_admin/relocations/${row.region ? row.region.name : ''}/${row.uuid}/`}
@@ -20,17 +21,17 @@ const getRow = (row: Relocation) => {
           {row.uuid}
         </Link>
       </strong>
-    </td>,
-    <td key="status" style={{textAlign: 'center'}}>
+    </SimpleTable.RowCell>,
+    <SimpleTable.RowCell key="status" justify="center">
       <RelocationBadge data={row} />
-    </td>,
-    <td key="step" style={{textAlign: 'center'}}>
+    </SimpleTable.RowCell>,
+    <SimpleTable.RowCell key="step" justify="center">
       {titleCase(row.step)}
-    </td>,
-    <td key="pause" style={{textAlign: 'center'}}>
+    </SimpleTable.RowCell>,
+    <SimpleTable.RowCell key="pause" justify="center">
       {row.scheduledPauseAtStep ? titleCase(row.scheduledPauseAtStep) : '--'}
-    </td>,
-    <td key="owner" style={{textAlign: 'right'}}>
+    </SimpleTable.RowCell>,
+    <SimpleTable.RowCell key="owner" justify="end">
       {row.owner ? (
         <Link aria-label="Owner" to={`/_admin/users/${row.owner.id}/`}>
           {row.owner.email}
@@ -38,8 +39,8 @@ const getRow = (row: Relocation) => {
       ) : (
         <i>&lt;deleted&gt;</i>
       )}
-    </td>,
-    <td key="creator" style={{textAlign: 'right'}}>
+    </SimpleTable.RowCell>,
+    <SimpleTable.RowCell key="creator" justify="end">
       {row.creator ? (
         <Link aria-label="Creator" to={`/_admin/users/${row.creator.id}/`}>
           {row.creator.email}
@@ -47,10 +48,10 @@ const getRow = (row: Relocation) => {
       ) : (
         <i>&lt;deleted&gt;</i>
       )}
-    </td>,
-    <td key="started" style={{textAlign: 'right'}}>
+    </SimpleTable.RowCell>,
+    <SimpleTable.RowCell key="started" justify="end">
       {moment(row.dateAdded).fromNow()}
-    </td>,
+    </SimpleTable.RowCell>,
   ];
 };
 
@@ -68,25 +69,13 @@ export function Relocations() {
         path="/_admin/relocations/"
         endpoint="/relocations/"
         columns={[
-          <th key="uuid">UUID</th>,
-          <th key="status" style={{width: 100, textAlign: 'center'}}>
-            Status
-          </th>,
-          <th key="step" style={{width: 100, textAlign: 'center'}}>
-            Step
-          </th>,
-          <th key="pause" style={{width: 100, textAlign: 'center'}}>
-            Autopause
-          </th>,
-          <th key="owner" style={{width: 200, textAlign: 'right'}}>
-            Owner
-          </th>,
-          <th key="creator" style={{width: 200, textAlign: 'right'}}>
-            Creator
-          </th>,
-          <th key="started" style={{width: 200, textAlign: 'right'}}>
-            Started
-          </th>,
+          {key: 'uuid', label: 'UUID'},
+          {key: 'status', label: 'Status', width: 100, align: 'center'},
+          {key: 'step', label: 'Step', width: 100, align: 'center'},
+          {key: 'pause', label: 'Autopause', width: 100, align: 'center'},
+          {key: 'owner', label: 'Owner', width: 200, align: 'right'},
+          {key: 'creator', label: 'Creator', width: 200, align: 'right'},
+          {key: 'started', label: 'Started', width: 200, align: 'right'},
         ]}
         columnsForRow={getRow}
         hasSearch

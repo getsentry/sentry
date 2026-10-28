@@ -1,4 +1,5 @@
 import type {
+  InvestigationActionRequest,
   InvestigationBlock,
   InvestigationComment,
   InvestigationDetail,
@@ -220,6 +221,66 @@ export function InvestigationTitleGenerationFixture(
   };
 }
 
+export function InvestigationActionRequestFixture(
+  overrides: Partial<InvestigationActionRequest> = {}
+): InvestigationActionRequest {
+  return {
+    id: '312',
+    key: 'widen-time-window',
+    reportRevision: 2,
+    primary: true,
+    anchor: null,
+    reason: null,
+    title: 'Widen the interval',
+    rationale:
+      'The 5 minute window fires on single deploy spikes that recover within a minute.',
+    impact: 'Would have suppressed 4 of the last 5 alerts.',
+    state: 'suggested',
+    action: {
+      kind: 'update_detector',
+      detectorId: '789',
+      before: {timeWindowSeconds: 300},
+      changes: {timeWindowSeconds: 900},
+    },
+    appliedBy: null,
+    appliedDetails: null,
+    canApply: true,
+    cannotApplyReason: null,
+    dateApplied: null,
+    error: null,
+    followUp: null,
+    dateCreated: '2026-08-27T11:10:00Z',
+    ...overrides,
+  };
+}
+
+export function InvestigationMetricSourceFixture(
+  monitor: Record<string, unknown> = {}
+): NonNullable<InvestigationDetail['source']> {
+  return {
+    type: 'metric_open_period',
+    ref: {groupId: '123', openPeriodId: '456'},
+    revision: null,
+    snapshot: {
+      monitor: {
+        id: '789',
+        name: 'Checkout error rate',
+        aggregate: 'count()',
+        query: '',
+        environment: null,
+        detectionType: 'static',
+        comparisonDeltaSeconds: null,
+        conditions: [
+          {type: 'gt', comparison: 100, result: 75},
+          {type: 'lte', comparison: 100, result: 0},
+        ],
+        ...monitor,
+      },
+      project: {id: '1', slug: 'checkout-api'},
+    },
+  };
+}
+
 export function InvestigationBreachedMetricDetailFixture(
   overrides: Partial<InvestigationDetail> = {}
 ): InvestigationDetail & {blocks: InvestigationBlock[]} {
@@ -230,12 +291,7 @@ export function InvestigationBreachedMetricDetailFixture(
     summaryDescription:
       'All active releases increased together.\nCheck shared infrastructure and dependencies.',
     template: {key: 'breached_metric', version: 1},
-    source: {
-      type: 'metric_open_period',
-      ref: {groupId: '123', openPeriodId: '456'},
-      revision: null,
-      snapshot: {monitor: {id: '789', name: 'Checkout error rate'}},
-    },
+    source: InvestigationMetricSourceFixture(),
     blocks: [
       InvestigationBlockFixture({
         id: 'summary-block',

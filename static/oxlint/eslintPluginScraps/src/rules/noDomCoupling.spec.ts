@@ -10,6 +10,26 @@ const errors = [{messageId: 'forbidden'}];
 
 ruleTester.run('no-dom-coupling', noDomCoupling, {
   valid: [
+    ...[' ', ' > ', ' + ', ' ~ ', ' || '].flatMap(combinator =>
+      [
+        '.slot',
+        '#slot',
+        '[data-slot]',
+        '&',
+        ':is(.slot, #slot)',
+        ':where(.slot)',
+        ':nth-last-child(3n of .slot)',
+      ].map(subject => ({
+        name: `scoped subject after combinator: &${combinator}${subject}`,
+        code: emotion + 'const C = css`&' + combinator + subject + ' {color:red;}`;',
+        filename,
+      }))
+    ),
+    {
+      name: 'callback without a return before a scoped selector',
+      code: emotion + 'const C = styled.div`${p => { f(p); }} .slot {color:red;}`;',
+      filename,
+    },
     {
       name: 'style helper parameters are not function bindings',
       code:
@@ -329,6 +349,62 @@ ruleTester.run('no-dom-coupling', noDomCoupling, {
     },
   ],
   invalid: [
+    ...[
+      {selector: '& > button', target: 'A DOM element selector'},
+      {selector: '& > *', target: 'A universal selector'},
+      {selector: '& :first-child', target: 'An unscoped selector'},
+      {
+        selector: '${InnerWrap}',
+        objectKey: '[InnerWrap]',
+        target: 'A component selector',
+      },
+    ].flatMap(({selector, objectKey, target}) => [
+      {
+        name: `template error identifies ${target}`,
+        code: emotion + 'const C=css`' + selector + ' {color:red;}`;',
+        filename,
+        errors: [{messageId: 'forbidden', data: {target}}],
+      },
+      {
+        name: `object error identifies ${target}`,
+        code:
+          emotion +
+          'const C=css({' +
+          (objectKey ?? JSON.stringify(selector)) +
+          ':{color:"red"}});',
+        filename,
+        errors: [{messageId: 'forbidden', data: {target}}],
+      },
+    ]),
+    ...[' ', ' > ', ' + ', ' ~ ', ' || '].flatMap(combinator =>
+      [
+        ':first-child',
+        ':not(.a)',
+        ':is(.slot, :first-child)',
+        ':where(:first-child)',
+      ].map(subject => ({
+        name: `unscoped subject after combinator: &${combinator}${subject}`,
+        code: emotion + 'const C = css`&' + combinator + subject + ' {color:red;}`;',
+        filename,
+        errors,
+      }))
+    ),
+    ...[
+      'p => { f(p); }',
+      'p => { return; }',
+      'function(p) { f(p); }',
+      'getStyles',
+      'getStyles()',
+    ].map(callback => ({
+      name: `callback without a return before a DOM selector: ${callback}`,
+      code:
+        emotion +
+        'function getStyles(p) { f(p); } const C = styled.div`${' +
+        callback +
+        '} button {color:red;}`;',
+      filename,
+      errors,
+    })),
     {
       name: 'Emotion call arguments after the first are still styles',
       code: emotion + 'const C=css({color:"red"},{button:{color:"blue"}});',

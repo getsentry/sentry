@@ -8,6 +8,7 @@ from sentry.deletions.base import (
 )
 from sentry.investigations.models import (
     Investigation,
+    InvestigationActionRequest,
     InvestigationBlock,
     InvestigationBlockDependency,
     InvestigationBlockExecution,
@@ -67,6 +68,11 @@ class InvestigationDeletionTask(ModelDeletionTask[Investigation]):
             ),
             ModelRelation(
                 InvestigationComment, {"investigation_id": instance.id}, BulkModelDeletionTask
+            ),
+            ModelRelation(
+                InvestigationActionRequest,
+                {"investigation_id": instance.id},
+                BulkModelDeletionTask,
             ),
             ModelRelation(InvestigationBlock, {"investigation_id": instance.id}),
             ModelRelation(

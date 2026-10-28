@@ -42,19 +42,12 @@ def test_dualwrite_experimental_backend(dogstatsd_incr, sentry_sdk_incr):
     backend = DualWriteMetricsBackend(
         primary_backend="sentry.metrics.dogstatsd.DogStatsdMetricsBackend",
         experimental_backend="sentry.metrics.sentry_sdk.SentrySDKMetricsBackend",
-        experimental_args={"deny_list": ["sentry.denied"], "experimental_sample_rate": 1.0},
+        experimental_args={"experimental_sample_rate": 1.0},
     )
 
     backend.incr("allowed", tags={"test": "tag"}, unit="none")
     dogstatsd_incr.assert_called_once()
     sentry_sdk_incr.assert_called_once()
-
-    dogstatsd_incr.reset_mock()
-    sentry_sdk_incr.reset_mock()
-
-    backend.incr("denied.metric", tags={"test": "tag"}, unit="none")
-    dogstatsd_incr.assert_called_once()
-    sentry_sdk_incr.assert_not_called()
 
 
 @mock.patch("sentry_sdk.metrics.count")
@@ -64,11 +57,7 @@ def test_dualwrite_experimental_backend_allow_list(dogstatsd_incr, sentry_sdk_in
     backend = DualWriteMetricsBackend(
         primary_backend="sentry.metrics.dogstatsd.DogStatsdMetricsBackend",
         experimental_backend="sentry.metrics.sentry_sdk.SentrySDKMetricsBackend",
-        experimental_args={
-            "allow_list": ["sentry.allowed"],
-            "deny_list": ["sentry.allowed"],
-            "experimental_sample_rate": 1.0,
-        },
+        experimental_args={"allow_list": ["sentry.allowed"], "experimental_sample_rate": 1.0},
     )
 
     backend.incr("allowed.metric", tags={"test": "tag"}, unit="none")
@@ -87,7 +76,7 @@ def test_dualwrite_experimental_backend_rollout_disabled(dogstatsd_gauge, sentry
     backend = DualWriteMetricsBackend(
         primary_backend="sentry.metrics.dogstatsd.DogStatsdMetricsBackend",
         experimental_backend="sentry.metrics.sentry_sdk.SentrySDKMetricsBackend",
-        experimental_args={"deny_list": [], "experimental_sample_rate": 0.0},
+        experimental_args={"experimental_sample_rate": 0.0},
     )
 
     backend.gauge("metric", 42, tags={"test": "tag"}, unit="none")
@@ -129,7 +118,7 @@ def test_dualwrite_set_experimental_backend(primary_set, experimental_set):
     backend = DualWriteMetricsBackend(
         primary_backend="sentry.metrics.dogstatsd.DogStatsdMetricsBackend",
         experimental_backend="sentry.metrics.sentry_sdk.SentrySDKMetricsBackend",
-        experimental_args={"deny_list": [], "experimental_sample_rate": 1.0},
+        experimental_args={"experimental_sample_rate": 1.0},
     )
 
     backend.set("allowed", 4242, tags={"test": "tag"})

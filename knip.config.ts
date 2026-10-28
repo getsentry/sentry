@@ -8,8 +8,6 @@ const productionEntryPoints = [
   // Build entry points that are not package entry points.
   'utils/setupStatics.tsx',
   'serviceWorker/worker/worker.ts',
-  // Source-scoped Rspack/Jest aliases use this runtime entry; TS uses types.d.ts.
-  'utils/reactRouterV6/index.ts',
   // very dynamically imported
   'gettingStartedDocs/**/*.{js,ts,tsx}',
   // --- we should be able to get rid of those: ---
@@ -30,6 +28,13 @@ const productionEntryPoints = [
 const scopedJest = {
   config: [],
   entry: ['jest.config.mjs', '**/*.{spec,test}.{js,ts,tsx}'],
+};
+
+// Shared Oxlint plugins belong to the root workspace. Analyze package wrappers
+// as development entries without assigning the shared plugin list to each package.
+const scopedOxlint = {
+  config: [],
+  entry: ['oxlint.config.ts'],
 };
 
 const frontendWorkspace = {
@@ -71,7 +76,6 @@ const config: KnipConfig = {
         '!static/oxlint/**/*.ts!',
       ],
       ignoreDependencies: [
-        'react-router-v8', // Knip cannot trace the conditional Rspack package alias.
         'tslib', // subdependency of many packages, declare the latest version
         'odiff-bin', // raw binary consumed by Python backend, not a JS import
         'zrender', // used in echarts
@@ -121,32 +125,28 @@ const config: KnipConfig = {
       entry: ['**/*.spec.{js,ts,tsx}', 'test-balancer/*.ts'],
       project: ['**/*.{js,cjs,mjs,ts,tsx,mdx}'],
       includeEntryExports: true,
-      ignoreDependencies: [
-        '@sentry-internal/global-search', // jest.mock does not count as an import.
-        '@tanstack/react-pacer', // loaded with requireActual
-        'echarts-for-react', // jest.mock in setup.ts
-      ],
     },
     'tests/js/getsentry-test': {
       project: ['**/*.{js,ts,tsx,mdx}'],
       includeEntryExports: true,
-      ignoreDependencies: [
-        'react', // loaded with jest.requireActual, which Knip does not track.
-        '@stripe/react-stripe-js', // Billing setup mocks this package; Knip does not track jest.mock.
-        '@stripe/stripe-js', // Billing setup mocks this package; Knip does not track jest.mock.
-      ],
     },
     'static/packages/icons': {
+      oxlint: scopedOxlint,
       // test helpers are only used outside production.
       project: ['**/*.{js,cjs,mjs,jsx,ts,cts,mts,tsx,mdx}!', '!test/**!'],
       includeEntryExports: true,
     },
     'static/packages/scraps': {
+      oxlint: scopedOxlint,
       project: [
         '**/*.{js,cjs,mjs,jsx,ts,cts,mts,tsx,mdx}!',
         // Test helpers and package verification scripts are not production code.
         '!{test,scripts}/**!',
       ],
+    },
+    'static/packages/search-syntax': {
+      jest: scopedJest,
+      oxlint: scopedOxlint,
     },
     'static/oxlint/eslintPluginScraps': {
       jest: scopedJest,

@@ -114,10 +114,6 @@ export const useSeerExplorer = () => {
   const capturePageContext = usePageContextCapture();
   const {getPageReferrer} = usePageReferrer();
   const timezone = useTimezone();
-  const [overrideCtxEngEnable, setOverrideCtxEngEnable] = useLocalStorageState(
-    'seer-explorer.override.ctx-eng',
-    true
-  );
   type CodeModeValue = 'off' | 'on' | 'only';
   const [overrideCodeModeEnable, setOverrideCodeModeEnable] =
     useLocalStorageState<CodeModeValue>(
@@ -264,7 +260,6 @@ export const useSeerExplorer = () => {
       orgSlug: string;
       overrideBashModeEnabled: boolean;
       overrideCodeModeEnable: 'off' | 'on' | 'only';
-      overrideCtxEngEnable: boolean;
       pageLocation: LLMContextLocation | undefined;
       pageName: string;
       /** The pending prompt this send took from chat state, put back if it fails. */
@@ -294,7 +289,6 @@ export const useSeerExplorer = () => {
           page_name: params.pageName,
           page_location: params.pageLocation,
           sent_at: params.sentAt,
-          override_ce_enable: params.overrideCtxEngEnable,
           override_bash_mode_enabled: params.overrideBashModeEnabled,
           override_code_mode_enable: params.overrideCodeModeEnable,
           chat_prompt: params.chatPrompt?.text,
@@ -392,63 +386,6 @@ export const useSeerExplorer = () => {
     },
     onSettled: (_data, _error, params) => {
       forgetSettledRequest(params);
-    },
-  });
-
-  const {mutate: createPRMutate} = useMutation<
-    SeerExplorerUpdateResponse,
-    RequestError,
-    {orgSlug: string; runId: SeerExplorerRunId | null; repoName?: string}
-  >({
-    mutationFn: async params => {
-      setHasSentInterrupt(false);
-
-      // Set optimistic status and updated_at to prevent isPolling flicker on new message.
-      if (params.runId !== null) {
-        setApiQueryData<SeerExplorerResponse>(
-          queryClient,
-          makeSeerExplorerQueryKey(params.orgSlug, params.runId),
-          prev =>
-            prev?.session
-              ? {
-                  ...prev,
-                  session: {
-                    ...prev.session,
-                    failure_reason: null,
-                    status: 'processing',
-                    updated_at: new Date().toISOString(),
-                  },
-                }
-              : prev
-        );
-      }
-      return fetchMutation({
-        url: makeExplorerUpdateUrl(params.orgSlug, params.runId),
-        method: 'POST',
-        data: {
-          payload: {
-            type: 'create_pr',
-            repo_name: params.repoName,
-          },
-        },
-      });
-    },
-    onSuccess: (_, params) => {
-      // invalidate the query so fresh data is fetched
-      queryClient.invalidateQueries({
-        queryKey: makeSeerExplorerQueryKey(params.orgSlug, params.runId),
-      });
-    },
-    onError: (e, params) => {
-      addErrorMessage(
-        typeof e.responseJSON?.detail === 'string'
-          ? e.responseJSON.detail
-          : 'Failed to create PR'
-      );
-      // Clear optimistic processing status
-      queryClient.invalidateQueries({
-        queryKey: makeSeerExplorerQueryKey(params.orgSlug, params.runId),
-      });
     },
   });
 
@@ -568,7 +505,7 @@ export const useSeerExplorer = () => {
 
       const {snapshot, screenshot} = capturePageContext({
         route: pageName,
-        allowStructured: overrideCtxEngEnable,
+        allowStructured: true,
       });
 
       trackAnalytics('seer.explorer.message_sent', {
@@ -633,7 +570,6 @@ export const useSeerExplorer = () => {
         ],
         screenshot,
         overrideBashModeEnabled,
-        overrideCtxEngEnable,
         overrideCodeModeEnable,
       });
     },
@@ -646,7 +582,6 @@ export const useSeerExplorer = () => {
       getPageReferrer,
       organization,
       overrideBashModeEnabled,
-      overrideCtxEngEnable,
       overrideCodeModeEnable,
       pendingChatPrompt,
       sendMessageMutate,
@@ -677,16 +612,6 @@ export const useSeerExplorer = () => {
       );
     },
     [orgSlug, runId, userInputMutate]
-  );
-
-  const createPR = useCallback(
-    (repoName?: string) => {
-      if (!orgSlug || !runId) {
-        return;
-      }
-      createPRMutate({orgSlug, runId, repoName});
-    },
-    [orgSlug, runId, createPRMutate]
   );
 
   // Detect PR creation errors and show error messages
@@ -834,11 +759,8 @@ export const useSeerExplorer = () => {
     interruptRun,
     hasSentInterrupt,
     respondToUserInput,
-    createPR,
     overrideBashModeEnabled,
     setOverrideBashModeEnabled,
-    overrideCtxEngEnable,
-    setOverrideCtxEngEnable,
     overrideCodeModeEnable,
     setOverrideCodeModeEnable,
   };

@@ -1,32 +1,22 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Generator
-from typing import Any
+from collections.abc import Generator
 from urllib.parse import urlparse
 from wsgiref.util import is_hop_by_hop
 
 import requests
-from asgiref.sync import sync_to_async
 from django.conf import settings
-from django.http import HttpRequest, StreamingHttpResponse
+from django.http import StreamingHttpResponse
 from requests import Response as ExternalResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
-
-from sentry.utils.http import BodyAsyncWrapper, BodyWithLength
-
-# TODO(granian): Remove this and related code paths when we fully switch from uwsgi to granian
-uwsgi: Any = None
-try:
-    import uwsgi
-except ImportError:
-    pass
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.objectstore import parse_accept_encoding
 from sentry.ratelimits.config import RateLimitConfig
+from sentry.utils.http import request_body_stream
 
 
 @cell_silo_endpoint
@@ -120,7 +110,7 @@ class ObjectstoreEndpoint(Endpoint):
             url=target_url,
             headers=headers,
             data=(
-                get_raw_body(request._request)
+                request_body_stream(request._request)
                 if request.method in ("PUT", "POST", "PATCH")
                 else None
             ),
@@ -137,72 +127,6 @@ class ObjectstoreEndpoint(Endpoint):
         )
 
         return stream_response(response, decode_content=decode_content)
-
-
-def get_raw_body(
-    request: HttpRequest,
-) -> bytes | Generator[bytes] | ChunkedEncodingDecoder | BodyWithLength | None:
-    if request.body:
-        return request.body
-
-    wsgi_input = request.META.get("wsgi.input")
-    if "granian" in request.META.get("SERVER_SOFTWARE", "").lower():
-        return wsgi_input
-
-    # uwsgi and wsgiref will respectively raise an exception and hang when attempting to read wsgi.input while there's no body.
-    # For now, support bodies only on PUT and POST requests when not using Granian.
-    if request.method not in ("PUT", "POST"):
-        return None
-
-    if uwsgi:
-        if request.headers.get("Transfer-Encoding", "").lower() == "chunked":
-
-            def stream_generator():
-                while True:
-                    chunk = uwsgi.chunked_read()
-                    if not chunk:
-                        break
-                    yield chunk
-
-            return stream_generator()
-
-        return wsgi_input
-
-    # wsgiref (dev/test server)
-    if (
-        hasattr(wsgi_input, "_read")
-        and request.headers.get("Transfer-Encoding", "").lower() == "chunked"
-    ):
-        return ChunkedEncodingDecoder(wsgi_input._read)  # type: ignore[union-attr]
-
-    # wsgiref and the request has been already proxied through control silo
-    return BodyWithLength(request)
-
-
-def get_raw_body_async(
-    request: HttpRequest,
-) -> BodyAsyncWrapper | ChunkedEncodingAsyncDecoder | BodyWithLength:
-    if request.body:
-        return BodyAsyncWrapper(request.body)
-
-    wsgi_input = request.META.get("wsgi.input")
-    if "granian" in request.META.get("SERVER_SOFTWARE", "").lower():
-        return BodyAsyncWrapper(wsgi_input)
-
-    # wsgiref will raise an exception and hang when attempting to read wsgi.input while there's no body.
-    # For now, support bodies only on PUT and POST requests when not using Granian.
-    if request.method not in ("PUT", "POST"):
-        return BodyAsyncWrapper(b"")
-
-    # wsgiref (dev/test server)
-    if (
-        hasattr(wsgi_input, "_read")
-        and request.headers.get("Transfer-Encoding", "").lower() == "chunked"
-    ):
-        return ChunkedEncodingAsyncDecoder(wsgi_input._read)  # type: ignore[union-attr]
-
-    # wsgiref and the request has been already proxied through control silo
-    return BodyWithLength(request)
 
 
 def get_target_url(path: str) -> str:
@@ -244,73 +168,3 @@ def stream_response(
             response[header] = value
 
     return response
-
-
-class ChunkedEncodingDecoder:
-    """
-    Wrapper around a read function that returns chunked transfer encoded data.
-    Provides a file-like interface to the decoded data stream.
-    This should only be needed in dev/test mode, when we need to manually decode wsgi.input.
-    """
-
-    def __init__(self, read: Callable[[int], bytes]):
-        self._read = read
-        self._done = False
-        self._current_chunk_remaining = 0
-
-    def read(self, size: int = -1) -> bytes:
-        if self._done:
-            return b""
-
-        read = 0
-        buffer: list[bytes] = []
-        while size == -1 or read < size:
-            if self._current_chunk_remaining == 0:
-                # Read next chunk size line
-                size_line = b""
-                while not size_line.endswith(b"\r\n"):
-                    byte = self._read(1)
-                    if not byte:
-                        self._done = True
-                        return b"".join(buffer)
-                    size_line += byte
-
-                chunk_size = int(size_line.strip(), 16)
-                if chunk_size == 0:
-                    trail = self._read(2)
-                    if trail != b"\r\n":
-                        raise ValueError("Malformed chunk encoded stream")
-                    self._done = True
-                    return b"".join(buffer)
-
-                self._current_chunk_remaining = chunk_size
-            else:
-                # Read (part of) next chunk
-                to_read = (
-                    min(self._current_chunk_remaining, size - read)
-                    if size != -1
-                    else self._current_chunk_remaining
-                )
-                chunk = self._read(to_read)
-                if not chunk:
-                    raise ValueError("Unexpected end of stream")
-                buffer.append(chunk)
-                read += len(chunk)
-                self._current_chunk_remaining -= len(chunk)
-
-                if self._current_chunk_remaining == 0:
-                    trail = self._read(2)
-                    if trail != b"\r\n":
-                        raise ValueError("Malformed chunk encoded stream")
-
-        return b"".join(buffer)
-
-
-class ChunkedEncodingAsyncDecoder(ChunkedEncodingDecoder):
-    def __aiter__(self):
-        return self
-
-    async def __anext__(self) -> bytes:
-        if self._done:
-            raise StopAsyncIteration
-        return await sync_to_async(self.read)()

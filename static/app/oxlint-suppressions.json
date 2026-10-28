@@ -159,6 +159,9 @@
   "components/checkInTimeline/checkInTooltip.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 4
+    },
+    "@sentry/scraps/no-manual-table": {
+      "count": 3
     }
   },
   "components/clippedBox.spec.tsx": {
@@ -176,7 +179,7 @@
   },
   "components/commandPalette/ui/commandPalette.tsx": {
     "@sentry/scraps/no-dom-coupling": {
-      "count": 4
+      "count": 3
     }
   },
   "components/commitRow.tsx": {
@@ -577,6 +580,11 @@
       "count": 1
     }
   },
+  "components/events/ourlogs/ourlogsSection.tsx": {
+    "@sentry/scraps/no-manual-table": {
+      "count": 1
+    }
+  },
   "components/events/rrwebReplayer/baseRRWebReplayer.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 13
@@ -745,17 +753,6 @@
       "count": 1
     }
   },
-  "components/forms/fields/segmentedRadioField.tsx": {
-    "@sentry/scraps/no-dom-coupling": {
-      "count": 1
-    },
-    "@sentry/scraps/prefer-container-responsive-props": {
-      "count": 1
-    },
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
   "components/forms/fields/tableField.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -838,11 +835,17 @@
     }
   },
   "components/groupPreviewTooltip/evidencePreview.tsx": {
+    "@sentry/scraps/no-dom-coupling": {
+      "count": 1
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
   },
   "components/groupPreviewTooltip/spanEvidencePreview.tsx": {
+    "@sentry/scraps/no-dom-coupling": {
+      "count": 1
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
@@ -1113,19 +1116,6 @@
   "components/onboarding/onboardingContext.spec.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 3
-    }
-  },
-  "components/onboarding/scm/scmAlertOptionCard.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "components/onboarding/scm/scmCardButton.tsx": {
-    "@sentry/scraps/no-dom-coupling": {
-      "count": 6
-    },
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
     }
   },
   "components/onboarding/scm/scmPlatformFeaturesCore.spec.tsx": {
@@ -1585,7 +1575,7 @@
   },
   "components/resultGrid.tsx": {
     "@sentry/scraps/no-dom-coupling": {
-      "count": 3
+      "count": 5
     },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -1593,7 +1583,10 @@
   },
   "components/resultTable.tsx": {
     "@sentry/scraps/no-dom-coupling": {
-      "count": 26
+      "count": 14
+    },
+    "@sentry/scraps/no-manual-table": {
+      "count": 1
     },
     "@sentry/scraps/prefer-container-responsive-props": {
       "count": 1
@@ -1705,7 +1698,7 @@
   },
   "components/searchQueryBuilder/tokens/filter/valueCombobox.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 6
+      "count": 5
     }
   },
   "components/searchQueryBuilder/tokens/filter/valueListBox.tsx": {
@@ -1804,6 +1797,11 @@
   },
   "components/seer/markdown/embeds/components/traceWaterfall.spec.tsx": {
     "@sentry/prefer-fake-timers": {
+      "count": 2
+    }
+  },
+  "components/seer/repoTable/seerRepoTableHeader.tsx": {
+    "@sentry/scraps/no-manual-table": {
       "count": 2
     }
   },
@@ -2298,11 +2296,6 @@
       "count": 2
     }
   },
-  "utils/useHoverOverlay.timing.spec.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 3
-    }
-  },
   "utils/usePrevious.stories.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
@@ -2397,11 +2390,6 @@
   "views/authV2/useBrandedArtworkLoading.tsx": {
     "@sentry/scraps/prefer-container-responsive-props": {
       "count": 1
-    }
-  },
-  "views/authV2/useBrandedAuthLoading.spec.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 2
     }
   },
   "views/automations/components/actionFilters/subfiltersList.tsx": {
@@ -2935,7 +2923,7 @@
   },
   "views/explore/conversations/components/conversationsTable.tsx": {
     "@sentry/scraps/no-dom-coupling": {
-      "count": 1
+      "count": 2
     }
   },
   "views/explore/conversations/components/messagesPanel.tsx": {
@@ -2997,6 +2985,9 @@
   "views/explore/logs/styles.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 12
+    },
+    "@sentry/scraps/no-manual-table": {
+      "count": 1
     },
     "@sentry/scraps/prefer-primitives": {
       "count": 5
@@ -3361,6 +3352,9 @@
     }
   },
   "views/explore/toolbar/toolbarVisualize.tsx": {
+    "@sentry/scraps/no-dom-coupling": {
+      "count": 1
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
@@ -3555,9 +3549,14 @@
       "count": 1
     }
   },
-  "views/investigations/detail/cell.tsx": {
+  "views/investigations/detail/block.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 7
+    }
+  },
+  "views/investigations/detail/outline.tsx": {
+    "@sentry/scraps/no-dom-coupling": {
+      "count": 2
     }
   },
   "views/investigations/detail/presence.tsx": {
@@ -3814,11 +3813,6 @@
       "count": 2
     }
   },
-  "views/issueList/pages/inbox/issuePreview/issuePreviewAutofixSummary.tsx": {
-    "@sentry/scraps/no-dom-coupling": {
-      "count": 1
-    }
-  },
   "views/navigation/primary/components.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 1
@@ -3940,11 +3934,6 @@
   },
   "views/performance/landing/widgets/components/widgetContainer.tsx": {
     "@sentry/scraps/no-dom-coupling": {
-      "count": 1
-    }
-  },
-  "views/performance/landing/widgets/widgets/histogramWidget.tsx": {
-    "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
   },
@@ -4419,11 +4408,6 @@
       "count": 1
     }
   },
-  "views/seerWorkflows/index.spec.tsx": {
-    "@sentry/require-fake-timer-cleanup": {
-      "count": 2
-    }
-  },
   "views/seerWorkflows/overview/index.spec.tsx": {
     "@sentry/prefer-fake-timers": {
       "count": 2
@@ -4491,6 +4475,9 @@
   "views/settings/account/notifications/notificationSettingsByEntity.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 2
+    },
+    "@sentry/scraps/no-manual-table": {
+      "count": 1
     },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -4566,6 +4553,9 @@
   },
   "views/settings/components/teamSelect/teamSelectForMember.tsx": {
     "@sentry/scraps/no-dom-coupling": {
+      "count": 1
+    },
+    "@sentry/scraps/no-manual-table": {
       "count": 1
     }
   },
@@ -4733,11 +4723,8 @@
       "count": 1
     }
   },
-  "views/settings/organizationTeams/teamMembersRow.tsx": {
-    "@sentry/scraps/no-dom-coupling": {
-      "count": 2
-    },
-    "@sentry/scraps/prefer-primitives": {
+  "views/settings/organizationTeams/teamMembers.tsx": {
+    "@sentry/scraps/no-manual-table": {
       "count": 1
     }
   },

@@ -31,7 +31,8 @@ from sentry.issues.constants import get_issue_tsdb_group_model
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.query import manual_group_on_time_aggregation
 from sentry.snuba.dataset import Dataset
-from sentry.tsdb.base import BaseTSDB, TSDBItem, TSDBKey, TSDBModel
+from sentry.tsdb.base import TSDBItem, TSDBKey, TSDBModel
+from sentry.tsdb.dummy import DummyTSDB
 from sentry.utils import outcomes, snuba
 from sentry.utils.dates import to_datetime
 from sentry.utils.snuba import (
@@ -79,7 +80,7 @@ TOTAL_RECEIVED_OUTCOMES = [
 ]
 
 
-class SnubaTSDB(BaseTSDB):
+class SnubaTSDB(DummyTSDB):
     """
     A time series query interface to Snuba
 

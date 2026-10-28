@@ -22,6 +22,7 @@ from sentry.identity import default_manager as identity_manager
 from sentry.identity.mcp import McpIdentityProvider
 from sentry.identity.oauth2 import OAuth2Provider
 from sentry.integrations.types import MONITORING_PROVIDERS
+from sentry.investigations.access import has_investigations_access
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -371,10 +372,8 @@ class SeerAgentClient:
         self.enable_write_pull_request = enable_write_pull_request
         # The same gate the investigation endpoints apply, so Code Mode isn't handed
         # operations that would only 404.
-        self.enable_investigation_tools = (
-            enable_investigation_tools
-            and features.has("organizations:investigations", organization, actor=user)
-            and bool(organization.flags.allow_joinleave)
+        self.enable_investigation_tools = enable_investigation_tools and has_investigations_access(
+            organization, actor=user
         )
 
         self.viewer_context = self._build_viewer_context()
@@ -1003,6 +1002,7 @@ class SeerAgentClient:
         poll_interval: float = 2.0,
         poll_timeout: float = 120.0,
         author: SeerCommitAuthor | None = None,
+        allow_force_push: bool = True,
     ) -> SeerRunState | None:
         """
         Push code changes to PR(s) and wait for completion.
@@ -1016,6 +1016,7 @@ class SeerAgentClient:
             poll_interval: Seconds between polls
             poll_timeout: Maximum seconds to wait
             author: Git commit author; None lets Seer pick one
+            allow_force_push: Overwrite the branch if it has commits Seer didn't push
 
         Returns:
             SeerRunState: Final state with PR info
@@ -1035,6 +1036,7 @@ class SeerAgentClient:
             "type": "create_pr",
             "ready_for_review": ready_for_review,
             "verify_content": verify_content,
+            "allow_force_push": allow_force_push,
             # Include an idempotency key in the request so that if
             # the request is retried by anything, it will not create duplicate PRs
             # This is regenerated per attempt to permit retries.

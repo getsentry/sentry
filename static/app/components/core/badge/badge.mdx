@@ -5,7 +5,7 @@ category: status
 source: '@sentry/scraps/badge'
 resources:
   figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/ChonkUI--App-Components--WIP-?node-id=3574-5336
-  js: https://github.com/getsentry/sentry/blob/481d8d642e9cf549eb46fbaac1d0527395e8b490/static/app/components/core/badge/index.tsx
+  js: https://github.com/getsentry/sentry/blob/master/static/packages/scraps/src/badge/index.tsx
   a11y:
     WCAG 1.4.3: https://www.w3.org/TR/WCAG22/#contrast-minimum
 ---
@@ -13,13 +13,10 @@ resources:
 import {useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
-import {
-  AlertBadge,
-  DeployBadge,
-  FeatureBadge,
-  ProjectsBadge,
-  Tag,
-} from '@sentry/scraps/badge';
+import {FeatureBadge, Tag} from '@sentry/scraps/badge';
+import {AlertBadge} from 'sentry/components/core/badge/alertBadge';
+import {DeployBadge} from 'sentry/components/core/badge/deployBadge';
+import {ProjectsBadge} from 'sentry/components/core/badge/projectsBadge';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -172,7 +169,7 @@ The `AlertBadge` component displays an indicator for all Alert types that Sentry
   <AlertBadge status={IncidentStatus.WARNING} />
   <AlertBadge status={IncidentStatus.CRITICAL} />
 </Storybook.Demo>
-```jsx import {AlertBadge} from '@sentry/scraps/badge';
+```jsx import {AlertBadge} from 'sentry/components/core/badge/alertBadge';
 
 <AlertBadge status={IncidentStatus.OPENED} />
 <AlertBadge status={IncidentStatus.CLOSED} />
@@ -199,7 +196,7 @@ The text of each badge is derived from the `environment` passed to the `deploy` 
 <Storybook.Demo>
   <DeployBadge deploy={deploy} orgSlug="sentry" version="1.2.3" projectId={1} />
 </Storybook.Demo>
-```jsx import {DeployBadge} from '@sentry/scraps/badge';
+```jsx import {DeployBadge} from 'sentry/components/core/badge/deployBadge';
 
 <DeployBadge deploy={deploy} orgSlug="sentry" version="1.2.3" projectId={1} />
 ```

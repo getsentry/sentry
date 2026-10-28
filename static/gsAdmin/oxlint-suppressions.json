@@ -28,6 +28,9 @@
     }
   },
   "components/customers/customerOverview.tsx": {
+    "@sentry/scraps/no-manual-table": {
+      "count": 6
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
@@ -71,6 +74,11 @@
       "count": 3
     }
   },
+  "components/policies/policyRevisions.tsx": {
+    "@sentry/scraps/no-manual-table": {
+      "count": 5
+    }
+  },
   "components/provisionSubscriptionAction.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 2
@@ -92,6 +100,16 @@
       "count": 1
     }
   },
+  "components/users/userEmailLog.tsx": {
+    "@sentry/scraps/no-manual-table": {
+      "count": 9
+    }
+  },
+  "components/users/userEmails.tsx": {
+    "@sentry/scraps/no-manual-table": {
+      "count": 4
+    }
+  },
   "globalStyles.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 3
@@ -101,13 +119,11 @@
     "@sentry/scraps/no-dom-coupling": {
       "count": 3
     },
+    "@sentry/scraps/no-manual-table": {
+      "count": 13
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 8
-    }
-  },
-  "views/customerContractDetails.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 2
     }
   },
   "views/debuggingTools.tsx": {
@@ -132,6 +148,9 @@
     "@sentry/scraps/no-dom-coupling": {
       "count": 3
     },
+    "@sentry/scraps/no-manual-table": {
+      "count": 10
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 4
     }
@@ -140,8 +159,16 @@
     "@sentry/scraps/no-dom-coupling": {
       "count": 2
     },
+    "@sentry/scraps/no-manual-table": {
+      "count": 12
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
+    }
+  },
+  "views/invoiceDetails.tsx": {
+    "@sentry/scraps/no-manual-table": {
+      "count": 11
     }
   },
   "views/launchpadAdminPage.tsx": {

@@ -4,10 +4,10 @@ import {autoUpdate, offset, useFloating} from '@floating-ui/react-dom';
 import {IconSettings} from '@sentry/icons/settings';
 
 import {Button} from '@sentry/scraps/button';
+import {flipOverlay, shiftOverlay} from '@sentry/scraps/overlayPositioning';
 
 import {DifferentialFlamegraphMenu} from 'sentry/components/profiling/flamegraph/flamegraphContextMenu';
 import {t} from 'sentry/locale';
-import {flipOverlay, shiftOverlay} from 'sentry/utils/overlayPositioning';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
 

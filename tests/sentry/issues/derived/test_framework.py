@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from enum import IntEnum
+from enum import IntEnum, StrEnum
 from typing import Any, Literal, assert_type
 
 import pytest
@@ -15,11 +15,13 @@ from sentry.issues.derived.features import (
 )
 from sentry.issues.derived.framework import (
     AggregatorResult,
+    BoolCodec,
     Codec,
     DateTimeCodec,
     DerivedDataError,
     EnumCodec,
     Feature,
+    IntCodec,
     IntListCodec,
     OptionalCodec,
     Pipeline,
@@ -400,3 +402,55 @@ def test_undeclared_output_has_aggregator_context() -> None:
     assert exc.value.entry_id == 42
     assert isinstance(exc.value.__cause__, ValueError)
     assert "undeclared outputs" in str(exc.value.__cause__)
+
+
+@pytest.mark.parametrize(
+    "codec,value",
+    [
+        (BoolCodec(), 1),
+        (BoolCodec(), "false"),
+        (IntCodec(), True),
+        (IntCodec(), 1.5),
+        (IntCodec(), "1"),
+        (IntListCodec(), [True]),
+        (IntListCodec(), ["1"]),
+        (IntListCodec(), {}),
+    ],
+)
+@pytest.mark.parametrize("method", ["from_json", "to_json", "from_column", "to_column"])
+def test_invalid_typed_values(codec: Codec[Any], value: Any, method: str) -> None:
+    with pytest.raises(DerivedDataError) as exc:
+        getattr(Feature("typed", default=None, codec=codec), method)(value)
+    assert exc.value.feature_name == "typed"
+    assert isinstance(exc.value.__cause__, TypeError)
+
+
+@pytest.mark.parametrize("method", ["from_column", "to_column", "to_json"])
+def test_datetime_rejects_non_datetime(method: str) -> None:
+    with pytest.raises(DerivedDataError) as exc:
+        getattr(LAST_PROGRESSED_AT, method)("2025-01-01")
+    assert isinstance(exc.value.__cause__, TypeError)
+
+
+@pytest.mark.parametrize("method", ["to_json", "to_column"])
+@pytest.mark.parametrize("value", [IssueProgressState.IDENTIFIED, "open", None])
+def test_enum_rejects_wrong_type_on_write(method: str, value: Any) -> None:
+    with pytest.raises(DerivedDataError) as exc:
+        getattr(STATUS, method)(value)
+    assert exc.value.stage == "encode"
+    assert exc.value.feature_name == STATUS.name
+    assert isinstance(exc.value.__cause__, TypeError)
+
+
+@pytest.mark.parametrize("method", ["to_json", "to_column"])
+def test_enum_rejects_wrong_enum_with_same_value(method: str) -> None:
+    class OtherStatus(StrEnum):
+        OPEN = "open"
+
+    with pytest.raises(DerivedDataError):
+        getattr(STATUS, method)(OtherStatus.OPEN)
+
+
+@pytest.mark.parametrize("method", ["to_json", "to_column"])
+def test_enum_accepts_own_members_on_write(method: str) -> None:
+    assert getattr(STATUS, method)(IssueStatus.OPEN) == "open"

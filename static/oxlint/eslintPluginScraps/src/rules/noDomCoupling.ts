@@ -6,8 +6,15 @@ import {
   type ParsedCssSelector,
 } from '../ast/extractor/css.ts';
 import {createImportTracker} from '../ast/tracker/imports.ts';
-import {hasDomCoupling} from '../ast/utils/selectors.ts';
+import {COMPONENT_SELECTOR, getDomCouplingTarget} from '../ast/utils/selectors.ts';
 import {getStyledCallInfo} from '../ast/utils/styled.ts';
+
+const targets = {
+  component: 'A component selector',
+  element: 'A DOM element selector',
+  universal: 'A universal selector',
+  unscoped: 'An unscoped selector',
+};
 
 function unwrap(node: ESTree.Node): ESTree.Node {
   while (
@@ -30,7 +37,7 @@ export const noDomCoupling = defineRule({
     schema: [],
     messages: {
       forbidden:
-        'Do not select components, DOM elements, universal targets, or unscoped children. Use an explicit class, ID, or attribute target instead.',
+        '{{target}} relies on component or DOM implementation details. Use an explicit class, ID, or attribute target instead.',
     },
   },
   create(context) {
@@ -168,9 +175,11 @@ export const noDomCoupling = defineRule({
         if (!expression.body) {
           return [''];
         }
-        return expression.body.type === 'BlockStatement'
-          ? returnedValues(expression.body).flatMap(resolve)
-          : resolve(expression.body);
+        if (expression.body.type === 'BlockStatement') {
+          const values = returnedValues(expression.body).flatMap(resolve);
+          return values.length ? values : [''];
+        }
+        return resolve(expression.body);
       }
       if (
         expression.type === 'TaggedTemplateExpression' ||
@@ -178,14 +187,14 @@ export const noDomCoupling = defineRule({
       ) {
         const info = getStyledCallInfo(expression, imports);
         if (info) {
-          return [info.kind === 'css' ? '' : 'sentry-interpolation'];
+          return [info.kind === 'css' ? '' : COMPONENT_SELECTOR];
         }
         if (expression.type === 'CallExpression') {
           const fn = binding(expression.callee);
           if (fn) {
             return resolve(fn);
           }
-          return suffix.trim() ? [''] : ['sentry-interpolation'];
+          return suffix.trim() ? [''] : [COMPONENT_SELECTOR];
         }
       }
       if (
@@ -202,7 +211,7 @@ export const noDomCoupling = defineRule({
         (imported && /^[A-Z]/.test(imported) && !/^[A-Z][A-Z\d_]+$/.test(imported)) ||
         (imported === 'default' && /^[A-Z]/.test(name))
       ) {
-        return ['sentry-interpolation'];
+        return [COMPONENT_SELECTOR];
       }
       // Imported selector constants cannot be evaluated across module boundaries.
       if (/^[A-Z][A-Z\d_]+$/.test(name)) {
@@ -215,7 +224,7 @@ export const noDomCoupling = defineRule({
       ) {
         return [''];
       }
-      return ['sentry-interpolation'];
+      return [COMPONENT_SELECTOR];
     }
 
     function checkTemplate(node: ESTree.TaggedTemplateExpression) {
@@ -252,7 +261,10 @@ export const noDomCoupling = defineRule({
           cursor = range[1];
         }
         const last = cookCssTemplateText(selector.value.slice(cursor));
-        if (!values.some(value => hasDomCoupling(value + last))) {
+        const target = values
+          .map(value => getDomCouplingTarget(value + last))
+          .find(value => value !== undefined);
+        if (!target) {
           continue;
         }
         let disabled = false;
@@ -285,6 +297,7 @@ export const noDomCoupling = defineRule({
                 }
               : {}),
             messageId: 'forbidden',
+            data: {target: targets[target]},
           });
         }
       }
@@ -389,9 +402,14 @@ export const noDomCoupling = defineRule({
             continue;
           }
           if (!/^[\w-]+$/.test(selector) || isNestedStyle(property.value)) {
-            if (hasDomCoupling(selector) && !reported.has(key)) {
+            const target = getDomCouplingTarget(selector);
+            if (target && !reported.has(key)) {
               reported.add(key);
-              context.report({node: key, messageId: 'forbidden'});
+              context.report({
+                node: key,
+                messageId: 'forbidden',
+                data: {target: targets[target]},
+              });
             }
             styles(property.value);
           }

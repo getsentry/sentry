@@ -30,7 +30,6 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   isTimedOut: false,
   runId: null,
   overrideBashModeEnabled: false,
-  overrideCtxEngEnable: true,
   overrideCodeModeEnable: 'off',
   hasSentInterrupt: false,
   sendMessage: jest.fn(),
@@ -39,9 +38,7 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   startNewSession: jest.fn(),
   interruptRun: jest.fn(),
   respondToUserInput: jest.fn(),
-  createPR: jest.fn(),
   setOverrideBashModeEnabled: jest.fn(),
-  setOverrideCtxEngEnable: jest.fn(),
   setOverrideCodeModeEnable: jest.fn(),
 };
 
@@ -130,7 +127,7 @@ describe('SeerExplorerSidebarLayout', () => {
   const orgWithSidebar = OrganizationFixture({
     openMembership: true,
     hideAiFeatures: false,
-    features: [...seerFeatures, 'seer-explorer-persistent-sidebar'],
+    features: seerFeatures,
   });
 
   beforeEach(() => {
@@ -163,14 +160,14 @@ describe('SeerExplorerSidebarLayout', () => {
     delete window.documentPictureInPicture;
   });
 
-  it('renders content untouched (no split panel) when the flag is off', async () => {
-    const orgNoFlag = OrganizationFixture({
+  it('renders content untouched (no split panel) when Seer Explorer is disabled', async () => {
+    const orgWithoutExplorer = OrganizationFixture({
       openMembership: true,
       hideAiFeatures: false,
-      features: seerFeatures,
+      features: [],
     });
 
-    renderSidebar(orgNoFlag);
+    renderSidebar(orgWithoutExplorer);
 
     expect(await screen.findByText('main app content')).toBeInTheDocument();
     expect(splitOrientation()).toBeUndefined();

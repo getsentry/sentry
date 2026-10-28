@@ -1,12 +1,14 @@
 {
   "name": "@sentry/icons",
   "version": "0.1.0",
-  "private": true,
   "repository": {
     "type": "git",
     "url": "https://github.com/getsentry/sentry.git",
     "directory": "static/packages/icons"
   },
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "exports": {
     "./add": "./src/iconAdd.tsx",
@@ -179,9 +181,695 @@
     "./svgIcon": "./src/svgIcon.tsx",
     "./useIconDefaults": "./src/useIconDefaults.tsx"
   },
+  "publishConfig": {
+    "exports": {
+      "./add": {
+        "types": "./dist/iconAdd.d.ts",
+        "import": "./dist/iconAdd.js"
+      },
+      "./allProjects": {
+        "types": "./dist/iconAllProjects.d.ts",
+        "import": "./dist/iconAllProjects.js"
+      },
+      "./angry": {
+        "types": "./dist/iconAngry.d.ts",
+        "import": "./dist/iconAngry.js"
+      },
+      "./arrow": {
+        "types": "./dist/iconArrow.d.ts",
+        "import": "./dist/iconArrow.js"
+      },
+      "./asana": {
+        "types": "./dist/iconAsana.d.ts",
+        "import": "./dist/iconAsana.js"
+      },
+      "./attachment": {
+        "types": "./dist/iconAttachment.d.ts",
+        "import": "./dist/iconAttachment.js"
+      },
+      "./barAntennaOne": {
+        "types": "./dist/iconBarAntennaOne.d.ts",
+        "import": "./dist/iconBarAntennaOne.js"
+      },
+      "./barAntennaThree": {
+        "types": "./dist/iconBarAntennaThree.d.ts",
+        "import": "./dist/iconBarAntennaThree.js"
+      },
+      "./barAntennaTwo": {
+        "types": "./dist/iconBarAntennaTwo.d.ts",
+        "import": "./dist/iconBarAntennaTwo.js"
+      },
+      "./bitbucket": {
+        "types": "./dist/iconBitbucket.d.ts",
+        "import": "./dist/iconBitbucket.js"
+      },
+      "./bookmark": {
+        "types": "./dist/iconBookmark.d.ts",
+        "import": "./dist/iconBookmark.js"
+      },
+      "./bot": {
+        "types": "./dist/iconBot.d.ts",
+        "import": "./dist/iconBot.js"
+      },
+      "./branch": {
+        "types": "./dist/iconBranch.d.ts",
+        "import": "./dist/iconBranch.js"
+      },
+      "./broadcast": {
+        "types": "./dist/iconBroadcast.d.ts",
+        "import": "./dist/iconBroadcast.js"
+      },
+      "./bug": {
+        "types": "./dist/iconBug.d.ts",
+        "import": "./dist/iconBug.js"
+      },
+      "./building": {
+        "types": "./dist/iconBuilding.d.ts",
+        "import": "./dist/iconBuilding.js"
+      },
+      "./business": {
+        "types": "./dist/iconBusiness.d.ts",
+        "import": "./dist/iconBusiness.js"
+      },
+      "./calendar": {
+        "types": "./dist/iconCalendar.d.ts",
+        "import": "./dist/iconCalendar.js"
+      },
+      "./case": {
+        "types": "./dist/iconCase.d.ts",
+        "import": "./dist/iconCase.js"
+      },
+      "./chat": {
+        "types": "./dist/iconChat.d.ts",
+        "import": "./dist/iconChat.js"
+      },
+      "./checkmark": {
+        "types": "./dist/iconCheckmark.d.ts",
+        "import": "./dist/iconCheckmark.js"
+      },
+      "./chevron": {
+        "types": "./dist/iconChevron.d.ts",
+        "import": "./dist/iconChevron.js"
+      },
+      "./circle": {
+        "types": "./dist/iconCircle.d.ts",
+        "import": "./dist/iconCircle.js"
+      },
+      "./circleCheckmark": {
+        "types": "./dist/iconCircleCheckmark.d.ts",
+        "import": "./dist/iconCircleCheckmark.js"
+      },
+      "./circleDashed": {
+        "types": "./dist/iconCircleDashed.d.ts",
+        "import": "./dist/iconCircleDashed.js"
+      },
+      "./circleFill": {
+        "types": "./dist/iconCircleFill.d.ts",
+        "import": "./dist/iconCircleFill.js"
+      },
+      "./clock": {
+        "types": "./dist/iconClock.d.ts",
+        "import": "./dist/iconClock.js"
+      },
+      "./close": {
+        "types": "./dist/iconClose.d.ts",
+        "import": "./dist/iconClose.js"
+      },
+      "./code": {
+        "types": "./dist/iconCode.d.ts",
+        "import": "./dist/iconCode.js"
+      },
+      "./command": {
+        "types": "./dist/iconCommand.d.ts",
+        "import": "./dist/iconCommand.js"
+      },
+      "./commit": {
+        "types": "./dist/iconCommit.d.ts",
+        "import": "./dist/iconCommit.js"
+      },
+      "./compass": {
+        "types": "./dist/iconCompass.d.ts",
+        "import": "./dist/iconCompass.js"
+      },
+      "./contract": {
+        "types": "./dist/iconContract.d.ts",
+        "import": "./dist/iconContract.js"
+      },
+      "./control": {
+        "types": "./dist/iconControl.d.ts",
+        "import": "./dist/iconControl.js"
+      },
+      "./copy": {
+        "types": "./dist/iconCopy.d.ts",
+        "import": "./dist/iconCopy.js"
+      },
+      "./copyId": {
+        "types": "./dist/iconCopyId.d.ts",
+        "import": "./dist/iconCopyId.js"
+      },
+      "./creditCard": {
+        "types": "./dist/iconCreditCard.d.ts",
+        "import": "./dist/iconCreditCard.js"
+      },
+      "./cursor": {
+        "types": "./dist/iconCursor.d.ts",
+        "import": "./dist/iconCursor.js"
+      },
+      "./cursorArrow": {
+        "types": "./dist/iconCursorArrow.d.ts",
+        "import": "./dist/iconCursorArrow.js"
+      },
+      "./dashboard": {
+        "types": "./dist/iconDashboard.d.ts",
+        "import": "./dist/iconDashboard.js"
+      },
+      "./delete": {
+        "types": "./dist/iconDelete.d.ts",
+        "import": "./dist/iconDelete.js"
+      },
+      "./discord": {
+        "types": "./dist/iconDiscord.d.ts",
+        "import": "./dist/iconDiscord.js"
+      },
+      "./divide": {
+        "types": "./dist/iconDivide.d.ts",
+        "import": "./dist/iconDivide.js"
+      },
+      "./docs": {
+        "types": "./dist/iconDocs.d.ts",
+        "import": "./dist/iconDocs.js"
+      },
+      "./download": {
+        "types": "./dist/iconDownload.d.ts",
+        "import": "./dist/iconDownload.js"
+      },
+      "./edit": {
+        "types": "./dist/iconEdit.d.ts",
+        "import": "./dist/iconEdit.js"
+      },
+      "./ellipsis": {
+        "types": "./dist/iconEllipsis.d.ts",
+        "import": "./dist/iconEllipsis.js"
+      },
+      "./exclamation": {
+        "types": "./dist/iconExclamation.d.ts",
+        "import": "./dist/iconExclamation.js"
+      },
+      "./expand": {
+        "types": "./dist/iconExpand.d.ts",
+        "import": "./dist/iconExpand.js"
+      },
+      "./fatal": {
+        "types": "./dist/iconFatal.d.ts",
+        "import": "./dist/iconFatal.js"
+      },
+      "./file": {
+        "types": "./dist/iconFile.d.ts",
+        "import": "./dist/iconFile.js"
+      },
+      "./fileBroken": {
+        "types": "./dist/iconFileBroken.d.ts",
+        "import": "./dist/iconFileBroken.js"
+      },
+      "./filter": {
+        "types": "./dist/iconFilter.d.ts",
+        "import": "./dist/iconFilter.js"
+      },
+      "./fire": {
+        "types": "./dist/iconFire.d.ts",
+        "import": "./dist/iconFire.js"
+      },
+      "./fix": {
+        "types": "./dist/iconFix.d.ts",
+        "import": "./dist/iconFix.js"
+      },
+      "./flag": {
+        "types": "./dist/iconFlag.d.ts",
+        "import": "./dist/iconFlag.js"
+      },
+      "./focus": {
+        "types": "./dist/iconFocus.d.ts",
+        "import": "./dist/iconFocus.js"
+      },
+      "./generic": {
+        "types": "./dist/iconGeneric.d.ts",
+        "import": "./dist/iconGeneric.js"
+      },
+      "./github": {
+        "types": "./dist/iconGithub.d.ts",
+        "import": "./dist/iconGithub.js"
+      },
+      "./gitlab": {
+        "types": "./dist/iconGitlab.d.ts",
+        "import": "./dist/iconGitlab.js"
+      },
+      "./globe": {
+        "types": "./dist/iconGlobe.d.ts",
+        "import": "./dist/iconGlobe.js"
+      },
+      "./google": {
+        "types": "./dist/iconGoogle.d.ts",
+        "import": "./dist/iconGoogle.js"
+      },
+      "./grabbable": {
+        "types": "./dist/iconGrabbable.d.ts",
+        "import": "./dist/iconGrabbable.js"
+      },
+      "./graph": {
+        "types": "./dist/iconGraph.d.ts",
+        "import": "./dist/iconGraph.js"
+      },
+      "./graphArea": {
+        "types": "./dist/iconGraphArea.d.ts",
+        "import": "./dist/iconGraphArea.js"
+      },
+      "./graphBar": {
+        "types": "./dist/iconGraphBar.d.ts",
+        "import": "./dist/iconGraphBar.js"
+      },
+      "./graphCircle": {
+        "types": "./dist/iconGraphCircle.d.ts",
+        "import": "./dist/iconGraphCircle.js"
+      },
+      "./graphHeatmap": {
+        "types": "./dist/iconGraphHeatmap.d.ts",
+        "import": "./dist/iconGraphHeatmap.js"
+      },
+      "./graphLine": {
+        "types": "./dist/iconGraphLine.d.ts",
+        "import": "./dist/iconGraphLine.js"
+      },
+      "./graphScatter": {
+        "types": "./dist/iconGraphScatter.d.ts",
+        "import": "./dist/iconGraphScatter.js"
+      },
+      "./grid": {
+        "types": "./dist/iconGrid.d.ts",
+        "import": "./dist/iconGrid.js"
+      },
+      "./group": {
+        "types": "./dist/iconGroup.d.ts",
+        "import": "./dist/iconGroup.js"
+      },
+      "./happy": {
+        "types": "./dist/iconHappy.d.ts",
+        "import": "./dist/iconHappy.js"
+      },
+      "./hide": {
+        "types": "./dist/iconHide.d.ts",
+        "import": "./dist/iconHide.js"
+      },
+      "./image": {
+        "types": "./dist/iconImage.d.ts",
+        "import": "./dist/iconImage.js"
+      },
+      "./info": {
+        "types": "./dist/iconInfo.d.ts",
+        "import": "./dist/iconInfo.js"
+      },
+      "./input": {
+        "types": "./dist/iconInput.d.ts",
+        "import": "./dist/iconInput.js"
+      },
+      "./issues": {
+        "types": "./dist/iconIssues.d.ts",
+        "import": "./dist/iconIssues.js"
+      },
+      "./jira": {
+        "types": "./dist/iconJira.d.ts",
+        "import": "./dist/iconJira.js"
+      },
+      "./json": {
+        "types": "./dist/iconJson.d.ts",
+        "import": "./dist/iconJson.js"
+      },
+      "./keyDown": {
+        "types": "./dist/iconKeyDown.d.ts",
+        "import": "./dist/iconKeyDown.js"
+      },
+      "./lab": {
+        "types": "./dist/iconLab.d.ts",
+        "import": "./dist/iconLab.js"
+      },
+      "./lightning": {
+        "types": "./dist/iconLightning.d.ts",
+        "import": "./dist/iconLightning.js"
+      },
+      "./linear": {
+        "types": "./dist/iconLinear.d.ts",
+        "import": "./dist/iconLinear.js"
+      },
+      "./link": {
+        "types": "./dist/iconLink.d.ts",
+        "import": "./dist/iconLink.js"
+      },
+      "./linkBroken": {
+        "types": "./dist/iconLinkBroken.d.ts",
+        "import": "./dist/iconLinkBroken.js"
+      },
+      "./list": {
+        "types": "./dist/iconList.d.ts",
+        "import": "./dist/iconList.js"
+      },
+      "./location": {
+        "types": "./dist/iconLocation.d.ts",
+        "import": "./dist/iconLocation.js"
+      },
+      "./lock": {
+        "types": "./dist/iconLock.d.ts",
+        "import": "./dist/iconLock.js"
+      },
+      "./mail": {
+        "types": "./dist/iconMail.d.ts",
+        "import": "./dist/iconMail.js"
+      },
+      "./markdown": {
+        "types": "./dist/iconMarkdown.d.ts",
+        "import": "./dist/iconMarkdown.js"
+      },
+      "./megaphone": {
+        "types": "./dist/iconMegaphone.d.ts",
+        "import": "./dist/iconMegaphone.js"
+      },
+      "./meh": {
+        "types": "./dist/iconMeh.d.ts",
+        "import": "./dist/iconMeh.js"
+      },
+      "./menu": {
+        "types": "./dist/iconMenu.d.ts",
+        "import": "./dist/iconMenu.js"
+      },
+      "./merge": {
+        "types": "./dist/iconMerge.d.ts",
+        "import": "./dist/iconMerge.js"
+      },
+      "./mobile": {
+        "types": "./dist/iconMobile.d.ts",
+        "import": "./dist/iconMobile.js"
+      },
+      "./moon": {
+        "types": "./dist/iconMoon.d.ts",
+        "import": "./dist/iconMoon.js"
+      },
+      "./mute": {
+        "types": "./dist/iconMute.d.ts",
+        "import": "./dist/iconMute.js"
+      },
+      "./myProjects": {
+        "types": "./dist/iconMyProjects.d.ts",
+        "import": "./dist/iconMyProjects.js"
+      },
+      "./next": {
+        "types": "./dist/iconNext.d.ts",
+        "import": "./dist/iconNext.js"
+      },
+      "./not": {
+        "types": "./dist/iconNot.d.ts",
+        "import": "./dist/iconNot.js"
+      },
+      "./number": {
+        "types": "./dist/iconNumber.d.ts",
+        "import": "./dist/iconNumber.js"
+      },
+      "./open": {
+        "types": "./dist/iconOpen.d.ts",
+        "import": "./dist/iconOpen.js"
+      },
+      "./option": {
+        "types": "./dist/iconOption.d.ts",
+        "import": "./dist/iconOption.js"
+      },
+      "./panel": {
+        "types": "./dist/iconPanel.d.ts",
+        "import": "./dist/iconPanel.js"
+      },
+      "./parenthesis": {
+        "types": "./dist/iconParenthesis.d.ts",
+        "import": "./dist/iconParenthesis.js"
+      },
+      "./pause": {
+        "types": "./dist/iconPause.d.ts",
+        "import": "./dist/iconPause.js"
+      },
+      "./perforce": {
+        "types": "./dist/iconPerforce.d.ts",
+        "import": "./dist/iconPerforce.js"
+      },
+      "./pieHalf": {
+        "types": "./dist/iconPieHalf.d.ts",
+        "import": "./dist/iconPieHalf.js"
+      },
+      "./pieQuarter": {
+        "types": "./dist/iconPieQuarter.d.ts",
+        "import": "./dist/iconPieQuarter.js"
+      },
+      "./pieThreeQuarters": {
+        "types": "./dist/iconPieThreeQuarters.d.ts",
+        "import": "./dist/iconPieThreeQuarters.js"
+      },
+      "./pin": {
+        "types": "./dist/iconPin.d.ts",
+        "import": "./dist/iconPin.js"
+      },
+      "./play": {
+        "types": "./dist/iconPlay.d.ts",
+        "import": "./dist/iconPlay.js"
+      },
+      "./previous": {
+        "types": "./dist/iconPrevious.d.ts",
+        "import": "./dist/iconPrevious.js"
+      },
+      "./print": {
+        "types": "./dist/iconPrint.d.ts",
+        "import": "./dist/iconPrint.js"
+      },
+      "./profiling": {
+        "types": "./dist/iconProfiling.d.ts",
+        "import": "./dist/iconProfiling.js"
+      },
+      "./project": {
+        "types": "./dist/iconProject.d.ts",
+        "import": "./dist/iconProject.js"
+      },
+      "./pullRequest": {
+        "types": "./dist/iconPullRequest.d.ts",
+        "import": "./dist/iconPullRequest.js"
+      },
+      "./pullRequestClosed": {
+        "types": "./dist/iconPullRequestClosed.d.ts",
+        "import": "./dist/iconPullRequestClosed.js"
+      },
+      "./pullRequestDraft": {
+        "types": "./dist/iconPullRequestDraft.d.ts",
+        "import": "./dist/iconPullRequestDraft.js"
+      },
+      "./question": {
+        "types": "./dist/iconQuestion.d.ts",
+        "import": "./dist/iconQuestion.js"
+      },
+      "./receipt": {
+        "types": "./dist/iconReceipt.d.ts",
+        "import": "./dist/iconReceipt.js"
+      },
+      "./refresh": {
+        "types": "./dist/iconRefresh.d.ts",
+        "import": "./dist/iconRefresh.js"
+      },
+      "./releases": {
+        "types": "./dist/iconReleases.d.ts",
+        "import": "./dist/iconReleases.js"
+      },
+      "./repository": {
+        "types": "./dist/iconRepository.d.ts",
+        "import": "./dist/iconRepository.js"
+      },
+      "./resize": {
+        "types": "./dist/iconResize.d.ts",
+        "import": "./dist/iconResize.js"
+      },
+      "./return": {
+        "types": "./dist/iconReturn.d.ts",
+        "import": "./dist/iconReturn.js"
+      },
+      "./rewind10": {
+        "types": "./dist/iconRewind10.d.ts",
+        "import": "./dist/iconRewind10.js"
+      },
+      "./ruler": {
+        "types": "./dist/iconRuler.d.ts",
+        "import": "./dist/iconRuler.js"
+      },
+      "./sad": {
+        "types": "./dist/iconSad.d.ts",
+        "import": "./dist/iconSad.js"
+      },
+      "./scrollHorizontally": {
+        "types": "./dist/iconScrollHorizontally.d.ts",
+        "import": "./dist/iconScrollHorizontally.js"
+      },
+      "./scrollVertically": {
+        "types": "./dist/iconScrollVertically.d.ts",
+        "import": "./dist/iconScrollVertically.js"
+      },
+      "./search": {
+        "types": "./dist/iconSearch.d.ts",
+        "import": "./dist/iconSearch.js"
+      },
+      "./seer": {
+        "types": "./dist/iconSeer.d.ts",
+        "import": "./dist/iconSeer.js"
+      },
+      "./sentry": {
+        "types": "./dist/iconSentry.d.ts",
+        "import": "./dist/iconSentry.js"
+      },
+      "./settings": {
+        "types": "./dist/iconSettings.d.ts",
+        "import": "./dist/iconSettings.js"
+      },
+      "./shift": {
+        "types": "./dist/iconShift.d.ts",
+        "import": "./dist/iconShift.js"
+      },
+      "./show": {
+        "types": "./dist/iconShow.d.ts",
+        "import": "./dist/iconShow.js"
+      },
+      "./siren": {
+        "types": "./dist/iconSiren.d.ts",
+        "import": "./dist/iconSiren.js"
+      },
+      "./slashForward": {
+        "types": "./dist/iconSlashForward.d.ts",
+        "import": "./dist/iconSlashForward.js"
+      },
+      "./sliders": {
+        "types": "./dist/iconSliders.d.ts",
+        "import": "./dist/iconSliders.js"
+      },
+      "./sort": {
+        "types": "./dist/iconSort.d.ts",
+        "import": "./dist/iconSort.js"
+      },
+      "./span": {
+        "types": "./dist/iconSpan.d.ts",
+        "import": "./dist/iconSpan.js"
+      },
+      "./stack": {
+        "types": "./dist/iconStack.d.ts",
+        "import": "./dist/iconStack.js"
+      },
+      "./star": {
+        "types": "./dist/iconStar.d.ts",
+        "import": "./dist/iconStar.js"
+      },
+      "./stats": {
+        "types": "./dist/iconStats.d.ts",
+        "import": "./dist/iconStats.js"
+      },
+      "./subscribed": {
+        "types": "./dist/iconSubscribed.d.ts",
+        "import": "./dist/iconSubscribed.js"
+      },
+      "./subtract": {
+        "types": "./dist/iconSubtract.d.ts",
+        "import": "./dist/iconSubtract.js"
+      },
+      "./sun": {
+        "types": "./dist/iconSun.d.ts",
+        "import": "./dist/iconSun.js"
+      },
+      "./support": {
+        "types": "./dist/iconSupport.d.ts",
+        "import": "./dist/iconSupport.js"
+      },
+      "./sync": {
+        "types": "./dist/iconSync.d.ts",
+        "import": "./dist/iconSync.js"
+      },
+      "./table": {
+        "types": "./dist/iconTable.d.ts",
+        "import": "./dist/iconTable.js"
+      },
+      "./tag": {
+        "types": "./dist/iconTag.d.ts",
+        "import": "./dist/iconTag.js"
+      },
+      "./tap": {
+        "types": "./dist/iconTap.d.ts",
+        "import": "./dist/iconTap.js"
+      },
+      "./telescope": {
+        "types": "./dist/iconTelescope.d.ts",
+        "import": "./dist/iconTelescope.js"
+      },
+      "./terminal": {
+        "types": "./dist/iconTerminal.d.ts",
+        "import": "./dist/iconTerminal.js"
+      },
+      "./thumb": {
+        "types": "./dist/iconThumb.d.ts",
+        "import": "./dist/iconThumb.js"
+      },
+      "./timer": {
+        "types": "./dist/iconTimer.d.ts",
+        "import": "./dist/iconTimer.js"
+      },
+      "./unsubscribed": {
+        "types": "./dist/iconUnsubscribed.d.ts",
+        "import": "./dist/iconUnsubscribed.js"
+      },
+      "./upgrade": {
+        "types": "./dist/iconUpgrade.d.ts",
+        "import": "./dist/iconUpgrade.js"
+      },
+      "./upload": {
+        "types": "./dist/iconUpload.d.ts",
+        "import": "./dist/iconUpload.js"
+      },
+      "./user": {
+        "types": "./dist/iconUser.d.ts",
+        "import": "./dist/iconUser.js"
+      },
+      "./vercel": {
+        "types": "./dist/iconVercel.d.ts",
+        "import": "./dist/iconVercel.js"
+      },
+      "./vsts": {
+        "types": "./dist/iconVsts.d.ts",
+        "import": "./dist/iconVsts.js"
+      },
+      "./warning": {
+        "types": "./dist/iconWarning.d.ts",
+        "import": "./dist/iconWarning.js"
+      },
+      "./wifi": {
+        "types": "./dist/iconWifi.d.ts",
+        "import": "./dist/iconWifi.js"
+      },
+      "./window": {
+        "types": "./dist/iconWindow.d.ts",
+        "import": "./dist/iconWindow.js"
+      },
+      "./svgIcon": {
+        "types": "./dist/svgIcon.d.ts",
+        "import": "./dist/svgIcon.js"
+      },
+      "./useIconDefaults": {
+        "types": "./dist/useIconDefaults.d.ts",
+        "import": "./dist/useIconDefaults.js"
+      }
+    },
+    "access": "public"
+  },
   "scripts": {
+    "build": "rslib build",
     "test": "NODE_ENV=test jest --config jest.config.mjs",
-    "typecheck": "tsc --build tsconfig.json"
+    "typecheck": "tsc --build tsconfig.json",
+    "prepack": "pnpm run build",
+    "lint": "pnpm run lint:js && pnpm run lint:css",
+    "lint:js": "oxlint --type-aware --report-unused-disable-directives",
+    "lint:css": "stylelint '**/*.[jt]sx' --allow-empty-input"
   },
   "dependencies": {
     "@emotion/styled": "^11.14.0",
@@ -190,6 +878,8 @@
   "devDependencies": {
     "@jest/environment": "30.5.1",
     "@jest/environment-jsdom-abstract": "30.5.1",
+    "@rsbuild/plugin-react": "2.1.1",
+    "@rslib/core": "1.0.3",
     "@swc/core": "1.16.13",
     "@swc/jest": "0.2.39",
     "@testing-library/dom": "10.4.1",
@@ -202,7 +892,10 @@
     "expect-type": "1.4.0",
     "jest": "30.5.1",
     "jsdom": "30.1.1",
+    "oxlint": "1.88.0",
+    "oxlint-tsgolint": "7.0.2004",
     "react-dom": "19.3.0",
+    "stylelint": "16.26.1",
     "typescript": "npm:@typescript/typescript6@6.0.2"
   },
   "peerDependencies": {

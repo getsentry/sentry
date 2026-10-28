@@ -54,8 +54,10 @@ same after detector selection.
 ### 3. Evaluate each detector
 
 `process_detectors` obtains `detector.detector_handler` from the `DetectorSettings`
-registered for the detector's type in the `detector_settings_registry`. Then, it calls the `_evaluate` method on the handler,
-which delegates to the default or overridden `evaluate` methods that contain most of the detector's logic.
+registered for the detector's type in the `detector_settings_registry`. Then, it calls the `_evaluate` method on the handler.
+`_evaluate` normalizes the output of `extract_value` to group key and value pairs, passes them to `evaluate`, and calls
+`create_occurrence` for every `DetectorEvaluation.create_issue` evaluation. Evaluations built with `with_result` are
+kept as-is, and `DetectorEvaluation.ok` evaluations are dropped. An empty `DetectorGroupValues` skips `evaluate`.
 
 One packet can produce:
 
@@ -63,15 +65,16 @@ One packet can produce:
 - One result for an ungrouped detector
 - Multiple results keyed by `DetectorGroupKey`
 
-A handler returns a mapping of group keys to `DetectorEvaluation` objects. An evaluation
-can contain an `IssueOccurrence`, a `StatusChangeMessage`, or `None`. `process_detectors`
-routes non-null results according to the handler's `outcome`.
+`evaluate` returns `DetectorEvaluations`, whose `evaluations` map group keys to `DetectorEvaluation`
+objects. `_evaluate` returns only the evaluations that have a result, either an `IssueOccurrence` or a
+`StatusChangeMessage`. `process_detectors` routes those results according to the handler's `outcome`.
 
 ### 4. Detector orchestration
 
-Every detector handler inherits [`DetectorHandler`](../handlers/detector/base.py). Its
-default `evaluate` is stateless; `StatefulDetectorHandler` replaces it with durable
-state and thresholds.
+Every detector handler inherits [`BaseDetectorHandler`](../handlers/detector/base.py), which owns
+the `_evaluate` lifecycle and occurrence decoration. [`DetectorHandler`](../handlers/detector/condition.py)
+adds a default stateless `evaluate` over the trigger condition group; `StatefulDetectorHandler`
+layers durable state and thresholds over that evaluation by calling `super().evaluate()`.
 
 #### Stateless (default)
 
@@ -138,9 +141,9 @@ empty or passing `NONE` group can also trigger without a priority-bearing result
 therefore use the stateful handler's default `OK` priority. A missing trigger group is
 invalid and produces no transition.
 
-Detectors that need a different flow inherit `DetectorHandler` and override `evaluate`,
-but then they own this orchestration. `BaseDetectorHandler` is only the abstract
-interface and is not a base for new detectors.
+Detectors that decide without the trigger condition group inherit `BaseDetectorHandler` and
+implement `evaluate`. Detectors that extend the condition evaluation override `evaluate` and
+call `super().evaluate()`, then own the orchestration they add.
 
 ### 5. Produce detector output
 
@@ -417,10 +420,11 @@ processing, delayed scheduling, caches, and actions. Logging helpers in
 [`utils/log_context.py`](../utils/log_context.py) attach workflow and event context.
 
 [`emit_evaluations`](../processors/evaluations/tracking.py) records detector and workflow
-evaluations. Runtime options and feature flags control sampling and direct logging.
+evaluations through each `EvaluationEmitter`, which filters artifacts for its destination.
+Runtime options and feature flags control sampling and direct logging.
 
 When `organizations:workflow-engine-evaluation-artifacts-eap` is enabled,
-[`emit_evaluation_to_eap`](../processors/evaluations/eap.py) publishes artifacts to
+[`EAPEmitter`](../processors/evaluations/eap.py) publishes artifacts to
 `SNUBA_ITEMS` as `TRACE_ITEM_TYPE_WORKFLOW_ENGINE_EVALUATION` trace items. These are not
 log trace items and do not include log body or severity attributes.
 

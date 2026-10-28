@@ -2,10 +2,9 @@ import {Fragment} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
+import type {OverlayPlacement} from '@sentry/scraps/overlayPositioning';
 import {Radio} from '@sentry/scraps/radio';
 import {Tooltip} from '@sentry/scraps/tooltip';
-
-import type {OverlayPlacement} from 'sentry/utils/overlayPositioning';
 
 interface ContainerProps extends React.HTMLAttributes<HTMLDivElement> {
   orientInline?: boolean;

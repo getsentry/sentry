@@ -5,7 +5,6 @@ import re
 from collections.abc import Mapping, Sequence
 from typing import Any, TypedDict
 
-import orjson
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -114,7 +113,6 @@ class SlackOptionsLoadEndpoint(Endpoint):
                 "slack.options_load.request-error",
                 extra={
                     "group_id": slack_request.group_id,
-                    "request_data": orjson.dumps(slack_request.data).decode(),
                 },
             )
             return self.respond(status=status.HTTP_400_BAD_REQUEST)

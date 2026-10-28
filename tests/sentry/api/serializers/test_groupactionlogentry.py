@@ -40,6 +40,21 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
         assert result["commentId"] is None
         assert result["data"] == {"referrer": "slack"}
 
+    def test_legacy_mcp_client_family_source_is_renamed(self) -> None:
+        user = self.create_user()
+        group = self.create_group()
+        legacy = self.create_group_action_log_entry(
+            group=group, type=GroupActionType.RESOLVE, source="mcp:claude-desktop"
+        )
+        current = self.create_group_action_log_entry(
+            group=group, type=GroupActionType.RESOLVE, source="mcp:claude-code"
+        )
+
+        legacy_result, current_result = serialize([legacy, current], user)
+
+        assert legacy_result["source"] == "mcp:claude"
+        assert current_result["source"] == "mcp:claude-code"
+
     def test_pull_request_entry(self) -> None:
         self.org = self.create_organization(name="Rowdy Tiger")
         user = self.create_user()
@@ -360,14 +375,21 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
         assert result["commentId"] == "123"
         assert result["type"] == "note"
 
-    def test_comment_mutations_keep_their_own_ids_without_comment_references(self) -> None:
+    def test_comment_mutations_distinguish_gal_and_comment_references(self) -> None:
         comment = self._comment(123, "original")
         edit = self._comment_mutation(GroupActionType.COMMENT_EDIT, comment, text="edited")
         delete = self._comment_mutation(GroupActionType.COMMENT_DELETE, comment)
+        direct_edit = self._comment_mutation(
+            GroupActionType.COMMENT_EDIT, comment, comment_id=123, comment_id_kind="comment"
+        )
+        direct_delete = self._comment_mutation(
+            GroupActionType.COMMENT_DELETE, comment, comment_id=123, comment_id_kind="comment"
+        )
 
-        results = serialize([edit, delete], self.user)
-        assert [result["id"] for result in results] == [str(edit.id), str(delete.id)]
-        assert [result["commentId"] for result in results] == [None, None]
+        entries = [edit, delete, direct_edit, direct_delete]
+        results = serialize(entries, self.user)
+        assert [result["id"] for result in results] == [str(entry.id) for entry in entries]
+        assert [result["commentId"] for result in results] == [None, None, "123", "123"]
 
     def _comment(self, comment_id: int, text: str) -> GroupActionLogEntry:
         return self.create_group_action_log_entry(
@@ -599,4 +621,29 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
         assert items[0]["data"]["text"] == "comment"
         note.delete()
         self._comment_mutation(GroupActionType.COMMENT_DELETE, logged)
+        assert [item["type"] for item in self._activity_items()] == ["first_seen"]
+
+    @with_feature({"projects:issue-action-log-write-to-db": False})
+    def test_hidden_comment_events_do_not_cause_fallback_or_appear_in_feed(self) -> None:
+        note = self.create_group_activity(type=ActivityType.NOTE.value, data={"text": "current"})
+        self.create_group_action_log_entry(
+            type=GroupActionType.COMMENT,
+            data={"comment_id": note.id},
+            idempotency_key=f"activity:{note.id}",
+            source="api",
+        )
+        self.create_group_action_log_entry(
+            type=GroupActionType.COMMENT_EDIT,
+            data={"comment_id": note.id, "comment_id_kind": "comment"},
+        )
+        items = self._activity_items()
+        assert [item["type"] for item in items] == ["note", "first_seen"]
+        assert items[0]["data"]["text"] == "current"
+        assert items[0]["source"] == "api"
+        note_id = note.id
+        note.delete()
+        self.create_group_action_log_entry(
+            type=GroupActionType.COMMENT_DELETE,
+            data={"comment_id": note_id, "comment_id_kind": "comment"},
+        )
         assert [item["type"] for item in self._activity_items()] == ["first_seen"]

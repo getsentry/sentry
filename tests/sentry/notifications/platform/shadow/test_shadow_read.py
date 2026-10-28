@@ -29,6 +29,7 @@ from sentry.notifications.notification_action.utils import (
     issue_notification_data_factory,
     metric_alert_notification_data_factory,
 )
+from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.shadow.capture import _variant
 from sentry.notifications.platform.shadow.compare import ShadowOutcome
 from sentry.notifications.platform.types import (
@@ -214,6 +215,26 @@ class ShadowReadIssueAlertTest(ShadowReadTestBase, OccurrenceTestMixin):
         observation, _ = self.send(invocation)
 
         assert observation.outcome == ShadowOutcome.GROUP_CHANGED
+
+    def test_skips_when_the_group_status_changed_during_the_platform_render(self) -> None:
+        self.issue_group.update(status=GroupStatus.RESOLVED, substatus=None)
+        action = self.create_shadow_action("discord", {"tags": ""})
+        invocation = self.invocation(action)
+        render_template = NotificationService.render_template
+
+        def regress_then_render(**kwargs: Any) -> Any:
+            Group.objects.get(id=self.issue_group.id).update(
+                status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.REGRESSED
+            )
+            return render_template(**kwargs)
+
+        with mock.patch(
+            f"{COMPARE_PATH}.NotificationService.render_template", side_effect=regress_then_render
+        ):
+            observation, _ = self.send(invocation)
+
+        assert observation.outcome == ShadowOutcome.GROUP_CHANGED
+        assert observation.mismatch is None
 
     def test_compares_when_last_seen_changed_before_the_event(self) -> None:
         action = self.create_shadow_action("discord", {"tags": ""})

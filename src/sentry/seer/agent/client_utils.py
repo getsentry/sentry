@@ -516,7 +516,7 @@ def get_proxy_headers() -> dict[str, str] | None:
     from sentry.viewer_context import encode_viewer_context, get_viewer_context
 
     ctx = get_viewer_context()
-    if ctx is None or ctx.user_id is None:
+    if ctx is None:
         return None
 
     if not settings.SEER_API_SHARED_SECRET:

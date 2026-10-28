@@ -66,6 +66,11 @@ function isNegationOperator(op: TermOperator) {
   return negationOperators.includes(op);
 }
 
+// A field can name its operators itself, see `FieldDefinition.operatorLabels`.
+function getOpLabel(op: TermOperator, fieldDefinition: FieldDefinition | null): string {
+  return fieldDefinition?.operatorLabels?.[op] ?? OP_LABELS[op] ?? op;
+}
+
 export function getOperatorInfo({
   filterToken,
   fieldDefinition,
@@ -248,12 +253,12 @@ export function getOperatorInfo({
 
   return {
     operator,
-    label: <OpLabel>{OP_LABELS[operator] ?? operator}</OpLabel>,
+    label: <OpLabel>{getOpLabel(operator, fieldDefinition)}</OpLabel>,
     options: validOps
       .filter(op => op !== TermOperator.EQUAL)
       .filter(op => !disallowNegation || !isNegationOperator(op))
       .map((op): SelectOption<TermOperator> => {
-        const optionOpLabel = OP_LABELS[op] ?? op;
+        const optionOpLabel = getOpLabel(op, fieldDefinition);
 
         return {
           value: op,

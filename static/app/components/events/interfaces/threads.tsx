@@ -54,6 +54,7 @@ type Props = {
   group: Group | undefined;
   groupingCurrentLevel: Group['metadata']['current_level'];
   projectSlug: Project['slug'];
+  initialCollapse?: boolean;
 };
 
 function getIntendedStackView(
@@ -167,7 +168,14 @@ function ThreadStackTraceContent({
   );
 }
 
-export function Threads({data, event, projectSlug, groupingCurrentLevel, group}: Props) {
+export function Threads({
+  data,
+  event,
+  projectSlug,
+  groupingCurrentLevel,
+  group,
+  initialCollapse,
+}: Props) {
   // Sort threads by crashed first
   const threads = useMemo(
     () => (data.values ?? []).toSorted((a, b) => Number(b.crashed) - Number(a.crashed)),
@@ -315,6 +323,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
         }
       >
         <TraceEventDataSection
+          initialCollapse={initialCollapse}
           type={SectionKey.THREADS}
           projectSlug={projectSlug}
           event={event}
@@ -390,6 +399,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
   // If there is only one thread, we expect the stacktrace to wrap itself in a section
   return hasMoreThanOneThread ? (
     <FoldSection
+      initialCollapse={initialCollapse}
       sectionKey={SectionKey.STACKTRACE}
       title={tn('Stack Trace', 'Stack Traces', threads.length)}
       disableCollapsePersistence

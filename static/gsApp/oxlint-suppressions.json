@@ -211,11 +211,6 @@
       "count": 3
     }
   },
-  "views/amCheckout/components/checkoutOption.tsx": {
-    "@sentry/scraps/no-dom-coupling": {
-      "count": 4
-    }
-  },
   "views/amCheckout/components/checkoutSuccess.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 1
@@ -251,6 +246,9 @@
     "@sentry/scraps/no-dom-coupling": {
       "count": 7
     },
+    "@sentry/scraps/no-manual-table": {
+      "count": 12
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 2
     }
@@ -284,11 +282,19 @@
   "views/spendAllocations/rootAllocationCard.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 1
+    },
+    "@sentry/scraps/no-manual-table": {
+      "count": 5
     }
   },
   "views/spendLimits/editModal.tsx": {
     "@sentry/scraps/prefer-container-responsive-props": {
       "count": 1
+    }
+  },
+  "views/spendLimits/sharedSpendLimitPriceTable.tsx": {
+    "@sentry/scraps/no-manual-table": {
+      "count": 3
     }
   },
   "views/spikeProtection/components/accordionRow.tsx": {
@@ -306,6 +312,11 @@
       "count": 2
     }
   },
+  "views/subscriptionPage/paymentHistory.tsx": {
+    "@sentry/scraps/no-manual-table": {
+      "count": 2
+    }
+  },
   "views/subscriptionPage/pendingChanges.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 1
@@ -315,6 +326,9 @@
     "@sentry/scraps/no-dom-coupling": {
       "count": 1
     },
+    "@sentry/scraps/no-manual-table": {
+      "count": 5
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 2
     }
@@ -322,6 +336,9 @@
   "views/subscriptionPage/styles.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 7
+    },
+    "@sentry/scraps/no-manual-table": {
+      "count": 1
     },
     "@sentry/scraps/prefer-container-responsive-props": {
       "count": 2
@@ -345,6 +362,9 @@
   "views/subscriptionPage/usageHistory.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 3
+    },
+    "@sentry/scraps/no-manual-table": {
+      "count": 14
     }
   },
   "views/subscriptionPage/usageOverview/components/productTrialRibbon.tsx": {
@@ -355,9 +375,15 @@
   "views/subscriptionPage/usageOverview/components/table.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 1
+    },
+    "@sentry/scraps/no-manual-table": {
+      "count": 5
     }
   },
   "views/subscriptionPage/usageOverview/components/tableRow.tsx": {
+    "@sentry/scraps/no-manual-table": {
+      "count": 1
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
@@ -365,6 +391,9 @@
   "views/subscriptionPage/usageTotalsTable.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 3
+    },
+    "@sentry/scraps/no-manual-table": {
+      "count": 5
     },
     "@sentry/scraps/prefer-primitives": {
       "count": 1

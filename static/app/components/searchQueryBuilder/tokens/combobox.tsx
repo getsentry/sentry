@@ -26,10 +26,12 @@ import type {SelectKey, SelectOptionOrSectionWithKey} from '@sentry/scraps/compa
 import {matchesHotkey} from '@sentry/scraps/hotkey';
 import {Input, useAutosizeInput} from '@sentry/scraps/input';
 import {Flex, Container} from '@sentry/scraps/layout';
+import {Overlay} from '@sentry/scraps/overlay';
+import {flipOverlay, shiftOverlay} from '@sentry/scraps/overlayPositioning';
+import {useOverlay} from '@sentry/scraps/useOverlay';
 
 import {COMMAND_PALETTE_HOTKEYS} from 'sentry/components/commandPalette/constants';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Overlay} from 'sentry/components/overlay';
 import {OpenAskSeerButton} from 'sentry/components/searchQueryBuilder/askSeer/openAskSeerButton';
 import {
   useSearchQueryBuilderAI,
@@ -49,8 +51,6 @@ import {
 } from 'sentry/components/tokenizedInput/token/comboBoxLayout';
 import {defined} from 'sentry/utils/defined';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
-import {flipOverlay, shiftOverlay} from 'sentry/utils/overlayPositioning';
-import {useOverlay} from 'sentry/utils/useOverlay';
 
 type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<string>> = {
   children: CollectionChildren<T>;
@@ -605,7 +605,7 @@ export function SearchQueryBuilderCombobox<
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [inputRef, popoverRef, descriptionRef, isOpen, customMenu, keepVisibleRef]);
 
-  const autosizeInput = useAutosizeInput({value: inputValue});
+  const autosizeInput = useAutosizeInput({value: inputValue, placeholder});
 
   const InputComponent = renderInputValue ? HighlightedInput : UnstyledInput;
   const input = (

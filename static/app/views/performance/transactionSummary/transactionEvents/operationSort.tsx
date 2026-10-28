@@ -5,13 +5,13 @@ import {autoUpdate, offset, useFloating} from '@floating-ui/react-dom';
 import type {Location, LocationDescriptorObject} from 'history';
 
 import {Flex, Container} from '@sentry/scraps/layout';
+import {flipOverlay, shiftOverlay} from '@sentry/scraps/overlayPositioning';
 import {Radio} from '@sentry/scraps/radio';
 
 import {MenuItem} from 'sentry/components/menuItem';
 import {t} from 'sentry/locale';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {EventView} from 'sentry/utils/discover/eventView';
-import {flipOverlay, shiftOverlay} from 'sentry/utils/overlayPositioning';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 export type TitleProps = {

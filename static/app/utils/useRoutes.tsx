@@ -11,8 +11,8 @@ import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 export function useRoutes(): PlainRoute[] {
   const matches = useMatches();
 
-  // XXX(epurkhiser): This transforms react-router 6 style matches back to old
-  // style react-router 3 rroute matches.
+  // XXX(epurkhiser): This transforms native React Router matches back to old
+  // style react-router 3 route matches.
   //
   return useMemo(
     () =>
@@ -21,7 +21,7 @@ export function useRoutes(): PlainRoute[] {
         // it out here
         const extra: any = match.handle;
 
-        // In react-router 6 the match returns a `pathname`, but the route is
+        // React Router matches return a `pathname`, but the route is
         // resolved, so it does not include the parameter slug (like
         // `:issueId`) and has the prefixing route, so if the route part is
         // just `:issueId`, but is nested under `/issues/` it will be

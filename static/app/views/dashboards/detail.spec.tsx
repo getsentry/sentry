@@ -193,8 +193,8 @@ describe('Dashboards > Detail', () => {
         body: [],
       });
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events-stats/',
-        body: {data: []},
+        url: '/organizations/org-slug/events-timeseries/',
+        body: {timeSeries: []},
       });
       MockApiClient.addMockResponse({
         method: 'GET',
@@ -227,8 +227,8 @@ describe('Dashboards > Detail', () => {
     // eslint-disable-next-line jest/no-disabled-tests
     it.skip('assigns unique IDs to all widgets so grid keys are unique', async () => {
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events-stats/',
-        body: {data: []},
+        url: '/organizations/org-slug/events-timeseries/',
+        body: {timeSeries: []},
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/default-overview/',
@@ -432,6 +432,10 @@ describe('Dashboards > Detail', () => {
         body: {data: []},
       });
       MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-timeseries/',
+        body: {timeSeries: []},
+      });
+      MockApiClient.addMockResponse({
         method: 'POST',
         url: '/organizations/org-slug/dashboards/widgets/',
         body: [],
@@ -611,9 +615,13 @@ describe('Dashboards > Detail', () => {
           filters: {release: ['abc@1.2.0']},
         }),
       });
-      const mock = MockApiClient.addMockResponse({
+      MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-stats/',
         body: [],
+      });
+      const mock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-timeseries/',
+        body: {timeSeries: []},
       });
 
       render(
@@ -629,7 +637,7 @@ describe('Dashboards > Detail', () => {
 
       await waitFor(() =>
         expect(mock).toHaveBeenLastCalledWith(
-          '/organizations/org-slug/events-stats/',
+          '/organizations/org-slug/events-timeseries/',
           expect.objectContaining({
             query: expect.objectContaining({
               query:

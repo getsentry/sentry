@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from datetime import datetime, timezone
 from enum import StrEnum
 from typing import Any
+from uuid import uuid4
 
 import orjson
 import sentry_sdk
@@ -14,6 +15,7 @@ from django.http import Http404, HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
+from redis.exceptions import RedisError
 
 from sentry import options
 from sentry.api.api_owners import ApiOwner
@@ -22,6 +24,7 @@ from sentry.api.base import Endpoint
 from sentry.api.exceptions import BadRequest
 from sentry.api.utils import to_valid_int_id
 from sentry.integrations.base import IntegrationDomain
+from sentry.integrations.bitbucket_server.tasks import repair_repository_webhook
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.webhook import SCMWebhook
 from sentry.integrations.types import IntegrationProviderSlug
@@ -34,11 +37,15 @@ from sentry.models.repository import Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.shared_integrations.exceptions import ApiHostError, ApiUnauthorized, IntegrationError
 from sentry.utils import metrics
+from sentry.utils.redis import load_redis_script, redis_clusters
 from sentry.web.frontend.base import cell_silo_view
 
 logger = logging.getLogger("sentry.webhooks")
+release_repair_debounce = load_redis_script("utils/locking/delete_lock.lua")
 
 PROVIDER_NAME = "integrations:bitbucket_server"
+REPAIR_TRIGGER_METRIC = "bitbucket_server.webhook.secret_repair_trigger"
+REPAIR_DEBOUNCE_TTL = 24 * 60 * 60
 
 
 class SignatureResult(StrEnum):
@@ -65,6 +72,81 @@ def check_signature(
     if method == "sha256" and hmac.compare_digest(expected.encode(), signature.encode()):
         return SignatureResult.VALID
     return SignatureResult.INVALID
+
+
+def trigger_webhook_repair(
+    *,
+    integration_id: int,
+    organization_id: int,
+    repository: Repository,
+) -> None:
+    if (
+        repository.config.get("webhook_secret")
+        and repository.config.get("webhook_repair_pending") is not True
+    ):
+        return
+
+    context = {
+        "integration_id": integration_id,
+        "organization_id": organization_id,
+        "repository_id": repository.id,
+    }
+    if not options.get("bitbucket_server.webhook.secret-repair.enabled"):
+        outcome = "disabled"
+    else:
+        debounce_key = f"bitbucket-server:webhook-repair:{repository.id}"
+        debounce_token = uuid4().hex
+        try:
+            redis = redis_clusters.get("default")
+            acquired = bool(
+                redis.set(
+                    debounce_key,
+                    debounce_token,
+                    nx=True,
+                    ex=REPAIR_DEBOUNCE_TTL,
+                )
+            )
+        except RedisError:
+            logger.exception(
+                "bitbucket_server.webhook.secret_repair_trigger.cache_error",
+                extra=context,
+            )
+            outcome = "cache_error"
+        else:
+            if not acquired:
+                outcome = "debounced"
+            else:
+                try:
+                    repair_repository_webhook.delay(
+                        integration_id,
+                        organization_id,
+                        repository.id,
+                    )
+                except Exception:
+                    logger.exception(
+                        "bitbucket_server.webhook.secret_repair_trigger.enqueue_error",
+                        extra=context,
+                    )
+                    outcome = "enqueue_error"
+                    try:
+                        release_repair_debounce(
+                            (debounce_key,),
+                            (debounce_token,),
+                            redis,
+                        )
+                    except RedisError:
+                        logger.exception(
+                            "bitbucket_server.webhook.secret_repair_trigger.release_error",
+                            extra=context,
+                        )
+                else:
+                    outcome = "enqueued"
+
+    metrics.incr(REPAIR_TRIGGER_METRIC, tags={"outcome": outcome})
+    logger.info(
+        "bitbucket_server.webhook.secret_repair_trigger",
+        extra={"outcome": outcome, **context},
+    )
 
 
 class BitbucketServerWebhook(SCMWebhook, ABC):
@@ -256,6 +338,12 @@ class BitbucketServerWebhookEndpoint(Endpoint):
             )
         except Repository.DoesNotExist:
             raise Http404()
+
+        trigger_webhook_repair(
+            integration_id=integ_id,
+            organization_id=organization.id,
+            repository=repo,
+        )
 
         signature_result = check_signature(
             body, repo.config.get("webhook_secret"), request.META.get("HTTP_X_HUB_SIGNATURE")

@@ -11,11 +11,12 @@ import {IconOpen} from '@sentry/icons/open';
 import {Tag} from '@sentry/scraps/badge';
 import {useHotkeys} from '@sentry/scraps/hotkey';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {Overlay} from '@sentry/scraps/overlay';
+import {flipOverlay, shiftOverlay} from '@sentry/scraps/overlayPositioning';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Overlay} from 'sentry/components/overlay';
 import {
   ProfilingContextMenu,
   ProfilingContextMenuGroup,
@@ -27,7 +28,6 @@ import {t} from 'sentry/locale';
 // eslint-disable-next-line boundaries/dependencies
 import {storyFiles, storyFrontmatterIndex} from 'sentry/stories/storyManifest';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {flipOverlay, shiftOverlay} from 'sentry/utils/overlayPositioning';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
