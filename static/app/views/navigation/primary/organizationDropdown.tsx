@@ -84,7 +84,8 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
     org => org.status.id === 'active'
   );
 
-  const {projects} = useProjects();
+  const {projects, initiallyLoaded} = useProjects();
+  const hasNoProjects = initiallyLoaded && projects.length === 0;
   const canCreateProject = useCanCreateProject();
   const [, setReferrer] = useSessionStorage<string | null>(CUSTOM_REFERRER_KEY, null);
 
@@ -219,10 +220,24 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
             label: (
               <SettingsNavigationTourElement
                 id="projects"
-                title={t('Quick settings-access for your important Projects')}
-                description={t(
-                  'Pin your important Projects to this list, by starring them in the Project page filter.'
-                )}
+                title={
+                  hasNoProjects
+                    ? t('Project Settings')
+                    : t('Quick settings-access for your important Projects')
+                }
+                description={
+                  hasNoProjects
+                    ? canCreateProject
+                      ? t(
+                          'Create your first project from this menu. Then star projects to pin their settings shortcuts to this list.'
+                        )
+                      : t(
+                          'Project settings shortcuts will appear here when projects are available to you. Star projects to pin them to this list.'
+                        )
+                    : t(
+                        'Pin your important Projects to this list, by starring them in the Project page filter.'
+                      )
+                }
               >
                 {tourProps => (
                   <Text

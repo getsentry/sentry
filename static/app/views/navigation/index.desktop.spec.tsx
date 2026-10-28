@@ -269,6 +269,35 @@ describe('desktop navigation', () => {
       ).not.toBeInTheDocument();
     });
 
+    it('explains project creation in the tour when no projects are available', async () => {
+      localStorage.removeItem(`settings-navigation-tour:${UserFixture().id}`);
+      ProjectsStore.loadInitialData([]);
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/projects/',
+        body: [],
+      });
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({organization: settingsV3})
+      );
+      await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
+      expect(
+        await screen.findByText(
+          'Create your first project from this menu. Then star projects to pin their settings shortcuts to this list.'
+        )
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Create Project'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText('Quick settings-access for your important Projects')
+      ).not.toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Done'}));
+      expect(screen.queryByRole('button', {name: 'Done'})).not.toBeInTheDocument();
+    });
+
     it('shows the settings scope rail', async () => {
       render(
         <PrimaryNavigationContextProvider>
