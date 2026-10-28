@@ -1283,6 +1283,22 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 provider="segment",
                 config={"write_key": "matrix-key"},
             )
+        elif name == "scm_repository":
+            integration, _organization_integration = self.create_provider_integration_for(
+                self.org,
+                self.owner,
+                provider="github",
+                external_id=f"matrix-github-{uuid4()}",
+                name="Matrix GitHub integration",
+            )
+            resource = self.create_repo(
+                project=self.project,
+                name="permission-matrix/repo",
+                provider="integrations:github",
+                integration_id=integration.id,
+                external_id="123",
+                url="https://github.com/permission-matrix/repo",
+            )
         elif name == "flag_log":
             resource = FlagAuditLogModel.objects.create(
                 action=ActionEnum.UPDATED.value,
@@ -2192,6 +2208,12 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 }
             },
             ("ProjectRepoEndpoint", "POST"): {"repositoryId": self._resource("repository").id},
+            ("ProjectSeerReposEndpoint", "POST"): {
+                "repos": [{"repositoryId": self._resource("scm_repository").id}],
+            },
+            ("ProjectSeerReposEndpoint", "PUT"): {
+                "repos": [{"repositoryId": self._resource("scm_repository").id}],
+            },
             ("ProjectSymbolSourcesEndpoint", "POST"): {
                 "name": "Permission matrix new source",
                 "layout": {"type": "native"},
