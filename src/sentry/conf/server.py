@@ -2021,6 +2021,22 @@ DEPRECATED_SCOPES = frozenset(
     ]
 )
 
+# Scopes a deprecated scope is replaced with at request time (see
+# sentry.auth.deprecated_scope_translation). Stored token scopes are left unchanged.
+# Remove an entry once callers no longer rely on the translation.
+DEPRECATED_SCOPE_TRANSLATIONS: dict[str, frozenset[str]] = {
+    "org:read": frozenset(
+        [
+            # Removed once org:read has a full 1:1 translation to granular scopes.
+            "org:read",
+            "dashboard:read",
+            "dashboard:create",
+            "dashboard:update",
+            "dashboard:delete",
+        ]
+    ),
+}
+
 SENTRY_SCOPE_SETS = (
     (
         ("org:admin", "Read, write, and admin access to organization details."),

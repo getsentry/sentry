@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {createContext, useContext, useEffect, useId, useRef} from 'react';
 import {createPortal} from 'react-dom';
 import isPropValid from '@emotion/is-prop-valid';

@@ -1,6 +1,10 @@
 #!/usr/bin/env python
-"""Write prod Flagpole flags, as the sentry org sees them, to $SENTRY_CONF/prod-flags.json."""
+"""Write prod Flagpole flags, as the sentry org sees them, to $SENTRY_CONF/prod-flags.json.
 
+--values-out also writes the raw getsentry-features values.json, for getsentry to evaluate itself.
+"""
+
+import argparse
 import json  # noqa: S003
 import os
 import subprocess
@@ -25,6 +29,10 @@ CONTEXT = {
 
 FLAGPOLE = "origin/main:options/default/flagpole.yaml"
 
+parser = argparse.ArgumentParser()
+parser.add_argument("--values-out", type=Path)
+args = parser.parse_args()
+
 repo = os.environ.get(
     "SENTRY_OPTIONS_AUTOMATOR_DIR", Path(__file__).resolve().parents[2] / "sentry-options-automator"
 )
@@ -48,13 +56,16 @@ else:
         )
         source = subprocess.check_output(["git", "-C", clone, "show", FLAGPOLE], text=True)
 options = yaml.safe_load(source)["options"]
+values = json.dumps({"options": options}, default=str)
+
+if args.values_out:
+    args.values_out.parent.mkdir(parents=True, exist_ok=True)
+    args.values_out.write_text(values)
 
 with tempfile.TemporaryDirectory() as tmp:
     Path(tmp, "schemas").mkdir()
     Path(tmp, "values", NAMESPACE).mkdir(parents=True)
-    Path(tmp, "values", NAMESPACE, "values.json").write_text(
-        json.dumps({"options": options}, default=str)
-    )
+    Path(tmp, "values", NAMESPACE, "values.json").write_text(values)
     schema = {
         "version": "1.0",
         "type": "object",
