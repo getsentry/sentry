@@ -54,6 +54,25 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# Feed policy only: keep these events in GAL for other consumers.
+_FEED_EXCLUDED_ACTION_TYPES = (
+    GroupActionType.FIRST_SEEN,  # Appended separately below.
+    # The legacy create/link and parent merge events provide the feed representation.
+    GroupActionType.CREATE_EXTERNAL_ISSUE,
+    GroupActionType.LINK_EXTERNAL_ISSUE,
+    GroupActionType.CREATE_PLATFORM_EXTERNAL_ISSUE,
+    GroupActionType.LINK_PLATFORM_EXTERNAL_ISSUE,
+    GroupActionType.MERGE_INTO_OTHER,
+    # These have no current writers or established feed behavior.
+    GroupActionType.BOOKMARK,
+    GroupActionType.SUBSCRIBE,
+    GroupActionType.UNSUBSCRIBE,
+    GroupActionType.DELETE,
+    GroupActionType.AUTOFIX_PR_CREATED,
+    GroupActionType.ROOT_CAUSE_IDENTIFIED,
+    GroupActionType.AUTOFIX_CODING_COMPLETE,
+)
+
 
 class GroupActionLogEntrySerializerResponse(TypedDict):
     id: str
@@ -157,7 +176,7 @@ def get_serialized_activity_items(
 
     action_log = GroupActionLogEntry.objects.user_visible().filter(group_id=group.id)
     entries = list(
-        action_log.exclude(type=GroupActionType.FIRST_SEEN.value).order_by("-date_added", "-id")[
+        action_log.exclude(type__in=_FEED_EXCLUDED_ACTION_TYPES).order_by("-date_added", "-id")[
             :limit
         ]
     )

@@ -13,6 +13,7 @@ from sentry.models.commit import Commit
 from sentry.models.group import GroupStatus
 from sentry.models.pullrequest import PullRequest
 from sentry.silo.base import SiloMode
+from sentry.tasks.merge import merge_objects
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.action_log import action_log_activity_enabled
 from sentry.testutils.helpers.features import with_feature
@@ -428,6 +429,109 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
             data={"first_seen": (first_seen or self.group.first_seen).isoformat()},
             idempotency_key=f"first_seen:{group_id or self.group.id}",
         )
+
+    def test_external_issue_feed_preserves_legacy_rows_and_unlinks(self) -> None:
+        first_seen = self._first_seen()
+        legacy_entries = []
+        for action_type, is_new in (
+            (GroupActionType.CREATE_EXTERNAL_ISSUE, True),
+            (GroupActionType.LINK_EXTERNAL_ISSUE, False),
+            (GroupActionType.CREATE_PLATFORM_EXTERNAL_ISSUE, True),
+            (GroupActionType.LINK_PLATFORM_EXTERNAL_ISSUE, False),
+        ):
+            legacy_entries.append(
+                self.create_group_action_log_entry(
+                    type=GroupActionType.CREATE_ISSUE,
+                    data={
+                        "provider": "Example",
+                        "title": "Example issue",
+                        "location": "https://example.com/issues/42",
+                        "new": is_new,
+                    },
+                )
+            )
+            self.create_group_action_log_entry(type=action_type)
+
+        unlink = self.create_group_action_log_entry(
+            type=GroupActionType.UNLINK_EXTERNAL_ISSUE,
+            data={"provider": "github", "external_issue_key": "org/repo#42"},
+        )
+        platform_unlink = self.create_group_action_log_entry(
+            type=GroupActionType.UNLINK_PLATFORM_EXTERNAL_ISSUE,
+            data={
+                "service_type": "example",
+                "display_name": "APP-42",
+                "web_url": "https://example.com/issues/42",
+            },
+        )
+
+        items = self._activity_items(limit=6)
+
+        assert [item["id"] for item in items] == [
+            str(platform_unlink.id),
+            str(unlink.id),
+            *(str(entry.id) for entry in reversed(legacy_entries)),
+            str(first_seen.id),
+        ]
+        assert [item["type"] for item in items] == [
+            "UNLINK_PLATFORM_EXTERNAL_ISSUE",
+            "UNLINK_EXTERNAL_ISSUE",
+            "create_issue",
+            "create_issue",
+            "create_issue",
+            "create_issue",
+            "first_seen",
+        ]
+        assert items[0]["data"] == platform_unlink.data
+        assert items[1]["data"] == unlink.data
+        assert items[2]["data"]["location"] == "https://example.com/issues/42"
+        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 11
+
+    def test_merge_feed_omits_child_event_after_relocation(self) -> None:
+        first_seen = self._first_seen()
+        child = self.create_group(project=self.project)
+        parent_event = self.create_group_action_log_entry(
+            type=GroupActionType.MERGE_FROM_OTHER,
+            data={"counterpart_group_ids": [child.id]},
+        )
+        child_event = self.create_group_action_log_entry(
+            group=child,
+            type=GroupActionType.MERGE_INTO_OTHER,
+            data={"counterpart_group_id": self.group.id},
+        )
+
+        merge_objects((GroupActionLogEntry,), child, self.group)
+        items = self._activity_items(limit=1)
+
+        child_event.refresh_from_db()
+        assert child_event.group_id == self.group.id
+        assert [item["id"] for item in items] == [str(parent_event.id), str(first_seen.id)]
+        assert items[0]["type"] == "merge"
+        assert items[0]["data"] == {"issues": [{"id": str(child.id)}]}
+
+    @with_feature({"projects:issue-action-log-write-to-db": False})
+    def test_filtered_log_events_do_not_hide_comments_or_trigger_fallback(self) -> None:
+        note = self.create_group_activity(type=ActivityType.NOTE.value, data={"text": "live"})
+        self.create_group_activity(type=ActivityType.SET_RESOLVED.value)
+        for action_type in (
+            GroupActionType.BOOKMARK,
+            GroupActionType.SUBSCRIBE,
+            GroupActionType.UNSUBSCRIBE,
+            GroupActionType.DELETE,
+            GroupActionType.AUTOFIX_PR_CREATED,
+            GroupActionType.ROOT_CAUSE_IDENTIFIED,
+            GroupActionType.AUTOFIX_CODING_COMPLETE,
+        ):
+            self.create_group_action_log_entry(type=action_type)
+
+        items = self._activity_items(limit=1)
+
+        assert [(item["type"], item["id"]) for item in items] == [
+            ("note", str(note.id)),
+            ("first_seen", "0"),
+        ]
+        assert items[0]["data"]["text"] == "live"
+        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 7
 
     def test_logged_first_seen_is_not_duplicated(self) -> None:
         first_seen = self._first_seen()
