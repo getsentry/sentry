@@ -447,6 +447,7 @@ def _push_iteration_changes(
                 "organizations:autofix-verify-pr-content", organization=group.organization
             ),
             author=author,
+            source="pr_iteration",
             # Never overwrite commits on the PR that Seer didn't push.
             allow_force_push=False,
         )
