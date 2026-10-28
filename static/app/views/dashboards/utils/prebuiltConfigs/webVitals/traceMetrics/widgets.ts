@@ -1,4 +1,3 @@
-import {DurationUnit, type DataUnit} from 'sentry/utils/discover/fields';
 import {FieldKind} from 'sentry/utils/fields';
 import {
   DisplayType,
@@ -11,38 +10,21 @@ import type {
   PrebuiltWidget,
   PrebuiltWidgetLayout,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {traceMetricField} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/traceMetricField';
+import {
+  WEB_VITAL_COUNT_FIELDS,
+  WEB_VITAL_SCORE_FIELDS,
+  webVitalCountField,
+  webVitalP75Field,
+} from 'sentry/views/dashboards/utils/webVitalTraceMetricFields';
 import {SCORE_BREAKDOWN_WHEEL_WIDGET} from 'sentry/views/dashboards/widgetLibrary/webVitalsWidgets';
-import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
+import {ORDER, type WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
 /**
- * Relay emits one `browser.web_vital.<vital>` distribution per vital for every
- * indexed pageload or interaction span. The metric value is the raw vital and
- * the scores ride along as numeric attributes, which the backend
- * `performance_score`, `opportunity_score` and `count_scores` formulas read.
- * Those formulas take the same `measurements.score.<vital>` argument as the
- * spans versions, so the score fields below are shared with the spans configs.
+ * Pageloads. TTFB comes from navigation timing, so every pageload reports it,
+ * while LCP and CLS depend on the browser and INP comes from interactions.
  */
-const WEB_VITAL_METRIC_UNITS: Record<WebVitals, DataUnit> = {
-  lcp: DurationUnit.MILLISECOND,
-  fcp: DurationUnit.MILLISECOND,
-  inp: DurationUnit.MILLISECOND,
-  ttfb: DurationUnit.MILLISECOND,
-  cls: null,
-};
-
-export function webVitalP75Field(vital: WebVitals): string {
-  return traceMetricField(
-    'p75',
-    `browser.web_vital.${vital}`,
-    'distribution',
-    WEB_VITAL_METRIC_UNITS[vital]
-  );
-}
-
-/** Distinct pageloads with at least one web vital score. */
-export const PAGELOADS_FIELD = 'count_scores(measurements.score.total)';
+export const PAGELOADS_FIELD = webVitalCountField('ttfb');
 
 const INTERVAL = '5m';
 
@@ -67,26 +49,28 @@ export const WEB_VITALS_TRACE_METRICS_GLOBAL_FILTERS: GlobalFilter[] = [
   },
 ];
 
-/** The shared wheel template with its spans-only conditions dropped. */
+/**
+ * The shared wheel template, reading each vital's score and count from the
+ * metrics. The ring computes the total score from these on the frontend.
+ */
 export function scoreBreakdownWheelWidget(layout: PrebuiltWidgetLayout): PrebuiltWidget {
+  const fields = [...WEB_VITAL_SCORE_FIELDS, ...WEB_VITAL_COUNT_FIELDS];
   return {
     ...SCORE_BREAKDOWN_WHEEL_WIDGET,
     widgetType: WidgetType.TRACEMETRICS,
-    queries: SCORE_BREAKDOWN_WHEEL_WIDGET.queries.map(query => ({
-      ...query,
-      conditions: '',
-    })),
+    queries: [
+      {
+        name: '',
+        conditions: '',
+        fields,
+        aggregates: [],
+        columns: fields,
+        orderby: '',
+      },
+    ],
     layout,
   };
 }
-
-export const SCORE_BREAKDOWN_FIELDS = [
-  'performance_score(measurements.score.lcp)',
-  'performance_score(measurements.score.fcp)',
-  'performance_score(measurements.score.inp)',
-  'performance_score(measurements.score.cls)',
-  'performance_score(measurements.score.ttfb)',
-];
 
 export function scoreBreakdownChartWidget(
   title: string,
@@ -104,10 +88,12 @@ export function scoreBreakdownChartWidget(
       {
         name: '',
         conditions: '',
-        fields: SCORE_BREAKDOWN_FIELDS,
-        aggregates: SCORE_BREAKDOWN_FIELDS,
+        fields: WEB_VITAL_SCORE_FIELDS,
+        aggregates: WEB_VITAL_SCORE_FIELDS,
         columns: [],
         orderby: '',
+        // The raw metric fields are long, so label the series by vital
+        fieldAliases: ORDER.map(vital => vital.toUpperCase()),
       },
     ],
     layout,

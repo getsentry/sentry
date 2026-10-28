@@ -6,19 +6,28 @@ import {
   DASHBOARD_TITLE,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/settings';
 import {
-  PAGELOADS_FIELD,
   scoreBreakdownChartWidget,
   scoreBreakdownWheelWidget,
   WEB_VITALS_TRACE_METRICS_GLOBAL_FILTERS,
-  webVitalP75Field,
   webVitalP75Meter,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/traceMetrics/widgets';
-import {ISSUE_TYPES} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
-import {ModuleName, SpanFields} from 'sentry/views/insights/types';
+import {
+  ISSUE_TYPES,
+  WEB_VITALS_PREBUILT_CONFIG,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
+import {ModuleName} from 'sentry/views/insights/types';
+
+// The total performance score and the opportunity score need the
+// `performance_score` and `opportunity_score` formulas, which only the spans
+// dataset has, so the pages table keeps querying spans.
+const SPANS_PAGES_TABLE = WEB_VITALS_PREBUILT_CONFIG.widgets.find(
+  widget => widget.id === 'pages-table'
+)!;
 
 /**
  * Trace metrics variant of `WEB_VITALS_PREBUILT_CONFIG`. Same layout and
- * widgets, with the spans queries replaced by `browser.web_vital.*` metrics.
+ * widgets, with the score and p75 queries reading `browser.web_vital.*`
+ * metrics. The pages table stays on spans.
  */
 export const WEB_VITALS_TRACE_METRICS_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
@@ -100,67 +109,7 @@ export const WEB_VITALS_TRACE_METRICS_PREBUILT_CONFIG: PrebuiltDashboard = {
       ],
       layout: {y: 2, w: 4, h: 2, x: 2, minH: 2},
     },
-    {
-      id: 'pages-table',
-      title: t('Pages'),
-      displayType: DisplayType.TABLE,
-      widgetType: WidgetType.TRACEMETRICS,
-      interval: '5m',
-      tableWidths: [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-      queries: [
-        {
-          name: '',
-          conditions: '',
-          fields: [
-            SpanFields.TRANSACTION,
-            SpanFields.PROJECT,
-            PAGELOADS_FIELD,
-            webVitalP75Field('lcp'),
-            webVitalP75Field('fcp'),
-            webVitalP75Field('cls'),
-            webVitalP75Field('ttfb'),
-            webVitalP75Field('inp'),
-            'performance_score(measurements.score.total)',
-            'opportunity_score(measurements.score.total)',
-          ],
-          aggregates: [],
-          columns: [
-            SpanFields.TRANSACTION,
-            SpanFields.PROJECT,
-            PAGELOADS_FIELD,
-            webVitalP75Field('lcp'),
-            webVitalP75Field('fcp'),
-            webVitalP75Field('cls'),
-            webVitalP75Field('ttfb'),
-            webVitalP75Field('inp'),
-            'performance_score(measurements.score.total)',
-            'opportunity_score(measurements.score.total)',
-          ],
-          orderby: '-opportunity_score(measurements.score.total)',
-          fieldAliases: [
-            t('Pages'),
-            t('Project'),
-            t('Pageloads'),
-            t('LCP'),
-            t('FCP'),
-            t('CLS'),
-            t('TTFB'),
-            t('INP'),
-            t('Perf Score'),
-            t('Opportunity'),
-          ],
-          linkedDashboards: [
-            {
-              dashboardId: '-1',
-              field: SpanFields.TRANSACTION,
-              staticDashboardId: 7,
-              additionalGlobalFilterDatasetTargets: [WidgetType.ISSUE],
-            },
-          ],
-        },
-      ],
-      layout: {y: 4, w: 6, h: 6, x: 0, minH: 2},
-    },
+    SPANS_PAGES_TABLE,
   ],
   onboarding: {type: 'module', moduleName: ModuleName.VITAL},
 };

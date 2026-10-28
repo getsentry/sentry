@@ -5,7 +5,10 @@ import {type DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {transformEventsResponseToTable} from 'sentry/views/dashboards/datasetConfig/events';
 import {type WidgetQuery} from 'sentry/views/dashboards/types';
 import {transformTimeSeriesResponse} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
-import {isPerformanceScoreBreakdownChart} from 'sentry/views/dashboards/widgetBuilder/utils/isPerformanceScoreBreakdownChart';
+import {
+  isWebVitalScoreBreakdownChart,
+  webVitalScoreField,
+} from 'sentry/views/dashboards/utils/webVitalTraceMetricFields';
 import {transformPerformanceScoreBreakdownTimeSeries} from 'sentry/views/dashboards/widgetBuilder/utils/transformPerformanceScoreBreakdownSeries';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
@@ -19,8 +22,8 @@ function formatMetricsTimeseriesLabel({
 }): string {
   const func = parseFunction(timeSeries.yAxis);
   // Metric aggregates are `fn(value,metric,type,unit)` and read best as
-  // `fn(metric)`. Formulas like the web vital scores take other arguments and
-  // keep their full name, or every series would get the same label.
+  // `fn(metric)`. Aggregates over another attribute, like the web vital score
+  // fields, keep their full name so each series stays distinct.
   const isMetricAggregate = func?.arguments[0] === 'value';
   const formattedYAxis =
     func && isMetricAggregate
@@ -67,16 +70,21 @@ export const traceMetricsResponseTransforms: Pick<
     }
     return transformedData;
   },
-  transformTimeSeries: (data, widget, queryIndex) =>
-    transformTimeSeriesResponse(
-      isPerformanceScoreBreakdownChart(widget.queries[queryIndex]!)
-        ? transformPerformanceScoreBreakdownTimeSeries(data)
+  transformTimeSeries: (data, widget, queryIndex) => {
+    const isScoreBreakdown = isWebVitalScoreBreakdownChart(widget.queries[queryIndex]!);
+    return transformTimeSeriesResponse(
+      isScoreBreakdown
+        ? transformPerformanceScoreBreakdownTimeSeries(data, webVitalScoreField)
         : data,
       widget,
       queryIndex,
       {
         getSeriesName: (timeSeries, widgetQuery) =>
           formatMetricsTimeseriesLabel({widgetQuery, timeSeries}),
+        // The score attribute is averaged on a duration metric, so the response
+        // types it as a duration. After weighting, the series are 0-100 scores.
+        meta: isScoreBreakdown ? {valueType: 'score', valueUnit: null} : undefined,
       }
-    ),
+    );
+  },
 };
