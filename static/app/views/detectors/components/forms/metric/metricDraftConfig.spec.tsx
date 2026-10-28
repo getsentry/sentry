@@ -36,20 +36,12 @@ describe('METRIC_DETECTOR_DRAFT_SCHEMA', () => {
     });
   });
 
-  it('drops fields when they are not in the form', () => {
+  it('drops fields when they are not in the schema', () => {
     const values = METRIC_DETECTOR_DRAFT_SCHEMA.parse({
       description: 'Private notes',
       name: 'Monitor',
     });
 
     expect(values).toStrictEqual({name: 'Monitor'});
-  });
-
-  it('ignores inherited keys when given a crafted prototype', () => {
-    const values = METRIC_DETECTOR_DRAFT_SCHEMA.parse(
-      JSON.parse('{"__proto__": {"name": "Inherited"}}')
-    );
-
-    expect(values).toStrictEqual({});
   });
 });

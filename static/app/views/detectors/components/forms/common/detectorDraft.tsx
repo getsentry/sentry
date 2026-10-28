@@ -1,18 +1,19 @@
-import {useEffect, useState} from 'react';
+import {useState} from 'react';
+import {useDebouncedCallback} from '@tanstack/react-pacer';
 import omit from 'lodash/omit';
-import {observe} from 'mobx';
 import {parseAsJson, useQueryState} from 'nuqs';
 import {z} from 'zod';
 
 import type {FormModel} from 'sentry/components/forms/model';
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
+import {useIsMountedRef} from 'sentry/utils/useIsMountedRef';
 import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';
 
-/**
- * Validates the form fields kept in the URL draft. Fields left out are never
- * written to the URL. Each field should `.catch(undefined)`, so one stale or
- * hand-edited field doesn't discard the rest of a shared draft.
- */
 export type DetectorDraftSchema<TFormData> = z.ZodType<Partial<TFormData>>;
+
+export function draftField<T extends z.ZodType>(schema: T) {
+  return schema.optional().catch(undefined);
+}
 
 export const draftNumericString = z
   .string()
@@ -36,47 +37,38 @@ export const draftOptionalNumber = z.union([
 
 const parseAsDetectorDraft = parseAsJson(z.record(z.string(), z.unknown()));
 
-/**
- * The draft as it was when the page loaded, before edits rewrite it.
- */
 export function useInitialDetectorDraft() {
   const [draft] = useQueryState('draft', parseAsDetectorDraft);
   const [initialDraft] = useState(draft);
   return initialDraft;
 }
 
-export function DetectorDraftUrlSync<TFormData>({
-  formModel,
-  schema,
-}: {
-  formModel: FormModel;
-  schema: DetectorDraftSchema<TFormData>;
-}) {
-  const {hasSetDetectorName} = useDetectorFormContext();
-  const [, setDraft] = useQueryState(
-    'draft',
-    parseAsDetectorDraft.withOptions({history: 'replace'})
-  );
-  const [changeCount, setChangeCount] = useState(0);
-
-  useEffect(
-    () => observe(formModel.fields, () => setChangeCount(count => count + 1)),
-    [formModel]
+export function useDetectorDraft<TFormData>(
+  formModel: FormModel,
+  schema: DetectorDraftSchema<TFormData> | undefined
+) {
+  const {getHasSetDetectorName} = useDetectorFormContext();
+  const [draft, setDraft] = useQueryState('draft', parseAsDetectorDraft);
+  const [initialValues] = useState(() =>
+    draft && schema ? schema.parse(draft) : undefined
   );
 
-  useEffect(() => {
-    if (changeCount === 0) {
-      return;
-    }
-    // Each write is a navigation, so wait for a pause in typing.
-    const timeout = setTimeout(() => {
-      const values = schema.parse(formModel.getData());
-      // An automatic name is left out so it keeps updating for whoever opens
-      // the draft.
-      setDraft(hasSetDetectorName ? values : omit(values, 'name'));
-    }, 300);
-    return () => clearTimeout(timeout);
-  }, [changeCount, formModel, hasSetDetectorName, schema, setDraft]);
+  const writeDraft = useDebouncedCallback(
+    (draftSchema: DetectorDraftSchema<TFormData>) => {
+      const values = draftSchema.parse(formModel.getData());
+      setDraft(getHasSetDetectorName() ? values : omit(values, 'name'));
+    },
+    {wait: DEFAULT_DEBOUNCE_DURATION}
+  );
 
-  return null;
+  const isMountedRef = useIsMountedRef();
+
+  return {
+    initialValues,
+    onFieldChange: (id: string) => {
+      if (schema && isMountedRef.current && (id !== 'name' || getHasSetDetectorName())) {
+        writeDraft(schema);
+      }
+    },
+  };
 }

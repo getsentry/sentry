@@ -2,6 +2,7 @@ import {z} from 'zod';
 
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import {
+  draftField,
   draftNumber,
   type DetectorDraftSchema,
 } from 'sentry/views/detectors/components/forms/common/detectorDraft';
@@ -99,29 +100,23 @@ function mayHoldCredentials(url: string) {
 
 export const UPTIME_DETECTOR_DRAFT_SCHEMA: DetectorDraftSchema<UptimeDetectorFormData> =
   z.object({
-    assertion: z.object({root: andOp}).optional().catch(undefined),
-    downtimeThreshold: draftNumber.optional().catch(undefined),
-    environment: z.string().optional().catch(undefined),
-    intervalSeconds: z
-      .number()
-      .refine(value => UPTIME_VALID_INTERVALS_SEC.includes(value))
-      .optional()
-      .catch(undefined),
-    method: z.enum(UPTIME_HTTP_METHOD_OPTIONS).optional().catch(undefined),
-    name: z.string().optional().catch(undefined),
-    owner: z.string().optional().catch(undefined),
-    projectId: z.string().optional().catch(undefined),
-    recoveryThreshold: draftNumber.optional().catch(undefined),
-    timeoutMs: z.number().optional().catch(undefined),
-    traceSampling: z.boolean().optional().catch(undefined),
+    assertion: draftField(z.object({root: andOp})),
+    downtimeThreshold: draftField(draftNumber),
+    environment: draftField(z.string()),
+    intervalSeconds: draftField(
+      z.number().refine(value => UPTIME_VALID_INTERVALS_SEC.includes(value))
+    ),
+    method: draftField(z.enum(UPTIME_HTTP_METHOD_OPTIONS)),
+    name: draftField(z.string()),
+    owner: draftField(z.string()),
+    projectId: draftField(z.string()),
+    recoveryThreshold: draftField(draftNumber),
+    timeoutMs: draftField(z.number()),
+    traceSampling: draftField(z.boolean()),
     // Headers and body are left out since they often hold credentials, and so
     // is a URL that may hold them.
-    url: z
-      .string()
-      .refine(value => !mayHoldCredentials(value))
-      .optional()
-      .catch(undefined),
-    workflowIds: z.array(z.string()).optional().catch(undefined),
+    url: draftField(z.string().refine(value => !mayHoldCredentials(value))),
+    workflowIds: draftField(z.array(z.string())),
   });
 
 function isSameUrl(a: string, b: string) {
