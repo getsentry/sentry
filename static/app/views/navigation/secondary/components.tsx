@@ -417,7 +417,7 @@ function SectionTitle(props: SectionTitleProps) {
 
     if (!props.canCollapse) {
       return (
-        <SecondaryNavigationRow width="100%" padding="0 xs 0 md">
+        <SecondaryNavigationRow width="100%" padding="0 xs 0 md" radius="0">
           {content}
         </SecondaryNavigationRow>
       );
@@ -438,6 +438,7 @@ function SectionTitle(props: SectionTitleProps) {
               flex="1"
               minWidth="0"
               justifyItems="start"
+              radius="0"
             >
               {content}
             </SecondaryNavigationRow>
@@ -1012,9 +1013,36 @@ function SecondaryNavigationReorderableLink({
 
 function GrabHandle() {
   const settingsV3 = useSettingsV3();
-  const HandleAnimation = settingsV3 ? GrabHandleAnimation : LegacyGrabHandleAnimation;
   const {attributes, isDragging, listeners, setActivatorNodeRef} =
     useReorderableItemContext();
+
+  if (settingsV3) {
+    return (
+      <Flex
+        align="center"
+        padding="0 sm 0 md"
+        position="absolute"
+        inset="0"
+        pointerEvents="none"
+      >
+        <SecondaryNavigationLeadingSlot>
+          <Flex width="18px" height="18px" justify="center" align="center">
+            {flexProps => (
+              <GrabHandleAnimation
+                {...mergeProps(flexProps, listeners, attributes)}
+                aria-label={t('Drag to reorder')}
+                data-drag-icon
+                ref={setActivatorNodeRef}
+                style={{cursor: isDragging ? 'grabbing' : 'grab'}}
+              >
+                <IconGrabbable variant="muted" aria-hidden="true" />
+              </GrabHandleAnimation>
+            )}
+          </Flex>
+        </SecondaryNavigationLeadingSlot>
+      </Flex>
+    );
+  }
 
   return (
     <Flex
@@ -1027,7 +1055,7 @@ function GrabHandle() {
       top="50%"
     >
       {p => (
-        <HandleAnimation
+        <LegacyGrabHandleAnimation
           {...mergeProps(p, listeners, attributes)}
           aria-label={t('Drag to reorder')}
           data-drag-icon
@@ -1035,7 +1063,7 @@ function GrabHandle() {
           style={{cursor: isDragging ? 'grabbing' : 'grab'}}
         >
           <IconGrabbable variant="muted" aria-hidden="true" />
-        </HandleAnimation>
+        </LegacyGrabHandleAnimation>
       )}
     </Flex>
   );
@@ -1059,10 +1087,7 @@ const GrabHandleAnimation = styled('div')`
   pointer-events: none;
   opacity: 0;
   z-index: 1;
-  /* Center the 18px handle in the 24px leading slot after the link's border and padding. */
-  left: ${p => `calc(${p.theme.space.md} + ${p.theme.space.xs})`};
   transition: opacity ${p => p.theme.motion.smooth.moderate};
-  transform: translateY(-50%);
 
   &:focus-visible {
     ${p => p.theme.focusRing()}
@@ -1102,7 +1127,7 @@ const StyledReorderableLink = styled(Link, {
   layout: 'mobile' | 'sidebar';
 }>`
   color: ${p => p.theme.tokens.interactive.link.neutral.rest};
-  border: 1px solid transparent;
+  border: 0;
   user-select: none;
 
   &:focus-visible {
@@ -1113,12 +1138,10 @@ const StyledReorderableLink = styled(Link, {
     color: ${p => p.theme.tokens.interactive.link.neutral.hover};
     background-color: ${p =>
       p.theme.tokens.interactive.transparent.neutral.background.hover};
-    border-color: ${p => p.theme.tokens.border.transparent.neutral.muted};
   }
 
   &:active {
     color: ${p => p.theme.tokens.content.primary};
-    border: 1px solid ${p => p.theme.tokens.interactive.transparent.accent.border};
     background-color: ${p =>
       p.theme.tokens.interactive.transparent.accent.background.active};
   }
@@ -1126,7 +1149,6 @@ const StyledReorderableLink = styled(Link, {
   &[aria-current='page'] {
     background-color: ${p =>
       p.theme.tokens.interactive.transparent.accent.selected.background.rest};
-    border-color: ${p => p.theme.tokens.border.transparent.accent.muted};
     color: ${p => p.theme.tokens.content.primary};
 
     &:hover {
@@ -1189,23 +1211,20 @@ const LegacyStyledReorderableLink = styled(Link, {
 
 const SidebarNavigationLink = styled(Link)`
   color: ${p => p.theme.tokens.interactive.link.neutral.rest};
-  border: 1px solid transparent;
+  border: 0;
 
   &:hover {
     color: ${p => p.theme.tokens.interactive.link.neutral.hover};
     background-color: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
-    border-color: ${p => p.theme.tokens.border.transparent.neutral.muted};
   }
 
   &:active {
     color: ${p => p.theme.tokens.content.primary};
-    border: 1px solid ${p => p.theme.tokens.interactive.transparent.accent.border};
     background-color: ${p => p.theme.tokens.interactive.transparent.accent.background.active};
   }
 
   &[aria-current='page'] {
     background-color: ${p => p.theme.tokens.interactive.transparent.accent.selected.background.rest};
-    border-color: ${p => p.theme.tokens.border.transparent.accent.muted};
     color: ${p => p.theme.tokens.content.primary};
 
     &:hover {
