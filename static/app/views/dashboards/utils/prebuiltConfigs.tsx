@@ -160,18 +160,14 @@ type PrebuiltDashboardVariant = {
 };
 
 /**
- * Alternate configs served in place of the defaults above while a change is
- * rolled out behind a flag. Once the flag reaches 100% the variant should
- * replace the default in `PREBUILT_DASHBOARDS` and be removed from here.
+ * Alternate configs served in place of the defaults above while flagged
  */
 export const PREBUILT_DASHBOARD_VARIANTS: Partial<
   Record<PrebuiltDashboardId, PrebuiltDashboardVariant>
 > = {};
 
 /**
- * Resolves the config for a prebuilt dashboard. Consumers should read configs
- * through this rather than indexing `PREBUILT_DASHBOARDS` directly so that
- * flagged variants are picked up everywhere.
+ * Resolves the config for a prebuilt dashboard.
  */
 export function getPrebuiltDashboardConfig(
   prebuiltId: PrebuiltDashboardId,
