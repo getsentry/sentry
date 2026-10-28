@@ -244,6 +244,13 @@ export function InvestigationHypotheses({
     setPanelState({investigationId, settled: true, expanded});
   }
 
+  // Once the run is past the wait, the question has landed. Forget it, so a
+  // later wait — a provider session that needs renewing, say — isn't read as
+  // this question still on its way, and polled for good.
+  if (inputRequestId !== null && projection && projection.status !== 'awaiting_input') {
+    setSentInput(null);
+  }
+
   // Nothing is known yet, so the panel goes up empty rather than appearing a
   // moment later. A run with no hypotheses left to produce is skipped: its
   // panel would open on placeholders and then collapse. So is a run waiting on
@@ -375,6 +382,9 @@ export function InvestigationHypotheses({
           action={
             needsPrompt ? (
               <InvestigationPromptForm
+                // The page swaps investigations without remounting, and a
+                // question typed for one run doesn't belong to the next.
+                key={investigationId}
                 busy={commandPending || isInputStarting(projection, inputRequestId)}
                 onSubmit={providePrompt}
               />
