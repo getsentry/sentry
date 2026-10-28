@@ -141,7 +141,7 @@ from sentry.seer.sentry_data_models import (
     SpanAttribute,
     SpanAttributesResponse,
 )
-from sentry.seer.utils import encrypt_access_token_for_seer, filter_repo_by_provider
+from sentry.seer.utils import encrypt_access_token_for_seer
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.shared_integrations.exceptions import ApiError
@@ -736,7 +736,12 @@ def get_repo_installation_id(
         owner: The repository owner (e.g., "getsentry")
         name: The repository name (e.g., "sentry")
     """
-    repo = filter_repo_by_provider(organization_id, provider, external_id, owner, name).first()
+    repo, _resolution = Repository.objects.resolve_active_by_reference(
+        organization_id=organization_id,
+        provider=provider,
+        external_id=external_id,
+        name=f"{owner}/{name}",
+    )
 
     if not repo:
         return GetRepoInstallationIdErrorResponse(error="repository_not_found")

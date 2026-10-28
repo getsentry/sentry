@@ -659,6 +659,28 @@ class TestSeerRpcMethods(APITestCase):
             "project_slug_to_id": {project.slug: project.id},
         }
 
+    def test_has_repo_code_mappings_uses_external_id_before_name(self) -> None:
+        repo = self.create_repo(
+            project=self.project,
+            name="Display Group / Display Project",
+            provider="integrations:gitlab",
+            external_id="gitlab.example:456",
+        )
+        self.create_code_mapping(project=self.project, repo=repo)
+
+        result = has_repo_code_mappings(
+            organization_id=self.organization.id,
+            provider="gitlab",
+            external_id="gitlab.example:456",
+            owner="url-safe-group",
+            name="url-safe-project",
+        )
+
+        assert result.dict() == {
+            "has_code_mappings": True,
+            "project_slug_to_id": {self.project.slug: self.project.id},
+        }
+
     def test_get_repo_installation_id_github(self) -> None:
         """Test returns external_id as installation_id for GitHub repos"""
         integration = self.create_integration(
@@ -683,6 +705,30 @@ class TestSeerRpcMethods(APITestCase):
         )
 
         assert result.dict() == {"installation_id": "12345", "permissions": None}
+
+    def test_get_repo_installation_id_uses_external_id_before_name(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="github-installation",
+        )
+        self.create_repo(
+            project=self.project,
+            name="Display Group / Display Project",
+            provider="integrations:github",
+            external_id="github:123",
+            integration_id=integration.id,
+        )
+
+        result = get_repo_installation_id(
+            organization_id=self.organization.id,
+            provider="github",
+            external_id="github:123",
+            owner="url-safe-group",
+            name="url-safe-project",
+        )
+
+        assert result.dict() == {"installation_id": "github-installation", "permissions": None}
 
     def test_get_repo_installation_id_github_with_permissions(self) -> None:
         """Test returns permissions from integration metadata"""
