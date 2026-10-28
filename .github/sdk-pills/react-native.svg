@@ -7,7 +7,7 @@
     .label { fill: #EBE6EF; }
   }
 </style>
-<rect class="pill" x="0.5" y="0.5" width="138" height="39" rx="13.5" />
+<rect class="pill" x="0.5" y="0.5" width="138" height="39" rx="9.5" />
 <defs><clipPath id="r"><rect x="8" y="8" width="24" height="24" rx="6" /></clipPath></defs>
 <g clip-path="url(#r)"><svg x="8" y="8" width="24" height="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
   <rect width="100%" height="100%" fill="#61DAFB"/>
