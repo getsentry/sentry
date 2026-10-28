@@ -202,6 +202,8 @@ x-sentry-service-config:
       ]
     backend-ci:
       [snuba, postgres, redis, bigtable, redis-cluster, symbolicator, objectstore]
+    # Full-run general shards omit Symbolicator; Relay is started by pytest.
+    backend-ci-general: [snuba, postgres, redis, bigtable, redis-cluster, objectstore]
     symbolicator: [postgres, snuba, symbolicator, spotlight, objectstore]
     memcached: [postgres, snuba, memcached, spotlight]
     tracing:
