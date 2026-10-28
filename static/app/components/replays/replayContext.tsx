@@ -646,6 +646,19 @@ export function Provider({
     };
   }, [rootEl]);
 
+  // Pages that switch between replays (replay details prev/next with a cached
+  // record, the issue Replays tab) keep this provider and the player root
+  // mounted, so without this the previous replay's player is reused for the
+  // next one. A leftover video player has no rrweb `wrapper`, which crashes the
+  // rrweb setup above when the next replay is a web replay.
+  useEffect(() => {
+    return () => {
+      replayerRef.current?.destroy();
+      replayerRef.current = null;
+    };
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
+  }, [replayId]);
+
   const restart = useCallback(() => {
     if (replayerRef.current) {
       replayerRef.current.play(startTimeOffsetMs);
