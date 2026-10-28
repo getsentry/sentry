@@ -53,7 +53,7 @@ assert gc.isenabled()
 assert len(gc.get_objects()) < gc.get_freeze_count() // 10
 """
 
-# Shaped like a fork worker of `sentry run web`: the master already ran
+# Shaped like a fork worker of `sentry-server run web`: the master already ran
 # configure(), so importing sentry.wsgi must freeze what the warmup loaded on top
 # of it.
 SUBPROCESS_TEST_WSGI_AFTER_CONFIGURE = """

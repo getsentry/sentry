@@ -8,7 +8,7 @@ from sentry.runner.commands.presenters.optionspresenter import OptionsPresenter
 
 class ConsolePresenter(OptionsPresenter):
     """
-    Formats and outputs the changes made via sentry configoptions to the
+    Formats and outputs the changes made via sentry-server configoptions to the
     Console, specifically Click and Logging.
     """
 

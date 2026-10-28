@@ -64,5 +64,5 @@ def get_docker_client() -> Generator[docker.DockerClient]:
 @click.command(context_settings={"ignore_unknown_options": True})
 @click.argument("args", nargs=-1, type=click.UNPROCESSED)
 def devservices(args: tuple[str, ...]) -> None:
-    click.echo("note: sentry devservices is deprecated; execing devservices")
+    click.echo("note: sentry-server devservices is deprecated; execing devservices")
     os.execvp("devservices", ("devservices", *args))

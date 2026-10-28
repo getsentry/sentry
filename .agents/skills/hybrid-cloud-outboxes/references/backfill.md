@@ -80,7 +80,7 @@ This two-step process allows deploying code first, then enabling the backfill se
 
 ### Self-Hosted (Synchronous)
 
-On self-hosted instances, backfills run synchronously during `sentry upgrade` via the `run_outbox_replications_for_self_hosted` function (connected to the `post_upgrade` signal). This function:
+On self-hosted instances, backfills run synchronously during `sentry-server upgrade` via the `run_outbox_replications_for_self_hosted` function (connected to the `post_upgrade` signal). This function:
 
 1. Calls `backfill_outboxes_for(force_synchronous=True)` — bypasses options, uses `model.replication_version` directly
 2. Drains all pending outbox shards

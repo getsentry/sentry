@@ -71,6 +71,10 @@ RUN set -x \
 COPY . .
 RUN : \
     && python3 -m tools.fast_editable --path . \
+    # Deprecated alias: self-hosted and production manifests still invoke
+    # `sentry`. Only images get it, so it can't shadow the Sentry CLI in dev venvs.
+    # TODO: Remove once those callers use `sentry-server`.
+    && ln -s sentry-server /.venv/bin/sentry \
     && python3 -m compileall -q src/ \
     && python3 -m sentry.build.dump_cli_commands > /sentry-commands.txt
 
@@ -81,7 +85,7 @@ RUN : double-check some built files are available \
     && test -f /usr/src/sentry/src/sentry/loader/_registry.json \
     && test -f /usr/src/sentry/src/sentry/integration-docs/python.json \
     && test -f /usr/src/sentry/src/sentry/static/sentry/dist/entrypoints/app.js \
-    && sentry help
+    && sentry-server help
 
 # Pre-create /data owned by sentry so fresh named volumes are initialized
 # with the right ownership. This must happen before the VOLUME instruction.
@@ -133,7 +137,7 @@ ENV PATH="/.venv/bin:$PATH" \
 
 USER sentry
 
-RUN ["sentry", "help"]
+RUN ["sentry-server", "help"]
 
 EXPOSE 9000
 VOLUME /data

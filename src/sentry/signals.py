@@ -187,5 +187,5 @@ relocation_retry_link_promo_code = BetterSignal()  # ["old_relocation_uuid", "ne
 
 # Fired after an update is performed on a `PostUpdateQuerySet`. Separate to a `.update` call on a model.
 post_update = BetterSignal()  # [sender: Model, updated_fields: list[str], model_ids: list[int]]
-# After `sentry upgrade` has completed.  Better than post_migrate because it won't run in tests.
+# After `sentry-server upgrade` has completed.  Better than post_migrate because it won't run in tests.
 post_upgrade = BetterSignal()  # []

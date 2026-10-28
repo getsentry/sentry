@@ -761,7 +761,7 @@ SOCIAL_AUTH_FORCE_POST_DISCONNECT = True
 
 # Hybrid cloud multi-silo configuration #
 
-# Defined by `sentry devserver` to enable siloed local development
+# Defined by `sentry-server devserver` to enable siloed local development
 SILO_DEVSERVER = os.environ.get("SENTRY_SILO_DEVSERVER", False)
 
 # Which silo this instance runs as (CONTROL|REGION|MONOLITH|None) are the expected values
@@ -3484,7 +3484,7 @@ SENTRY_MODEL_CACHE_USE_REPLICA = False
 # Necessary for getsentry to define custom consumers.
 SENTRY_KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {}
 
-# sentry devserver should _always_ start the following consumers, identified by
+# sentry-server devserver should _always_ start the following consumers, identified by
 # key in SENTRY_KAFKA_CONSUMERS or sentry.consumers.KAFKA_CONSUMERS
 DEVSERVER_START_KAFKA_CONSUMERS: MutableSequence[str] = []
 
@@ -3496,7 +3496,7 @@ USE_ROLE_SWAPPING_IN_TESTS = True
 BROKEN_TIMEOUT_THRESHOLD = 1000
 
 # This webhook url can be configured to log the changes made to runtime options as they
-# are changed by sentry configoptions.
+# are changed by sentry-server configoptions.
 OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL: str | None = None
 
 OPTIONS_AUTOMATOR_HMAC_SECRET: str | None = None

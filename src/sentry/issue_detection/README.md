@@ -95,7 +95,7 @@ One note though, you may want to keep an eye on the metrics for `run_detector_on
 To start ingesting user data, you can use the issue platform [release flags](https://develop.sentry.dev/backend/issue-platform/#releasing-your-issue-type):
 
 ```sh
-sentry createissueflag --slug=<experiment-grouptype-slug> --owner=<your-team>
+sentry-server createissueflag --slug=<experiment-grouptype-slug> --owner=<your-team>
 ```
 
 These flags don't need to be defined in `sentry`, you just have to add them to Flagpole.

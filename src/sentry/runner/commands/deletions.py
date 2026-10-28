@@ -97,7 +97,7 @@ def run_deletions(
     if not any([deletion_id, cell_deletion_id, model, run_all]):
         raise click.UsageError(
             "Provide one of: --id, --cid, --model, or --all. "
-            "Use `sentry deletions list` to see pending deletions."
+            "Use `sentry-server deletions list` to see pending deletions."
         )
 
     if deletion_id or cell_deletion_id:

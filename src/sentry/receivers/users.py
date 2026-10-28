@@ -20,7 +20,7 @@ def create_first_user(**kwargs):
 
     if not click.confirm("\nWould you like to create a user account now?", default=True):
         # Not using `abort=1` because we don't want to exit out from further execution
-        click.echo("\nRun `sentry createuser` to do this later.\n")
+        click.echo("\nRun `sentry-server createuser` to do this later.\n")
         return
 
     from sentry.runner import call_command

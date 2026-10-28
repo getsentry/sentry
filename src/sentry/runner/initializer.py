@@ -742,7 +742,7 @@ def apply_legacy_settings(settings: Any) -> None:
     # trigger the Installation Wizard, not abort startup.
     if not settings.SENTRY_OPTIONS.get("system.secret-key"):
         raise ConfigurationError(
-            "`system.secret-key` MUST be set. Use 'sentry config generate-secret-key' to get one."
+            "`system.secret-key` MUST be set. Use 'sentry-server config generate-secret-key' to get one."
         )
 
 
