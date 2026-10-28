@@ -12,8 +12,11 @@ export const resolveBranch = (branch: string, fallback: string = DEFAULT_BRANCH)
   sanitizeBranch(branch).replace(/[./]+$/, '') || fallback;
 
 // Mirrors the backend rule: Windows-only roots (no /) get \, everything else gets /.
-export const normalizeRoot = (root: string): string => {
-  if (root === '' || root.endsWith('/') || root.endsWith('\\')) {
+export const normalizeRoot = (root: string | null | undefined): string => {
+  if (!root) {
+    return '';
+  }
+  if (root.endsWith('/') || root.endsWith('\\')) {
     return root;
   }
   return root.includes('\\') && !root.includes('/') ? `${root}\\` : `${root}/`;
