@@ -222,6 +222,14 @@
     "./spinner": {
       "types": "./dist/spinner/index.d.ts",
       "import": "./dist/spinner/index.js"
+    },
+    "./menu": {
+      "types": "./dist/menu/index.d.ts",
+      "import": "./dist/menu/index.js"
+    },
+    "./overlayTrigger": {
+      "types": "./dist/overlayTrigger.d.ts",
+      "import": "./dist/overlayTrigger.js"
     }
   },
   "publishConfig": {
