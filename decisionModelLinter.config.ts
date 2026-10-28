@@ -100,7 +100,7 @@ const api = {
             'A GET handler returns a growing collection, at the top level of the response or nested in it, and nothing paginates or limits it.',
           severity: 'warn',
           report:
-            'List endpoints should paginate with `self.paginate(...)` and a `cursor` parameter. This endpoint returns a list that can keep growing without paginating it.',
+            "List endpoints should paginate with `self.paginate(...)` and a `cursor` parameter. This endpoint returns a list that can keep growing without paginating it. If the endpoint already exists, don't add pagination here: that changes what existing callers get back, so it's a breaking change that needs a deprecation plan.",
         },
         {
           value: 'FALSE',
@@ -120,7 +120,7 @@ const api = {
             'A request field holds a list of members, users, teams, or IDs, and its value replaces the whole stored set on an existing object.',
           severity: 'warn',
           report:
-            'A list field that replaces a whole set of members lets two concurrent edits overwrite each other. Prefer separate endpoints to add and remove one member.',
+            "A list field that replaces a whole set of members lets two concurrent edits overwrite each other. For new fields, prefer separate endpoints to add and remove one member. Don't change or remove an existing field to fix this, because that breaks its callers.",
         },
         {
           value: 'FALSE',
@@ -139,7 +139,7 @@ const api = {
             'A numeric ID is placed in an API response as an integer, for example "id": obj.id, or a response TypedDict declares an ID field as int.',
           severity: 'warn',
           report:
-            'API responses should return numeric IDs as strings, for example `str(obj.id)`. This file returns one as an integer.',
+            "API responses should return numeric IDs as strings, for example `str(obj.id)`. This file returns one as an integer. If the field already exists, don't change its type here, because callers expect a number. Only new fields should follow this rule.",
         },
         {
           value: 'FALSE',
