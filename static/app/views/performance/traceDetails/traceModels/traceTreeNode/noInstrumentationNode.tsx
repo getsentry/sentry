@@ -83,6 +83,7 @@ export class NoInstrumentationNode extends BaseNode<TraceTree.MissingInstrumenta
     // Won't need this cast once we use BaseNode type for props.node
     return (
       <LazyLoad
+        key={this.path}
         LazyComponent={LazyMissingInstrumentationNodeDetails}
         {...props}
         node={this}

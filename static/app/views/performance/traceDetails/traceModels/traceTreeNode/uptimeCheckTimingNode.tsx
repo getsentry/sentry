@@ -54,7 +54,14 @@ export class UptimeCheckTimingNode extends BaseNode<TraceTree.UptimeCheckTiming>
   renderDetails<NodeType extends BaseNode>(
     props: TraceTreeNodeDetailsProps<NodeType>
   ): React.ReactNode {
-    return <LazyLoad LazyComponent={LazyUptimeTimingDetails} {...props} node={this} />;
+    return (
+      <LazyLoad
+        key={this.path}
+        LazyComponent={LazyUptimeTimingDetails}
+        {...props}
+        node={this}
+      />
+    );
   }
 
   matchWithFreeText(query: string): boolean {

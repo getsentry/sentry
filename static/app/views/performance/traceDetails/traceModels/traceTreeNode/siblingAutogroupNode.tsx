@@ -90,7 +90,14 @@ export class SiblingAutogroupNode extends BaseNode<TraceTree.SiblingAutogroup> {
   renderDetails<NodeType extends BaseNode>(
     props: TraceTreeNodeDetailsProps<NodeType>
   ): React.ReactNode {
-    return <LazyLoad LazyComponent={LazyAutogroupNodeDetails} {...props} node={this} />;
+    return (
+      <LazyLoad
+        key={this.path}
+        LazyComponent={LazyAutogroupNodeDetails}
+        {...props}
+        node={this}
+      />
+    );
   }
 
   matchById(_id: string): boolean {

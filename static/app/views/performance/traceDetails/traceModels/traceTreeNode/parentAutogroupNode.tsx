@@ -101,7 +101,14 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
   renderDetails<NodeType extends BaseNode>(
     props: TraceTreeNodeDetailsProps<NodeType>
   ): React.ReactNode {
-    return <LazyLoad LazyComponent={LazyAutogroupNodeDetails} {...props} node={this} />;
+    return (
+      <LazyLoad
+        key={this.path}
+        LazyComponent={LazyAutogroupNodeDetails}
+        {...props}
+        node={this}
+      />
+    );
   }
 
   matchWithFreeText(query: string): boolean {

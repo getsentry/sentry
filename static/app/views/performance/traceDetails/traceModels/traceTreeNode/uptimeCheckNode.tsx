@@ -154,7 +154,14 @@ export class UptimeCheckNode extends BaseNode<TraceTree.UptimeCheck> {
   renderDetails<NodeType extends BaseNode>(
     props: TraceTreeNodeDetailsProps<NodeType>
   ): React.ReactNode {
-    return <LazyLoad LazyComponent={LazyUptimeNodeDetails} {...props} node={this} />;
+    return (
+      <LazyLoad
+        key={this.path}
+        LazyComponent={LazyUptimeNodeDetails}
+        {...props}
+        node={this}
+      />
+    );
   }
 
   matchWithFreeText(query: string): boolean {

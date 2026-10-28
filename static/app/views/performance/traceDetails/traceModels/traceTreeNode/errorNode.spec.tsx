@@ -1,6 +1,8 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
+import {render, screen} from 'sentry-test/reactTestingLibrary';
+
 import {
   makeEAPError,
   makeTraceError,
@@ -8,6 +10,15 @@ import {
 
 import type {TraceTreeNodeExtra} from './baseNode';
 import {ErrorNode} from './errorNode';
+
+jest.mock('sentry/views/performance/traceDetails/traceDrawer/details/error', () => ({
+  ErrorNodeDetails: ({node}: {node: ErrorNode}) => {
+    if (node.id === 'broken') {
+      throw new Error('details failed to render');
+    }
+    return <div>details for {node.id}</div>;
+  },
+}));
 
 const createMockExtra = (
   overrides: Partial<TraceTreeNodeExtra> = {}
@@ -590,6 +601,34 @@ describe('ErrorNode', () => {
 
       expect(errorNode.makeBarColor(theme)).toBe(theme.level.orange);
       expect(fatalNode.makeBarColor(theme)).toBe(theme.tokens.dataviz.semantic.bad);
+    });
+  });
+
+  describe('renderDetails', () => {
+    it('shows the next node details after a previous node failed to render', async () => {
+      jest.spyOn(console, 'error').mockImplementation(() => {});
+      const extra = createMockExtra();
+      const brokenNode = new ErrorNode(null, makeTraceError({event_id: 'broken'}), extra);
+      const workingNode = new ErrorNode(
+        null,
+        makeTraceError({event_id: 'working'}),
+        extra
+      );
+      const detailsProps = {
+        onTabScrollToNode: jest.fn(),
+        organization: extra.organization,
+        traceId: 'trace-id',
+      };
+
+      const {rerender} = render(
+        brokenNode.renderDetails({...detailsProps, node: brokenNode})
+      );
+      expect(
+        await screen.findByText('There was an error loading a component.')
+      ).toBeInTheDocument();
+
+      rerender(workingNode.renderDetails({...detailsProps, node: workingNode}));
+      expect(await screen.findByText('details for working')).toBeInTheDocument();
     });
   });
 });

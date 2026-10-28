@@ -365,10 +365,22 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
   ): React.ReactNode {
     if (getIsAiNode(this)) {
       return (
-        <LazyLoad LazyComponent={LazyAiSpanDetails} node={this} traceId={props.traceId} />
+        <LazyLoad
+          key={this.path}
+          LazyComponent={LazyAiSpanDetails}
+          node={this}
+          traceId={props.traceId}
+        />
       );
     }
-    return <LazyLoad LazyComponent={LazyEAPSpanNodeDetails} {...props} node={this} />;
+    return (
+      <LazyLoad
+        key={this.path}
+        LazyComponent={LazyEAPSpanNodeDetails}
+        {...props}
+        node={this}
+      />
+    );
   }
 
   matchWithFreeText(query: string): boolean {

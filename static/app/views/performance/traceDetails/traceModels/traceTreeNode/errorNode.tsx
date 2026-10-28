@@ -91,7 +91,14 @@ export class ErrorNode extends BaseNode<TraceTree.TraceErrorIssue> {
   renderDetails<T extends BaseNode>(
     props: TraceTreeNodeDetailsProps<T>
   ): React.ReactNode {
-    return <LazyLoad LazyComponent={LazyErrorNodeDetails} {...props} node={this} />;
+    return (
+      <LazyLoad
+        key={this.path}
+        LazyComponent={LazyErrorNodeDetails}
+        {...props}
+        node={this}
+      />
+    );
   }
 
   matchWithFreeText(query: string): boolean {
