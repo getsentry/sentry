@@ -56,11 +56,10 @@ class ProjectIndexEndpoint(Endpoint):
             if request.auth.organization_id is None or request.auth.user_id is None:
                 raise PermissionDenied
             else:
-                org_context = organization_service.get_organization_by_id(
-                    id=request.auth.organization_id,
+                org_context = organization_service.get_access_context(
+                    organization_id=request.auth.organization_id,
                     user_id=request.auth.user_id,
-                    include_projects=False,
-                    include_teams=False,
+                    include_resource_ids=False,
                 )
                 if org_context is None:
                     queryset = queryset.none()

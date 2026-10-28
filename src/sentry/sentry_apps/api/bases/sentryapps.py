@@ -13,6 +13,7 @@ from sentry import options
 from sentry.api.authentication import ClientIdSecretAuthentication, JWTClientSecretAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.permissions import SentryPermission, StaffPermissionMixin
+from sentry.auth import access
 from sentry.auth.scope_declaration import update_permission_scope_declaration
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser, superuser_has_permission
@@ -31,8 +32,6 @@ from sentry.sentry_apps.utils.errors import (
     SentryAppPublicErrorBody,
     SentryAppSentryError,
 )
-from sentry.users.models.user import User
-from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.strings import to_single_line_str
 
@@ -164,10 +163,13 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
         return organization_slug
 
     def _get_organization_for_superuser_or_staff(
-        self, user: RpcUser | User, organization_slug: str
+        self, request: Request, organization_slug: str
     ) -> RpcUserOrganizationContext:
-        context = organization_service.get_organization_by_slug(
-            slug=organization_slug, only_visible=False, user_id=user.id
+        context = organization_service.get_access_context_by_slug(
+            slug=organization_slug,
+            only_visible=False,
+            user_id=request.user.id,
+            include_resource_ids=access.should_prefetch_organization_resources(request),
         )
 
         if context is None:
@@ -177,10 +179,13 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
         return context
 
     def _get_organization_for_user(
-        self, user: RpcUser | User, organization_slug: str
+        self, request: Request, organization_slug: str
     ) -> RpcUserOrganizationContext:
-        context = organization_service.get_organization_by_slug(
-            slug=organization_slug, only_visible=True, user_id=user.id
+        context = organization_service.get_access_context_by_slug(
+            slug=organization_slug,
+            only_visible=True,
+            user_id=request.user.id,
+            include_resource_ids=access.should_prefetch_organization_resources(request),
         )
         if context is None or context.member is None:
             error_message = f"User does not belong to the '{organization_slug}' organization."
@@ -192,9 +197,9 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
         assert request.user.is_authenticated, "User must be authenticated to get organization"
 
         if is_active_superuser(request) or is_active_staff(request):
-            return self._get_organization_for_superuser_or_staff(request.user, organization_slug)
+            return self._get_organization_for_superuser_or_staff(request, organization_slug)
         else:
-            return self._get_organization_for_user(request.user, organization_slug)
+            return self._get_organization_for_user(request, organization_slug)
 
     def convert_args(self, request: Request, *args, **kwargs):
         """
@@ -247,10 +252,11 @@ class SentryAppPermission(SentryPermission):
         if not hasattr(request, "user") or not request.user:
             return False
 
-        owner_app = organization_service.get_organization_by_id(
-            id=sentry_app.owner_id, user_id=request.user.id
+        owner_app = access.get_organization_access_context(
+            request, organization_id=sentry_app.owner_id
         )
-        assert owner_app, f"owner organization for {sentry_app.name} was not found"
+        if owner_app is None:
+            raise SentryAppError(message="Organization not found", status_code=404)
         self.determine_access(request, owner_app)
 
         if superuser_has_permission(request):
@@ -329,6 +335,8 @@ class SentryAppInstallationsPermission(SentryPermission):
             return False
 
         self.determine_access(request, organization)
+        if isinstance(organization, RpcUserOrganizationContext):
+            organization = organization.organization
 
         if superuser_has_permission(request):
             return True
@@ -352,25 +360,28 @@ class SentryAppInstallationsBaseEndpoint(IntegrationPlatformEndpoint):
     permission_classes = (SentryAppInstallationsPermission,)
 
     def convert_args(self, request: Request, organization_id_or_slug, *args, **kwargs):
-        extra_args = {}
-        # We need to pass user_id if the user is not a superuser
-        if not is_active_superuser(request):
-            extra_args["user_id"] = request.user.id
-
         if str(organization_id_or_slug).isdecimal():
-            organization = organization_service.get_org_by_id(
-                id=int(organization_id_or_slug), **extra_args
+            context = access.get_organization_access_context(
+                request, organization_id=int(organization_id_or_slug)
             )
         else:
-            organization = organization_service.get_org_by_slug(
-                slug=str(organization_id_or_slug), **extra_args
+            context = organization_service.get_access_context_by_slug(
+                slug=str(organization_id_or_slug),
+                only_visible=False,
+                user_id=request.user.id,
+                include_resource_ids=access.should_prefetch_organization_resources(request),
             )
 
-        if organization is None:
+        # Preserve the summary lookup's visibility rules before checking permissions.
+        if context is None or (
+            not is_active_superuser(request)
+            and request.user.id is not None
+            and (context.member is None or context.organization.status != OrganizationStatus.ACTIVE)
+        ):
             raise SentryAppError(message="Could not find requested organization", status_code=404)
-        self.check_object_permissions(request, organization)
+        self.check_object_permissions(request, context)
 
-        kwargs["organization"] = organization
+        kwargs["organization"] = context.organization
         return (args, kwargs)
 
 
@@ -398,7 +409,12 @@ class SentryAppInstallationPermission(SentryPermission):
         if not hasattr(request, "user") or not request.user or not request.user.is_authenticated:
             return False
 
-        self.determine_access(request, installation.organization_id)
+        org_context = access.get_organization_access_context(
+            request, organization_id=installation.organization_id
+        )
+        if org_context is None:
+            raise SentryAppError(message="Given organization is not valid", status_code=404)
+        self.determine_access(request, org_context)
 
         if superuser_has_permission(request):
             return True
@@ -407,17 +423,7 @@ class SentryAppInstallationPermission(SentryPermission):
         if request.user.is_sentry_app:
             return request.user.id == installation.sentry_app.proxy_user_id
 
-        org_context = organization_service.get_organization_by_id(
-            id=installation.organization_id,
-            user_id=request.user.id,
-            include_teams=False,
-            include_projects=False,
-        )
-        if (
-            not org_context
-            or not org_context.member
-            or org_context.organization.status != OrganizationStatus.ACTIVE
-        ):
+        if not org_context.member or org_context.organization.status != OrganizationStatus.ACTIVE:
             raise SentryAppError(message="Given organization is not valid", status_code=404)
 
         assert request.method, "method must be present in request to get permissions"
@@ -462,10 +468,11 @@ class SentryAppAuthorizationsPermission(SentryPermission):
         if not hasattr(request, "user") or not request.user:
             return False
 
-        installation_org_context = organization_service.get_organization_by_id(
-            id=installation.organization_id, user_id=request.user.id
+        installation_org_context = access.get_organization_access_context(
+            request, organization_id=installation.organization_id
         )
-        assert installation_org_context, "organization for installation was not found"
+        if installation_org_context is None:
+            raise SentryAppError(message="Organization not found", status_code=404)
         self.determine_access(request, installation_org_context)
 
         if not request.user.is_authenticated or not request.user.is_sentry_app:
@@ -492,11 +499,12 @@ class SentryInternalAppTokenPermission(SentryPermission):
         if not hasattr(request, "user") or not request.user:
             return False
 
-        owner_app = organization_service.get_organization_by_id(
-            id=sentry_app.owner_id, user_id=request.user.id
+        owner_app = access.get_organization_access_context(
+            request, organization_id=sentry_app.owner_id
         )
 
-        assert owner_app, "Failed to get organization/owner_app to check in has_object_permission"
+        if owner_app is None:
+            raise SentryAppError(message="Organization not found", status_code=404)
         self.determine_access(request, owner_app)
 
         if superuser_has_permission(request):
@@ -515,8 +523,8 @@ class SentryAppStatsPermission(SentryPermission):
         if not hasattr(request, "user") or not request.user:
             return False
 
-        owner_app = organization_service.get_organization_by_id(
-            id=sentry_app.owner_id, user_id=request.user.id
+        owner_app = access.get_organization_access_context(
+            request, organization_id=sentry_app.owner_id
         )
         if owner_app is None:
             logger.error(
@@ -546,8 +554,8 @@ class SentryAppWebhookRequestsPermission(SentryPermission):
         if not hasattr(request, "user") or not request.user:
             return False
 
-        owner_app = organization_service.get_organization_by_id(
-            id=sentry_app.owner_id, user_id=request.user.id
+        owner_app = access.get_organization_access_context(
+            request, organization_id=sentry_app.owner_id
         )
         if owner_app is None:
             logger.error(

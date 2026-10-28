@@ -45,6 +45,7 @@ from sentry.organizations.services.organization.impl import DatabaseBackedOrgani
 from sentry.service_accounts.auth import SERVICE_ACCOUNT_TOKEN_KIND
 from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.silo.base import SiloMode
+from sentry.testutils.asserts import assert_no_organization_resource_hydration
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.requests import drf_request_from_request
@@ -555,26 +556,18 @@ class DetermineAccessHydrationTest(TestCase):
         with (
             mock.patch.object(
                 DatabaseBackedOrganizationService,
-                "get_organization_by_id",
+                "get_access_context",
                 autospec=True,
-                side_effect=DatabaseBackedOrganizationService.get_organization_by_id,
+                side_effect=DatabaseBackedOrganizationService.get_access_context,
             ) as get_org,
-            mock.patch(
-                "sentry.organizations.services.organization.serial.serialize_project"
-            ) as serialize_project,
-            mock.patch(
-                "sentry.organizations.services.organization.serial.serialize_rpc_team"
-            ) as serialize_team,
+            assert_no_organization_resource_hydration(),
         ):
             OrganizationPermission().determine_access(request, org)
 
         get_org.assert_called_once()
-        assert get_org.call_args.kwargs["id"] == org.id
+        assert get_org.call_args.kwargs["organization_id"] == org.id
         assert get_org.call_args.kwargs["user_id"] == user.id
-        assert get_org.call_args.kwargs["include_projects"] is False
-        assert get_org.call_args.kwargs["include_teams"] is False
-        serialize_project.assert_not_called()
-        serialize_team.assert_not_called()
+        assert get_org.call_args.kwargs["include_resource_ids"] is False
         assert request.access.accessible_team_ids == frozenset({team.id})
         assert request.access.accessible_project_ids == frozenset({project.id})
         assert not request.access.has_team_access(other_team)
@@ -583,13 +576,11 @@ class DetermineAccessHydrationTest(TestCase):
     def test_existing_context_is_reused(self) -> None:
         user = self.create_user()
         org = self.create_organization(owner=user)
-        context = organization_service.get_organization_by_id(
-            id=org.id, user_id=user.id, include_projects=False, include_teams=False
-        )
+        context = organization_service.get_access_context(organization_id=org.id, user_id=user.id)
         assert context is not None
         request = drf_request_from_request(self.make_request(user=user))
 
-        with mock.patch.object(organization_service, "get_organization_by_id") as get_org:
+        with mock.patch.object(organization_service, "get_access_context") as get_org:
             OrganizationPermission().determine_access(request, context)
 
         get_org.assert_not_called()

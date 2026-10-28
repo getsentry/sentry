@@ -10,10 +10,12 @@ from sentry.auth.scope_declaration import bind_endpoint_scope_declaration
 from sentry.sentry_apps.api.bases.sentryapps import (
     IntegrationPlatformEndpoint,
     SentryAppAndStaffPermission,
+    SentryAppAuthorizationsPermission,
     SentryAppBaseEndpoint,
     SentryAppInstallationBaseEndpoint,
     SentryAppInstallationPermission,
     SentryAppPermission,
+    SentryInternalAppTokenPermission,
 )
 from sentry.sentry_apps.utils.errors import (
     SentryAppError,
@@ -38,6 +40,23 @@ class SentryAppPermissionTest(TestCase):
 
     def test_request_user_is_app_owner_succeeds(self) -> None:
         assert self.permission.has_object_permission(self.request, APIView(), self.sentry_app)
+
+    def test_missing_organization_returns_not_found(self) -> None:
+        installation = self.create_sentry_app_installation(
+            slug=self.sentry_app.slug, organization=self.organization, user=self.user
+        )
+        for permission, obj in (
+            (SentryAppPermission(), self.sentry_app),
+            (SentryAppAuthorizationsPermission(), installation),
+            (SentryInternalAppTokenPermission(), self.sentry_app),
+        ):
+            with (
+                self.subTest(permission=type(permission).__name__),
+                patch("sentry.auth.access.get_organization_access_context", return_value=None),
+                pytest.raises(SentryAppError) as exc,
+            ):
+                permission.has_object_permission(self.request, APIView(), obj)
+            assert exc.value.status_code == 404
 
     @patch("sentry.auth.scope_declaration.capture_message")
     @patch("sentry.auth.scope_declaration.logger.warning")
