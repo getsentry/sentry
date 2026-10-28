@@ -51,7 +51,7 @@ def _collect(project: Path, command: list[str], env: dict[str, str]) -> Counter[
         k: v
         for k, v in os.environ.items()
         if not k.startswith(("PYTEST_", "DJANGO_", "SENTRY_", "TEST_GROUP", "TOTAL_TEST_GROUPS"))
-        and k not in ("SELECTED_TESTS_FILE", "PYTHONPATH")
+        and k not in ("SELECTED_TESTS_FILE", "PYTHONPATH", "BACKEND_TEST_SERVICE_COLOR")
     }
     base |= {
         "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",

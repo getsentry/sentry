@@ -223,6 +223,9 @@ jobs:
       MATRIX_INSTANCE_TOTAL: ${{ needs.calculate-shards.outputs.shard-count }}
       TEST_GROUP_STRATEGY: roundrobin
       PYTHONHASHSEED: '0'
+      # Full runs retain 22 jobs: one processing shard, 21 general shards.
+      # Selective PR runs keep full-service mode and their dynamic matrix.
+      BACKEND_TEST_SERVICE_COLOR: ${{ needs.select-tests.outputs.has-selected-tests != 'true' && (matrix.instance == 0 && 'processing' || 'general') || '' }}
       XDIST_PER_WORKER_SNUBA: '1'
       XDIST_WORKERS: ${{ github.event_name == 'pull_request' && '2' || '3' }}
 
@@ -240,7 +243,7 @@ jobs:
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          mode: backend-ci
+          mode: ${{ env.BACKEND_TEST_SERVICE_COLOR == 'general' && 'backend-ci-general' || 'backend-ci' }}
           early-devservices: 'true'
 
       # Restart postgres with a Unix socket mount. Django's postgres driver uses TCP by

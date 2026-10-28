@@ -61,6 +61,7 @@ def run_main(
     total: int,
     group: int,
     exit_code: pytest.ExitCode = pytest.ExitCode.OK,
+    service_color: str = "",
 ) -> tuple[int, list[tuple[object, ...]]]:
     selected_file = tmp_path / "selected-tests.txt"
     selected_file.write_text("".join(f"{path}\n" for path in selected))
@@ -77,6 +78,7 @@ def run_main(
         "SELECTED_TESTS_FILE": str(selected_file),
         "TOTAL_TEST_GROUPS": str(total),
         "TEST_GROUP": str(group),
+        "BACKEND_TEST_SERVICE_COLOR": service_color,
     }
     with mock.patch.dict(os.environ, env), mock.patch.object(pytest, "main", fake_main):
         return main(["tests", "-q"]), calls
@@ -204,8 +206,12 @@ def run_full_main(
     total: int,
     group: int,
     addopts: str = "",
+    service_color: str = "",
+    sources: dict[str, str] | None = None,
 ) -> tuple[int, list[tuple[object, ...]]]:
     write_files(tmp_path, files)
+    for path, content in (sources or {}).items():
+        (tmp_path / path).write_text(content)
     durations_file = tmp_path / "durations.json"
     if durations is not None:
         durations_file.write_text(json.dumps(durations))
@@ -221,6 +227,7 @@ def run_full_main(
         "TOTAL_TEST_GROUPS": str(total),
         "TEST_GROUP": str(group),
         "PYTEST_ADDOPTS": addopts,
+        "BACKEND_TEST_SERVICE_COLOR": service_color,
     }
     with (
         contextlib.chdir(tmp_path),
@@ -278,6 +285,210 @@ class TestFullRunMain:
             tmp_path, ["tests/test_a.py", "tests/test_b.py"], durations, 16, 12, "-m snuba_ci"
         )
         assert calls == [(["tests", "-q"], "", "16", "12", None)]
+
+
+
+class TestProcessingServices:
+    @pytest.mark.parametrize(
+        ("source", "expected"),
+        [
+            ("from sentry.testutils.skips import requires_symbolicator\n", True),
+            ("from sentry.testutils.relay import RelayStoreHelper as Helper\n", True),
+            ("@requires_symbolicator\ndef test_live(): pass\n", True),
+            ("def test_live(relay_server): pass\n", True),
+            ("def test_live(get_relay_minidump_url): pass\n", True),
+            ('import pytest\npytestmark = pytest.mark.usefixtures("relay_server")\n', True),
+            ("import pytest\npytestmark = pytest.mark.symbolicator\n", True),
+            ("# backend-ci: processing\ndef test_live(): pass\n", True),
+            ("# relay_server in a comment\ndef test_mocked(): pass\n", False),
+            ('EXAMPLE = "RelayStoreHelper"\ndef test_mocked(): pass\n', False),
+            ("def test_ordinary(): pass\n", False),
+        ],
+    )
+    def test_source_detection(
+        self, tmp_path: Path, source: str, expected: bool
+    ) -> None:
+        path = tmp_path / "test_sample.py"
+        path.write_text(source)
+        assert _mod.needs_processing_services(str(path)) is expected
+
+    def test_invalid_python_fails_closed(self, tmp_path: Path) -> None:
+        path = tmp_path / "test_bad.py"
+        path.write_text("relay_server = (")
+        with pytest.raises(SyntaxError):
+            _mod.needs_processing_services(str(path))
+
+
+class TestServiceColoredShards:
+    def test_stable_exact_coverage(self) -> None:
+        tests = {
+            f"t{i}.py": [f"t{i}.py::test_{j}" for j in range(50)]
+            for i in range(50)
+        }
+        tests["relay.py"] = [
+            f"relay.py::test_{j}[{k}]"
+            for j in range(5) for k in range(8)
+        ]
+        weights = {path: float(len(ids)) for path, ids in tests.items()}
+        plan = _mod.plan_service_colored_shards(weights, 22, {"relay.py"})
+        assert len(plan) == 22
+        assert plan[0] == Shard(["relay.py"])
+        assert all("relay.py" not in shard.files for shard in plan[1:])
+        assert_runs_every_test_once(plan, tests)
+        assert plan == _mod.plan_service_colored_shards(
+            dict(reversed(weights.items())), 22, {"relay.py"}
+        )
+
+    def test_empty_general_shards_keep_zero_weight_file(self) -> None:
+        plan = _mod.plan_service_colored_shards(
+            {"relay.py": 0.0, "zero.py": 0.0}, 22, {"relay.py"}
+        )
+        assert plan[0] == Shard(["relay.py"])
+        assert plan[1] == Shard(["zero.py"])
+        assert all(shard == Shard([]) for shard in plan[2:])
+
+    def test_detected_processing_file_stays_whole(self, tmp_path: Path) -> None:
+        files = ["tests/test_relay.py", "tests/test_general.py"]
+        code, calls = run_full_main(
+            tmp_path, files, {"seconds_per_test": 1.0, "files": {}},
+            22, 0, service_color="processing",
+            sources={files[0]: "def test_live(relay_server): pass\n"},
+        )
+        assert code == 0 and len(calls) == 1
+        assert (tmp_path / ".artifacts/full-tests.shard-0.txt").read_text() == (
+            "tests/test_relay.py\n"
+        )
+
+    def test_new_files_run_in_general_shards(self, tmp_path: Path) -> None:
+        files = ["tests/test_relay.py", "tests/test_new.py"]
+        code, calls = run_full_main(
+            tmp_path, files, {"seconds_per_test": 1.0, "files": {}},
+            22, 1, service_color="general",
+            sources={files[0]: "def test_live(relay_server): pass\n"},
+        )
+        assert code == 0 and len(calls) == 1
+        assert (tmp_path / ".artifacts/full-tests.shard-1.txt").read_text() == (
+            "tests/test_new.py\n"
+        )
+
+    @pytest.mark.parametrize(
+        ("total", "group", "color", "addopts"),
+        [
+            (21, 0, "processing", ""),
+            (22, 22, "general", ""),
+            (22, 0, "general", ""),
+            (22, 1, "processing", ""),
+            (22, 1, "unexpected", ""),
+            (22, 1, "general", "-m snuba_ci"),
+            (22, 1, "general", "-k test_one"),
+        ],
+    )
+    def test_bad_coloring_fails_closed(
+        self, tmp_path: Path, total: int, group: int, color: str, addopts: str
+    ) -> None:
+        code, calls = run_full_main(
+            tmp_path, ["tests/test_a.py"],
+            {"seconds_per_test": 1.0, "files": {}},
+            total, group, addopts=addopts, service_color=color,
+        )
+        assert code == pytest.ExitCode.USAGE_ERROR and calls == []
+
+    def test_missing_durations_fails_closed(self, tmp_path: Path) -> None:
+        code, calls = run_full_main(
+            tmp_path, ["tests/test_a.py"], None, 22, 1,
+            service_color="general",
+        )
+        assert code == pytest.ExitCode.USAGE_ERROR and calls == []
+
+    def test_empty_inventory_fails_closed(self, tmp_path: Path) -> None:
+        code, calls = run_full_main(
+            tmp_path, [], {"seconds_per_test": 1.0, "files": {}},
+            22, 0, service_color="processing",
+        )
+        assert code == pytest.ExitCode.USAGE_ERROR and calls == []
+
+    def test_coloring_and_selected_files_are_incompatible(self, tmp_path: Path) -> None:
+        code, calls = run_main(
+            tmp_path, ["tests/test_a.py"], {}, 22, 1,
+            service_color="general",
+        )
+        assert code == pytest.ExitCode.USAGE_ERROR and calls == []
+
+    def test_empty_colored_shard_skips_pytest(self, tmp_path: Path) -> None:
+        code, calls = run_full_main(
+            tmp_path, ["tests/test_new.py"],
+            {"seconds_per_test": 1.0, "files": {}},
+            22, 0, service_color="processing",
+        )
+        assert code == 0 and calls == []
+
+
+class TestServiceColorFixtureGuard:
+    @pytest.mark.parametrize(
+        "fixture",
+        ["relay_server", "relay_server_setup", "_requires_symbolicator",
+         "get_relay_minidump_url"],
+    )
+    def test_general_rejects_processing_fixture(self, fixture: str) -> None:
+        item = mock.Mock(
+            nodeid="tests/test_indirect.py::test_case", fixturenames=[fixture]
+        )
+        with (
+            mock.patch.dict(
+                os.environ,
+                {"BACKEND_TEST_SERVICE_COLOR": "general", "PYTEST_SHARD_PARTS": ""},
+            ),
+            pytest.raises(pytest.UsageError, match="backend-ci: processing"),
+        ):
+            importlib.import_module("pytest_shard_plugin").pytest_collection_modifyitems(
+                mock.Mock(), [item]
+            )
+
+    @pytest.mark.parametrize("color", ["", "processing"])
+    def test_other_colors_allow_processing_fixtures(self, color: str) -> None:
+        item = mock.Mock(
+            nodeid="tests/test_relay.py::test_case", fixturenames=["relay_server"]
+        )
+        with mock.patch.dict(
+            os.environ, {"BACKEND_TEST_SERVICE_COLOR": color, "PYTEST_SHARD_PARTS": ""}
+        ):
+            importlib.import_module("pytest_shard_plugin").pytest_collection_modifyitems(
+                mock.Mock(), [item]
+            )
+
+    def test_general_allows_ordinary_fixture(self) -> None:
+        item = mock.Mock(
+            nodeid="tests/test_general.py::test_case", fixturenames=["_requires_snuba"]
+        )
+        with mock.patch.dict(
+            os.environ, {"BACKEND_TEST_SERVICE_COLOR": "general", "PYTEST_SHARD_PARTS": ""}
+        ):
+            importlib.import_module("pytest_shard_plugin").pytest_collection_modifyitems(
+                mock.Mock(), [item]
+            )
+
+    def test_guard_only_checks_retained_slices(self, tmp_path: Path) -> None:
+        discarded = mock.Mock(
+            nodeid="tests/test_split.py::test_relay", fixturenames=["relay_server"]
+        )
+        retained = mock.Mock(nodeid="tests/test_general.py::test_case", fixturenames=[])
+        parts_file = tmp_path / "parts.json"
+        parts_file.write_text(json.dumps({
+            "tests/test_split.py": [1 - item_part(discarded.nodeid, 2), 2]
+        }))
+        items = [discarded, retained]
+        config = mock.Mock()
+        with mock.patch.dict(
+            os.environ, {
+                "BACKEND_TEST_SERVICE_COLOR": "general",
+                "PYTEST_SHARD_PARTS": str(parts_file),
+            }
+        ):
+            importlib.import_module("pytest_shard_plugin").pytest_collection_modifyitems(
+                config, items
+            )
+        assert items == [retained]
+        config.hook.pytest_deselected.assert_called_once_with(items=[discarded])
 
 
 @pytest.mark.parametrize(
