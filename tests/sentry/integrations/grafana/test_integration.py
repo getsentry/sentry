@@ -2,7 +2,12 @@ from typing import Any
 
 import pytest
 import responses
+from django.urls import reverse
 
+from sentry.integrations.grafana.client import (
+    GRAFANA_INVALID_TOKEN_MESSAGE,
+    GRAFANA_INVALID_URL_MESSAGE,
+)
 from sentry.integrations.grafana.integration import (
     GrafanaIntegration,
     GrafanaIntegrationProvider,
@@ -10,7 +15,7 @@ from sentry.integrations.grafana.integration import (
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError
-from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.cases import APITestCase, IntegrationTestCase
 from sentry.testutils.silo import control_silo_test
 
 GRAFANA_URL = "https://example-stack.grafana.net"
@@ -68,8 +73,6 @@ class GrafanaIntegrationProviderTest(IntegrationTestCase):
     def test_build_integration_stores_token_in_metadata_and_url_in_post_install_config(
         self,
     ) -> None:
-        mock_grafana()
-
         result = self._provider().build_integration(
             self._pipeline_state(url="https://Example-Stack.grafana.net/")
         )
@@ -79,7 +82,7 @@ class GrafanaIntegrationProviderTest(IntegrationTestCase):
         assert result["metadata"] == {"token": "glsa_old_abcd"}
 
         assert result["post_install_data"] == {"config": {"url": GRAFANA_URL}}
-        assert responses.calls[1].request.headers["Authorization"] == "Bearer glsa_old_abcd"
+        assert len(responses.calls) == 0
 
     def test_build_integration_raises_when_config_is_missing(self) -> None:
         with pytest.raises(IntegrationConfigurationError):
@@ -91,13 +94,6 @@ class GrafanaIntegrationProviderTest(IntegrationTestCase):
             self._provider().build_integration(self._pipeline_state(url="https://grafana.internal"))
 
         assert len(responses.calls) == 0
-
-    @responses.activate
-    def test_build_integration_raises_when_validate_connection_fails(self) -> None:
-        mock_grafana(datasources_status=401, datasources={"messageId": "api-key.invalid"})
-
-        with pytest.raises(IntegrationConfigurationError, match="rejected the token"):
-            self._provider().build_integration(self._pipeline_state())
 
     def test_post_install_writes_config_to_org_integration(self) -> None:
         integration = self.create_integration(
@@ -189,3 +185,110 @@ class GrafanaIntegrationProviderTest(IntegrationTestCase):
         assert provider.name == "Grafana for Seer"
         assert provider.allow_multiple is False
         assert provider.requires_feature_flag is True
+
+
+@control_silo_test
+class GrafanaApiPipelineTest(APITestCase):
+    endpoint = "sentry-api-0-organization-pipeline"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(self.user)
+
+    def _initialize_pipeline(self) -> str:
+        url = reverse(self.endpoint, args=[self.organization.slug, "integration_pipeline"])
+        with self.feature("organizations:integrations-grafana"):
+            response = self.client.post(
+                url, data={"action": "initialize", "provider": "grafana"}, format="json"
+            )
+        assert response.status_code == 200
+        assert response.data["step"] == "grafana_credentials"
+        return url
+
+    @responses.activate
+    def test_retry_after_rejected_token(self) -> None:
+        url = self._initialize_pipeline()
+        mock_grafana(datasources_status=401, datasources={"messageId": "api-key.invalid"})
+
+        response = self.client.post(
+            url, data={"url": GRAFANA_URL, "token": "glsa_bad"}, format="json"
+        )
+
+        assert response.status_code == 400
+        assert response.data["data"]["detail"] == GRAFANA_INVALID_TOKEN_MESSAGE
+        assert not Integration.objects.filter(provider="grafana").exists()
+
+        response = self.client.get(url)
+        assert response.status_code == 200
+        assert response.data["step"] == "grafana_credentials"
+        assert response.data["stepIndex"] == 0
+
+        responses.replace(responses.GET, f"{GRAFANA_URL}/api/datasources", json=DATASOURCES)
+        response = self.client.post(
+            url,
+            data={"url": "https://Example-Stack.grafana.net/", "token": "glsa_corrected"},
+            format="json",
+        )
+
+        assert response.status_code == 200
+        assert response.data["status"] == "complete"
+        integration = Integration.objects.get(
+            provider="grafana", external_id=str(self.organization.id)
+        )
+        assert integration.metadata == {"token": "glsa_corrected"}
+        assert OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration_id=integration.id
+        ).config == {"url": GRAFANA_URL}
+        assert len(responses.calls) == 4
+        assert responses.calls[-1].request.headers["Authorization"] == "Bearer glsa_corrected"
+
+    @responses.activate
+    def test_retry_after_malformed_url(self) -> None:
+        url = self._initialize_pipeline()
+
+        response = self.client.post(
+            url,
+            data={"url": "https://[example-stack.grafana.net", "token": "glsa_token"},
+            format="json",
+        )
+
+        assert response.status_code == 400
+        assert response.data["data"]["detail"] == GRAFANA_INVALID_URL_MESSAGE
+        assert not Integration.objects.filter(provider="grafana").exists()
+        assert len(responses.calls) == 0
+
+        mock_grafana()
+        response = self.client.post(
+            url, data={"url": GRAFANA_URL, "token": "glsa_token"}, format="json"
+        )
+
+        assert response.status_code == 200
+        assert response.data["status"] == "complete"
+        assert len(responses.calls) == 2
+
+    @responses.activate
+    def test_settings_reject_malformed_url(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="grafana",
+            external_id=str(self.organization.id),
+            metadata={"token": "glsa_token"},
+            oi_params={"config": {"url": GRAFANA_URL}},
+        )
+        url = reverse(
+            "sentry-api-0-organization-integration-details",
+            args=[self.organization.slug, integration.id],
+        )
+
+        response = self.client.post(
+            url, data={"url": "https://[example-stack.grafana.net"}, format="json"
+        )
+
+        assert response.status_code == 400
+        assert response.data["detail"] == GRAFANA_INVALID_URL_MESSAGE
+        assert len(responses.calls) == 0
+        integration.refresh_from_db()
+        assert integration.metadata == {"token": "glsa_token"}
+        assert OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration_id=integration.id
+        ).config == {"url": GRAFANA_URL}

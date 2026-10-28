@@ -89,7 +89,14 @@ class GrafanaCredentialsApiStep:
         pipeline: IntegrationPipeline,
         request: HttpRequest,
     ) -> PipelineStepResult:
-        pipeline.bind_state("config", dict(validated_data))
+        # Validate before advancing so connection errors leave this step available for retries.
+        try:
+            url = normalize_grafana_url(validated_data["url"])
+            validate_grafana_connection(url, validated_data["token"])
+        except IntegrationConfigurationError as e:
+            return PipelineStepResult.error(str(e))
+
+        pipeline.bind_state("config", {**validated_data, "url": url})
         return PipelineStepResult.advance()
 
 
@@ -160,7 +167,6 @@ class GrafanaIntegrationProvider(IntegrationProvider):
 
         url = normalize_grafana_url(config["url"])
         token: str = config["token"]
-        validate_grafana_connection(url, token)
 
         assert self.pipeline.organization is not None
         return {

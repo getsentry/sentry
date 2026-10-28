@@ -10,6 +10,7 @@ from sentry.exceptions import RestrictedIPAddress
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 
+GRAFANA_INVALID_URL_MESSAGE = "Enter your Grafana Cloud URL, like https://your-stack.grafana.net."
 GRAFANA_UNREACHABLE_MESSAGE = "Could not reach Grafana. Check the URL and try again."
 GRAFANA_INVALID_TOKEN_MESSAGE = (
     "Grafana rejected the token. Check that it is an active service account token."
@@ -32,8 +33,11 @@ def normalize_grafana_url(url: str) -> str:
     url = url.strip()
     if "://" not in url:
         url = f"https://{url}"
-    parts = urlsplit(url)
-    host = (parts.hostname or "").lower()
+    try:
+        parts = urlsplit(url)
+        host = (parts.hostname or "").lower()
+    except ValueError as e:
+        raise IntegrationConfigurationError(GRAFANA_INVALID_URL_MESSAGE) from e
     stack = host.removesuffix(".grafana.net")
     if (
         parts.scheme.lower() not in ("http", "https")
@@ -45,9 +49,7 @@ def normalize_grafana_url(url: str) -> str:
         or not stack.isascii()
         or not stack.replace("-", "").isalnum()
     ):
-        raise IntegrationConfigurationError(
-            "Enter your Grafana Cloud URL, like https://your-stack.grafana.net."
-        )
+        raise IntegrationConfigurationError(GRAFANA_INVALID_URL_MESSAGE)
     return f"https://{host}"
 
 
