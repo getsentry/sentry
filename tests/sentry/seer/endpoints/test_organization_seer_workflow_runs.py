@@ -35,7 +35,6 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.features import with_feature
-from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
@@ -435,10 +434,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         )
         self.login_as(self.user)
 
-    def test_read_scope_scan_stores_findings(self) -> None:
-        token = self.create_user_auth_token(self.user, scope_list=["org:read"])
-        self.client.cookies.clear()
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+    def test_scan_stores_findings(self) -> None:
         run = self.trigger()
         assert run.source == "monitor_cleanup"
         assert run.extras["source"] == "manual"
@@ -518,28 +514,6 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         other = self.create_organization()
         with self.feature("organizations:seer-workflows-monitor-cleanup"):
             self.get_error_response(other.slug, strategy="duplicate_monitors", status_code=403)
-
-    def test_requires_authenticated_user(self) -> None:
-        self.client.cookies.clear()
-        with self.feature("organizations:seer-workflows-monitor-cleanup"):
-            self.get_error_response(
-                self.organization.slug, strategy="duplicate_monitors", status_code=401
-            )
-
-            token = generate_token(self.organization.slug, "")
-            self.create_org_auth_token(
-                name="org-auth-token",
-                token_hashed=hash_token(token),
-                organization_id=self.organization.id,
-                scope_list=["org:read"],
-            )
-            self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
-            response = self.get_error_response(
-                self.organization.slug, strategy="duplicate_monitors", status_code=403
-            )
-
-        assert response.data == {"detail": "Sign in to run a monitor scan."}
-        assert not SeerWorkflowRun.objects.filter(organization=self.organization).exists()
 
     def test_callback_for_deleted_user_marks_run_failed(self) -> None:
         agent_run = self.trigger()

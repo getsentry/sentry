@@ -109,8 +109,6 @@ class SeerWorkflowRunsResponse(TypedDict):
 class OrganizationSeerWorkflowRunsPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read"],
-        # POST records scan findings without modifying monitors, so org:read is intentional.
-        # create_monitor_cleanup_run also requires an authenticated user and Seer access.
         "POST": ["org:read"],
     }
 
