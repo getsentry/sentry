@@ -111,36 +111,8 @@ class SeerWorkflow:
             raise ValueError("Trigger keys must contain between 1 and 256 characters")
 
         with self._lock_config() as config:
-            existing = self.get_runs().filter(trigger_key=trigger_key).first()
-            if existing is not None:
-                return WorkflowRunCreationResult(
-                    lifecycle=SeerWorkflowRunLifecycle(
-                        run_id=existing.id, organization_id=existing.organization_id
-                    ),
-                    created=False,
-                )
-
-            snapshot = WorkflowRunSnapshot(
-                config_version=config.version,
-                strategy=SeerWorkflowStrategy(config.strategy),
-                filters=config.filters,
-                project_ids=tuple(self._get_project_ids(config)),
-                output_policy=config.output_policy,
-                inputs=json.loads(inputs.json()),
-            )
-            run_extras = SeerWorkflowRunExtras.parse_obj({**(extras or {}), "snapshot": snapshot})
-            run = SeerWorkflowRun.objects.create(
-                organization_id=config.organization_id,
-                workflow_config=config,
-                trigger_key=trigger_key,
-                status=SeerWorkflowRunStatus.QUEUED,
-                extras=json.loads(run_extras.json()),
-            )
-            return WorkflowRunCreationResult(
-                lifecycle=SeerWorkflowRunLifecycle(
-                    run_id=run.id, organization_id=run.organization_id
-                ),
-                created=True,
+            return self._get_or_create_run(
+                config, trigger_key=trigger_key, inputs=inputs, extras=extras
             )
 
     def get_runs(self) -> QuerySet[SeerWorkflowRun]:
@@ -239,6 +211,45 @@ class SeerWorkflow:
             config.filters = config.filters | filters.dict()
             config.version += 1
             config.save(update_fields=["filters", "version", "date_updated"])
+
+    def _get_or_create_run(
+        self,
+        config: SeerWorkflowConfig,
+        *,
+        trigger_key: str,
+        inputs: BaseModel,
+        extras: Mapping[str, Any] | None = None,
+    ) -> WorkflowRunCreationResult:
+        """Reuse the config while the caller holds its row lock."""
+        existing = self.get_runs().filter(trigger_key=trigger_key).first()
+        if existing is not None:
+            return WorkflowRunCreationResult(
+                lifecycle=SeerWorkflowRunLifecycle(
+                    run_id=existing.id, organization_id=existing.organization_id
+                ),
+                created=False,
+            )
+
+        snapshot = WorkflowRunSnapshot(
+            config_version=config.version,
+            strategy=SeerWorkflowStrategy(config.strategy),
+            filters=config.filters,
+            project_ids=tuple(self._get_project_ids(config)),
+            output_policy=config.output_policy,
+            inputs=json.loads(inputs.json()),
+        )
+        run_extras = SeerWorkflowRunExtras.parse_obj({**(extras or {}), "snapshot": snapshot})
+        run = SeerWorkflowRun.objects.create(
+            organization_id=config.organization_id,
+            workflow_config=config,
+            trigger_key=trigger_key,
+            status=SeerWorkflowRunStatus.QUEUED,
+            extras=json.loads(run_extras.json()),
+        )
+        return WorkflowRunCreationResult(
+            lifecycle=SeerWorkflowRunLifecycle(run_id=run.id, organization_id=run.organization_id),
+            created=True,
+        )
 
     @contextmanager
     def _lock_config(self) -> Iterator[SeerWorkflowConfig]:

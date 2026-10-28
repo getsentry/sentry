@@ -169,12 +169,13 @@ class BreachedMetricWorkflow(SeerWorkflow):
                     return IgnoredMetricBreach("configuration_unavailable")
                 if not self._matches_scope(config, group.project_id, trigger.environment):
                     return IgnoredMetricBreach("out_of_scope")
-                return self._record_run(group, trigger)
+                return self._record_run(config, group, trigger)
         except SeerWorkflowConfig.DoesNotExist:
             return IgnoredMetricBreach("configuration_unavailable")
 
     def _record_run(
         self,
+        config: SeerWorkflowConfig,
         group: Group,
         trigger: MetricBreachTrigger,
     ) -> AcceptedMetricBreach | RejectedMetricBreach:
@@ -195,8 +196,8 @@ class BreachedMetricWorkflow(SeerWorkflow):
             if self.has_quota_available()
             else RejectedMetricBreachAdmission(reason="quota_exceeded", decided_at=decided_at)
         )
-        result = self.get_or_create_run(
-            trigger_key=trigger_key, inputs=trigger, extras={"admission": admission.dict()}
+        result = self._get_or_create_run(
+            config, trigger_key=trigger_key, inputs=trigger, extras={"admission": admission.dict()}
         )
         workflow_run = result.lifecycle
         if admission.status == "rejected":

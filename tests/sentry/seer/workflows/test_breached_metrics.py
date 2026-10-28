@@ -7,6 +7,8 @@ from unittest import mock
 from uuid import uuid4
 
 import pytest
+from django.db import connections, router
+from django.test.utils import CaptureQueriesContext
 from pydantic import ValidationError
 
 from sentry.eventstream.base import GroupState
@@ -176,6 +178,33 @@ class BreachedMetricWorkflowAdmissionTest(BreachedMetricWorkflowTestCase):
 
         assert result == IgnoredMetricBreach("out_of_scope")
         assert not SeerWorkflowRun.objects.exists()
+
+    def test_accept_reuses_locked_config_for_run_snapshot(self) -> None:
+        workflow = BreachedMetricWorkflow(
+            config_id=self.config.id, organization_id=self.organization.id
+        )
+        event = self.breach_event(detector_id=1)
+        binding = self.action.seer_workflow_binding
+        SeerWorkflowConfig.objects.filter(id=self.config.id).update(
+            version=3,
+            filters={"all_projects": True, "environments": ["production"]},
+            output_policy={"review_required": True},
+        )
+
+        with CaptureQueriesContext(connections[router.db_for_write(SeerWorkflowConfig)]) as queries:
+            result = workflow.accept(self.group, event, binding=binding, workflow_id=1)
+
+        assert isinstance(result, AcceptedMetricBreach)
+        assert result.created is True
+        snapshot = MetricBreachRunExtras.parse_obj(result.run.extras).snapshot
+        assert snapshot.config_version == 3
+        assert snapshot.filters == {"all_projects": True, "environments": ["production"]}
+        assert snapshot.output_policy == {"review_required": True}
+        config_reads = [
+            query["sql"] for query in queries if 'FROM "seer_workflowconfig"' in query["sql"]
+        ]
+        assert len(config_reads) == 1
+        assert "FOR UPDATE" in config_reads[0]
 
     def test_ignored_configuration_reports_reason_without_starting_work(self) -> None:
         self.config.update(enabled=False)
