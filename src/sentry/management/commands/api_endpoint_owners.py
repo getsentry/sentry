@@ -3,7 +3,7 @@ from __future__ import annotations
 import orjson
 from django.core.management.base import BaseCommand
 
-from sentry.apidocs.endpoint_owners import build_owner_map
+from sentry.api.endpoint_owners import build_owner_map
 
 
 class Command(BaseCommand):

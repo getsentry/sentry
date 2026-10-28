@@ -14,14 +14,6 @@ from sentry.api.base import Endpoint
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
-def owner_of(endpoint_class: type[Endpoint]) -> str:
-    """
-    Return the owner's string value. Python's attribute lookup finds the nearest class
-    that sets owner, or Endpoint's default of ApiOwner.UNOWNED
-    """
-    return endpoint_class.owner.value
-
-
 def get_endpoint_classes_from_url_patterns(
     url_patterns: Sequence[URLPattern | URLResolver],
 ) -> list[type[Endpoint]]:
@@ -63,12 +55,17 @@ class EndpointOwner:
     owner: str
 
 
-def build_owner_map() -> list[EndpointOwner]:
+def build_owner_map(
+    url_patterns: Sequence[URLPattern | URLResolver] | None = None,
+) -> list[EndpointOwner]:
     """
-    Returns a list of EndpointOwner objects from all of Django's urls
+    Returns a list of EndpointOwner objects for the given url patterns, or all of Django's
+    urls by default. Python's attribute lookup resolves each owner: the nearest class that
+    sets owner, or Endpoint's default of ApiOwner.UNOWNED
     """
-    all_urls = get_resolver().url_patterns
-    classes = get_endpoint_classes_from_url_patterns(all_urls)
+    if url_patterns is None:
+        url_patterns = get_resolver().url_patterns
+    classes = get_endpoint_classes_from_url_patterns(url_patterns)
 
     endpoint_owners: list[EndpointOwner] = []
     for cls in classes:
@@ -83,7 +80,7 @@ def build_owner_map() -> list[EndpointOwner]:
             EndpointOwner(
                 path=rel_path,
                 class_name=cls.__name__,
-                owner=owner_of(cls),
+                owner=cls.owner.value,
             )
         )
 
