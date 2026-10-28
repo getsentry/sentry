@@ -85,6 +85,35 @@ class TestFetchRepository(TestCase):
         assert result is not None
         assert result["name"] == "test-org/test-repo"
 
+    def test_fetch_by_provider_and_name_returns_none_without_name_matching(self) -> None:
+        self.create_repo(
+            self.project,
+            name="test-org/test-repo",
+            provider="integrations:github",
+            external_id="99999",
+            integration_id=1,
+        )
+
+        result = fetch_repository(
+            self.organization.id, ("github", "test-org/test-repo"), match_names=False
+        )
+
+        assert result is None
+
+    def test_fetch_by_provider_and_external_id_without_name_matching(self) -> None:
+        self.create_repo(
+            self.project,
+            name="test-org/test-repo",
+            provider="integrations:github",
+            external_id="99999",
+            integration_id=1,
+        )
+
+        result = fetch_repository(self.organization.id, ("github", "99999"), match_names=False)
+
+        assert result is not None
+        assert result["name"] == "test-org/test-repo"
+
     def test_fetch_by_provider_and_external_id_returns_none_for_nonexistent(self) -> None:
         assert fetch_repository(self.organization.id, ("github", "nonexistent")) is None
 

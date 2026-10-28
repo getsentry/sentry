@@ -30,16 +30,19 @@ class Fetchers(NamedTuple):
     fetch_provider: Callable[[int, Repository], Provider | None]
 
 
-def make_fetchers(*, disable_proxy_retries: bool = False) -> Fetchers:
+def make_fetchers(*, disable_proxy_retries: bool = False, match_names: bool = True) -> Fetchers:
     """Return the repository and provider lookups to build one SourceCodeManager with.
 
     Both lookups can need the repository's integration, and fetching it is an RPC to the control silo,
     so they share a single fetch. The integration stays cached for as long as the lookups live: make new
-    ones for every SourceCodeManager, never share them across requests.
+    ones for every SourceCodeManager, never share them across requests. ``match_names`` is passed on to
+    ``fetch_repository``.
     """
     get_integration = functools.cache(_get_integration)
     return Fetchers(
-        fetch_repository=functools.partial(fetch_repository, get_integration=get_integration),
+        fetch_repository=functools.partial(
+            fetch_repository, get_integration=get_integration, match_names=match_names
+        ),
         fetch_provider=functools.partial(
             fetch_service_provider,
             get_integration=get_integration,
@@ -112,15 +115,26 @@ def fetch_repository(
     repository_id: RepositoryId,
     *,
     get_integration: IntegrationGetter = _get_integration,
+    match_names: bool = True,
 ) -> Repository | None:
+    """Look up the organization's repository by Sentry's id or by a ``(provider, external id)`` pair.
+
+    A pair also matches a repository whose name is the pair's second value, unless ``match_names`` is
+    off. Only the external id is unique within a provider, and a name is chosen on the provider, so a
+    caller that must never resolve to another repository turns it off.
+    """
     try:
         if isinstance(repository_id, int):
             repo = RepositoryModel.objects.get(organization_id=organization_id, id=repository_id)
         else:
+            provider, external_id = repository_id
+            identity = Q(external_id=external_id)
+            if match_names:
+                identity |= Q(name=external_id)
             repo = RepositoryModel.objects.get(
-                Q(external_id=repository_id[1]) | Q(name=repository_id[1]),
+                identity,
                 organization_id=organization_id,
-                provider=f"integrations:{repository_id[0]}",
+                provider=f"integrations:{provider}",
             )
     except RepositoryModel.DoesNotExist:
         return None
