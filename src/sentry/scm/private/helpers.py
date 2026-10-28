@@ -204,10 +204,7 @@ def _to_scm_repository(
                 base_host = domain_name.split("/", 1)[0]
                 web_base_url = f"https://{base_host}"
     elif provider_name == "gitlab":
-        integration = integration_service.get_integration(
-            integration_id=repo.integration_id,
-            organization_id=organization_id,
-        )
+        integration = get_integration(organization_id, repo.integration_id)
         if integration:
             # The same instance URL the GitLab API client and source links are built from, so it
             # keeps the scheme and any path prefix of a self-hosted instance. Installs from older
