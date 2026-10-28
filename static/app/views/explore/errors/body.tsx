@@ -12,6 +12,7 @@ import {
   ExploreControlSection,
 } from 'sentry/views/explore/components/styles';
 import {ErrorsCharts} from 'sentry/views/explore/errors/charts';
+import {ErrorsTables} from 'sentry/views/explore/errors/tables';
 import {ErrorsToolbar} from 'sentry/views/explore/errors/toolbar';
 import {ChevronButton} from 'sentry/views/explore/spans/spansTab';
 
@@ -66,6 +67,7 @@ export function ErrorsContentSection({
         </Flex>
       </OverChartButtonGroup>
       <ErrorsCharts />
+      <ErrorsTables />
     </ExploreContentSection>
   );
 }
