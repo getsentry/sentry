@@ -4,6 +4,12 @@ layout: document
 description: Guidelines for contributing to Scraps, Sentry's design system.
 ---
 
+import {Input} from '@sentry/scraps/input';
+import {Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
+import {Do, DoDont, Dont} from 'sentry/stories/doDont';
+
 This guide is for engineers and designers at Sentry who want to contribute to Scraps.
 
 **Scraps** is Sentry's design system. It includes core primitive React components, hooks, design tokens, and patterns that we use to build Sentry's UI. Keep in mind that while we strive to have a 1:1 mapping between Figma and code, some gaps and inconsistencies currently exist.
@@ -192,6 +198,44 @@ Emphasize important information with callouts:
 > [!WARNING]
 > Important warnings or limitations
 ```
+
+### Show Dos and Don'ts
+
+Use `DoDont` from `sentry/stories/doDont` when guidance is easier to show than to describe. Each pair puts a recommended example next to the mistake it replaces. Place a pair next to the guidance it illustrates. For general usage guidance, group the pairs in a `## Dos and don'ts` section after the feature sections and before `## Accessibility`.
+
+```mdx
+import {Do, DoDont, Dont} from 'sentry/stories/doDont';
+
+<DoDont>
+  <Do caption="Put the label above the input. Use the placeholder for an example value.">
+    <Stack as="label" gap="xs" width="100%">
+      <Text bold>Email</Text>
+      <Input placeholder="you@example.com" />
+    </Stack>
+  </Do>
+  <Dont caption="Don't use the placeholder as the label. It disappears as soon as someone types.">
+    <Input aria-label="Email" placeholder="Email" />
+  </Dont>
+</DoDont>
+```
+
+<DoDont>
+  <Do caption="Put the label above the input. Use the placeholder for an example value.">
+    <Stack as="label" gap="xs" width="100%">
+      <Text bold>Email</Text>
+      <Input placeholder="you@example.com" />
+    </Stack>
+  </Do>
+  <Dont caption="Don't use the placeholder as the label. It disappears as soon as someone types.">
+    <Input aria-label="Email" placeholder="Email" />
+  </Dont>
+</DoDont>
+
+- Write one `Do` and one `Dont` per pair, with `Do` first.
+- Show the same component in both examples so that the guidance is the only difference.
+- Start each caption with the action, and say why in the same sentence or the next one.
+- Add a separate pair for each rule. Don't combine several rules in one example.
+- For rules that only apply to code, use a code block with `// Do` and `// Don't` comments instead.
 
 ## Improving Existing Stories
 
