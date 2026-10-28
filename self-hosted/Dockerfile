@@ -71,10 +71,6 @@ RUN set -x \
 COPY . .
 RUN : \
     && python3 -m tools.fast_editable --path . \
-    # Deprecated alias: self-hosted and production manifests still invoke
-    # `sentry`. Only images get it, so it can't shadow the Sentry CLI in dev venvs.
-    # TODO: Remove once those callers use `sentry-server`.
-    && ln -s sentry-server /.venv/bin/sentry \
     && python3 -m compileall -q src/ \
     && python3 -m sentry.build.dump_cli_commands > /sentry-commands.txt
 

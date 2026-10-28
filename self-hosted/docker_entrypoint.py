@@ -15,7 +15,7 @@ def main(argv: list[str]) -> None:
         argv = ["sentry-server", *argv]
 
     # tini reaps zombies and forwards signals when sentry runs as PID 1.
-    # `sentry` is the deprecated alias for `sentry-server`, see self-hosted/Dockerfile.
+    # `sentry` is the deprecated alias for `sentry-server`, see setup.cfg.
     if argv[0] in ("sentry", "sentry-server"):
         argv = ["tini", "--", *argv]
 

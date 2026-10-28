@@ -306,13 +306,6 @@ def main(context: dict[str, str]) -> int:
     ):
         return 1
 
-    # fast_editable never deletes console scripts, so the pre-rename `sentry` script
-    # would linger and shadow the Sentry CLI. TODO: Remove once venvs have synced.
-    try:
-        os.remove(f"{venv_dir}/bin/sentry")
-    except FileNotFoundError:
-        pass
-
     # Agent skills are non-fatal — private skill repos may not be accessible in CI
     if os.path.exists(f"{reporoot}/agents.toml") and shutil.which(
         "pnpm", path=f"{reporoot}/.devenv/bin"
