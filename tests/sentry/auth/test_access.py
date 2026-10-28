@@ -12,6 +12,7 @@ from sentry.auth.scope_declaration import (
     bind_endpoint_scope_declaration,
     update_permission_scope_declaration,
 )
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.superuser import SUPERUSER_READONLY_SCOPES, SUPERUSER_SCOPES
 from sentry.constants import ObjectStatus
 from sentry.models.apikey import ApiKey
@@ -525,6 +526,47 @@ class FromUserTest(AccessFactoryTestCase):
         for result in results:
             assert result.scopes == frozenset({"org:read", "org:ci"})
             assert not result.has_scope("project:read")
+
+    @with_feature("organizations:granular-permission-scopes")
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    def test_deprecated_token_scope_translated_to_granular_scopes(self) -> None:
+        organization = self.create_organization()
+        user = self.create_user()
+        self.create_member(organization=organization, user=user)
+
+        request = self.make_request(user=user)
+        token_scopes = AuthenticatedToken(kind="api_token", scopes=["org:read"]).get_scopes()
+
+        results = [
+            self.from_user(user, organization, scopes=token_scopes),
+            self.from_request(request, organization, scopes=token_scopes),
+        ]
+
+        for result in results:
+            assert result.has_scope("org:read")
+            assert result.has_scope("dashboard:read")
+            assert result.has_scope("dashboard:create")
+            assert result.has_scope("dashboard:update")
+            assert result.has_scope("dashboard:delete")
+
+    def test_deprecated_token_scope_translation_capped_by_role(self) -> None:
+        # Without granular roles the member holds no dashboard scopes, so the
+        # translated scopes are dropped by the member/token intersection.
+        organization = self.create_organization()
+        user = self.create_user()
+        self.create_member(organization=organization, user=user)
+
+        request = self.make_request(user=user)
+        token_scopes = AuthenticatedToken(kind="api_token", scopes=["org:read"]).get_scopes()
+
+        results = [
+            self.from_user(user, organization, scopes=token_scopes),
+            self.from_request(request, organization, scopes=token_scopes),
+        ]
+
+        for result in results:
+            assert result.has_scope("org:read")
+            assert not result.has_scope("dashboard:read")
 
 
 @all_silo_test
