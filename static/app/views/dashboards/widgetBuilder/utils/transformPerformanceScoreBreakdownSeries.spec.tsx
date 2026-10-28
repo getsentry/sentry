@@ -31,6 +31,23 @@ describe('transformPerformanceScoreBreakdownTimeSeries', () => {
     );
   });
 
+  it('looks up the series with the given yAxis names', () => {
+    const result = transformPerformanceScoreBreakdownTimeSeries(
+      {timeSeries: WEB_VITALS.map(webVital => makeTimeSeries(`score.${webVital}`, 1))},
+      webVital => `score.${webVital}`
+    );
+
+    expect(result.timeSeries.map(({yAxis, values}) => [yAxis, values[0]!.value])).toEqual(
+      [
+        ['score.lcp', 30],
+        ['score.fcp', 15],
+        ['score.inp', 30],
+        ['score.cls', 15],
+        ['score.ttfb', 10],
+      ]
+    );
+  });
+
   it('leaves grouped series unchanged', () => {
     const data = {
       timeSeries: [

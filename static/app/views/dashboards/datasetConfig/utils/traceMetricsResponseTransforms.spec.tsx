@@ -5,6 +5,11 @@ import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {traceMetricsResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/traceMetricsResponseTransforms';
 import {WidgetType} from 'sentry/views/dashboards/types';
+import {
+  WEB_VITAL_SCORE_FIELDS,
+  webVitalCountField,
+  webVitalScoreField,
+} from 'sentry/views/dashboards/utils/webVitalTraceMetricFields';
 
 function response(yAxes: string[], value = 1): EventsTimeSeriesResponse {
   return {
@@ -35,11 +40,8 @@ describe('traceMetricsResponseTransforms.transformTimeSeries', () => {
     expect(result.map(r => r.seriesName)).toEqual(['p75(browser.web_vital.lcp)']);
   });
 
-  it('keeps the full name of score formulas so each series stays distinct', () => {
-    const aggregates = [
-      'performance_score(measurements.score.lcp)',
-      'count_scores(measurements.score.total)',
-    ];
+  it('keeps the full name of score fields so each series stays distinct', () => {
+    const aggregates = [webVitalScoreField('lcp'), webVitalCountField('ttfb')];
     const widget = WidgetFixture({
       widgetType: WidgetType.TRACEMETRICS,
       queries: [WidgetQueryFixture({aggregates, columns: []})],
@@ -51,17 +53,14 @@ describe('traceMetricsResponseTransforms.transformTimeSeries', () => {
       0
     );
 
-    expect(result.map(r => r.seriesName)).toEqual(aggregates);
+    expect(result.map(r => r.seriesName)).toEqual([
+      'avg(score.ratio.lcp,browser.web_vital.lcp,distribution,millisecond)',
+      'count(browser.web_vital.ttfb)',
+    ]);
   });
 
   it('weights the score breakdown chart like the spans dataset', () => {
-    const aggregates = [
-      'performance_score(measurements.score.lcp)',
-      'performance_score(measurements.score.fcp)',
-      'performance_score(measurements.score.inp)',
-      'performance_score(measurements.score.cls)',
-      'performance_score(measurements.score.ttfb)',
-    ];
+    const aggregates = WEB_VITAL_SCORE_FIELDS;
     const widget = WidgetFixture({
       widgetType: WidgetType.TRACEMETRICS,
       queries: [WidgetQueryFixture({aggregates, columns: []})],
@@ -74,14 +73,16 @@ describe('traceMetricsResponseTransforms.transformTimeSeries', () => {
     );
 
     const valueByVital = Object.fromEntries(
-      result.map(r => [r.seriesName, r.timeSeries.values[0]!.value])
+      result.map(r => [r.timeSeries.yAxis, r.timeSeries.values[0]!.value])
     );
     // Every vital has data, so the default weights (in percent) apply and the
     // five contributions add up to a total score of 100.
-    expect(valueByVital['performance_score(measurements.score.lcp)']).toBeCloseTo(30);
-    expect(valueByVital['performance_score(measurements.score.inp)']).toBeCloseTo(30);
-    expect(valueByVital['performance_score(measurements.score.fcp)']).toBeCloseTo(15);
-    expect(valueByVital['performance_score(measurements.score.cls)']).toBeCloseTo(15);
-    expect(valueByVital['performance_score(measurements.score.ttfb)']).toBeCloseTo(10);
+    expect(valueByVital[webVitalScoreField('lcp')]).toBeCloseTo(30);
+    expect(valueByVital[webVitalScoreField('inp')]).toBeCloseTo(30);
+    expect(valueByVital[webVitalScoreField('fcp')]).toBeCloseTo(15);
+    expect(valueByVital[webVitalScoreField('cls')]).toBeCloseTo(15);
+    expect(valueByVital[webVitalScoreField('ttfb')]).toBeCloseTo(10);
+    // The avg over a duration metric comes back typed as a duration
+    expect(result.every(r => r.timeSeries.meta.valueType === 'score')).toBe(true);
   });
 });
