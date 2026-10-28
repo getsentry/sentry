@@ -183,6 +183,12 @@ S031_msg = (
     "override_options(...) so the change is undone in order"
 )
 
+S032_msg = (
+    "S032 Billing platform service boundary violation: import another service only "
+    "from its package root, never its internal modules. See "
+    "getsentry/billing/platform/AGENTS.md."
+)
+
 # Existing callers are pinned to their exact function and occurrence count. This is a
 # shrink-only migration baseline: remove entries as callers move to named Seer one-shots.
 S030_allowlist: dict[str, dict[tuple[str, str], int]] = {}
@@ -254,6 +260,39 @@ def _is_non_platform_import(module: str) -> bool:
         if not (module.startswith(platform_prefix + ".") or module == platform_prefix):
             return True
     return False
+
+
+# Only getsentry's billing services are checked; sentry's own code is out of scope.
+_GETSENTRY_SERVICES_PATH = "getsentry/billing/platform/services/"
+_GETSENTRY_SERVICES_MODULE = "getsentry.billing.platform.services."
+
+
+def _getsentry_service_directories(filename: str) -> list[str] | None:
+    """Directories below services/ for a file inside a getsentry billing service package."""
+    if "tests/" in filename:
+        return None
+    index = filename.find(_GETSENTRY_SERVICES_PATH)
+    if index == -1 or (index > 0 and filename[index - 1] != "/"):
+        return None
+    directories = filename[index + len(_GETSENTRY_SERVICES_PATH) :].split("/")[:-1]
+    return directories or None
+
+
+def _is_cross_service_internal_import(
+    directories: list[str], module: str | None, level: int
+) -> bool:
+    if not module:
+        return False
+    if level:
+        # Relative imports leave the current service only when they climb back to services/.
+        if level - 1 != len(directories):
+            return False
+        parts = module.split(".")
+    elif module.startswith(_GETSENTRY_SERVICES_MODULE):
+        parts = module.removeprefix(_GETSENTRY_SERVICES_MODULE).split(".")
+    else:
+        return False
+    return len(parts) > 1 and parts[0] != directories[0]
 
 
 # Returns the literal year when this is a datetime(...) call shape we lint for.
@@ -818,6 +857,12 @@ class SentryVisitor(ast.NodeVisitor):
         ):
             self.errors.append((node.lineno, node.col_offset, S017_msg))
 
+        service_directories = _getsentry_service_directories(self.filename)
+        if service_directories and _is_cross_service_internal_import(
+            service_directories, node.module, node.level
+        ):
+            self.errors.append((node.lineno, node.col_offset, S032_msg))
+
         self.generic_visit(node)
 
     def visit_Import(self, node: ast.Import) -> None:
@@ -840,6 +885,13 @@ class SentryVisitor(ast.NodeVisitor):
             for alias in node.names:
                 if _is_non_platform_import(alias.name):
                     self.errors.append((node.lineno, node.col_offset, S017_msg))
+
+        service_directories = _getsentry_service_directories(self.filename)
+        if service_directories and any(
+            _is_cross_service_internal_import(service_directories, alias.name, 0)
+            for alias in node.names
+        ):
+            self.errors.append((node.lineno, node.col_offset, S032_msg))
 
         self.generic_visit(node)
 

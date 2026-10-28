@@ -4,7 +4,7 @@ import ast
 from datetime import datetime, timezone
 from unittest.mock import patch
 
-from tools.flake8_plugin import S030_allowlist, SentryCheck, _s015_msg
+from tools.flake8_plugin import S030_allowlist, S032_msg, SentryCheck, _s015_msg
 
 
 def _run(src: str, filename: str = "getsentry/t.py") -> list[str]:
@@ -1878,3 +1878,50 @@ class S(serializers.Serializer):
     errors = _run_s023(src)
     assert len(errors) == 1
     assert "deprecate='gone'" in errors[0]
+
+
+def test_S032() -> None:
+    src = """\
+from getsentry.billing.platform.services.contract.models import Contract  # bad
+from getsentry.billing.platform.services.contract import ContractService  # ok
+from getsentry.billing.platform.services.checkout.utils import helper  # ok, own service
+from getsentry.billing.platform.services.mappings import date_to_proto  # ok, shared module
+from getsentry.billing.platform.services import contract  # ok, package root
+from ..usage.service import BillingUsageService  # bad
+from ..usage import BillingUsageService  # ok
+from .models import Checkout  # ok
+from ...utils import shared  # ok, platform utils
+import getsentry.billing.platform.services.contract.models  # bad
+import getsentry.billing.platform.services.contract  # ok
+"""
+    expected = [
+        f"t.py:1:0: {S032_msg}",
+        f"t.py:6:0: {S032_msg}",
+        f"t.py:10:0: {S032_msg}",
+    ]
+    assert _run(src, filename="getsentry/billing/platform/services/checkout/service.py") == expected
+    assert (
+        _run(src, filename="./getsentry/billing/platform/services/checkout/service.py") == expected
+    )
+    assert _run(src, filename="getsentry/billing/platform/services/mappings.py") == []
+    assert _run(src, filename="tests/getsentry/billing/platform/services/checkout/test_x.py") == []
+
+
+def test_S032_nested_services() -> None:
+    src = """\
+from ....seats.service import PlatformBillingSeatsService  # bad
+from ...types import Grant  # ok, still inside engagement
+from ..balance.models import Balance  # ok, sibling inside engagement
+from getsentry.billing.platform.services.engagement.types import Grant  # ok, own service
+"""
+    assert _run(
+        src, filename="getsentry/billing/platform/services/engagement/services/trial/service.py"
+    ) == [f"t.py:1:0: {S032_msg}"]
+
+
+def test_S032_ignores_sentry() -> None:
+    src = """\
+from sentry.billing.platform.services.quota.service import QuotaService
+from ..quota.service import QuotaService
+"""
+    assert _run(src, filename="src/sentry/billing/platform/services/usage/service.py") == []
