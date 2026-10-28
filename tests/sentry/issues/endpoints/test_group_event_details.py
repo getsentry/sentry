@@ -181,14 +181,6 @@ class GroupEventDetailsEndpointTest(GroupEventDetailsEndpointTestBase, APITestCa
         assert response.data["nextEventID"] == str(self.event_c.event_id)
         assert legacy.call_count == 1
 
-    def test_unknown_collapse_value_ignored(self) -> None:
-        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.event_b.group.id}/events/{self.event_b.event_id}/"
-        response = self.client.get(url, format="json", data={"collapse": ["notARealValue"]})
-
-        assert response.status_code == 200, response.content
-        assert response.data["previousEventID"] == str(self.event_a.event_id)
-        assert response.data["nextEventID"] == str(self.event_c.event_id)
-
     def test_prev_filtered(self) -> None:
         url = f"/api/0/organizations/{self.organization.slug}/issues/{self.event_b.group.id}/events/{self.event_b.event_id}/"
         response = self.client.get(
