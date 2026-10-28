@@ -6,9 +6,6 @@ importers:
   .:
     configDependencies: {}
     packageManagerDependencies:
-      '@pnpm/exe':
-        specifier: 12.10.1
-        version: 12.10.1
       pnpm:
         specifier: 12.10.1
         version: 12.10.1
@@ -92,11 +89,6 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@pnpm/exe@12.10.1':
-    resolution: {integrity: sha512-q6RXJFGkDmECWt5gmvAozciaU9HU5FqCRsu3rRMQJX7z8EvtAsJ9BXpyVbkNrwe6mwjlM4avqm/XUyszTL1Htw==}
-    engines: {node: '>=18.*'}
-    hasBin: true
-
   pnpm@12.10.1:
     resolution: {integrity: sha512-ukCjfrGjcNYP6oxM8dNkwTvMzvUY6YrSvO6VT1OdONo3RY5YJho/pV4GUjRQ6g//+fSXsTW+QfLBXBZCusrObA==}
     engines: {node: '>=18.*'}
@@ -145,23 +137,6 @@ snapshots:
 
   '@pnpm/exe.win32-x64@12.10.1':
     optional: true
-
-  '@pnpm/exe@12.10.1':
-    optionalDependencies:
-      '@pnpm/exe.android-arm64': 12.10.1
-      '@pnpm/exe.android-x64': 12.10.1
-      '@pnpm/exe.darwin-arm64': 12.10.1
-      '@pnpm/exe.darwin-x64': 12.10.1
-      '@pnpm/exe.freebsd-x64': 12.10.1
-      '@pnpm/exe.linux-arm64': 12.10.1
-      '@pnpm/exe.linux-arm64-musl': 12.10.1
-      '@pnpm/exe.linux-ppc64': 12.10.1
-      '@pnpm/exe.linux-riscv64': 12.10.1
-      '@pnpm/exe.linux-s390x': 12.10.1
-      '@pnpm/exe.linux-x64': 12.10.1
-      '@pnpm/exe.linux-x64-musl': 12.10.1
-      '@pnpm/exe.win32-arm64': 12.10.1
-      '@pnpm/exe.win32-x64': 12.10.1
 
   pnpm@12.10.1:
     optionalDependencies:
@@ -230,8 +205,8 @@ importers:
         specifier: 2.0.2
         version: 2.0.2(@rspack/core@2.2.8(@swc/helpers@0.5.23))(react-refresh@0.19.0)
       '@sentry/conventions':
-        specifier: ^0.29.0
-        version: 0.29.0
+        specifier: ^0.30.0
+        version: 0.30.0
       '@sentry/sqlish':
         specifier: 1.0.1
         version: 1.0.1(react@19.3.0)
@@ -581,8 +556,8 @@ importers:
         specifier: 11.7.0
         version: 11.7.0
       '@sentry/conventions':
-        specifier: ^0.29.0
-        version: 0.29.0
+        specifier: ^0.30.0
+        version: 0.30.0
       '@sentry/core':
         specifier: 11.7.0
         version: 11.7.0
@@ -4079,8 +4054,8 @@ packages:
     resolution: {integrity: sha512-Mrqd/o7n/z7qWSYfQQA7x4fFTA0IqOG6JNsbBpnC97khPwZk7n6DPtOO7YgaYplSl8R8QLRbBz9Xv2lVhToSAg==}
     engines: {node: '>=14'}
 
-  '@sentry/conventions@0.29.0':
-    resolution: {integrity: sha512-kYq9/HJ/l6MYP/srIc20dy1W4mWyJfCF0OWFF+RhBGZwyr/wCmtabRFKyw7kqM+DTwZXQOjSTSZUcJhDowcInQ==}
+  '@sentry/conventions@0.30.0':
+    resolution: {integrity: sha512-WTumd5A2iFmHTRubi6mc6gLHU8LswPQqoNaZu6T1cxiTUmy3WdEw0i8FAnVbcgxTlsumX5oh63/b4B9lY5wAPQ==}
     engines: {node: '>=14'}
 
   '@sentry/core@10.76.0':
@@ -11674,7 +11649,7 @@ snapshots:
 
   '@sentry/conventions@0.27.0': {}
 
-  '@sentry/conventions@0.29.0': {}
+  '@sentry/conventions@0.30.0': {}
 
   '@sentry/core@10.76.0':
     dependencies:
