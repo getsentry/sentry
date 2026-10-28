@@ -70,11 +70,7 @@ function SettingsNavigationGroupImpl(props: NavigationGroupProps) {
   );
 
   return (
-    <SecondaryNavigation.Section
-      id={props.id}
-      title={hideTitle ? undefined : name}
-      chevronPosition={settingsV3 ? 'leading' : 'trailing'}
-    >
+    <SecondaryNavigation.Section id={props.id} title={hideTitle ? undefined : name}>
       <SecondaryNavigation.List>{navLinks}</SecondaryNavigation.List>
     </SecondaryNavigation.Section>
   );

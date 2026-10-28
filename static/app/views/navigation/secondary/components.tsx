@@ -69,6 +69,7 @@ import {
 import {isPrimaryNavigationLinkActive} from 'sentry/views/navigation/primary/components';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
+import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 const MotionContainer = motion.create(Container);
 
@@ -377,16 +378,16 @@ function SecondaryNavigationBody(props: SecondaryNavigationBodyProps) {
 
 interface SectionTitleProps {
   canCollapse: boolean;
-  chevronPosition: 'leading' | 'trailing';
   children: ReactNode;
   isCollapsed: boolean;
   setIsCollapsed: (isCollapsed: boolean) => void;
 }
 
 function SectionTitle(props: SectionTitleProps) {
+  const settingsV3 = useSettingsV3();
   // The leading slot and padding match `SecondaryNavigation.Link`, so the
   // chevron and title line up with the leading slot and label of each link.
-  if (props.chevronPosition === 'leading') {
+  if (settingsV3) {
     const content = (
       <Fragment>
         <SecondaryNavigationLeadingSlot>
@@ -472,17 +473,13 @@ interface SecondaryNavigationSectionProps {
   children: ReactNode;
   id: string;
   /**
-   * Places the collapse chevron in a leading slot that lines up with
-   * the leading badge slot in the links below.
-   */
-  chevronPosition?: 'leading' | 'trailing';
-  /**
    * The title is the collapse toggle, so only titled sections can collapse.
    */
   title?: ReactNode;
 }
 
 function SecondaryNavigationSection(props: SecondaryNavigationSectionProps) {
+  const settingsV3 = useSettingsV3();
   const {layout} = usePrimaryNavigation();
   const [isCollapsedState, setIsCollapsedState] = useLocalStorageState(
     `secondary-nav-section-${props.id}-collapsed`,
@@ -492,14 +489,10 @@ function SecondaryNavigationSection(props: SecondaryNavigationSectionProps) {
   const isCollapsed = canCollapse ? isCollapsedState : false;
 
   return (
-    <Container
-      padding={props.chevronPosition === 'leading' ? '0 xs' : 'md sm'}
-      data-nav-section
-    >
+    <Container padding={settingsV3 ? '0 xs' : 'md sm'} data-nav-section>
       {props.title ? (
         <SectionTitle
           canCollapse={canCollapse}
-          chevronPosition={props.chevronPosition ?? 'trailing'}
           isCollapsed={isCollapsed}
           setIsCollapsed={setIsCollapsedState}
         >
