@@ -214,6 +214,7 @@ function OnboardingPanel({
                       <Container marginTop="md" marginBottom="2xl">
                         <OnboardingCodeSnippet
                           language="bash"
+                          alwaysShowCopyButton
                           onCopy={() => trackPromptCopied('install_command')}
                         >
                           {INSTALL_PLUGIN_COMMAND}
