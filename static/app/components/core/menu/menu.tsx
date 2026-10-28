@@ -328,9 +328,6 @@ export type ListItemProps = {
    * Items to be added to the left of the label
    */
   leadingItems?: ExtraContent;
-  /** Override the item's padding using spacing tokens. */
-  padding?: ContainerProps['padding'];
-
   /**
    * Accented text and background (on hover) colors.
    */
@@ -386,7 +383,6 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
   as,
   priority = 'default',
   size,
-  padding,
   disabled = false,
   leadingItems = false,
   trailingItems = false,
@@ -434,7 +430,7 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
       >
         <StyledInnerWrap
           data-menu-item-content
-          padding={padding ?? ITEM_PADDING_BY_SIZE[size ?? 'md']}
+          padding={ITEM_PADDING_BY_SIZE[size ?? 'md']}
           // The leading slot is 2xl wide and centers its content, so a 16px icon
           // gets 4px of space on each side. A `md` inset keeps leading items where
           // they sat before the slot existed, at every size.

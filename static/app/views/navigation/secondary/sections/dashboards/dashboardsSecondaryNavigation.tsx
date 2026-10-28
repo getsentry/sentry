@@ -177,12 +177,14 @@ function StarredDashboardItems({
             <SecondaryNavigation.Link
               to={`/organizations/${organizationSlug}/dashboard/${dashboard.id}/`}
               analyticsItemName="dashboard_starred_item"
-              leading={{
-                type: 'project',
-                projectPlatforms: dashboardProjectPlatforms,
-                allProjects:
-                  dashboard.projects?.length === 1 && dashboard.projects[0] === -1,
-              }}
+              leading={
+                <SecondaryNavigation.ProjectIcon
+                  projectPlatforms={dashboardProjectPlatforms}
+                  allProjects={
+                    dashboard.projects?.length === 1 && dashboard.projects[0] === -1
+                  }
+                />
+              }
             >
               {dashboard.title}
             </SecondaryNavigation.Link>

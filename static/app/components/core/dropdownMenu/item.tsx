@@ -8,7 +8,6 @@ import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconChevron} from '@sentry/icons/chevron';
 import type {LocationDescriptor} from 'history';
 
-import type {StackProps} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {
   ListItem,
@@ -59,9 +58,6 @@ export interface MenuItemProps extends ListItemProps {
   hidden?: boolean;
   /** Shows a selection checkmark and reserves its space when false. */
   isSelected?: boolean;
-  /** Spacing between this section's items. */
-  itemGap?: StackProps['gap'];
-
   /**
    * Menu item label. Should preferably be a string. If not, provide a `textValue` prop
    * to enable search & keyboard select.

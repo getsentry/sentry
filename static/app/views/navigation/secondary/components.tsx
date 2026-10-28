@@ -68,7 +68,6 @@ import {
 } from 'sentry/views/navigation/navigationTour';
 import {isPrimaryNavigationLinkActive} from 'sentry/views/navigation/primary/components';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
-import {NavigationBadge} from 'sentry/views/navigation/secondary/navigationBadge';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 
 const MotionContainer = motion.create(Container);
@@ -278,9 +277,8 @@ interface SecondaryNavigationItemProps extends Omit<LinkProps, 'ref' | 'to'> {
    */
   end?: boolean;
   isActive?: boolean;
-  leading?:
-    | {type: 'badge'; value: string | number | null}
-    | ({type: 'project'} & SecondaryNavigationProjectIconProps);
+  /** Content centered in a reserved 24px by 24px slot, including when empty. */
+  leading?: ReactNode;
   trailingItems?: ReactNode;
 }
 
@@ -573,16 +571,7 @@ function SecondaryNavigationLink({
 
   return (
     <SidebarNavigationLink {...sharedLinkProps}>
-      {leading?.type === 'badge' ? (
-        <SecondaryNavigationLeadingSlot>
-          {leading.value === null ? null : <NavigationBadge badge={leading.value} />}
-        </SecondaryNavigationLeadingSlot>
-      ) : leading?.type === 'project' ? (
-        <SecondaryNavigationProjectIcon
-          projectPlatforms={leading.projectPlatforms}
-          allProjects={leading.allProjects}
-        />
-      ) : null}
+      <SecondaryNavigationLeadingSlot>{leading}</SecondaryNavigationLeadingSlot>
       <Text ellipsis variant="inherit">
         {children}
       </Text>

@@ -3,6 +3,8 @@ import type {Node} from '@react-types/shared';
 
 import {SectionGroup, SectionLabel, SectionList} from '@sentry/scraps/menu';
 
+import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
+
 import type {MenuItemProps} from './item';
 
 type DropdownMenuSectionProps = {
@@ -15,6 +17,7 @@ type DropdownMenuSectionProps = {
  * https://react-spectrum.adobe.com/react-aria/useMenu.html
  */
 export function DropdownMenuSection({node, children}: DropdownMenuSectionProps) {
+  const settingsV3 = useSettingsV3();
   const {itemProps, headingProps, groupProps} = useMenuSection({
     heading: node.rendered,
     'aria-label': node['aria-label'],
@@ -27,7 +30,7 @@ export function DropdownMenuSection({node, children}: DropdownMenuSectionProps) 
           {node.rendered}
         </SectionLabel>
       )}
-      <SectionList gap={node.value?.itemGap} {...groupProps}>
+      <SectionList gap={settingsV3 ? '2xs' : undefined} {...groupProps}>
         {children}
       </SectionList>
     </SectionGroup>

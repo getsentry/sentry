@@ -40,7 +40,7 @@ export function SettingsNavItem({badge, label, id, to, index, ...props}: Props) 
             {...layoutProps}
             to={to}
             end={index}
-            leading={settingsV3 ? {type: 'badge', value: badge ?? null} : undefined}
+            leading={settingsV3 ? badgeElement : undefined}
             trailingItems={settingsV3 ? null : badgeElement}
             analyticsItemName={id ? `settings_${id}` : undefined}
             {...props}

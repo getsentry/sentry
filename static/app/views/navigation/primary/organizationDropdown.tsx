@@ -193,7 +193,6 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                 {t('Project Settings')}
               </Text>
             ),
-            itemGap: '2xs',
             hidden: props.hideCurrentOrganizationLinks,
             children: [
               ...sortProjects(projects.filter(project => project.isBookmarked))
@@ -209,7 +208,6 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
               {
                 key: 'view-all-projects',
                 label: t('View All Projects'),
-                padding: 'xs xs xs md',
                 leadingItems: <span aria-hidden="true" />,
                 submenu: {
                   title: t('All Projects'),
@@ -227,7 +225,6 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                         {t('My Projects')}
                       </Text>
                     ),
-                    itemGap: '2xs',
                     hidden: memberProjects.length === 0,
                     children: memberProjects.map(project =>
                       makeProjectMenuItem(
@@ -244,7 +241,6 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                         {t('Other Projects')}
                       </Text>
                     ),
-                    itemGap: '2xs',
                     hidden: otherProjects.length === 0,
                     children: otherProjects.map(project =>
                       makeProjectMenuItem(
@@ -259,7 +255,6 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
               {
                 key: 'create-project',
                 label: t('Create Project'),
-                padding: 'xs xs xs md',
                 leadingItems: <IconAdd />,
                 to: canCreateProject
                   ? makeProjectsPathname({path: '/new/', organization})
@@ -380,7 +375,6 @@ function makeProjectMenuItem(
   return {
     key: `${keyPrefix}-${project.id}`,
     label: project.slug,
-    padding: 'xs xs xs md',
     leadingItems: <ProjectAvatar project={project} size={16} />,
     trailingAction,
     to: `/settings/${organization.slug}/projects/${project.slug}/`,

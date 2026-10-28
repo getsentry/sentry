@@ -72,12 +72,13 @@ function ProjectsNavigationItemsImpl({
                       path: `/${project.slug}/`,
                       organization,
                     })}
-                    leading={{
-                      type: 'project',
-                      projectPlatforms: project.platform
-                        ? [project.platform]
-                        : ['default'],
-                    }}
+                    leading={
+                      <SecondaryNavigation.ProjectIcon
+                        projectPlatforms={
+                          project.platform ? [project.platform] : ['default']
+                        }
+                      />
+                    }
                     analyticsItemName={starredAnalyticsItemName}
                   >
                     {project.slug}
