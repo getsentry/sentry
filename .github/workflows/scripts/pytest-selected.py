@@ -289,7 +289,10 @@ def run_full_shard(args: list[str], total: int, group: int, service_color: str =
     shard = plan[group]
 
     color_label = f" ({service_color})" if service_color else ""
-    relay_detail = f", {len(processing)} relay-dependent" if service_color else ""
+    # Processing files are never split, so the shard-local count is exact.
+    relay_detail = (
+        f", {len(set(shard.files) & processing)} relay-dependent" if service_color else ""
+    )
     print(
         f"pytest-selected: shard {group + 1}/{total}{color_label} runs {len(shard.files)} of "
         f"{len(files)} files{relay_detail}, {len(shard.parts)} of them split",
