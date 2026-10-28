@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
@@ -621,13 +622,19 @@ describe('ErrorNode', () => {
       };
 
       const {rerender} = render(
-        brokenNode.renderDetails({...detailsProps, node: brokenNode})
+        <Fragment>
+          {brokenNode.renderDetails({...detailsProps, node: brokenNode})}
+        </Fragment>
       );
       expect(
         await screen.findByText('There was an error loading a component.')
       ).toBeInTheDocument();
 
-      rerender(workingNode.renderDetails({...detailsProps, node: workingNode}));
+      rerender(
+        <Fragment>
+          {workingNode.renderDetails({...detailsProps, node: workingNode})}
+        </Fragment>
+      );
       expect(await screen.findByText('details for working')).toBeInTheDocument();
     });
   });

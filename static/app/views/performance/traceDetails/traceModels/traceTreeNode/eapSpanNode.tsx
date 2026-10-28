@@ -363,10 +363,12 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
   renderDetails<T extends BaseNode>(
     props: TraceTreeNodeDetailsProps<T>
   ): React.ReactNode {
+    // Read before the AI guard, which narrows `this` to `never` in the fallthrough.
+    const path = this.path;
     if (getIsAiNode(this)) {
       return (
         <LazyLoad
-          key={this.path}
+          key={path}
           LazyComponent={LazyAiSpanDetails}
           node={this}
           traceId={props.traceId}
@@ -375,7 +377,7 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     }
     return (
       <LazyLoad
-        key={this.path}
+        key={path}
         LazyComponent={LazyEAPSpanNodeDetails}
         {...props}
         node={this}
