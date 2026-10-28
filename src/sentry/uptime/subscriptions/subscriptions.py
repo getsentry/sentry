@@ -209,8 +209,12 @@ def update_uptime_subscription(
     elif new_response_capture_enabled and not subscription.response_capture_enabled:
         new_capture_response_on_failure = True
 
+    # Editing a disabled monitor must not publish it, or the checker runs it while its detector
+    # stays disabled. enable_uptime_detector publishes the latest config on re-enable.
+    is_disabled = subscription.status == UptimeSubscription.Status.DISABLED.value
+
     subscription.update(
-        status=UptimeSubscription.Status.UPDATING.value,
+        status=subscription.status if is_disabled else UptimeSubscription.Status.UPDATING.value,
         url=url,
         url_domain=result.domain,
         url_domain_suffix=result.suffix,
@@ -229,7 +233,8 @@ def update_uptime_subscription(
     check_and_update_regions(subscription, load_regions_for_uptime_subscription(subscription.id))
 
     def commit_tasks():
-        update_remote_uptime_subscription.delay(subscription.id)
+        if not is_disabled:
+            update_remote_uptime_subscription.delay(subscription.id)
         fetch_subscription_rdap_info.delay(subscription.id)
         if interval_updated:
             last_interval_change_key = build_last_interval_change_timestamp_key(detector)
