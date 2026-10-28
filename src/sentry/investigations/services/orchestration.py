@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import logging
 from copy import deepcopy
 from dataclasses import dataclass
@@ -34,13 +35,12 @@ from sentry.investigations.services.investigations import (
     InvestigationSourceNotFound,
     InvestigationValidationError,
     _create_project_links,
-    _legacy_storage_filters,
     archive_investigation,
     default_investigation_title,
-    investigation_lineage_key,
     update_investigation,
 )
 from sentry.models.organization import Organization
+from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +62,7 @@ class AcceptedOrchestrationCommand:
 __all__ = [
     "AcceptedOrchestrationCommand",
     "accept_orchestration_command",
-    "agentic_breached_metric_lineage_key",
+    "agentic_breached_metric_source_key",
     "archive_investigation_with_orchestration",
     "create_agentic_breached_metric_investigation",
     "create_agentic_manual_investigation",
@@ -600,8 +600,13 @@ def rebuild_orchestration_source(investigation: Investigation) -> dict[str, Any]
     return _breached_metric_orchestration_source(resolved.source)
 
 
-def agentic_breached_metric_lineage_key(source: dict[str, Any]) -> str:
-    return investigation_lineage_key("agentic_breached_metric", source)
+def agentic_breached_metric_source_key(source: dict[str, Any]) -> str:
+    identity = {
+        "templateKey": "agentic_breached_metric",
+        "type": source["type"],
+        "ref": source["ref"],
+    }
+    return hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
 
 
 def create_agentic_breached_metric_investigation(
@@ -614,13 +619,13 @@ def create_agentic_breached_metric_investigation(
     filters: dict[str, Any],
 ) -> tuple[Investigation, bool]:
     normalized_source = resolved_source.source
-    lineage_key = agentic_breached_metric_lineage_key(normalized_source)
+    source_key = agentic_breached_metric_source_key(normalized_source)
     # Uniqueness on active lineage and revision arbitrates concurrent launches.
     for attempt in range(3):
         active = (
             Investigation.objects.filter(
                 organization=organization,
-                lineage_key=lineage_key,
+                source_key=source_key,
                 status=InvestigationStatus.ACTIVE,
             )
             .order_by("-source_revision", "-id")
@@ -630,7 +635,7 @@ def create_agentic_breached_metric_investigation(
             return active, False
         latest_revision = Investigation.objects.filter(
             organization=organization,
-            lineage_key=lineage_key,
+            source_key=source_key,
         ).aggregate(latest=Max("source_revision"))["latest"]
         try:
             investigation, _ = _create_agentic_investigation(
@@ -640,11 +645,11 @@ def create_agentic_breached_metric_investigation(
                 source=normalized_source,
                 orchestration_source=_breached_metric_orchestration_source(normalized_source),
                 project_ids=project_ids,
-                filters=_legacy_storage_filters(normalized_source, filters),
+                filters=filters,
                 source_type=InvestigationSourceType.METRIC_OPEN_PERIOD,
                 source_ref=normalized_source["ref"],
-                source_key=lineage_key,
-                lineage_key=lineage_key,
+                source_key=source_key,
+                lineage_key=source_key,
                 source_revision=(latest_revision or 0) + 1,
             )
             return investigation, True
@@ -652,7 +657,7 @@ def create_agentic_breached_metric_investigation(
             if attempt == 2:
                 active = Investigation.objects.filter(
                     organization=organization,
-                    lineage_key=lineage_key,
+                    source_key=source_key,
                     status=InvestigationStatus.ACTIVE,
                 ).first()
                 if active is not None:
