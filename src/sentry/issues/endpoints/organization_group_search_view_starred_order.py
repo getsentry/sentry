@@ -31,6 +31,7 @@ class GroupSearchViewStarredOrderSerializer(serializers.Serializer):
 class OrganizationGroupSearchViewStarredOrderEndpoint(OrganizationEndpoint):
     publish_status = {"PUT": ApiPublishStatus.EXPERIMENTAL}
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = 3.0
     permission_classes = (MemberPermission,)
 
     def put(self, request: Request, organization: Organization) -> Response:

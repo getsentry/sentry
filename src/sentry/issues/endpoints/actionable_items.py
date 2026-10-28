@@ -31,6 +31,7 @@ class ActionableItemsEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = 3.0
 
     def get(self, request: Request, project: Project, event_id: str) -> Response:
         # Retrieve information about actionable items (source maps, event errors, etc.) for a given event.

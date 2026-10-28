@@ -19,6 +19,8 @@ logger = logging.getLogger(__name__)
 
 @cell_silo_endpoint
 class GroupActivitiesEndpoint(GroupEndpoint):
+    max_acceptable_duration = 3.0
+
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

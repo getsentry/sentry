@@ -23,6 +23,7 @@ class OrganizationGroupSearchViewsStarredEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = 3.0
     permission_classes = (MemberPermission,)
 
     def get(self, request: Request, organization: Organization) -> Response:

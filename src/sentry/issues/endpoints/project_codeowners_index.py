@@ -39,6 +39,7 @@ from sentry.models.projectcodeowners import ProjectCodeOwners
 @extend_schema(tags=["Projects"])
 class ProjectCodeOwnersEndpoint(ProjectCodeOwnersBase):
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = 3.0
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,

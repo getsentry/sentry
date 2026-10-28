@@ -56,6 +56,7 @@ CODEOWNERS_ID_PARAM = OpenApiParameter(
 @extend_schema(tags=["Projects"])
 class ProjectCodeOwnersDetailsEndpoint(ProjectCodeOwnersBase):
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = 3.0
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PUBLIC,

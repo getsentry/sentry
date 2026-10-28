@@ -25,6 +25,7 @@ def _state_to_dict(pipeline: Pipeline[Any], state: State) -> dict[str, Any]:
 @cell_silo_endpoint
 class DebugGroupDerivedDataEndpoint(GroupEndpoint):
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = 3.0
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
