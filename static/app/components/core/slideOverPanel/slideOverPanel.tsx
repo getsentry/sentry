@@ -149,11 +149,7 @@ const _SlideOverPanel = styled(motion.div, {
   top: ${p =>
     p.topOffset ??
     (p.position === 'left' || p.mode === 'passive' ? p.top : p.theme.space.xl)};
-  ${p =>
-    p.height &&
-    css`
-      height: ${p.height};
-    `}
+  height: ${p => p.height ?? 'auto'};
   right: ${p => (p.position === 'left' ? p.theme.space.xl : 0)};
   bottom: ${p => p.theme.space.xl};
   left: ${p => (p.position === 'left' ? 0 : p.theme.space.xl)};
