@@ -12,7 +12,8 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.msteams.actions.form import MsTeamsNotifyServiceForm
 from sentry.integrations.msteams.actions.notification import MsTeamsNotifyServiceAction
 from sentry.integrations.msteams.analytics import MSTeamsIntegrationNotificationSent
-from sentry.integrations.types import EventLifecycleOutcome
+from sentry.integrations.types import EventLifecycleOutcome, ExternalProviders
+from sentry.notifications.additional_attachment_manager import msteams_attachment_manager
 from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.helpers.analytics import (
@@ -327,6 +328,30 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         )
 
         assert_slo_metric(mock_record_event, EventLifecycleOutcome.SUCCESS)
+
+    @responses.activate
+    def test_additional_attachment(self) -> None:
+        event = self.get_event()
+        attachment = {"type": "TextBlock", "text": "Additional content"}
+        rule = self.get_rule(
+            data={"team": self.integration.id, "channel": "Naboo", "channel_id": "nb"}
+        )
+        responses.add(
+            method=responses.POST,
+            url="https://smba.trafficmanager.net/amer/v3/conversations/nb/activities",
+            status=200,
+            json={},
+        )
+
+        with mock.patch.dict(
+            msteams_attachment_manager.attachment_generators,
+            {ExternalProviders.MSTEAMS: lambda integration, organization: [attachment]},
+        ):
+            results = list(rule.after(event=event))
+            results[0].callback(event, futures=[])
+
+        data = orjson.loads(responses.calls[0].request.body)
+        assert data["attachments"][0]["content"]["body"][-1] == attachment
 
     def test_render_label(self) -> None:
         rule = self.get_rule(data={"team": self.integration.id, "channel": "Tatooine"})
